@@ -3,9 +3,10 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Briefcase, Plus, UserCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ButtonLink, GkRoot, PageFrame, SearchInput, Section } from '../design/primitives';
-import { CATEGORIES, fetchJobsFront } from '../features/jobs/api';
+import { fetchJobsFront, LINES } from '../features/jobs/api';
 import { JobRowSection, Poster } from '../features/jobs/JobCard';
 import { JOBS_KEYS, jobsPath } from '../features/jobs/query';
+import { CircleStrip, MarketTabs } from '../features/store/front/MarketTabs';
 import { AreaPicker } from '../features/store/front/StoreFrontRows';
 import { useWorldArea } from '../features/world/useWorldArea';
 import { useWorldData } from '../features/world/useWorldData';
@@ -32,6 +33,7 @@ export const JobsPage = () => {
     return (
         <GkRoot className="gk-store gk-page">
             <PageFrame>
+                <MarketTabs current="jobs" />
                 <div className="gk-store-head">
                     <div><h1>Jobs & volunteering</h1><p className="gk-store-head__hint">Work in football, from clubs and from people, near you</p></div>
                     <form className="gk-store-head__search" role="search" onSubmit={event => { event.preventDefault(); navigate(jobsPath({ query: text.trim() })); }}>
@@ -70,9 +72,9 @@ export const JobsPage = () => {
                             </div>
                         </article>
                     </div>
-                    <nav className="gk-store-cats" aria-label="Lines of work">
-                        {CATEGORIES.map(category => <Link key={category.value} className="gk-store-cat" to={jobsPath({ category: category.value })}><span className="gk-store-cat__icon"><category.icon aria-hidden="true" /></span><span>{category.label}</span></Link>)}
-                    </nav>
+                    <CircleStrip title="Browse by line of work" hint="What you do, or who you need" label="Lines of work" dense>
+                        {LINES.map(line => <Link key={line.id} className="gk-store-cat" to={jobsPath({ category: line.category, query: line.query ?? '' })}><span className="gk-store-cat__icon"><line.icon aria-hidden="true" /></span><span>{line.label}</span></Link>)}
+                    </CircleStrip>
                     <JobRowSection title="For you" hint={data?.role === 'COACH' ? 'Coaching first, then the clubs you follow and your city' : data?.role === 'REFEREE' ? 'Matchday first, then the clubs you follow and your city' : 'The clubs you follow and your city first'} to={jobsPath({ direction: 'HIRING' })} jobs={data?.forYou ?? []} loading={front.loading} error={front.error} retry={front.retry} empty="No open jobs yet" />
                     <JobRowSection title="Near you" hint={near ? <AreaPicker city={data?.city ?? near} onChange={setCity} /> : 'Nearest first'} jobs={data?.near ?? []} loading={front.loading} error={front.error} retry={front.retry} empty={near ? `No open job near ${near} yet` : 'No open job yet'} action={{ label: 'View all', to: jobsPath({ direction: 'HIRING', sort: 'NEAREST' }) }} />
                     <JobRowSection title="People available" hint="Coaches, referees and specialists offering their time" to={jobsPath({ direction: 'OFFERING' })} jobs={data?.offering ?? []} loading={front.loading} error={front.error} retry={front.retry} empty="Nobody has listed themselves yet" />

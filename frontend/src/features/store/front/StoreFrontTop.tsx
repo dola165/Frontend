@@ -5,6 +5,7 @@ import { ButtonLink, Count, SearchInput } from '../../../design/primitives';
 import { cataloguePath } from '../query';
 import { useCartCount } from '../useCartCount';
 import { CATEGORIES, COLLECTIONS } from '../labels';
+import { CircleStrip } from './MarketTabs';
 
 /** The storefront's first row: the title, one wide search, Browse all and the cart. */
 export function StoreHead() {
@@ -53,13 +54,13 @@ export function StoreDoors({ own, sellers }: { own?: number; sellers?: number })
 /** Compact categories as a strip of circles, each opening the catalogue on that category. */
 export function Categories() {
     return (
-        <nav className="gk-store-cats" aria-label="Shop by category">
+        <CircleStrip title="Shop by category" hint="Everything on sale, by kind" label="Shop by category">
             {CATEGORIES.filter(category => category.id !== 'OTHER').map(category => (
                 <Link key={category.id} className="gk-store-cat" to={cataloguePath({ category: category.id })}>
                     <span className="gk-store-cat__icon"><category.icon aria-hidden="true" /></span>
                     <span>{category.label}</span>
                 </Link>
             ))}
-        </nav>
+        </CircleStrip>
     );
 }

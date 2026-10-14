@@ -6,6 +6,7 @@ import { ButtonLink, GkRoot, PageFrame, SearchInput } from '../design/primitives
 import { CAMPAIGN_CATEGORIES, campaignMoney, fetchFundraisingFront } from '../features/campaigns/api';
 import { FundraiserRow } from '../features/campaigns/FundraiserCard';
 import { FUNDRAISING_KEYS, fundraisingPath } from '../features/campaigns/query';
+import { CircleStrip, MarketTabs } from '../features/store/front/MarketTabs';
 import { AreaPicker } from '../features/store/front/StoreFrontRows';
 import { useWorldArea } from '../features/world/useWorldArea';
 import { useWorldData } from '../features/world/useWorldData';
@@ -31,6 +32,7 @@ export const FundraisingPage = () => {
     return (
         <GkRoot className="gk-store gk-page">
             <PageFrame>
+                <MarketTabs current="fundraising" />
                 <div className="gk-store-head">
                     <div><h1>Fundraising</h1><p className="gk-store-head__hint">Projects from clubs on GrassKickZ, backed by their supporters</p></div>
                     <form className="gk-store-head__search" role="search" onSubmit={event => { event.preventDefault(); navigate(fundraisingPath({ query: text.trim() })); }}>
@@ -50,9 +52,9 @@ export const FundraisingPage = () => {
                         {front.data && <div className="gk-fund-hero__facts"><span><strong className="gk-num">{front.data.active}</strong>open fundraisers</span><span><strong className="gk-num">{campaignMoney(front.data.raised, 'GEL')}</strong>raised so far</span></div>}
                         <div className="gk-store-door__chips"><Link className="gk-store-door__chip" to="/campaigns/new">Start a fundraiser</Link><Link className="gk-store-door__chip" to={fundraisingPath({ sort: 'CLOSEST' })}>Nearly there</Link></div>
                     </article>
-                    <nav className="gk-store-cats" aria-label="Fundraisers by category">
+                    <CircleStrip title="Browse by cause" hint="What the money is for" label="Fundraisers by cause">
                         {CAMPAIGN_CATEGORIES.map(category => <Link key={category.value} className="gk-store-cat" to={fundraisingPath({ category: category.value })}><span className="gk-store-cat__icon"><category.icon aria-hidden="true" /></span><span>{category.label}</span></Link>)}
-                    </nav>
+                    </CircleStrip>
                     <FundraiserRow title="Near you" hint={near ? <AreaPicker city={front.data?.city ?? near} onChange={setCity} /> : 'Open fundraisers'} campaigns={front.data?.near ?? []} loading={front.loading} error={front.error} retry={front.retry} empty={near ? `No open fundraiser near ${near} yet` : 'No open fundraiser yet'} action={{ label: 'View all', to: fundraisingPath() }} />
                     <FundraiserRow title="Nearly there" hint="Closest to their goal" to={fundraisingPath({ sort: 'CLOSEST' })} campaigns={front.data?.closest ?? []} loading={front.loading} error={front.error} retry={front.retry} empty="Nothing close to its goal yet" />
                     {signedIn && (front.loading || followed.length > 0) && <FundraiserRow title="From clubs you follow" hint="Clubs you follow with an open fundraiser" campaigns={followed} loading={front.loading} error={front.error} retry={front.retry} empty="None of the clubs you follow is raising money" />}

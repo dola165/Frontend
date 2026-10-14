@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { GkRoot, PageFrame } from '../design/primitives';
 import { fetchStoreCatalog, fetchStoreFront } from '../features/store/api';
 import { CATALOGUE_KEYS, cataloguePath } from '../features/store/query';
+import { MarketTabs } from '../features/store/front/MarketTabs';
 import { Categories, StoreDoors, StoreHead } from '../features/store/front/StoreFrontTop';
 import { AreaPicker, Collections, Sellers } from '../features/store/front/StoreFrontRows';
 import { StoreSlides } from '../features/store/front/StoreSlides';
@@ -31,6 +32,7 @@ export const StorePage = () => {
     return (
         <GkRoot className="gk-store gk-page">
             <PageFrame>
+                <MarketTabs current="store" />
                 <StoreHead />
                 <div className="gk-store-stack">
                     <StoreDoors own={front.data?.own} sellers={front.data?.sellers} />

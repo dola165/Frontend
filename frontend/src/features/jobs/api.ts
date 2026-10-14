@@ -1,4 +1,4 @@
-import { Briefcase, ClipboardList, HeartHandshake, Megaphone, Stethoscope, Trophy, Users, Wrench, type LucideIcon } from 'lucide-react';
+import { Activity, TrendingUp, Briefcase, Camera, ClipboardList, Flag, Hand, HeartHandshake, HeartPulse, Megaphone, Search, Shirt, Stethoscope, Trophy, UserRound, Users, Wallet, Wrench, type LucideIcon } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
 import type { ClubJob, ClubJobCategory, ClubJobEngagementType } from '../clubs/api';
 
@@ -35,6 +35,29 @@ export const CATEGORIES: Array<{ value: ClubJobCategory; label: string; line: st
     { value: 'FACILITIES', label: 'Facilities', line: 'Grounds, kit, maintenance', icon: Wrench },
     { value: 'ADMINISTRATION', label: 'Administration', line: 'Office, finance, membership', icon: Briefcase },
     { value: 'OTHER', label: 'Volunteering & other', line: 'Everything else', icon: HeartHandshake },
+];
+/** The lines of work the front offers as circles: finer than the categories, each a category with a search word. */
+export const LINES: Array<{ id: string; label: string; icon: LucideIcon; category: ClubJobCategory; query?: string }> = [
+    { id: 'head-coach', label: 'Head coach', icon: Trophy, category: 'COACHING', query: 'head coach' },
+    { id: 'assistant-coach', label: 'Assistant coach', icon: Users, category: 'COACHING', query: 'assistant' },
+    { id: 'youth-coach', label: 'Youth coach', icon: UserRound, category: 'COACHING', query: 'youth' },
+    { id: 'goalkeeper-coach', label: 'Goalkeeper coach', icon: Hand, category: 'COACHING', query: 'goalkeeper' },
+    { id: 'private-trainer', label: 'Private trainer', icon: Activity, category: 'COACHING', query: 'trainer' },
+    { id: 'referee', label: 'Referee', icon: Flag, category: 'MATCHDAY', query: 'referee' },
+    { id: 'matchday', label: 'Matchday staff', icon: Users, category: 'MATCHDAY' },
+    { id: 'physio', label: 'Physio', icon: HeartPulse, category: 'MEDICAL', query: 'physio' },
+    { id: 'doctor', label: 'Doctor', icon: Stethoscope, category: 'MEDICAL', query: 'doctor' },
+    { id: 'psychologist', label: 'Psychologist', icon: HeartHandshake, category: 'MEDICAL', query: 'psycholog' },
+    { id: 'analyst', label: 'Analyst', icon: TrendingUp, category: 'FOOTBALL_OPERATIONS', query: 'analyst' },
+    { id: 'scout', label: 'Scout', icon: Search, category: 'FOOTBALL_OPERATIONS', query: 'recruitment' },
+    { id: 'team-manager', label: 'Team manager', icon: ClipboardList, category: 'FOOTBALL_OPERATIONS', query: 'manager' },
+    { id: 'photographer', label: 'Photo & video', icon: Camera, category: 'MEDIA_COMMUNICATIONS', query: 'photo' },
+    { id: 'social', label: 'Social media', icon: Megaphone, category: 'MEDIA_COMMUNICATIONS', query: 'social' },
+    { id: 'grounds', label: 'Grounds', icon: Wrench, category: 'FACILITIES', query: 'ground' },
+    { id: 'kit', label: 'Kit', icon: Shirt, category: 'FACILITIES', query: 'kit' },
+    { id: 'admin', label: 'Administration', icon: Briefcase, category: 'ADMINISTRATION' },
+    { id: 'finance', label: 'Finance', icon: Wallet, category: 'ADMINISTRATION', query: 'finance' },
+    { id: 'volunteer', label: 'Volunteering', icon: HeartHandshake, category: 'OTHER' },
 ];
 export const categoryLabel = (value?: string | null) => CATEGORIES.find(c => c.value === value)?.label ?? 'Other';
 export const TERMS: Array<{ value: ClubJobEngagementType; label: string }> = [{ value: 'PAID', label: 'Paid' }, { value: 'VOLUNTEER', label: 'Volunteer' }, { value: 'FLEXIBLE', label: 'Paid or volunteer' }];

@@ -261,3 +261,17 @@
 .gk .gk-store-slides__dots button[aria-selected='true'] { width: 24px; border-radius: 4px; background: #fff; }
 @media (max-width: 900px) { .gk .gk-store-slide { min-height: 240px; padding: var(--gk-5); } .gk .gk-store-slide__title { font-size: 26px; line-height: 30px; } }
 @media (prefers-reduced-motion: reduce) { .gk .gk-store-slides__track { transition: none; } .gk .gk-store-slide__pic { transition: none; transform: none; } }
+
+/* ── The three places with one DNA, one press apart; the circle strip under its name ── */
+.gk .gk-market-tabs { margin-top: var(--gk-4); }
+.gk .gk-market-tabs .gk-segmented__item { min-height: 34px; padding: 0 var(--gk-4); color: var(--gk-text-2); text-decoration: none; transition: background-color .35s var(--gk-store-ease), color .35s var(--gk-store-ease); }
+.gk .gk-market-tabs .gk-segmented__item[aria-current='page'] { background: var(--gk-raised); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
+.gk .gk-market-tabs + .gk-store-head { padding-top: var(--gk-4); }
+.gk .gk-store-cats-section > .gk-section__head { justify-content: center; }
+.gk .gk-store-cats-section > .gk-section__head > .gk-section__heading { justify-content: center; }
+.gk .gk-store-cats-section .gk-store-cats { padding-top: var(--gk-3); }
+.gk .gk-store-cats[data-dense] { gap: var(--gk-2); }
+.gk .gk-store-cats[data-dense] .gk-store-cat { width: 96px; font-size: var(--gk-fs-sm); }
+.gk .gk-store-cats[data-dense] .gk-store-cat__icon { width: 60px; height: 60px; }
+.gk .gk-store-cats[data-dense] .gk-store-cat__icon svg { width: 24px; height: 24px; }
+@media (max-width: 900px) { .gk .gk-market-tabs { width: 100%; } .gk .gk-market-tabs .gk-segmented__item { flex: 1; padding: 0 var(--gk-2); } .gk .gk-store-cats-section > .gk-section__head { justify-content: flex-start; } }

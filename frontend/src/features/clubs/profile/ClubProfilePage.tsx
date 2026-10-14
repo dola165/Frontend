@@ -116,15 +116,15 @@ function ClubProfileView({ id }: { id: number }) {
             actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}</>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
-            sideLeft={tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} />} sideLeftLabel="Club information"
-            side={<ClubSide club={club} />} sideLabel="Get involved">
+            sideLeft={tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage} />} sideLeftLabel="Club information"
+            side={<ClubSide club={club} canEdit={can.canManage} />} sideLabel="Get involved">
             {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
             {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} canManage={can.canManage} />}
             {tab === 'people' && <ClubPeopleTab clubId={club.id} canManageStaff={can.canManageStaff} />}
             {tab === 'facilities' && <ClubFacilitiesTab club={club} canEdit={can.canEditFacilities} />}
-            {tab === 'involved' && <ClubInvolvedTab club={club} />}
+            {tab === 'involved' && <ClubInvolvedTab club={club} canEdit={can.canManage} />}
             {tab === 'contact' && <ClubContactTab club={club} />}
         </ProfileLayout>
 

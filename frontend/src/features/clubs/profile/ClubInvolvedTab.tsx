@@ -5,6 +5,7 @@ import { ClubFundraisingPage } from '../../../pages/ClubFundraisingPage';
 import { ClubJobsPage } from '../../../pages/ClubJobsPage';
 import { involvedKindFrom, isWide, type InvolvedKind } from './clubTabs';
 import type { ClubProfile } from './types';
+import { EditLink } from './ClubInfo';
 
 const kinds: Record<InvolvedKind, { label: string; hint: string; all: string; global: string }> = {
     store: { label: 'Club store', hint: 'Kit and club essentials', all: 'All stores', global: '/store' },
@@ -17,7 +18,7 @@ const kinds: Record<InvolvedKind, { label: string; hint: string; all: string; gl
  * between the three; one line above the page names it, lets the viewer fold the club information away, and points at
  * the global counterpart. The pages read the club from the address, as on their own routes.
  */
-export function ClubInvolvedTab({ club }: { club: ClubProfile }) {
+export function ClubInvolvedTab({ club, canEdit = false }: { club: ClubProfile; canEdit?: boolean }) {
     const [params, setParams] = useSearchParams();
     const kind = involvedKindFrom(params);
     const current = kinds[kind];
@@ -27,6 +28,7 @@ export function ClubInvolvedTab({ club }: { club: ClubProfile }) {
         <div className="gk-club-involved__bar">
             <div className="gk-club-involved__title"><h2>{current.label}</h2><span className="gk-muted">{current.hint}</span></div>
             <div className="gk-row">
+                {canEdit && <EditLink to={`/clubs/${club.id}/workspace?tab=${kind === 'jobs' ? 'jobs' : kind === 'fundraising' ? 'campaigns' : 'store'}`} />}
                 <button type="button" className="gk-btn gk-btn--secondary gk-btn--sm" aria-pressed={wide} onClick={toggleWide}>{wide ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}{wide ? 'Show club info' : 'Hide club info'}</button>
                 <Link className="gk-section__action gk-row" to={current.global}>{current.all}<ArrowUpRight size={14} aria-hidden="true" /></Link>
             </div>

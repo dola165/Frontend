@@ -99,7 +99,7 @@ describe('Starting a fundraiser', () => {
         start();
         fireEvent.click(await screen.findByRole('button', { name: /Travel & competitions/ }));
         expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-        fireEvent.click(screen.getByRole('button', { name: /^GEL 5,000/ }));
+        fireEvent.click(screen.getByRole('button', { name: name => /(^|s)5,000/.test(name) }));
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Girls to the Black Sea Cup' } });
         fireEvent.change(screen.getByLabelText('Your story'), { target: { value: 'Travel and two nights for 18 players.' } });

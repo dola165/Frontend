@@ -33,7 +33,7 @@
 .gk.gk-club-page .gk-profile-side .gk-list > li + li > .gk-list-row { border-top: 1px solid var(--gk-line); }
 /* The established colours: store green, jobs purple, fundraising orange. */
 .gk .gk-club-icon[data-kind='jobs'] { background: var(--gk-violet-soft); color: var(--gk-violet); }
-.gk .gk-club-icon[data-kind='campaigns'], .gk .gk-club-icon[data-kind='fundraising'] { background: color-mix(in srgb, var(--color-orange, #f08a24) 16%, transparent); color: var(--color-orange, #f08a24); }
+.gk .gk-club-icon[data-kind='campaigns'], .gk .gk-club-icon[data-kind='fundraising'] { background: color-mix(in srgb, var(--color-orange) 16%, transparent); color: var(--color-orange); }
 
 /* Edit sits before a block's other link, quieter than it. */
 .gk .gk-club-edit { gap: 4px; color: var(--gk-text-3); }

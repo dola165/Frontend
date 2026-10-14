@@ -57,16 +57,15 @@ export function JobRow({ job, selected, onSelect, to }: { job: Job; selected: bo
 export const JobSkeletons = ({ count = 5 }: { count?: number }) => <>{Array.from({ length: count }, (_, i) => <li key={i}><span className="gk-skeleton gk-job-skeleton" style={{ display: 'block' }} aria-hidden="true" /></li>)}</>;
 
 /** A front-page row of listings with "View all" opening the same search. */
-export function JobRowSection({ title, hint, to, jobs, loading, error, retry, empty, action, float, tone }: {
+export function JobRowSection({ title, hint, to, jobs, loading, error, retry, empty, action }: {
     title: string; hint?: ReactNode; to?: string; jobs: Job[]; loading: boolean; error: string; retry: () => void; empty: string; action?: ComponentProps<typeof Section>['action'];
-    /** On the front the row drifts on its own, this way, on a textured band. */ float?: 'left' | 'right'; tone?: 'a' | 'b';
 }) {
     return (
-        <Section title={title} hint={hint} action={action ?? (to && jobs.length ? { label: 'View all', to } : undefined)} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
+        <Section title={title} hint={hint} action={action ?? (to && jobs.length ? { label: 'View all', to } : undefined)} >
             {error ? <EmptyNote title="These listings could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading && !jobs.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label="Loading"><JobSkeletons /></ul>
                 : !jobs.length ? <EmptyNote title={empty} />
-                : <Row label={title} wide drift={float}>{jobs.map(job => <li key={job.id}><JobCard job={job} /></li>)}</Row>}
+                : <Row label={title} wide>{jobs.map(job => <li key={job.id}><JobCard job={job} /></li>)}</Row>}
         </Section>
     );
 }

@@ -39,14 +39,20 @@ describe('The search in the address', () => {
 });
 
 describe('Front, catalogue and the listing', () => {
-    it('shows my application, the rows for me and the doors', async () => {
-        render(<MemoryRouter initialEntries={['/jobs']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
+    it('shows the work side with my application and the hire side with people available', async () => {
+        localStorage.clear();
+        const view = render(<MemoryRouter initialEntries={['/jobs']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
         expect(await screen.findByText('Applied · waiting for an answer')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Jobs in football near you' })).toHaveAttribute('href', '/jobs/all?direction=HIRING');
-        expect(screen.getByRole('link', { name: 'Coaches, referees and specialists available' })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
-        expect(screen.getAllByRole('link', { name: 'Post a job' })[0]).toHaveAttribute('href', '/jobs/new');
+        expect(screen.getAllByRole('link', { name: 'List yourself' })[0]).toHaveAttribute('href', '/jobs/new?as=work');
         expect(screen.getByText('Coaching first, then the clubs you follow and your city')).toBeInTheDocument();
         expect(api.fetchJobsFront).toHaveBeenCalledWith('Tbilisi', expect.any(AbortSignal));
+        view.unmount();
+        render(<MemoryRouter initialEntries={['/jobs?mode=hire']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
+        expect(await screen.findByRole('link', { name: 'Coaches, referees and specialists' })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
+        expect(screen.getAllByRole('link', { name: 'Post a job' })[0]).toHaveAttribute('href', '/jobs/new?as=hire');
+        expect(screen.getAllByText('GEL 60 / session').length).toBeGreaterThan(0);
+        expect(localStorage.getItem('gk.jobs.mode')).toBe('hire');
     });
     it('opens the chosen listing beside the list and keeps the search in the request', async () => {
         render(<MemoryRouter initialEntries={['/jobs/all?category=COACHING&poster=people']}><Routes><Route path="/jobs/all" element={<JobsCataloguePage />} /></Routes></MemoryRouter>);

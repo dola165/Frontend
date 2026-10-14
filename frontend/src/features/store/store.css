@@ -200,3 +200,64 @@
   .gk .gk-store-cart__item { grid-template-columns: 64px minmax(0, 1fr); }
   .gk .gk-store-cart__item > :nth-child(n + 3) { grid-column: 2; }
 }
+
+/* ── Motion: one slow, soft feel for every picture and button ── */
+.gk.gk-store { --gk-store-ease: cubic-bezier(.2, .8, .2, 1); --gk-store-lift: 0 14px 34px color-mix(in srgb, var(--gk-shadow) 22%, transparent); }
+.gk .gk-store .gk-btn, .gk .gk-store .gk-chip, .gk .gk-store-door__chip, .gk .gk-store-option, .gk .gk-store-size, .gk .gk-store-cat__icon { transition: transform .35s var(--gk-store-ease), background-color .35s var(--gk-store-ease), border-color .35s var(--gk-store-ease), color .35s var(--gk-store-ease), box-shadow .35s var(--gk-store-ease); }
+.gk .gk-store .gk-btn:hover, .gk .gk-store .gk-chip:hover, .gk .gk-store-door__chip:hover { transform: translateY(-1px); }
+.gk .gk-store .gk-btn:active, .gk .gk-store .gk-chip:active, .gk .gk-store-door__chip:active { transform: translateY(0) scale(.98); transition-duration: .12s; }
+
+/* The doors: the picture inside, drifting slowly larger under the pointer while the panel lifts. */
+.gk .gk-store-door { background: var(--gk-surface); box-shadow: 0 1px 0 color-mix(in srgb, var(--gk-shadow) 6%, transparent); transition: transform .7s var(--gk-store-ease), box-shadow .7s var(--gk-store-ease); }
+.gk .gk-store-door__pic { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; transform: scale(1.02); transition: transform 1.6s var(--gk-store-ease); will-change: transform; }
+.gk .gk-store-door:hover { transform: translateY(-3px); box-shadow: var(--gk-store-lift); }
+.gk .gk-store-door:hover .gk-store-door__pic { transform: scale(1.08); }
+.gk .gk-store-door__title { transition: text-decoration-color .35s var(--gk-store-ease); }
+
+/* Tiles and cards: the picture drifts, the tile lifts, the name underlines last. */
+.gk .gk-store-coll__pic, .gk .gk-store-seller__pic, .gk .gk-product__pic { transition: transform .6s var(--gk-store-ease), box-shadow .6s var(--gk-store-ease), border-color .6s var(--gk-store-ease); }
+.gk .gk-store-coll__pic img, .gk .gk-product__pic img { transition: transform 1.4s var(--gk-store-ease); }
+.gk .gk-store-coll:hover .gk-store-coll__pic, .gk .gk-store-seller:hover .gk-store-seller__pic, .gk .gk-product:hover .gk-product__pic { transform: translateY(-4px); box-shadow: var(--gk-store-lift); border-color: var(--gk-line-strong); }
+.gk .gk-store-coll:hover .gk-store-coll__pic img, .gk .gk-product:hover .gk-product__pic img { transform: scale(1.06); }
+.gk .gk-store-seller__pic .gk-avatar { transition: transform .7s var(--gk-store-ease); }
+.gk .gk-store-seller:hover .gk-store-seller__pic .gk-avatar { transform: scale(1.08); }
+
+/* ── Categories: a calmer, more finished strip ── */
+.gk .gk-store-cats { gap: var(--gk-3); padding: var(--gk-2) 0; }
+.gk .gk-store-cat { width: 108px; gap: var(--gk-3); font-size: var(--gk-fs-md); font-weight: 500; color: var(--gk-text-2); }
+.gk .gk-store-cat__icon { width: 72px; height: 72px; border-color: color-mix(in srgb, var(--gk-line) 70%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--gk-text) 3%, var(--gk-surface)), var(--gk-surface)); color: var(--gk-text-2); box-shadow: 0 1px 2px color-mix(in srgb, var(--gk-shadow) 8%, transparent), inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent); }
+.gk .gk-store-cat__icon svg { width: 28px; height: 28px; stroke-width: 1.6; }
+.gk .gk-store-cat:hover .gk-store-cat__icon { transform: translateY(-3px); color: var(--gk-accent); border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); box-shadow: 0 10px 24px color-mix(in srgb, var(--gk-accent) 18%, transparent); }
+.gk .gk-store-cat:hover { color: var(--gk-text); }
+
+/* ── Rails: rows glide on their arrows; the native scrollbar stays hidden ── */
+.gk .gk-store-rail { position: relative; }
+.gk .gk-store-rail .gk-store-row { scroll-behavior: smooth; scrollbar-width: none; padding-bottom: var(--gk-2); margin-bottom: calc(-1 * var(--gk-2)); }
+.gk .gk-store-rail .gk-store-row::-webkit-scrollbar { display: none; }
+.gk .gk-store-rail__arrow { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--gk-line); border-radius: 50%; background: color-mix(in srgb, var(--gk-surface) 92%, transparent); color: var(--gk-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--gk-shadow) 18%, transparent); backdrop-filter: blur(8px); cursor: pointer; opacity: 0; transform: translateY(-50%) scale(.9); transition: opacity .35s var(--gk-store-ease), transform .35s var(--gk-store-ease), background-color .35s var(--gk-store-ease); }
+.gk .gk-store-rail__arrow svg { width: 20px; height: 20px; }
+.gk .gk-store-rail__arrow--prev { left: -10px; }
+.gk .gk-store-rail__arrow--next { right: -10px; }
+.gk .gk-store-rail:hover .gk-store-rail__arrow, .gk .gk-store-rail__arrow:focus-visible, .gk .gk-store-slides:hover .gk-store-rail__arrow { opacity: 1; transform: translateY(-50%) scale(1); }
+.gk .gk-store-rail__arrow:hover { background: var(--gk-surface); transform: translateY(-50%) scale(1.06); }
+.gk .gk-store-rail__arrow:disabled { opacity: 0 !important; pointer-events: none; }
+.gk .gk-store-rail .gk-store-rail__arrow { top: calc(50% - 28px); }
+@media (pointer: coarse) { .gk .gk-store-rail__arrow { display: none; } }
+
+/* ── Slideshow: one wide banner, sliding sideways on its own; the arrows and dots take over by hand ── */
+.gk .gk-store-slides { position: relative; overflow: hidden; border-radius: var(--gk-r-lg); isolation: isolate; }
+.gk .gk-store-slides__track { display: flex; transition: transform .9s var(--gk-store-ease); }
+.gk .gk-store-slide { position: relative; flex: 0 0 100%; display: flex; align-items: flex-end; min-height: 300px; padding: var(--gk-8); color: #fff; background: var(--gk-surface); isolation: isolate; }
+.gk .gk-store-slide::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 14, 18, .78) 0%, rgba(8, 14, 18, .35) 55%, rgba(8, 14, 18, .05) 100%); }
+.gk .gk-store-slide__pic { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; transform: scale(1.04); transition: transform 7s linear; }
+.gk .gk-store-slide:not([aria-hidden='true']) .gk-store-slide__pic { transform: scale(1); }
+.gk .gk-store-slide__text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-3); max-width: 560px; }
+.gk .gk-store-slide__title { font-size: 34px; line-height: 38px; font-weight: 700; letter-spacing: -.02em; color: #fff; }
+.gk .gk-store-slides .gk-store-rail__arrow { top: 50%; }
+.gk .gk-store-slides .gk-store-rail__arrow--prev { left: var(--gk-4); }
+.gk .gk-store-slides .gk-store-rail__arrow--next { right: var(--gk-4); }
+.gk .gk-store-slides__dots { position: absolute; right: var(--gk-6); bottom: var(--gk-5); z-index: 2; display: flex; gap: 6px; }
+.gk .gk-store-slides__dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .45); cursor: pointer; transition: width .4s var(--gk-store-ease), background-color .4s var(--gk-store-ease); }
+.gk .gk-store-slides__dots button[aria-selected='true'] { width: 24px; border-radius: 4px; background: #fff; }
+@media (max-width: 900px) { .gk .gk-store-slide { min-height: 240px; padding: var(--gk-5); } .gk .gk-store-slide__title { font-size: 26px; line-height: 30px; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-store-slides__track { transition: none; } .gk .gk-store-slide__pic { transition: none; transform: none; } }

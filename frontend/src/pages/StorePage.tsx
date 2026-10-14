@@ -5,6 +5,7 @@ import { fetchStoreCatalog, fetchStoreFront } from '../features/store/api';
 import { CATALOGUE_KEYS, cataloguePath } from '../features/store/query';
 import { Categories, StoreDoors, StoreHead } from '../features/store/front/StoreFrontTop';
 import { AreaPicker, Collections, Sellers } from '../features/store/front/StoreFrontRows';
+import { StoreSlides } from '../features/store/front/StoreSlides';
 import { ProductRow } from '../features/store/ProductCard';
 import { useWorldArea } from '../features/world/useWorldArea';
 import { useWorldData } from '../features/world/useWorldData';
@@ -34,6 +35,7 @@ export const StorePage = () => {
                 <div className="gk-store-stack">
                     <StoreDoors own={front.data?.own} sellers={front.data?.sellers} />
                     <Categories />
+                    <StoreSlides />
                     <Collections front={front.data} />
                     <Sellers id="store-near" title="Clubs near you" sellers={front.data?.near ?? []} loading={front.loading} error={front.error} retry={front.retry}
                         hint={near ? <AreaPicker city={front.data?.city ?? near} onChange={setCity} /> : 'Clubs with something on sale'}

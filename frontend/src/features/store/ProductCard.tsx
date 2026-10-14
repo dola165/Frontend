@@ -7,6 +7,7 @@ import { Badge, Button, EmptyNote, Section } from '../../design/primitives';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { Crest } from '../world/Crest';
 import { availability, formatStorePrice, sellerName, sellerOf, type StoreProduct } from './api';
+import { Row } from './front/Row';
 
 /** Who sells a product, as a small crest (a club) or the GrassKickZ mark, with the name. */
 export function SellerMark({ product, size = 16 }: { product: StoreProduct; size?: number }) {
@@ -48,7 +49,7 @@ export function ProductRow({ title, hint, to, products, loading, error, retry, e
             {error ? <EmptyNote title="These products could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading && !products.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label="Loading products"><ProductSkeletons /></ul>
                 : !products.length ? <EmptyNote title={empty} />
-                : <ul className="gk-store-row gk-store-row--wide" aria-label={title}>{products.map(product => <li key={product.id}><ProductCard product={product} /></li>)}</ul>}
+                : <Row label={title} wide>{products.map(product => <li key={product.id}><ProductCard product={product} /></li>)}</Row>}
         </Section>
     );
 }

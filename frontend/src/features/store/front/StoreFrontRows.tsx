@@ -8,13 +8,14 @@ import { useWorldCities } from '../../world/useWorldArea';
 import type { StoreFront, StoreSeller } from '../api';
 import { cataloguePath, clubStorePath } from '../query';
 import { COLLECTIONS } from '../labels';
+import { Row } from './Row';
 
 /** GrassKickZ's own equipment as a row of tall pictures, each opening that collection. */
 export function Collections({ front }: { front: StoreFront | undefined }) {
     const items = COLLECTIONS.map(collection => ({ ...collection, data: front?.collections.find(item => item.id === collection.id) })).filter(collection => !front || collection.data);
     return (
         <Section title="GrassKickZ equipment" hint="Sold by GrassKickZ" action={{ label: 'View all', to: cataloguePath({ seller: 'grasskickz' }) }}>
-            <ul className="gk-store-row" aria-label="GrassKickZ equipment">
+            <Row label="GrassKickZ equipment">
                 {items.map(collection => (
                     <li key={collection.id}>
                         <Link className="gk-store-coll" to={cataloguePath({ seller: 'grasskickz', collection: collection.id })}>
@@ -24,7 +25,7 @@ export function Collections({ front }: { front: StoreFront | undefined }) {
                         </Link>
                     </li>
                 ))}
-            </ul>
+            </Row>
         </Section>
     );
 }
@@ -55,7 +56,7 @@ export function Sellers({ id, title, hint, sellers, loading, error, retry, empty
             {error ? <EmptyNote title="Clubs could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading ? <ul className="gk-store-row" aria-busy="true" aria-label="Loading clubs">{[0, 1, 2, 3, 4, 5].map(i => <li key={i}><span className="gk-skeleton gk-store-skeleton" style={{ display: 'block' }} aria-hidden="true" /></li>)}</ul>
                 : !sellers.length ? <EmptyNote title={empty} />
-                : <ul className="gk-store-row" aria-label={title}>
+                : <Row label={title}>
                     {sellers.map(seller => (
                         <li key={seller.clubId}>
                             <Link className="gk-store-seller" to={clubStorePath(seller.clubId)}>
@@ -65,7 +66,7 @@ export function Sellers({ id, title, hint, sellers, loading, error, retry, empty
                             </Link>
                         </li>
                     ))}
-                </ul>}
+                </Row>}
         </Section>
     );
 }

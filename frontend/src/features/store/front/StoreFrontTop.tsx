@@ -29,13 +29,13 @@ export function StoreHead() {
 export function StoreDoors({ own, sellers }: { own?: number; sellers?: number }) {
     return (
         <div className="gk-store-doors">
-            <article className="gk-store-door" style={{ backgroundImage: 'url(/football/ball-field.jpg)' }}>
+            <article className="gk-store-door"><img className="gk-store-door__pic" src="/football/ball-field.jpg" alt="" />
                 <span className="gk-store-door__eyebrow"><img src="/brand/grasskickz-mark.svg" alt="" />Sold by GrassKickZ</span>
                 <Link className="gk-store-door__title" to={cataloguePath({ seller: 'grasskickz' })}>Shop GrassKickZ equipment</Link>
                 <p className="gk-store-door__line">Balls, cones, bibs, shin guards and training gear{own ? ` · ${own} products` : ''}</p>
                 <div className="gk-store-door__chips">{COLLECTIONS.slice(0, 5).map(collection => <Link key={collection.id} className="gk-store-door__chip" to={cataloguePath({ seller: 'grasskickz', collection: collection.id })}>{collection.label}</Link>)}</div>
             </article>
-            <article className="gk-store-door" style={{ backgroundImage: 'url(/football/touchline.jpg)' }}>
+            <article className="gk-store-door"><img className="gk-store-door__pic" src="/football/touchline.jpg" alt="" />
                 <span className="gk-store-door__eyebrow"><Store aria-hidden="true" size={16} />Club stores</span>
                 <Link className="gk-store-door__title" to={cataloguePath({ seller: 'clubs' })}>Explore club stores</Link>
                 <p className="gk-store-door__line">Kit, tickets and membership from {sellers ? `${sellers} clubs` : 'clubs'} on GrassKickZ</p>

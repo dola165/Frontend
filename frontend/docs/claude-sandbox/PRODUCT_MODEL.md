@@ -202,6 +202,13 @@ These replace the older lines above and in sections 3, 7 and 12 where they disag
 - **Fundraising copies GoFundMe and hands it the headache** (owner, 14 October): creating a fundraiser is as simple as GoFundMe's, and the money, receipts and refunds are taken on the club's GoFundMe page, linked from the fundraiser. GrassKickZ shows the projects, sends supporters there and keeps the same DNA as the store.
 - **Jobs and fundraising are for everyone, the store for clubs and GrassKickZ** (owner, 14 October): a parent may raise money for a child's kit or post a job for a personal trainer; coaches, referees and specialists may list themselves as available. Most people in grassroots football want a stable job, so jobs is one of the most important pages. The jobs home copies LinkedIn Jobs and lives beside World's map, which stays the way to browse by place.
 
+### Made (15 October 2026, owner: creating a page; brief in `PAGE_CREATION.md`)
+
+- **Anyone creates a page instantly.** A club, fan club, sponsor or business, or any other page starts from one small sheet (what it is, the name, the town already filled) wherever the person thinks of it, and exists at once as a draft only its owner sees. No forms, categories or files up front.
+- **Editing happens on the page itself.** The owner lands on the real page in edit mode, fills ghost boxes in place and goes live from there. A page's own content is never edited in the workspace any more; the workspace keeps operations (sessions, attendance, approvals, records).
+- **Verification unlocks, it never blocks.** Any adult can create and run an unverified page. Verification is asked only when a locked thing is tried: taking money (fees, store, fundraising payouts), public pages for players under 18, trials open to the public, the "Verified" badge.
+- **One shared page DNA: identity plus boxes.** Every page has the same identity (name, crest, cover, town, contact, about) and switches boxes on (posts, squads, grounds, fees, staff, store, jobs, fundraising, sponsors, events, honours, bookings). The page type only decides which start switched on; the backend's organisation types stay.
+
 ### Taken while building the start (13 October 2026, `AUTH_AND_START.md`; owner to confirm)
 
 - **Sign-up is one screen:** name, email or phone, password (shown or hidden, no second field), date of birth and town. The town is pre-filled with Tbilisi, found from the device when allowed, else picked from a list of 20 Georgian towns. It travels with the sign-up to the first run, which saves it as a preference, so the registration request keeps the backend's shape.

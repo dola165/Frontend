@@ -291,7 +291,7 @@ export function applyIdentity(page, patch) {
     else if (patch.cover.kind === 'photo' && isCoverPhoto(patch.cover.photo)) id.cover = { kind: 'photo', photo: patch.cover.photo };
     else if (patch.cover.kind === 'image' && typeof patch.cover.url === 'string' && patch.cover.url.startsWith('/')) id.cover = { kind: 'image', url: patch.cover.url };
   }
-  if (patch.contact) id.contact = { phone: patch.contact.phone !== undefined ? digits(patch.contact.phone).slice(0, 20) : id.contact.phone, email: patch.contact.email !== undefined ? text(patch.contact.email, 254) : id.contact.email };
+  if (patch.contact) id.contact = { phone: patch.contact.phone !== undefined ? phoneText(patch.contact.phone) : id.contact.phone, email: patch.contact.email !== undefined ? text(patch.contact.email, 254) : id.contact.email };
   if (patch.social) for (const key of ['website', 'instagram', 'facebook']) if (patch.social[key] !== undefined) id.social[key] = text(patch.social[key], 300);
   if (patch.businessKind !== undefined && page.kind === 'BUSINESS' && BUSINESS_KINDS.includes(patch.businessKind)) id.businessKind = patch.businessKind;
   if (patch.clubCategory !== undefined && page.kind === 'CLUB' && CLUB_CATEGORIES.includes(patch.clubCategory)) id.clubCategory = patch.clubCategory;

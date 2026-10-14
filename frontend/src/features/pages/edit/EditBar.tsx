@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { PenLine } from 'lucide-react';
+import { LayoutList, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
@@ -20,7 +20,7 @@ const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a
 export function EditBar() {
   const t = usePagesCopy();
   const location = useLocation();
-  const { page, editing, canEdit, setEditing, openPanel, goLive, status, arrival, pendingCount } = usePageEdit();
+  const { page, editing, canEdit, setEditing, openPanel, goLive, status, arrival, pendingCount, rearranging, setRearranging } = usePageEdit();
   // The first time on a new or claimed page, one hint, once.
   useEffect(() => {
     if (!arrival || !page) return;
@@ -52,12 +52,13 @@ export function EditBar() {
           <span className="gk-ring__next">{t(SETUP_WORDS[next])}</span>
         </button>
       )}
-      <span className="gk-editbar__saved" role="status" aria-live="polite" data-status={status}>
+      <span className="gk-editbar__saved" role="status" aria-live="polite" aria-label={t('Save status')} data-status={status}>
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>
       <span className="gk-editbar__actions">
         {page.status === 'DRAFT' && !page.goLive.ready && <span className="gk-editbar__missing">{t('To go live: {missing}', { missing: missing.join(', ') })}</span>}
         {page.status === 'DRAFT' && <Button size="sm" variant="primary" disabled={!page.goLive.ready} onClick={() => void goLive()}>{t('Go live')}</Button>}
+        {editing && <Button size="sm" variant={rearranging ? 'primary' : 'ghost'} aria-pressed={rearranging} onClick={() => setRearranging(!rearranging)}><LayoutList aria-hidden="true" />{t('Rearrange')}</Button>}
         {editing
           ? <Button size="sm" onClick={() => setEditing(false)}>{t('Done')}</Button>
           : <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{t('Edit page')}</Button>}

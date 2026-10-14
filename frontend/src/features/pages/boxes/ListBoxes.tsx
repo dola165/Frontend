@@ -32,9 +32,10 @@ export function GroundsBox({ page, editing, onEdit }: BoxProps) {
 /** The teams: one chip per age group with its players, each opening the squads. */
 export function SquadsBox({ page, editing, onEdit }: BoxProps) {
   const t = usePagesCopy();
+  const { openPanel } = usePageEdit();
   const squads = page.boxes.squads.items;
   return (
-    <SideBlock title={t('Teams')} hint={t('Age groups and when they train')} action={editing ? <EditPencil onClick={onEdit} /> : undefined}>
+    <SideBlock title={t('Teams')} hint={t('Age groups and when they train')} action={editing ? <span className="gk-row"><button type="button" className="gk-section__action" onClick={() => openPanel('players')}>{t('Invite players')}</button><EditPencil onClick={onEdit} /></span> : undefined}>
       <List label={t('Teams')}>
         {squads.map(squad => <ListRow key={squad.id} to={page.clubId ? `/clubs/${page.clubId}?tab=teams&squad=${squad.id}` : undefined}
           lead={<span className="gk-club-icon"><Users aria-hidden="true" /></span>} title={squad.name}

@@ -56,7 +56,7 @@ describe('edit mode on a page', () => {
     expect(api.saveIdentity.mock.calls[0][1]).toBe(1);
     expect(api.saveIdentity.mock.calls[0][2]).toMatchObject({ contact: { phone: '+995 599 12 34 56', email: 'giorgi@example.org' } });
     expect(await screen.findByText('ultras@rustavi.ge')).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Saved');
+    expect(screen.getByRole('status', { name: 'Save status' })).toHaveTextContent('Saved');
     expect(screen.getByRole('button', { name: /2 of 7 done/ })).toBeInTheDocument();
     expect(toasts.calls.map(call => call.message)).toContain('Contact saved');
   });
@@ -95,6 +95,27 @@ describe('edit mode on a page', () => {
     await waitFor(() => expect(api.saveIdentity).toHaveBeenCalledTimes(2));
     expect(api.saveIdentity.mock.calls[1][1]).toBe(3);
     expect(await screen.findByText('+995 599 12 34 56')).toBeInTheDocument();
+  });
+
+  it('rearranges without dragging: Move down and Hide save the layout, and Hide can be undone', async () => {
+    const user = userEvent.setup();
+    const page = makePage({ identity: { contact: { phone: '+995 599 12 34 56', email: '' } } as never, boxes: { fees: { version: 1, band: { min: 20, max: 40, currency: 'GEL', period: 'MONTH', free: 'NONE' } } } as never });
+    api.fetchPage.mockResolvedValue(page);
+    api.saveLayout.mockImplementation(async (_ref: unknown, version: number, layout: { columns: PageView['layout']['columns']; hidden: PageView['layout']['hidden'] }) => withSetup({ ...page, layout: { version: version + 1, ...layout } }));
+    mount('/organizations/7002?edit=1&rearrange=1');
+    await user.click(await screen.findByRole('button', { name: 'Move Fees down' }));
+    await waitFor(() => expect(api.saveLayout).toHaveBeenCalledTimes(1));
+    expect(api.saveLayout.mock.calls[0][2].columns.left).toEqual(['contact', 'grounds', 'fees']);
+    expect(screen.getByRole('status', { name: 'Save status' })).toHaveTextContent('Saved');
+    await user.click(screen.getByRole('button', { name: 'Hide Fees' }));
+    await waitFor(() => expect(api.saveLayout).toHaveBeenCalledTimes(2));
+    expect(api.saveLayout.mock.calls[1][2]).toMatchObject({ columns: { left: ['contact', 'grounds'] }, hidden: ['fees'] });
+    const hidden = toasts.calls.find(call => call.message === 'Box hidden. Its content is kept.');
+    expect(hidden?.action?.label).toBe('Undo');
+    hidden?.action?.onClick();
+    await waitFor(() => expect(api.saveLayout).toHaveBeenCalledTimes(3));
+    expect(api.saveLayout.mock.calls[2][2]).toMatchObject({ columns: { left: ['contact', 'grounds', 'fees'] }, hidden: [] });
+    expect(screen.getByRole('button', { name: 'Move Contact up' })).toBeDisabled();
   });
 
   it('goes live once the page has a crest and a contact, and opens the share card', async () => {

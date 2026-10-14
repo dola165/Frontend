@@ -15,6 +15,8 @@ type DraftPhoto = { key: number; file: File; previewUrl: string; mediaId: number
 
 interface PostComposerProps {
   clubId?: number;
+  /** Post as a page that is not a club (a fan club, a business): its organisation id. */
+  organizationId?: number;
   authorName?: string;
   avatarUrl?: string | null;
   onPostCreated: (postId?: number) => void;
@@ -28,11 +30,12 @@ interface PostComposerProps {
 
 export const PostComposer = (props: PostComposerProps) => {
   const sessionId = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
-  return <PostComposerEditor key={`${sessionId ?? 'guest'}:${props.clubId ?? 'personal'}`} {...props} sessionId={sessionId} />;
+  return <PostComposerEditor key={`${sessionId ?? 'guest'}:${props.clubId ?? props.organizationId ?? 'personal'}`} {...props} sessionId={sessionId} />;
 };
 
 const PostComposerEditor = ({
   clubId,
+  organizationId,
   authorName = 'You',
   avatarUrl,
   onPostCreated,
@@ -178,6 +181,7 @@ const PostComposerEditor = ({
       const published = await apiClient.post<{ postId?: number }>('/posts', {
         content: content.trim(),
         clubId: clubId || null,
+        organizationId: organizationId || null,
         isPublic: true,
         mediaIds
       }, config);
@@ -241,8 +245,8 @@ const PostComposerEditor = ({
           }}
           onFocus={expandComposer}
           onClick={expandComposer}
-          placeholder={collapsed ? 'Share an update…' : clubId ? 'Share an update from your club…' : `What do you want to share, ${authorName.split(' ')[0]}?`}
-          aria-label={clubId ? 'Create a club post' : 'Create a post'}
+          placeholder={collapsed ? 'Share an update…' : clubId ? 'Share an update from your club…' : organizationId ? 'Share an update from your page…' : `What do you want to share, ${authorName.split(' ')[0]}?`}
+          aria-label={clubId ? 'Create a club post' : organizationId ? 'Create a page post' : 'Create a post'}
           className={`min-w-0 flex-1 resize-none border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 text-sm leading-6 text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] transition-colors focus:border-[var(--feed-accent)] ${isExpanded ? 'min-h-[104px] rounded-2xl py-3' : 'h-10 min-h-10 overflow-hidden whitespace-nowrap rounded-full py-1.5'}`}
           rows={isExpanded ? 3 : 1}
         />

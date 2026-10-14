@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
+import { PostComposer } from '../../components/feed/PostComposer';
 import { Button, EmptyNote, GkRoot, PageFrame, Panel, Section } from '../../design/primitives';
 import { ProfilePosts } from '../profiles/ProfilePosts';
 import { useProfilePostFeed } from '../profiles/useProfilePostFeed';
@@ -28,7 +29,9 @@ export function OrganizationPage() {
       <PageDocument renderers={defaultBoxes} tabs={[{ id: 'posts', label: t('Posts') }, { id: 'about', label: t('About') }]} tab={tab} onTab={setTab} tabsLabel={t('Page sections')}>
         {tab === 'posts'
           ? <Section title={t('Posts')} hint={t('News and photos from {name}', { name: page.identity.name })}>
-            <ProfilePosts feed={feed} empty={{ title: t('No posts yet'), body: page.viewer.canEdit ? t('Your first post is written for you when you go live.') : t('When the page shares news, it appears here.') }} />
+            <ProfilePosts feed={feed}
+              composer={page.viewer.canEdit ? <PostComposer home compact organizationId={page.organizationId} authorName={page.identity.name} avatarUrl={page.identity.crest.url} onPostCreated={feed.pages.refresh} /> : undefined}
+              empty={{ title: t('No posts yet'), body: page.viewer.canEdit ? t('Your first post is written for you when you go live.') : t('When the page shares news, it appears here.') }} />
           </Section>
           : <Section boxed title={t('About')}>
             <Panel padded><p className="gk-org-about">{page.identity.about.trim() || t('Nothing written yet.')}</p></Panel>

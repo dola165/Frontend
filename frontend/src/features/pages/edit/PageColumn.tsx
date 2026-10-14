@@ -4,32 +4,36 @@ import { addableBoxes, BOX_COLUMN, type Column } from '../model/kinds';
 import { GhostBox } from './GhostBox';
 import { SETUP_PANEL, usePageEdit } from './context';
 import { BOX_NAMES } from './words';
+import { BoxTools, DropGap, TrayItem } from './Rearrange';
 import type { BoxRenderers } from './boxRegistry';
 import './edit.css';
 
 /**
  * One column of a page: its boxes in the owner's order, each as its content or, in edit mode, as the ghost that
- * fills it. Visitors never see an empty box. The tray of boxes not on the page yet ends the column in edit mode.
+ * fills it. Visitors never see an empty box. In Rearrange mode every box gets a handle, Move up / Move down and
+ * Hide, with a drop line between boxes; the tray of boxes not on the page yet ends the column in edit mode.
  */
 export function PageColumn({ column, renderers }: { column: Column; renderers: BoxRenderers }) {
-  const { page, editing, panel, openPanel, closePanel } = usePageEdit();
+  const { page, editing, rearranging, panel, openPanel, closePanel } = usePageEdit();
   if (!page) return null;
-  const keys = page.layout.columns[column];
+  const keys = page.layout.columns[column].filter(key => renderers[key]);
   const next = page.setup.next ? SETUP_PANEL[page.setup.next] : null;
   return (
     <>
-      {keys.map(key => {
-        const renderer = renderers[key];
-        if (!renderer) return null;
+      {rearranging && <DropGap column={column} index={0} />}
+      {keys.map((key, index) => {
+        const renderer = renderers[key]!;
         const filled = renderer.filled(page);
         if (!editing && !filled) return null;
         const target = renderer.panel ?? key;
         const open = panel === key;
         return (
-          <div key={key} className="gk-boxframe" data-box={key}>
+          <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined}>
+            {rearranging && <BoxTools box={key} column={column} index={index} count={keys.length} />}
             {filled || (open && !renderer.panel)
-              ? <renderer.View page={page} editing={editing} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
+              ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
               : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={next === target} onOpen={() => openPanel(target)} />}
+            {rearranging && <DropGap column={column} index={index + 1} />}
           </div>
         );
       })}
@@ -38,7 +42,7 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
   );
 }
 
-/** "+ Add a box": the boxes this column may still take; a tap adds one at its place in the fixed order. */
+/** "+ Add a box": the boxes this column may still take; a tap adds one at its place in the fixed order, a drag where it is dropped. */
 function AddBoxTray({ column, renderers }: { column: Column; renderers: BoxRenderers }) {
   const t = usePagesCopy();
   const { page, showBox } = usePageEdit();
@@ -50,7 +54,7 @@ function AddBoxTray({ column, renderers }: { column: Column; renderers: BoxRende
       <span className="gk-tray__label">{t('Add a box')}</span>
       {choices.map(key => {
         const Icon = renderers[key]!.icon;
-        return <button key={key} type="button" className="gk-tray__item" onClick={() => void showBox(key)}><Plus aria-hidden="true" /><Icon aria-hidden="true" />{t(BOX_NAMES[key])}</button>;
+        return <TrayItem key={key} box={key} onTap={() => void showBox(key)}><Plus aria-hidden="true" /><Icon aria-hidden="true" />{t(BOX_NAMES[key])}</TrayItem>;
       })}
     </div>
   );

@@ -27,6 +27,9 @@ export interface PageEdit {
   panel: PanelKey | null;
   openPanel: (key: PanelKey) => void;
   closePanel: () => void;
+  /** Rearrange mode (`?rearrange=1`): boxes get handles, Move up / Move down and Hide. */
+  rearranging: boolean;
+  setRearranging: (on: boolean) => void;
   /** Opened the first time, just created or just claimed: the hint is shown once. */
   arrival: 'new' | 'claimed' | null;
   status: SaveStatus;

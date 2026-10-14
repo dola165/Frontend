@@ -29,8 +29,6 @@
 /* The established colours: store green, jobs purple, fundraising orange. */
 .gk .gk-club-icon[data-kind='jobs'] { background: var(--gk-violet-soft); color: var(--gk-violet); }
 .gk .gk-club-icon[data-kind='campaigns'], .gk .gk-club-icon[data-kind='fundraising'] { background: color-mix(in srgb, var(--color-orange, #f08a24) 16%, transparent); color: var(--color-orange, #f08a24); }
-.gk .gk-club-involved__chip[aria-pressed='true'][data-kind='jobs'] { background: var(--gk-violet-soft); border-color: color-mix(in srgb, var(--gk-violet) 45%, transparent); }
-.gk .gk-club-involved__chip[aria-pressed='true'][data-kind='fundraising'] { background: color-mix(in srgb, var(--color-orange, #f08a24) 16%, transparent); border-color: color-mix(in srgb, var(--color-orange, #f08a24) 45%, transparent); }
 
 /* Left column: a phone number, an email, one fee line. */
 .gk .gk-club-email { overflow-wrap: anywhere; white-space: normal; }
@@ -79,6 +77,11 @@
 /* Get involved: the store, jobs and campaigns pages inside the club page, without their own page chrome. */
 .gk .gk-club-involved { display: flex; flex-direction: column; gap: var(--gk-4); }
 .gk .gk-club-involved__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+.gk .gk-club-involved__title { display: flex; flex-direction: column; gap: 1px; }
+.gk .gk-club-involved__title h2 { font-family: var(--gk-font-display); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
+.gk .gk-club-involved__title .gk-muted { font-size: var(--gk-fs-sm); }
+/* The open part of Get involved is marked in the right column. */
+.gk.gk-club-page .gk-profile-side .gk-list-row[aria-current='true'] { background: color-mix(in srgb, var(--side-tone) 10%, transparent); box-shadow: inset 3px 0 0 var(--side-tone); }
 .gk .gk-club-involved .store-page { padding: 0; }
 .gk .gk-club-involved .store-page > nav[aria-label='Opportunities'], .gk .gk-club-involved .store-heading, .gk .gk-club-involved .opportunity-navigation { display: none; }
 

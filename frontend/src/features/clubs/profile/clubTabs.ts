@@ -34,10 +34,12 @@ export function involvedKindFrom(params: URLSearchParams): InvolvedKind {
     if (params.get('tab') === 'campaigns') return 'fundraising';
     return params.get('opportunity') === 'jobs' ? 'jobs' : 'store';
 }
+/** Whether the club information column is folded away so the store, jobs or fundraising page gets the width. */
+export const isWide = (params: URLSearchParams) => params.get('wide') === '1';
 export const involvedPath = (clubId: number, kind: InvolvedKind) => `/clubs/${clubId}?tab=involved${kind === 'store' ? '' : `&show=${kind}`}`;
 
 /** Filters that belong to one tab; switching tabs clears them so the next tab starts clean. */
-export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'staffView', 'enquire', 'kind', 'type', 'period', 'week', 'view', 'opportunity', 'show', 'roleId', 'roleTitle', 'query', 'sort', 'page', 'state'];
+export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'staffView', 'enquire', 'kind', 'type', 'period', 'week', 'view', 'opportunity', 'show', 'roleId', 'roleTitle', 'query', 'sort', 'page', 'state', 'category', 'collection', 'seller', 'country', 'city', 'variant', 'minPrice', 'maxPrice', 'currency', 'add'];
 
 /** Where another club's staff arrange a match against this club. The form lives in World. */
 export const proposeMatchPath = (clubId: number) => arrangePath({ mode: 'direct', opponentId: clubId });

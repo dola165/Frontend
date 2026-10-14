@@ -26,7 +26,7 @@ import { ClubPeopleTab } from './ClubPeopleTab';
 import { ClubPostsTab } from './ClubPostsTab';
 import { ClubSide } from './ClubSide';
 import { ClubTeamsTab } from './ClubTeamsTab';
-import { clubTabFrom, clubTabs, tabFilters, type ClubTab } from './clubTabs';
+import { clubTabFrom, clubTabs, isWide, tabFilters, type ClubTab } from './clubTabs';
 import { useClubEnquiry } from './useClubEnquiry';
 import { useClubProfile } from './useClubProfile';
 import './club-profile.css';
@@ -116,7 +116,7 @@ function ClubProfileView({ id }: { id: number }) {
             actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}</>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
-            sideLeft={<ClubInfo club={club} />} sideLeftLabel="Club information"
+            sideLeft={tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} />} sideLeftLabel="Club information"
             side={<ClubSide club={club} />} sideLabel="Get involved">
             {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}

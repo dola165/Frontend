@@ -19,7 +19,7 @@ const personJob: api.Job = { id: 701, clubId: null, clubCityName: 'Tbilisi', tit
 const offering: api.Job = { ...personJob, id: 704, title: 'UEFA B coach available for private sessions', direction: 'OFFERING', poster: { kind: 'PERSON', id: 5001, name: 'Giorgi Beridze', avatarUrl: null, city: 'Tbilisi' }, pay: 'GEL 60 / session' };
 beforeEach(() => {
     vi.clearAllMocks(); sessionStorage.clear();
-    vi.mocked(api.fetchJobs).mockResolvedValue({ content: [clubJob, personJob], totalElements: 2 });
+    vi.mocked(api.fetchJobs).mockResolvedValue({ content: [{ ...clubJob, place: { lat: 41.7, lng: 44.8 } }, { ...personJob, place: { lat: 41.71, lng: 44.82, approximate: 'area' } }], totalElements: 2 });
     vi.mocked(api.fetchJobsFront).mockResolvedValue({ city: 'Tbilisi', role: 'COACH', pins: [{ kind: 'club', clubId: 10, label: 'Alpha FC', crest: null, lat: 41.7, lng: 44.8, count: 1 }], forYou: [clubJob, personJob], near: [personJob], offering: [offering], followed: [clubJob], fresh: [personJob], applications: [{ ...clubJob, application: { id: 1, status: 'PENDING' } }], postings: [], open: 2, available: 1 });
     vi.mocked(clubsApi.fetchPublicJob).mockImplementation(async id => (id === 701 ? personJob : id === 704 ? offering : clubJob) as never);
     vi.mocked(clubsApi.fetchMyJobApplication).mockResolvedValue(null);
@@ -43,6 +43,10 @@ describe('Front, catalogue and the listing', () => {
         render(<MemoryRouter initialEntries={['/jobs']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
         expect(await screen.findByText('Applied · waiting for an answer')).toBeInTheDocument();
         expect(screen.getByRole('region', { name: 'Jobs on the map' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /^Work/ })).toHaveAttribute('href', '/jobs/all?direction=HIRING');
+        expect(screen.getByRole('link', { name: /^Be found/ })).toHaveAttribute('href', '/jobs/new?as=work');
+        expect(screen.getByRole('link', { name: /^Hire/ })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
+        expect(await screen.findByText('2 on the map · around Tbilisi')).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: '2 open jobs and volunteer roles' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Browse people available' })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
         expect(screen.getAllByRole('link', { name: 'Post a job' })[0]).toHaveAttribute('href', '/jobs/new?as=hire');

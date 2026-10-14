@@ -68,7 +68,7 @@ get('/map/nearby', ({ query: q }) => {
   const bounds = ['west', 'south', 'east', 'north'].every(k => q.has(k)) ? { west: num(q, 'west'), south: num(q, 'south'), east: num(q, 'east'), north: num(q, 'north') } : null;
   const text = q.get('query'), cities = q.getAll('cities').map(F.lower), categories = q.getAll('category'), ageGroups = q.getAll('ageGroups');
   let list = [];
-  if (types.includes('CLUB')) list.push(...clubs.map(clubMarker).filter(m => !categories.length || categories.includes(m.category)).filter(m => !ageGroups.length || ageGroups.some(a => m.ageGroup.includes(a))));
+  if (types.includes('CLUB')) list.push(...clubs.filter(c => !c.draft).map(clubMarker).filter(m => !categories.length || categories.includes(m.category)).filter(m => !ageGroups.length || ageGroups.some(a => m.ageGroup.includes(a))));
   if (types.includes('STADIUM')) list.push(...venues.map(stadiumMarker));
   if (types.includes('MATCH')) list.push(...matchMarkers());
   if (types.includes('TOURNAMENT')) list.push(...tournamentMarkers());

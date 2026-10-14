@@ -8,6 +8,7 @@ import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
 import * as F from '../world-football.mjs';
+import { pageFilterFacts } from '../pages-data.mjs';
 
 const { personById, clubById, squadById } = W;
 const CLUB = C.CLUB_ID;
@@ -29,7 +30,7 @@ get('/clubs/my-club', () => C.clubProfile(CLUB));
 get('/clubs/followed', () => [...C.followed].map(id => C.directoryItem(id)));
 get('/clubs/search', ({ query }) => {
   const q = (query.get('q') ?? query.get('query') ?? '').toLowerCase(), size = Number(query.get('limit') ?? query.get('size') ?? 10);
-  return W.clubs.filter(c => !q || c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q)).slice(0, size)
+  return W.clubs.filter(c => !c.draft && (!q || c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q))).slice(0, size)
     .map(c => ({ id: c.id, name: c.name, logoUrl: c.logoUrl, memberCount: C.memberCount(c.id), city: c.city, cityName: c.city }));
 });
 /** A club as one reader sees it: following is theirs; a registered newcomer is nobody's staff or member. */
@@ -50,10 +51,15 @@ get('/clubs', ({ query, headers }) => {
   // monthly fee, free counting as 0) and `gender`. The sandbox's clubs state no gender, so every club matches it.
   const group = query.get('ageGroup') ?? '', groupAge = /^U\d+$/.test(group) ? Number(group.slice(1)) - 1 : group ? 18 : null;
   const published = c => (c.presentation?.programmes ?? []).filter(p => p.published);
-  const inGroup = c => groupAge == null || published(c).some(p => (p.ageMin == null || groupAge >= p.ageMin) && (p.ageMax == null || groupAge <= p.ageMax));
+  // A club created as a page states a fee band and its squads' ages instead of priced programmes (see pages-data.mjs).
+  const facts = c => pageFilterFacts(c.id);
+  const inGroup = c => groupAge == null || published(c).some(p => (p.ageMin == null || groupAge >= p.ageMin) && (p.ageMax == null || groupAge <= p.ageMax))
+    || (facts(c)?.ages ?? []).some(age => groupAge <= age && groupAge >= age - 1);
   const feeMin = Number(query.get('feeMin')), feeMax = Number(query.get('feeMax')), feeOf = p => p.priceType === 'FREE' ? 0 : p.amount != null ? Number(p.amount) : null;
-  const inFee = c => (!query.get('feeMin') && !query.get('feeMax')) || published(c).some(p => { const fee = feeOf(p); return fee != null && (!query.get('feeMin') || fee >= feeMin) && (!query.get('feeMax') || fee <= feeMax); });
-  let items = W.clubs.map(c => forViewer(C.directoryItem(c.id), headers)).filter(fits).filter(inGroup).filter(inFee).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
+  const feeFits = fee => fee != null && (!query.get('feeMin') || fee >= feeMin) && (!query.get('feeMax') || fee <= feeMax);
+  const bandFits = band => band != null && (band.free === 'ALL' ? feeFits(0) : (!query.get('feeMin') || band.max >= feeMin) && (!query.get('feeMax') || band.min <= feeMax));
+  const inFee = c => (!query.get('feeMin') && !query.get('feeMax')) || published(c).some(p => feeFits(feeOf(p))) || bandFits(facts(c)?.band);
+  let items = W.clubs.filter(c => !c.draft).map(c => forViewer(C.directoryItem(c.id), headers)).filter(fits).filter(inGroup).filter(inFee).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
     && (!types.length || types.includes(c.type)) && (!policies.length || policies.includes(c.playerJoinPolicy))
     && (!city || c.cityName.toLowerCase().includes(city)) && (!country || 'georgia ge'.includes(country)));
   const sort = query.get('sort') ?? 'NEWEST';

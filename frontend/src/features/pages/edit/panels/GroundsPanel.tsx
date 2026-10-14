@@ -1,0 +1,66 @@
+import { useEffect, useId, useState } from 'react';
+import { MapPin, Plus, Trash2 } from 'lucide-react';
+import { Button, List, ListRow, Skeleton } from '../../../../design/primitives';
+import { fetchPitches, type Ground, type Pitch } from '../../api';
+import { usePagesCopy } from '../../copy';
+import { usePageEdit } from '../context';
+import { SplitPanel } from '../SplitPanel';
+
+const SURFACE: Record<Pitch['surface'], string> = { GRASS: 'Grass', ARTIFICIAL: 'Artificial turf', HYBRID: 'Hybrid grass', INDOOR: 'Indoor' };
+
+/**
+ * Where you play: the pitches near the page's town, nearest first, each added with a tap; the chosen grounds as cards
+ * on the right. Another place is added by name. (The map, with pins and a dropped pin's address, joins in the next step.)
+ */
+export function GroundsPanel() {
+  const t = usePagesCopy();
+  const { page, saveBox, closePanel } = usePageEdit();
+  const [chosen, setChosen] = useState<Ground[]>(page?.boxes.grounds.items ?? []);
+  const [pitches, setPitches] = useState<Pitch[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [other, setOther] = useState({ name: '', address: '' });
+  const [busy, setBusy] = useState(false);
+  const id = useId();
+  const town = page?.identity.town;
+  useEffect(() => {
+    if (!town || town.latitude == null || town.longitude == null) return;
+    const controller = new AbortController();
+    fetchPitches(town.latitude, town.longitude, 25, controller.signal).then(found => { if (!controller.signal.aborted) setPitches(found); }).catch(() => { if (!controller.signal.aborted) setFailed(true); });
+    return () => controller.abort();
+  }, [town]);
+  if (!page || !town) return null;
+  const add = (pitch: Pitch) => setChosen(current => (current.some(ground => ground.pitchId === pitch.id) ? current : [...current, { id: -Date.now(), name: pitch.name, address: pitch.address, town: pitch.town, latitude: pitch.latitude, longitude: pitch.longitude, surface: pitch.surface, size: pitch.size, indoor: pitch.indoor, pitchId: pitch.id, venueId: pitch.venueId }]));
+  const addOther = () => {
+    if (!other.name.trim() || town.latitude == null || town.longitude == null) return;
+    setChosen(current => [...current, { id: -Date.now(), name: other.name.trim(), address: other.address.trim() || `${town.name}, Georgia`, town: town.name, latitude: town.latitude!, longitude: town.longitude!, surface: 'ARTIFICIAL', size: '7v7', indoor: false, pitchId: null, venueId: null }]);
+    setOther({ name: '', address: '' });
+  };
+  const save = async () => {
+    setBusy(true);
+    try { await saveBox('grounds', { items: chosen.map(ground => ({ ...ground, id: ground.id < 0 ? undefined : ground.id })) }, { label: t('Grounds saved') }); closePanel(); } finally { setBusy(false); }
+  };
+  const available = (pitches ?? []).filter(pitch => !chosen.some(ground => ground.pitchId === pitch.id)).slice(0, 8);
+  return (
+    <SplitPanel title={t('Where do you play?')} description={t('Pitches near {town}, nearest first.', { town: town.name })} onClose={closePanel}
+      footer={<><Button variant="ghost" onClick={closePanel}>{t('Cancel')}</Button><Button variant="primary" disabled={busy} onClick={() => void save()}>{t('Done')}</Button></>}
+      preview={<div className="gk-boxedit">
+        <p className="gk-field__label">{t('Your grounds')}</p>
+        {chosen.length ? <List label={t('Your grounds')}>{chosen.map((ground, index) => <li key={ground.id} className="gk-boxedit__row"><div className="gk-list-row" style={{ flex: 1 }}><span className="gk-list-row__lead"><span className="gk-club-icon"><MapPin aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{ground.name}</span><span className="gk-list-row__meta">{ground.address}</span></span></div><Button size="sm" variant="ghost" iconOnly aria-label={t('Remove')} onClick={() => setChosen(current => current.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></li>)}</List>
+          : <p className="gk-muted">{t('Tap a pitch on the left.')}</p>}
+      </div>}>
+      <div className="gk-boxedit">
+        {failed ? <p className="gk-notice gk-notice--warning" role="alert">{t('Pitches near you could not load. Add a place by name below.')}</p>
+          : pitches === null ? <><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></>
+          : <List label={t('Pitches nearby')}>{available.map(pitch => <ListRow key={pitch.id} onClick={() => add(pitch)} lead={<span className="gk-club-icon"><MapPin aria-hidden="true" /></span>} title={pitch.name} meta={`${pitch.distanceKm} km · ${t(SURFACE[pitch.surface])} · ${pitch.size}`} trail={<Plus aria-hidden="true" className="gk-faint" size={16} />} />)}</List>}
+        <div>
+          <label className="gk-field__label" htmlFor={`${id}-other`}>{t('Another place')}</label>
+          <div className="gk-boxedit__row">
+            <input id={`${id}-other`} className="gk-input" value={other.name} placeholder={t('Its name')} maxLength={120} onChange={event => setOther({ ...other, name: event.target.value })} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addOther(); } }} />
+            <input className="gk-input" value={other.address} placeholder={t('Street, town')} aria-label={t('Address')} maxLength={200} onChange={event => setOther({ ...other, address: event.target.value })} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addOther(); } }} />
+            <Button size="sm" variant="ghost" iconOnly aria-label={t('Add')} disabled={!other.name.trim()} onClick={addOther}><Plus aria-hidden="true" /></Button>
+          </div>
+        </div>
+      </div>
+    </SplitPanel>
+  );
+}

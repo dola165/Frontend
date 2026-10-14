@@ -19,6 +19,10 @@ export interface ProfileIdentity {
     facts?: ReactNode[];
     /** A short description under the facts, kept to two lines. */
     summary?: ReactNode;
+    /** Replaces the name in the heading, for a page edited in place; `name` still names the page. */
+    nameNode?: ReactNode;
+    /** Replaces the summary paragraph, for a page edited in place. */
+    summaryNode?: ReactNode;
 }
 
 interface ProfileLayoutProps<T extends string> {
@@ -74,10 +78,10 @@ export function ProfileLayout<T extends string>({ identity, banner, bannerAction
                             {imageAction && <div className="gk-profile__image-action">{imageAction}</div>}
                         </div>
                         <div className="gk-profile__text">
-                            <h1 className="gk-profile__name"><span>{identity.name}</span>{identity.badge}</h1>
+                            <h1 className="gk-profile__name">{identity.nameNode ?? <span>{identity.name}</span>}{identity.badge}</h1>
                             {identity.line && <p className="gk-profile__line">{identity.line}</p>}
                             {facts.length > 0 && <ul className="gk-profile__facts" aria-label="Key facts">{facts.map((fact, index) => <li key={index}>{fact}</li>)}</ul>}
-                            {identity.summary && <p className="gk-profile__summary">{identity.summary}</p>}
+                            {identity.summaryNode ?? (identity.summary && <p className="gk-profile__summary">{identity.summary}</p>)}
                         </div>
                         {(actions || (!cover && bannerAction)) && <div className="gk-profile__actions">{actions}{!cover && bannerAction}</div>}
                     </div>

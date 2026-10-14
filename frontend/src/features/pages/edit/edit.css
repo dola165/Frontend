@@ -1,0 +1,100 @@
+/* Editing a page in place: the edit bar, ghost boxes, inline text, box frames, the tray. Scoped under .gk; tokens only. */
+
+/* The bar under the header: the draft strip, the setup ring, "Saved", Go live, Edit page. One calm line. */
+.gk .gk-editbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); min-height: 44px; margin: var(--gk-2) 0 var(--gk-3); padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-editbar[data-editing] { border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); box-shadow: inset 0 0 0 1px var(--gk-accent-soft); }
+.gk .gk-editbar__draft { display: inline-flex; align-items: center; gap: var(--gk-2); font-weight: 600; }
+.gk .gk-editbar__claim { display: inline-flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-2); }
+.gk .gk-editbar__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); flex-shrink: 0; }
+.gk .gk-editbar__dot--live { background: var(--gk-accent); }
+.gk .gk-editbar__saved { min-width: 48px; color: var(--gk-text-2); }
+.gk .gk-editbar__saved[data-status='failed'] { color: var(--gk-danger); }
+.gk .gk-editbar__actions { display: inline-flex; align-items: center; gap: var(--gk-2); margin-left: auto; }
+.gk .gk-editbar__missing { color: var(--gk-text-3); }
+
+/* The setup ring: a small circle filling up, "4 of 7", and the next thing to do as a button. */
+.gk .gk-ring { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; padding: 0 var(--gk-2) 0 0; border: 0; border-radius: var(--gk-r-pill); background: none; color: inherit; font: inherit; cursor: pointer; }
+.gk .gk-ring:hover .gk-ring__next { text-decoration: underline; }
+.gk .gk-ring svg { width: 28px; height: 28px; transform: rotate(-90deg); }
+.gk .gk-ring__track { fill: none; stroke: var(--gk-line); stroke-width: 3; }
+.gk .gk-ring__fill { fill: none; stroke: var(--gk-accent); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset .4s var(--gk-ease); }
+.gk .gk-ring__count { font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-ring__next { color: var(--gk-text-2); }
+.gk .gk-ring__next::before { content: '·'; margin: 0 var(--gk-1); }
+
+/* A ghost box: a soft dashed outline, a picture and a few words; it is both the explanation and the form. */
+.gk .gk-ghost { border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-surface) 60%, transparent); transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease); }
+.gk .gk-ghost[data-next] { border-color: var(--gk-accent); box-shadow: 0 0 0 2px var(--gk-accent-soft); }
+.gk .gk-ghost__open { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 56px; padding: var(--gk-3); border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-ghost__open:hover { background: var(--gk-hover); }
+.gk .gk-ghost__icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--gk-r); background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-ghost__icon svg { width: 18px; height: 18px; }
+.gk .gk-ghost__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gk .gk-ghost__words { font-weight: 650; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+.gk .gk-ghost__hint { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-ghost__plus { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--gk-line-strong); color: var(--gk-text-2); }
+.gk .gk-ghost__plus svg { width: 14px; height: 14px; }
+
+/* Text edited in place. */
+.gk .gk-inline { display: inline-block; max-width: 100%; min-width: 0; vertical-align: baseline; }
+.gk p.gk-inline { display: block; }
+.gk .gk-inline__open { display: inline-block; max-width: calc(100% + 8px); margin: 0 -4px; padding: 0 4px; border: 0; border-radius: var(--gk-r-sm); background: none; color: inherit; font: inherit; text-align: inherit; cursor: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.gk p.gk-inline .gk-inline__open { white-space: normal; overflow: visible; }
+.gk .gk-inline__open:hover { background: var(--gk-hover); box-shadow: 0 0 0 1px var(--gk-line-strong); }
+.gk .gk-inline--empty .gk-inline__open { color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-inline__field { width: 100%; margin: 0 -4px; padding: 0 4px; border: 0; border-radius: var(--gk-r-sm); background: var(--gk-sunken); color: inherit; font: inherit; box-shadow: 0 0 0 2px var(--gk-accent); outline: none; }
+.gk .gk-inline__field--area { resize: vertical; min-height: 3.2em; line-height: inherit; }
+
+/* A box in edit mode: its edit pencil at the head, Move up / Move down and Hide under Rearrange. */
+.gk .gk-boxframe { position: relative; }
+.gk .gk-boxframe__tools { position: absolute; top: var(--gk-2); right: var(--gk-2); display: inline-flex; gap: 2px; }
+.gk .gk-boxframe[data-rearrange] { outline: 1px dashed var(--gk-line-strong); outline-offset: -1px; border-radius: var(--gk-r-lg); }
+.gk .gk-boxframe[data-dragging] { opacity: .55; }
+.gk .gk-boxframe__handle { cursor: grab; touch-action: none; }
+.gk .gk-boxframe__handle:active { cursor: grabbing; }
+.gk .gk-boxframe__drop { height: 8px; margin: 2px 0; border-radius: var(--gk-r-pill); background: transparent; transition: background-color .15s var(--gk-ease); }
+.gk .gk-boxframe__drop[data-over] { background: var(--gk-accent); }
+
+/* "+ Add a box": a tray of the boxes not on the page yet. */
+.gk .gk-tray { display: flex; flex-wrap: wrap; gap: var(--gk-2); padding: var(--gk-2) 0; }
+.gk .gk-tray__item { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 var(--gk-3) 0 var(--gk-2); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: grab; }
+.gk .gk-tray__item:hover { color: var(--gk-text); border-color: var(--gk-accent); }
+.gk .gk-tray__item svg { width: 14px; height: 14px; }
+.gk .gk-tray__label { width: 100%; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+/* The split panel: the choices on one side, the live result on the other; one column on a phone. */
+.gk .gk-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
+.gk .gk-split__preview { position: sticky; top: var(--gk-2); }
+@media (max-width: 760px) { .gk .gk-split { grid-template-columns: minmax(0, 1fr); } .gk .gk-split__preview { position: static; } }
+.gk .gk-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.gk .gk-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: var(--swatch); cursor: pointer; }
+.gk .gk-swatch[aria-pressed='true'] { border-color: var(--gk-text); box-shadow: 0 0 0 2px var(--gk-bg); }
+.gk .gk-shapes { display: flex; gap: var(--gk-2); }
+.gk .gk-shape { width: 44px; height: 44px; padding: 6px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-sunken); cursor: pointer; }
+.gk .gk-shape[aria-pressed='true'] { border-color: var(--gk-accent); box-shadow: 0 0 0 2px var(--gk-accent-soft); }
+.gk .gk-shape svg { width: 100%; height: 100%; }
+.gk .gk-crest-preview { display: flex; flex-direction: column; align-items: center; gap: var(--gk-3); padding: var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-sunken); }
+.gk .gk-crest-preview img { width: 112px; height: 112px; }
+.gk .gk-crest-preview__name { font-weight: 650; font-size: var(--gk-fs-xl); }
+.gk .gk-covers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gk-2); }
+.gk .gk-cover { aspect-ratio: 3 / 1; padding: 0; border: 2px solid transparent; border-radius: var(--gk-r); background: var(--cover) center / cover no-repeat; cursor: pointer; }
+.gk .gk-cover[aria-pressed='true'] { border-color: var(--gk-accent); }
+
+/* Inline editors inside a box. */
+.gk .gk-boxedit { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-boxedit__row { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-boxedit__row .gk-input { flex: 1; min-width: 0; }
+.gk .gk-boxedit__foot { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-fee { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-fee__values { display: flex; align-items: center; justify-content: space-between; font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-fee input[type='range'] { width: 100%; accent-color: var(--gk-accent); }
+.gk .gk-tap { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 34px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-sunken); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .gk-tap:hover { border-color: var(--gk-accent); }
+.gk .gk-tap svg { width: 14px; height: 14px; color: var(--gk-accent); }
+
+/* The age-group builder: one row per age, Boys / Girls / Mixed as chips; the squads as small cards. */
+.gk .gk-ages { display: flex; flex-direction: column; gap: 6px; }
+.gk .gk-ages__row { display: grid; grid-template-columns: 56px repeat(3, auto); align-items: center; gap: 6px; }
+.gk .gk-ages__age { font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-squadcard { padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-sunken); }
+.gk .gk-split__choices { min-width: 0; }

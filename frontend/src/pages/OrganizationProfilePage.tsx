@@ -11,6 +11,9 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import type { OrganizationProfile, OrganizationProfileDraft } from '../features/organizations/domain';
 import { OrganizationVenues } from '../features/organizations/presentation/OrganizationVenues';
 import { OrganizationBranding } from '../features/organizations/setup/OrganizationBranding';
+import { PageEditProvider } from '../features/pages/edit/PageEditProvider';
+import { usePageEdit } from '../features/pages/edit/context';
+import { OrganizationPage } from '../features/pages/OrganizationPage';
 import '../features/organizations/presentation/organization-profile.css';
 
 interface Presentation {
@@ -33,7 +36,14 @@ export function OrganizationProfilePage() {
   const { t } = useTranslation('translation', { keyPrefix: 'experience.organization' });
   const { organizationId } = useParams(), { sessionId } = useAuth();
   if (!organizationId || !/^\d+$/.test(organizationId) || !Number.isSafeInteger(Number(organizationId)) || Number(organizationId) <= 0) return <p role="alert">{t('notFound')}</p>;
-  return <OrganizationProfileContent key={`${organizationId}:${sessionId}`} id={organizationId} />;
+  // A fan club, a business or any other page lives on the shared page DNA; older organisations keep their presentation.
+  return <PageEditProvider key={`${organizationId}:${sessionId}`} pageRef={{ type: 'organization', id: Number(organizationId) }}><OrganizationPageOrLegacy id={organizationId} /></PageEditProvider>;
+}
+function OrganizationPageOrLegacy({ id }: { id: string }) {
+  const { page, loading, notFound } = usePageEdit();
+  if (notFound) return <OrganizationProfileContent id={id} />;
+  if (!page && loading) return <GkRoot className="gk-page gk-profile"><PageFrame width="profile"><div role="status" aria-label="Loading" className="gk-stack gk-stack--tight gk-org-state"><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={160} /></div></PageFrame></GkRoot>;
+  return <OrganizationPage />;
 }
 export const OrganizationProfilePreview = ({ id = '17' }: { id?: string }) => <OrganizationProfileContent key={id} id={id} />;
 

@@ -99,7 +99,7 @@ const conflictOr = (error: unknown): never => {
 
 export const createPage = (body: CreateRequest) => apiClient.post<CreatedPage>('/organizations/setup', body).then(r => r.data);
 export const fetchPage = (ref: PageRef, signal?: AbortSignal) => apiClient.get<PageView>(pageBase(ref), { signal }).then(r => r.data);
-export const saveIdentity = (ref: PageRef, version: number, patch: Partial<Omit<PageIdentity, 'version' | 'crest' | 'cover'>> & { crest?: unknown; cover?: unknown }) =>
+export const saveIdentity = (ref: PageRef, version: number, patch: Partial<Omit<PageIdentity, 'version' | 'crest' | 'cover' | 'town'>> & { crest?: unknown; cover?: unknown; town?: { name: string } }) =>
   apiClient.put<PageView>(`${pageBase(ref)}/identity`, { version, ...patch }).then(r => r.data, conflictOr);
 export const saveBox = <K extends SavableBox>(ref: PageRef, key: K, version: number, data: unknown) =>
   apiClient.put<PageView>(`${pageBase(ref)}/boxes/${key}`, { version, data }).then(r => r.data, conflictOr);

@@ -32,9 +32,10 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const { user } = useAuth();
   const { create, busy, error, clearError, unanswered, age } = useCreatePage();
   const locked = (candidate: PageKind) => age != null && age < minimumAge(candidate);
-  const [draft] = useState(() => readSetupRecovery(user?.id, DRAFT, validDraft));
+  // A draft left in the sheet comes back, unless the link asks for another kind: then it starts afresh on that kind.
+  const [draft] = useState(() => { const kept = readSetupRecovery(user?.id, DRAFT, validDraft); return kept && (!kind || kept.kind === kind) ? kept : null; });
   const preset = kind ?? (FOOTBALL_ENTRIES.includes(from) ? 'CLUB' : null);
-  const [chosen, setChosen] = useState<PageKind | null>(() => { const start = draft?.kind ?? preset; return start && !locked(start) ? start : null; });
+  const [chosen, setChosen] = useState<PageKind | null>(() => { const start = kind ?? draft?.kind ?? preset; return start && !locked(start) ? start : null; });
   const [name, setName] = useState(draft?.name ?? '');
   const [town, setTown] = useState<Town>(() => townByName(draft?.town) ?? DEFAULT_TOWN);
   const [townOpen, setTownOpen] = useState(false);
@@ -54,10 +55,10 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   }, [draft?.town]);
   useEffect(() => { writeSetupRecovery(user?.id, DRAFT, { kind: chosen, name, town: town.name } satisfies StartDraft); }, [chosen, name, town.name, user?.id]);
   // The dialog puts focus on its first control; once a type is chosen the name is what matters.
-  useEffect(() => { if (chosen) { const frame = requestAnimationFrame(() => nameRef.current?.focus()); return () => cancelAnimationFrame(frame); } }, [chosen]);
+  useEffect(() => { if (chosen) { const frame = requestAnimationFrame(() => { nameRef.current?.focus(); nameRef.current?.select(); }); return () => cancelAnimationFrame(frame); } }, [chosen]);
   // The duplicate check while typing, a breath after the last key. What was found is kept with the name it was found for.
   const typed = name.trim();
-  const lookupKey = chosen && typed.length >= 3 ? `${chosen}:${typed}:${town.name}` : null;
+  const lookupKey = chosen && typed.length >= 3 ? `${chosen}:${typed}` : null;
   useEffect(() => {
     if (!lookupKey) return;
     const controller = new AbortController();

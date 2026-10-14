@@ -34,8 +34,8 @@
 /* The hero: one wide picture asking the club to start. */
 .gk .gk-fund-hero { min-height: 300px; }
 .gk .gk-fund-hero .gk-store-door__title { font-size: 34px; line-height: 38px; }
-.gk .gk-fund-hero__facts { display: flex; gap: var(--gk-6); font-size: var(--gk-fs-sm); color: rgba(255, 255, 255, .85); }
-.gk .gk-fund-hero__facts strong { display: block; font-size: 22px; line-height: 26px; color: #fff; }
+.gk .gk-fund-hero__facts { display: flex; gap: var(--gk-6); font-size: var(--gk-fs-sm); color: color-mix(in srgb, var(--color-on-media) 85%, transparent); }
+.gk .gk-fund-hero__facts strong { display: block; font-size: 22px; line-height: 26px; color: var(--color-on-media); }
 
 /* The fundraiser page: the story on the left, the giving card beside it. */
 .gk .gk-fund-page { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--gk-8); align-items: start; padding-top: var(--gk-4); }

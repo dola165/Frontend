@@ -14,9 +14,9 @@ export function Row({ children, label, wide, busy }: { children: ReactNode; labe
         const measure = () => setEnds({ start: element.scrollLeft <= 2, end: element.scrollLeft + element.clientWidth >= element.scrollWidth - 2 });
         measure();
         element.addEventListener('scroll', measure, { passive: true });
-        const observer = new ResizeObserver(measure);
-        observer.observe(element);
-        return () => { element.removeEventListener('scroll', measure); observer.disconnect(); };
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+        observer?.observe(element);
+        return () => { element.removeEventListener('scroll', measure); observer?.disconnect(); };
     }, [children]);
     const glide = (direction: 1 | -1) => list.current?.scrollBy({ left: direction * list.current.clientWidth * 0.85, behavior: 'smooth' });
     return (

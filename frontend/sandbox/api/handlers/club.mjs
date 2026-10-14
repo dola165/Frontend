@@ -698,7 +698,7 @@ get('/clubs/:id/campaigns', ({ params }) => isOwnClub(params.id) ? C.clubCampaig
 get('/clubs/:id/campaigns/:cid', ({ params }) => C.clubCampaigns().find(c => c.id === Number(params.cid)) ?? notFound());
 post('/clubs/:id/campaigns', ({ body }) => {
   if (!body?.title?.trim()) return bad('Give the campaign a title.');
-  const c = { clubId: CLUB, clubName: C.club.name, clubLogoUrl: C.club.logoUrl, country: 'Georgia', city: 'Tbilisi', images: [], reportedAmount: null, reportedNote: '', ...body, id: C.nextId(), status: 'DRAFT', phase: 'DRAFT', version: 1, updatedAt: C.nowIso(), publishedAt: null, updates: [], reportedAt: null };
+  const c = { clubId: CLUB, clubName: C.club.name, clubLogoUrl: C.club.logoUrl, country: 'Georgia', city: 'Tbilisi', images: [], reportedAmount: null, reportedNote: '', donateUrl: null, donations: 0, ...body, id: C.nextId(), status: 'DRAFT', phase: 'DRAFT', version: 1, updatedAt: C.nowIso(), publishedAt: null, updates: [], reportedAt: null };
   C.campaigns.push(c); return created(c);
 });
 put('/clubs/:id/campaigns/:cid', ({ params, body }) => {

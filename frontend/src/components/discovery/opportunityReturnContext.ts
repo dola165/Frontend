@@ -35,7 +35,7 @@ const isAllowedReturnTarget = (
     }
     if (
         section === 'campaigns' &&
-        (pathname === '/campaigns' || /^\/clubs\/([1-9]\d*)\/campaigns$/.test(pathname))
+        (pathname === '/campaigns' || pathname === '/campaigns/all' || /^\/clubs\/([1-9]\d*)\/campaigns$/.test(pathname))
     ) {
         return true;
     }

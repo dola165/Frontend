@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { ClubStorePage } from '../../../pages/ClubStorePage';
-import { CampaignsPage } from '../../../pages/CampaignsPage';
+import { ClubFundraisingPage } from '../../../pages/ClubFundraisingPage';
 import { JobsDirectoryPage } from '../../../pages/JobsDirectoryPage';
 import { involvedKindFrom, type InvolvedKind } from './clubTabs';
 import type { ClubProfile } from './types';
@@ -34,6 +34,6 @@ export function ClubInvolvedTab({ club }: { club: ClubProfile }) {
         </div>
         {kind === 'store' && <ClubStorePage />}
         {kind === 'jobs' && <JobsDirectoryPage fixedClubId={club.id} clubName={club.name} />}
-        {kind === 'fundraising' && <CampaignsPage />}
+        {kind === 'fundraising' && <ClubFundraisingPage />}
     </div>;
 }

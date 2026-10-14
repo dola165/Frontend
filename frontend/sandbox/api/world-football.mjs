@@ -909,4 +909,7 @@ export const campaigns = campaignPlan.map(([clubId, title, category, goal, raise
     updatedAt: iso(day(-2 - i)), publishedAt: iso(day(startOffset)),
     updates: [{ id: 1250 + i * 2, title: 'Halfway there', body: `Thank you. We have reached ${Math.round(raised / goal * 100)}% of the goal.`, createdAt: iso(day(-3 - i)) }, { id: 1251 + i * 2, title: 'Campaign launched', body: summary, createdAt: iso(day(startOffset)) }] };
 });
+// Donations are taken on GoFundMe (the club pastes its page); GrassKickZ shows the fundraiser and sends supporters there.
+// `donateUrl` and `donations` are fields the backend needs (docs/claude-sandbox/BACKEND_NEEDS.md, "Fundraising").
+campaigns.forEach((c, i) => { c.donateUrl = i === 2 ? null : `https://www.gofundme.com/f/${c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`; c.donations = Math.round(c.reportedAmount / (35 + (i * 7) % 40)); });
 export const campaignById = id => campaigns.find(c => c.id === Number(id));

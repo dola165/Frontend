@@ -32,8 +32,11 @@ import { AgentDolaPage, DolaDock } from './features/dola/AgentDolaPage';
 import { DolaProvider } from './features/dola/DolaProvider';
 const RightSidebar = isAndroidApp ? null : lazy(() => import('./components/layout/RightSidebar').then(module => ({ default: module.RightSidebar })));
 
-const CampaignsPage = lazy(() => import('./pages/CampaignsPage').then(module => ({default: module.CampaignsPage})));
-const CampaignDetailPage = lazy(() => import('./pages/CampaignDetailPage').then(module => ({default: module.CampaignDetailPage})));
+const FundraisingPage = lazy(() => import('./pages/FundraisingPage').then(module => ({default: module.FundraisingPage})));
+const FundraisingCataloguePage = lazy(() => import('./pages/FundraisingCataloguePage').then(module => ({default: module.FundraisingCataloguePage})));
+const ClubFundraisingPage = lazy(() => import('./pages/ClubFundraisingPage').then(module => ({default: module.ClubFundraisingPage})));
+const FundraiserPage = lazy(() => import('./pages/FundraiserPage').then(module => ({default: module.FundraiserPage})));
+const StartFundraiserPage = lazy(() => import('./pages/StartFundraiserPage').then(module => ({default: module.StartFundraiserPage})));
 const JobDetailPage = lazy(() => import('./pages/JobDetailPage').then(module => ({default: module.JobDetailPage})));
 const StorePage = lazy(() => import('./pages/StorePage').then(module => ({default: module.StorePage})));
 const MyOrganizationsPage = lazy(() => import('./pages/MyOrganizationsPage').then(module => ({default: module.MyOrganizationsPage})));
@@ -393,9 +396,11 @@ export function MainLayout() {
             <Route path="/store/cart" element={<StoreCartPage />} />
             {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ tab: 'jobs' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
             {ROLE_DETAIL_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobDetailPage />} />)}
-            <Route path="/campaigns" element={<CampaignsPage />} />
-            <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
-            <Route path="/clubs/:id/campaigns" element={<CampaignsPage />} />
+            <Route path="/campaigns" element={<FundraisingPage />} />
+            <Route path="/campaigns/all" element={<FundraisingCataloguePage />} />
+            <Route path="/campaigns/new" element={<ProtectedRoute><StartFundraiserPage /></ProtectedRoute>} />
+            <Route path="/campaigns/:id" element={<FundraiserPage />} />
+            <Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} />
             <Route path="/people" element={<WorldRedirect to="/world/people" />} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />

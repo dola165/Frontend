@@ -240,6 +240,15 @@ New needs are added here as each phase of `ROUND_3_PLAN.md` is built, with the s
 | `/store/cart/quote` for GrassKickZ's own products: `clubId` 0 and `sellerKind` in the answer; one seller per cart | The cart and its summary | MISSING |
 | `/store/locations` answers the real `clubCountryName` | The Club location filter | FRONTEND SENDS `country`; verify the backend reads it |
 
+### Fundraising (14 October, GoFundMe's shape; sandbox in `sandbox/api/handlers/campaigns.mjs`)
+
+| Need | Why | Status |
+|---|---|---|
+| `donateUrl` (the club's GoFundMe page, validated as `https://www.gofundme.com/…`) and `donations` (how many gave) on `CampaignDto` and `CampaignInput` | Donate on GoFundMe on the fundraiser; the donations count on every card | MISSING |
+| `/campaigns` takes `near=City` and `sort=RELEVANCE` (followed clubs, then the city, then closest to goal), `CLOSEST` (share of goal), `RAISED`; `country` is read; lists carry `distanceKm` | The front's doors and the catalogue's sorts | MISSING (`NEWEST`, `ENDING`, `category`, `city`, `state` exist) |
+| `GET /campaigns/front?near=City` → `{ city, near, closest, followed, fresh, active, raised }` | The fundraising front in one request | MISSING |
+| Later: the amount raised and the donations read from GoFundMe (their API or a nightly import) instead of the club's report | Honest numbers without the treasurer | PROPOSED |
+
 ### World › People (phase B)
 
 The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the contract the four views are built on.

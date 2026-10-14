@@ -767,15 +767,7 @@ post('/jobs/:id/applications', ({ params }) => { const r = F.roleList.find(x => 
 
 // The store (storefront, catalogue, product, cart quote) lives in store.mjs.
 
-// ============================================================== campaigns
-get('/campaigns/locations', ({ query: q }) => [...new Map(F.campaigns.filter(c => !q.get('clubId') || c.clubId === Number(q.get('clubId'))).map(c => [c.city, { country: 'Georgia', city: c.city }])).values()]);
-get('/campaigns', ({ query: q }) => {
-  const clubId = num(q, 'clubId', null), text = q.get('query'), category = q.get('category'), city = q.get('city'), state = q.get('state') || 'ACTIVE', sort = q.get('sort') || 'NEWEST';
-  const list = F.campaigns.filter(c => clubId == null || c.clubId === clubId).filter(c => state === 'ALL' || c.phase === 'ACTIVE').filter(c => matchesText(text, c.title, c.summary, c.clubName)).filter(c => !category || c.category === category).filter(c => !city || F.lower(c.city) === F.lower(city))
-    .sort((a, b) => sort === 'ENDING' ? a.endsOn.localeCompare(b.endsOn) : Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-  return springPage(list, pageOf(q), sizeOf(q, 12));
-});
-get('/campaigns/:id', ({ params }) => F.campaignById(params.id) || notFound('This campaign is unavailable.'));
+// Fundraising (campaigns) lives in campaigns.mjs.
 
 // ============================================================== supporting lookups
 // As the backend: referees with a current club appointment holding the REFEREE specialisation that covers the squad.

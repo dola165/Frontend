@@ -5,8 +5,8 @@ import { Section } from '../../../design/primitives';
 
 const PLACES = [
     { id: 'store', label: 'Store', to: '/store', icon: ShoppingBag },
-    { id: 'fundraising', label: 'Fundraising', to: '/campaigns', icon: HeartHandshake },
     { id: 'jobs', label: 'Jobs & volunteering', to: '/jobs', icon: Briefcase },
+    { id: 'fundraising', label: 'Fundraising', to: '/campaigns', icon: HeartHandshake },
 ] as const;
 export type MarketPlace = typeof PLACES[number]['id'];
 

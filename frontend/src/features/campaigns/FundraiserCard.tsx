@@ -41,15 +41,16 @@ export function FundraiserCard({ campaign }: { campaign: Campaign }) {
 export const FundraiserSkeletons = ({ count = 4 }: { count?: number }) => <>{Array.from({ length: count }, (_, i) => <li key={i}><span className="gk-skeleton gk-fund-skeleton" style={{ display: 'block' }} aria-hidden="true" /></li>)}</>;
 
 /** A front-page row of fundraisers with "View all" opening the same search. */
-export function FundraiserRow({ title, hint, to, campaigns, loading, error, retry, empty, action }: {
+export function FundraiserRow({ title, hint, to, campaigns, loading, error, retry, empty, action, float, tone }: {
     title: string; hint?: ReactNode; to?: string; campaigns: Campaign[]; loading: boolean; error: string; retry: () => void; empty: string; action?: ComponentProps<typeof Section>['action'];
+    /** On the front the row drifts on its own, this way, on a textured band. */ float?: 'left' | 'right'; tone?: 'a' | 'b';
 }) {
     return (
-        <Section title={title} hint={hint} action={action ?? (to && campaigns.length ? { label: 'View all', to } : undefined)}>
+        <Section title={title} hint={hint} action={action ?? (to && campaigns.length ? { label: 'View all', to } : undefined)} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
             {error ? <EmptyNote title="These fundraisers could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading && !campaigns.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label="Loading fundraisers"><FundraiserSkeletons /></ul>
                 : !campaigns.length ? <EmptyNote title={empty} />
-                : <Row label={title} wide>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} /></li>)}</Row>}
+                : <Row label={title} wide drift={float}>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} /></li>)}</Row>}
         </Section>
     );
 }

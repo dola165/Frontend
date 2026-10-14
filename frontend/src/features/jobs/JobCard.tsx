@@ -2,7 +2,6 @@ import type { ComponentProps, ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Badge, Button, EmptyNote, Section } from '../../design/primitives';
 import { opportunityReturnState } from '../../components/discovery/opportunityReturnContext';
-import { Marquee } from '../store/front/Marquee';
 import { Row } from '../store/front/Row';
 import { Crest } from '../world/Crest';
 import { categoryLabel, directionOf, distanceLabel, hoursLabel, placeOf, posterOf, postedLabel, termsLabel, type Job } from './api';
@@ -63,12 +62,11 @@ export function JobRowSection({ title, hint, to, jobs, loading, error, retry, em
     /** On the front the row drifts on its own, this way, on a textured band. */ float?: 'left' | 'right'; tone?: 'a' | 'b';
 }) {
     return (
-        <Section title={title} hint={hint} action={action ?? (to && jobs.length ? { label: 'View all', to } : undefined)} className={float ? `gk-jobs-band gk-jobs-band--${tone ?? 'a'}` : undefined}>
+        <Section title={title} hint={hint} action={action ?? (to && jobs.length ? { label: 'View all', to } : undefined)} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
             {error ? <EmptyNote title="These listings could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading && !jobs.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label="Loading"><JobSkeletons /></ul>
                 : !jobs.length ? <EmptyNote title={empty} />
-                : float ? <Marquee direction={float} label={title}>{jobs.map(job => <JobCard key={job.id} job={job} />)}</Marquee>
-                : <Row label={title} wide>{jobs.map(job => <li key={job.id}><JobCard job={job} /></li>)}</Row>}
+                : <Row label={title} wide drift={float}>{jobs.map(job => <li key={job.id}><JobCard job={job} /></li>)}</Row>}
         </Section>
     );
 }

@@ -11,11 +11,11 @@ import { COLLECTIONS } from '../labels';
 import { Row } from './Row';
 
 /** GrassKickZ's own equipment as a row of tall pictures, each opening that collection. */
-export function Collections({ front }: { front: StoreFront | undefined }) {
+export function Collections({ front, float, tone }: { front: StoreFront | undefined; float?: 'left' | 'right'; tone?: 'a' | 'b' }) {
     const items = COLLECTIONS.map(collection => ({ ...collection, data: front?.collections.find(item => item.id === collection.id) })).filter(collection => !front || collection.data);
     return (
-        <Section title="GrassKickZ equipment" hint="Sold by GrassKickZ" action={{ label: 'View all', to: cataloguePath({ seller: 'grasskickz' }) }}>
-            <Row label="GrassKickZ equipment">
+        <Section title="GrassKickZ equipment" hint="Sold by GrassKickZ" action={{ label: 'View all', to: cataloguePath({ seller: 'grasskickz' }) }} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
+            <Row label="GrassKickZ equipment" drift={float}>
                 {items.map(collection => (
                     <li key={collection.id}>
                         <Link className="gk-store-coll" to={cataloguePath({ seller: 'grasskickz', collection: collection.id })}>
@@ -48,15 +48,16 @@ export function AreaPicker({ city, onChange }: { city: string; onChange: (city: 
 }
 
 /** Clubs as tiles with the crest large: the storefront's shortcuts into each club's store. */
-export function Sellers({ id, title, hint, sellers, loading, error, retry, empty, action }: {
+export function Sellers({ id, title, hint, sellers, loading, error, retry, empty, action, float, tone }: {
     id: string; title: string; hint?: ReactNode; sellers: StoreSeller[]; loading: boolean; error: string; retry: () => void; empty: string; action?: ComponentProps<typeof Section>['action'];
+    float?: 'left' | 'right'; tone?: 'a' | 'b';
 }) {
     return (
-        <Section id={id} title={title} hint={hint} action={action}>
+        <Section id={id} title={title} hint={hint} action={action} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
             {error ? <EmptyNote title="Clubs could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading ? <ul className="gk-store-row" aria-busy="true" aria-label="Loading clubs">{[0, 1, 2, 3, 4, 5].map(i => <li key={i}><span className="gk-skeleton gk-store-skeleton" style={{ display: 'block' }} aria-hidden="true" /></li>)}</ul>
                 : !sellers.length ? <EmptyNote title={empty} />
-                : <Row label={title}>
+                : <Row label={title} drift={float}>
                     {sellers.map(seller => (
                         <li key={seller.clubId}>
                             <Link className="gk-store-seller" to={clubStorePath(seller.clubId)}>

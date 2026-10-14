@@ -288,9 +288,14 @@
 ::view-transition-old(app-header), ::view-transition-new(app-header) { animation: none; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 
-/* ── A row that idles sideways: it scrolls plainly (no smooth scroll fighting the drift) and fades at its edges ── */
-.gk .gk-store-rail[data-drift] .gk-store-row { scroll-behavior: auto; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
-.gk .gk-store-rail[data-drift] .gk-store-row > li { scroll-snap-align: none; }
+/* ── A row that idles sideways: one track, laid twice, slid by the compositor by half its width and started again ── */
+@keyframes gk-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.gk .gk-store-rail[data-drift] { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.gk .gk-store-row--drift { display: flex; width: max-content; overflow: visible; scroll-snap-type: none; animation: gk-drift 120s linear infinite; will-change: transform; }
+.gk .gk-store-row--drift > li { flex: 0 0 auto; width: 240px; }
+.gk .gk-store-row--wide.gk-store-row--drift > li { width: 300px; }
+.gk .gk-store-rail[data-drift] .gk-store-rail__arrow { opacity: 0; }
+.gk .gk-store-rail[data-drift]:hover .gk-store-rail__arrow, .gk .gk-store-rail[data-drift] .gk-store-rail__arrow:focus-visible { opacity: 1; }
 
 /* ── Each row of a front on its own band: a quiet texture and a soft glow, alternating, so the rows read apart ── */
 .gk .gk-band { position: relative; gap: var(--gk-3); padding: var(--gk-6) var(--gk-6) var(--gk-4); border: 1px solid var(--gk-line); border-radius: 22px; background: var(--gk-surface); overflow: hidden; isolation: isolate; box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent); }

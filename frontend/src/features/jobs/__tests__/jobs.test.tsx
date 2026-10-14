@@ -43,13 +43,13 @@ describe('Front, catalogue and the listing', () => {
         localStorage.clear();
         const view = render(<MemoryRouter initialEntries={['/jobs']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
         expect(await screen.findByText('Applied · waiting for an answer')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Jobs in football near you' })).toHaveAttribute('href', '/jobs/all?direction=HIRING');
+        expect(screen.getAllByRole('link').find(link => link.getAttribute('href') === '/jobs/701')).toHaveTextContent('Personal trainer for a 12-year-old');
         expect(screen.getAllByRole('link', { name: 'List yourself' })[0]).toHaveAttribute('href', '/jobs/new?as=work');
         expect(screen.getByText('Coaching first, then the clubs you follow and your city')).toBeInTheDocument();
         expect(api.fetchJobsFront).toHaveBeenCalledWith('Tbilisi', expect.any(AbortSignal));
         view.unmount();
         render(<MemoryRouter initialEntries={['/jobs?mode=hire']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
-        expect(await screen.findByRole('link', { name: 'Coaches, referees and specialists' })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
+        expect(await screen.findByRole('heading', { name: 'Available near you' })).toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: 'Post a job' })[0]).toHaveAttribute('href', '/jobs/new?as=hire');
         expect(screen.getAllByText('GEL 60 / session').length).toBeGreaterThan(0);
         expect(localStorage.getItem('gk.jobs.mode')).toBe('hire');

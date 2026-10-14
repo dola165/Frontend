@@ -287,3 +287,15 @@
 .gk-header { view-transition-name: app-header; }
 ::view-transition-old(app-header), ::view-transition-new(app-header) { animation: none; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
+
+/* ── A row that drifts on its own: one track, two halves, sliding by half; paused under the pointer ── */
+@keyframes gk-marquee-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes gk-marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.gk .gk-marquee { overflow: hidden; margin: 0 calc(-1 * var(--gk-6)); padding: var(--gk-2) 0 var(--gk-3); mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
+.gk .gk-marquee__track { display: flex; gap: var(--gk-4); width: max-content; padding: 0 var(--gk-2); animation: gk-marquee-left 60s linear infinite; will-change: transform; }
+.gk .gk-marquee[data-direction='right'] .gk-marquee__track { animation-name: gk-marquee-right; }
+.gk .gk-marquee__track > li { flex: 0 0 300px; display: flex; }
+.gk .gk-marquee__track > li > * { width: 100%; }
+.gk .gk-marquee:hover .gk-marquee__track, .gk .gk-marquee:focus-within .gk-marquee__track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .gk .gk-marquee { mask-image: none; -webkit-mask-image: none; overflow-x: auto; } .gk .gk-marquee__track { animation: none; } }
+@media (max-width: 900px) { .gk .gk-marquee { margin: 0 calc(-1 * var(--gk-4)); } .gk .gk-marquee__track > li { flex-basis: 260px; } }

@@ -67,3 +67,31 @@
   .gk .gk-jobs-split { grid-template-columns: minmax(0, 1fr); }
   .gk .gk-jobs-pane { display: none; }
 }
+
+/* ── Two sides, as Upwork asks first: Find work, or Hire. ── */
+.gk .gk-jobs-mode { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gk-3); margin-bottom: var(--gk-8); }
+.gk .gk-jobs-mode__item { display: flex; align-items: center; gap: var(--gk-4); padding: var(--gk-4) var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text-2); transition: transform .4s var(--gk-store-ease), border-color .4s var(--gk-store-ease), box-shadow .4s var(--gk-store-ease), background-color .4s var(--gk-store-ease); }
+.gk .gk-jobs-mode__item svg { flex: none; width: 28px; height: 28px; }
+.gk .gk-jobs-mode__item span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-jobs-mode__item strong { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 600; color: var(--gk-text); }
+.gk .gk-jobs-mode__item small { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-jobs-mode__item:hover { transform: translateY(-2px); border-color: var(--gk-line-strong); box-shadow: var(--gk-store-lift); }
+.gk .gk-jobs-mode__item[aria-current='page'] { border-color: var(--gk-accent); background: var(--gk-accent-soft); color: var(--gk-accent); view-transition-name: jobs-mode-active; }
+.gk .gk-jobs-mode__item[aria-current='page'] strong { color: var(--gk-text); }
+::view-transition-group(jobs-mode-active) { animation-duration: .5s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+::view-transition-old(jobs-mode-active), ::view-transition-new(jobs-mode-active) { animation: none; mix-blend-mode: normal; }
+
+/* Someone available, as Upwork shows talent. */
+.gk .gk-talent { display: flex; flex-direction: column; gap: var(--gk-3); height: 100%; padding: var(--gk-4); border: 1px solid color-mix(in srgb, var(--gk-accent) 30%, var(--gk-line)); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); transition: transform .6s var(--gk-store-ease), box-shadow .6s var(--gk-store-ease), border-color .6s var(--gk-store-ease); }
+.gk .gk-talent:hover { transform: translateY(-4px); box-shadow: var(--gk-store-lift); border-color: var(--gk-accent); }
+.gk .gk-talent__head { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+.gk .gk-talent__who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.gk .gk-talent__who strong { font-size: var(--gk-fs-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-talent__who small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-talent__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); color: var(--gk-text-2); }
+.gk .gk-talent:hover .gk-talent__title { color: var(--gk-text); }
+.gk .gk-talent__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gk .gk-talent__foot { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gk-2); margin-top: auto; padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+.gk .gk-talent__rate { font-size: var(--gk-fs-lg); font-weight: 700; }
+.gk .gk-talent__foot small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+@media (max-width: 900px) { .gk .gk-jobs-mode { grid-template-columns: 1fr; } }

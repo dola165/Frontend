@@ -35,7 +35,8 @@ export const PostJobPage = () => {
     const { status } = useAuth();
     const { area } = useWorldArea();
     const step = Math.min(3, Math.max(1, Number(params.get('step')) || 1));
-    const [draft, setDraft] = useState<Draft>(() => ({ ...readDraft(), ...(params.get('club') ? { posterKind: 'CLUB' as const } : {}) }));
+    const side = params.get('as') === 'hire' ? 'hire' : params.get('as') === 'work' ? 'work' : null;
+    const [draft, setDraft] = useState<Draft>(() => ({ ...readDraft(), ...(params.get('club') ? { posterKind: 'CLUB' as const } : {}), ...(side ? { direction: side === 'hire' ? 'HIRING' as const : 'OFFERING' as const } : {}) }));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const membership = useWorldData(status === 'authenticated' ? 'my-club' : null, () => fetchMyClubMembershipContext());
@@ -67,11 +68,12 @@ export const PostJobPage = () => {
         : status !== 'authenticated' ? <EmptyNote title="Sign in to post" action={<ButtonLink variant="primary" to="/login">Sign in</ButtonLink>}>Anyone with an account can post: a club, a parent, a coach, a referee.</EmptyNote>
         : step === 1 ? <>
             {steps}
-            <div><h1>{offering ? 'What do you offer?' : 'What do you need?'}</h1><p className="gk-fund-start__lead">Pick the line of work. People find listings by it.</p></div>
-            <div className="gk-fund-start__tiles" role="group" aria-label="Which way round" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            <div><h1>{offering ? 'What do you offer?' : 'What do you need?'}</h1><p className="gk-fund-start__lead">{side ? offering ? 'Your line of work. Clubs and families looking to hire find you by it.' : 'The line of work. People find your job by it.' : 'Pick the line of work. People find listings by it.'}</p></div>
+            {!side && <div className="gk-fund-start__tiles" role="group" aria-label="Which way round" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 <button type="button" className="gk-fund-start__tile" aria-pressed={!offering} onClick={() => change({ direction: 'HIRING' })}><Briefcase aria-hidden="true" /><strong>I’m looking for someone</strong><small>A coach, a referee, a physio, help on match day</small></button>
                 <button type="button" className="gk-fund-start__tile" aria-pressed={offering} onClick={() => change({ direction: 'OFFERING', posterKind: 'PERSON' })}><UserCheck aria-hidden="true" /><strong>I’m available</strong><small>List yourself: a coach, a referee, a specialist</small></button>
-            </div>
+            </div>}
+            {side && <p className="gk-muted">{offering ? 'Listing yourself as available.' : 'Posting a job.'} <Link className="gk-section__action" to={offering ? '/jobs/new?as=hire' : '/jobs/new?as=work'} onClick={() => change({ direction: offering ? 'HIRING' : 'OFFERING', ...(offering ? {} : { posterKind: 'PERSON' as const }) })}>{offering ? 'Post a job instead' : 'List yourself instead'}</Link></p>}
             {!offering && clubAllowed && <div className="gk-fund-start__chips" role="group" aria-label="Posting as">
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'CLUB'} onClick={() => change({ posterKind: 'CLUB' })}>As {club?.clubName}</button>
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'PERSON'} onClick={() => change({ posterKind: 'PERSON' })}>As myself</button>

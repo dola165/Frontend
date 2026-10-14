@@ -30,9 +30,9 @@ export function FundraiserCard({ campaign }: { campaign: Campaign }) {
     const picture = campaign.images?.[0];
     return (
         <Link className="gk-fund" to={`/campaigns/${campaign.id}`} state={opportunityReturnState('campaigns', location)}>
+            <span className="gk-fund__by"><Crest src={campaign.clubLogoUrl} name={campaign.clubName} size={36} /><span className="gk-fund__who"><strong>{campaign.clubName}</strong><small>{['Club', campaign.city, campaign.distanceKm != null ? distance(campaign.distanceKm) : null].filter(Boolean).join(' · ')}</small></span></span>
             <span className="gk-fund__pic">{picture ? <MediaImage src={resolveMediaUrl(picture)} alt="" loading="lazy" /> : <HeartHandshake aria-hidden="true" />}</span>
             <span className="gk-fund__title">{campaign.title}</span>
-            <span className="gk-fund__club"><Crest src={campaign.clubLogoUrl} name={campaign.clubName} size={16} round /><span>{[campaign.clubName, campaign.city, campaign.distanceKm != null ? distance(campaign.distanceKm) : null].filter(Boolean).join(' · ')}</span></span>
             <Progress campaign={campaign} />
         </Link>
     );
@@ -49,7 +49,7 @@ export function FundraiserRow({ title, hint, to, campaigns, loading, error, retr
             {error ? <EmptyNote title="These fundraisers could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading && !campaigns.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label="Loading fundraisers"><FundraiserSkeletons /></ul>
                 : !campaigns.length ? <EmptyNote title={empty} />
-                : <Row label={title} wide>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} /></li>)}</Row>}
+                : <Row label={title} wide fundraisers>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} /></li>)}</Row>}
         </Section>
     );
 }

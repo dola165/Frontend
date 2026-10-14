@@ -6,15 +6,15 @@ import { useMediaQuery } from '../../world/useMediaQuery';
  * A row that scrolls sideways with a round arrow at each edge, as Fanatics' rows do: a press glides one screen
  * of tiles further, the wheel and touch still work, and an arrow fades when its side has nothing more.
  */
-export function Row({ children, label, wide, busy, drift }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean;
+export function Row({ children, label, wide, busy, drift, fundraisers }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean; /** Four to a screen, for fundraisers. */ fundraisers?: boolean;
     /** The row idles sideways on its own, this way, very slowly; the arrows still drive it. Only with a mouse. */ drift?: 'left' | 'right' }) {
     const coarse = useMediaQuery('(pointer: coarse)');
     const still = useMediaQuery('(prefers-reduced-motion: reduce)');
     if (drift && !coarse && !still) return <DriftRow label={label} wide={wide} busy={busy} direction={drift}>{children}</DriftRow>;
-    return <ScrollRow label={label} wide={wide} busy={busy}>{children}</ScrollRow>;
+    return <ScrollRow label={label} wide={wide} busy={busy} fundraisers={fundraisers}>{children}</ScrollRow>;
 }
 
-function ScrollRow({ children, label, wide, busy }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean }) {
+function ScrollRow({ children, label, wide, busy, fundraisers }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean; fundraisers?: boolean }) {
     const list = useRef<HTMLUListElement>(null);
     const [ends, setEnds] = useState({ start: true, end: true });
     useEffect(() => {
@@ -30,7 +30,7 @@ function ScrollRow({ children, label, wide, busy }: { children: ReactNode; label
     const glide = (direction: 1 | -1) => list.current?.scrollBy({ left: direction * list.current.clientWidth * 0.85, behavior: 'smooth' });
     return (
         <div className="gk-store-rail" data-start={ends.start || undefined} data-end={ends.end || undefined}>
-            <ul ref={list} className={`gk-store-row${wide ? ' gk-store-row--wide' : ''}`} aria-label={label} aria-busy={busy || undefined}>{children}</ul>
+            <ul ref={list} className={`gk-store-row${wide ? ' gk-store-row--wide' : ''}${fundraisers ? ' gk-store-row--four' : ''}`} aria-label={label} aria-busy={busy || undefined}>{children}</ul>
             <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--prev" aria-label={`${label}: previous`} disabled={ends.start} onClick={() => glide(-1)}><ChevronLeft aria-hidden="true" /></button>
             <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--next" aria-label={`${label}: next`} disabled={ends.end} onClick={() => glide(1)}><ChevronRight aria-hidden="true" /></button>
         </div>

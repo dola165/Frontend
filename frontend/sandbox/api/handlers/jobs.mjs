@@ -19,7 +19,8 @@ const areaOf = (q, headers) => cityOf(q.get('near')) ?? cityOf(V.preferencesOf(V
 /** Every open listing in the job shape: the clubs' roles, people's listings, and what was posted in this run. */
 const all = () => [...F.roleList.map(F.jobView), ...F.jobListings.map(F.jobListingView), ...F.postedListings].filter(j => j.status === 'OPEN');
 const placeOf = j => { if (j.clubId) { const c = W.clubById(j.clubId); return c?.lat != null ? { lat: c.lat, lng: c.lng } : null; } const city = cityOf(j.clubCityName); return city ? { lat: city.lat, lng: city.lng } : null; };
-const view = (j, area) => { const place = placeOf(j); return { ...j, distanceKm: area && place ? F.kmBetween(area.lat, area.lng, place.lat, place.lng) : null }; };
+/** A listing with its place (a club's ground, or the person's town centre, said so) and how far that is from the area. */
+const view = (j, area) => { const place = placeOf(j); return { ...j, place: place ? { ...place, approximate: j.clubId ? null : 'area' } : null, distanceKm: area && place ? F.kmBetween(area.lat, area.lng, place.lat, place.lng) : null }; };
 const viewerRole = headers => { const id = V.viewerId(headers); return id === W.ME_ID ? W.me.role : V.account(id)?.role ?? null; };
 /** How well a listing fits the person: their own line of work first, then clubs they follow, then nearby, newest last. */
 const relevance = (j, { role, follows, area }) => (role === 'COACH' && j.category === 'COACHING' ? 20 : role === 'REFEREE' && j.category === 'MATCHDAY' ? 20 : 0) + (j.clubId && follows.has(j.clubId) ? 10 : 0) + (area && lower(j.clubCityName) === lower(area.name) ? 5 : 0);
@@ -34,7 +35,12 @@ get('/jobs/front', ({ query: q, headers }) => {
   const open = all().map(j => view(j, area));
   const hiring = open.filter(j => j.direction !== 'OFFERING'), offering = open.filter(j => j.direction === 'OFFERING');
   const applied = [...F.jobApplications.keys()];
-  return { city: area?.name ?? null, role: context.role,
+  const pins = [];
+  for (const j of open) {
+    if (j.clubId) { const c = W.clubById(j.clubId); if (c?.lat == null) continue; const pin = pins.find(p => p.kind === 'club' && p.clubId === j.clubId) ?? pins[pins.push({ kind: 'club', clubId: j.clubId, label: c.name, crest: c.logoUrl, lat: c.lat, lng: c.lng, count: 0 }) - 1]; pin.count++; }
+    else { const city = cityOf(j.clubCityName); if (!city) continue; const pin = pins.find(p => p.kind === 'area' && p.label === city.name) ?? pins[pins.push({ kind: 'area', clubId: null, label: city.name, crest: null, lat: city.lat, lng: city.lng, count: 0 }) - 1]; pin.count++; }
+  }
+  return { city: area?.name ?? null, role: context.role, pins,
     forYou: [...hiring].sort(sorter('RELEVANCE', context)).slice(0, 10), near: hiring.filter(j => j.distanceKm != null).sort(sorter('NEAREST', context)).slice(0, 10),
     offering: [...offering].sort(sorter('NEAREST', context)).slice(0, 10), followed: hiring.filter(j => j.clubId && follows.has(j.clubId)), fresh: [...hiring].sort(sorter('NEWEST')).slice(0, 10),
     applications: open.filter(j => applied.includes(j.id)).map(j => ({ ...j, application: F.jobApplications.get(j.id) })), postings: open.filter(j => j.createdBy === viewer || (j.poster?.kind === 'CLUB' && j.clubId === W.me.clubId && viewer === W.ME_ID)).slice(0, 6),

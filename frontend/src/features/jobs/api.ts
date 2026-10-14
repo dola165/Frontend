@@ -23,6 +23,8 @@ export interface Job extends ClubJob {
     distanceKm?: number | null;
     /** The viewer's application, on the front page's "Your applications". */
     application?: { id: number; status: string } | null;
+    /** Where it is: a club's ground, or the person's town centre (`approximate`). */
+    place?: { lat: number; lng: number; approximate?: 'area' | null } | null;
 }
 export type JobSort = 'RELEVANCE' | 'NEWEST' | 'NEAREST';
 
@@ -84,7 +86,9 @@ export interface JobPage { content: Job[]; totalElements: number }
 export const fetchJobs = async (params: JobsQuery, signal?: AbortSignal) => (await apiClient.get<JobPage>('/jobs', { params: { page: 0, ...params }, signal })).data;
 export const fetchJob = async (id: number, near?: string, signal?: AbortSignal) => (await apiClient.get<Job>(`/jobs/${id}`, { params: { near }, signal })).data;
 /** The jobs front in one request. Backend needed: GET /jobs/front?near=City. */
-export interface JobsFront { city: string | null; role: string | null; forYou: Job[]; near: Job[]; offering: Job[]; followed: Job[]; fresh: Job[]; applications: Job[]; postings: Job[]; open: number; available: number }
+/** A pin on the jobs map: a club's open roles at its ground, or people's listings counted at a town. */
+export interface JobPin { kind: 'club' | 'area'; clubId: number | null; label: string; crest: string | null; lat: number; lng: number; count: number }
+export interface JobsFront { city: string | null; role: string | null; pins: JobPin[]; forYou: Job[]; near: Job[]; offering: Job[]; followed: Job[]; fresh: Job[]; applications: Job[]; postings: Job[]; open: number; available: number }
 export const fetchJobsFront = async (near: string | undefined, signal?: AbortSignal) => (await apiClient.get<JobsFront>('/jobs/front', { params: { near }, signal })).data;
 export interface JobInput { posterKind: 'CLUB' | 'PERSON'; clubId?: number | null; direction: JobDirection; title: string; description: string; category: ClubJobCategory; engagementType: ClubJobEngagementType; hours: JobHours | null; pay: string; city: string; licence?: string; applyMethod: JobApplyMethod; applyTarget?: string }
 /** Backend needed: POST /jobs for people and clubs alike (the club's own endpoint stays for the workspace). */

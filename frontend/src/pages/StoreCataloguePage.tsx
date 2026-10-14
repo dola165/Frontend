@@ -14,7 +14,7 @@ export const StoreCataloguePage = () => {
     const club = useWorldData(query.clubId ? `store-club:${query.clubId}` : null, signal => fetchStoreClub(query.clubId!, signal));
     const { title, hint } = catalogueHeading(query, club.data?.name);
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="store">
             <PageFrame>
                 <nav className="gk-store-crumbs" aria-label="Breadcrumb"><Link to="/store">Store</Link><span aria-hidden="true">/</span><span>{title}</span></nav>
                 <header className="gk-store-heading">

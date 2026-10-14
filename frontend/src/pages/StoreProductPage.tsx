@@ -90,7 +90,7 @@ export const StoreProductPage = () => {
     const data = product.data;
     const sellerCrumb = data ? (sellerOf(data) === 'GRASSKICKZ' ? { label: 'GrassKickZ equipment', to: cataloguePath({ seller: 'grasskickz' }) } : { label: `${data.clubName ?? 'Club'} store`, to: clubStorePath(data.clubId!) }) : null;
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="store">
             <PageFrame>
                 <nav className="gk-store-crumbs" aria-label="Breadcrumb">
                     <Link to="/store">Store</Link>

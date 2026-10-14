@@ -18,7 +18,7 @@ export const ClubJobsPage = () => {
     const embedded = !/\/jobs$/.test(location.pathname);
     const club = useWorldData(valid ? `store-club:${clubId}` : null, signal => fetchStoreClub(clubId, signal));
     const canPost = valid && canManageClubOperations(club.data?.myRole);
-    const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded">{children}</GkRoot> : <GkRoot className="gk-store gk-page"><PageFrame>{children}</PageFrame></GkRoot>;
+    const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded" data-market="jobs">{children}</GkRoot> : <GkRoot className="gk-store gk-page" data-market="jobs"><PageFrame>{children}</PageFrame></GkRoot>;
     if (!valid) return frame(<EmptyNote title="This club could not be found." action={<ButtonLink to="/jobs">Back to jobs</ButtonLink>} />);
     const actions = <div className="gk-store-club__actions">
         {canPost && <ButtonLink variant="primary" to={`/jobs/new?club=${clubId}`}><Plus aria-hidden="true" />Post a job</ButtonLink>}

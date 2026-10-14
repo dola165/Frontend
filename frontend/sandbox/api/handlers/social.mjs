@@ -9,6 +9,7 @@ import * as P from '../world-profile.mjs';
 import * as F from '../world-football.mjs';
 import * as V from '../viewer.mjs';
 import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
+import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs } from '../pages-data.mjs';
 
 const ME = W.ME_ID;
 /** Posts, reactions and follows belong to whoever asks: Luka, or an account registered in the sandbox. */
@@ -44,6 +45,9 @@ let nextUploadId = 88001;
 /** A post as the feed sends it, for one reader: their reaction, whether they may edit, and its topic, place and reach. */
 function postDto(p, viewer = ME) {
   const club = p.clubId ? W.clubById(p.clubId) : null;
+  // A fan club, business or other page posts as itself (see pages-data.mjs).
+  const page = p.organizationId ? organizationAuthor(p.organizationId) : null;
+  if (page) return { ...postDto({ ...p, organizationId: null }, viewer), authorName: page.name, authorAvatarUrl: page.crestUrl, organizationId: p.organizationId, organizationName: page.name };
   const counts = {};
   for (const type of p.reactions.values()) counts[type] = (counts[type] ?? 0) + 1;
   const mine = p.reactions.get(viewer) ?? null;
@@ -93,6 +97,8 @@ function readerProfile(viewer) {
     for (const p of W.people) if (p.clubId === 1) linkedPeople.add(p.id);
     for (const link of W.parents) if (W.personById(link.childId)?.clubId === 1) linkedPeople.add(link.parentId);
   }
+  // A club someone created or joined as a page is theirs too.
+  for (const clubId of linkedPageClubs(viewer)) linkedClubs.add(clubId);
   return {
     id: viewer, linkedClubs, linkedPeople, followedPeople: new Set(S.followingOf(viewer)), followedClubs: V.clubFollowsOf(viewer),
     home: town?.latitude != null ? { lat: town.latitude, lng: town.longitude } : { lat: W.cities.Tbilisi.lat, lng: W.cities.Tbilisi.lng },
@@ -113,6 +119,7 @@ for (const path of ['/posts/feed', '/posts/feed/for-you']) get(path, ({ query, h
 get('/posts/feed/following', ({ query, headers }) => { const viewer = viewerOf(headers); return feedPage(p => p.authorId !== viewer && followsPost(p, viewer), query, viewer); });
 get('/posts/user/:id', ({ params, query, headers }) => person(params.id) || V.account(params.id) ? feedPage(p => p.authorId === Number(params.id), query, viewerOf(headers)) : notFound('Profile not found.'));
 get('/posts/club/:id', ({ params, query, headers }) => W.clubById(params.id) ? feedPage(p => p.clubId === Number(params.id), query, viewerOf(headers)) : notFound('Club not found.'));
+get('/posts/organization/:id', ({ params, query, headers }) => organizationAuthor(params.id) ? feedPage(p => p.organizationId === Number(params.id), query, viewerOf(headers)) : notFound('Page not found.'));
 
 // What people see, open, hide and ask less of, kept for the learning algorithm that comes later.
 post('/feed/events', ({ body, headers }) => {
@@ -121,6 +128,13 @@ post('/feed/events', ({ body, headers }) => {
   if (!events || events.length > 100) return badRequest('Send up to 100 events.');
   let accepted = 0;
   for (const event of events) {
+    // The page creation funnel (opened from where, type chosen, created, boxes filled, live, shared, claims) has no post.
+    if (V.FUNNEL_EVENTS.includes(event?.type)) {
+      const detail = Object.fromEntries(['from', 'kind', 'box', 'via', 'pageRef'].filter(key => typeof event[key] === 'string').map(key => [key, event[key].slice(0, 60)]));
+      V.recordEvent(viewer, { type: event.type, ...detail, ...(typeof event.at === 'string' ? { at: event.at } : {}) });
+      accepted++;
+      continue;
+    }
     const postRecord = S.postById(event?.postId);
     if (!postRecord || !V.EVENT_TYPES.includes(event?.type)) continue;
     if (event.type === 'LESS') V.demotedOf(viewer).add(demotionKey(postRecord));
@@ -138,9 +152,10 @@ post('/posts', ({ body, headers }) => {
   const viewer = viewerOf(headers);
   const content = String(body?.content ?? '').trim();
   if (!content) return badRequest('Write something before publishing.');
-  if (body?.clubId && !W.staff.some(s => s.personId === viewer && s.clubId === Number(body.clubId))) return forbidden('You cannot post for this club.');
+  if (body?.clubId && !W.staff.some(s => s.personId === viewer && s.clubId === Number(body.clubId)) && !canPostForClub(viewer, body.clubId)) return forbidden('You cannot post for this club.');
+  if (body?.organizationId && !canPostForOrganization(viewer, body.organizationId)) return forbidden('You cannot post for this page.');
   const media = (body?.mediaIds ?? []).map(id => uploads.get(Number(id))).filter(Boolean);
-  const p = { id: S.newPostId(), authorId: viewer, clubId: body?.clubId ? Number(body.clubId) : null, content, createdAt: new Date(), mediaUrls: media, isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: null, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
+  const p = { id: S.newPostId(), authorId: viewer, clubId: body?.clubId ? Number(body.clubId) : null, organizationId: body?.organizationId ? Number(body.organizationId) : null, content, createdAt: new Date(), mediaUrls: media, isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: null, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
   S.posts.push(p);
   return created({ message: 'Post created', postId: p.id });
 });

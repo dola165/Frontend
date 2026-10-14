@@ -1,5 +1,6 @@
 // Generated placeholder media: portrait stand-ins for profile photos, crests, store products and abstract pitch photos.
 import { personById, clubById } from './world.mjs';
+import { crestDesignFor, crestSvg } from './pages-data.mjs';
 const palette = ['#1d4ed8', '#0f766e', '#b91c1c', '#7c3aed', '#ca8a04', '#0891b2', '#db2777', '#16a34a', '#ea580c', '#4f46e5'];
 const hash = s => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -23,6 +24,9 @@ export async function mediaSvg(pathname) {
       + '<path d="' + (long ? 'M33 41c1-11 7-17 15-17s14 6 15 17c-4-5-9-8-15-8s-11 3-15 8z' : 'M32.5 42c-1-13 6-21 15.5-21s16.5 7 15.5 21c-2-7-7-11-15.5-11S35 35 32.5 42z') + '" fill="' + hair + '"/></svg>';
   }
   if (kind === 'crest') {
+    // A club or page created here draws the crest its owner designed (or the one generated from its initials).
+    const design = crestDesignFor(id);
+    if (design) return crestSvg(design);
     const c = clubById(id); const short = c ? c.short : 'FC'; const fill = c?.color || color;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><path d="M48 6 86 18v30c0 22-16 36-38 42C26 84 10 70 10 48V18Z" fill="${fill}"/><path d="M48 14 78 24v24c0 17-12 28-30 33-18-5-30-16-30-33V24Z" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3"/><text x="48" y="58" font-family="Inter,Arial" font-size="22" font-weight="700" fill="#fff" text-anchor="middle">${esc(short)}</text></svg>`;
   }

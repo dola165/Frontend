@@ -198,3 +198,25 @@ export const visualColors = {
   "mapCanvasPaint186": "#92a18b",
   "mapCanvasPaint187": "#84dab2"
 } as const;
+
+/**
+ * Football colours a club picks for its generated crest (identity art, drawn as SVG). Keys are stored, never the paint,
+ * so the palette can be tuned without touching saved crests. `ink` and `paper` are the two lettering colours.
+ */
+export const crestPalette = {
+  red: "#c8102e",
+  maroon: "#7b1f2e",
+  orange: "#e8590c",
+  gold: "#c9a227",
+  yellow: "#f5c518",
+  green: "#15803d",
+  forest: "#14532d",
+  sky: "#4fb3e8",
+  blue: "#1d4ed8",
+  navy: "#14275e",
+  purple: "#6b2fbf",
+  black: "#141414",
+  white: "#f7f7f5",
+  ink: "#111111",
+  paper: "#ffffff",
+} as const;

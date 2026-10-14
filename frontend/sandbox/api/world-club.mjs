@@ -88,7 +88,7 @@ export const members = [
 export const memberRole = userId => members.find(m => m.userId === userId)?.role ?? null;
 
 // ---------------------------------------------------------------- club profile extras
-const honours = {
+export const honours = {
   1: [
     { id: 11, title: 'GFF U17 Championship', yearWon: 2025, description: 'Unbeaten through the final round in Tbilisi.' },
     { id: 12, title: 'GFF U15 Cup', yearWon: 2024, description: 'Won 2–1 against Saburtalo Youth FC in the final.' },
@@ -101,7 +101,7 @@ const honours = {
   4: [{ id: 41, title: 'GFF U14 Cup runners-up', yearWon: 2025, description: null }],
   11: [{ id: 111, title: 'Imereti Youth League U16', yearWon: 2025, description: null }],
 };
-const contacts = {
+export const contacts = {
   1: { email: 'academy@dinamo-academy.ge', websiteUrl: 'https://dinamo-academy.ge', instagramUrl: 'https://instagram.com/dinamo.academy', whatsappNumber: '+995 32 224 11 25', preferredCommunicationMethod: 'EMAIL' },
   3: { email: 'hello@riverside-academy.ge', websiteUrl: 'https://riverside-academy.ge', instagramUrl: 'https://instagram.com/riverside.academy', whatsappNumber: '+995 599 41 22 18', preferredCommunicationMethod: 'WHATSAPP' },
 };
@@ -113,7 +113,10 @@ export const clubPolicy = new Map(W.clubs.map(c => [c.id, policyMap[c.joinPolicy
 export const clubEdits = new Map(); // id -> partial profile edits (logo/banner/description)
 const levelLabel = { PROFESSIONAL: 'Professional', SEMI_PROFESSIONAL: 'Semi-professional', ACADEMY: 'Youth academy', GRASSROOTS: 'Grassroots', SCHOOL: 'Football school', AMATEUR: 'Amateur' };
 const typeLabel = { PROFESSIONAL: 'PROFESSIONAL', SEMI_PROFESSIONAL: 'SEMI_PROFESSIONAL', ACADEMY: 'ACADEMY', GRASSROOTS: 'GRASSROOTS', SCHOOL: 'SCHOOL', AMATEUR: 'AMATEUR' };
+/** Clubs created as pages count their own members (the owner, staff who joined, players), never an invented number. */
+export const memberCountHooks = new Map(); // club id -> () => count
 export const memberCount = id => {
+  if (memberCountHooks.has(id)) return memberCountHooks.get(id)();
   if (id === CLUB_ID) return playerIds.length + staffIds.length;
   return W.squads.filter(s => s.clubId === id).reduce((n, s) => n + s.playerIds.length, 0) + 3;
 };

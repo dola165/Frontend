@@ -10,11 +10,11 @@ const PLACES = [
 ] as const;
 export type MarketPlace = typeof PLACES[number]['id'];
 
-/** The three places with the same DNA, one press apart: Store, Fundraising, Jobs & volunteering. */
+/** The three places with the same DNA, one press apart: Store, Fundraising, Jobs & volunteering. The move is a view transition: the page crossfades and the lit tab glides. */
 export function MarketTabs({ current }: { current: MarketPlace }) {
     return (
         <nav className="gk-market-tabs gk-segmented" aria-label="Store, fundraising and jobs">
-            {PLACES.map(place => <Link key={place.id} className="gk-segmented__item" to={place.to} aria-current={place.id === current ? 'page' : undefined}><place.icon aria-hidden="true" />{place.label}</Link>)}
+            {PLACES.map(place => <Link key={place.id} viewTransition className="gk-segmented__item" to={place.to} aria-current={place.id === current ? 'page' : undefined}><place.icon aria-hidden="true" />{place.label}</Link>)}
         </nav>
     );
 }

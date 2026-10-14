@@ -275,3 +275,15 @@
 .gk .gk-store-cats[data-dense] .gk-store-cat__icon { width: 60px; height: 60px; }
 .gk .gk-store-cats[data-dense] .gk-store-cat__icon svg { width: 24px; height: 24px; }
 @media (max-width: 900px) { .gk .gk-market-tabs { width: 100%; } .gk .gk-market-tabs .gk-segmented__item { flex: 1; padding: 0 var(--gk-2); } .gk .gk-store-cats-section > .gk-section__head { justify-content: flex-start; } }
+
+/* ── Moving between Store, Fundraising and Jobs: the page crossfades and rises, the lit tab glides, the header stays ── */
+@keyframes gk-market-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes gk-market-out { from { opacity: 1; } to { opacity: 0; } }
+::view-transition-old(root) { animation: gk-market-out .3s cubic-bezier(.2, .8, .2, 1) both; }
+::view-transition-new(root) { animation: gk-market-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+.gk .gk-market-tabs .gk-segmented__item[aria-current='page'] { view-transition-name: market-active; }
+::view-transition-group(market-active) { animation-duration: .5s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+::view-transition-old(market-active), ::view-transition-new(market-active) { animation: none; mix-blend-mode: normal; }
+.gk-header { view-transition-name: app-header; }
+::view-transition-old(app-header), ::view-transition-new(app-header) { animation: none; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }

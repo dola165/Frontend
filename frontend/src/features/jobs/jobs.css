@@ -1,0 +1,69 @@
+/* Jobs & volunteering: LinkedIn's shape (a front of rows, a catalogue with the list on the left and the listing open
+   beside it, a short post flow) in the store's skin. The frame, rows, filter column and motion come from
+   features/store/store.css and the start flow's pieces from features/campaigns/campaigns.css; this holds the rest. */
+
+/* A listing as a card on the front: who posted, the title, where, the pay. */
+.gk .gk-job { display: flex; flex-direction: column; gap: var(--gk-2); min-height: 100%; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); transition: transform .6s var(--gk-store-ease), box-shadow .6s var(--gk-store-ease), border-color .6s var(--gk-store-ease); }
+.gk .gk-job:hover { transform: translateY(-4px); box-shadow: var(--gk-store-lift); border-color: var(--gk-line-strong); }
+.gk .gk-job[data-offering] { border-color: color-mix(in srgb, var(--gk-info) 35%, var(--gk-line)); }
+.gk .gk-job__head { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+.gk .gk-job__poster { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-job__poster strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-job__poster small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-job__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: var(--gk-2); font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; }
+.gk .gk-job:hover .gk-job__title { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-job__line { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-job__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); margin-top: auto; padding-top: var(--gk-2); }
+.gk .gk-job__when { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-job-skeleton { height: 190px; border-radius: var(--gk-r-lg); }
+.gk .gk-store-row .gk-job { height: 100%; }
+
+/* The catalogue's split: the rows on the left, the listing open on the right. */
+.gk .gk-jobs-split { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: var(--gk-5); align-items: start; padding-top: var(--gk-4); }
+.gk .gk-jobs-list { display: flex; flex-direction: column; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-job-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--gk-3); align-items: start; width: 100%; padding: var(--gk-3) var(--gk-4); border: 0; border-bottom: 1px solid var(--gk-line); background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; transition: background-color .25s var(--gk-store-ease); }
+.gk li:last-child > .gk-job-row { border-bottom: 0; }
+.gk .gk-job-row:hover { background: var(--gk-hover); }
+.gk .gk-job-row[aria-current] { background: color-mix(in srgb, var(--gk-accent) 9%, var(--gk-surface)); box-shadow: inset 3px 0 0 var(--gk-accent); }
+.gk .gk-job-row__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-job-row__title { font-size: var(--gk-fs-md); font-weight: 600; }
+.gk .gk-job-row[aria-current] .gk-job-row__title { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-job-row__line { font-size: var(--gk-fs-sm); color: var(--gk-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-job-row__trail { display: flex; align-items: flex-start; }
+.gk .gk-jobs-pane { position: sticky; top: calc(var(--app-header-height, 64px) + var(--gk-4)); max-height: calc(100dvh - var(--app-header-height, 64px) - var(--gk-8)); overflow-y: auto; scrollbar-width: thin; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .gk-jobs-pane .gk-job-detail { padding: var(--gk-6); }
+.gk .gk-jobs-pane__page { display: flex; justify-content: flex-end; padding: var(--gk-3) var(--gk-6); border-top: 1px solid var(--gk-line); }
+
+/* The listing in full. */
+.gk .gk-job-detail { display: flex; flex-direction: column; gap: var(--gk-4); max-width: 760px; }
+.gk .gk-job-detail h1 { font-size: 26px; line-height: 32px; font-weight: 600; }
+.gk .gk-job-detail h2 { font-size: 20px; line-height: 26px; font-weight: 600; }
+.gk .gk-job-detail h3 { font-size: var(--gk-fs-lg); font-weight: 600; margin-bottom: var(--gk-2); }
+.gk .gk-job-detail__poster { display: flex; align-items: center; gap: var(--gk-3); color: var(--gk-text); }
+.gk .gk-job-detail__poster-text { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-job-detail__poster-text small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-job-detail__poster-text strong { font-weight: 600; }
+.gk .gk-job-detail__poster svg { color: var(--gk-text-3); }
+.gk .gk-job-detail__poster:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-job-detail__meta { display: flex; align-items: center; gap: 6px; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-job-detail__chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-job-detail__actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gk-2); }
+.gk .gk-job-detail__actions > .gk-btn--primary, .gk .gk-job-detail__actions > a.gk-btn { min-height: 40px; }
+.gk .gk-job-detail__apply { flex: 1 1 320px; }
+.gk .gk-job-detail__text { font-size: var(--gk-fs-lg); line-height: 22px; color: var(--gk-text-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The in-app application form, inherited from the old job page, in the new skin. */
+.gk .gk-job-detail .job-application { padding: 0; border: 0; background: none; }
+.gk .gk-job-detail .job-action { display: inline-flex; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 40px; padding: 0 var(--gk-4); border-radius: var(--gk-r); background: var(--gk-accent); color: var(--gk-on-accent); font-size: var(--gk-fs-md); font-weight: 600; }
+
+/* The two doors on the jobs front. */
+.gk .gk-jobs-doors .gk-store-door { min-height: 280px; }
+.gk .gk-jobs-mine { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-jobs-mine__item { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); transition: border-color .3s var(--gk-store-ease), transform .3s var(--gk-store-ease); }
+.gk .gk-jobs-mine__item:hover { border-color: var(--gk-line-strong); transform: translateY(-1px); }
+.gk .gk-jobs-mine__item strong { font-weight: 600; }
+.gk .gk-jobs-mine__item small { display: block; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+@media (max-width: 1100px) {
+  .gk .gk-jobs-split { grid-template-columns: minmax(0, 1fr); }
+  .gk .gk-jobs-pane { display: none; }
+}

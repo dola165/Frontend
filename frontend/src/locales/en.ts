@@ -53,7 +53,7 @@ const en = {
     followedClubs: 'Followed clubs',
     parentHub: 'Parent Hub',
     paymentDemo: 'Payment demo',
-    jobs: 'Roles',
+    jobs: 'Jobs & volunteering',
     campaigns: 'Campaigns',
     openNav: 'Open navigation',
     switchToLight: 'Switch to light mode',

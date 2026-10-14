@@ -249,6 +249,17 @@ New needs are added here as each phase of `ROUND_3_PLAN.md` is built, with the s
 | `GET /campaigns/front?near=City` → `{ city, near, closest, followed, fresh, active, raised }` | The fundraising front in one request | MISSING |
 | Later: the amount raised and the donations read from GoFundMe (their API or a nightly import) instead of the club's report | Honest numbers without the treasurer | PROPOSED |
 
+### Jobs (14 October, for everyone; sandbox in `sandbox/api/handlers/jobs.mjs`)
+
+| Need | Why | Status |
+|---|---|---|
+| Listings posted by people, not only clubs: `poster: { kind: CLUB \| PERSON, id, name, avatarUrl, city }`, `clubId` null for a person; `direction: HIRING \| OFFERING` | A parent hiring a trainer, a coach or referee listing themselves | MISSING (jobs belong to clubs only) |
+| `pay` (text), `hours` (`FULL_TIME \| PART_TIME \| SESSIONS \| MATCHDAYS \| VOLUNTEER`), `licence`, `applyMethod` (`IN_APP \| MESSAGE \| EMAIL \| LINK`) and `applyTarget` on `ClubJobDto` | The facts people look for first; how to answer a listing | MISSING |
+| `GET /jobs` paged and filtered (`page`, `size`, `query`, `direction`, `category`, `terms`, `hours`, `poster`, `country`, `city`, `posted`, `clubId`, `near`, `sort=RELEVANCE \| NEWEST \| NEAREST`), with `distanceKm`; relevance from the person's confirmed roles, followed clubs and city | The catalogue and the front | MISSING (today an unpaged array of open club roles; the sandbox keeps that answer when `page` is absent, for World) |
+| `GET /jobs/front?near=City` → `{ city, role, forYou, near, offering, followed, fresh, applications, postings, open, available }` | The jobs front in one request | MISSING |
+| `POST /jobs` for people and clubs alike (`posterKind`, `clubId`, `direction`, `title`, `description`, `category`, `engagementType`, `hours`, `pay`, `city`, `licence`, `applyMethod`, `applyTarget`) | Post a job in three screens | MISSING (`POST /clubs/:id/jobs` stays for the workspace) |
+| Verification before a person may list services to children | Children's safety (ROUND_2 §6) | DECIDED, NOT BUILT |
+
 ### World › People (phase B)
 
 The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the contract the four views are built on.

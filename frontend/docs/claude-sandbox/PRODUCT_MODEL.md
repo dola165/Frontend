@@ -200,6 +200,7 @@ These replace the older lines above and in sections 3, 7 and 12 where they disag
 
 - **The store copies Fanatics' football page** (owner, 13 October, with a brief and screenshots): a storefront that helps people find what they want before the full catalogue, then a catalogue with the filters already applied. **GrassKickZ sells its own equipment** as a seller beside the clubs (the team may have its own manufacturer), so no club is handed the front page by default. Fundraising and jobs follow with the same GrassKickZ DNA, with GoFundMe and a jobs site as their references.
 - **Fundraising copies GoFundMe and hands it the headache** (owner, 14 October): creating a fundraiser is as simple as GoFundMe's, and the money, receipts and refunds are taken on the club's GoFundMe page, linked from the fundraiser. GrassKickZ shows the projects, sends supporters there and keeps the same DNA as the store.
+- **Jobs and fundraising are for everyone, the store for clubs and GrassKickZ** (owner, 14 October): a parent may raise money for a child's kit or post a job for a personal trainer; coaches, referees and specialists may list themselves as available. Most people in grassroots football want a stable job, so jobs is one of the most important pages. The jobs home copies LinkedIn Jobs and lives beside World's map, which stays the way to browse by place.
 
 ### Taken while building the start (13 October 2026, `AUTH_AND_START.md`; owner to confirm)
 

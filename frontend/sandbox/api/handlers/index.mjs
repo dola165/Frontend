@@ -7,6 +7,7 @@ import './club.mjs';
 import './football.mjs';
 import './store.mjs';
 import './campaigns.mjs';
+import './jobs.mjs';
 import './nav-extra.mjs';
 import './world-extra.mjs';
 import './map-extra.mjs';

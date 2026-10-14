@@ -758,15 +758,7 @@ get('/admissions/opportunities', ({ query: q }) => {
 get('/admissions/opportunities/:id', ({ params }) => { const g = F.groupById(params.id); if (!g) return notFound('This group is unavailable.'); const { verified: _v, ...rest } = g; return rest; });
 get('/admissions/home', () => ({ participants: [{ id: W.ME_ID, name: W.me.fullName, dateOfBirth: '1988-04-12', minor: false, guardian: false, provenance: 'SELF', gender: 'MALE', restriction: null }], cases: [], invitations: [], selfCardNeedsDetails: false, inquiries: [] }));
 
-// ============================================================== jobs & roles
-get('/jobs', () => F.roleList.map(F.jobView).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
-get('/jobs/:id', ({ params }) => { const r = F.roleList.find(x => x.id === Number(params.id)); return r ? F.jobView(r) : notFound('This role is no longer open.'); });
-get('/jobs/:id/application', ({ params }) => F.jobApplications.get(Number(params.id)) || null);
-post('/jobs/:id/apply', ({ params }) => { const r = F.roleList.find(x => x.id === Number(params.id)); if (!r) return notFound(); const a = { id: W.newId(), clubId: r.clubId, status: 'PENDING' }; F.jobApplications.set(r.id, a); return reply(201, a); });
-post('/jobs/:id/applications', ({ params }) => { const r = F.roleList.find(x => x.id === Number(params.id)); if (!r) return notFound(); const a = { id: W.newId(), clubId: r.clubId, status: 'PENDING' }; F.jobApplications.set(r.id, a); return reply(201, a); });
-
-// The store (storefront, catalogue, product, cart quote) lives in store.mjs.
-
+// Jobs & volunteering live in jobs.mjs.
 // Fundraising (campaigns) lives in campaigns.mjs.
 
 // ============================================================== supporting lookups

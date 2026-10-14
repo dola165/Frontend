@@ -819,9 +819,42 @@ export const jobView = r => {
   return { version: 1, id: r.id, clubId: c.id, title: r.title, description: `${r.description}${r.requirements?.length ? `\n\nWhat you need: ${r.requirements.join('; ')}.` : ''}\n\nApply by ${r.deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}.`,
     ageGroup: /U1\d|U\d|ages/i.test(r.title) ? (r.title.match(/U\d+/)?.[0] ?? null) : null, level: r.employment === 'FULL_TIME' ? 'PROFESSIONAL' : null, requiredRole: CATEGORY_BY_TITLE(r.title) === 'COACHING' ? 'COACH' : null,
     status: 'OPEN', createdAt: iso(r.posted), createdBy: posterOf(c.id), applicationCount: 2 + r.id % 9, category: CATEGORY_BY_TITLE(r.title), engagementType: r.kind === 'VOLUNTEER' ? 'VOLUNTEER' : r.kind === 'SERVICE' ? 'FLEXIBLE' : 'PAID',
-    clubName: c.name, clubLogoUrl: c.logoUrl, clubCityName: c.city, clubCountryName: 'Georgia' };
+    clubName: c.name, clubLogoUrl: c.logoUrl, clubCityName: c.city, clubCountryName: 'Georgia',
+    // Jobs for everyone (14 October): who posts, which way round, the pay, the hours and how to apply.
+    // Fields the backend needs (docs/claude-sandbox/BACKEND_NEEDS.md, "Jobs").
+    direction: 'HIRING', poster: { kind: 'CLUB', id: c.id, name: c.name, avatarUrl: c.logoUrl, city: c.city },
+    pay: r.employment === 'FULL_TIME' ? 'GEL 1,800 / month' : r.employment === 'PART_TIME' ? 'GEL 700 / month' : r.employment === 'CONTRACT' ? 'By agreement' : null,
+    hours: r.employment === 'FULL_TIME' ? 'FULL_TIME' : r.employment === 'PART_TIME' ? 'PART_TIME' : r.employment === 'CONTRACT' ? 'SESSIONS' : 'VOLUNTEER',
+    licence: (r.requirements ?? []).find(x => /UEFA|licen|certificate/i.test(x)) ?? null,
+    applyMethod: CATEGORY_BY_TITLE(r.title) === 'COACHING' ? 'IN_APP' : 'EMAIL', applyTarget: CATEGORY_BY_TITLE(r.title) === 'COACHING' ? null : `jobs@${c.short.toLowerCase()}.ge` };
 };
 export const jobApplications = new Map();
+
+// Listings posted by people, not clubs: a parent hiring a coach for a child, a coach or referee saying they are available.
+const personOf = (role, nth = 0) => W.people.filter(p => p.role === role)[nth];
+const listingPlan = [
+  ['PARENT', 0, 'HIRING', 'Personal trainer for a 12-year-old, twice a week', 'COACHING', 'PAID', 'SESSIONS', 'GEL 40 / session', 'Vake, after school. My son plays for a U12 squad and wants to work on first touch and speed. Patience with kids matters more than a licence.', -2],
+  ['PARENT', 1, 'HIRING', 'Goalkeeper coaching for my daughter (U14), weekends', 'COACHING', 'PAID', 'SESSIONS', 'GEL 50 / session', 'Saturday or Sunday mornings in Saburtalo. She is the keeper of her club squad and wants extra work on positioning and distribution.', -5],
+  ['PARENT', 2, 'HIRING', 'Football tutor for twin boys (8), afternoons', 'COACHING', 'PAID', 'SESSIONS', 'GEL 35 / session', 'Two eight-year-olds, Didube, weekday afternoons. Fun first; they are just starting.', -1],
+  ['COACH', 1, 'OFFERING', 'UEFA B coach available for private sessions and small groups', 'COACHING', 'PAID', 'SESSIONS', 'GEL 60 / session', 'Ten years at academy level, U10 to U16. Technical work, finishing, small-group sessions up to six players. Tbilisi, evenings and weekends.', -3],
+  ['COACH', 2, 'OFFERING', 'Goalkeeper coach, evenings, Saburtalo', 'COACHING', 'PAID', 'SESSIONS', 'GEL 45 / session', 'Former first-team keeper. Weekday evenings for keepers aged 10 and up, your pitch or mine.', -8],
+  ['REFEREE', 2, 'OFFERING', 'Referee available for friendlies and youth tournaments, weekends', 'MATCHDAY', 'PAID', 'MATCHDAYS', 'GEL 50 / match', 'GFF regional referee. Weekends across Tbilisi; happy to take a whole tournament day.', -4],
+  ['STAFF', 0, 'OFFERING', 'Match-day physio available', 'MEDICAL', 'PAID', 'MATCHDAYS', 'GEL 120 / match', 'Licensed physiotherapist, pitch-side cover for matches and tournaments, taping and first response. Own kit.', -6],
+  ['STAFF', 1, 'OFFERING', 'Video analyst for youth squads, part time', 'FOOTBALL_OPERATIONS', 'FLEXIBLE', 'PART_TIME', 'By agreement', 'Filming, clips and a short report per match. Hudl and Wyscout. Two or three squads at a time.', -12],
+];
+export const jobListings = listingPlan.map(([role, nth, direction, title, category, engagementType, hours, pay, description, posted], i) => {
+  const person = personOf(role, nth) ?? personOf(role, 0);
+  return { id: 701 + i, personId: person.id, direction, title, category, engagementType, hours, pay, description, posted: day(posted), deadline: day(30 + i) };
+});
+/** A person's listing in the job shape: the poster is the person, the place is their town, applying is a message. */
+export const jobListingView = l => {
+  const person = W.personById(l.personId);
+  return { version: 1, id: l.id, clubId: null, title: l.title, description: l.description, ageGroup: null, level: null, requiredRole: null, status: 'OPEN', createdAt: iso(l.posted), createdBy: person.id,
+    applicationCount: (l.id * 3) % 7, category: l.category, engagementType: l.engagementType, clubName: null, clubLogoUrl: null, clubCityName: person.city ?? 'Tbilisi', clubCountryName: 'Georgia',
+    direction: l.direction, poster: { kind: 'PERSON', id: person.id, name: person.fullName, avatarUrl: person.avatarUrl, city: person.city ?? 'Tbilisi' }, pay: l.pay, hours: l.hours, licence: null, applyMethod: 'MESSAGE', applyTarget: null };
+};
+/** Listings posted in this run (people or clubs), in the job shape already. */
+export const postedListings = [];
 
 // ---------------------------------------------------------------- store
 // Two kinds of seller: GrassKickZ itself (basic equipment, no club behind it) and the clubs (kit, tickets, membership).

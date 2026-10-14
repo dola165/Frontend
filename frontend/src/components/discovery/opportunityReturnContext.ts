@@ -39,8 +39,9 @@ const isAllowedReturnTarget = (
     ) {
         return true;
     }
-    if (section === 'jobs' && (pathname === '/jobs' || /^\/clubs\/([1-9]\d*)$/.test(pathname))) {
-        return pathname === '/jobs' || isClubHubTarget(section, pathname, search);
+    if (section === 'jobs' && (pathname === '/jobs' || pathname === '/jobs/all' || /^\/clubs\/([1-9]\d*)\/jobs$/.test(pathname))) return true;
+    if (section === 'jobs' && /^\/clubs\/([1-9]\d*)$/.test(pathname)) {
+        return isClubHubTarget(section, pathname, search);
     }
     return isClubHubTarget(section, pathname, search);
 };

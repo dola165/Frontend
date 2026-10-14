@@ -38,6 +38,10 @@ const ClubFundraisingPage = lazy(() => import('./pages/ClubFundraisingPage').the
 const FundraiserPage = lazy(() => import('./pages/FundraiserPage').then(module => ({default: module.FundraiserPage})));
 const StartFundraiserPage = lazy(() => import('./pages/StartFundraiserPage').then(module => ({default: module.StartFundraiserPage})));
 const JobDetailPage = lazy(() => import('./pages/JobDetailPage').then(module => ({default: module.JobDetailPage})));
+const JobsPage = lazy(() => import('./pages/JobsPage').then(module => ({default: module.JobsPage})));
+const JobsCataloguePage = lazy(() => import('./pages/JobsCataloguePage').then(module => ({default: module.JobsCataloguePage})));
+const ClubJobsPage = lazy(() => import('./pages/ClubJobsPage').then(module => ({default: module.ClubJobsPage})));
+const PostJobPage = lazy(() => import('./pages/PostJobPage').then(module => ({default: module.PostJobPage})));
 const StorePage = lazy(() => import('./pages/StorePage').then(module => ({default: module.StorePage})));
 const MyOrganizationsPage = lazy(() => import('./pages/MyOrganizationsPage').then(module => ({default: module.MyOrganizationsPage})));
 const StadiumProfilePage = lazy(() => import('./pages/StadiumProfilePage').then(module => ({default: module.StadiumProfilePage})));
@@ -280,7 +284,7 @@ export function MainLayout() {
     const isWorldMap = location.pathname === '/world/map';
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
-    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/operations|\/profile-settings|\/store|\/campaigns)?$/.test(location.pathname);
+    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/operations|\/profile-settings|\/store|\/campaigns|\/jobs)?$/.test(location.pathname);
     // Public destination pages with full-bleed heroes (banner + tab bars) render
     // edge-to-edge; everything else keeps the bounded wide frame.
     const isBleedDestinationPage =
@@ -394,6 +398,10 @@ export function MainLayout() {
             <Route path="/stadiums/:organizationId/manage" element={<ProtectedRoute><StadiumWorkspacePage /></ProtectedRoute>} />
             <Route path="/store/products/:id" element={<StoreProductPage />} />
             <Route path="/store/cart" element={<StoreCartPage />} />
+            <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/jobs/all" element={<JobsCataloguePage />} />
+            <Route path="/jobs/new" element={<PostJobPage />} />
+            <Route path="/clubs/:id/jobs" element={<ClubJobsPage />} />
             {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ tab: 'jobs' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
             {ROLE_DETAIL_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobDetailPage />} />)}
             <Route path="/campaigns" element={<FundraisingPage />} />

@@ -46,7 +46,8 @@ describe('Front, catalogue and the listing', () => {
         expect(screen.getByRole('link', { name: /^Work/ })).toHaveAttribute('href', '/jobs/all?direction=HIRING');
         expect(screen.getByRole('link', { name: /^Be found/ })).toHaveAttribute('href', '/jobs/new?as=work');
         expect(screen.getByRole('link', { name: /^Hire/ })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
-        expect(await screen.findByText('2 on the map · around Tbilisi')).toBeInTheDocument();
+        expect(await screen.findByText('2 on the map')).toBeInTheDocument();
+        expect(screen.getByText('Around Tbilisi · clubs and people')).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: '2 open jobs and volunteer roles' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Browse people available' })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
         expect(screen.getAllByRole('link', { name: 'Post a job' })[0]).toHaveAttribute('href', '/jobs/new?as=hire');

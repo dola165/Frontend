@@ -270,8 +270,8 @@
 .gk .gk-store-cats-section > .gk-section__head { justify-content: center; }
 .gk .gk-store-cats-section > .gk-section__head > .gk-section__heading { justify-content: center; }
 .gk .gk-store-cats-section .gk-store-cats { padding-top: var(--gk-3); }
-.gk .gk-store-cats[data-dense] { gap: var(--gk-2); }
-.gk .gk-store-cats[data-dense] .gk-store-cat { width: 96px; font-size: var(--gk-fs-sm); }
+.gk .gk-store-cats[data-dense] { gap: 6px; }
+.gk .gk-store-cats[data-dense] .gk-store-cat { width: 80px; font-size: var(--gk-fs-sm); }
 .gk .gk-store-cats[data-dense] .gk-store-cat__icon { width: 60px; height: 60px; }
 .gk .gk-store-cats[data-dense] .gk-store-cat__icon svg { width: 24px; height: 24px; }
 @media (max-width: 900px) { .gk .gk-market-tabs { width: 100%; } .gk .gk-market-tabs .gk-segmented__item { flex: 1; padding: 0 var(--gk-2); } .gk .gk-store-cats-section > .gk-section__head { justify-content: flex-start; } }

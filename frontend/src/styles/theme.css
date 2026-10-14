@@ -224,6 +224,14 @@ html.dark.product-design-active :is(.club-page-shell, .club-design-scope, .venue
   --gk-danger: #ff7a85;
   --gk-info: #7fb6f0;
   --gk-violet: #b99cf6;
+  /* The three marketplaces, each in its colour: the store the grass green, jobs a bold purple, fundraising a warm dark orange. */
+  --gk-market-store: #00e676;
+  --gk-market-jobs: #8a5cf6;
+  --gk-market-jobs-strong: #a383ff;
+  --gk-on-market-jobs: #ffffff;
+  --gk-market-fundraising: #e06a1c;
+  --gk-market-fundraising-strong: #f5853a;
+  --gk-on-market-fundraising: #1c0d03;
   --gk-pitch: #0f2a1d;
   --gk-shadow: #000000;
   color-scheme: dark;
@@ -246,6 +254,13 @@ html:not(.dark) .gk,
   --gk-danger: #c22f45;
   --gk-info: #2563a8;
   --gk-violet: #6d48b0;
+  --gk-market-store: #0f7a42;
+  --gk-market-jobs: #6338d1;
+  --gk-market-jobs-strong: #512bb3;
+  --gk-on-market-jobs: #ffffff;
+  --gk-market-fundraising: #b64c0c;
+  --gk-market-fundraising-strong: #9a3f08;
+  --gk-on-market-fundraising: #ffffff;
   --gk-pitch: #e3f1e8;
   --gk-shadow: #0b1a12;
   color-scheme: light;

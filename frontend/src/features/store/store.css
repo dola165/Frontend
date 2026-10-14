@@ -19,15 +19,15 @@
 
 /* ── Two big doors: GrassKickZ equipment and the club stores ── */
 .gk .gk-store-doors { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gk-4); }
-.gk .gk-store-door { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gk-3); min-height: 340px; padding: var(--gk-6); border-radius: var(--gk-r-lg); overflow: hidden; isolation: isolate; color: #fff; background: var(--gk-surface) center / cover no-repeat; }
-.gk .gk-store-door::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(8, 14, 18, .08) 30%, rgba(8, 14, 18, .82) 100%); }
-.gk .gk-store-door__eyebrow { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); font-weight: 600; color: rgba(255, 255, 255, .8); }
+.gk .gk-store-door { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gk-3); min-height: 340px; padding: var(--gk-6); border-radius: var(--gk-r-lg); overflow: hidden; isolation: isolate; color: var(--color-on-media); background: var(--gk-surface) center / cover no-repeat; }
+.gk .gk-store-door::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, color-mix(in srgb, var(--color-overlay) 08%, transparent) 30%, color-mix(in srgb, var(--color-overlay) 82%, transparent) 100%); }
+.gk .gk-store-door__eyebrow { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); font-weight: 600; color: color-mix(in srgb, var(--color-on-media) 80%, transparent); }
 .gk .gk-store-door__eyebrow img { width: 18px; height: 18px; }
-.gk .gk-store-door__title { font-size: 30px; line-height: 34px; font-weight: 700; letter-spacing: -.02em; color: #fff; }
+.gk .gk-store-door__title { font-size: 30px; line-height: 34px; font-weight: 700; letter-spacing: -.02em; color: var(--color-on-media); }
 .gk .gk-store-door__title::after { content: ''; position: absolute; inset: 0; }
-.gk .gk-store-door__line { font-size: var(--gk-fs-lg); color: rgba(255, 255, 255, .85); }
+.gk .gk-store-door__line { font-size: var(--gk-fs-lg); color: color-mix(in srgb, var(--color-on-media) 85%, transparent); }
 .gk .gk-store-door__chips { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: var(--gk-2); margin-top: var(--gk-1); }
-.gk .gk-store-door__chip { display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: var(--gk-r-pill); background: #fff; color: #10161b; font-size: var(--gk-fs-sm); font-weight: 600; transition: background-color .15s var(--gk-ease); }
+.gk .gk-store-door__chip { display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: var(--gk-r-pill); background: var(--color-on-media); color: var(--color-overlay); font-size: var(--gk-fs-sm); font-weight: 600; transition: background-color .15s var(--gk-ease); }
 .gk .gk-store-door__chip:hover { background: var(--gk-accent); }
 .gk .gk-store-door:hover .gk-store-door__title { text-decoration: underline; text-underline-offset: 4px; }
 
@@ -225,7 +225,7 @@
 /* ── Categories: a calmer, more finished strip ── */
 .gk .gk-store-cats { gap: var(--gk-3); padding: var(--gk-2) 0; }
 .gk .gk-store-cat { width: 108px; gap: var(--gk-3); font-size: var(--gk-fs-md); font-weight: 500; color: var(--gk-text-2); }
-.gk .gk-store-cat__icon { width: 72px; height: 72px; border-color: color-mix(in srgb, var(--gk-line) 70%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--gk-text) 3%, var(--gk-surface)), var(--gk-surface)); color: var(--gk-text-2); box-shadow: 0 1px 2px color-mix(in srgb, var(--gk-shadow) 8%, transparent), inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent); }
+.gk .gk-store-cat__icon { width: 72px; height: 72px; border-color: color-mix(in srgb, var(--gk-line) 70%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--gk-text) 3%, var(--gk-surface)), var(--gk-surface)); color: var(--gk-text-2); box-shadow: 0 1px 2px color-mix(in srgb, var(--gk-shadow) 8%, transparent), inset 0 1px 0 color-mix(in srgb, var(--color-on-media) 40%, transparent); }
 .gk .gk-store-cat__icon svg { width: 28px; height: 28px; stroke-width: 1.6; }
 .gk .gk-store-cat:hover .gk-store-cat__icon { transform: translateY(-3px); color: var(--gk-accent); border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); box-shadow: 0 10px 24px color-mix(in srgb, var(--gk-accent) 18%, transparent); }
 .gk .gk-store-cat:hover { color: var(--gk-text); }
@@ -247,18 +247,18 @@
 /* ── Slideshow: one wide banner, sliding sideways on its own; the arrows and dots take over by hand ── */
 .gk .gk-store-slides { position: relative; overflow: hidden; border-radius: var(--gk-r-lg); isolation: isolate; }
 .gk .gk-store-slides__track { display: flex; transition: transform .9s var(--gk-store-ease); }
-.gk .gk-store-slide { position: relative; flex: 0 0 100%; display: flex; align-items: flex-end; min-height: 300px; padding: var(--gk-8); color: #fff; background: var(--gk-surface); isolation: isolate; }
-.gk .gk-store-slide::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 14, 18, .78) 0%, rgba(8, 14, 18, .35) 55%, rgba(8, 14, 18, .05) 100%); }
+.gk .gk-store-slide { position: relative; flex: 0 0 100%; display: flex; align-items: flex-end; min-height: 300px; padding: var(--gk-8); color: var(--color-on-media); background: var(--gk-surface); isolation: isolate; }
+.gk .gk-store-slide::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, color-mix(in srgb, var(--color-overlay) 78%, transparent) 0%, color-mix(in srgb, var(--color-overlay) 35%, transparent) 55%, color-mix(in srgb, var(--color-overlay) 05%, transparent) 100%); }
 .gk .gk-store-slide__pic { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; transform: scale(1.04); transition: transform 7s linear; }
 .gk .gk-store-slide:not([aria-hidden='true']) .gk-store-slide__pic { transform: scale(1); }
 .gk .gk-store-slide__text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-3); max-width: 560px; }
-.gk .gk-store-slide__title { font-size: 34px; line-height: 38px; font-weight: 700; letter-spacing: -.02em; color: #fff; }
+.gk .gk-store-slide__title { font-size: 34px; line-height: 38px; font-weight: 700; letter-spacing: -.02em; color: var(--color-on-media); }
 .gk .gk-store-slides .gk-store-rail__arrow { top: 50%; }
 .gk .gk-store-slides .gk-store-rail__arrow--prev { left: var(--gk-4); }
 .gk .gk-store-slides .gk-store-rail__arrow--next { right: var(--gk-4); }
 .gk .gk-store-slides__dots { position: absolute; right: var(--gk-6); bottom: var(--gk-5); z-index: 2; display: flex; gap: 6px; }
-.gk .gk-store-slides__dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .45); cursor: pointer; transition: width .4s var(--gk-store-ease), background-color .4s var(--gk-store-ease); }
-.gk .gk-store-slides__dots button[aria-selected='true'] { width: 24px; border-radius: 4px; background: #fff; }
+.gk .gk-store-slides__dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--color-on-media) 45%, transparent); cursor: pointer; transition: width .4s var(--gk-store-ease), background-color .4s var(--gk-store-ease); }
+.gk .gk-store-slides__dots button[aria-selected='true'] { width: 24px; border-radius: 4px; background: var(--color-on-media); }
 @media (max-width: 900px) { .gk .gk-store-slide { min-height: 240px; padding: var(--gk-5); } .gk .gk-store-slide__title { font-size: 26px; line-height: 30px; } }
 @media (prefers-reduced-motion: reduce) { .gk .gk-store-slides__track { transition: none; } .gk .gk-store-slide__pic { transition: none; transform: none; } }
 
@@ -272,14 +272,10 @@
 .gk .gk-market-tabs .gk-segmented__item:hover svg { transform: scale(1.12); }
 .gk .gk-market-tabs .gk-segmented__item[aria-current='page'] { background: color-mix(in srgb, var(--market) 16%, var(--gk-raised)); color: var(--gk-text); box-shadow: 0 0 0 1px color-mix(in srgb, var(--market) 40%, var(--gk-line)); }
 
-/* ── Each place in its colour: the store grass green, jobs a bold purple, fundraising a warm dark orange. The place's
-   accent tokens change on its root, so buttons, links, pins, bands and progress follow without their own rules. ── */
-.gk.gk-store { --gk-market-store: #00e676; --gk-market-jobs: #8a5cf6; --gk-market-fundraising: #e06a1c; }
-html:not(.dark) .gk.gk-store, .gk.gk-light.gk-store { --gk-market-store: #0f7a42; --gk-market-jobs: #6338d1; --gk-market-fundraising: #b64c0c; }
-.gk.gk-store[data-market='jobs'] { --gk-accent: #8a5cf6; --gk-accent-strong: #a383ff; --gk-on-accent: #ffffff; }
-html:not(.dark) .gk.gk-store[data-market='jobs'], .gk.gk-light.gk-store[data-market='jobs'] { --gk-accent: #6338d1; --gk-accent-strong: #512bb3; }
-.gk.gk-store[data-market='fundraising'] { --gk-accent: #e06a1c; --gk-accent-strong: #f5853a; --gk-on-accent: #1c0d03; }
-html:not(.dark) .gk.gk-store[data-market='fundraising'], .gk.gk-light.gk-store[data-market='fundraising'] { --gk-accent: #b64c0c; --gk-accent-strong: #9a3f08; --gk-on-accent: #ffffff; }
+/* ── Each place in its colour (the --gk-market-* tokens in styles/theme.css): the place's root resets the accent tokens, so
+   buttons, links, pins, bands and progress follow without their own rules. ── */
+.gk.gk-store[data-market='jobs'] { --gk-accent: var(--gk-market-jobs); --gk-accent-strong: var(--gk-market-jobs-strong); --gk-on-accent: var(--gk-on-market-jobs); }
+.gk.gk-store[data-market='fundraising'] { --gk-accent: var(--gk-market-fundraising); --gk-accent-strong: var(--gk-market-fundraising-strong); --gk-on-accent: var(--gk-on-market-fundraising); }
 .gk .gk-market-tabs + .gk-store-head { padding-top: var(--gk-4); }
 .gk .gk-store-cats-section > .gk-section__head { justify-content: center; }
 .gk .gk-store-cats-section > .gk-section__head > .gk-section__heading { justify-content: center; }
@@ -304,7 +300,7 @@ html:not(.dark) .gk.gk-store[data-market='fundraising'], .gk.gk-light.gk-store[d
 
 /* ── A row that idles sideways: one track, laid twice, slid by the compositor by half its width and started again ── */
 @keyframes gk-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.gk .gk-store-rail[data-drift] { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.gk .gk-store-rail[data-drift] { overflow: hidden; mask-image: linear-gradient(90deg, transparent, var(--gk-shadow) 4%, var(--gk-shadow) 96%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, var(--gk-shadow) 4%, var(--gk-shadow) 96%, transparent); }
 .gk .gk-store-row--drift { display: flex; width: max-content; overflow: visible; scroll-snap-type: none; animation: gk-drift 120s linear infinite; will-change: transform; }
 .gk .gk-store-row--drift > li { flex: 0 0 auto; width: 240px; }
 .gk .gk-store-row--wide.gk-store-row--drift > li { width: 300px; }
@@ -312,7 +308,7 @@ html:not(.dark) .gk.gk-store[data-market='fundraising'], .gk.gk-light.gk-store[d
 .gk .gk-store-rail[data-drift]:hover .gk-store-rail__arrow, .gk .gk-store-rail[data-drift] .gk-store-rail__arrow:focus-visible { opacity: 1; }
 
 /* ── Each row of a front on its own band: a quiet texture and a soft glow, alternating, so the rows read apart ── */
-.gk .gk-band { position: relative; gap: var(--gk-3); padding: var(--gk-6) var(--gk-6) var(--gk-4); border: 1px solid var(--gk-line); border-radius: 22px; background: var(--gk-surface); overflow: hidden; isolation: isolate; box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent); }
+.gk .gk-band { position: relative; gap: var(--gk-3); padding: var(--gk-6) var(--gk-6) var(--gk-4); border: 1px solid var(--gk-line); border-radius: 22px; background: var(--gk-surface); overflow: hidden; isolation: isolate; box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-on-media) 6%, transparent); }
 .gk .gk-band::before, .gk .gk-band::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 .gk .gk-band--a::before { background: repeating-linear-gradient(112deg, transparent 0 26px, color-mix(in srgb, var(--gk-text) 3.5%, transparent) 26px 27px); }
 .gk .gk-band--a::after { background: radial-gradient(60% 90% at 0% 0%, color-mix(in srgb, var(--gk-accent) 16%, transparent), transparent 70%); }

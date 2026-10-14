@@ -297,3 +297,9 @@ Where the brief leaves room. Each follows the product philosophy: the likely ans
 - **The setup ring for a club counts seven:** name, crest, ground, age groups, contact, fees, players (a join link shared). A fan club, a business and a plain page count their own, fewer.
 - **The URL keeps the editor's state:** `edit=1` and `panel=grounds`, so Back closes a panel and a link can open one.
 - **The fee band** (from, to, currency, per month, "some groups free") is stored on the page; the fees box and World's fee filter read it while the club has no priced programmes.
+- **One sheet, no steps** (phase 3): the four tiles, the name with the town chip beside it, and Create sit on one sheet; a tap on a tile reveals the name. It opens over whatever page the person is on (`?create=club|fan-club|business|page|any&from=…`, mounted once in the app shell), so Back closes it and old links (`/organizations/create`, `/clubs/create`) simply redirect to Home with the sheet open.
+- **The My Club tab stays for someone without a club** and opens two picture tiles, Find your club · Start your club, with any invitations under them (the old "No club yet" page with its heavy band is gone).
+- **The first run** offers "Run a club? Start it after this" only to someone who chose "I coach"; it finishes the start and opens the sheet on Club.
+- **Agent Dola** creates through the same action (`PAGE_CREATE`): "Create my club called Rustavi Lions" previews the draft, Confirm creates it and links to the page in edit mode. Without a name Dola asks for one; under 18 it explains.
+- **The duplicate check** runs from three letters, a breath after the last key; an exact copy of a known name turns Create into Claim it / Open it (the server refuses too); "No, mine is different" hides a near match for that name.
+- **Unanswered creates are retried with the same request id** (saved before sending), and the sheet's own draft (type, name, town) survives leaving the page.

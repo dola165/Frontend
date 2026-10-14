@@ -1,3 +1,4 @@
+import { CreateLink } from '../features/pages/create/CreateLink';
 import { useEffect, useState } from 'react';
 import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorMessage } from '../utils/apiError';
@@ -5,7 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Building2, Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { hasNavigationCapability, workspaceLinks } from '../context/navigationCapabilities';
+import { workspaceLinks } from '../context/navigationCapabilities';
 import '../features/venues/venues.css';
 import '../features/venues/venue-owner.css';
 import { OrganizationTeamInvitations } from '../features/organizations/setup/OrganizationTeam';
@@ -40,7 +41,7 @@ export function MyOrganizationsPage() {
     <header className="venue-workspace-heading">
       <div><h1>{venuesOnly ? t('nav.myVenues', 'My venues') : t('nav.myOrganizations', 'My organizations')}</h1>
         <p>{venueEntry ? 'Open a venue workspace to manage its page, pitches, calendar and booking requests.' : 'Your clubs and other organizations, with their activities, venues and team.'}</p></div>
-      {hasNavigationCapability(capabilities, 'organization.create') && <Link className="venue-button" to={venueEntry ? '/organizations/create?kind=VENUE' : '/organizations/create'}>{venueEntry ? 'Add venue' : 'Add organization'}</Link>}
+      {!venueEntry && <CreateLink from="organizations" className="venue-button">Create a page</CreateLink>}
     </header>
     {!venuesOnly && venues.length > 0 && <Link className="venue-link" to="/my-organizations?kind=VENUE">My venue workspaces</Link>}
     {error && <p role="alert">{error} <button type="button" onClick={()=>setAttempt(v=>v+1)}>Retry</button></p>}

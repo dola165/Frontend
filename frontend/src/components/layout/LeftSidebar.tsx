@@ -10,6 +10,8 @@ import { ConnectionsDialog } from "../profile/ConnectionsDialog";
 import { type ManagedClubLink } from "./WorkspaceShortcuts";
 import { WorkspaceAccess } from './FootballActivity';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
+import { CreateCard } from '../../features/pages/create/CreateLink';
+import { hasOwnPage } from '../../features/pages/create/entry';
 
 interface LeftSidebarProps {
   embedded?: boolean;
@@ -96,6 +98,8 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
         </Link>}
         <WorkspaceAccess key={user?.id} userId={user?.id} caps={capabilities} className="feed-side-link home-social-link workspace-shortcut w-full" />
         </div>
+        {/* Someone with no page of their own is offered one; once they have a club or a page, the card goes. */}
+        {capabilitiesKnown(capabilities) && !hasOwnPage(capabilities) && <CreateCard from="home" />}
         <div className="home-shortcut-group home-rail-card" role="group" aria-label="Your football">
           <h2 className="home-shortcut-heading">Your football</h2>
           {primary.map(shortcut)}

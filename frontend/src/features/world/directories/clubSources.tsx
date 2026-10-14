@@ -1,3 +1,5 @@
+import { CreateLink } from '../../pages/create/CreateLink';
+import { pt } from '../../pages/copy';
 import type { Participant } from '../../admissions/types';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import type { ClubLocationItem } from '../../../components/discovery/clubLocationTypes';
@@ -107,6 +109,6 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             const known = club.latitude != null && club.longitude != null ? { lat: club.latitude, lng: club.longitude } : places.club(club.id);
             return known ? { lat: known.lat, lng: known.lng, tone: 'club', noun: ['club', 'clubs'], label: club.name, meta: [wt(clubTypeLabel(club.type)), club.cityName].filter(Boolean).join(' · '), to: `/clubs/${club.id}` } : null;
         },
-        empty: { title: 'No clubs listed yet', body: 'Clubs appear here when they publish their profile.' },
+        empty: { title: 'No clubs listed yet', body: 'Clubs appear here when they publish their profile.', action: <CreateLink kind="CLUB" from="world-clubs" size="sm">{pt('Is your club missing? Add it')}</CreateLink> },
     };
 }

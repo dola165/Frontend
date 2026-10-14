@@ -10,6 +10,7 @@ import { calendarDestination } from '../../../schedule/personal/calendarDestinat
 vi.mock('../../../agents/RepresentationPanel', () => ({ RepresentationPanel: () => null }));
 vi.mock('../../../agents/ClubApproachesPanel', () => ({ ClubApproachesPanel: () => null }));
 vi.mock('../../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost:8080' }, apiClient: { get: vi.fn(async () => ({ data: [] })) } }));
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: null, status: 'anonymous' }) }));
 
 const player: PersonProfile = {
     id: 30, username: 'saba', fullName: 'Saba Lomidze', role: 'PLAYER', position: 'Striker', preferredFoot: 'Left', heightCm: 171, weightKg: 60,

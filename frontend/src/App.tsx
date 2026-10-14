@@ -1,3 +1,4 @@
+import { CreatePageHost } from './features/pages/create/CreatePageHost';
 import { useTranslation } from 'react-i18next';
 import { isAndroidApp, nativeCall } from './android/bridge';
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type CSSProperties, type JSX } from 'react';
@@ -97,7 +98,7 @@ const TryoutDetailPage = lazy(() => import('./features/tryouts/TryoutDetailPage'
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({default: module.AdminPage})));
 const TournamentWorkspacePage = lazy(() => import('./pages/TournamentWorkspacePage').then(module => ({default: module.TournamentWorkspacePage})));
 const TournamentDetailPage = lazy(() => import('./pages/TournamentDetailPage').then(module => ({default: module.TournamentDetailPage})));
-const CreateOrganizationPage = lazy(() => import('./pages/CreateOrganizationPage').then(module => ({default: module.CreateOrganizationPage})));
+const CreateRedirect = lazy(() => import('./features/pages/create/CreateRedirect').then(module => ({ default: module.CreateRedirect })));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage').then(module => ({default: module.OrganizationProfilePage})));
 const AccountRolesPage = lazy(() => import('./features/profiles/account/AccountRolesPage').then(module => ({default: module.AccountRolesPage})));
 const MatchDetailPage = lazy(() => import('./pages/MatchDetailPage').then(module => ({default: module.MatchDetailPage})));
@@ -378,7 +379,7 @@ export function MainLayout() {
             <Route path="/tournaments/setup" element={<TournamentSetupRedirect />} />
             <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
             <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
-            <Route path="/organizations/create" element={<ProtectedRoute><CreateOrganizationPage /></ProtectedRoute>} />
+            <Route path="/organizations/create" element={<ProtectedRoute><CreateRedirect /></ProtectedRoute>} />
             <Route path="/organizations/:organizationId/workspace" element={<ProtectedRoute><OrganizationWorkspacePage /></ProtectedRoute>} />
             <Route path="/organizations/:organizationId" element={<ProtectedRoute><OrganizationProfilePage /></ProtectedRoute>} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
@@ -417,7 +418,7 @@ export function MainLayout() {
             <Route path="/club-operations" element={<ProtectedRoute><MyClubOperationsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
-            <Route path="/clubs/create" element={<ProtectedRoute><Navigate to="/organizations/create?kind=CLUB" replace /></ProtectedRoute>} />
+            <Route path="/clubs/create" element={<ProtectedRoute><CreateRedirect kind="CLUB" /></ProtectedRoute>} />
             <Route path="/my-organizations" element={<ProtectedRoute><MyOrganizationsPage /></ProtectedRoute>} />
             <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
@@ -487,7 +488,8 @@ export function MainLayout() {
                     </div>
                 </div>
             )}
-
+            {/* The start sheet and the claim sheet open over whatever page says `?create=` or `?claim=`. */}
+            <CreatePageHost />
         </div>
     );
 }

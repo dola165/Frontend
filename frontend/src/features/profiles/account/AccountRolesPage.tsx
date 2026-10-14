@@ -6,6 +6,7 @@ import { ButtonLink, GkRoot, List, ListRow, PageFrame, PageHeader, Panel } from 
 import { AboutEditor } from './AboutEditor';
 import { ProfessionsEditor } from './ProfessionsEditor';
 import { RolesEditor } from './RolesEditor';
+import { createHref } from '../../pages/create/entry';
 import './account-roles.css';
 
 /** `/account/roles`: change your football roles, add what you do professionally, and write about yourself. */
@@ -16,7 +17,8 @@ export function AccountRolesPage() {
 
 function AccountRoles() {
     const { user } = useAuth();
-    const { hash } = useLocation();
+    const here = useLocation();
+    const { hash } = here;
     const [params] = useSearchParams();
     const firstUse = params.get('setup') === '1';
     // Links from the profile ("Add a profession", "Write about yourself") land on their section.
@@ -49,7 +51,7 @@ function AccountRoles() {
                     {firstUse && <Panel title="Next steps"><List label="Next steps">
                         <ListRow to="/home" title="Continue to Home" />
                         <ListRow to="/world/clubs" title="Find a club" />
-                        {user.navigationCapabilities?.workspaces.some(w => w.id === 'organization.create') && <ListRow to="/organizations/create" title="Create a club or organization" />}
+                        <ListRow to={createHref(here, null, 'roles')} title="Create a club or page" />
                     </List></Panel>}
                     <p className="gk-faint">Name, photos, privacy and sign-in are in <Link className="gk-account-roles__link" to="/account?tab=profile">Account settings</Link>.</p>
                 </aside>

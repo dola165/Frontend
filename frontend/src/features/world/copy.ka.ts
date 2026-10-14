@@ -3,6 +3,8 @@
  * keeps a noun singular after a number, so counts use the singular entries ("3 კლუბი").
  */
 export const WORLD_KA: Record<string, string> = {
+    'Page': 'გვერდი',
+    'Create a page': 'გვერდის შექმნა',
     // Navigation and page titles
     'GrassKickZ World': 'GrassKickZ მსოფლიო', 'Overview': 'მიმოხილვა', 'Clubs': 'კლუბები', 'People': 'ხალხი', 'Venues': 'მოედნები', 'Matches': 'მატჩები',
     'Competitions': 'ტურნირები', 'Opportunities': 'შესაძლებლობები', 'Map': 'რუკა', 'Loading': 'იტვირთება',

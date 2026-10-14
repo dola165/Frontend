@@ -13,6 +13,7 @@ import { fetchClubsNear, fetchFeedPreferences, followClub, saveFeedPreferences, 
 import { ACTIVITIES, DEFAULT_INTERESTS, INTERESTS } from './startChoices';
 import { DEFAULT_TOWN, TOWNS, locateTown, townByName, type Town } from './towns';
 import './start.css';
+import '../pages/pages.css';
 
 type Step = 'town' | 'see' | 'clubs' | 'do';
 const STEPS: Step[] = ['town', 'see', 'clubs'];
@@ -73,11 +74,11 @@ function StartRun() {
         return () => controller.abort();
     }, [step, town]);
 
-    const go = useCallback((next: Step | null) => {
+    const go = useCallback((next: Step | null, then?: string) => {
         setNote('');
         if (next === null) {
             clearAuthFlow();
-            navigate(flow.nextPath ?? '/home', { replace: true });
+            navigate(then ?? flow.nextPath ?? '/home', { replace: true });
             return;
         }
         setParams({ step: next }, { replace: next === 'town' });
@@ -86,10 +87,10 @@ function StartRun() {
     const after = (current: Step): Step | null => (current === 'town' ? 'see' : current === 'see' ? 'clubs' : current === 'clubs' ? (flow.newAccount || params.get('step') === 'do' ? 'do' : null) : null);
 
     /** Saves what this screen chose (best effort: the start is never blocked by a save) and moves on. */
-    const saveAndGo = async (changes: () => Promise<unknown>, next: Step | null) => {
+    const saveAndGo = async (changes: () => Promise<unknown>, next: Step | null, then?: string) => {
         setBusy(true);
-        try { await changes(); go(next); }
-        catch { setNote(t('start.failed')); setBusy(false); go(next); }
+        try { await changes(); go(next, then); }
+        catch { setNote(t('start.failed')); setBusy(false); go(next, then); }
         finally { setBusy(false); }
     };
 
@@ -100,7 +101,8 @@ function StartRun() {
     };
 
     // Skipped: the activity stays empty, and the links someone confirms later set it (useAutomaticActivity).
-    const finish = (choice: Activity | null) => saveAndGo(() => (choice && user ? applyActivity(user.id, choice, copy) : saveFeedPreferences({ activity: null })), null);
+    // `then`: a coach who runs a club goes on to start it (the start sheet over Home).
+    const finish = (choice: Activity | null, then?: string) => saveAndGo(() => (choice && user ? applyActivity(user.id, choice, copy) : saveFeedPreferences({ activity: null })), null, then);
 
     const stepIndex = STEPS.indexOf(step);
     const titles: Record<Step, string> = { town: t('start.town.title'), see: t('start.see.title'), clubs: t('start.clubs.title'), do: t('start.do.title') };
@@ -197,6 +199,7 @@ function StartRun() {
                                 ))}
                             </div>
                             <p className="gk-start__note">{t('start.do.later')}</p>
+                            {activity === 'COACH' && <p className="gk-start__note gk-start__offer">{t('start.do.club')} <button type="button" className="gk-start__link" disabled={busy} onClick={() => void finish('COACH', '/home?create=club&from=start')}>{t('start.do.startClub')}</button></p>}
                         </>
                     )}
                 </div>

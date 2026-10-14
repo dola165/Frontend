@@ -1155,6 +1155,8 @@ const en = {
       km: '{{km}} km',
     },
     do: {
+        club: 'Run a club?',
+        startClub: 'Start it after this',
       title: 'What do you do in football?',
       hint: 'This only sets what you see first. Access to a club comes from the club.',
       PLAY: 'I play',

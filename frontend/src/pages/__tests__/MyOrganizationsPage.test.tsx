@@ -32,10 +32,11 @@ it('supports other organization types and preserves mixed-role club navigation',
   expect(organizationNavigation({ version: 1, workspaces: [] })).toBeNull();
 });
 
-it('keeps the first venue creation scoped to venues and offers a route back to every organization', () => {
-  auth.user.navigationCapabilities = { version: 1, workspaces: [{ id: 'organization.create', context: { type: 'user', id: 1, label: 'Owner' } }, entry('organization.workspace', 15, 'Organizer')] };
+it('offers no venue creation while venues are out, and a route back to every organization', () => {
+  auth.user.navigationCapabilities = { version: 1, workspaces: [entry('organization.workspace', 15, 'Organizer')] };
   render(<MemoryRouter initialEntries={['/my-organizations?kind=VENUE']}><MyOrganizationsPage /></MemoryRouter>);
-  expect(screen.getByRole('link', { name: 'Add venue' })).toHaveAttribute('href', '/organizations/create?kind=VENUE');
+  expect(screen.queryByRole('link', { name: 'Add venue' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Create a page' })).not.toBeInTheDocument();
   expect(screen.getByRole('status')).toHaveTextContent('Create a venue organization');
   expect(screen.getByRole('link', { name: 'All my organizations' })).toHaveAttribute('href', '/my-organizations');
   expect(screen.queryByRole('article')).not.toBeInTheDocument();

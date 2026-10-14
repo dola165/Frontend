@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import '../../i18n';
 
 const auth = vi.hoisted(() => ({ signedIn: true, onboardingRequired: false, mustChangePassword: false }));
@@ -30,11 +30,12 @@ const openOrganization = () => {
     render(<App />);
 };
 
-it('opens organization creation for an authenticated non-organizer persona through the actual Android route', async () => {
+it('sends the old creation address to Home with the start sheet asked for, on the actual Android route', async () => {
     openOrganization();
-    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
-    expect(await screen.findByRole('textbox', { name: 'Name' })).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/organizations/create');
+    await waitFor(() => expect(window.location.pathname).toBe('/home'));
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get('create')).toBe('any');
+    expect(params.get('from')).toBe('link');
 });
 
 it('keeps organization creation behind the existing sign-in gate', async () => {

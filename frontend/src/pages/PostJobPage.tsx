@@ -1,3 +1,5 @@
+import { CreateLink } from '../features/pages/create/CreateLink';
+import { pt } from '../features/pages/copy';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Briefcase, UserCheck } from 'lucide-react';
@@ -78,6 +80,7 @@ export const PostJobPage = () => {
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'CLUB'} onClick={() => change({ posterKind: 'CLUB' })}>As {club?.clubName}</button>
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'PERSON'} onClick={() => change({ posterKind: 'PERSON' })}>As myself</button>
             </div>}
+            {!offering && !clubAllowed && <p className="gk-muted">{pt('Posting for a club?')} <CreateLink kind="CLUB" from="jobs" variant="text">{pt('Start your club')}</CreateLink></p>}
             <div className="gk-fund-start__tiles" role="group" aria-label="Line of work">
                 {CATEGORIES.map(category => <button key={category.value} type="button" className="gk-fund-start__tile" aria-pressed={draft.category === category.value} onClick={() => change({ category: category.value })}><category.icon aria-hidden="true" /><strong>{category.label}</strong><small>{category.line}</small></button>)}
             </div>

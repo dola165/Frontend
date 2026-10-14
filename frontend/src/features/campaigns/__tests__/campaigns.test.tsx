@@ -99,7 +99,8 @@ describe('Starting a fundraiser', () => {
         start();
         fireEvent.click(await screen.findByRole('button', { name: /Travel & competitions/ }));
         expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-        fireEvent.click(screen.getByRole('button', { name: name => /(^|D)5[s,.  ]?000/.test(name) && !/25/.test(name) }));
+        // The goal chips are formatted in the app's locale; the third chip is the 5,000 one whatever the separators.
+        fireEvent.click(document.querySelectorAll<HTMLButtonElement>('.gk-fund-start__chips button')[2]);
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Girls to the Black Sea Cup' } });
         fireEvent.change(screen.getByLabelText('Your story'), { target: { value: 'Travel and two nights for 18 players.' } });

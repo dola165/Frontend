@@ -30,7 +30,7 @@ export const FundraisingPage = () => {
     const signedIn = status === 'authenticated';
     const followed = front.data?.followed ?? [];
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="fundraising">
             <PageFrame>
                 <MarketTabs current="fundraising" />
                 <div className="gk-store-head">

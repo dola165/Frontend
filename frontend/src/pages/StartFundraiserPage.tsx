@@ -98,7 +98,7 @@ export const StartFundraiserPage = () => {
             <div className="gk-fund-start__foot"><Button variant="ghost" disabled={saving} onClick={() => go(2)}><ArrowLeft aria-hidden="true" />Back</Button><Button variant="primary" disabled={saving || !stepOneDone || !stepTwoDone || (!!draft.donateUrl && !isGoFundMe(draft.donateUrl))} onClick={() => void publish()}>{saving ? 'Publishing…' : 'Publish fundraiser'}</Button></div>
         </>;
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="fundraising">
             <PageFrame>
                 <nav className="gk-store-crumbs" aria-label="Breadcrumb"><Link to="/campaigns">Fundraising</Link><span aria-hidden="true">/</span><span>Start a fundraiser</span></nav>
                 <div className="gk-fund-start">{body}</div>

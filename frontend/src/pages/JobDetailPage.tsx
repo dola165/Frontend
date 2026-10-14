@@ -14,7 +14,7 @@ export const JobDetailPage = () => {
     const valid = Number.isSafeInteger(jobId) && jobId > 0;
     const back = getOpportunityReturnTarget('jobs', location.state);
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="jobs">
             <PageFrame>
                 <nav className="gk-store-crumbs" aria-label="Breadcrumb"><Link to="/jobs">Jobs & volunteering</Link><span aria-hidden="true">/</span><span>Listing</span></nav>
                 <div className="gk-store-club__actions" style={{ paddingTop: 12, paddingBottom: 16 }}>

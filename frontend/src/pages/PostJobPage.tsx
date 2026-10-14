@@ -111,7 +111,7 @@ export const PostJobPage = () => {
             <div className="gk-fund-start__foot"><Button variant="ghost" disabled={saving} onClick={() => go(2)}><ArrowLeft aria-hidden="true" />Back</Button><Button variant="primary" disabled={saving || !stepOneDone || !stepTwoDone || !targetOk} onClick={() => void publish()}>{saving ? 'Publishing…' : offering ? 'List myself' : 'Publish'}</Button></div>
         </>;
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="jobs">
             <PageFrame>
                 <nav className="gk-store-crumbs" aria-label="Breadcrumb"><Link to="/jobs">Jobs & volunteering</Link><span aria-hidden="true">/</span><span>Post</span></nav>
                 <div className="gk-fund-start">{body}</div>

@@ -146,7 +146,6 @@
 .gk .gk-jobs-way { --way: var(--gk-accent); display: flex; align-items: center; gap: var(--gk-3); min-height: 60px; padding: var(--gk-3); border-bottom: 1px solid var(--gk-glass-line, var(--gk-line)); color: var(--gk-text); transition: background-color .35s var(--gk-store-ease); }
 .gk .gk-jobs-way:last-child { border-bottom: 0; }
 .gk .gk-jobs-way[data-tone='info'] { --way: var(--gk-info); }
-.gk .gk-jobs-way[data-tone='violet'] { --way: var(--gk-violet); }
 .gk .gk-jobs-way[data-tone='warning'] { --way: var(--gk-warning); }
 .gk .gk-jobs-way__icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--way) 14%, transparent); color: var(--way); transition: transform .35s var(--gk-store-ease); }
 .gk .gk-jobs-way__icon svg { width: 18px; height: 18px; }
@@ -172,12 +171,12 @@
 .gk .gk-jobs-land__section { position: relative; display: flex; flex-direction: column; gap: var(--gk-4); }
 .gk .gk-jobs-land .gk-band { --tone: var(--gk-accent); padding: var(--gk-8) var(--gk-8) var(--gk-7, 28px); }
 .gk .gk-jobs-land .gk-band[data-tone='info'] { --tone: var(--gk-info); }
-.gk .gk-jobs-land .gk-band[data-tone='violet'] { --tone: var(--gk-violet); padding-inline: var(--gk-5); }
+.gk .gk-jobs-land__lines { padding-inline: var(--gk-5); }
 .gk .gk-jobs-land .gk-band[data-tone='warning'] { --tone: var(--gk-warning); }
 .gk .gk-jobs-land .gk-band::before { background: repeating-linear-gradient(112deg, transparent 0 26px, color-mix(in srgb, var(--gk-text) 3.5%, transparent) 26px 27px); }
 .gk .gk-jobs-land .gk-band::after { background: radial-gradient(70% 90% at 0% 0%, color-mix(in srgb, var(--tone) 18%, transparent), transparent 70%); }
 .gk .gk-jobs-land .gk-band[data-tone='info']::after { background: radial-gradient(70% 90% at 100% 0%, color-mix(in srgb, var(--tone) 18%, transparent), transparent 70%); }
-.gk .gk-jobs-land .gk-band[data-tone='violet']::before { background: radial-gradient(color-mix(in srgb, var(--gk-text) 8%, transparent) 1px, transparent 1.2px) 0 0 / 18px 18px; }
+.gk .gk-jobs-land__lines.gk-band::before { background: radial-gradient(color-mix(in srgb, var(--gk-text) 8%, transparent) 1px, transparent 1.2px) 0 0 / 18px 18px; }
 .gk .gk-jobs-land__mark { position: absolute; right: var(--gk-6); top: var(--gk-2); z-index: 0; font-family: var(--gk-font-display); font-size: 120px; line-height: 1; font-weight: 700; letter-spacing: -.04em; color: color-mix(in srgb, var(--tone) 14%, transparent); pointer-events: none; user-select: none; }
 .gk .gk-jobs-land__num { position: relative; display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-xs); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--tone, var(--gk-accent)); }
 .gk .gk-jobs-land__num::before { content: ''; width: 18px; height: 2px; border-radius: 1px; background: currentColor; }

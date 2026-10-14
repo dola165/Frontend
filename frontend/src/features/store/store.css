@@ -265,7 +265,21 @@
 /* ── The three places with one DNA, one press apart; the circle strip under its name ── */
 .gk .gk-market-tabs { margin-top: var(--gk-4); }
 .gk .gk-market-tabs .gk-segmented__item { min-height: 34px; padding: 0 var(--gk-4); color: var(--gk-text-2); text-decoration: none; transition: background-color .35s var(--gk-store-ease), color .35s var(--gk-store-ease); }
-.gk .gk-market-tabs .gk-segmented__item[aria-current='page'] { background: var(--gk-raised); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
+.gk .gk-market-tabs .gk-segmented__item[data-market='store'] { --market: var(--gk-market-store); }
+.gk .gk-market-tabs .gk-segmented__item[data-market='jobs'] { --market: var(--gk-market-jobs); }
+.gk .gk-market-tabs .gk-segmented__item[data-market='fundraising'] { --market: var(--gk-market-fundraising); }
+.gk .gk-market-tabs .gk-segmented__item svg { color: var(--market); transition: transform .35s var(--gk-store-ease); }
+.gk .gk-market-tabs .gk-segmented__item:hover svg { transform: scale(1.12); }
+.gk .gk-market-tabs .gk-segmented__item[aria-current='page'] { background: color-mix(in srgb, var(--market) 16%, var(--gk-raised)); color: var(--gk-text); box-shadow: 0 0 0 1px color-mix(in srgb, var(--market) 40%, var(--gk-line)); }
+
+/* ── Each place in its colour: the store grass green, jobs a bold purple, fundraising a warm dark orange. The place's
+   accent tokens change on its root, so buttons, links, pins, bands and progress follow without their own rules. ── */
+.gk.gk-store { --gk-market-store: #00e676; --gk-market-jobs: #8a5cf6; --gk-market-fundraising: #e06a1c; }
+html:not(.dark) .gk.gk-store, .gk.gk-light.gk-store { --gk-market-store: #0f7a42; --gk-market-jobs: #6338d1; --gk-market-fundraising: #b64c0c; }
+.gk.gk-store[data-market='jobs'] { --gk-accent: #8a5cf6; --gk-accent-strong: #a383ff; --gk-on-accent: #ffffff; }
+html:not(.dark) .gk.gk-store[data-market='jobs'], .gk.gk-light.gk-store[data-market='jobs'] { --gk-accent: #6338d1; --gk-accent-strong: #512bb3; }
+.gk.gk-store[data-market='fundraising'] { --gk-accent: #e06a1c; --gk-accent-strong: #f5853a; --gk-on-accent: #1c0d03; }
+html:not(.dark) .gk.gk-store[data-market='fundraising'], .gk.gk-light.gk-store[data-market='fundraising'] { --gk-accent: #b64c0c; --gk-accent-strong: #9a3f08; --gk-on-accent: #ffffff; }
 .gk .gk-market-tabs + .gk-store-head { padding-top: var(--gk-4); }
 .gk .gk-store-cats-section > .gk-section__head { justify-content: center; }
 .gk .gk-store-cats-section > .gk-section__head > .gk-section__heading { justify-content: center; }

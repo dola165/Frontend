@@ -41,7 +41,7 @@ export const JobsPage = () => {
     const personExample = (data?.fresh ?? []).find(job => job.poster?.kind === 'PERSON');
     const available = (data?.offering ?? [])[0];
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="jobs">
             <PageFrame>
                 <MarketTabs current="jobs" />
                 <div className="gk-store-head">
@@ -85,7 +85,7 @@ export const JobsPage = () => {
                         </div>
                     </section>
 
-                    <section className="gk-jobs-land__section gk-band" data-tone="violet" data-reveal>
+                    <section className="gk-jobs-land__section gk-jobs-land__lines gk-band" data-tone="accent" data-reveal>
                         <span className="gk-jobs-land__mark" aria-hidden="true">03</span>
                         <p className="gk-jobs-land__num">Lines of work</p>
                         <CircleStrip title="Pick yours" hint="Each opens the jobs and the people in that line" label="Lines of work" dense>
@@ -96,7 +96,7 @@ export const JobsPage = () => {
                     <section className="gk-jobs-land__section" data-reveal>
                         <p className="gk-jobs-land__num">04 · Who posts, and what it looks like</p>
                         <div className="gk-jobs-land__examples">
-                            <div className="gk-band" data-tone="accent">
+                            <div className="gk-band" data-tone="info">
                                 <h3><span className="gk-jobs-way__icon"><Briefcase aria-hidden="true" /></span>A club, hiring</h3>
                                 <p className="gk-jobs-land__line">A role at the ground, with the pay and the hours. Applicants land in the club’s workspace.</p>
                                 <Sample jobs={clubExample ? [clubExample] : []} {...sample} />
@@ -106,7 +106,7 @@ export const JobsPage = () => {
                                 <p className="gk-jobs-land__line">A parent who needs a trainer twice a week. Answered with a message in the app, so nobody’s details are shown.</p>
                                 <Sample jobs={personExample ? [personExample] : []} {...sample} />
                             </div>
-                            <div className="gk-band" data-tone="info">
+                            <div className="gk-band" data-tone="accent">
                                 <h3><span className="gk-jobs-way__icon"><UserCheck aria-hidden="true" /></span>A person, available</h3>
                                 <p className="gk-jobs-land__line">A coach or a referee with a rate and hours, found by clubs and families who are hiring.</p>
                                 <Sample jobs={available ? [available] : []} {...sample} />

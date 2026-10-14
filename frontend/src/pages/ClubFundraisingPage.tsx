@@ -18,7 +18,7 @@ export const ClubFundraisingPage = () => {
     const embedded = !/\/campaigns$/.test(location.pathname);
     const club = useWorldData(valid ? `store-club:${clubId}` : null, signal => fetchStoreClub(clubId, signal));
     const canStart = valid && canManageClubOperations(club.data?.myRole);
-    const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded">{children}</GkRoot> : <GkRoot className="gk-store gk-page"><PageFrame>{children}</PageFrame></GkRoot>;
+    const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded" data-market="fundraising">{children}</GkRoot> : <GkRoot className="gk-store gk-page" data-market="fundraising"><PageFrame>{children}</PageFrame></GkRoot>;
     if (!valid) return frame(<EmptyNote title="This club could not be found." action={<ButtonLink to="/campaigns">Back to fundraising</ButtonLink>} />);
     const actions = <div className="gk-store-club__actions">
         {canStart && <ButtonLink variant="primary" to="/campaigns/new"><Plus aria-hidden="true" />Start a fundraiser</ButtonLink>}

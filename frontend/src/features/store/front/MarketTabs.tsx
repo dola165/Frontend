@@ -14,7 +14,7 @@ export type MarketPlace = typeof PLACES[number]['id'];
 export function MarketTabs({ current }: { current: MarketPlace }) {
     return (
         <nav className="gk-market-tabs gk-segmented" aria-label="Store, fundraising and jobs">
-            {PLACES.map(place => <Link key={place.id} viewTransition className="gk-segmented__item" to={place.to} aria-current={place.id === current ? 'page' : undefined}><place.icon aria-hidden="true" />{place.label}</Link>)}
+            {PLACES.map(place => <Link key={place.id} viewTransition className="gk-segmented__item" data-market={place.id} to={place.to} aria-current={place.id === current ? 'page' : undefined}><place.icon aria-hidden="true" />{place.label}</Link>)}
         </nav>
     );
 }

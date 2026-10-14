@@ -45,7 +45,7 @@ export const ClubStorePage = () => {
     const adding = params.get('add') === '1';
     const setAdding = (on: boolean) => setParams(current => { const next = new URLSearchParams(current); if (on) next.set('add', '1'); else next.delete('add'); return next; }, { replace: true, preventScrollReset: true });
     const canAdd = valid && canManageClubOperations(club.data?.myRole);
-    const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded">{children}</GkRoot> : <GkRoot className="gk-store gk-page"><PageFrame>{children}</PageFrame></GkRoot>;
+    const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded" data-market="store">{children}</GkRoot> : <GkRoot className="gk-store gk-page" data-market="store"><PageFrame>{children}</PageFrame></GkRoot>;
     if (!valid) return frame(<EmptyNote title="This club could not be found." action={<ButtonLink to="/store">Back to the store</ButtonLink>} />);
     if (adding && canAdd) return frame(<CommerceDraftScope clubId={clubId} feature="StoreTab"><AddProduct clubId={clubId} onDone={() => { setAdding(false); setRevision(n => n + 1); }} onCancel={() => setAdding(false)} /></CommerceDraftScope>);
     const actions = <div className="gk-store-club__actions">

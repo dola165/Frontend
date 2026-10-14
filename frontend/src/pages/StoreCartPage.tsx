@@ -54,7 +54,7 @@ export const StoreCartPage = () => {
     const sellerLabel = quote ? (own ? GRASSKICKZ : quote.clubName) : own ? GRASSKICKZ : '';
     const count = items.reduce((sum, item) => sum + item.quantity, 0);
     return (
-        <GkRoot className="gk-store gk-page">
+        <GkRoot className="gk-store gk-page" data-market="store">
             <PageFrame>
                 <nav className="gk-store-crumbs" aria-label="Breadcrumb"><Link to="/store">Store</Link><span aria-hidden="true">/</span><span>Cart</span></nav>
                 <header className="gk-store-heading">

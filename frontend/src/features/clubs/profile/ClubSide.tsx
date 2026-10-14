@@ -18,7 +18,7 @@ export function ClubSide({ club, canEdit = false }: { club: ClubProfile; canEdit
     const sponsors = club.presentation?.sponsors.filter(s => s.published && !s.promotionBlocked) ?? [];
     const affiliations = club.presentation?.affiliations.filter(a => a.status === 'ACTIVE') ?? [];
     return <>
-        <SideBlock title="Get involved" hint="Shop, work or give" action={canEdit ? <EditLink to={`/clubs/${club.id}/workspace?tab=${open === 'jobs' ? 'jobs' : open === 'fundraising' ? 'campaigns' : 'store'}`} /> : undefined}>
+        <SideBlock title="Get involved" hint="Shop, work or give" action={canEdit ? <EditLink to={`/clubs/${club.id}?edit=1&panel=involved`} /> : undefined}>
             <List label="Ways to get involved">{opportunities.map(item => <ListRow key={item.key} to={item.to} current={open === (item.key === 'campaigns' ? 'fundraising' : item.key)}
                 lead={<span className="gk-club-icon" data-kind={item.key}><item.icon aria-hidden="true" /></span>} title={item.title}
                 meta={item.source.loading ? 'Loading…' : item.source.failed ? 'Currently unavailable' : item.count ? `${item.count} ${item.count === 1 ? item.unit.replace(/s$/, '') : item.unit}` : item.empty} />)}</List>
@@ -27,7 +27,7 @@ export function ClubSide({ club, canEdit = false }: { club: ClubProfile; canEdit
         {affiliations.some(a => a.canManageProfile) && <SideBlock title="Academy profile">
             {affiliations.filter(a => a.canManageProfile).map(a => <ButtonLink key={a.id} size="sm" to={`/clubs/${a.clubId}/profile-settings`}>Manage {a.name} profile</ButtonLink>)}
         </SideBlock>}
-        {sponsors.length > 0 && <SideBlock title="Sponsors" hint="Backing the club" action={canEdit ? <EditLink to={`/clubs/${club.id}/profile-settings`} /> : undefined}>
+        {sponsors.length > 0 && <SideBlock title="Sponsors" hint="Backing the club" action={canEdit ? <EditLink to={`/clubs/${club.id}?edit=1&panel=sponsors`} /> : undefined}>
             <List label="Sponsors">{sponsors.map(s => {
                 const website = safePublicUrl(s.websiteUrl);
                 const logo = s.logoUrl?.startsWith('/uploads/') ? resolveMediaUrl(s.logoUrl) : safePublicUrl(s.logoUrl);

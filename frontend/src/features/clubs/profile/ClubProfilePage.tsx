@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { MapPin, ShieldCheck } from 'lucide-react';
+import { Camera, MapPin, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
@@ -29,6 +29,15 @@ import { ClubTeamsTab } from './ClubTeamsTab';
 import { clubTabFrom, clubTabs, isWide, tabFilters, type ClubTab } from './clubTabs';
 import { useClubEnquiry } from './useClubEnquiry';
 import { useClubProfile } from './useClubProfile';
+import { clubBoxes } from '../../pages/club/clubBoxes';
+import { usePagesCopy } from '../../pages/copy';
+import { EditBar } from '../../pages/edit/EditBar';
+import { InlineText } from '../../pages/edit/InlineText';
+import { PageColumn } from '../../pages/edit/PageColumn';
+import { PageEditProvider } from '../../pages/edit/PageEditProvider';
+import { PagePanels } from '../../pages/edit/PagePanels';
+import { RearrangeFrame } from '../../pages/edit/Rearrange';
+import { usePageEdit } from '../../pages/edit/context';
 import './club-profile.css';
 
 const managementTabs: ClubManagementTab[] = ['personnel', 'players', 'invites', 'applications', 'roles', 'squads', 'tryouts'];
@@ -40,7 +49,8 @@ export function ClubProfilePage() {
     const { sessionId, status } = useAuth();
     const clubId = Number(id);
     if (!Number.isSafeInteger(clubId) || clubId <= 0) return <ClubUnavailable />;
-    return <ClubProfileView key={`${clubId}:${sessionId}:${status}`} id={clubId} />;
+    // The page provider wraps the club page: the owner edits the page on the page itself; visitors see the page as it is.
+    return <PageEditProvider key={`${clubId}:${sessionId}:${status}`} pageRef={{ type: 'club', id: clubId }}><ClubProfileView id={clubId} /></PageEditProvider>;
 }
 
 function ClubProfileView({ id }: { id: number }) {
@@ -49,6 +59,10 @@ function ClubProfileView({ id }: { id: number }) {
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
     const { club, loading, failed, permissions: can, refresh, toggleFollow, leftClub, updateImage, forgetMembership } = useClubProfile(id);
+    // The page under edit (identity, boxes, layout): absent on a backend without pages, and then nothing here changes.
+    const edit = usePageEdit();
+    const pt = usePagesCopy();
+    const page = edit.page, editing = edit.editing;
     const [enquiry, setEnquiry] = useClubEnquiry(club);
     const [notice, setNotice] = useState('');
     const [squadsRevision, setSquadsRevision] = useState(0);
@@ -92,7 +106,7 @@ function ClubProfileView({ id }: { id: number }) {
         finally { setDissolving(false); }
     };
 
-    if (loading && !club) return <ClubLoading />;
+    if ((loading && !club) || (edit.loading && !page && !edit.notFound)) return <ClubLoading />;
     if (!club) return <ClubUnavailable failed={failed} onRetry={refresh} />;
 
     const kind = club.presentation ? profileKindLabel[club.presentation.profileKind] : club.type || 'Football club';
@@ -100,24 +114,28 @@ function ClubProfileView({ id }: { id: number }) {
     const linked = club.presentation?.affiliations.find(a => a.status === 'ACTIVE');
     const place = club.addressText || [club.cityName, club.countryName].filter(Boolean).join(', ');
     return <>
-        <ProfileLayout className="gk-club-page"
+        <RearrangeFrame><ProfileLayout className="gk-club-page"
             identity={{
-                name: club.name, image: club.logoUrl, square: true,
-                badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Verified club</Badge> : undefined,
+                name: page?.identity.name ?? club.name, image: page?.identity.crest.url ?? club.logoUrl, square: true,
+                nameNode: editing ? <InlineText as="span" value={page?.identity.name ?? club.name} placeholder={pt('Name your page')} label={pt('Name')} maxLength={120} onSave={next => { if (next.length >= 2) void edit.saveIdentity({ name: next }, { label: pt('Name saved') }).then(refresh); }} /> : undefined,
+                summaryNode: editing ? <InlineText as="p" multiline value={page?.identity.about ?? club.description ?? ''} placeholder={pt('Say what you are, in a line or two')} label={pt('About')} maxLength={600} className="gk-profile__summary" onSave={next => void edit.saveIdentity({ about: next, aboutAuto: false }, { label: pt('About saved') }).then(refresh)} /> : undefined,
+                badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Verified club</Badge> : page?.status === 'DRAFT' ? <Badge tone="warning">{pt('Draft')}</Badge> : undefined,
                 line: <>{kind}{linked && <> · {club.presentation?.profileKind === 'ACADEMY' ? 'Academy of ' : 'Academy: '}<Link className="gk-profile__link" to={`/clubs/${linked.clubId}`}>{linked.name}</Link></>}{can.role && <> · Your role: {clubRoleLabel(can.role)}</>}</>,
                 facts: [
                     place ? <><MapPin aria-hidden="true" />{place}</> : null,
                     <><strong>{club.followerCount.toLocaleString()}</strong>{club.followerCount === 1 ? 'follower' : 'followers'}</>,
                     <><strong>{club.memberCount.toLocaleString()}</strong>{club.memberCount === 1 ? 'member' : 'members'}</>,
                 ],
-                summary: club.description || undefined,
+                summary: page?.identity.about || club.description || undefined,
             }}
-            banner={club.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
+            banner={page ? page.identity.cover?.url ?? null : club.bannerUrl}
+            bannerAction={editing ? <Button size="sm" onClick={() => edit.openPanel('cover')}><Camera aria-hidden="true" />{page?.identity.cover ? pt('Change cover') : pt('Add cover')}</Button> : images.coverAction}
+            imageAction={editing ? <Button size="sm" iconOnly aria-label={pt('Change crest')} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
             actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
-            notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}</>}
+            notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
-            sideLeft={tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage} />} sideLeftLabel="Club information"
-            side={<ClubSide club={club} canEdit={can.canManage} />} sideLabel="Get involved">
+            sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel="Club information"
+            side={editing ? <PageColumn column="right" renderers={clubBoxes} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel="Get involved">
             {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
@@ -126,7 +144,8 @@ function ClubProfileView({ id }: { id: number }) {
             {tab === 'facilities' && <ClubFacilitiesTab club={club} canEdit={can.canEditFacilities} />}
             {tab === 'involved' && <ClubInvolvedTab club={club} canEdit={can.canManage} />}
             {tab === 'contact' && <ClubContactTab club={club} />}
-        </ProfileLayout>
+        </ProfileLayout></RearrangeFrame>
+        <PagePanels />
 
         {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))}
             debugMode={params.get('debug') === 'true'} onClose={() => setManaging(false)}

@@ -16,7 +16,7 @@ describe('page types and their boxes', () => {
     expect(BOX_DEFAULTS.FAN_CLUB.squads).toBeUndefined();
     expect(defaultLayout('BUSINESS').columns.right).toEqual(['staff', 'sponsors']);
     expect(defaultLayout('PAGE').columns).toEqual({ left: ['contact'], main: ['posts'], right: [] });
-    expect(addableBoxes('PAGE', defaultLayout('PAGE'))).toEqual(['involved', 'events']);
+    expect(addableBoxes('PAGE', defaultLayout('PAGE'))).toEqual(['involved']);
   });
 
   it('designs venues in with bookings, though they have no tile yet', () => {

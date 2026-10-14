@@ -10,7 +10,9 @@ import { usePagesCopy } from '../copy';
 import { EditPencil } from '../edit/EditPencil';
 import { usePageEdit } from '../edit/context';
 import type { BoxProps } from '../edit/boxRegistry';
-import { INVOLVED_PARTS, type InvolvedPart } from '../model/kinds';
+import { INVOLVED_PARTS, isLocked, type InvolvedPart, type LockedAction } from '../model/kinds';
+import { UnlockSheet } from '../verify/UnlockSheet';
+import { useUnlock } from '../verify/useUnlock';
 import '../edit/edit.css';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -103,11 +105,20 @@ export function InvolvedBox({ page, editing, open, onEdit, onClose }: BoxProps) 
   const link: Record<InvolvedPart, string> = { store: club ? `/clubs/${club}/store` : '/store', jobs: club ? `/clubs/${club}/jobs` : '/jobs/new', fundraising: club ? `/clubs/${club}/campaigns` : '/campaigns/new' };
   const words: Record<InvolvedPart, [string, string]> = { store: ['Club store', 'Kit and merchandise'], jobs: ['Club jobs', 'Jobs and volunteering'], fundraising: ['Club fundraising', 'Support a project'] };
   const [draft, setDraft] = useState<InvolvedPart[]>(parts);
+  // Taking money is locked until the page is verified: switching the store or fundraising on asks for it, once, right here.
+  const unlock = useUnlock(page);
+  const locks: Partial<Record<InvolvedPart, LockedAction>> = { store: 'SELL', fundraising: 'FUNDRAISE' };
+  const toggle = (part: InvolvedPart) => {
+    const lock = locks[part];
+    if (!draft.includes(part) && lock && !unlock.attempt(lock)) return;
+    setDraft(current => (current.includes(part) ? current.filter(item => item !== part) : [...current, part]));
+  };
   return (
     <SideBlock title={t('Get involved')} hint={t('Shop, work or give')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
+      {unlock.asking && <UnlockSheet action={unlock.asking} onClose={unlock.dismiss} />}
       {open ? <div className="gk-boxedit">
         <div className="gk-ctowns" role="group" aria-label={t('Get involved')}>
-          {INVOLVED_PARTS.map(part => <button key={part} type="button" className="gk-chip" aria-pressed={draft.includes(part)} onClick={() => setDraft(current => (current.includes(part) ? current.filter(item => item !== part) : [...current, part]))}>{t(words[part][0])}</button>)}
+          {INVOLVED_PARTS.map(part => <button key={part} type="button" className="gk-chip" aria-pressed={draft.includes(part)} onClick={() => toggle(part)}>{t(words[part][0])}{locks[part] && isLocked(locks[part], page.verification) ? <span className="gk-faint"> · {t(page.verification === 'REQUESTED' ? 'verifying' : 'verify first')}</span> : null}</button>)}
         </div>
         <div className="gk-boxedit__foot"><Button size="sm" variant="primary" onClick={() => void saveBox('involved', { parts: draft }, { label: t('Saved') }).then(onClose)}>{t('Done')}</Button><Button size="sm" variant="ghost" onClick={onClose}>{t('Cancel')}</Button></div>
       </div>

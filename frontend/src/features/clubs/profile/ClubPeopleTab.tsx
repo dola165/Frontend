@@ -42,7 +42,7 @@ export function ClubPeopleTab({ clubId, canManageStaff }: { clubId: number; canM
             <input className="gk-input" aria-label="Find a coach or responsibility" placeholder="Name, responsibility or squad" value={params.get('q') ?? ''} onChange={e => filter('q', e.target.value)} />
             <select className="gk-input gk-club-select" aria-label="Squad" value={squad} onChange={e => filter('squad', e.target.value)}><option value="">All squads</option>{squad && !squads.some(([id]) => String(id) === squad) && <option value={squad}>Selected squad</option>}{squads.map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select>
             {(query || squad || area) && <button type="button" className="gk-section__action" onClick={clear}>Clear</button>}
-            {canManageStaff && <a className="gk-section__action" href={`/clubs/${clubId}/workspace?tab=staff-duties`}>Manage staff</a>}
+            {canManageStaff && <a className="gk-section__action" href={`/clubs/${clubId}?edit=1&panel=staff`}>Manage staff</a>}
         </div>}
         {people.loading ? <Panel flush><div className="gk-panel--pad"><Skeleton height={48} /></div></Panel>
             : people.failed ? <Panel flush><EmptyNote title="The staff directory couldn’t load" action={<Button size="sm" onClick={people.retry}>Try again</Button>} /></Panel>

@@ -80,13 +80,21 @@ export function clubPage(clubId) {
       contact: { phone: contact.whatsappNumber ?? '', email: contact.email ?? '' }, social: { website: contact.websiteUrl ?? '', instagram: contact.instagramUrl ?? '', facebook: '' },
       businessKind: null, clubCategory: CATEGORY_OF_TYPE[club.type] ?? null },
     layout: { version: 1, ...defaultLayout('CLUB', extras) },
-    boxes: { grounds: { version: 1, items: [], fromPage: false }, squads: { version: 1 }, fees: { version: 1, band: null }, staff: { version: 1, invites: [] },
+    boxes: { grounds: { version: 1, items: [], fromPage: false }, squads: { version: 1 }, fees: { version: 1, band: bandFromProgrammes(presentation?.programmes ?? []) }, staff: { version: 1, invites: [] },
       players: { version: 1, shared: W.squads.some(s => s.clubId === id && s.playerIds.length), links: {} }, sponsors: { version: 1 }, honours: { version: 1 },
       involved: { version: 1, parts: [...INVOLVED_PARTS] } },
     arrivals: [], setupCompletedAt: now(), createdAt: now(), liveAt: now(),
   };
   pages.set(pageKey(page.ref), page);
   return page;
+}
+/** The lowest and highest published monthly fee as a band, and whether some groups train free. */
+function bandFromProgrammes(programmes) {
+  const current = programmes.filter(p => p.published);
+  const priced = current.filter(p => p.priceType === 'FIXED' && p.amount != null).map(p => Number(p.amount));
+  const free = current.some(p => p.priceType === 'FREE');
+  if (!priced.length) return free ? { min: 0, max: 0, currency: 'GEL', period: 'MONTH', free: 'ALL' } : null;
+  return { min: Math.min(...priced), max: Math.max(...priced), currency: current.find(p => p.currency)?.currency ?? 'GEL', period: 'MONTH', free: free ? 'SOME' : 'NONE' };
 }
 export const organizationPage = id => pages.get(`organization:${Number(id)}`) ?? null;
 export const pageOf = ref => ref.type === 'club' ? clubPage(ref.id) : organizationPage(ref.id);
@@ -207,6 +215,10 @@ export function factsOf(page) {
 }
 
 export function staffOf(page) {
+  // A club from before pages lists the staff the world already knows; a page club lists who created or joined it.
+  if (!page.managed && page.clubId) {
+    return W.staff.filter(s => s.clubId === page.clubId).map(s => { const p = W.personById(s.personId); return { userId: s.personId, fullName: p?.fullName ?? `Member #${s.personId}`, avatarUrl: p?.avatarUrl ?? null, role: s.kind === 'ADMIN' ? 'CLUB_ADMIN' : 'COACH', title: s.title, bio: null, responsibilities: [] }; });
+  }
   const list = [...page.staff.entries()].map(([userId, role]) => ({ userId, fullName: viewerName(userId), avatarUrl: userId === W.ME_ID ? W.me.avatarUrl : null, role: role === 'OWNER' ? 'OWNER' : role === 'ADMIN' ? 'CLUB_ADMIN' : 'COACH',
     title: role === 'OWNER' ? 'Runs the club' : role === 'ADMIN' ? 'Club administrator' : 'Coach', bio: null,
     responsibilities: squadsOf(page).filter(s => s.headCoachId === userId).map(s => ({ title: 'Head coach', squadId: s.id, squadName: s.name, clubWide: false, provenance: 'RECORDED_APPOINTMENT' })) }));

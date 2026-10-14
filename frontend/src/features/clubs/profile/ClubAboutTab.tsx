@@ -35,7 +35,7 @@ export function ClubAboutTab({ club, can }: { club: ClubProfile; can: ClubPermis
 
     return <>
         {lead === 'family' && <ClubFamilyWeek clubId={club.id} />}
-        <Section boxed title="About" action={club.presentation?.canEdit ? { label: 'Edit', to: `/clubs/${club.id}/profile-settings` } : undefined}>
+        <Section boxed title="About" action={club.presentation?.canEdit ? { label: 'Edit', to: `/clubs/${club.id}?edit=1&panel=identity` } : undefined}>
             <Panel padded>
                 {club.description ? <p className="gk-club-story">{club.description}</p> : <p className="gk-muted">The club has not written its story yet.</p>}
                 <dl className="gk-club-facts">

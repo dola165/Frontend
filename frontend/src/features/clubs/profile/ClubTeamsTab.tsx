@@ -42,7 +42,7 @@ export function ClubTeamsTab({ club, refreshKey = 0, onContact, isAuthenticated,
             <select className="gk-input gk-club-select" aria-label="Player’s age" value={age} onChange={e => filter('age', e.target.value)}><option value="">Any age</option>{Array.from({ length: 22 }, (_, i) => i + 3).map(n => <option key={n} value={n}>{n}</option>)}</select>
             {(age || query) && <button type="button" className="gk-section__action" onClick={clear}>Clear</button>}
         </div>
-        <Section boxed title="Squads" hint={squads.data ? `${matchedSquads.length} of ${squads.data.length}` : undefined} action={club.presentation?.canEdit ? { label: 'Edit programmes', to: `/clubs/${club.id}/profile-settings` } : undefined}>
+        <Section boxed title="Squads" hint={squads.data ? `${matchedSquads.length} of ${squads.data.length}` : undefined} action={club.presentation?.canEdit ? { label: 'Edit programmes', to: `/clubs/${club.id}?edit=1&panel=squads` } : undefined}>
             <Panel flush>{squads.loading ? <div className="gk-panel--pad"><Skeleton height={48} /></div>
                 : squads.failed ? <EmptyNote title="The squads couldn’t load" action={<Button size="sm" onClick={squads.retry}>Try again</Button>} />
                 : matchedSquads.length ? <List label="Squads">{matchedSquads.map(s => <ListRow key={s.id} to={link({ squad: s.id })}

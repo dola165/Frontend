@@ -49,9 +49,9 @@ export type InvolvedPart = typeof INVOLVED_PARTS[number];
 type Availability = 'on' | 'add';
 export const BOX_DEFAULTS: Record<PageKind, Partial<Record<BoxKey, Availability>>> = {
   CLUB: { contact: 'on', fees: 'on', grounds: 'on', squads: 'on', posts: 'on', involved: 'add', staff: 'on', events: 'on', sponsors: 'add', honours: 'add' },
-  FAN_CLUB: { contact: 'on', fees: 'on', grounds: 'on', posts: 'on', involved: 'add', staff: 'on', events: 'on' },
-  BUSINESS: { contact: 'on', posts: 'on', involved: 'add', staff: 'on', events: 'add', sponsors: 'on' },
-  PAGE: { contact: 'on', posts: 'on', involved: 'add', events: 'add' },
+  FAN_CLUB: { contact: 'on', fees: 'on', grounds: 'on', posts: 'on', involved: 'add', staff: 'on' },
+  BUSINESS: { contact: 'on', posts: 'on', involved: 'add', staff: 'on', sponsors: 'on' },
+  PAGE: { contact: 'on', posts: 'on', involved: 'add' },
   VENUE: { contact: 'on', fees: 'on', grounds: 'on', posts: 'on', staff: 'on', events: 'on', bookings: 'on' },
 };
 

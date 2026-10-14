@@ -1,6 +1,7 @@
-import { Building2, Coins, MapPin, Medal, Phone, ShoppingBag, UserPlus, Users } from 'lucide-react';
+import { Building2, CalendarDays, Coins, MapPin, Medal, Phone, ShoppingBag, UserPlus, Users } from 'lucide-react';
 import type { BoxRenderers } from '../edit/boxRegistry';
 import { ContactBox } from './ContactBox';
+import { EventsBox } from './EventsBox';
 import { FeesBox } from './FeesBox';
 import { GroundsBox, HonoursBox, InvolvedBox, SponsorsBox, SquadsBox, StaffBox } from './ListBoxes';
 
@@ -16,5 +17,6 @@ export const defaultBoxes: BoxRenderers = {
   staff: { View: StaffBox, icon: UserPlus, words: 'Who is in the team?', hint: 'Invite by phone or link', panel: 'staff', filled: page => page.boxes.staff.members.length > 1 || page.boxes.staff.invites.length > 0 },
   sponsors: { View: SponsorsBox, icon: Building2, words: 'Who backs you?', hint: 'Sponsors and partners', filled: page => page.boxes.sponsors.items.length > 0 },
   honours: { View: HonoursBox, icon: Medal, words: 'Add an honour', hint: 'Cups, leagues, awards', filled: page => page.boxes.honours.items.length > 0 },
+  events: { View: EventsBox, icon: CalendarDays, words: 'What’s coming up', hint: 'From the club calendar', filled: page => page.clubId !== null },
   involved: { View: InvolvedBox, icon: ShoppingBag, words: 'Sell, hire or raise', hint: 'Store, jobs, fundraising', filled: page => page.boxes.involved.parts.length > 0 },
 };

@@ -70,7 +70,8 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         // Role tabs come from relationships: coaching a squad gives My squads (first: the coach's own work comes before
         // the club), a linked child gives Parent Hub. Later hubs (referee, organiser) are one more line here.
         ...(accessibleClubs(capabilities).some(c => c.canOpenWorkspace) ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
-        ...(club.path ? [{ id: 'my-club' as const, to: club.path, label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
+        // Without a club the tab stays: it offers Find your club · Start your club instead of disappearing.
+        ...(club.path || capabilities !== undefined ? [{ id: 'my-club' as const, to: club.path ?? '/my-club', label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
         ...(hasNavigationCapability(capabilities, 'parent.hub') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
     ];
     const light = themeForRoute(themePreference) === 'light';

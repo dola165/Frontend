@@ -13,7 +13,7 @@ export interface DolaAnswer {
     followUps?: string[];
 }
 export interface DolaAction {
-    id: string; kind: 'COACH_UPDATE' | 'ACKNOWLEDGE_UPDATE' | 'CANCEL_SESSION' | 'SESSION_RESPONSE' | 'OPEN_CHALLENGE' | 'REFEREE_DECISION' | 'REFEREE_AVAILABILITY' | 'MATCH_PROPOSAL' | 'MATCH_PROPOSAL_DECISION' | 'VENUE_BOOKING' | 'VENUE_DECISION';
+    id: string; kind: 'COACH_UPDATE' | 'ACKNOWLEDGE_UPDATE' | 'CANCEL_SESSION' | 'SESSION_RESPONSE' | 'OPEN_CHALLENGE' | 'REFEREE_DECISION' | 'REFEREE_AVAILABILITY' | 'MATCH_PROPOSAL' | 'MATCH_PROPOSAL_DECISION' | 'VENUE_BOOKING' | 'VENUE_DECISION' | 'PAGE_CREATE';
     state: 'PENDING' | 'COMPLETED' | 'DISCARDED' | 'SUPERSEDED' | 'EXPIRED';
     title: string; body: string; details: { label: string; value: string }[];
     confirmLabel: string; expiresAt: string; receipt: string;
@@ -87,5 +87,8 @@ export const safeDolaDestination = (destination: DolaAnswer['destinations'][numb
     if (squad) return destination.path === `/squads/${squad[1]}?tab=sessions`;
     const updates = /^squad_updates:([1-9][0-9]{0,14})$/.exec(destination.id);
     if (updates) return destination.path === `/squads/${updates[1]}`;
+    // A page Dola created for the person opens in edit mode, as it does from the start sheet.
+    const page = /^page:(club|organization):([1-9][0-9]{0,14})$/.exec(destination.id);
+    if (page) return destination.path === `/${page[1]}s/${page[2]}?edit=1`;
     return Object.hasOwn(destinations, destination.id) && destinations[destination.id] === destination.path;
 };

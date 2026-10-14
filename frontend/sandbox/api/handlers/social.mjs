@@ -9,7 +9,8 @@ import * as P from '../world-profile.mjs';
 import * as F from '../world-football.mjs';
 import * as V from '../viewer.mjs';
 import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
-import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs } from '../pages-data.mjs';
+import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs, createPage, viewerAge as pageAge } from '../pages-data.mjs';
+import { minimumAge, ORGANIZATION_TYPE } from '../../../src/features/pages/model/kinds.ts';
 
 const ME = W.ME_ID;
 /** Posts, reactions and follows belong to whoever asks: Luka, or an account registered in the sandbox. */
@@ -744,13 +745,43 @@ get('/assistant/dola/conversations/latest', () => {
 });
 del('/assistant/dola/conversations/:id', ({ params }) => { dolaConversations.delete(params.id); return noContent(); });
 const when = d => `${S.dayMonth(d)} at ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-function dolaAnswer(message, request) {
+/** "Create my club called Rustavi Lions": the name after called/named, in quotes, or after "club"/"page". */
+function pageNameIn(message) {
+  const quoted = /["“”„«]([^"“”„»]{2,80})["“”„»]/.exec(message);
+  if (quoted) return quoted[1].trim();
+  const named = /(?:called|named|name is|სახელად|სახელით)\s+(.{2,80}?)(?:[.!?,]|$)/i.exec(message);
+  if (named) return named[1].trim();
+  const after = /\b(?:club|page|academy)\s+(?!for\b|called\b|named\b|page\b|in\b)([A-Zა-ჿ][^.!?,]{1,79}?)(?:[.!?,]|$)/.exec(message);
+  return after ? after[1].trim() : null;
+}
+function dolaAnswer(message, request, viewer = ME) {
   const text = message.toLowerCase();
   const u16 = W.squadById(105), u14 = W.squadById(103);
   const training = S.nextTraining(105), u14Training = S.nextTraining(103), match = S.nextMatch(105), u14Match = S.nextMatch(103);
   const unanswered = training ? u16.playerIds.filter(id => responseOf(training, id) === 'UNANSWERED').length : 0;
   let answer, destinations, actions = [], followUps;
-  if (/update|announce|message|famil|parent|ოჯახ/.test(text)) {
+  if (/\b(create|start|make|set up|open)\b.*\b(club|page|academy|fan club)\b|\b(club|page)\b.*\b(create|start|make)\b|კლუბ.*(შექმ|დაიწყ)/.test(text)) {
+    // Dola creates a page through the same action as the start sheet, within the person's permissions, previewing first.
+    const kind = /fan club|fans|ფან/.test(text) ? 'FAN_CLUB' : /business|sponsor|company|shop|ბიზნეს|სპონსორ/.test(text) ? 'BUSINESS' : /\bpage\b/.test(text) && !/club/.test(text) ? 'PAGE' : 'CLUB';
+    const name = pageNameIn(message), town = V.preferencesOf(viewer)?.town?.name ?? 'Tbilisi';
+    const age = pageAge(viewer), minimum = minimumAge(kind);
+    if (age != null && age < minimum) {
+      answer = `A ${kind === 'CLUB' ? 'club' : 'business page'} needs an account aged ${minimum} or over. Ask an adult at the club to create it and invite you; you can start a fan club or another page yourself.`;
+      destinations = [{ id: 'home', title: 'Home', path: '/home' }];
+    } else if (!name) {
+      answer = `I can create it as a draft only you see, and you fill the page in on the page itself. What is it called? Say, for example: “Create my club called Rustavi Lions”.`;
+      destinations = [{ id: 'home', title: 'Home', path: '/home' }];
+      followUps = ['Create my club called Rustavi Lions', 'Create a fan club called Dinamo Rustavi fans'];
+    } else {
+      const word = { CLUB: 'club', FAN_CLUB: 'fan club', BUSINESS: 'business page', PAGE: 'page' }[kind];
+      answer = `I will create the ${word} “${name}” in ${town} as a draft only you see. Nothing is published until you go live. Confirm, and I open it in edit mode: crest, ground, age groups and contact are filled in on the page itself.`;
+      destinations = [{ id: 'home', title: 'Home', path: '/home' }];
+      actions = [{ id: `act-${Date.now()}`, kind: 'PAGE_CREATE', state: 'PENDING', title: `Create “${name}”`, body: `A ${word} in ${town}, as a draft only you see.`,
+        details: [{ label: 'Name', value: name }, { label: 'Kind', value: word.replace(/^./, c => c.toUpperCase()) }, { label: 'Town', value: `${town} — Suggested` }, { label: 'Who sees it', value: 'Only you, until you go live' }],
+        confirmLabel: 'Create the page', expiresAt: iso(new Date(Date.now() + 30 * 60000)), receipt: '', destination: { id: 'home', title: 'Home', path: '/home' }, page: { kind, name, town }, viewer }];
+      followUps = ['Call it something else', 'Make it a fan club instead'];
+    }
+  } else if (/update|announce|message|famil|parent|ოჯახ/.test(text)) {
     const draft = `Matchday reminder: kick-off against ${match.opponentName} is on ${when(match.start)}. Please arrive 75 minutes early with the white home kit, shin pads and water. Reply in Sessions if your child cannot make it.`;
     answer = `Here is a draft coach update for U16 Boys. Review it before posting — it will notify ${S.familiesOf(105).length} families and players.\n\n“${draft}”`;
     destinations = [{ id: 'squad_updates:105', title: 'U16 Boys updates', path: '/squads/105' }];
@@ -776,10 +807,10 @@ function dolaAnswer(message, request) {
   dolaConversations.set(conversationId, conv);
   return result;
 }
-post('/assistant/dola/messages', ({ body }) => (body?.message ? dolaAnswer(String(body.message), body) : badRequest('Ask Dola something first.')));
-post('/assistant/dola/messages/stream', ({ body }) => {
+post('/assistant/dola/messages', ({ body, headers }) => (body?.message ? dolaAnswer(String(body.message), body, viewerOf(headers)) : badRequest('Ask Dola something first.')));
+post('/assistant/dola/messages/stream', ({ body, headers }) => {
   if (!body?.message) return badRequest('Ask Dola something first.');
-  const answer = dolaAnswer(String(body.message), body);
+  const answer = dolaAnswer(String(body.message), body, viewerOf(headers));
   const words = answer.answer.split(/(?<= )/);
   const chunks = [];
   for (let i = 0; i < words.length; i += 6) chunks.push(words.slice(i, i + 6).join(''));
@@ -791,6 +822,13 @@ post('/assistant/dola/conversations/:id/actions/:actionId/:decision', ({ params 
   const action = conv?.turns.flatMap(t => t.result.actions ?? []).find(a => a.id === params.actionId);
   if (!action) return notFound('This action is no longer available.');
   if (action.state !== 'PENDING') return reply(409, { status: 409, message: 'This action was already handled.' });
+  if (params.decision === 'confirm' && action.kind === 'PAGE_CREATE') {
+    const outcome = createPage(action.viewer, { requestId: action.id, displayName: action.page.name, pageKind: action.page.kind, organizationType: ORGANIZATION_TYPE[action.page.kind], location: { city: action.page.town } });
+    if (outcome.status !== 200) return reply(outcome.status, outcome.body);
+    const { clubId, id, profilePath } = outcome.body;
+    action.receipt = `Created “${action.page.name}” as a draft only you see. Open it to fill in the crest, ground, age groups and contact.`;
+    action.destination = { id: `page:${clubId ? 'club' : 'organization'}:${clubId ?? id}`, title: action.page.name, path: `${profilePath}?edit=1` };
+  }
   if (params.decision === 'confirm' && action.kind === 'COACH_UPDATE') {
     S.squadMessages.push({ id: S.newSquadMessageId(), squadId: 105, authorId: ME, threadUserId: null, kind: 'ANNOUNCEMENT', title: 'Matchday reminder', body: action.body, important: true, createdAt: new Date(), reactions: new Map(), comments: [], acknowledged: new Map() });
     action.receipt = 'Posted to U16 Boys coach updates.';

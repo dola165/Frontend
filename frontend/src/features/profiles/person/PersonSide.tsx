@@ -1,3 +1,7 @@
+import { useAuth } from '../../../context/AuthContext';
+import { CreateLink } from '../../pages/create/CreateLink';
+import { hasOwnPage } from '../../pages/create/entry';
+import { pt } from '../../pages/copy';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BellRing, Flag, Settings, ShieldCheck } from 'lucide-react';
@@ -14,6 +18,7 @@ interface FollowedClub { id: number; name: string; logoUrl?: string | null; city
 /** Side facts for a person: about, playing details for players, and for yourself your clubs and account links. */
 export function PersonSide({ view }: { view: PersonView }) {
     const { profile, own, roles, hidden, possibleMinor } = view;
+    const { user } = useAuth();
     if (!profile) return null;
     const player = roles.includes('PLAYER') && !hidden;
     const history = profile.careerHistory ?? [];
@@ -42,6 +47,7 @@ export function PersonSide({ view }: { view: PersonView }) {
             </>}
         </SideBlock>}
         {own && <FollowedClubs />}
+        {own && user?.navigationCapabilities !== undefined && !hasOwnPage(user.navigationCapabilities) && <SideBlock title={pt('Your club')}><CreateLink kind="CLUB" from="profile" size="sm">{pt('Add your club')}</CreateLink></SideBlock>}
         {(roles.includes('AGENT') || (roles.includes('PLAYER') && !possibleMinor)) && <RepresentationPanel profileId={profile.id} own={own} roles={roles} />}
         {own && (roles.includes('PLAYER') || roles.includes('PARENT')) && <ClubApproachesPanel mode="participant" />}
         {own && <SideBlock title="Your account">

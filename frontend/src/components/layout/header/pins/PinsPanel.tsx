@@ -1,3 +1,4 @@
+import { CreateLink } from '../../../../features/pages/create/CreateLink';
 import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ChevronDown, X } from 'lucide-react';
 import { Button } from '../../../../design/primitives';
@@ -106,6 +107,15 @@ export function PinsPanel({ state, page, work, titleId, onNavigate }: PinsPanelP
                     {rows(ownWork, 'ghost')}
                 </section>
             )}
+
+            <section className="gk-pop__section" aria-label={copy('Create a page', 'გვერდის შექმნა')}>
+                <div className="gk-prow">
+                    <CreateLink from="pins" variant="text" className="gk-prow__link" onClick={onNavigate}>
+                        <span className="gk-prow__icon"><PinGlyph icon="building" /></span>
+                        <span className="gk-prow__text"><span className="gk-prow__title">{copy('Create a page', 'გვერდის შექმნა')}</span><span className="gk-prow__meta">{copy('A club, a fan club, a business', 'კლუბი, ფან-კლუბი, ბიზნესი')}</span></span>
+                    </CreateLink>
+                </div>
+            </section>
 
             <section className="gk-pop__section">
                 <details>

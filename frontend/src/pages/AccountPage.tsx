@@ -537,7 +537,7 @@ export const AccountPage = () => {
                                     </button>
                                 )}
                                 <Link to="/account/roles" className={btnSecondaryClass}><BadgeCheck className="h-4 w-4 shrink-0" aria-hidden="true" />Football roles</Link>
-                                <Link to="/organizations/create" className={btnSecondaryClass}><Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />My organizations</Link>
+                                <Link to="/my-organizations" className={btnSecondaryClass}><Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />My organizations</Link>
                                 {account.role === 'SYSTEM_ADMIN' && (
                                     <Link to="/admin" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-[color:var(--color-ink)]/[0.04]">
                                         Admin Panel

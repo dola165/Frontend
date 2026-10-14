@@ -12,7 +12,7 @@ import { arrangeDrafts, parseArrangeSeed, type ArrangeDraft } from './arrangeSee
 import { useCreateActions, type CreateAction, type CreateId } from './createActions';
 import './create.css';
 
-const GROUPS: CreateAction['group'][] = ['Matches', 'Club', 'Tournaments', 'Places'];
+const GROUPS: CreateAction['group'][] = ['Page', 'Matches', 'Club', 'Tournaments'];
 
 /** "12 min ago", "3 h ago", "yesterday", "3 d ago": how long a draft has waited, by the calendar after a day. */
 function waited(savedAt: number, t: ReturnType<typeof useWorldCopy>) {

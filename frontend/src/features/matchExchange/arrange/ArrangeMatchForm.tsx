@@ -1,3 +1,4 @@
+import { CreateLink } from '../../pages/create/CreateLink';
 import './arrange.css';
 import { useEffect, useEffectEvent, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Button, EmptyNote, Field, Skeleton } from '../../../design/primitives';
@@ -107,7 +108,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
 
     if (data.squads.loading) return <div className="gk-stack gk-stack--tight" role="status" aria-label="Loading your squads"><Skeleton height={64} /><Skeleton height={44} /><Skeleton height={120} /></div>;
     if (data.squads.error) return <EmptyNote title="Your squads could not load" action={<Button onClick={data.squads.retry}>Try again</Button>}>{data.squads.error}</EmptyNote>;
-    if (!data.squads.data?.length) return <EmptyNote title="No squads you can arrange matches for">Club staff with a squad responsibility arrange matches. Ask your club’s leadership if you should have one.</EmptyNote>;
+    if (!data.squads.data?.length) return <EmptyNote title="No squads you can arrange matches for" action={<CreateLink kind="CLUB" from="arrange" size="sm">Start your club</CreateLink>}>Club staff with a squad responsibility arrange matches. Ask your club’s leadership if you should have one.</EmptyNote>;
 
     const problemCount = Object.keys(shown).length;
     return (

@@ -1,3 +1,4 @@
+import { CreateLink } from '../features/pages/create/CreateLink';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, HeartHandshake } from 'lucide-react';
@@ -58,7 +59,7 @@ export const StartFundraiserPage = () => {
     };
     const steps = <div className="gk-fund-start__steps" aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(n => <span key={n} data-done={n <= step || undefined} />)}</div>;
     const body = membership.loading ? <><Skeleton height={34} width={320} /><Skeleton height={120} /></>
-        : !clubId ? <EmptyNote title="You need a club to start a fundraiser" action={<><ButtonLink variant="primary" to="/world/clubs">Find a club</ButtonLink>{club?.canCreateClub && <ButtonLink to="/clubs/create">Create a club</ButtonLink>}</>}>A fundraiser is run by a club for its players and families. Personal fundraisers come later.</EmptyNote>
+        : !clubId ? <EmptyNote title="You need a club to start a fundraiser" action={<><ButtonLink variant="primary" to="/world/clubs">Find a club</ButtonLink><CreateLink kind="CLUB" from="fundraising">Start your club</CreateLink></>}>A fundraiser is run by a club for its players and families. Personal fundraisers come later.</EmptyNote>
         : !allowed ? <EmptyNote title={`Only ${club?.clubName ?? 'the club'}’s staff can start a fundraiser`} action={<ButtonLink to={`/clubs/${clubId}`}>Club page</ButtonLink>}>Ask a coach, an admin or the owner to start it.</EmptyNote>
         : step === 1 ? <>
             {steps}

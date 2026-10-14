@@ -29,7 +29,7 @@ export default function ClubsDirectory() {
             sources={[source]}
             actions={<>
                 {status === 'authenticated' && <ButtonLink variant="ghost" to="/clubs/following">{t('Clubs you follow')}</ButtonLink>}
-                <CreateMenu face="create-club" />
+                <CreateMenu face="create-page" />
             </>}
         />
     );

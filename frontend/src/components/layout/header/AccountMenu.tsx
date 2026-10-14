@@ -6,6 +6,7 @@ import { Avatar } from '../../../design/primitives';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import type { AuthUser } from '../../../context/AuthContext';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
+import { CreateLink } from '../../../features/pages/create/CreateLink';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import type { ThemePreference } from '../../../theme';
 import { PinGlyph } from './pins/PinsPanel';
@@ -58,6 +59,7 @@ export function AccountMenu({ user, workspaces, themePreference, setThemePrefere
                     {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                         <Link role="menuitem" to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>
                     )}
+                    <CreateLink role="menuitem" variant="menu" from="account" onClick={() => close()}>{copy('Create a page', 'გვერდის შექმნა')}</CreateLink>
                     {workspaces.length > 0 && (
                         <>
                             <div className="gk-menu__sep" role="separator" />

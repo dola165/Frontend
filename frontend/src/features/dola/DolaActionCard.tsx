@@ -20,8 +20,9 @@ export function DolaActionCard({ action, ka }: { action: DolaAction; ka: boolean
         COACH_UPDATE: 'განახლების გამოქვეყნება', CANCEL_SESSION: 'ვარჯიშის გაუქმება და გუნდის შეტყობინება',
         ACKNOWLEDGE_UPDATE: 'განახლების დადასტურება', SESSION_RESPONSE: 'პასუხის შენახვა', OPEN_CHALLENGE: 'ღია გამოწვევის გამოქვეყნება',
         REFEREE_DECISION: 'სამსაჯო გადაწყვეტილების დადასტურება', REFEREE_AVAILABILITY: 'ხელმისაწვდომობის ცვლილების დადასტურება', MATCH_PROPOSAL: 'მატჩის შეთავაზების გაგზავნა', MATCH_PROPOSAL_DECISION: 'მატჩის გადაწყვეტილების დადასტურება',
+        PAGE_CREATE: 'გვერდის შექმნა',
     } : { VENUE_BOOKING: 'Save booking or closure', VENUE_DECISION: 'Confirm booking decision', COACH_UPDATE: 'Publish coach update', CANCEL_SESSION: 'Cancel session and notify squad', ACKNOWLEDGE_UPDATE: 'Acknowledge update', SESSION_RESPONSE: 'Save training response', OPEN_CHALLENGE: 'Publish open challenge',
-        REFEREE_DECISION: 'Confirm referee decision', REFEREE_AVAILABILITY: 'Confirm availability change', MATCH_PROPOSAL: 'Send match proposal', MATCH_PROPOSAL_DECISION: 'Confirm match decision' };
+        REFEREE_DECISION: 'Confirm referee decision', REFEREE_AVAILABILITY: 'Confirm availability change', MATCH_PROPOSAL: 'Send match proposal', MATCH_PROPOSAL_DECISION: 'Confirm match decision', PAGE_CREATE: 'Create the page' };
     // A malformed provider/backend payload must never turn into an arbitrary executable action.
     if (!Object.hasOwn(labels, action.kind) || !/^[0-9a-f-]{36}$/i.test(action.id)) return null;
     return <section className={`dola-action ${complete ? 'dola-action--complete' : ''}`} aria-label={ka ? 'მოქმედების გადახედვა' : 'Review action'}>
@@ -34,6 +35,6 @@ export function DolaActionCard({ action, ka }: { action: DolaAction; ka: boolean
             <div className="dola-action-buttons"><button type="button" className="dola-action-confirm" disabled={busy} onClick={() => void resolveAction(action, 'confirm')}>{!ka && ['REFEREE_DECISION', 'REFEREE_AVAILABILITY', 'MATCH_PROPOSAL_DECISION', 'VENUE_BOOKING', 'VENUE_DECISION'].includes(action.kind) && action.confirmLabel ? action.confirmLabel : labels[action.kind]}</button>
                 {(action.kind === 'COACH_UPDATE' || action.kind === 'OPEN_CHALLENGE' || action.kind === 'VENUE_BOOKING') && <button type="button" disabled={busy} onClick={() => { setDraft(ka ? 'შეცვალე ეს მონახაზი: ' : 'Revise this draft: '); document.getElementById('dola-message')?.focus(); }}>{action.kind !== 'COACH_UPDATE' ? (ka ? 'დეტალების შეცვლა' : 'Edit details') : (ka ? 'ტექსტის შეცვლა' : 'Revise wording')}</button>}
                 <button type="button" disabled={busy} onClick={() => void resolveAction(action, 'discard')}>{ka ? 'გაუქმება' : 'Discard'}</button></div></>}
-        {complete && action.destination && safeDolaDestination(action.destination) && <Link className="dola-destination" to={action.destination.path} onClick={keepOpen}>{action.kind === 'OPEN_CHALLENGE' ? (ka ? 'გამოწვევის ნახვა' : 'View open challenge') : (ka ? 'სამუშაო სივრცეში ნახვა' : 'View in workspace')}<ArrowUpRight size={16} /></Link>}
+        {complete && action.destination && safeDolaDestination(action.destination) && <Link className="dola-destination" to={action.destination.path} onClick={keepOpen}>{action.kind === 'OPEN_CHALLENGE' ? (ka ? 'გამოწვევის ნახვა' : 'View open challenge') : action.kind === 'PAGE_CREATE' ? (ka ? 'გვერდის გახსნა' : 'Open your page') : (ka ? 'სამუშაო სივრცეში ნახვა' : 'View in workspace')}<ArrowUpRight size={16} /></Link>}
     </section>;
 }

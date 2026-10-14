@@ -82,7 +82,8 @@ export interface InviteLink { code: string; role: StaffRole; status: 'INVITED' |
 /** What creating sends: the backend's setup request, with the page kind. */
 export interface CreateRequest {
   requestId: string; displayName: string; pageKind: PageKind; organizationType: string; clubCategory: string | null;
-  venueEnabled: false; tournamentEnabled: false; location: { latitude: number | null; longitude: number | null; city: string } | null;
+  venueEnabled: false; /** On for an organiser set up from the Draw room. */ tournamentEnabled: boolean;
+  location: { latitude: number | null; longitude: number | null; city: string } | null;
 }
 
 /** A save that lost the race: someone changed the same thing first. The page as it is now comes with it. */

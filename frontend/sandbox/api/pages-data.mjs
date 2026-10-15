@@ -20,6 +20,8 @@ const pageKey = ref => `${ref.type}:${ref.id}`;
 let nextOrgId = 7000, nextClubId = 400;
 const now = () => new Date().toISOString();
 const text = (value, max) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
+/** A phone as the backend stores it: digits and a leading plus, no spacing; the screens group it for reading. */
+const phoneText = value => String(value ?? '').trim().replace(/[\s()-]/g, '').slice(0, 24);
 const digits = value => String(value ?? '').replace(/[^\d+]/g, '');
 
 const TYPE_OF_CATEGORY = { COMMUNITY_CLUB: 'GRASSROOTS', PRIVATE_ACADEMY: 'ACADEMY', SCHOOL_CLUB: 'SCHOOL', AMATEUR_CLUB: 'AMATEUR' };

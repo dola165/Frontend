@@ -7,7 +7,7 @@ import { makePage, withSetup } from '../../__tests__/fixtures';
 
 const api = vi.hoisted(() => ({ fetchPage: vi.fn(), saveIdentity: vi.fn(), saveBox: vi.fn(), saveLayout: vi.fn(), goLive: vi.fn(), fetchPitches: vi.fn(), PageConflict: class PageConflict extends Error { current: unknown; constructor(current: unknown) { super('conflict'); this.current = current; } } }));
 const toasts = vi.hoisted(() => ({ calls: [] as { message: string; action?: { label: string; onClick: () => void } }[] }));
-vi.mock('../../api', () => ({ fetchPage: api.fetchPage, saveIdentity: api.saveIdentity, saveBox: api.saveBox, saveLayout: api.saveLayout, goLive: api.goLive, fetchPitches: api.fetchPitches, PageConflict: api.PageConflict, pageBase: () => '', sameRef: () => false }));
+vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), fetchPage: api.fetchPage, saveIdentity: api.saveIdentity, saveBox: api.saveBox, saveLayout: api.saveLayout, goLive: api.goLive, fetchPitches: api.fetchPitches, PageConflict: api.PageConflict, pageBase: () => '', sameRef: () => false }));
 vi.mock('sonner', () => {
   const record = (message: string, options?: { action?: { label: string; onClick: () => void } }) => { toasts.calls.push({ message, action: options?.action }); };
   return { toast: Object.assign(record, { warning: record, error: record, success: record }) };

@@ -37,7 +37,7 @@ export const PAGES_KA: Record<string, string> = {
   'Creating…': 'იქმნება…',
   'Could not create the page. Try again: nothing is lost.': 'გვერდი ვერ შეიქმნა. სცადეთ ისევ: არაფერი დაკარგულა.',
   'The last try was not answered. Try again with the same name; it never makes two pages.': 'ბოლო ცდას პასუხი არ მოჰყვა. სცადეთ ისევ იმავე სახელით: ორი გვერდი არასდროს შეიქმნება.',
-  'Draft · only you see it': 'მონახაზი · მხოლოდ თქვენ ხედავთ',
+  'Draft · only you see this': 'მონახაზი · მხოლოდ თქვენ ხედავთ',
   'Unclaimed': 'დაუკავებელი',
   // Claiming
   'Claim {name}': '{name}: ეს ჩემია',

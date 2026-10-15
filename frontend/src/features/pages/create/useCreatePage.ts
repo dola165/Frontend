@@ -58,8 +58,8 @@ export function useCreatePage() {
       const created = await createPage(request.body);
       clearSetupRecovery(user?.id, RECOVERY); setPending(null);
       recordFunnelEvent('PAGE_CREATED', { kind, from });
-      void refreshNavigationCapabilities().catch(() => undefined);
       navigate(pageDestination(created, draw));
+      void refreshNavigationCapabilities().catch(() => undefined);
       return { kind: 'created', created };
     } catch (failure) {
       const response = (failure as { response?: { status?: number; data?: { code?: string; match?: SimilarPage } } }).response;

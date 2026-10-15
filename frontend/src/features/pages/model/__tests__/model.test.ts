@@ -3,6 +3,7 @@ import { addableBoxes, BOX_DEFAULTS, defaultLayout, goLiveCheck, insertionIndex,
 import { findSimilar, latinWords, nameKey } from '../nameMatch';
 import { contrast, crestSvg, defaultCrest, initialsFor, letteringOn, normalizeCrest, paint, CREST_COLOURS } from '../crest';
 import { coverForColour } from '../photos';
+import { phoneDisplay } from '../phone';
 
 const facts = (over: Partial<PageFacts> = {}): PageFacts => ({ kind: 'CLUB', name: 'Rustavi Lions', crestKept: false, grounds: 0, squads: 0, contact: false, fees: false, players: false, staff: 0, posts: 0, about: false, sponsors: 0, ...over });
 
@@ -126,5 +127,13 @@ describe('generated crests', () => {
   it('picks a cover photo that suits the colours', () => {
     expect(coverForColour('red')).toBe('pitch-sun');
     expect(coverForColour('green')).toBe('ball-field');
+  });
+});
+
+describe('phone numbers as people write them', () => {
+  it('groups a stored Georgian mobile and leaves other numbers alone', () => {
+    expect(phoneDisplay('+995599123456')).toBe('+995 599 12 34 56');
+    expect(phoneDisplay('995 599 12 34 56')).toBe('+995 599 12 34 56');
+    expect(phoneDisplay('+44 20 7946 0958')).toBe('+44 20 7946 0958');
   });
 });

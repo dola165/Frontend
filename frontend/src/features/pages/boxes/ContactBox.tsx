@@ -6,6 +6,7 @@ import { usePagesCopy } from '../copy';
 import { EditPencil } from '../edit/EditPencil';
 import { usePageEdit } from '../edit/context';
 import type { BoxProps } from '../edit/boxRegistry';
+import { phoneDisplay } from '../model/phone';
 import '../edit/edit.css';
 
 const digits = (value: string) => value.replace(/[^\d+]/g, '');
@@ -26,7 +27,7 @@ export function ContactBox({ page, editing, open, onEdit, onClose }: BoxProps) {
     <SideBlock title={t('Contact')} hint={t('Phone and email')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <ContactEditor initial={{ phone, email, website, instagram }} suggestions={page.suggestions} onSave={save} onCancel={onClose} />
         : <List label={t('Contact details')}>
-          {phone && <li><a className="gk-list-row" href={`https://wa.me/${digits(phone).replace('+', '')}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Phone aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{phone}</span><span className="gk-list-row__meta">{t('Phone and WhatsApp')}</span></span></a></li>}
+          {phone && <li><a className="gk-list-row" href={`https://wa.me/${digits(phone).replace('+', '')}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Phone aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{phoneDisplay(phone)}</span><span className="gk-list-row__meta">{t('Phone and WhatsApp')}</span></span></a></li>}
           {email && <li><a className="gk-list-row" href={`mailto:${email}`}><span className="gk-list-row__lead"><span className="gk-club-icon"><Mail aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title gk-club-email">{email}</span><span className="gk-list-row__meta">{t('Email')}</span></span></a></li>}
           {web && <li><a className="gk-list-row" href={web} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Globe aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{website.replace(/^https?:\/\/(www\.)?/, '')}</span><span className="gk-list-row__meta">{t('Website')}</span></span></a></li>}
           {instagram && <li><a className="gk-list-row" href={`https://instagram.com/${encodeURIComponent(handle(instagram))}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Instagram aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">@{handle(instagram)}</span><span className="gk-list-row__meta">Instagram</span></span></a></li>}

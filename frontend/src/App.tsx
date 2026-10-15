@@ -450,6 +450,7 @@ export function MainLayout() {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} />
                         <Route path="/signup" element={<GuestOnlyRoute><RegisterPage /></GuestOnlyRoute>} />
+                        <Route path="/register" element={<Navigate to="/signup" replace />} />
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />

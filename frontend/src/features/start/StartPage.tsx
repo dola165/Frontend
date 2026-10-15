@@ -117,7 +117,8 @@ function StartRun() {
                         {STEPS.map((item, index) => <li key={item} className="gk-start__dot" data-on={index <= stepIndex || undefined} aria-current={item === step ? 'step' : undefined} />)}
                     </ol>
                 ) : <span />}
-                <Button variant="ghost" size="sm" disabled={busy} onClick={() => go(after(step))}>{t('start.skip')}</Button>
+                {/* Skipping the town screen keeps the town given at sign-up: it is saved all the same, so World and a new page start there. */}
+                <Button variant="ghost" size="sm" disabled={busy} onClick={() => (step === 'town' && flow.town ? void saveAndGo(() => saveFeedPreferences({ town }), after(step)) : go(after(step)))}>{t('start.skip')}</Button>
             </header>
 
             <main className="gk-start__body">

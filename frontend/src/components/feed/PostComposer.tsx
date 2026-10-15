@@ -181,7 +181,7 @@ const PostComposerEditor = ({
       const published = await apiClient.post<{ postId?: number }>('/posts', {
         content: content.trim(),
         clubId: clubId || null,
-        organizationId: organizationId || null,
+        ...(organizationId ? { organizationId } : {}),
         isPublic: true,
         mediaIds
       }, config);

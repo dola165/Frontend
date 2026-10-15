@@ -1,14 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Eye, LayoutList, PenLine } from 'lucide-react';
+import { ChevronRight, Eye, LayoutList, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
 import { claimHref } from '../create/entry';
-import { usePageEdit } from './context';
+import { SETUP_PANEL, usePageEdit } from './context';
 import { SETUP_ITEMS } from '../model/kinds';
 import { CoachMarks } from './CoachMarks';
-import { SetupRing } from './SetupSteps';
+import { SetupRing, SetupSteps } from './SetupSteps';
+import { SETUP_WORDS, STEP_ICONS } from './words';
 import './edit.css';
 
 const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a name', crest: 'a crest', groundOrContact: 'a ground or a way to reach you' };
@@ -27,6 +28,8 @@ export function EditBar() {
     if (arrival !== 'claimed' || !page) return;
     toast(t('This page is yours now. Tap a box to fill it.'), { id: 'page-arrival', duration: 6000 });
   }, [arrival, page, t]);
+  // The steps drop down from the bar, open from the start on a wide screen, folded on a phone.
+  const [stepsOpen, setStepsOpen] = useState(() => typeof window === 'undefined' || window.innerWidth === 0 || window.innerWidth > 760);
   if (!page) return null;
   if (!canEdit) {
     if (page.claim?.state !== 'UNCLAIMED' || !page.viewer.canClaim) return null;
@@ -38,6 +41,8 @@ export function EditBar() {
     );
   }
   const setup = page.setup;
+  const total = SETUP_ITEMS[page.kind].length, next = setup.next;
+  const CurrentIcon = next ? STEP_ICONS[next] : null;
   const missing = page.goLive.missing.map(item => t(MISSING[item]));
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
@@ -46,13 +51,17 @@ export function EditBar() {
         ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
         : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending verification')}</span> : null}
       {!setup.completedAt && (
-        <button type="button" className="gk-ring" onClick={() => document.getElementById('gk-setup')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} aria-label={t('{done} of {total} done. Set-up steps', { done: setup.done, total: SETUP_ITEMS[page.kind].length })}>
-          <SetupRing done={setup.done} total={SETUP_ITEMS[page.kind].length} />
-          <span key={setup.done} className="gk-ring__count">{t('{done} of {total}', { done: setup.done, total: SETUP_ITEMS[page.kind].length })}</span>
+        <button type="button" className="gk-ring" data-coach="ring" aria-expanded={stepsOpen} onClick={() => setStepsOpen(value => !value)} aria-label={t('{done} of {total} done. Set-up steps', { done: setup.done, total })}>
+          <SetupRing done={setup.done} total={total} />
+          <span key={setup.done} className="gk-ring__count">{t('{done} of {total}', { done: setup.done, total })}</span>
           <span className="gk-ring__next">{t('Set-up steps')}</span>
         </button>
       )}
       {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}><Eye aria-hidden="true" size={12} />{t('What a finished club looks like')}</button>}
+      {!setup.completedAt && next && CurrentIcon && (
+        <button type="button" className="gk-editbar__current" onClick={() => openPanel(SETUP_PANEL[next])}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(SETUP_WORDS[next])}</strong><ChevronRight aria-hidden="true" /></button>
+      )}
+      {!setup.completedAt && editing && stepsOpen && <div className="gk-editbar__steps"><SetupSteps onClose={() => setStepsOpen(false)} /></div>}
       <span className="gk-editbar__saved" role="status" aria-live="polite" aria-label={t('Save status')} data-status={status}>
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>

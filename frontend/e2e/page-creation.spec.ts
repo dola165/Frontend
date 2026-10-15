@@ -32,8 +32,10 @@ async function register(page: Page, name: string, email: string) {
   await expect(page).toHaveURL(/\/home/);
 }
 
-/** The set-up card lists every step; the step's row opens its editor. */
+/** The steps drop down from the bar's ring (open from the start on a wide screen); a step's row opens its editor and folds the list. */
 async function openRing(page: Page, words: RegExp) {
+  const ring = page.getByRole('button', { name: /of \d+ done/ });
+  if ((await ring.getAttribute('aria-expanded')) !== 'true') await ring.click();
   await page.getByRole('region', { name: 'Set-up steps' }).getByRole('button', { name: words }).click();
 }
 

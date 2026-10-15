@@ -1,12 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { AlignLeft, Check, ChevronDown, ChevronRight, ChevronUp, Coins, Handshake, Link2, MapPin, MessageSquare, Phone, Shield, Type, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { Check, ChevronRight, X } from 'lucide-react';
 import { usePagesCopy } from '../copy';
 import { SETUP_ITEMS, type SetupKey } from '../model/kinds';
 import { SETUP_PANEL, usePageEdit } from './context';
-import { SETUP_WORDS } from './words';
+import { SETUP_WORDS, STEP_ICONS } from './words';
 import './edit.css';
 
-const ICONS: Record<SetupKey, LucideIcon> = { name: Type, crest: Shield, about: AlignLeft, grounds: MapPin, squads: Users, contact: Phone, fees: Coins, players: Link2, staff: UserPlus, posts: MessageSquare, sponsors: Handshake };
 /** One line under each step, what it gives the club. */
 const WHY: Record<SetupKey, string> = {
   name: 'How people find you', crest: 'Your badge, everywhere', about: 'The one or two lines visitors read first', grounds: 'Puts you on the map',
@@ -26,58 +25,50 @@ export function SetupRing({ done, total, size = 28 }: { done: number; total: num
 }
 
 /**
- * The set-up steps, the main thing on a page still being made: a card at the top of the main column, always open,
- * every step a tall row (its picture, its words, what it gives the club), ticked when done, the next one lit. A tap
- * opens the step where it is done. When a step gets done the card glows and the next row lights up. Any order.
+ * The set-up steps, dropped down from the bar: every step a tall row (its picture, its words, what it gives the
+ * club), ticked when done, the next one lit; a tap opens the step where it is done and folds the list away (the ring
+ * brings it back). A little transparent, so the
+ * page stays visible under it. When a step gets done the list glows and the light moves on. Any order.
  */
-export function SetupSteps() {
+export function SetupSteps({ onClose }: { onClose: () => void }) {
   const t = usePagesCopy();
-  const { page, editing, openPanel } = usePageEdit();
-  const [collapsed, setCollapsed] = useState(false);
+  const { page, openPanel } = usePageEdit();
   const [glow, setGlow] = useState(false);
   const done = page?.setup.done ?? 0;
   const previous = useRef(done);
   const id = useId();
-  // A step just got done: the card glows for a moment and the next step takes the light.
   useEffect(() => {
     if (done <= previous.current) { previous.current = done; return; }
     previous.current = done;
     const on = window.setTimeout(() => setGlow(true), 0), off = window.setTimeout(() => setGlow(false), 1800);
     return () => { clearTimeout(on); clearTimeout(off); };
   }, [done]);
-  if (!page || !editing || page.setup.completedAt) return null;
+  if (!page) return null;
   const total = SETUP_ITEMS[page.kind].length, next = page.setup.next;
   return (
-    <section id="gk-setup" className="gk-setup" data-glow={glow || undefined} aria-labelledby={`${id}-title`}>
-      <header className="gk-setup__head" data-coach="ring">
-        <SetupRing done={done} total={total} size={48} />
-        <div className="gk-setup__words">
-          <h2 id={`${id}-title`} className="gk-setup__title">{t('Set-up steps')}</h2>
-          <p className="gk-setup__count">{t('{done} of {total} done · any order', { done, total })}</p>
-        </div>
-        <button type="button" className="gk-setup__toggle" aria-expanded={!collapsed} aria-controls={`${id}-list`} onClick={() => setCollapsed(value => !value)}>
-          {collapsed ? <ChevronDown aria-hidden="true" /> : <ChevronUp aria-hidden="true" />}<span className="gk-visually-hidden">{t(collapsed ? 'Show the steps' : 'Hide the steps')}</span>
-        </button>
+    <section className="gk-setup" data-glow={glow || undefined} aria-labelledby={`${id}-title`}>
+      <header className="gk-setup__head">
+        <h2 id={`${id}-title`} className="gk-setup__title">{t('Set-up steps')}</h2>
+        <p className="gk-setup__count">{t('{done} of {total} done · any order', { done, total })}</p>
+        <button type="button" className="gk-setup__toggle" onClick={onClose} aria-label={t('Hide the steps')}><X aria-hidden="true" /></button>
       </header>
-      {!collapsed && (
-        <ol id={`${id}-list`} className="gk-setup__list">
-          {page.setup.items.map(item => {
-            const Icon = ICONS[item.key];
-            return (
-              <li key={item.key}>
-                <button type="button" className="gk-setup__step" data-done={item.done || undefined} data-next={item.key === next || undefined} onClick={() => openPanel(SETUP_PANEL[item.key])}>
-                  <span className="gk-setup__icon"><Icon aria-hidden="true" /></span>
-                  <span className="gk-setup__text"><span className="gk-setup__name">{t(SETUP_WORDS[item.key])}</span><span className="gk-setup__why">{t(WHY[item.key])}</span></span>
-                  {item.done
-                    ? <span className="gk-setup__state gk-setup__state--done"><Check aria-hidden="true" />{t('Done')}</span>
-                    : item.key === next ? <span className="gk-setup__state gk-setup__state--next">{t('Next')}<ChevronRight aria-hidden="true" /></span>
-                    : <span className="gk-setup__state"><ChevronRight aria-hidden="true" /></span>}
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      )}
+      <ol className="gk-setup__list">
+        {page.setup.items.map(item => {
+          const Icon = STEP_ICONS[item.key];
+          return (
+            <li key={item.key}>
+              <button type="button" className="gk-setup__step" data-done={item.done || undefined} data-next={item.key === next || undefined} onClick={() => { onClose(); openPanel(SETUP_PANEL[item.key]); }}>
+                <span className="gk-setup__icon"><Icon aria-hidden="true" /></span>
+                <span className="gk-setup__text"><span className="gk-setup__name">{t(SETUP_WORDS[item.key])}</span><span className="gk-setup__why">{t(WHY[item.key])}</span></span>
+                {item.done
+                  ? <span className="gk-setup__state gk-setup__state--done"><Check aria-hidden="true" />{t('Done')}</span>
+                  : item.key === next ? <span className="gk-setup__state gk-setup__state--next">{t('Next')}<ChevronRight aria-hidden="true" /></span>
+                  : <span className="gk-setup__state"><ChevronRight aria-hidden="true" /></span>}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }

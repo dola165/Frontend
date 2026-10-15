@@ -474,4 +474,5 @@ export const PAGES_KA: Record<string, string> = {
   'Yours can look like this': 'თქვენიც ასე შეიძლება გამოიყურებოდეს',
   'Over {box}.': '{box}-ზე.',
   '{box} placed.': '{box} დაიდო.',
+  'Current step': 'მიმდინარე ნაბიჯი',
 };

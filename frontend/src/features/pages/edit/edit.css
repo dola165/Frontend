@@ -242,3 +242,23 @@
 /* In Rearrange mode a box is one thing to grab: its links, buttons and text do not take the pointer (the tools row does). */
 .gk .gk-boxframe__drag > :not(.gk-boxframe__tools) { pointer-events: none; user-select: none; }
 .gk-coach[data-flip]::before { top: auto; bottom: -7px; transform: translateX(-50%) rotate(225deg); }
+
+/* The steps live in the bar: the list drops down from "Set-up steps", a little transparent; the current step sits in the middle. */
+.gk .gk-editbar { position: relative; }
+.gk .gk-editbar__current { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 10px 0 12px; border: 1px solid var(--gk-accent); border-radius: var(--gk-r-pill); background: var(--gk-accent-soft); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-md); cursor: pointer; animation: gk-breathe 2.6s var(--gk-ease) infinite; }
+.gk .gk-editbar__current:hover { background: color-mix(in srgb, var(--gk-accent) 25%, var(--gk-surface)); }
+.gk .gk-editbar__current svg { width: 16px; height: 16px; color: var(--gk-accent); }
+.gk .gk-editbar__current-label { color: var(--gk-text-2); font-size: var(--gk-fs-xs); text-transform: uppercase; letter-spacing: .04em; }
+.gk .gk-editbar__steps { position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; width: min(380px, calc(100vw - 32px)); }
+.gk .gk-editbar__steps .gk-setup { margin: 0; background: color-mix(in srgb, var(--gk-surface) 94%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--gk-elevation), 0 0 0 3px var(--gk-accent-soft); animation: gk-coach-in .18s var(--gk-ease); }
+.gk .gk-editbar__steps .gk-setup__head { gap: var(--gk-2); padding: var(--gk-3) var(--gk-3) var(--gk-2); }
+.gk .gk-editbar__steps .gk-setup__title { font-size: var(--gk-fs-lg); }
+.gk .gk-editbar__steps .gk-setup__count { flex: 1; margin: 0 0 0 var(--gk-2); }
+.gk .gk-editbar__steps .gk-setup__toggle { width: 30px; height: 30px; }
+.gk .gk-editbar__steps .gk-setup__step { min-height: 50px; }
+.gk .gk-editbar__steps .gk-setup__icon { width: 34px; height: 34px; }
+.gk .gk-editbar__steps .gk-setup__name { font-size: var(--gk-fs-md); }
+@media (max-width: 760px) { .gk .gk-editbar__steps { position: fixed; top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 60vh; overflow: auto; } .gk .gk-editbar__current-label { display: none; } }
+/* While the list is open the bar stacks above the columns and the sticky tab strip. */
+.gk .gk-editbar:has(.gk-editbar__steps) { z-index: 50; }
+.gk .gk-editbar__steps .gk-setup { background: var(--gk-surface); opacity: .96; }

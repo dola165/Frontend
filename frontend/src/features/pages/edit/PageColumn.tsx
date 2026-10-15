@@ -6,7 +6,7 @@ import { addableBoxes, BOX_COLUMN, type BoxKey, type Column } from '../model/kin
 import { GhostBox, type GhostNeed } from './GhostBox';
 import { SETUP_PANEL, usePageEdit } from './context';
 import { BOX_NAMES } from './words';
-import { DraggableBox, DropGap, TrayItem } from './Rearrange';
+import { DraggableBox, SortableColumn, TrayItem } from './Rearrange';
 import type { BoxRenderers } from './boxRegistry';
 import './edit.css';
 
@@ -44,10 +44,7 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
   const flashing = useFlashes(keys, filled);
   if (!page) return null;
   const next = page.setup.next ? SETUP_PANEL[page.setup.next] : null;
-  return (
-    <>
-      {rearranging && <DropGap column={column} index={0} />}
-      {keys.map((key, index) => {
+  const boxes = keys.map((key, index) => {
         const renderer = renderers[key]!;
         if (!editing && !filled[key]) return null;
         const target = renderer.panel ?? key;
@@ -59,10 +56,12 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
               ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
               : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />;
               return rearranging ? <DraggableBox box={key} column={column} index={index} count={keys.length}>{content}</DraggableBox> : content; })()}
-            {rearranging && <DropGap column={column} index={index + 1} />}
           </div>
         );
-      })}
+      });
+  return (
+    <>
+      {rearranging ? <SortableColumn column={column} keys={keys}>{boxes}</SortableColumn> : boxes}
       {editing && <AddBoxTray column={column} renderers={renderers} />}
     </>
   );

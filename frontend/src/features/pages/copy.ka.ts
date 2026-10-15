@@ -461,4 +461,17 @@ export const PAGES_KA: Record<string, string> = {
   'Who you back': 'ვისაც მხარს უჭერთ',
   'What a finished club looks like': 'როგორ გამოიყურება მზა კლუბი',
   'Tap to open it: yours can look like this': 'შეეხეთ გასახსნელად: თქვენიც ასე შეიძლება გამოიყურებოდეს',
+  // The set-up card, the sortable column, the example's invitation.
+  'Set-up steps': 'მომზადების ნაბიჯები',
+  '{done} of {total} done · any order': '{done} / {total} შესრულებულია · ნებისმიერი თანმიმდევრობით',
+  '{done} of {total} done. Set-up steps': '{done} / {total} შესრულებულია. მომზადების ნაბიჯები',
+  'Show the steps': 'ნაბიჯების ჩვენება',
+  'Hide the steps': 'ნაბიჯების დამალვა',
+  'Your badge, everywhere': 'თქვენი ემბლემა, ყველგან',
+  'The one or two lines visitors read first': 'ერთი-ორი ხაზი, რომელსაც ვიზიტორები პირველად კითხულობენ',
+  'Curious what a finished club looks like?': 'გაინტერესებთ, როგორ გამოიყურება მზა კლუბი?',
+  'Tap here to see one': 'შეეხეთ აქ სანახავად',
+  'Yours can look like this': 'თქვენიც ასე შეიძლება გამოიყურებოდეს',
+  'Over {box}.': '{box}-ზე.',
+  '{box} placed.': '{box} დაიდო.',
 };

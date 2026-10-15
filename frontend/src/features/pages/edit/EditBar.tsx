@@ -6,8 +6,9 @@ import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
 import { claimHref } from '../create/entry';
 import { usePageEdit } from './context';
+import { SETUP_ITEMS } from '../model/kinds';
 import { CoachMarks } from './CoachMarks';
-import { StepsMenu } from './StepsMenu';
+import { SetupRing } from './SetupSteps';
 import './edit.css';
 
 const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a name', crest: 'a crest', groundOrContact: 'a ground or a way to reach you' };
@@ -44,7 +45,13 @@ export function EditBar() {
       {page.status === 'DRAFT'
         ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
         : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending verification')}</span> : null}
-      {!setup.completedAt && <StepsMenu page={page} />}
+      {!setup.completedAt && (
+        <button type="button" className="gk-ring" onClick={() => document.getElementById('gk-setup')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} aria-label={t('{done} of {total} done. Set-up steps', { done: setup.done, total: SETUP_ITEMS[page.kind].length })}>
+          <SetupRing done={setup.done} total={SETUP_ITEMS[page.kind].length} />
+          <span key={setup.done} className="gk-ring__count">{t('{done} of {total}', { done: setup.done, total: SETUP_ITEMS[page.kind].length })}</span>
+          <span className="gk-ring__next">{t('Set-up steps')}</span>
+        </button>
+      )}
       {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}><Eye aria-hidden="true" size={12} />{t('What a finished club looks like')}</button>}
       <span className="gk-editbar__saved" role="status" aria-live="polite" aria-label={t('Save status')} data-status={status}>
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}

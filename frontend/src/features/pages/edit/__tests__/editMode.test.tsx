@@ -45,9 +45,10 @@ describe('edit mode on a page', () => {
     api.saveIdentity.mockImplementation(async () => filledContact(page));
     mount();
     expect(await screen.findByText('Draft · only you see this')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /1 of 7 done\. Next: Add your crest/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /1 of 7 done/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Set-up steps' })).toHaveTextContent('Add your crest');
     expect(screen.getByRole('button', { name: 'Go live' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: /How to reach you/ }));
+    await user.click(screen.getAllByRole('button', { name: /How to reach you/ })[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56');
     await user.click(screen.getByRole('button', { name: 'Use giorgi@example.org' }));
     // The bar has its own Done (edit mode off); the box's Done comes after it in the page.
@@ -68,7 +69,7 @@ describe('edit mode on a page', () => {
     api.fetchPage.mockResolvedValue(page);
     api.saveIdentity.mockResolvedValueOnce(filled).mockResolvedValueOnce(page);
     mount();
-    await user.click(await screen.findByRole('button', { name: /How to reach you/ }));
+    await user.click((await screen.findAllByRole('button', { name: /How to reach you/ }))[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56{Enter}');
     await waitFor(() => expect(toasts.calls.some(call => call.message === 'Contact saved')).toBe(true));
     const saved = toasts.calls.find(call => call.message === 'Contact saved');
@@ -86,7 +87,7 @@ describe('edit mode on a page', () => {
     api.fetchPage.mockResolvedValue(page);
     api.saveIdentity.mockRejectedValueOnce(new api.PageConflict(theirs)).mockResolvedValueOnce(withSetup({ ...theirs, identity: { ...theirs.identity, version: 4, contact: { phone: '+995 599 12 34 56', email: '' } } }));
     mount();
-    await user.click(await screen.findByRole('button', { name: /How to reach you/ }));
+    await user.click((await screen.findAllByRole('button', { name: /How to reach you/ }))[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56{Enter}');
     expect(await screen.findByText('+995 555 00 00 00')).toBeInTheDocument();
     const conflict = toasts.calls.find(call => call.message === 'Someone just changed this.');

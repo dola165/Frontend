@@ -32,10 +32,9 @@ async function register(page: Page, name: string, email: string) {
   await expect(page).toHaveURL(/\/home/);
 }
 
-/** The ring lists the steps on hover; the step's row opens its editor (one tap, as with a mouse). */
+/** The set-up card lists every step; the step's row opens its editor. */
 async function openRing(page: Page, words: RegExp) {
-  await page.getByRole('button', { name: /of \d+ done/ }).hover();
-  await page.getByRole('menuitem', { name: words }).click();
+  await page.getByRole('region', { name: 'Set-up steps' }).getByRole('button', { name: words }).click();
 }
 
 const flow = (width: number, height: number) => {

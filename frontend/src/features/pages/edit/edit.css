@@ -199,3 +199,46 @@
 .gk .gk-steps__next { padding: 1px 8px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); font-size: var(--gk-fs-xs); font-weight: 650; }
 .gk .gk-steps__foot { padding: 6px var(--gk-2) 2px; color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
 @media (max-width: 760px) { .gk .gk-steps__list { position: fixed; left: 12px; right: 12px; top: auto; max-width: none; } }
+
+/* The set-up card: the main thing on a page still being made. */
+.gk .gk-setup { margin: 0 0 var(--gk-4); border: 1px solid color-mix(in srgb, var(--gk-accent) 45%, var(--gk-line)); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: 0 0 0 3px var(--gk-accent-soft); transition: box-shadow .3s var(--gk-ease); }
+.gk .gk-setup[data-glow] { animation: gk-setup-glow 1.8s var(--gk-ease); }
+.gk .gk-setup__head { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-setup__head .gk-ring__svg { transform: rotate(-90deg); flex-shrink: 0; }
+.gk .gk-setup__words { flex: 1; min-width: 0; }
+.gk .gk-setup__title { margin: 0; font-size: var(--gk-fs-xl); line-height: 1.2; font-weight: 750; letter-spacing: -.01em; }
+.gk .gk-setup__count { margin: 2px 0 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-setup__toggle { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--gk-line); border-radius: 50%; background: none; color: var(--gk-text-2); cursor: pointer; }
+.gk .gk-setup__toggle svg { width: 16px; height: 16px; }
+.gk .gk-setup__list { margin: 0; padding: var(--gk-2); list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-setup__step { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 56px; padding: var(--gk-2) var(--gk-3); border: 1px solid transparent; border-radius: var(--gk-r); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .gk-setup__step:hover, .gk .gk-setup__step:focus-visible { background: var(--gk-hover); outline: none; }
+.gk .gk-setup__step[data-next] { background: var(--gk-accent-soft); border-color: var(--gk-accent); animation: gk-breathe 2.6s var(--gk-ease) infinite; }
+.gk .gk-setup__icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--gk-r); background: var(--gk-sunken); color: var(--gk-text-2); }
+.gk .gk-setup__step[data-next] .gk-setup__icon { background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-setup__step[data-done] .gk-setup__icon { color: var(--gk-accent); }
+.gk .gk-setup__icon svg { width: 20px; height: 20px; }
+.gk .gk-setup__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gk .gk-setup__name { font-weight: 700; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+.gk .gk-setup__step[data-done] .gk-setup__name { color: var(--gk-text-2); text-decoration: line-through; text-decoration-color: var(--gk-line-strong); }
+.gk .gk-setup__why { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-setup__state { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk .gk-setup__state svg { width: 16px; height: 16px; }
+.gk .gk-setup__state--done { color: var(--gk-accent); }
+.gk .gk-setup__state--next { padding: 2px 4px 2px 10px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); }
+@keyframes gk-setup-glow { 0% { box-shadow: 0 0 0 3px var(--gk-accent-soft); } 30% { box-shadow: 0 0 0 6px var(--gk-accent), 0 0 32px var(--gk-accent-soft); } 100% { box-shadow: 0 0 0 3px var(--gk-accent-soft); } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-setup[data-glow], .gk .gk-setup__step[data-next] { animation: none; } }
+
+/* Rearrange with the sortable column: the flying box lifts, the others slide. */
+.gk .gk-sortcol { display: flex; flex-direction: column; }
+.gk .gk-boxframe__drag[data-dragging] { position: relative; z-index: 5; opacity: .92; box-shadow: var(--gk-elevation), 0 0 0 2px var(--gk-accent); background: var(--gk-surface); }
+
+/* The example's richer look: a gradient edge, depth, a line that asks. */
+.gk .gk-example-preview { border: 1px solid transparent; background: linear-gradient(var(--gk-surface), var(--gk-surface)) padding-box, linear-gradient(135deg, var(--gk-accent) 0%, var(--gk-line-strong) 55%, var(--gk-accent-soft) 100%) border-box; box-shadow: 0 24px 48px -28px color-mix(in srgb, var(--gk-shadow) 80%, transparent), 0 0 0 1px color-mix(in srgb, var(--gk-accent) 20%, transparent); transition: transform .25s var(--gk-ease), box-shadow .25s var(--gk-ease); }
+.gk .gk-example-preview:hover { transform: translateY(-2px); box-shadow: 0 30px 56px -28px color-mix(in srgb, var(--gk-shadow) 90%, transparent), 0 0 0 1px color-mix(in srgb, var(--gk-accent) 45%, transparent); }
+.gk .gk-example-preview__ask { font-size: var(--gk-fs-md); font-weight: 600; opacity: .95; margin-bottom: 6px; }
+.gk .gk-example-preview__cta { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); font-weight: 700; box-shadow: 0 8px 20px -8px var(--gk-accent); }
+.gk .gk-example-preview__cta svg { width: 18px; height: 18px; }
+/* In Rearrange mode a box is one thing to grab: its links, buttons and text do not take the pointer (the tools row does). */
+.gk .gk-boxframe__drag > :not(.gk-boxframe__tools) { pointer-events: none; user-select: none; }
+.gk-coach[data-flip]::before { top: auto; bottom: -7px; transform: translateX(-50%) rotate(225deg); }

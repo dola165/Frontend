@@ -7,6 +7,7 @@ import { usePagesCopy } from './copy';
 import { EditBar } from './edit/EditBar';
 import { InlineText } from './edit/InlineText';
 import { PageColumn } from './edit/PageColumn';
+import { SetupSteps } from './edit/SetupSteps';
 import { usePageEdit } from './edit/context';
 import { RearrangeFrame } from './edit/Rearrange';
 import type { BoxRenderers } from './edit/boxRegistry';
@@ -49,6 +50,7 @@ export function PageDocument<T extends string>({ renderers, tabs, tab, onTab, ta
       tabs={tabs} tab={tab} onTab={onTab} tabsLabel={tabsLabel}
       sideLeft={<PageColumn column="left" renderers={renderers} />} sideLeftLabel={t('Information')}
       side={<PageColumn column="right" renderers={renderers} />} sideLabel={t('More')}>
+      <SetupSteps />
       {children}
     </ProfileLayout></RearrangeFrame>
   );

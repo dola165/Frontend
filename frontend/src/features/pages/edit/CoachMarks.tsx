@@ -45,11 +45,17 @@ export function CoachMarks({ pageRef }: { pageRef: PageRef }) {
       const rect = target.getBoundingClientRect();
       const width = Math.min(340, window.innerWidth - 24);
       const left = Math.max(12, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 12));
-      box.style.width = `${width}px`; box.style.left = `${left}px`; box.style.top = `${rect.bottom + 10}px`; box.style.visibility = 'visible';
+      box.style.width = `${width}px`; box.style.left = `${left}px`; box.style.visibility = 'visible';
+      // Below the target, or above it when there is no room underneath (a phone's lower half); the arrow follows.
+      const flip = rect.bottom + 10 + box.offsetHeight > window.innerHeight - 8 && rect.top - 10 - box.offsetHeight > 0;
+      box.style.top = flip ? `${rect.top - 10 - box.offsetHeight}px` : `${rect.bottom + 10}px`;
+      box.toggleAttribute('data-flip', flip);
       box.style.setProperty('--gk-coach-arrow', `${Math.max(16, Math.min(rect.left + rect.width / 2 - left, width - 16))}px`);
       target.setAttribute('data-coach-on', '');
-      if (rect.top < 0 || rect.bottom > window.innerHeight) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
     };
+    // Brought on screen once per step; placement then follows the person's own scrolling.
+    const first = document.querySelector<HTMLElement>(current.target);
+    if (first) { const rect = first.getBoundingClientRect(); if (rect.top < 0 || rect.bottom > window.innerHeight) first.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
     place();
     window.addEventListener('scroll', place, true); window.addEventListener('resize', place);
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') finish(); };

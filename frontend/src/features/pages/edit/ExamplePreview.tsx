@@ -13,7 +13,7 @@ export function ExamplePreview() {
   return (
     <button type="button" className="gk-example-preview" onClick={() => openPanel('example')}>
       <img src="/examples/club-page.jpg" alt="" aria-hidden="true" />
-      <span className="gk-example-preview__words"><Eye aria-hidden="true" />{t('What a finished club looks like')}<small>{t('Tap to open it: yours can look like this')}</small></span>
+      <span className="gk-example-preview__words"><small className="gk-example-preview__ask">{t('Curious what a finished club looks like?')}</small><span className="gk-example-preview__cta"><Eye aria-hidden="true" />{t('Tap here to see one')}</span><small>{t('Yours can look like this')}</small></span>
     </button>
   );
 }

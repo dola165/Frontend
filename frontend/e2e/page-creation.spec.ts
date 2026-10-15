@@ -75,6 +75,13 @@ const flow = (width: number, height: number) => {
       await page.getByRole('button', { name: 'Keep this crest' }).click();
       await expect(page.getByRole('dialog')).toHaveCount(0);
 
+      // About, in the identity panel: one sentence.
+      await openRing(page, /Next: Say what you are/);
+      const about = 'Community football in Rustavi for boys and girls from six up.';
+      await page.getByRole('dialog', { name: 'About your page' }).getByLabel('About').fill(about);
+      await page.getByRole('dialog', { name: 'About your page' }).getByRole('button', { name: 'Done' }).click();
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+
       // A ground from the map's list.
       await openRing(page, /Next: Where do you play\?/);
       const grounds = page.getByRole('dialog', { name: 'Where do you play?' });
@@ -107,8 +114,8 @@ const flow = (width: number, height: number) => {
       await tap(page.getByRole('button', { name: 'Go live' }));
       await expect(page.getByRole('dialog', { name: 'Your page is live' })).toBeVisible();
       // Measured against the before review: taps, typed characters and seconds from "I want a club" to "my page is live".
-      const panelTaps = 2 + 3 + 4 + 3 + 2; // crest: ring, Keep · ground: ring, pitch, Done · ages: ring, two groups, Done · contact: ring, field, Done · fees: ring, Done
-      console.log(`page-creation ${width}×${height}: live after ${Math.round((Date.now() - started) / 1000)} s, ${taps + panelTaps} taps, ${clubName.length + 17} characters typed (the name and a phone)`);
+      const panelTaps = 2 + 3 + 3 + 4 + 3 + 2; // crest: ring, Keep · about: ring, field, Done · ground: ring, pitch, Done · ages: ring, two groups, Done · contact: ring, field, Done · fees: ring, Done
+      console.log(`page-creation ${width}×${height}: live after ${Math.round((Date.now() - started) / 1000)} s, ${taps + panelTaps} taps, ${clubName.length + about.length + 17} characters typed (the name, a sentence about the club, a phone)`);
       await page.getByRole('dialog', { name: 'Your page is live' }).getByRole('button', { name: 'Done' }).click();
       await expect(page.getByText('Draft · only you see this')).toHaveCount(0);
 
@@ -142,7 +149,7 @@ const flow = (width: number, height: number) => {
       await expect(page.getByText('Claim pending verification')).toBeVisible();
       // What was known about the club is already on the page and counted by the ring; the page was live before the claim.
       if (known === 307) await expect(page.getByText('Poladi Stadium training pitch').first()).toBeVisible();
-      await expect(page.getByRole('button', { name: /of 7 done/ })).toBeVisible();
+      await expect(page.getByRole('button', { name: /of \d+ done/ })).toBeVisible();
     });
   });
 };

@@ -144,3 +144,18 @@
 .gk-coach__dots i[data-on] { background: var(--gk-accent); }
 @keyframes gk-coach-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .gk .gk-ghost[data-next], .gk .gk-needs, .gk .gk-ring__count, .gk .gk-boxframe[data-flash], .gk .gk-ghost[data-need='live'] .gk-ghost__need::before, .gk .gk-editbar [data-coach='live'][data-ready], .gk-coach { animation: none; } }
+
+/* Three levels on a ghost: needed (green), recommended (quiet), advanced (quieter still). The doors under a box. The example link. */
+.gk .gk-ghost[data-need='advanced'] .gk-ghost__need { color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-ghost[data-need='advanced'] { border-style: dotted; }
+.gk .gk-box__doors { padding: var(--gk-2) var(--gk-3) var(--gk-3); }
+.gk .gk-editbar__example { display: inline-flex; align-items: center; gap: 4px; color: var(--gk-text-2); font-size: var(--gk-fs-xs); text-decoration: none; }
+.gk .gk-editbar__example:hover { color: var(--gk-text); text-decoration: underline; }
+
+/* Rearrange: the whole box is the handle; the gap nearest the flying box opens to its height, so the others slide apart. */
+.gk .gk-boxframe__drag { cursor: grab; border-radius: var(--gk-r-lg); transition: opacity .15s var(--gk-ease); }
+.gk .gk-boxframe__drag:active { cursor: grabbing; }
+.gk .gk-boxframe__drag[data-dragging] { opacity: .35; }
+.gk .gk-rearrange .gk-boxframe__drop { transition: height .2s var(--gk-ease), background-color .15s var(--gk-ease), margin .2s var(--gk-ease); }
+.gk .gk-rearrange[data-flying] .gk-boxframe__drop[data-over] { height: var(--gk-drag-h, 72px); margin: var(--gk-2) 0; border: 1px dashed var(--gk-accent); background: var(--gk-accent-soft); }
+@media (prefers-reduced-motion: reduce) { .gk .gk-rearrange .gk-boxframe__drop { transition: none; } }

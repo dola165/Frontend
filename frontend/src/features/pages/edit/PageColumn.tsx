@@ -6,12 +6,12 @@ import { addableBoxes, BOX_COLUMN, type BoxKey, type Column } from '../model/kin
 import { GhostBox, type GhostNeed } from './GhostBox';
 import { SETUP_PANEL, usePageEdit } from './context';
 import { BOX_NAMES } from './words';
-import { BoxTools, DropGap, TrayItem } from './Rearrange';
+import { DraggableBox, DropGap, TrayItem } from './Rearrange';
 import type { BoxRenderers } from './boxRegistry';
 import './edit.css';
 
-/** What an empty box means for going live: a ground or a way to reach the page is needed, the rest can wait. */
-const needOf = (page: PageView, key: BoxKey): GhostNeed => (page.goLive.missing.includes('groundOrContact') && (key === 'contact' || key === 'grounds') ? 'live' : 'optional');
+/** What an empty box means: a ground or a way to reach the page is needed to go live; money (store, jobs, fundraising) is advanced; the rest is recommended. */
+const needOf = (page: PageView, key: BoxKey): GhostNeed => (page.goLive.missing.includes('groundOrContact') && (key === 'contact' || key === 'grounds') ? 'live' : key === 'involved' ? 'advanced' : 'recommended');
 
 /** The boxes that just filled or just changed place light up for a moment, so the eye follows what happened. */
 function useFlashes(keys: BoxKey[], filled: Record<string, boolean>): Set<BoxKey> {
@@ -55,10 +55,10 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
         const isNext = next === target;
         return (
           <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined} data-flash={flashing.has(key) || undefined} data-coach={isNext && !filled[key] ? 'next-box' : undefined}>
-            {rearranging && <BoxTools box={key} column={column} index={index} count={keys.length} />}
-            {filled[key] || (open && !renderer.panel)
+            {(() => { const content = filled[key] || (open && !renderer.panel)
               ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
-              : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />}
+              : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />;
+              return rearranging ? <DraggableBox box={key} column={column} index={index} count={keys.length}>{content}</DraggableBox> : content; })()}
             {rearranging && <DropGap column={column} index={index + 1} />}
           </div>
         );

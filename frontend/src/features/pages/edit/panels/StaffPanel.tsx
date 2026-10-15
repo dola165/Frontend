@@ -39,7 +39,7 @@ export function StaffPanel() {
     return encodeURIComponent(t('{page} invites you to join as {role}{squad}: {url}', { page: page.identity.name, role: t(ROLE_WORD[invite.role]).toLowerCase(), squad: squad ? ` (${squad})` : '', url: url(invite.code) }));
   };
   return (
-    <SplitPanel title={t(club ? 'Who is in the team?' : 'Who runs it with you?')} description={t('An invitation is a link. They need no account first.')} onClose={closePanel}
+    <SplitPanel title={t(club ? 'Invite coaches & staff' : 'Who runs it with you?')} description={t('An invitation is a link. They need no account first.')} onClose={closePanel}
       footer={<Button variant="primary" onClick={closePanel}>{t('Done')}</Button>}
       preview={<div className="gk-boxedit">
         <p className="gk-field__label">{t('In the team')}</p>

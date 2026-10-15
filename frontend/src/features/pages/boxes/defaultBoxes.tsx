@@ -14,7 +14,7 @@ export const defaultBoxes: BoxRenderers = {
   fees: { View: FeesBox, icon: Coins, words: 'What does it cost?', hint: 'From – to a month, or free', filled: page => page.boxes.fees.band !== null },
   grounds: { View: GroundsBox, icon: MapPin, words: 'Where do you play?', hint: 'Pick a pitch on the map', panel: 'grounds', filled: page => page.boxes.grounds.items.length > 0 },
   squads: { View: SquadsBox, icon: Users, words: 'Which ages?', hint: 'U6 to seniors, boys, girls or mixed', panel: 'squads', filled: page => page.boxes.squads.items.length > 0 },
-  staff: { View: StaffBox, icon: UserPlus, words: 'Who is in the team?', hint: 'Invite by phone or link', panel: 'staff', filled: page => page.boxes.staff.members.length > 1 || page.boxes.staff.invites.length > 0 },
+  staff: { View: StaffBox, icon: UserPlus, words: 'Invite coaches & staff', hint: 'They get an account and act for the club', panel: 'staff', filled: page => page.boxes.staff.members.length > 1 || page.boxes.staff.invites.length > 0 },
   sponsors: { View: SponsorsBox, icon: Building2, words: 'Who backs you?', hint: 'Sponsors and partners', filled: page => page.boxes.sponsors.items.length > 0 },
   honours: { View: HonoursBox, icon: Medal, words: 'Add an honour', hint: 'Cups, leagues, awards', filled: page => page.boxes.honours.items.length > 0 },
   events: { View: EventsBox, icon: CalendarDays, words: 'What’s coming up', hint: 'From the club calendar', filled: page => page.clubId !== null },

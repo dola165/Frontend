@@ -110,9 +110,9 @@ export function normalizeLayout(kind: PageKind, value: unknown): PageLayout {
 export const SETUP_KEYS = ['name', 'crest', 'grounds', 'squads', 'contact', 'fees', 'players', 'staff', 'posts', 'about', 'sponsors'] as const;
 export type SetupKey = typeof SETUP_KEYS[number];
 
-/** What the setup ring counts, per type, in the order the next ghost box is highlighted. A club counts seven. */
+/** What the setup ring counts, per type, in the order the next ghost box is highlighted. A club counts eight. */
 export const SETUP_ITEMS: Record<PageKind, readonly SetupKey[]> = {
-  CLUB: ['name', 'crest', 'grounds', 'squads', 'contact', 'fees', 'players'],
+  CLUB: ['name', 'crest', 'about', 'grounds', 'squads', 'contact', 'fees', 'players'],
   FAN_CLUB: ['name', 'crest', 'grounds', 'contact', 'fees', 'staff', 'posts'],
   BUSINESS: ['name', 'crest', 'about', 'contact', 'sponsors', 'posts'],
   PAGE: ['name', 'crest', 'about', 'contact', 'posts'],

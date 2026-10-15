@@ -15,7 +15,7 @@ import { SplitPanel } from '../SplitPanel';
 /** Right after going live: "Your page is live", the link to copy, a WhatsApp share and a QR code for the parents' group. */
 export function LivePanel() {
   const t = usePagesCopy();
-  const { page, closePanel } = usePageEdit();
+  const { page, closePanel, openPanel } = usePageEdit();
   const [copied, setCopied] = useState(false);
   const [post, setPost] = useState(() => t('{name} joined GrassKickZ', { name: page?.identity.name ?? '' }));
   const [posting, setPosting] = useState(false);
@@ -46,6 +46,7 @@ export function LivePanel() {
           <Button variant="primary" onClick={() => void copy()}>{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}{copied ? t('Copied') : t('Copy link')}</Button>
           <a className="gk-btn gk-btn--secondary" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer" onClick={() => recordFunnelEvent('PAGE_SHARED', { via: 'whatsapp', pageRef: `${page.ref.type}-${page.ref.id}` })}><MessageCircle aria-hidden="true" />{t('Share in WhatsApp')}</a>
         </div>
+        {page.kind === 'CLUB' && <div className="gk-boxedit__foot"><Button size="sm" onClick={() => openPanel('players')}>{t('Invite players')}</Button><Button size="sm" onClick={() => openPanel('staff')}>{t('Invite coaches & staff')}</Button></div>}
         {/* The first post, written for the owner: editable, one tap to post, or skipped. */}
         <div>
           <label className="gk-field__label" htmlFor={`${id}-post`}>{t('Your first post')}</label>

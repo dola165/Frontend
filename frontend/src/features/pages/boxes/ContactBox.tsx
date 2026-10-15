@@ -44,8 +44,13 @@ function ContactEditor({ initial, suggestions, onSave, onCancel }: { initial: Dr
   const id = useId();
   const onKey = (event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); void onSave(draft); } if (event.key === 'Escape') onCancel(); };
   const offerPhone = suggestions?.phone && digits(suggestions.phone) !== digits(draft.phone), offerEmail = suggestions?.email && suggestions.email !== draft.email;
+  // The phone's own contact book, where the browser offers it (Android Chrome): one tap, the person picks, nothing is read otherwise.
+  const contacts = (navigator as Navigator & { contacts?: { select: (fields: string[], options?: { multiple?: boolean }) => Promise<{ tel?: string[]; email?: string[] }[]> } }).contacts;
+  const pick = async () => {
+    try { const [chosen] = await contacts!.select(['tel', 'email'], { multiple: false }); if (chosen) setDraft({ ...draft, phone: chosen.tel?.[0] ?? draft.phone, email: chosen.email?.[0] ?? draft.email }); } catch { /* the person closed the picker */ }
+  };
   return (
-    <div className="gk-boxedit" onKeyDown={onKey}>
+    <form className="gk-boxedit" onKeyDown={onKey} onSubmit={event => { event.preventDefault(); void onSave(draft); }}>
       <div>
         <label className="gk-field__label" htmlFor={`${id}-phone`}>{t('Phone')}</label>
         <input id={`${id}-phone`} className="gk-input" type="tel" inputMode="tel" autoComplete="tel" autoFocus value={draft.phone} placeholder="+995 5__ __ __ __" maxLength={20} onChange={event => setDraft({ ...draft, phone: event.target.value })} />
@@ -56,14 +61,15 @@ function ContactEditor({ initial, suggestions, onSave, onCancel }: { initial: Dr
         <input id={`${id}-email`} className="gk-input" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={event => setDraft({ ...draft, email: event.target.value })} />
         {offerEmail && <button type="button" className="gk-tap" style={{ marginTop: 6 }} onClick={() => setDraft({ ...draft, email: suggestions.email })}><Check aria-hidden="true" />{t('Use {email}', { email: suggestions.email })}</button>}
       </div>
+      {contacts && <button type="button" className="gk-tap" onClick={() => void pick()}><Check aria-hidden="true" />{t('Pick from my contacts')}</button>}
       {more ? <>
-        <div><label className="gk-field__label" htmlFor={`${id}-web`}>{t('Website')}</label><input id={`${id}-web`} className="gk-input" type="url" inputMode="url" value={draft.website} placeholder="rustavi-lions.ge" maxLength={300} onChange={event => setDraft({ ...draft, website: event.target.value })} /></div>
-        <div><label className="gk-field__label" htmlFor={`${id}-ig`}>Instagram</label><input id={`${id}-ig`} className="gk-input" value={draft.instagram} placeholder="@rustavi.lions" maxLength={300} onChange={event => setDraft({ ...draft, instagram: event.target.value })} /></div>
+        <div><label className="gk-field__label" htmlFor={`${id}-web`}>{t('Website')}</label><input id={`${id}-web`} className="gk-input" type="url" inputMode="url" autoComplete="url" value={draft.website} placeholder="rustavi-lions.ge" maxLength={300} onChange={event => setDraft({ ...draft, website: event.target.value })} /></div>
+        <div><label className="gk-field__label" htmlFor={`${id}-ig`}>Instagram</label><input id={`${id}-ig`} className="gk-input" autoComplete="off" value={draft.instagram} placeholder="@rustavi.lions" maxLength={300} onChange={event => setDraft({ ...draft, instagram: event.target.value })} /></div>
       </> : <button type="button" className="gk-cmatch__no" onClick={() => setMore(true)}>{t('Website and Instagram')}</button>}
       <div className="gk-boxedit__foot">
         <Button size="sm" variant="primary" onClick={() => void onSave(draft)}>{t('Done')}</Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>{t('Cancel')}</Button>
       </div>
-    </div>
+    </form>
   );
 }

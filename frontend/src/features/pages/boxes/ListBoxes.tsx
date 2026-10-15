@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Lock, MapPin, Plus, Trash2, Trophy, Users } from 'lucide-react';
+import { ArrowUpRight, FileUp, Lock, MapPin, Plus, Trash2, Trophy, UserPlus, Users } from 'lucide-react';
 import { Avatar, Button, List, ListRow } from '../../../design/primitives';
 import { SideBlock } from '../../../design/profile/ProfileLayout';
 import { Crest } from '../../world/Crest';
@@ -24,7 +24,7 @@ export function GroundsBox({ page, editing, onEdit }: BoxProps) {
   return (
     <SideBlock title={t(page.kind === 'FAN_CLUB' ? 'Meeting place' : 'Grounds')} hint={t(page.kind === 'FAN_CLUB' ? 'Where we meet' : 'Where we play and train')} action={editing ? <EditPencil onClick={onEdit} /> : undefined}>
       <List label={t('Grounds')}>
-        {grounds.slice(0, 4).map(ground => <ListRow key={ground.id} to={page.clubId ? `/clubs/${page.clubId}?tab=facilities&place=${ground.id}` : undefined}
+        {grounds.slice(0, 4).map(ground => <ListRow key={ground.id} to={page.clubId ? `/clubs/${page.clubId}?tab=facilities&place=${ground.id}${editing ? '&edit=1' : ''}` : undefined}
           lead={<span className="gk-club-icon"><MapPin aria-hidden="true" /></span>} title={ground.name} meta={[ground.address, ground.indoor ? t('Indoor') : null].filter(Boolean).join(' · ')} />)}
       </List>
     </SideBlock>
@@ -37,12 +37,13 @@ export function SquadsBox({ page, editing, onEdit }: BoxProps) {
   const { openPanel } = usePageEdit();
   const squads = page.boxes.squads.items;
   return (
-    <SideBlock title={t('Teams')} hint={t('Age groups and when they train')} action={editing ? <span className="gk-row"><button type="button" className="gk-section__action" onClick={() => openPanel('players')}>{t('Invite players')}</button><EditPencil onClick={onEdit} /></span> : undefined}>
+    <SideBlock title={t('Teams')} hint={t('Age groups and when they train')} action={editing ? <EditPencil onClick={onEdit} /> : undefined}>
       <List label={t('Teams')}>
-        {squads.map(squad => <ListRow key={squad.id} to={page.clubId ? `/clubs/${page.clubId}?tab=teams&squad=${squad.id}` : undefined}
+        {squads.map(squad => <ListRow key={squad.id} to={page.clubId ? `/clubs/${page.clubId}?tab=teams&squad=${squad.id}${editing ? '&edit=1' : ''}` : undefined}
           lead={<span className="gk-club-icon"><Users aria-hidden="true" /></span>} title={squad.name}
           meta={[squad.days.length ? `${squad.days.map(day => t(DAYS[day - 1] ?? '')).join(' · ')}${squad.time ? ` ${squad.time}` : ''}` : t('Training times to come'), squad.players ? t('{n} players', { n: squad.players }) : null].filter(Boolean).join(' · ')} />)}
       </List>
+      {page.viewer.canEdit && squads.length > 0 && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" variant="primary" onClick={() => openPanel('players')}><UserPlus aria-hidden="true" />{t('Invite players')}</Button></div>}
     </SideBlock>
   );
 }
@@ -50,6 +51,7 @@ export function SquadsBox({ page, editing, onEdit }: BoxProps) {
 /** The people behind the page as faces, with what each does. */
 export function StaffBox({ page, editing, onEdit }: BoxProps) {
   const t = usePagesCopy();
+  const { openPanel } = usePageEdit();
   const members = page.boxes.staff.members, invites = page.boxes.staff.invites.filter(invite => invite.status === 'INVITED');
   return (
     <SideBlock title={t(page.kind === 'CLUB' ? 'Coaches and staff' : page.kind === 'FAN_CLUB' ? 'Committee' : 'Team')} hint={t('Who runs it')} action={editing ? <EditPencil onClick={onEdit} /> : undefined}>
@@ -57,6 +59,7 @@ export function StaffBox({ page, editing, onEdit }: BoxProps) {
         {members.map(member => <ListRow key={member.userId} to={`/profile/${member.userId}`} lead={<Avatar src={member.avatarUrl} name={member.fullName} size={32} />} title={member.fullName} meta={t(member.title)} />)}
         {editing && invites.map(invite => <ListRow key={`invite-${invite.id}`} lead={<Avatar name={invite.name} size={32} />} title={invite.name || invite.phone} meta={t('Invited · waiting')} />)}
       </List>
+      {page.viewer.canEdit && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" onClick={() => openPanel('staff')}><UserPlus aria-hidden="true" />{t(page.kind === 'CLUB' ? 'Invite coaches & staff' : 'Invite someone')}</Button></div>}
     </SideBlock>
   );
 }
@@ -134,6 +137,14 @@ function NamesEditor({ rows: initial, extraLabel, extraPlaceholder, extraType = 
   const t = usePagesCopy();
   const [rows, setRows] = useState<Row[]>(initial.length ? initial : [{ id: -1, name: '', extra: '' }]);
   const update = (index: number, patch: Partial<Row>) => setRows(current => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  // A side door for a list kept elsewhere: a CSV (or lines pasted from a spreadsheet), one row per line, the name and the other thing in either order.
+  const importFile = async (file: File) => {
+    const text = await file.text();
+    const parsed = text.split(/\r?\n/).map(line => line.split(/[,;\t]/).map(cell => cell.trim().replace(/^"|"$/g, ''))).filter(cells => cells.some(Boolean))
+      .map(cells => { const numeric = cells.findIndex(cell => /^\d{4}$/.test(cell)); const name = cells.find((cell, i) => i !== numeric && cell) ?? ''; return { id: -Date.now() - Math.random(), name, extra: numeric >= 0 ? cells[numeric] : '' }; })
+      .filter(row => row.name && !/^(name|title|honour|year)$/i.test(row.name));
+    if (parsed.length) setRows(current => [...current.filter(row => row.name.trim()), ...parsed]);
+  };
   return (
     <div className="gk-boxedit">
       {rows.map((row, index) => (
@@ -145,6 +156,7 @@ function NamesEditor({ rows: initial, extraLabel, extraPlaceholder, extraType = 
       ))}
       <div className="gk-boxedit__foot">
         <Button size="sm" variant="ghost" onClick={() => setRows(current => [...current, { id: -Date.now(), name: '', extra: '' }])}><Plus aria-hidden="true" />{addLabel}</Button>
+        <label className="gk-btn gk-btn--ghost gk-btn--sm"><FileUp aria-hidden="true" />{t('Import a file')}<input type="file" accept=".csv,.txt,text/csv,text/plain" className="gk-visually-hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void importFile(file); event.target.value = ''; }} /></label>
         <Button size="sm" variant="primary" onClick={() => void onSave(rows.filter(row => row.name.trim()).map(row => ({ ...row, id: row.id < 0 ? -1 : row.id })))}>{t('Done')}</Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>{t('Cancel')}</Button>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LayoutList, PenLine } from 'lucide-react';
+import { ExternalLink, LayoutList, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
@@ -54,6 +54,7 @@ export function EditBar() {
           <span className="gk-ring__next">{t(SETUP_WORDS[next])}</span>
         </button>
       )}
+      {!setup.completedAt && page.kind === 'CLUB' && <a className="gk-editbar__example" href="/clubs/1" target="_blank" rel="noopener noreferrer">{t('See a full page')}<ExternalLink aria-hidden="true" size={12} /></a>}
       <span className="gk-editbar__saved" role="status" aria-live="polite" aria-label={t('Save status')} data-status={status}>
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>
@@ -63,7 +64,7 @@ export function EditBar() {
         {editing && <Button size="sm" variant={rearranging ? 'primary' : 'ghost'} aria-pressed={rearranging} onClick={() => setRearranging(!rearranging)}><LayoutList aria-hidden="true" />{t('Rearrange')}</Button>}
         {editing
           ? <Button size="sm" onClick={() => setEditing(false)}>{t('Done')}</Button>
-          : <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{t('Edit page')}</Button>}
+          : <Button size="sm" variant="primary" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{t('Edit page')}</Button>}
       </span>
     </div>
   );

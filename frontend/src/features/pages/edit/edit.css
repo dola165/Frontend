@@ -182,3 +182,20 @@
 .gk .gk-coach__words { display: flex; align-items: center; gap: var(--gk-2); }
 .gk .gk-coach__icon { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
 .gk .gk-coach__icon svg { width: 14px; height: 14px; }
+
+/* The steps behind the ring: a list on hover or press, ticked when done, the next one lit. */
+.gk .gk-steps { position: relative; display: inline-flex; }
+.gk .gk-steps__list { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; min-width: 280px; max-width: 340px; margin: 0; padding: var(--gk-2); list-style: none; border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: var(--gk-elevation); animation: gk-coach-in .18s var(--gk-ease); }
+.gk .gk-steps__item { display: flex; align-items: center; gap: var(--gk-2); width: 100%; min-height: 40px; padding: 6px var(--gk-2); border: 0; border-radius: var(--gk-r); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-steps__item:hover, .gk .gk-steps__item:focus-visible { background: var(--gk-hover); outline: none; }
+.gk .gk-steps__item[data-next] { background: var(--gk-accent-soft); }
+.gk .gk-steps__mark { display: grid; place-items: center; width: 20px; height: 20px; flex-shrink: 0; border: 1px solid var(--gk-line-strong); border-radius: 50%; color: var(--gk-on-accent); }
+.gk .gk-steps__item[data-done] .gk-steps__mark { background: var(--gk-accent); border-color: var(--gk-accent); }
+.gk .gk-steps__mark svg { width: 12px; height: 12px; }
+.gk .gk-steps__text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.gk .gk-steps__words { font-weight: 600; }
+.gk .gk-steps__item[data-done] .gk-steps__words { color: var(--gk-text-2); text-decoration: line-through; text-decoration-color: var(--gk-line-strong); }
+.gk .gk-steps__why { color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: 1.4; }
+.gk .gk-steps__next { padding: 1px 8px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); font-size: var(--gk-fs-xs); font-weight: 650; }
+.gk .gk-steps__foot { padding: 6px var(--gk-2) 2px; color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+@media (max-width: 760px) { .gk .gk-steps__list { position: fixed; left: 12px; right: 12px; top: auto; max-width: none; } }

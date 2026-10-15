@@ -4,11 +4,10 @@ import { Eye, LayoutList, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
-import { SETUP_ITEMS } from '../model/kinds';
 import { claimHref } from '../create/entry';
-import { SETUP_PANEL, usePageEdit } from './context';
-import { SETUP_WORDS } from './words';
+import { usePageEdit } from './context';
 import { CoachMarks } from './CoachMarks';
+import { StepsMenu } from './StepsMenu';
 import './edit.css';
 
 const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a name', crest: 'a crest', groundOrContact: 'a ground or a way to reach you' };
@@ -38,8 +37,6 @@ export function EditBar() {
     );
   }
   const setup = page.setup;
-  const total = SETUP_ITEMS[page.kind].length;
-  const next = setup.next;
   const missing = page.goLive.missing.map(item => t(MISSING[item]));
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
@@ -47,14 +44,8 @@ export function EditBar() {
       {page.status === 'DRAFT'
         ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
         : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending verification')}</span> : null}
-      {!setup.completedAt && next && (
-        <button type="button" className="gk-ring" data-coach="ring" onClick={() => openPanel(SETUP_PANEL[next])} aria-label={t('{done} of {total} done. Next: {next}', { done: setup.done, total, next: t(SETUP_WORDS[next]) })}>
-          <SetupRing done={setup.done} total={total} />
-          <span key={setup.done} className="gk-ring__count">{t('{done} of {total}', { done: setup.done, total })}</span>
-          <span className="gk-ring__next">{t(SETUP_WORDS[next])}</span>
-        </button>
-      )}
-      {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}>{t('See a full page')}<Eye aria-hidden="true" size={12} /></button>}
+      {!setup.completedAt && <StepsMenu page={page} />}
+      {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}><Eye aria-hidden="true" size={12} />{t('What a finished club looks like')}</button>}
       <span className="gk-editbar__saved" role="status" aria-live="polite" aria-label={t('Save status')} data-status={status}>
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>
@@ -67,16 +58,5 @@ export function EditBar() {
           : <Button size="sm" variant="primary" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{t('Edit page')}</Button>}
       </span>
     </div>
-  );
-}
-
-/** A small ring filling up as the page is set up. */
-function SetupRing({ done, total }: { done: number; total: number }) {
-  const radius = 11, length = 2 * Math.PI * radius;
-  return (
-    <svg viewBox="0 0 28 28" aria-hidden="true">
-      <circle className="gk-ring__track" cx="14" cy="14" r={radius} />
-      <circle className="gk-ring__fill" cx="14" cy="14" r={radius} strokeDasharray={length} strokeDashoffset={length * (1 - (total ? done / total : 0))} />
-    </svg>
   );
 }

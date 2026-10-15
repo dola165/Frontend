@@ -32,8 +32,10 @@ async function register(page: Page, name: string, email: string) {
   await expect(page).toHaveURL(/\/home/);
 }
 
+/** The ring lists the steps on hover; the step's row opens its editor (one tap, as with a mouse). */
 async function openRing(page: Page, words: RegExp) {
-  await page.getByRole('button', { name: words }).click();
+  await page.getByRole('button', { name: /of \d+ done/ }).hover();
+  await page.getByRole('menuitem', { name: words }).click();
 }
 
 const flow = (width: number, height: number) => {
@@ -70,20 +72,20 @@ const flow = (width: number, height: number) => {
       await tap(page.getByRole('dialog', { name: 'Every box here does a job.' }).getByRole('button', { name: 'Skip' }));
 
       // A crest from colours.
-      await openRing(page, /Next: Add your crest/);
+      await openRing(page, /Add your crest/);
       await page.getByRole('dialog', { name: 'Your crest' }).getByRole('group', { name: 'Main colour' }).getByRole('button', { name: 'Green', exact: true }).click();
       await page.getByRole('button', { name: 'Keep this crest' }).click();
       await expect(page.getByRole('dialog')).toHaveCount(0);
 
       // About, in the identity panel: one sentence.
-      await openRing(page, /Next: Say what you are/);
+      await openRing(page, /Say what you are/);
       const about = 'Community football in Rustavi for boys and girls from six up.';
       await page.getByRole('dialog', { name: 'About your page' }).getByLabel('About').fill(about);
       await page.getByRole('dialog', { name: 'About your page' }).getByRole('button', { name: 'Done' }).click();
       await expect(page.getByRole('dialog')).toHaveCount(0);
 
       // A ground from the map's list.
-      await openRing(page, /Next: Where do you play\?/);
+      await openRing(page, /Where do you play\?/);
       const grounds = page.getByRole('dialog', { name: 'Where do you play?' });
       // The pitch is both a pin on the map and a row in the list under it; the row.
       await grounds.locator('.gk-list-row', { hasText: 'Rustavi Community Pitches' }).first().click();
@@ -91,7 +93,7 @@ const flow = (width: number, height: number) => {
       await expect(page.getByText('Rustavi Community Pitches').first()).toBeVisible();
 
       // Two age groups.
-      await openRing(page, /Next: Which ages\?/);
+      await openRing(page, /Which ages\?/);
       const ages = page.getByRole('dialog', { name: 'Which ages?' });
       await ages.getByRole('group', { name: 'Age groups' }).locator('.gk-ages__row', { hasText: /^U10/ }).getByRole('button', { name: 'Boys' }).click();
       await ages.getByRole('group', { name: 'Age groups' }).locator('.gk-ages__row', { hasText: /^U12/ }).getByRole('button', { name: 'Girls' }).click();
@@ -100,13 +102,13 @@ const flow = (width: number, height: number) => {
       await expect(page.getByText('U12 Girls').first()).toBeVisible();
 
       // Contact: one tap on the account's email.
-      await openRing(page, /Next: How to reach you/);
+      await openRing(page, /How to reach you/);
       await page.getByLabel('Phone').fill('+995 599 12 34 56');
       await page.locator('.gk-boxedit').getByRole('button', { name: 'Done' }).click();
       await expect(page.getByText(/\+995\s?599\s?12\s?34\s?56/)).toBeVisible();
 
       // A fee range: the inline editor's defaults are kept.
-      await openRing(page, /Next: What does it cost\?/);
+      await openRing(page, /What does it cost\?/);
       await page.locator('.gk-boxedit').getByRole('button', { name: 'Done' }).click();
       await expect(page.getByText(/GEL \/ month/)).toBeVisible();
 

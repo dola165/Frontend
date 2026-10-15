@@ -26,7 +26,7 @@ export function ExamplePanel() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   return (
-    <Dialog open size="lg" title={t('A full club page')} description={t('Dinamo’s page as visitors see it. Tap around: yours can look like this.')} onClose={closePanel} closeLabel={t('Close')}>
+    <Dialog open size="lg" title={t('What a finished club looks like')} description={t('Dinamo’s page as visitors see it. Tap around: yours can look like this.')} onClose={closePanel} closeLabel={t('Close')}>
       <div className="gk-example" style={{ width: Math.round(EXAMPLE_WIDTH * scale), height: Math.round(EXAMPLE_HEIGHT * scale) }} data-live={live || undefined}>
         <img className="gk-example__still" src={EXAMPLE_STILL} width={EXAMPLE_WIDTH} height={EXAMPLE_HEIGHT} alt={t('A full club page')} style={{ transform: `scale(${scale})` }} />
         <iframe className="gk-example__live" title={t('A full club page')} src="/clubs/1" width={EXAMPLE_WIDTH} height={EXAMPLE_HEIGHT + APP_HEADER} style={{ transform: `scale(${scale}) translateY(-${APP_HEADER}px)` }} onLoad={() => setLive(true)} />

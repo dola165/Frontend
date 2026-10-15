@@ -8,6 +8,7 @@ import { SETUP_ITEMS } from '../model/kinds';
 import { claimHref } from '../create/entry';
 import { SETUP_PANEL, usePageEdit } from './context';
 import { SETUP_WORDS } from './words';
+import { CoachMarks } from './CoachMarks';
 import './edit.css';
 
 const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a name', crest: 'a crest', groundOrContact: 'a ground or a way to reach you' };
@@ -21,10 +22,10 @@ export function EditBar() {
   const t = usePagesCopy();
   const location = useLocation();
   const { page, editing, canEdit, setEditing, openPanel, goLive, status, arrival, pendingCount, rearranging, setRearranging } = usePageEdit();
-  // The first time on a new or claimed page, one hint, once.
+  // The first time on a claimed page, one hint, once; a new page gets the short walkthrough instead (CoachMarks).
   useEffect(() => {
-    if (!arrival || !page) return;
-    toast(arrival === 'new' ? t('Your page exists. Tap a box to fill it.') : t('This page is yours now. Tap a box to fill it.'), { id: 'page-arrival', duration: 6000 });
+    if (arrival !== 'claimed' || !page) return;
+    toast(t('This page is yours now. Tap a box to fill it.'), { id: 'page-arrival', duration: 6000 });
   }, [arrival, page, t]);
   if (!page) return null;
   if (!canEdit) {
@@ -42,13 +43,14 @@ export function EditBar() {
   const missing = page.goLive.missing.map(item => t(MISSING[item]));
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
+      {arrival === 'new' && editing && <CoachMarks pageRef={page.ref} />}
       {page.status === 'DRAFT'
         ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
         : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending verification')}</span> : null}
       {!setup.completedAt && next && (
-        <button type="button" className="gk-ring" onClick={() => openPanel(SETUP_PANEL[next])} aria-label={t('{done} of {total} done. Next: {next}', { done: setup.done, total, next: t(SETUP_WORDS[next]) })}>
+        <button type="button" className="gk-ring" data-coach="ring" onClick={() => openPanel(SETUP_PANEL[next])} aria-label={t('{done} of {total} done. Next: {next}', { done: setup.done, total, next: t(SETUP_WORDS[next]) })}>
           <SetupRing done={setup.done} total={total} />
-          <span className="gk-ring__count">{t('{done} of {total}', { done: setup.done, total })}</span>
+          <span key={setup.done} className="gk-ring__count">{t('{done} of {total}', { done: setup.done, total })}</span>
           <span className="gk-ring__next">{t(SETUP_WORDS[next])}</span>
         </button>
       )}
@@ -57,7 +59,7 @@ export function EditBar() {
       </span>
       <span className="gk-editbar__actions">
         {page.status === 'DRAFT' && !page.goLive.ready && <span className="gk-editbar__missing">{t('To go live: {missing}', { missing: missing.join(', ') })}</span>}
-        {page.status === 'DRAFT' && <Button size="sm" variant="primary" disabled={!page.goLive.ready} onClick={() => void goLive()}>{t('Go live')}</Button>}
+        {page.status === 'DRAFT' && <Button size="sm" variant="primary" data-coach="live" data-ready={page.goLive.ready || undefined} disabled={!page.goLive.ready} onClick={() => void goLive()}>{t('Go live')}</Button>}
         {editing && <Button size="sm" variant={rearranging ? 'primary' : 'ghost'} aria-pressed={rearranging} onClick={() => setRearranging(!rearranging)}><LayoutList aria-hidden="true" />{t('Rearrange')}</Button>}
         {editing
           ? <Button size="sm" onClick={() => setEditing(false)}>{t('Done')}</Button>

@@ -130,7 +130,7 @@ function ClubProfileView({ id }: { id: number }) {
             }}
             banner={page ? page.identity.cover?.url ?? null : club.bannerUrl}
             bannerAction={editing ? <Button size="sm" onClick={() => edit.openPanel('cover')}><Camera aria-hidden="true" />{page?.identity.cover ? pt('Change cover') : pt('Add cover')}</Button> : images.coverAction}
-            imageAction={editing ? <Button size="sm" iconOnly aria-label={pt('Change crest')} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
+            imageAction={editing ? <Button size="sm" iconOnly aria-label={pt('Change crest')} className={page?.goLive.missing.includes('crest') ? 'gk-needs' : undefined} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
             actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"

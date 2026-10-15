@@ -220,3 +220,10 @@ These replace the older lines above and in sections 3, 7 and 12 where they disag
 - **"Show less like this"** demotes that author's posts on that topic to the end for the person (not a hide); "Why am I seeing this?" shows the sentence and the post's topic, place and reach, with the same action.
 - **Recorded:** what the person saw (half a card in view), opened, hid and asked less of, from the device in small batches; follows and unfollows by the server.
 - **Links decide, roles never:** Home's left rail shows Following and Followed clubs to anyone nobody has linked to a club, squad or child yet (and only once the server has answered); the club page's lead, My squads' back link, My Club and Account read links or the server's own records. My Club for someone without a club is one page for everyone: Find a club, Create a club when the server allows it, invitations.
+
+### The owner's first look at creating a page (15 October 2026, `PAGE_CREATION.md` §12)
+
+- **Guidance on the page, not a tour:** every empty box says in one chip whether it is *Needed to go live* or *Optional*; the next thing breathes; what just filled or moved glows; a new page opens with three small bubbles (the ring, a box, Go live) and never again. Words stay few; pictures and motion carry the meaning.
+- **Verification promises no call.** We cannot phone anyone yet: a request is reviewed and answered by message, usually within a day; until then the store and fundraising stay off and jobs are open. The owner agrees the check must exist, against scams in a club's name.
+- **Players arrive through the join link, two ways:** a player makes their own card from the link without an account, or a parent makes a parent account and the card for the child, whichever the family prefers. Built later; the model keeps a player card that exists before any account and can be claimed by one.
+- **Order of the club's boxes:** contact, fees, grounds, squads, fixed by default; Rearrange is the only way they move, and a move shows itself.

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, MapPin, Plus, Trash2, Trophy, Users } from 'lucide-react';
+import { ArrowUpRight, Lock, MapPin, Plus, Trash2, Trophy, Users } from 'lucide-react';
 import { Avatar, Button, List, ListRow } from '../../../design/primitives';
 import { SideBlock } from '../../../design/profile/ProfileLayout';
 import { Crest } from '../../world/Crest';
@@ -118,8 +118,9 @@ export function InvolvedBox({ page, editing, open, onEdit, onClose }: BoxProps) 
       {unlock.asking && <UnlockSheet action={unlock.asking} onClose={unlock.dismiss} />}
       {open ? <div className="gk-boxedit">
         <div className="gk-ctowns" role="group" aria-label={t('Get involved')}>
-          {INVOLVED_PARTS.map(part => <button key={part} type="button" className="gk-chip" aria-pressed={draft.includes(part)} onClick={() => toggle(part)}>{t(words[part][0])}{locks[part] && isLocked(locks[part], page.verification) ? <span className="gk-faint"> · {t(page.verification === 'REQUESTED' ? 'verifying' : 'verify first')}</span> : null}</button>)}
+          {INVOLVED_PARTS.map(part => <button key={part} type="button" className="gk-chip" aria-pressed={draft.includes(part)} onClick={() => toggle(part)}>{t(words[part][0])}{locks[part] && isLocked(locks[part], page.verification) ? <span className="gk-faint gk-row"><Lock aria-hidden="true" size={12} /> {t(page.verification === 'REQUESTED' ? 'verifying' : 'after verification')}</span> : null}</button>)}
         </div>
+        {(['store', 'fundraising'] as const).some(part => isLocked(locks[part]!, page.verification)) && <span className="gk-field__hint">{t('Money comes after a check, so nobody can take it in your name. Jobs are open now.')}</span>}
         <div className="gk-boxedit__foot"><Button size="sm" variant="primary" onClick={() => void saveBox('involved', { parts: draft }, { label: t('Saved') }).then(onClose)}>{t('Done')}</Button><Button size="sm" variant="ghost" onClick={onClose}>{t('Cancel')}</Button></div>
       </div>
         : <List label={t('Ways to get involved')}>{parts.map(part => <ListRow key={part} to={link[part]} lead={<span className="gk-club-icon" data-kind={part === 'fundraising' ? 'campaigns' : part}><ArrowUpRight aria-hidden="true" /></span>} title={t(words[part][0])} meta={t(words[part][1])} />)}</List>}

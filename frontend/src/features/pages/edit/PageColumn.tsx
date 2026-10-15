@@ -1,12 +1,35 @@
+import { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { usePagesCopy } from '../copy';
-import { addableBoxes, BOX_COLUMN, type Column } from '../model/kinds';
-import { GhostBox } from './GhostBox';
+import type { PageView } from '../api';
+import { addableBoxes, BOX_COLUMN, type BoxKey, type Column } from '../model/kinds';
+import { GhostBox, type GhostNeed } from './GhostBox';
 import { SETUP_PANEL, usePageEdit } from './context';
 import { BOX_NAMES } from './words';
 import { BoxTools, DropGap, TrayItem } from './Rearrange';
 import type { BoxRenderers } from './boxRegistry';
 import './edit.css';
+
+/** What an empty box means for going live: a ground or a way to reach the page is needed, the rest can wait. */
+const needOf = (page: PageView, key: BoxKey): GhostNeed => (page.goLive.missing.includes('groundOrContact') && (key === 'contact' || key === 'grounds') ? 'live' : 'optional');
+
+/** The boxes that just filled or just changed place light up for a moment, so the eye follows what happened. */
+function useFlashes(keys: BoxKey[], filled: Record<string, boolean>): Set<BoxKey> {
+  const [flashing, setFlashing] = useState<Set<BoxKey>>(() => new Set());
+  const previous = useRef<{ order: string; filled: Record<string, boolean> } | null>(null);
+  const order = keys.join(',');
+  useEffect(() => {
+    const before = previous.current;
+    previous.current = { order, filled };
+    if (!before) return;
+    const changed = keys.filter(key => (before.filled[key] === false && filled[key]) || (before.order !== order && before.order.includes(key)));
+    if (!changed.length) return;
+    const show = window.setTimeout(() => setFlashing(new Set(changed)), 0);
+    const hide = window.setTimeout(() => setFlashing(new Set()), 1400);
+    return () => { clearTimeout(show); clearTimeout(hide); };
+  }, [keys, order, filled]);
+  return flashing;
+}
 
 /**
  * One column of a page: its boxes in the owner's order, each as its content or, in edit mode, as the ghost that
@@ -15,24 +38,27 @@ import './edit.css';
  */
 export function PageColumn({ column, renderers }: { column: Column; renderers: BoxRenderers }) {
   const { page, editing, rearranging, panel, openPanel, closePanel } = usePageEdit();
+  const keys = (page?.layout.columns[column] ?? []).filter(key => renderers[key]);
+  const filled: Record<string, boolean> = {};
+  for (const key of keys) filled[key] = page ? renderers[key]!.filled(page) : false;
+  const flashing = useFlashes(keys, filled);
   if (!page) return null;
-  const keys = page.layout.columns[column].filter(key => renderers[key]);
   const next = page.setup.next ? SETUP_PANEL[page.setup.next] : null;
   return (
     <>
       {rearranging && <DropGap column={column} index={0} />}
       {keys.map((key, index) => {
         const renderer = renderers[key]!;
-        const filled = renderer.filled(page);
-        if (!editing && !filled) return null;
+        if (!editing && !filled[key]) return null;
         const target = renderer.panel ?? key;
         const open = panel === key;
+        const isNext = next === target;
         return (
-          <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined}>
+          <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined} data-flash={flashing.has(key) || undefined} data-coach={isNext && !filled[key] ? 'next-box' : undefined}>
             {rearranging && <BoxTools box={key} column={column} index={index} count={keys.length} />}
-            {filled || (open && !renderer.panel)
+            {filled[key] || (open && !renderer.panel)
               ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
-              : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={next === target} onOpen={() => openPanel(target)} />}
+              : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />}
             {rearranging && <DropGap column={column} index={index + 1} />}
           </div>
         );
@@ -50,7 +76,7 @@ function AddBoxTray({ column, renderers }: { column: Column; renderers: BoxRende
   const choices = addableBoxes(page.kind, page.layout).filter(key => BOX_COLUMN[key] === column && renderers[key]);
   if (!choices.length) return null;
   return (
-    <div className="gk-tray" role="group" aria-label={t('Add a box')}>
+    <div className="gk-tray" role="group" aria-label={t('Add a box')} data-coach="tray">
       <span className="gk-tray__label">{t('Add a box')}</span>
       {choices.map(key => {
         const Icon = renderers[key]!.icon;

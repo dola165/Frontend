@@ -66,6 +66,8 @@ const flow = (width: number, height: number) => {
       await expect(page).toHaveURL(/\/clubs\/\d+\?edit=1&new=1/);
       await expect(page.getByText('Draft · only you see this')).toBeVisible();
       const clubUrl = page.url().split('?')[0];
+      // The first-time walkthrough (three bubbles) is skipped here; a person reads it once.
+      await tap(page.getByRole('dialog', { name: 'This ring is your to-do list.' }).getByRole('button', { name: 'Skip' }));
 
       // A crest from colours.
       await openRing(page, /Next: Add your crest/);

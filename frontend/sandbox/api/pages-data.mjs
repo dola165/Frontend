@@ -222,8 +222,9 @@ export function staffOf(page) {
     return W.staff.filter(s => s.clubId === page.clubId).map(s => { const p = W.personById(s.personId); return { userId: s.personId, fullName: p?.fullName ?? `Member #${s.personId}`, avatarUrl: p?.avatarUrl ?? null, role: s.kind === 'ADMIN' ? 'CLUB_ADMIN' : 'COACH', title: s.title, bio: null, responsibilities: [] }; });
   }
   const list = [...page.staff.entries()].map(([userId, role]) => ({ userId, fullName: viewerName(userId), avatarUrl: userId === W.ME_ID ? W.me.avatarUrl : null, role: role === 'OWNER' ? 'OWNER' : role === 'ADMIN' ? 'CLUB_ADMIN' : 'COACH',
-    title: role === 'OWNER' ? 'Runs the club' : role === 'ADMIN' ? 'Club administrator' : 'Coach', bio: null,
-    responsibilities: squadsOf(page).filter(s => s.headCoachId === userId).map(s => ({ title: 'Head coach', squadId: s.id, squadName: s.name, clubWide: false, provenance: 'RECORDED_APPOINTMENT' })) }));
+    title: role === 'OWNER' ? 'Runs the club' : role === 'ADMIN' ? 'Club administrator' : 'Coach', bio: null, qualifications: null,
+    // The backend's PublicResponsibility: the club page's Coaches & staff tab reads every field of it.
+    responsibilities: squadsOf(page).filter(s => s.headCoachId === userId).map(s => ({ title: 'Head coach', specialisations: ['HEAD_COACH'], squadId: s.id, squadName: s.name, squadIds: [s.id], squadNames: [s.name], clubWide: false, provenance: 'RECORDED_APPOINTMENT', startsOn: null, endsOn: null })) }));
   return list;
 }
 

@@ -431,4 +431,16 @@ export const PAGES_KA: Record<string, string> = {
   'Press space to pick up a box, the arrow keys to move it, space to drop it, Escape to cancel.': 'დააჭირეთ space-ს ყუთის ასაღებად, ისრებს გადასაადგილებლად, space-ს დასადებად, Escape-ს გასაუქმებლად.',
   'I am the parent or guardian and I agree to the club keeping this card.': 'მე ვარ მშობელი ან მეურვე და ვეთანხმები, რომ კლუბმა ეს ბარათი შეინახოს.',
   'This link is for {squad}. Ask the coach for the right squad’s link.': 'ეს ბმული {squad}-ისთვისაა. სთხოვეთ მწვრთნელს სწორი გუნდის ბმული.',
+  // The walkthrough, second version: what is new next to Facebook groups and LinkedIn pages; the example page.
+  'Every box here does a job.': 'აქ ყველა ყუთი საქმეს აკეთებს.',
+  'Squads become a calendar and a join link, grounds put you on the map, fees put you in parents’ searches. The ring counts what is still missing.': 'გუნდები კალენდარი და შემოსაერთებელი ბმული ხდება, მოედნები რუკაზე გსვამთ, საფასური მშობლების ძიებაში გაჩენთ. რგოლი ითვლის, რა აკლია ჯერ.',
+  'Nobody sees this until you go live.': 'სანამ არ გამოაქვეყნებთ, ამას არავინ ხედავს.',
+  'Unlike a Facebook group, it starts hidden. Fill what you have; green is needed, the rest can wait.': 'ფეისბუქის ჯგუფისგან განსხვავებით, თავიდან დამალულია. შეავსეთ, რაც გაქვთ; მწვანე საჭიროა, დანარჩენს დრო აქვს.',
+  'Players come through a link, not accounts.': 'მოთამაშეები ბმულით მოდიან, ანგარიშების გარეშე.',
+  'One WhatsApp link per squad: each parent adds their own child, you confirm. Nobody fills in forms for you.': 'თითო WhatsApp ბმული თითო გუნდზე: თითოეული მშობელი თავის შვილს ამატებს, თქვენ ადასტურებთ. ფორმებს თქვენს მაგივრად არავინ ავსებს.',
+  'Only money waits for a check.': 'მხოლოდ ფული ელოდება შემოწმებას.',
+  'Store and fundraising open after verification; posts, squads, grounds and invitations work today. Go live when the ring lets you.': 'მაღაზია და შემოწირულობები დადასტურების შემდეგ იხსნება; პოსტები, გუნდები, მოედნები და მოწვევები დღესვე მუშაობს. გამოაქვეყნეთ, როცა რგოლი ამის საშუალებას მოგცემთ.',
+  'A full club page': 'სრული კლუბის გვერდი',
+  'Dinamo’s page as visitors see it. Tap around: yours can look like this.': 'დინამოს გვერდი ისე, როგორც ვიზიტორები ხედავენ. შეეხეთ: თქვენიც ასე შეიძლება გამოიყურებოდეს.',
+  'This is what yours can look like': 'თქვენი ასე შეიძლება გამოიყურებოდეს',
 };

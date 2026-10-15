@@ -43,7 +43,7 @@ export function SquadsBox({ page, editing, onEdit }: BoxProps) {
           lead={<span className="gk-club-icon"><Users aria-hidden="true" /></span>} title={squad.name}
           meta={[squad.days.length ? `${squad.days.map(day => t(DAYS[day - 1] ?? '')).join(' · ')}${squad.time ? ` ${squad.time}` : ''}` : t('Training times to come'), squad.players ? t('{n} players', { n: squad.players }) : null].filter(Boolean).join(' · ')} />)}
       </List>
-      {page.viewer.canEdit && squads.length > 0 && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" variant="primary" onClick={() => openPanel('players')}><UserPlus aria-hidden="true" />{t('Invite players')}</Button></div>}
+      {page.viewer.canEdit && squads.length > 0 && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" variant="primary" data-coach="players" onClick={() => openPanel('players')}><UserPlus aria-hidden="true" />{t('Invite players')}</Button></div>}
     </SideBlock>
   );
 }

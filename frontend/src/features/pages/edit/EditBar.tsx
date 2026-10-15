@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ExternalLink, LayoutList, PenLine } from 'lucide-react';
+import { Eye, LayoutList, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
@@ -54,7 +54,7 @@ export function EditBar() {
           <span className="gk-ring__next">{t(SETUP_WORDS[next])}</span>
         </button>
       )}
-      {!setup.completedAt && page.kind === 'CLUB' && <a className="gk-editbar__example" href="/clubs/1" target="_blank" rel="noopener noreferrer">{t('See a full page')}<ExternalLink aria-hidden="true" size={12} /></a>}
+      {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}>{t('See a full page')}<Eye aria-hidden="true" size={12} /></button>}
       <span className="gk-editbar__saved" role="status" aria-live="polite" aria-label={t('Save status')} data-status={status}>
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>

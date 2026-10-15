@@ -34,6 +34,7 @@ import { usePagesCopy } from '../../pages/copy';
 import { EditBar } from '../../pages/edit/EditBar';
 import { InlineText } from '../../pages/edit/InlineText';
 import { PageColumn } from '../../pages/edit/PageColumn';
+import { ExamplePreview } from '../../pages/edit/ExamplePreview';
 import { PageEditProvider } from '../../pages/edit/PageEditProvider';
 import { PagePanels } from '../../pages/edit/PagePanels';
 import { RearrangeFrame } from '../../pages/edit/Rearrange';
@@ -136,6 +137,7 @@ function ClubProfileView({ id }: { id: number }) {
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
             sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel="Club information"
             side={editing ? <PageColumn column="right" renderers={clubBoxes} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel="Get involved">
+            {tab === 'posts' && editing && page?.status === 'DRAFT' && <ExamplePreview />}
             {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}

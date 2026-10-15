@@ -159,3 +159,26 @@
 .gk .gk-rearrange .gk-boxframe__drop { transition: height .2s var(--gk-ease), background-color .15s var(--gk-ease), margin .2s var(--gk-ease); }
 .gk .gk-rearrange[data-flying] .gk-boxframe__drop[data-over] { height: var(--gk-drag-h, 72px); margin: var(--gk-2) 0; border: 1px dashed var(--gk-accent); background: var(--gk-accent-soft); }
 @media (prefers-reduced-motion: reduce) { .gk .gk-rearrange .gk-boxframe__drop { transition: none; } }
+
+/* "Say what you are": the empty about line is a call, not a placeholder. */
+.gk .gk-inline--empty .gk-inline__open { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; margin: 2px 0; border: 1px dashed var(--gk-accent); border-radius: var(--gk-r-pill); color: var(--gk-accent); font-weight: 600; white-space: normal; animation: gk-breathe 2.6s var(--gk-ease) infinite; }
+.gk .gk-inline--empty .gk-inline__open::before { content: '+'; font-weight: 700; }
+.gk .gk-inline--empty .gk-inline__open:hover { background: var(--gk-accent-soft); box-shadow: none; }
+.gk .gk-editbar__example { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-xs); cursor: pointer; }
+
+/* The example: a dimmed picture of a finished page where the posts will be, and the live page in a pop-up at one framing on every screen. */
+.gk .gk-example-preview { position: relative; display: block; width: 100%; min-height: 220px; max-height: 320px; margin: 0 0 var(--gk-3); padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-sunken); overflow: hidden; cursor: pointer; }
+.gk .gk-example-preview img { display: block; width: 100%; height: 320px; object-fit: cover; object-position: top; filter: brightness(.42) saturate(.7); transition: filter .25s var(--gk-ease), transform .4s var(--gk-ease); }
+.gk .gk-example-preview:hover img { filter: brightness(.55) saturate(.85); transform: scale(1.02); }
+.gk .gk-example-preview__words { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--gk-on-accent); font-weight: 650; font-size: var(--gk-fs-lg); text-shadow: 0 1px 4px color-mix(in srgb, var(--gk-shadow) 60%, transparent); }
+.gk .gk-example-preview__words svg { width: 22px; height: 22px; }
+.gk .gk-example-preview__words small { font-weight: 500; font-size: var(--gk-fs-sm); opacity: .9; }
+.gk .gk-dialog:has(.gk-example) { max-width: calc(100vw - 32px); width: max-content; }
+.gk .gk-example { position: relative; overflow: hidden; border-radius: var(--gk-r); background: var(--gk-sunken); }
+.gk .gk-example__still, .gk .gk-example__live { position: absolute; top: 0; left: 0; transform-origin: top left; border: 0; }
+.gk .gk-example__live { opacity: 0; transition: opacity .3s var(--gk-ease); }
+.gk .gk-example[data-live] .gk-example__live { opacity: 1; }
+.gk .gk-coach { max-width: 340px; }
+.gk .gk-coach__words { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-coach__icon { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-coach__icon svg { width: 14px; height: 14px; }

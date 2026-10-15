@@ -262,3 +262,12 @@
 /* While the list is open the bar stacks above the columns and the sticky tab strip. */
 .gk .gk-editbar:has(.gk-editbar__steps) { z-index: 50; }
 .gk .gk-editbar__steps .gk-setup { background: var(--gk-surface); opacity: .96; }
+/* The list drops from the current step, centred under it, more transparent; a box a step opened lights up. */
+.gk .gk-editbar__current-wrap { position: relative; display: inline-flex; }
+.gk .gk-editbar__steps { left: 50%; transform: translateX(-50%); }
+.gk .gk-editbar__steps .gk-setup { background: color-mix(in srgb, var(--gk-surface) 78%, transparent); opacity: 1; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.gk .gk-editbar:has(.gk-editbar__steps) { z-index: 50; }
+.gk .gk-boxframe[data-opened] { animation: gk-flash 1.6s var(--gk-ease); border-radius: var(--gk-r-lg); }
+.gk .gk-example-preview__corner { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: var(--gk-r-pill); border: 1px solid color-mix(in srgb, var(--gk-on-accent) 35%, transparent); background: color-mix(in srgb, var(--gk-shadow) 45%, transparent); color: var(--gk-on-accent); font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk .gk-example-preview__corner svg { width: 14px; height: 14px; }
+@media (max-width: 760px) { .gk .gk-editbar__steps { transform: none; left: 12px; } }

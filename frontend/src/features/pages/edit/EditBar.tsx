@@ -59,9 +59,11 @@ export function EditBar() {
       )}
       {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}><Eye aria-hidden="true" size={12} />{t('What a finished club looks like')}</button>}
       {!setup.completedAt && next && CurrentIcon && (
-        <button type="button" className="gk-editbar__current" onClick={() => openPanel(SETUP_PANEL[next])}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(SETUP_WORDS[next])}</strong><ChevronRight aria-hidden="true" /></button>
+        <span className="gk-editbar__current-wrap">
+          <button type="button" className="gk-editbar__current" onClick={() => openPanel(SETUP_PANEL[next])}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(SETUP_WORDS[next])}</strong><ChevronRight aria-hidden="true" /></button>
+          {editing && stepsOpen && <div className="gk-editbar__steps"><SetupSteps onClose={() => setStepsOpen(false)} /></div>}
+        </span>
       )}
-      {!setup.completedAt && editing && stepsOpen && <div className="gk-editbar__steps"><SetupSteps onClose={() => setStepsOpen(false)} /></div>}
       <span className="gk-editbar__saved" role="status" aria-live="polite" aria-label={t('Save status')} data-status={status}>
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>

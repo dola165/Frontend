@@ -31,6 +31,20 @@ function useFlashes(keys: BoxKey[], filled: Record<string, boolean>): Set<BoxKey
   return flashing;
 }
 
+/** The box a step just opened comes on screen and lights up for a moment, so the eye lands on it. */
+function useOpenedFlash(panel: string | null) {
+  useEffect(() => {
+    if (!panel) return;
+    const node = document.querySelector<HTMLElement>(`[data-box="${panel}"]`);
+    if (!node) return;
+    const rect = node.getBoundingClientRect();
+    if (rect.top < 80 || rect.bottom > window.innerHeight) node.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    node.setAttribute('data-opened', '');
+    const timer = window.setTimeout(() => node.removeAttribute('data-opened'), 1600);
+    return () => { clearTimeout(timer); node.removeAttribute('data-opened'); };
+  }, [panel]);
+}
+
 /**
  * One column of a page: its boxes in the owner's order, each as its content or, in edit mode, as the ghost that
  * fills it. Visitors never see an empty box. In Rearrange mode every box gets a handle, Move up / Move down and
@@ -42,6 +56,7 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
   const filled: Record<string, boolean> = {};
   for (const key of keys) filled[key] = page ? renderers[key]!.filled(page) : false;
   const flashing = useFlashes(keys, filled);
+  useOpenedFlash(panel);
   if (!page) return null;
   const next = page.setup.next ? SETUP_PANEL[page.setup.next] : null;
   const boxes = keys.map((key, index) => {

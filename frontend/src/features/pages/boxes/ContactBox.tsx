@@ -6,6 +6,7 @@ import { usePagesCopy } from '../copy';
 import { EditPencil } from '../edit/EditPencil';
 import { usePageEdit } from '../edit/context';
 import type { BoxProps } from '../edit/boxRegistry';
+import { phoneDisplay } from '../model/phone';
 import '../edit/edit.css';
 
 const digits = (value: string) => value.replace(/[^\d+]/g, '');
@@ -26,7 +27,7 @@ export function ContactBox({ page, editing, open, onEdit, onClose }: BoxProps) {
     <SideBlock title={t('Contact')} hint={t('Phone and email')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <ContactEditor initial={{ phone, email, website, instagram }} suggestions={page.suggestions} onSave={save} onCancel={onClose} />
         : <List label={t('Contact details')}>
-          {phone && <li><a className="gk-list-row" href={`https://wa.me/${digits(phone).replace('+', '')}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Phone aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{phone}</span><span className="gk-list-row__meta">{t('Phone and WhatsApp')}</span></span></a></li>}
+          {phone && <li><a className="gk-list-row" href={`https://wa.me/${digits(phone).replace('+', '')}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Phone aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{phoneDisplay(phone)}</span><span className="gk-list-row__meta">{t('Phone and WhatsApp')}</span></span></a></li>}
           {email && <li><a className="gk-list-row" href={`mailto:${email}`}><span className="gk-list-row__lead"><span className="gk-club-icon"><Mail aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title gk-club-email">{email}</span><span className="gk-list-row__meta">{t('Email')}</span></span></a></li>}
           {web && <li><a className="gk-list-row" href={web} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Globe aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{website.replace(/^https?:\/\/(www\.)?/, '')}</span><span className="gk-list-row__meta">{t('Website')}</span></span></a></li>}
           {instagram && <li><a className="gk-list-row" href={`https://instagram.com/${encodeURIComponent(handle(instagram))}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Instagram aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">@{handle(instagram)}</span><span className="gk-list-row__meta">Instagram</span></span></a></li>}
@@ -43,8 +44,13 @@ function ContactEditor({ initial, suggestions, onSave, onCancel }: { initial: Dr
   const id = useId();
   const onKey = (event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); void onSave(draft); } if (event.key === 'Escape') onCancel(); };
   const offerPhone = suggestions?.phone && digits(suggestions.phone) !== digits(draft.phone), offerEmail = suggestions?.email && suggestions.email !== draft.email;
+  // The phone's own contact book, where the browser offers it (Android Chrome): one tap, the person picks, nothing is read otherwise.
+  const contacts = (navigator as Navigator & { contacts?: { select: (fields: string[], options?: { multiple?: boolean }) => Promise<{ tel?: string[]; email?: string[] }[]> } }).contacts;
+  const pick = async () => {
+    try { const [chosen] = await contacts!.select(['tel', 'email'], { multiple: false }); if (chosen) setDraft({ ...draft, phone: chosen.tel?.[0] ?? draft.phone, email: chosen.email?.[0] ?? draft.email }); } catch { /* the person closed the picker */ }
+  };
   return (
-    <div className="gk-boxedit" onKeyDown={onKey}>
+    <form className="gk-boxedit" onKeyDown={onKey} onSubmit={event => { event.preventDefault(); void onSave(draft); }}>
       <div>
         <label className="gk-field__label" htmlFor={`${id}-phone`}>{t('Phone')}</label>
         <input id={`${id}-phone`} className="gk-input" type="tel" inputMode="tel" autoComplete="tel" autoFocus value={draft.phone} placeholder="+995 5__ __ __ __" maxLength={20} onChange={event => setDraft({ ...draft, phone: event.target.value })} />
@@ -55,14 +61,15 @@ function ContactEditor({ initial, suggestions, onSave, onCancel }: { initial: Dr
         <input id={`${id}-email`} className="gk-input" type="email" inputMode="email" autoComplete="email" value={draft.email} maxLength={254} onChange={event => setDraft({ ...draft, email: event.target.value })} />
         {offerEmail && <button type="button" className="gk-tap" style={{ marginTop: 6 }} onClick={() => setDraft({ ...draft, email: suggestions.email })}><Check aria-hidden="true" />{t('Use {email}', { email: suggestions.email })}</button>}
       </div>
+      {contacts && <button type="button" className="gk-tap" onClick={() => void pick()}><Check aria-hidden="true" />{t('Pick from my contacts')}</button>}
       {more ? <>
-        <div><label className="gk-field__label" htmlFor={`${id}-web`}>{t('Website')}</label><input id={`${id}-web`} className="gk-input" type="url" inputMode="url" value={draft.website} placeholder="rustavi-lions.ge" maxLength={300} onChange={event => setDraft({ ...draft, website: event.target.value })} /></div>
-        <div><label className="gk-field__label" htmlFor={`${id}-ig`}>Instagram</label><input id={`${id}-ig`} className="gk-input" value={draft.instagram} placeholder="@rustavi.lions" maxLength={300} onChange={event => setDraft({ ...draft, instagram: event.target.value })} /></div>
+        <div><label className="gk-field__label" htmlFor={`${id}-web`}>{t('Website')}</label><input id={`${id}-web`} className="gk-input" type="url" inputMode="url" autoComplete="url" value={draft.website} placeholder="rustavi-lions.ge" maxLength={300} onChange={event => setDraft({ ...draft, website: event.target.value })} /></div>
+        <div><label className="gk-field__label" htmlFor={`${id}-ig`}>Instagram</label><input id={`${id}-ig`} className="gk-input" autoComplete="off" value={draft.instagram} placeholder="@rustavi.lions" maxLength={300} onChange={event => setDraft({ ...draft, instagram: event.target.value })} /></div>
       </> : <button type="button" className="gk-cmatch__no" onClick={() => setMore(true)}>{t('Website and Instagram')}</button>}
       <div className="gk-boxedit__foot">
         <Button size="sm" variant="primary" onClick={() => void onSave(draft)}>{t('Done')}</Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>{t('Cancel')}</Button>
       </div>
-    </div>
+    </form>
   );
 }

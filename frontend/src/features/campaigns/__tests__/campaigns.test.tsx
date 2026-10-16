@@ -91,7 +91,7 @@ describe('Starting a fundraiser', () => {
         vi.mocked(clubs.fetchMyClubMembershipContext).mockResolvedValue({ hasClubMembership: false, canCreateClub: true, clubId: null });
         start();
         expect(await screen.findByText('You need a club to start a fundraiser')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Create a club' })).toHaveAttribute('href', '/clubs/create');
+        expect(screen.getByRole('link', { name: 'Start your club' })).toHaveAttribute('href', '/campaigns/new?create=club&from=fundraising');
     });
     it('publishes in three screens with the club’s GoFundMe link', async () => {
         vi.mocked(api.createCampaign).mockResolvedValue({ ...campaign, id: 9, status: 'DRAFT', phase: 'DRAFT' });

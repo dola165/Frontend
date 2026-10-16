@@ -8,6 +8,7 @@ import { EditBar } from './edit/EditBar';
 import { InlineText } from './edit/InlineText';
 import { PageColumn } from './edit/PageColumn';
 import { usePageEdit } from './edit/context';
+import { RearrangeFrame } from './edit/Rearrange';
 import type { BoxRenderers } from './edit/boxRegistry';
 import { BUSINESS_KINDS, type PageKind } from './model/kinds';
 import './edit/edit.css';
@@ -30,7 +31,7 @@ export function PageDocument<T extends string>({ renderers, tabs, tab, onTab, ta
   const kind = page.kind === 'BUSINESS' && identity.businessKind ? BUSINESS_WORD[identity.businessKind] : KIND_WORD[page.kind];
   const about = identity.about.trim();
   return (
-    <ProfileLayout className="gk-page-doc"
+    <RearrangeFrame><ProfileLayout className="gk-page-doc"
       identity={{
         name: identity.name, image: identity.crest.url, square: true,
         nameNode: editing ? <InlineText as="span" value={identity.name} placeholder={t('Name your page')} label={t('Name')} maxLength={120} onSave={next => { if (next.length >= 2) void saveIdentity({ name: next }, { label: t('Name saved') }); }} /> : undefined,
@@ -42,13 +43,13 @@ export function PageDocument<T extends string>({ renderers, tabs, tab, onTab, ta
       }}
       banner={identity.cover?.url ?? null}
       bannerAction={editing ? <Button size="sm" onClick={() => openPanel('cover')}><Camera aria-hidden="true" />{identity.cover ? t('Change cover') : t('Add cover')}</Button> : undefined}
-      imageAction={editing ? <Button size="sm" iconOnly aria-label={t('Change crest')} onClick={() => openPanel('crest')}><Camera aria-hidden="true" /></Button> : undefined}
+      imageAction={editing ? <Button size="sm" iconOnly aria-label={t('Change crest')} className={page.goLive.missing.includes('crest') ? 'gk-needs' : undefined} onClick={() => openPanel('crest')}><Camera aria-hidden="true" /></Button> : undefined}
       actions={actions}
       notice={<EditBar />}
       tabs={tabs} tab={tab} onTab={onTab} tabsLabel={tabsLabel}
       sideLeft={<PageColumn column="left" renderers={renderers} />} sideLeftLabel={t('Information')}
       side={<PageColumn column="right" renderers={renderers} />} sideLabel={t('More')}>
       {children}
-    </ProfileLayout>
+    </ProfileLayout></RearrangeFrame>
   );
 }

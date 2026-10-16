@@ -81,7 +81,7 @@ export function ClaimSheet({ pageRef, from, onClose }: { pageRef: PageRef; from:
               <label className="gk-field__label" htmlFor={phoneId}>{t('Phone')}</label>
               <input id={phoneId} className="gk-input" type="tel" inputMode="tel" autoComplete="tel" value={phone} placeholder="+995 5__ __ __ __" maxLength={20}
                 onChange={event => { setPhone(event.target.value); setError(''); }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void submit(); } }} />
-              <span className="gk-field__hint">{t('We call to confirm. Nothing is published.')}</span>
+              <span className="gk-field__hint">{t('To reach you about it, by message. Nothing is published.')}</span>
             </div>
             {error && <p className="gk-notice gk-notice--warning" role="alert">{error}</p>}
           </>}

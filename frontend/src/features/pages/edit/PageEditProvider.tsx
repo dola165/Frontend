@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { recordFunnelEvent } from '../../feed/feedEvents';
 import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } from '../../organizations/setup/setupRecovery';
-import { PageConflict, fetchPage, goLive as goLiveCall, saveBox as saveBoxCall, saveIdentity as saveIdentityCall, saveLayout as saveLayoutCall, type PageIdentity, type PageRef, type PageView, type SavableBox } from '../api';
+import { PageConflict, fetchPage, isPageView, goLive as goLiveCall, saveBox as saveBoxCall, saveIdentity as saveIdentityCall, saveLayout as saveLayoutCall, type PageIdentity, type PageRef, type PageView, type SavableBox } from '../api';
 import { PageEditContext, isPanelKey, type IdentityPatch, type PageEdit, type PanelKey, type SaveOptions, type SaveStatus } from './context';
 import { pt } from '../copy';
 import { BOX_COLUMN, insertionIndex, type BoxKey, type Column, type PageLayout } from '../model/kinds';
@@ -15,19 +15,23 @@ import { boxData } from './boxData';
 type PendingEdit = { kind: 'identity'; patch: IdentityPatch } | { kind: 'box'; key: SavableBox; data: unknown } | { kind: 'layout'; layout: PageLayout };
 const pendingKey = (ref: PageRef) => `page-pending:${ref.type}:${ref.id}`;
 const validPending = (value: unknown): value is PendingEdit[] => Array.isArray(value) && value.every(item => isRecord(item) && typeof item.kind === 'string');
-const EDIT = 'edit', PANEL = 'panel';
+const EDIT = 'edit', PANEL = 'panel', REARRANGE = 'rearrange';
 
 /**
  * One page under edit: the page as read, edit mode and its open panel in the address, and every save optimistic,
  * autosaved and undoable. Every write carries the version it read; a lost race shows theirs with "Keep mine". An edit
  * the network dropped is kept in the tab and sent when the page opens next, so leaving never loses work.
  */
-export function PageEditProvider({ pageRef, children }: { pageRef: PageRef; children: ReactNode }) {
+export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef; children: ReactNode }) {
+  // One object per page, whatever the parent passes each render: the fetch and the saves key on it.
+  const pageRef = useMemo<PageRef>(() => ({ type: ref.type, id: ref.id }), [ref.type, ref.id]);
   const { user, sessionId, status: auth } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState(0);
-  const key = `${pageRef.type}:${pageRef.id}:${sessionId}:${attempt}`;
+  // A page claimed from the sheet over it is read again on arrival: the claim made this person its owner.
+  const justClaimed = new URLSearchParams(location.search).get('claimed') === '1';
+  const key = `${pageRef.type}:${pageRef.id}:${sessionId}:${attempt}:${justClaimed ? 'claimed' : ''}`;
   const [loaded, setLoaded] = useState<{ key: string; page: PageView | null; failed: boolean; notFound: boolean } | null>(null);
   const [status, setStatus] = useState<SaveStatus>('idle');
   const userId = user?.id;
@@ -39,7 +43,8 @@ export function PageEditProvider({ pageRef, children }: { pageRef: PageRef; chil
   useEffect(() => {
     const controller = new AbortController();
     fetchPage(pageRef, controller.signal)
-      .then(page => { if (!controller.signal.aborted) setLoaded({ key, page, failed: false, notFound: false }); })
+      // An answer that is not a page (a backend without pages yet) counts as no page: the older presentation takes over.
+      .then(page => { if (!controller.signal.aborted) setLoaded({ key, page: isPageView(page) ? page : null, failed: false, notFound: !isPageView(page) }); })
       .catch(error => { if (!controller.signal.aborted) setLoaded({ key, page: null, failed: error?.response?.status !== 404, notFound: error?.response?.status === 404 }); });
     return () => controller.abort();
   }, [key, pageRef]);
@@ -55,6 +60,7 @@ export function PageEditProvider({ pageRef, children }: { pageRef: PageRef; chil
   const editing = canEdit && params.get(EDIT) === '1';
   const requested = params.get(PANEL);
   const panel = editing && isPanelKey(requested) ? requested : null;
+  const rearranging = editing && params.get(REARRANGE) === '1';
   const arrival = editing ? (params.get('new') === '1' ? 'new' : params.get('claimed') === '1' ? 'claimed' : null) : null;
 
   const go = useCallback((change: (next: URLSearchParams) => void, push = false) => {
@@ -63,9 +69,10 @@ export function PageEditProvider({ pageRef, children }: { pageRef: PageRef; chil
     const search = next.toString();
     navigate({ pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash }, { replace: !push });
   }, [location.hash, location.pathname, location.search, navigate]);
-  const setEditing = useCallback((on: boolean) => go(next => { if (on) next.set(EDIT, '1'); else next.delete(EDIT); for (const drop of [PANEL, 'new', 'claimed']) next.delete(drop); }), [go]);
+  const setEditing = useCallback((on: boolean) => go(next => { if (on) next.set(EDIT, '1'); else next.delete(EDIT); for (const drop of [PANEL, REARRANGE, 'new', 'claimed']) next.delete(drop); }), [go]);
+  const setRearranging = useCallback((on: boolean) => go(next => { next.set(EDIT, '1'); next.delete(PANEL); if (on) next.set(REARRANGE, '1'); else next.delete(REARRANGE); }), [go]);
   // A panel is a step in history, so Back closes it.
-  const openPanel = useCallback((next: PanelKey) => go(search => { search.set(EDIT, '1'); search.set(PANEL, next); search.delete('new'); search.delete('claimed'); }, true), [go]);
+  const openPanel = useCallback((next: PanelKey) => go(search => { search.set(EDIT, '1'); search.set(PANEL, next); search.delete(REARRANGE); search.delete('new'); search.delete('claimed'); }, true), [go]);
   const closePanel = useCallback(() => go(next => next.delete(PANEL)), [go]);
 
   const settle = useCallback((next: SaveStatus) => {
@@ -189,8 +196,8 @@ export function PageEditProvider({ pageRef, children }: { pageRef: PageRef; chil
   const failed = Boolean(loaded?.key === key && loaded.failed), notFound = Boolean(loaded?.key === key && loaded.notFound);
   const value = useMemo<PageEdit>(() => ({
     pageRef, page, loading, failed, notFound, retry: () => setAttempt(value => value + 1),
-    editing, canEdit, setEditing, panel, openPanel, closePanel, arrival, status, pendingCount: pending.length,
+    editing, canEdit, setEditing, panel, openPanel, closePanel, rearranging, setRearranging, arrival, status, pendingCount: pending.length,
     saveIdentity, saveBox, saveLayout, hideBox, showBox, moveBox, reorder, goLive, replace,
-  }), [arrival, canEdit, closePanel, editing, failed, goLive, hideBox, loading, moveBox, notFound, openPanel, page, pageRef, panel, pending.length, reorder, replace, saveBox, saveIdentity, saveLayout, setEditing, showBox, status]);
+  }), [arrival, canEdit, closePanel, editing, failed, goLive, hideBox, loading, moveBox, notFound, openPanel, page, pageRef, panel, pending.length, rearranging, reorder, replace, saveBox, saveIdentity, saveLayout, setEditing, setRearranging, showBox, status]);
   return <PageEditContext.Provider value={value}>{children}</PageEditContext.Provider>;
 }

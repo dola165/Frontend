@@ -52,7 +52,7 @@ export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdi
         {(squads.data?.length ?? 0) > 0 && <div className="gk-club-toolbar">
             <select className="gk-input gk-club-select" aria-label="Locations for a squad" value={squad} onChange={e => set('squad', e.target.value)}><option value="">All squads</option>{squads.data!.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
             {squad && <span className="gk-muted">Includes club-wide grounds</span>}
-            {canEdit && <a className="gk-section__action" href={`/clubs/${club.id}/workspace?tab=facilities`}>Manage locations</a>}
+            {canEdit && <a className="gk-section__action" href={`/clubs/${club.id}?edit=1&panel=grounds`}>Manage locations</a>}
         </div>}
         {places.loading ? <Panel flush><div className="gk-panel--pad"><Skeleton height={48} /></div></Panel>
             : places.failed ? <Panel flush><EmptyNote title="The locations couldn’t load" action={<Button size="sm" onClick={places.retry}>Try again</Button>} /></Panel>

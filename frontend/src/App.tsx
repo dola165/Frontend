@@ -98,6 +98,8 @@ const TryoutDetailPage = lazy(() => import('./features/tryouts/TryoutDetailPage'
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({default: module.AdminPage})));
 const TournamentWorkspacePage = lazy(() => import('./pages/TournamentWorkspacePage').then(module => ({default: module.TournamentWorkspacePage})));
 const TournamentDetailPage = lazy(() => import('./pages/TournamentDetailPage').then(module => ({default: module.TournamentDetailPage})));
+const JoinPage = lazy(() => import('./features/pages/links/JoinPage').then(module => ({ default: module.JoinPage })));
+const InvitePage = lazy(() => import('./features/pages/links/InvitePage').then(module => ({ default: module.InvitePage })));
 const CreateRedirect = lazy(() => import('./features/pages/create/CreateRedirect').then(module => ({ default: module.CreateRedirect })));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage').then(module => ({default: module.OrganizationProfilePage})));
 const AccountRolesPage = lazy(() => import('./features/profiles/account/AccountRolesPage').then(module => ({default: module.AccountRolesPage})));
@@ -316,6 +318,7 @@ export function MainLayout() {
         location.pathname.startsWith('/jobs/') || location.pathname.startsWith('/roles/') ||
         location.pathname.startsWith('/campaigns/') ||
         location.pathname.startsWith('/organizations') ||
+        location.pathname.startsWith('/join/') || location.pathname.startsWith('/invite/') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
         isClubSurfaceRoute;
@@ -421,6 +424,8 @@ export function MainLayout() {
             <Route path="/clubs/create" element={<ProtectedRoute><CreateRedirect kind="CLUB" /></ProtectedRoute>} />
             <Route path="/my-organizations" element={<ProtectedRoute><MyOrganizationsPage /></ProtectedRoute>} />
             <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
+            <Route path="/join/:code" element={<ProtectedRoute><JoinPage /></ProtectedRoute>} />
+            <Route path="/invite/:code" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
             <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
@@ -445,6 +450,7 @@ export function MainLayout() {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} />
                         <Route path="/signup" element={<GuestOnlyRoute><RegisterPage /></GuestOnlyRoute>} />
+                        <Route path="/register" element={<Navigate to="/signup" replace />} />
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />

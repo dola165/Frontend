@@ -55,7 +55,8 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   }, [draft?.town]);
   useEffect(() => { writeSetupRecovery(user?.id, DRAFT, { kind: chosen, name, town: town.name } satisfies StartDraft); }, [chosen, name, town.name, user?.id]);
   // The dialog puts focus on its first control; once a type is chosen the name is what matters.
-  useEffect(() => { if (chosen) { const frame = requestAnimationFrame(() => { nameRef.current?.focus(); nameRef.current?.select(); }); return () => cancelAnimationFrame(frame); } }, [chosen]);
+  // A restored draft is selected so typing replaces it; an empty field is only focused, so no keystroke is swallowed.
+  useEffect(() => { if (chosen) { const frame = requestAnimationFrame(() => { const field = nameRef.current; if (!field) return; field.focus(); if (field.value) field.select(); }); return () => cancelAnimationFrame(frame); } }, [chosen]);
   // The duplicate check while typing, a breath after the last key. What was found is kept with the name it was found for.
   const typed = name.trim();
   const lookupKey = chosen && typed.length >= 3 ? `${chosen}:${typed}` : null;

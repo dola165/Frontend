@@ -49,9 +49,9 @@ export type InvolvedPart = typeof INVOLVED_PARTS[number];
 type Availability = 'on' | 'add';
 export const BOX_DEFAULTS: Record<PageKind, Partial<Record<BoxKey, Availability>>> = {
   CLUB: { contact: 'on', fees: 'on', grounds: 'on', squads: 'on', posts: 'on', involved: 'add', staff: 'on', events: 'on', sponsors: 'add', honours: 'add' },
-  FAN_CLUB: { contact: 'on', fees: 'on', grounds: 'on', posts: 'on', involved: 'add', staff: 'on', events: 'on' },
-  BUSINESS: { contact: 'on', posts: 'on', involved: 'add', staff: 'on', events: 'add', sponsors: 'on' },
-  PAGE: { contact: 'on', posts: 'on', involved: 'add', events: 'add' },
+  FAN_CLUB: { contact: 'on', fees: 'on', grounds: 'on', posts: 'on', involved: 'add', staff: 'on' },
+  BUSINESS: { contact: 'on', posts: 'on', involved: 'add', staff: 'on', sponsors: 'on' },
+  PAGE: { contact: 'on', posts: 'on', involved: 'add' },
   VENUE: { contact: 'on', fees: 'on', grounds: 'on', posts: 'on', staff: 'on', events: 'on', bookings: 'on' },
 };
 
@@ -110,9 +110,9 @@ export function normalizeLayout(kind: PageKind, value: unknown): PageLayout {
 export const SETUP_KEYS = ['name', 'crest', 'grounds', 'squads', 'contact', 'fees', 'players', 'staff', 'posts', 'about', 'sponsors'] as const;
 export type SetupKey = typeof SETUP_KEYS[number];
 
-/** What the setup ring counts, per type, in the order the next ghost box is highlighted. A club counts seven. */
+/** What the setup ring counts, per type, in the order the next ghost box is highlighted. A club counts eight. */
 export const SETUP_ITEMS: Record<PageKind, readonly SetupKey[]> = {
-  CLUB: ['name', 'crest', 'grounds', 'squads', 'contact', 'fees', 'players'],
+  CLUB: ['name', 'crest', 'about', 'grounds', 'squads', 'contact', 'fees', 'players'],
   FAN_CLUB: ['name', 'crest', 'grounds', 'contact', 'fees', 'staff', 'posts'],
   BUSINESS: ['name', 'crest', 'about', 'contact', 'sponsors', 'posts'],
   PAGE: ['name', 'crest', 'about', 'contact', 'posts'],

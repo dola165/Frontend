@@ -26,8 +26,13 @@ const SingleClubPage = () => {
     const ownClubIds = accessibleClubs(user?.navigationCapabilities).map(club => club.id).join(',');
     const hasProjection = user?.navigationCapabilities !== undefined;
 
+    // While the start sheet is open over this page the person is making their club: no redirect until it closes. The
+    // sheet's own navigation takes them to the new page in edit mode, and this page stays on screen while that page's
+    // code loads, so a redirect fired meanwhile would replace it.
+    const sheetOpen = new URLSearchParams(location.search).has('create');
     useEffect(() => {
         let current = true;
+        if (sheetOpen) return () => { current = false; };
         fetchMyClubMembershipContext()
             .then(context => {
                 if (!current) return;
@@ -39,9 +44,9 @@ const SingleClubPage = () => {
             })
             .catch(() => { if (current) setLoading(false); });
         return () => { current = false; };
-    }, [navigate, ownClubIds, hasProjection]);
+    }, [navigate, ownClubIds, hasProjection, sheetOpen]);
 
-    if (loading) return <GkRoot className="gk-page gk-myclub"><PageFrame width="profile"><div className="gk-myclub__loading" role="status" aria-label={t('My Club')}><Loader2 className="gk-spin" aria-hidden="true" /></div></PageFrame></GkRoot>;
+    if (loading && !sheetOpen) return <GkRoot className="gk-page gk-myclub"><PageFrame width="profile"><div className="gk-myclub__loading" role="status" aria-label={t('My Club')}><Loader2 className="gk-spin" aria-hidden="true" /></div></PageFrame></GkRoot>;
     return (
         <GkRoot className="gk-page gk-myclub"><PageFrame width="profile">
             <Section title={t('My Club')} hint={t('No club yet')}>

@@ -98,6 +98,8 @@ const conflictOr = (error: unknown): never => {
 };
 
 export const createPage = (body: CreateRequest) => apiClient.post<CreatedPage>('/organizations/setup', body).then(r => r.data);
+/** Whether an answer is a page at all: a backend without pages answers something else for an organisation. */
+export const isPageView = (value: unknown): value is PageView => Boolean(value) && typeof value === 'object' && 'kind' in (value as object) && 'identity' in (value as object) && 'boxes' in (value as object);
 export const fetchPage = (ref: PageRef, signal?: AbortSignal) => apiClient.get<PageView>(pageBase(ref), { signal }).then(r => r.data);
 export const saveIdentity = (ref: PageRef, version: number, patch: Partial<Omit<PageIdentity, 'version' | 'crest' | 'cover' | 'town'>> & { crest?: unknown; cover?: unknown; town?: { name: string } }) =>
   apiClient.put<PageView>(`${pageBase(ref)}/identity`, { version, ...patch }).then(r => r.data, conflictOr);

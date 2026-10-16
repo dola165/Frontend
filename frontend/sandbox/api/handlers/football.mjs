@@ -5,6 +5,7 @@ import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
 import * as S from '../world-social.mjs';
 import * as C from '../world-club.mjs';
+import * as P from '../pages-data.mjs';
 
 const { iso, local, isoDate, clubs, venues, squads, matches, clubById, venueById, personById } = W;
 const squadById = F.sq;
@@ -622,6 +623,15 @@ const clubCalendar = clubId => {
       out.push(occurrence({ id: f.id, clubId: Number(clubId), eventType: 'MATCH', title: span.title, description: t.name, start: span.start, end: span.end, ...venueFields(f.locationId), visibility: 'PUBLIC', opponentClubId: other?.clubId ?? null, status: f.status, homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: h.resultStatus }));
     }
     for (const l of F.exchange.filter(l => squadById(l.hostSquadId).clubId === Number(clubId) && l.opponentSquadId && !matches.some(m => m.id === l.id))) out.push(exchangeOccurrence(l));
+    // A page club's squads with training days and a time: their sessions for the next four weeks, so the calendar and Coming up show them.
+    if (P.isPageClub(clubId)) for (const s of P.squadsOf(P.clubPage(clubId))) if (s.trainingDays?.length && s.trainingTime) for (let d = 0; d < 28; d++) {
+      const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + d);
+      const weekday = date.getDay() === 0 ? 7 : date.getDay();
+      if (!s.trainingDays.includes(weekday)) continue;
+      const [hour, minute] = String(s.trainingTime).split(':').map(Number), start = new Date(date); start.setHours(hour, minute || 0, 0, 0);
+      const ground = P.clubPage(clubId).boxes.grounds.items.find(g => g.id === s.groundId) ?? P.clubPage(clubId).boxes.grounds.items[0];
+      out.push(occurrence({ id: 900000 + s.id * 100 + d, clubId: Number(clubId), eventType: 'TRAINING', title: `${s.name} training`, start, end: new Date(start.getTime() + 90 * 60000), locationName: ground?.name ?? null, lat: ground?.latitude ?? null, lng: ground?.longitude ?? null, visibility: 'PRIVATE', squadId: s.id, recurring: true }));
+    }
     for (const m of matches.filter(m => m.opponentClubId === Number(clubId))) {
       const theirs = F.squadFor(clubId, squadById(m.squadId).ageGroup, squadById(m.squadId).gender);
       out.push({ ...matchOccurrence(m), clubId: Number(clubId), clubName: clubById(clubId).name, opponentClubId: DINAMO, opponentClubName: clubById(DINAMO).name, challengerSquadId: theirs?.id ?? null, challengerSquadName: theirs?.name ?? null, targetSquadId: m.squadId, targetSquadName: squadById(m.squadId).name, canRecordResult: false });

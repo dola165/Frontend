@@ -7,7 +7,7 @@ import { makePage, withSetup } from '../../__tests__/fixtures';
 
 const api = vi.hoisted(() => ({ fetchPage: vi.fn(), saveIdentity: vi.fn(), saveBox: vi.fn(), saveLayout: vi.fn(), goLive: vi.fn(), fetchPitches: vi.fn(), PageConflict: class PageConflict extends Error { current: unknown; constructor(current: unknown) { super('conflict'); this.current = current; } } }));
 const toasts = vi.hoisted(() => ({ calls: [] as { message: string; action?: { label: string; onClick: () => void } }[] }));
-vi.mock('../../api', () => ({ fetchPage: api.fetchPage, saveIdentity: api.saveIdentity, saveBox: api.saveBox, saveLayout: api.saveLayout, goLive: api.goLive, fetchPitches: api.fetchPitches, PageConflict: api.PageConflict, pageBase: () => '', sameRef: () => false }));
+vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), fetchPage: api.fetchPage, saveIdentity: api.saveIdentity, saveBox: api.saveBox, saveLayout: api.saveLayout, goLive: api.goLive, fetchPitches: api.fetchPitches, PageConflict: api.PageConflict, pageBase: () => '', sameRef: () => false }));
 vi.mock('sonner', () => {
   const record = (message: string, options?: { action?: { label: string; onClick: () => void } }) => { toasts.calls.push({ message, action: options?.action }); };
   return { toast: Object.assign(record, { warning: record, error: record, success: record }) };
@@ -45,9 +45,10 @@ describe('edit mode on a page', () => {
     api.saveIdentity.mockImplementation(async () => filledContact(page));
     mount();
     expect(await screen.findByText('Draft · only you see this')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /1 of 7 done\. Next: Add your crest/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /1 of 7 done/ })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Set-up steps' })).toHaveTextContent('Add your crest');
     expect(screen.getByRole('button', { name: 'Go live' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: /How to reach you/ }));
+    await user.click(screen.getAllByRole('button', { name: /How to reach you/ })[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56');
     await user.click(screen.getByRole('button', { name: 'Use giorgi@example.org' }));
     // The bar has its own Done (edit mode off); the box's Done comes after it in the page.
@@ -56,7 +57,7 @@ describe('edit mode on a page', () => {
     expect(api.saveIdentity.mock.calls[0][1]).toBe(1);
     expect(api.saveIdentity.mock.calls[0][2]).toMatchObject({ contact: { phone: '+995 599 12 34 56', email: 'giorgi@example.org' } });
     expect(await screen.findByText('ultras@rustavi.ge')).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Saved');
+    expect(screen.getByRole('status', { name: 'Save status' })).toHaveTextContent('Saved');
     expect(screen.getByRole('button', { name: /2 of 7 done/ })).toBeInTheDocument();
     expect(toasts.calls.map(call => call.message)).toContain('Contact saved');
   });
@@ -68,7 +69,7 @@ describe('edit mode on a page', () => {
     api.fetchPage.mockResolvedValue(page);
     api.saveIdentity.mockResolvedValueOnce(filled).mockResolvedValueOnce(page);
     mount();
-    await user.click(await screen.findByRole('button', { name: /How to reach you/ }));
+    await user.click((await screen.findAllByRole('button', { name: /How to reach you/ }))[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56{Enter}');
     await waitFor(() => expect(toasts.calls.some(call => call.message === 'Contact saved')).toBe(true));
     const saved = toasts.calls.find(call => call.message === 'Contact saved');
@@ -86,7 +87,7 @@ describe('edit mode on a page', () => {
     api.fetchPage.mockResolvedValue(page);
     api.saveIdentity.mockRejectedValueOnce(new api.PageConflict(theirs)).mockResolvedValueOnce(withSetup({ ...theirs, identity: { ...theirs.identity, version: 4, contact: { phone: '+995 599 12 34 56', email: '' } } }));
     mount();
-    await user.click(await screen.findByRole('button', { name: /How to reach you/ }));
+    await user.click((await screen.findAllByRole('button', { name: /How to reach you/ }))[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56{Enter}');
     expect(await screen.findByText('+995 555 00 00 00')).toBeInTheDocument();
     const conflict = toasts.calls.find(call => call.message === 'Someone just changed this.');
@@ -95,6 +96,27 @@ describe('edit mode on a page', () => {
     await waitFor(() => expect(api.saveIdentity).toHaveBeenCalledTimes(2));
     expect(api.saveIdentity.mock.calls[1][1]).toBe(3);
     expect(await screen.findByText('+995 599 12 34 56')).toBeInTheDocument();
+  });
+
+  it('rearranges without dragging: Move down and Hide save the layout, and Hide can be undone', async () => {
+    const user = userEvent.setup();
+    const page = makePage({ identity: { contact: { phone: '+995 599 12 34 56', email: '' } } as never, boxes: { fees: { version: 1, band: { min: 20, max: 40, currency: 'GEL', period: 'MONTH', free: 'NONE' } } } as never });
+    api.fetchPage.mockResolvedValue(page);
+    api.saveLayout.mockImplementation(async (_ref: unknown, version: number, layout: { columns: PageView['layout']['columns']; hidden: PageView['layout']['hidden'] }) => withSetup({ ...page, layout: { version: version + 1, ...layout } }));
+    mount('/organizations/7002?edit=1&rearrange=1');
+    await user.click(await screen.findByRole('button', { name: 'Move Fees down' }));
+    await waitFor(() => expect(api.saveLayout).toHaveBeenCalledTimes(1));
+    expect(api.saveLayout.mock.calls[0][2].columns.left).toEqual(['contact', 'grounds', 'fees']);
+    expect(screen.getByRole('status', { name: 'Save status' })).toHaveTextContent('Saved');
+    await user.click(screen.getByRole('button', { name: 'Hide Fees' }));
+    await waitFor(() => expect(api.saveLayout).toHaveBeenCalledTimes(2));
+    expect(api.saveLayout.mock.calls[1][2]).toMatchObject({ columns: { left: ['contact', 'grounds'] }, hidden: ['fees'] });
+    const hidden = toasts.calls.find(call => call.message === 'Box hidden. Its content is kept.');
+    expect(hidden?.action?.label).toBe('Undo');
+    hidden?.action?.onClick();
+    await waitFor(() => expect(api.saveLayout).toHaveBeenCalledTimes(3));
+    expect(api.saveLayout.mock.calls[2][2]).toMatchObject({ columns: { left: ['contact', 'grounds', 'fees'] }, hidden: [] });
+    expect(screen.getByRole('button', { name: 'Move Contact up' })).toBeDisabled();
   });
 
   it('goes live once the page has a crest and a contact, and opens the share card', async () => {

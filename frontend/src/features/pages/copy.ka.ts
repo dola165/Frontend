@@ -318,6 +318,7 @@ export const PAGES_KA: Record<string, string> = {
   'I am the parent or guardian. Only the coach sees this; nothing about my child is public.': 'მე ვარ მშობელი ან მეურვე. ამას მხოლოდ მწვრთნელი ხედავს; ჩემი შვილის შესახებ არაფერია საჯარო.',
   'Add my child': 'ჩემი შვილის დამატება',
   'Which child?': 'რომელი შვილი?',
+  'Join link': 'გაწევრიანების ბმული',
   'New child': 'ახალი ბავშვი',
   'Join {name}': '{name}: შემოსვლა',
   '{squad} · {town}': '{squad} · {town}',

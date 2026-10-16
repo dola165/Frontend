@@ -44,7 +44,7 @@ export function JoinPage() {
   const id = useId();
   useEffect(() => {
     const controller = new AbortController();
-    fetchJoinLink(code, controller.signal).then(found => { if (!controller.signal.aborted) setLink(found); }).catch(failure => { if (!controller.signal.aborted) setFailed(extractApiErrorMessage(failure, t('This join link has expired. Ask the coach for a new one.'))); });
+    fetchJoinLink(code, controller.signal).then(found => { if (!controller.signal.aborted) setLink(found); }).catch(failure => { if (!controller.signal.aborted) setFailed(t('This join link has expired. Ask the coach for a new one.')); void failure; });
     return () => controller.abort();
   }, [code, t]);
   const adult = card.birthDate ? ageOn(card.birthDate) >= ADULT : false;
@@ -109,5 +109,5 @@ export function JoinPage() {
         </div>
       </div>
     </Panel>;
-  return <GkRoot className="gk-page gk-join"><PageFrame width="profile"><Section title={t('Join {name}', { name: link?.page.name ?? '' })} hint={link ? t('{squad} · {town}', { squad: link.squad.name, town: link.page.town }) : undefined}>{body}</Section></PageFrame></GkRoot>;
+  return <GkRoot className="gk-page gk-join"><PageFrame width="profile"><Section title={link ? t('Join {name}', { name: link.page.name }) : t('Join link')} hint={link ? t('{squad} · {town}', { squad: link.squad.name, town: link.page.town }) : undefined}>{body}</Section></PageFrame></GkRoot>;
 }

@@ -48,9 +48,9 @@ describe('Cart rules', () => {
         expect(readCart()).toEqual([item]);
     });
     it('ignores invalid persisted carts and keeps GrassKickZ lines', () => {
-        localStorage.setItem('gk.store.cart.v1', 'bad json'); expect(readCart()).toEqual([]);
+        localStorage.setItem('gk.store.cart.v1:guest', 'bad json'); expect(readCart()).toEqual([]);
         const ball = { ...item, clubId: 0, seller: 'GRASSKICKZ' as const, variantId: 21, productId: 2 };
-        localStorage.setItem('gk.store.cart.v1', JSON.stringify([{ ...item, quantity: -1 }, { ...item, clubId: -1 }, ball]));
+        localStorage.setItem('gk.store.cart.v1:guest', JSON.stringify([{ ...item, quantity: -1 }, { ...item, clubId: -1 }, ball]));
         expect(readCart()).toEqual([ball]);
     });
 });

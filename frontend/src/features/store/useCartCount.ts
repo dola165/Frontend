@@ -8,7 +8,8 @@ export function useCartCount() {
         const update = () => setCount(readCart().length);
         window.addEventListener('storage', update);
         window.addEventListener('gk-cart', update);
-        return () => { window.removeEventListener('storage', update); window.removeEventListener('gk-cart', update); };
+        window.addEventListener('gk-auth-changed', update);
+        return () => { window.removeEventListener('storage', update); window.removeEventListener('gk-cart', update); window.removeEventListener('gk-auth-changed', update); };
     }, []);
     return count;
 }

@@ -73,7 +73,8 @@ post('/family/children', ({ headers, body }) => {
   const family = familyOf(headers, true);
   if (!family) return undefined;
   const fullName = String(body?.fullName ?? '').trim(), dateOfBirth = String(body?.dateOfBirth ?? '');
-  if (!fullName || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth) || body?.responsible !== true) return reply(400, { status: 400, message: 'Add the child’s name and date of birth.' });
+  if (!fullName || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) return reply(400, { status: 400, message: 'Add the child’s name and date of birth.' });
+  if (body?.responsible !== true) return reply(400, { status: 400, message: 'Confirm that you are the child’s parent or legal guardian.' });
   const repeat = family.find(child => child.requestId && child.requestId === body.requestId);
   if (repeat) return { childId: repeat.id, name: repeat.name };
   const child = { id: newChildId(), name: fullName, dateOfBirth, gender: null, positions: [], requestId: body.requestId ?? null };

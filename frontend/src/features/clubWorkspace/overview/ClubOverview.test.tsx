@@ -59,7 +59,7 @@ describe('Club overview', () => {
         const props = renderOverview({ schedule: { events: [event], loading: false, error: null, retry: vi.fn(), open: vi.fn(), openEvent: vi.fn() } });
         fireEvent.click(screen.getByRole('button', { name: 'Open First team training in calendar' }));
         expect(props.schedule.openEvent).toHaveBeenCalledWith(event);
-        fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }));
+        fireEvent.click(screen.getByRole('button', { name: 'See the full week' }));
         expect(props.schedule.open).toHaveBeenCalled();
         await screen.findByText(/All current players checked\./);
     });

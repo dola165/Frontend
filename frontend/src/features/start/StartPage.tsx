@@ -9,9 +9,10 @@ import { Crest } from '../world/Crest';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { clearAuthFlow, getAuthFlow } from '../../utils/authRedirect';
 import { applyActivity } from './applyActivity';
-import { fetchClubsNear, fetchFeedPreferences, followClub, saveFeedPreferences, unfollowClub, type Activity, type Interest, type NearbyClub } from './startApi';
+import { fetchClubsNear, fetchFeedPreferences, saveFeedPreferences, type Activity, type Interest, type NearbyClub } from './startApi';
 import { ACTIVITIES, DEFAULT_INTERESTS, INTERESTS } from './startChoices';
 import { DEFAULT_TOWN, TOWNS, locateTown, townByName, type Town } from './towns';
+import { followChanges, useUnsaved, type Part, type Unsaved } from './unsaved';
 import './start.css';
 import '../pages/pages.css';
 
@@ -41,11 +42,18 @@ function StartRun() {
     const [town, setTown] = useState<Town>(() => townByName(flow.town) ?? DEFAULT_TOWN);
     const [topics, setTopics] = useState<Set<Interest>>(() => new Set(DEFAULT_INTERESTS));
     const [activity, setActivity] = useState<Activity | null>(null);
-    const [clubs, setClubs] = useState<NearbyClub[] | null>(null);
+    // The clubs found near a town; while another town's are shown, the list is loading.
+    const [found, setFound] = useState<{ town: string; clubs: NearbyClub[] } | null>(null);
+    const clubs = found?.town === town.name ? found.clubs : null;
     const [ticked, setTicked] = useState<Set<number>>(new Set());
     const [locating, setLocating] = useState<'idle' | 'locating' | 'failed'>('idle');
     const [busy, setBusy] = useState(false);
-    const [note, setNote] = useState('');
+    const unsaved = useUnsaved();
+    // The end was asked for while something was still unsaved: where it goes once saved, or when the person goes on without it.
+    const [ending, setEnding] = useState<{ then?: string } | null>(null);
+    const [retrying, setRetrying] = useState(false);
+    // Which clubs the server holds as followed, as far as this run knows: a retry sends only what is still different.
+    const held = useRef(new Map<number, boolean>());
     const loaded = useRef(false);
 
     // Saved preferences win over the defaults; the town given at registration wins over both.
@@ -65,17 +73,16 @@ function StartRun() {
     useEffect(() => {
         if (step !== 'clubs') return;
         const controller = new AbortController();
-        setClubs(null);
-        fetchClubsNear(town, 6, controller.signal).then(found => {
+        fetchClubsNear(town, 6, controller.signal).then(near => {
             if (controller.signal.aborted) return;
-            setClubs(found);
-            setTicked(new Set(found.filter((club, index) => club.isFollowedByMe || index < NEAREST_TICKED).map(club => club.id)));
-        }).catch(() => { if (!controller.signal.aborted) setClubs([]); });
+            setFound({ town: town.name, clubs: near });
+            near.forEach(club => held.current.set(club.id, Boolean(club.isFollowedByMe)));
+            setTicked(new Set(near.filter((club, index) => club.isFollowedByMe || index < NEAREST_TICKED).map(club => club.id)));
+        }).catch(() => { if (!controller.signal.aborted) setFound({ town: town.name, clubs: [] }); });
         return () => controller.abort();
     }, [step, town]);
 
     const go = useCallback((next: Step | null, then?: string) => {
-        setNote('');
         if (next === null) {
             clearAuthFlow();
             navigate(then ?? flow.nextPath ?? '/home', { replace: true });
@@ -86,13 +93,26 @@ function StartRun() {
 
     const after = (current: Step): Step | null => (current === 'town' ? 'see' : current === 'see' ? 'clubs' : current === 'clubs' ? (flow.newAccount || params.get('step') === 'do' ? 'do' : null) : null);
 
-    /** Saves what this screen chose (best effort: the start is never blocked by a save) and moves on. */
-    const saveAndGo = async (changes: () => Promise<unknown>, next: Step | null, then?: string) => {
+    /**
+     * Saves what this screen chose and moves on, saved or not: what failed stays named under the screens with a retry.
+     * Only the end waits, so the person leaves knowing what was not kept (or tries again, or goes on without it).
+     */
+    const saveAndGo = async (part: Part, changes: () => Promise<unknown>, next: Step | null, then?: string) => {
         setBusy(true);
-        try { await changes(); go(next, then); }
-        catch { setNote(t('start.failed')); setBusy(false); go(next, then); }
-        finally { setBusy(false); }
+        await unsaved.attempt(part, changes);
+        setBusy(false);
+        if (next === null && unsaved.pending()) setEnding({ then });
+        else go(next, then);
     };
+    const retry = async () => {
+        setRetrying(true);
+        const saved = await unsaved.retry();
+        setRetrying(false);
+        if (saved && ending) go(null, ending.then);
+    };
+    // "your town, what you see and 1 club follow", in the app's language (browsers have no Georgian list rules).
+    const joined = (items: string[]) => items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} ${t('start.unsaved.and')} ${items[items.length - 1]}`;
+    const what = (item: Unsaved) => item.part === 'clubs' && item.count ? t('start.unsaved.follows', { count: item.count }) : t(`start.unsaved.${item.part}`);
 
     const findMyTown = async () => {
         setLocating('locating');
@@ -102,7 +122,7 @@ function StartRun() {
 
     // Skipped: the activity stays empty, and the links someone confirms later set it (useAutomaticActivity).
     // `then`: a coach who runs a club goes on to start it (the start sheet over Home).
-    const finish = (choice: Activity | null, then?: string) => saveAndGo(() => (choice && user ? applyActivity(user.id, choice, copy) : saveFeedPreferences({ activity: null })), null, then);
+    const finish = (choice: Activity | null, then?: string) => saveAndGo('do', () => (choice && user ? applyActivity(user.id, choice, copy) : saveFeedPreferences({ activity: null })), null, then);
 
     const stepIndex = STEPS.indexOf(step);
     const titles: Record<Step, string> = { town: t('start.town.title'), see: t('start.see.title'), clubs: t('start.clubs.title'), do: t('start.do.title') };
@@ -118,7 +138,7 @@ function StartRun() {
                     </ol>
                 ) : <span />}
                 {/* Skipping the town screen keeps the town given at sign-up: it is saved all the same, so World and a new page start there. */}
-                <Button variant="ghost" size="sm" disabled={busy} onClick={() => (step === 'town' && flow.town ? void saveAndGo(() => saveFeedPreferences({ town }), after(step)) : go(after(step)))}>{t('start.skip')}</Button>
+                <Button variant="ghost" size="sm" disabled={busy} onClick={() => (step === 'town' && flow.town ? void saveAndGo('town', () => saveFeedPreferences({ town }), after(step)) : go(after(step)))}>{t('start.skip')}</Button>
             </header>
 
             <main className="gk-start__body">
@@ -205,14 +225,19 @@ function StartRun() {
                     )}
                 </div>
 
-                {note && <p role="status" className="gk-start__note gk-start__note--warn">{note}</p>}
+                {unsaved.items.length > 0 && (
+                    <p role="status" className="gk-start__note gk-start__note--warn gk-start__unsaved">
+                        <span className="gk-start__dot-warn" aria-hidden="true" />
+                        <span>{t('start.unsaved.title', { what: joined(unsaved.items.map(what)) })}</span>
+                        <button type="button" className="gk-start__link" disabled={retrying || busy} onClick={() => void retry()}>{retrying ? t('start.unsaved.retrying') : t('start.unsaved.retry')}</button>
+                    </p>
+                )}
                 <footer className="gk-start__foot">
+                    {ending && <Button variant="ghost" disabled={retrying} onClick={() => go(null, ending.then)}>{t('start.unsaved.continue')}</Button>}
                     {step !== 'town' && <Button variant="ghost" disabled={busy} onClick={() => go(step === 'see' ? 'town' : step === 'clubs' ? 'see' : 'clubs')}>{t('start.back')}</Button>}
-                    {step === 'town' && <Button variant="primary" disabled={busy} onClick={() => void saveAndGo(() => saveFeedPreferences({ town }), 'see')}>{t('start.next')}</Button>}
-                    {step === 'see' && <Button variant="primary" disabled={busy} onClick={() => void saveAndGo(() => saveFeedPreferences({ topics: [...topics] }), 'clubs')}>{t('start.next')}</Button>}
-                    {step === 'clubs' && <Button variant="primary" disabled={busy || clubs === null} onClick={() => void saveAndGo(async () => {
-                        await Promise.all((clubs ?? []).map(club => (ticked.has(club.id) && !club.isFollowedByMe ? followClub(club.id) : !ticked.has(club.id) && club.isFollowedByMe ? unfollowClub(club.id) : Promise.resolve())));
-                    }, after('clubs'))}>{after('clubs') ? t('start.next') : t('start.done')}</Button>}
+                    {step === 'town' && <Button variant="primary" disabled={busy} onClick={() => void saveAndGo('town', () => saveFeedPreferences({ town }), 'see')}>{t('start.next')}</Button>}
+                    {step === 'see' && <Button variant="primary" disabled={busy} onClick={() => void saveAndGo('see', () => saveFeedPreferences({ topics: [...topics] }), 'clubs')}>{t('start.next')}</Button>}
+                    {step === 'clubs' && <Button variant="primary" disabled={busy || clubs === null} onClick={() => void saveAndGo('clubs', followChanges(held.current, new Map((clubs ?? []).map(club => [club.id, ticked.has(club.id)]))), after('clubs'))}>{after('clubs') ? t('start.next') : t('start.done')}</Button>}
                     {step === 'do' && <Button variant="primary" disabled={busy} onClick={() => void finish(activity)}>{busy ? <><Loader2 className="gk-start__spin" aria-hidden="true" /> {t('start.finishing')}</> : t('start.done')}</Button>}
                 </footer>
             </main>

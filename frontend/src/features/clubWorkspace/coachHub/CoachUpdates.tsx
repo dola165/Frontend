@@ -70,7 +70,7 @@ function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onCh
 }
 
 /** Coach updates as a feed: write one to one or several squads, see who has read them, and answer families' private messages. */
-export function CoachUpdates({ data, embedded }: { data: CoachData; embedded?: boolean }) {
+export function CoachUpdates({ data }: { data: CoachData }) {
     const [params] = useSearchParams();
     const [writing, setWriting] = useState(false);
     const copy = useCopy('coachHub', coachHubEn);
@@ -84,7 +84,7 @@ export function CoachUpdates({ data, embedded }: { data: CoachData; embedded?: b
     const threads = (squads ?? []).flatMap(squad => (squad.overview?.threads ?? []).filter(thread => thread.unread_count > 0).map(thread => ({ ...thread, squad: squad.id })))
         .sort((a, b) => b.unread_count - a.unread_count);
 
-    // The grid alone serves the squad page; on its own tab it gets the frame, the title and the switcher.
+    // The grid, framed with the title and the switcher.
     const body = <>
         <div className="gk-grid gk-grid--split">
             <div className="gk-stack">
@@ -121,7 +121,6 @@ export function CoachUpdates({ data, embedded }: { data: CoachData; embedded?: b
         </div>
         {writing && <MessageParentsDialog data={data} onClose={() => setWriting(false)} />}
     </>;
-    if (embedded) return body;
     return <PageFrame className="cw-page ch-page">
         <PageHeader title="Updates" actions={<ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />New announcement</ButtonLink>} />
         <SquadSwitch data={data} />

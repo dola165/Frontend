@@ -1,6 +1,6 @@
 import { CreateLink } from '../features/pages/create/CreateLink';
 import { pt } from '../features/pages/copy';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Briefcase, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,14 +12,13 @@ import { CATEGORIES, HOURS, postJob, TERMS, type JobApplyMethod, type JobDirecti
 import { useWorldArea } from '../features/world/useWorldArea';
 import { useWorldData } from '../features/world/useWorldData';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { useOwnedDraft } from '../utils/ownedDraft';
 import '../features/store/store.css';
 import '../features/campaigns/campaigns.css';
 import '../features/jobs/jobs.css';
 
-interface Draft { posterKind: 'CLUB' | 'PERSON'; direction: JobDirection; category: string; terms: string; hours: JobHours | ''; title: string; description: string; pay: string; city: string; licence: string; applyMethod: JobApplyMethod | ''; applyTarget: string }
-const DRAFT_KEY = 'gk.job.draft';
-const empty: Draft = { posterKind: 'PERSON', direction: 'HIRING', category: '', terms: 'PAID', hours: '', title: '', description: '', pay: '', city: '', licence: '', applyMethod: '', applyTarget: '' };
-const readDraft = (): Draft => { try { return { ...empty, ...JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? '{}') }; } catch { return empty; } };
+interface Draft { posterKind: 'CLUB' | 'PERSON'; direction: JobDirection; category: string; terms: string; hours: JobHours | ''; title: string; description: string; pay: string; city: string; licence: string; applyMethod: JobApplyMethod | ''; applyTarget: string; /** The club the person was in while writing it. */ clubId: number | null }
+const empty: Draft = { posterKind: 'PERSON', direction: 'HIRING', category: '', terms: 'PAID', hours: '', title: '', description: '', pay: '', city: '', licence: '', applyMethod: '', applyTarget: '', clubId: null };
 /**
  * The ways to answer that work for this poster and line of work: the in-app application exists for coaching roles
  * only (`JobApplication`), and a club has no inbox of its own, so "message" means its page's contact details.
@@ -42,14 +41,18 @@ export const PostJobPage = () => {
     const { area } = useWorldArea();
     const step = Math.min(3, Math.max(1, Number(params.get('step')) || 1));
     const side = params.get('as') === 'hire' ? 'hire' : params.get('as') === 'work' ? 'work' : null;
-    const [draft, setDraft] = useState<Draft>(() => ({ ...readDraft(), ...(params.get('club') ? { posterKind: 'CLUB' as const } : {}), ...(side ? { direction: side === 'hire' ? 'HIRING' as const : 'OFFERING' as const } : {}) }));
+    // The draft is the signed-in person's; a club draft is for the club they were in when they wrote it.
+    const owned = useOwnedDraft<Draft>('job', empty, { ...(params.get('club') ? { posterKind: 'CLUB' as const } : {}), ...(side ? { direction: side === 'hire' ? 'HIRING' as const : 'OFFERING' as const } : {}) });
+    const draft = owned.draft;
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const membership = useWorldData(status === 'authenticated' ? 'my-club' : null, () => fetchMyClubMembershipContext());
     const club = membership.data;
     const clubAllowed = !!club?.clubId && canManageClubOperations(club.myRole);
     const posterKind = draft.posterKind === 'CLUB' && clubAllowed ? 'CLUB' : 'PERSON';
-    const change = (patch: Partial<Draft>) => setDraft(current => { const next = { ...current, ...patch }; try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next)); } catch { /* memory only */ } return next; });
+    const change = (patch: Partial<Draft>) => owned.change({ ...patch, clubId: club?.clubId ?? null });
+    const otherClub = draft.posterKind === 'CLUB' && draft.clubId != null && !!club && draft.clubId !== club.clubId;
+    useEffect(() => { if (otherClub) owned.reset(); }, [otherClub]); // eslint-disable-line react-hooks/exhaustive-deps
     const go = (next: number) => setParams(current => { const copy = new URLSearchParams(current); if (next > 1) copy.set('step', String(next)); else copy.delete('step'); return copy; });
     const offering = draft.direction === 'OFFERING';
     const city = draft.city || (posterKind === 'CLUB' ? club?.clubName && area.city : area.city) || area.city;
@@ -64,7 +67,7 @@ export const PostJobPage = () => {
         setSaving(true); setError('');
         try {
             const job = await postJob({ posterKind, clubId: posterKind === 'CLUB' ? club?.clubId : null, direction: draft.direction, title: draft.title.trim(), description: draft.description.trim(), category: draft.category as never, engagementType: draft.terms as never, hours: draft.hours || null, pay: draft.pay.trim(), city, licence: draft.licence.trim() || undefined, applyMethod, applyTarget: needsTarget ? draft.applyTarget.trim() : undefined, requiredRole: applyMethod === 'IN_APP' ? 'COACH' : null });
-            try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* nothing to clear */ }
+            owned.clear();
             toast.success(offering ? 'You are listed' : 'Your job is live', { description: job.title });
             navigate(`/jobs/${job.id}`, { replace: true });
         } catch (failure) { setError(extractApiErrorMessage(failure, 'Could not publish. Your answers are still here.')); }

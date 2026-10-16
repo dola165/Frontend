@@ -5,7 +5,6 @@ import { MediaImage } from '../components/ui/MediaImage';
 import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel } from '../design/primitives';
 import { CartPaymentPreview } from '../features/paymentPreview/CartPaymentPreview';
 import { paymentPreviewEnabled } from '../features/paymentPreview/config';
-import { PaymentPreviewNotice } from '../features/paymentPreview/PaymentPreview';
 import { fetchCartQuote, fetchStoreProduct, formatStorePrice, GRASSKICKZ, type CartQuote } from '../features/store/api';
 import { readCart, saveCart, type CartItem } from '../features/store/cart';
 import { extractApiErrorMessage } from '../utils/apiError';
@@ -82,7 +81,6 @@ export const StoreCartPage = () => {
                                 <p className="gk-store-cart__total"><span>Subtotal</span><span className="gk-num">{formatStorePrice(quote.subtotal / 100, quote.currency)}</span></p>
                                 <p className="gk-store-cart__note">Delivery, taxes and payment fees are not included.</p>
                             </>}
-                            <PaymentPreviewNotice />
                             {paymentPreviewEnabled() && quote && !loading && !error
                                 ? <CartPaymentPreview key={itemsKey} quote={quote} items={items} onQuote={next => setChecked({ itemsKey, quote: next })} />
                                 : <>

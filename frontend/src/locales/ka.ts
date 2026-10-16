@@ -54,7 +54,7 @@ const ka = {
     parentHub: 'მშობლის სივრცე',
     paymentDemo: 'გადახდის დემო',
     jobs: 'როლები',
-    campaigns: 'კამპანიები',
+    campaigns: 'ფონდების მოზიდვა',
     openNav: 'ნავიგაციის გახსნა',
     switchToLight: 'ღია რეჟიმზე გადასვლა',
     switchToDark: 'მუქ რეჟიმზე გადასვლა',

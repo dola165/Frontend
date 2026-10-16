@@ -54,7 +54,7 @@ const en = {
     parentHub: 'Parent Hub',
     paymentDemo: 'Payment demo',
     jobs: 'Jobs & volunteering',
-    campaigns: 'Campaigns',
+    campaigns: 'Fundraising',
     openNav: 'Open navigation',
     switchToLight: 'Switch to light mode',
     switchToDark: 'Switch to dark mode',

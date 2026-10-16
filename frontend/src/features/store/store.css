@@ -276,6 +276,8 @@
    buttons, links, pins, bands and progress follow without their own rules. ── */
 .gk.gk-store[data-market='jobs'] { --gk-accent: var(--gk-market-jobs); --gk-accent-strong: var(--gk-market-jobs-strong); --gk-on-accent: var(--gk-on-market-jobs); }
 .gk.gk-store[data-market='fundraising'] { --gk-accent: var(--gk-market-fundraising); --gk-accent-strong: var(--gk-market-fundraising-strong); --gk-on-accent: var(--gk-on-market-fundraising); }
+.gk .gk-market-tabs__short { display: none; }
+@media (max-width: 600px) { .gk .gk-market-tabs__long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } .gk .gk-market-tabs__short { display: inline; } }
 .gk .gk-market-tabs + .gk-store-head { padding-top: var(--gk-4); }
 .gk .gk-store-cats-section > .gk-section__head { justify-content: center; }
 .gk .gk-store-cats-section > .gk-section__head > .gk-section__heading { justify-content: center; }

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Briefcase, ChevronDown, ChevronUp, Compass, Map as MapIcon, Plus, Search, UserCheck } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote } from '../../design/primitives';
 import { WorldMap } from '../world/map/WorldMap';
+import { useMediaQuery } from '../world/useMediaQuery';
 import { CATEGORIES, HOURS, TERMS, type Job } from './api';
 import { JobRow, JobSkeletons } from './JobCard';
 import { filterListings, pinsOf } from './mapPins';
@@ -49,9 +50,11 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
     const active = [query.category, query.terms, query.hours, query.poster, query.city, query.posted, query.query].filter(Boolean).length;
     const listPath = jobsPath({ ...query, page: 0, job: undefined });
     const people = query.direction === 'OFFERING';
+    // Under 1100px the column and the ways in follow the map instead of floating on it, so nothing covers its sides.
+    const stacked = useMediaQuery('(max-width: 1100px)');
     return (
         <div className="gk-jobs-stage">
-            <WorldMap points={points} label="Jobs on the map" variant="hero" gestures="cooperative" insetLeft={432} insetRight={412} selectedId={pin?.id} onSelect={setPinId}
+            <WorldMap points={points} label="Jobs on the map" variant="hero" gestures="cooperative" insetLeft={stacked ? 0 : 432} insetRight={stacked ? 0 : 412} selectedId={pin?.id} onSelect={setPinId}
                 overlay={<>
                     <aside className="gk-jobs-side" aria-label="Filters">
                         <div className="gk-jobs-side__head">

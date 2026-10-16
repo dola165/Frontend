@@ -13,8 +13,9 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const initialVariants = (product: StoreProduct | null): StoreVariant[] => product?.variants?.length ? product.variants.map(variant => ({ ...variant })) : [{ label: 'One size', stock: 0 }];
 
 /** Adding or editing a store product on one page: details and photos, price and stock, and visibility. */
-export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmit }: {
+export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmit, defaultActive = false, draftHint = 'Supporters cannot see this product. You can publish it from the product list later.' }: {
     product: StoreProduct | null; saving: boolean; formError: string; onCancel: () => void; onSubmit: (payload: StoreProductPayload) => Promise<void>;
+    /** A new product starts published (the club's public store, where a draft would vanish from view). */ defaultActive?: boolean; /** Where an unpublished product can be found again. */ draftHint?: string;
 }) => {
     const [name, setName] = useCommerceDraftState('form:name', product?.name ?? '');
     const [description, setDescription] = useCommerceDraftState('form:description', product?.description ?? '');
@@ -23,14 +24,14 @@ export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmi
     const [category, setCategory] = useCommerceDraftState('form:category', product?.category ?? 'OTHER');
     const [variants, setVariants] = useCommerceDraftState<StoreVariant[]>('form:variants', () => initialVariants(product));
     const [images, setImages] = useCommerceDraftState('form:images', product?.images ?? []);
-    const [active, setActive] = useCommerceDraftState('form:active', product?.active ?? false);
+    const [active, setActive] = useCommerceDraftState('form:active', product?.active ?? defaultActive);
     const [uploading, setUploading] = useCommerceDraftState('form:uploading', false);
     const [uploadError, setUploadError] = useCommerceDraftState('form:uploadError', '');
     const [discard, setDiscard] = useState(false);
     const editVariant = (index: number, change: Partial<StoreVariant>) => setVariants(current => current.map((variant, i) => i === index ? { ...variant, ...change } : variant));
     const totalStock = variants.reduce((total, variant) => total + (Number.isFinite(variant.stock) ? variant.stock : 0), 0);
     const dirty = JSON.stringify([name, description, price, currency, category, variants, images, active])
-        !== JSON.stringify([product?.name ?? '', product?.description ?? '', String(product?.price ?? ''), product?.currency ?? 'GEL', product?.category ?? 'OTHER', initialVariants(product), product?.images ?? [], product?.active ?? false]);
+        !== JSON.stringify([product?.name ?? '', product?.description ?? '', String(product?.price ?? ''), product?.currency ?? 'GEL', product?.category ?? 'OTHER', initialVariants(product), product?.images ?? [], product?.active ?? defaultActive]);
     const requestClose = () => { if (dirty) setDiscard(true); else onCancel(); };
     return <CommerceEditor title={product ? 'Edit product' : 'Add a product'} formLabel="Product editor" backLabel="Back to products" saveLabel="Save product"
         description="Name the item, set its price and stock for each size, then choose whether supporters can see it."
@@ -91,7 +92,7 @@ export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmi
         </EditorSection>
         <EditorSection title="Visibility">
             <label className="cm-switch"><input type="checkbox" className="gk-switch" checked={active} onChange={event => setActive(event.target.checked)} /><span>Published in the Store</span></label>
-            <p className="cm-hint">{active ? 'Supporters see this product in your club store after you save.' : 'Supporters cannot see this product. You can publish it from the product list later.'}</p>
+            <p className="cm-hint">{active ? 'Supporters see this product in your club store after you save.' : draftHint}</p>
         </EditorSection>
     </CommerceEditor>;
 };

@@ -27,13 +27,13 @@ const LINES: Record<string, string> = {
   fees: 'What a month costs, or Free. Parents filter by it when they search.',
   players: 'One join link per team. Parents add their own child and you approve.',
   ready: 'That’s everything. Go live when you like; anything can change later.',
-  waiting: 'To go live, add a ground or a way to reach you.',
+  waiting: 'To go live, name your page.',
 };
 /** What to do inside the pop-up a step opens; she follows the person into it. */
 const PANEL_LINES: Record<string, string> = {
   crest: 'Upload your badge, or pick two colours and a shape. The page shows it at once.',
   grounds: 'Tap your pitch on the map or in the list. Not there? Type it under Another place.',
-  squads: 'Say who plays, then tap the birth years you have. Each becomes a team.',
+  squads: 'Tap boys, girls or both beside each birth year you have. Each tap is a team.',
   players: 'Share a team’s link in your parents’ WhatsApp group. They add their own child.',
   staff: 'Invite a coach by phone, or share the invite link.',
 };
@@ -46,6 +46,8 @@ const TARGETS: Record<string, string> = {
   contact: '[data-box="contact"]', fees: '[data-box="fees"]', players: '[data-box="squads"]', ready: '[data-coach="live"]', waiting: '[data-coach="live"]',
 };
 const EXAMPLES = ['Where do I add my ground?', 'What’s a birth year?'];
+/** How far she leans over a pop-up's edge. */
+const PEEK = 14;
 const W = 84, H = Math.round(W * BOX[3] / BOX[2]), EDGE = 8, BUBBLE = 280;
 const HIDDEN = 'gk-pet-hidden';
 const stored = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
@@ -70,13 +72,16 @@ function spotFor(rect: DOMRect, under: boolean): Spot {
   if (!under && rect.top - H >= EDGE) return { x: clampX(rect.left + 16), y: rect.top - H + 6, aim: 'down', rect: box };
   return { x: clampX(rect.left + 16), y: clampY(rect.bottom + 6), aim: 'up', rect: box };
 }
-/** In a pop-up she stands beside it near its top (left first), else on its top edge, else inside it under its title. */
+/**
+ * In a pop-up she peeks over its left edge near the top, her bubble right under her, so she and the pop-up are seen
+ * together; without room there, over its right edge, else on its top edge, else inside it under its title.
+ */
 function panelSpot(rect: DOMRect): Spot {
   const vw = window.innerWidth, vh = window.innerHeight;
   const box = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
   const y = Math.min(Math.max(rect.top + 24, EDGE), vh - H - EDGE);
-  if (rect.left >= W + EDGE * 2) return { x: rect.left - W - 6, y, aim: 'right', rect: box };
-  if (rect.right + W + EDGE * 2 <= vw) return { x: rect.right + 6, y, aim: 'left', rect: box };
+  if (rect.left >= W + EDGE) return { x: rect.left - W + PEEK, y, aim: 'right', rect: box };
+  if (rect.right + W + EDGE <= vw) return { x: rect.right - PEEK, y, aim: 'left', rect: box };
   if (rect.top - H >= EDGE) return { x: rect.left + 16, y: rect.top - H + 6, aim: 'down', rect: box };
   return { x: Math.max(rect.right - W - 56, EDGE), y: Math.min(rect.top + 64, vh - H - EDGE), aim: 'left', rect: box };
 }
@@ -231,7 +236,8 @@ export function DolaPet() {
   const vw = window.innerWidth;
   const fitsRight = spot.x + W + 8 + BUBBLE <= vw, fitsLeft = spot.x - 8 - BUBBLE >= 0;
   // The bubble never covers what she points at: pointing right, it goes to her left.
-  const side = under ? 'below' : spot.aim === 'right' ? (fitsLeft ? 'left' : 'below') : spot.aim === 'left' && inPanel && !fitsRight ? 'below-end'
+  const side = under ? 'below' : inPanel && spot.aim === 'right' ? 'below-end' : inPanel && spot.aim === 'left' ? 'below'
+    : spot.aim === 'right' ? (fitsLeft ? 'left' : 'below')
     : fitsRight ? 'right' : fitsLeft ? 'left' : spot.y > 220 ? 'above' : 'below';
 
   return createPortal(

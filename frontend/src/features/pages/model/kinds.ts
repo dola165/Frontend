@@ -159,12 +159,12 @@ export function setupState(facts: PageFacts): SetupState {
   return { items, done: count, total: items.length, next: items.find(item => !item.done)?.key ?? null, complete: count === items.length };
 }
 
-/** Go live needs a name, a crest and either a ground or a way to reach the page. What is missing is said, in order. */
-export function goLiveCheck(facts: PageFacts): { ready: boolean; missing: ('name' | 'crest' | 'groundOrContact')[] } {
-  const missing: ('name' | 'crest' | 'groundOrContact')[] = [];
-  if (!done.name(facts)) missing.push('name');
-  if (!facts.crestKept) missing.push('crest');
-  if (facts.grounds === 0 && !facts.contact) missing.push('groundOrContact');
+/**
+ * Go live needs only a name (owner, 16 October): everything else is optional, the town too, though a page without a town
+ * cannot be found by a town filter. What is missing is said.
+ */
+export function goLiveCheck(facts: PageFacts): { ready: boolean; missing: 'name'[] } {
+  const missing: 'name'[] = done.name(facts) ? [] : ['name'];
   return { ready: missing.length === 0, missing };
 }
 

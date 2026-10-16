@@ -520,7 +520,7 @@ export const PAGES_KA: Record<string, string> = {
   'I help with setting up your page. Tap a box to fill it.': 'გვერდის მომზადებაში გეხმარებით. შესავსებად დააჭირეთ ბლოკს.',
   'Upload your badge, or pick two colours and a shape. The page shows it at once.': 'ატვირთეთ ემბლემა ან აირჩიეთ ორი ფერი და ფორმა. გვერდზე მაშინვე გამოჩნდება.',
   'Tap your pitch on the map or in the list. Not there? Type it under Another place.': 'მონიშნეთ თქვენი მოედანი რუკაზე ან სიაში. არ ჩანს? ჩაწერეთ „სხვა ადგილში“.',
-  'Say who plays, then tap the birth years you have. Each becomes a team.': 'მიუთითეთ, ვინ თამაშობს, და მონიშნეთ დაბადების წლები. თითოეული გუნდი გახდება.',
+  'Tap boys, girls or both beside each birth year you have. Each tap is a team.': 'თითოეული დაბადების წლის გვერდით მონიშნეთ ბიჭები, გოგოები ან ორივე. ყოველი მონიშვნა ერთი გუნდია.',
   'Share a team’s link in your parents’ WhatsApp group. They add their own child.': 'გააზიარეთ გუნდის ბმული მშობლების WhatsApp ჯგუფში. შვილს თავად დაამატებენ.',
   'Invite a coach by phone, or share the invite link.': 'მოიწვიეთ მწვრთნელი ტელეფონით ან გააზიარეთ მოსაწვევი ბმული.',
   'Save': 'შენახვა',
@@ -539,4 +539,8 @@ export const PAGES_KA: Record<string, string> = {
   'There? Tap again or drag the pin to move it.': 'აქ? გადასატანად კიდევ დააჭირეთ ან გადაათრიეთ ნიშანი.',
   'This is it': 'აქ არის',
   'Move on the map': 'რუკაზე გადატანა',
+  'Tap boys, girls or both beside each year they were born. The teams are named for you.': 'დაბადების წლის გვერდით მონიშნეთ ბიჭები, გოგოები ან ორივე. გუნდებს სახელს ჩვენ დავარქმევთ.',
+  'Your teams and their training days': 'თქვენი გუნდები და ვარჯიშის დღეები',
+  'Same as {team}': 'როგორც {team}',
+  'To go live, name your page.': 'გამოსაქვეყნებლად დაარქვით გვერდს სახელი.',
 };

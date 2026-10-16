@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { usePagesCopy } from '../copy';
-import type { PageView } from '../api';
 import { addableBoxes, BOX_COLUMN, type BoxKey, type Column } from '../model/kinds';
 import { GhostBox, type GhostNeed } from './GhostBox';
 import { SETUP_PANEL, usePageEdit } from './context';
@@ -11,7 +10,8 @@ import type { BoxRenderers } from './boxRegistry';
 import './edit.css';
 
 /** What an empty box means: a ground or a way to reach the page is needed to go live; money (store, jobs, fundraising) is advanced; the rest is recommended. */
-const needOf = (page: PageView, key: BoxKey): GhostNeed => (page.goLive.missing.includes('groundOrContact') && (key === 'contact' || key === 'grounds') ? 'live' : key === 'involved' ? 'advanced' : 'recommended');
+// Only the name is needed to go live, so every box is recommended, the store, jobs and fundraising advanced.
+const needOf = (key: BoxKey): GhostNeed => (key === 'involved' ? 'advanced' : 'recommended');
 
 /** The boxes that just filled or just changed place light up for a moment, so the eye follows what happened. */
 function useFlashes(keys: BoxKey[], filled: Record<string, boolean>): Set<BoxKey> {
@@ -69,7 +69,7 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
           <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined} data-flash={flashing.has(key) || undefined}>
             {(() => { const content = filled[key] || (open && !renderer.panel)
               ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
-              : <GhostBox icon={renderer.icon} {...ghostWords(page.kind, key, renderer)} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />;
+              : <GhostBox icon={renderer.icon} {...ghostWords(page.kind, key, renderer)} next={isNext} need={page.status === 'DRAFT' ? needOf(key) : undefined} onOpen={() => openPanel(target)} />;
               return rearranging ? <DraggableBox box={key} column={column} index={index} count={keys.length}>{content}</DraggableBox> : content; })()}
           </div>
         );

@@ -5,7 +5,7 @@ import { Button } from '../../../design/primitives';
 import { Crest } from '../../world/Crest';
 import { defaultBoxes } from '../boxes/defaultBoxes';
 import { usePagesCopy } from '../copy';
-import { boxAvailable, type SetupKey } from '../model/kinds';
+import type { SetupKey } from '../model/kinds';
 import { AboutLine } from './AboutLine';
 import { InlineText } from './InlineText';
 import { SETUP_PANEL, usePageEdit } from './context';
@@ -65,7 +65,7 @@ export function PhoneSteps() {
       <p className="gk-phonesteps__count">{t('{done} of {total} done', { done: page.setup.done, total: items.length })}</p>
       {page.goLive.ready
         ? <Button variant="primary" className="gk-phonesteps__cta" onClick={() => void goLive()}>{t('Go live')}</Button>
-        : <p className="gk-muted">{t(boxAvailable(page.kind, 'grounds') ? 'To go live, add a ground or a way to reach you.' : 'To go live, add a way to reach you.')}</p>}
+        : <p className="gk-muted">{t('To go live, name your page.')}</p>}
     </div>;
     if (View) return <View page={page} editing open onEdit={() => undefined} onClose={() => go(at + 1)} />;
     if (key === 'name') return <InlineText as="h1" value={page.identity.name} placeholder={t('Name your page')} label={t('Name')} maxLength={120} className="gk-phonesteps__name"

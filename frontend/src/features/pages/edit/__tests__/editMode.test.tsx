@@ -51,7 +51,8 @@ describe('edit mode on a page', () => {
     await user.click(screen.getByRole('button', { name: /1 of 7 done/ }));
     expect(screen.getByRole('region', { name: 'Set-up steps' })).toHaveTextContent('Add your crest');
     await user.click(screen.getByRole('button', { name: 'Hide the steps' }));
-    expect(screen.getByRole('button', { name: 'Go live' })).toBeDisabled();
+    // Only the name is needed: a named draft can go live at once.
+    expect(screen.getByRole('button', { name: 'Go live' })).toBeEnabled();
     await user.click(screen.getAllByRole('button', { name: /How to reach you/ })[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56');
     await user.click(screen.getByRole('button', { name: 'Use giorgi@example.org' }));

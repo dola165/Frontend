@@ -64,7 +64,7 @@ export interface PageView {
   layout: PageLayout & { version: number };
   boxes: PageBoxes;
   setup: { items: { key: SetupKey; done: boolean }[]; done: number; total: number; next: SetupKey | null; complete: boolean; completedAt: string | null };
-  goLive: { ready: boolean; missing: ('name' | 'crest' | 'groundOrContact')[] };
+  goLive: { ready: boolean; missing: 'name'[] };
   links: CreatedPage;
   /** The owner's own phone and email, offered as one tap, never published without it. */
   suggestions: { phone: string; email: string; fees?: { min: number; max: number; currency: FeeBand['currency']; /** Null: the whole country. */ town: string | null; clubs: number } | null } | null;

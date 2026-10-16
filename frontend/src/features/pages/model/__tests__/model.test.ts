@@ -50,11 +50,9 @@ describe('setup ring and going live', () => {
     expect(setupState(facts({ crestKept: true, about: true, grounds: 1, squads: 2, contact: true, fees: true, players: true })).complete).toBe(true);
   });
 
-  it('needs a name, a crest and either a ground or a contact to go live', () => {
-    expect(goLiveCheck(facts())).toEqual({ ready: false, missing: ['crest', 'groundOrContact'] });
-    expect(goLiveCheck(facts({ crestKept: true, contact: true })).ready).toBe(true);
-    expect(goLiveCheck(facts({ crestKept: true, grounds: 1 })).ready).toBe(true);
-    expect(goLiveCheck(facts({ name: 'R', crestKept: true, contact: true })).missing).toEqual(['name']);
+  it('needs only a name to go live', () => {
+    expect(goLiveCheck(facts())).toEqual({ ready: true, missing: [] });
+    expect(goLiveCheck(facts({ name: 'R', crestKept: true, contact: true }))).toEqual({ ready: false, missing: ['name'] });
   });
 });
 

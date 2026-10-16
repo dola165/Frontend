@@ -6,7 +6,7 @@ import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
 import { claimHref } from '../create/entry';
 import { usePageEdit } from './context';
-import { boxAvailable, SETUP_ITEMS } from '../model/kinds';
+import { SETUP_ITEMS } from '../model/kinds';
 import { DolaPet } from '../guide/DolaPet';
 import { PhoneSteps } from './PhoneSteps';
 import { usePhoneSteps } from './usePhoneSteps';
@@ -14,7 +14,6 @@ import { SetupRing, SetupSteps } from './SetupSteps';
 import { STEP_ICONS, stepWords } from './words';
 import './edit.css';
 
-const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a name', crest: 'a crest', groundOrContact: 'a ground or a way to reach you' };
 
 /**
  * The line under a page's header while its owner is there: "Draft · only you see this" with Go live, the setup
@@ -47,8 +46,6 @@ export function EditBar() {
   const setup = page.setup;
   const total = SETUP_ITEMS[page.kind].length, next = setup.next;
   const CurrentIcon = next ? STEP_ICONS[next] : null;
-  // A page without a grounds box (a business, a plain page) goes live with a way to reach it.
-  const missing = page.goLive.missing.map(item => t(item === 'groundOrContact' && !boxAvailable(page.kind, 'grounds') ? 'a way to reach you' : MISSING[item]));
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
       <PhoneSteps />
@@ -74,7 +71,7 @@ export function EditBar() {
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>
       <span className="gk-editbar__actions">
-        {page.status === 'DRAFT' && !page.goLive.ready && <span className="gk-editbar__missing">{t('To go live: {missing}', { missing: missing.join(', ') })}</span>}
+        {page.status === 'DRAFT' && !page.goLive.ready && <span className="gk-editbar__missing">{t('To go live, name your page.')}</span>}
         {page.status === 'DRAFT' && <Button size="sm" variant="primary" data-coach="live" data-ready={page.goLive.ready || undefined} disabled={!page.goLive.ready} onClick={() => void goLive()}>{t('Go live')}</Button>}
         {editing && <Button size="sm" variant={rearranging ? 'primary' : 'ghost'} aria-pressed={rearranging} onClick={() => setRearranging(!rearranging)}><LayoutList aria-hidden="true" />{t('Rearrange')}</Button>}
         {editing

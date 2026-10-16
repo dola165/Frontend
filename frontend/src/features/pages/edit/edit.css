@@ -94,13 +94,18 @@
 .gk .gk-tap svg { width: 14px; height: 14px; color: var(--gk-accent); }
 
 /* The age-group builder: one row per age, Boys / Girls / Mixed as chips; the squads as small cards. */
-.gk .gk-year { flex-direction: column; gap: 0; min-width: 58px; min-height: 44px; line-height: 1.1; }
-.gk .gk-year small { font-size: 10px; color: var(--gk-text-3); font-weight: 500; }
-.gk .gk-year[aria-pressed='true'] small { color: inherit; opacity: .8; }
-.gk .gk-squadcard__other { width: auto; min-height: 32px; padding-block: 0; }
 .gk .gk-fee__some { gap: var(--gk-2); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .gk-squadcard { padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-sunken); }
 .gk .gk-split__choices { min-width: 0; }
+
+/* The teams pop-up: a row per birth year with Boys · Girls · Both; each team a compact row with its training days. */
+.gk .gk-yearrows { display: grid; gap: 2px; }
+.gk .gk-yearrow { display: grid; grid-template-columns: 64px repeat(3, minmax(0, 1fr)); align-items: center; gap: 6px; }
+.gk .gk-yearrow .gk-chip { min-height: 32px; justify-content: center; }
+.gk .gk-yearrow__year { display: flex; align-items: baseline; gap: 4px; font-weight: 600; }
+.gk .gk-yearrow__year small { font-size: 10px; color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-squadrow { display: grid; gap: 6px; padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-squadrow__days { display: flex; flex-wrap: wrap; gap: 4px; }
+.gk .gk-squadrow__days .gk-chip { min-height: 30px; padding-inline: 8px; }
 
 /* The grounds pop-up: a wide map across the top, then the list beside another place and the chosen grounds. */
 .gk .gk-dialog--lg:has(.gk-grounds) { max-width: 980px; }
@@ -136,7 +141,6 @@
 .gk .gk-ghost__icon { transition: transform .2s var(--gk-ease); }
 .gk .gk-ghost__open:hover .gk-ghost__plus { border-color: var(--gk-accent); color: var(--gk-accent); transform: rotate(90deg); }
 .gk .gk-ghost__plus { transition: transform .25s var(--gk-ease), color .15s, border-color .15s; }
-.gk .gk-needs { animation: gk-breathe 2.6s var(--gk-ease) infinite; border-color: var(--gk-accent); }
 .gk .gk-boxframe[data-flash] { animation: gk-flash 1.4s var(--gk-ease); border-radius: var(--gk-r-lg); }
 .gk .gk-ring__count { display: inline-block; animation: gk-bump .45s var(--gk-ease); }
 .gk .gk-editbar [data-coach='live'][data-ready] { animation: gk-breathe 2.6s var(--gk-ease) 2; }
@@ -146,7 +150,7 @@
 @keyframes gk-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); color: var(--gk-accent); } 100% { transform: scale(1); } }
 
 /* The walkthrough bubble: one at a time, under its target, an arrow pointing up at it. */
-@media (prefers-reduced-motion: reduce) { .gk .gk-ghost[data-next], .gk .gk-needs, .gk .gk-ring__count, .gk .gk-boxframe[data-flash], .gk .gk-ghost[data-need='live'] .gk-ghost__need::before, .gk .gk-editbar [data-coach='live'][data-ready] { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-ghost[data-next], .gk .gk-ring__count, .gk .gk-boxframe[data-flash], .gk .gk-ghost[data-need='live'] .gk-ghost__need::before, .gk .gk-editbar [data-coach='live'][data-ready] { animation: none; } }
 
 /* Three levels on a ghost: needed (green), recommended (quiet), advanced (quieter still). The doors under a box. The example link. */
 .gk .gk-ghost[data-need='advanced'] .gk-ghost__need { color: var(--gk-text-3); font-weight: 500; }

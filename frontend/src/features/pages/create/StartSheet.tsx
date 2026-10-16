@@ -13,7 +13,7 @@ import { fetchSimilar, type PageRef, type SimilarPage } from '../api';
 import { usePagesCopy } from '../copy';
 import { CREATABLE_KINDS, minimumAge, type PageKind } from '../model/kinds';
 import { nameKey } from '../model/nameMatch';
-import { FOOTBALL_ENTRIES, pagePath, type CreateFrom } from './entry';
+import { FOOTBALL_ENTRIES, ownClub, pagePath, type CreateFrom } from './entry';
 import { KIND_TILES } from './kindTiles';
 import { useCreatePage } from './useCreatePage';
 import '../pages.css';
@@ -33,6 +33,8 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const { user } = useAuth();
   const { create, busy, error, clearError, unanswered, age } = useCreatePage();
   const locked = (candidate: PageKind) => age != null && age < minimumAge(candidate);
+  // One club per person (owner, 16 October): someone already at a club opens it, or starts a fan club instead.
+  const club = ownClub(user?.navigationCapabilities);
   // A draft left in the sheet comes back, unless the link asks for another kind: then it starts afresh on that kind.
   const [draft] = useState(() => { const kept = readSetupRecovery(user?.id, DRAFT, validDraft); return kept && (!kind || kept.kind === kind) ? kept : null; });
   const preset = kind ?? (FOOTBALL_ENTRIES.includes(from) ? 'CLUB' : null);
@@ -80,7 +82,8 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   };
   const exact = matches.find(match => match.exact) ?? null;
   const shown = dismissed === nameKey(name) && !exact ? [] : matches.slice(0, 3);
-  const ready = Boolean(chosen) && name.trim().length >= 2 && !busy && !exact;
+  const oneClub = chosen === 'CLUB' && club != null;
+  const ready = Boolean(chosen) && !oneClub && name.trim().length >= 2 && !busy && !exact;
   const submit = async () => {
     if (!chosen || !ready) return;
     const outcome = await create({ kind: chosen, name, town, from, draw });
@@ -98,7 +101,8 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
     <Dialog open size="md" title={tile ? t(tile.title) : t('What are you creating?')} onClose={onClose} closeLabel={t('Not now')}
       footer={<>
         <Button variant="ghost" onClick={onClose}>{t('Not now')}</Button>
-        {exact ? matchAction(exact) : <Button variant="primary" disabled={!ready} onClick={() => void submit()}>
+        {oneClub && club ? <ButtonLink variant="primary" to={`/clubs/${club.id}`} onClick={onClose}>{t('Open {name}', { name: club.name })}</ButtonLink>
+          : exact ? matchAction(exact) : <Button variant="primary" disabled={!ready} onClick={() => void submit()}>
           {busy ? <><Loader2 className="gk-spin" aria-hidden="true" />{t('Creating…')}</> : t(tile?.create ?? 'Create page')}
         </Button>}
       </>}>
@@ -118,7 +122,13 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
         })}
       </div>
       {note && <p className="gk-notice gk-notice--warning" role="status">{note}</p>}
-      {chosen && tile && (
+      {oneClub && club && (
+        <div className="gk-notice" role="status">
+          <span>{t('You are already part of {name}. One club per person.', { name: club.name })}</span>
+          <Button size="sm" onClick={() => choose('FAN_CLUB')}>{t('Start a fan club')}</Button>
+        </div>
+      )}
+      {chosen && tile && !oneClub && (
         <div className="gk-cname">
           <label className="gk-field__label" htmlFor={nameId}>{t(tile.nameLabel)}</label>
           <div className="gk-cname__row">

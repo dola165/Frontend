@@ -481,4 +481,5 @@ export const PAGES_KA: Record<string, string> = {
   'Skip for now': 'ახლა გამოტოვება',
   'See your page': 'თქვენი გვერდის ნახვა',
   'Tap a pitch on the map or in the list.': 'შეეხეთ მოედანს რუკაზე ან სიაში.',
+  'You are already part of {name}. One club per person.': 'თქვენ უკვე {name}-ში ხართ. ერთი ადამიანი — ერთი კლუბი.',
 };

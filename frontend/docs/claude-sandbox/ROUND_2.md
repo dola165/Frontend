@@ -606,6 +606,8 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - The first run keeps what it could not save only while it runs (`features/start/unsaved.ts`); someone who leaves mid-run sees the server's state next time. Component tests for `StartPage` are still to write.
   - Sandbox: a historical away match recorded against a club with no ground still falls back to Dinamo's centre (`handlers/football.mjs` record); generated fixtures are fixed (`world.mjs`).
 
+- **One club per person (owner, 16 October):** the backend must enforce one club membership/staff role per person (fan clubs excepted; guardians, sponsor/business staff, referees, agents and scouts are not memberships), with a transfer flow and a plan for existing accounts in several clubs. The frontend then drops the club switcher and every multi-club case (including the navigation study's "coach at two clubs").
+
 ## Open questions
 
 - **Previews of a list** (proposed): the first rows of the same table in the same words (a dot and the status, "3 days overdue"), each row opening the same record, and one link at the bottom naming the list and what is left ("Open work queue · 46 more") instead of a link in the heading and another at the bottom.

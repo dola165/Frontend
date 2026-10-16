@@ -227,3 +227,10 @@ These replace the older lines above and in sections 3, 7 and 12 where they disag
 - **Verification promises no call.** We cannot phone anyone yet: a request is reviewed and answered by message, usually within a day; until then the store and fundraising stay off and jobs are open. The owner agrees the check must exist, against scams in a club's name.
 - **Players arrive through the join link, two ways:** a player makes their own card from the link without an account, or a parent makes a parent account and the card for the child, whichever the family prefers. Built later; the model keeps a player card that exists before any account and can be claimed by one.
 - **Order of the club's boxes:** contact, fees, grounds, squads, fixed by default; Rearrange is the only way they move, and a move shows itself.
+
+### Made (16 October 2026, owner, after the waves of review fixes)
+
+- **One club per person, strictly** (settles the "strictness pending" in section 5). A person is a member, player or staff of **one** club at a time; a coach is never part of two clubs. Moving means leaving one and joining another (the transfer flow).
+- **Fan clubs are the exception:** a person can belong to any number of fan clubs.
+- **Not membership, so not limited:** being a guardian of children in other clubs; working for a sponsor or business page (a job, not a club); serving many clubs as a referee, agent or scout without joining them. The owner asked whether sponsor pages need another exception; none is known yet.
+- **Navigation:** the owner reviewed the three phone layouts (A, B, C) and found them good; the "coach at two clubs" case is dropped because it can no longer happen. The choice between A, B and C is still to be made.

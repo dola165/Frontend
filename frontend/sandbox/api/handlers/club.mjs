@@ -24,8 +24,25 @@ const page = (items, q, defSize = 20) => {
 };
 const isOwnClub = id => Number(id) === CLUB;
 
+// ---------------------------------------------------------------- sandbox personas
+// Still Luka's account; only his club access changes (set by /__mode/analyst and /__mode/member on the server).
+// `analyst`: a performance analyst on the U14 and U16 Boys who may write development notes but only read restrictions
+// and match preparation. `member`: club membership with no responsibilities at all. Anything else: the owner and head coach.
+const personaOf = headers => (String(headers?.cookie ?? '').match(/(?:^|;\s*)gk-sandbox-persona=(analyst|member)(?:;|$)/) || [])[1] ?? null;
+const personaRole = persona => (persona === 'analyst' ? 'COACH' : persona === 'member' ? 'PLAYER' : 'OWNER');
+const ANALYST_ACCESS = { DEVELOPMENT: true, AVAILABILITY: false, READINESS: false }; // module → may write
+const analystSquads = () => [...C.myCoaching.squad_ids];
+const analystView = () => ({ id: 'analyst', label: 'Performance analyst', modules: Object.keys(ANALYST_ACCESS), squadIds: analystSquads(), clubWide: false, appointmentId: 990001, revision: 1 });
+const memberView = () => ({ id: 'member', label: 'Club member', modules: [], squadIds: [], clubWide: false, appointmentId: null, revision: null });
+
+// ---------------------------------------------------------------- sections and the season
+// A bigger club is sections of squads in a season (the club model, ROUND_2 §2). Faked from the squad names until
+// the backend carries them: the first team, the girls, and the academy for everyone else. Backend fields to add.
+export const SEASON = '2026/27';
+export const sectionOf = squad => /first team/i.test(squad.name) ? 'First team' : /girls|women/i.test(squad.name) ? 'Girls' : 'Academy';
+
 // ================================================================ directory & profile
-get('/clubs/my-membership-context', () => ({ hasClubMembership: true, canCreateClub: true, clubId: CLUB, clubName: C.club.name, myRole: 'OWNER' }));
+get('/clubs/my-membership-context', ({ headers }) => ({ hasClubMembership: true, canCreateClub: true, clubId: CLUB, clubName: C.club.name, myRole: personaRole(personaOf(headers)) }));
 get('/clubs/my-club', () => C.clubProfile(CLUB));
 get('/clubs/followed', () => [...C.followed].map(id => C.directoryItem(id)));
 get('/clubs/search', ({ query }) => {
@@ -135,7 +152,7 @@ const publicStaff = id => {
 get('/clubs/:id/staff-directory', ({ params }) => publicStaff(params.id));
 get('/clubs/:id/staff', ({ params }) => publicStaff(params.id).map(s => ({ userId: s.userId, fullName: s.fullName, avatarUrl: s.avatarUrl, role: s.role, bio: s.bio, title: s.title })));
 const squadDto = s => ({ id: s.id, clubId: s.clubId, name: s.name, category: s.ageGroup, ageGroup: s.ageGroup, gender: s.gender, format: s.format, memberCount: s.playerIds.length, playerCount: s.playerIds.length,
-  headCoachId: s.headCoachId, headCoachName: s.headCoachId ? C.name(s.headCoachId) : null, trainingDays: s.trainingDays, competition: C.SQUAD_SEASON[s.id] ?? null });
+  headCoachId: s.headCoachId, headCoachName: s.headCoachId ? C.name(s.headCoachId) : null, trainingDays: s.trainingDays, competition: C.SQUAD_SEASON[s.id] ?? null, section: sectionOf(s), season: SEASON });
 get('/clubs/:id/squads', ({ params }) => W.squads.filter(s => s.clubId === Number(params.id)).map(squadDto));
 get('/clubs/:id/facilities', ({ params }) => {
   if (!isOwnClub(params.id)) {
@@ -178,7 +195,7 @@ del('/clubs/:id/calendar/:eid', () => ({ message: 'Event removed.' }));
 post('/clubs/:id/dissolve', () => reply(409, { status: 409, message: 'The academy hosts active competitions and cannot be dissolved here.' }));
 
 // ================================================================ membership (personal)
-get('/club-memberships/me', () => [{ clubId: CLUB, clubName: C.club.name, role: 'OWNER', status: 'ACTIVE', primary: true, logoUrl: C.club.logoUrl }]);
+get('/club-memberships/me', ({ headers }) => [{ clubId: CLUB, clubName: C.club.name, role: personaRole(personaOf(headers)), status: 'ACTIVE', primary: true, logoUrl: C.club.logoUrl }]);
 get('/club-memberships/invites/me', () => []);
 post('/club-memberships/invites/:iid/accept', () => ({ status: 'ACCEPTED' }));
 post('/club-memberships/invites/:iid/decline', () => ({ status: 'DECLINED' }));
@@ -193,11 +210,11 @@ post('/clubs/:id/ownership/transfer', ({ body }) => {
 const managedMember = m => { const p = personById(m.userId); return { userId: m.userId, fullName: p.fullName, username: p.username, avatarUrl: p.avatarUrl, role: m.role, roleEditable: m.role !== 'OWNER', ownershipTransferEligible: m.role === 'CLUB_ADMIN', publicTitle: m.publicTitle, clubBio: m.clubBio, qualifications: m.qualifications, isPublic: m.isPublic }; };
 const appView = a => ({ ...a });
 const countBy = status => C.affiliations.filter(a => a.status === status).length;
-get('/clubs/:id/management', ({ params }) => {
+get('/clubs/:id/management', ({ params, headers }) => {
   if (!isOwnClub(params.id)) return reply(403, { status: 403, message: 'You do not manage this club.' });
   const overdue = C.affiliations.filter(a => a.status === 'TRIALIST' && a.trialEndsOn && a.trialEndsOn < C.date(0)).length;
   return {
-    currentUserRole: 'OWNER', assignableInviteRoles: ['CLUB_ADMIN', 'COACH', 'PLAYER'], assignableStaffRoles: ['CLUB_ADMIN', 'COACH'],
+    currentUserRole: personaRole(personaOf(headers)), assignableInviteRoles: ['CLUB_ADMIN', 'COACH', 'PLAYER'], assignableStaffRoles: ['CLUB_ADMIN', 'COACH'],
     activePlayerCount: countBy('ACTIVE'), trialistCount: countBy('TRIALIST'), pastPlayerCount: countBy('PAST'), removedPlayerCount: countBy('REMOVED'), overdueTrialistCount: overdue,
     pendingTryoutCount: C.tryoutApplicants.filter(a => ['PENDING', 'SHORTLISTED'].includes(a.status)).length,
     members: C.members.map(managedMember), pendingInvitations: C.invitations.filter(i => i.status === 'PENDING').map(C.invitationView),
@@ -414,11 +431,16 @@ const recordView = r => {
 const sessionsList = () => C.upcomingSessions().map(e => ({ id: e.id, title: e.title, starts_at: W.iso(e.start), squad_name: C.squadName(e.squadId), squad_id: e.squadId }));
 const linkKinds = new Set(['ASSET', 'TRIP', 'FACILITY', 'EMERGENCY_PLAN', 'COLLECTION', 'CONSENT', 'COMPETITION_REQUIREMENTS']);
 const allSquadIds = () => C.squads.map(s => s.id);
-const bootstrap = () => ({
-  clubId: CLUB, clubName: C.club.name, leadership: true, actorId: C.ME, canReadMatches: true,
+// What each persona may do: the owner everything everywhere; the analyst three tools on their squads, one of them writable; a member nothing.
+const personaModules = persona => persona === 'analyst'
+  ? Object.entries(ANALYST_ACCESS).map(([id, writable]) => ({ id, writable, globalWrite: false, writeSquads: writable ? analystSquads() : [], globalRead: false, readSquads: analystSquads() }))
+  : persona === 'member' ? []
+    : C.MODULES.map(id => ({ id, writable: true, globalWrite: true, writeSquads: allSquadIds(), globalRead: true, readSquads: allSquadIds() }));
+const bootstrap = (persona = null) => ({
+  clubId: CLUB, clubName: C.club.name, leadership: !persona, actorId: C.ME, canReadMatches: true,
   definitions: C.definitions, specialisations: C.SPECIALISATIONS,
-  permissions: C.MODULES.map(m => `${m}:WRITE`), settings: { ...C.settings, enabled_modules: [...C.settings.enabled_modules] },
-  modules: C.MODULES.map(id => ({ id, writable: true, globalWrite: true, writeSquads: allSquadIds(), globalRead: true, readSquads: allSquadIds() })),
+  permissions: personaModules(persona).map(m => `${m.id}:${m.writable ? 'WRITE' : 'READ'}`), settings: { ...C.settings, enabled_modules: [...C.settings.enabled_modules] },
+  modules: personaModules(persona),
   squads: C.squads.map(s => ({ id: s.id, name: s.name })),
   people: C.playerIds.map(id => ({ id, name: C.name(id) })).sort((a, b) => a.name.localeCompare(b.name)),
   staff: C.activeStaffIds().map(id => ({ id, name: C.name(id) })),
@@ -428,7 +450,7 @@ const bootstrap = () => ({
   sessions: sessionsList(),
   links: C.records.filter(r => linkKinds.has(r.kind) && !['ARCHIVED', 'RETIRED'].includes(r.status)).map(r => ({ id: r.id, title: r.title, module: r.module, kind: r.kind, squad_id: r.squad_id })),
 });
-get(ROOT, ({ params }) => isOwnClub(params.id) ? bootstrap() : reply(403, { status: 403, message: 'Club responsibilities are available to appointed staff only.' }));
+get(ROOT, ({ params, headers }) => isOwnClub(params.id) ? bootstrap(personaOf(headers)) : reply(403, { status: 403, message: 'Club responsibilities are available to appointed staff only.' }));
 put(`${ROOT}/settings`, ({ body }) => {
   if (body?.revision !== C.settings.revision) return conflict('Club settings changed since you opened them. Reload and try again.');
   Object.assign(C.settings, { setting: body.setting, playing_level: body.playingLevel, currency: body.currency, country_code: body.countryCode, timezone: body.timezone, legal_name: body.legalName, registration_reference: body.registrationReference, enabled_modules: body.enabledModules ?? C.settings.enabled_modules, revision: C.settings.revision + 1 });
@@ -520,22 +542,22 @@ put(`${ROOT}/appointments/:aid/publication`, ({ params, body }) => { const a = C
 // ================================================================ workspace roles & work queues
 const coachingView = () => ({ id: 'coaching', label: 'Squad coach', modules: ['ATTENDANCE', 'DEVELOPMENT', 'READINESS', 'AVAILABILITY', 'GUARDIANS', 'EDUCATION', 'EQUIPMENT', 'TRAVEL'], squadIds: C.myCoaching.squad_ids, clubWide: false, appointmentId: C.myCoaching.id, revision: C.myCoaching.revision });
 const clubView = () => ({ id: 'club', label: 'Club administration', modules: [...C.MODULES], squadIds: allSquadIds(), clubWide: true, appointmentId: null, revision: null });
-const rolesWorkspace = view => {
-  const views = [clubView(), coachingView()];
-  const current = view === 'coaching' ? views[1] : view === 'club' ? views[0] : { id: 'all', label: 'All my work', modules: [...C.MODULES], squadIds: allSquadIds(), clubWide: true, appointmentId: null, revision: null };
-  const squadIds = current.id === 'coaching' ? current.squadIds : allSquadIds();
+const rolesWorkspace = (view, persona = null) => {
+  const views = persona === 'analyst' ? [analystView()] : persona === 'member' ? [memberView()] : [clubView(), coachingView()];
+  const current = persona ? views[0] : view === 'coaching' ? views[1] : view === 'club' ? views[0] : { id: 'all', label: 'All my work', modules: [...C.MODULES], squadIds: allSquadIds(), clubWide: true, appointmentId: null, revision: null };
+  const squadIds = persona ? current.squadIds : current.id === 'coaching' ? current.squadIds : allSquadIds();
   const order = id => (C.myCoaching.squad_ids.includes(id) ? 0 : 1);
   return {
-    leadership: true, actorId: C.ME, catalog: C.catalog, views, current,
+    leadership: !persona, actorId: C.ME, catalog: C.catalog, views, current, season: SEASON,
     requestSquads: C.squads.map(s => ({ id: s.id, name: s.name })),
-    squads: C.squads.filter(s => squadIds.includes(s.id)).sort((a, b) => order(a.id) - order(b.id) || a.id - b.id).map(s => ({ id: s.id, name: s.name, player_count: s.playerIds.length })),
+    squads: C.squads.filter(s => squadIds.includes(s.id)).sort((a, b) => order(a.id) - order(b.id) || a.id - b.id).map(s => ({ id: s.id, name: s.name, player_count: s.playerIds.length, section: sectionOf(s) })),
     people: C.squads.filter(s => squadIds.includes(s.id)).flatMap(s => s.playerIds.map(id => ({ id, name: C.name(id), squad_id: s.id, squad_name: s.name }))),
     sessions: sessionsList().filter(s => squadIds.includes(s.squad_id)),
-    requests: C.roleRequests.map(C.roleRequestView),
-    invitations: C.appointments.filter(a => a.user_id === C.ME && a.status === 'INVITED').map(apptView),
+    requests: persona ? [] : C.roleRequests.map(C.roleRequestView),
+    invitations: persona ? [] : C.appointments.filter(a => a.user_id === C.ME && a.status === 'INVITED').map(apptView),
   };
 };
-get('/clubs/:id/workspace-roles', ({ params, query }) => isOwnClub(params.id) ? rolesWorkspace(query.get('view')) : reply(403, { status: 403, message: 'No club responsibilities here.' }));
+get('/clubs/:id/workspace-roles', ({ params, query, headers }) => isOwnClub(params.id) ? rolesWorkspace(query.get('view'), personaOf(headers)) : reply(403, { status: 403, message: 'No club responsibilities here.' }));
 const workQuery = query => {
   const module = query.get('module') ?? 'HOME', q = (query.get('q') ?? '').trim().toLowerCase(), kind = query.get('kind'), mine = query.get('mine') === 'true', state = query.get('state');
   const squad = num(query.get('squad')), session = num(query.get('session')), person = num(query.get('person')), pageNo = Number(query.get('page') ?? 0) || 0;

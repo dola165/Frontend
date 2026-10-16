@@ -1,0 +1,116 @@
+diff --git a/frontend/src/features/clubWorkspace/coachHub/CancelSessionDialog.tsx b/frontend/src/features/clubWorkspace/coachHub/CancelSessionDialog.tsx
+index 02da8dd..ca4ff9d 100644
+--- a/frontend/src/features/clubWorkspace/coachHub/CancelSessionDialog.tsx
++++ b/frontend/src/features/clubWorkspace/coachHub/CancelSessionDialog.tsx
+@@ -1,4 +1,5 @@
+ import { useEffect, useRef, useState } from 'react';
++import { CheckCircle2 } from 'lucide-react';
+ import { Button, Field } from '../../../design/primitives';
+ import { Dialog } from '../../../design/Dialog';
+ import * as api from '../../squadCommunication/api';
+@@ -11,6 +12,10 @@ import './coach-hub.css';
+  * Cancelling a session is one dialog: the message to parents is already written (what, when, where), the coach
+  * may edit it, and one press cancels the session and sends the message as a pinned announcement. The most
+  * common thing a coach tells parents, with nothing to type.
++ *
++ * Two requests, told apart honestly: the cancellation itself (which already notifies the session's families)
++ * and the extra message. Once the session is cancelled the dialog says so and cannot "keep it" any more; only
++ * the message can be sent again.
+  */
+ export function CancelSessionDialog({ squad, squadName, session, now, onClose, onDone }: {
+     squad: number; squadName: string; session: api.SquadSession; now: number; onClose: () => void; onDone: () => void;
+@@ -20,6 +25,8 @@ export function CancelSessionDialog({ squad, squadName, session, now, onClose, o
+     const [message, setMessage] = useState(`${kind} cancelled: ${session.title}, ${when}${session.location ? ` at ${session.location}` : ''}. ${squadName} does not meet. Sorry for the short notice.`);
+     const [told, setTold] = useState<number | null>(null);
+     const [busy, setBusy] = useState(false), [error, setError] = useState('');
++    // Set once the cancellation request succeeded, whatever happens to the message afterwards.
++    const [cancelled, setCancelled] = useState(false);
+     const request = useRef({ cancel: crypto.randomUUID(), post: crypto.randomUUID() });
+ 
+     // How many parents the message reaches, from the server's own preview.
+@@ -30,20 +37,42 @@ export function CancelSessionDialog({ squad, squadName, session, now, onClose, o
+         return () => { alive = false; };
+     }, [squad, session.id, session.revision]);
+ 
++    const send = async () => {
++        const text = message.trim();
++        if (!text) return true;
++        try {
++            await api.postMessage(squad, { requestId: request.current.post, threadUserId: null, kind: 'ANNOUNCEMENT', title: `${kind} cancelled`, body: text, important: true, expiresAt: session.ends_at || session.starts_at });
++            return true;
++        } catch (cause) {
++            setError(extractApiErrorMessage(cause, 'The extra message was not sent.'));
++            return false;
++        }
++    };
++
+     const confirm = async () => {
+         if (busy) return;
+         setBusy(true); setError('');
+-        try {
+-            await api.cancelSession(squad, session.id, session.revision, 'Cancelled by the coach', request.current.cancel);
+-            const text = message.trim();
+-            if (text) await api.postMessage(squad, { requestId: request.current.post, threadUserId: null, kind: 'ANNOUNCEMENT', title: `${kind} cancelled`, body: text, important: true, expiresAt: session.ends_at || session.starts_at });
+-            onDone();
+-        } catch (cause) { setError(extractApiErrorMessage(cause, 'The session could not be cancelled. Nothing was sent.')); setBusy(false); }
++        if (!cancelled) {
++            try {
++                await api.cancelSession(squad, session.id, session.revision, 'Cancelled by the coach', request.current.cancel);
++            } catch (cause) {
++                setError(extractApiErrorMessage(cause, 'The session could not be cancelled. Nothing was sent.'));
++                setBusy(false);
++                return;
++            }
++            setCancelled(true);
++        }
++        if (await send()) onDone(); else setBusy(false);
+     };
+ 
+-    return <Dialog open size="md" title={`Cancel ${session.title}?`} description={`${squadName} · ${when}${session.location ? ` · ${session.location}` : ''}`} onClose={onClose}
+-        footer={<><Button variant="ghost" disabled={busy} onClick={onClose}>Keep it</Button><Button variant="danger" disabled={busy} onClick={() => void confirm()}>{busy ? 'Cancelling…' : told ? `Cancel and tell ${told} parents` : 'Cancel and tell parents'}</Button></>}>
++    const sentFailed = cancelled && Boolean(error);
++    const footer = sentFailed
++        ? <><Button variant="ghost" disabled={busy} onClick={onDone}>Done without the message</Button><Button variant="primary" disabled={busy} onClick={() => void confirm()}>{busy ? 'Sending…' : 'Send the message again'}</Button></>
++        : <><Button variant="ghost" disabled={busy} onClick={onClose}>Keep it</Button><Button variant="danger" disabled={busy} onClick={() => void confirm()}>{busy ? 'Cancelling…' : told ? `Cancel and tell ${told} parents` : 'Cancel and tell parents'}</Button></>;
++
++    return <Dialog open size="md" title={sentFailed ? `${session.title} is cancelled` : `Cancel ${session.title}?`} description={`${squadName} · ${when}${session.location ? ` · ${session.location}` : ''}`} onClose={cancelled ? onDone : onClose} footer={footer}>
+         <div className="gk-stack">
++            {sentFailed && <p className="gk-notice gk-notice--warning" role="status"><CheckCircle2 aria-hidden="true" /> Cancelled; the session's families are told. The extra message wasn't sent.</p>}
+             <Field label="Message to parents" htmlFor="ch-cancel-message">
+                 <textarea id="ch-cancel-message" className="gk-input" rows={4} maxLength={1000} value={message} disabled={busy} onChange={event => setMessage(event.target.value)} />
+             </Field>
+diff --git a/frontend/src/features/clubWorkspace/overview/NeedsYou.tsx b/frontend/src/features/clubWorkspace/overview/NeedsYou.tsx
+index 1f3a8ee..2f3543e 100644
+--- a/frontend/src/features/clubWorkspace/overview/NeedsYou.tsx
++++ b/frontend/src/features/clubWorkspace/overview/NeedsYou.tsx
+@@ -19,8 +19,9 @@ interface NeedItem { key: string; title: string; meta: string; badge: string; to
+ const consentStates = { PENDING: ['consentPending', 'info'], EXPIRED: ['consentExpired', 'danger'], DECLINED: ['consentDeclined', 'danger'] } as const;
+ 
+ /**
+- * One list of everything waiting for this person, in priority order: overdue first,
+- * then decisions, then upcoming deadlines. Counts come from the server; nothing is guessed.
++ * One list of everything waiting for this person, in priority order: their own overdue work first,
++ * then decisions, then their upcoming deadlines, and only then colleagues' work (for leadership).
++ * Counts come from the server; nothing is guessed.
+  */
+ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations, tryoutPending, onOpen, onOpenPlayers, limit = 7, className }: {
+     clubId: number; overview: ClubManagementOverview | null; roles: RolesWorkspace | null; squads: number[] | null;
+@@ -54,7 +55,8 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
+     });
+     if (consentRows.length > 3) items.push({ key: 'consent-more', title: copy('needMoreConsent', { count: consentRows.length - 3 }), meta: copy('consentHint'), badge: copy('consentMissing'), tone: 'warning', rank: 2, open: () => openPlayers('ALL') });
+     const consentNote = consent.result ? (consent.result.reviewed >= consent.result.total ? copy('consentComplete') : copy('consentPartial', { reviewed: consent.result.reviewed, total: consent.result.total })) : null;
+-    // Club deadlines assigned to someone else stay visible to leadership, after the person's own work.
++    // Club deadlines assigned to someone else stay visible to leadership, but always after the person's own
++    // work, overdue or not: the list leads with what this person can advance (F15).
+     let others = 0;
+     for (const record of work.rows) {
+         const due = dueLabel(record.attentionDate ?? record.due_on, now, isFinished(record.status));
+@@ -65,7 +67,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
+         items.push({
+             key: `record-${record.id}`, title: record.title,
+             meta: [moduleNames[record.module], squad ?? (record.squad_id ? null : copy('clubWide')), label(record.status), colleague ? copy('withColleague') : null].filter(Boolean).join(' · '),
+-            badge: record.expired ? copy('badgeExpired') : due?.label ?? label(record.status), tone: overdue ? 'danger' : 'neutral', rank: (overdue ? 0 : 2) + (colleague ? 0.5 : 0),
++            badge: record.expired ? copy('badgeExpired') : due?.label ?? label(record.status), tone: overdue ? 'danger' : 'neutral', rank: (colleague ? 4 : 0) + (overdue ? 0 : 2),
+             date: record.attentionDate ?? record.due_on,
+             open: () => onOpen(operationTab(record.module), { record: String(record.id), ...(record.squad_id ? { squad: String(record.squad_id) } : {}) }),
+         });

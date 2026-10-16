@@ -1,0 +1,4 @@
+interface:
+  display_name: "GrassKickZ Product Review"
+  short_description: "Discover hidden friction and help finish the sandbox"
+  default_prompt: "Use $grasskickz-product-review to investigate the sandbox broadly, uncover hidden friction and missing opportunities, and recommend how to finish it without changing application code."

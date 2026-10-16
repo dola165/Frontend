@@ -1,0 +1,88 @@
+diff --git a/frontend/src/features/campaigns/FundraisingCatalogue.tsx b/frontend/src/features/campaigns/FundraisingCatalogue.tsx
+index ceec1b49..a4adaf2d 100644
+--- a/frontend/src/features/campaigns/FundraisingCatalogue.tsx
++++ b/frontend/src/features/campaigns/FundraisingCatalogue.tsx
+@@ -73,7 +73,7 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
+ }
+ 
+ /** The fundraising catalogue in the store's frame: filter column (a sheet on phones and inside the club page), toolbar, category pills, grid. */
+-export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false }: { fixedClubId?: number; revision?: number; /** The viewer runs the club's fundraisers: each card gets its Manage entrance. */ manage?: boolean }) {
++export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false, empty }: { fixedClubId?: number; revision?: number; /** Replaces the whole catalogue while the club runs no fundraiser. */ empty?: ReactNode; /** The viewer runs the club's fundraisers: each card gets its Manage entrance. */ manage?: boolean }) {
+     const id = useId();
+     const { query, update, campaigns, total, loading, error, retry } = useFundraising(fixedClubId, revision);
+     const [sheet, setSheet] = useState(false);
+@@ -81,6 +81,7 @@ export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false
+     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+     const first = query.page * PAGE_SIZE + 1, last = Math.min(total, (query.page + 1) * PAGE_SIZE);
+     const column = <Filters query={query} onChange={update} fixedClub={!!fixedClubId} />;
++    if (empty && fixedClubId && !error && !loading && total === 0 && !filters.length && !query.query && query.state === 'ACTIVE') return <div className="gk-store-results__empty">{empty}</div>;
+     return (
+         <div className="gk-store-catalogue">
+             <aside className="gk-store-filters" aria-label="Filters">{column}</aside>
+diff --git a/frontend/src/features/jobs/JobsCatalogue.tsx b/frontend/src/features/jobs/JobsCatalogue.tsx
+index 6e76ca94..e0f2e11a 100644
+--- a/frontend/src/features/jobs/JobsCatalogue.tsx
++++ b/frontend/src/features/jobs/JobsCatalogue.tsx
+@@ -78,7 +78,8 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
+  * The jobs catalogue as LinkedIn lays it out: the filter column, the toolbar, the rows on the left and the chosen
+  * listing open on the right (on a narrow screen a row opens the job page). "Show on map" takes the same search to World.
+  */
+-export function JobsCatalogue({ fixedClubId, revision = 0, embedded = false }: { fixedClubId?: number; revision?: number; /** Inside the club page the column is narrow: rows open the job page. */ embedded?: boolean }) {
++export function JobsCatalogue({ fixedClubId, revision = 0, embedded = false, empty }: { fixedClubId?: number; revision?: number; /** Inside the club page the column is narrow: rows open the job page. */ embedded?: boolean;
++    /** Replaces the whole catalogue while the club has nothing listed (no toolbar or filters over nothing). */ empty?: ReactNode }) {
+     const id = useId();
+     const { query, update, jobs, total, loading, error, retry } = useJobsList(fixedClubId, revision);
+     const [sheet, setSheet] = useState(false);
+@@ -87,6 +88,7 @@ export function JobsCatalogue({ fixedClubId, revision = 0, embedded = false }: {
+     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+     const selected = jobs.find(job => job.id === query.job) ?? jobs[0];
+     const column = <Filters query={query} onChange={next => update(next)} fixedClub={!!fixedClubId} />;
++    if (empty && fixedClubId && !error && !loading && total === 0 && !filters.length && !query.query) return <div className="gk-store-results__empty">{empty}</div>;
+     return (
+         <div className="gk-store-catalogue">
+             <aside className="gk-store-filters" aria-label="Filters">{column}</aside>
+diff --git a/frontend/src/features/store/Catalogue.tsx b/frontend/src/features/store/Catalogue.tsx
+index 8ef866d8..b705b38d 100644
+--- a/frontend/src/features/store/Catalogue.tsx
++++ b/frontend/src/features/store/Catalogue.tsx
+@@ -1,4 +1,4 @@
+-import { useId, useState } from 'react';
++import { useId, useState, type ReactNode } from 'react';
+ import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+ import { Dialog } from '../../design/Dialog';
+ import { Button, Chip, EmptyNote, SearchInput } from '../../design/primitives';
+@@ -34,9 +34,10 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
+ 
+ /**
+  * The catalogue: the filter column (a sheet on phones), the toolbar (search, count, sort, pages), category
+- * shortcuts and the product grid. The search lives in the address; `fixedClubId` is a club's own store.
++ * shortcuts and the product grid. The search lives in the address; `fixedClubId` is a club's own store, and `empty`
++ * replaces the whole catalogue while that club has nothing for sale (no toolbar or filters over nothing).
+  */
+-export function Catalogue({ fixedClubId, revision = 0 }: { fixedClubId?: number; revision?: number }) {
++export function Catalogue({ fixedClubId, revision = 0, empty }: { fixedClubId?: number; revision?: number; empty?: ReactNode }) {
+     const id = useId();
+     const { query, update, products, total, loading, error, retry } = useCatalogue(fixedClubId, revision);
+     const [sheet, setSheet] = useState(false);
+@@ -46,6 +47,7 @@ export function Catalogue({ fixedClubId, revision = 0 }: { fixedClubId?: number;
+     const change = (next: CatalogueQuery) => update(next);
+     const clear = () => update(readCatalogue(new URLSearchParams(), fixedClubId));
+     const column = <StoreFilters query={query} onChange={change} fixedClub={!!fixedClubId} />;
++    if (empty && fixedClubId && !error && !loading && total === 0 && !filters.length && !query.query) return <div className="gk-store-results__empty">{empty}</div>;
+     const shortcuts = CATEGORIES.filter(category => category.id !== 'OTHER' && (!query.seller || query.seller === 'clubs' || ['EQUIPMENT', 'TRAINING', 'ACCESSORIES'].includes(category.id)));
+     return (
+         <div className="gk-store-catalogue">
+diff --git a/frontend/src/pages/ClubStorePage.tsx b/frontend/src/pages/ClubStorePage.tsx
+index 3eb8d844..d14d0ea5 100644
+--- a/frontend/src/pages/ClubStorePage.tsx
++++ b/frontend/src/pages/ClubStorePage.tsx
+@@ -67,6 +67,8 @@ export const ClubStorePage = () => {
+                 {actions}
+             </div>
+         </>}
+-        <Catalogue fixedClubId={clubId} revision={revision} />
++        <Catalogue fixedClubId={clubId} revision={revision} empty={canAdd
++            ? <EmptyNote title="Your store is empty" action={<Button variant="primary" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Add your first product</Button>}>Kit, tickets or memberships: supporters buy them here.</EmptyNote>
++            : <EmptyNote title="Nothing for sale yet" action={<ButtonLink to="/store">Browse the store</ButtonLink>} />} />
+     </>);
+ };

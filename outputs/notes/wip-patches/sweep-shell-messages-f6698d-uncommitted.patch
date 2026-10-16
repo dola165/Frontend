@@ -1,0 +1,391 @@
+diff --git a/frontend/src/features/profiles/person/PersonActions.tsx b/frontend/src/features/profiles/person/PersonActions.tsx
+index dc772a56..68b53ee1 100644
+--- a/frontend/src/features/profiles/person/PersonActions.tsx
++++ b/frontend/src/features/profiles/person/PersonActions.tsx
+@@ -1,3 +1,4 @@
++import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+ import { Check, MessageCircle, PenLine, Plus, Share2 } from 'lucide-react';
+ import { Button, ButtonLink } from '../../../design/primitives';
+ import { RepresentationShortcut } from '../../agents/RepresentationPanel';
+@@ -11,18 +12,19 @@ import type { PersonProfile } from '../api';
+ export function PersonActions({ profile, own, onFollow, onShare, onRepresentation }: {
+     profile: PersonProfile; own: boolean; onFollow: () => void; onShare: () => void; onRepresentation: () => void;
+ }) {
+-    const share = <Button variant="ghost" iconOnly aria-label="Share profile" title="Share profile" onClick={onShare}><Share2 aria-hidden="true" /></Button>;
++    const copy = useJourneyCopy();
++    const share = <Button variant="ghost" iconOnly aria-label={copy('Share profile', 'პროფილის გაზიარება')} title={copy('Share profile', 'პროფილის გაზიარება')} onClick={onShare}><Share2 aria-hidden="true" /></Button>;
+     if (own) return <>
+         {share}
+-        <ButtonLink variant="primary" to="/account/roles"><PenLine aria-hidden="true" />Edit profile</ButtonLink>
++        <ButtonLink variant="primary" to="/account/roles"><PenLine aria-hidden="true" />{copy('Edit profile', 'პროფილის რედაქტირება')}</ButtonLink>
+     </>;
+     return <>
+         {share}
+         <ReportControl targetType="ACCOUNT" targetId={profile.id} personId={profile.id} className="gk-btn gk-btn--ghost" />
+         <RepresentationShortcut profileId={profile.id} className="gk-btn gk-btn--secondary" onOpen={onRepresentation} />
+-        <ButtonLink to={`/messages?chatWith=${profile.id}`}><MessageCircle aria-hidden="true" />Message</ButtonLink>
++        <ButtonLink to={`/messages?chatWith=${profile.id}`}><MessageCircle aria-hidden="true" />{copy('Message', 'მიწერა')}</ButtonLink>
+         <Button variant={profile.isFollowedByMe ? 'secondary' : 'primary'} aria-pressed={profile.isFollowedByMe} onClick={onFollow}>
+-            {profile.isFollowedByMe ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{profile.isFollowedByMe ? 'Following' : 'Follow'}
++            {profile.isFollowedByMe ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{profile.isFollowedByMe ? copy('Following', 'გამოწერილია') : copy('Follow', 'გამოწერა')}
+         </Button>
+     </>;
+ }
+diff --git a/frontend/src/features/profiles/person/PersonLayers.tsx b/frontend/src/features/profiles/person/PersonLayers.tsx
+index 08c8e846..4e6804c6 100644
+--- a/frontend/src/features/profiles/person/PersonLayers.tsx
++++ b/frontend/src/features/profiles/person/PersonLayers.tsx
+@@ -1,3 +1,4 @@
++import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+ import { Link } from 'react-router-dom';
+ import { BadgeCheck, BriefcaseBusiness, ShieldCheck } from 'lucide-react';
+ import { Badge, ButtonLink, EmptyNote, List, ListRow, Panel, Section } from '../../../design/primitives';
+@@ -8,9 +9,10 @@ import { RoleIcon } from './RoleIcon';
+ 
+ /** How a fact was established, in words. Self-reported and confirmed always look different. */
+ export function VerificationBadge({ item }: { item: Pick<Profession, 'verification' | 'verifiedBy'> }) {
+-    if (item.verification === 'CLUB_CONFIRMED') return <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Confirmed{item.verifiedBy ? ` by ${item.verifiedBy}` : ' by a club'}</Badge>;
+-    if (item.verification === 'DOCUMENT_CHECKED') return <Badge tone="accent"><BadgeCheck size={13} aria-hidden="true" />Document checked</Badge>;
+-    return <Badge>Self-reported</Badge>;
++    const copy = useJourneyCopy();
++    if (item.verification === 'CLUB_CONFIRMED') return <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />{item.verifiedBy ? copy(`Confirmed by ${item.verifiedBy}`, `დაადასტურა: ${item.verifiedBy}`) : copy('Confirmed by a club', 'დაადასტურა კლუბმა')}</Badge>;
++    if (item.verification === 'DOCUMENT_CHECKED') return <Badge tone="accent"><BadgeCheck size={13} aria-hidden="true" />{copy('Document checked', 'დოკუმენტი შემოწმებულია')}</Badge>;
++    return <Badge>{copy('Self-reported', 'თავად მითითებული')}</Badge>;
+ }
+ 
+ 
+@@ -26,39 +28,40 @@ const roleRows = (profile: PersonProfile, roles: string[], own: boolean) => {
+ export function PersonLayers({ profile, roles, professions, professionsFailed, own }: {
+     profile: PersonProfile; roles: string[]; professions: Profession[] | null; professionsFailed: boolean; own: boolean;
+ }) {
++    const copy = useJourneyCopy();
+     const first = profile.fullName?.split(' ')[0] || profile.username;
+     const appointments = profile.footballProfile?.appointments ?? [];
+     const rows = roleRows(profile, roles, own);
+     return <div className="gk-person-layers">
+-        <Section title="In football" action={own ? <Link className="gk-section__action" to="/account/roles">Change roles</Link> : undefined}>
+-            <Panel flush>{rows.length ? <List label="Football roles">{rows.map(({ role, detail }) => <ListRow key={role}
++        <Section title={copy('In football', 'ფეხბურთში')} action={own ? <Link className="gk-section__action" to="/account/roles">{copy('Change roles', 'როლების შეცვლა')}</Link> : undefined}>
++            <Panel flush>{rows.length ? <List label={copy('Football roles', 'საფეხბურთო როლები')}>{rows.map(({ role, detail }) => <ListRow key={role}
+                 lead={<RoleIcon role={role} />}
+                 title={detail?.headline ? `${roleLabel(role)} · ${detail.headline}` : roleLabel(role)}
+-                meta={[detail?.specialties, detail?.qualifications ? `Qualifications (self-reported): ${detail.qualifications}` : null, detail?.serviceArea].filter(Boolean).join(' · ') || rolePresentation[role as FootballRole]?.description}
+-                trail={own && detail && !detail.published ? <Badge>Only you</Badge> : detail?.primary ? <Badge tone="info">Main role</Badge> : undefined} />)}</List>
+-                : <EmptyNote title={own ? 'Add the roles you have in football' : `${first} hasn’t added football roles yet`} action={own ? <ButtonLink size="sm" to="/account/roles">Choose roles</ButtonLink> : undefined}>{own ? 'Player, coach, parent, referee and more. You can hold several at once and change them any time.' : undefined}</EmptyNote>}</Panel>
++                meta={[detail?.specialties, detail?.qualifications ? copy(`Qualifications (self-reported): ${detail.qualifications}`, `კვალიფიკაცია (თავად მითითებული): ${detail.qualifications}`) : null, detail?.serviceArea].filter(Boolean).join(' · ') || rolePresentation[role as FootballRole]?.description}
++                trail={own && detail && !detail.published ? <Badge>{copy('Only you', 'მხოლოდ თქვენ')}</Badge> : detail?.primary ? <Badge tone="info">{copy('Main role', 'მთავარი როლი')}</Badge> : undefined} />)}</List>
++                : <EmptyNote title={own ? copy('Add the roles you have in football', 'დაამატეთ თქვენი როლები ფეხბურთში') : copy(`${first} hasn’t added football roles yet`, `${first}-ს საფეხბურთო როლები ჯერ არ დაუმატებია`)} action={own ? <ButtonLink size="sm" to="/account/roles">{copy('Choose roles', 'როლების არჩევა')}</ButtonLink> : undefined}>{own ? 'Player, coach, parent, referee and more. You can hold several at once and change them any time.' : undefined}</EmptyNote>}</Panel>
+         </Section>
+ 
+-        {(own || (professions?.length ?? 0) > 0 || professionsFailed) && <Section title="Work and skills" action={own ? <Link className="gk-section__action" to="/account/roles#professions">{professions?.length ? 'Edit' : 'Add'}</Link> : undefined}>
+-            <Panel flush>{professionsFailed ? <EmptyNote title="Work and skills couldn’t load">Reload the page to try again.</EmptyNote>
+-                : professions === null ? <EmptyNote title="Loading work and skills…" />
+-                : professions.length ? <List label="Professions and skills">{professions.map(item => <ListRow key={item.id}
++        {(own || (professions?.length ?? 0) > 0 || professionsFailed) && <Section title={copy('Work and skills', 'სამუშაო და უნარები')} action={own ? <Link className="gk-section__action" to="/account/roles#professions">{professions?.length ? copy('Edit', 'შეცვლა') : copy('Add', 'დამატება')}</Link> : undefined}>
++            <Panel flush>{professionsFailed ? <EmptyNote title={copy('Work and skills couldn’t load', 'სამუშაო და უნარები ვერ ჩაიტვირთა')}>{copy('Reload the page to try again.', 'განაახლეთ გვერდი და სცადეთ ხელახლა.')}</EmptyNote>
++                : professions === null ? <EmptyNote title={copy('Loading work and skills…', 'იტვირთება…')} />
++                : professions.length ? <List label={copy('Professions and skills', 'პროფესიები და უნარები')}>{professions.map(item => <ListRow key={item.id}
+                     lead={<span className="gk-club-icon"><BriefcaseBusiness aria-hidden="true" /></span>}
+                     title={item.title}
+-                    meta={[item.since ? `Since ${item.since}` : null, item.detail, own && !item.published ? 'Hidden from your profile' : null, own && !item.label ? 'Being added to the directory' : null].filter(Boolean).join(' · ')}
++                    meta={[item.since ? copy(`Since ${item.since}`, `${item.since}-დან`) : null, item.detail, own && !item.published ? copy('Hidden from your profile', 'დამალულია პროფილზე') : null, own && !item.label ? copy('Being added to the directory', 'ემატება ცნობარში') : null].filter(Boolean).join(' · ')}
+                     trail={<VerificationBadge item={item} />} />)}</List>
+-                : <EmptyNote title="Add what you do professionally" action={<ButtonLink size="sm" to="/account/roles#professions">Add a profession</ButtonLink>}>
+-                    Physiotherapist, teacher, photographer, sports psychologist… Clubs looking for help can find you in the People directory.
++                : <EmptyNote title={copy('Add what you do professionally', 'დაამატეთ თქვენი პროფესია')} action={<ButtonLink size="sm" to="/account/roles#professions">{copy('Add a profession', 'პროფესიის დამატება')}</ButtonLink>}>
++                    {copy('Physiotherapist, teacher, photographer, sports psychologist… Clubs looking for help can find you in the People directory.', 'ფიზიოთერაპევტი, მასწავლებელი, ფოტოგრაფი, სპორტის ფსიქოლოგი… დახმარების მაძიებელი კლუბები გიპოვიან ადამიანების ცნობარში.')}
+                 </EmptyNote>}</Panel>
+         </Section>}
+ 
+-        {appointments.length > 0 && <Section title="Confirmed by clubs">
+-            <Panel flush><List label="Club appointments">{appointments.map(item => <ListRow key={`${item.clubId}:${item.role}`} to={`/clubs/${item.clubId}`}
++        {appointments.length > 0 && <Section title={copy('Confirmed by clubs', 'კლუბების მიერ დადასტურებული')}>
++            <Panel flush><List label={copy('Club appointments', 'კლუბის დანიშვნები')}>{appointments.map(item => <ListRow key={`${item.clubId}:${item.role}`} to={`/clubs/${item.clubId}`}
+                 lead={<Crest src={item.logoUrl} name={item.clubName} size={40} />}
+                 title={item.title}
+-                meta={[item.clubName, item.squads.length ? item.squads.join(', ') : null, item.memberSince ? `Since ${new Date(item.memberSince).getFullYear()}` : null].filter(Boolean).join(' · ')}
+-                trail={<Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Recorded by the club</Badge>} />)}</List>
+-                {appointments.some(item => item.qualifications) && <p className="gk-panel__foot gk-faint">Qualifications listed by clubs are shown as provided. No credential check has been recorded.</p>}
++                meta={[item.clubName, item.squads.length ? item.squads.join(', ') : null, item.memberSince ? copy(`Since ${new Date(item.memberSince).getFullYear()}`, `${new Date(item.memberSince).getFullYear()}-დან`) : null].filter(Boolean).join(' · ')}
++                trail={<Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />{copy('Recorded by the club', 'კლუბის ჩანაწერი')}</Badge>} />)}</List>
++                {appointments.some(item => item.qualifications) && <p className="gk-panel__foot gk-faint">{copy('Qualifications listed by clubs are shown as provided. No credential check has been recorded.', 'კლუბების მიერ მითითებული კვალიფიკაცია ნაჩვენებია ისე, როგორც მოგვაწოდეს. დოკუმენტები არ შემოწმებულა.')}</p>}
+             </Panel>
+         </Section>}
+     </div>;
+diff --git a/frontend/src/features/profiles/person/PersonOverviewTab.tsx b/frontend/src/features/profiles/person/PersonOverviewTab.tsx
+index 02f6b16a..cb8df303 100644
+--- a/frontend/src/features/profiles/person/PersonOverviewTab.tsx
++++ b/frontend/src/features/profiles/person/PersonOverviewTab.tsx
+@@ -1,3 +1,4 @@
++import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+ import { Link } from 'react-router-dom';
+ import { ButtonLink, EmptyNote, Panel, Section } from '../../../design/primitives';
+ import { ProfilePosts } from '../ProfilePosts';
+@@ -8,21 +9,22 @@ import type { PersonView } from './usePersonProfile';
+ /** Who this person is (in their own words, their roles, their work, what a club confirmed), then their latest posts. */
+ export function PersonOverviewTab({ view }: { view: PersonView }) {
+     const { profile, own, roles, hidden, professions, professionsFailed } = view;
++    const copy = useJourneyCopy();
+     const feed = useProfilePostFeed(`/posts/user/${profile!.id}`, 3);
+     if (!profile) return null;
+     const first = profile.fullName?.split(' ')[0] || profile.username;
+-    if (hidden) return <Panel><EmptyNote title="This profile is private">Only basic identity details are shown. Photos, personal details and personal posts are private.</EmptyNote></Panel>;
++    if (hidden) return <Panel><EmptyNote title={copy('This profile is private', 'ეს პროფილი დახურულია')}>{copy('Only basic identity details are shown. Photos, personal details and personal posts are private.', 'ჩანს მხოლოდ ძირითადი მონაცემები. ფოტოები, პირადი დეტალები და პოსტები დახურულია.')}</EmptyNote></Panel>;
+     return <>
+-        <Section title="About" action={own ? <Link className="gk-section__action" to="/account/roles#about">{profile.bio ? 'Edit' : 'Add'}</Link> : undefined}>
++        <Section title={copy('About', 'შესახებ')} action={own ? <Link className="gk-section__action" to="/account/roles#about">{profile.bio ? copy('Edit', 'შეცვლა') : copy('Add', 'დამატება')}</Link> : undefined}>
+             {profile.bio ? <p className="gk-person-bio">{profile.bio}</p>
+-                : <Panel><EmptyNote title={own ? 'Introduce yourself' : `${first} hasn’t written an introduction yet`} action={own ? <ButtonLink size="sm" to="/account/roles#about">Write about yourself</ButtonLink> : undefined}>
++                : <Panel><EmptyNote title={own ? copy('Introduce yourself', 'წარადგინეთ თავი') : copy(`${first} hasn’t written an introduction yet`, `${first}-ს შესავალი ჯერ არ დაუწერია`)} action={own ? <ButtonLink size="sm" to="/account/roles#about">{copy('Write about yourself', 'დაწერეთ თქვენ შესახებ')}</ButtonLink> : undefined}>
+                     {own ? 'A few lines about your football and your work help clubs and parents know who you are.' : undefined}
+                 </EmptyNote></Panel>}
+         </Section>
+         <PersonLayers profile={profile} roles={roles} professions={professions} professionsFailed={professionsFailed} own={own} />
+-        <Section title={own ? 'Your latest posts' : 'Latest posts'}>
++        <Section title={own ? copy('Your latest posts', 'თქვენი ბოლო პოსტები') : copy('Latest posts', 'ბოლო პოსტები')}>
+             <ProfilePosts feed={feed} preview={{ count: 2, allTo: `/profile/${profile.id}?tab=posts` }}
+-                empty={{ title: 'No posts yet', body: own ? 'Share an update from the Posts tab. Your followers see it on Home.' : undefined, action: own ? <ButtonLink size="sm" to={`/profile/${profile.id}?tab=posts`}>Write a post</ButtonLink> : undefined }} />
++                empty={{ title: copy('No posts yet', 'პოსტები ჯერ არ არის'), body: own ? copy('Share an update from the Posts tab. Your followers see it on Home.', 'გააზიარეთ სიახლე პოსტების ჩანართიდან. გამომწერები მას მთავარ გვერდზე ნახავენ.') : undefined, action: own ? <ButtonLink size="sm" to={`/profile/${profile.id}?tab=posts`}>{copy('Write a post', 'პოსტის დაწერა')}</ButtonLink> : undefined }} />
+         </Section>
+     </>;
+ }
+diff --git a/frontend/src/features/profiles/person/PersonPostsTab.tsx b/frontend/src/features/profiles/person/PersonPostsTab.tsx
+index 0e926a88..29d5e1d6 100644
+--- a/frontend/src/features/profiles/person/PersonPostsTab.tsx
++++ b/frontend/src/features/profiles/person/PersonPostsTab.tsx
+@@ -1,3 +1,4 @@
++import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+ import { PostComposer } from '../../../components/feed/PostComposer';
+ import { Section } from '../../../design/primitives';
+ import { ProfilePosts } from '../ProfilePosts';
+@@ -7,12 +8,13 @@ import type { PersonView } from './usePersonProfile';
+ /** A person's posts, newest first. On your own profile you can post from here. */
+ export function PersonPostsTab({ view }: { view: PersonView }) {
+     const { profile, own } = view;
++    const copy = useJourneyCopy();
+     const feed = useProfilePostFeed(`/posts/user/${profile!.id}`);
+     if (!profile) return null;
+     const name = profile.fullName || profile.username;
+-    return <Section title={own ? 'Your posts' : 'Posts'}>
++    return <Section title={own ? copy('Your posts', 'თქვენი პოსტები') : copy('Posts', 'პოსტები')}>
+         <ProfilePosts feed={feed}
+             composer={own ? <PostComposer home compact authorName={name} avatarUrl={profile.avatarUrl} onPostCreated={feed.pages.refresh} /> : undefined}
+-            empty={{ title: 'No posts yet', body: own ? 'Share an update above. Your followers see it on Home.' : `${name.split(' ')[0]} hasn’t posted anything public yet.` }} />
++            empty={{ title: copy('No posts yet', 'პოსტები ჯერ არ არის'), body: own ? copy('Share an update above. Your followers see it on Home.', 'გააზიარეთ სიახლე ზემოთ. გამომწერები მას მთავარ გვერდზე ნახავენ.') : copy(`${name.split(' ')[0]} hasn’t posted anything public yet.`, `${name.split(' ')[0]}-ს საჯარო პოსტი ჯერ არ აქვს.`) }} />
+     </Section>;
+ }
+diff --git a/frontend/src/features/profiles/person/PersonProfilePage.tsx b/frontend/src/features/profiles/person/PersonProfilePage.tsx
+index cf6b4b26..88690bd5 100644
+--- a/frontend/src/features/profiles/person/PersonProfilePage.tsx
++++ b/frontend/src/features/profiles/person/PersonProfilePage.tsx
+@@ -1,3 +1,4 @@
++import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+ import { useEffect, useState } from 'react';
+ import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+ import { MapPin, ShieldCheck } from 'lucide-react';
+@@ -44,11 +45,12 @@ function PersonProfileView({ id }: { id: number }) {
+     const { status } = useAuth();
+     const [params, setParams] = useSearchParams();
+     const view = usePersonProfile(id);
++    const copy = useJourneyCopy();
+     const { profile, own, roles, hidden } = view;
+     const [notice, setNotice] = useState<{ tone: 'info' | 'danger'; text: string } | null>(null);
+     const images = useProfileImageControls({ enabled: own, scope: `user:${id}`, imageKind: 'avatar', hasCover: Boolean(profile?.bannerUrl), onSave: view.updateImage });
+     const career = Boolean(profile && !hidden && (roles.some(isProfessionalRole) || (own && (profile.footballProfile?.entries.length ?? 0) > 0)));
+-    const tabs = personTabs({ own, hidden, career });
++    const tabs = personTabs({ own, hidden, career }, copy);
+     const tab = personTabFrom(params.get('tab'), tabs);
+     const connections = params.get('connections');
+ 
+@@ -72,14 +74,14 @@ function PersonProfileView({ id }: { id: number }) {
+     const follow = async () => {
+         if (status !== 'authenticated') return navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
+         setNotice(null);
+-        try { await view.toggleFollow(); } catch (error) { setNotice({ tone: 'danger', text: extractApiErrorMessage(error, 'Following could not be saved. Please try again.') }); }
++        try { await view.toggleFollow(); } catch (error) { setNotice({ tone: 'danger', text: extractApiErrorMessage(error, copy('Following could not be saved. Please try again.', 'გამოწერა ვერ შეინახა. სცადეთ ხელახლა.')) }); }
+     };
+     const share = async () => {
+         if (!profile) return;
+         const url = `${window.location.origin}/profile/${profile.id}`;
+         if (navigator.share) { await navigator.share({ title: `${profile.fullName || profile.username} on GrassKickZ`, url }).catch(() => undefined); return; }
+-        try { await navigator.clipboard.writeText(url); setNotice({ tone: 'info', text: 'Profile link copied.' }); }
+-        catch { setNotice({ tone: 'danger', text: 'The link couldn’t be copied. Copy it from the address bar instead.' }); }
++        try { await navigator.clipboard.writeText(url); setNotice({ tone: 'info', text: copy('Profile link copied.', 'პროფილის ბმული დაკოპირდა.') }); }
++        catch { setNotice({ tone: 'danger', text: copy('The link couldn’t be copied. Copy it from the address bar instead.', 'ბმული ვერ დაკოპირდა. დააკოპირეთ მისამართის ზოლიდან.') }); }
+     };
+     const openRepresentation = () => {
+         const query = new URLSearchParams(params);
+@@ -96,13 +98,13 @@ function PersonProfileView({ id }: { id: number }) {
+     const appointments = profile.footballProfile?.appointments ?? [];
+     // Where someone works is public for adults; a possible minor's town stays off their header.
+     const place = hidden || view.possibleMinor ? null : primary?.serviceArea || [...details.values()].find(item => item.serviceArea)?.serviceArea;
+-    const counts = (kind: 'followers' | 'following', value: number) => <button type="button" disabled={hidden} title={hidden ? 'Connections are private' : undefined}
+-        onClick={() => setConnections(kind)}><strong>{value.toLocaleString()}</strong>{kind === 'followers' ? (value === 1 ? 'follower' : 'followers') : 'following'}</button>;
++    const counts = (kind: 'followers' | 'following', value: number) => <button type="button" disabled={hidden} title={hidden ? copy('Connections are private', 'კავშირები დამალულია') : undefined}
++        onClick={() => setConnections(kind)}><strong>{value.toLocaleString()}</strong>{kind === 'followers' ? copy(value === 1 ? 'follower' : 'followers', 'გამომწერი') : copy('following', 'გამოწერილი')}</button>;
+     return <>
+         <ProfileLayout
+             identity={{
+                 name, image: hidden ? null : profile.avatarUrl,
+-                badge: !hidden && appointments.length > 0 ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Confirmed by {appointments.length === 1 ? appointments[0].clubName : `${appointments.length} clubs`}</Badge> : undefined,
++                badge: !hidden && appointments.length > 0 ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />{copy('Confirmed by', 'დაადასტურა:')} {appointments.length === 1 ? appointments[0].clubName : copy(`${appointments.length} clubs`, `${appointments.length} კლუბმა`)}</Badge> : undefined,
+                 line: !hidden && primary?.headline ? primary.headline : roles.map(roleLabel).join(' · '),
+                 facts: [
+                     <>@{profile.username}</>,
+@@ -115,8 +117,8 @@ function PersonProfileView({ id }: { id: number }) {
+             banner={hidden ? null : profile.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
+             actions={<PersonActions profile={profile} own={own} onFollow={() => void follow()} onShare={() => void share()} onRepresentation={openRepresentation} />}
+             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}
+-            tabs={tabs} tab={tab} onTab={setTab} tabsLabel="Profile sections"
+-            side={tab === 'schedule' ? undefined : <PersonSide view={view} />} sideLabel={`About ${name}`}>
++            tabs={tabs} tab={tab} onTab={setTab} tabsLabel={copy('Profile sections', 'პროფილის სექციები')}
++            side={tab === 'schedule' ? undefined : <PersonSide view={view} />} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>
+             {tab === 'overview' && <PersonOverviewTab view={view} />}
+             {tab === 'posts' && <PersonPostsTab view={view} />}
+             {tab === 'career' && <ProfileCareer key={`career-${profile.id}`} profile={profile} isMyProfile={own}
+@@ -130,15 +132,17 @@ function PersonProfileView({ id }: { id: number }) {
+ }
+ 
+ function PersonLoading() {
++    const copy = useJourneyCopy();
+     return <GkRoot className="gk-page gk-profile"><PageFrame width="profile">
+-        <div className="gk-person-loading" role="status" aria-label="Loading profile"><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={44} /><Skeleton height={220} /></div>
++        <div className="gk-person-loading" role="status" aria-label={copy('Loading profile', 'პროფილი იტვირთება')}><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={44} /><Skeleton height={220} /></div>
+     </PageFrame></GkRoot>;
+ }
+ 
+ function PersonUnavailable({ failed = false, onRetry }: { failed?: boolean; onRetry?: () => void }) {
++    const copy = useJourneyCopy();
+     return <GkRoot className="gk-page gk-profile"><PageFrame width="profile"><div className="gk-person-loading">
+         <Panel>{failed
+-            ? <EmptyNote title="This profile couldn’t load" action={<Button onClick={onRetry}>Try again</Button>}>Check your connection and try again.</EmptyNote>
+-            : <EmptyNote title="Profile not found" action={<ButtonLink to="/world/people">Find people</ButtonLink>}>The account may have been closed, or the link is wrong.</EmptyNote>}</Panel>
++            ? <EmptyNote title={copy('This profile couldn’t load', 'პროფილი ვერ ჩაიტვირთა')} action={<Button onClick={onRetry}>{copy('Try again', 'ხელახლა ცდა')}</Button>}>{copy('Check your connection and try again.', 'შეამოწმეთ კავშირი და სცადეთ ხელახლა.')}</EmptyNote>
++            : <EmptyNote title={copy('Profile not found', 'პროფილი ვერ მოიძებნა')} action={<ButtonLink to="/world/people">{copy('Find people', 'ადამიანების მოძებნა')}</ButtonLink>}>{copy('The account may have been closed, or the link is wrong.', 'ანგარიში შეიძლება დახურულია, ან ბმული არასწორია.')}</EmptyNote>}</Panel>
+     </div></PageFrame></GkRoot>;
+ }
+diff --git a/frontend/src/features/profiles/person/PersonSide.tsx b/frontend/src/features/profiles/person/PersonSide.tsx
+index 6b30b33a..2bf3da8f 100644
+--- a/frontend/src/features/profiles/person/PersonSide.tsx
++++ b/frontend/src/features/profiles/person/PersonSide.tsx
+@@ -1,3 +1,4 @@
++import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+ import { useAuth } from '../../../context/AuthContext';
+ import { CreateLink } from '../../pages/create/CreateLink';
+ import { hasOwnPage } from '../../pages/create/entry';
+@@ -18,6 +19,7 @@ interface FollowedClub { id: number; name: string; logoUrl?: string | null; city
+ /** Side facts for a person: about, playing details for players, and for yourself your clubs and account links. */
+ export function PersonSide({ view }: { view: PersonView }) {
+     const { profile, own, roles, hidden, possibleMinor } = view;
++    const copy = useJourneyCopy();
+     const { user } = useAuth();
+     if (!profile) return null;
+     const player = roles.includes('PLAYER') && !hidden;
+@@ -26,44 +28,45 @@ export function PersonSide({ view }: { view: PersonView }) {
+     // Body measurements stay off other people's view of a possible minor.
+     const measurements = own || !possibleMinor;
+     return <>
+-        {hidden && <SideBlock title="Private profile"><p>Only basic identity details are shown. Photos, personal details and personal posts are private.</p></SideBlock>}
+-        {player && <SideBlock title="Player">
++        {hidden && <SideBlock title={copy('Private profile', 'დახურული პროფილი')}><p>{copy('Only basic identity details are shown. Photos, personal details and personal posts are private.', 'ჩანს მხოლოდ ძირითადი მონაცემები. ფოტოები, პირადი დეტალები და პოსტები დახურულია.')}</p></SideBlock>}
++        {player && <SideBlock title={copy('Player', 'მოთამაშე')}>
+             <dl>
+-                {profile.position && <Fact label="Position">{[profile.position, profile.secondaryPosition].filter(Boolean).join(', ')}</Fact>}
+-                {profile.preferredFoot && <Fact label="Preferred foot">{profile.preferredFoot}</Fact>}
+-                {measurements && profile.heightCm && <Fact label="Height">{profile.heightCm} cm</Fact>}
+-                {measurements && profile.weightKg && <Fact label="Weight">{profile.weightKg} kg</Fact>}
+-                {profile.availabilityStatus && <Fact label="Availability">{profile.availabilityStatus}</Fact>}
++                {profile.position && <Fact label={copy('Position', 'პოზიცია')}>{[profile.position, profile.secondaryPosition].filter(Boolean).join(', ')}</Fact>}
++                {profile.preferredFoot && <Fact label={copy('Preferred foot', 'წამყვანი ფეხი')}>{profile.preferredFoot}</Fact>}
++                {measurements && profile.heightCm && <Fact label={copy('Height', 'სიმაღლე')}>{profile.heightCm} cm</Fact>}
++                {measurements && profile.weightKg && <Fact label={copy('Weight', 'წონა')}>{profile.weightKg} kg</Fact>}
++                {profile.availabilityStatus && <Fact label={copy('Availability', 'ხელმისაწვდომობა')}>{profile.availabilityStatus}</Fact>}
+             </dl>
+             {history.length > 0 && <>
+-                <div className="gk-person-record" aria-label="Playing record">
+-                    <span><strong className="gk-num">{totals.apps}</strong>Appearances</span>
+-                    <span><strong className="gk-num">{totals.goals}</strong>Goals</span>
+-                    <span><strong className="gk-num">{totals.assists}</strong>Assists</span>
++                <div className="gk-person-record" aria-label={copy('Playing record', 'სათამაშო სტატისტიკა')}>
++                    <span><strong className="gk-num">{totals.apps}</strong>{copy('Appearances', 'მატჩი')}</span>
++                    <span><strong className="gk-num">{totals.goals}</strong>{copy('Goals', 'გოლი')}</span>
++                    <span><strong className="gk-num">{totals.assists}</strong>{copy('Assists', 'საგოლე გადაცემა')}</span>
+                 </div>
+-                <List label="Seasons">{history.slice(0, 4).map(item => <ListRow key={item.id} title={`${item.season} · ${item.clubName}`}
++                <List label={copy('Seasons', 'სეზონები')}>{history.slice(0, 4).map(item => <ListRow key={item.id} title={`${item.season} · ${item.clubName}`}
+                     meta={`${item.category} · ${item.appearances} apps · ${item.goals} goals${item.cleanSheets ? ` · ${item.cleanSheets} clean sheets` : ''}`} />)}</List>
+-                <p className="gk-faint">Recorded by the clubs.</p>
++                <p className="gk-faint">{copy('Recorded by the clubs.', 'კლუბების ჩანაწერი.')}</p>
+             </>}
+         </SideBlock>}
+         {own && <FollowedClubs />}
+         {own && user?.navigationCapabilities !== undefined && !hasOwnPage(user.navigationCapabilities) && <SideBlock title={pt('Your club')}><CreateLink kind="CLUB" from="profile" size="sm">{pt('Add your club')}</CreateLink></SideBlock>}
+         {(roles.includes('AGENT') || (roles.includes('PLAYER') && !possibleMinor)) && <RepresentationPanel profileId={profile.id} own={own} roles={roles} />}
+         {own && (roles.includes('PLAYER') || roles.includes('PARENT')) && <ClubApproachesPanel mode="participant" />}
+-        {own && <SideBlock title="Your account">
+-            <List label="Account links">
+-                <ListRow to="/account?tab=profile" lead={<Settings size={18} aria-hidden="true" />} title="Account settings" meta="Name, photos, privacy and sign-in" />
+-                <ListRow to="/notifications?scope=personal" lead={<BellRing size={18} aria-hidden="true" />} title="Notifications" />
+-                <ListRow to="/reports" lead={<Flag size={18} aria-hidden="true" />} title="Reports and safety" />
++        {own && <SideBlock title={copy('Your account', 'თქვენი ანგარიში')}>
++            <List label={copy('Account links', 'ანგარიშის ბმულები')}>
++                <ListRow to="/account?tab=profile" lead={<Settings size={18} aria-hidden="true" />} title={copy('Account settings', 'ანგარიშის პარამეტრები')} meta={copy('Name, photos, privacy and sign-in', 'სახელი, ფოტოები, კონფიდენციალურობა და შესვლა')} />
++                <ListRow to="/notifications?scope=personal" lead={<BellRing size={18} aria-hidden="true" />} title={copy('Notifications', 'შეტყობინებები')} />
++                <ListRow to="/reports" lead={<Flag size={18} aria-hidden="true" />} title={copy('Reports and safety', 'საჩივრები და უსაფრთხოება')} />
+             </List>
+         </SideBlock>}
+-        {!own && !hidden && (profile.footballProfile?.appointments.length ?? 0) === 0 && <SideBlock title="How this profile is checked">
+-            <p className="gk-row"><ShieldCheck size={16} aria-hidden="true" />Nothing on this profile has been confirmed by a club yet. Roles and skills are self-reported.</p>
++        {!own && !hidden && (profile.footballProfile?.appointments.length ?? 0) === 0 && <SideBlock title={copy('How this profile is checked', 'როგორ მოწმდება ეს პროფილი')}>
++            <p className="gk-row"><ShieldCheck size={16} aria-hidden="true" />{copy('Nothing on this profile has been confirmed by a club yet. Roles and skills are self-reported.', 'ამ პროფილზე კლუბს ჯერ არაფერი დაუდასტურებია. როლები და უნარები თავად არის მითითებული.')}</p>
+         </SideBlock>}
+     </>;
+ }
+ 
+ function FollowedClubs() {
++    const copy = useJourneyCopy();
+     const [clubs, setClubs] = useState<FollowedClub[] | null>(null);
+     useEffect(() => {
+         const controller = new AbortController();
+@@ -72,9 +75,9 @@ function FollowedClubs() {
+             .catch(() => { if (!controller.signal.aborted) setClubs([]); });
+         return () => controller.abort();
+     }, []);
+-    return <SideBlock title="Clubs you follow" action={clubs?.length ? <Link className="gk-section__action" to="/clubs/following">See all</Link> : undefined}>
+-        {clubs === null ? <p>Loading…</p> : clubs.length ? <List label="Followed clubs">{clubs.slice(0, 5).map(club => <ListRow key={club.id} to={`/clubs/${club.id}`}
++    return <SideBlock title={copy('Clubs you follow', 'გამოწერილი კლუბები')} action={clubs?.length ? <Link className="gk-section__action" to="/clubs/following">{copy('See all', 'ყველა')}</Link> : undefined}>
++        {clubs === null ? <p>{copy('Loading…', 'იტვირთება…')}</p> : clubs.length ? <List label={copy('Followed clubs', 'გამოწერილი კლუბები')}>{clubs.slice(0, 5).map(club => <ListRow key={club.id} to={`/clubs/${club.id}`}
+             lead={<Crest src={club.logoUrl} name={club.name} size={36} />} title={club.name} meta={[club.cityName, club.countryName].filter(Boolean).join(', ')} />)}</List>
+-            : <><p>Follow clubs to see their posts on Home.</p><ButtonLink size="sm" to="/world/clubs">Find clubs</ButtonLink></>}
++            : <><p>{copy('Follow clubs to see their posts on Home.', 'გამოიწერეთ კლუბები და მათი პოსტები მთავარ გვერდზე გამოჩნდება.')}</p><ButtonLink size="sm" to="/world/clubs">{copy('Find clubs', 'კლუბების მოძებნა')}</ButtonLink></>}
+     </SideBlock>;
+ }
+diff --git a/frontend/src/features/profiles/person/personTabs.ts b/frontend/src/features/profiles/person/personTabs.ts
+index 20c0a6f1..0635b6ce 100644
+--- a/frontend/src/features/profiles/person/personTabs.ts
++++ b/frontend/src/features/profiles/person/personTabs.ts
+@@ -1,16 +1,17 @@
++import type { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+ import type { TabItem } from '../../../design/Tabs';
+ 
+ export type PersonTab = 'overview' | 'posts' | 'career' | 'media' | 'schedule';
+ 
+ /** Tabs a viewer sees: career for football professionals, the schedule only on your own profile, and only the overview of a private profile. */
+-export function personTabs({ own, hidden, career }: { own: boolean; hidden: boolean; career: boolean }): TabItem<PersonTab>[] {
+-    if (hidden) return [{ id: 'overview', label: 'Overview' }];
++export function personTabs({ own, hidden, career }: { own: boolean; hidden: boolean; career: boolean }, copy: ReturnType<typeof useJourneyCopy>): TabItem<PersonTab>[] {
++    if (hidden) return [{ id: 'overview', label: copy('Overview', 'მიმოხილვა') }];
+     return [
+-        { id: 'overview', label: 'Overview' },
+-        { id: 'posts', label: 'Posts' },
+-        ...(career ? [{ id: 'career' as const, label: 'Career' }] : []),
+-        { id: 'media', label: 'Photos & videos' },
+-        ...(own ? [{ id: 'schedule' as const, label: 'Schedule' }] : []),
++        { id: 'overview', label: copy('Overview', 'მიმოხილვა') },
++        { id: 'posts', label: copy('Posts', 'პოსტები') },
++        ...(career ? [{ id: 'career' as const, label: copy('Career', 'კარიერა') }] : []),
++        { id: 'media', label: copy('Photos & videos', 'ფოტოები და ვიდეოები') },
++        ...(own ? [{ id: 'schedule' as const, label: copy('Schedule', 'განრიგი') }] : []),
+     ];
+ }
+ 

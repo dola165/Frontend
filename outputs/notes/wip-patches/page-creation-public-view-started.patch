@@ -1,0 +1,53 @@
+diff --git a/frontend/sandbox/api/handlers/club.mjs b/frontend/sandbox/api/handlers/club.mjs
+index f084788..03e2600 100644
+--- a/frontend/sandbox/api/handlers/club.mjs
++++ b/frontend/sandbox/api/handlers/club.mjs
+@@ -135,7 +135,7 @@ const publicStaff = id => {
+ get('/clubs/:id/staff-directory', ({ params }) => publicStaff(params.id));
+ get('/clubs/:id/staff', ({ params }) => publicStaff(params.id).map(s => ({ userId: s.userId, fullName: s.fullName, avatarUrl: s.avatarUrl, role: s.role, bio: s.bio, title: s.title })));
+ const squadDto = s => ({ id: s.id, clubId: s.clubId, name: s.name, category: s.ageGroup, ageGroup: s.ageGroup, gender: s.gender, format: s.format, memberCount: s.playerIds.length, playerCount: s.playerIds.length,
+-  headCoachId: s.headCoachId, headCoachName: s.headCoachId ? C.name(s.headCoachId) : null, trainingDays: s.trainingDays, competition: C.SQUAD_SEASON[s.id] ?? null });
++  headCoachId: s.headCoachId, headCoachName: s.headCoachId ? C.name(s.headCoachId) : null, trainingDays: s.trainingDays, trainingTime: s.trainingTime ?? null, competition: C.SQUAD_SEASON[s.id] ?? null });
+ get('/clubs/:id/squads', ({ params }) => W.squads.filter(s => s.clubId === Number(params.id)).map(squadDto));
+ get('/clubs/:id/facilities', ({ params }) => {
+   if (!isOwnClub(params.id)) {
+diff --git a/frontend/sandbox/api/pages-data.mjs b/frontend/sandbox/api/pages-data.mjs
+index 9674d89..381805e 100644
+--- a/frontend/sandbox/api/pages-data.mjs
++++ b/frontend/sandbox/api/pages-data.mjs
+@@ -285,7 +285,7 @@ export function syncClub(page) {
+   const edits = C.clubEdits.get(club.id) ?? {};
+   club.logoUrl = crestUrlOf(page); club.bannerUrl = coverUrlOf(page);
+   C.clubEdits.set(club.id, { ...edits, description: id.about, logoUrl: club.logoUrl, bannerUrl: club.bannerUrl ?? undefined });
+-  C.contacts[club.id] = { ...(C.contacts[club.id] ?? {}), email: id.contact.email || null, whatsappNumber: id.contact.phone || null,
++  C.contacts[club.id] = { ...(C.contacts[club.id] ?? {}), email: id.contact.email || null, whatsappNumber: id.contact.phone ? phoneDisplay(id.contact.phone) : null,
+     websiteUrl: id.social.website || null, instagramUrl: id.social.instagram || null, preferredCommunicationMethod: id.contact.phone ? 'WHATSAPP' : id.contact.email ? 'EMAIL' : null };
+ }
+ 
+diff --git a/frontend/src/features/clubs/profile/ClubProfilePage.tsx b/frontend/src/features/clubs/profile/ClubProfilePage.tsx
+index d41aced..0cf6758 100644
+--- a/frontend/src/features/clubs/profile/ClubProfilePage.tsx
++++ b/frontend/src/features/clubs/profile/ClubProfilePage.tsx
+@@ -1,4 +1,4 @@
+-import { useState } from 'react';
++import { useState, useRef } from 'react';
+ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+ import { Camera, MapPin, ShieldCheck } from 'lucide-react';
+ import { toast } from 'sonner';
+@@ -67,6 +67,16 @@ function ClubProfileView({ id }: { id: number }) {
+     const [enquiry, setEnquiry] = useClubEnquiry(club);
+     const [notice, setNotice] = useState('');
+     const [squadsRevision, setSquadsRevision] = useState(0);
++    // What the owner saves in edit mode is what visitors read from the club record: the club is read again when a save
++    // lands and when edit mode ends, so Done never shows stale data.
++    const wasEditing = useRef(editing);
++    useEffect(() => {
++        const ended = wasEditing.current && !editing;
++        wasEditing.current = editing;
++        if (!ended && edit.status !== 'saved') return;
++        const timer = window.setTimeout(() => { refresh(); setSquadsRevision(value => value + 1); }, 0);
++        return () => clearTimeout(timer);
++    }, [editing, edit.status, refresh]);
+     const [dissolveOpen, setDissolveOpen] = useState(false);
+     const [dissolving, setDissolving] = useState(false);
+     const images = useProfileImageControls({ enabled: can.isLeader, scope: `club:${id}`, imageKind: 'logo', hasCover: Boolean(club?.bannerUrl), onSave: updateImage });

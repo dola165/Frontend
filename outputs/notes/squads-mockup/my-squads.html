@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>My squads — mockup</title>
+<style>
+:root{--bg:#0b0f0d;--panel:#121816;--panel2:#171f1c;--line:#1f2a26;--text:#e6ebe8;--muted:#8a948f;--green:#35d07f;--amber:#e3b341;--red:#f06a6a;--blue:#5aa9ff;--violet:#a98bff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,"Segoe UI",Roboto,sans-serif}
+.top{height:48px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:28px}
+.top .logo{font-weight:800;color:var(--green)}.top .search{width:340px;height:30px;border-radius:15px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:0 12px;display:flex;align-items:center}
+.top nav{margin:0 auto;display:flex;gap:34px;color:var(--muted)}.top nav b{color:var(--text);border-bottom:2px solid var(--green);padding-bottom:12px;margin-bottom:-14px}
+.wrap{display:grid;grid-template-columns:220px 1fr}
+.rail{border-right:1px solid var(--line);min-height:calc(100vh - 48px);padding:14px 10px;position:relative}
+.rail .ctx{display:flex;gap:10px;align-items:center;padding:6px 8px 16px}.crest{width:32px;height:32px;border-radius:50%;background:#1b4fd1;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;flex:none}
+.rail a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--muted)}.rail a.on{background:#17352a;color:var(--green)}.rail a .n{margin-left:auto;background:#223;color:#cde;border-radius:10px;padding:0 7px;font-size:11px}
+.rail .foot{position:absolute;bottom:18px;left:10px;width:200px}
+main{padding:20px 28px 40px}
+h1{font-size:22px;margin:0}.sub{color:var(--muted);margin-top:3px}
+.head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:8px;padding:7px 12px;font-weight:600;display:inline-flex;gap:6px;align-items:center}.btn.p{background:var(--green);color:#06130c;border-color:var(--green)}.btn.g{background:transparent}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card .name{display:flex;align-items:center;gap:12px}.card .name b{font-size:16px}.card .name span{color:var(--muted);display:block;font-size:12px}
+.faces{display:flex}.face{width:28px;height:28px;border-radius:50%;background:#2b3a34;border:2px solid var(--panel);margin-left:-6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#cfe}.face:first-child{margin-left:0}.face.g{box-shadow:0 0 0 2px var(--green)}.face.r{box-shadow:0 0 0 2px var(--red)}.face.a{box-shadow:0 0 0 2px var(--amber)}
+.next{display:flex;gap:12px;align-items:center;background:var(--panel2);border-radius:10px;padding:10px 12px}
+.tile{width:36px;height:36px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;flex:none}.tile.m{background:#123d2a;color:var(--green)}.tile.t{background:#12283d;color:var(--blue)}.tile.e{background:#2a1f44;color:var(--violet)}
+.next b{display:block}.next span{color:var(--muted);font-size:12px}
+.bar{height:6px;border-radius:3px;background:#2b3a34;display:flex;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%}.bar .g{background:var(--green)}.bar .a{background:var(--amber)}.bar .r{background:var(--red)}
+.reply{font-size:12px;color:var(--muted);margin-top:4px}.reply b{color:var(--text)}
+.wait{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--panel2)}.wait .dot{width:8px;height:8px;border-radius:50%}.dot{width:8px;height:8px;border-radius:50%;display:inline-block}.dot.a{background:var(--amber)}.dot.r{background:var(--red)}
+.wait .st{margin-left:auto;font-weight:600}.wait .st.a{color:var(--amber)}.wait .st.r{color:var(--red)}.ar{color:var(--muted)}
+.acts{display:flex;gap:8px}
+.empty{border:1px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.section{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.section .t{display:flex;align-items:baseline;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}.section .t b{font-size:14px}.section .t span{color:var(--muted);font-size:12px}.section .t a{margin-left:auto;color:var(--green)}
+.day{display:grid;grid-template-columns:120px 1fr;border-bottom:1px solid var(--line)}.day:last-child{border-bottom:0}
+.day .d{padding:12px 16px;color:var(--muted)}.day .d b{display:block;color:var(--text);font-size:15px}
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:56px 44px 1fr auto 24px;align-items:center;gap:10px;padding:9px 16px 9px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
+.row .time{color:var(--muted)}.row .what b{display:block}.row .what span{color:var(--muted);font-size:12px}
+.row .st{font-weight:600;display:flex;align-items:center;gap:8px}.row .st.a{color:var(--amber)}.row .st.r{color:var(--red)}.row .st.ok{color:var(--muted);font-weight:400}
+.legend{display:flex;gap:26px;color:var(--muted);font-size:12px;margin-top:18px;padding:0 4px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+</style></head><body>
+<div class="top"><span class="logo">GrassKickZ</span><span class="search">Search people, clubs, places…</span><nav><span>Home</span><span>World</span><b>My squads</b><span>My Club</span><span>+ Pin</span></nav><span style="color:var(--muted)">Agent Dola · ✉ · 🔔 · ◉</span></div>
+<div class="wrap">
+<aside class="rail">
+ <div class="ctx"><span class="crest">DA</span><div><b>FC Dinamo Tbilisi Academy</b><div style="color:var(--muted);font-size:11px">Head coach · U14 Boys, U16 Boys</div></div></div>
+ <a class="on">🛡 My squads</a><a>📅 Calendar</a><a>👤 Players</a><a>📣 Updates <span class="n">2</span></a><a>👥 Coaches</a>
+ <div class="foot"><a>⊞ Club workspace</a></div>
+</aside>
+<main>
+ <div class="head"><div><h1>My squads</h1><div class="sub">Tuesday 13 October</div></div><span class="btn p">📣 Post an update</span></div>
+
+ <div class="cards">
+  <article class="card">
+   <div class="name"><span class="crest">DA</span><div><b>U14 Boys</b><span>Head coach · 11 players</span></div></div>
+   <div class="faces"><span class="face g">IS</span><span class="face g">GM</span><span class="face g">MK</span><span class="face g">SK</span><span class="face g">RT</span><span class="face g">DM</span><span class="face g">AG</span><span class="face a">NJ</span><span class="face g">LB</span><span class="face r">TK</span><span class="face g">GB</span></div>
+   <div class="next"><span class="tile m">🏆</span><div style="flex:1"><b>Sat 17 · 11:00 · v Saburtalo Youth FC</b><span>Friendly · Dinamo Academy Training Centre</span><div class="bar"><i class="g" style="width:82%"></i><i class="a" style="width:9%"></i><i class="r" style="width:9%"></i></div><div class="reply"><b>9 of 11 coming</b> · 1 can’t come · 1 no reply</div></div></div>
+   <div class="wait"><span class="dot a"></span>2 families waiting for a reply<span class="st a">Reply</span><span class="ar">›</span></div>
+   <div class="acts"><span class="btn">Who’s coming</span><span class="btn g">Squad chat</span></div>
+  </article>
+  <article class="card">
+   <div class="name"><span class="crest">DA</span><div><b>U16 Boys</b><span>Head coach · 12 players</span></div></div>
+   <div class="faces"><span class="face g">GM</span><span class="face g">AG</span><span class="face g">TK</span><span class="face g">DC</span><span class="face g">LK</span><span class="face g">BM</span><span class="face g">SR</span><span class="face g">NK</span><span class="face g">ZG</span><span class="face r">OK</span><span class="face g">PB</span><span class="face a">EM</span></div>
+   <div class="next"><span class="tile m">🏆</span><div style="flex:1"><b>Thu 15 · 19:00 · v Didube Stars</b><span>Friendly · Dinamo Academy Training Centre</span><div class="bar"><i class="g" style="width:84%"></i><i class="a" style="width:8%"></i><i class="r" style="width:8%"></i></div><div class="reply"><b>10 of 12 coming</b> · 1 can’t come · 1 no reply</div></div></div>
+   <div class="wait"><span class="dot r"></span>Giorgi Mamardashvili restricted before Thursday<span class="st r">Decide</span><span class="ar">›</span></div>
+   <div class="acts"><span class="btn">Who’s coming</span><span class="btn g">Squad chat</span></div>
+  </article>
+  <div class="empty">Ask for another squad on Coaches</div>
+ </div>
+
+ <section class="section">
+  <div class="t"><b>Soon</b><span>Next 7 days · your squads</span><a>Calendar ›</a></div>
+  <div class="day"><div class="d">Tomorrow<b>Wed 14</b></div><div class="rows">
+   <div class="row"><span class="time">18:00</span><span class="tile t">▲</span><div class="what"><b>Finishing under pressure</b><span>U14 Boys · Training · Rich 1</span></div><span class="st a"><span class="dot a"></span>1 can’t come</span><span class="ar">›</span></div>
+   <div class="row"><span class="time">18:00</span><span class="tile t">▲</span><div class="what"><b>Possession and pressing</b><span>U16 Boys · Training · Rich 2</span></div><span class="st ok">Everyone expected</span><span class="ar">›</span></div>
+  </div></div>
+  <div class="day"><div class="d">Thursday<b>Thu 15</b></div><div class="rows">
+   <div class="row"><span class="time">10:00</span><span class="tile e">★</span><div class="what"><b>Coaching staff meeting</b><span>Club event · Indoor hall</span></div><span class="st ok"></span><span class="ar">›</span></div>
+   <div class="row"><span class="time">19:00</span><span class="tile m">🏆</span><div class="what"><b>U16 Boys v Didube Stars</b><span>Friendly · Dinamo Academy Training Centre · 10 of 12 coming</span></div><span class="st a"><span class="dot a"></span>1 no reply</span><span class="ar">›</span></div>
+  </div></div>
+  <div class="day"><div class="d">Saturday<b>Sat 17</b></div><div class="rows">
+   <div class="row"><span class="time">11:00</span><span class="tile m">🏆</span><div class="what"><b>U14 Boys v Saburtalo Youth FC</b><span>Friendly · Dinamo Academy Training Centre · 9 of 11 coming</span></div><span class="st a"><span class="dot a"></span>1 no reply</span><span class="ar">›</span></div>
+  </div></div>
+  <div class="day"><div class="d">Monday<b>Mon 19</b></div><div class="rows">
+   <div class="row"><span class="time">18:00</span><span class="tile t">▲</span><div class="what"><b>Recovery session</b><span>U16 Boys · Training · Rich 2</span></div><span class="st r"><span class="dot r"></span>Giorgi restricted</span><span class="ar">›</span></div>
+  </div></div>
+ </section>
+ <div class="legend"><span><i style="background:#35d07f"></i>Match</span><span><i style="background:#5aa9ff"></i>Training</span><span><i style="background:#a98bff"></i>Club event</span><span><i style="background:#e3b341"></i>Waiting on someone</span><span><i style="background:#f06a6a"></i>Decide now</span></div>
+</main></div>
+</body></html>

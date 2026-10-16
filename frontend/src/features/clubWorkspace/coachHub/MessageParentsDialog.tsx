@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState } from 'react';
+import { coachHubEn } from '../../../locales/workspaceDesign';
+import { useCopy } from '../../../locales/useCopy';
 import { useNavigate } from 'react-router-dom';
 import { Send } from 'lucide-react';
 import { Avatar, Button, EmptyNote, Field } from '../../../design/primitives';
@@ -16,6 +18,7 @@ interface Parent { id: number; name: string; squad: string }
  * guardians, so nobody outside the squad can be picked by mistake.
  */
 export function MessageParentsDialog({ data, onClose }: { data: CoachData; onClose: () => void }) {
+    const copy = useCopy('coachHub', coachHubEn);
     const navigate = useNavigate();
     const parents: Parent[] = [];
     for (const squad of data.squads ?? []) {
@@ -35,19 +38,19 @@ export function MessageParentsDialog({ data, onClose }: { data: CoachData; onClo
             const conversation = (await chatApi.createConversation({ contextType: chosen.length === 1 ? 'DIRECT' : 'GROUP', name, participantIds: picked })).data;
             await chatApi.sendMessage(conversation.id, text.trim(), crypto.randomUUID());
             navigate(`/messages?conversationId=${conversation.id}`);
-        } catch (cause) { setError(extractApiErrorMessage(cause, 'The message could not be sent.')); setBusy(false); }
+        } catch (cause) { setError(extractApiErrorMessage(cause, copy('messageFailed'))); setBusy(false); }
     };
 
-    return <Dialog open size="md" title="Message parents" description={chosen.length ? `To ${chosen.map(parent => parent.name).join(', ')}` : 'Tap the parents you want to write to'} onClose={onClose}
-        footer={<><Button variant="ghost" disabled={busy} onClick={onClose}>Cancel</Button><Button variant="primary" disabled={busy || !chosen.length || !text.trim()} onClick={() => void send()}><Send aria-hidden="true" />{busy ? 'Sending…' : chosen.length > 1 ? `Send to ${chosen.length}` : 'Send'}</Button></>}>
+    return <Dialog open size="md" title={copy('messageParentsTitle')} description={chosen.length ? copy('toNames', { names: chosen.map(parent => parent.name).join(', ') }) : copy('tapParents')} onClose={onClose}
+        footer={<><Button variant="ghost" disabled={busy} onClick={onClose}>{copy('cancel')}</Button><Button variant="primary" disabled={busy || !chosen.length || !text.trim()} onClick={() => void send()}><Send aria-hidden="true" />{busy ? copy('sending') : chosen.length > 1 ? copy('sendTo', { count: chosen.length }) : copy('send')}</Button></>}>
         <div className="gk-stack">
-            {parents.length ? <ul className="ch-pick" aria-label="Parents and guardians">{parents.map(parent => <li key={parent.id}>
+            {parents.length ? <ul className="ch-pick" aria-label={copy('parentsAndGuardians')}>{parents.map(parent => <li key={parent.id}>
                 <button type="button" className="ch-pick__person" aria-pressed={picked.includes(parent.id)} disabled={busy} onClick={() => toggle(parent.id)}>
                     <Avatar name={parent.name} size={44} /><strong>{parent.name}</strong><span>{parent.squad}</span>
                 </button>
-            </li>)}</ul> : <EmptyNote title="No parents linked yet">Parents and guardians appear here once they are linked to your players.</EmptyNote>}
-            <Field label="Message" htmlFor="ch-parents-text">
-                <textarea id="ch-parents-text" className="gk-input" rows={3} maxLength={2000} placeholder="Write once, everyone chosen gets it…" value={text} disabled={busy} onChange={event => setText(event.target.value)} />
+            </li>)}</ul> : <EmptyNote title={copy('noParentsLinked')}>{copy('noParentsHint')}</EmptyNote>}
+            <Field label={copy('message')} htmlFor="ch-parents-text">
+                <textarea id="ch-parents-text" className="gk-input" rows={3} maxLength={2000} placeholder={copy('writeOnce')} value={text} disabled={busy} onChange={event => setText(event.target.value)} />
             </Field>
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         </div>

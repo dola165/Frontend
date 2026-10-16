@@ -66,7 +66,7 @@ export function MySquads({ data }: { data: CoachData }) {
             onCancel={activity.session ? () => { setActivity(null); setCancelling({ squad: activity.squadId, session: activity.session! }); } : undefined} />}
         {cancelling && <CancelSessionDialog squad={cancelling.squad} squadName={data.names.get(cancelling.squad) ?? ''} session={cancelling.session} now={data.now}
             onClose={() => setCancelling(null)} onDone={() => { setCancelling(null); data.refresh(); }} />}
-        {sharing && <Dialog open size="md" title="Share a photo" description="Posted to the club's page and feed, as the club." onClose={() => setSharing(false)}>
+        {sharing && <Dialog open size="md" title={copy('sharePhoto')} description={copy('sharePhotoHint')} onClose={() => setSharing(false)}>
             <PostComposer clubId={data.clubId} onPostCreated={() => setSharing(false)} />
         </Dialog>}
     </PageFrame>;
@@ -113,7 +113,7 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
                 : next && kind ? <span className="ch-card__row">
                     <Link className="ch-card__line" to={data.link('overview', { activity: `s-${next.id}` })}>
                         <ActivityBadge kind={kind} size={26} />
-                        <span className="ch-card__line-text"><strong>{dayLabel(next.starts_at, data.now)} {timeLabel(next.starts_at)}</strong> · {opponent ? `v ${opponent.name}` : next.title}{next.location ? ` · ${next.location}` : ''}</span>
+                        <span className="ch-card__line-text"><strong>{dayLabel(next.starts_at, data.now)} {timeLabel(next.starts_at)}</strong> · {opponent ? copy('versus', { team: opponent.name }) : next.title}{next.location ? ` · ${next.location}` : ''}</span>
                     </Link>
                     <Button size="sm" variant="ghost" iconOnly aria-label={`${copy('cancelSession')}: ${next.title}`} title={copy('cancelSession')} onClick={() => onCancel(next)}><X aria-hidden="true" /></Button>
                 </span>
@@ -147,7 +147,7 @@ function Soon({ data, onOpen, onCancel }: { data: CoachData; onOpen: (key: strin
     const later = all.find(event => event.start >= end);
     const open = (event: CoachEvent) => onOpen(event.key);
     const items: DayAgendaItem[] = events.map(event => ({
-        key: event.key, startsAt: event.start.toISOString(), title: event.opponent ? `${event.squad} v ${event.opponent.name}` : event.title, kind: event.kind, kindLabel: kindNames[event.kind],
+        key: event.key, startsAt: event.start.toISOString(), title: event.opponent ? copy('matchTitle', { home: event.squad, away: event.opponent.name }) : event.title, kind: event.kind, kindLabel: kindNames[event.kind],
         squad: event.squad, meta: [event.opponent ? null : event.squad, event.location].filter(Boolean).join(' · '),
         status: event.cancelled ? <span className="cw-status cw-status--danger">{copy('cancelled')}</span> : undefined, onClick: () => open(event), label: `${event.title} · ${event.squad}`,
         actions: event.session && !event.cancelled && event.start.getTime() > data.now

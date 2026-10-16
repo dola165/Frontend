@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState } from 'react';
+import { coachHubEn } from '../../../locales/workspaceDesign';
+import { useCopy } from '../../../locales/useCopy';
 import { Button } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { Crest } from '../../../design/visuals';
@@ -22,7 +24,8 @@ export function ResultDialog({ match: event, clubId, clubName, clubLogo, now, on
 }) {
     const sides = sidesOf(event.title);
     const ours = sides ? sides.findIndex(side => side.toLowerCase().includes(clubName.toLowerCase()) || clubName.toLowerCase().includes(side.toLowerCase())) : -1;
-    const names = sides ?? ['Home', 'Away'];
+    const copy = useCopy('coachHub', coachHubEn);
+    const names = sides ?? [copy('sideHome'), copy('sideAway')];
     const [home, setHome] = useState(''), [away, setAway] = useState('');
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
     const valid = /^\d{1,2}$/.test(home) && /^\d{1,2}$/.test(away);
@@ -34,17 +37,17 @@ export function ResultDialog({ match: event, clubId, clubName, clubLogo, now, on
         // The winner's club id is only known for our side and the opponent's; a draw has none.
         const winner = h === a ? null : (h > a) === (ours === 0) ? (event.clubId ?? clubId) : event.opponentClubId ?? null;
         try { await completeClubEventWithResult(clubId, event.eventId, { homeScore: h, awayScore: a, winnerClubId: ours === -1 ? null : winner }); onDone(); }
-        catch (cause) { setError(extractApiErrorMessage(cause, 'The result could not be saved.')); setBusy(false); }
+        catch (cause) { setError(extractApiErrorMessage(cause, copy('resultFailed'))); setBusy(false); }
     };
 
     const side = (index: 0 | 1, value: string, set: (value: string) => void) => <label className="ch-score__side">
         <span className="ch-score__name">{index === ours ? <Crest src={clubLogo} name={clubName} size={28} /> : <Crest src={null} name={names[index]} size={28} />}<strong>{names[index]}</strong></span>
-        <input className="gk-input ch-score__input" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={`${names[index]} goals`} value={value} disabled={busy} autoFocus={index === 0}
+        <input className="gk-input ch-score__input" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={copy('goals', { team: names[index] })} value={value} disabled={busy} autoFocus={index === 0}
             onChange={e => set(e.target.value.replace(/\D/g, '').slice(0, 2))} />
     </label>;
 
-    return <Dialog open size="sm" title="Add the result" description={`${event.title} · ${dayLabel(event.startsAt, now)} ${timeLabel(event.startsAt)}`} onClose={onClose}
-        footer={<><Button variant="ghost" disabled={busy} onClick={onClose}>Not now</Button><Button variant="primary" disabled={busy || !valid} onClick={() => void save()}>{busy ? 'Saving…' : 'Save result'}</Button></>}>
+    return <Dialog open size="sm" title={copy('addResult')} description={`${event.title} · ${dayLabel(event.startsAt, now)} ${timeLabel(event.startsAt)}`} onClose={onClose}
+        footer={<><Button variant="ghost" disabled={busy} onClick={onClose}>{copy('notNow')}</Button><Button variant="primary" disabled={busy || !valid} onClick={() => void save()}>{busy ? copy('saving') : copy('saveResult')}</Button></>}>
         <div className="ch-score">{side(0, home, setHome)}<span className="ch-score__dash">–</span>{side(1, away, setAway)}</div>
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </Dialog>;

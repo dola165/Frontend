@@ -22,6 +22,8 @@ import { CoachUpdates } from './CoachUpdates';
 import { CoachTeam } from './CoachTeam';
 import { CoachMatches } from './CoachMatches';
 import { SquadPage } from './SquadPage';
+import { coachHubEn } from '../../../locales/workspaceDesign';
+import { useCopy } from '../../../locales/useCopy';
 import { LoadProblems } from './LoadProblems';
 import '../club-workspace.css';
 import './coach-hub.css';
@@ -55,6 +57,7 @@ export interface CoachData {
  */
 export function CoachWorkspace({ clubId }: { clubId: number }) {
     const navigate = useNavigate();
+    const copy = useCopy('coachHub', coachHubEn);
     const { user } = useAuth();
     const [params] = useSearchParams();
     const club = useClubOverview(clubId);
@@ -85,19 +88,19 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     const responsibilities = focusableViews(roles?.views ?? []);
     const unread = squads?.reduce((total, squad) => total + (squad.overview?.threads.reduce((sum, thread) => sum + thread.unread_count, 0) ?? 0), 0) ?? 0;
     const primary: WorkspaceNavItem[] = [
-        { id: 'overview', label: 'My squads', icon: ShieldCheck },
-        { id: 'players', label: 'Players', icon: Users },
-        { id: 'updates', label: 'Updates', icon: Megaphone, count: unread || undefined },
-        { id: 'coaches', label: 'Coaches', icon: UsersRound },
-        { id: 'matches', label: 'Matches', icon: Trophy },
+        { id: 'overview', label: copy('mySquads'), icon: ShieldCheck },
+        { id: 'players', label: copy('players'), icon: Users },
+        { id: 'updates', label: copy('updates'), icon: Megaphone, count: unread || undefined },
+        { id: 'coaches', label: copy('coaches'), icon: UsersRound },
+        { id: 'matches', label: copy('matches'), icon: Trophy },
     ];
     // The calendar sits with the club workspace at the bottom: most coaches keep their timetable on paper (the owner, 14 October).
-    const footer: WorkspaceNavItem[] = [{ id: 'calendar', label: 'Calendar', icon: CalendarDays }, ...(canOpenWorkspace ? [{ id: 'workspace', label: 'Club workspace', icon: LayoutGrid }] : [])];
+    const footer: WorkspaceNavItem[] = [{ id: 'calendar', label: copy('calendar'), icon: CalendarDays }, ...(canOpenWorkspace ? [{ id: 'workspace', label: copy('clubWorkspace'), icon: LayoutGrid }] : [])];
     const clubName = club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`;
 
     let content;
-    if (workspaceRoles.loading) content = <PageFrame className="cw-page"><div className="cw-loading" role="status" aria-label="Loading your squads"><Skeleton height={34} width="30%" /><Skeleton height={220} /><Skeleton height={280} /></div></PageFrame>;
-    else if (!roles) content = <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{workspaceRoles.error || 'Your squads could not be loaded.'}</span><Button size="sm" onClick={workspaceRoles.refresh}>Try again</Button></div></PageFrame>;
+    if (workspaceRoles.loading) content = <PageFrame className="cw-page"><div className="cw-loading" role="status" aria-label={copy('loadingSquads')}><Skeleton height={34} width="30%" /><Skeleton height={220} /><Skeleton height={280} /></div></PageFrame>;
+    else if (!roles) content = <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{workspaceRoles.error || copy('squadsLoadError')}</span><Button size="sm" onClick={workspaceRoles.refresh}>{copy('tryAgain')}</Button></div></PageFrame>;
     else {
         const data: CoachData = {
             clubId, clubName, clubLogo: club.clubLogoUrl, roles, boot: operations.boot, now, mine, names: new Map(roles.squads.map(squad => [squad.id, squad.name])),
@@ -110,9 +113,9 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
             refresh: () => setRevision(value => value + 1), refreshRoles: workspaceRoles.refresh,
         };
         // Without a squad yet, the coaches page still lets a person ask for one.
-        const page = !mine.length && tab !== 'coaches' ?<PageFrame className="cw-page"><PageHeader title="My squads" subtitle={clubName} />
-            <Panel><EmptyNote title="No squads yet" action={<ButtonLink size="sm" to="/my-squads?tab=coaches">Ask for a squad</ButtonLink>}>
-                When the club makes you a coach of a squad, it appears here with its calendar, players, parents and coaches.
+        const page = !mine.length && tab !== 'coaches' ?<PageFrame className="cw-page"><PageHeader title={copy('mySquads')} subtitle={clubName} />
+            <Panel><EmptyNote title={copy('noSquadsYet')} action={<ButtonLink size="sm" to="/my-squads?tab=coaches">{copy('askForSquad')}</ButtonLink>}>
+                {copy('noSquadsYetHint')}
             </EmptyNote></Panel></PageFrame>
             : tab === 'calendar' ? <CoachCalendar data={data} />
                 : tab === 'players' ? <CoachPlayers data={data} />
@@ -125,9 +128,9 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
         content = <><LoadProblems data={data} />{page}</>;
     }
 
-    return <WorkspaceShell label="My squads" storageKey={`coach-${clubId}`} guard={guardWorkspaceNavigation}
-        context={{ name: clubName, crest: club.clubLogoUrl, role: responsibilities.map(view => view.label).join(', ') || 'Club staff', back: { label: 'Club page', to: `/clubs/${clubId}` } }}
-        primary={primary} groups={[]} footer={footer} active={tab} onSelect={id => go(href(id))} hrefFor={href} sectionTitle={primary.find(item => item.id === tab)?.label ?? 'My squads'}>
+    return <WorkspaceShell label={copy('mySquads')} storageKey={`coach-${clubId}`} guard={guardWorkspaceNavigation}
+        context={{ name: clubName, crest: club.clubLogoUrl, role: responsibilities.map(view => view.label).join(', ') || copy('clubStaff'), back: { label: copy('clubPage'), to: `/clubs/${clubId}` } }}
+        primary={primary} groups={[]} footer={footer} active={tab} onSelect={id => go(href(id))} hrefFor={href} sectionTitle={primary.find(item => item.id === tab)?.label ?? copy('mySquads')}>
         {content}
     </WorkspaceShell>;
 }

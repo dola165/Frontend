@@ -22,6 +22,7 @@ interface UpdateRow { squad: number; squadName: string; families: number; update
 
 /** Who hasn't acknowledged an important update yet, as faces with names, loaded when asked for. Acknowledging is the evidence; reading is not tracked. */
 function Readers({ row }: { row: UpdateRow }) {
+    const copy = useCopy('coachHub', coachHubEn);
     const [list, setList] = useState<squadApi.Receipt[] | null | 'error'>(null);
     useEffect(() => {
         let alive = true;
@@ -29,39 +30,40 @@ function Readers({ row }: { row: UpdateRow }) {
         return () => { alive = false; };
     }, [row.squad, row.update.id]);
     if (list === null) return <div className="ch-update__readers" role="status"><Skeleton height={26} width="50%" /></div>;
-    if (list === 'error') return <p className="ch-update__readers ch-quiet">Who has acknowledged it could not be loaded.</p>;
+    if (list === 'error') return <p className="ch-update__readers ch-quiet">{copy('whoAckFailed')}</p>;
     const missing = list.filter(item => !item.acknowledged_at);
     return <div className="ch-update__readers">{missing.length
-        ? <><FaceStack people={missing.map(item => ({ id: item.user_id, name: item.full_name, tone: 'warning' as const }))} max={10} size={26} label="Not acknowledged yet" />
-            <span className="ch-quiet">Not acknowledged yet: {missing.map(item => item.full_name).join(', ')}</span></>
-        : <span className="ch-quiet">Every parent or guardian has acknowledged it.</span>}</div>;
+        ? <><FaceStack people={missing.map(item => ({ id: item.user_id, name: item.full_name, tone: 'warning' as const }))} max={10} size={26} label={copy('notAckYet')} />
+            <span className="ch-quiet">{copy('notAckYet')}: {missing.map(item => item.full_name).join(', ')}</span></>
+        : <span className="ch-quiet">{copy('everyoneAck')}</span>}</div>;
 }
 
 /** One update as a card: who posted it where and when, what it says, how many families have acknowledged it, reactions and comments. */
 function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onChanged: () => void }) {
+    const copy = useCopy('coachHub', coachHubEn);
     const [open, setOpen] = useState(false), [removing, setRemoving] = useState(false), [error, setError] = useState('');
     const own = row.update.author_id === row.space.viewer_id;
     const remove = async () => {
-        if (removing || !window.confirm('Delete this update for every parent and guardian?')) return;
+        if (removing || !window.confirm(copy('deleteUpdateConfirm'))) return;
         setRemoving(true); setError('');
         try { await squadApi.removeMessage(row.squad, row.update.id); onChanged(); }
-        catch (cause) { setError(extractApiErrorMessage(cause, 'The update could not be deleted.')); setRemoving(false); }
+        catch (cause) { setError(extractApiErrorMessage(cause, copy('deleteUpdateFailed'))); setRemoving(false); }
     };
     const { update } = row, read = Math.min(update.acknowledged_by?.length ?? 0, row.families), pinned = isPinned(update, now);
     return <article className="ch-update">
         <header className="ch-update__head">
             <Avatar name={update.author_name} size={34} />
             <span className="ch-update__who"><strong>{update.author_name}</strong><span>{row.squadName} · {dayLabel(update.created_at, now)}{isToday(update.created_at, now) ? ` ${timeLabel(update.created_at)}` : ''}</span></span>
-            {pinned && <span className="ch-update__pin"><Pin aria-hidden="true" />Pinned</span>}
+            {pinned && <span className="ch-update__pin"><Pin aria-hidden="true" />{copy('pinned')}</span>}
         </header>
         {update.title && <h3 className="ch-update__title">{update.title}</h3>}
         <p className="ch-update__body">{update.body}</p>
         <footer className="ch-update__foot">
             {update.important && row.families ? <button type="button" className="ch-update__reads" aria-expanded={open} onClick={() => setOpen(value => !value)}>
                 <ProgressRing value={read} total={row.families} tone={read >= row.families ? 'accent' : pinned ? 'warning' : 'neutral'} />
-                <span><strong>{read} of {row.families}</strong> parents acknowledged</span>
-            </button> : <span className="ch-quiet">No acknowledgement asked</span>}
-            {own && <button type="button" className="ch-update__delete" disabled={removing} onClick={() => void remove()}><Trash2 aria-hidden="true" />Delete</button>}
+                <span><strong>{copy('ofTotal', { count: read, total: row.families })}</strong> {copy('parentsAcknowledged')}</span>
+            </button> : <span className="ch-quiet">{copy('noAckAsked')}</span>}
+            {own && <button type="button" className="ch-update__delete" disabled={removing} onClick={() => void remove()}><Trash2 aria-hidden="true" />{copy('deleteUpdate')}</button>}
         </footer>
         {open && <Readers row={row} />}
         <UpdateInteractions space={row.space} message={update} onChanged={onChanged} />
@@ -93,28 +95,28 @@ export function CoachUpdates({ data }: { data: CoachData }) {
                 {!squads ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading updates">{[0, 1].map(i => <Skeleton key={i} height={140} />)}</div></Panel>
                     : rows.length ? <ul className="ch-feed">{rows.map(row => <li key={`${row.squad}-${row.update.id}`}><UpdateCard row={row} now={now} onChanged={data.refresh} /></li>)}</ul>
                         : missing('updates') ? <Panel flush>{notLoaded('updates')}</Panel>
-                        : <Panel><EmptyNote title="No updates yet">Your first announcement to parents and guardians appears here.</EmptyNote></Panel>}
+                        : <Panel><EmptyNote title={copy('noUpdatesYet')}>{copy('noUpdatesHint')}</EmptyNote></Panel>}
             </div>
             <div className="gk-stack">
-                <Section boxed title="Messages from parents & guardians" hint={threads.length ? `${threads.reduce((total, thread) => total + thread.unread_count, 0)} new` : undefined}
-                    action={<button type="button" className="gk-section__action cw-text-button" onClick={() => setWriting(true)}>+ Message several parents</button>}>
+                <Section boxed title={copy('parentMessages')} hint={threads.length ? copy('newCount', { count: threads.reduce((total, thread) => total + thread.unread_count, 0) }) : undefined}
+                    action={<button type="button" className="gk-section__action cw-text-button" onClick={() => setWriting(true)}>{copy('messageSeveral')}</button>}>
                     <Panel flush>
                         {!squads ? <div className="cw-skeleton-rows" role="status" aria-label="Loading messages">{[0, 1].map(i => <Skeleton key={i} height={40} />)}</div>
-                            : threads.length ? <List label="Messages from parents and guardians">{threads.map(thread => <ListRow key={`${thread.squad}-${thread.user_id}`}
+                            : threads.length ? <List label={copy('parentMessages')}>{threads.map(thread => <ListRow key={`${thread.squad}-${thread.user_id}`}
                                 to={`/messages?squadId=${thread.squad}&channel=coach&thread=${thread.user_id}`} lead={<Avatar name={thread.full_name} size={32} />}
                                 title={thread.full_name} meta={names.get(thread.squad)} trail={<><Count value={thread.unread_count} /><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />)}</List>
                                 : missing('overview') ? notLoaded('overview')
-                                : <EmptyNote title="All answered">New messages from parents and guardians appear here.</EmptyNote>}
+                                : <EmptyNote title={copy('allAnswered')}>{copy('allAnsweredHint')}</EmptyNote>}
                     </Panel>
                 </Section>
                 {/* Each squad has two places to talk: a private line to every family, and one chat for everyone. */}
-                <Section boxed title="Chats" hint="Where your squads talk">
-                    <Panel flush><List label="Chats">{(squads ?? []).flatMap(squad => squad.overview ? [
+                <Section boxed title={copy('chats')} hint={copy('chatsHint')}>
+                    <Panel flush><List label={copy('chats')}>{(squads ?? []).flatMap(squad => squad.overview ? [
                         <ListRow key={`${squad.id}-families`} to={`/messages?squadId=${squad.id}&channel=coach`} lead={<span className="ch-chat ch-chat--families"><MessageCircle aria-hidden="true" /></span>}
-                            title={`${names.get(squad.id)} parents & guardians`} meta="Private: each parent writes to you alone" trail={<ChevronRight className="cw-chevron" aria-hidden="true" />} />,
+                            title={copy('familiesChat', { squad: names.get(squad.id) ?? '' })} meta={copy('familiesChatHint')} trail={<ChevronRight className="cw-chevron" aria-hidden="true" />} />,
                         <ListRow key={`${squad.id}-squad`} to={`/messages?squadId=${squad.id}`} lead={<span className="ch-chat ch-chat--squad"><Users aria-hidden="true" /></span>}
-                            title={`${names.get(squad.id)} squad chat`} meta="Everyone together: players, parents and coaches"
-                            trail={<><span onClick={event => event.stopPropagation()} className="ch-chat__notify"><SquadNotificationToggle id={squad.id} enabled={squad.overview.notify_chat} onSaved={data.refresh} label="Notify me" quiet /></span><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />,
+                            title={copy('squadChatOf', { squad: names.get(squad.id) ?? '' })} meta={copy('squadChatHint')}
+                            trail={<><span onClick={event => event.stopPropagation()} className="ch-chat__notify"><SquadNotificationToggle id={squad.id} enabled={squad.overview.notify_chat} onSaved={data.refresh} label={copy('notifyMe')} quiet /></span><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />,
                     ] : [])}</List></Panel>
                 </Section>
             </div>
@@ -122,7 +124,7 @@ export function CoachUpdates({ data }: { data: CoachData }) {
         {writing && <MessageParentsDialog data={data} onClose={() => setWriting(false)} />}
     </>;
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title="Updates" actions={<ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />New announcement</ButtonLink>} />
+        <PageHeader title={copy('updates')} actions={<ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />{copy('newAnnouncement')}</ButtonLink>} />
         <SquadSwitch data={data} />
         {body}
     </PageFrame>;

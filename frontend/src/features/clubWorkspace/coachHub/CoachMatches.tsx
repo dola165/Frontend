@@ -17,7 +17,7 @@ import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
 const friendly = (match: HistoryMatch) => /friendly/i.test(match.title) ? 'FRIENDLY' : 'MATCH';
-const waitingWords: Record<string, string> = { PENDING: 'Waiting for the opponent', PROPOSED: 'Waiting for the opponent', INVITED: 'Waiting for the opponent', OPEN: 'Open to any club', CANCELLED: 'Cancelled' };
+const waitingKeys: Record<string, 'waitingOpponent' | 'openToAnyClub' | 'cancelled'> = { PENDING: 'waitingOpponent', PROPOSED: 'waitingOpponent', INVITED: 'waitingOpponent', OPEN: 'openToAnyClub', CANCELLED: 'cancelled' };
 
 /**
  * My squads' matches, all on this page: arrange one in a dialog (the same form as World and the club page,
@@ -37,10 +37,11 @@ export function CoachMatches({ data }: { data: CoachData }) {
         const controller = new AbortController();
         getMatchHistory('period=ALL&mine=true&size=100', controller.signal, sessionId)
             .then(result => { if (!controller.signal.aborted) setPage({ key, items: result.items, error: '' }); })
-            .catch(cause => { if (!controller.signal.aborted) setPage({ key, items: [], error: extractApiErrorMessage(cause, 'Your matches could not be loaded.') }); });
+            .catch(cause => { if (!controller.signal.aborted) setPage({ key, items: [], error: extractApiErrorMessage(cause, 'failed') }); });
         return () => controller.abort();
     }, [key, sessionId]);
-    const error = page?.key === key ? page.error : '';
+    // The server's own words when it gave some; otherwise ours, in the person's language.
+    const error = page?.key === key && page.error ? (page.error === 'failed' ? copy('matchesLoadError') : page.error) : '';
 
     const squadNames = data.shown.map(id => (data.names.get(id) ?? '').toLowerCase()).filter(Boolean);
     const mineMatch = (match: HistoryMatch) => data.shown.includes(match.homeSquadId ?? -1) || data.shown.includes(match.awaySquadId ?? -1)
@@ -55,10 +56,10 @@ export function CoachMatches({ data }: { data: CoachData }) {
     const setArranging = (open: boolean) => { const next = new URLSearchParams(params); if (open) next.set('arrange', '1'); else next.delete('arrange'); setParams(next, { replace: !open }); };
 
     const row = (match: HistoryMatch, past: boolean) => {
-        const when = match.startsAt ? `${dayLabel(match.startsAt, data.now)} ${timeLabel(match.startsAt)}` : 'Date to agree';
+        const when = match.startsAt ? `${dayLabel(match.startsAt, data.now)} ${timeLabel(match.startsAt)}` : copy('dateToAgree');
         const scored = match.homeScore != null && match.awayScore != null;
         const needsResult = past && !scored && match.resultStatus === 'NONE' && match.canRecordResult;
-        const waiting = !past && waitingWords[match.fixtureStatus];
+        const waiting = !past && waitingKeys[match.fixtureStatus] && copy(waitingKeys[match.fixtureStatus]);
         // Our own club is a given here: the row names the opponent, home or away and the time, and the score reads ours first.
         const home = match.homeClubId === data.clubId, away = !home && match.awayClubId === data.clubId;
         const opponent = home ? match.awayClubName : away ? match.homeClubName : null;
@@ -66,11 +67,11 @@ export function CoachMatches({ data }: { data: CoachData }) {
         const meta = [when, home ? copy('homeGame') : away ? copy('awayGame') : null, data.shown.length > 1 ? squadOf(match) : null,
             opponent && match.source === 'TOURNAMENT' ? match.tournamentName ?? match.title : null, match.locationName];
         return <ListRow key={match.id} to={needsResult ? undefined : match.detailPath} onClick={needsResult ? () => setAdding(match) : undefined}
-            lead={<ActivityBadge kind={friendly(match)} size={32} />} title={opponent ? `v ${opponent}` : match.title} meta={meta.filter(Boolean).join(' · ')}
+            lead={<ActivityBadge kind={friendly(match)} size={32} />} title={opponent ? copy('versus', { team: opponent }) : match.title} meta={meta.filter(Boolean).join(' · ')}
             trail={<>{scored ? <strong className="ch-result">{ours[0]}–{ours[1]}</strong>
                 : needsResult ? <span className="cw-status cw-status--warning">{copy('addResult')}</span>
                     : waiting ? <span className={`cw-status cw-status--${match.fixtureStatus === 'CANCELLED' ? 'danger' : 'warning'}`}>{waiting}</span>
-                        : past ? <span className="cw-status">No score</span> : null}<ChevronRight className="cw-chevron" aria-hidden="true" /></>} />;
+                        : past ? <span className="cw-status">{copy('noScore')}</span> : null}<ChevronRight className="cw-chevron" aria-hidden="true" /></>} />;
     };
     const loading = items === null;
 

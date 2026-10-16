@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { CalendarDays } from 'lucide-react';
+import { translate } from '../../locales/useCopy';
+import { fixtureCopyEn } from '../../locales/workspaceDesign';
 import type { ScheduleEventType } from '../schedule/api';
 import { activityColors, activityIcons, activityLegend } from '../schedule/activityIcons';
 
@@ -19,7 +21,7 @@ export interface DayAgendaItem {
     actions?: ReactNode;
 }
 
-const plural: Record<ScheduleEventType, string> = { TRAINING: 'training sessions', MATCH: 'matches', FRIENDLY: 'friendlies', TRYOUT: 'trials', ACTIVITY: 'club events' };
+const many = (kind: ScheduleEventType, count: number) => translate('fixtureCopy', fixtureCopyEn, `many${kind}` as const, { count });
 
 /** Entries of one kind at the same minute become one entry naming their squads. */
 function merged(items: DayAgendaItem[]) {
@@ -54,7 +56,7 @@ export function DayAgenda({ items, label, limit = 5 }: { items: DayAgendaItem[];
         <ul className="cw-agenda__list">{dayRows.map(row => {
             const Icon = row.kind ? activityIcons[row.kind] : CalendarDays;
             const merged = row.count > 1;
-            const title = merged ? `${row.count} ${plural[row.kind!]}` : row.title;
+            const title = merged ? many(row.kind!, row.count) : row.title;
             const meta = merged ? row.squads.join(', ') : row.meta;
             const body = <>
                 <span className="cw-agenda__time">{timeLabel(row.startsAt)}</span>
@@ -76,8 +78,8 @@ export function DayAgenda({ items, label, limit = 5 }: { items: DayAgendaItem[];
 
 /** The activity symbols with their meaning, so people learn them once. */
 export function ActivityLegend() {
-    return <section className="cw-legend" aria-label="Activity symbols">
-        <p className="cw-legend__head"><strong>Activity symbols</strong><span>What the icons in schedules mean</span></p>
+    return <section className="cw-legend" aria-label={translate('fixtureCopy', fixtureCopyEn, 'activitySymbols')}>
+        <p className="cw-legend__head"><strong>{translate('fixtureCopy', fixtureCopyEn, 'activitySymbols')}</strong><span>{translate('fixtureCopy', fixtureCopyEn, 'activitySymbolsHint')}</span></p>
         <ul className="cw-legend__items">{activityLegend.map(({ icon: Icon, name, meaning, color }) => <li key={name}>
             <span className="cw-legend__icon" style={tint(color)} aria-hidden="true"><Icon /></span><span><strong>{name}</strong><span>{meaning}</span></span>
         </li>)}</ul>

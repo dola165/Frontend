@@ -8,7 +8,7 @@ export function chooseDolaContext(contexts: DolaWorkspace[], path: string, prefe
     const page: DolaWorkspace | undefined = path.startsWith('/parent') ? 'family'
         : path.startsWith('/referees') ? 'referee'
             : path === '/agent' || path.startsWith('/agent/') ? 'agent'
-                : path.startsWith('/match-exchange') || path.startsWith('/squads') ? 'coach'
+                : path.startsWith('/match-exchange') || path.startsWith('/squads') || path === '/my-squads' || path.startsWith('/my-squads/') ? 'coach'
                     : /^\/stadiums\/\d+\/manage/.test(path) && contexts.includes('venue') ? 'venue'
                     : /^\/(organizations|stadiums|tournaments)\//.test(path) || /^\/clubs\/\d+\/workspace/.test(path) ? 'organization' : undefined;
     return page && contexts.includes(page) ? page : contexts[0] ?? 'discover';

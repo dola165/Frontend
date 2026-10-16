@@ -1,5 +1,5 @@
 import { useDolaPanelSize } from './useDolaPanelSize';
-import { useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { DolaContext } from './DolaContext';
 import { Link, useLocation, useNavigate, type LinkProps } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,9 @@ import { extractApiErrorCode, extractApiErrorMessage } from '../../utils/apiErro
 import { clearDola, dolaStatus, dolaWelcome, latestDola, streamDola, resolveDolaAction, type DolaAction, type DolaSnapshot, type DolaTurn } from './api';
 import { readDolaHandoff, type DolaHandoff } from './navigation';
 import { chooseDolaContext, normalizeDolaContexts, type DolaWorkspace } from './suggestions';
+import { dolaSubject, type DolaSubject } from './subject';
+import { readSelectedPlayer } from '../parents/playerSelection';
+import { readPageTitle } from '../../components/layout/header/pins/describeRoute';
 
 const RETENTION_MS = 45 * 60 * 1000;
 function useDolaController() {
@@ -20,7 +23,6 @@ function useDolaController() {
     const [contexts, setContexts] = useState<DolaWorkspace[]>(['discover']);
     const [preferredContext, setPreferredContext] = useState<DolaWorkspace>();
     const [welcomeLoading, setWelcomeLoading] = useState(false);
-    const workspace = chooseDolaContext(contexts, location.pathname, preferredContext);
     const venueMatch = /^\/stadiums\/([1-9][0-9]*)\/manage$/.exec(location.pathname);
     const pageVenueId = venueMatch ? Number(venueMatch[1]) : undefined;
     const [turns, setTurns] = useState<DolaTurn[]>([]);
@@ -36,6 +38,22 @@ function useDolaController() {
     const previousPath = useRef(location.pathname); const returnPath = useRef('/home');
     const launcher = useRef<HTMLElement | null>(null);
     const visible = !!user && !!sessionId && (panel || fullPage);
+    // The record on screen goes with each question unless the person takes it off; its name is read from the page.
+    // On the full page it is the page the person came from.
+    const [subjectPath, subjectSearch = ''] = fullPage ? returnPath.current.split('?') : [location.pathname, location.search.slice(1)];
+    const pageSubject = dolaSubject(subjectPath, subjectSearch, readSelectedPlayer(user?.id, sessionId));
+    const subjectKey = pageSubject ? `${pageSubject.kind}:${pageSubject.id}` : '';
+    const [subjectLabel, setSubjectLabel] = useState<{ key: string; label?: string }>({ key: '' });
+    const [subjectOff, setSubjectOff] = useState<string | null>(null);
+    const label = subjectLabel.key === subjectKey ? subjectLabel.label : undefined;
+    const subject = useMemo<DolaSubject | null>(() => {
+        if (!subjectKey || subjectOff === subjectKey) return null;
+        const [kind, id] = subjectKey.split(':');
+        return { kind: kind as DolaSubject['kind'], id: Number(id), label };
+    }, [subjectKey, subjectOff, label]);
+    const [statusFailed, setStatusFailed] = useState(false);
+    const statusRequest = useRef<AbortController | null>(null);
+    const workspace = chooseDolaContext(contexts, subjectPath, preferredContext);
 
     useEffect(() => {
         if (!visible) return;
@@ -71,12 +89,44 @@ function useDolaController() {
             if (!active.current || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
             initialized.current = true; setLoading(false);
             setAvailable(status.status === 'fulfilled' && status.value.available);
+            // A failed check is not an answer: say so and offer to check again (also when the window regains focus).
+            setStatusFailed(status.status === 'rejected');
             if (history.status === 'fulfilled' && history.value && Date.parse(history.value.expiresAt) > Date.now()) {
                 recovered.current = history.value; setResume(true); setExpiresAt(Date.parse(history.value.expiresAt));
             } else if (history.status === 'rejected') setError('Could not check your recent chat. You can still start a new conversation.');
         });
         return () => controller.abort();
     }, [visible, sessionId]);
+
+    const checkStatus = useCallback(() => {
+        if (statusRequest.current || !isCurrentAuthSession(sessionId)) return;
+        const controller = new AbortController(); statusRequest.current = controller; setAvailable(null);
+        void dolaStatus(sessionId, controller.signal).then(status => {
+            if (!active.current || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
+            setAvailable(status.available); setStatusFailed(false);
+        }).catch(() => {
+            if (!active.current || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
+            setAvailable(false); setStatusFailed(true);
+        }).finally(() => { if (statusRequest.current === controller) statusRequest.current = null; });
+    }, [sessionId]);
+    useEffect(() => {
+        if (!visible || !statusFailed) return;
+        window.addEventListener('focus', checkStatus);
+        return () => window.removeEventListener('focus', checkStatus);
+    }, [visible, statusFailed, checkStatus]);
+    useEffect(() => () => statusRequest.current?.abort(), []);
+
+    useEffect(() => {
+        if (!visible || !subjectKey) return;
+        const read = () => {
+            const chosenChild = subjectKey.startsWith('CHILD:') ? document.querySelector('.parent-child-choice[aria-pressed="true"] strong')?.textContent?.trim() : null;
+            const label = chosenChild || (subjectKey.startsWith('CHILD:') ? undefined : readPageTitle() ?? undefined);
+            setSubjectLabel(current => current.key === subjectKey && current.label === label ? current : { key: subjectKey, label });
+        };
+        // Pages fill their heading after their data arrives.
+        read(); const timers = [setTimeout(read, 400), setTimeout(read, 1500)];
+        return () => timers.forEach(clearTimeout);
+    }, [visible, subjectKey]);
 
     const forgetExpired = useCallback(() => {
         if (busy || !expiresAt || Date.now() < expiresAt) return;
@@ -100,7 +150,8 @@ function useDolaController() {
         setBusy(true); setError(''); setDraft('');
         setTurns(previous => [...previous, { question: message, partial: '' }]);
         try {
-            const result = await streamDola({ conversationId: conversation.current, requestId, message, includePersonalContext: usePersonal, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, workspaceContext: workspace, venueId: pageVenueId }, sessionId, controller.signal, event => {
+            const result = await streamDola({ conversationId: conversation.current, requestId, message, includePersonalContext: usePersonal, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, workspaceContext: workspace, venueId: pageVenueId,
+                subject: subject ?? undefined, page: returnPath.current }, sessionId, controller.signal, event => {
                 if (!active.current || !isCurrentAuthSession(sessionId) || controller.signal.aborted) return;
                 if (event.type === 'delta' || event.type === 'reset') setTurns(previous => previous.map((turn, index) => index === previous.length - 1
                     ? { ...turn, partial: event.type === 'reset' ? '' : (turn.partial ?? '') + (event.text ?? '') } : turn));
@@ -121,7 +172,7 @@ function useDolaController() {
                 setTurns([]); setResume(false); setExpiresAt(null);
             } else setTurns(previous => previous.slice(0, -1));
         } finally { request.current = null; if (active.current && isCurrentAuthSession(sessionId)) setBusy(false); }
-    }, [available, busy, loading, resume, expired, expiresAt, forgetExpired, personal, sessionId, workspace, pageVenueId]);
+    }, [available, busy, loading, resume, expired, expiresAt, forgetExpired, personal, sessionId, workspace, pageVenueId, subject]);
 
     useEffect(() => {
         if (!handoff || loading || available === null || busy || resume) return;
@@ -179,7 +230,8 @@ function useDolaController() {
     function dock() { setPanel(true); if (fullPage) navigate(returnPath.current); }
     function expand() { setPreferredContext(workspace); setPanel(false); navigate('/assistant'); }
     return { panelSize, fullPage, panel, visible, available, turns, draft, setDraft, personal, setPersonal, busy, error, expired, resume, loading,
-        contexts, workspace, setWorkspace: setPreferredContext, welcomeLoading,
+        contexts, workspace, setWorkspace: setPreferredContext, welcomeLoading, statusFailed, checkStatus,
+        subject, leaveOutSubject: () => setSubjectOff(subjectKey),
         submit, resolveAction, newConversation, continueConversation, openPanel, closePanel, dock, expand, keepOpen: () => setPanel(true) };
 }
 
@@ -189,8 +241,7 @@ export function DolaProvider({ children }: { children: ReactNode }) {
     return <DolaSession key={sessionId} >{children}</DolaSession>;
 }
 function DolaSession({ children }: { children: ReactNode }) {
-    const controller = useDolaController();
-    return <DolaContext.Provider value={controller}><div style={{ '--dola-dock-width': `${controller.panelSize.width}px` } as CSSProperties} data-dola-layout={controller.panelSize.layout} className={controller.visible && controller.panel && !controller.fullPage ? 'dola-layout-panel' : undefined}>{children}</div></DolaContext.Provider>;
+    const controller = useDolaController();    return <DolaContext.Provider value={controller}><div style={{ '--dola-dock-width': `${controller.panelSize.width}px` } as CSSProperties} data-dola-layout={controller.panelSize.layout} className={controller.visible && controller.panel && !controller.fullPage ? 'dola-layout-panel' : undefined}>{children}</div></DolaContext.Provider>;
 }
 export function DolaLink(props: Omit<LinkProps, 'to'>) {
     const dola = useContext(DolaContext);

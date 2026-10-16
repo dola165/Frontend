@@ -53,7 +53,7 @@ function Fundraiser({ campaign }: { campaign: Campaign }) {
                     : <Button variant="primary" disabled>{campaignPhase(campaign.phase)}</Button>}
                 <Button onClick={() => void share(campaign)}><Share2 aria-hidden="true" />Share</Button>
                 {campaign.donateUrl && open && <p className="gk-fund-give__where"><img src="/brand/grasskickz-mark.svg" alt="" />Payments, receipts and refunds are handled by GoFundMe.</p>}
-                <p className="gk-fund-give__note">{campaign.reportedAt ? `The amount raised is reported by ${campaign.clubName} (last on ${campaignDate(campaign.reportedAt)}) and is not checked by GrassKickZ.` : `The club has not reported an amount yet.`}</p>
+                {campaign.reportedAmount != null && <p className="gk-fund-give__note">{campaign.reportedAt ? `The amount raised is reported by ${campaign.clubName} (last on ${campaignDate(campaign.reportedAt)}) and is not checked by GrassKickZ.` : `The amount raised is reported by ${campaign.clubName} and is not checked by GrassKickZ.`}</p>}
                 <Link className="gk-fund-organiser" to={`/clubs/${campaign.clubId}`}>
                     <Crest src={campaign.clubLogoUrl} name={campaign.clubName} size={36} />
                     <span className="gk-fund-organiser__text"><small>Organiser</small><strong>{campaign.clubName}</strong><small>{campaign.beneficiary ? `For ${campaign.beneficiary}` : 'Club page'}</small></span>

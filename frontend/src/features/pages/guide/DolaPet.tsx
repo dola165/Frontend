@@ -10,6 +10,7 @@ import { usePhoneSteps } from '../edit/usePhoneSteps';
 import { stepWords } from '../edit/words';
 import { askPet, type PetAnswer } from './api';
 import { PetSprite, WALK_STEPS, type PetFrame } from './PetSprite';
+import { answerPanel, panelListens } from './bridge';
 import { QuickAnswer } from './QuickAnswer';
 import { isQuick } from './quick';
 import { BOX } from './petFrames';
@@ -36,6 +37,8 @@ const PANEL_LINES: Record<string, string> = {
   players: 'Share a team’s link in your parents’ WhatsApp group. They add their own child.',
   staff: 'Invite a coach by phone, or share the invite link.',
 };
+/** What to type to Dola inside a pop-up that takes answers. */
+const PANEL_ASK: Record<string, string> = { grounds: 'Your ground’s name', squads: 'Birth years, like 2015, 2016 boys' };
 const TITLES: Record<string, string> = { ready: 'Ready to go live', waiting: 'Almost ready' };
 /** Where each step is done on the page. */
 const TARGETS: Record<string, string> = {
@@ -67,12 +70,24 @@ function spotFor(rect: DOMRect, under: boolean): Spot {
   if (!under && rect.top - H >= EDGE) return { x: clampX(rect.left + 16), y: rect.top - H + 6, aim: 'down', rect: box };
   return { x: clampX(rect.left + 16), y: clampY(rect.bottom + 6), aim: 'up', rect: box };
 }
+/** In a pop-up she stands beside it near its top (left first), else on its top edge, else inside it under its title. */
+function panelSpot(rect: DOMRect): Spot {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const box = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+  const y = Math.min(Math.max(rect.top + 24, EDGE), vh - H - EDGE);
+  if (rect.left >= W + EDGE * 2) return { x: rect.left - W - 6, y, aim: 'right', rect: box };
+  if (rect.right + W + EDGE * 2 <= vw) return { x: rect.right + 6, y, aim: 'left', rect: box };
+  if (rect.top - H >= EDGE) return { x: rect.left + 16, y: rect.top - H + 6, aim: 'down', rect: box };
+  return { x: Math.max(rect.right - W - 56, EDGE), y: Math.min(rect.top + 64, vh - H - EDGE), aim: 'left', rect: box };
+}
 
 /**
  * Agent Dola as a pet on a club's draft (a prototype beside the set-up steps). From the moment the page is made she sits
  * on the next step, points at it and says what it means, with the step lit and the rest of the page dimmed. Skip moves
  * her on (only the name is needed). A tap asks her a question: the sandbox's pet guide (Jev picks the step, DeepSeek
- * words the answer) and she walks to that step. She only guides, never fills anything in.
+ * words the answer) and she walks to that step. Short answers are typed in her bubble, and she follows the person into a
+ * step's pop-up, where words typed to her are put in through the pop-up's own controls; she then says she understood.
+ * She never decides anything for the person.
  */
 export function DolaPet() {
   const t = usePagesCopy();
@@ -91,6 +106,10 @@ export function DolaPet() {
   const [walking, setWalking] = useState<'left' | 'right' | null>(null);
   const [pose, setPose] = useState<'Wave' | 'Celebrate' | null>('Wave');
   const [tick, setTick] = useState(0);
+  const [said, setSaid] = useState<string | null>(null);
+  const [reply, setReply] = useState('');
+  // Inside a pop-up she lives in it: a pop-up shuts the page off from the keyboard and the pointer.
+  const [host, setHost] = useState<HTMLElement | null>(null);
   const last = useRef<Spot | null>(null);
   const doneBefore = useRef(page?.setup.done ?? 0);
 
@@ -127,11 +146,12 @@ export function DolaPet() {
         scrolled = true;
         if (rect.bottom < 0 || rect.top > window.innerHeight - H) { target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' }); return; }
       }
-      const to = spotFor(rect, under), from = last.current;
+      setHost(inPanel ? target : null);
+      const to = inPanel ? panelSpot(rect) : spotFor(rect, under), from = last.current;
       if (from && Math.abs(from.x - to.x) < 2 && Math.abs(from.y - to.y) < 2 && Math.abs(from.rect.height - to.rect.height) < 2) return;
       last.current = to;
       // Following the page as it scrolls is gliding; a jump to another step is a walk.
-      if (from && Math.hypot(to.x - from.x, to.y - from.y) > 80 && !still) {
+      if (from && Math.hypot(to.x - from.x, to.y - from.y) > 80 && !still && !inPanel) {
         setWalking(to.x < from.x ? 'left' : 'right');
         window.clearTimeout(stop);
         stop = window.setTimeout(() => setWalking(null), 1000);
@@ -142,7 +162,14 @@ export function DolaPet() {
     window.addEventListener('scroll', measure, true);
     window.addEventListener('resize', measure);
     return () => { window.cancelAnimationFrame(frame); window.clearInterval(timer); window.clearTimeout(stop); window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
-  }, [away, selector, still, under]);
+  }, [away, inPanel, selector, still, under]);
+
+  // "Understood" stays a few seconds, then her usual line comes back.
+  useEffect(() => {
+    if (!said) return;
+    const timer = window.setTimeout(() => setSaid(null), 9000);
+    return () => clearTimeout(timer);
+  }, [said]);
 
   useEffect(() => {
     if (!walking) return;
@@ -185,11 +212,23 @@ export function DolaPet() {
   const line = inPanel ? t(PANEL_LINES[inPanel]) : fresh?.answer ?? t(LINES[step]);
   // Short answers are typed right here; the phone's step cards have their own boxes for them.
   const quick = !inPanel && !cardStep && isQuick(step) ? step : null;
+  // Words typed to her inside a pop-up go in through the pop-up's own controls; she says what she did.
+  const listens = inPanel && panelListens(inPanel) ? inPanel : null;
+  const answer = (event: FormEvent) => {
+    event.preventDefault();
+    if (!listens || !reply.trim()) return;
+    const did = answerPanel(listens, reply);
+    setSaid(did ? `${t('Understood.')} ${did}` : t('I didn’t catch that. Try the name as it is written.'));
+    if (did) setReply('');
+  };
   const vw = window.innerWidth;
-  const side = under ? 'below' : spot.x + W + 8 + BUBBLE <= vw ? 'right' : spot.x - 8 - BUBBLE >= 0 ? 'left' : spot.y > 220 ? 'above' : 'below';
+  const fitsRight = spot.x + W + 8 + BUBBLE <= vw, fitsLeft = spot.x - 8 - BUBBLE >= 0;
+  // The bubble never covers what she points at: pointing right, it goes to her left.
+  const side = under ? 'below' : spot.aim === 'right' ? (fitsLeft ? 'left' : 'below') : spot.aim === 'left' && inPanel && !fitsRight ? 'below-end'
+    : fitsRight ? 'right' : fitsLeft ? 'left' : spot.y > 220 ? 'above' : 'below';
 
   return createPortal(
-    <div className="gk gk-pet" data-still={still || undefined}>
+    <div className="gk gk-pet" data-still={still || undefined} data-panel={inPanel || undefined}>
       {!under && !inPanel && <div className="gk-pet__spot" style={{ top: spot.rect.top - 6, left: spot.rect.left - 6, width: spot.rect.width + 12, height: spot.rect.height + 12 }} />}
       <div className="gk-pet__body" style={{ transform: `translate(${spot.x}px, ${spot.y}px)` }}>
         {!walking && (
@@ -202,9 +241,14 @@ export function DolaPet() {
                   {thinking && <span className="gk-pet__thinking">{t('Thinking…')}</span>}
                 </form>
               : <>
+                  {said && !inPanel && <p className="gk-pet__said">{said}</p>}
                   {title && <strong className="gk-pet__title">{t(title)}</strong>}
-                  <p className="gk-pet__line">{line}</p>
-                  {quick && <QuickAnswer key={quick} step={quick} page={page} />}
+                  {said && inPanel ? <p className="gk-pet__said">{said}</p> : <p className="gk-pet__line">{line}</p>}
+                  {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => setSaid(t('Understood.'))} />}
+                  {listens && <form className="gk-pet__quick" onSubmit={answer}>
+                    <input className="gk-pet__input" value={reply} onChange={event => setReply(event.target.value)} maxLength={120} autoComplete="off" autoFocus aria-label={t(PANEL_ASK[listens])} placeholder={t(PANEL_ASK[listens])} />
+                    <span className="gk-pet__actions"><button type="submit" className="gk-pet__action gk-pet__action--main">{t('Add')}</button></span>
+                  </form>}
                   {!inPanel && <span className="gk-pet__actions">
                     {isStep && <button type="button" className="gk-pet__action" onClick={skip}>{t('Skip')}</button>}
                     <button type="button" className="gk-pet__action gk-pet__action--quiet" onClick={() => setAsking(true)}>{t('Ask me')}</button>
@@ -217,6 +261,6 @@ export function DolaPet() {
         </button>
       </div>
     </div>,
-    document.body,
+    inPanel && host ? host : document.body,
   );
 }

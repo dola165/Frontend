@@ -526,4 +526,10 @@ export const PAGES_KA: Record<string, string> = {
   'Save': 'შენახვა',
   'From': 'დან',
   'To': 'მდე',
+  'Understood.': 'გასაგებია.',
+  'I didn’t catch that. Try the name as it is written.': 'ვერ გავიგე. სცადეთ სახელი ისე, როგორც წერია.',
+  'Your ground’s name': 'მოედნის სახელი',
+  'Birth years, like 2015, 2016 boys': 'დაბადების წლები, მაგ. 2015, 2016 ბიჭები',
+  '{name} is on your list. Tap Done to keep it.': '{name} სიაშია. შესანახად დააჭირეთ „მზადაა“-ს.',
+  'Added {teams}. Tap Done to keep them.': 'დაემატა: {teams}. შესანახად დააჭირეთ „მზადაა“-ს.',
 };

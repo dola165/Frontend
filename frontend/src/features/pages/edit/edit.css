@@ -103,6 +103,9 @@
 .gk .gk-split__choices { min-width: 0; }
 
 /* The map in "Where do you play?": pitches as round pins, the chosen ones lit, a dropped pin in amber. */
+/* The grounds pop-up: the map is its tall right side (first, and shorter, on a phone). */
+.gk .gk-split__preview .gk-grounds-map { height: min(540px, calc(88dvh - 190px)); }
+@media (max-width: 760px) { .gk .gk-split:has(.gk-grounds-map) .gk-split__preview { order: -1; } .gk .gk-split__preview .gk-grounds-map { height: 240px; } }
 .gk .gk-grounds-map { height: 280px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); overflow: hidden; background: var(--gk-sunken); }
 .gk .gk-grounds-pin { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 2px solid var(--gk-accent); border-radius: 50%; background: var(--gk-surface); color: var(--gk-accent); cursor: pointer; box-shadow: 0 2px 6px color-mix(in srgb, var(--gk-shadow) 30%, transparent); }
 .gk .gk-grounds-pin svg { width: 14px; height: 14px; }

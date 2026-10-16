@@ -49,3 +49,8 @@
 .gk-pet__unit { color: var(--gk-text-2); }
 .gk-pet__action--main { background: var(--gk-accent); color: var(--gk-on-accent, #06210f); }
 .gk-pet__action:disabled { opacity: .6; cursor: default; }
+.gk-pet__said { margin: 0; color: var(--gk-accent); font-weight: 600; }
+.gk-pet__bubble[data-side="below-end"] { top: calc(100% + 6px); right: 0; }
+/* While she is in a pop-up, the page behind it goes darker and the pop-up is lit. */
+.gk-dialog-layer:has(.gk-pet[data-panel]) .gk-dialog-backdrop { background: rgb(0 0 0 / .8); }
+.gk .gk-dialog:has(> .gk-pet[data-panel]) { box-shadow: 0 0 0 2px var(--gk-accent), 0 0 48px 8px color-mix(in srgb, var(--gk-accent) 30%, transparent), var(--gk-elevation); }

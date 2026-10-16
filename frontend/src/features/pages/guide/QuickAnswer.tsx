@@ -8,7 +8,7 @@ import type { QuickStep } from './quick';
  * The answer box under Dola's line, ready to type into: the likely answer is already in it (the account's phone, the
  * fees clubs nearby charge). Enter saves; the step gets done and she walks on.
  */
-export function QuickAnswer({ step, page }: { step: QuickStep; page: PageView }) {
+export function QuickAnswer({ step, page, onDone }: { step: QuickStep; page: PageView; onDone: () => void }) {
   const t = usePagesCopy();
   const { saveIdentity, saveBox } = usePageEdit();
   const suggested = page.suggestions?.fees;
@@ -29,6 +29,7 @@ export function QuickAnswer({ step, page }: { step: QuickStep; page: PageView })
         const low = Math.max(0, Number(min) || 0), high = Math.max(low, Number(max) || low);
         await saveBox('fees', { band: free ? { min: 0, max: 0, currency: 'GEL', period: 'MONTH', free: 'ALL' } : { min: low, max: high, currency: 'GEL', period: 'MONTH', free: 'NONE' } }, { label: t('Fees saved') });
       }
+      onDone();
     } finally { setSaving(false); }
   };
   const submit = (event: FormEvent) => { event.preventDefault(); void save(); };

@@ -4,8 +4,9 @@ import { Button } from '../../../../design/primitives';
 import { appLanguage } from '../../../../utils/formatting';
 import type { Gender, SquadItem } from '../../api';
 import { usePagesCopy } from '../../copy';
-import { birthYearOf } from '../../model/about';
+import { ageGroupOf, birthYearOf } from '../../model/about';
 import { TEAM_AGES, teamName } from '../../model/teams';
+import { usePetAnswer } from '../../guide/bridge';
 import { usePageEdit } from '../context';
 import { SplitPanel } from '../SplitPanel';
 
@@ -15,6 +16,8 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const TIMES = ['16:00', '17:00', '18:00', '19:00', '20:00'];
 const HALF_HOURS = Array.from({ length: 31 }, (_, i) => `${String(7 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 type Draft = Omit<SquadItem, 'id' | 'format' | 'players' | 'coach'> & { id: number | null; players: number };
+/** Who plays, from words typed to Dola, in English or Georgian. */
+const genderIn = (text: string): Gender | null => (/both|mixed|ორივე|შერეულ/i.test(text) ? 'MIXED' : /girl|გოგ/i.test(text) ? 'FEMALE' : /boy|ბიჭ/i.test(text) ? 'MALE' : null);
 const order = (age: string) => (age === 'SENIOR' ? 99 : Number(age.slice(1)));
 
 /**
@@ -31,6 +34,16 @@ export function SquadsPanel() {
   const [gender, setGender] = useState<Gender | null>(() => page?.boxes.squads.items.at(-1)?.gender ?? null);
   const [busy, setBusy] = useState(false);
   const id = useId();
+  // Typed to Dola ("2015, 2016 boys"): who plays and the years, ticked the same way as the tiles.
+  usePetAnswer('squads', text => {
+    const now = new Date().getFullYear(), who = genderIn(text) ?? gender ?? 'MALE';
+    const ages = [...new Set((text.match(/\b(?:19|20)\d{2}\b/g) ?? []).map(born => ageGroupOf(Number(born), now)))].filter(age => (TEAM_AGES as readonly string[]).includes(age));
+    if (!ages.length) return null;
+    setGender(who);
+    const fresh = ages.filter(age => !squads.some(squad => squad.ageGroup === age && squad.gender === who));
+    setSquads(current => [...current, ...fresh.map(age => ({ id: null, name: teamName(age, who, language, now), ageGroup: age, gender: who, days: [], time: null, groundId: page?.boxes.grounds.items[0]?.id ?? null, players: 0 }))]);
+    return t('Added {teams}. Tap Done to keep them.', { teams: (fresh.length ? fresh : ages).map(age => teamName(age, who, language, now)).join(', ') });
+  });
   if (!page) return null;
   const year = new Date().getFullYear();
   const grounds = page.boxes.grounds.items;

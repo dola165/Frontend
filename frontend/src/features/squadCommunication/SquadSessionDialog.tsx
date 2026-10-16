@@ -19,6 +19,9 @@ import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage'
 import { acknowledgeReply, beginReply, readUncertainReply, replyScope, requireReplyScope, reviewNewReply, ReplyRecoveryError, type UncertainReply } from './availabilityRecovery';
 import { SessionAvailability } from './SessionAvailability';
 
+/** What kind of activity an entry is, in football words, both languages. */
+const ACTIVITY_NAMES: Record<string, [string, string]> = { TRAINING: ['Training', 'ვარჯიში'], MATCH: ['Match', 'მატჩი'], FRIENDLY: ['Friendly', 'ამხანაგური'], ACTIVITY: ['Club event', 'კლუბის ღონისძიება'], TRYOUT: ['Trial', 'ტესტირება'] };
+
 export function SessionDialog({ title, children, onClose, busy = false, detail = false }: { title: string; children: ReactNode; onClose: () => void; busy?: boolean; detail?: boolean }) {
     const ref = useRef<HTMLDivElement>(null);
     const copy = useJourneyCopy();
@@ -99,7 +102,7 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
     };
     if (editing && event.session) return <SquadEventEditComposer squad={{ id: event.squadId!, name: event.hostSquadName ?? 'Squad' }} session={event.session} onClose={() => setEditing(false)} onSaved={onSaved}/>;
     return <Dialog title={event.title} onClose={onClose} busy={busy} detail>
-        <div className="session-context"><span>{event.hostSquadName}</span><span className="session-type">{event.eventType?.replaceAll('_', ' ').toLowerCase()}</span></div>
+        <div className="session-context"><span>{event.hostSquadName}</span><span className="session-type">{copy(...(ACTIVITY_NAMES[event.eventType] ?? [event.eventType, event.eventType]))}</span></div>
         <div className="session-time-card"><div className="session-date-tile"><span>{formatDate(event.startsAt,{month:'short'})}</span><strong>{formatDate(event.startsAt,{day:'2-digit'})}</strong></div><div><p className="session-eyebrow"><CalendarDays size={13}/>{formatDate(event.startsAt,{weekday:'long'})}</p><strong>{formatDate(event.startsAt,{day:'numeric',month:'long',year:'numeric'})}</strong><p><Clock3 size={15}/>{formatDate(event.startsAt,{hour:'2-digit',minute:'2-digit'})} – {new Date(event.startsAt).toDateString() === new Date(event.endsAt).toDateString() ? formatDate(event.endsAt,{hour:'2-digit',minute:'2-digit'}) : formatDateTime(event.endsAt)}</p><small>{Intl.DateTimeFormat().resolvedOptions().timeZone}</small></div></div>
         {!event.session?.venue_reservation && event.locationText && <div className="session-location"><MapPin size={20}/><div><span className="session-eyebrow">{copy('Where to meet', 'შეხვედრის ადგილი')}</span><strong>{event.locationText}</strong></div></div>}
         {event.description && <div className="session-coach-note"><span className="session-eyebrow">{copy('Session notes', 'სესიის შენიშვნები')}</span><p>{event.description}</p></div>}

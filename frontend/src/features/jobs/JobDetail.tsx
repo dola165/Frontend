@@ -19,14 +19,18 @@ const share = async (job: Job) => {
     } catch { toast.error('Could not share this link', { description: url }); }
 };
 
-/** How to answer the listing: apply in the app, message the person, email, or the poster's own link. */
+/** The club's contact tab, naming the role (a club's id is never a person's: messages take people only). */
+const clubContactPath = (clubId: number, job: Job) => `/clubs/${clubId}?${new URLSearchParams({ tab: 'contact', roleId: String(job.id), roleTitle: job.title })}`;
+
+/** How to answer the listing: apply in the app, message the person (or contact the club), email, or the poster's own link. */
 function Answer({ job, status, detail }: { job: Job; status: 'bootstrapping' | 'authenticated' | 'anonymous'; detail: ReturnType<typeof useJobDetail> }) {
     const method = applyMethodOf(job), poster = posterOf(job), offering = directionOf(job) === 'OFFERING';
     if (method === 'IN_APP') return <div className="gk-job-detail__apply"><JobApplication id={job.id} status={status} detail={detail} /></div>;
+    if (poster.kind === 'CLUB' && (method === 'MESSAGE' || !job.applyTarget)) return <ButtonLink variant="primary" to={clubContactPath(poster.id, job)}><MessageCircle aria-hidden="true" />Contact {poster.name}</ButtonLink>;
     if (method === 'MESSAGE') return <ButtonLink variant="primary" to={`/messages?chatWith=${poster.id}`}><MessageCircle aria-hidden="true" />{offering ? `Message ${poster.name.split(' ')[0]}` : `Message ${poster.name.split(' ')[0]} to apply`}</ButtonLink>;
     if (method === 'EMAIL' && job.applyTarget) return <a className="gk-btn gk-btn--primary" href={`mailto:${job.applyTarget}?subject=${encodeURIComponent(`Application: ${job.title}`)}`}><Mail aria-hidden="true" />Apply by email</a>;
     if (method === 'LINK' && job.applyTarget) return <a className="gk-btn gk-btn--primary" href={job.applyTarget} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />Apply on their site</a>;
-    return <ButtonLink variant="primary" to={poster.kind === 'CLUB' ? `/clubs/${poster.id}?tab=contact` : `/messages?chatWith=${poster.id}`}>Ask how to apply</ButtonLink>;
+    return <ButtonLink variant="primary" to={`/messages?chatWith=${poster.id}`}>Ask how to apply</ButtonLink>;
 }
 
 /** A listing in full: who posted it, what it is, the pay and the hours, how to answer it, and the text. Used beside the list and on the job page. */

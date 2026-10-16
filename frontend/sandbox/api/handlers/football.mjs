@@ -632,13 +632,8 @@ const clubCalendar = clubId => {
     }
     for (const l of F.exchange.filter(l => squadById(l.hostSquadId).clubId === Number(clubId) && l.opponentSquadId && !matches.some(m => m.id === l.id))) out.push(exchangeOccurrence(l));
     // A page club's squads with training days and a time: their sessions for the next four weeks, so the calendar and Coming up show them.
-    if (P.isPageClub(clubId)) for (const s of P.squadsOf(P.clubPage(clubId))) if (s.trainingDays?.length && s.trainingTime) for (let d = 0; d < 28; d++) {
-      const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + d);
-      const weekday = date.getDay() === 0 ? 7 : date.getDay();
-      if (!s.trainingDays.includes(weekday)) continue;
-      const [hour, minute] = String(s.trainingTime).split(':').map(Number), start = new Date(date); start.setHours(hour, minute || 0, 0, 0);
-      const ground = P.clubPage(clubId).boxes.grounds.items.find(g => g.id === s.groundId) ?? P.clubPage(clubId).boxes.grounds.items[0];
-      out.push(occurrence({ id: 900000 + s.id * 100 + d, clubId: Number(clubId), eventType: 'TRAINING', title: `${s.name} training`, start, end: new Date(start.getTime() + 90 * 60000), locationName: ground?.name ?? null, lat: ground?.latitude ?? null, lng: ground?.longitude ?? null, visibility: 'PRIVATE', squadId: s.id, recurring: true }));
+    if (P.isPageClub(clubId)) for (const t of P.trainingOf(P.clubPage(clubId))) {
+      out.push(occurrence({ id: t.id, clubId: Number(clubId), eventType: 'TRAINING', title: `${t.squad.name} training`, start: t.start, end: t.end, locationName: t.ground?.name ?? null, lat: t.ground?.latitude ?? null, lng: t.ground?.longitude ?? null, visibility: 'PUBLIC', squadId: t.squad.id, recurring: true }));
     }
     for (const m of matches.filter(m => m.opponentClubId === Number(clubId))) {
       const theirs = F.squadFor(clubId, squadById(m.squadId).ageGroup, squadById(m.squadId).gender);

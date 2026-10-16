@@ -6,6 +6,7 @@ import { usePagesCopy } from '../copy';
 import { EditPencil } from '../edit/EditPencil';
 import { usePageEdit } from '../edit/context';
 import type { BoxProps } from '../edit/boxRegistry';
+import { useKeepOnLeave } from '../edit/useKeepOnLeave';
 import { phoneDisplay } from '../model/phone';
 import '../edit/edit.css';
 
@@ -18,14 +19,12 @@ export function ContactBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const t = usePagesCopy();
   const { saveIdentity } = usePageEdit();
   const { phone, email } = page.identity.contact, { website, instagram } = page.identity.social;
-  const save = async (next: Draft) => {
-    await saveIdentity({ contact: { phone: next.phone.trim(), email: next.email.trim() }, social: { ...page.identity.social, website: next.website.trim(), instagram: handle(next.instagram.trim()) } }, { label: t('Contact saved') });
-    onClose();
-  };
+  const persist = (next: Draft) => saveIdentity({ contact: { phone: next.phone.trim(), email: next.email.trim() }, social: { ...page.identity.social, website: next.website.trim(), instagram: handle(next.instagram.trim()) } }, { label: t('Contact saved') });
+  const save = async (next: Draft) => { await persist(next); onClose(); };
   const web = site(website);
   return (
     <SideBlock title={t('Contact')} hint={t('Phone and email')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
-      {open ? <ContactEditor initial={{ phone, email, website, instagram }} suggestions={page.suggestions} onSave={save} onCancel={onClose} />
+      {open ? <ContactEditor initial={{ phone, email, website, instagram }} suggestions={page.suggestions} onSave={save} onKeep={next => void persist(next)} onCancel={onClose} />
         : <List label={t('Contact details')}>
           {phone && <li><a className="gk-list-row" href={`https://wa.me/${digits(phone).replace('+', '')}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Phone aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{phoneDisplay(phone)}</span><span className="gk-list-row__meta">{t('Phone and WhatsApp')}</span></span></a></li>}
           {email && <li><a className="gk-list-row" href={`mailto:${email}`}><span className="gk-list-row__lead"><span className="gk-club-icon"><Mail aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title gk-club-email">{email}</span><span className="gk-list-row__meta">{t('Email')}</span></span></a></li>}
@@ -37,10 +36,14 @@ export function ContactBox({ page, editing, open, onEdit, onClose }: BoxProps) {
 }
 
 interface Draft { phone: string; email: string; website: string; instagram: string }
-function ContactEditor({ initial, suggestions, onSave, onCancel }: { initial: Draft; suggestions: { phone: string; email: string } | null; onSave: (next: Draft) => Promise<void>; onCancel: () => void }) {
+function ContactEditor({ initial, suggestions, onSave: done, onKeep, onCancel: cancel }: { initial: Draft; suggestions: { phone: string; email: string } | null; onSave: (next: Draft) => Promise<void>; onKeep: (next: Draft) => void; onCancel: () => void }) {
   const t = usePagesCopy();
   const [draft, setDraft] = useState(initial);
   const [more, setMore] = useState(Boolean(initial.website || initial.instagram));
+  // Opening another box saves what was typed here; only Cancel (or Escape) drops it.
+  const settle = useKeepOnLeave(draft, next => (Object.keys(next) as (keyof Draft)[]).some(key => next[key].trim() !== initial[key].trim()), onKeep);
+  const onSave = (next: Draft) => { settle(); return done(next); };
+  const onCancel = () => { settle(); cancel(); };
   const id = useId();
   const onKey = (event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); void onSave(draft); } if (event.key === 'Escape') onCancel(); };
   const offerPhone = suggestions?.phone && digits(suggestions.phone) !== digits(draft.phone), offerEmail = suggestions?.email && suggestions.email !== draft.email;

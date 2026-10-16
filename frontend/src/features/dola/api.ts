@@ -1,9 +1,11 @@
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import { assertCurrentAuthSession, type AuthSessionId } from '../../utils/authStorage';
 import { isAndroidApp } from '../../android/bridge';
+import type { DolaSubject } from './subject';
 
 export interface DolaStatus { name: string; available: boolean; mode: string; maxMessageLength: number; capabilities: string[] }
-export interface DolaRequest { conversationId?: string; requestId: string; message: string; includePersonalContext: boolean; timeZone?: string; workspaceContext?: string; venueId?: number }
+/** `subject` is the record on screen (a squad, child or listing) and `page` the address to return to; both are hints the server checks. */
+export interface DolaRequest { conversationId?: string; requestId: string; message: string; includePersonalContext: boolean; timeZone?: string; workspaceContext?: string; venueId?: number; subject?: DolaSubject; page?: string }
 export interface DolaAnswer {
     conversationId: string; requestId: string; answer: string;
     destinations: { id: string; title: string; path: string }[];

@@ -193,3 +193,16 @@
 /* Choosing each squad's head coach. */
 .gk .ch-headcoach { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 320px); align-items: center; gap: var(--gk-3); }
 .gk .ch-headcoach + .ch-headcoach { margin-top: var(--gk-2); }
+
+/* An existing activity's short summary: its symbol, when and where, its state, then Edit. */
+.gk .ch-summary { display: flex; align-items: flex-start; gap: var(--gk-4); }
+.gk .ch-summary__facts { display: grid; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; min-width: 0; font-size: var(--gk-fs-md); color: var(--gk-text); }
+.gk .ch-summary__facts li { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .ch-summary__facts svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .ch-summary__facts a { color: var(--gk-text); }
+.gk .ch-summary__notes { margin: var(--gk-4) 0 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .ch-summary__cancel { margin-right: auto; color: var(--gk-danger); }
+
+/* A card line that retries what could not load reads like the other lines. */
+.gk button.ch-card__line { width: 100%; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; }
+.gk .ch-load-problems { padding-top: var(--gk-4); }

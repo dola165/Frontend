@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,9 +32,9 @@ import { useClubProfile } from './useClubProfile';
 import { clubBoxes } from '../../pages/club/clubBoxes';
 import { usePagesCopy } from '../../pages/copy';
 import { EditBar } from '../../pages/edit/EditBar';
+import { AboutLine } from '../../pages/edit/AboutLine';
 import { InlineText } from '../../pages/edit/InlineText';
 import { PageColumn } from '../../pages/edit/PageColumn';
-import { ExamplePreview } from '../../pages/edit/ExamplePreview';
 import { PageEditProvider } from '../../pages/edit/PageEditProvider';
 import { PagePanels } from '../../pages/edit/PagePanels';
 import { RearrangeFrame } from '../../pages/edit/Rearrange';
@@ -67,6 +67,16 @@ function ClubProfileView({ id }: { id: number }) {
     const [enquiry, setEnquiry] = useClubEnquiry(club);
     const [notice, setNotice] = useState('');
     const [squadsRevision, setSquadsRevision] = useState(0);
+    // Edits go to the page; the club record, its squads and its posts are read again the moment edit mode or the
+    // share card closes, so Done shows the page exactly as visitors now see it, with no reload.
+    const [postsRevision, setPostsRevision] = useState(0);
+    const shown = useRef({ editing, live: edit.panel === 'live' });
+    useEffect(() => {
+        const before = shown.current;
+        shown.current = { editing, live: edit.panel === 'live' };
+        if (!(before.editing && !editing) && !(before.live && edit.panel !== 'live')) return;
+        refresh(); setSquadsRevision(value => value + 1); setPostsRevision(value => value + 1);
+    }, [editing, edit.panel, refresh]);
     const [dissolveOpen, setDissolveOpen] = useState(false);
     const [dissolving, setDissolving] = useState(false);
     const images = useProfileImageControls({ enabled: can.isLeader, scope: `club:${id}`, imageKind: 'logo', hasCover: Boolean(club?.bannerUrl), onSave: updateImage });
@@ -119,7 +129,7 @@ function ClubProfileView({ id }: { id: number }) {
             identity={{
                 name: page?.identity.name ?? club.name, image: page?.identity.crest.url ?? club.logoUrl, square: true,
                 nameNode: editing ? <InlineText as="span" value={page?.identity.name ?? club.name} placeholder={pt('Name your page')} label={pt('Name')} maxLength={120} onSave={next => { if (next.length >= 2) void edit.saveIdentity({ name: next }, { label: pt('Name saved') }).then(refresh); }} /> : undefined,
-                summaryNode: editing ? <InlineText as="p" multiline value={page?.identity.about ?? club.description ?? ''} placeholder={pt('Say what you are, in a line or two')} label={pt('About')} maxLength={600} className="gk-profile__summary" onSave={next => void edit.saveIdentity({ about: next, aboutAuto: false }, { label: pt('About saved') }).then(refresh)} /> : undefined,
+                summaryNode: editing ? <AboutLine /> : undefined,
                 badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Verified club</Badge> : page?.status === 'DRAFT' ? <Badge tone="warning">{pt('Draft')}</Badge> : undefined,
                 line: <>{kind}{linked && <> · {club.presentation?.profileKind === 'ACADEMY' ? 'Academy of ' : 'Academy: '}<Link className="gk-profile__link" to={`/clubs/${linked.clubId}`}>{linked.name}</Link></>}{can.role && <> · Your role: {clubRoleLabel(can.role)}</>}</>,
                 facts: [
@@ -132,13 +142,12 @@ function ClubProfileView({ id }: { id: number }) {
             banner={page ? page.identity.cover?.url ?? null : club.bannerUrl}
             bannerAction={editing ? <Button size="sm" onClick={() => edit.openPanel('cover')}><Camera aria-hidden="true" />{page?.identity.cover ? pt('Change cover') : pt('Add cover')}</Button> : images.coverAction}
             imageAction={editing ? <Button size="sm" iconOnly aria-label={pt('Change crest')} className={page?.goLive.missing.includes('crest') ? 'gk-needs' : undefined} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
-            actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
+            actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
             sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel="Club information"
             side={editing ? <PageColumn column="right" renderers={clubBoxes} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel="Get involved">
-            {tab === 'posts' && editing && page?.status === 'DRAFT' && <ExamplePreview />}
-            {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
+            {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} can={can} crestUrl={page?.identity.crest.url} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
             {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} canManage={can.canManage} />}

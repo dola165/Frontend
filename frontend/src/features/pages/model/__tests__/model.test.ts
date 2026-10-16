@@ -4,6 +4,8 @@ import { findSimilar, latinWords, nameKey } from '../nameMatch';
 import { contrast, crestSvg, defaultCrest, initialsFor, letteringOn, normalizeCrest, paint, CREST_COLOURS } from '../crest';
 import { coverForColour } from '../photos';
 import { phoneDisplay } from '../phone';
+import { aboutSuggestion, birthYearOf } from '../about';
+import { teamName } from '../teams';
 
 const facts = (over: Partial<PageFacts> = {}): PageFacts => ({ kind: 'CLUB', name: 'Rustavi Lions', crestKept: false, grounds: 0, squads: 0, contact: false, fees: false, players: false, staff: 0, posts: 0, about: false, sponsors: 0, ...over });
 
@@ -135,6 +137,23 @@ describe('phone numbers as people write them', () => {
   it('groups a stored Georgian mobile and leaves other numbers alone', () => {
     expect(phoneDisplay('+995599123456')).toBe('+995 599 12 34 56');
     expect(phoneDisplay('995 599 12 34 56')).toBe('+995 599 12 34 56');
+    expect(phoneDisplay('599123456')).toBe('+995 599 12 34 56');
     expect(phoneDisplay('+44 20 7946 0958')).toBe('+44 20 7946 0958');
+  });
+});
+
+describe('the About written for the owner, and team names', () => {
+  it('names the birth years, who plays and the town, in the owner’s language', () => {
+    const squads = [{ ageGroup: 'U10', gender: 'MALE' }, { ageGroup: 'U12', gender: 'MALE' }];
+    expect(birthYearOf('U10', 2026)).toBe(2017);
+    expect(aboutSuggestion({ kind: 'CLUB', town: 'Rustavi', squads }, 'en', 2026)).toBe('Football for boys born 2015–2017 in Rustavi.');
+    expect(aboutSuggestion({ kind: 'CLUB', town: 'Rustavi', squads }, 'ka', 2026)).toBe('ფეხბურთი 2015–2017 წლებში დაბადებული ბიჭებისთვის რუსთავში.');
+    expect(aboutSuggestion({ kind: 'CLUB', town: 'Gori', squads: [] }, 'en', 2026)).toBe('A football club in Gori.');
+    expect(aboutSuggestion({ kind: 'CLUB', town: 'Gori', squads: [{ ageGroup: 'U9', gender: 'MIXED' }, { ageGroup: 'SENIOR', gender: 'MALE' }] }, 'en', 2026)).toBe('Football for children born 2018 and men in Gori.');
+  });
+  it('names teams by birth year, in Georgian for a Georgian owner', () => {
+    expect(teamName('U10', 'MALE', 'en', 2026)).toBe('2017 Boys');
+    expect(teamName('U10', 'FEMALE', 'ka', 2026)).toBe('2017 გოგოები');
+    expect(teamName('SENIOR', 'FEMALE', 'ka', 2026)).toBe('ქალები');
   });
 });

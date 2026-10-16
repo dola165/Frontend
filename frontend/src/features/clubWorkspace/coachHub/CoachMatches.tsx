@@ -59,9 +59,15 @@ export function CoachMatches({ data }: { data: CoachData }) {
         const scored = match.homeScore != null && match.awayScore != null;
         const needsResult = past && !scored && match.resultStatus === 'NONE' && match.canRecordResult;
         const waiting = !past && waitingWords[match.fixtureStatus];
+        // Our own club is a given here: the row names the opponent, home or away and the time, and the score reads ours first.
+        const home = match.homeClubId === data.clubId, away = !home && match.awayClubId === data.clubId;
+        const opponent = home ? match.awayClubName : away ? match.homeClubName : null;
+        const ours = away ? [match.awayScore, match.homeScore] : [match.homeScore, match.awayScore];
+        const meta = [when, home ? copy('homeGame') : away ? copy('awayGame') : null, data.shown.length > 1 ? squadOf(match) : null,
+            opponent && match.source === 'TOURNAMENT' ? match.tournamentName ?? match.title : null, match.locationName];
         return <ListRow key={match.id} to={needsResult ? undefined : match.detailPath} onClick={needsResult ? () => setAdding(match) : undefined}
-            lead={<ActivityBadge kind={friendly(match)} size={32} />} title={match.title} meta={[when, squadOf(match), match.locationName].filter(Boolean).join(' · ')}
-            trail={<>{scored ? <strong className="ch-result">{match.homeScore}–{match.awayScore}</strong>
+            lead={<ActivityBadge kind={friendly(match)} size={32} />} title={opponent ? `v ${opponent}` : match.title} meta={meta.filter(Boolean).join(' · ')}
+            trail={<>{scored ? <strong className="ch-result">{ours[0]}–{ours[1]}</strong>
                 : needsResult ? <span className="cw-status cw-status--warning">{copy('addResult')}</span>
                     : waiting ? <span className={`cw-status cw-status--${match.fixtureStatus === 'CANCELLED' ? 'danger' : 'warning'}`}>{waiting}</span>
                         : past ? <span className="cw-status">No score</span> : null}<ChevronRight className="cw-chevron" aria-hidden="true" /></>} />;

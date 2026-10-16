@@ -22,6 +22,7 @@ import { CoachUpdates } from './CoachUpdates';
 import { CoachTeam } from './CoachTeam';
 import { CoachMatches } from './CoachMatches';
 import { SquadPage } from './SquadPage';
+import { LoadProblems } from './LoadProblems';
 import '../club-workspace.css';
 import './coach-hub.css';
 
@@ -35,7 +36,9 @@ export interface CoachData {
     mine: RolesWorkspace['squads']; names: Map<number, string>;
     /** The squad picked in the switcher, or null for all of mine; `shown` is what every page shows. */
     focus: number | null; shown: number[];
-    squads: CoachSquad[] | null; rosters: SquadRoster[] | null; revision: number; records: ReturnType<typeof useCoachRecords>; events: ScheduleEventOccurrence[];
+    squads: CoachSquad[] | null; rosters: SquadRoster[] | null;
+    /** Reads a squad's parts again after some failed (`CoachSquad.failed`); `retrying` holds the squads being read. */
+    retrySquad: (squad: number) => void; retrying: number[]; revision: number; records: ReturnType<typeof useCoachRecords>; events: ScheduleEventOccurrence[];
     roleOf: (squad: number) => string; person: (id: number | null) => string | null;
     /** A My squads page, keeping the squad picked in the switcher. */
     link: (tab: string, extra?: Record<string, string>) => string;
@@ -61,7 +64,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     const now = useNow();
     const [revision, setRevision] = useState(0);
     const squadIds = mySquadIds(roles?.views ?? []);
-    const squads = useCoachSquads(squadIds, revision);
+    const { squads, retry: retrySquad, retrying } = useCoachSquads(squadIds, revision);
     const records = useCoachRecords(clubId, squadIds, operations.boot, revision);
     const rosters = useSquadRosters(clubId, squadIds, revision);
     const canOpenWorkspace = accessibleClubs(user?.navigationCapabilities).some(item => item.id === clubId && item.canOpenWorkspace);
@@ -98,7 +101,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     else {
         const data: CoachData = {
             clubId, clubName, clubLogo: club.clubLogoUrl, roles, boot: operations.boot, now, mine, names: new Map(roles.squads.map(squad => [squad.id, squad.name])),
-            focus, shown: focus ? [focus] : squadIds, squads, rosters, revision, records, events: club.schedule.events,
+            focus, shown: focus ? [focus] : squadIds, squads, rosters, retrySquad, retrying, revision, records, events: club.schedule.events,
             roleOf: squad => responsibilities.filter(view => !view.clubWide && view.squadIds.includes(squad)).map(view => view.label).join(', '),
             person: id => personName(roles, operations.boot, id),
             link: (target, extra = {}) => { const query = new URLSearchParams({ ...(target === 'overview' ? {} : { tab: target }), ...(focus ? { squad: String(focus) } : {}), ...extra }).toString(); return `/my-squads${query ? `?${query}` : ''}`; },
@@ -107,7 +110,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
             refresh: () => setRevision(value => value + 1), refreshRoles: workspaceRoles.refresh,
         };
         // Without a squad yet, the coaches page still lets a person ask for one.
-        content = !mine.length && tab !== 'coaches' ? <PageFrame className="cw-page"><PageHeader title="My squads" subtitle={clubName} />
+        const page = !mine.length && tab !== 'coaches' ?<PageFrame className="cw-page"><PageHeader title="My squads" subtitle={clubName} />
             <Panel><EmptyNote title="No squads yet" action={<ButtonLink size="sm" to="/my-squads?tab=coaches">Ask for a squad</ButtonLink>}>
                 When the club makes you a coach of a squad, it appears here with its calendar, players, parents and coaches.
             </EmptyNote></Panel></PageFrame>
@@ -118,6 +121,8 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
                             : tab === 'matches' ? <CoachMatches data={data} />
                             : focus ? <SquadPage data={data} squad={focus} />
                             : <MySquads data={data} />;
+        // A part that failed to load is said once above the page, with its retry; the parts that loaded stay usable.
+        content = <><LoadProblems data={data} />{page}</>;
     }
 
     return <WorkspaceShell label="My squads" storageKey={`coach-${clubId}`} guard={guardWorkspaceNavigation}

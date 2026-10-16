@@ -13,6 +13,8 @@ import type { TrainingSession } from '../trainingCalendar';
 import { money, programmeAge, programmePrice, type TrainingProgramme } from '../presentation';
 import { squadLine, trainingPath, type ClubEnquiryContext, type PublicSquad, type PublicStaff } from '../publicJourney';
 import { useOverviewSource } from '../useOverviewSource';
+import { usePageEditIfAny } from '../../pages/edit/context';
+import { feeBandText } from '../../pages/model/fees';
 import { trainsLine } from './trainsLine';
 import type { ClubProfile } from './types';
 
@@ -39,6 +41,8 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
     // Pitches and grounds only: a gym or a medical room is not where a visitor goes for a first session.
     const venues = (places.data ?? []).filter(f => placeType(f) !== 'FACILITY' && (f.squadId == null || f.squadId === squad.id));
     const programme = programmes[0];
+    // Without a programme, a club with a page still says what training costs: the fee band its owner set.
+    const band = feeBandText(usePageEditIfAny()?.page?.boxes.fees.band ?? null);
     const enquiry: ClubEnquiryContext = { name: squad.name, path: trainingPath(club.id, { squad: squad.id }), squadIds: [squad.id] };
     const roster = `/clubs/${club.id}/squads?squad=${squad.id}`;
     const fact = (label: string, value: React.ReactNode) => <div className="gk-club-squad__fact"><dt>{label}</dt><dd>{value}</dd></div>;
@@ -64,7 +68,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
                     {fact('Trains', timetable.loading ? <Skeleton height={16} width={120} /> : trains ?? (timetable.data && !timetable.data.canView ? 'Times shared with squad members' : 'Times on request'))}
                     {fact('Where', places.loading ? <Skeleton height={16} width={120} /> : venues[0]?.title ?? 'Ask the club')}
                     {fact('Coaches', people.loading ? <Skeleton height={16} width={120} /> : staff.length ? <span className="gk-club-squad__faces">{staff.slice(0, 4).map(p => <Link key={p.userId} to={`/profile/${p.userId}`} className="gk-row"><Crest src={p.avatarUrl} name={p.fullName} size={24} round />{p.fullName.split(' ')[0]}</Link>)}</span> : 'Ask the club')}
-                    {fact('Fees', programme ? <><strong className="gk-num">{programmePrice(programme)}</strong>{programme.trialAmount != null && <span className="gk-muted"> · Trial {Number(programme.trialAmount) === 0 ? 'free' : money(programme.trialAmount, programme.currency)}</span>}</> : 'Ask the club')}
+                    {fact('Fees', programme ? <><strong className="gk-num">{programmePrice(programme)}</strong>{programme.trialAmount != null && <span className="gk-muted"> · Trial {Number(programme.trialAmount) === 0 ? 'free' : money(programme.trialAmount, programme.currency)}</span>}</> : band ? <strong className="gk-num">{band.range}</strong> : 'Ask the club')}
                 </dl>
             </Panel>
         </Section>
@@ -90,7 +94,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
             </Panel>
         </Section>
 
-        <Section boxed title="What to expect" hint={programme ? [programmeAge(programme), programme.sessionsPerWeek ? `${programme.sessionsPerWeek} ${programme.sessionsPerWeek === 1 ? 'session' : 'sessions'} a week` : null].filter(Boolean).join(' · ') : undefined}>
+        {(programme || canManage) && <Section boxed title="What to expect" hint={programme ? [programmeAge(programme), programme.sessionsPerWeek ? `${programme.sessionsPerWeek} ${programme.sessionsPerWeek === 1 ? 'session' : 'sessions'} a week` : null].filter(Boolean).join(' · ') : undefined}>
             <Panel padded>
                 {programme ? <>
                     <p className="gk-club-story">{programme.details || 'Ask the club about the training approach and the right level for you.'}</p>
@@ -100,7 +104,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
                     {programmes.length > 1 && <p className="gk-muted gk-club-note">{programmes.length} programmes train with this squad: {programmes.map(p => <Link key={p.id} className="gk-profile__link" to={trainingPath(club.id, { programme: p.id })}>{p.name}</Link>).reduce<React.ReactNode[]>((acc, el, i) => i ? [...acc, ', ', el] : [el], [])}.</p>}
                 </> : <p className="gk-muted">The club has not published a programme for this squad. Ask about its training and how players are selected.</p>}
             </Panel>
-        </Section>
+        </Section>}
 
         <Section boxed icon={Users} tone="info" title="Players">
             <Panel flush><List label="Players"><ListRow to={roster} lead={<span className="gk-club-icon gk-club-icon--info"><Users aria-hidden="true" /></span>} title="See the squad" meta={isAuthenticated ? 'Players, positions and squad profiles' : 'Sign in to see player profiles'} trail={<ArrowRight aria-hidden="true" className="gk-faint" size={16} />} /></List></Panel>

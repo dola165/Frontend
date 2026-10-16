@@ -15,12 +15,13 @@ import { useOutstandingWork } from './useOutstandingWork';
 import { useNow } from '../useNow';
 import '../club-workspace.css';
 
-interface NeedItem { key: string; title: string; meta: string; badge: string; tone: BadgeTone; rank: number; date?: string | null; open: () => void }
+interface NeedItem { key: string; title: string; meta: string; badge: string; tone: BadgeTone; rank: number; date?: string | null; colleague?: boolean; open: () => void }
 const consentStates = { PENDING: ['consentPending', 'info'], EXPIRED: ['consentExpired', 'danger'], DECLINED: ['consentDeclined', 'danger'] } as const;
 
 /**
- * One list of everything waiting for this person, in priority order: overdue first,
- * then decisions, then upcoming deadlines. Counts come from the server; nothing is guessed.
+ * Everything waiting for this person, in priority order: their own overdue work first, then decisions, then
+ * their upcoming deadlines. Colleagues' work never mixes in: leadership sees it as its own small group under
+ * the person's list; everyone else leaves it to the colleague. Counts come from the server; nothing is guessed.
  */
 export function NeedsYou({ clubId, overview, roles, squads, canManageOperations, tryoutPending, onOpen, onOpenPlayers, limit = 7, className }: {
     clubId: number; overview: ClubManagementOverview | null; roles: RolesWorkspace | null; squads: number[] | null;
@@ -54,32 +55,42 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
     });
     if (consentRows.length > 3) items.push({ key: 'consent-more', title: copy('needMoreConsent', { count: consentRows.length - 3 }), meta: copy('consentHint'), badge: copy('consentMissing'), tone: 'warning', rank: 2, open: () => openPlayers('ALL') });
     const consentNote = consent.result ? (consent.result.reviewed >= consent.result.total ? copy('consentComplete') : copy('consentPartial', { reviewed: consent.result.reviewed, total: consent.result.total })) : null;
-    // Club deadlines assigned to someone else stay visible to leadership, after the person's own work.
-    let others = 0;
+    // Club deadlines assigned to someone else: their own group for leadership, never ahead of the person's work.
+    const oversight = Boolean(roles?.leadership);
     for (const record of work.rows) {
         const due = dueLabel(record.attentionDate ?? record.due_on, now, isFinished(record.status));
         const overdue = Boolean(record.expired || due?.overdue);
         const squad = record.squad_id ? roles?.squads.find(s => s.id === record.squad_id)?.name : null;
         const colleague = Boolean(roles && record.assigned_user_id && record.assigned_user_id !== roles.actorId);
-        if (colleague) others += 1;
+        if (colleague && !oversight) continue;
         items.push({
             key: `record-${record.id}`, title: record.title,
-            meta: [moduleNames[record.module], squad ?? (record.squad_id ? null : copy('clubWide')), label(record.status), colleague ? copy('withColleague') : null].filter(Boolean).join(' · '),
-            badge: record.expired ? copy('badgeExpired') : due?.label ?? label(record.status), tone: overdue ? 'danger' : 'neutral', rank: (overdue ? 0 : 2) + (colleague ? 0.5 : 0),
-            date: record.attentionDate ?? record.due_on,
+            meta: [moduleNames[record.module], squad ?? (record.squad_id ? null : copy('clubWide')), label(record.status)].filter(Boolean).join(' · '),
+            badge: record.expired ? copy('badgeExpired') : due?.label ?? label(record.status), tone: overdue ? 'danger' : 'neutral', rank: overdue ? 0 : 2,
+            date: record.attentionDate ?? record.due_on, colleague,
             open: () => onOpen(operationTab(record.module), { record: String(record.id), ...(record.squad_id ? { squad: String(record.squad_id) } : {}) }),
         });
     }
     items.sort((a, b) => a.rank - b.rank || (a.date ?? '').localeCompare(b.date ?? ''));
-    const shown = items.slice(0, limit);
-    const hidden = items.length - shown.length;
+    const own = items.filter(item => !item.colleague), colleagues = items.filter(item => item.colleague);
+    const shown = own.slice(0, limit);
+    // Colleagues' rows take what the person's own list leaves of the limit, at least two so the overdue ones stay in view.
+    const shownColleagues = colleagues.slice(0, Math.max(2, limit - shown.length));
+    const hidden = items.length - shown.length - shownColleagues.length;
+    const row = (item: NeedItem) => <ListRow key={item.key} onClick={item.open} lead={<span className={`cw-dot cw-dot--${item.tone}`} aria-hidden="true" />} title={item.title} meta={item.meta} trail={<><span className={`cw-status cw-status--${item.tone}`}>{item.badge}</span><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />;
 
     let body: ReactNode;
     if (work.loading && !items.length) body = <div className="cw-skeleton-rows" role="status" aria-label={copy('needsChecking')}>{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>;
     else if (!items.length && !work.error) body = <EmptyNote title={copy('needsEmpty')}>{copy('needsEmptyHint')}</EmptyNote>;
-    else body = <List label={copy('needsYou')}>{shown.map(item => <ListRow key={item.key} onClick={item.open} lead={<span className={`cw-dot cw-dot--${item.tone}`} aria-hidden="true" />} title={item.title} meta={item.meta} trail={<><span className={`cw-status cw-status--${item.tone}`}>{item.badge}</span><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />)}</List>;
+    else body = <>
+        {shown.length > 0 ? <List label={copy('needsYou')}>{shown.map(row)}</List> : <p className="cw-panel-note cw-panel-note--first"><CheckCircle2 aria-hidden="true" />{copy('needsEmpty')}</p>}
+        {shownColleagues.length > 0 && <div className="cw-needs-group">
+            <h3 className="cw-needs-group__head">{copy('colleaguesWork')} <span>{colleagues.length}</span></h3>
+            <List label={copy('colleaguesWork')}>{shownColleagues.map(row)}</List>
+        </div>}
+    </>;
 
-    return <Section className={className} boxed title={copy('needsYou')} hint={items.length ? others ? copy('waitingSplit', { count: items.length - others, others }) : copy('waiting', { count: items.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>{copy('workQueue')}</button>}>
+    return <Section className={className} boxed title={copy('needsYou')} hint={items.length ? colleagues.length ? copy('waitingSplit', { count: own.length, others: colleagues.length }) : copy('waiting', { count: items.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>{copy('workQueue')}</button>}>
         <Panel flush footer={hidden > 0 ? <button type="button" className="cw-text-button" onClick={() => onOpen('actions')}>{copy('moreInQueue', { count: hidden })}</button> : undefined}>
             {work.error && <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{work.error}</span><Button size="sm" onClick={work.retry}>{copy('retry')}</Button></div></div>}
             {body}

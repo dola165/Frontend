@@ -140,3 +140,9 @@
 .gk .cw-status--warning { color: var(--gk-warning); }
 .gk .cw-status--info { color: var(--gk-info); }
 .gk .cw-chevron { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
+
+/* Needs you: colleagues' work as its own quiet group under the person's own list. */
+.gk .cw-panel-note--first { border-top: 0; }
+.gk .cw-needs-group { border-top: 1px solid var(--gk-line); }
+.gk .cw-needs-group__head { display: flex; align-items: center; gap: var(--gk-2); margin: 0; padding: var(--gk-3) var(--gk-5) var(--gk-1); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
+.gk .cw-needs-group__head span { font-weight: 400; }

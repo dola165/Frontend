@@ -37,8 +37,11 @@
 .gk .gk-fund-hero__facts { display: flex; gap: var(--gk-6); font-size: var(--gk-fs-sm); color: color-mix(in srgb, var(--color-on-media) 85%, transparent); }
 .gk .gk-fund-hero__facts strong { display: block; font-size: 22px; line-height: 26px; color: var(--color-on-media); }
 
-/* The fundraiser page: the story on the left, the giving card beside it. */
-.gk .gk-fund-page { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--gk-8); align-items: start; padding-top: var(--gk-4); }
+/* The fundraiser page: the title and story on the left, the giving card beside them; on a phone the card follows the title. */
+.gk .gk-fund-page { display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "head give" "body give"; gap: var(--gk-5) var(--gk-8); align-items: start; padding-top: var(--gk-4); }
+.gk .gk-fund-page__head { grid-area: head; }
+.gk .gk-fund-page__body { grid-area: body; }
+.gk .gk-fund-page > .gk-fund-give { grid-area: give; }
 .gk .gk-fund-page h1 { font-size: 28px; line-height: 34px; font-weight: 600; }
 .gk .gk-fund-cover { aspect-ratio: 16 / 9; border-radius: var(--gk-r-lg); overflow: hidden; border: 1px solid var(--gk-line); background: var(--gk-surface); display: grid; place-items: center; color: var(--gk-text-3); }
 .gk .gk-fund-cover img { width: 100%; height: 100%; object-fit: cover; }
@@ -89,8 +92,9 @@
 .gk .gk-fund-start textarea.gk-input { min-height: 120px; padding: var(--gk-3); line-height: var(--gk-lh-lg); }
 
 @media (max-width: 900px) {
-  .gk .gk-fund-page { grid-template-columns: minmax(0, 1fr); gap: var(--gk-5); }
+  .gk .gk-fund-page { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "give" "body"; gap: var(--gk-5); }
   .gk .gk-fund-give { position: static; }
+  .gk .gk-fund-give > .gk-fund-organiser { display: none; }
   .gk .gk-fund-start__tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gk .gk-fund-hero .gk-store-door__title { font-size: 26px; line-height: 30px; }
 }

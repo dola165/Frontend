@@ -459,9 +459,9 @@ export const MessagingPage = () => {
                                         ) : (
                                             getAvatarLetter(conv, currentUserId)
                                         )}
-                                        {/* Online dot — show for DIRECT conversations */}
-                                        {conv.contextType === 'DIRECT' && (
-                                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--chat-sidebar-bg)] bg-[var(--chat-online)]" />
+                                        {/* Online dot: only when the server says the other person is online, never assumed. */}
+                                        {conv.contextType === 'DIRECT' && conv.participants.some(p => p.userId !== currentUserId && p.online === true) && (
+                                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--chat-sidebar-bg)] bg-[var(--chat-online)]" title="Online" aria-label="Online" />
                                         )}
                                     </div>
 

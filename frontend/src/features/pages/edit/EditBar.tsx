@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
 import { claimHref } from '../create/entry';
-import { SETUP_PANEL, usePageEdit } from './context';
+import { usePageEdit } from './context';
 import { SETUP_ITEMS } from '../model/kinds';
-import { CoachMarks } from './CoachMarks';
+import { PhoneSteps } from './PhoneSteps';
+import { usePhoneSteps } from './usePhoneSteps';
 import { SetupRing, SetupSteps } from './SetupSteps';
 import { SETUP_WORDS, STEP_ICONS } from './words';
 import './edit.css';
@@ -22,14 +23,16 @@ const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a
 export function EditBar() {
   const t = usePagesCopy();
   const location = useLocation();
-  const { page, editing, canEdit, setEditing, openPanel, goLive, status, arrival, pendingCount, rearranging, setRearranging } = usePageEdit();
-  // The first time on a claimed page, one hint, once; a new page gets the short walkthrough instead (CoachMarks).
+  const { page, editing, canEdit, setEditing, openPanel, openStep, goLive, status, arrival, pendingCount, rearranging, setRearranging } = usePageEdit();
+  // The first time on a claimed page, one hint, once. A new page gets no tour: the current step is the one thing it shows.
   useEffect(() => {
     if (arrival !== 'claimed' || !page) return;
     toast(t('This page is yours now. Tap a box to fill it.'), { id: 'page-arrival', duration: 6000 });
   }, [arrival, page, t]);
-  // The steps drop down from the bar, open from the start on a wide screen, folded on a phone.
-  const [stepsOpen, setStepsOpen] = useState(() => typeof window === 'undefined' || window.innerWidth === 0 || window.innerWidth > 760);
+  // The steps drop down from the bar when the ring is pressed; they start folded, so the current step is the one thing in view.
+  const [stepsOpen, setStepsOpen] = useState(false);
+  // On a phone a draft is set up one full-screen card per step; the current step opens its card.
+  const phoneSteps = usePhoneSteps();
   if (!page) return null;
   if (!canEdit) {
     if (page.claim?.state !== 'UNCLAIMED' || !page.viewer.canClaim) return null;
@@ -46,12 +49,12 @@ export function EditBar() {
   const missing = page.goLive.missing.map(item => t(MISSING[item]));
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
-      {arrival === 'new' && editing && <CoachMarks pageRef={page.ref} />}
+      <PhoneSteps />
       {page.status === 'DRAFT'
         ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
         : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending verification')}</span> : null}
       {!setup.completedAt && (
-        <button type="button" className="gk-ring" data-coach="ring" aria-expanded={stepsOpen} onClick={() => setStepsOpen(value => !value)} aria-label={t('{done} of {total} done. Set-up steps', { done: setup.done, total })}>
+        <button type="button" className="gk-ring" aria-expanded={stepsOpen} onClick={() => setStepsOpen(value => !value)} aria-label={t('{done} of {total} done. Set-up steps', { done: setup.done, total })}>
           <SetupRing done={setup.done} total={total} />
           <span key={setup.done} className="gk-ring__count">{t('{done} of {total}', { done: setup.done, total })}</span>
           <span className="gk-ring__next">{t('Set-up steps')}</span>
@@ -60,7 +63,7 @@ export function EditBar() {
       {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}><Eye aria-hidden="true" size={12} />{t('What a finished club looks like')}</button>}
       {!setup.completedAt && next && CurrentIcon && (
         <span className="gk-editbar__current-wrap">
-          <button type="button" className="gk-editbar__current" onClick={() => openPanel(SETUP_PANEL[next])}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(SETUP_WORDS[next])}</strong><ChevronRight aria-hidden="true" /></button>
+          <button type="button" className="gk-editbar__current" onClick={() => (phoneSteps.available ? phoneSteps.show(next) : openStep(next))}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(SETUP_WORDS[next])}</strong><ChevronRight aria-hidden="true" /></button>
           {editing && stepsOpen && <div className="gk-editbar__steps"><SetupSteps onClose={() => setStepsOpen(false)} /></div>}
         </span>
       )}

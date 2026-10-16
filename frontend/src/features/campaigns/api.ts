@@ -77,10 +77,13 @@ export const campaignCategory = (value: string) => CAMPAIGN_CATEGORIES.find(c =>
 export const campaignPhase = (value: string) => ({ DRAFT: 'Draft', ACTIVE: 'Active', SCHEDULED: 'Starts soon', ENDED: 'Ended', PAUSED: 'Paused', CLOSED: 'Closed', ARCHIVED: 'Archived' })[value] ?? value;
 export const campaignMoney = formatMoney;
 export const campaignDate = (value: string) => formatDate(value);
-/** How far a fundraiser is: raised, goal, the share as a whole number, and how many gave. */
+/**
+ * How far a fundraiser is: raised, goal, the share as a whole number, and how many gave. `raised` stays null while the
+ * club has reported nothing (never shown as zero raised, nor zero donations); a reported zero is a zero.
+ */
 export const progressOf = (campaign: Campaign) => {
-    const raised = campaign.reportedAmount ?? 0, goal = campaign.goalAmount ?? null;
-    return { raised, goal, percent: goal ? Math.min(100, Math.max(0, Math.round(raised / goal * 100))) : null, donations: campaign.donations ?? null, reached: !!goal && raised >= goal };
+    const raised = campaign.reportedAmount ?? null, goal = campaign.goalAmount ?? null;
+    return { raised, goal, percent: goal && raised !== null ? Math.min(100, Math.max(0, Math.round(raised / goal * 100))) : null, donations: raised === null ? null : campaign.donations ?? null, reached: !!goal && raised !== null && raised >= goal };
 };
 /** Days left before the fundraiser ends; null without an end date, 0 once it has passed. */
 export const daysLeft = (campaign: Campaign) => campaign.endsOn ? Math.max(0, Math.ceil((Date.parse(campaign.endsOn) - Date.now()) / 86_400_000)) : null;

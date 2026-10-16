@@ -39,10 +39,10 @@ export function coachNeeds({ club, squads, names, records, mine, person, now }: 
         // Important updates, still pinned, that some parents have not confirmed.
         const families = squad.overview?.threads.length ?? 0;
         for (const update of squad.updates) {
-            const read = update.acknowledged_by?.length ?? 0;
-            if (!update.important || !families || read >= families || !update.expires_at || new Date(update.expires_at).getTime() < now) continue;
-            items.push({ key: `update-${update.id}`, kind: 'update', squad: squad.id, tone: 'info', title: update.title ?? 'Update', meta: `${name} · ${read} of ${families} parents confirmed`,
-                status: `${families - read} not read`, to: `?tab=updates&squad=${squad.id}`, rank: 2, date: update.created_at });
+            const acknowledged = update.acknowledged_by?.length ?? 0;
+            if (!update.important || !families || acknowledged >= families || !update.expires_at || new Date(update.expires_at).getTime() < now) continue;
+            items.push({ key: `update-${update.id}`, kind: 'update', squad: squad.id, tone: 'info', title: update.title ?? 'Update', meta: `${name} · ${acknowledged} of ${families} parents confirmed`,
+                status: `${families - acknowledged} not acknowledged`, to: `?tab=updates&squad=${squad.id}`, rank: 2, date: update.created_at });
         }
     }
     const seen = new Set<number>();

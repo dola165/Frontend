@@ -26,6 +26,8 @@ export interface PageEdit {
   setEditing: (on: boolean) => void;
   panel: PanelKey | null;
   openPanel: (key: PanelKey) => void;
+  /** Opens a set-up step where it is done: its panel or box, or the About right under the name. */
+  openStep: (key: SetupKey) => void;
   closePanel: () => void;
   /** Rearrange mode (`?rearrange=1`): boxes get handles, Move up / Move down and Hide. */
   rearranging: boolean;

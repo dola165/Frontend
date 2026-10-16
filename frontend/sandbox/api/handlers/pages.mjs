@@ -242,7 +242,16 @@ get('/clubs/:id/staff', ({ params }) => (P.isPageClub(params.id) ? P.staffOf(P.c
 get('/clubs/:id/squads', ({ params }) => {
   if (!P.isPageClub(params.id)) return undefined;
   return P.squadsOf(P.clubPage(params.id)).map(s => ({ id: s.id, clubId: s.clubId, name: s.name, category: s.ageGroup, ageGroup: s.ageGroup, gender: s.gender, format: s.format, memberCount: s.playerIds.length, playerCount: s.playerIds.length,
-    headCoachId: s.headCoachId, headCoachName: s.headCoachId ? P.viewerName(s.headCoachId) : null, trainingDays: s.trainingDays ?? [], competition: null }));
+    headCoachId: s.headCoachId, headCoachName: s.headCoachId ? P.viewerName(s.headCoachId) : null, trainingDays: s.trainingDays ?? [], trainingTime: s.trainingTime ?? null, competition: null }));
+});
+// A new club's squad timetable is public: the days and time the owner set are what a parent decides on.
+get('/clubs/:id/squads/:sid/training-schedule', ({ params, headers }) => {
+  if (!P.isPageClub(params.id)) return undefined;
+  const page = P.clubPage(params.id), squad = P.squadsOf(page).find(s => s.id === Number(params.sid)), viewer = viewerOf(headers);
+  if (!squad || !visible(page, viewer)) return notFound('Squad not found.');
+  const own = Boolean(P.roleOf(page, viewer));
+  const sessions = P.trainingOf(page, squad.id).map(t => ({ id: String(t.id), title: `${squad.name} training`, startsAt: t.start.toISOString(), endsAt: t.end.toISOString(), status: 'SCHEDULED', timesOnly: false, location: t.ground?.name ?? null, timezone: C.TIMEZONE }));
+  return { squadId: squad.id, squadName: squad.name, visibility: 'PUBLIC', canManage: own, canView: true, revision: page.boxes.squads.version, sessions, limited: !own, programmeTimesPublic: true, publicationConfigured: true };
 });
 get('/clubs/:id/management', ({ params, headers }) => {
   if (!P.isPageClub(params.id)) return undefined;

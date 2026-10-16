@@ -9,6 +9,8 @@ export interface ParticipantInfo {
     displayName: string;
     profilePictureUrl: string | null;
     role: 'CREATOR' | 'MEMBER' | null;
+    /** Presence, only when the server knows it. Not sent today, so nobody is shown as online. */
+    online?: boolean;
 }
 
 export interface ConversationDto {

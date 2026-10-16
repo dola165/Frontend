@@ -13,6 +13,7 @@ import { defaultLayout, normalizeLayout, setupState, goLiveCheck, isBoxKey, isPa
 import { normalizeCrest, defaultCrest, crestSvg } from '../../src/features/pages/model/crest.ts';
 import { findSimilar, nameKey } from '../../src/features/pages/model/nameMatch.ts';
 import { COVER_PHOTOS, isCoverPhoto, coverForColour } from '../../src/features/pages/model/photos.ts';
+import { aboutSuggestion } from '../../src/features/pages/model/about.ts';
 
 export { crestSvg };
 export const pages = new Map(); // `club:<id>` | `organization:<id>` -> page
@@ -48,12 +49,12 @@ function registerClub(club) {
 }
 const members = page => !page ? 0 : (page.ownerId ? 1 : 0) + [...page.staff.keys()].filter(id => id !== page.ownerId).length + squadsOf(page).reduce((n, s) => n + s.playerIds.length, 0);
 
-function newPage({ kind, name, town, ownerId, status, claim = null, clubId = null, organizationId = nextOrgId++, category = DEFAULT_CLUB_CATEGORY, crest }) {
+function newPage({ kind, name, town, ownerId, status, claim = null, clubId = null, organizationId = nextOrgId++, category = DEFAULT_CLUB_CATEGORY, crest, language = 'en' }) {
   const design = crest ? normalizeCrest(crest, name) : defaultCrest(name);
   const page = {
     ref: clubId ? { type: 'club', id: clubId } : { type: 'organization', id: organizationId }, organizationId, clubId, kind, organizationType: ORGANIZATION_TYPE[kind],
     ownerId, staff: new Map(ownerId ? [[ownerId, 'OWNER']] : []), status, claim, verification: 'NONE', verificationFor: [],
-    identity: { version: 1, name, tagline: '', about: '', aboutAuto: true, town: townOf(town), crest: { kind: 'generated', design, kept: Boolean(crest) },
+    identity: { version: 1, name, tagline: '', about: '', aboutAuto: true, town: townOf(town), crest: { kind: 'generated', design, kept: true }, language,
       cover: { kind: 'photo', photo: coverForColour(design.primary) }, contact: { phone: '', email: '' }, social: { website: '', instagram: '', facebook: '' },
       businessKind: kind === 'BUSINESS' ? 'COMPANY' : null, clubCategory: kind === 'CLUB' ? category : null },
     layout: { version: 1, ...defaultLayout(kind) },
@@ -131,7 +132,7 @@ export function createPage(viewer, body) {
     registerClub({ id: clubId, name, short: design.initials, type: TYPE_OF_CATEGORY[DEFAULT_CLUB_CATEGORY], city: t.name, venueId: null, founded: null, color: null, verified: false,
       joinPolicy: 'APPLICATION', description: '', lat: t.latitude, lng: t.longitude, address: `${t.name}, Georgia`, logoUrl: null, bannerUrl: null, draft: true, crest: design });
   }
-  const page = newPage({ kind, name, town, ownerId: viewer, status: 'DRAFT', clubId });
+  const page = newPage({ kind, name, town, ownerId: viewer, status: 'DRAFT', clubId, language: body?.language === 'ka' ? 'ka' : 'en' });
   if (kind === 'BUSINESS' && BUSINESS_KINDS.includes(body?.organizationType)) page.identity.businessKind = body.organizationType;
   syncClub(page);
   return { status: 200, body: result(page) };
@@ -197,6 +198,39 @@ export function groundFromPitch(pitch) {
 const postsOf = page => S.posts.filter(post => (page.clubId ? post.clubId === page.clubId : post.organizationId === page.organizationId) && !post.removed).length;
 function sponsorsOf(page) { return page.clubId ? (C.presentations.get(page.clubId)?.sponsors ?? []) : page.boxes.sponsors.items; }
 function honoursOf(page) { return page.clubId ? (C.honours[page.clubId] ?? []) : []; }
+/**
+ * A page club's training for the next weeks, made from each squad's days and time: the one source for the club
+ * calendar, Coming up and the public squad timetable. Days are 1 (Monday) to 7 (Sunday). The backend would keep these
+ * as recurring sessions of the squad's schedule.
+ */
+export function trainingOf(page, squadId = null, days = 28) {
+  const out = [], grounds = groundsOf(page);
+  for (const s of squadsOf(page)) {
+    if ((squadId != null && s.id !== Number(squadId)) || !s.trainingDays?.length || !s.trainingTime) continue;
+    const [hour, minute] = String(s.trainingTime).split(':').map(Number);
+    const ground = grounds.find(g => g.id === s.groundId) ?? grounds[0] ?? null;
+    for (let d = 0; d < days; d++) {
+      const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() + d);
+      if (!s.trainingDays.includes(start.getDay() === 0 ? 7 : start.getDay())) continue;
+      start.setHours(hour, minute || 0, 0, 0);
+      out.push({ id: 900000 + s.id * 100 + d, squad: s, start, end: new Date(start.getTime() + 90 * 60000), ground });
+    }
+  }
+  return out;
+}
+/** What most clubs in a town ask a month (the middle of their lowest and highest fees, rounded to 10); the whole country when the town has too few. */
+function townFees(town, except) {
+  const local = townBands(town, except);
+  return local ? { ...local, town } : townBands(null, except);
+}
+function townBands(town, except) {
+  const bands = W.clubs.filter(club => (town == null || club.city === town) && club.id !== except && !club.draft).map(club => pages.get(`club:${club.id}`)?.boxes.fees.band ?? bandFromProgrammes(C.presentations.get(club.id)?.programmes ?? []))
+    .filter(band => band && band.free !== 'ALL' && band.max > 0);
+  if (bands.length < 2) return null;
+  const middle = values => { const sorted = [...values].sort((a, b) => a - b); return Math.round(sorted[Math.floor(sorted.length / 2)] / 10) * 10; };
+  const min = middle(bands.map(band => band.min)), max = Math.max(min, middle(bands.map(band => band.max)));
+  return { min, max, currency: 'GEL', town: null, clubs: bands.length };
+}
 export const feeBandOf = clubId => pages.get(`club:${Number(clubId)}`)?.boxes.fees.band ?? null;
 /** What World's filters need from a page club that has no priced programmes: its fee band and its squads' ages. */
 export function pageFilterFacts(clubId) {
@@ -257,7 +291,7 @@ export function viewOf(page, viewer) {
     },
     setup: { ...setup, completedAt: page.setupCompletedAt }, goLive: goLiveCheck(facts),
     links: result(page),
-    suggestions: editor && account ? { phone: account.phone ?? '', email: account.email ?? '' } : editor && viewer === W.ME_ID ? { phone: '+995 599 12 34 56', email: W.me.email } : null,
+    suggestions: editor ? { ...(account ? { phone: account.phone ?? '', email: account.email ?? '' } : viewer === W.ME_ID ? { phone: '+995 599 12 34 56', email: W.me.email } : { phone: '', email: '' }), fees: page.kind === 'CLUB' ? townFees(id.town.name, page.clubId) : null } : null,
     createdAt: page.createdAt, liveAt: page.liveAt,
   };
 }
@@ -266,6 +300,8 @@ export function viewOf(page, viewer) {
 
 /** Copies the page's identity onto the club record, so every list, pin and search result shows the same club. */
 export function syncClub(page) {
+  // The About follows the page (its teams, its town) until the owner writes their own.
+  if (page.identity.aboutAuto) page.identity.about = aboutSuggestion({ kind: page.kind, town: page.identity.town.name, squads: squadsOf(page) }, page.identity.language);
   if (!page.clubId) return;
   const club = W.clubById(page.clubId), id = page.identity, grounds = groundsOf(page);
   club.name = id.name;

@@ -8,6 +8,7 @@ import * as S from '../world-social.mjs';
 import * as P from '../world-profile.mjs';
 import * as F from '../world-football.mjs';
 import * as V from '../viewer.mjs';
+import { familyRequest } from '../world-family.mjs';
 import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
 import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs, createPage, viewerAge as pageAge } from '../pages-data.mjs';
 import { minimumAge, ORGANIZATION_TYPE } from '../../../src/features/pages/model/kinds.ts';
@@ -738,8 +739,11 @@ post('/squad-communication/:id/sessions/:sid/cancel/preview', withSquad((s, { pa
 // ================================================================ Agent Dola
 const dolaConversations = new Map(); // id -> { turns, expiresAt }
 const DOLA_RETENTION = 45 * 60000;
-get('/assistant/dola/status', () => ({ name: 'Agent Dola', available: true, mode: 'GROUNDED', maxMessageLength: 2000, capabilities: ['NAVIGATION', 'SCHEDULE', 'SQUAD_UPDATES', 'MATCHES'] }));
-get('/assistant/dola/welcome', () => ({ contexts: ['coach', 'discover'] }));
+// The cookie gk-sandbox-dola=down makes the status check fail, so the retry can be judged; a parent (family cookie) gets the family context too.
+get('/assistant/dola/status', ({ headers }) => /(?:^|;\s*)gk-sandbox-dola=down/.test(String(headers?.cookie ?? ''))
+  ? reply(503, { status: 503, message: 'Agent Dola is not reachable right now.' })
+  : { name: 'Agent Dola', available: true, mode: 'GROUNDED', maxMessageLength: 2000, capabilities: ['NAVIGATION', 'SCHEDULE', 'SQUAD_UPDATES', 'MATCHES'] });
+get('/assistant/dola/welcome', ({ headers }) => ({ contexts: [...(familyRequest(headers) ? ['family'] : []), 'coach', 'discover'] }));
 get('/assistant/dola/conversations/latest', () => {
   const latest = [...dolaConversations.entries()].filter(([, c]) => c.expiresAt > Date.now()).at(-1);
   return latest ? { conversationId: latest[0], expiresAt: iso(new Date(latest[1].expiresAt)), turns: latest[1].turns } : noContent();

@@ -18,6 +18,7 @@ export interface PageIdentity {
   about: string;
   /** The About is written for the owner from the type, town and ages until they edit it themselves. */
   aboutAuto: boolean;
+  language?: 'en' | 'ka';
   town: Town;
   crest: CrestState;
   cover: CoverState | null;
@@ -66,7 +67,7 @@ export interface PageView {
   goLive: { ready: boolean; missing: ('name' | 'crest' | 'groundOrContact')[] };
   links: CreatedPage;
   /** The owner's own phone and email, offered as one tap, never published without it. */
-  suggestions: { phone: string; email: string } | null;
+  suggestions: { phone: string; email: string; fees?: { min: number; max: number; currency: FeeBand['currency']; /** Null: the whole country. */ town: string | null; clubs: number } | null } | null;
   createdAt: string;
   liveAt: string | null;
 }
@@ -84,6 +85,8 @@ export interface CreateRequest {
   requestId: string; displayName: string; pageKind: PageKind; organizationType: string; clubCategory: string | null;
   venueEnabled: false; /** On for an organiser set up from the Draw room. */ tournamentEnabled: boolean;
   location: { latitude: number | null; longitude: number | null; city: string } | null;
+  /** The owner's language: the About written for them is in it. */
+  language: 'en' | 'ka';
 }
 
 /** A save that lost the race: someone changed the same thing first. The page as it is now comes with it. */

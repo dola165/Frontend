@@ -40,16 +40,30 @@ function ScrollRow({ children, label, wide, busy, fundraisers }: { children: Rea
 /**
  * The idling row: the items laid twice in one track that the compositor slides by half its width and starts again,
  * so the drift is smooth and never ends. Hovering pauses it. An arrow moves the same animation one screen along,
- * eased, so pressing and idling never fight.
+ * eased, so pressing and idling never fight. The copies are inert, so the keyboard meets each item once; focus
+ * inside the row pauses it and brings the focused item into view.
  */
 function DriftRow({ children, label, wide, busy, direction }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean; direction: 'left' | 'right' }) {
     const track = useRef<HTMLUListElement>(null);
     const items = Children.toArray(children);
     const copies = Math.max(1, Math.ceil(7 / Math.max(1, items.length)));
     const seconds = Math.max(40, Math.round(items.length * copies * 320 / 12));
-    const half = Array.from({ length: copies }, (_, copy) => items.map((item, i) => copy === 0 ? item : <li key={`${copy}-${i}`} aria-hidden="true">{(item as { props: { children: ReactNode } }).props.children}</li>)).flat();
-    const again = half.map((item, i) => <li key={`again-${i}`} aria-hidden="true">{(item as { props: { children: ReactNode } }).props.children}</li>);
+    const half = Array.from({ length: copies }, (_, copy) => items.map((item, i) => copy === 0 ? item : <li key={`${copy}-${i}`} aria-hidden="true" inert>{(item as { props: { children: ReactNode } }).props.children}</li>)).flat();
+    const again = half.map((item, i) => <li key={`again-${i}`} aria-hidden="true" inert>{(item as { props: { children: ReactNode } }).props.children}</li>);
     const animation = () => track.current?.getAnimations()[0];
+    const hovered = useRef(false), focused = useRef(false);
+    const resume = () => { if (!hovered.current && !focused.current) animation()?.play(); };
+    /** Pause with focus inside, and slide the focused item to the row's start (the copies follow it). */
+    const show = (target: EventTarget) => {
+        focused.current = true;
+        const element = track.current, run = animation(), item = target instanceof Element ? target.closest('li') : null;
+        run?.pause();
+        if (!element || !run || !item || item.parentElement !== element) return;
+        const duration = seconds * 1000, loop = element.scrollWidth / 2, share = Math.max(0, item.offsetLeft - 24) / loop;
+        run.currentTime = (direction === 'left' ? share : 1 - share) * duration % duration;
+        // Focusing scrolls even a clipped row to the item; the animation places it instead.
+        requestAnimationFrame(() => { if (element.parentElement) element.parentElement.scrollLeft = 0; });
+    };
     const nudge = (sign: 1 | -1) => {
         const element = track.current, run = animation();
         if (!element || !run) return;
@@ -66,7 +80,8 @@ function DriftRow({ children, label, wide, busy, direction }: { children: ReactN
         requestAnimationFrame(step);
     };
     return (
-        <div className="gk-store-rail" data-drift={direction} onMouseEnter={() => animation()?.pause()} onMouseLeave={() => animation()?.play()}>
+        <div className="gk-store-rail" data-drift={direction} onMouseEnter={() => { hovered.current = true; animation()?.pause(); }} onMouseLeave={() => { hovered.current = false; resume(); }}
+            onFocus={event => show(event.target)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { focused.current = false; resume(); } }}>
             <ul ref={track} className={`gk-store-row gk-store-row--drift${wide ? ' gk-store-row--wide' : ''}`} aria-label={label} aria-busy={busy || undefined} style={{ animationDuration: `${seconds}s`, animationDirection: direction === 'right' ? 'reverse' : 'normal' }}>
                 {half}{again}
             </ul>

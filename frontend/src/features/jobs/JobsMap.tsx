@@ -6,7 +6,7 @@ import { WorldMap } from '../world/map/WorldMap';
 import { CATEGORIES, HOURS, TERMS, type Job } from './api';
 import { JobRow, JobSkeletons } from './JobCard';
 import { filterListings, pinsOf } from './mapPins';
-import { JOBS_KEYS, jobsPath, jobsSearch, readJobs, type JobsSearch } from './query';
+import { JOBS_KEYS, jobsPath, jobsSearch, readJobs, worldJobsPath, type JobsSearch } from './query';
 
 /** One filter as a line: its name on the left, its value on the right; pressed, its choices open under it. */
 function Line({ label, value, options, onChoose }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChoose: (value: string) => void }) {
@@ -24,14 +24,18 @@ function Line({ label, value, options, onChoose }: { label: string; value: strin
 /**
  * The jobs map in World's frame: the map filling the screen in the hero look, the solid column on its left (search,
  * Post, what to show, the filters as lines), and on its right the glass panel with the ways in: Work, Be found, Hire.
- * The filters live in the address and travel to the catalogue with "Show as a list".
+ * The filters live in the address and travel to the catalogue with "Show as a list" and to World's map. Choosing a pin
+ * shows its card (one listing opens itself, several open their list) and narrows the column to what the pin holds.
  */
 export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]; loading: boolean; counts?: { open: number; available: number }; near?: string; children?: ReactNode }) {
     const [params, setParams] = useSearchParams();
-    const query = useMemo(() => readJobs(params), [params]);
+    // The map shows one kind at a time, jobs unless people are asked for, so the lit chip is what the pins are.
+    const query = useMemo((): JobsSearch => { const read = readJobs(params); return { ...read, direction: read.direction || 'HIRING' }; }, [params]);
     const shown = useMemo(() => filterListings(jobs, query), [jobs, query]);
-    const { points, placed } = useMemo(() => pinsOf(shown), [shown]);
-    const nearest = useMemo(() => [...shown].sort((a, b) => (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY)).slice(0, 40), [shown]);
+    const { points, placed, members } = useMemo(() => pinsOf(shown, query), [shown, query]);
+    const [pinId, setPinId] = useState<string>();
+    const pin = pinId ? points.find(point => point.id === pinId) : undefined;
+    const nearest = useMemo(() => [...(pin ? members.get(pin.id) ?? [] : shown)].sort((a, b) => (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY)).slice(0, 40), [shown, pin, members]);
     const [text, setText] = useState(query.query);
     const set = (change: Partial<JobsSearch>) => setParams(current => {
         const copy = new URLSearchParams(current);
@@ -40,12 +44,14 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
         jobsSearch({ ...query, ...change, page: 0, job: undefined, sort: 'RELEVANCE' }).forEach((value, name) => copy.set(name, value));
         return copy;
     }, { replace: true, preventScrollReset: true });
+    // A filter change can take the chosen pin off the map; the column then follows the filters again.
+    if (pinId && !pin) setPinId(undefined);
     const active = [query.category, query.terms, query.hours, query.poster, query.city, query.posted, query.query].filter(Boolean).length;
     const listPath = jobsPath({ ...query, page: 0, job: undefined });
     const people = query.direction === 'OFFERING';
     return (
         <div className="gk-jobs-stage">
-            <WorldMap points={points} label="Jobs on the map" variant="hero" gestures="cooperative" insetLeft={432} insetRight={412} onSelect={() => undefined}
+            <WorldMap points={points} label="Jobs on the map" variant="hero" gestures="cooperative" insetLeft={432} insetRight={412} selectedId={pin?.id} onSelect={setPinId}
                 overlay={<>
                     <aside className="gk-jobs-side" aria-label="Filters">
                         <div className="gk-jobs-side__head">
@@ -67,7 +73,8 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
                             <Line label="Hours" value={query.hours} options={[{ value: '', label: 'Any' }, ...HOURS]} onChoose={value => set({ hours: value })} />
                             <Line label="Posted by" value={query.poster} options={[{ value: '', label: 'Clubs and people' }, { value: 'clubs', label: 'Clubs' }, { value: 'people', label: 'People' }]} onChoose={value => set({ poster: value as JobsSearch['poster'] })} />
                             <Line label="Posted" value={query.posted} options={[{ value: '', label: 'Any time' }, { value: '7D', label: 'Past 7 days' }, { value: '30D', label: 'Past 30 days' }]} onChoose={value => set({ posted: value as JobsSearch['posted'] })} />
-                            <p className="gk-jobs-side__caption">{near ? 'Nearest first' : 'Newest first'}</p>
+                            {pin ? <p className="gk-jobs-side__caption">At {pin.label} <button type="button" className="gk-section__action" onClick={() => setPinId(undefined)}>Show all</button></p>
+                                : <p className="gk-jobs-side__caption">{near ? 'Nearest first' : 'Newest first'}</p>}
                             {loading && !jobs.length ? <ul className="gk-jobs-list gk-jobs-side__list" aria-busy="true" aria-label="Loading"><JobSkeletons count={4} /></ul>
                                 : nearest.length ? <ul className="gk-jobs-list gk-jobs-side__list" aria-label={people ? 'People on the map' : 'Jobs on the map'}>{nearest.map(job => <JobRow key={job.id} job={job} selected={false} to={`/jobs/${job.id}`} />)}</ul>
                                 : <EmptyNote title={people ? 'Nobody with these filters' : 'No listings with these filters'}>Clear a filter or widen the area.</EmptyNote>}
@@ -86,7 +93,7 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
                     <div className="gk-jobs-stage__foot">
                         <span className="gk-jobs-stage__count">{loading && !jobs.length ? 'Loading…' : `${placed} on the map${shown.length - placed ? ` · ${shown.length - placed} without a place` : ''}`}</span>
                         <Link className="gk-jobs-stage__list" to={listPath}>Show {shown.length} as a list<ArrowRight aria-hidden="true" /></Link>
-                        <Link className="gk-jobs-stage__list" to="/world/opportunities?tab=jobs"><MapIcon aria-hidden="true" />Full map in World</Link>
+                        {!people && <Link className="gk-jobs-stage__list" to={worldJobsPath(query)}><MapIcon aria-hidden="true" />Full map in World</Link>}
                     </div>
                 </>} />
         </div>

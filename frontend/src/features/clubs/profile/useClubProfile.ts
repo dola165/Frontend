@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { clubViewerRole } from '../../../components/club/clubViewerRole';
@@ -93,7 +93,7 @@ export function useClubProfile(id: number) {
         myClubId: membership.clubId,
     };
 
-    const refresh = () => setRevision(value => value + 1);
+    const refresh = useCallback(() => setRevision(value => value + 1), []);
     const toggleFollow = async () => {
         if (!club) return;
         const previous = club;

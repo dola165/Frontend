@@ -50,3 +50,11 @@
 .dola-resize-handle > span { position:absolute; left:3px; top:48%; width:6px; height:44px; border-radius:5px; background:var(--social-primary,var(--color-accent)); opacity:.45; box-shadow:0 0 0 3px var(--dola-surface); }
 .dola-resize-handle:hover::before,.dola-resize-handle:focus-visible::before { background:var(--social-primary,var(--color-accent)); }
 .dola-resize-handle:hover > span,.dola-resize-handle:focus-visible > span { opacity:1; }
+
+.dola-notice--retry { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.dola-notice--retry button { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:4px 10px; border:1px solid var(--dola-border); border-radius:8px; font-weight:650; }
+.dola-subject { display:inline-flex; align-items:center; gap:6px; max-width:100%; margin-bottom:8px; padding:3px 4px 3px 10px; border:1px solid var(--dola-border); border-radius:999px; font-size:12px; color:var(--dola-muted); }
+.dola-subject svg { flex-shrink:0; color:var(--color-accent); }
+.dola-subject strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:650; color:var(--dola-text); }
+.dola-subject button { display:grid; place-items:center; flex-shrink:0; width:24px; height:24px; border-radius:50%; }
+.dola-subject button:hover { background:color-mix(in srgb, var(--color-ink) 7.06%, transparent); }

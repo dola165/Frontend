@@ -66,7 +66,7 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
         const open = panel === key;
         const isNext = next === target;
         return (
-          <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined} data-flash={flashing.has(key) || undefined} data-coach={isNext && !filled[key] ? 'next-box' : undefined}>
+          <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined} data-flash={flashing.has(key) || undefined}>
             {(() => { const content = filled[key] || (open && !renderer.panel)
               ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
               : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />;
@@ -77,7 +77,8 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
   return (
     <>
       {rearranging ? <SortableColumn column={column} keys={keys}>{boxes}</SortableColumn> : boxes}
-      {editing && <AddBoxTray column={column} renderers={renderers} />}
+      {/* A draft shows only its own boxes and the next step; more boxes can be added once it is live. */}
+      {editing && page.status === 'LIVE' && <AddBoxTray column={column} renderers={renderers} />}
     </>
   );
 }
@@ -90,7 +91,7 @@ function AddBoxTray({ column, renderers }: { column: Column; renderers: BoxRende
   const choices = addableBoxes(page.kind, page.layout).filter(key => BOX_COLUMN[key] === column && renderers[key]);
   if (!choices.length) return null;
   return (
-    <div className="gk-tray" role="group" aria-label={t('Add a box')} data-coach="tray">
+    <div className="gk-tray" role="group" aria-label={t('Add a box')}>
       <span className="gk-tray__label">{t('Add a box')}</span>
       {choices.map(key => {
         const Icon = renderers[key]!.icon;

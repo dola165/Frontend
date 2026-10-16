@@ -1,5 +1,5 @@
 import '../../../../i18n';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../../../api/axiosConfig';
 import type { ClubPresentation, TrainingProgramme } from '../../presentation';
@@ -40,8 +40,8 @@ beforeEach(() => {
 });
 
 describe('club profile', () => {
-    it('shows only confirmed affiliations, published sponsors and safe links, with scoped ways to get involved', async () => {
-        page(<ClubSide club={club} />);
+    it('shows only confirmed affiliations, published sponsors and safe links, with scoped ways to get involved (staff see the empty ones)', async () => {
+        page(<ClubSide club={club} canEdit />);
 
         expect(screen.queryByText('Pending academy')).not.toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Manage Confirmed academy profile' })).toHaveAttribute('href', '/clubs/2/profile-settings');
@@ -54,6 +54,12 @@ describe('club profile', () => {
         expect(involved.getByRole('link', { name: /Club fundraising/ })).toHaveAttribute('href', '/clubs/10?tab=involved&show=fundraising');
         expect(involved.getByRole('link', { name: /Club jobs/ })).toHaveAttribute('href', '/clubs/10?tab=involved&show=jobs');
         expect(await screen.findByText('No jobs or volunteering published')).toBeInTheDocument();
+    });
+
+    it('never shows visitors an empty way to get involved', async () => {
+        page(<ClubSide club={club} />);
+        await waitFor(() => expect(screen.queryByText('Loading…')).not.toBeInTheDocument());
+        expect(screen.queryByText('No jobs or volunteering published')).not.toBeInTheDocument();
     });
 
     it('tells the story first, then the latest news and what is coming up', async () => {

@@ -63,7 +63,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const workspaces = useMemo(() => workspaceDestinations(capabilities, club.path, copy), [capabilities, club.path, copy]);
     const page = describeRoute(pathname, search, { capabilities, userId: user.id, myClubPath: club.path, copy });
     const pinned = currentPin(pins.pins, pathname, search);
-    const section = pinned ? null : primarySectionFor(pathname, club.ids);
+    const section = pinned ? null : primarySectionFor(pathname, club.ids, search);
     const tabs: PrimaryTab[] = [
         { id: 'home', to: '/home', label: copy('Home', 'მთავარი'), icon: House, current: section === 'home' },
         { id: 'world', to: '/world', label: copy('World', 'მსოფლიო'), icon: Earth, current: section === 'world' },

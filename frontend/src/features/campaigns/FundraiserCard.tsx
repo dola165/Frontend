@@ -9,14 +9,16 @@ import { Row } from '../store/front/Row';
 import { Crest } from '../world/Crest';
 import { campaignMoney, daysLeft, progressOf, type Campaign } from './api';
 
-/** The bar every fundraiser shows: raised of goal, the share, how many gave, how long is left. */
+/** The bar every fundraiser shows: raised of goal, the share, how many gave, how long is left; "Not reported yet" without a report. */
 export function Progress({ campaign, large }: { campaign: Campaign; large?: boolean }) {
     const { raised, goal, percent, donations, reached } = progressOf(campaign);
     const left = daysLeft(campaign);
     return (
         <div className="gk-fund-progress" data-large={large || undefined} data-reached={reached || undefined}>
             {percent !== null && <div className="gk-fund-progress__bar" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label={`${percent}% of the goal`}><span style={{ width: `${percent}%` }} /></div>}
-            <p className="gk-fund-progress__amounts"><strong className="gk-num">{campaignMoney(raised, campaign.currency)}</strong>{goal !== null && <span className="gk-fund-progress__goal"> raised of {campaignMoney(goal, campaign.currency)}</span>}</p>
+            {raised === null
+                ? <p className="gk-fund-progress__amounts"><strong>Not reported yet</strong>{goal !== null && <span className="gk-fund-progress__goal"> · goal {campaignMoney(goal, campaign.currency)}</span>}</p>
+                : <p className="gk-fund-progress__amounts"><strong className="gk-num">{campaignMoney(raised, campaign.currency)}</strong>{goal !== null && <span className="gk-fund-progress__goal"> raised of {campaignMoney(goal, campaign.currency)}</span>}</p>}
             <p className="gk-fund-progress__facts">{[donations != null ? `${donations} ${donations === 1 ? 'donation' : 'donations'}` : null, reached ? 'Goal reached' : left === null ? null : left === 0 ? 'Ended' : `${left} ${left === 1 ? 'day' : 'days'} left`].filter(Boolean).join(' · ')}</p>
         </div>
     );

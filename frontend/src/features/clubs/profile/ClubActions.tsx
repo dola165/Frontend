@@ -3,6 +3,7 @@ import { Button, ButtonLink } from '../../../design/primitives';
 import { arrangeOwnMatchPath, openChallengePath, proposeMatchPath } from './clubTabs';
 import type { ClubPermissions } from './useClubProfile';
 import type { ClubProfile } from './types';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
 /**
  * The header actions, chosen from the viewer's verified relationship: staff open the workspace and start matches
@@ -12,6 +13,7 @@ export function ClubActions({ club, can, onFollow, onJoin, onMessage }: {
     club: ClubProfile; can: ClubPermissions;
     onFollow: () => void; onJoin: () => void; onMessage: () => void;
 }) {
+    const copy = useJourneyCopy();
     const following = club.isFollowedByMe;
     if (can.canOpenWorkspace) return <>
         {can.canManage && <>
@@ -26,7 +28,7 @@ export function ClubActions({ club, can, onFollow, onJoin, onMessage }: {
             {following ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{following ? 'Following' : 'Follow'}
         </Button>}
         {can.canMessage && <Button onClick={onMessage}><MessageSquare aria-hidden="true" />Message</Button>}
-        {can.canJoin && !can.canChallenge && <Button variant={primary === 'join' ? 'primary' : 'secondary'} onClick={onJoin}><UserPlus aria-hidden="true" />Join</Button>}
+        {can.canJoin && !can.canChallenge && <Button variant={primary === 'join' ? 'primary' : 'secondary'} onClick={onJoin}><UserPlus aria-hidden="true" />{copy('Join', 'შეუერთდით')}</Button>}
         {can.canChallenge && <ButtonLink variant="primary" to={proposeMatchPath(club.id)}><Swords aria-hidden="true" />Propose a match</ButtonLink>}
     </>;
 }

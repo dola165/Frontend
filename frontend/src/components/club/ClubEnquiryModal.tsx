@@ -16,6 +16,7 @@ import { positivePlayerId, readSelectedPlayer } from '../../features/parents/pla
 import { fetchJoiningContext, contactLabel, type JoiningContext } from '../../features/joining-contract/conversation';
 import { emitNotificationsChanged } from '../../utils/notifications';
 import { useAdmissionMutation } from '../../features/admissions/applicant/useAdmissionMutation';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 
 type ClubEnquiryModalProps = { clubId: number; clubName: string; context: ClubEnquiryContext; onClose: () => void };
 export function ClubEnquiryModal(props: ClubEnquiryModalProps) {
@@ -24,6 +25,7 @@ export function ClubEnquiryModal(props: ClubEnquiryModalProps) {
 }
 
 function ClubEnquiryForm({ clubId, clubName, context, onClose }: ClubEnquiryModalProps) {
+    const copy = useJourneyCopy();
   const motion = useClubPanelMotion(onClose);
   const { status, sessionId, user } = useAuth();
   const navigate = useNavigate(), location = useLocation(), heading = useId();
@@ -100,7 +102,7 @@ function ClubEnquiryForm({ clubId, clubName, context, onClose }: ClubEnquiryModa
     <header className="cp-enquiry-heading"><div><span className="cp-section-icon" data-tone="blue"><MessageSquare size={21} /></span><h2 id={heading}>{sent ? 'Enquiry sent' : reason === 'Arrange a first visit' ? 'Arrange a first visit' : 'Ask the club'}</h2></div><button type="button" className="cp-icon-button" aria-label="Close enquiry" disabled={busy} onClick={requestClose}><X size={20} /></button></header>
     {sent ? <div className="cp-enquiry-body"><CheckCircle2 size={34} className="cp-success" /><h3>Your enquiry is with the club</h3><p>{sent.playerName ? `This enquiry is about ${sent.playerName}.` : 'This is a general question; no child details were shared.'} The conversation and next steps stay connected.</p><div className="cp-enquiry-links">{sent.conversationDestination && <Link className="cp-button cp-button-primary" to={sent.conversationDestination}>Open conversation<ArrowRight size={16} /></Link>}<Link className="cp-button" to={sent.applicantDestination}>View enquiry & next step<ArrowRight size={16} /></Link></div></div> : <form onSubmit={event => void submit(event)} className="cp-enquiry-body">
       <div className="cp-enquiry-context"><span className="cp-eyebrow">About this enquiry</span><strong>{context.name}</strong><span>{clubName}</span></div>
-      {status !== 'authenticated' ? <><p>Sign in to ask the club and keep its reply in your inbox.</p><button type="button" className="cp-button cp-button-primary" onClick={signIn}>Sign in to enquire<ArrowRight size={16} /></button></> : <>
+      {status !== 'authenticated' ? <><p>{copy('Sign in to ask the club and keep its reply in your inbox.', 'შედით, რომ ჰკითხოთ კლუბს და პასუხი შეინახოთ თქვენს შემოსულებში.')}</p><button type="button" className="cp-button cp-button-primary" onClick={signIn}>{copy('Sign in to enquire', 'შედით კითხვის დასასმელად')}<ArrowRight size={16} /></button></> : <>
       {mutation.pending && <div className="cp-enquiry-context" role="status"><p>The outcome of your saved enquiry is unconfirmed. Recover it before sending another enquiry.</p><button type="button" className="cp-button" disabled={busy} onClick={() => void mutation.retry()}>{busy ? 'Checking saved enquiry…' : 'Retry saved enquiry'}</button></div>}
       {mutation.error && <p role="alert" className="cp-error">{mutation.error}</p>}
       <fieldset disabled={busy || Boolean(mutation.pending)} className="cp-enquiry-fields">

@@ -1,82 +1,108 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useMediaQuery } from '../../world/useMediaQuery';
 import { usePagesCopy } from '../copy';
 import type { SetupKey } from '../model/kinds';
 import { usePageEdit } from '../edit/context';
 import { usePhoneSteps } from '../edit/usePhoneSteps';
+import { stepWords } from '../edit/words';
 import { askPet, type PetAnswer } from './api';
-import { PetSprite, type PetFrame } from './PetSprite';
+import { PetSprite, WALK_STEPS, type PetFrame } from './PetSprite';
+import { BOX } from './petFrames';
 import './pet.css';
 
-/** What Dola says at each step of a club's set-up: one short sentence, no model. */
+/** What each step means for the club, in Dola's words: no model. */
 const LINES: Record<string, string> = {
-  name: 'Start with your club’s name. Tap here and type it.',
-  crest: 'Your crest goes here. Upload one or pick two colours.',
-  about: 'Say in one line who you are.',
-  grounds: 'Where do you play? Pick your pitch on the map.',
-  squads: 'Which teams do you have? Choose the birth years.',
-  contact: 'How do parents reach you? Your phone is almost filled in.',
-  fees: 'What does it cost? Slide the price, or tick Free.',
-  players: 'Now share a join link, so parents add their children.',
-  ready: 'All set! Tap Go live when you are ready.',
-  waiting: 'Almost there. Add a ground or a way to reach you, then go live.',
+  name: 'How people find you, so it comes first.',
+  crest: 'Your badge. It shows on your page, in search and beside every post. Upload yours or pick two colours.',
+  about: 'The one line visitors read first, like “Academy in Rustavi for U8–U14”.',
+  grounds: 'Where you train and play. It puts your club on the map for parents nearby.',
+  squads: 'Your teams by birth year. Each gets its own calendar and join link.',
+  contact: 'How parents reach you. Your phone becomes a WhatsApp button.',
+  fees: 'What a month costs, or Free. Parents filter by it when they search.',
+  players: 'One join link per team. Parents add their own child and you approve.',
+  ready: 'That’s everything. Go live when you like; anything can change later.',
+  waiting: 'To go live, add a ground or a way to reach you.',
 };
+const TITLES: Record<string, string> = { ready: 'Ready to go live', waiting: 'Almost ready' };
 /** Where each step is done on the page. */
 const TARGETS: Record<string, string> = {
   name: '[data-step="name"]', crest: '[data-step="crest"]', about: '[data-step="about"]', grounds: '[data-box="grounds"]', squads: '[data-box="squads"]',
   contact: '[data-box="contact"]', fees: '[data-box="fees"]', players: '[data-box="squads"]', ready: '[data-coach="live"]', waiting: '[data-coach="live"]',
 };
 const EXAMPLES = ['Where do I add my ground?', 'What’s a birth year?'];
-const W = 60, H = 68, GAP = 6, EDGE = 8;
+const W = 84, H = Math.round(W * BOX[3] / BOX[2]), EDGE = 8, BUBBLE = 280;
 const HIDDEN = 'gk-pet-hidden';
-const readHidden = () => { try { return localStorage.getItem(HIDDEN) === '1'; } catch { return false; } };
-const keepHidden = (value: boolean) => { try { localStorage.setItem(HIDDEN, value ? '1' : '0'); } catch { /* a private window: hidden for this visit */ } };
+const stored = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
+const store = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* a private window: for this visit only */ } };
 
-interface Spot { x: number; y: number }
-/** Beside the target if there is room (left first, then right), else under it; always inside the window. */
-function spotFor(rect: DOMRect, under = false): Spot {
+type Aim = 'down' | 'up' | 'left' | 'right';
+interface Spot { x: number; y: number; aim: Aim; rect: { top: number; left: number; width: number; height: number } }
+/**
+ * She sits on top of the step and points down at it. A small target (a button) gets her beside it instead, and one at
+ * the top of the window gets her under it; on the phone's step cards she stands under the card's content.
+ */
+function spotFor(rect: DOMRect, under: boolean): Spot {
   const vw = window.innerWidth, vh = window.innerHeight;
+  const clampX = (x: number) => Math.min(Math.max(x, EDGE), vw - W - EDGE);
   const clampY = (y: number) => Math.min(Math.max(y, EDGE), vh - H - EDGE);
-  const middle = rect.top + Math.min(rect.height, 120) / 2 - H / 2;
-  if (!under && rect.left >= W + GAP + EDGE) return { x: rect.left - W - GAP, y: clampY(middle) };
-  if (!under && rect.right + W + GAP + EDGE <= vw) return { x: rect.right + GAP, y: clampY(middle) };
-  const below = rect.bottom + GAP + H + EDGE <= vh;
-  return { x: Math.min(Math.max(rect.left + 12, EDGE), vw - W - EDGE), y: clampY(below ? rect.bottom + GAP : rect.top - H - GAP) };
+  const box = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+  if (!under && rect.width < W) {
+    const y = clampY(rect.top + rect.height / 2 - H / 2);
+    if (rect.left >= W + EDGE * 2) return { x: rect.left - W - 4, y, aim: 'right', rect: box };
+    if (rect.right + W + EDGE * 2 <= vw) return { x: rect.right + 4, y, aim: 'left', rect: box };
+  }
+  if (!under && rect.top - H >= EDGE) return { x: clampX(rect.left + 16), y: rect.top - H + 6, aim: 'down', rect: box };
+  return { x: clampX(rect.left + 16), y: clampY(rect.bottom + 6), aim: 'up', rect: box };
 }
 
 /**
- * Agent Dola as a pet on a club's draft (a prototype beside the set-up steps): she walks to the current step's box,
- * points at it and says one sentence; when the step is done she walks on. A tap asks her a question (the sandbox's
- * pet guide: Jev picks the step, DeepSeek words the answer) and she walks to that step. She only guides, never acts.
+ * Agent Dola as a pet on a club's draft (a prototype beside the set-up steps). From the moment the page is made she sits
+ * on the next step, points at it and says what it means, with the step lit and the rest of the page dimmed. Skip moves
+ * her on (only the name is needed). A tap asks her a question: the sandbox's pet guide (Jev picks the step, DeepSeek
+ * words the answer) and she walks to that step. She only guides, never fills anything in.
  */
 export function DolaPet() {
   const t = usePagesCopy();
+  const { pathname } = useLocation();
   const { page, panel } = usePageEdit();
   const phone = usePhoneSteps();
   const still = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const [hidden, setHidden] = useState(readHidden);
+  const skipKey = `gk-pet-skipped:${pathname}`;
+  const [hidden, setHidden] = useState(() => stored(HIDDEN) === '1');
+  const [skipped, setSkipped] = useState<string[]>(() => (stored(skipKey) ?? '').split(',').filter(Boolean));
   const [asking, setAsking] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [question, setQuestion] = useState('');
-  const [asked, setAsked] = useState<(PetAnswer & { forNext: SetupKey | null; forCard: string | null }) | null>(null);
+  const [asked, setAsked] = useState<(PetAnswer & { forStep: string | null; forCard: string | null }) | null>(null);
   const [spot, setSpot] = useState<Spot | null>(null);
-  const [facing, setFacing] = useState<'right' | 'left'>('right');
-  const [walking, setWalking] = useState(false);
-  const [tick, setTick] = useState(false);
+  const [walking, setWalking] = useState<'left' | 'right' | null>(null);
+  const [pose, setPose] = useState<'Wave' | 'Celebrate' | null>('Wave');
+  const [tick, setTick] = useState(0);
   const last = useRef<Spot | null>(null);
+  const doneBefore = useRef(page?.setup.done ?? 0);
 
-  const next = page?.setup.next ?? null;
-  // An answer counts until the step it was asked at gets done; then she moves on to the new current step.
+  const items = page?.setup.items ?? [];
+  const pending = items.find(item => !item.done && !skipped.includes(item.key))?.key ?? null;
   const cardStep = phone.open && phone.open !== 'end' ? phone.open : null;
-  const fresh = asked && asked.forNext === next && asked.forCard === phone.open ? asked : null;
-  const step = cardStep ?? fresh?.step ?? next ?? (page?.goLive.ready ? 'ready' : 'waiting');
-  // On the phone's step cards she stands under the card's content, so the card's button stays clear.
+  // An answer counts until the step it was asked at is done or skipped; then she moves on.
+  const fresh = asked && asked.forStep === pending && asked.forCard === phone.open ? asked : null;
+  const step = cardStep ?? fresh?.step ?? pending ?? (page?.goLive.ready ? 'ready' : 'waiting');
   const under = Boolean(phone.open);
   const selector = under ? '.gk-phonesteps__body' : TARGETS[step];
-  const line = thinking ? t('Thinking…') : fresh?.answer ? fresh.answer : t(LINES[step]);
   const away = hidden || Boolean(panel) || !page || page.status !== 'DRAFT';
+
+  // She waves hello first, and cheers each time a step gets done.
+  const done = page?.setup.done ?? 0;
+  useEffect(() => {
+    const cheer = done > doneBefore.current;
+    doneBefore.current = done;
+    const on = cheer ? window.setTimeout(() => setPose('Celebrate'), 0) : 0;
+    const off = window.setTimeout(() => setPose(null), cheer ? 1300 : 1600);
+    return () => { clearTimeout(on); clearTimeout(off); };
+  }, [done]);
 
   useEffect(() => {
     if (away) return;
@@ -85,36 +111,38 @@ export function DolaPet() {
       const target = document.querySelector<HTMLElement>(selector);
       if (!target) return;
       const rect = target.getBoundingClientRect();
-      if (!scrolled && (rect.bottom < 0 || rect.top > window.innerHeight)) { scrolled = true; target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' }); return; }
+      if (!scrolled && (rect.top < H || rect.bottom > window.innerHeight)) {
+        scrolled = true;
+        if (rect.bottom < 0 || rect.top > window.innerHeight - H) { target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' }); return; }
+      }
       const to = spotFor(rect, under), from = last.current;
-      if (from && Math.abs(from.x - to.x) < 2 && Math.abs(from.y - to.y) < 2) return;
+      if (from && Math.abs(from.x - to.x) < 2 && Math.abs(from.y - to.y) < 2 && Math.abs(from.rect.height - to.rect.height) < 2) return;
       last.current = to;
-      // Following the page as it scrolls is gliding; a jump to another box is a walk.
+      // Following the page as it scrolls is gliding; a jump to another step is a walk.
       if (from && Math.hypot(to.x - from.x, to.y - from.y) > 80 && !still) {
-        setFacing(to.x < from.x ? 'left' : 'right');
-        setWalking(true);
+        setWalking(to.x < from.x ? 'left' : 'right');
         window.clearTimeout(stop);
-        stop = window.setTimeout(() => { setWalking(false); setFacing('right'); }, 1100);
+        stop = window.setTimeout(() => setWalking(null), 1000);
       }
       setSpot(to);
     };
-    const frame = window.requestAnimationFrame(measure), timer = window.setInterval(measure, 400);
+    const frame = window.requestAnimationFrame(measure), timer = window.setInterval(measure, 300);
     window.addEventListener('scroll', measure, true);
     window.addEventListener('resize', measure);
     return () => { window.cancelAnimationFrame(frame); window.clearInterval(timer); window.clearTimeout(stop); window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
   }, [away, selector, still, under]);
 
   useEffect(() => {
-    if (!walking && !thinking) return;
-    const timer = window.setInterval(() => setTick(value => !value), walking ? 160 : 240);
+    if (!walking) return;
+    const timer = window.setInterval(() => setTick(value => (value + 1) % WALK_STEPS.length), 130);
     return () => clearInterval(timer);
-  }, [walking, thinking]);
+  }, [walking]);
 
   if (!page) return null;
   if (hidden) {
     return createPortal(
       <div className="gk gk-pet">
-        <button type="button" className="gk-pet__peek" aria-label={t('Show Dola')} onClick={() => { keepHidden(false); setHidden(false); }}><PetSprite frame="idle" className="gk-pet__peek-sprite" /></button>
+        <button type="button" className="gk-pet__peek" aria-label={t('Show Dola')} onClick={() => { store(HIDDEN, '0'); setHidden(false); }}><PetSprite frame="Idle · front" className="gk-pet__peek-sprite" /></button>
       </div>, document.body);
   }
   if (away || !spot) return null;
@@ -127,30 +155,49 @@ export function DolaPet() {
     setThinking(false);
     setAsking(false);
     setQuestion('');
-    setAsked({ forNext: next, forCard: phone.open, step: answer.step, answer: answer.answer ?? (answer.step ? null : t('I help with setting up your page. Tap a box to fill it.')) });
+    setAsked({ forStep: pending, forCard: phone.open, step: answer.step, answer: answer.answer ?? (answer.step ? null : t('I help with setting up your page. Tap a box to fill it.')) });
   };
   const submit = (event: FormEvent) => { event.preventDefault(); void ask(question); };
-  const frame: PetFrame = walking ? (tick ? 'walk1' : 'walk2') : thinking ? (tick ? 'talk' : 'idle') : 'point';
-  const bubbleBelow = under || spot.y < 150;
-  const bubbleRight = spot.x + W / 2 < window.innerWidth / 2;
+  const skip = () => {
+    if (cardStep) { const at = items.findIndex(item => item.key === cardStep); phone.show(items[at + 1]?.key ?? 'end'); return; }
+    if (!pending) return;
+    const next = [...skipped, pending];
+    setSkipped(next);
+    store(skipKey, next.join(','));
+  };
+
+  const frame: PetFrame = walking ? `Walk ${walking} · ${WALK_STEPS[tick]}` : thinking ? 'Thinking' : pose ?? `Point · ${spot.aim}`;
+  const isStep = items.some(item => item.key === step);
+  const title = isStep ? stepWords(page.kind, step as SetupKey) : TITLES[step];
+  const line = fresh?.answer ?? t(LINES[step]);
+  const vw = window.innerWidth;
+  const side = under ? 'below' : spot.x + W + 8 + BUBBLE <= vw ? 'right' : spot.x - 8 - BUBBLE >= 0 ? 'left' : spot.y > 220 ? 'above' : 'below';
 
   return createPortal(
     <div className="gk gk-pet" data-still={still || undefined}>
+      {!under && <div className="gk-pet__spot" style={{ top: spot.rect.top - 6, left: spot.rect.left - 6, width: spot.rect.width + 12, height: spot.rect.height + 12 }} />}
       <div className="gk-pet__body" style={{ transform: `translate(${spot.x}px, ${spot.y}px)` }}>
         {!walking && (
-          <div className="gk-pet__bubble" data-below={bubbleBelow || undefined} data-right={bubbleRight || undefined} style={bubbleRight ? undefined : { maxWidth: Math.max(180, Math.min(260, spot.x + W - EDGE)) }} role="status" aria-live="polite">
+          <div className="gk-pet__bubble" data-side={side} role="status" aria-live="polite">
+            <button type="button" className="gk-pet__hide" aria-label={t('Hide Dola')} onClick={() => { store(HIDDEN, '1'); setHidden(true); }}><X aria-hidden="true" /></button>
             {asking
               ? <form className="gk-pet__ask" onSubmit={submit}>
                   <input className="gk-pet__input" value={question} onChange={event => setQuestion(event.target.value)} maxLength={200} placeholder={t('Ask about setting up your page')} aria-label={t('Ask Dola')} autoComplete="off" autoFocus disabled={thinking} />
                   <span className="gk-pet__examples">{EXAMPLES.map(example => <button key={example} type="button" className="gk-pet__example" disabled={thinking} onClick={() => void ask(t(example))}>{t(example)}</button>)}</span>
                   {thinking && <span className="gk-pet__thinking">{t('Thinking…')}</span>}
                 </form>
-              : <p className="gk-pet__line">{line}</p>}
-            <button type="button" className="gk-pet__hide" aria-label={t('Hide Dola')} onClick={() => { keepHidden(true); setHidden(true); }}><X aria-hidden="true" /></button>
+              : <>
+                  {title && <strong className="gk-pet__title">{t(title)}</strong>}
+                  <p className="gk-pet__line">{line}</p>
+                  <span className="gk-pet__actions">
+                    {isStep && <button type="button" className="gk-pet__action" onClick={skip}>{t('Skip')}</button>}
+                    <button type="button" className="gk-pet__action gk-pet__action--quiet" onClick={() => setAsking(true)}>{t('Ask me')}</button>
+                  </span>
+                </>}
           </div>
         )}
         <button type="button" className="gk-pet__pet" aria-label={t('Ask Dola')} aria-expanded={asking} onClick={() => setAsking(value => !value)}>
-          <PetSprite frame={frame} className={`gk-pet__sprite${facing === 'left' ? ' gk-pet__sprite--left' : ''}`} />
+          <PetSprite frame={frame} className="gk-pet__sprite" />
         </button>
       </div>
     </div>,

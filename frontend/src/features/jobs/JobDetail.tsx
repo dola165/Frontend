@@ -61,7 +61,7 @@ export function JobDetail({ id, pane }: { id: number; pane?: boolean }) {
                 {job.licence && <Badge tone="violet">{job.licence}</Badge>}
             </div>
             <div className="gk-job-detail__actions">
-                <Answer job={job} status={status} detail={detail} />
+                {poster.kind === 'PERSON' && user?.id === poster.id ? <span className="gk-faint">This is your listing</span> : <Answer job={job} status={status} detail={detail} />}
                 <Button onClick={() => void share(job)}><Share2 aria-hidden="true" />Share</Button>
             </div>
             <section><h3>{offering ? 'About' : 'About the role'}</h3><p className="gk-job-detail__text">{job.description || 'No description yet.'}</p></section>

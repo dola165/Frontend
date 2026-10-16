@@ -31,14 +31,16 @@ const LEGACY: Record<string, SquadTab> = { announcements: 'updates', sessions: '
 export function SquadPage({ id, embedded = false }: { id: number; embedded?: boolean }) {
     const copy = useJourneyCopy();
     const [params, setParams] = useSearchParams();
-    const legacy = LEGACY[params.get('tab') ?? ''];
-    const [tab, setTab] = useUrlTab<SquadTab>('tab', TABS, 'updates');
+    // Framed by My squads, whose own menu reads `tab`, the page keeps its tab in `view`.
+    const key = embedded ? 'view' : 'tab';
+    const legacy = LEGACY[params.get(key) ?? ''];
+    const [tab, setTab] = useUrlTab<SquadTab>(key, TABS, 'updates');
     const [space, setSpace] = useState<api.SquadOverview | null>(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
     const refresh = () => setRevision(n => n + 1);
     useEffect(() => {
         if (!legacy) return;
-        const next = new URLSearchParams(params); next.set('tab', legacy); setParams(next, { replace: true });
-    }, [legacy, params, setParams]);
+        const next = new URLSearchParams(params); next.set(key, legacy); setParams(next, { replace: true });
+    }, [legacy, key, params, setParams]);
     useEffect(() => {
         let active = true; const abort = new AbortController();
         const load = () => { if (document.hidden) return; void api.overview(id, abort.signal).then(s => { if (active) { setSpace(s); setError(''); } }).catch(e => { if (active) { setSpace(null); setError(extractApiErrorMessage(e, copy('We could not open this squad. Please try again.', 'გუნდის გვერდი ვერ გაიხსნა. სცადეთ ხელახლა.'))); } }); };
@@ -51,7 +53,7 @@ export function SquadPage({ id, embedded = false }: { id: number; embedded?: boo
     const child = children.find(item => item.playerId === playerParam) ?? children[0];
     // Back to where the person came from: Parent Hub carries the child in the address, My squads does not.
     const back = space?.can_manage && !params.has('player') ? { to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები') } : { to: child ? `/parent?player=${child.playerId}` : '/parent', label: copy('Parent Hub', 'მშობლის სივრცე') };
-    if (params.get('tab') === 'chat' || params.get('tab') === 'coach' || params.has('thread')) return <Navigate replace to={squadMessageUrl(id, params.get('tab') !== 'chat', Number(params.get('thread')) || null)} />;
+    if (params.get(key) === 'chat' || params.get(key) === 'coach' || (!embedded && params.has('thread'))) return <Navigate replace to={squadMessageUrl(id, params.get(key) !== 'chat', Number(params.get('thread')) || null)} />;
     const frame = (body: ReactNode) => embedded ? <div className="sp">{body}</div> : <GkRoot className="gk-page sp"><PageFrame>
         <Link className="sp-back" to={back.to}><ArrowLeft aria-hidden="true" />{back.label}</Link>{body}</PageFrame></GkRoot>;
     if (error) return frame(<div role="alert" className="sp-empty"><h1>{copy('Squad page unavailable', 'გუნდის გვერდი მიუწვდომელია')}</h1><p>{error}</p><button type="button" className="sp-link" onClick={refresh}>{copy('Try again', 'ხელახლა ცდა')}</button></div>);
@@ -75,7 +77,7 @@ export function SquadPage({ id, embedded = false }: { id: number; embedded?: boo
         <Tabs<SquadTab> label={copy('Squad page', 'გუნდის გვერდი')} value={tab} onChange={setTab} idBase="squad"
             items={[{ id: 'updates', label: copy('Updates', 'განახლებები') }, { id: 'schedule', label: copy('Schedule', 'განრიგი') }, { id: 'players', label: copy('Players', 'მოთამაშეები'), count: space.players.length }, { id: 'grounds', label: copy('Grounds', 'მოედნები') }]} />
         <div id={`squad-${tab}-panel`} role="tabpanel" aria-labelledby={`squad-${tab}`} className="sp-panel">
-            {tab === 'updates' ? <SquadUpdatesTab space={space} child={child} crest={crest} onChanged={refresh} />
+            {tab === 'updates' ? <SquadUpdatesTab space={space} child={child} crest={crest} tabKey={key} onChanged={refresh} />
                 : tab === 'schedule' ? <SquadScheduleTab space={space} childId={child?.playerId} />
                 : tab === 'players' ? <SquadPlayersTab space={space} crest={crest} childIds={children.map(item => item.playerId)} onChanged={refresh} />
                 : <SquadGroundsTab space={space} childId={child?.playerId} />}

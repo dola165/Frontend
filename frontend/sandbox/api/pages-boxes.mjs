@@ -162,7 +162,9 @@ export function addArrival(page, squad, guardian, body) {
   if (age == null || age < 3 || age > 19) return fail(400, 'Check the date of birth.');
   const fit = squadForBirthYear(page, birthDate, squad, ['MALE', 'FEMALE'].includes(body?.childGender) ? body.childGender : null);
   const arrival = { id: C.nextId(), childFirstName: first, childLastName: last, childGender: ['MALE', 'FEMALE'].includes(body?.childGender) ? body.childGender : null, birthDate, birthYear: Number(birthDate.slice(0, 4)), squadId: fit.id, linkSquadId: squad.id,
-    guardianId: guardian, guardianName: viewerName(guardian), status: 'WAITING', at: new Date().toISOString() };
+    guardianId: guardian, guardianName: viewerName(guardian), status: 'WAITING', at: new Date().toISOString(),
+    // An existing card the guardian chose (checked as theirs in squad-page.mjs): approving joins that card, no duplicate.
+    playerId: Number.isSafeInteger(body?.playerId) ? body.playerId : null };
   page.arrivals.push(arrival);
   page.boxes.players.shared = true;
   return { arrival };
@@ -174,10 +176,11 @@ export function decideArrival(page, arrivalId, action, squadId) {
   if (action === 'DECLINE') { arrival.status = 'DECLINED'; return { arrival }; }
   const squad = squadsOf(page).find(s => s.id === Number(squadId ?? arrival.squadId)) ?? squadsOf(page)[0];
   if (!squad) return fail(400, 'Add a squad first.');
-  const person = { id: W.newId(), firstName: arrival.childFirstName, lastName: arrival.childLastName, fullName: `${arrival.childFirstName} ${arrival.childLastName}`.trim(), username: null, gender: arrival.childGender ?? (squad.gender === 'FEMALE' ? 'FEMALE' : 'MALE'),
+  const existing = arrival.playerId && W.personById(arrival.playerId);
+  const person = existing || { id: arrival.playerId ?? W.newId(), firstName: arrival.childFirstName, lastName: arrival.childLastName, fullName: `${arrival.childFirstName} ${arrival.childLastName}`.trim(), username: null, gender: arrival.childGender ?? (squad.gender === 'FEMALE' ? 'FEMALE' : 'MALE'),
     role: 'PLAYER', birthYear: arrival.birthYear, city: page.identity.town.name, clubId: page.clubId, position: null, headline: null, avatarUrl: null, squadId: squad.id, guardianId: arrival.guardianId, isPrivate: true };
-  W.people.push(person);
-  squad.playerIds.push(person.id);
+  if (!existing) W.people.push(person);
+  if (!squad.playerIds.includes(person.id)) squad.playerIds.push(person.id);
   Object.assign(arrival, { status: 'APPROVED', squadId: squad.id, playerId: person.id });
   return { arrival };
 }
@@ -189,7 +192,8 @@ export function pastePlayers(page, squadId, names) {
   if (!list.length) return fail(400, 'Paste at least one name.');
   for (const name of list) {
     const [first, ...rest] = name.split(' ');
-    const person = { id: W.newId(), firstName: first, lastName: rest.join(' '), fullName: name, username: null, gender: squad.gender === 'FEMALE' ? 'FEMALE' : 'MALE', role: 'PLAYER', birthYear: null,
+    const existing = arrival.playerId && W.personById(arrival.playerId);
+  const person = existing || { id: arrival.playerId ?? W.newId(), firstName: first, lastName: rest.join(' '), fullName: name, username: null, gender: squad.gender === 'FEMALE' ? 'FEMALE' : 'MALE', role: 'PLAYER', birthYear: null,
       city: page.identity.town.name, clubId: page.clubId, position: null, headline: null, avatarUrl: null, squadId: squad.id, isPrivate: true, invitePending: true };
     W.people.push(person);
     squad.playerIds.push(person.id);

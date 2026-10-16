@@ -317,6 +317,8 @@ export const PAGES_KA: Record<string, string> = {
   'Puts your child in the right age group.': 'შვილს სწორ ასაკობრივ ჯგუფში ათავსებს.',
   'I am the parent or guardian. Only the coach sees this; nothing about my child is public.': 'მე ვარ მშობელი ან მეურვე. ამას მხოლოდ მწვრთნელი ხედავს; ჩემი შვილის შესახებ არაფერია საჯარო.',
   'Add my child': 'ჩემი შვილის დამატება',
+  'Which child?': 'რომელი შვილი?',
+  'New child': 'ახალი ბავშვი',
   'Join {name}': '{name}: შემოსვლა',
   '{squad} · {town}': '{squad} · {town}',
   'This invitation has expired. Ask for a new one.': 'მოწვევას ვადა გაუვიდა. სთხოვეთ ახალი.',

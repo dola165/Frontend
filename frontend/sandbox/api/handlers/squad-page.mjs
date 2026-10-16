@@ -6,7 +6,8 @@
 //   GET  /squad-communication/:id/join-requests    children waiting for the coach (from the link or a group request)
 //   POST /squad-communication/:id/join-requests/:rid { action: APPROVE | DECLINE }
 //   GET/POST /join/:code                            the link itself, for codes of the form sq<squad>k<key>
-import { get, post, reply } from '../router.mjs';
+import { get, post, reply, handleApi } from '../router.mjs';
+import { FAMILY, familyRequest } from '../world-family.mjs';
 import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as F from '../world-football.mjs';
@@ -14,6 +15,7 @@ import * as F from '../world-football.mjs';
 const codeOf = squadId => `sq${squadId}k${((squadId * 7919) % 46656).toString(36).padStart(3, '0')}`;
 const squadOfCode = code => { const m = /^sq(\d+)k([0-9a-z]+)$/.exec(String(code)); const squad = m && W.squadById(m[1]); return squad && codeOf(squad.id) === code ? squad : null; };
 const coachable = id => { const squad = W.squadById(id); return squad && squad.clubId === 1 ? squad : null; };
+const PASS = 'x-sandbox-join-pass'; // set once the chosen child is checked as the guardian's (below)
 const arrivals = []; // { id, squadId, childFirstName, childLastName, birthDate, gender, guardianName, playerId, createdAt, status }
 let nextArrival = 88001;
 const year = new Date().getFullYear();
@@ -30,8 +32,9 @@ get('/join/:code', ({ params }) => {
     squad: { id: squad.id, name: squad.name, ageGroup: squad.ageGroup, gender: squad.gender } };
 });
 
-post('/join/:code', ({ params, body }) => {
+post('/join/:code', ({ params, body, headers }) => {
   const squad = squadOfCode(params.code); if (!squad) return undefined;
+  if (body?.playerId != null && !headers[PASS]) return undefined; // the guardian check below answers first
   const first = String(body?.childFirstName ?? '').trim(), birthDate = String(body?.birthDate ?? '');
   if (!first || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return reply(400, { status: 400, message: 'Add the child’s name and date of birth.' });
   const arrival = { id: nextArrival++, squadId: squad.id, childFirstName: first, childLastName: String(body?.childLastName ?? '').trim(), birthDate, gender: body?.childGender ?? null, guardianName: W.me.fullName, playerId: body?.playerId ?? null, createdAt: new Date().toISOString(), status: 'WAITING' };
@@ -69,4 +72,17 @@ post('/squad-communication/:id/join-requests/:rid', ({ params, body }) => {
     if (approve && !squad.playerIds.includes(request.playerId)) squad.playerIds.push(request.playerId);
   }
   return { status: approve ? 'APPROVED' : 'DECLINED' };
+});
+
+// A parent picks a child they already look after: the server checks the card is theirs (never someone else's child),
+// fills in the card's own name and birth date, and passes the join on with the playerId (academy codes above, pages'
+// codes in pages.mjs).
+post('/join/:code', async req => {
+  if (req.headers[PASS] || req.body?.playerId == null) return undefined;
+  const child = familyRequest(req.headers) ? FAMILY.find(c => c.id === Number(req.body.playerId)) : null;
+  if (!child) return reply(403, { status: 403, message: 'You can only add a child you look after.' });
+  const [first, ...rest] = child.name.split(' ');
+  const body = { ...req.body, playerId: child.id, childFirstName: first, childLastName: rest.join(' '), childGender: child.gender, birthDate: child.dateOfBirth };
+  const result = await handleApi({ ...req, body, headers: { ...req.headers, [PASS]: '1' } });
+  return result ? reply(result.status, result.body) : undefined;
 });

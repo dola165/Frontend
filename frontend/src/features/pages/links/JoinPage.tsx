@@ -1,7 +1,9 @@
 import { useEffect, useId, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Check, Loader2, User, Users } from 'lucide-react';
-import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../../design/primitives';
+import { Check, Loader2, Plus, User, Users } from 'lucide-react';
+import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../../design/primitives';
+import { useAuth } from '../../../context/AuthContext';
+import { fetchJoiningChildren, type JoiningChild } from '../../parents/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { Crest } from '../../world/Crest';
 import { fetchJoinLink, sendJoin, type JoinLink } from '../api';
@@ -27,6 +29,18 @@ export function JoinPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState<{ squadName: string | null } | null>(null);
+  // A parent who already has children picks one (F33: which child first); "new" types a new one.
+  const { sessionId } = useAuth();
+  const [kids, setKids] = useState<JoiningChild[]>([]);
+  const [picked, setPicked] = useState<number | 'new' | null>(null);
+  const chosen = typeof picked === 'number' ? kids.find(kid => kid.playerId === picked) : undefined;
+  useEffect(() => {
+    if (who !== 'PARENT') return;
+    const controller = new AbortController();
+    fetchJoiningChildren(sessionId, controller.signal).then(found => { if (!controller.signal.aborted) setKids(found.children); }).catch(() => { /* New child only. */ });
+    return () => controller.abort();
+  }, [who, sessionId]);
+  const typing = who !== 'PARENT' || !kids.length || picked === 'new';
   const id = useId();
   useEffect(() => {
     const controller = new AbortController();
@@ -34,11 +48,16 @@ export function JoinPage() {
     return () => controller.abort();
   }, [code, t]);
   const adult = card.birthDate ? ageOn(card.birthDate) >= ADULT : false;
-  const ready = card.first.trim() && card.birthDate && (who === 'PLAYER' || card.consent);
+  const ready = chosen ? card.consent : !typing ? false : card.first.trim() && card.birthDate && (who === 'PLAYER' || card.consent);
   const submit = async () => {
     if (busy || !ready) return;
     setBusy(true); setError('');
-    try { const sent = await sendJoin(code, { childFirstName: card.first.trim(), childLastName: card.last.trim(), childGender: card.gender, birthDate: card.birthDate, consent: true }); setDone({ squadName: sent.squadName }); }
+    try {
+      const [first, ...rest] = chosen ? chosen.identity.fullName.split(' ') : [];
+      const sent = chosen ? await sendJoin(code, { playerId: chosen.playerId, childFirstName: first, childLastName: rest.join(' '), childGender: chosen.identity.gender, birthDate: chosen.identity.dateOfBirth ?? '', consent: true })
+        : await sendJoin(code, { childFirstName: card.first.trim(), childLastName: card.last.trim(), childGender: card.gender, birthDate: card.birthDate, consent: true });
+      setDone({ squadName: sent.squadName });
+    }
     // A grown-up on a youth squad's link: the squad decides, not the form.
     catch (failure) { setError(who === 'PLAYER' && adult ? t('This link is for {squad}. Ask the coach for the right squad’s link.', { squad: link?.squad.name ?? '' }) : extractApiErrorMessage(failure, t('Could not send. Try again.'))); }
     finally { setBusy(false); }
@@ -47,10 +66,10 @@ export function JoinPage() {
   const body = failed ? <Panel><EmptyNote title={failed} action={<ButtonLink to="/world/clubs">{t('Find your club')}</ButtonLink>} /></Panel>
     : !link ? <div className="gk-stack gk-stack--tight" role="status"><Skeleton height={56} /><Skeleton height={44} /><Skeleton height={44} /></div>
     : done ? <Panel padded>
-      <div className="gk-cmatch__page"><span className="gk-ghost__icon"><Check aria-hidden="true" /></span><span className="gk-cmatch__text"><strong>{t('{child} is on the list for {squad}', { child: card.first.trim(), squad: done.squadName ?? link.squad.name })}</strong><small>{t('The coach confirms. Nothing is public.')}</small></span></div>
+      <div className="gk-cmatch__page"><span className="gk-ghost__icon"><Check aria-hidden="true" /></span><span className="gk-cmatch__text"><strong>{t('{child} is on the list for {squad}', { child: chosen ? chosen.identity.fullName.split(' ')[0] : card.first.trim(), squad: done.squadName ?? link.squad.name })}</strong><small>{t('The coach confirms. Nothing is public.')}</small></span></div>
       <div className="gk-boxedit__foot" style={{ marginTop: 12 }}>
         {who === 'PLAYER' && adult && <ButtonLink variant="primary" to={`/signup?next=${encodeURIComponent(link.page.profilePath)}`}>{t('Create your account')}</ButtonLink>}
-        {who === 'PARENT' && <ButtonLink variant="primary" to="/parents">{t('Open Parent Hub')}</ButtonLink>}
+        {who === 'PARENT' && <ButtonLink variant="primary" to={chosen ? `/parent?player=${chosen.playerId}` : '/parent'}>{t('Open Parent Hub')}</ButtonLink>}
         <ButtonLink variant={who === 'PARENT' || adult ? 'ghost' : 'primary'} to={link.page.profilePath}>{t('Open {name}', { name: link.page.name })}</ButtonLink>
       </div>
     </Panel>
@@ -65,6 +84,11 @@ export function JoinPage() {
     : <Panel padded>
       {header}
       <div className="gk-boxedit" style={{ marginTop: 16 }}>
+        {who === 'PARENT' && kids.length > 0 && <div className="gk-ctowns" role="radiogroup" aria-label={t('Which child?')}>
+          {kids.map(kid => <button key={kid.playerId} type="button" role="radio" className="gk-chip" aria-checked={picked === kid.playerId} aria-pressed={picked === kid.playerId} onClick={() => setPicked(kid.playerId)}><Avatar name={kid.identity.fullName} size={22} />{kid.identity.fullName.split(' ')[0]}</button>)}
+          <button type="button" role="radio" className="gk-chip" aria-checked={picked === 'new'} aria-pressed={picked === 'new'} onClick={() => setPicked('new')}><Plus aria-hidden="true" />{t('New child')}</button>
+        </div>}
+        {typing && <>
         <div className="gk-boxedit__row">
           <div style={{ flex: 1 }}><label className="gk-field__label" htmlFor={`${id}-first`}>{t(who === 'PARENT' ? 'Child’s first name' : 'Your first name')}</label><input id={`${id}-first`} className="gk-input" autoFocus value={card.first} maxLength={60} autoComplete={who === 'PLAYER' ? 'given-name' : 'off'} onChange={event => setCard({ ...card, first: event.target.value })} /></div>
           <div style={{ flex: 1 }}><label className="gk-field__label" htmlFor={`${id}-last`}>{t('Last name')}</label><input id={`${id}-last`} className="gk-input" value={card.last} maxLength={60} autoComplete={who === 'PLAYER' ? 'family-name' : 'off'} onChange={event => setCard({ ...card, last: event.target.value })} /></div>
@@ -73,8 +97,9 @@ export function JoinPage() {
           <button type="button" className="gk-chip" aria-pressed={card.gender === 'MALE'} onClick={() => setCard({ ...card, gender: 'MALE' })}>{t('Boys')}</button>
           <button type="button" className="gk-chip" aria-pressed={card.gender === 'FEMALE'} onClick={() => setCard({ ...card, gender: 'FEMALE' })}>{t('Girls')}</button>
         </div>
-        <div><label className="gk-field__label" htmlFor={`${id}-dob`}>{t('Date of birth')}</label><input id={`${id}-dob`} className="gk-input" type="date" value={card.birthDate} max={new Date().toISOString().slice(0, 10)} autoComplete={who === 'PLAYER' ? 'bday' : 'off'} style={{ maxWidth: 200 }} onChange={event => setCard({ ...card, birthDate: event.target.value })} /></div>
-        {who === 'PARENT'
+        </>}
+        {typing && <div><label className="gk-field__label" htmlFor={`${id}-dob`}>{t('Date of birth')}</label><input id={`${id}-dob`} className="gk-input" type="date" value={card.birthDate} max={new Date().toISOString().slice(0, 10)} autoComplete={who === 'PLAYER' ? 'bday' : 'off'} style={{ maxWidth: 200 }} onChange={event => setCard({ ...card, birthDate: event.target.value })} /></div>}
+        {who === 'PARENT' && !typing && !chosen ? null : who === 'PARENT'
           ? <label className="gk-row" style={{ gap: 8, alignItems: 'flex-start' }}><input type="checkbox" checked={card.consent} onChange={event => setCard({ ...card, consent: event.target.checked })} style={{ marginTop: 3 }} /><span>{t('I am the parent or guardian and I agree to the club keeping this card.')}</span></label>
           : card.birthDate && !adult ? <p className="gk-field__hint">{t('Under {age}: a parent or the coach confirms your card.', { age: ADULT })}</p> : null}
         {error && <p className="gk-notice gk-notice--warning" role="alert">{error}</p>}

@@ -130,7 +130,8 @@ export const decideArrival = (ref: PageRef, id: number, action: 'APPROVE' | 'DEC
   apiClient.post<PageView>(`${pageBase(ref)}/arrivals/${id}`, { action, squadId }).then(r => r.data);
 export const pastePlayers = (ref: PageRef, squadId: number, names: string[]) => apiClient.post<PageView>(`${pageBase(ref)}/players`, { squadId, names }).then(r => r.data);
 export const fetchJoinLink = (code: string, signal?: AbortSignal) => apiClient.get<JoinLink>(`/join/${encodeURIComponent(code)}`, { signal }).then(r => r.data);
-export const sendJoin = (code: string, body: { childFirstName: string; childLastName: string; childGender: 'MALE' | 'FEMALE' | null; birthDate: string; consent: true }) =>
+/** `playerId`: a child the parent already looks after (the server checks the card is theirs and joins that card). */
+export const sendJoin = (code: string, body: { childFirstName: string; childLastName: string; childGender: 'MALE' | 'FEMALE' | null; birthDate: string; consent: true; playerId?: number }) =>
   apiClient.post<{ id: number; status: string; squadName: string | null }>(`/join/${encodeURIComponent(code)}`, body).then(r => r.data);
 export const fetchInvite = (code: string, signal?: AbortSignal) => apiClient.get<InviteLink>(`/invite/${encodeURIComponent(code)}`, { signal }).then(r => r.data);
 export const acceptInvite = (code: string) => apiClient.post<{ profilePath: string }>(`/invite/${encodeURIComponent(code)}/accept`).then(r => r.data);

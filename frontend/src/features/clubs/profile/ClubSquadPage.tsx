@@ -17,6 +17,7 @@ import { usePageEditIfAny } from '../../pages/edit/context';
 import { feeBandText } from '../../pages/model/fees';
 import { trainsLine } from './trainsLine';
 import type { ClubProfile } from './types';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
 interface Timetable { canView: boolean; sessions: TrainingSession[] }
 
@@ -39,6 +40,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
     const trains = trainsLine(sessions);
     const staff = coaches(people.data ?? [], squad.id);
     // Pitches and grounds only: a gym or a medical room is not where a visitor goes for a first session.
+    const copy = useJourneyCopy();
     const venues = (places.data ?? []).filter(f => placeType(f) !== 'FACILITY' && (f.squadId == null || f.squadId === squad.id));
     const programme = programmes[0];
     // Without a programme, a club with a page still says what training costs: the fee band its owner set.
@@ -59,8 +61,8 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
                             <ButtonLink to={`/clubs/${club.id}/workspace?tab=squads&squad=${squad.id}`}>Squad workspace</ButtonLink>
                             <ButtonLink variant="primary" to={roster}><Users aria-hidden="true" />Players</ButtonLink>
                         </> : <>
-                            <Button onClick={() => onContact({ ...enquiry, intent: 'question' })}>Ask a question</Button>
-                            <Button variant="primary" onClick={() => onContact({ ...enquiry, intent: 'visit' })}>Arrange a first visit<ArrowRight aria-hidden="true" /></Button>
+                            <Button onClick={() => onContact({ ...enquiry, intent: 'question' })}>{copy('Ask a question', 'კითხვის დასმა')}</Button>
+                            <Button variant="primary" onClick={() => onContact({ ...enquiry, intent: 'visit' })}>{copy('Arrange a first visit', 'პირველი ვიზიტის დაგეგმვა')}<ArrowRight aria-hidden="true" /></Button>
                         </>}
                     </div>
                 </div>

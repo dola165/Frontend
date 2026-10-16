@@ -56,9 +56,13 @@ export function useSquadSchedule(squads: CalendarSquad[], from: string, to: stri
             try {
                 // Sessions store instants; the legacy club feed uses local calendar boundaries.
                 const window = { from: new Date(from).toISOString(), to: new Date(to).toISOString(), ...(playerId == null ? {} : { playerId }) };
-                const sessions = await Promise.all(selected.map(async squad => (await api.sessions(squad.id, abort.signal, window))
+                // Each squad's sessions load on their own (F06): one failure leaves the others in view, named in the error.
+                const settled = await Promise.allSettled(selected.map(async squad => (await api.sessions(squad.id, abort.signal, window))
                     .filter(session => playerId == null || session.attendance.some(p => p.id === playerId && p.active !== false))
                     .map(session => sessionEvent(squad, session))));
+                const failedSquads = selected.filter((_, index) => settled[index].status === 'rejected');
+                if (selected.length && failedSquads.length === selected.length) throw (settled[0] as PromiseRejectedResult).reason;
+                const sessions = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
                 // Club feeds can be unavailable to a family; squad sessions must still load.
                 const clubs = [...new Set(selected.flatMap(squad => squad.club_id ? [squad.club_id] : []))];
                 const feeds = await Promise.allSettled(clubs.map(id => fetchClubSchedule(id, from, to, abort.signal)));
@@ -74,7 +78,8 @@ export function useSquadSchedule(squads: CalendarSquad[], from: string, to: stri
                     // Optional feeds deliberately deny/hide records from an actor
                     // without that access; retrying cannot change this. Mandatory
                     // squad-session failures still reach the error path below.
-                    error: [...feeds, ...connectedFeeds].some(feed => feed.status === 'rejected' && ![403, 404].includes(feed.reason?.response?.status)) ? 'Squad sessions are available, but some match and event listings could not load. Try again.' : '', loading: false });
+                    error: failedSquads.length ? `${failedSquads.map(squad => squad.name).join(', ')}: sessions could not load. The rest is shown.`
+                        : [...feeds, ...connectedFeeds].some(feed => feed.status === 'rejected' && ![403, 404].includes(feed.reason?.response?.status)) ? 'Squad sessions are available, but some match and event listings could not load. Try again.' : '', loading: false });
             } catch (error) {
                 if (!abort.signal.aborted) setState({ key, events: [], error: extractApiErrorMessage(error, 'Your squad schedule could not load.'), loading: false });
             } finally {

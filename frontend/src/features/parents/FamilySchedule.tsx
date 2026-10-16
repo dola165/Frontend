@@ -20,6 +20,7 @@ import { SquadEventComposer } from '../squadCommunication/SquadEventComposer';
 import { SessionNextActions } from '../squadCommunication/SessionNextActions';
 import { SessionMoveDialog } from '../squadCommunication/SessionMoveDialog';
 import { SessionDialog } from '../squadCommunication/SquadSessionDialog';
+import { EventSummary } from '../squadCommunication/EventSummary';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { scheduleDestination } from '../schedule/origin';
 import './family-schedule.css';
@@ -68,9 +69,11 @@ function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playe
  * `editable` lets people who manage a squad move its sessions with the mouse (with a confirmation that previews who
  * is told); `hideContext` leaves out the page's own heading and back link when another page frames it.
  */
-export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false, combined = false, editable = false, hideContext = false }: {
+export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false, combined = false, editable = false, hideContext = false, initialEdit = false }: {
     squads: CalendarSquad[]; playerId?: number; initialSquadId?: number; initialDate?: Date; initialSessionId?: number; onSquadChange?: (id: number) => void; inSquadPage?: boolean; prioritizeNextAction?: boolean; embedded?: boolean;
     combined?: boolean; editable?: boolean; hideContext?: boolean;
+    /** Open the initial calendar entry straight in its editor (My squads' Edit link); otherwise it opens as a summary first (F29). */
+    initialEdit?: boolean;
 }) {
     const navigate = useNavigate();
     const copy = useJourneyCopy();
@@ -82,6 +85,7 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
     const [types, setTypes] = useState(EVENT_TYPES);
     const [selectedId, setSelectedId] = useState<string | null>(() => squad && initialSessionId ? `squad:${squad.id}:${initialSessionId}` : null);
     const [revision, setRevision] = useState(0);
+    const [editing, setEditing] = useState(initialEdit);
     const [eventDraft, setEventDraft] = useState<{date: Date; weekly: boolean; squadId?: number} | null>(null);
     const [choosing, setChoosing] = useState<{date: Date; weekly: boolean} | null>(null);
     const [move, setMove] = useState<{ event: import('../squadCommunication/useSquadSchedule').SquadCalendarEvent; startsAt: string; endsAt: string } | null>(null);
@@ -124,13 +128,17 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
         setDate(next); setSelectedId(null);
     };
     const select = (event: { id: string }) => {
+        setEditing(false);
         const item = connected.find(candidate => candidate.id === event.id);
         const destination = item && scheduleDestination(item);
         if (item?.journeys?.length || (embedded && item?.session)) setSelectedId(event.id); else if (destination) navigate(destination); else setSelectedId(event.id);
     };
     const chooseSquad = (id: number) => { setPicked(id); setSelectedId(null); setEventDraft(null); onSquadChange?.(id); };
     const eventSquad = selected ? squads.find(item => item.id === selected.squadId) ?? squad : squad;
-    const editingEvent = selected && !selected.journeys?.length && !selected.session && !scheduleDestination(selected) && eventSquad?.can_manage && selected.owningClubId === eventSquad.club_id;
+    // A calendar entry the coach may edit opens as a short summary; Edit (or My squads' direct link) opens its editor.
+    const clubEvent = selected && !selected.journeys?.length && !selected.session && !scheduleDestination(selected) && eventSquad?.can_manage && selected.owningClubId === eventSquad.club_id;
+    const editingEvent = clubEvent && editing;
+    const close = () => { setSelectedId(null); setEditing(false); };
     const draftSquad = eventDraft ? squads.find(item => item.id === eventDraft.squadId) ?? squad : undefined;
     const nextActions = !loading && <SessionNextActions events={events} canManage={!!squad?.can_manage} playerId={playerId} onSelect={select} compact={embedded || !prioritizeNextAction}/>;
     return <section className={embedded ? 'family-agenda' : 'squad-schedule-workspace'} aria-label="Squad schedule">
@@ -164,9 +172,10 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
             </div>}/>}
         {selectedId && !selected && !loading && <p role="status" className="squad-schedule-notice">{copy('This session is unavailable in the selected week or your invitation has changed. Check your latest coach update.', 'ეს სესია არჩეულ კვირაში მიუწვდომელია ან თქვენი მოწვევა შეიცვალა. ნახეთ მწვრთნელის ბოლო განახლება.')}</p>}
         {!!selected?.journeys?.length && <JourneyEventDetails entries={selected.journeys} onClose={()=>setSelectedId(null)} onSaved={refresh}/>}
-        {selected && !selected.journeys?.length && !editingEvent && <SquadSessionDetails key={selected.id} event={selected} playerId={playerId} canManage={!!eventSquad?.can_manage} onClose={() => setSelectedId(null)} onSaved={refresh}/>}
+        {clubEvent && !editing && <EventSummary key={selected.id} event={selected} onEdit={() => setEditing(true)} onClose={close}/>}
+        {selected && !selected.journeys?.length && !clubEvent && <SquadSessionDetails key={selected.id} event={selected} playerId={playerId} canManage={!!eventSquad?.can_manage} onClose={() => setSelectedId(null)} onSaved={refresh}/>}
         {notice && <p role="status" className="squad-schedule-notice">{notice}</p>}
-        {editingEvent && eventSquad && <SquadClubEventEditor key={selected.id} squad={eventSquad} date={date} event={selected} onClose={() => setSelectedId(null)} onSaved={() => { setSelectedId(null); refresh(); }}/ >}
+        {editingEvent && eventSquad && <SquadClubEventEditor key={selected.id} squad={eventSquad} date={date} event={selected} onClose={close} onSaved={() => { close(); refresh(); }}/ >}
         {choosing && <SessionDialog title={copy('Plan for which squad?', 'რომელი გუნდისთვის?')} onClose={() => setChoosing(null)}>
             <div className="session-choose-squad">{managed.map(item => <button key={item.id} type="button" onClick={() => { setEventDraft({ ...choosing, squadId: item.id }); setChoosing(null); }}>{item.name}</button>)}</div>
         </SessionDialog>}

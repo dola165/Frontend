@@ -23,6 +23,7 @@ import { OlderMessages } from '../../components/chat/OlderMessages';
 import { getStoredUserId } from '../../utils/authStorage';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { useAuth } from '../../context/AuthContext';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { isCurrentAuthSession, type AuthSessionId } from '../../utils/authStorage';
 
 interface ContactConversation {
@@ -39,6 +40,7 @@ export const RightSidebar = () => {
 };
 
 const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) => {
+    const copy = useJourneyCopy();
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [quickChat, setQuickChat] = useState<ContactConversation | null>(null);
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
@@ -117,21 +119,21 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
 
     return (
         <>
-            <aside className="home-side-rail home-side-rail--right hidden xl:block" aria-label="Store, jobs, fundraising and contacts">
+            <aside className="home-side-rail home-side-rail--right hidden xl:block" aria-label={copy('Store, jobs, fundraising and contacts', 'მაღაზია, სამუშაო, ფონდები და კონტაქტები')}>
                 <div className="home-side-scroll space-y-5">
                     {/* The global store, jobs and fundraising: plain names here, "Club store" and friends only on a club's page. */}
-                    <nav className="home-rail-card home-opportunities-card" aria-label="Store, jobs and fundraising">
+                    <nav className="home-rail-card home-opportunities-card" aria-label={copy('Store, jobs and fundraising', 'მაღაზია, სამუშაო და ფონდების მოზიდვა')}>
                         <div className="space-y-2.5 p-3">
-                            <OpportunityLink kind="store" to="/store" description="Kit & merchandise from clubs" />
-                            <OpportunityLink kind="jobs" to="/jobs" description="Work and volunteer in football" />
-                            <OpportunityLink kind="campaigns" to="/campaigns" description="Support club projects" />
+                            <OpportunityLink kind="store" to="/store" description={copy('Kit & merchandise from clubs', 'ფორმა და ნივთები კლუბებისგან')} />
+                            <OpportunityLink kind="jobs" to="/jobs" description={copy('Work and volunteer in football', 'იმუშავეთ ან იყავით მოხალისე ფეხბურთში')} />
+                            <OpportunityLink kind="campaigns" to="/campaigns" description={copy('Support club projects', 'დაუჭირეთ მხარი კლუბის პროექტებს')} />
                         </div>
                     </nav>
 
                     <section aria-labelledby="contacts-heading" className="home-rail-card home-contacts-card">
                         <div className="flex items-center border-b border-[var(--feed-card-border)] px-2 pb-3">
-                            <h2 id="contacts-heading" className="text-xs font-black uppercase tracking-[0.16em] text-[var(--feed-text-primary)]">Recent contacts</h2>
-                            <Link to="/messages" className="home-contacts-all">View all</Link>
+                            <h2 id="contacts-heading" className="text-xs font-black uppercase tracking-[0.16em] text-[var(--feed-text-primary)]">{copy('Recent contacts', 'ბოლო კონტაქტები')}</h2>
+                            <Link to="/messages" className="home-contacts-all">{copy('View all', 'ყველა')}</Link>
                         </div>
                         {contacts.length > 0 ? (
                             <div>
@@ -153,7 +155,7 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
                         ) : (
                             <Link to="/messages" className="flex items-center gap-3 rounded-xl border border-dashed border-[var(--feed-card-border)] px-3 py-3 text-xs text-[var(--feed-text-secondary)] hover:border-[var(--feed-accent-border)] hover:text-[var(--feed-text-primary)]">
                                 <MessageCircle className="h-4 w-4 text-[var(--feed-accent)]" />
-                                Start a conversation
+                                {copy('Start a conversation', 'დაიწყეთ საუბარი')}
                             </Link>
                         )}
                     </section>
@@ -162,7 +164,7 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
 
 
             {quickChat && (
-                <MotionPanel label={`Chat with ${quickChat.participant.displayName}`} onClose={closeQuickChat} className="fixed bottom-4 right-4 z-[1300] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[color:var(--color-border)]/10 bg-[var(--color-surface)] shadow-2xl">{close => <>
+                <MotionPanel label={copy(`Chat with ${quickChat.participant.displayName}`, `ჩატი: ${quickChat.participant.displayName}`)} onClose={closeQuickChat} className="fixed bottom-4 right-4 z-[1300] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[color:var(--color-border)]/10 bg-[var(--color-surface)] shadow-2xl">{close => <>
                     <header className="flex h-12 items-center gap-2 border-b border-[color:var(--color-border)]/[0.08] px-3">
                         <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--color-inset)] text-[10px] font-bold text-[color:var(--color-text)]">
                             {resolveMediaUrl(quickChat.participant.profilePictureUrl)
@@ -172,13 +174,13 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
                         <button type="button" onClick={() => setMinimized((value) => !value)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-[color:var(--color-text)]">
                             {quickChat.participant.displayName}
                         </button>
-                        <Link to={`/messages?conversationId=${quickChat.conversation.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-secondary)] hover:bg-[color:var(--color-ink)]/[0.06] hover:text-[color:var(--color-text)]" aria-label="Open full conversation" title="Open full conversation">
+                        <Link to={`/messages?conversationId=${quickChat.conversation.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-secondary)] hover:bg-[color:var(--color-ink)]/[0.06] hover:text-[color:var(--color-text)]" aria-label={copy('Open full conversation', 'სრული საუბრის გახსნა')} title={copy('Open full conversation', 'სრული საუბრის გახსნა')}>
                             <ExternalLink className="h-4 w-4" />
                         </Link>
-                        <button type="button" onClick={() => setMinimized((value) => !value)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-secondary)] hover:bg-[color:var(--color-ink)]/[0.06] hover:text-[color:var(--color-text)]" aria-label={minimized ? 'Restore chat' : 'Minimize chat'}>
+                        <button type="button" onClick={() => setMinimized((value) => !value)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-secondary)] hover:bg-[color:var(--color-ink)]/[0.06] hover:text-[color:var(--color-text)]" aria-label={minimized ? copy('Restore chat', 'ჩატის აღდგენა') : copy('Minimize chat', 'ჩატის ჩაკეცვა')}>
                             <Minus className="h-4 w-4" />
                         </button>
-                        <button type="button" onClick={close} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-secondary)] hover:bg-[color:var(--color-ink)]/[0.06] hover:text-[color:var(--color-text)]" aria-label="Close chat">
+                        <button type="button" onClick={close} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-secondary)] hover:bg-[color:var(--color-ink)]/[0.06] hover:text-[color:var(--color-text)]" aria-label={copy('Close chat', 'ჩატის დახურვა')}>
                             <X className="h-4 w-4" />
                         </button>
                     </header>
@@ -186,12 +188,12 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
                     <MotionDisclosure open={!minimized} className="quick-chat-body">
                         <>
                             <ConversationIntakeContext key={`${sessionId}:${quickChat.conversation.id}`} conversationId={quickChat.conversation.id} messageRevision={messages.at(-1)?.id ?? quickChat.conversation.lastMessageAt ?? ''} />
-                            <div ref={messageViewportRef} style={{ overflowAnchor: 'none' }} role="log" aria-label="Quick chat messages" className="flex h-64 flex-col gap-2 overflow-y-auto bg-[var(--color-surface)] px-3 py-3">
+                            <div ref={messageViewportRef} style={{ overflowAnchor: 'none' }} role="log" aria-label={copy('Quick chat messages', 'ჩატის შეტყობინებები')} className="flex h-64 flex-col gap-2 overflow-y-auto bg-[var(--color-surface)] px-3 py-3">
                                 {!messagesLoading && <OlderMessages available={hasOlder} loading={loadingOlder} error={historyError} onLoad={loadOlder} />}
                                 {messagesLoading ? (
-                                    <p className="my-auto text-center text-xs text-[var(--color-secondary)]">Loading conversation…</p>
+                                    <p className="my-auto text-center text-xs text-[var(--color-secondary)]">{copy('Loading conversation…', 'საუბარი იტვირთება…')}</p>
                                 ) : messages.length === 0 ? (
-                                    <p className="my-auto text-center text-xs text-[var(--color-secondary)]">Start this conversation here.</p>
+                                    <p className="my-auto text-center text-xs text-[var(--color-secondary)]">{copy('Start this conversation here.', 'დაიწყეთ საუბარი აქ.')}</p>
                                 ) : messages.map((message) => {
                                     const mine = message.senderId === currentUserId;
                                     return (
@@ -207,8 +209,8 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
                             </div>
                             {deliveryError && <p role="alert" className="px-3 text-xs text-[color:var(--color-warning)]">{deliveryError}</p>}
                             <form onSubmit={(event) => void submitQuickMessage(event)} className="flex items-center gap-2 border-t border-[color:var(--color-border)]/[0.08] bg-[var(--color-surface)] p-3">
-                                <input value={messageInput} onChange={(event) => setMessageInput(event.target.value)} disabled={sending} placeholder={sending ? 'Sending...' : 'Write a message...'} className="min-w-0 flex-1 rounded-full border border-[color:var(--color-border)]/[0.08] bg-[var(--color-inset)] px-3 py-2 text-xs text-[color:var(--color-text)] outline-none placeholder:text-[var(--color-secondary)] focus:border-[color:var(--color-accent)]/60" />
-                                <button type="submit" disabled={sending || !messageInput.trim()} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--color-accent)] text-[color:var(--color-on-accent)] transition-colors hover:bg-[color:var(--color-accent)] disabled:opacity-40" aria-label="Send message">
+                                <input value={messageInput} onChange={(event) => setMessageInput(event.target.value)} disabled={sending} placeholder={sending ? copy('Sending…', 'იგზავნება…') : copy('Write a message…', 'დაწერეთ შეტყობინება…')} className="min-w-0 flex-1 rounded-full border border-[color:var(--color-border)]/[0.08] bg-[var(--color-inset)] px-3 py-2 text-xs text-[color:var(--color-text)] outline-none placeholder:text-[var(--color-secondary)] focus:border-[color:var(--color-accent)]/60" />
+                                <button type="submit" disabled={sending || !messageInput.trim()} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--color-accent)] text-[color:var(--color-on-accent)] transition-colors hover:bg-[color:var(--color-accent)] disabled:opacity-40" aria-label={copy('Send message', 'გაგზავნა')}>
                                     <Send className="h-4 w-4" />
                                 </button>
                             </form>

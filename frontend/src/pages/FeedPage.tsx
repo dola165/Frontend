@@ -14,6 +14,7 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { WorkspaceShortcuts, type ManagedClubLink } from '../components/layout/WorkspaceShortcuts';
 import type { NavigationCapabilities } from '../context/navigationCapabilities';
 import { isAndroidApp } from '../android/bridge';
+import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
 
 type FeedView = 'for-you' | 'following';
@@ -34,6 +35,7 @@ export const FeedPage = (props: FeedPageProps) => {
 };
 
 const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
+ const copy = useJourneyCopy();
  const [searchParams] = useSearchParams();
  const [posts, setPosts] = useState<FeedPostDto[]>([]);
  const [loading, setLoading] = useState(true);
@@ -64,19 +66,19 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
 
  const feedMeta = isFollowingView
   ? {
-   emptyTitle: 'Nothing from your follows yet',
-   emptyText: 'Follow clubs and people to bring their latest posts here.',
+   emptyTitle: copy('Nothing from your follows yet', 'გამოწერილებისგან ჯერ არაფერია'),
+   emptyText: copy('Follow clubs and people to bring their latest posts here.', 'გამოიწერეთ კლუბები და ადამიანები და მათი ახალი პოსტები აქ გამოჩნდება.'),
    emptyGuides: [
-    { label: 'Find clubs', to: '/world/clubs' },
-    { label: 'Open World', to: '/world' }
+    { label: copy('Find clubs', 'კლუბების მოძებნა'), to: '/world/clubs' },
+    { label: copy('Open World', 'მსოფლიოს გახსნა'), to: '/world' }
    ]
   }
   : {
-   emptyTitle: 'Nothing near you yet',
-   emptyText: 'Follow a few clubs and your Home fills up with football around you.',
+   emptyTitle: copy('Nothing near you yet', 'ახლოს ჯერ არაფერია'),
+   emptyText: copy('Follow a few clubs and your Home fills up with football around you.', 'გამოიწერეთ რამდენიმე კლუბი და მთავარი გვერდი თქვენს ირგვლივ ფეხბურთით შეივსება.'),
    emptyGuides: [
-    { label: 'Find clubs', to: '/world/clubs' },
-    { label: 'Open World', to: '/world' }
+    { label: copy('Find clubs', 'კლუბების მოძებნა'), to: '/world/clubs' },
+    { label: copy('Open World', 'მსოფლიოს გახსნა'), to: '/world' }
    ]
   };
 
@@ -192,7 +194,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    applyLikeState(postId, response.data.isLiked);
   } catch (error) {
    applyLikeState(postId, previousState);
-   setLikeErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, 'Like could not be saved. Your previous choice was restored.') }));
+   setLikeErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, copy('Like could not be saved. Your previous choice was restored.', 'რეაქცია ვერ შეინახა. წინა არჩევანი აღდგა.')) }));
   } finally {
    setPendingLikes((current) => ({ ...current, [postId]: false }));
   }
@@ -205,7 +207,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
    setCommentsData((current) => ({ ...current, [postId]: response.data }));
   } catch (error) {
-   setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, 'Comments could not load.') }));
+   setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, copy('Comments could not load.', 'კომენტარები ვერ ჩაიტვირთა.')) }));
   } finally {
    setCommentsLoading((current) => ({ ...current, [postId]: false }));
   }
@@ -231,10 +233,10 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
 
  return (
   <div className="home-feed-canvas mx-auto flex w-full max-w-[680px] flex-col gap-4">
-   <h1 className="sr-only">Home</h1>
+   <h1 className="sr-only">{copy('Home', 'მთავარი')}</h1>
    {isAndroidApp ? <div className="lg:hidden"><WorkspaceShortcuts clubs={managedClubs} navigationCapabilities={user?.navigationCapabilities} /></div> :
     <details className="home-mobile-shortcuts">
-     <summary><span>Your football</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || 'Your shortcuts'}</span><ChevronDown size={16} aria-hidden="true" /></summary>
+     <summary><span>{copy('Your football', 'თქვენი ფეხბურთი')}</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || copy('Your shortcuts', 'მალსახმობები')}</span><ChevronDown size={16} aria-hidden="true" /></summary>
      <LeftSidebar user={user} managedClubs={managedClubs} embedded />
     </details>}
 
@@ -246,25 +248,25 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
     onPostCreated={() => void loadFeed()}
    />
 
-   <nav aria-label="Home posts" className="app-selection-rail feed-selection-rail grid grid-cols-[1fr_1fr_auto] border-b border-[var(--feed-divider)] bg-transparent px-1">
+   <nav aria-label={copy('Home posts', 'მთავარის პოსტები')} className="app-selection-rail feed-selection-rail grid grid-cols-[1fr_1fr_auto] border-b border-[var(--feed-divider)] bg-transparent px-1">
     <SelectionIndicator value={isFollowingView ? 'following' : 'discover'} />
     <Link
      to="/home"
      aria-current={!isFollowingView ? 'page' : undefined}
-     title="Your clubs and people first, then football near you"
+     title={copy('Your clubs and people first, then football near you', 'ჯერ თქვენი კლუბები და ადამიანები, შემდეგ ფეხბურთი ახლოს')}
      className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${!isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
     >
-     <Compass className="h-4 w-4" /> Discover
+     <Compass className="h-4 w-4" /> {copy('Discover', 'აღმოაჩინეთ')}
     </Link>
     <Link
      to="/home?view=following"
      aria-current={isFollowingView ? 'page' : undefined}
-     title="Latest posts from people and clubs you follow"
+     title={copy('Latest posts from people and clubs you follow', 'გამოწერილი ადამიანებისა და კლუბების ბოლო პოსტები')}
      className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
     >
-     <Users className="h-4 w-4" /> Following
+     <Users className="h-4 w-4" /> {copy('Following', 'გამოწერილი')}
     </Link>
-    <button type="button" onClick={() => void loadFeed()} disabled={loading} aria-label="Refresh feed" title="Refresh feed" className="home-refresh m-1 flex h-10 items-center justify-center gap-2 rounded-lg px-2 text-[var(--feed-text-secondary)] hover:bg-[var(--feed-hover-bg)] disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span className="home-refresh-label">Latest updates</span></button>
+    <button type="button" onClick={() => void loadFeed()} disabled={loading} aria-label={copy('Refresh feed', 'ლენტის განახლება')} title={copy('Refresh feed', 'ლენტის განახლება')} className="home-refresh m-1 flex h-10 items-center justify-center gap-2 rounded-lg px-2 text-[var(--feed-text-secondary)] hover:bg-[var(--feed-hover-bg)] disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span className="home-refresh-label">{copy('Latest updates', 'ბოლო სიახლეები')}</span></button>
    </nav>
 
    {loadError && (
@@ -272,8 +274,8 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
      <div className="flex items-start gap-3">
       <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--color-danger)]" />
       <div className="min-w-0">
-       <p className="text-sm font-semibold text-[color:var(--color-danger)]">Home could not load</p>
-       <p className="mt-1 text-xs text-[color:var(--color-danger)]/80">Check your connection and try again.</p>
+       <p className="text-sm font-semibold text-[color:var(--color-danger)]">{copy('Home could not load', 'მთავარი გვერდი ვერ ჩაიტვირთა')}</p>
+       <p className="mt-1 text-xs text-[color:var(--color-danger)]/80">{copy('Check your connection and try again.', 'შეამოწმეთ კავშირი და სცადეთ ხელახლა.')}</p>
       </div>
       <button
        type="button"
@@ -281,18 +283,18 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
        className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--color-danger)]/30 bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-danger)] transition-colors hover:bg-[var(--color-surface)]"
       >
        <RefreshCw className="h-3.5 w-3.5" />
-       Retry
+       {copy('Retry', 'ხელახლა ცდა')}
       </button>
      </div>
     </div>
    )}
-   <section aria-label="Feed results" aria-busy={loading} className="relative">
+   <section aria-label={copy('Feed results', 'ლენტა')} aria-busy={loading} className="relative">
    {loading && hasLoaded && <div role="status" className="absolute inset-x-0 top-2 z-10 mx-auto w-fit rounded-full bg-[color:var(--theme-surface)] px-3 py-2 text-sm shadow">
-    Loading {isFollowingView ? 'Following' : 'Discover'} posts…
+    {isFollowingView ? copy('Loading Following posts…', 'გამოწერილის პოსტები იტვირთება…') : copy('Loading Discover posts…', 'აღმოჩენის პოსტები იტვირთება…')}
    </div>}
    <div inert={loading} className={loading && posts.length > 0 ? 'opacity-50' : ''}>
    {loading && !hasLoaded ? (
-    <div className="flex flex-col gap-3" aria-label="Loading Home posts">
+    <div className="flex flex-col gap-3" aria-label={copy('Loading Home posts', 'პოსტები იტვირთება')}>
      <SkeletonCard lines={4} />
      <SkeletonCard lines={3} />
      <SkeletonCard lines={5} />
@@ -317,7 +319,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
      }
     }}
     emptyState={pageIndex > 0 ? (
-     <div className="rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-10 text-center text-sm text-[var(--feed-text-secondary)]">No additional posts on this page. Use Newer posts or continue to older posts.</div>
+     <div className="rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-10 text-center text-sm text-[var(--feed-text-secondary)]">{copy('No more posts on this page. Go to newer or older posts.', 'ამ გვერდზე მეტი პოსტი არ არის. გადადით უფრო ახალ ან ძველ პოსტებზე.')}</div>
     ) : (
      <div className={`rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-12 text-center ${loading ? 'invisible' : ''}`}>
       <Megaphone className="mx-auto h-10 w-10 text-[var(--feed-icon-muted)]" />
@@ -343,15 +345,15 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    </div>
    </section>
    {!loading && !loadError && (posts.length > 0 || pageIndex > 0) && <div className="flex flex-wrap items-center justify-center gap-3 py-4 text-center">
-    {moreError && <p role="alert" className="mb-3 text-sm text-[color:var(--color-warning)]">{failedDirection === 'newer' ? 'Newer posts could not load. Retry, or return to the latest posts.' : 'Older posts could not load. Retry, or refresh the feed to start again.'}</p>}
+    {moreError && <p role="alert" className="mb-3 text-sm text-[color:var(--color-warning)]">{failedDirection === 'newer' ? copy('Newer posts could not load. Retry, or return to the latest posts.', 'ახალი პოსტები ვერ ჩაიტვირთა. სცადეთ ხელახლა ან დაბრუნდით ბოლოებზე.') : copy('Older posts could not load. Retry, or refresh the feed to start again.', 'ძველი პოსტები ვერ ჩაიტვირთა. სცადეთ ხელახლა ან განაახლეთ ლენტა.')}</p>}
     {pageIndex > 0 && <button type="button" disabled={loadingMore} onClick={() => void loadFeed({ cursor: pageStarts[pageIndex - 1], page: pageIndex - 1, direction: 'newer' })}
-     className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">{moreError && failedDirection === 'newer' ? 'Retry newer posts' : 'Newer posts'}</button>}
+     className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">{moreError && failedDirection === 'newer' ? copy('Retry newer posts', 'ხელახლა ცდა') : copy('Newer posts', 'უფრო ახალი პოსტები')}</button>}
     {pageIndex > 1 && <button type="button" disabled={loadingMore} onClick={() => void loadFeed()}
-     className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">Back to latest</button>}
+     className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">{copy('Back to latest', 'ბოლოებზე დაბრუნება')}</button>}
     {nextPage ? <button type="button" disabled={loadingMore} onClick={() => void loadFeed({ cursor: nextPage, page: pageIndex + 1, direction: 'older' })}
      className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">
-     {loadingMore ? 'Loading more posts…' : moreError && failedDirection === 'older' ? 'Retry older posts' : 'Load more posts'}
-    </button> : <p role="status" className="text-sm text-[var(--feed-text-secondary)]">You’re all caught up. Refresh to check for new posts.</p>}
+     {loadingMore ? copy('Loading more posts…', 'მეტი პოსტი იტვირთება…') : moreError && failedDirection === 'older' ? copy('Retry older posts', 'ხელახლა ცდა') : copy('Load more posts', 'მეტი პოსტი')}
+    </button> : <p role="status" className="text-sm text-[var(--feed-text-secondary)]">{copy('You’re all caught up. Refresh to check for new posts.', 'ყველაფერი ნანახია. განაახლეთ ახალი პოსტებისთვის.')}</p>}
    </div>}
 
    <PostTheaterModal

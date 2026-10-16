@@ -9,6 +9,7 @@ import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { SOCIAL_IMAGE_ACCEPT, socialImageUploadError, validateSocialImage } from '../../utils/socialImageUpload';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession, type AuthSessionId } from '../../utils/authStorage';
 import { useOwnedDraft } from '../../utils/ownedDraft';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 
 const MAX_PHOTOS = 10;
 const MAX_CAPTION = 2000;
@@ -47,6 +48,7 @@ const PostComposerEditor = ({
   sessionId,
 }: PostComposerProps & { sessionId: AuthSessionId }) => {
   const navigate = useNavigate();
+  const copy = useJourneyCopy();
   // The words survive a detour (Event opens the calendar) and a reload, kept for the signed-in person and the identity
   // they post as; photos stay in memory only. Nothing is ever turned into an event on its own.
   const { draft, change: changeDraft, reset: resetDraft } = useOwnedDraft(`post-composer.${clubId ? `club-${clubId}` : organizationId ? `page-${organizationId}` : 'personal'}`, { content: '' });
@@ -148,7 +150,7 @@ const PostComposerEditor = ({
     // The ref closes the same-tick gap before React disables the controls.
     if (!current() || submissionPending.current) return;
     if (!content.trim() || content.length > MAX_CAPTION) {
-      setSubmitError(!content.trim() ? 'Add a caption before publishing your photos.' : 'Keep your post to 2,000 characters or fewer.');
+      setSubmitError(!content.trim() ? copy('Add a caption before publishing your photos.', 'ფოტოების გამოქვეყნებამდე დაამატეთ წარწერა.') : copy('Keep your post to 2,000 characters or fewer.', 'პოსტი 2 000 სიმბოლოს არ უნდა აღემატებოდეს.'));
       return;
     }
     submissionPending.current = true;
@@ -198,12 +200,12 @@ const PostComposerEditor = ({
       resetFile();
       setSubmitError(null);
       onPostCreated(confirmedPostId);
-      toast.success('Post published');
+      toast.success(copy('Post published', 'პოსტი გამოქვეყნდა'));
       if (compact) setIsExpanded(false);
     } catch (error) {
       if (!current() || controller.signal.aborted) return;
       console.error('Failed to create post', error);
-      const message = uploading ? socialImageUploadError(error) : 'Failed to publish this post. Your draft is still here—please try again.';
+      const message = uploading ? socialImageUploadError(error) : copy('Failed to publish this post. Your draft is still here—please try again.', 'პოსტი ვერ გამოქვეყნდა. მონახაზი შენახულია — სცადეთ ხელახლა.');
       setSubmitError(message);
       toast.error(message);
     } finally {
@@ -233,9 +235,9 @@ const PostComposerEditor = ({
   const compactActionClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--feed-hover-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--feed-accent)]';
 
   return (
-    <section ref={containerRef} aria-label="Share an update" aria-busy={isSubmitting} className={`${home ? 'home-post-composer' : ''} rounded-2xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[var(--feed-shadow-panel)] transition-shadow focus-within:shadow-[var(--feed-shadow-float)] ${collapsed ? 'p-3' : 'p-4'}`}>
+    <section ref={containerRef} aria-label={copy('Share an update', 'გააზიარეთ სიახლე')} aria-busy={isSubmitting} className={`${home ? 'home-post-composer' : ''} rounded-2xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[var(--feed-shadow-panel)] transition-shadow focus-within:shadow-[var(--feed-shadow-float)] ${collapsed ? 'p-3' : 'p-4'}`}>
       <fieldset disabled={isSubmitting} className="min-w-0">
-      <input type="file" multiple ref={imageInputRef} onChange={handleFileSelect} className="hidden" aria-label="Choose photo" accept={SOCIAL_IMAGE_ACCEPT} />
+      <input type="file" multiple ref={imageInputRef} onChange={handleFileSelect} className="hidden" aria-label={copy('Choose photo', 'აირჩიეთ ფოტო')} accept={SOCIAL_IMAGE_ACCEPT} />
 
       <div className={`flex gap-2.5 ${collapsed ? 'items-center' : 'items-start'}`}>
         <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] text-sm font-bold text-[var(--feed-text-secondary)] ring-1 ring-[var(--feed-card-border)] ${collapsed ? 'h-10 w-10' : 'h-11 w-11'}`}>
@@ -250,23 +252,23 @@ const PostComposerEditor = ({
           }}
           onFocus={expandComposer}
           onClick={expandComposer}
-          placeholder={collapsed ? 'Share an update…' : clubId ? 'Share an update from your club…' : organizationId ? 'Share an update from your page…' : `What do you want to share, ${authorName.split(' ')[0]}?`}
-          aria-label={clubId ? 'Create a club post' : organizationId ? 'Create a page post' : 'Create a post'}
+          placeholder={collapsed ? copy('Share an update…', 'გააზიარეთ სიახლე…') : clubId ? copy('Share an update from your club…', 'გააზიარეთ კლუბის სიახლე…') : organizationId ? copy('Share an update from your page…', 'გააზიარეთ გვერდის სიახლე…') : copy(`What do you want to share, ${authorName.split(' ')[0]}?`, `რისი გაზიარება გსურთ, ${authorName.split(' ')[0]}?`)}
+          aria-label={clubId ? copy('Create a club post', 'კლუბის პოსტის შექმნა') : organizationId ? copy('Create a page post', 'გვერდის პოსტის შექმნა') : copy('Create a post', 'პოსტის შექმნა')}
           className={`min-w-0 flex-1 resize-none border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 text-sm leading-6 text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] transition-colors focus:border-[var(--feed-accent)] ${isExpanded ? 'min-h-[104px] rounded-2xl py-3' : 'h-10 min-h-10 overflow-hidden whitespace-nowrap rounded-full py-1.5'}`}
           rows={isExpanded ? 3 : 1}
         />
         {collapsed && !home && (
-          <div role="group" className="flex shrink-0 items-center gap-0.5" aria-label="Add to your post">
-            <button type="button" onClick={openAttachmentPicker} className={compactActionClass} aria-label="Add photo" title="Photo">
+          <div role="group" className="flex shrink-0 items-center gap-0.5" aria-label={copy('Add to your post', 'დაამატეთ პოსტს')}>
+            <button type="button" onClick={openAttachmentPicker} className={compactActionClass} aria-label={copy('Add photo', 'ფოტოს დამატება')} title={copy('Photo', 'ფოტო')}>
               <Camera className="h-5 w-5 text-[var(--social-primary)]" />
             </button>
-            <button type="button" onClick={openEventCreator} className={compactActionClass} aria-label="Create event" title="Event">
+            <button type="button" onClick={openEventCreator} className={compactActionClass} aria-label={copy('Create event', 'ღონისძიების შექმნა')} title={copy('Event', 'ღონისძიება')}>
               <CalendarPlus className="h-5 w-5 text-[var(--social-schedule)]" />
             </button>
           </div>
         )}
         {isExpanded && (
-          <button type="button" onClick={handleSubmit} disabled={isSubmitting || !content.trim() || content.length > MAX_CAPTION} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40" aria-label="Publish post">
+          <button type="button" onClick={handleSubmit} disabled={isSubmitting || !content.trim() || content.length > MAX_CAPTION} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40" aria-label={copy('Publish post', 'გამოქვეყნება')}>
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         )}
@@ -279,11 +281,11 @@ const PostComposerEditor = ({
             <MediaImage src={photo.previewUrl} alt={photos.length === 1 ? 'Upload preview' : `Upload preview ${index + 1}: ${photo.file.name}`} className="aspect-square w-full object-contain" />
             <div className="space-y-1 p-2">
               <p className="truncate text-xs text-[var(--feed-text-secondary)]">{index + 1}. {photo.file.name}</p>
-              {photo.mediaId != null && <p className="text-xs text-[var(--feed-text-secondary)]">Uploaded · Ready to publish</p>}
+              {photo.mediaId != null && <p className="text-xs text-[var(--feed-text-secondary)]">{copy('Uploaded · Ready to publish', 'ატვირთულია · მზადაა')}</p>}
               <div className="flex justify-between gap-1">
                 <button type="button" onClick={() => movePhoto(photo.key, -1)} disabled={index === 0} aria-label={`Move photo ${index + 1} earlier`} className="rounded p-2 disabled:opacity-30"><ArrowLeft className="h-4 w-4" /></button>
                 <button type="button" onClick={() => movePhoto(photo.key, 1)} disabled={index === photos.length - 1} aria-label={`Move photo ${index + 1} later`} className="rounded p-2 disabled:opacity-30"><ArrowRight className="h-4 w-4" /></button>
-                <button type="button" onClick={() => removePhoto(photo.key)} className="rounded px-2 py-1 text-xs text-[color:var(--color-danger)]" aria-label={photos.length === 1 ? 'Remove attachment' : `Remove photo ${index + 1}`}>Remove</button>
+                <button type="button" onClick={() => removePhoto(photo.key)} className="rounded px-2 py-1 text-xs text-[color:var(--color-danger)]" aria-label={photos.length === 1 ? 'Remove attachment' : `Remove photo ${index + 1}`}>{copy('Remove', 'წაშლა')}</button>
               </div>
             </div>
           </div>)}
@@ -293,24 +295,24 @@ const PostComposerEditor = ({
       {(isExpanded || home) && (
         <div className={`${home ? 'home-composer-actions' : 'grid grid-cols-2'} mt-3 border-t border-[var(--feed-divider)] pt-3`}>
           <button type="button" onClick={openAttachmentPicker} disabled={photos.length >= MAX_PHOTOS} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)] disabled:opacity-40">
-            <Camera className="h-4 w-4 text-[var(--social-primary)]" /> Photo
+            <Camera className="h-4 w-4 text-[var(--social-primary)]" /> {copy('Photo', 'ფოტო')}
           </button>
           <button type="button" onClick={openEventCreator} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)]">
-            <CalendarPlus className="h-4 w-4 text-[var(--social-schedule)]" /> Event
+            <CalendarPlus className="h-4 w-4 text-[var(--social-schedule)]" /> {copy('Event', 'ღონისძიება')}
           </button>
-          {home && collapsed && <button type="button" onClick={expandComposer} className="home-compose-start">Write a post</button>}
+          {home && collapsed && <button type="button" onClick={expandComposer} className="home-compose-start">{copy('Write a post', 'პოსტის დაწერა')}</button>}
         </div>
       )}
 
       </fieldset>
       {publishedPostId != null && !isSubmitting && <p role="status" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--feed-text-secondary)]">
-        Post published.
-        <Link to={`/posts/${publishedPostId}`} className="font-semibold app-text-action">View your post</Link>
+        {copy('Post published.', 'პოსტი გამოქვეყნდა.')}
+        <Link to={`/posts/${publishedPostId}`} className="font-semibold app-text-action">{copy('View your post', 'პოსტის ნახვა')}</Link>
       </p>}
-      {isExpanded && <p className="mt-2 text-xs text-[var(--feed-text-secondary)]">A caption is required · Up to 10 photos · JPEG, PNG, GIF or WebP · Max 10 MB each. Videos are not supported.</p>}
+      {isExpanded && <p className="mt-2 text-xs text-[var(--feed-text-secondary)]">{copy('A caption is required · Up to 10 photos · JPEG, PNG, GIF or WebP · Max 10 MB each. Videos are not supported.', 'წარწერა სავალდებულოა · 10 ფოტომდე · JPEG, PNG, GIF ან WebP · თითო მაქს. 10 MB. ვიდეო არ არის მხარდაჭერილი.')}</p>}
       {isExpanded && content.length > 1800 && <p className={`mt-2 text-xs ${content.length > MAX_CAPTION ? 'text-[color:var(--color-danger)]' : 'text-[var(--feed-text-secondary)]'}`}>{content.length} / 2,000 characters</p>}
       {fileError && <p role="alert" className="mt-2 text-sm text-[color:var(--color-danger)]">{fileError}</p>}
-      {isSubmitting && <p role="status" className="mt-3 text-xs text-[var(--feed-text-secondary)]">{uploadProgress ? `Uploading photo ${uploadProgress} of ${photos.length}…` : 'Publishing your post…'} Editing will be available when it finishes.</p>}
+      {isSubmitting && <p role="status" className="mt-3 text-xs text-[var(--feed-text-secondary)]">{uploadProgress ? copy(`Uploading photo ${uploadProgress} of ${photos.length}…`, `იტვირთება ფოტო ${uploadProgress} / ${photos.length}…`) : copy('Publishing your post…', 'პოსტი ქვეყნდება…')} {copy('Editing will be available when it finishes.', 'რედაქტირება დასრულების შემდეგ იქნება შესაძლებელი.')}</p>}
 
       {submitError && <div role="alert" className="mt-3 rounded-xl border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-3 py-2 text-xs font-semibold text-[color:var(--color-danger)]">{submitError}</div>}
     </section>

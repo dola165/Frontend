@@ -3,7 +3,7 @@
 .gk .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
 /* Taking a player out of the squad, from the card's foot. */
 .gk .pc-card__action { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--gk-r-sm); background: var(--gk-danger-soft); color: var(--gk-danger); cursor: pointer; }
-.gk .pc-card__action:hover { background: var(--gk-danger); color: #fff; }
+.gk .pc-card__action:hover { background: color-mix(in srgb, var(--gk-danger) 24%, transparent); }
 .gk .pc-card__action svg { width: 15px; height: 15px; }
 /* The fifteenth card of a big squad: blurred, three dots, and the way to all of them. */
 .gk .pc-card--more { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 100%; border: 1px dashed var(--gk-line-strong); background: color-mix(in srgb, var(--gk-surface) 70%, transparent); color: var(--gk-text-2); font-weight: 600; text-decoration: none; backdrop-filter: blur(6px); }

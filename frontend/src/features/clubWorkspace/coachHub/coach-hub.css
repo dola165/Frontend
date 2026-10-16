@@ -29,14 +29,14 @@
 .gk .ch-card--ask:hover { border-color: var(--gk-line-strong); color: var(--gk-text); }
 .gk .ch-card--ask svg { width: 18px; height: 18px; }
 /* The band: the club's pitch photo under a dark veil, the crest and the name big, the arrow at the end. */
-.gk .ch-card__band { position: relative; display: flex; align-items: center; gap: var(--gk-3); min-height: 104px; padding: var(--gk-4); background-position: center; background-size: cover; color: #fff; text-decoration: none; }
-.gk .ch-card__band::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, rgb(6 19 12 / .82), rgb(6 19 12 / .55)); }
+.gk .ch-card__band { position: relative; display: flex; align-items: center; gap: var(--gk-3); min-height: 104px; padding: var(--gk-4); background-position: center; background-size: cover; color: var(--color-on-media); text-decoration: none; }
+.gk .ch-card__band::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, color-mix(in srgb, var(--color-overlay) 82%, transparent), color-mix(in srgb, var(--color-overlay) 55%, transparent)); }
 .gk .ch-card__band > * { position: relative; }
 .gk .ch-card__name { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .gk .ch-card__name strong { font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 650; }
-.gk .ch-card__name span { color: rgb(255 255 255 / .72); font-size: var(--gk-fs-sm); }
-.gk .ch-card__go { width: 22px; height: 22px; color: rgb(255 255 255 / .7); transition: transform .15s var(--gk-ease); }
-.gk .ch-card__band:hover .ch-card__go { color: #fff; transform: translateX(3px); }
+.gk .ch-card__name span { color: color-mix(in srgb, var(--color-on-media) 72%, transparent); font-size: var(--gk-fs-sm); }
+.gk .ch-card__go { width: 22px; height: 22px; color: color-mix(in srgb, var(--color-on-media) 70%, transparent); transition: transform .15s var(--gk-ease); }
+.gk .ch-card__band:hover .ch-card__go { color: var(--color-on-media); transform: translateX(3px); }
 /* Under the band: at most two short lines, each one press away. */
 .gk .ch-card__lines { display: flex; flex-direction: column; padding: var(--gk-2) var(--gk-2) 0; }
 .gk .ch-card__row { display: flex; align-items: center; }

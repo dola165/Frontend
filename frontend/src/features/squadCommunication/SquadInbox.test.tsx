@@ -25,7 +25,7 @@ it('reads and sends through the existing group history without creating a second
     render(<MemoryRouter initialEntries={['/messages?squadId=171']}><SquadInboxConversation id={171}/></MemoryRouter>);
     await screen.findByText('Bring your boots');
     expect(api.messages).toHaveBeenCalledWith(171,'CHAT',null,expect.any(AbortSignal));
-    fireEvent.change(screen.getByPlaceholderText('Message your squad…'),{target:{value:'See you there'}});
+    fireEvent.change(screen.getByPlaceholderText('Message the squad…'),{target:{value:'See you there'}});
     fireEvent.click(screen.getByRole('button',{name:'Send message'}));
     await waitFor(()=>expect(api.postMessage).toHaveBeenCalledWith(171,expect.objectContaining({kind:'CHAT',threadUserId:null,body:'See you there'})));
 });

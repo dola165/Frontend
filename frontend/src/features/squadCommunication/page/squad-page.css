@@ -1,0 +1,107 @@
+/* The squad page, shared by coach and parent. Scoped under `.gk .sp`; tokens only. */
+:is(.gk.sp, .gk .sp) { padding-block: var(--gk-3) var(--gk-8); }
+.gk .sp-stack { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .sp-quiet { color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .sp-link { padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; text-decoration: none; cursor: pointer; }
+.gk .sp-link:hover { text-decoration: underline; }
+.gk .sp-back { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 44px; color: var(--gk-text-2); font-size: var(--gk-fs-sm); font-weight: 600; text-decoration: none; }
+.gk .sp-back svg { width: 16px; height: 16px; }
+.gk .sp-empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); padding: var(--gk-6) 0; }
+.gk .sp-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); }
+
+/* ---------------------------------------------------------------- header: crest, squad, coaches' faces, the two chats */
+.gk .sp-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3) var(--gk-4); padding-block: var(--gk-2) var(--gk-4); }
+.gk .sp-head__text { display: flex; flex: 1 1 220px; flex-direction: column; min-width: 0; }
+.gk .sp-head__text h1 { font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 650; }
+.gk .sp-head__text p { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .sp-head__text a { color: var(--gk-text-2); text-decoration: none; }
+.gk .sp-head__text a:hover { color: var(--gk-text); text-decoration: underline; }
+.gk .sp-head__child { color: var(--gk-accent); font-weight: 600; }
+.gk .sp-head__coaches { display: flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .sp-head__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+@media (max-width: 640px) { .gk .sp-head__actions { width: 100%; } .gk .sp-head__actions > * { flex: 1; } .gk .sp-head__coaches { order: 3; } }
+.gk .sp-panel { padding-top: var(--gk-4); }
+
+/* ---------------------------------------------------------------- updates: feed and a side column */
+.gk .sp-updates { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .sp-updates__side { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; }
+.gk .sp-updates__feed { min-width: 0; }
+@media (min-width: 1100px) {
+  .gk .sp-updates { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); align-items: start; }
+  .gk .sp-updates__side { order: 2; position: sticky; top: calc(var(--gk-header-h, 64px) + var(--gk-4)); }
+}
+.gk .sp-updates__feed .squad-messages { margin: 0; }
+.gk .sp-box { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); text-decoration: none; }
+.gk .sp-box__title { display: flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-md); font-weight: 650; }
+.gk .sp-box__title svg { width: 18px; height: 18px; color: var(--gk-text-3); }
+.gk .sp-threads { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.gk .sp-threads a { display: flex; align-items: center; gap: var(--gk-2); min-height: 44px; color: var(--gk-text); font-size: var(--gk-fs-sm); text-decoration: none; }
+.gk .sp-threads a:hover { color: var(--gk-accent); }
+.gk .sp-threads a > span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .sp-unread { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--color-on-accent); font-size: var(--gk-fs-xs); font-weight: 700; }
+.gk .sp-next { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--gk-2) var(--gk-3); background: color-mix(in srgb, var(--sp-tone) 7%, var(--gk-surface)); }
+.gk .sp-next:hover { border-color: var(--gk-line-strong); }
+.gk .sp-next__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--gk-r); background: color-mix(in srgb, var(--sp-tone) 18%, transparent); color: var(--sp-tone); }
+.gk .sp-next__icon svg { width: 20px; height: 20px; }
+.gk .sp-next__text { display: flex; flex-direction: column; min-width: 0; }
+.gk .sp-next__text small { color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; }
+.gk .sp-next__text strong { overflow: hidden; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.gk .sp-next__meta { display: flex; align-items: center; gap: 4px; overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); white-space: nowrap; }
+.gk .sp-next__meta svg { flex: none; width: 12px; height: 12px; }
+.gk .sp-next__go { width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .sp-next__who { display: flex; flex-wrap: wrap; grid-column: 1 / -1; align-items: center; gap: var(--gk-2); padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+
+/* ---------------------------------------------------------------- players as football cards */
+.gk .sp-players { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .sp-players__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-3); }
+.gk .sp-wait { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; color: var(--gk-warning); font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .sp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
+@media (max-width: 420px) { .gk .sp-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.gk .sp-yours { background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .sp-invite { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .sp-invite__link { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .sp-invite__link input { flex: 1 1 220px; min-width: 0; }
+.gk .sp-invite__head { margin-top: var(--gk-2); font-size: var(--gk-fs-md); font-weight: 650; }
+.gk .sp-requests { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.gk .sp-requests li { display: flex; align-items: center; gap: var(--gk-2); min-height: 52px; border-bottom: 1px solid var(--gk-line); }
+.gk .sp-requests__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gk .sp-requests__text strong { font-weight: 650; }
+.gk .sp-requests__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+
+/* ---------------------------------------------------------------- grounds */
+.gk .sp-grounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
+.gk .sp-ground { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .sp-ground__pin { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .sp-ground__pin svg { width: 18px; height: 18px; }
+.gk .sp-ground__text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .sp-ground__text strong { font-weight: 650; }
+.gk .sp-ground__uses { display: flex; flex-wrap: wrap; gap: var(--gk-3); font-size: var(--gk-fs-xs); font-weight: 600; }
+.gk .sp-ground__uses span { display: inline-flex; align-items: center; gap: 4px; }
+.gk .sp-ground__uses svg { width: 13px; height: 13px; }
+.gk .sp-ground__go { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.gk .sp-ground__go svg { width: 13px; height: 13px; }
+
+/* ---------------------------------------------------------------- the updates feed (SquadMessages), compact like Home.
+   squad-communication.css still styles the chat in Messages; here the feed reads as calm cards, one bright action. */
+:is(.gk.sp, .gk .sp) .squad-messages { gap: var(--gk-3); margin: 0; padding: 0; border: 0; background: none; }
+:is(.gk.sp, .gk .sp) .squad-channel-intro { display: flex; justify-content: flex-end; margin: 0 0 var(--gk-2); padding: 0; border: 0; }
+:is(.gk.sp, .gk .sp) .squad-channel-intro h2, :is(.gk.sp, .gk .sp) .squad-channel-intro p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:is(.gk.sp, .gk .sp) .squad-notifications-link { display: inline-flex; align-items: center; gap: 6px; color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-weight: 600; }
+:is(.gk.sp, .gk .sp) .squad-notifications-link svg { width: 14px; height: 14px; }
+:is(.gk.sp, .gk .sp) .squad-notice-list { display: flex; flex-direction: column; gap: var(--gk-3); }
+:is(.gk.sp, .gk .sp) .squad-message { position: relative; display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: none; }
+:is(.gk.sp, .gk .sp) .squad-news-bell { display: none; }
+:is(.gk.sp, .gk .sp) .squad-message header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-2); margin: 0; font-size: var(--gk-fs-sm); }
+:is(.gk.sp, .gk .sp) .squad-message header strong { color: var(--gk-text); font-weight: 650; }
+:is(.gk.sp, .gk .sp) .squad-message header time, :is(.gk.sp, .gk .sp) .squad-message header .gk-pinned { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+:is(.gk.sp, .gk .sp) .squad-message h3 { margin: 0; color: var(--gk-text); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; }
+:is(.gk.sp, .gk .sp) .squad-message-body { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+:is(.gk.sp, .gk .sp) .squad-message footer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); margin: 0; padding: 0; border: 0; font-size: var(--gk-fs-xs); }
+:is(.gk.sp, .gk .sp) .squad-message footer > a, :is(.gk.sp, .gk .sp) .squad-message footer > button { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-weight: 600; cursor: pointer; }
+:is(.gk.sp, .gk .sp) .squad-message footer > a:hover, :is(.gk.sp, .gk .sp) .squad-message footer > button:hover { color: var(--gk-text); }
+:is(.gk.sp, .gk .sp) .awaiting-acknowledgement footer > button:first-child { padding: 0 var(--gk-3); border-radius: var(--gk-r); background: var(--gk-accent); color: var(--color-on-accent); }
+:is(.gk.sp, .gk .sp) .squad-count { display: inline-flex; align-items: center; gap: 6px; padding: 0; background: none; color: var(--gk-warning); font-size: var(--gk-fs-xs); font-weight: 600; }
+:is(.gk.sp, .gk .sp) .squad-count::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+:is(.gk.sp, .gk .sp) .squad-ack { display: inline-flex; align-items: center; gap: 6px; color: var(--gk-text-3); font-weight: 600; }
+:is(.gk.sp, .gk .sp) .squad-ack svg { color: var(--gk-accent); }
+:is(.gk.sp, .gk .sp) .squad-empty { padding: var(--gk-5); border: 1px dashed var(--gk-line); border-radius: var(--gk-r-lg); text-align: center; }

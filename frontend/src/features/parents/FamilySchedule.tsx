@@ -1,8 +1,7 @@
 import { scheduleMonthEntries } from '../../components/schedule/segments';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin, Users } from 'lucide-react';
-import { SquadCoachIdentity } from '../squadCommunication/SquadCoachIdentity';
 import { JourneyEventDetails } from '../mapPlanning/JourneySchedule';
 import { mergeJourneyEntries, useJourneyEntries } from '../mapPlanning/journeyScheduleData';
 import { ScheduleDirectionWorkspace } from '../../components/schedule/ScheduleDirectionWorkspace';
@@ -14,8 +13,6 @@ import { useMobileSchedule } from '../../components/schedule/useMobileSchedule';
 import { EVENT_TYPES, type WorkspaceView } from '../../components/schedule/workspaceTypes';
 import { localDateISO } from '../../components/schedule/scheduleFormUtils';
 import { formatDate, formatTime } from '../../utils/formatting';
-import { extractApiErrorMessage } from '../../utils/apiError';
-import * as api from '../squadCommunication/api';
 import { useSquadSchedule, type CalendarSquad } from '../squadCommunication/useSquadSchedule';
 import { SquadSessionDetails } from '../squadCommunication/SquadSessionDialog';
 import { SquadClubEventEditor } from '../squadCommunication/SquadClubEventEditor';
@@ -25,7 +22,6 @@ import { SessionMoveDialog } from '../squadCommunication/SessionMoveDialog';
 import { SessionDialog } from '../squadCommunication/SquadSessionDialog';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { scheduleDestination } from '../schedule/origin';
-import type { ParentChild } from './api';
 import './family-schedule.css';
 import '../squadCommunication/squad-schedule.css';
 
@@ -64,30 +60,6 @@ function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playe
             {sorted.length > 5 && <button type="button" className="family-agenda-more" aria-expanded={showAll} onClick={() => setExpandedRange(showAll ? null : rangeKey)}>{showAll ? copy('Show fewer activities', 'ნაკლები ღონისძიება') : copy('Show all activities', 'ყველა ღონისძიება')} ({sorted.length})</button>}
         </>}
         {squadId && !combined && <Link className="family-agenda-full" to={'/squads/' + squadId + '?tab=sessions' + (playerId ? '&player=' + playerId : '')}>{copy('Open full squad schedule', 'გუნდის სრული განრიგი')} <ArrowRight size={15}/></Link>}
-    </>;
-}
-
-export function ChildSquadSchedule({ child }: { child: ParentChild }) {
-    return <ChildSchedule key={`${child.userId}:${child.clubId}`} child={child}/>;
-}
-function ChildSchedule({ child }: { child: ParentChild }) {
-    const copy = useJourneyCopy();
-    const [squads, setSquads] = useState<api.SquadOverview[] | null>(null);
-    const [error, setError] = useState('');
-    useEffect(() => {
-        const abort = new AbortController();
-        void api.spaces(abort.signal).then(async rows => {
-            const candidates = rows.filter(row => row.club_id === child.clubId);
-            const results = await Promise.all(candidates.map(row => api.overview(row.id, abort.signal)));
-            if (!abort.signal.aborted) setSquads(results.filter(row => row.players.some(p => p.id === child.userId)));
-        }).catch(e => { if (!abort.signal.aborted) setError(extractApiErrorMessage(e, 'Your squad schedule could not load. Please refresh to try again.')); });
-        return () => abort.abort();
-    }, [child.clubId, child.userId]);
-    return <>
-        {squads && squads.length > 0 && <nav className="family-squad-links" aria-label="This child’s squads">{squads.map(squad =>
-            <Link key={squad.id} to={`/squads/${squad.id}`}><div className="family-squad-identity"><small>{copy('This week', 'ეს კვირა')} · {squad.academy_name || child.clubName}</small><strong>{squad.name}</strong><SquadCoachIdentity space={squad}/></div><span className="family-squad-open">{copy('Open squad', 'გუნდის გახსნა')} <ArrowRight size={18} /></span></Link>)}</nav>}
-        {error && <p role="alert" className="parent-warning">{error}</p>}
-        {!squads && !error ? <p role="status">Loading your child’s schedule…</p> : <FamilySchedule squads={squads ?? []} playerId={child.userId} embedded />}
     </>;
 }
 

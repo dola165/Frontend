@@ -28,7 +28,8 @@ export const createSquadEvent = async (id: number, plan: SquadEventPlan) =>
     (await apiClient.post<{ planId: string; sessionIds: number[] }>(`/squad-communication/${id}/events`, plan)).data;
 
 export interface SquadSpace { id:number; club_id:number; academy_name:string; name:string; category:string; can_manage:boolean; unread_count:number }
-export interface Person { id:number; name:string }
+/** A squad member. `number`, `position`, `photo_url`: all the roster shows about another child (refinement 4; backend needed: older servers send only id and name). */
+export interface Person { id:number; name:string; number?:number|null; position?:string|null; photo_url?:string|null }
 export interface IntroductoryVisitor { participationId:number;caseId:number;playerId:number;caseVersion:number;participationVersion:number;name:string;status:string;permissionStatus:string;emergencyContact:string|null;canRecord:boolean }
 export interface VisitorAttendanceCommand {requestId:string;caseId:number;caseVersion:number;participationVersion:number;sessionRevision:number;attendance:'ATTENDED'|'NO_SHOW'}
 export interface IntroductoryVisitorRegister {sessionRevision:number;visitors:IntroductoryVisitor[]}
@@ -71,3 +72,10 @@ export const attendance=async(id:number,sessionId:number,playerId:number,respons
     return authSessionId === undefined ? apiClient.put(url,command)
         : apiClient.put(url,command,{_authSessionId:authSessionId} as AuthSessionRequestConfig);
 };
+
+/** The squad's join link for the parents' group, and the children waiting for a coach's yes (backend needed: new). */
+export interface SquadJoinLink { code:string; path:string; squadName:string }
+export interface SquadJoinRequest { id:number; source:'LINK'|'GROUP'; childName:string; birthYear:number|null; guardianName:string|null; createdAt:string; caseId:number|null }
+export const joinLink=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinLink>(`${root}/${id}/join-link`,{signal})).data;
+export const joinRequests=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal})).data;
+export const decideJoinRequest=async(id:number,requestId:number,action:'APPROVE'|'DECLINE')=>apiClient.post(`${root}/${id}/join-requests/${requestId}`,{action});

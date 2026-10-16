@@ -624,7 +624,8 @@ function overviewDto(s) {
     notify_chat: S.squadNotify.get(s.id) ?? true, head_coach_id: s.headCoachId, can_assign_coach: true,
     available_coaches: W.staff.filter(x => x.kind === 'COACH').map(x => ({ user_id: x.personId, full_name: displayName(x.personId) })),
     coaches: coaches.map(id => ({ user_id: id, full_name: displayName(id) })),
-    players: s.playerIds.map(id => ({ id, name: displayName(id) })),
+    // Only what the roster shows about another child: name, shirt number, position, photo (refinement 4).
+    players: s.playerIds.map(id => ({ id, name: displayName(id), number: person(id)?.shirtNumber ?? null, position: person(id)?.position ?? null, photo_url: person(id)?.avatarUrl ?? null })),
     threads: families.map(id => ({ user_id: id, full_name: person(id).role === 'PARENT' ? `${displayName(id)} (${person(S.childOf(id))?.firstName ?? 'family'})` : displayName(id), unread_count: S.squadUnread.get(s.id)?.get(id) ?? 0 })),
     attention: {
       upcoming_sessions: week.length,

@@ -19,6 +19,7 @@ export const familyRequest = headers => /(?:^|;\s*)gk-sandbox-family=1(?:;|$)/.t
 
 if (!W.personById(SABA)) {
   W.people.push({ id: SABA, firstName: 'Saba', lastName: 'Gelashvili', fullName: 'Saba Gelashvili', username: 'saba.gelashvili', gender: 'MALE', role: 'PLAYER', birthYear: year - 12, city: 'Tbilisi', clubId: 1, position: 'CM', headline: 'Central midfielder · FC Dinamo Tbilisi Academy', avatarUrl: `/sandbox-media/avatar/${SABA}.svg`, shirtNumber: 14, squadId: U12, preferredFoot: 'RIGHT' });
+  W.people.push({ id: 9101, firstName: 'Nino', lastName: 'Gelashvili', fullName: 'Nino Gelashvili', username: 'nino.gelashvili', gender: 'FEMALE', role: 'PLAYER', birthYear: year - 9, city: 'Tbilisi', clubId: null, position: null, headline: null, avatarUrl: null });
   W.people.push({ id: SECOND_GUARDIAN.id, firstName: 'Tamar', lastName: 'Gelashvili', fullName: SECOND_GUARDIAN.name, username: 'tamar.gelashvili', gender: 'FEMALE', role: 'PARENT', birthYear: 1990, city: 'Tbilisi', clubId: null, position: null, headline: null, avatarUrl: `/sandbox-media/avatar/${SECOND_GUARDIAN.id}.svg` });
   for (const id of [U12, U14]) { const squad = W.squadById(id); if (!squad.playerIds.includes(SABA)) squad.playerIds.push(SABA); }
 }

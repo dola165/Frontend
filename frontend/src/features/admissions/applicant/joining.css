@@ -1,5 +1,5 @@
 /* Joining a group, child first. Scoped under `.gk .jn`; tokens only. */
-.gk .jn { padding-block: var(--gk-3) var(--gk-8); }
+.gk.jn { padding-block: var(--gk-3) var(--gk-8); }
 .gk .jn-stack { display: flex; flex-direction: column; gap: var(--gk-3); }
 .gk .jn-quiet { color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
 .gk .jn-back { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 44px; padding: 0; border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
@@ -34,7 +34,7 @@
 .gk .jn-who__add { display: inline-flex; align-items: center; gap: 6px; min-height: 52px; padding: 0 var(--gk-4); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-weight: 600; cursor: pointer; }
 .gk .jn-who__add:hover, .gk .jn-who__add[aria-expanded='true'] { border-color: var(--gk-accent); color: var(--gk-accent); }
 .gk .jn-who__add svg { width: 16px; height: 16px; }
-.gk .jn .parent-add-child--inline form { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk.jn .parent-add-child--inline form { display: flex; flex-direction: column; gap: var(--gk-3); }
 .gk .jn-form textarea { resize: vertical; }
 .gk .jn-form > .gk-btn { align-self: flex-start; min-height: 44px; }
 .gk .jn-more > summary { color: var(--gk-text-2); font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }

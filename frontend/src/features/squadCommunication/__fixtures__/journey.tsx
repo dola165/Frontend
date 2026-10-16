@@ -8,7 +8,7 @@ import i18n from '../../../i18n';
 import '../../../index.css';
 import '../../../styles/product-identity.css';
 import '../../parents/family-theme.css';
-import { SquadRoom } from '../../../pages/SquadCommunicationPage';
+import { SquadPage } from '../page/SquadPage';
 import type { SquadMessage, SquadSession, SquadOverview } from '../api';
 
 if (!import.meta.env.DEV || !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
@@ -65,7 +65,7 @@ function Preview() {
         <button onClick={()=>{document.documentElement.classList.toggle('dark',!dark);setDark(!dark);}}>{dark?'Light':'Dark'}</button>
         <label>Language <select value={language} onChange={e=>{document.documentElement.lang=e.target.value;setLanguage(e.target.value);void i18n.changeLanguage(e.target.value);}}><option value="en">English</option><option value="ka">ქართული</option></select></label>
         <a href={`?actor=${actor}&surface=${sessionsSurface?'room':'sessions'}&theme=${dark?'dark':'light'}&lang=${language}`}>{sessionsSurface?'Squad room':'Session workspace'}</a>
-    </header>}<SquadRoom key={`${actor}:${sessionsSurface}`} id={11}/></>;
+    </header>}<SquadPage key={`${actor}:${sessionsSurface}`} id={11}/></>;
 }
 if (!import.meta.env.DEV || !['localhost','127.0.0.1','[::1]'].includes(location.hostname)) throw new Error('Synthetic preview is local development only.');
 const root = createRoot(document.getElementById('root')!);

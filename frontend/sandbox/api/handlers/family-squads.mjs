@@ -54,3 +54,7 @@ post('/squad-communication/:id/messages', req => {
 
 // The coaches' receipts are not a parent's to read.
 get('/squad-communication/:id/messages/:mid/receipts', req => parentOnly(req.headers, req.params.id) ? reply(403, { status: 403, message: 'Only the coaches see who has read an update.' }) : undefined);
+
+// Inviting and approving players are the coaches' (refinement 2).
+get('/squad-communication/:id/join-link', req => parentOnly(req.headers, req.params.id) ? reply(403, { status: 403, message: 'Only the coaches invite players.' }) : undefined);
+get('/squad-communication/:id/join-requests', req => parentOnly(req.headers, req.params.id) ? reply(403, { status: 403, message: 'Only the coaches answer join requests.' }) : undefined);

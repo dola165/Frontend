@@ -149,7 +149,7 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
             description="Training, matches and the next time your squad meets."
             backLabel={inSquadPage ? 'Back to my squads' : squad ? 'Back to squad' : 'Back to my squads'}
             canOpenClub canCreate={canManage} hideContext={hideContext}
-            createLabel={copy('New event', 'ახალი ღონისძიება')} showTraining supportsTrainingPlan
+            createLabel={copy('New event', 'ახალი ღონისძიება')} showTraining={canManage} supportsTrainingPlan={canManage}
             priorityContent={prioritizeNextAction ? nextActions : undefined}
             showHeading={!prioritizeNextAction && !hideContext}
             mobile={mobile} busy={loading} date={date} days={days} view={view} rangeLabel={rangeLabel}

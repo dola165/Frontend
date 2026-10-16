@@ -15,8 +15,6 @@
 .family-management-section { min-width:0; padding:18px; background:var(--color-surface); border:1px solid var(--color-border); border-radius:8px; }
 .family-management-section h3 { display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:15px; }
 .family-guardians h3 svg { color:var(--color-purple); }
-.family-participation { border-top:2px solid var(--color-accent); }
-.family-guardians { border-top:2px solid var(--color-purple); }
 .family-connections .family-help { font-size:11px; color:var(--color-secondary); margin:8px 0 14px; }
 .family-help summary { min-height:32px; cursor:pointer; }
 .family-guardian-list li { display:grid; gap:12px; padding:14px 0; }

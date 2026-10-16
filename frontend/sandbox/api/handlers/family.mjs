@@ -30,18 +30,22 @@ get('/joining/children', ({ headers }) => familyRequest(headers)
     })) }
   : undefined);
 
+// What the parent changes in Family connections during a session (invitations sent, a guardian removed, codes).
+const state = { invitations: [], revoked: new Set(), codes: [] };
+let nextFamilyId = 99001;
+
 // Family connections: both guardians on every child, the clubs that hold a card.
 get('/family', ({ headers }) => familyRequest(headers) ? {
   children: FAMILY.map(child => ({
     childId: child.id, name: child.name, birthYear: Number(child.dateOfBirth.slice(0, 4)), registered: false, activationEligible: false,
     guardians: [
-      { id: child.id * 10 + 1, guardianId: W.ME_ID, name: W.me.fullName, provenance: 'CREATED', canRevoke: false, self: true },
-      { id: child.id * 10 + 2, guardianId: SECOND_GUARDIAN.id, name: SECOND_GUARDIAN.name, provenance: 'INVITED', canRevoke: true, self: false },
+      { id: child.id * 10 + 1, guardianId: W.ME_ID, name: W.me.fullName, provenance: 'PARENT_CREATED', canRevoke: false, self: true },
+      ...(state.revoked.has(child.id) ? [] : [{ id: child.id * 10 + 2, guardianId: SECOND_GUARDIAN.id, name: SECOND_GUARDIAN.name, provenance: 'GUARDIAN_INVITATION', canRevoke: true, self: false }]),
     ],
     clubs: clubsOf(child).map(club => ({ id: club.clubId * 1000 + child.id, clubId: club.clubId, name: club.clubName, status: 'ACTIVE', consent: 'CONFIRMED' })),
-    squads: squadsOf(child).map(s => ({ id: s.id, name: s.name })), codes: [], history: [],
+    squads: squadsOf(child).map(s => ({ id: s.id, name: s.name })), codes: state.codes.filter(c => c.playerId === child.id).map(({ id, expiresAt }) => ({ id, expiresAt })), history: [],
   })),
-  invitations: [], consentRequests: [], consentHistory: [], ended: [],
+  invitations: state.invitations, consentRequests: [], consentHistory: [], ended: [],
 } : undefined);
 
 // A new child card: private to the family, no club, no account.
@@ -74,3 +78,25 @@ post('/admissions/cases', ({ headers, body }) => {
   C.admissionCases.unshift(item);
   return { __created: true, ...item };
 });
+
+// Family connections' actions, so every button there answers in the sandbox.
+const family = handler => req => familyRequest(req.headers) ? handler(req) : undefined;
+const ok = () => reply(204);
+post('/family/children/:cid/invitations', family(({ params, body }) => {
+  const child = FAMILY.find(c => c.id === Number(params.cid)); const email = String(body?.email ?? '').trim();
+  if (!child || !/^[^@s]+@[^@s]+.[^@s]+$/.test(email)) return reply(400, { status: 400, message: 'Enter the other adult’s email address.' });
+  state.invitations.push({ id: nextFamilyId++, kind: body?.kind === 'TRANSFER' ? 'TRANSFER' : 'ADDITIONAL', status: 'PENDING', sent: true, childName: child.name, otherName: email, canRespond: false, canCancel: true, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString() });
+  return ok();
+}));
+post('/family/invitations/:id/cancel', family(({ params }) => { const i = state.invitations.find(x => x.id === Number(params.id)); if (i) { i.status = 'CANCELLED'; i.canCancel = false; } return ok(); }));
+post('/family/invitations/:id/respond', family(() => ok()));
+post('/family/children/:cid/guardians/:gid/revoke', family(({ params }) => { state.revoked.add(Number(params.cid)); return ok(); }));
+post('/family/children/:cid/clubs/:clubId/depart', family(() => reply(409, { status: 409, message: 'Leaving a club is confirmed with the club in the sandbox; nothing was changed.' })));
+post('/family/consents/:id', family(() => ok()));
+post('/family/children/:cid/activation', family(() => ok()));
+post('/joining/players/:pid/link-code', family(({ params }) => {
+  const code = { id: nextFamilyId++, playerId: Number(params.pid), code: String(100000 + (Number(params.pid) * 7919 + nextFamilyId) % 900000), expiresAt: new Date(Date.now() + 2 * 86400000).toISOString(), clubId: null };
+  state.codes.push(code);
+  return { __created: true, id: code.id, code: code.code, expiresAt: code.expiresAt, clubId: null };
+}));
+post('/family/enrollment-codes/:id/cancel', family(({ params }) => { const at = state.codes.findIndex(c => c.id === Number(params.id)); if (at >= 0) state.codes.splice(at, 1); return ok(); }));

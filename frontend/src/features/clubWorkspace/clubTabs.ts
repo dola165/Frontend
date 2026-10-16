@@ -1,5 +1,5 @@
 import {
-    BellRing, CalendarDays, Briefcase, BriefcaseBusiness, Bus, CheckCircle2, Compass, Goal, Settings2, ClipboardList, CreditCard, Crown, HeartHandshake, LayoutDashboard, LayoutGrid,
+    BellRing, CalendarDays, Briefcase, BriefcaseBusiness, CheckCircle2, Settings2, ClipboardList, CreditCard, Crown, HeartHandshake, Landmark, LayoutDashboard, LayoutGrid,
     ReceiptText, Settings, ShieldCheck, ShoppingBag, UserPlus, Users, UserRoundCog,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -9,7 +9,7 @@ import type { Bootstrap } from '../clubOperations/api';
 import type { ClubManagementOverview } from '../clubs/domain';
 import type { RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
 import { availableOperationTabs, operationModule } from '../clubOperations/workspaceNavigation';
-import { personalTabs, workspaceAreas } from '../clubOperations/workspaceStructure';
+import { essentialTabs, personalTabs, workspaceAreas, type WorkspaceLayout } from '../clubOperations/workspaceStructure';
 import { translate } from '../../locales/useCopy';
 import { workspaceNavEn } from '../../locales/workspaceDesign';
 
@@ -58,7 +58,8 @@ export function buildClubTabs({ overview, roles, boot, canManageLeadership, canM
         add({ id: 'player-cards', label: 'Player cards', icon: CreditCard });
     }
     if (canManageTryouts) add({ id: 'tryouts', label: 'Tryouts', icon: CheckCircle2, count: tryoutCount || undefined });
-    if (boot) availableOperationTabs(boot).forEach(tab => add({ id: tab.id, label: tab.id === 'actions' ? 'Work queue' : tab.label, icon: tab.id === 'actions' ? ClipboardList : tab.icon }));
+    // A member with no tools has no work queue either: records appear with the first responsibility.
+    if (boot && (boot.leadership || boot.modules.length)) availableOperationTabs(boot).forEach(tab => add({ id: tab.id, label: tab.id === 'actions' ? 'Work queue' : tab.label, icon: tab.id === 'actions' ? ClipboardList : tab.icon }));
     if (roles) {
         add({ id: 'tools', label: 'All tools', icon: LayoutGrid });
         if (roles.squads.length && !canManageOperations) add({ id: 'squads', label: 'Squads', icon: ShieldCheck });
@@ -75,25 +76,39 @@ export function visibleTabs(tabs: TabItem[], boot: Bootstrap | null, active: Wor
     });
 }
 
-const areaIcons: Record<string, LucideIcon> = { football: Goal, people: Users, operations: Bus, recruitment: Compass, business: BriefcaseBusiness, settings: Settings2 };
-const navItem = (tab: TabItem): WorkspaceNavItem => ({ id: tab.id, label: tab.label, icon: tab.icon, count: tab.count });
+const areaIcons: Record<string, LucideIcon> = { squads: ShieldCheck, players: Users, staff: BriefcaseBusiness, joining: UserPlus, club: Landmark, settings: Settings2 };
 
-/** Shapes the rail: primary destinations, pins, the areas your responsibilities use, then everything else. */
-export function clubNavigation(tabs: TabItem[], { focus, pins, inbox }: { focus: Set<WorkspaceTab> | 'all'; pins: TabItem[]; inbox: { allowed: boolean; unread: number } }) {
+/**
+ * Shapes the rail: primary destinations, pins, then the areas with the tools this person uses, and everything else
+ * under More tools. Three things decide what comes first, none of them access: the responsibilities switched on
+ * (`focus`), what the person hid (`layout`), and the essentials that always show. Tools the person may only read
+ * carry a mark, so view-only is known before the click.
+ */
+export function clubNavigation(tabs: TabItem[], { focus, pins, inbox, layout, readOnly }: {
+    focus: Set<WorkspaceTab> | 'all'; pins: TabItem[]; inbox: { allowed: boolean; unread: number };
+    layout?: Pick<WorkspaceLayout, 'isHidden'>; readOnly?: (id: WorkspaceTab) => boolean;
+}) {
     const byId = (id: string) => tabs.find(tab => tab.id === id);
-    const primary: WorkspaceNavItem[] = [
-        byId('overview'), byId('calendar'),
+    const navItem = (tab: TabItem): WorkspaceNavItem => ({ id: tab.id, label: tab.label, icon: tab.icon, count: tab.count, view: readOnly?.(tab.id) || undefined });
+    const top: (TabItem | undefined)[] = [
+        byId('overview'),
         // The club's own notifications. Named "Club updates" so it is never confused with the header Inbox.
         inbox.allowed ? { id: 'inbox' as const, label: navLabel('inbox'), icon: BellRing, count: inbox.unread || undefined } : undefined,
         byId('actions'),
-    ].filter((tab): tab is TabItem => Boolean(tab)).map(navItem);
+    ];
+    const primary: WorkspaceNavItem[] = top.filter((tab): tab is TabItem => Boolean(tab)).map(navItem);
     const pinned = pins.filter(tab => !personalTabs.has(tab.id)).map(navItem);
     const grouped = (keep: (id: WorkspaceTab) => boolean): WorkspaceNavGroup[] => workspaceAreas
         .map(area => ({ id: area.id, label: navLabel(`area-${area.id}`), icon: areaIcons[area.id], items: (area.tabs as readonly WorkspaceTab[]).map(byId).filter((tab): tab is TabItem => Boolean(tab) && keep(tab!.id)).map(navItem) }))
         .filter(group => group.items.length);
-    const inFocus = (id: WorkspaceTab) => focus === 'all' || focus.has(id);
-    const groups = grouped(inFocus);
-    const more = focus === 'all' ? [] : grouped(id => !inFocus(id));
-    const footer = byId('tools') ? [navItem(byId('tools')!)] : [];
+    const inFocus = (id: WorkspaceTab) => essentialTabs.has(id) || focus === 'all' || focus.has(id);
+    const shown = (id: WorkspaceTab) => inFocus(id) && !layout?.isHidden(id);
+    const groups = grouped(shown);
+    const more = grouped(id => !shown(id));
+    // The calendar and the full list of tools sit at the bottom; Edit tabs lives at the top right of every page.
+    const footer: WorkspaceNavItem[] = [
+        ...(byId('calendar') ? [navItem(byId('calendar')!)] : []),
+        ...(byId('tools') ? [navItem(byId('tools')!)] : []),
+    ];
     return { primary, pinned, groups, more, footer };
 }

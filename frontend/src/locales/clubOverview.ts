@@ -107,6 +107,9 @@ export const clubOverviewEn = {
     tournamentHint: 'Set up a competition',
     accessPending: 'Your club access is still being confirmed',
     accessPendingHint: 'Ask a club admin to check your role if this does not change.',
+    noResponsibilities: 'No responsibilities yet', noResponsibilitiesHint: 'You can see the club’s calendar and updates. Tools appear with your first responsibility.', askResponsibility: 'Ask for a responsibility',
+    numbersTitle: 'The club in numbers', numbersHint: 'Each row opens its tool', numSquads: 'Squads', numSquadsMeta: '{{count}} squads · {{players}} players in them', numPlayers: 'Players', numActive: '{{count}} active', numTrial: '{{count}} on trial', numOverdueTrials: '{{count}} trials overdue', numStaff: 'Staff', numStaffMeta: '{{count}} people', numJoining: 'Joining', numApplications: '{{count}} applications', numTryouts: '{{count}} tryout reviews', numMoney: 'Money', numOverdueMoney: '{{count}} overdue', numNothingOverdue: 'Nothing overdue', numFundraising: 'Fundraising', numLive: '{{count}} live', numRaised: '{{raised}} of {{goal}} raised', numStore: 'Store', numProducts: '{{count}} products',
+    season: 'Season {{season}}', otherSquads: 'Other squads',
 };
 
 export const clubOverviewKa: Record<keyof typeof clubOverviewEn, string> = {
@@ -217,4 +220,7 @@ export const clubOverviewKa: Record<keyof typeof clubOverviewEn, string> = {
     tournamentHint: 'შეჯიბრების შექმნა',
     accessPending: 'თქვენი წვდომა კლუბში ჯერ დასტურდება',
     accessPendingHint: 'თუ ეს არ შეიცვლება, სთხოვეთ კლუბის ადმინისტრატორს თქვენი როლის შემოწმება.',
+    noResponsibilities: 'პასუხისმგებლობა ჯერ არ გაქვთ', noResponsibilitiesHint: 'კლუბის კალენდარსა და სიახლეებს ხედავთ. ინსტრუმენტები პირველ პასუხისმგებლობასთან ერთად გამოჩნდება.', askResponsibility: 'პასუხისმგებლობის მოთხოვნა',
+    numbersTitle: 'კლუბი ციფრებში', numbersHint: 'თითოეული სტრიქონი თავის ინსტრუმენტს ხსნის', numSquads: 'გუნდები', numSquadsMeta: '{{count}} გუნდი · {{players}} მოთამაშე', numPlayers: 'მოთამაშეები', numActive: '{{count}} აქტიური', numTrial: '{{count}} საცდელზე', numOverdueTrials: '{{count}} საცდელი ვადაგადაცილებულია', numStaff: 'პერსონალი', numStaffMeta: '{{count}} ადამიანი', numJoining: 'გაწევრიანება', numApplications: '{{count}} განაცხადი', numTryouts: '{{count}} შესარჩევი განსახილველი', numMoney: 'ფული', numOverdueMoney: '{{count}} ვადაგადაცილებული', numNothingOverdue: 'ვადაგადაცილებული არაფერია', numFundraising: 'შემოწირულობები', numLive: '{{count}} აქტიური', numRaised: 'შეგროვდა {{raised}} / {{goal}}', numStore: 'მაღაზია', numProducts: '{{count}} პროდუქტი',
+    season: 'სეზონი {{season}}', otherSquads: 'სხვა გუნდები',
 };

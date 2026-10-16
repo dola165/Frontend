@@ -78,7 +78,6 @@
 @media (max-width: 640px) {
   .gk .cw-toolbar__count { margin-left: 0; }
 }
-.gk .cw-switch-row { cursor: pointer; }
 
 /* ---------------------------------------------------------------- choices (one of several options, each explained) */
 .gk .cw-options { display: flex; flex-direction: column; }
@@ -100,6 +99,42 @@
 .gk .cw-dot--warning { background: var(--gk-warning); }
 .gk .cw-dot--info { background: var(--gk-info); }
 .gk .cw-dot--accent { background: var(--gk-accent); }
+/* ---------------------------------------------------------------- view only, and the person's own tabs */
+.gk .cw-viewonly { display: flex; align-items: center; gap: var(--gk-3); margin: var(--gk-4) var(--gk-6) 0; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .cw-viewonly > svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .cw-viewonly > span { flex: 1; }
+.gk .cw-tabs__focus { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .cw-tabs__label { color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.gk .cw-tabs__area { overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); }
+.gk .cw-tabs__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); padding: var(--gk-2) var(--gk-3) var(--gk-2) var(--gk-4); border-bottom: 1px solid var(--gk-line); background: color-mix(in srgb, var(--gk-text) 4%, var(--gk-surface)); }
+.gk .cw-tabs__area[data-hidden] .cw-tabs__head strong { color: var(--gk-text-3); }
+.gk .cw-tabs__list { margin: 0; padding: 0; list-style: none; }
+.gk .cw-tabs__row { display: flex; align-items: center; gap: var(--gk-3); min-height: 48px; padding: var(--gk-2) var(--gk-3) var(--gk-2) var(--gk-4); border-top: 1px solid var(--gk-line); }
+.gk .cw-tabs__row:first-child { border-top: 0; }
+.gk .cw-tabs__row[data-hidden], .gk .cw-tabs__area[data-hidden] .cw-tabs__row { opacity: .5; }
+.gk .cw-tabs__icon { flex: none; width: 18px; height: 18px; color: var(--gk-text-3); }
+.gk .cw-tabs__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gk .cw-tabs__name { display: flex; align-items: center; gap: var(--gk-2); font-weight: 600; }
+.gk .cw-tabs__view { padding: 1px 6px; border-radius: var(--gk-r-pill); background: var(--gk-raised); color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-weight: 600; }
+.gk .cw-tabs__desc { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
+.gk .cw-tabs__eye { display: grid; flex: none; place-items: center; width: 36px; height: 36px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text-2); cursor: pointer; }
+.gk .cw-tabs__eye:hover { border-color: var(--gk-line-strong); color: var(--gk-text); }
+.gk .cw-tabs__eye[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .cw-tabs__eye:disabled { opacity: .4; cursor: default; }
+.gk .cw-tabs__eye svg { width: 16px; height: 16px; }
+.gk .cw-tabs__locked { display: inline-flex; align-items: center; gap: 4px; color: var(--gk-text-3); font-size: var(--gk-fs-xs); white-space: nowrap; }
+.gk .cw-tabs__locked svg { width: 14px; height: 14px; }
+.gk .cw-tabs__foot { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: 1.7; }
+.gk .cw-tabs__foot a { color: var(--gk-accent); }
+.gk .cw-tool-row--locked .gk-list-row__title { color: var(--gk-text-2); }
+/* Squads by section, for a club with more than one. */
+.gk .cw-sections { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .cw-section__name { display: flex; align-items: baseline; gap: var(--gk-2); margin: 0 0 var(--gk-2); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .cw-section__name span { color: var(--gk-text-3); font-weight: 500; }
+/* The club in numbers: one quiet symbol per row. */
+.gk .cw-num__icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--gk-raised); color: var(--gk-text-2); }
+.gk .cw-num__icon svg { width: 16px; height: 16px; }
+
 .gk .cw-status { color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; white-space: nowrap; }
 .gk .cw-status--danger { color: var(--gk-danger); }
 .gk .cw-status--warning { color: var(--gk-warning); }

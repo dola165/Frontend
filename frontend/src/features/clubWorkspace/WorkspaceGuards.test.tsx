@@ -58,7 +58,7 @@ describe('unsaved work across workspace tabs', () => {
     it('asks before closing a responsibility request with a draft', () => {
         const close = vi.fn();
         render(<MemoryRouter><ResponsibilityRequests open clubId={1} roles={roles} onClose={close} onChanged={vi.fn()} /></MemoryRouter>);
-        fireEvent.change(screen.getByRole('combobox', { name: 'Responsibility' }), { target: { value: 'ANALYST' } });
+        fireEvent.click(screen.getByRole('radio', { name: 'Video analyst' }));
         fireEvent.change(screen.getByLabelText('Message to your club admin (optional)'), { target: { value: 'Match analysis on Saturdays' } });
         fireEvent.click(screen.getByRole('button', { name: 'Close' }));
         expect(screen.getByRole('group', { name: 'Discard edits' })).toBeInTheDocument();

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, EmptyNote, Field, List, ListRow, Panel, Section } from '../../../design/primitives';
+import { Button, EmptyNote, Field, Panel, Section } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { AppointmentSummary } from '../../clubOperations/AppointmentSummary';
 import { appointmentScope, label, post, root, scopePayload } from '../../clubOperations/api';
@@ -14,13 +14,16 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { responsibilitiesEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import '../club-workspace.css';
+import './coach-hub.css';
 
 interface Draft { role: string; scope: StaffScopeSelection; note: string; replace: string }
 const EMPTY: Draft = { role: '', scope: { clubWide: false, squadIds: [] }, note: '', replace: '' };
+const toneOf = (tone: string) => (['danger', 'warning', 'info'].includes(tone) ? tone : tone === 'accent' ? 'accent' : 'neutral');
 
 /**
- * Asking the club for another responsibility, in one short form, and following the requests and invitations
- * already made. Nothing is granted here: a club admin approves each request before access changes.
+ * Asking the club for another responsibility: pick it from the club's jobs (chips by family), say for which
+ * squads, send. Then every request already made, in the dot-and-word language. Nothing is granted here: a
+ * club admin approves each request before access changes.
  */
 export function ResponsibilityRequests({ open, clubId, roles, onClose, onChanged }: { open: boolean; clubId: number; roles: RolesWorkspace; onClose: () => void; onChanged: () => void }) {
     const copy = useCopy('responsibilities', responsibilitiesEn);
@@ -61,38 +64,44 @@ export function ResponsibilityRequests({ open, clubId, roles, onClose, onChanged
                 </AppointmentSummary>)}</div>
             </Section>}
             {pending ? <p className="gk-notice" role="status">{copy('oneAtATime')}</p>
-                : <form className="cw-request" onSubmit={event => { event.preventDefault(); submit(); }}>
-                    <Field label="Responsibility" htmlFor="ch-role">
-                        <select id="ch-role" className="gk-input" value={draft.role} disabled={busy} onChange={event => setDraft({ ...draft, role: event.target.value })}>
-                            <option value="">Choose a responsibility</option>
-                            {families.map(name => <optgroup key={name} label={name}>{roles.catalog.filter(item => family(item) === name).map(item => <option key={item.key} value={item.key} disabled={taken(item.key)}>{item.title}</option>)}</optgroup>)}
-                        </select>
-                    </Field>
+                : <form className="gk-stack" onSubmit={event => { event.preventDefault(); submit(); }}>
+                    {/* The club's jobs as chips, a line per family; one is chosen at a time. */}
+                    <div className="ch-roles" role="radiogroup" aria-label="Responsibility">{families.map(name => <div key={name} className="ch-roles__family">
+                        <span className="ch-roles__name">{name}</span>
+                        <span className="ch-roles__chips">{roles.catalog.filter(item => family(item) === name).map(item => <button key={item.key} type="button" role="radio" className="gk-chip" aria-checked={draft.role === item.key} aria-pressed={draft.role === item.key}
+                            disabled={busy || taken(item.key)} title={taken(item.key) ? copy('yourRequests') : undefined} onClick={() => setDraft({ ...draft, role: item.key })}>{item.title}</button>)}</span>
+                    </div>)}</div>
                     {role && <>
                         <p className="cw-muted">{role.description} <strong>{copy('includes')}</strong> {accessSummary(role.permissions) || copy('noTools')}.</p>
                         <ScopeChips squads={roles.requestSquads} value={draft.scope} disabled={busy} onChange={scope => setDraft({ ...draft, scope })} />
-                        {replaceable.length > 0 && <Field label={copy('replaceLabel')} htmlFor="ch-replace">
-                            <select id="ch-replace" className="gk-input" value={draft.replace} disabled={busy} onChange={event => setDraft({ ...draft, replace: event.target.value })}>
-                                <option value="">{copy('alongside')}</option>
-                                {replaceable.map(v => <option key={v.id} value={String(v.appointmentId)}>{copy('replace', { name: v.label })}</option>)}
-                            </select>
-                        </Field>}
+                        {replaceable.length > 0 && <div className="ch-roles__family">
+                            <span className="ch-roles__name">{copy('replaceLabel')}</span>
+                            <span className="ch-roles__chips">
+                                <button type="button" className="gk-chip" aria-pressed={draft.replace === ''} disabled={busy} onClick={() => setDraft({ ...draft, replace: '' })}>{copy('alongside')}</button>
+                                {replaceable.map(v => <button key={v.id} type="button" className="gk-chip" aria-pressed={draft.replace === String(v.appointmentId)} disabled={busy} onClick={() => setDraft({ ...draft, replace: String(v.appointmentId) })}>{copy('replace', { name: v.label })}</button>)}
+                            </span>
+                        </div>}
                         <Field label={copy('messageLabel')} htmlFor="ch-note">
                             <textarea id="ch-note" className="gk-input" rows={2} maxLength={1000} placeholder={copy('messagePlaceholder')} value={draft.note} disabled={busy} onChange={event => setDraft({ ...draft, note: event.target.value })} />
                         </Field>
-                        <div className="gk-row"><Button type="submit" variant="primary" disabled={busy}>{busy ? copy('sending') : copy('send')}</Button></div>
-                        <p className="gk-field__hint">{copy('sendHint')}</p>
+                        <div className="gk-row"><Button type="submit" variant="primary" disabled={busy}>{busy ? copy('sending') : copy('send')}</Button><span className="gk-field__hint">{copy('sendHint')}</span></div>
                     </>}
                 </form>}
             {confirmation}
-            <Section title={copy('yourRequests')}>
-                <Panel flush>{mine.length ? <List label={copy('yourRequests')}>{mine.map(r => {
-                    const badge = requestBadge(r.effective_status ?? r.status);
-                    return <ListRow key={r.id} title={roles.catalog.find(c => c.key === r.role_key)?.title ?? label(r.role_key)}
-                        meta={[appointmentScope({ squad_id: r.squad_id ?? null, ...r }, roles.requestSquads), r.review_note && copy('adminReply', { text: r.review_note }), r.unavailable_reason].filter(Boolean).join(' · ')}
-                        trail={<>{r.status === 'PENDING' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => post(`${rolesRoot(clubId)}/requests/${r.id}`, { status: 'WITHDRAWN', revision: r.revision }), copy('withdrawn'))}>{copy('withdraw')}</Button>}
-                            <Badge tone={badge.tone}>{badge.text}</Badge></>} />;
-                })}</List> : <EmptyNote title={copy('noRequests')}>{copy('noRequestsHint')}</EmptyNote>}</Panel>
+            <Section boxed title={copy('yourRequests')} hint={mine.length ? `${mine.length}` : undefined}>
+                <Panel flush>{mine.length ? <ul className="ch-requests" aria-label={copy('yourRequests')}>{mine.map(r => {
+                    const badge = requestBadge(r.effective_status ?? r.status), tone = toneOf(badge.tone);
+                    return <li key={r.id} className="ch-request">
+                        <span className={`cw-dot cw-dot--${tone}`} aria-hidden="true" />
+                        <span className="ch-request__text">
+                            <strong>{roles.catalog.find(c => c.key === r.role_key)?.title ?? label(r.role_key)}</strong>
+                            <span>{appointmentScope({ squad_id: r.squad_id ?? null, ...r }, roles.requestSquads)}</span>
+                            {(r.review_note || r.unavailable_reason) && <span className="ch-request__reply">{r.review_note ? copy('adminReply', { text: r.review_note }) : r.unavailable_reason}</span>}
+                        </span>
+                        {r.status === 'PENDING' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => post(`${rolesRoot(clubId)}/requests/${r.id}`, { status: 'WITHDRAWN', revision: r.revision }), copy('withdrawn'))}>{copy('withdraw')}</Button>}
+                        <span className={`cw-status cw-status--${tone}`}>{badge.text}</span>
+                    </li>;
+                })}</ul> : <EmptyNote title={copy('noRequests')}>{copy('noRequestsHint')}</EmptyNote>}</Panel>
             </Section>
         </div>
     </Dialog>;

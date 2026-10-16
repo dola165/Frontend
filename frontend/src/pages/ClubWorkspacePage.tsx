@@ -8,14 +8,18 @@ import { WorkspaceRolesPanel } from '../features/clubOperations/WorkspaceRoleVie
 import { useClubOperations } from '../features/clubOperations/useClubOperations';
 import { useWorkspaceRoles, type RoleView } from '../features/clubOperations/useWorkspaceRoles';
 import { operationModule } from '../features/clubOperations/workspaceNavigation';
-import { personalWorkspaceTarget, useResponsibilityFocus, type OpenWorkspace } from '../features/clubOperations/workspaceStructure';
+import { personalWorkspaceTarget, useResponsibilityFocus, useWorkspaceLayout, type OpenWorkspace } from '../features/clubOperations/workspaceStructure';
 import { canManageClubOperations, canManagePlayerStatuses, canReviewTryouts, clubRoleLabel, isLeadershipRole, type PlayerAffiliationStatus } from '../features/clubs/domain';
 import { AllTools } from '../features/clubWorkspace/AllTools';
 import { ClubCalendar } from '../features/clubWorkspace/calendar/ClubCalendar';
 import { ClubDecisionDialogs } from '../features/clubWorkspace/ClubDecisionDialogs';
 import { ClubTools } from '../features/clubWorkspace/ClubTools';
 import { WorkspaceNotices } from '../features/clubWorkspace/WorkspaceNotices';
+import { Settings, SlidersHorizontal } from 'lucide-react';
 import { buildClubTabs, clubNavigation, navLabel, visibleTabs } from '../features/clubWorkspace/clubTabs';
+import { EditTabsDialog } from '../features/clubWorkspace/EditTabsDialog';
+import { ViewOnlyNote } from '../features/clubWorkspace/ViewOnlyNote';
+import { ResponsibilityRequests } from '../features/clubWorkspace/coachHub/ResponsibilityRequests';
 import { guardWorkspaceNavigation } from '../features/clubOperations/workspaceGuard';
 import { useCopy } from '../locales/useCopy';
 import { workspaceNavEn } from '../locales/workspaceDesign';
@@ -59,6 +63,7 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     const roles = workspaceRoles.data;
     const { c: admissionCopy } = useClubAdmissionCopy();
     const [showHiddenSections, setShowHiddenSections] = useState(false);
+    const [editingTabs, setEditingTabs] = useState(false), [asking, setAsking] = useState(false);
     // The URL decides the open tool; until access is known, the requested one is shown as loading.
     const parsedTab = parseWorkspaceTab(searchParams.get('tab'));
     // An old "my squads" link that named a squad opens that squad here; Coach Hub and the other old personal tabs open My squads.
@@ -91,7 +96,11 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     const focus = useResponsibilityFocus(clubId, currentUserId, roles?.views ?? NO_VIEWS);
     const settled = !workspaceRoles.loading && !operations.loading && !club.loading;
     const pins = useWorkspacePins(clubId, shownTabs, settled);
-    const nav = clubNavigation(shownTabs, { focus: focus.tabs, pins: pins.pinned, inbox: { allowed: canReadInbox, unread: inbox.unreadCount } });
+    const layout = useWorkspaceLayout(clubId, currentUserId);
+    // A tool the server lets this person read but not write anywhere: shown with an eye, opened with one quiet line.
+    const readOnly = (id: WorkspaceTab) => { const module = operationModule(id); const access = module ? operations.boot?.modules.find(m => m.id === module) : undefined; return Boolean(access && !access.writable); };
+    const nav = clubNavigation(shownTabs, { focus: focus.tabs, pins: pins.pinned, inbox: { allowed: canReadInbox, unread: inbox.unreadCount }, layout, readOnly });
+    const askAccess = roles ? () => { setEditingTabs(false); setAsking(true); } : undefined;
 
     // Editors with unsaved work can cancel navigation inside the workspace.
     const navigateWorkspace = guardWorkspaceNavigation;
@@ -164,9 +173,9 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     else if (failed) content = <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{club.error}</span><Button size="sm" onClick={() => { void club.reload(); }}>Try again</Button></div></PageFrame>;
     else if (activeTab === 'overview') content = <ClubOverview clubId={clubId} clubName={club.clubName ?? operations.boot?.clubName ?? null} overview={overview} roles={roles} boot={operations.boot}
         schedule={{ ...club.schedule, open: openCalendar, openEvent }} unreadInbox={inbox.unreadCount} inboxAllowed={canReadInbox} tryoutPending={membership.tryouts.pendingCount}
-        canManageOperations={can.operations} canManageLeadership={can.leadership} tabs={shownTabs} pinned={pins.pinned} focusViews={focus.selectedViews} onOpen={openWork} onOpenPlayers={allowedTabIds.has('players') ? openPlayers : undefined} />;
+        canManageOperations={can.operations} canManageLeadership={can.leadership} tabs={shownTabs} pinned={pins.pinned} focusViews={focus.selectedViews} onOpen={openWork} onOpenPlayers={allowedTabIds.has('players') ? openPlayers : undefined} onAskAccess={askAccess} />;
     else if (activeTab === 'calendar') content = <ClubCalendar clubId={clubId} clubName={club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`} canManage={can.operations || Boolean(roles?.squads.length)} />;
-    else if (activeTab === 'tools') content = <AllTools tabs={shownTabs} pins={pins} focus={focus.tabs} responsibilities={roles ? { roles, focus } : undefined} onOpen={openWork} showHidden={showHiddenSections} onShowHidden={setShowHiddenSections}
+    else if (activeTab === 'tools') content = <AllTools tabs={shownTabs} pins={pins} focus={focus.tabs} onOpen={openWork} onEditTabs={() => setEditingTabs(true)} onAskAccess={askAccess} showHidden={showHiddenSections} onShowHidden={setShowHiddenSections}
         hasHidden={Boolean(operations.boot?.modules.some(m => !operations.boot?.settings.enabled_modules.includes(m.id)))} />;
     else if (activeTab === 'settings') content = <ClubSettingsPage clubId={clubId} busy={membership.pendingKey != null} />;
     else if (activeTab === 'programmes') content = <ProgrammesPage clubId={clubId} />;
@@ -187,15 +196,23 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     const clubName = club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`;
     const current = [...nav.primary, ...nav.groups.flatMap(g => g.items), ...nav.more.flatMap(g => g.items), ...nav.footer].find(item => item.id === activeTab);
     return <>
-        <WorkspaceShell label={copy('workspace')} storageKey={`club-${clubId}`} guard={navigateWorkspace}
+        <WorkspaceShell label={copy('workspace')} storageKey={`club-${clubId}`} guard={navigateWorkspace} canvas
             context={{ name: clubName, crest: club.clubLogoUrl, role: currentRole ? clubRoleLabel(currentRole) : roles ? focus.available.map(v => v.label).join(', ') || copy('clubStaff') : null, back: { label: copy('clubPage'), to: `/clubs/${clubId}` } }}
             primary={nav.primary} pinned={nav.pinned} groups={nav.groups} more={nav.more} footer={nav.footer}
-            active={activeTab} onSelect={id => switchTab(id as WorkspaceTab)} hrefFor={id => `/clubs/${clubId}/workspace${id === 'overview' ? '' : `?tab=${id}`}`}
+            active={activeTab} onSelect={id => switchTab(id as WorkspaceTab)}
+            hrefFor={id => `/clubs/${clubId}/workspace${id === 'overview' ? '' : `?tab=${id}`}`}
+            actions={<>
+                {allowedTabIds.has('settings') && activeTab !== 'settings' && <Button size="sm" variant="ghost" onClick={() => switchTab('settings')}><Settings aria-hidden="true" />{navLabel('settings')}</Button>}
+                <Button size="sm" variant="ghost" onClick={() => setEditingTabs(true)}><SlidersHorizontal aria-hidden="true" />{navLabel('customize')}</Button>
+            </>}
             sectionTitle={current?.label ?? copy('workspace')}>
             <WorkspaceNotices error={membership.errorMessage} success={membership.successMessage} rolesError={workspaceRoles.error || null}
                 onDismissError={() => membership.setErrorMessage(null)} onDismissSuccess={() => membership.setSuccessMessage(null)} onRetryRoles={workspaceRoles.refresh} />
+            {!loading && readOnly(activeTab) && <ViewOnlyNote onAsk={askAccess} />}
             {content}
         </WorkspaceShell>
         <ClubDecisionDialogs membership={membership} />
+        {editingTabs && <EditTabsDialog tabs={shownTabs} layout={layout} focus={focus} readOnly={readOnly} onClose={() => setEditingTabs(false)} onAskAccess={askAccess} />}
+        {roles && <ResponsibilityRequests open={asking} clubId={clubId} roles={roles} onClose={() => setAsking(false)} onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />}
     </>;
 }

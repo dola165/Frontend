@@ -24,7 +24,8 @@
 @media (max-width: 1099px) {
   .gk .cw-overview > .cw-overview__column { display: contents; }
   .gk .cw-overview__needs { order: 1; }
-  .gk .cw-overview__coming { order: 2; }
-  .gk .cw-overview__squads { order: 3; }
-  .gk .cw-overview__other { order: 4; }
+  .gk .cw-overview__numbers { order: 2; }
+  .gk .cw-overview__coming { order: 3; }
+  .gk .cw-overview__squads { order: 4; }
+  .gk .cw-overview__other { order: 5; }
 }

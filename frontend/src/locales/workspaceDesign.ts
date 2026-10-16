@@ -13,6 +13,7 @@ export const workspaceShellEn = {
     menuLabel: '{{name}} menu',
     waiting_one: '{{count}} waiting',
     waiting_other: '{{count}} waiting',
+    viewOnly: 'View only',
 };
 
 export const workspaceShellKa: Record<keyof typeof workspaceShellEn, string> = {
@@ -28,33 +29,46 @@ export const workspaceShellKa: Record<keyof typeof workspaceShellEn, string> = {
     menuLabel: '{{name}}: მენიუ',
     waiting_one: '{{count}} მოლოდინში',
     waiting_other: '{{count}} მოლოდინში',
+    viewOnly: 'მხოლოდ ნახვა',
 };
 
 /** Club workspace destinations and areas, keyed by tab or area id. */
 export const workspaceNavEn = {
     workspace: 'Club workspace', clubPage: 'Club page', clubStaff: 'Club staff', backTo: 'Back to {{name}}',
-    'area-football': 'Football', 'area-people': 'People', 'area-operations': 'Club operations', 'area-recruitment': 'Recruitment', 'area-business': 'Club business', 'area-settings': 'Settings',
-    overview: 'Overview', 'coach-hub': 'Coach Hub', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools',
+    'area-squads': 'Squads', 'area-players': 'Players', 'area-staff': 'Staff', 'area-joining': 'Joining', 'area-club': 'Club', 'area-settings': 'Settings',
+    overview: 'Today', 'coach-hub': 'Coach Hub', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools',
     personnel: 'Staff', players: 'Players', invites: 'Invitations', applications: 'Applications', roles: 'Ownership & access', 'club-approaches': 'Agent approaches',
-    jobs: 'Open roles', programmes: 'Programmes & fees', store: 'Store', campaigns: 'Campaigns', settings: 'Club settings', squads: 'Squads',
-    'player-cards': 'Player cards', tryouts: 'Tryouts', 'role-requests': 'Staff roles',
-    'staff-duties': 'Staff duties', credentials: 'Credentials', specialists: 'Specialists', guardians: 'Guardians & permissions', attendance: 'Attendance & collection',
-    registration: 'Registration', departures: 'Departures', development: 'Player development', education: 'Education', facilities: 'Venues & facilities',
-    preparation: 'Match preparation', equipment: 'Equipment', finance: 'Finance', travel: 'Travel', restrictions: 'Participation restrictions',
-    medical: 'Medical coordination', welfare: 'Confidential welfare', 'workspace-settings': 'Workspace settings',
+    jobs: 'Hiring', programmes: 'Programmes & fees', store: 'Store', campaigns: 'Fundraising', settings: 'Club settings', squads: 'Squads',
+    'player-cards': 'Player cards', tryouts: 'Tryouts', 'role-requests': 'Roles & requests',
+    'staff-duties': 'Duties', credentials: 'Credentials', specialists: 'Specialists', guardians: 'Guardians & permissions', attendance: 'Attendance & collection',
+    registration: 'Registration', departures: 'Departures', development: 'Development', education: 'Education', facilities: 'Grounds & facilities',
+    preparation: 'Match preparation', equipment: 'Equipment', finance: 'Finance', travel: 'Travel', restrictions: 'Restrictions',
+    medical: 'Medical', welfare: 'Welfare', 'workspace-settings': 'Workspace settings',
+    customize: 'Edit tabs', editTabsTitle: 'Your tabs', editTabsHint: 'Hide what you do not use; it waits under More tools. The essentials stay.',
+    toolsFirstFor: 'Tools first for', alwaysShown: 'Always shown', showTool: 'Show {{name}}', hideTool: 'Hide {{name}}', showArea: 'Show {{name}}', hideArea: 'Hide {{name}}',
+    resetTabs: 'Show everything again', done: 'Done', accessFrom: 'Access to a tool comes from the club, never from here.', askAccess: 'Ask for a responsibility',
+    profileRoles: 'What you do in football, for your profile, is in', rolesAndWork: 'Account › Roles and work',
+    notInAccess: 'Not in your access', notInAccessHint: 'Tools the club uses for other responsibilities. Ask, and a club admin decides.',
+    viewOnly: 'View only', viewOnlyNote: 'View only: you can read these records, not change them.',
 };
 
 export const workspaceNavKa: Record<keyof typeof workspaceNavEn, string> = {
     workspace: 'კლუბის სამუშაო სივრცე', clubPage: 'კლუბის გვერდი', clubStaff: 'კლუბის პერსონალი', backTo: 'უკან: {{name}}',
-    'area-football': 'ფეხბურთი', 'area-people': 'ადამიანები', 'area-operations': 'კლუბის ოპერაციები', 'area-recruitment': 'რეკრუტინგი', 'area-business': 'კლუბის ბიზნესი', 'area-settings': 'პარამეტრები',
-    overview: 'მიმოხილვა', 'coach-hub': 'მწვრთნელის პანელი', inbox: 'კლუბის სიახლეები', actions: 'სამუშაო რიგი', tools: 'ყველა ინსტრუმენტი',
+    'area-squads': 'გუნდები', 'area-players': 'მოთამაშეები', 'area-staff': 'პერსონალი', 'area-joining': 'გაწევრიანება', 'area-club': 'კლუბი', 'area-settings': 'პარამეტრები',
+    overview: 'დღეს', 'coach-hub': 'მწვრთნელის პანელი', inbox: 'კლუბის სიახლეები', actions: 'სამუშაო რიგი', tools: 'ყველა ინსტრუმენტი',
     personnel: 'პერსონალი', players: 'მოთამაშეები', invites: 'მოწვევები', applications: 'განაცხადები', roles: 'მფლობელობა და წვდომა', 'club-approaches': 'აგენტების მიმართვები',
-    jobs: 'ღია პოზიციები', programmes: 'პროგრამები და საფასური', store: 'მაღაზია', campaigns: 'კამპანიები', settings: 'კლუბის პარამეტრები', squads: 'შემადგენლობები',
-    'player-cards': 'მოთამაშის ბარათები', tryouts: 'სინჯები', 'role-requests': 'პერსონალის როლები',
-    'staff-duties': 'პერსონალის მოვალეობები', credentials: 'კვალიფიკაციები', specialists: 'სპეციალისტები', guardians: 'მეურვეები და ნებართვები', attendance: 'დასწრება და წაყვანა',
-    registration: 'რეგისტრაცია', departures: 'წასვლები', development: 'მოთამაშის განვითარება', education: 'განათლება', facilities: 'მოედნები და ობიექტები',
-    preparation: 'მატჩისთვის მომზადება', equipment: 'ინვენტარი', finance: 'ფინანსები', travel: 'მგზავრობა', restrictions: 'მონაწილეობის შეზღუდვები',
-    medical: 'სამედიცინო კოორდინაცია', welfare: 'კონფიდენციალური კეთილდღეობა', 'workspace-settings': 'სამუშაო სივრცის პარამეტრები',
+    jobs: 'დაქირავება', programmes: 'პროგრამები და საფასური', store: 'მაღაზია', campaigns: 'შემოწირულობები', settings: 'კლუბის პარამეტრები', squads: 'შემადგენლობები',
+    'player-cards': 'მოთამაშის ბარათები', tryouts: 'სინჯები', 'role-requests': 'როლები და მოთხოვნები',
+    'staff-duties': 'მოვალეობები', credentials: 'კვალიფიკაციები', specialists: 'სპეციალისტები', guardians: 'მეურვეები და ნებართვები', attendance: 'დასწრება და წაყვანა',
+    registration: 'რეგისტრაცია', departures: 'წასვლები', development: 'განვითარება', education: 'განათლება', facilities: 'მოედნები და ინფრასტრუქტურა',
+    preparation: 'მატჩისთვის მომზადება', equipment: 'ინვენტარი', finance: 'ფინანსები', travel: 'მგზავრობა', restrictions: 'შეზღუდვები',
+    medical: 'სამედიცინო', welfare: 'კეთილდღეობა', 'workspace-settings': 'სამუშაო სივრცის პარამეტრები',
+    customize: 'ჩანართების რედაქტირება', editTabsTitle: 'თქვენი ჩანართები', editTabsHint: 'დამალეთ, რასაც არ იყენებთ; ის „სხვა ინსტრუმენტებში“ დაგელოდებათ. მთავარი რჩება.',
+    toolsFirstFor: 'ინსტრუმენტები პირველ რიგში', alwaysShown: 'ყოველთვის ჩანს', showTool: '{{name}}: ჩვენება', hideTool: '{{name}}: დამალვა', showArea: '{{name}}: ჩვენება', hideArea: '{{name}}: დამალვა',
+    resetTabs: 'ყველაფრის დაბრუნება', done: 'მზადაა', accessFrom: 'ინსტრუმენტზე წვდომას კლუბი იძლევა, არა ეს ფანჯარა.', askAccess: 'პასუხისმგებლობის მოთხოვნა',
+    profileRoles: 'რას აკეთებთ ფეხბურთში (პროფილისთვის), იხილეთ:', rolesAndWork: 'ანგარიში › როლები და საქმიანობა',
+    notInAccess: 'თქვენი წვდომის გარეთ', notInAccessHint: 'ინსტრუმენტები, რომლებსაც კლუბი სხვა პასუხისმგებლობებისთვის იყენებს. მოითხოვეთ და კლუბის ადმინი გადაწყვეტს.',
+    viewOnly: 'მხოლოდ ნახვა', viewOnlyNote: 'მხოლოდ ნახვა: ამ ჩანაწერების წაკითხვა შეგიძლიათ, შეცვლა — არა.',
 };
 
 export const coachHubEn = {
@@ -88,13 +102,17 @@ export const coachHubEn = {
     clubWide: 'Club-wide', expired: 'Expired',
     otherWork: 'Your other work', allWorkspaces: 'All workspaces',
     panelClose: 'Close player details', panelFallback: 'Squad player', shirt: '#{{number}}', age: 'Age {{age}}',
-    addObservation: 'Add observation', publicProfile: 'Public profile', observationTitle: 'Coach observation', observationLabel: 'Observation', observationPlaceholder: 'What did you notice?',
+    addObservation: 'Add observation', removeFromSquad: 'Remove from {{squad}}', publicProfile: 'Public profile', observationTitle: 'Coach observation', observationLabel: 'Observation', observationPlaceholder: 'What did you notice?',
     nextSteps: 'Next steps', optional: '(optional)', saveObservation: 'Save observation', saving: 'Saving…', cancel: 'Cancel',
     observationSaved: 'Observation saved as a draft. Review or share it in Development.', observationError: 'Could not save this observation.', saveFirst: 'Save or discard your observation before opening the public profile.',
     loadingInfo: 'Loading player information…', infoError: 'Could not load player information.', retry: 'Retry',
     restrictionsTitle: 'Participation restrictions', developmentTitle: 'Recent development', viewAll: 'View all',
     noRestrictions: 'No open restrictions recorded here.', noDevelopment: 'No development entries recorded here.', reviewOn: 'Review {{date}}',
     playerTools: 'Player tools', workflowsUnavailable: 'Player workflows are temporarily unavailable.',
+    postUpdate: 'Post an update', askSquad: 'Ask for another squad', addPlayers: 'Add your players', whenTrain: 'When do you train? Plan the first session',
+    squadChat: 'Squad chat', soon: 'Soon', soonEmpty: 'Nothing in the next 7 days', soonEmptyHint: 'Sessions and matches for your squads appear here once they are planned.',
+    planSession: 'Plan a session', cancelled: 'Cancelled',
+    arrangeMatch: 'Arrange a match', cancelSession: 'Cancel', addResult: 'Add the result', messageParents: 'Message several parents', sharePhoto: 'Share a photo', manageRoster: 'Manage roster', newAnnouncement: 'New announcement', matches: 'Matches', arrangeAsk: 'Do you want to arrange a match?', comingUp: 'Coming up', played: 'Played', noMatchesSoon: 'No match arranged yet', noMatchesSoonHint: 'Invite a club and the match appears here and in Soon.', noMatchesPlayed: 'No matches played yet', noMatchesPlayedHint: 'Results appear here after each match.',
 };
 
 export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
@@ -128,13 +146,17 @@ export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
     clubWide: 'მთელი კლუბი', expired: 'ვადაგასული',
     otherWork: 'თქვენი სხვა სამუშაო', allWorkspaces: 'ყველა სამუშაო სივრცე',
     panelClose: 'მოთამაშის დეტალების დახურვა', panelFallback: 'გუნდის მოთამაშე', shirt: '#{{number}}', age: '{{age}} წლის',
-    addObservation: 'დაკვირვების დამატება', publicProfile: 'საჯარო პროფილი', observationTitle: 'მწვრთნელის დაკვირვება', observationLabel: 'დაკვირვება', observationPlaceholder: 'რა შენიშნეთ?',
+    addObservation: 'დაკვირვების დამატება', removeFromSquad: '{{squad}}-დან ამოღება', publicProfile: 'საჯარო პროფილი', observationTitle: 'მწვრთნელის დაკვირვება', observationLabel: 'დაკვირვება', observationPlaceholder: 'რა შენიშნეთ?',
     nextSteps: 'შემდეგი ნაბიჯები', optional: '(არასავალდებულო)', saveObservation: 'დაკვირვების შენახვა', saving: 'ინახება…', cancel: 'გაუქმება',
     observationSaved: 'დაკვირვება მონახაზად შეინახა. ნახეთ ან გააზიარეთ განვითარების ჩანართში.', observationError: 'დაკვირვების შენახვა ვერ მოხერხდა.', saveFirst: 'საჯარო პროფილის გახსნამდე შეინახეთ ან გააუქმეთ დაკვირვება.',
     loadingInfo: 'მოთამაშის ინფორმაცია იტვირთება…', infoError: 'მოთამაშის ინფორმაციის ჩატვირთვა ვერ მოხერხდა.', retry: 'ხელახლა ცდა',
     restrictionsTitle: 'მონაწილეობის შეზღუდვები', developmentTitle: 'ბოლო განვითარება', viewAll: 'ყველას ნახვა',
     noRestrictions: 'ღია შეზღუდვები არ არის.', noDevelopment: 'განვითარების ჩანაწერები არ არის.', reviewOn: 'შეფასება: {{date}}',
     playerTools: 'მოთამაშის ინსტრუმენტები', workflowsUnavailable: 'მოთამაშის ინსტრუმენტები დროებით მიუწვდომელია.',
+    postUpdate: 'განახლების გამოქვეყნება', askSquad: 'სხვა გუნდის მოთხოვნა', addPlayers: 'დაამატეთ მოთამაშეები', whenTrain: 'როდის ვარჯიშობთ? დაგეგმეთ პირველი ვარჯიში',
+    squadChat: 'გუნდის ჩატი', soon: 'მალე', soonEmpty: 'მომდევნო 7 დღეში არაფერია', soonEmptyHint: 'თქვენი გუნდების ვარჯიშები და მატჩები დაგეგმვისთანავე აქ გამოჩნდება.',
+    planSession: 'ვარჯიშის დაგეგმვა', cancelled: 'გაუქმებულია',
+    arrangeMatch: 'მატჩის მოწყობა', cancelSession: 'გაუქმება', addResult: 'შედეგის დამატება', messageParents: 'რამდენიმე მშობლისთვის მიწერა', sharePhoto: 'ფოტოს გაზიარება', manageRoster: 'შემადგენლობის მართვა', newAnnouncement: 'ახალი განცხადება', matches: 'მატჩები', arrangeAsk: 'გსურთ მატჩის მოწყობა?', comingUp: 'მომავალი', played: 'ჩატარებული', noMatchesSoon: 'მატჩი ჯერ არ არის მოწყობილი', noMatchesSoonHint: 'მოიწვიეთ კლუბი და მატჩი აქაც და „მალე“-შიც გამოჩნდება.', noMatchesPlayed: 'ჩატარებული მატჩი ჯერ არ არის', noMatchesPlayedHint: 'შედეგები ყოველი მატჩის შემდეგ აქ გამოჩნდება.',
 };
 
 /** Responsibilities: the personal focus switches and requests for another responsibility. */

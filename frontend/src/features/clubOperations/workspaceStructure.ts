@@ -7,18 +7,22 @@ import { operationDescriptions, operationModule, operationTabs } from './workspa
 export type OpenWorkspace = (tab: WorkspaceTab, context?: Record<string, string>) => void;
 
 // A tool has one home. Pins are personal links, never a permission source.
+// Every tab answers "who or what is this about" (the owner, 14 October). Attendance stays on paper and match
+// preparation belongs on the match, so neither has a tab; their records still answer their old addresses.
 export const workspaceAreas = [
-  { id: 'football', label: 'Football', description: 'Squads, training and player development.', tabs: ['squads', 'attendance', 'development', 'restrictions', 'preparation', 'player-cards'] },
-  { id: 'people', label: 'People', description: 'Players, staff, permissions and care.', tabs: ['players', 'personnel', 'staff-duties', 'role-requests', 'credentials', 'specialists', 'guardians', 'registration', 'education', 'medical', 'welfare', 'departures', 'invites'] },
-  { id: 'operations', label: 'Club operations', description: 'Venues, travel and equipment.', tabs: ['facilities', 'travel', 'equipment'] },
-  { id: 'recruitment', label: 'Recruitment', description: 'Joining, applications, tryouts and agent approaches.', tabs: ['admissions', 'applications', 'tryouts', 'club-approaches', 'jobs'] },
-  { id: 'business', label: 'Club business', description: 'Programmes and fees, finance, the club shop and campaigns.', tabs: ['programmes', 'finance', 'store', 'campaigns'] },
+  { id: 'squads', label: 'Squads', description: 'Your squads, and what is true about their players.', tabs: ['squads', 'player-cards', 'restrictions', 'development'] },
+  { id: 'players', label: 'Players', description: 'The club’s register of players, and what the club keeps about each one.', tabs: ['players', 'guardians', 'registration', 'education', 'medical', 'welfare', 'departures'] },
+  { id: 'staff', label: 'Staff', description: 'The people who work for the club: jobs, access, credentials, hiring.', tabs: ['personnel', 'staff-duties', 'role-requests', 'credentials', 'specialists', 'jobs'] },
+  { id: 'joining', label: 'Joining', description: 'Players coming in: first visits, applications, tryouts, agents, invitations.', tabs: ['admissions', 'applications', 'tryouts', 'club-approaches', 'invites'] },
+  { id: 'club', label: 'Club', description: 'Grounds, travel, kit, fees, money, the store and fundraising.', tabs: ['facilities', 'travel', 'equipment', 'programmes', 'finance', 'store', 'campaigns'] },
   { id: 'settings', label: 'Settings', description: 'Club setup, the public profile and ownership.', tabs: ['settings', 'workspace-settings', 'roles'] },
 ] as const;
 export const areaFor = (tab: string) => workspaceAreas.find(area => (area.tabs as readonly string[]).includes(tab));
 
 /** Destinations that live at the top of the rail rather than inside an area. */
 export const personalTabs = new Set<WorkspaceTab>(['overview', 'calendar', 'inbox', 'actions', 'tools']);
+/** The tools nobody can hide from their rail: the club's people, squads and settings, and the way in and out. */
+export const essentialTabs = new Set<WorkspaceTab>(['overview', 'calendar', 'inbox', 'actions', 'tools', 'squads', 'players', 'personnel', 'settings']);
 
 export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
   return operationDescriptions[operationModule(tab.id) ?? ''] ?? ({
@@ -89,3 +93,40 @@ export function useResponsibilityFocus(club: number, user: number | null, views:
   return { available, selected, selectedViews, tabs, toggle, showAll };
 }
 export type ResponsibilityFocus = ReturnType<typeof useResponsibilityFocus>;
+
+// ---------------------------------------------------------------- the person's own rail
+
+interface StoredLayout { tabs: string[]; areas: string[] }
+const readLayout = (key: string): StoredLayout => {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) ?? 'null') as Partial<StoredLayout> | null;
+    const list = (items: unknown) => Array.isArray(items) ? items.filter((id): id is string => typeof id === 'string') : [];
+    return { tabs: list(value?.tabs), areas: list(value?.areas) };
+  } catch { return { tabs: [], areas: [] }; }
+};
+
+/**
+ * Which tools and areas this person has hidden from their rail, on this browser. Hiding moves a tool under
+ * More tools; it never changes access, and the essentials cannot be hidden. (Pins and the responsibility focus
+ * are stored the same way; a per-person layout on the server is a backend need, see BACKEND_NEEDS.md.)
+ */
+export function useWorkspaceLayout(club: number, user: number | null) {
+  const key = `gk-ws-layout:v1:${club}:${user ?? 'me'}`;
+  const [stored, setStored] = useState<StoredLayout>(() => readLayout(key));
+  const save = useCallback((next: StoredLayout) => {
+    setStored(next);
+    try { if (next.tabs.length || next.areas.length) localStorage.setItem(key, JSON.stringify(next)); else localStorage.removeItem(key); } catch { /* The choice still applies for this visit. */ }
+  }, [key]);
+  const hiddenTabs = useMemo(() => new Set(stored.tabs.filter(id => !essentialTabs.has(id as WorkspaceTab))), [stored.tabs]);
+  const hiddenAreas = useMemo(() => new Set(stored.areas), [stored.areas]);
+  const toggleTab = useCallback((id: WorkspaceTab) => {
+    if (essentialTabs.has(id)) return;
+    save({ ...stored, tabs: stored.tabs.includes(id) ? stored.tabs.filter(item => item !== id) : [...stored.tabs, id] });
+  }, [save, stored]);
+  const toggleArea = useCallback((id: string) => save({ ...stored, areas: stored.areas.includes(id) ? stored.areas.filter(item => item !== id) : [...stored.areas, id] }), [save, stored]);
+  const reset = useCallback(() => save({ tabs: [], areas: [] }), [save]);
+  /** A tool is off the rail when it, or its whole area, is hidden; essentials never are. */
+  const isHidden = useCallback((id: WorkspaceTab) => !essentialTabs.has(id) && (hiddenTabs.has(id) || Boolean(areaFor(id) && hiddenAreas.has(areaFor(id)!.id))), [hiddenTabs, hiddenAreas]);
+  return { hiddenTabs, hiddenAreas, isHidden, toggleTab, toggleArea, reset, customised: hiddenTabs.size > 0 || hiddenAreas.size > 0 };
+}
+export type WorkspaceLayout = ReturnType<typeof useWorkspaceLayout>;

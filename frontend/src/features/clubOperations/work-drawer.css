@@ -1,6 +1,7 @@
 /* A club tool beside a side sheet: it slides in from the left and fills the page up to the sheet. Scoped under .gk; tokens only. */
 .gk .gk-drawer {
-  position: fixed; inset: 0 var(--gk-sheet-width, min(520px, 100vw)) 0 0; z-index: 1;
+  /* A strip of backdrop stays between the drawer and the sheet, so both read as their own surface and a click there closes. */
+  position: fixed; inset: 0 calc(var(--gk-sheet-width, min(520px, 100vw)) + 20px) 0 0; z-index: 1;
   display: flex; flex-direction: column; overflow: hidden; outline: none;
   background: var(--gk-bg); border-right: 1px solid var(--gk-line); box-shadow: var(--gk-elevation);
   animation: gk-drawer-in .36s cubic-bezier(.32, .72, 0, 1) both;

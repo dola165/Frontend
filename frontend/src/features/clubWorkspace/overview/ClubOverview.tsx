@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { CalendarDays, Link2 } from 'lucide-react';
 import { Badge, Button, EmptyNote, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import type { TabItem } from '../../../components/workspace/types';
@@ -15,6 +14,7 @@ import { eventSquadId, kindOf } from '../fixtures';
 import { ActivityLegend, DayAgenda } from '../DayAgenda';
 import { OtherWork } from '../coachHub/OtherWork';
 import { NeedsYou } from './NeedsYou';
+import { ClubNumbers } from './ClubNumbers';
 import { SquadGrid } from './OverviewParts';
 import { useNow } from '../useNow';
 import '../club-workspace.css';
@@ -32,30 +32,22 @@ interface Props {
     tabs: TabItem[]; pinned: TabItem[];
     focusViews?: RoleView[];
     onOpen: OpenWorkspace; onOpenPlayers?: (status: 'ALL' | PlayerAffiliationStatus) => void;
+    /** Opens the request for a responsibility, for a member who has none yet. */
+    onAskAccess?: () => void;
 }
 
 /**
  * My Club for the people who run it: decisions first, then every squad, with the week alongside.
  * The club's totals are one quiet line under its name; personal squad work lives in My squads.
  */
-export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule, unreadInbox, inboxAllowed, tryoutPending, canManageOperations, canManageLeadership, onOpen, onOpenPlayers }: Props) {
+export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule, unreadInbox, inboxAllowed, tryoutPending, canManageOperations, canManageLeadership, tabs, onOpen, onOpenPlayers, onAskAccess }: Props) {
+    // A member with no responsibilities: nothing waits for them, so the one next step takes the list's place.
+    const noResponsibilities = Boolean(roles && boot && !boot.leadership && !boot.modules.length && !canManageOperations);
     const copy = useCopy('clubOverview', clubOverviewEn);
     const hubCopy = useCopy('coachHub', coachHubEn);
-    const openPlayers = (status: 'ALL' | PlayerAffiliationStatus) => onOpenPlayers ? onOpenPlayers(status) : onOpen('players');
     const now = useNow();
 
-    // Each figure opens its list.
-    const fact = (key: string, label: string, value: number, open?: () => void, note?: ReactNode) => {
-        const body = <><span>{label}</span> <strong className="gk-num">{value}</strong>{note}</>;
-        return open ? <button key={key} type="button" className="cw-fact" onClick={open}>{body}</button> : <span key={key} className="cw-fact">{body}</span>;
-    };
-    const facts = overview && <span className="cw-facts">
-        {fact('players', copy('activePlayers'), overview.activePlayerCount ?? 0, canManageOperations ? () => openPlayers('ACTIVE') : undefined)}
-        {fact('trialists', copy('trialists'), overview.trialistCount ?? 0, canManageOperations ? () => openPlayers('TRIALIST') : undefined)}
-        {fact('staff', copy('staff'), (boot?.leadership ? boot.staff.length : overview.members.length) ?? 0, canManageLeadership ? () => onOpen(boot?.leadership ? 'staff-duties' : 'personnel') : undefined)}
-        {/* What needs attention stands apart after a divider, in amber. */}
-        {overview.overdueTrialistCount ? <button type="button" className="cw-fact cw-fact--alert" onClick={() => openPlayers('TRIALIST')}>{copy('trialists')}: {copy('overdueCount', { count: overview.overdueTrialistCount })}</button> : null}
-    </span>;
+
 
     const squadName = (event: ScheduleEventOccurrence) => roles?.squads.find(s => s.id === eventSquadId(event))?.name;
     let comingUp;
@@ -75,12 +67,16 @@ export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule
 
     // Below the two-column width, the columns dissolve so "Needs you" comes first (see overview.css).
     return <PageFrame className="cw-page cw-club">
-        <PageHeader title={clubName ?? copy('workspaceTitle')} subtitle={<><span>{today}</span>{facts}</>}
+        <PageHeader title={clubName ?? copy('workspaceTitle')} subtitle={today}
             actions={inboxAllowed ? <Button onClick={() => onOpen('inbox')}><Link2 aria-hidden="true" />{hubCopy('clubUpdates')}{unreadInbox ? ` · ${unreadInbox}` : ''}</Button> : undefined} />
         <div className="gk-grid gk-grid--split cw-overview">
             <div className="gk-stack cw-overview__column">
-                <NeedsYou className="cw-overview__needs" clubId={clubId} overview={overview} roles={roles} squads={null} canManageOperations={canManageOperations} tryoutPending={tryoutPending} onOpen={onOpen} onOpenPlayers={onOpenPlayers} limit={6} />
-                {roles && roles.squads.length > 0 && <SquadGrid className="cw-overview__squads" title={copy('squads')} squads={roles.squads} sessions={roles.sessions} onOpen={onOpen} />}
+                {noResponsibilities
+                    ? <Section className="cw-overview__needs" boxed title={copy('needsYou')}><Panel><EmptyNote title={copy('noResponsibilities')} action={onAskAccess ? <Button size="sm" onClick={onAskAccess}>{copy('askResponsibility')}</Button> : undefined}>{copy('noResponsibilitiesHint')}</EmptyNote></Panel></Section>
+                    : <NeedsYou className="cw-overview__needs" clubId={clubId} overview={overview} roles={roles} squads={null} canManageOperations={canManageLeadership} tryoutPending={tryoutPending} onOpen={onOpen} onOpenPlayers={onOpenPlayers} limit={6} />}
+                {/* What a bigger club has to keep an eye on, for the people who run it. */}
+                {canManageLeadership && <ClubNumbers clubId={clubId} overview={overview} roles={roles} boot={boot} tabs={tabs} tryoutPending={tryoutPending} onOpen={onOpen} onOpenPlayers={onOpenPlayers} />}
+                {roles && roles.squads.length > 0 && <SquadGrid className="cw-overview__squads" title={copy('squads')} hint={[roles.season ? copy('season', { season: roles.season }) : null, `${roles.squads.length}`].filter(Boolean).join(' · ')} squads={roles.squads} sessions={roles.sessions} onOpen={onOpen} />}
             </div>
             <div className="gk-stack cw-overview__column">
                 <Section className="cw-overview__coming" boxed icon={CalendarDays} title={copy('upcoming')} hint={copy('nextSevenDays')} action={<button type="button" className="gk-section__action cw-text-button" onClick={schedule.open}>{copy('seeFullWeek')}</button>}>

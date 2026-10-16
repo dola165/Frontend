@@ -10,7 +10,7 @@ import { usePhoneSteps } from '../edit/usePhoneSteps';
 import { stepWords } from '../edit/words';
 import { askPet, type PetAnswer } from './api';
 import { PetSprite, WALK_STEPS, type PetFrame } from './PetSprite';
-import { answerPanel, panelListens } from './bridge';
+import { answerPanel, panelListens, usePetHint } from './bridge';
 import { QuickAnswer } from './QuickAnswer';
 import { isQuick } from './quick';
 import { BOX } from './petFrames';
@@ -121,6 +121,9 @@ export function DolaPet() {
   const step = cardStep ?? fresh?.step ?? pending ?? (page?.goLive.ready ? 'ready' : 'waiting');
   // In a step's pop-up she sits on its top edge and says what to do there; other pop-ups she leaves alone.
   const inPanel = panel && PANEL_LINES[panel] ? panel : null;
+  // The pop-up can send her to a part of it (the map, to place a named ground) and tell her what to say.
+  const hint = usePetHint(inPanel);
+  const aim = inPanel && hint?.selector ? hint.selector : null;
   const under = Boolean(phone.open) && !inPanel;
   const selector = inPanel ? '.gk-dialog' : under ? '.gk-phonesteps__body' : TARGETS[step];
   const away = hidden || Boolean(panel && !inPanel) || !page || page.status !== 'DRAFT';
@@ -139,19 +142,20 @@ export function DolaPet() {
     if (away) return;
     let scrolled = false, stop = 0;
     const measure = () => {
-      const target = document.querySelector<HTMLElement>(selector);
+      const dialog = inPanel ? document.querySelector<HTMLElement>('.gk-dialog') : null;
+      const target = aim ? dialog?.querySelector<HTMLElement>(aim) ?? null : document.querySelector<HTMLElement>(selector);
       if (!target) return;
       const rect = target.getBoundingClientRect();
       if (!scrolled && (rect.top < H || rect.bottom > window.innerHeight)) {
         scrolled = true;
         if (rect.bottom < 0 || rect.top > window.innerHeight - H) { target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' }); return; }
       }
-      setHost(inPanel ? target : null);
+      setHost(dialog);
       const to = inPanel ? panelSpot(rect) : spotFor(rect, under), from = last.current;
       if (from && Math.abs(from.x - to.x) < 2 && Math.abs(from.y - to.y) < 2 && Math.abs(from.rect.height - to.rect.height) < 2) return;
       last.current = to;
       // Following the page as it scrolls is gliding; a jump to another step is a walk.
-      if (from && Math.hypot(to.x - from.x, to.y - from.y) > 80 && !still && !inPanel) {
+      if (from && Math.hypot(to.x - from.x, to.y - from.y) > 80 && !still && (!inPanel || aim)) {
         setWalking(to.x < from.x ? 'left' : 'right');
         window.clearTimeout(stop);
         stop = window.setTimeout(() => setWalking(null), 1000);
@@ -162,7 +166,7 @@ export function DolaPet() {
     window.addEventListener('scroll', measure, true);
     window.addEventListener('resize', measure);
     return () => { window.cancelAnimationFrame(frame); window.clearInterval(timer); window.clearTimeout(stop); window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
-  }, [away, inPanel, selector, still, under]);
+  }, [aim, away, inPanel, selector, still, under]);
 
   // "Understood" stays a few seconds, then her usual line comes back.
   useEffect(() => {
@@ -209,11 +213,12 @@ export function DolaPet() {
   const shown = inPanel ?? step;
   const isStep = items.some(item => item.key === shown);
   const title = isStep ? stepWords(page.kind, shown as SetupKey) : TITLES[shown];
-  const line = inPanel ? t(PANEL_LINES[inPanel]) : fresh?.answer ?? t(LINES[step]);
+  const line = inPanel ? hint?.line ?? t(PANEL_LINES[inPanel]) : fresh?.answer ?? t(LINES[step]);
   // Short answers are typed right here; the phone's step cards have their own boxes for them.
   const quick = !inPanel && !cardStep && isQuick(step) ? step : null;
   // Words typed to her inside a pop-up go in through the pop-up's own controls; she says what she did.
   const listens = inPanel && panelListens(inPanel) ? inPanel : null;
+  const saying = said ?? hint?.said ?? null;
   const answer = (event: FormEvent) => {
     event.preventDefault();
     if (!listens || !reply.trim()) return;
@@ -241,9 +246,10 @@ export function DolaPet() {
                   {thinking && <span className="gk-pet__thinking">{t('Thinking…')}</span>}
                 </form>
               : <>
-                  {said && !inPanel && <p className="gk-pet__said">{said}</p>}
+                  {saying && !inPanel && <p className="gk-pet__said">{saying}</p>}
                   {title && <strong className="gk-pet__title">{t(title)}</strong>}
-                  {said && inPanel ? <p className="gk-pet__said">{said}</p> : <p className="gk-pet__line">{line}</p>}
+                  {saying && inPanel && <p className="gk-pet__said">{saying}</p>}
+                  {!(saying && inPanel && !aim) && <p className="gk-pet__line">{line}</p>}
                   {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => setSaid(t('Understood.'))} />}
                   {listens && <form className="gk-pet__quick" onSubmit={answer}>
                     <input className="gk-pet__input" value={reply} onChange={event => setReply(event.target.value)} maxLength={120} autoComplete="off" autoFocus aria-label={t(PANEL_ASK[listens])} placeholder={t(PANEL_ASK[listens])} />

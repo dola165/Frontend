@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 /**
  * How a step's pop-up takes an answer typed to Dola: the pop-up registers what to do with the words (add the ground,
@@ -20,3 +20,17 @@ export function usePetAnswer(panel: string, handler: PetAnswerHandler) {
 
 export const panelListens = (panel: string) => handlers.has(panel);
 export const answerPanel = (panel: string, text: string) => handlers.get(panel)?.(text) ?? null;
+
+/**
+ * What a pop-up wants Dola to do next: run to a part of it (`selector`) and say `line` there, or say `said` once the
+ * person did it. Null: her usual line for the pop-up.
+ */
+export interface PetHint { selector?: string; line?: string; said?: string }
+const hints = new Map<string, PetHint>();
+const listeners = new Set<() => void>();
+export function setPetHint(panel: string, hint: PetHint | null) {
+  if (hint) hints.set(panel, hint); else hints.delete(panel);
+  listeners.forEach(listener => listener());
+}
+const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
+export const usePetHint = (panel: string | null) => useSyncExternalStore(subscribe, () => (panel ? hints.get(panel) ?? null : null), () => null);

@@ -532,4 +532,8 @@ export const PAGES_KA: Record<string, string> = {
   'Birth years, like 2015, 2016 boys': 'დაბადების წლები, მაგ. 2015, 2016 ბიჭები',
   '{name} is on your list. Tap Done to keep it.': '{name} სიაშია. შესანახად დააჭირეთ „მზადაა“-ს.',
   'Added {teams}. Tap Done to keep them.': 'დაემატა: {teams}. შესანახად დააჭირეთ „მზადაა“-ს.',
+  'Where is {name}? Tap its spot on the map.': 'სად არის {name}? მონიშნეთ ადგილი რუკაზე.',
+  'Understood. {name} is on the map.': 'გასაგებია. {name} რუკაზეა.',
+  '{name} is on your list.': '{name} სიაშია.',
+  'Tap its spot on the map': 'მონიშნეთ ადგილი რუკაზე',
 };

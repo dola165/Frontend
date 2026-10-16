@@ -6,7 +6,7 @@ import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
 import { claimHref } from '../create/entry';
 import { usePageEdit } from './context';
-import { SETUP_ITEMS } from '../model/kinds';
+import { boxAvailable, SETUP_ITEMS } from '../model/kinds';
 import { PhoneSteps } from './PhoneSteps';
 import { usePhoneSteps } from './usePhoneSteps';
 import { SetupRing, SetupSteps } from './SetupSteps';
@@ -46,7 +46,8 @@ export function EditBar() {
   const setup = page.setup;
   const total = SETUP_ITEMS[page.kind].length, next = setup.next;
   const CurrentIcon = next ? STEP_ICONS[next] : null;
-  const missing = page.goLive.missing.map(item => t(MISSING[item]));
+  // A page without a grounds box (a business, a plain page) goes live with a way to reach it.
+  const missing = page.goLive.missing.map(item => t(item === 'groundOrContact' && !boxAvailable(page.kind, 'grounds') ? 'a way to reach you' : MISSING[item]));
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
       <PhoneSteps />

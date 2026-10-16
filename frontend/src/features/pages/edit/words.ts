@@ -30,7 +30,7 @@ const KIND_WORDS: Partial<Record<PageKind, Partial<Record<SetupKey | BoxKey, { w
     fees: { words: 'What does membership cost?', hint: 'A month, or free', why: 'Shown on your page' },
     staff: { words: 'Invite your committee', hint: 'They help run the page', why: 'They help run the page' },
   },
-  BUSINESS: { staff: { words: 'Invite your team', hint: 'They help run the page', why: 'They help run the page' } },
+  BUSINESS: { staff: { words: 'Invite your team', hint: 'They help run the page', why: 'They help run the page' }, sponsors: { words: 'Which clubs do you back?', hint: 'Clubs and teams you support' } },
   PAGE: { staff: { words: 'Invite your team', hint: 'They help run the page', why: 'They help run the page' } },
 };
 /** A set-up step's name for this page type. */

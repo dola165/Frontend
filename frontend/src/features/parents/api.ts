@@ -49,4 +49,4 @@ export async function activateChild(cardId: number, dateOfBirth: string, email: 
 }
 
 export { fetchJoiningChildren, createPlayerLinkCode } from '../joining-contract/api';
-export type { JoiningChild, ChildDirectory, ChildClub } from '../joining-contract/types';
+export type { JoiningChild, ChildDirectory, ChildClub, ChildFees } from '../joining-contract/types';

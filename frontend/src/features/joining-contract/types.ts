@@ -11,8 +11,13 @@ export type PlayerIdentity = {
 export type PlayerIdentityInput = Omit<PlayerIdentity, 'playerId' | 'version' | 'canEdit' | 'minor'> & {
   requestId: string; expectedVersion: number;
 };
-export type ChildClub = { clubId: number; clubName: string; cardId: number | null; affiliationStatus: string | null; consentStatus: string | null; squadNames: string[] };
-export type JoiningChild = { playerId: number; identity: PlayerIdentity; clubs: ChildClub[]; cases: AdmissionCase[]; inquiries: ConnectedInquiry[] };
+/** What the club has recorded as due for this child (backend needed: older servers omit it, which reads "Not recorded", never zero). */
+export type ChildFeeLine = { label: string; amount: number; currency: string; dueDate: string | null; status: 'DUE' | 'OVERDUE' | 'PAID' };
+export type ChildFees = { status: 'DUE' | 'OVERDUE' | 'PAID'; amount: number | null; currency: string | null; dueDate: string | null; period: string | null; lines?: ChildFeeLine[] };
+export type ChildClub = { clubId: number; clubName: string; cardId: number | null; affiliationStatus: string | null; consentStatus: string | null; squadNames: string[]; fees?: ChildFees | null };
+/** `guardians`: everyone who looks after the card, the viewer included (backend needed: older servers omit it). */
+export type ChildGuardian = { id: number; name: string; self: boolean };
+export type JoiningChild = { playerId: number; identity: PlayerIdentity; clubs: ChildClub[]; cases: AdmissionCase[]; inquiries: ConnectedInquiry[]; guardians?: ChildGuardian[] };
 export type ChildDirectory = { children: JoiningChild[] };
 export type JoiningOption = { squadId: number | null; squadName: string; programmeIds: number[]; opportunity: Opportunity | null; availability: 'AVAILABLE' | 'WAITLIST' | 'CLOSED' | 'ENQUIRY_ONLY'; destination: string | null };
 export type ClubJoiningOptions = { clubId: number; organizationId: number; options: JoiningOption[] };

@@ -35,9 +35,9 @@ const weekStart = (value: Date) => {
     return date;
 };
 
-function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playerId, onSquad, onPrevious, onNext, onToday, onSelect, onRefresh, nextActions }: {
+function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playerId, combined = false, onSquad, onPrevious, onNext, onToday, onSelect, onRefresh, nextActions }: {
     events: import('../../components/schedule/workspaceTypes').ScheduleWorkspaceEvent[]; loading: boolean; error: string;
-    from: Date; to: Date; squads: CalendarSquad[]; squadId?: number; playerId?: number; onSquad: (id: number) => void;
+    from: Date; to: Date; squads: CalendarSquad[]; squadId?: number; playerId?: number; combined?: boolean; onSquad: (id: number) => void;
     onPrevious: () => void; onNext: () => void; onToday: () => void; onSelect: (event: { id: string }) => void; onRefresh: () => void; nextActions: import('react').ReactNode;
 }) {
     const copy = useJourneyCopy();
@@ -51,7 +51,7 @@ function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playe
     return <>
         <header className="family-agenda-heading"><div><CalendarDays size={17}/><strong>{formatDate(from, { day: 'numeric', month: 'short' })} – {formatDate(last, { day: 'numeric', month: 'short' })}</strong></div>
             <div className="family-agenda-controls"><button type="button" aria-label={copy('Previous week', 'წინა კვირა')} onClick={onPrevious}><ChevronLeft size={16}/></button><button type="button" onClick={onToday}>{copy('Today', 'დღეს')}</button><button type="button" aria-label={copy('Next week', 'შემდეგი კვირა')} onClick={onNext}><ChevronRight size={16}/></button></div></header>
-        {squads.length > 1 && <label className="family-agenda-squad">{copy('Squad', 'გუნდი')}<select value={squadId ?? ''} onChange={e => onSquad(Number(e.target.value))}>{squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
+        {squads.length > 1 && !combined && <label className="family-agenda-squad">{copy('Squad', 'გუნდი')}<select value={squadId ?? ''} onChange={e => onSquad(Number(e.target.value))}>{squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
         {error && <p role="alert" className="family-error">{error} <button type="button" onClick={onRefresh}>{copy('Try again', 'ხელახლა სცადეთ')}</button></p>}
         {loading ? <p role="status" className="family-agenda-empty">{copy('Loading activities…', 'ღონისძიებები იტვირთება…')}</p> : <>
             {nextActions}
@@ -63,7 +63,7 @@ function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playe
             {!sorted.length && <p role="status" className="family-agenda-empty">{squads.length ? copy('No activities in this week.', 'ამ კვირაში ღონისძიებები არ არის.') : copy('Their schedule will appear when a squad is assigned.', 'განრიგი გამოჩნდება გუნდის მინიჭების შემდეგ.')}</p>}
             {sorted.length > 5 && <button type="button" className="family-agenda-more" aria-expanded={showAll} onClick={() => setExpandedRange(showAll ? null : rangeKey)}>{showAll ? copy('Show fewer activities', 'ნაკლები ღონისძიება') : copy('Show all activities', 'ყველა ღონისძიება')} ({sorted.length})</button>}
         </>}
-        {squadId && <Link className="family-agenda-full" to={'/squads/' + squadId + '?tab=sessions' + (playerId ? '&player=' + playerId : '')}>{copy('Open full squad schedule', 'გუნდის სრული განრიგი')} <ArrowRight size={15}/></Link>}
+        {squadId && !combined && <Link className="family-agenda-full" to={'/squads/' + squadId + '?tab=sessions' + (playerId ? '&player=' + playerId : '')}>{copy('Open full squad schedule', 'გუნდის სრული განრიგი')} <ArrowRight size={15}/></Link>}
     </>;
 }
 
@@ -163,7 +163,7 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
     const nextActions = !loading && <SessionNextActions events={events} canManage={!!squad?.can_manage} playerId={playerId} onSelect={select} compact={embedded || !prioritizeNextAction}/>;
     return <section className={embedded ? 'family-agenda' : 'squad-schedule-workspace'} aria-label="Squad schedule">
 
-        {embedded ? <FamilyAgenda events={visible} loading={loading || journeys.loading} error={error || journeys.error} from={range.from} to={range.to} squads={squads} squadId={squad?.id} playerId={playerId} onSquad={chooseSquad} onPrevious={()=>shift(-1)} onNext={()=>shift(1)} onToday={()=>setDate(new Date())} onSelect={select} onRefresh={refresh} nextActions={nextActions}/> : <ScheduleDirectionWorkspace hideInspector={Boolean(selected?.journeys?.length)} surface="CLUB_SCHEDULE" squadSchedule title="Squad schedule"
+        {embedded ? <FamilyAgenda events={visible} loading={loading || journeys.loading} error={error || journeys.error} from={range.from} to={range.to} squads={squads} squadId={squad?.id} playerId={playerId} combined={combined} onSquad={chooseSquad} onPrevious={()=>shift(-1)} onNext={()=>shift(1)} onToday={()=>setDate(new Date())} onSelect={select} onRefresh={refresh} nextActions={nextActions}/> : <ScheduleDirectionWorkspace hideInspector={Boolean(selected?.journeys?.length)} surface="CLUB_SCHEDULE" squadSchedule title="Squad schedule"
             extraActions={<MatchHistoryLink clubId={squad?.club_id} squadId={squad?.id} className="schedule-direction-help" />}
             clubName={squad ? `${squad.academy_name ? squad.academy_name + ' · ' : ''}${squad.name}` : 'Your squads'}
             description="Training, matches and the next time your squad meets."
@@ -192,7 +192,7 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
             </div>}/>}
         {selectedId && !selected && !loading && <p role="status" className="squad-schedule-notice">{copy('This session is unavailable in the selected week or your invitation has changed. Check your latest coach update.', 'ეს სესია არჩეულ კვირაში მიუწვდომელია ან თქვენი მოწვევა შეიცვალა. ნახეთ მწვრთნელის ბოლო განახლება.')}</p>}
         {!!selected?.journeys?.length && <JourneyEventDetails entries={selected.journeys} onClose={()=>setSelectedId(null)} onSaved={refresh}/>}
-        {selected && !selected.journeys?.length && !editingEvent && <SquadSessionDetails key={selected.id} event={selected} playerId={playerId} canManage={!!squad?.can_manage} onClose={() => setSelectedId(null)} onSaved={refresh}/>}
+        {selected && !selected.journeys?.length && !editingEvent && <SquadSessionDetails key={selected.id} event={selected} playerId={playerId} canManage={!!eventSquad?.can_manage} onClose={() => setSelectedId(null)} onSaved={refresh}/>}
         {notice && <p role="status" className="squad-schedule-notice">{notice}</p>}
         {editingEvent && eventSquad && <SquadClubEventEditor key={selected.id} squad={eventSquad} date={date} event={selected} onClose={() => setSelectedId(null)} onSaved={() => { setSelectedId(null); refresh(); }}/ >}
         {choosing && <SessionDialog title={copy('Plan for which squad?', 'რომელი გუნდისთვის?')} onClose={() => setChoosing(null)}>

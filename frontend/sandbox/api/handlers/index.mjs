@@ -4,6 +4,7 @@ import './pages.mjs';
 import './auth.mjs';
 import './newcomer.mjs';
 import './family.mjs';
+import './family-squads.mjs';
 import './social.mjs';
 import './club.mjs';
 import './football.mjs';

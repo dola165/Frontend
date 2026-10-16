@@ -83,7 +83,7 @@ It is the same page with the same coach updates, chat, training schedule and gro
 Looked first at Parent Hub, the families' squad room, the coach's squad page inside My squads and joining, at 390px, and read the review's phone screenshots. What stands out: Parent Hub's phone opens on workspace chrome (title, intro, Add/Refresh, three tabs, a child strip and a second identity card); the week starts below the fold. The families' squad room and My squads' squad page are two different pages built from different data. The sandbox parent's two children have no club, so nothing past "No club yet" can be judged.
 
 **Sandbox family (new `handlers/family-squads.mjs`, data in `world-family.mjs`; parent mode only, `/__mode/parent`):**
-- Saba (12) plays in **U12 Mixed** (coach Irakli's squad, Luka is only a parent there) and plays up in **U14 Boys**, which Luka coaches: a child in two squads and a parent who is also the coach.
+- Saba (12) plays in **U12 Mixed** (Koba Gvazava coaches it; Luka is only a parent there) and plays up in **U14 Boys**, which Luka coaches: a child in two squads and a parent who is also the coach.
 - Nino (9) has no club yet: the joining path.
 - A second guardian (Tamar) on both children; a recorded fees statement for Saba at Dinamo; coach updates (one asking to be acknowledged), squad chat and a private coach thread in U12.
 - The families' answers come from the same squad-communication shapes, with `can_manage: false` where Luka is only a parent. Saba is added to both rosters for everyone (he is a real player there); only the guardian link is parent-mode.
@@ -96,3 +96,8 @@ Looked first at Parent Hub, the families' squad room, the coach's squad page ins
 
 ## Decisions taken while building (owner to confirm)
 
+- **Parent Hub has no title block or tabs** (phase 1): the bottom bar already says where you are. The child row is the header; `?tab=children` and `?tab=connections` still open adding a child and family connections, each with a way back. The workspace rail (Joining football · Find groups · Parent Hub) is gone from Parent Hub; "Find a group" shows where it applies (a child with no club).
+- **Next up picks what the coach asked first**, else the soonest session in the next two weeks; Parent Hub always answers as the parent, also in a squad the parent coaches (Luka with U14 Boys).
+- **The latest update is the newest across the child's squads**, acknowledged in place ("I've read it"; until then "Not acknowledged").
+- **Fees** sits under the child's squads per club: the amount and due date when recorded, a statement that unfolds, "Ask the coaches about fees" (the private coach chat). "Not recorded" otherwise.
+- **The player card** shows as a football card with "Yours to keep" under it (refinement 1); guardians show as faces on the Family row (refinement 5).

@@ -1,3 +1,4 @@
+import { crestPalette as paint } from '../../styles/visualColors';
 import { CircleUser, Earth, Heart, House, MessageSquare, Pin, Shield, Trophy, Users, type LucideIcon } from 'lucide-react';
 
 /** One combined role state: what links the person has, never a chosen role. */
@@ -6,10 +7,10 @@ export interface Child { id: string; name: string; age: number; club: string | n
 export interface Club { id: string; name: string; short: string; tone: string; staff: boolean }
 export interface Person { name: string; initials: string; squads: Squad[]; children: Child[]; clubs: Club[] }
 
-const dinamo: Club = { id: 'dinamo', name: 'FC Dinamo Tbilisi Academy', short: 'DTA', tone: '#2f6fe4', staff: true };
-const saburtalo: Club = { id: 'saburtalo', name: 'Saburtalo Football School', short: 'SFS', tone: '#e0662f', staff: true };
-const lika: Child = { id: 'lika', name: 'Lika', age: 11, club: 'FC Dinamo Tbilisi Academy', tone: '#c2417a' };
-const nika: Child = { id: 'nika', name: 'Nika', age: 8, club: null, tone: '#3d9a6a' };
+const dinamo: Club = { id: 'dinamo', name: 'FC Dinamo Tbilisi Academy', short: 'DTA', tone: paint.blue, staff: true };
+const saburtalo: Club = { id: 'saburtalo', name: 'Saburtalo Football School', short: 'SFS', tone: paint.orange, staff: true };
+const lika: Child = { id: 'lika', name: 'Lika', age: 11, club: 'FC Dinamo Tbilisi Academy', tone: paint.maroon };
+const nika: Child = { id: 'nika', name: 'Nika', age: 8, club: null, tone: paint.green };
 
 export const MIXES = {
     ordinary: { en: 'Ordinary', ka: 'ჩვეულებრივი', person: { name: 'Nino Beridze', initials: 'NB', squads: [], children: [], clubs: [] } },

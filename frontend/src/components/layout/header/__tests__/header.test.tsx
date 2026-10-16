@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { House, Earth } from 'lucide-react';
@@ -62,15 +63,20 @@ describe('pins bar', () => {
         offsetWidth: Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')!,
         clientWidth: Object.getOwnPropertyDescriptor(Element.prototype, 'clientWidth')!,
     };
+    // The bar measures its room from the centred header row: the row less its two outer columns and the main tabs.
+    const inRow = (bar: ReactNode) => <MemoryRouter><div className="gk-header__row">
+        <div className="gk-header__start" /><nav className="gk-header__nav"><ul className="gk-header__tabs" />{bar}</nav><div className="gk-header__actions" />
+    </div></MemoryRouter>;
     beforeEach(() => {
-        // jsdom has no layout: every pin is 100px, "more" is 90px, buttons 44px, and the bar has 600px.
+        // jsdom has no layout: every pin is 100px, "more" is 90px, buttons, outer columns and tabs 44px,
+        // and the row is 732px, which leaves the pins 600px.
         Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get(this: HTMLElement) {
             if (this.matches('.gk-pins--measure li')) return 100;
             if (this.matches('.gk-pins--measure > span')) return 90;
             if (this.matches('.gk-header__divider')) return 1;
             return 44;
         } });
-        Object.defineProperty(Element.prototype, 'clientWidth', { configurable: true, get(this: Element) { return this.matches('.gk-header__pins') ? 600 : 0; } });
+        Object.defineProperty(Element.prototype, 'clientWidth', { configurable: true, get(this: Element) { return this.matches('.gk-header__row') ? 732 : 0; } });
         vi.stubGlobal('ResizeObserver', class { callback: () => void; constructor(callback: () => void) { this.callback = callback; } observe() { this.callback(); } disconnect() {} });
     });
     afterEach(() => {
@@ -81,7 +87,7 @@ describe('pins bar', () => {
 
     it('shows the pins that fit and keeps the rest one click away in "more"', () => {
         const onCrowdedChange = vi.fn();
-        render(<MemoryRouter><PinsBar state={state()} page={page} work={[]} activePath="/squads/7" crowded={false} onCrowdedChange={onCrowdedChange} /></MemoryRouter>);
+        render(inRow(<PinsBar state={state()} page={page} work={[]} activePath="/squads/7" crowded={false} onCrowdedChange={onCrowdedChange} />));
         const bar = screen.getByRole('list', { name: 'Your pins' });
         expect(within(bar).getAllByRole('link').map(link => link.textContent)).toEqual(['Squad 1', 'Squad 2', 'Squad 3', 'Squad 4']);
         const more = screen.getByRole('button', { name: /4 more/ });
@@ -93,10 +99,10 @@ describe('pins bar', () => {
     });
 
     it('names the add button by its visible text before anything is pinned, and by what it does after', () => {
-        const { unmount } = render(<MemoryRouter><PinsBar state={state([])} page={page} work={[]} activePath={null} crowded={false} onCrowdedChange={vi.fn()} /></MemoryRouter>);
+        const { unmount } = render(inRow(<PinsBar state={state([])} page={page} work={[]} activePath={null} crowded={false} onCrowdedChange={vi.fn()} />));
         expect(screen.getByRole('button', { name: 'Pin' })).toBeInTheDocument();
         unmount();
-        render(<MemoryRouter><PinsBar state={state()} page={page} work={[]} activePath={null} crowded={false} onCrowdedChange={vi.fn()} /></MemoryRouter>);
+        render(inRow(<PinsBar state={state()} page={page} work={[]} activePath={null} crowded={false} onCrowdedChange={vi.fn()} />));
         expect(screen.getByRole('button', { name: 'Manage pins' })).toBeInTheDocument();
     });
 });
@@ -106,6 +112,10 @@ describe('phone pins sheet', () => {
         { id: 'home', to: '/home', label: 'Home', icon: House, current: true },
         { id: 'world', to: '/world', label: 'World', icon: Earth, current: false },
     ];
+    // The tab bar shows only below the phone breakpoint, a media query jsdom does not apply.
+    let phone: HTMLStyleElement;
+    beforeEach(() => { phone = document.head.appendChild(document.createElement('style')); phone.textContent = '.gk.gk-tabbar { display: block; }'; });
+    afterEach(() => phone.remove());
 
     it('is a modal dialog that keeps focus inside until it closes', () => {
         render(<MemoryRouter><button type="button">Behind</button><PhoneTabBar tabs={tabs} unreadMessages={2} pins={state(pins.slice(0, 2))} page={page} work={[]} onPinnedPage={false} /></MemoryRouter>);

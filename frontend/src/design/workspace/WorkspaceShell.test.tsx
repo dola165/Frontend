@@ -38,7 +38,8 @@ describe('WorkspaceShell', () => {
 
     it('closes the phone drawer from the backdrop, which stays outside the inert page', () => {
         renderShell();
-        fireEvent.click(screen.getByRole('button', { name: 'Club workspace menu' }));
+        // The menu button shows only below the phone breakpoint, a media query jsdom does not apply.
+        fireEvent.click(screen.getByRole('button', { name: 'Club workspace menu', hidden: true }));
         expect(screen.getByRole('dialog', { name: 'Club workspace navigation' })).toBeInTheDocument();
         const backdrop = document.querySelector<HTMLButtonElement>('.gk-ws__backdrop')!;
         expect(backdrop.closest('[inert]')).toBeNull();

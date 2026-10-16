@@ -16,7 +16,7 @@ import '../step.css';
  * the workspace; my entry and how it stands; an invitation to answer; entering, or registering for a players'
  * tournament; else why not, in words. What a step just did is said first and focused.
  */
-export function TournamentAction({ data, reload, entry: { gate, squads, now } }: { data: TournamentPaneData; reload: () => void; /** Decided once by the pane. */ entry: TournamentGate }) {
+export function TournamentAction({ data, reload, entry: { gate, squads, now, player } }: { data: TournamentPaneData; reload: () => void; /** Decided once by the pane. */ entry: TournamentGate }) {
     const t = useWorldCopy();
     const location = useLocation();
     const [notice] = useState(readNotice);
@@ -30,6 +30,8 @@ export function TournamentAction({ data, reload, entry: { gate, squads, now } }:
             ? <Link className="gk-step-line" to={buildLoginRedirectPath(location.pathname, location.search, location.hash)}><span>{t('Sign in to enter a team')}</span><b>{t('Sign in')}</b><ArrowRight aria-hidden="true" /></Link>
             : <p className="gk-step-line" data-tone="quiet"><span>{gate.reason === 'not-open' ? t('Entries open {date}', { date: shortDate(zoned(gate.date)) ?? '' })
                 : gate.reason === 'closed' ? t('Entries are closed') : t('By invitation only: the organiser invites the teams.')}</span></p>)
+        : gate.kind === 'none' && player.status === 'error' ? (
+            <p className="gk-step-line" role="alert"><span>{t('Whether you can enter could not be checked.')}</span><button type="button" className="gk-step__reload" onClick={player.retry}>{t('Try again')}</button></p>)
         : null;
     if (!notice && !step && !work.length) return null;
     return (

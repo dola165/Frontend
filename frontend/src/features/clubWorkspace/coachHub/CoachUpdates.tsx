@@ -12,6 +12,9 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { dayLabel, isToday, timeLabel } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
 import { MessageParentsDialog } from './MessageParentsDialog';
+import { capitalized } from './useCoachData';
+import { coachHubEn } from '../../../locales/workspaceDesign';
+import { useCopy } from '../../../locales/useCopy';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -70,10 +73,14 @@ function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onCh
 export function CoachUpdates({ data, embedded }: { data: CoachData; embedded?: boolean }) {
     const [params] = useSearchParams();
     const [writing, setWriting] = useState(false);
+    const copy = useCopy('coachHub', coachHubEn);
     const { now, names } = data;
     const squads = data.squads?.filter(squad => data.shown.includes(squad.id)) ?? null;
     const rows = (squads ?? []).flatMap(squad => squad.overview ? squad.updates.map((update): UpdateRow => ({ squad: squad.id, squadName: names.get(squad.id) ?? '', families: squad.overview!.threads.length, update, space: squad.overview! })) : [])
         .sort((a, b) => b.update.created_at.localeCompare(a.update.created_at));
+    // Updates and chats that could not be read are said as such, never as "no updates" or "all answered".
+    const missing = (part: 'updates' | 'overview') => squads?.some(squad => squad.failed.includes(part) || squad.failed.includes('overview')) ?? false;
+    const notLoaded = (part: 'updates' | 'overview') => <p className="cw-panel-note cw-panel-note--first">{capitalized(copy('couldNotLoad', { what: copy(part === 'updates' ? 'partUpdates' : 'partOverview') }))}</p>;
     const threads = (squads ?? []).flatMap(squad => (squad.overview?.threads ?? []).filter(thread => thread.unread_count > 0).map(thread => ({ ...thread, squad: squad.id })))
         .sort((a, b) => b.unread_count - a.unread_count);
 
@@ -85,6 +92,7 @@ export function CoachUpdates({ data, embedded }: { data: CoachData; embedded?: b
                     initialSquads={data.focus ? [data.focus] : undefined} startOpen={params.get('compose') === '1'} onPosted={data.refresh} />
                 {!squads ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading updates">{[0, 1].map(i => <Skeleton key={i} height={140} />)}</div></Panel>
                     : rows.length ? <ul className="ch-feed">{rows.map(row => <li key={`${row.squad}-${row.update.id}`}><UpdateCard row={row} now={now} onChanged={data.refresh} /></li>)}</ul>
+                        : missing('updates') ? <Panel flush>{notLoaded('updates')}</Panel>
                         : <Panel><EmptyNote title="No updates yet">Your first announcement to parents and guardians appears here.</EmptyNote></Panel>}
             </div>
             <div className="gk-stack">
@@ -95,6 +103,7 @@ export function CoachUpdates({ data, embedded }: { data: CoachData; embedded?: b
                             : threads.length ? <List label="Messages from parents and guardians">{threads.map(thread => <ListRow key={`${thread.squad}-${thread.user_id}`}
                                 to={`/messages?squadId=${thread.squad}&channel=coach&thread=${thread.user_id}`} lead={<Avatar name={thread.full_name} size={32} />}
                                 title={thread.full_name} meta={names.get(thread.squad)} trail={<><Count value={thread.unread_count} /><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />)}</List>
+                                : missing('overview') ? notLoaded('overview')
                                 : <EmptyNote title="All answered">New messages from parents and guardians appear here.</EmptyNote>}
                     </Panel>
                 </Section>

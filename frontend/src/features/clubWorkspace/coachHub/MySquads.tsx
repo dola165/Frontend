@@ -117,6 +117,12 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
                     </Link>
                     <Button size="sm" variant="ghost" iconOnly aria-label={`${copy('cancelSession')}: ${next.title}`} title={copy('cancelSession')} onClick={() => onCancel(next)}><X aria-hidden="true" /></Button>
                 </span>
+                    // Sessions that could not be read are not "no sessions": say so, with the retry, instead of asking to plan one.
+                    : space?.failed.includes('sessions') ? <button type="button" className="ch-card__line" disabled={data.retrying.includes(squad.id)} onClick={() => data.retrySquad(squad.id)}>
+                        <span className="ch-card__line-icon"><span className="cw-dot cw-dot--warning" aria-hidden="true" /></span>
+                        <span className="ch-card__line-text">{copy('sessionsFailed')}</span>
+                        <span className="cw-status cw-status--warning">{data.retrying.includes(squad.id) ? copy('retrying') : copy('retry')}</span>
+                    </button>
                     : noPlayers ? <Link className="ch-card__line" to={data.workHref('squads', { squad: String(squad.id) })}><span className="ch-card__line-icon"><Users aria-hidden="true" /></span><span className="ch-card__line-text ch-card__line-text--action">{copy('addPlayers')}</span></Link>
                         : <Link className="ch-card__line" to={week}><span className="ch-card__line-icon"><CalendarDays aria-hidden="true" /></span><span className="ch-card__line-text ch-card__line-text--action">{copy('whenTrain')}</span></Link>}
             {need && <Link className="ch-card__line" to={need.to}>
@@ -153,6 +159,7 @@ function Soon({ data, onOpen, onCancel }: { data: CoachData; onOpen: (key: strin
     </span>}>
         <Panel flush>{!data.squads ? <div className="cw-skeleton-rows" role="status" aria-label={copy('soon')}>{[0, 1, 2].map(i => <Skeleton key={i} height={44} />)}</div>
             : items.length ? <DayAgenda label={copy('soon')} items={items} limit={14} />
+                : data.squads.some(squad => data.shown.includes(squad.id) && squad.failed.includes('sessions')) ? <p className="cw-panel-note cw-panel-note--first">{copy('sessionsFailed')}</p>
                 : <EmptyNote title={copy('soonEmpty')} action={<ButtonLink size="sm" to={data.link('calendar')}>{copy('planSession')}</ButtonLink>}>
                     {later ? copy('nextUp', { day: dayLabel(later.start.toISOString(), data.now), time: timeLabel(later.start.toISOString()), name: later.short, squad: later.squad }) : copy('soonEmptyHint')}
                 </EmptyNote>}</Panel>

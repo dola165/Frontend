@@ -101,9 +101,11 @@ export function DolaPet() {
   const { page, panel, openStep } = usePageEdit();
   const phone = usePhoneSteps();
   const still = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const skipKey = `gk-pet-skipped:${pathname}`;
+  const reachedKey = `gk-pet-reached:${pathname}`;
   const [hidden, setHidden] = useState(() => stored(HIDDEN) === '1');
-  const [skipped, setSkipped] = useState<string[]>(() => (stored(skipKey) ?? '').split(',').filter(Boolean));
+  // How far the person has come: she only ever moves forward from here (an earlier step left undone never pulls them
+  // back; the ‹ arrow and the steps list reach it). Past the last step she points at Go live and stays.
+  const [reached, setReached] = useState(() => Number(stored(reachedKey)) || 0);
   // A step chosen with her arrows, done or not, to change it; answering or skipping it hands back to the next step to do.
   const [picked, setPicked] = useState<string | null>(null);
   const wasPanel = useRef<string | null>(null);
@@ -123,7 +125,8 @@ export function DolaPet() {
   const doneBefore = useRef(page?.setup.done ?? 0);
 
   const items = page?.setup.items ?? [];
-  const pending = items.find(item => !item.done && !skipped.includes(item.key))?.key ?? null;
+  const pending = items.find((item, index) => index >= reached && !item.done)?.key ?? null;
+  const reach = (index: number) => { if (index > reached) { setReached(index); store(reachedKey, String(index)); } };
   const cardStep = phone.open && phone.open !== 'end' ? phone.open : null;
   // An answer counts until the step it was asked at is done or skipped; then she moves on.
   const fresh = asked && asked.forStep === pending && asked.forCard === phone.open ? asked : null;
@@ -184,17 +187,16 @@ export function DolaPet() {
     return () => { window.cancelAnimationFrame(frame); window.clearInterval(timer); window.clearTimeout(stop); window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
   }, [aim, away, inPanel, navigate, pathname, search, selector, still, under]);
 
-  // When a step's pop-up closes, she goes on to the next step after it still to do, in order.
-  const order = useRef({ items, skipped });
-  useEffect(() => { order.current = { items, skipped }; });
+  // When a step's pop-up closes, she goes on from the step after it.
+  const order = useRef({ items, reached, reachedKey });
+  useEffect(() => { order.current = { items, reached, reachedKey }; });
   useEffect(() => {
     const closed = wasPanel.current && !inPanel ? wasPanel.current : null;
     wasPanel.current = inPanel;
     if (!closed) return;
-    const { items: list, skipped: passed } = order.current;
-    const from = list.findIndex(item => SETUP_PANEL[item.key] === closed);
-    const after = list.slice(from + 1).find(item => !item.done && !passed.includes(item.key))?.key ?? null;
-    const timer = window.setTimeout(() => setPicked(after), 0);
+    const { items: list, reached: far, reachedKey: key } = order.current;
+    const after = list.findIndex(item => SETUP_PANEL[item.key] === closed) + 1;
+    const timer = window.setTimeout(() => { setPicked(null); if (after > far) { setReached(after); store(key, String(after)); } }, 0);
     return () => clearTimeout(timer);
   }, [inPanel]);
 
@@ -233,11 +235,8 @@ export function DolaPet() {
   const submit = (event: FormEvent) => { event.preventDefault(); void ask(question); };
   const skip = () => {
     if (cardStep) { const at = items.findIndex(item => item.key === cardStep); phone.show(items[at + 1]?.key ?? 'end'); return; }
-    if (picked) { setPicked(items[items.findIndex(item => item.key === picked) + 1]?.key ?? null); return; }
-    if (!pending) return;
-    const next = [...skipped, pending];
-    setSkipped(next);
-    store(skipKey, next.join(','));
+    reach(items.findIndex(item => item.key === step) + 1);
+    setPicked(null);
   };
 
   const frame: PetFrame = walking ? `Walk ${walking} · ${WALK_STEPS[tick]}` : thinking ? 'Thinking' : pose ?? `Point · ${spot.aim}`;
@@ -287,7 +286,7 @@ export function DolaPet() {
                   {title && <strong className="gk-pet__title">{t(title)}{stepDone && <span className="gk-pet__done"><Check aria-hidden="true" />{t('Done')}</span>}</strong>}
                   {saying && inPanel && <p className="gk-pet__said">{saying}</p>}
                   {!(saying && inPanel && !aim) && <p className="gk-pet__line">{line}</p>}
-                  {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => { setSaid(t('Understood.')); setPicked(null); }} />}
+                  {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => { setSaid(t('Understood.')); reach(items.findIndex(item => item.key === quick) + 1); setPicked(null); }} />}
                   {hint?.action && !listens && <span className="gk-pet__actions"><button type="button" className="gk-pet__action gk-pet__action--main" onClick={hint.action.run}>{hint.action.label}</button></span>}
                   {listens && <form className="gk-pet__quick" onSubmit={answer}>
                     <input className="gk-pet__input" value={reply} onChange={event => setReply(event.target.value)} maxLength={120} autoComplete="off" autoFocus aria-label={t(PANEL_ASK[listens])} placeholder={t(PANEL_ASK[listens])} />

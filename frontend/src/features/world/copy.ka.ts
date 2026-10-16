@@ -365,7 +365,7 @@ export const WORLD_KA: Record<string, string> = {
     '{count} offers to choose': '{count} შეთავაზება ასარჩევად', 'Waiting for their answer': 'მათ პასუხს ველოდებით',
     'Waiting for offers': 'შეთავაზებებს ველოდებით', 'Offer sent': 'შეთავაზება გაგზავნილია', 'Result disputed': 'შედეგი სადავოა',
     'Opponent agreed': 'მოწინააღმდეგე შეთანხმებულია', 'Opponent to find': 'მოწინააღმდეგე მოსაძებნია', 'Ground booked': 'მოედანი დაჯავშნილია',
-    'Ground confirmed': 'მოედანი დადასტურებულია', 'Ground to arrange': 'მოედანი მოსაგვარებელია', 'No referee needed': 'მსაჯი არ სჭირდება',
+    'Ground confirmed': 'მოედანი დადასტურებულია', 'Ground to arrange': 'მოედანი მოსაგვარებელია', 'Ground not booked yet': 'მოედანი ჯერ არ არის დაჯავშნილი', 'No referee needed': 'მსაჯი არ სჭირდება',
     'Referee confirmed': 'მსაჯი დადასტურებულია', 'Result after the match': 'შედეგი მატჩის შემდეგ', 'Result confirmed': 'შედეგი დადასტურებულია',
     'Result to add': 'შედეგი დასამატებელია', 'What this match needs': 'რა სჭირდება მატჩს', 'Invited club': 'მოწვეული კლუბი', 'At home': 'შინ',
     'Away': 'გასვლაზე', 'Neutral ground': 'ნეიტრალური მოედანი', 'To be agreed': 'შესათანხმებელია',

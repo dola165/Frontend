@@ -2,6 +2,10 @@
 
 For every coding assistant on the team (Claude, Codex).
 
+## Current sandbox handoff
+
+Work on the redesign sandbox continues from `frontend/docs/claude-sandbox/HANDOFF_2026-10-16.md` (Claude to Codex, 16 October 2026): branches, how to run it, what was done and what is open. Read it before sandbox work.
+
 ## Shared context lives in the backend
 
 The complete, maintained project guide is `AGENTS.md` at the root of the paired private backend repository, `dola165/GrassKickZ`. Read it before architecture, mobile, cross-repository or deployment work, together with its `docs/TEAM_CURRENT_STATE.md` (current branches and live release). Locate the backend checkout on this machine; do not assume another person's paths. If it is unavailable, say which context is missing and proceed only where the evidence supports the work.

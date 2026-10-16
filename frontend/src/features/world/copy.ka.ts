@@ -81,7 +81,7 @@ export const WORLD_KA: Record<string, string> = {
     'Searching…': 'ძიება…', '{count} results. Press Enter to open the first.': '{count} შედეგი. დააჭირეთ Enter-ს პირველის გასახსნელად.', 'Search results': 'ძიების შედეგები',
     'See all': 'ყველას ნახვა', 'Sign in to search people': 'შედით ხალხის მოსაძებნად', 'No {things} match “{q}”.': '„{q}“ — ვერ მოიძებნა: {things}.',
     '{things} could not be searched.': '{things}: ძიება ვერ მოხერხდა.',
-    'Places to train for {name}': 'სავარჯიშო ჯგუფები — {name}', 'Clubs for {name}': 'კლუბები — {name}', 'Clubs with open trials': 'კლუბები ღია გასინჯვით', 'Academies': 'აკადემიები',
+    'Places to train for {name}': 'სავარჯიშო ჯგუფები — {name}', 'Training groups for {name}': 'სავარჯიშო ჯგუფები — {name}', 'Change child': 'ბავშვის შეცვლა', 'Clubs for {name}': 'კლუბები — {name}', 'Clubs with open trials': 'კლუბები ღია გასინჯვით', 'Academies': 'აკადემიები',
     'Football for girls': 'ფეხბურთი გოგონებისთვის', 'Teams looking for a match': 'მატჩის მაძიებელი გუნდები', 'Referees': 'მსაჯები', 'Coaching jobs': 'სამწვრთნელო ვაკანსიები',
     'Volunteering': 'მოხალისეობა', 'Pitches to hire': 'საქირავებელი მოედნები',
     'Coming up near you': 'მალე თქვენთან ახლოს', 'This weekend near you': 'ამ შაბათ-კვირას თქვენთან ახლოს', 'Next 10 days': 'მომდევნო 10 დღე', 'All events': 'ყველა ღონისძიება',

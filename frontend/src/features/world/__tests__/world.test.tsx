@@ -50,6 +50,13 @@ it('lets a person pick the club for places to train once the clubs are known, an
     expect(club([{ value: '4', label: 'Saburtalo Youth' }])).toMatchObject({ kind: 'choice', options: [{ value: '4', label: 'Saburtalo Youth' }] });
 });
 
+it('heads places to train with the chosen child, not the language of jobs', () => {
+    const source = groupsSource([child, { ...child, id: 102, name: 'Saba Gelashvili' }]);
+    expect(source.heading?.(query({ player: '102' }))).toBe('Training groups for Saba');
+    expect(source.heading?.(query({}))).toBe('Training groups');
+    expect(source.HeadTools).toBeTruthy();
+});
+
 it('offers no child choice to someone searching only for themselves', () => {
     expect(groupsSource([{ ...child, minor: false, guardian: false }]).filters.some(filter => filter.key === 'player')).toBe(false);
 });

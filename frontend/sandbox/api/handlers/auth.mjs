@@ -2,7 +2,7 @@
 // (see ../viewer.mjs). Requests and answers keep the real backend's shapes.
 import { get, post, put, reply } from '../router.mjs';
 import { me, clubs } from '../world.mjs';
-import { familyRequest } from '../world-family.mjs';
+import { familyRequest, hasFamily } from '../world-family.mjs';
 import * as V from '../viewer.mjs';
 
 const bad = message => reply(400, { status: 400, message });
@@ -70,7 +70,7 @@ get('/users/me', ({ headers }) => {
   const account = V.account(V.viewerId(headers));
   if (!account) return meProjection({ headers });
   const projection = V.accountProjection(account);
-  return familyRequest(headers) ? { ...projection, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub', context: { type: 'user', id: account.id, label: account.fullName } }] } } : projection;
+  return hasFamily(headers) ? { ...projection, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub', context: { type: 'user', id: account.id, label: account.fullName } }] } } : projection;
 });
 
 // Accounts missing a name or a date of birth (Google sign-ins) complete them here; the session is reissued.

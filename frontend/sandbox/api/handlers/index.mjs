@@ -3,8 +3,9 @@
 import './squad-page.mjs';
 import './pages.mjs';
 import './auth.mjs';
-import './newcomer.mjs';
+// Families before newcomers: a person who signed up and added a child is answered as a parent.
 import './family.mjs';
+import './newcomer.mjs';
 import './family-squads.mjs';
 import './social.mjs';
 import './club.mjs';

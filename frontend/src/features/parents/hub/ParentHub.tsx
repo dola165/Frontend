@@ -49,13 +49,13 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
     const selected = children.find(child => child.playerId === requestedPlayerId) ?? children[0];
     const back = <Link className="ph-back" to={playerPath('/parent', selected?.playerId)}><ArrowLeft aria-hidden="true" />{copy('Parent Hub', 'მშობლის სივრცე')}</Link>;
     let body;
-    if (tab === 'children') body = <>{back}<AddChild onCreated={id => { selectPlayer(id); refresh(); }} /></>;
+    if (tab === 'children') body = <>{back}<section className="ph-start"><h2>{copy('Add a child', 'ბავშვის დამატება')}</h2><AddChild inline onCreated={id => { selectPlayer(id); refresh(); }} /></section></>;
     else if (tab === 'connections') body = <>{back}<FamilyRelationships selectedChildId={selected?.playerId} revision={revision} onChanged={refresh} />{selected && <PlayerLinkCode key={selected.playerId} child={selected} onChanged={() => setRevision(v => v + 1)} />}</>;
     else if (!hub.data && hub.loading) body = <div className="ph-stack" role="status"><Skeleton height={52} /><Skeleton height={140} /><Skeleton height={110} /></div>;
     else if (hub.error) body = <div role="alert"><EmptyNote title={hub.error} action={<button type="button" className="ph-link" onClick={refresh}>{copy('Try again', 'ხელახლა ცდა')}</button>} /></div>;
     else if (!selected) body = <section className="ph-start"><HeartHandshake aria-hidden="true" /><h2>{copy('Add your child', 'დაამატეთ ბავშვი')}</h2>
         <p>{copy('Make their player card. Then join a squad with the coach’s link, or ask a club.', 'შექმენით მოთამაშის ბარათი. შემდეგ შედით გუნდში მწვრთნელის ბმულით ან მიმართეთ კლუბს.')}</p>
-        <AddChild onCreated={id => { selectPlayer(id); refresh(); }} /></section>;
+        <AddChild inline onCreated={id => { selectPlayer(id); refresh(); }} /></section>;
     else body = <>
         <ChildSwitcher items={children} selectedId={selected.playerId} onSelect={selectPlayer} addTo={playerPath('/parent?tab=children', selected.playerId)} />
         <ChildView key={selected.playerId} child={selected} revision={revision} onChanged={refresh} />

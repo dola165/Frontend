@@ -16,7 +16,7 @@ import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
 import * as P from '../pages-data.mjs';
-import { familyRequest } from '../world-family.mjs';
+import { familyRequest, hasFamily } from '../world-family.mjs';
 import { saveBox, joinLinkFor, addArrival, decideArrival, pastePlayers, inviteFor, acceptInvite } from '../pages-boxes.mjs';
 import { pitches, reverseGeocode } from '../pages-seed.mjs';
 import { goLiveCheck, LOCKED_ACTIONS, minimumAge } from '../../../src/features/pages/model/kinds.ts';
@@ -196,7 +196,7 @@ get('/users/me', ({ headers }) => {
   const viewer = viewerOf(headers), account = V.account(viewer);
   if (!account || !P.ownedPages(viewer).length) return undefined;
   const projection = V.accountProjection(account);
-  const family = familyRequest(headers) ? [{ id: 'parent.hub', context: { type: 'user', id: account.id, label: account.fullName } }] : [];
+  const family = hasFamily(headers) ? [{ id: 'parent.hub', context: { type: 'user', id: account.id, label: account.fullName } }] : [];
   return { ...projection, navigationCapabilities: { version: 1, workspaces: [...workspacesOf(viewer), ...family] } };
 });
 get('/clubs/my-membership-context', ({ headers }) => {

@@ -6,6 +6,7 @@
 //   * Tamar is the second guardian of both, seeing everything.
 // Saba is a real player in both rosters for everyone; only the guardian link is parent-mode.
 import * as W from './world.mjs';
+import * as V from './viewer.mjs';
 
 const year = new Date().getFullYear();
 export const FAMILY = [
@@ -16,6 +17,21 @@ export const SECOND_GUARDIAN = { id: 9150, name: 'Tamar Gelashvili' };
 export const SABA = 9102;
 export const U12 = 102, U14 = 103;
 export const familyRequest = headers => /(?:^|;\s*)gk-sandbox-family=1(?:;|$)/.test(String(headers?.cookie ?? ''));
+/**
+ * The children the viewer looks after: Luka's two in parent mode, else those a person who signed up in the sandbox
+ * added themself (kept on their account; `create` starts the list). Null for Luka outside parent mode.
+ */
+export const familyOf = (headers, create = false) => {
+  if (familyRequest(headers)) return FAMILY;
+  const account = V.account(V.viewerId(headers));
+  if (!account) return null;
+  if (!account.children && create) account.children = [];
+  return account.children ?? null;
+};
+/** Whoever looks after at least one child gets Parent Hub. */
+export const hasFamily = headers => (familyOf(headers)?.length ?? 0) > 0;
+let nextChildId = 9200;
+export const newChildId = () => nextChildId++;
 
 if (!W.personById(SABA)) {
   W.people.push({ id: SABA, firstName: 'Saba', lastName: 'Gelashvili', fullName: 'Saba Gelashvili', username: 'saba.gelashvili', gender: 'MALE', role: 'PLAYER', birthYear: year - 12, city: 'Tbilisi', clubId: 1, position: 'CM', headline: 'Central midfielder · FC Dinamo Tbilisi Academy', avatarUrl: `/sandbox-media/avatar/${SABA}.svg`, shirtNumber: 14, squadId: U12, preferredFoot: 'RIGHT' });

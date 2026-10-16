@@ -7,7 +7,7 @@
 //   POST /squad-communication/:id/join-requests/:rid { action: APPROVE | DECLINE }
 //   GET/POST /join/:code                            the link itself, for codes of the form sq<squad>k<key>
 import { get, post, reply, handleApi } from '../router.mjs';
-import { FAMILY, familyRequest } from '../world-family.mjs';
+import { familyOf } from '../world-family.mjs';
 import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as F from '../world-football.mjs';
@@ -79,7 +79,7 @@ post('/squad-communication/:id/join-requests/:rid', ({ params, body }) => {
 // codes in pages.mjs).
 post('/join/:code', async req => {
   if (req.headers[PASS] || req.body?.playerId == null) return undefined;
-  const child = familyRequest(req.headers) ? FAMILY.find(c => c.id === Number(req.body.playerId)) : null;
+  const child = familyOf(req.headers)?.find(c => c.id === Number(req.body.playerId)) ?? null;
   if (!child) return reply(403, { status: 403, message: 'You can only add a child you look after.' });
   const [first, ...rest] = child.name.split(' ');
   const body = { ...req.body, playerId: child.id, childFirstName: first, childLastName: rest.join(' '), childGender: child.gender, birthDate: child.dateOfBirth };

@@ -112,7 +112,7 @@ describe('Applicant invariants',()=>{
     it('changes the selected child without carrying forward a consent checkbox',async()=>{
         const home=fixture<AdmissionHome>('home');home.cases=[];home.participants.push({...home.participants[0],id:102,name:'Second child'});vi.mocked(fetchAdmissionHome).mockResolvedValue(home);const o={...opportunity(),method:'DIRECT' as const,availability:'PLACES_AVAILABLE' as const};vi.mocked(fetchOpportunity).mockResolvedValue(o);
         show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,`/admissions/opportunities/${o.id}?tab=join&player=101`);
-        const accept=await screen.findByLabelText('I confirm these terms for Synthetic child.');fireEvent.click(accept);expect(accept).toBeChecked();fireEvent.change(screen.getByLabelText('Player card'),{target:{value:'102'}});
+        const accept=await screen.findByLabelText('I confirm these terms for Synthetic child.');fireEvent.click(accept);expect(accept).toBeChecked();fireEvent.click(screen.getByRole('radio',{name:/^Second child/}));
         expect(await screen.findByLabelText('I confirm these terms for Second child.')).not.toBeChecked();expect(submitAdmission).not.toHaveBeenCalled();
     });
     it('routes conditional siblings through review instead of committing one child immediately',async()=>{

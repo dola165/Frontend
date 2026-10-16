@@ -1,0 +1,29 @@
+/* The next session with the child's reply: Parent Hub and the squad page. Scoped under `.gk .ph-next`; tokens only. */
+.gk .ph-next { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--ph-tone, var(--gk-info)) 7%, var(--gk-surface)); }
+.gk .ph-next--empty { color: var(--gk-text-3); font-size: var(--gk-fs-sm); background: var(--gk-surface); }
+.gk .ph-next__head { display: flex; align-items: center; gap: var(--gk-3); color: var(--gk-text); text-decoration: none; }
+.gk .ph-next__icon { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: var(--gk-r); background: color-mix(in srgb, var(--ph-tone) 18%, transparent); color: var(--ph-tone); }
+.gk .ph-next__icon svg { width: 22px; height: 22px; }
+.gk .ph-next__when { display: flex; flex: none; flex-direction: column; min-width: 76px; }
+.gk .ph-next__when small { color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; text-transform: capitalize; }
+.gk .ph-next__when strong { font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .ph-next__when strong span { color: var(--gk-text-3); font-size: var(--gk-fs-sm); font-weight: 500; }
+.gk .ph-next__what { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .ph-next__what > strong { overflow: hidden; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.gk .ph-next__meta { display: flex; align-items: center; gap: 6px; overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: 16px; white-space: nowrap; }
+.gk .ph-next__meta svg { flex: none; width: 13px; height: 13px; }
+.gk .ph-next__go { flex: none; width: 18px; height: 18px; color: var(--gk-text-3); }
+.gk .ph-next__head:hover .ph-next__go { color: var(--gk-text); }
+.gk .ph-next .gk-availability { padding: var(--gk-3) 0 0; border: 0; border-top: 1px solid var(--gk-line); border-radius: 0; background: none; }
+/* The answer and its buttons on one line where they fit. */
+.gk .ph-next .gk-availability__family { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-3); }
+.gk .ph-next .gk-availability__line { flex: 1 1 180px; font-size: var(--gk-fs-sm); }
+.gk .ph-next .gk-availability__family .gk-faint { flex-basis: 100%; }
+.gk .ph-next__note { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-xs); }
+.gk .ph-next__note svg { width: 13px; height: 13px; }
+.gk .ph-next__note--error { color: var(--gk-danger); }
+.gk .ph-next__more { align-self: flex-start; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-decoration: none; }
+.gk .ph-next__more:hover { color: var(--gk-text); }
+@media (max-width: 420px) { .gk .ph-next__when { min-width: 64px; } .gk .ph-next__when strong span { display: none; } }
+
+.gk .ph-next .ph-link { padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-xs); font-weight: 600; cursor: pointer; }

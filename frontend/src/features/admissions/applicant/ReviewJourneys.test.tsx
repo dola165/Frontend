@@ -32,17 +32,16 @@ describe('Review: selected player and recoverable eligibility',()=>{
   it('uses the selected child from a changed URL and browser history on the same opportunity',async()=>{
     const o=opportunity();
     render(<MemoryRouter initialEntries={[`/admissions/opportunities/${o.id}?tab=join&player=88`]}><QueryNavigation/><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
-    await waitFor(()=>expect(screen.getByLabelText('Player card')).toHaveValue('88'));
+    await waitFor(()=>expect(screen.getByRole('radio',{name:/^Synthetic first child/})).toBeChecked());
     fireEvent.click(screen.getByRole('button',{name:'Open sibling link'}));
-    await waitFor(()=>expect(screen.getByLabelText('Player card')).toHaveValue('89'));
-    expect(screen.getByRole('status')).toHaveTextContent('Synthetic sibling');
+    await waitFor(()=>expect(screen.getByRole('radio',{name:/^Synthetic sibling/})).toBeChecked());
     fireEvent.click(screen.getByRole('button',{name:'Back to first child'}));
-    await waitFor(()=>expect(screen.getByLabelText('Player card')).toHaveValue('88'));
+    await waitFor(()=>expect(screen.getByRole('radio',{name:/^Synthetic first child/})).toBeChecked());
   });
   it('carries only the authorized selected child to the actual venue map',async()=>{
     const o=opportunity();o.location.latitude=41.7;o.location.longitude=44.8;vi.mocked(fetchOpportunity).mockResolvedValue(o);
     render(<MemoryRouter initialEntries={[`/admissions/opportunities/${o.id}?tab=join&player=88`]}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
-    await waitFor(()=>expect(screen.getByLabelText('Player card')).toHaveValue('88'));
+    await waitFor(()=>expect(screen.getByRole('radio',{name:/^Synthetic first child/})).toBeChecked());
     expect(screen.getByRole('link',{name:'View actual training venue on map'})).toHaveAttribute('href',`/world?opportunity=${o.id}&player=88`);
   });
   it('resolves an incoming map child against the current authorized cards',async()=>{

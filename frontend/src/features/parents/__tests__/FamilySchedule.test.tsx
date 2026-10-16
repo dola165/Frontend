@@ -4,8 +4,9 @@ import { fetchClubSchedule } from '../../schedule/api';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChildSquadSchedule, FamilySchedule } from '../FamilySchedule';
-import type { ParentChild } from '../api';
+import { FamilySchedule } from '../FamilySchedule';
+import type { JoiningChild } from '../api';
+import { useChildSquads } from '../hub/useChildSquads';
 import * as api from '../../squadCommunication/api';
 
 vi.mock('../../schedule/api', () => ({ fetchClubSchedule: vi.fn().mockResolvedValue([]) }));
@@ -14,7 +15,11 @@ vi.mock('../../../components/schedule/ScheduleWeekBoard', () => ({
     ScheduleWeekBoard: ({ events, onSelect }: { events: { id: string; title: string }[]; onSelect: (e: unknown) => void }) =>
         <div>{events.map(e => <button key={e.id} onClick={() => onSelect(e)}>{e.title}</button>)}</div>,
 }));
-const child = { userId: 61, clubId: 1, publicEvents: [] } as unknown as ParentChild;
+const child = { playerId: 61, clubs: [{ clubId: 1, clubName: 'Dinamo', cardId: 1, affiliationStatus: 'ACTIVE', consentStatus: 'CONFIRMED', squadNames: ['U12'] }] } as unknown as JoiningChild;
+function ChildWeek({ child }: { child: JoiningChild }) {
+    const { squads } = useChildSquads(child);
+    return <>{squads.map(squad => <a key={squad.id} href={`/squads/${squad.id}`}>{squad.name}</a>)}<FamilySchedule squads={squads} playerId={child.playerId} embedded /></>;
+}
 const room = (id: number, player: number) => ({ id, club_id: 1, name: 'U12', players: [{ id: player, name: 'Player' }] }) as api.SquadOverview;
 const training = (status: 'SCHEDULED' | 'CANCELLED' = 'SCHEDULED'): api.SquadSession => ({
     id: 9, title: 'Passing practice', starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 3600000).toISOString(),
@@ -28,7 +33,7 @@ describe('Family schedule', () => {
         vi.mocked(api.spaces).mockResolvedValue([room(10, 61), room(11, 62)]);
         vi.mocked(api.overview).mockImplementation(async id => room(id, id === 10 ? 61 : 62));
         vi.mocked(api.sessions).mockResolvedValue([training()]);
-        render(<MemoryRouter><ChildSquadSchedule child={child} /></MemoryRouter>);
+        render(<MemoryRouter><ChildWeek child={child} /></MemoryRouter>);
         const link = await screen.findByRole('link', { name: /U12/ });
         expect(link).toHaveAttribute('href', '/squads/10');
         await screen.findByText('Passing practice');

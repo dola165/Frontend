@@ -11,6 +11,7 @@ import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { useSessionReply } from '../../squadCommunication/useSessionReply';
 import { useSquadSchedule, type SquadCalendarEvent } from '../../squadCommunication/useSquadSchedule';
 import type * as api from '../../squadCommunication/api';
+import './next-up.css';
 
 const DAY = 86400000;
 const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
@@ -42,7 +43,7 @@ function NextCard({ event, playerId, crest, later, onSaved }: { event: SquadCale
     const today = new Date().toDateString() === new Date(event.startsAt).toDateString();
     const tomorrow = new Date(Date.now() + DAY).toDateString() === new Date(event.startsAt).toDateString();
     const day = today ? copy('Today', 'დღეს') : tomorrow ? copy('Tomorrow', 'ხვალ') : formatDate(event.startsAt, { weekday: 'long', day: 'numeric', month: 'short' });
-    const open = `/squads/${event.squadId}?tab=schedule&session=${session.id}&player=${playerId}`;
+    const open = `/squads/${event.squadId}?tab=schedule&session=${session.id}&at=${encodeURIComponent(new Date(event.startsAt).toISOString())}&player=${playerId}`;
     return <section className="ph-next" style={{ '--ph-tone': color } as CSSProperties} aria-label={copy('Next up', 'შემდეგი')}>
         <Link className="ph-next__head" to={open}>
             <span className="ph-next__icon" aria-hidden="true"><Icon /></span>

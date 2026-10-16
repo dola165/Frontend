@@ -57,11 +57,10 @@ describe('Admission lifecycle receipts',()=>{
         const home=incompleteHome();vi.mocked(fetchOpportunity).mockResolvedValue(o);vi.mocked(fetchAdmissionHome).mockResolvedValueOnce(home).mockResolvedValue({...home,selfCardNeedsDetails:false,participants:[{...home.participants[0],dateOfBirth:'1990-05-01'}]});
         vi.mocked(updateAdmissionPlayerCard).mockResolvedValue({...home.participants[0],dateOfBirth:'1990-05-01'});
         render(<MemoryRouter initialEntries={['/admissions/opportunities/'+o.id+'?tab=join']}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
-        await screen.findByLabelText('Full name');fireEvent.change(screen.getByLabelText('Player card'),{target:{value:'77'}});
+        await screen.findByLabelText('Full name');fireEvent.click(screen.getByRole('radio',{name:/^Synthetic self/}));
         expect(screen.getByText(/Basic details needed/)).toBeVisible();expect(screen.queryByRole('button',{name:'Request an introduction'})).not.toBeInTheDocument();
-        fireEvent.change(screen.getByLabelText('Player card'),{target:{value:''}});
         fireEvent.change(screen.getByLabelText('Full name'),{target:{value:'Synthetic self'}});fireEvent.change(screen.getByLabelText('Date of birth'),{target:{value:'1990-05-01'}});fireEvent.click(screen.getByRole('button',{name:'Save player card'}));
-        await waitFor(()=>expect(screen.getByLabelText('Player card')).toHaveValue('77'));
+        await waitFor(()=>expect(screen.getByRole('radio',{name:/^Synthetic self/})).toBeChecked());
         expect(savePlayerIdentity).toHaveBeenCalledWith(77,expect.objectContaining({fullName:'Synthetic self',dateOfBirth:'1990-05-01'}),'lifecycle-session');
     });
     it('shows the agreed cancellation terms beside the scoped cancellation command',async()=>{

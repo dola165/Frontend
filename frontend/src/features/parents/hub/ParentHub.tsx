@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CalendarDays, HeartHandshake, Search } from 'lucide-react';
-import { ButtonLink, EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
+import { ArrowLeft, ArrowRight, CalendarDays, HeartHandshake } from 'lucide-react';
+import { EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
 import { FaceStack } from '../../../design/visuals';
 import { PlayerCard } from '../../clubWorkspace/squads/PlayerCard';
 import { useInquiryCopy } from '../../admissions/inquiryPresentation';
@@ -20,6 +20,7 @@ import { PlayerLinkCode } from '../PlayerLinkCode';
 import { playerPath, usePlayerSelection } from '../playerSelection';
 import { ChildSwitcher } from './ChildSwitcher';
 import { ChildClubs } from './ChildClubs';
+import { GroupsThatFit } from './GroupsThatFit';
 import { LatestUpdate } from './LatestUpdate';
 import { NextUp } from './NextUp';
 import { useChildSquads } from './useChildSquads';
@@ -48,13 +49,13 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
     const selected = children.find(child => child.playerId === requestedPlayerId) ?? children[0];
     const back = <Link className="ph-back" to={playerPath('/parent', selected?.playerId)}><ArrowLeft aria-hidden="true" />{copy('Parent Hub', 'მშობლის სივრცე')}</Link>;
     let body;
-    if (tab === 'children') body = <>{back}<AddChild onCreated={id => { selectPlayer(id); refresh(); }} /></>;
+    if (tab === 'children') body = <>{back}<section className="ph-start"><h2>{copy('Add a child', 'ბავშვის დამატება')}</h2><AddChild inline onCreated={id => { selectPlayer(id); refresh(); }} /></section></>;
     else if (tab === 'connections') body = <>{back}<FamilyRelationships selectedChildId={selected?.playerId} revision={revision} onChanged={refresh} />{selected && <PlayerLinkCode key={selected.playerId} child={selected} onChanged={() => setRevision(v => v + 1)} />}</>;
     else if (!hub.data && hub.loading) body = <div className="ph-stack" role="status"><Skeleton height={52} /><Skeleton height={140} /><Skeleton height={110} /></div>;
     else if (hub.error) body = <div role="alert"><EmptyNote title={hub.error} action={<button type="button" className="ph-link" onClick={refresh}>{copy('Try again', 'ხელახლა ცდა')}</button>} /></div>;
     else if (!selected) body = <section className="ph-start"><HeartHandshake aria-hidden="true" /><h2>{copy('Add your child', 'დაამატეთ ბავშვი')}</h2>
         <p>{copy('Make their player card. Then join a squad with the coach’s link, or ask a club.', 'შექმენით მოთამაშის ბარათი. შემდეგ შედით გუნდში მწვრთნელის ბმულით ან მიმართეთ კლუბს.')}</p>
-        <AddChild onCreated={id => { selectPlayer(id); refresh(); }} /></section>;
+        <AddChild inline onCreated={id => { selectPlayer(id); refresh(); }} /></section>;
     else body = <>
         <ChildSwitcher items={children} selectedId={selected.playerId} onSelect={selectPlayer} addTo={playerPath('/parent?tab=children', selected.playerId)} />
         <ChildView key={selected.playerId} child={selected} revision={revision} onChanged={refresh} />
@@ -85,11 +86,7 @@ function ChildView({ child, revision, onChanged }: { child: JoiningChild; revisi
                 <NextUp squads={squads} playerId={child.playerId} childName={first} crest={crest} />
                 <LatestUpdate squads={squads} playerId={child.playerId} />
             </div>)}
-            {!playing.length && !cases.length && <section className="ph-find">
-                <span className="ph-find__icon" aria-hidden="true"><Search /></span>
-                <span className="ph-find__text"><strong>{copy(`Find ${first}’s first squad`, `იპოვეთ ${first}-ს პირველი გუნდი`)}</strong><small>{copy('Got a join link from a coach? Open it. Or look for a group nearby.', 'მწვრთნელის ბმული გაქვთ? გახსენით. ან მოძებნეთ ჯგუფი ახლოს.')}</small></span>
-                <ButtonLink variant="primary" size="sm" to={playerPath('/world/opportunities?tab=groups', child.playerId)}>{copy('Find a group', 'ჯგუფის მოძებნა')}</ButtonLink>
-            </section>}
+            {!playing.length && !cases.length && <GroupsThatFit child={child} />}
             {(cases.length > 0 || enquiries.length > 0) && <Section boxed title={copy('Joining', 'გაწევრიანება')} className="ph-section">
                 <ul className="ph-rows">
                     {cases.map(c => <li key={c.id}><Link className="ph-row" to={playerPath(`/admissions/cases/${c.id}`, child.playerId)}><span className="ph-dot ph-dot--decide" aria-hidden="true" />

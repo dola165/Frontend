@@ -42,3 +42,6 @@
 .gk .jn-check { display: flex; align-items: flex-start; gap: var(--gk-2); font-weight: 600; }
 .gk .jn-check input { margin-top: 3px; }
 .gk .jn-notice { padding: var(--gk-2) var(--gk-3); border-radius: var(--gk-r); background: var(--gk-warning-soft); color: var(--gk-text); font-size: var(--gk-fs-sm); }
+.gk .jn-head__title { display: flex; align-items: center; gap: var(--gk-3); }
+.gk .jn-head > p a { color: var(--gk-text-2); text-decoration: none; }
+.gk .jn-head > p a:hover { color: var(--gk-text); text-decoration: underline; }

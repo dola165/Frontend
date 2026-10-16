@@ -135,6 +135,7 @@ describe('phone numbers as people write them', () => {
   it('groups a stored Georgian mobile and leaves other numbers alone', () => {
     expect(phoneDisplay('+995599123456')).toBe('+995 599 12 34 56');
     expect(phoneDisplay('995 599 12 34 56')).toBe('+995 599 12 34 56');
+    expect(phoneDisplay('599123456')).toBe('+995 599 12 34 56');
     expect(phoneDisplay('+44 20 7946 0958')).toBe('+44 20 7946 0958');
   });
 });

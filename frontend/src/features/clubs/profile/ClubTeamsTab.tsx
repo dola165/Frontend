@@ -3,7 +3,7 @@ import { TabTraining } from '../../../components/club/tabs/TabTraining';
 import { useClubProfileSearchParams } from '../clubProfilePreviewContext';
 import { Button, ButtonLink, EmptyNote, List, ListRow, Panel, Section, Skeleton } from '../../../design/primitives';
 import { currentProgramme, money, programmeAge, programmePrice, type TrainingProgramme } from '../presentation';
-import { programmeMatchesAge, squadLine, trainingPath, type ClubEnquiryContext, type PublicSquad } from '../publicJourney';
+import { programmeMatchesAge, squadLine, trainingDaysLine, trainingPath, type ClubEnquiryContext, type PublicSquad } from '../publicJourney';
 import { useOverviewSource } from '../useOverviewSource';
 import { ClubSquadPage } from './ClubSquadPage';
 import type { ClubProfile } from './types';
@@ -48,7 +48,7 @@ export function ClubTeamsTab({ club, refreshKey = 0, onContact, isAuthenticated,
                 : squads.failed ? <EmptyNote title="The squads couldn’t load" action={<Button size="sm" onClick={squads.retry}>Try again</Button>} />
                 : matchedSquads.length ? <List label="Squads">{matchedSquads.map(s => <ListRow key={s.id} to={link({ squad: s.id })}
                     lead={<span className="gk-club-icon gk-club-icon--info"><Shield aria-hidden="true" /></span>} title={s.name}
-                    meta={[squadLine(s), programmes.filter(p => p.squadIds?.includes(s.id)).map(p => p.name).join(', ') || null].filter(Boolean).join(' · ')}
+                    meta={[squadLine(s), trainingDaysLine(s.trainingDays, s.trainingTime), programmes.filter(p => p.squadIds?.includes(s.id)).map(p => p.name).join(', ') || null].filter(Boolean).join(' · ')}
                     trail={<ArrowRight aria-hidden="true" className="gk-faint" size={16} />} />)}</List>
                 : <EmptyNote title={squads.data?.length ? 'No matching squads' : 'No squads published yet'}>{squads.data?.length ? 'Try another name or clear the search.' : 'Ask the club about its training groups.'}</EmptyNote>}</Panel>
         </Section>

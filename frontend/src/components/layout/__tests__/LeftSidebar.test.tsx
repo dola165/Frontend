@@ -21,12 +21,12 @@ describe("LeftSidebar", () => {
       { id: 'agent.hub', context: { type: 'user', id: 9, label: 'Agent' } },
     ] }, 9);
     render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: 'Alex Morgan', navigationCapabilities: caps }} /></MemoryRouter>);
+    // Someone without a page of their own is offered one; My Schedule came back to Home's rail (owner, 10 October).
     expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([
-      '/profile/9', '/admissions', '/referees/me', '/agent',
+      '/profile/9', '/?create=any&from=home', '/admissions', '/referees/me', '/agent', '/calendar?scope=personal',
     ]);
     expect(screen.queryByRole('link', { name: /My squads/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Agent Dola/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /My Schedule/ })).not.toBeInTheDocument();
   });
   it('keeps a family-only club connection in Parent Hub', () => {
     render(<MemoryRouter><LeftSidebar user={{id:9,navigationCapabilities:{version:1,workspaces:[{id:'club.family',context:{type:'club',id:21,label:'Academy'}}]}}}/></MemoryRouter>);
@@ -60,8 +60,7 @@ describe("LeftSidebar", () => {
     expect(screen.queryByRole("dialog", { name: "Following" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Followed clubs.*Clubs you keep up with/ })).toHaveAttribute("href", "/clubs/following");
     expect(screen.queryByRole("link", { name: /Map.*Find football near you/ })).not.toBeInTheDocument();
-    // Schedule lives in the account menu, profile and club pages now.
-    expect(screen.queryByRole("link", { name: /My Schedule/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /My Schedule.*Your personal calendar/ })).toHaveAttribute("href", "/calendar?scope=personal");
     expect(screen.queryByRole("link", { name: /Match Exchange/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /My club|Club workspace|Find clubs|Find people/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Events/ })).not.toBeInTheDocument();

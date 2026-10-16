@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { JobDetailPage } from '../../pages/JobDetailPage';
 
 const mock = vi.hoisted(() => ({ get: vi.fn(), submit: vi.fn(), job: vi.fn(), application: vi.fn() }));
-vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: mock.get } }));
+vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: mock.get }, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', user: { id: 5 }, sessionId: 'session-a' }) }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en', resolvedLanguage: 'en' } }) }));
 vi.mock('../clubs/api', () => ({ fetchPublicJob: mock.job, fetchMyJobApplication: mock.application, createClubApplication: mock.submit }));

@@ -128,13 +128,13 @@ export function GroundLine({ listing, now }: { listing: Match; now: number }) {
     if (!(attention || listing.venue_status === 'NEEDED')) return null;
     if (holdsGround(listing) && listing.can_arrange && isActive(listing, now)) return (
         <Link className="gk-step-line" data-tone={attention ? 'danger' : undefined} to={`/stadiums/${listing.booking!.venue_id}`}>
-            <span>{attention ? t('The ground needs attention') : t('Ground to arrange')}</span><b>{t('Change the reservation')}</b><ArrowRight aria-hidden="true" />
+            <span>{attention ? t('The ground needs attention') : t(listing.location_name ? 'Ground not booked yet' : 'Ground to arrange')}</span><b>{t('Change the reservation')}</b><ArrowRight aria-hidden="true" />
         </Link>
     );
     if (!canUseReservation(listing, isActive(listing, now))) return null;
     return (
         <Link className="gk-step-line" data-tone={attention ? 'danger' : undefined} to={`/match-exchange/${listing.event_id}?ground=reserve`}>
-            <span>{attention ? t('The ground needs attention') : t('Ground to arrange')}</span><b>{t('Use a reservation')}</b><ArrowRight aria-hidden="true" />
+            <span>{attention ? t('The ground needs attention') : t(listing.location_name ? 'Ground not booked yet' : 'Ground to arrange')}</span><b>{t('Use a reservation')}</b><ArrowRight aria-hidden="true" />
         </Link>
     );
 }

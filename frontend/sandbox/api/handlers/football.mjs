@@ -297,16 +297,19 @@ post('/match-exchange/:id/close', ({ params }) => { const l = F.listingById(para
 const resultState = l => {
   const host = squadById(l.hostSquadId), opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null, side = host.clubId === DINAMO ? 'HOME' : opp?.clubId === DINAMO ? 'AWAY' : null;
   const past = l.end.getTime() < now(), recorded = Boolean(l.score);
+  // A proposal counts as its side's confirmation: only the other side confirms or disputes it.
+  const proposer = l.resultSide ?? 'HOME', proposed = l.resultStatus === 'PROPOSED', mineProposed = proposed && side === proposer;
   return { eventId: l.id, fixtureStatus: l.status === 'CANCELLED' ? 'CANCELLED' : past && opp ? 'COMPLETED' : 'SCHEDULED', status: l.resultStatus || (recorded ? 'CONFIRMED' : 'NONE'), revision: l.resultRevision || 1,
-    homeScore: l.score?.[0] ?? null, awayScore: l.score?.[1] ?? null, proposalSide: recorded ? 'HOME' : null, requiredConfirmations: ['HOME', 'AWAY'], confirmations: recorded && l.resultStatus !== 'PROPOSED' ? ['HOME', 'AWAY'] : recorded ? ['HOME'] : [], legacy: false,
-    authority: { roles: side ? [side] : [], canPropose: Boolean(side && past && !recorded), canCorrect: Boolean(side && recorded), canDispute: Boolean(side && recorded), confirmableRoles: side && l.resultStatus === 'PROPOSED' ? [side] : [], correctableRoles: side && recorded ? [side] : [] },
-    history: recorded ? [{ id: l.id * 10, action: 'PROPOSE', actor_id: W.ME_ID, actor_side: 'HOME', home_score: l.score[0], away_score: l.score[1], previous_home_score: null, previous_away_score: null, previous_status: 'NONE', status: 'CONFIRMED', reason: null, created_at: iso(plusMin(l.end, 30)), revision: 1 }] : [] };
+    homeScore: l.score?.[0] ?? null, awayScore: l.score?.[1] ?? null, proposalSide: recorded ? proposer : null, requiredConfirmations: ['HOME', 'AWAY'], confirmations: recorded && !proposed ? ['HOME', 'AWAY'] : recorded ? [proposer] : [], legacy: false,
+    authority: { roles: side ? [side] : [], canPropose: Boolean(side && past && !recorded), canCorrect: Boolean(side && recorded), canDispute: Boolean(side && recorded && !mineProposed), confirmableRoles: side && proposed && !mineProposed ? [side] : [], correctableRoles: side && recorded ? [side] : [] },
+    history: recorded ? [{ id: l.id * 10, action: 'PROPOSE', actor_id: W.ME_ID, actor_side: proposer, home_score: l.score[0], away_score: l.score[1], previous_home_score: null, previous_away_score: null, previous_status: 'NONE', status: 'CONFIRMED', reason: null, created_at: iso(plusMin(l.end, 30)), revision: 1 }] : [] };
 };
 get('/match-exchange/:id/result', ({ params }) => { const l = F.listingById(params.id); return l ? resultState(l) : notFound(); });
 get('/match-exchange/:id/result/summary', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); const r = resultState(l); return { eventId: l.id, status: r.status, fixtureStatus: r.fixtureStatus, revision: r.revision, homeScore: r.homeScore, awayScore: r.awayScore, official: r.status === 'CONFIRMED', legacy: false, canReadAudit: true }; });
 for (const action of ['', '/confirm', '/correct', '/dispute']) post(`/match-exchange/:id/result${action}`, ({ params, body }) => {
   const l = F.listingById(params.id); if (!l) return notFound();
   if (body?.homeScore != null) l.score = [Number(body.homeScore), Number(body.awayScore)];
+  if (action === '' || action === '/correct') l.resultSide = body?.side ?? 'HOME';
   l.resultStatus = action === '/dispute' ? 'DISPUTED' : action === '' ? 'PROPOSED' : 'CONFIRMED'; l.resultRevision = (l.resultRevision || 1) + 1;
   return resultState(l);
 });

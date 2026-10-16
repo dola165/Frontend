@@ -8,6 +8,7 @@ import type { MapFocus, MapLine, MapReach } from '../stage/stageContext';
 import { AwayLayer } from './canvas/AwayLayer';
 import { ReachLayer } from './canvas/ReachLayer';
 import { reducedMotion } from './canvas/useMapTheme';
+import { wt } from '../copy';
 import { pinData, pinHover, pinLabel } from './pins';
 import { ContextPin, PinFace, type PinEvents, type WorldMapPoint } from './WorldMap';
 
@@ -129,6 +130,7 @@ export default function WorldLiveMap({ style, points, context = [], reach, away,
             onMoveEnd={moved}
             attributionControl={{ compact: true }}
             cooperativeGestures={gestures === 'cooperative'}
+            locale={mapWords()}
             // Phones and small devices draw fewer pixels, as the full map does; a desktop keeps its sharpness.
             pixelRatio={prefersLightMapRendering() ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined}
         >
@@ -155,3 +157,14 @@ export default function WorldLiveMap({ style, points, context = [], reach, away,
         </Map>
     );
 }
+
+/** The map's own words (its zoom buttons and the hint to zoom with Ctrl), in the app's language when the map is made. */
+const mapWords = () => ({
+    'CooperativeGesturesHandler.WindowsHelpText': wt('Use Ctrl + scroll to zoom the map'),
+    'CooperativeGesturesHandler.MacHelpText': wt('Use ⌘ + scroll to zoom the map'),
+    'CooperativeGesturesHandler.MobileHelpText': wt('Use two fingers to move the map'),
+    'NavigationControl.ZoomIn': wt('Zoom in'),
+    'NavigationControl.ZoomOut': wt('Zoom out'),
+    'AttributionControl.ToggleAttribution': wt('Map credits'),
+});
+

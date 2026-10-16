@@ -75,7 +75,7 @@ export function trackOf(m: Match, { clubIds, now, confirmable }: Pick<LaneContex
         : { part: 'opponent', state: todo(host || (m.requested_club_id != null && clubIds.has(m.requested_club_id))), word: 'Opponent to find' };
     const ground: TrackDot = m.venue_status === 'BOOKED' ? { part: 'ground', state: 'done', word: 'Ground booked' }
         : m.venue_status === 'HOST_CONFIRMED' ? { part: 'ground', state: 'done', word: 'Ground confirmed' }
-            : { part: 'ground', state: todo(host), word: 'Ground to arrange' };
+            : { part: 'ground', state: todo(host), word: m.location_name ? 'Ground not booked yet' : 'Ground to arrange' };
     // Who arranges the referee: the host, unless the match says the opponent does.
     const ours = (m.referee_responsibility ?? 'HOST') === 'OPPONENT' ? guest : host;
     const referee: TrackDot = !m.referee_required || m.referee_status === 'NOT_REQUIRED' ? { part: 'referee', state: 'none', word: 'No referee needed' }

@@ -27,7 +27,7 @@ const time = (value?: string | null) => Date.parse(value ?? '') || 0;
 const PAGE = 20;
 export const jobs: DirectorySource<ClubJob> = {
     id: 'jobs',
-    label: 'Jobs and volunteering',
+    label: 'Jobs & volunteering',
     noun: ['job', 'jobs'],
     searchLabel: 'Search jobs and volunteering',
     searchPlaceholder: 'Search roles, clubs or skills',    pageSize: PAGE,

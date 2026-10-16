@@ -18,17 +18,17 @@ it('reveals acknowledged names on hover, keyboard focus and tap, with Escape dis
 it('removes only the viewer reaction and leaves acknowledgement untouched',async()=>{
  const changed=vi.fn();vi.mocked(api.setReaction).mockResolvedValue({} as never);
  render(<UpdateInteractions space={space} message={message} onChanged={changed}/>);
- const heart=screen.getByRole('button',{name:'Heart, 1 reaction'});expect(heart).toHaveAttribute('aria-pressed','true');
- expect(heart).toHaveAttribute('title','Heart: Mariam Dolidze');fireEvent.click(heart);
+ const heart=screen.getByRole('button',{name:'Care, 1 reaction'});expect(heart).toHaveAttribute('aria-pressed','true');
+ expect(heart).toHaveAttribute('title','Care: Mariam Dolidze');fireEvent.click(heart);
  await waitFor(()=>expect(changed).toHaveBeenCalledOnce());expect(api.setReaction).toHaveBeenCalledExactlyOnceWith(171,5,'HEART',false);
  expect(screen.getByRole('button',{name:'Acknowledged by 1 person'})).toBeVisible();
 });
-it('offers eight reactions and reports failures without changing the saved selection',async()=>{
+it('offers the six football reactions and reports failures without changing the saved selection',async()=>{
  vi.mocked(api.setReaction).mockRejectedValue(new Error('Offline'));
  render(<UpdateInteractions space={space} message={message} onChanged={vi.fn()}/>);
- fireEvent.click(screen.getByRole('button',{name:'Add a reaction'}));expect(screen.getByRole('group',{name:'Choose a reaction'}).querySelectorAll('button')).toHaveLength(8);
- fireEvent.click(screen.getByRole('button',{name:'Celebrate'}));await screen.findByRole('alert');
- expect(screen.getByRole('button',{name:'Heart, 1 reaction'})).toHaveAttribute('aria-pressed','true');
+ fireEvent.click(screen.getByRole('button',{name:'Add a reaction'}));expect(screen.getByRole('group',{name:'Choose a reaction'}).querySelectorAll('button')).toHaveLength(6);
+ fireEvent.click(screen.getByRole('button',{name:'On fire'}));await screen.findByRole('alert');
+ expect(screen.getByRole('button',{name:'Care, 1 reaction'})).toHaveAttribute('aria-pressed','true');
 });
 it('retains a comment draft across collapse and failed retry, then clears after success',async()=>{
  vi.mocked(api.addUpdateComment).mockRejectedValueOnce(new Error('Offline')).mockResolvedValue({} as never);

@@ -110,13 +110,16 @@ export function normalizeLayout(kind: PageKind, value: unknown): PageLayout {
 export const SETUP_KEYS = ['name', 'crest', 'grounds', 'squads', 'contact', 'fees', 'players', 'staff', 'posts', 'about', 'sponsors'] as const;
 export type SetupKey = typeof SETUP_KEYS[number];
 
-/** What the setup ring counts, per type, in the order the next ghost box is highlighted. A club counts eight. */
+/**
+ * What the setup ring counts, per type, in the order the next ghost box is highlighted. The name is not a step (it is
+ * given when the page is made and is all that is needed), so a new page starts at 0; a club counts seven, all optional.
+ */
 export const SETUP_ITEMS: Record<PageKind, readonly SetupKey[]> = {
-  CLUB: ['name', 'crest', 'about', 'grounds', 'squads', 'contact', 'fees', 'players'],
-  FAN_CLUB: ['name', 'crest', 'grounds', 'contact', 'fees', 'staff', 'posts'],
-  BUSINESS: ['name', 'crest', 'about', 'contact', 'sponsors', 'posts'],
-  PAGE: ['name', 'crest', 'about', 'contact', 'posts'],
-  VENUE: ['name', 'crest', 'grounds', 'contact', 'fees', 'staff', 'posts'],
+  CLUB: ['crest', 'about', 'grounds', 'squads', 'contact', 'fees', 'players'],
+  FAN_CLUB: ['crest', 'grounds', 'contact', 'fees', 'staff', 'posts'],
+  BUSINESS: ['crest', 'about', 'contact', 'sponsors', 'posts'],
+  PAGE: ['crest', 'about', 'contact', 'posts'],
+  VENUE: ['crest', 'grounds', 'contact', 'fees', 'staff', 'posts'],
 };
 
 /** The facts the ring and Go live are worked out from; the server and the screen each derive them from what they hold. */

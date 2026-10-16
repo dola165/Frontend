@@ -51,16 +51,24 @@ export function GroundsPanel() {
     setChosen(current => current.map(ground => (ground.id === placing.id ? { ...ground, latitude: pending.lat, longitude: pending.lng, address: pending.address ?? ground.address } : ground)));
     setPlaced(placing.name); setPlacing(null); setPending(null);
   };
-  const confirmRef = useRef(confirm);
-  useEffect(() => { confirmRef.current = confirm; });
-  // Dola follows along: to the map while a place waits for its spot, then she says it is there.
+  const save = async () => {
+    setBusy(true);
+    // A pin still being placed counts as placed.
+    const items = chosen.map(ground => (ground.id === placing?.id && pending ? { ...ground, latitude: pending.lat, longitude: pending.lng, address: pending.address ?? ground.address } : ground));
+    try { await saveBox('grounds', { items: items.map(ground => ({ ...ground, id: ground.id < 0 ? undefined : ground.id })) }, { label: t('Grounds saved') }); closePanel(); } finally { setBusy(false); }
+  };
+  const confirmRef = useRef(confirm), saveRef = useRef(save);
+  useEffect(() => { confirmRef.current = confirm; saveRef.current = save; });
+  // Dola follows along: to the map while a place waits for its spot, then she says it is there; once there is a
+  // ground, she offers Next (saved, as Done does, and on to the next step).
   useEffect(() => {
     setPetHint('grounds', placing
       ? { selector: '.gk-grounds-map', quiet: true, ...(pending
         ? { line: t('There? Tap again or drag the pin to move it.'), action: { label: t('This is it'), run: () => confirmRef.current() } }
         : { line: t('Where is {name}? Tap its spot on the map.', { name: placing.name }) }) }
-      : placed ? { said: t('Understood. {name} is on the map.', { name: placed }) } : null);
-  }, [pending, placed, placing, t]);
+      : chosen.length ? { ...(placed ? { said: t('Understood. {name} is on the map.', { name: placed }) } : {}), action: { label: t('Next'), run: () => void saveRef.current() } }
+      : null);
+  }, [chosen.length, pending, placed, placing, t]);
   useEffect(() => () => setPetHint('grounds', null), []);
   const named = (name: string): Ground | null => (town && town.latitude != null && town.longitude != null
     ? { id: -Date.now(), name, address: `${town.name}, Georgia`, town: town.name, latitude: town.latitude, longitude: town.longitude, surface: 'ARTIFICIAL', size: '7v7', indoor: false, pitchId: null, venueId: null } : null);
@@ -96,12 +104,6 @@ export function GroundsPanel() {
     // Without a pin yet, the map asks for its spot next.
     if (!dropped) place(ground);
     setOther({ name: '', address: '' }); setDropped(null);
-  };
-  const save = async () => {
-    setBusy(true);
-    // A pin still being placed counts as placed.
-    const items = chosen.map(ground => (ground.id === placing?.id && pending ? { ...ground, latitude: pending.lat, longitude: pending.lng, address: pending.address ?? ground.address } : ground));
-    try { await saveBox('grounds', { items: items.map(ground => ({ ...ground, id: ground.id < 0 ? undefined : ground.id })) }, { label: t('Grounds saved') }); closePanel(); } finally { setBusy(false); }
   };
   const chosenIds = new Set(chosen.map(ground => ground.pitchId).filter((value): value is string => Boolean(value)));
   const places = chosen.filter(ground => !ground.pitchId && ground.id !== placing?.id).map(ground => ({ lat: ground.latitude, lng: ground.longitude, name: ground.name }));

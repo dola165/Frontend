@@ -43,9 +43,9 @@ describe('page types and their boxes', () => {
 });
 
 describe('setup ring and going live', () => {
-  it('counts eight things for a club, about included, and points at the next one', () => {
+  it('counts seven optional things for a club (the name is not a step), and points at the next one', () => {
     const state = setupState(facts({ contact: true }));
-    expect([state.done, state.total, state.next]).toEqual([2, 8, 'crest']);
+    expect([state.done, state.total, state.next]).toEqual([1, 7, 'crest']);
     expect(setupState(facts({ crestKept: true, grounds: 1, squads: 2, contact: true, fees: true, players: true })).complete).toBe(false);
     expect(setupState(facts({ crestKept: true, about: true, grounds: 1, squads: 2, contact: true, fees: true, players: true })).complete).toBe(true);
   });

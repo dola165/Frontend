@@ -45,10 +45,10 @@ describe('edit mode on a page', () => {
     api.saveIdentity.mockImplementation(async () => filledContact(page));
     mount();
     expect(await screen.findByText('Draft · only you see this')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /1 of 7 done/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /0 of 6 done/ })).toBeInTheDocument();
     // The steps start folded: the ring opens them.
     expect(screen.queryByRole('region', { name: 'Set-up steps' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /1 of 7 done/ }));
+    await user.click(screen.getByRole('button', { name: /0 of 6 done/ }));
     expect(screen.getByRole('region', { name: 'Set-up steps' })).toHaveTextContent('Add your crest');
     await user.click(screen.getByRole('button', { name: 'Hide the steps' }));
     // Only the name is needed: a named draft can go live at once.
@@ -63,7 +63,7 @@ describe('edit mode on a page', () => {
     expect(api.saveIdentity.mock.calls[0][2]).toMatchObject({ contact: { phone: '+995 599 12 34 56', email: 'giorgi@example.org' } });
     expect(await screen.findByText('ultras@rustavi.ge')).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Save status' })).toHaveTextContent('Saved');
-    expect(screen.getByRole('button', { name: /2 of 7 done/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /1 of 6 done/ })).toBeInTheDocument();
     expect(toasts.calls.map(call => call.message)).toContain('Contact saved');
   });
 

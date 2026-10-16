@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useMediaQuery } from '../../world/useMediaQuery';
 import { usePagesCopy } from '../copy';
@@ -96,7 +96,8 @@ function panelSpot(rect: DOMRect): Spot {
  */
 export function DolaPet() {
   const t = usePagesCopy();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const navigate = useNavigate();
   const { page, panel, openStep } = usePageEdit();
   const phone = usePhoneSteps();
   const still = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -105,6 +106,7 @@ export function DolaPet() {
   const [skipped, setSkipped] = useState<string[]>(() => (stored(skipKey) ?? '').split(',').filter(Boolean));
   // A step chosen with her arrows, done or not, to change it; answering or skipping it hands back to the next step to do.
   const [picked, setPicked] = useState<string | null>(null);
+  const wasPanel = useRef<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [question, setQuestion] = useState('');
@@ -147,15 +149,22 @@ export function DolaPet() {
 
   useEffect(() => {
     if (away) return;
-    let scrolled = false, stop = 0;
+    let scrolled = false, switched = false, stop = 0;
     const measure = () => {
       const dialog = inPanel ? document.querySelector<HTMLElement>('.gk-dialog') : null;
       const target = aim ? dialog?.querySelector<HTMLElement>(aim) ?? null : document.querySelector<HTMLElement>(selector);
-      if (!target) return;
+      if (!target) {
+        // The step's box is on the page's first tab: she switches to it rather than leave the person hunting.
+        const query = new URLSearchParams(search);
+        if (!inPanel && !under && !switched && query.has('tab')) { switched = true; query.delete('tab'); navigate({ pathname, search: `?${query}` }, { replace: true }); }
+        return;
+      }
       const rect = target.getBoundingClientRect();
-      if (!scrolled && (rect.top < H || rect.bottom > window.innerHeight)) {
+      // She brings the whole step into view herself (room for her above it), once per step.
+      if (!scrolled && !inPanel && !under && (rect.top < H + EDGE || rect.bottom > window.innerHeight - EDGE)) {
         scrolled = true;
-        if (rect.bottom < 0 || rect.top > window.innerHeight - H) { target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' }); return; }
+        target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+        return;
       }
       setHost(dialog);
       const to = inPanel ? panelSpot(rect) : spotFor(rect, under), from = last.current;
@@ -173,7 +182,21 @@ export function DolaPet() {
     window.addEventListener('scroll', measure, true);
     window.addEventListener('resize', measure);
     return () => { window.cancelAnimationFrame(frame); window.clearInterval(timer); window.clearTimeout(stop); window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
-  }, [aim, away, inPanel, selector, still, under]);
+  }, [aim, away, inPanel, navigate, pathname, search, selector, still, under]);
+
+  // When a step's pop-up closes, she goes on to the next step after it still to do, in order.
+  const order = useRef({ items, skipped });
+  useEffect(() => { order.current = { items, skipped }; });
+  useEffect(() => {
+    const closed = wasPanel.current && !inPanel ? wasPanel.current : null;
+    wasPanel.current = inPanel;
+    if (!closed) return;
+    const { items: list, skipped: passed } = order.current;
+    const from = list.findIndex(item => SETUP_PANEL[item.key] === closed);
+    const after = list.slice(from + 1).find(item => !item.done && !passed.includes(item.key))?.key ?? null;
+    const timer = window.setTimeout(() => setPicked(after), 0);
+    return () => clearTimeout(timer);
+  }, [inPanel]);
 
   // "Understood" stays a few seconds, then her usual line comes back.
   useEffect(() => {
@@ -265,10 +288,10 @@ export function DolaPet() {
                   {saying && inPanel && <p className="gk-pet__said">{saying}</p>}
                   {!(saying && inPanel && !aim) && <p className="gk-pet__line">{line}</p>}
                   {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => { setSaid(t('Understood.')); setPicked(null); }} />}
-                  {hint?.action && <span className="gk-pet__actions"><button type="button" className="gk-pet__action gk-pet__action--main" onClick={hint.action.run}>{hint.action.label}</button></span>}
+                  {hint?.action && !listens && <span className="gk-pet__actions"><button type="button" className="gk-pet__action gk-pet__action--main" onClick={hint.action.run}>{hint.action.label}</button></span>}
                   {listens && <form className="gk-pet__quick" onSubmit={answer}>
                     <input className="gk-pet__input" value={reply} onChange={event => setReply(event.target.value)} maxLength={120} autoComplete="off" autoFocus aria-label={t(PANEL_ASK[listens])} placeholder={t(PANEL_ASK[listens])} />
-                    <span className="gk-pet__actions"><button type="submit" className="gk-pet__action gk-pet__action--main">{t('Add')}</button></span>
+                    <span className="gk-pet__actions"><button type="submit" className="gk-pet__action gk-pet__action--main">{t('Add')}</button>{hint?.action && <button type="button" className="gk-pet__action" onClick={hint.action.run}>{hint.action.label}</button>}</span>
                   </form>}
                   {!inPanel && <span className="gk-pet__actions">
                     {isStep && <button type="button" className="gk-pet__action" onClick={skip}>{t('Skip')}</button>}

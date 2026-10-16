@@ -54,7 +54,7 @@ function newPage({ kind, name, town, ownerId, status, claim = null, clubId = nul
   const page = {
     ref: clubId ? { type: 'club', id: clubId } : { type: 'organization', id: organizationId }, organizationId, clubId, kind, organizationType: ORGANIZATION_TYPE[kind],
     ownerId, staff: new Map(ownerId ? [[ownerId, 'OWNER']] : []), status, claim, verification: 'NONE', verificationFor: [],
-    identity: { version: 1, name, tagline: '', about: '', aboutAuto: true, town: townOf(town), crest: { kind: 'generated', design, kept: true }, language,
+    identity: { version: 1, name, tagline: '', about: '', aboutAuto: true, town: townOf(town), crest: { kind: 'generated', design, kept: Boolean(crest) }, language,
       cover: { kind: 'photo', photo: coverForColour(design.primary) }, contact: { phone: '', email: '' }, social: { website: '', instagram: '', facebook: '' },
       businessKind: kind === 'BUSINESS' ? 'COMPANY' : null, clubCategory: kind === 'CLUB' ? category : null },
     layout: { version: 1, ...defaultLayout(kind) },
@@ -257,7 +257,7 @@ export function factsOf(page) {
     contact: Boolean(id.contact.phone || id.contact.email), fees: Boolean(page.boxes.fees.band) || (page.clubId != null && !page.boxes.grounds.fromPage && (C.presentations.get(page.clubId)?.programmes ?? []).some(p => p.published)),
     players: Boolean(page.boxes.players.shared) || squads.some(s => s.playerIds.length > 0),
     staff: [...page.staff.keys()].filter(staffId => staffId !== page.ownerId).length + page.boxes.staff.invites.length,
-    posts: postsOf(page), about: Boolean(id.about.trim()), sponsors: sponsorsOf(page).length,
+    posts: postsOf(page), about: Boolean(id.about.trim()) && !id.aboutAuto, sponsors: sponsorsOf(page).length,
   };
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Copy, Trash2 } from 'lucide-react';
 import { Button } from '../../../../design/primitives';
 import { appLanguage } from '../../../../utils/formatting';
@@ -6,7 +6,7 @@ import type { Gender, SquadItem } from '../../api';
 import { usePagesCopy } from '../../copy';
 import { ageGroupOf, birthYearOf } from '../../model/about';
 import { TEAM_AGES, teamName } from '../../model/teams';
-import { usePetAnswer } from '../../guide/bridge';
+import { setPetHint, usePetAnswer } from '../../guide/bridge';
 import { usePageEdit } from '../context';
 import { SplitPanel } from '../SplitPanel';
 
@@ -39,6 +39,15 @@ export function SquadsPanel() {
     setSquads(current => [...current, ...fresh.map(age => team(age, who))]);
     return t('Added {teams}. Tap Done to keep them.', { teams: (fresh.length ? fresh : ages).map(age => teamName(age, who, language, year)).join(', ') });
   });
+  const save = async () => {
+    setBusy(true);
+    try { await saveBox('squads', { items: squads.map(squad => ({ id: squad.id ?? undefined, name: squad.name, ageGroup: squad.ageGroup, gender: squad.gender, days: squad.days, time: squad.time, groundId: squad.groundId })) }, { label: t('Teams saved') }); closePanel(); } finally { setBusy(false); }
+  };
+  // Once there is a team, Dola offers Next: saved, as Done does, and on to the next step.
+  const saveRef = useRef(save);
+  useEffect(() => { saveRef.current = save; });
+  useEffect(() => { setPetHint('squads', squads.length ? { action: { label: t('Next'), run: () => void saveRef.current() } } : null); }, [squads.length, t]);
+  useEffect(() => () => setPetHint('squads', null), []);
   if (!page) return null;
   const has = (age: string, gender: Gender) => squads.some(squad => squad.ageGroup === age && squad.gender === gender);
   const toggle = (age: string, gender: Gender) => setSquads(current => (current.some(squad => squad.ageGroup === age && squad.gender === gender)
@@ -47,10 +56,6 @@ export function SquadsPanel() {
   const update = (index: number, patch: Partial<Draft> | ((squad: Draft) => Partial<Draft>)) => setSquads(current => current.map((squad, i) => (i === index ? { ...squad, ...(typeof patch === 'function' ? patch(squad) : patch) } : squad)));
   // Toggled from the latest state, so two quick taps both count.
   const toggleDay = (index: number, day: number) => update(index, squad => ({ days: squad.days.includes(day) ? squad.days.filter(value => value !== day) : [...squad.days, day].sort() }));
-  const save = async () => {
-    setBusy(true);
-    try { await saveBox('squads', { items: squads.map(squad => ({ id: squad.id ?? undefined, name: squad.name, ageGroup: squad.ageGroup, gender: squad.gender, days: squad.days, time: squad.time, groundId: squad.groundId })) }, { label: t('Teams saved') }); closePanel(); } finally { setBusy(false); }
-  };
   const sorted = [...squads].sort((a, b) => order(a.ageGroup) - order(b.ageGroup));
   // The team whose training days the next one can copy in one tap.
   const planned = sorted.find(squad => squad.days.length);

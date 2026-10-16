@@ -5,7 +5,11 @@ import { getAuthSessionId } from '../../../utils/authStorage';
 import { emptyDraft, planGet, planPost, savePlan, type Plan, type PlanContext, type PlanDraft, type PlanPlace, type PlanSummary } from '../api';
 import { draftFingerprint, forgetPlan, recoverPlan, recoveryKey, rememberPlan, rememberSelection, validatePlanDraft } from '../draftRecovery';
 
-interface Editing { key: string; plan: Plan | null; draft: PlanDraft; pristine: PlanDraft; baseRevision: number | null; notice: string; error: string }
+interface Editing {
+    key: string; plan: Plan | null; draft: PlanDraft; pristine: PlanDraft; baseRevision: number | null; notice: string; error: string;
+    /** The creation request (`draft`) this plan came from, so it stays open while the address changes to `plan`. */
+    from?: string | null;
+}
 
 /**
  * A journey plan being edited: loading, local recovery, saving with revision checks,
@@ -80,13 +84,15 @@ export function usePlanEditor({ enabled, initialClubId }: { enabled: boolean; in
 
     // A new draft starts empty, or from this device's unsaved copy of the same request.
     const squadParam = Number(params.get('squad')) || 0;
-    if (requestId && context && editing?.key !== key) {
+    // The router changes the address in a transition, a render after a created plan is stored; until then the
+    // address still names the draft, and the new plan must not be replaced by an empty one.
+    if (requestId && context && editing?.key !== key && editing?.from !== requestId) {
         const backup = recoverPlan(`draft:${requestId}`);
         const allowed = backup && !backup.planId && backup.clubId === club && context.squads.some(item => item.id === backup.squadId && item.canEdit);
         const draft = allowed ? backup.draft : emptyDraft(context);
         setEditing({ key: key!, plan: null, draft, pristine: allowed ? backup.baseDraft : draft, baseRevision: null, notice: allowed ? 'Your unsaved draft was recovered.' : '', error: '' });
     }
-    const current = editing && editing.key === key ? editing : null;
+    const current = editing && (editing.key === key || (requestId !== null && editing.from === requestId)) ? editing : null;
     const plan = current?.plan ?? null;
     const draft = current?.draft ?? null;
     const squad = plan?.squad_id ?? squadParam ?? 0;
@@ -116,7 +122,7 @@ export function usePlanEditor({ enabled, initialClubId }: { enabled: boolean; in
         if (!mounted.current) return;
         forgetPlan(recoveryKey(current?.plan?.id ?? 0, requestId ?? String(current?.plan?.id ?? 0)), session);
         if (saved.id !== planId) skipLoad.current = saved.id;
-        setEditing({ key: `plan:${saved.id}`, plan: saved, draft: kept ?? saved.draft, pristine: saved.draft, baseRevision: null, notice: kept ? 'Plan created. Your newer changes are kept; save them to update it.' : 'All changes saved', error: '' });
+        setEditing({ key: `plan:${saved.id}`, from: current?.plan ? null : requestId, plan: saved, draft: kept ?? saved.draft, pristine: saved.draft, baseRevision: null, notice: kept ? 'Plan created. Your newer changes are kept; save them to update it.' : 'All changes saved', error: '' });
         rememberSelection(saved.id, saved.club_id, saved.squad_id, session);
         setPlans(list => list ? [{ ...saved, starts_at: saved.draft.startsAt }, ...list.filter(item => item.id !== saved.id)] : list);
         setParams(next => { next.set('plan', String(saved.id)); next.delete('draft'); next.set('plans', 'staff'); next.set('club', String(saved.club_id)); next.set('squad', String(saved.squad_id)); return next; }, { replace: true });

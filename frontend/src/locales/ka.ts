@@ -1,5 +1,6 @@
 import { squadDesignKa, squadsDesignKa } from './squadDesign';
 import { clubOverviewKa } from './clubOverview';
+import { clubRecordsKa } from './clubRecords';
 import { coachHubKa, fixtureCopyKa, responsibilitiesKa, workspaceNavKa, workspaceShellKa } from './workspaceDesign';
 import { recruitmentDesignKa } from './recruitmentDesign';
 
@@ -13,6 +14,7 @@ const ka = {
     you: 'თქვენ',
   },
   clubOverview: clubOverviewKa,
+  clubRecords: clubRecordsKa,
   workspaceShell: workspaceShellKa,
   workspaceNav: workspaceNavKa,
   coachHub: coachHubKa,

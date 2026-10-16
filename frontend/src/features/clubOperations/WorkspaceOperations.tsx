@@ -14,6 +14,9 @@ import { RecordForm } from './records/RecordForm';
 import { RecordTable, RecordToolbar, type RecordView } from './records/RecordList';
 import { SessionRegisters } from './records/SessionRegisters';
 import { useScopedSearchParams } from './scopedParams';
+import { navLabel } from '../clubWorkspace/clubTabs';
+import { clubRecordsEn } from '../../locales/clubRecords';
+import { translate, useCopy } from '../../locales/useCopy';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
@@ -25,6 +28,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   /** Where the person came from (Coach Hub, the overview, a squad): the way back, when they did not open this tool from the rail. */
   origin?: { label: string; onBack: () => void };
 }) {
+  const copy = useCopy('clubRecords', clubRecordsEn);
   const [params, setParams, hrefOf] = useScopedSearchParams(scope);
   const [result, setResult] = useState<{ key: string; records: OperationRecord[]; error: string } | null>(null);
   const [detailError, setDetailError] = useState('');
@@ -73,7 +77,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     const timer = setTimeout(() => {
       void get<OperationRecord[]>(`/clubs/${club}/workspace-roles/work?${query}`, c.signal)
         .then(rows => { if (!c.signal.aborted) setResult({ key: requestKey, records: rows, error: '' }); })
-        .catch(e => { if (!c.signal.aborted) setResult({ key: requestKey, records: [], error: extractApiErrorMessage(e, 'Could not load this section.') }); });
+        .catch(e => { if (!c.signal.aborted) setResult({ key: requestKey, records: [], error: extractApiErrorMessage(e, translate('clubRecords', clubRecordsEn, 'loadError')) }); });
     }, search ? 250 : 0);
     return () => { clearTimeout(timer); c.abort(); };
   // query is represented by requestKey to avoid restarting identical requests.
@@ -85,7 +89,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     const c = new AbortController(), request = ++selectRequest.current;
     void get<OperationRecord>(`${root(club)}/records/${encodeURIComponent(linked)}`, c.signal).then(value => {
       if (!c.signal.aborted && request === selectRequest.current) { setSelected(value); setEditing(false); setNewKind(''); }
-    }).catch(e => { if (!c.signal.aborted) setDetailError(extractApiErrorMessage(e, 'This record is unavailable.')); });
+    }).catch(e => { if (!c.signal.aborted) setDetailError(extractApiErrorMessage(e, translate('clubRecords', clubRecordsEn, 'unavailable'))); });
     return () => c.abort();
   }, [club, linked]);
   const close = () => { selectRequest.current++; setSelected(null); setEditing(false); setNewKind(''); const next = new URLSearchParams(params); next.delete('record'); next.delete('from'); setParams(next, { replace: true }); };
@@ -95,18 +99,19 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const reload = () => { setRefresh(v => v + 1); };
   const changed = async () => { await onRefresh(); close(); reload(); };
   const create = (value: string) => { setNewKind(value); setEditing(true); setSelected(null); setChoosing(false); };
-  const title = module === 'HOME' ? 'Work queue' : operationTabs.find(t => t.module === module)?.label ?? moduleNames[module];
-  const listLabel = `Back to ${title.toLowerCase()}`;
+  const tool = operationTabs.find(t => t.module === module);
+  const title = module === 'HOME' ? copy('workQueue') : tool ? navLabel(tool.id) : moduleNames[module];
+  const listLabel = copy('backTo', { name: title.toLowerCase() });
   const toOrigin = Boolean(origin) && params.get('from') !== 'list';
   const backLabel = toOrigin ? origin!.label : listLabel;
   const back = toOrigin ? origin!.onBack : () => close();
   const originBack = origin && <div className="rec-back"><Button variant="ghost" size="sm" onClick={origin.onBack}><ArrowLeft aria-hidden="true" />{origin.label}</Button></div>;
   const narrowed = Boolean(search || kind || squad || person), filtered = narrowed || view !== 'all' || page > 0;
-  const empty = narrowed ? { title: 'No matching records', body: 'Try another search, squad or filter.' }
-    : view === 'mine' ? { title: 'Nothing assigned to you', body: 'Records you are responsible for appear here.' }
-    : view === 'open' ? { title: 'Nothing open', body: 'Finished records are under All.' }
-    : module === 'HOME' ? { title: 'You’re up to date', body: 'New deadlines and decisions appear here.' }
-    : { title: `No ${title.toLowerCase()} yet`, body: canCreate ? operationDescriptions[module] : 'Records shared with your responsibilities appear here.' };
+  const empty = narrowed ? { title: copy('noMatching'), body: copy('noMatchingHint') }
+    : view === 'mine' ? { title: copy('nothingMine'), body: copy('nothingMineHint') }
+    : view === 'open' ? { title: copy('nothingOpen'), body: copy('nothingOpenHint') }
+    : module === 'HOME' ? { title: copy('upToDate'), body: copy('upToDateHint') }
+    : { title: copy('noneYetNamed', { name: title.toLowerCase() }), body: canCreate ? operationDescriptions[module] : copy('sharedHint') };
   const openRegister = (s: Bootstrap['sessions'][number]) => {
     const next = new URLSearchParams(params);
     ['q', 'kind', 'mine', 'state', 'person', 'page', 'record'].forEach(key => next.delete(key));
@@ -114,15 +119,16 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     setShowRecords(false); setParams(next);
   };
   const changePage = (to: number) => { const next = new URLSearchParams(params); next.set('page', String(to)); setParams(next); };
-  const addLabel = definitions.length === 1 ? `Add ${definitions[0].label.toLowerCase()}` : 'Add a record';
-  const pager = page > 0 || records.length === 100 ? <><span>Page {page + 1}</span><span className="gk-row">
-    <Button size="sm" disabled={page === 0 || loading} onClick={() => changePage(page - 1)}>Previous</Button>
-    <Button size="sm" disabled={records.length < 100 || loading} onClick={() => changePage(page + 1)}>Next</Button></span></> : null;
+  const addOne = (what: string) => copy('add', { what: what.toLowerCase() });
+  const addLabel = definitions.length === 1 ? addOne(definitions[0].label) : copy('addRecord');
+  const pager = page > 0 || records.length === 100 ? <><span>{copy('page', { page: page + 1 })}</span><span className="gk-row">
+    <Button size="sm" disabled={page === 0 || loading} onClick={() => changePage(page - 1)}>{copy('previous')}</Button>
+    <Button size="sm" disabled={records.length < 100 || loading} onClick={() => changePage(page + 1)}>{copy('next')}</Button></span></> : null;
 
   if (module === 'SETTINGS') return <PageFrame><OperationsSettings key={boot.settings.revision} boot={boot} onSaved={onRefresh} /></PageFrame>;
   if (linked && !selected) return <PageFrame className="rec-page">
     <div className="rec-back"><Button variant="ghost" size="sm" onClick={back}><ArrowLeft aria-hidden="true" />{backLabel}</Button></div>
-    {detailError ? <div className="gk-notice gk-notice--danger" role="alert">{detailError}</div> : <div className="cw-loading" role="status" aria-label="Opening record"><Skeleton height={34} width="40%" /><Skeleton height={200} /></div>}
+    {detailError ? <div className="gk-notice gk-notice--danger" role="alert">{detailError}</div> : <div className="cw-loading" role="status" aria-label={copy('opening')}><Skeleton height={34} width="40%" /><Skeleton height={200} /></div>}
   </PageFrame>;
   if (editing && definition) return <PageFrame><RecordForm key={`${newKind}-${selected?.id ?? 'new'}`} boot={editorBoot} definition={definition} record={selected ?? undefined} backLabel={listLabel} onSaved={changed} onCancel={close} /></PageFrame>;
   if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onClose={back} /></PageFrame>;
@@ -132,32 +138,32 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     {originBack}
     <PageHeader title={title} subtitle={operationDescriptions[module]}
       actions={canCreate && definitions.length > 0 && (definitions.length <= 2
-        ? <>{definitions.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>Add {d.label.toLowerCase()}</Button>)}<Button variant="primary" onClick={() => create(definitions[0].kind)}><Plus aria-hidden="true" />Add {definitions[0].label.toLowerCase()}</Button></>
+        ? <>{definitions.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>{addOne(d.label)}</Button>)}<Button variant="primary" onClick={() => create(definitions[0].kind)}><Plus aria-hidden="true" />{addOne(definitions[0].label)}</Button></>
         : <Button variant="primary" aria-expanded={choosing} onClick={() => setChoosing(v => !v)}><Plus aria-hidden="true" />{addLabel}</Button>)} />
     <div className="gk-stack">
-      {choosing && <Panel flush title="What would you like to add?" action={<Button size="sm" variant="ghost" iconOnly aria-label="Close choices" onClick={() => setChoosing(false)}><X aria-hidden="true" /></Button>}>
+      {choosing && <Panel flush title={copy('whatToAdd')} action={<Button size="sm" variant="ghost" iconOnly aria-label={copy('closeChoices')} onClick={() => setChoosing(false)}><X aria-hidden="true" /></Button>}>
         <div className="rec-choices">{definitions.map(d => <button type="button" className="rec-choice" key={d.kind} onClick={() => create(d.kind)}><strong>{d.label}</strong></button>)}</div>
       </Panel>}
-      {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={reload}>Try again</Button></div>}
-      {module !== 'HOME' && !enabled && <div className="gk-notice" role="status">This tool is turned off for the club. Saved history and outstanding responsibilities stay available; turn it on in Workspace settings to add or edit records.</div>}
-      {module === 'STAFF' && <div className="gk-notice" role="status"><span className="cw-notices__text">Appointments and invitations are managed with the staff team.</span><Button size="sm" onClick={() => { const next = new URLSearchParams(); next.set('tab', 'personnel'); setParams(next); }}>Open staff</Button></div>}
+      {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={reload}>{copy('tryAgain')}</Button></div>}
+      {module !== 'HOME' && !enabled && <div className="gk-notice" role="status">{copy('toolOff')}</div>}
+      {module === 'STAFF' && <div className="gk-notice" role="status"><span className="cw-notices__text">{copy('staffNotice')}</span><Button size="sm" onClick={() => { const next = new URLSearchParams(); next.set('tab', 'personnel'); setParams(next); }}>{copy('openStaff')}</Button></div>}
       {module === 'HOME' && boot.modules.some(m => m.id === 'STAFF') && <AppointmentActions club={club} onOpen={() => { const next = new URLSearchParams(params); next.set('tab', 'staff-duties'); next.delete('record'); setParams(next); }} />}
       {module === 'FINANCE' && <FinanceSummary club={club} revision={boot} />}
       {(session || person) && <div className="gk-notice"><span className="cw-notices__text"><strong>{contextName}</strong>{squad ? ` · ${boot.squads.find(s => String(s.id) === squad)?.name ?? `Squad #${squad}`}` : ''}{selectedSession ? ` · ${new Date(selectedSession.starts_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}` : ''}</span>
-        <Button size="sm" onClick={() => { const next = new URLSearchParams(params); next.delete('session'); next.delete('person'); next.delete('page'); setParams(next); }}>Clear</Button></div>}
+        <Button size="sm" onClick={() => { const next = new URLSearchParams(params); next.delete('session'); next.delete('person'); next.delete('page'); setParams(next); }}>{copy('clear')}</Button></div>}
       {isRegister && <><SessionRegister boot={boot} session={Number(session)} squad={selectedSession!.squad_id!} onRecord={open} />
-        <div><Button variant="ghost" aria-expanded={showRecords} onClick={() => setShowRecords(v => !v)}>{showRecords ? 'Hide attendance records' : 'Attendance records and more options'}</Button></div></>}
+        <div><Button variant="ghost" aria-expanded={showRecords} onClick={() => setShowRecords(v => !v)}>{showRecords ? copy('hideAttendance') : copy('moreAttendance')}</Button></div></>}
       {module === 'ATTENDANCE' && !isRegister && boot.peopleBySquad && <SessionRegisters boot={boot} squad={squad} onOpen={openRegister} />}
-      <section className="gk-stack gk-stack--tight" hidden={isRegister && !showRecords} aria-busy={loading} aria-label={`${title} records`}>
+      <section className="gk-stack gk-stack--tight" hidden={isRegister && !showRecords} aria-busy={loading} aria-label={`${title}: ${copy('records')}`}>
         <RecordToolbar boot={boot} module={module} definitions={definitions} view={view} filters={{ search, squad, kind }} count={records.length} loading={loading} page={page}
           onView={chooseView} onChange={filter} onClear={clearFilters} />
-        {loading && !result ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading records">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={44} />)}</div></Panel>
+        {loading && !result ? <Panel><div className="cw-skeleton-rows" role="status" aria-label={copy('loading')}>{[0, 1, 2, 3].map(i => <Skeleton key={i} height={44} />)}</div></Panel>
           : records.length ? <div inert={loading} data-updating={loading || undefined}>
             <RecordTable records={records} boot={boot} home={module === 'HOME'} sort={sort} onSort={changeSort} hrefFor={hrefFor} onOpen={open} footer={pager} />
           </div>
             : !error && <Panel>
-              <EmptyNote title={empty.title} action={canCreate && !filtered && definitions.length ? <Button size="sm" onClick={() => definitions.length <= 2 ? create(definitions[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{definitions.length <= 2 ? `Add ${definitions[0].label.toLowerCase()}` : addLabel}</Button>
-                : view === 'open' && !narrowed ? <Button size="sm" onClick={() => chooseView('all')}>Show all records</Button> : undefined}>{empty.body}</EmptyNote>
+              <EmptyNote title={empty.title} action={canCreate && !filtered && definitions.length ? <Button size="sm" onClick={() => definitions.length <= 2 ? create(definitions[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{definitions.length <= 2 ? addOne(definitions[0].label) : addLabel}</Button>
+                : view === 'open' && !narrowed ? <Button size="sm" onClick={() => chooseView('all')}>{copy('showAll')}</Button> : undefined}>{empty.body}</EmptyNote>
               {pager && <div className="rec-pager">{pager}</div>}
             </Panel>}
       </section>

@@ -1,5 +1,7 @@
 import { BadgeCheck, BookOpen, Bus, CalendarCheck, ClipboardCheck, ClipboardList, HeartPulse, Landmark, MapPin, Package, Settings2, Shield, UserCheck, UserMinus, Users, Goal } from 'lucide-react';
 import type { Bootstrap } from './api';
+import { translate } from '../../locales/useCopy';
+import { clubRecordsEn } from '../../locales/clubRecords';
 
 export const operationTabs = [
   { id: 'actions', module: 'HOME', label: 'Outstanding actions', icon: ClipboardList, group: 'Club' },
@@ -27,15 +29,6 @@ export const operationModule = (tab: string) => operationTabs.find(item => item.
 export const operationTab = (module: string | null) => operationTabs.find(item => item.module === module)?.id ?? 'actions';
 export const staffTabs = new Set<string>(['personnel', 'staff-duties', 'credentials', 'specialists', 'role-requests']);
 export const availableOperationTabs = (boot: Bootstrap) => operationTabs.filter(item => item.module === 'HOME' || item.module === 'SETTINGS' && boot.leadership || boot.modules.some(m => m.id === item.module));
-export const operationDescriptions: Record<string, string> = {
-  HOME: 'Upcoming deadlines, expiring credentials and decisions that need your attention.',
-  STAFF: 'Appoint your staff, assign responsibilities and arrange cover.', CREDENTIALS: 'Keep qualifications, evidence and renewal dates together.',
-  SPECIALISTS: 'Coordinate external specialists, their bookings and engagement dates.', FACILITIES: 'Manage playing venues and supporting facilities, with practical information for visitors.',
-  READINESS: 'Prepare emergency information, competition requirements and match-day checks.', GUARDIANS: 'Manage emergency contacts, collection arrangements and separate permissions.',
-  ATTENDANCE: 'Record who arrived, who is absent and who collected each player.', REGISTRATION: 'Track documents, competition approvals and registration deadlines.',
-  DEVELOPMENT: 'Set individual goals, record observations and plan reviews.', EDUCATION: 'Plan around exams, school commitments and education contacts.',
-  EQUIPMENT: 'Manage club inventory, issues to players and squads, maintenance and returns.', FINANCE: 'Manage budgets, requests, receipts and membership instalments.',
-  TRAVEL: 'Organise trips, passenger lists, responsibilities and departure checks.', DEPARTURES: 'Complete returns, access changes and departure administration.',
-  AVAILABILITY: 'See the restrictions relevant to safe participation.', MEDICAL: 'Coordinate appointments, clinical records and professional clearance within your access.',
-  WELFARE: 'Handle confidential concerns, assigned follow-ups and review dates.',
-};
+const DESCRIBED = ['HOME', 'STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'REGISTRATION', 'DEVELOPMENT', 'EDUCATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'DEPARTURES', 'AVAILABILITY', 'MEDICAL', 'WELFARE'] as const;
+/** What each tool is for, in one line, in the person's language. */
+export const operationDescriptions: Record<string, string> = Object.defineProperties({}, Object.fromEntries(DESCRIBED.map(id => [id, { enumerable: true, get: () => translate('clubRecords', clubRecordsEn, `describe_${id}`) }])));

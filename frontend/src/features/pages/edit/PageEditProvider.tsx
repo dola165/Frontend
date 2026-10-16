@@ -11,8 +11,12 @@ import { pt } from '../copy';
 import { BOX_COLUMN, insertionIndex, type BoxKey, type Column, type PageLayout, type SetupKey } from '../model/kinds';
 import { boxData } from './boxData';
 
-/** An edit that could not be sent: kept in the tab and sent again when the page opens next. */
-type PendingEdit = { kind: 'identity'; patch: IdentityPatch } | { kind: 'box'; key: SavableBox; data: unknown } | { kind: 'layout'; layout: PageLayout };
+/** An edit that could not be sent: kept in the tab and sent again when the page opens next. The id ties it to its retries. */
+type PendingEdit = ({ kind: 'identity'; patch: IdentityPatch } | { kind: 'box'; key: SavableBox; data: unknown } | { kind: 'layout'; layout: PageLayout }) & { id?: string };
+/** A saved edit makes a remembered one stale when it is the same edit (its retry) or covers everything the remembered one changed. */
+const supersedes = (saved: PendingEdit, kept: PendingEdit) => (saved.id != null && saved.id === kept.id)
+  || (saved.kind === 'identity' && kept.kind === 'identity' ? Object.keys(kept.patch).every(field => field in saved.patch)
+    : saved.kind === 'box' && kept.kind === 'box' ? saved.key === kept.key : saved.kind === 'layout' && kept.kind === 'layout');
 const pendingKey = (ref: PageRef) => `page-pending:${ref.type}:${ref.id}`;
 const validPending = (value: unknown): value is PendingEdit[] => Array.isArray(value) && value.every(item => isRecord(item) && typeof item.kind === 'string');
 const EDIT = 'edit', PANEL = 'panel', REARRANGE = 'rearrange';
@@ -88,7 +92,15 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     if (idleTimer.current) window.clearTimeout(idleTimer.current);
     if (next === 'saved') idleTimer.current = window.setTimeout(() => setStatus('idle'), 2500);
   }, []);
-  const keep = useCallback((edit: PendingEdit) => setPending(current => { const next = [...current, edit]; writeSetupRecovery(userId, pendingKey(pageRef), next); return next; }), [pageRef, userId]);
+  const store = useCallback((next: PendingEdit[]) => { if (next.length) writeSetupRecovery(userId, pendingKey(pageRef), next); else clearSetupRecovery(userId, pendingKey(pageRef)); }, [pageRef, userId]);
+  const keep = useCallback((edit: PendingEdit) => setPending(current => { const next = [...current.filter(item => item.id == null || item.id !== edit.id), edit]; store(next); return next; }), [store]);
+  // Once an edit is saved, the remembered edits it makes stale are retired, so recovery never replays an older value over it.
+  const retire = useCallback((saved: PendingEdit) => {
+    const kept = readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? [];
+    const next = kept.filter(item => !supersedes(saved, item));
+    if (next.length !== kept.length) store(next);
+    setPending(current => { const left = current.filter(item => !supersedes(saved, item)); return left.length === current.length ? current : left; });
+  }, [pageRef, store, userId]);
 
   /** Runs one save: optimistic first, then the server's answer; a lost race shows theirs; a failure offers to try again. */
   const runRef = useRef<(op: (current: PageView) => Promise<PageView>, options?: SaveOptions & { undo?: (current: PageView) => Promise<PageView>; remember?: PendingEdit }) => Promise<boolean>>(async () => false);
@@ -101,6 +113,7 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
       const next = await op(before);
       replace(next);
       settle('saved');
+      if (options.remember) retire(options.remember);
       const undo = options.undo;
       if (options.label) toast(options.label, undo && options.undoable !== false ? { action: { label: pt('Undo'), onClick: () => { void runRef.current(undo, { label: pt('Undone') }); } } } : undefined);
       return true;
@@ -117,20 +130,20 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
       toast.error(extractApiErrorMessage(error, pt('Not saved. Check your connection and try again.')), { action: { label: pt('Try again'), onClick: () => { void runRef.current(op, options); } } });
       return false;
     }
-  }, [keep, replace, settle]);
+  }, [keep, replace, retire, settle]);
   useEffect(() => { runRef.current = run; }, [run]);
 
   const saveIdentity = useCallback(async (patch: IdentityPatch, options: SaveOptions = {}) => {
     const before = pageState.current; if (!before) return;
     const previous = Object.fromEntries(Object.keys(patch).map(field => [field, before.identity[field as keyof PageIdentity]])) as IdentityPatch;
-    await run(current => saveIdentityCall(pageRef, current.identity.version, patch), { ...options, undo: current => saveIdentityCall(pageRef, current.identity.version, previous), remember: { kind: 'identity', patch } });
+    await run(current => saveIdentityCall(pageRef, current.identity.version, patch), { ...options, undo: current => saveIdentityCall(pageRef, current.identity.version, previous), remember: { kind: 'identity', patch, id: crypto.randomUUID() } });
   }, [pageRef, run]);
 
   const saveBox = useCallback(async <K extends SavableBox>(boxKey: K, data: unknown, options: SaveOptions = {}) => {
     const before = pageState.current; if (!before) return;
     const previous = boxData(boxKey, before.boxes[boxKey]);
     const wasDone = before.setup.items.find(item => item.key === (boxKey as string))?.done;
-    const ok = await run(current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, data), { ...options, undo: current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, previous), remember: { kind: 'box', key: boxKey, data } });
+    const ok = await run(current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, data), { ...options, undo: current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, previous), remember: { kind: 'box', key: boxKey, data, id: crypto.randomUUID() } });
     const after = pageState.current;
     if (ok && after && !wasDone && after.setup.items.find(item => item.key === (boxKey as string))?.done) recordFunnelEvent('PAGE_BOX_FILLED', { box: boxKey, pageRef: `${pageRef.type}-${pageRef.id}` });
   }, [pageRef, run]);
@@ -140,7 +153,7 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     const previous: PageLayout = { columns: before.layout.columns, hidden: before.layout.hidden };
     await run(current => saveLayoutCall(pageRef, current.layout.version, layout), {
       optimistic: current => ({ ...current, layout: { ...current.layout, ...layout } }), ...options,
-      undo: current => saveLayoutCall(pageRef, current.layout.version, previous), remember: { kind: 'layout', layout },
+      undo: current => saveLayoutCall(pageRef, current.layout.version, previous), remember: { kind: 'layout', layout, id: crypto.randomUUID() },
     });
   }, [pageRef, run]);
 

@@ -19,7 +19,7 @@ function AddProduct({ clubId, onDone, onCancel }: { clubId: number; onDone: () =
     const clearForm = useClearCommerceForm();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
-    return <StoreProductForm key="new" product={null} saving={saving} formError={error}
+    return <StoreProductForm key="new" product={null} saving={saving} formError={error} defaultActive draftHint="Supporters cannot see it. Publish it later from Store in your club workspace."
         onCancel={() => { clearForm(); onCancel(); }}
         onSubmit={async payload => {
             setSaving(true); setError('');

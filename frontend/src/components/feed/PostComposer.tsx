@@ -8,6 +8,7 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { SOCIAL_IMAGE_ACCEPT, socialImageUploadError, validateSocialImage } from '../../utils/socialImageUpload';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession, type AuthSessionId } from '../../utils/authStorage';
+import { useOwnedDraft } from '../../utils/ownedDraft';
 
 const MAX_PHOTOS = 10;
 const MAX_CAPTION = 2000;
@@ -46,7 +47,11 @@ const PostComposerEditor = ({
   sessionId,
 }: PostComposerProps & { sessionId: AuthSessionId }) => {
   const navigate = useNavigate();
-  const [content, setContent] = useState('');
+  // The words survive a detour (Event opens the calendar) and a reload, kept for the signed-in person and the identity
+  // they post as; photos stay in memory only. Nothing is ever turned into an event on its own.
+  const { draft, change: changeDraft, reset: resetDraft } = useOwnedDraft(`post-composer.${clubId ? `club-${clubId}` : organizationId ? `page-${organizationId}` : 'personal'}`, { content: '' });
+  const content = draft.content;
+  const setContent = (value: string) => changeDraft({ content: value });
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const photosRef = useRef<DraftPhoto[]>([]);
   const photoSequence = useRef(0);
@@ -54,7 +59,7 @@ const PostComposerEditor = ({
   const requestController = useRef<AbortController | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(!compact);
+  const [isExpanded, setIsExpanded] = useState(!compact || Boolean(content.trim()));
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [publishedPostId, setPublishedPostId] = useState<number | null>(null);
@@ -189,7 +194,7 @@ const PostComposerEditor = ({
       const postId = published.data?.postId;
       const confirmedPostId = typeof postId === 'number' && Number.isSafeInteger(postId) && postId > 0 ? postId : undefined;
       setPublishedPostId(confirmedPostId ?? null);
-      setContent('');
+      resetDraft();
       resetFile();
       setSubmitError(null);
       onPostCreated(confirmedPostId);

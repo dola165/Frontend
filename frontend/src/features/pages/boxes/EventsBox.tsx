@@ -19,7 +19,8 @@ export function EventsBox({ page, editing }: BoxProps) {
     const local = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
     return `from=${local(start)}&to=${local(end)}`;
   });
-  const schedule = useOverviewSource<{ events: ScheduleEventOccurrence[] }>(`/schedule/clubs/${page.clubId ?? 0}/events?${window}`);
+  // Read again whenever the teams change: their days and times are the training sessions shown here.
+  const schedule = useOverviewSource<{ events: ScheduleEventOccurrence[] }>(`/schedule/clubs/${page.clubId ?? 0}/events?${window}&teams=${page.boxes.squads.version}`);
   const events = [...(schedule.data?.events ?? [])].sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(0, 3);
   // Visitors never see an empty box; the owner sees where the calendar's entries will show.
   if (!editing && !schedule.loading && events.length === 0) return null;

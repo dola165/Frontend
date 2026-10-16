@@ -74,7 +74,7 @@ export function PlayersPanel() {
         ))}</List>}
       </div> : undefined}>
       {squads.length === 0
-        ? <EmptyNote title={t('Add your teams first')} action={<Button size="sm" variant="primary" onClick={() => openPanel('squads')}>{t('Which ages?')}</Button>}>{t('Each team gets its own join link.')}</EmptyNote>
+        ? <EmptyNote title={t('Add your teams first')} action={<Button size="sm" variant="primary" onClick={() => openPanel('squads')}>{t('Which teams?')}</Button>}>{t('Each team gets its own join link.')}</EmptyNote>
         : <div className="gk-boxedit">
           <List label={t('Join links')}>{squads.map(squad => (
             <ListRow key={squad.id} onClick={() => setChosen(squad.id)} current={squad.id === current?.id} lead={<span className="gk-club-icon"><Users aria-hidden="true" /></span>} title={squad.name}

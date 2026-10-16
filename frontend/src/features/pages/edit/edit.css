@@ -93,9 +93,11 @@
 .gk .gk-tap svg { width: 14px; height: 14px; color: var(--gk-accent); }
 
 /* The age-group builder: one row per age, Boys / Girls / Mixed as chips; the squads as small cards. */
-.gk .gk-ages { display: flex; flex-direction: column; gap: 6px; }
-.gk .gk-ages__row { display: grid; grid-template-columns: 56px repeat(3, auto); align-items: center; gap: 6px; }
-.gk .gk-ages__age { font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-year { flex-direction: column; gap: 0; min-width: 58px; min-height: 44px; line-height: 1.1; }
+.gk .gk-year small { font-size: 10px; color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-year[aria-pressed='true'] small { color: inherit; opacity: .8; }
+.gk .gk-squadcard__other { width: auto; min-height: 32px; padding-block: 0; }
+.gk .gk-fee__some { gap: var(--gk-2); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .gk-squadcard { padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-sunken); }
 .gk .gk-split__choices { min-width: 0; }
 

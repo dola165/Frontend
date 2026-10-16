@@ -1,13 +1,10 @@
 .discovery-filters { display:flex; flex-wrap:wrap; gap:.65rem; padding:.85rem 1rem; border-bottom:1px solid color-mix(in srgb, var(--color-border) 8.24%, transparent); }
 .discovery-filters label { display:flex; flex:1 1 9rem; flex-direction:column; gap:.3rem; color:var(--color-muted); font-size:.72rem; font-weight:600; }
 .discovery-filters select,.discovery-filters input { width:100%; min-width:0; border:1px solid color-mix(in srgb, var(--color-border) 14.12%, transparent); border-radius:.5rem; padding:.5rem .6rem; background:var(--color-surface); color:var(--color-text); font:inherit; font-size:.8rem; }
-.discovery-filters :is(select,input):focus-visible,.discovery-actions a:focus-visible { outline:2px solid var(--color-accent); outline-offset:2px; }
+.discovery-filters :is(select,input):focus-visible { outline:2px solid var(--color-accent); outline-offset:2px; }
 .discovery-light .discovery-filters { border-color:var(--color-border); }
 .discovery-light .discovery-filters label { color:var(--color-muted); }
 .discovery-light .discovery-filters :is(select,input) { background:var(--color-elevated); border-color:var(--color-border); color:var(--color-text); }
-.discovery-actions { display:flex; flex-wrap:wrap; gap:.9rem; margin:0 1rem .8rem 3.75rem; font-size:.75rem; }
-.discovery-actions a { color:var(--color-accent); text-decoration:underline; text-underline-offset:3px; }
-.discovery-light .discovery-actions a { color:var(--color-accent); }
 .discovery-note { padding:.65rem 1rem; color:var(--color-secondary); font-size:.75rem; }
 .discovery-light .discovery-note { color:var(--color-muted); }
 .discovery-filters ~ ul mark { background:var(--color-accent); color:var(--color-on-accent); }

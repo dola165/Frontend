@@ -52,6 +52,19 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
   const askIndex = questionIntent ? 0 : currentResults.length;
   const resultOffset = questionIntent ? 1 : 0;
   const optionCount = currentResults.length + (canAsk ? 1 : 0);
+  // A combobox with a listbox of options: focus stays in the field, the arrows move the active option
+  // (aria-activedescendant), and Enter opens it. Filters and notes sit beside the listbox, never inside it.
+  const listboxId = `${filterId}-listbox`;
+  const optionId = (index: number) => `${filterId}-option-${index}`;
+  const searching = query.trim().length >= MIN_QUERY_LENGTH;
+  const expanded = isOpen && searching && optionCount > 0 && !error;
+  const announcement = !isOpen || !searching ? ''
+    : isLoading && !current ? (ka ? 'ვეძებთ…' : 'Searching…')
+    : error ? t('search.loadFailed')
+    : current ? (currentResults.length
+      ? (ka ? `${currentResults.length} შედეგი. ისრებით აირჩიეთ.` : `${currentResults.length} ${currentResults.length === 1 ? 'result' : 'results'}. Use the arrow keys to choose.`)
+      : canAsk ? (ka ? 'შედეგი არ არის. შეგიძლიათ ჰკითხოთ Agent Dola-ს.' : 'No results. You can ask Agent Dola.') : t('search.noResults', { query: debouncedQuery }))
+    : '';
 
   function openDola() {
     if (!canAsk) return;
@@ -139,9 +152,9 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
         }
         break;
       case 'Escape':
-        setIsOpen(false);
-        setSelectedIndex(-1);
-        inputRef.current?.blur();
+        // First Escape closes the list; a second one clears the field. Focus stays where the person is typing.
+        if (isOpen) { e.stopPropagation(); setIsOpen(false); setSelectedIndex(-1); }
+        else if (query) { setQuery(''); setDebouncedQuery(''); setResponse(null); }
         break;
     }
   };
@@ -170,12 +183,14 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
   };
 
   return (
-    <div ref={containerRef} className={className ?? (mobile ? 'relative flex min-w-0 flex-1' : 'relative hidden min-w-0 max-w-xl flex-1 lg:flex')}>
+    <div ref={containerRef} className={className ?? (mobile ? 'relative flex min-w-0 flex-1' : 'relative hidden min-w-0 max-w-xl flex-1 lg:flex')}
+      onBlur={e => { if (!containerRef.current?.contains(e.relatedTarget as Node | null)) { setIsOpen(false); setSelectedIndex(-1); } }}>
       <div className={`global-search-field ${light ? 'global-search-field--light' : ''} relative w-full`}>
         <Search aria-hidden="true" className="global-search-field__icon absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2" />
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setSelectedIndex(-1); setIsOpen(true); }}
           onFocus={() => setIsOpen(true)}
@@ -184,10 +199,14 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
           maxLength={2000}
           className="global-search-field__input w-full py-2.5 pl-11 pr-9 text-sm outline-none"
           aria-label={t('search.ariaLabel')}
-          aria-controls={isOpen ? `${filterId}-results` : undefined}
+          aria-autocomplete="list"
+          aria-expanded={expanded}
+          aria-controls={listboxId}
+          aria-activedescendant={expanded && selectedIndex >= 0 ? optionId(selectedIndex) : undefined}
           autoComplete="off"
           spellCheck={false}
         />
+        <p role="status" className="sr-only">{announcement}</p>
         {/* Loading spinner or clear button */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
           {isLoading ? (
@@ -225,9 +244,8 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
             {kind !== 'ALL' && <label htmlFor={`${filterId}-place`}>{ka ? 'ქალაქი ან მისამართი' : 'City or address'}<input id={`${filterId}-place`} maxLength={100} value={place} onChange={e => setPlace(e.target.value)} placeholder={ka ? 'ნებისმიერი ადგილი' : 'Any location'} /></label>}
             {kind === 'ORGANIZATION' && <label htmlFor={`${filterId}-activity`}>{ka ? 'საქმიანობა' : 'Activity'}<select id={`${filterId}-activity`} value={activity} onChange={e => { setActivity(e.target.value as SearchActivity); setSelectedIndex(-1); }}><option value="ALL">{ka ? 'ყველა' : 'All activities'}</option><option value="VENUE">{ka ? 'გამოქვეყნებული სივრცეებით' : 'With published venues'}</option><option value="TOURNAMENT">{ka ? 'ტურნირის ორგანიზატორები' : 'Tournament organizers'}</option></select></label>}
           </div>}
-          {canAsk && questionIntent && renderDolaOption()}
-          {tooLong && <p role="status" className="discovery-note">{ka ? 'სახელის ძებნისთვის გამოიყენეთ მაქსიმუმ 200 სიმბოლო.' : 'Use up to 200 characters to search names. Longer questions can be sent to Dola.'}</p>}
-          {current?.partial && <p role="status" className="discovery-note">{ka ? 'ზოგი შედეგი მიუწვდომელია.' : 'Some search results are unavailable.'} <button type="button" onClick={() => setRetry(n => n + 1)}>{ka ? 'ხელახლა ცდა' : 'Retry'}</button></p>}
+          {tooLong && <p className="discovery-note">{ka ? 'სახელის ძებნისთვის გამოიყენეთ მაქსიმუმ 200 სიმბოლო.' : 'Use up to 200 characters to search names. Longer questions can be sent to Dola.'}</p>}
+          {current?.partial && <p className="discovery-note">{ka ? 'ზოგი შედეგი მიუწვდომელია.' : 'Some search results are unavailable.'} <button type="button" onClick={() => setRetry(n => n + 1)}>{ka ? 'ხელახლა ცდა' : 'Retry'}</button></p>}
           {error ? (
             <div className="px-4 py-6 text-center text-sm text-[var(--color-secondary)]">
               {t('search.loadFailed')} <button type="button" onClick={() => setRetry(n => n + 1)}>{ka ? 'ხელახლა ცდა' : 'Retry'}</button>
@@ -237,77 +255,77 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
               {t('search.noResults', { query: debouncedQuery })}
               {user && <p className="mt-2"><CreateLink from="search" variant="text" onClick={() => setIsOpen(false)}>{pt('Can’t find it? Create it')}</CreateLink></p>}
             </div>
-          ) : (
-            <ul className="py-2">
-              {currentResults.map((r, idx) => (
-                <li key={`${r.type}-${'kind' in r ? r.kind : ''}-${r.id}`}>
-                  <Link
-                    to={resultLink(r)}
-                    data-search-selected={idx + resultOffset === selectedIndex}
-                    aria-label={`${resultName(r)} · ${label(r)}${'location' in r && r.location ? ` · ${r.location}` : ''}`}
-                    onClick={() => {
-                      setQuery('');
-                      setIsOpen(false);
-                      setResponse(null);
-                    }}
-                    className={`flex items-start gap-3 px-4 py-2.5 transition-colors ${
-                      idx + resultOffset === selectedIndex
-                        ? light ? 'bg-[color:var(--color-inset)]' : 'bg-[var(--color-surface)]'
-                        : light ? 'hover:bg-[color:var(--color-elevated)]' : 'hover:bg-[var(--color-surface)]'
-                    }`}
-                  >
-                    <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${light ? 'bg-[color:var(--color-inset)]' : 'bg-[var(--color-surface)]'}`}>
-                      {r.type === 'user' && r.avatarUrl ? (
-                        <MediaImage src={r.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
-                      ) : (
-                        getResultIcon(r)
-                      )}
+          ) : null}
+          {/* Options only: each opens one place. Pressing one keeps focus in the field. */}
+          {expanded && <ul id={listboxId} role="listbox" aria-label={ka ? 'ძიების შედეგები' : 'Search results'} className="py-2" onMouseDown={e => e.preventDefault()}>
+            {canAsk && questionIntent && renderDolaOption()}
+            {currentResults.map((r, idx) => (
+              <li key={`${r.type}-${'kind' in r ? r.kind : ''}-${r.id}`} role="presentation">
+                <Link
+                  to={resultLink(r)}
+                  id={optionId(idx + resultOffset)}
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={idx + resultOffset === selectedIndex}
+                  data-search-selected={idx + resultOffset === selectedIndex}
+                  aria-label={`${resultName(r)} · ${label(r)}${'location' in r && r.location ? ` · ${r.location}` : ''}`}
+                  onMouseMove={() => { if (selectedIndex !== idx + resultOffset) setSelectedIndex(idx + resultOffset); }}
+                  onClick={() => {
+                    setQuery('');
+                    setIsOpen(false);
+                    setResponse(null);
+                  }}
+                  className={`flex items-start gap-3 px-4 py-2.5 transition-colors ${
+                    idx + resultOffset === selectedIndex
+                      ? light ? 'bg-[color:var(--color-inset)]' : 'bg-[var(--color-surface)]'
+                      : ''
+                  }`}
+                >
+                  <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${light ? 'bg-[color:var(--color-inset)]' : 'bg-[var(--color-surface)]'}`}>
+                    {r.type === 'user' && r.avatarUrl ? (
+                      <MediaImage src={r.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      getResultIcon(r)
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`truncate text-sm font-semibold ${light ? 'text-[color:var(--color-text)]' : 'text-[var(--color-text)]'}`}>
+                        <HighlightedText text={r.type === 'user' ? (r.fullName || r.username) : r.name} query={debouncedQuery} />
+                      </span>
+                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-secondary)] ${light ? 'bg-[color:var(--color-inset)]' : 'bg-[var(--color-surface)]'}`}>
+                        {label(r)}
+                      </span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`truncate text-sm font-semibold ${light ? 'text-[color:var(--color-text)]' : 'text-[var(--color-text)]'}`}>
-                          <HighlightedText text={r.type === 'user' ? (r.fullName || r.username) : r.name} query={debouncedQuery} />
-                        </span>
-                        <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-secondary)] ${light ? 'bg-[color:var(--color-inset)]' : 'bg-[var(--color-surface)]'}`}>
-                          {label(r)}
-                        </span>
-                      </div>
-                      {r.type === 'user' && r.position && (
-                        <p className="mt-0.5 truncate text-xs text-[var(--color-secondary)]">{r.position}</p>
-                      )}
-                      {r.type === 'user' && !r.position && r.username && (
-                        <p className="mt-0.5 truncate text-xs text-[var(--color-secondary)]">@{r.username}</p>
-                      )}
-                      {r.type === 'club' && (
-                        <p className="mt-0.5 text-xs text-[var(--color-secondary)]">
-                          {[r.city, r.memberCount > 0 ? t('search.members', { count: r.memberCount }) : null].filter(Boolean).join(' · ') || t('search.club')}
-                        </p>
-                      )}
-                      {(r.type === 'organization' || r.type === 'venue') && <>
-                        <p className="mt-0.5 text-xs text-[var(--color-secondary)]">{r.location || (ka ? 'ადგილმდებარეობა არ არის მითითებული' : 'Location not listed')}</p>
-                        <p className="mt-0.5 text-xs text-[var(--color-secondary)]">{r.type === 'organization' ? `${typeLabel(r.profileKind)}${r.venueCount ? ` · ${r.venueCount} ${ka ? 'სივრცე' : r.venueCount === 1 ? 'venue' : 'venues'}` : ''}` : [r.fromPrice != null ? `${ka ? 'დან' : 'From'} ${r.fromPrice} ${r.currency ?? ''}/${ka ? 'სთ' : 'hour'}` : null, r.bookingMode === 'INSTANT' ? ka ? 'მყისიერი დაჯავშნა' : 'Instant booking' : ka ? 'მფლობელის დასტურით' : 'Owner approval'].filter(Boolean).join(' · ')}</p>
-                      </>}
-                      {r.type === 'tournament' && (
-                        <p className="mt-0.5 line-clamp-1 text-xs text-[var(--color-secondary)]">
-                          <HighlightedText text={r.description ?? ''} query={debouncedQuery} />
-                        </p>
-                      )}
-                      {r.type === 'event' && <p className="mt-0.5 text-xs text-[var(--color-secondary)]">{r.context} · {r.activity.toLowerCase()}{r.startsAt ? ` · ${new Date(r.startsAt).toLocaleDateString()}` : ''}</p>}
-                    </div>
-                  </Link>
-                  {(r.type === 'organization' || r.type === 'venue') && <div className="discovery-actions">
-                    {r.type === 'organization' ? <>
-                      <Link to={`${resultLink(r)}?tab=contact`} onClick={() => { setQuery(''); setIsOpen(false); }}>{ka ? 'კონტაქტი' : 'Contact'}</Link>
-                      {r.venueCount > 0 && <Link to={`${resultLink(r)}?tab=venues`} onClick={() => { setQuery(''); setIsOpen(false); }}>{ka ? 'სივრცეების ნახვა' : 'View venues'}</Link>}
-                    </> : <Link to={`${resultLink(r)}?book=1`} onClick={() => { setQuery(''); setIsOpen(false); }}>{ka ? 'ხელმისაწვდომობა და დაჯავშნა' : 'Availability & booking'}</Link>}
-                  </div>}
-                </li>
-              ))}
-            </ul>
-          )}
+                    {r.type === 'user' && r.position && (
+                      <p className="mt-0.5 truncate text-xs text-[var(--color-secondary)]">{r.position}</p>
+                    )}
+                    {r.type === 'user' && !r.position && r.username && (
+                      <p className="mt-0.5 truncate text-xs text-[var(--color-secondary)]">@{r.username}</p>
+                    )}
+                    {r.type === 'club' && (
+                      <p className="mt-0.5 text-xs text-[var(--color-secondary)]">
+                        {[r.city, r.memberCount > 0 ? t('search.members', { count: r.memberCount }) : null].filter(Boolean).join(' · ') || t('search.club')}
+                      </p>
+                    )}
+                    {(r.type === 'organization' || r.type === 'venue') && <>
+                      <p className="mt-0.5 text-xs text-[var(--color-secondary)]">{r.location || (ka ? 'ადგილმდებარეობა არ არის მითითებული' : 'Location not listed')}</p>
+                      <p className="mt-0.5 text-xs text-[var(--color-secondary)]">{r.type === 'organization' ? `${typeLabel(r.profileKind)}${r.venueCount ? ` · ${r.venueCount} ${ka ? 'სივრცე' : r.venueCount === 1 ? 'venue' : 'venues'}` : ''}` : [r.fromPrice != null ? `${ka ? 'დან' : 'From'} ${r.fromPrice} ${r.currency ?? ''}/${ka ? 'სთ' : 'hour'}` : null, r.bookingMode === 'INSTANT' ? ka ? 'მყისიერი დაჯავშნა' : 'Instant booking' : ka ? 'მფლობელის დასტურით' : 'Owner approval'].filter(Boolean).join(' · ')}</p>
+                    </>}
+                    {r.type === 'tournament' && (
+                      <p className="mt-0.5 line-clamp-1 text-xs text-[var(--color-secondary)]">
+                        <HighlightedText text={r.description ?? ''} query={debouncedQuery} />
+                      </p>
+                    )}
+                    {r.type === 'event' && <p className="mt-0.5 text-xs text-[var(--color-secondary)]">{r.context} · {r.activity.toLowerCase()}{r.startsAt ? ` · ${new Date(r.startsAt).toLocaleDateString()}` : ''}</p>}
+                  </div>
+                </Link>
+              </li>
+            ))}
+            {canAsk && !questionIntent && renderDolaOption()}
+          </ul>}
           {current?.more && <p className="discovery-note">{ka ? 'მეტი შედეგისთვის დააზუსტეთ სახელი ან ადგილი.' : 'More matches are available. Refine the name or location.'}</p>}
           {(kind === 'ALL' || kind === 'EVENT') && <p className="discovery-note"><Link to={`/events?${new URLSearchParams({ q: query.trim(), ...(kind === 'EVENT' && place.trim() ? { location: place.trim() } : {}) })}`} onClick={() => setIsOpen(false)}>{ka ? 'ყველა ღონისძიება და თარიღის ფილტრები' : 'All event results & date filters'}</Link></p>}
-          {canAsk && !questionIntent && renderDolaOption()}
           </>}
         </div>
       )}
@@ -315,10 +333,11 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
   );
 
   function renderDolaOption() {
-    return <button type="button" onClick={openDola} data-search-selected={selectedIndex === askIndex}
-      className={`flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors ${light ? 'border-[color:var(--color-border)] text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent-soft)]' : 'border-[color:var(--color-border)]/5 text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)]/10'} ${selectedIndex === askIndex ? light ? 'bg-[color:var(--color-accent-soft)]' : 'bg-[color:var(--color-accent)]/10' : ''}`}>
-      <Sparkles className="h-5 w-5 shrink-0" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{ka ? 'ჰკითხეთ Agent Dola-ს' : 'Ask Agent Dola'}</span><span className="block truncate text-xs opacity-75">{query.trim()}</span></span>
-      {questionIntent && <span className="text-xs opacity-60">↵</span>}
-    </button>;
+    return <li role="presentation"><button type="button" role="option" id={optionId(askIndex)} tabIndex={-1} aria-selected={selectedIndex === askIndex}
+      onClick={openDola} onMouseMove={() => { if (selectedIndex !== askIndex) setSelectedIndex(askIndex); }} data-search-selected={selectedIndex === askIndex}
+      className={`flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors ${light ? 'border-[color:var(--color-border)] text-[color:var(--color-accent)]' : 'border-[color:var(--color-border)]/5 text-[color:var(--color-accent)]'} ${selectedIndex === askIndex ? light ? 'bg-[color:var(--color-accent-soft)]' : 'bg-[color:var(--color-accent)]/10' : ''}`}>
+      <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{ka ? 'ჰკითხეთ Agent Dola-ს' : 'Ask Agent Dola'}</span><span className="block truncate text-xs opacity-75">{query.trim()}</span></span>
+      {questionIntent && <span aria-hidden="true" className="text-xs opacity-60">↵</span>}
+    </button></li>;
   }
 };

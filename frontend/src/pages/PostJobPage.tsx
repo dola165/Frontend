@@ -20,9 +20,13 @@ interface Draft { posterKind: 'CLUB' | 'PERSON'; direction: JobDirection; catego
 const DRAFT_KEY = 'gk.job.draft';
 const empty: Draft = { posterKind: 'PERSON', direction: 'HIRING', category: '', terms: 'PAID', hours: '', title: '', description: '', pay: '', city: '', licence: '', applyMethod: '', applyTarget: '' };
 const readDraft = (): Draft => { try { return { ...empty, ...JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? '{}') }; } catch { return empty; } };
-const methods = (kind: 'CLUB' | 'PERSON', direction: JobDirection): Array<{ value: JobApplyMethod; label: string; line: string }> => [
-    ...(kind === 'CLUB' ? [{ value: 'IN_APP' as const, label: 'Apply in the app', line: 'Applicants land in your club workspace' }] : []),
-    { value: 'MESSAGE', label: direction === 'OFFERING' ? 'Message me' : 'Message me in the app', line: 'A conversation on GrassKickZ' },
+/**
+ * The ways to answer that work for this poster and line of work: the in-app application exists for coaching roles
+ * only (`JobApplication`), and a club has no inbox of its own, so "message" means its page's contact details.
+ */
+const methods = (kind: 'CLUB' | 'PERSON', direction: JobDirection, category: string): Array<{ value: JobApplyMethod; label: string; line: string }> => [
+    ...(kind === 'CLUB' && category === 'COACHING' ? [{ value: 'IN_APP' as const, label: 'Apply in the app', line: 'Applicants land in your club workspace' }] : []),
+    kind === 'CLUB' ? { value: 'MESSAGE', label: 'The club’s contact details', line: 'The phone and email on your club page' } : { value: 'MESSAGE', label: direction === 'OFFERING' ? 'Message me' : 'Message me in the app', line: 'A conversation on GrassKickZ' },
     { value: 'EMAIL', label: 'Email', line: 'We show the address' },
     { value: 'LINK', label: 'A link', line: 'Your own form or site' },
 ];
@@ -51,14 +55,15 @@ export const PostJobPage = () => {
     const city = draft.city || (posterKind === 'CLUB' ? club?.clubName && area.city : area.city) || area.city;
     const stepOneDone = !!draft.category;
     const stepTwoDone = draft.title.trim().length >= 4 && draft.description.trim().length >= 10;
-    const applyMethod: JobApplyMethod | '' = draft.applyMethod || (posterKind === 'CLUB' ? 'IN_APP' : 'MESSAGE');
+    const offered = methods(posterKind, draft.direction, draft.category);
+    const applyMethod: JobApplyMethod = offered.find(method => method.value === draft.applyMethod)?.value ?? offered[0].value;
     const needsTarget = applyMethod === 'EMAIL' || applyMethod === 'LINK';
     const targetOk = !needsTarget || (applyMethod === 'EMAIL' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.applyTarget.trim()) : /^https?:\/\/\S+$/.test(draft.applyTarget.trim()));
     const publish = async () => {
         if (saving || !applyMethod) return;
         setSaving(true); setError('');
         try {
-            const job = await postJob({ posterKind, clubId: posterKind === 'CLUB' ? club?.clubId : null, direction: draft.direction, title: draft.title.trim(), description: draft.description.trim(), category: draft.category as never, engagementType: draft.terms as never, hours: draft.hours || null, pay: draft.pay.trim(), city, licence: draft.licence.trim() || undefined, applyMethod, applyTarget: needsTarget ? draft.applyTarget.trim() : undefined });
+            const job = await postJob({ posterKind, clubId: posterKind === 'CLUB' ? club?.clubId : null, direction: draft.direction, title: draft.title.trim(), description: draft.description.trim(), category: draft.category as never, engagementType: draft.terms as never, hours: draft.hours || null, pay: draft.pay.trim(), city, licence: draft.licence.trim() || undefined, applyMethod, applyTarget: needsTarget ? draft.applyTarget.trim() : undefined, requiredRole: applyMethod === 'IN_APP' ? 'COACH' : null });
             try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* nothing to clear */ }
             toast.success(offering ? 'You are listed' : 'Your job is live', { description: job.title });
             navigate(`/jobs/${job.id}`, { replace: true });
@@ -104,9 +109,9 @@ export const PostJobPage = () => {
         </>
         : <>
             {steps}
-            <div><h1>How do people reach you?</h1><p className="gk-fund-start__lead">{posterKind === 'CLUB' ? 'Applications in the app land in your club workspace.' : 'A message in the app keeps your details private.'}</p></div>
+            <div><h1>How do people reach you?</h1><p className="gk-fund-start__lead">{posterKind === 'CLUB' ? applyMethod === 'IN_APP' ? 'Applications in the app land in your club workspace.' : 'Where people reach your club about it.' : 'A message in the app keeps your details private.'}</p></div>
             <div className="gk-fund-start__tiles" role="group" aria-label="How to apply" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                {methods(posterKind, draft.direction).map(method => <button key={method.value} type="button" className="gk-fund-start__tile" aria-pressed={applyMethod === method.value} onClick={() => change({ applyMethod: method.value })}><strong>{method.label}</strong><small>{method.line}</small></button>)}
+                {offered.map(method => <button key={method.value} type="button" className="gk-fund-start__tile" aria-pressed={applyMethod === method.value} onClick={() => change({ applyMethod: method.value })}><strong>{method.label}</strong><small>{method.line}</small></button>)}
             </div>
             {needsTarget && <Field label={applyMethod === 'EMAIL' ? 'Email address' : 'Link'} htmlFor="job-target" hint={draft.applyTarget && !targetOk ? (applyMethod === 'EMAIL' ? 'That is not an email address.' : 'The link must start with https://') : undefined}><input id="job-target" className="gk-input" type={applyMethod === 'EMAIL' ? 'email' : 'url'} placeholder={applyMethod === 'EMAIL' ? 'jobs@yourclub.ge' : 'https://…'} value={draft.applyTarget} onChange={event => change({ applyTarget: event.target.value })} /></Field>}
             <div className="gk-fund-start__club"><Briefcase aria-hidden="true" style={{ color: 'var(--gk-accent)' }} /><div><strong>{draft.title.trim()}</strong><small>{[CATEGORIES.find(c => c.value === draft.category)?.label, draft.pay.trim() || TERMS.find(t => t.value === draft.terms)?.label, city, posterKind === 'CLUB' ? `as ${club?.clubName}` : 'as yourself'].filter(Boolean).join(' · ')}</small></div></div>

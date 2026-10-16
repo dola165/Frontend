@@ -1,5 +1,5 @@
 import { useMemo, type CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, MapPin, MessagesSquare } from 'lucide-react';
 import { Skeleton } from '../../../design/primitives';
 import { FaceStack } from '../../../design/visuals';
@@ -19,12 +19,12 @@ import { useNow } from '../../clubWorkspace/useNow';
  * The squad page's first tab: the coaches' updates as the main thing; beside them the next session (the child's
  * reply for a parent, who is coming for a coach) and, for the coaches, the parents to talk to one by one.
  */
-export function SquadUpdatesTab({ space, child, crest, onChanged }: { space: api.SquadOverview; child?: JoiningChild; crest: string | null; onChanged: () => void }) {
+export function SquadUpdatesTab({ space, child, crest, tabKey, onChanged }: { space: api.SquadOverview; child?: JoiningChild; crest: string | null; tabKey: string; onChanged: () => void }) {
     const copy = useJourneyCopy();
     return <div className="sp-updates">
         <aside className="sp-updates__side">
             {child && <NextUp squads={[{ ...space, can_manage: false }]} playerId={child.playerId} childName={child.identity.fullName.split(' ')[0]} crest={crest} />}
-            {space.can_manage && <CoachNext space={space} />}
+            {space.can_manage && <CoachNext space={space} tabKey={tabKey} />}
             {space.can_manage && space.threads.length > 0 && <section className="sp-box">
                 <h2 className="sp-box__title"><MessagesSquare aria-hidden="true" />{copy('Parents & guardians', 'მშობლები და მეურვეები')}</h2>
                 <ul className="sp-threads">{space.threads.slice(0, 8).map(thread => <li key={thread.user_id}><Link to={squadMessageUrl(space.id, true, thread.user_id)}>
@@ -37,9 +37,16 @@ export function SquadUpdatesTab({ space, child, crest, onChanged }: { space: api
     </div>;
 }
 
+/** The schedule tab opened on one session, keeping the rest of the address (My squads' `squad`). */
+const schedulePath = (params: URLSearchParams, tabKey: string, sessionId: number, startsAt: string) => {
+    const next = new URLSearchParams(params); next.set(tabKey, 'schedule'); next.set('session', String(sessionId)); next.set('at', new Date(startsAt).toISOString());
+    return next.toString();
+};
+
 /** The coach's next session: when, where and the squad's faces ringed by their answer. */
-function CoachNext({ space }: { space: api.SquadOverview }) {
+function CoachNext({ space, tabKey }: { space: api.SquadOverview; tabKey: string }) {
     const copy = useJourneyCopy();
+    const [params] = useSearchParams();
     const range = useMemo(() => { const from = new Date(); from.setHours(0, 0, 0, 0); return { from: from.toISOString(), to: new Date(from.getTime() + 15 * 86400000).toISOString() }; }, []);
     const { events, loading } = useSquadSchedule([space], range.from, range.to, 0, undefined, false);
     const now = useNow();
@@ -49,7 +56,7 @@ function CoachNext({ space }: { space: api.SquadOverview }) {
     const value = availability(next.session);
     const out = new Set(value.cantCome.map(p => p.id)), ask = new Set(value.toConfirm.map(p => p.id));
     const Icon = activityIcons[next.eventType] ?? activityIcons.TRAINING;
-    return <Link className="sp-box sp-next" style={{ '--sp-tone': activityColors[next.eventType] ?? activityColors.TRAINING } as CSSProperties} to={`?tab=schedule&session=${next.session.id}&at=${encodeURIComponent(new Date(next.startsAt).toISOString())}`}>
+    return <Link className="sp-box sp-next" style={{ '--sp-tone': activityColors[next.eventType] ?? activityColors.TRAINING } as CSSProperties} to={`?${schedulePath(params, tabKey, next.session.id, next.startsAt)}`}>
         <span className="sp-next__icon" aria-hidden="true"><Icon /></span>
         <span className="sp-next__text"><small>{formatDate(next.startsAt, { weekday: 'long', day: 'numeric', month: 'short' })} · {formatTime(next.startsAt)}</small><strong>{next.title}</strong>
             {next.locationText && <span className="sp-next__meta"><MapPin aria-hidden="true" />{next.locationText}</span>}</span>

@@ -46,5 +46,9 @@ get('/organizations/invitations/mine', forNewcomer(() => []));
 get('/organizations/team-invitations/mine', forNewcomer(() => []));
 get('/recruitment/applications', forNewcomer(() => []));
 get('/tryouts/my-applications', forNewcomer(() => []));
+// A new account has no tournaments of its own and no invitations (not Luka's).
+get('/tournaments/invitations/mine', forNewcomer((_, { query }) => ({ ...emptyPage(query), totalPages: 1 })));
+get('/competitions/mine', forNewcomer((_, { query }) => ({ ...emptyPage(query), totalPages: 1 })));
+get('/match-history/import/options', forNewcomer(() => ({ clubs: [] })));
 get('/clubs/followed', forNewcomer(account => [...account.clubFollows].map(id => ({ ...C.directoryItem(id), isFollowedByMe: true }))));
 get('/clubs/:id/workspace-entry', forNewcomer((_, { params }) => (W.clubById(params.id) ? { canOpenWorkspace: false, canEditFacilities: false, canManageStaff: false, invitationOnly: false } : undefined)));

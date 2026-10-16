@@ -55,6 +55,8 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
         area: true,
         version: String(child?.id ?? ''),
         forWhom: childLabel(child),
+        // The list is narrowed to the chosen child's age: its heading says so ("Clubs for Nino (8)").
+        heading: child ? () => wt('Clubs for {name}', { name: childLabel(child)! }) : undefined,
         filters: [
             { kind: 'choice', key: 'type', label: 'Club type', primary: true, multi: true, options: [
                 { value: 'ACADEMY', label: 'Academies' }, { value: 'SCHOOL', label: 'Football schools' }, { value: 'COMMUNITY', label: 'Community clubs' }, { value: 'PRO', label: 'Pro clubs' },

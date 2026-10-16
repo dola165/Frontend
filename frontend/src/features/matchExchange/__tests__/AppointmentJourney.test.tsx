@@ -8,6 +8,7 @@ import { MatchDetailPage } from "../../../pages/MatchDetailPage";
 import { RefereePage } from "../../../pages/RefereePage";
 import { post, type Appointment, type ChangeImpact, type Match } from "../api";
 import { useLoad } from "../hooks";
+import "../../../i18n";
 vi.mock("../../../context/AuthContext", () => ({ useAuth: () => ({sessionId: "referee-test"}) }));
 vi.mock("../useRefereeHistory", () => ({useRefereeHistory: (path: string) => useLoad(path)}));
 

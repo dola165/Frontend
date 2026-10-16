@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { useMediaQuery } from '../../world/useMediaQuery';
 import { usePagesCopy } from '../copy';
 import type { SetupKey } from '../model/kinds';
-import { usePageEdit } from '../edit/context';
+import { SETUP_PANEL, usePageEdit } from '../edit/context';
 import { usePhoneSteps } from '../edit/usePhoneSteps';
 import { stepWords } from '../edit/words';
 import { askPet, type PetAnswer } from './api';
@@ -92,7 +92,7 @@ function panelSpot(rect: DOMRect): Spot {
 export function DolaPet() {
   const t = usePagesCopy();
   const { pathname } = useLocation();
-  const { page, panel } = usePageEdit();
+  const { page, panel, openStep } = usePageEdit();
   const phone = usePhoneSteps();
   const still = useMediaQuery('(prefers-reduced-motion: reduce)');
   const skipKey = `gk-pet-skipped:${pathname}`;
@@ -216,6 +216,8 @@ export function DolaPet() {
   const line = inPanel ? hint?.line ?? t(PANEL_LINES[inPanel]) : fresh?.answer ?? t(LINES[step]);
   // Short answers are typed right here; the phone's step cards have their own boxes for them.
   const quick = !inPanel && !cardStep && isQuick(step) ? step : null;
+  // Steps done in a pop-up (crest, grounds, teams, join links, staff) offer Open; on the phone's cards the card's own button does.
+  const opens = !inPanel && !cardStep && isStep && Boolean(PANEL_LINES[SETUP_PANEL[step as SetupKey]]);
   // Words typed to her inside a pop-up go in through the pop-up's own controls; she says what she did.
   const listens = inPanel && panelListens(inPanel) && !hint?.quiet ? inPanel : null;
   const saying = said ?? hint?.said ?? null;
@@ -258,7 +260,10 @@ export function DolaPet() {
                   </form>}
                   {!inPanel && <span className="gk-pet__actions">
                     {isStep && <button type="button" className="gk-pet__action" onClick={skip}>{t('Skip')}</button>}
-                    <button type="button" className="gk-pet__action gk-pet__action--quiet" onClick={() => setAsking(true)}>{t('Ask me')}</button>
+                    {/* A step done in a pop-up: Skip or Open it (she is still asked with a tap on her); otherwise Ask me. */}
+                    {opens
+                      ? <button type="button" className="gk-pet__action gk-pet__action--main" onClick={() => openStep(step as SetupKey)}>{t('Open')}</button>
+                      : <button type="button" className="gk-pet__action gk-pet__action--quiet" onClick={() => setAsking(true)}>{t('Ask me')}</button>}
                   </span>}
                 </>}
           </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CalendarDays, Camera, ChevronRight, MessageCircle, Megaphone, Plus, Trophy, Users, X } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
@@ -21,6 +21,7 @@ import { coachEvents, type CoachEvent } from './coachEvents';
 import { coachNeeds, type CoachNeed } from './coachNeeds';
 import { kindNames, opponentOf, sessionKind, upcoming } from './useCoachData';
 import { ActivityBadge } from './CoachVisuals';
+import { ActivitySummary } from './ActivitySummary';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -42,7 +43,12 @@ export function MySquads({ data }: { data: CoachData }) {
     const copy = useCopy('coachHub', coachHubEn);
     const [cancelling, setCancelling] = useState<Cancelling>(null);
     const [sharing, setSharing] = useState(false);
-    const needs = (data.squads ? coachNeeds({ club: data.clubId, squads: data.squads, names: data.names, now: data.now, person: data.person,
+    // An existing session, match or club event opens as a short summary first (`activity` in the address); Edit is one press.
+    const [params, setParams] = useSearchParams();
+    const activityKey = params.get('activity');
+    const activity = activityKey && data.squads ? coachEvents(data).find(event => event.key === activityKey) : undefined;
+    const setActivity = (key: string | null) => { const next = new URLSearchParams(params); if (key) next.set('activity', key); else next.delete('activity'); setParams(next, { replace: !key }); };
+    const needs =(data.squads ? coachNeeds({ club: data.clubId, squads: data.squads, names: data.names, now: data.now, person: data.person,
         records: data.records.rows.filter(record => record.squad_id !== null && data.shown.includes(record.squad_id)), mine: data.records.mine }) : []).filter(need => need.kind !== 'reply');
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('mySquads')} subtitle={formatDate(new Date(data.now), { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -53,7 +59,11 @@ export function MySquads({ data }: { data: CoachData }) {
             <li><Link className="ch-card ch-card--ask" to={data.link('coaches')}><Plus aria-hidden="true" />{copy('askSquad')}</Link></li>
         </ul>
         <ResultsToAdd data={data} />
-        <Soon data={data} onCancel={(squad, session) => setCancelling({ squad, session })} />
+        <Soon data={data} onOpen={setActivity} onCancel={(squad, session) => setCancelling({ squad, session })} />
+        {activity && <ActivitySummary event={activity} data={data} onClose={() => setActivity(null)}
+            editTo={activity.session ? sessionLink(activity.squadId, activity.session) : undefined}
+            onEdit={activity.event ? () => data.openEvent(activity.event!) : undefined}
+            onCancel={activity.session ? () => { setActivity(null); setCancelling({ squad: activity.squadId, session: activity.session! }); } : undefined} />}
         {cancelling && <CancelSessionDialog squad={cancelling.squad} squadName={data.names.get(cancelling.squad) ?? ''} session={cancelling.session} now={data.now}
             onClose={() => setCancelling(null)} onDone={() => { setCancelling(null); data.refresh(); }} />}
         {sharing && <Dialog open size="md" title="Share a photo" description="Posted to the club's page and feed, as the club." onClose={() => setSharing(false)}>
@@ -101,7 +111,7 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
         <div className="ch-card__lines">
             {!data.squads ? <Skeleton height={24} />
                 : next && kind ? <span className="ch-card__row">
-                    <Link className="ch-card__line" to={sessionLink(squad.id, next)}>
+                    <Link className="ch-card__line" to={data.link('overview', { activity: `s-${next.id}` })}>
                         <ActivityBadge kind={kind} size={26} />
                         <span className="ch-card__line-text"><strong>{dayLabel(next.starts_at, data.now)} {timeLabel(next.starts_at)}</strong> · {opponent ? `v ${opponent.name}` : next.title}{next.location ? ` · ${next.location}` : ''}</span>
                     </Link>
@@ -124,13 +134,12 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
 }
 
 /** The next seven days of my squads by day, same-time entries merged; only a cancellation gets a status word. */
-function Soon({ data, onCancel }: { data: CoachData; onCancel: (squad: number, session: SquadSession) => void }) {
+function Soon({ data, onOpen, onCancel }: { data: CoachData; onOpen: (key: string) => void; onCancel: (squad: number, session: SquadSession) => void }) {
     const copy = useCopy('coachHub', coachHubEn);
-    const navigate = useNavigate();
     const all = coachEvents(data), end = addDays(new Date(data.now), 7);
     const events = all.filter(event => event.end.getTime() >= data.now && event.start < end);
     const later = all.find(event => event.start >= end);
-    const open = (event: CoachEvent) => event.session ? navigate(sessionLink(event.squadId, event.session)) : event.event && data.openEvent(event.event);
+    const open = (event: CoachEvent) => onOpen(event.key);
     const items: DayAgendaItem[] = events.map(event => ({
         key: event.key, startsAt: event.start.toISOString(), title: event.opponent ? `${event.squad} v ${event.opponent.name}` : event.title, kind: event.kind, kindLabel: kindNames[event.kind],
         squad: event.squad, meta: [event.opponent ? null : event.squad, event.location].filter(Boolean).join(' · '),

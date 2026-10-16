@@ -4,7 +4,7 @@ import { formatDate } from '../../utils/formatting';
 import { translate } from '../../locales/useCopy';
 import { fixtureCopyEn } from '../../locales/workspaceDesign';
 
-const tr = (key: keyof typeof fixtureCopyEn, values?: Record<string, string | number>) => translate('fixtureCopy', fixtureCopyEn, key, values);
+const tr = (key: Parameters<typeof translate<typeof fixtureCopyEn>>[2], values?: Record<string, string | number>) => translate('fixtureCopy', fixtureCopyEn, key, values);
 const validZone = (zone?: string | null) => {
     if (!zone) return undefined;
     try { new Intl.DateTimeFormat('en', { timeZone: zone }); return zone; } catch { return undefined; }
@@ -26,7 +26,7 @@ export function dueWords(value: string | null | undefined, now: Date | number = 
     const days = daysFromToday(value, now);
     if (days === null || !value) return null;
     const date = new Date(`${value.slice(0, 10)}T12:00:00`);
-    const text = days < 0 ? `${-days} ${days === -1 ? 'day' : 'days'} overdue` : days === 0 ? 'Today' : days === 1 ? 'Tomorrow'
+    const text = days < 0 ? tr('daysOverdue', { count: -days }) : days === 0 ? tr('today') : days === 1 ? tr('tomorrow')
         : formatDate(date, days < 7 ? { weekday: 'short', day: 'numeric' } : { day: 'numeric', month: 'short' });
     return { text, days, late: days < 0, today: days === 0, date };
 }

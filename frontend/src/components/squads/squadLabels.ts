@@ -1,4 +1,10 @@
 import type { TFunction } from 'i18next';
+import { playerPositionChoices, playerPositionLabel } from '../../features/players/playerIdentityLabels';
+import { appLanguage } from '../../utils/formatting';
+
+// Long position names some records carry, mapped to the positions that have Georgian names.
+const positionAliases: Record<string, string> = { RIGHT_BACK: 'RB', LEFT_BACK: 'LB', CENTRE_BACK: 'CB', RIGHT_WINGER: 'RW', LEFT_WINGER: 'LW', RIGHT_MIDFIELDER: 'RM', LEFT_MIDFIELDER: 'LM', CENTRE_FORWARD: 'CF', CENTER_FORWARD: 'CF', CDM: 'DM', CAM: 'AM' };
+const knownPositions = new Set<string>(playerPositionChoices.map(([code]) => code));
 
 export const squadLabel = (value: string | null | undefined, t: TFunction): string => {
     if (!value) return t('squadDesign.roster.unspecified', { defaultValue: 'Not specified' });
@@ -30,6 +36,8 @@ export const squadLabel = (value: string | null | undefined, t: TFunction): stri
         Unspecified: 'Other players',
     };
     if (labels[value]) return t(`squadDesign.labels.${value}`, { defaultValue: labels[value] });
+    const position = positionAliases[value] ?? value;
+    if (knownPositions.has(position)) return playerPositionLabel(position, (en, ka) => appLanguage() === 'ka' ? ka : en);
     return value.replaceAll('_', ' ').replace(/\b[A-Z]{3,}\b/g, (word) => word.charAt(0) + word.slice(1).toLowerCase());
 };
 

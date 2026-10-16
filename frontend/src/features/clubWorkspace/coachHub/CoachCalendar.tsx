@@ -5,6 +5,8 @@ import type { SquadOverview } from '../../squadCommunication/api';
 import { FamilySchedule } from '../../parents/FamilySchedule';
 import { fromIsoDay } from '../../../design/calendar/calendarDates';
 import { SquadSwitch } from './CoachVisuals';
+import { coachHubEn } from '../../../locales/workspaceDesign';
+import { useCopy } from '../../../locales/useCopy';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -17,11 +19,12 @@ import './coach-hub.css';
  */
 export function CoachCalendar({ data }: { data: CoachData }) {
     const [params] = useSearchParams();
+    const copy = useCopy('coachHub', coachHubEn);
     const spaces = (data.squads ?? []).filter(squad => data.shown.includes(squad.id)).map(squad => squad.overview).filter((space): space is SquadOverview => Boolean(space));
     const [squadId, sessionId] = (params.get('session') ?? '').split(':').map(Number);
     const date = fromIsoDay(params.get('date'));
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title="Calendar" actions={<ButtonLink to={data.workHref('calendar')}><CalendarDays aria-hidden="true" />Club calendar</ButtonLink>} />
+        <PageHeader title={copy('calendar')} actions={<ButtonLink to={data.workHref('calendar')}><CalendarDays aria-hidden="true" />{copy('clubCalendar')}</ButtonLink>} />
         <SquadSwitch data={data} />
         {!data.squads ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading the calendar"><Skeleton height={420} /></div></Panel>
             : <div className="ch-schedule"><FamilySchedule key={`${data.shown.join(',')}:${params.get('session') ?? ''}:${params.get('date') ?? ''}`} squads={spaces} combined={!data.focus}

@@ -22,7 +22,7 @@ export function ActivitySummary({ event, data, editTo, onEdit, onCancel, onClose
 }) {
     const copy = useCopy('coachHub', coachHubEn);
     const start = event.start.toISOString(), end = event.end.toISOString();
-    const title = event.opponent ? `${event.squad} v ${event.opponent.name}` : event.title;
+    const title = event.opponent ? copy('matchTitle', { home: event.squad, away: event.opponent.name }) : event.title;
     // A match arranged with another club has its own page (offers, result); the session or calendar entry points to it.
     const linked = event.event ?? data.events.find(item => eventSquadId(item) === event.squadId && Math.abs(new Date(item.startsAt).getTime() - event.start.getTime()) < 60_000);
     const matchPage = linked ? scheduleDestination(linked) : null;

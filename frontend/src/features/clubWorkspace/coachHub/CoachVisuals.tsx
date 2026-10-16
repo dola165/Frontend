@@ -1,4 +1,6 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
+import { coachHubEn } from '../../../locales/workspaceDesign';
+import { useCopy } from '../../../locales/useCopy';
 import { useSearchParams } from 'react-router-dom';
 import type { BadgeTone } from '../../../design/primitives';
 import { Crest, FaceStack, SplitBar } from '../../../design/visuals';
@@ -13,10 +15,11 @@ import './coach-hub.css';
 /** One switch for every page: all my squads, or one of them. */
 export function SquadSwitch({ data }: { data: CoachData }) {
     const [params, setParams] = useSearchParams();
+    const copy = useCopy('coachHub', coachHubEn);
     if (data.mine.length < 2) return null;
     const pick = (id: number | null) => { const next = new URLSearchParams(params); if (id) next.set('squad', String(id)); else next.delete('squad'); ['event', 'q', 'view'].forEach(key => next.delete(key)); setParams(next); };
-    return <div className="ch-switch" role="group" aria-label="Squads">
-        <button type="button" className="ch-switch__item" aria-pressed={data.focus === null} onClick={() => pick(null)}>All squads</button>
+    return <div className="ch-switch" role="group" aria-label={copy('yourSquads')}>
+        <button type="button" className="ch-switch__item" aria-pressed={data.focus === null} onClick={() => pick(null)}>{copy('allSquads')}</button>
         {data.mine.map(squad => <button key={squad.id} type="button" className="ch-switch__item" aria-pressed={data.focus === squad.id} onClick={() => pick(squad.id)}>
             <Crest src={data.clubLogo} name={data.clubName} size={18} />{squad.name}
         </button>)}

@@ -7,6 +7,8 @@ import type { ScheduleEventOccurrence, ScheduleEventType } from '../../schedule/
 import { eventSquadId } from '../fixtures';
 import type { SquadRosterGroup } from '../../../components/squads/SquadRosterTable';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { translate } from '../../../locales/useCopy';
+import { coachHubEn, fixtureCopyEn } from '../../../locales/workspaceDesign';
 
 const DAY = 86_400_000;
 
@@ -95,7 +97,9 @@ export function sessionKind(session: squadApi.SquadSession): ScheduleEventType {
     const type = session.event_type ?? 'TRAINING';
     return type === 'MATCH' && /friendly/i.test(session.description ?? '') ? 'FRIENDLY' : type;
 }
-export const kindNames: Record<ScheduleEventType, string> = { TRAINING: 'Training', MATCH: 'Match', FRIENDLY: 'Friendly', ACTIVITY: 'Club event', TRYOUT: 'Trial' };
+/** Each activity's name in the person's language, read when it is shown. */
+export const kindNames = Object.defineProperties({} as Record<ScheduleEventType, string>,
+    Object.fromEntries((['TRAINING', 'MATCH', 'FRIENDLY', 'ACTIVITY', 'TRYOUT'] as const).map(type => [type, { enumerable: true, get: () => translate('fixtureCopy', fixtureCopyEn, type) }])));
 
 /**
  * Who's coming. Matches ask families to reply, so a missing reply needs chasing; training is opt-out,
@@ -105,8 +109,9 @@ export function replies(session: squadApi.SquadSession) {
     const players = session.attendance.filter(player => player.active !== false);
     const count = (response: string) => players.filter(player => player.response === response).length;
     const asked = Boolean(session.response_requested), going = count('GOING'), cant = count('NOT_GOING'), unsure = count('UNSURE'), none = count('UNANSWERED');
-    const parts = asked ? [`${going} coming`, cant ? `${cant} can't come` : '', unsure ? `${unsure} unsure` : '', none ? `${none} no reply` : '']
-        : [cant ? `${cant} can't come` : 'Everyone expected', unsure ? `${unsure} unsure` : ''];
+    const tr = (key: keyof typeof coachHubEn, count: number) => translate('coachHub', coachHubEn, key, { count });
+    const parts = asked ? [tr('repliesComing', going), cant ? tr('repliesCant', cant) : '', unsure ? tr('repliesUnsure', unsure) : '', none ? tr('needNoReply', none) : '']
+        : [cant ? tr('repliesCant', cant) : translate('coachHub', coachHubEn, 'repliesEveryone'), unsure ? tr('repliesUnsure', unsure) : ''];
     return { asked, going, cant, unsure, none, players, text: parts.filter(Boolean).join(' · ') };
 }
 

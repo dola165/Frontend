@@ -192,8 +192,7 @@ export function pastePlayers(page, squadId, names) {
   if (!list.length) return fail(400, 'Paste at least one name.');
   for (const name of list) {
     const [first, ...rest] = name.split(' ');
-    const existing = arrival.playerId && W.personById(arrival.playerId);
-  const person = existing || { id: arrival.playerId ?? W.newId(), firstName: first, lastName: rest.join(' '), fullName: name, username: null, gender: squad.gender === 'FEMALE' ? 'FEMALE' : 'MALE', role: 'PLAYER', birthYear: null,
+    const person = { id: W.newId(), firstName: first, lastName: rest.join(' '), fullName: name, username: null, gender: squad.gender === 'FEMALE' ? 'FEMALE' : 'MALE', role: 'PLAYER', birthYear: null,
       city: page.identity.town.name, clubId: page.clubId, position: null, headline: null, avatarUrl: null, squadId: squad.id, isPrivate: true, invitePending: true };
     W.people.push(person);
     squad.playerIds.push(person.id);

@@ -21,7 +21,7 @@ export function DeleteDraft({ page }: { page: PageView }) {
     setBusy(true);
     try {
       await deletePage(page.ref);
-      try { localStorage.removeItem(`gk-pet-skipped:${window.location.pathname}`); } catch { /* nothing remembered */ }
+      try { localStorage.removeItem(`gk-pet-reached:${window.location.pathname}`); } catch { /* nothing remembered */ }
       toast(t('{name} is deleted.', { name: page.identity.name }));
       navigate('/home', { replace: true });
     } catch {

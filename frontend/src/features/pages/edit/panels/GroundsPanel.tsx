@@ -52,7 +52,8 @@ export function GroundsPanel() {
     try { await saveBox('grounds', { items: chosen.map(ground => ({ ...ground, id: ground.id < 0 ? undefined : ground.id })) }, { label: t('Grounds saved') }); closePanel(); } finally { setBusy(false); }
   };
   const chosenIds = new Set(chosen.map(ground => ground.pitchId).filter((value): value is string => Boolean(value)));
-  const listed = (pitches ?? []).filter(pitch => !chosenIds.has(pitch.id) && inside(pitch, bounds)).slice(0, 8);
+  // Nearest first; once the owner moves the map, the list follows what is in view.
+  const listed = [...(pitches ?? [])].sort((a, b) => a.distanceKm - b.distanceKm).filter(pitch => !chosenIds.has(pitch.id) && inside(pitch, bounds)).slice(0, bounds ? 8 : 5);
   return (
     <SplitPanel title={t('Where do you play?')} description={t('Tap a pitch on the map, or tap the ground where you play.')} onClose={closePanel}
       footer={<><Button variant="ghost" onClick={closePanel}>{t('Cancel')}</Button><Button variant="primary" disabled={busy} onClick={() => void save()}>{t('Done')}</Button></>}
@@ -62,7 +63,8 @@ export function GroundsPanel() {
           : <p className="gk-muted">{t('Tap a pitch on the left.')}</p>}
       </div>}>
       <div className="gk-boxedit">
-        <Suspense fallback={<Skeleton height={280} />}><GroundsMap center={centre} pitches={pitches ?? []} chosen={chosenIds} dropped={dropped} onPick={add} onDrop={drop} onBounds={setBounds} /></Suspense>
+        {/* The map waits for the pitches, so it can open with the nearest ones in view. */}
+        {pitches === null && !failed ? <Skeleton height={280} /> : <Suspense fallback={<Skeleton height={280} />}><GroundsMap center={centre} pitches={pitches ?? []} chosen={chosenIds} dropped={dropped} onPick={add} onDrop={drop} onBounds={setBounds} /></Suspense>}
         {failed ? <p className="gk-notice gk-notice--warning" role="alert">{t('Pitches near you could not load. Add a place by name below.')}</p>
           : pitches === null ? <><Skeleton height={44} /><Skeleton height={44} /></>
           : listed.length === 0 ? <p className="gk-muted">{t('No listed pitches on this part of the map.')}</p>

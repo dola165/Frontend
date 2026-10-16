@@ -42,8 +42,8 @@ export function InboxPanel({ counts, titleId, onNavigate }: { counts: InboxCount
     );
     const needsYouCount = counts.needsYou === null ? undefined : partial ? undefined : counts.needsYou;
     const needsYouLabel = partial && counts.needsYou
-        ? <>{copy('Needs you', 'თქვენგან')}<span className="gk-tab__count">{counts.needsYou}+</span></>
-        : copy('Needs you', 'თქვენგან');
+        ? <>{copy('Needs you', 'გელოდებათ')}<span className="gk-tab__count">{counts.needsYou}+</span></>
+        : copy('Needs you', 'გელოდებათ');
 
     const decisions = () => {
         if (preview.decisions.status !== 'ready') return preview.decisions.status === 'error' ? failed : loading;

@@ -1,17 +1,27 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Store } from 'lucide-react';
+import { Plus, ShoppingBag, Store } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 import { ButtonLink, Count, SearchInput } from '../../../design/primitives';
+import { fetchMyClubMembershipContext } from '../../clubs/api';
+import { canManageClubOperations } from '../../clubs/domain';
+import { useWorldData } from '../../world/useWorldData';
 import { cataloguePath } from '../query';
 import { useCartCount } from '../useCartCount';
 import { CATEGORIES, COLLECTIONS } from '../labels';
 import { CircleStrip } from './MarketTabs';
 
-/** The storefront's first row: the title, one wide search, Browse all and the cart. */
+/**
+ * The storefront's first row: the title, one wide search, Browse all and the cart; for someone who runs a club's store,
+ * a quiet Add a product that opens the club store's own add form.
+ */
 export function StoreHead() {
     const navigate = useNavigate();
     const [text, setText] = useState('');
     const count = useCartCount();
+    const { status } = useAuth();
+    const membership = useWorldData(status === 'authenticated' ? 'my-club' : null, () => fetchMyClubMembershipContext());
+    const seller = membership.data?.clubId && canManageClubOperations(membership.data.myRole) ? membership.data : null;
     return (
         <div className="gk-store-head">
             <div><h1>Store</h1><p className="gk-store-head__hint">GrassKickZ equipment and every club store</p></div>
@@ -19,6 +29,7 @@ export function StoreHead() {
                 <SearchInput aria-label="Search products or clubs" placeholder="Search products or clubs" maxLength={100} value={text} onChange={event => setText(event.target.value)} />
             </form>
             <div className="gk-store-head__actions">
+                {seller && <ButtonLink variant="ghost" to={`/clubs/${seller.clubId}/store?add=1`} aria-label={`Add a product to ${seller.clubName ?? 'your club'}’s store`}><Plus aria-hidden="true" />Add a product</ButtonLink>}
                 <ButtonLink to={cataloguePath()}>Browse all</ButtonLink>
                 <ButtonLink className="gk-store-cart-btn" to="/store/cart" aria-label={count ? `Cart, ${count} ${count === 1 ? 'item' : 'items'}` : 'Cart'}><ShoppingBag aria-hidden="true" />Cart<Count value={count} /></ButtonLink>
             </div>

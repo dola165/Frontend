@@ -28,9 +28,11 @@ export function myClub(capabilities: NavigationCapabilities | undefined, members
 const discoveryRoute = /^\/(?:world|map|people|stadiums|matches|match-history|match-exchange|tournaments|tryouts|events|jobs|roles|store|campaigns|admissions\/opportunities)(?:\/|$)/;
 
 /** Which primary tab a location belongs to. Work surfaces outside the three places return null. */
-export function primarySectionFor(pathname: string, ownClubIds: number[]): PrimarySection | null {
+export function primarySectionFor(pathname: string, ownClubIds: number[], search = ''): PrimarySection | null {
     if (pathname === '/home' || pathname === '/feed' || pathname.startsWith('/posts/')) return 'home';
     if (pathname === '/my-club') return 'my-club';
+    // The squad page is shared: a parent arrives from Parent Hub with the child in the address.
+    if (pathname.startsWith('/squads/') && new URLSearchParams(search).has('player')) return 'parent-hub';
     if (pathname === '/my-squads' || pathname === '/squads' || pathname.startsWith('/squads/')) return 'my-squads';
     if (pathname === '/parent' || pathname.startsWith('/parent/')) return 'parent-hub';
     const club = /^\/clubs\/(\d+)(?:\/|$)/.exec(pathname);

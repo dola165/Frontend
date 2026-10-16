@@ -227,7 +227,11 @@ describe('the directory page', () => {
         const clubs = source();
         page('/world/clubs?shown=3&maxFee=20', [clubs]);
         expect(await screen.findByText('Club 6')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+        // The filters beside the map and the list's own strip under it both offer it.
+        const [besideMap, underMap] = screen.getAllByRole('button', { name: 'Clear filters' });
+        expect(besideMap.closest('.gk-world-side')).not.toBeNull();
+        expect(underMap.closest('.gk-world-filterbar')).not.toBeNull();
+        fireEvent.click(besideMap);
         await waitFor(() => expect(where()).toBe('/world/clubs'));
     });
 

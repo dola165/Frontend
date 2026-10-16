@@ -1166,7 +1166,19 @@ const en = {
       later: 'You can change this any time from your profile.',
     },
     finishing: 'Setting up your Home…',
-    failed: 'That could not be saved. You can continue and change it later from your profile.',
+    unsaved: {
+      title: 'Not saved: {{what}}.',
+      town: 'your town',
+      see: 'what you see',
+      clubs: 'your club follows',
+      do: 'what you do in football',
+      follows_one: '{{count}} club follow',
+      follows_other: '{{count}} club follows',
+      retry: 'Try again',
+      retrying: 'Trying again…',
+      continue: 'Continue without them',
+      and: 'and',
+    },
   },
   feed: {
     why: {

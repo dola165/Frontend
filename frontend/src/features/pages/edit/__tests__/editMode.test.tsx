@@ -46,7 +46,11 @@ describe('edit mode on a page', () => {
     mount();
     expect(await screen.findByText('Draft · only you see this')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /1 of 7 done/ })).toBeInTheDocument();
+    // The steps start folded: the ring opens them.
+    expect(screen.queryByRole('region', { name: 'Set-up steps' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /1 of 7 done/ }));
     expect(screen.getByRole('region', { name: 'Set-up steps' })).toHaveTextContent('Add your crest');
+    await user.click(screen.getByRole('button', { name: 'Hide the steps' }));
     expect(screen.getByRole('button', { name: 'Go live' })).toBeDisabled();
     await user.click(screen.getAllByRole('button', { name: /How to reach you/ })[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56');

@@ -94,7 +94,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
             </Panel>
         </Section>
 
-        <Section boxed title="What to expect" hint={programme ? [programmeAge(programme), programme.sessionsPerWeek ? `${programme.sessionsPerWeek} ${programme.sessionsPerWeek === 1 ? 'session' : 'sessions'} a week` : null].filter(Boolean).join(' · ') : undefined}>
+        {(programme || canManage) && <Section boxed title="What to expect" hint={programme ? [programmeAge(programme), programme.sessionsPerWeek ? `${programme.sessionsPerWeek} ${programme.sessionsPerWeek === 1 ? 'session' : 'sessions'} a week` : null].filter(Boolean).join(' · ') : undefined}>
             <Panel padded>
                 {programme ? <>
                     <p className="gk-club-story">{programme.details || 'Ask the club about the training approach and the right level for you.'}</p>
@@ -104,7 +104,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
                     {programmes.length > 1 && <p className="gk-muted gk-club-note">{programmes.length} programmes train with this squad: {programmes.map(p => <Link key={p.id} className="gk-profile__link" to={trainingPath(club.id, { programme: p.id })}>{p.name}</Link>).reduce<React.ReactNode[]>((acc, el, i) => i ? [...acc, ', ', el] : [el], [])}.</p>}
                 </> : <p className="gk-muted">The club has not published a programme for this squad. Ask about its training and how players are selected.</p>}
             </Panel>
-        </Section>
+        </Section>}
 
         <Section boxed icon={Users} tone="info" title="Players">
             <Panel flush><List label="Players"><ListRow to={roster} lead={<span className="gk-club-icon gk-club-icon--info"><Users aria-hidden="true" /></span>} title="See the squad" meta={isAuthenticated ? 'Players, positions and squad profiles' : 'Sign in to see player profiles'} trail={<ArrowRight aria-hidden="true" className="gk-faint" size={16} />} /></List></Panel>

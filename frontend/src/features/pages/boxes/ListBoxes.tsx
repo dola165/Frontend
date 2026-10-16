@@ -10,6 +10,7 @@ import { usePagesCopy } from '../copy';
 import { EditPencil } from '../edit/EditPencil';
 import { usePageEdit } from '../edit/context';
 import type { BoxProps } from '../edit/boxRegistry';
+import { useKeepOnLeave } from '../edit/useKeepOnLeave';
 import { INVOLVED_PARTS, isLocked, type InvolvedPart, type LockedAction } from '../model/kinds';
 import { UnlockSheet } from '../verify/UnlockSheet';
 import { useUnlock } from '../verify/useUnlock';
@@ -43,7 +44,7 @@ export function SquadsBox({ page, editing, onEdit }: BoxProps) {
           lead={<span className="gk-club-icon"><Users aria-hidden="true" /></span>} title={squad.name}
           meta={[squad.days.length ? `${squad.days.map(day => t(DAYS[day - 1] ?? '')).join(' · ')}${squad.time ? ` ${squad.time}` : ''}` : t('Training times to come'), squad.players ? t('{n} players', { n: squad.players }) : null].filter(Boolean).join(' · ')} />)}
       </List>
-      {page.viewer.canEdit && squads.length > 0 && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" variant="primary" data-coach="players" onClick={() => openPanel('players')}><UserPlus aria-hidden="true" />{t('Invite players')}</Button></div>}
+      {page.viewer.canEdit && squads.length > 0 && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" variant="primary" onClick={() => openPanel('players')}><UserPlus aria-hidden="true" />{t('Invite players')}</Button></div>}
     </SideBlock>
   );
 }
@@ -70,11 +71,11 @@ export function SponsorsBox({ page, editing, open, onEdit, onClose }: BoxProps) 
   const { saveBox } = usePageEdit();
   const sponsors = page.boxes.sponsors.items;
   const business = page.kind === 'BUSINESS';
-  const save = async (items: Sponsor[]) => { await saveBox('sponsors', { items }, { label: t(business ? 'Clubs saved' : 'Sponsors saved') }); onClose(); };
+  const persist = (rows: Row[]) => saveBox('sponsors', { items: rows.map(row => ({ id: row.id, name: row.name, websiteUrl: /^https?:\/\//.test(row.extra) ? row.extra : row.extra ? `https://${row.extra}` : null, logoUrl: sponsors.find(sponsor => sponsor.id === row.id)?.logoUrl ?? null, organizationId: sponsors.find(sponsor => sponsor.id === row.id)?.organizationId ?? null } satisfies Sponsor)) }, { label: t(business ? 'Clubs saved' : 'Sponsors saved') });
   return (
     <SideBlock title={t(business ? 'Clubs we back' : 'Sponsors')} hint={t(business ? 'Who we support' : 'Backing the club')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <NamesEditor rows={sponsors.map(sponsor => ({ id: sponsor.id, name: sponsor.name, extra: sponsor.websiteUrl ?? '' }))} extraLabel={t('Website')} extraPlaceholder="kartuli-bank.ge" addLabel={t(business ? 'Add a club' : 'Add a sponsor')}
-        onSave={rows => save(rows.map(row => ({ id: row.id, name: row.name, websiteUrl: /^https?:\/\//.test(row.extra) ? row.extra : row.extra ? `https://${row.extra}` : null, logoUrl: sponsors.find(sponsor => sponsor.id === row.id)?.logoUrl ?? null, organizationId: sponsors.find(sponsor => sponsor.id === row.id)?.organizationId ?? null })))} onCancel={onClose} />
+        onSave={rows => persist(rows).then(onClose)} onKeep={rows => void persist(rows)} onCancel={onClose} />
         : <List label={t('Sponsors')}>{sponsors.map(sponsor => {
           const website = safePublicUrl(sponsor.websiteUrl);
           const body = <><Crest src={sponsor.logoUrl} name={sponsor.name} size={36} /><span className="gk-list-row__main"><span className="gk-list-row__title">{sponsor.name}</span></span>{website && <ArrowUpRight aria-hidden="true" className="gk-faint" size={16} />}</>;
@@ -89,11 +90,11 @@ export function HonoursBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const t = usePagesCopy();
   const { saveBox } = usePageEdit();
   const honours = [...page.boxes.honours.items].sort((a, b) => b.year - a.year);
-  const save = async (items: Honour[]) => { await saveBox('honours', { items }, { label: t('Honours saved') }); onClose(); };
+  const persist = (rows: Row[]) => saveBox('honours', { items: rows.filter(row => /^\d{4}$/.test(row.extra)).map(row => ({ id: row.id, title: row.name, year: Number(row.extra) } satisfies Honour)) }, { label: t('Honours saved') });
   return (
     <SideBlock title={t('Honours')} hint={t('What the club has won')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <NamesEditor rows={honours.map(honour => ({ id: honour.id, name: honour.title, extra: String(honour.year) }))} extraLabel={t('Year')} extraPlaceholder={String(new Date().getFullYear())} extraType="number" addLabel={t('Add an honour')}
-        onSave={rows => save(rows.filter(row => /^\d{4}$/.test(row.extra)).map(row => ({ id: row.id, title: row.name, year: Number(row.extra) })))} onCancel={onClose} />
+        onSave={rows => persist(rows).then(onClose)} onKeep={rows => void persist(rows)} onCancel={onClose} />
         : <List label={t('Honours')}>{honours.map(honour => <ListRow key={honour.id} lead={<span className="gk-club-icon"><Trophy aria-hidden="true" /></span>} title={honour.title} meta={String(honour.year)} />)}</List>}
     </SideBlock>
   );
@@ -133,10 +134,15 @@ export function InvolvedBox({ page, editing, open, onEdit, onClose }: BoxProps) 
 
 interface Row { id: number; name: string; extra: string }
 /** A short list edited in place: a name and one more thing per row, add and remove, Done. */
-function NamesEditor({ rows: initial, extraLabel, extraPlaceholder, extraType = 'text', addLabel, onSave, onCancel }: { rows: Row[]; extraLabel: string; extraPlaceholder: string; extraType?: 'text' | 'number'; addLabel: string; onSave: (rows: Row[]) => Promise<void>; onCancel: () => void }) {
+function NamesEditor({ rows: initial, extraLabel, extraPlaceholder, extraType = 'text', addLabel, onSave: done, onKeep, onCancel: cancel }: { rows: Row[]; extraLabel: string; extraPlaceholder: string; extraType?: 'text' | 'number'; addLabel: string; onSave: (rows: Row[]) => Promise<void>; onKeep: (rows: Row[]) => void; onCancel: () => void }) {
   const t = usePagesCopy();
   const [rows, setRows] = useState<Row[]>(initial.length ? initial : [{ id: -1, name: '', extra: '' }]);
   const update = (index: number, patch: Partial<Row>) => setRows(current => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  const clean = (list: Row[]) => list.filter(row => row.name.trim()).map(row => ({ ...row, id: row.id < 0 ? -1 : row.id }));
+  // Opening another box saves the list as typed; only Cancel drops it.
+  const settle = useKeepOnLeave(rows, next => JSON.stringify(clean(next)) !== JSON.stringify(clean(initial)), next => onKeep(clean(next)));
+  const onSave = (next: Row[]) => { settle(); return done(next); };
+  const onCancel = () => { settle(); cancel(); };
   // A side door for a list kept elsewhere: a CSV (or lines pasted from a spreadsheet), one row per line, the name and the other thing in either order.
   const importFile = async (file: File) => {
     const text = await file.text();
@@ -157,7 +163,7 @@ function NamesEditor({ rows: initial, extraLabel, extraPlaceholder, extraType = 
       <div className="gk-boxedit__foot">
         <Button size="sm" variant="ghost" onClick={() => setRows(current => [...current, { id: -Date.now(), name: '', extra: '' }])}><Plus aria-hidden="true" />{addLabel}</Button>
         <label className="gk-btn gk-btn--ghost gk-btn--sm"><FileUp aria-hidden="true" />{t('Import a file')}<input type="file" accept=".csv,.txt,text/csv,text/plain" className="gk-visually-hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void importFile(file); event.target.value = ''; }} /></label>
-        <Button size="sm" variant="primary" onClick={() => void onSave(rows.filter(row => row.name.trim()).map(row => ({ ...row, id: row.id < 0 ? -1 : row.id })))}>{t('Done')}</Button>
+        <Button size="sm" variant="primary" onClick={() => void onSave(clean(rows))}>{t('Done')}</Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>{t('Cancel')}</Button>
       </div>
     </div>

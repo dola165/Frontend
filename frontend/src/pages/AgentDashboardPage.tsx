@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { BellRing, Briefcase, Building2, ChevronRight, LayoutDashboard, ShieldCheck, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { fetchAgentDashboard, fetchMyEngagements, fetchMyInterests, fetchRepresentationAttention, fetchClubApproachSummary } from '../features/agents/api';
+import { useAgentHub, type AgentHubSection } from '../features/agents/useAgentHub';
 import type { AgentDashboardData, AgentEngagement, AgentInterest } from '../features/agents/domain';
 import { PageSpinner, SectionHeader } from '../components/workspace/helpers';
 import { AgentPortfolioTab } from '../components/agent/AgentPortfolioTab';
@@ -11,7 +11,7 @@ import { ClubRelationshipsTab } from '../components/agent/ClubRelationshipsTab';
 import { AgentInboxTab } from '../components/agent/AgentInboxTab';
 import { useAuth } from '../context/AuthContext';
 import { hasNavigationCapability } from '../context/navigationCapabilities';
-import { useAgentCopy } from '../features/agents/copy';
+import { useAgentCopy, type AgentCopyKey } from '../features/agents/copy';
 import type { AuthSessionId } from '../utils/authStorage';
 import '../features/agents/agent-hub.css';
 
@@ -36,16 +36,8 @@ export const AgentDashboardPage = () => {
 
 const AgentDashboardContent = ({ sessionId, username }: { sessionId: AuthSessionId; username?: string }) => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [dashboard, setDashboard] = useState<AgentDashboardData | null>(null);
-    const [interests, setInterests] = useState<AgentInterest[]>([]);
-    const [engagements, setEngagements] = useState<AgentEngagement[]>([]);
-    const [incomingRepresentationCount, setIncomingRepresentationCount] = useState(0);
-    const [pendingApproachCount, setPendingApproachCount] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-    const activeRef = useRef(true);
-    const requestRef = useRef(0);
-    const inFlightRef = useRef(false);
+    const hub = useAgentHub(sessionId);
+    const { data, load: loadHub } = hub;
 
     const requestedTab = searchParams.get('tab') as DashboardTab | null;
     const activeTab: DashboardTab = requestedTab && VALID_TABS.has(requestedTab) ? requestedTab : 'overview';
@@ -56,53 +48,6 @@ const AgentDashboardContent = ({ sessionId, username }: { sessionId: AuthSession
         else next.set('tab', tab);
         setSearchParams(next, { replace: true });
     };
-
-    useEffect(() => {
-        activeRef.current = true;
-        return () => {
-            activeRef.current = false;
-            requestRef.current += 1;
-        };
-    }, []);
-
-    const loadHub = useCallback(async (signal?: AbortSignal, background = false) => {
-        if (background && inFlightRef.current) return;
-        inFlightRef.current = true;
-        const request = ++requestRef.current;
-        if (!background) {
-            setDashboard(null);
-            setInterests([]);
-            setEngagements([]);
-            setIncomingRepresentationCount(0);
-            setPendingApproachCount(0);
-            setLoading(true);
-            setError(false);
-        }
-        const config = { signal, _authSessionId: sessionId };
-        try {
-            const [dashboardData, interestData, engagementData, representationCount, approachSummary] = await Promise.all([
-                fetchAgentDashboard(config),
-                fetchMyInterests(config),
-                fetchMyEngagements(undefined, config),
-                fetchRepresentationAttention(config),
-                fetchClubApproachSummary(config)
-            ]);
-            if (!activeRef.current || signal?.aborted || request !== requestRef.current) return;
-            setDashboard({ ...dashboardData, activeEngagementCount: dashboardData.activeEngagementCount + approachSummary.active });
-            setInterests(interestData);
-            setEngagements(engagementData);
-            setIncomingRepresentationCount(representationCount);
-            setPendingApproachCount(approachSummary.pending);
-            setError(false);
-        } catch (caught) {
-            if (!activeRef.current || signal?.aborted || request !== requestRef.current) return;
-            console.error('Failed to load the agent hub', caught);
-            if (!background) setError(true);
-        } finally {
-            if (request === requestRef.current) inFlightRef.current = false;
-            if (activeRef.current && !signal?.aborted && request === requestRef.current) setLoading(false);
-        }
-    }, [sessionId]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -129,16 +74,20 @@ const AgentDashboardContent = ({ sessionId, username }: { sessionId: AuthSession
     return (
         <AgentDashboardPresentation
             username={username}
-            dashboard={dashboard}
-            interests={interests}
-            engagements={engagements}
-            incomingRepresentationCount={incomingRepresentationCount}
-            pendingApproachCount={pendingApproachCount}
-            loading={loading}
-            error={error}
+            dashboard={data.dashboard}
+            interests={data.interests}
+            engagements={data.engagements}
+            incomingRepresentationCount={data.representation}
+            pendingApproachCount={data.approaches ? data.approaches.pending : null}
+            activeApproachCount={data.approaches ? data.approaches.active : null}
+            loading={hub.loading}
+            error={!hub.loading && !data.dashboard && hub.failed.includes('dashboard')}
+            problems={hub.failed}
+            retrying={hub.retrying}
+            onRetrySection={hub.retry}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            onRetry={() => void loadHub()}
+            onRetry={() => hub.retry('dashboard')}
         />
     );
 };
@@ -146,12 +95,19 @@ const AgentDashboardContent = ({ sessionId, username }: { sessionId: AuthSession
 export interface AgentDashboardPresentationProps {
     username?: string;
     dashboard: AgentDashboardData | null;
-    interests: AgentInterest[];
-    engagements: AgentEngagement[];
-    incomingRepresentationCount?: number;
-    pendingApproachCount?: number;
+    /** Null means it could not be loaded: shown as unknown, never as none. */
+    interests: AgentInterest[] | null;
+    engagements: AgentEngagement[] | null;
+    incomingRepresentationCount?: number | null;
+    pendingApproachCount?: number | null;
+    activeApproachCount?: number | null;
     loading: boolean;
+    /** The agency and portfolio could not load: Overview and Portfolio cannot be shown. */
     error: boolean;
+    /** Sections that failed to load or refresh, each with its own retry. */
+    problems?: AgentHubSection[];
+    retrying?: AgentHubSection[];
+    onRetrySection?: (section: AgentHubSection) => void;
     activeTab: DashboardTab;
     onTabChange: (tab: DashboardTab) => void;
     onRetry: () => void;
@@ -164,25 +120,32 @@ export const AgentDashboardPresentation = ({
     engagements,
     incomingRepresentationCount = 0,
     pendingApproachCount = 0,
+    activeApproachCount = 0,
     loading,
     error,
+    problems = [],
+    retrying = [],
+    onRetrySection,
     activeTab,
     onTabChange,
     onRetry
 }: AgentDashboardPresentationProps) => {
     const { copy } = useAgentCopy();
     const players = dashboard?.portfolio ?? [];
-    const pendingConsentCount = players.filter(player =>
-        player.requiresMinorConsent && player.minorConsentStatus !== 'ACCEPTED').length;
-    const newInterestCount = interests.filter(interest => interest.status === 'EXPRESSED').length;
-    const pendingRelationshipCount = pendingApproachCount + engagements.filter(engagement => engagement.status === 'PENDING').length;
+    // Each count is a number only when everything it adds up was loaded; otherwise it is unknown (null).
+    const pendingConsentCount = dashboard ? players.filter(player =>
+        player.requiresMinorConsent && player.minorConsentStatus !== 'ACCEPTED').length : null;
+    const newInterestCount = interests ? interests.filter(interest => interest.status === 'EXPRESSED').length : null;
+    const pendingRelationshipCount = engagements && pendingApproachCount !== null
+        ? pendingApproachCount + engagements.filter(engagement => engagement.status === 'PENDING').length : null;
+    const attention = attentionTotal([incomingRepresentationCount, pendingConsentCount, newInterestCount, pendingRelationshipCount]);
 
-    const tabs = useMemo<Array<{ id: DashboardTab; label: string; icon: LucideIcon; badge?: number }>>(() => [
-        { id: 'overview', label: copy('overview'), icon: LayoutDashboard, badge: incomingRepresentationCount + pendingConsentCount + newInterestCount + pendingRelationshipCount },
-        { id: 'inbox', label: copy('enquiries'), icon: BellRing, badge: newInterestCount },
+    const tabs = useMemo<Array<{ id: DashboardTab; label: string; icon: LucideIcon; badge?: number | string }>>(() => [
+        { id: 'overview', label: copy('overview'), icon: LayoutDashboard, badge: attention.partial ? (attention.known ? `${attention.known}+` : undefined) : attention.known },
+        { id: 'inbox', label: copy('enquiries'), icon: BellRing, badge: newInterestCount ?? undefined },
         { id: 'portfolio', label: copy('portfolio'), icon: Users, badge: dashboard?.activePlayerCount },
-        { id: 'relationships', label: copy('relationships'), icon: Building2, badge: pendingRelationshipCount }
-    ], [copy, dashboard?.activePlayerCount, incomingRepresentationCount, newInterestCount, pendingConsentCount, pendingRelationshipCount]);
+        { id: 'relationships', label: copy('relationships'), icon: Building2, badge: pendingRelationshipCount ?? undefined }
+    ], [copy, dashboard?.activePlayerCount, attention.known, attention.partial, newInterestCount, pendingRelationshipCount]);
 
     const navButton = (tab: typeof tabs[number], compact = false) => {
         const selected = activeTab === tab.id;
@@ -275,7 +238,10 @@ export const AgentDashboardPresentation = ({
 
                 <div id="agent-hub-panel" role="tabpanel" aria-label={tabs.find(tab => tab.id === activeTab)?.label} tabIndex={0} className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
                     {loading && <div role="status" aria-label={copy('loadingHub')}><PageSpinner /></div>}
-                    {error && (
+                    {!loading && <HubProblems problems={problems.filter(section => !(error && section === 'dashboard' && needsDashboard(activeTab)))}
+                        stale={section => section === 'dashboard' ? Boolean(dashboard) : section === 'interests' ? interests !== null : section === 'engagements' ? engagements !== null : section === 'representation' ? incomingRepresentationCount !== null : activeApproachCount !== null}
+                        retrying={retrying} onRetry={onRetrySection} />}
+                    {error && needsDashboard(activeTab) && (
                         <div role="alert" className="rounded-xl border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-6 py-10 text-center">
                             <h2 className="text-base font-semibold text-[var(--fc-text-primary)]">{copy('errorTitle')}</h2>
                             <p className="mx-auto mt-2 max-w-xl text-sm text-[var(--fc-text-secondary)]">{copy('hubLoadError')}</p>
@@ -284,21 +250,23 @@ export const AgentDashboardPresentation = ({
                             </button>
                         </div>
                     )}
-                    {!loading && !error && dashboard && (
+                    {!loading && (
                         <>
-                            {activeTab === 'overview' && (
+                            {activeTab === 'overview' && dashboard && (
                                 <AgentOverview
                                     dashboard={dashboard}
                                     pendingConsentCount={pendingConsentCount}
                                     newInterestCount={newInterestCount}
                                     pendingRelationshipCount={pendingRelationshipCount}
                                     incomingRepresentationCount={incomingRepresentationCount}
+                                    activeApproachCount={activeApproachCount}
+                                    attention={attention}
                                     onOpen={onTabChange}
                                 />
                             )}
-                            {activeTab === 'inbox' && <AgentInboxTab interests={interests} />}
-                            {activeTab === 'portfolio' && <><AgentConnections /><AgentPortfolioTab players={players} /></>}
-                            {activeTab === 'relationships' && <ClubRelationshipsTab engagements={engagements} />}
+                            {activeTab === 'inbox' && interests && <AgentInboxTab interests={interests} />}
+                            {activeTab === 'portfolio' && dashboard && <><AgentConnections /><AgentPortfolioTab players={players} /></>}
+                            {activeTab === 'relationships' && engagements && <ClubRelationshipsTab engagements={engagements} />}
                         </>
                     )}
                 </div>
@@ -307,18 +275,46 @@ export const AgentDashboardPresentation = ({
     );
 };
 
+/** Overview and Portfolio are built on the agency's own record; Enquiries and Club relationships stand alone. */
+const needsDashboard = (tab: DashboardTab) => tab === 'overview' || tab === 'portfolio';
+
+/** The attention total: what is known, and whether some part could not be counted. */
+const attentionTotal = (counts: Array<number | null>) =>
+    ({ known: counts.reduce<number>((sum, count) => sum + (count ?? 0), 0), partial: counts.some(count => count === null) });
+
+const sectionNames: Record<AgentHubSection, AgentCopyKey> = {
+    dashboard: 'sectionDashboard', interests: 'sectionEnquiries', engagements: 'sectionRelationships', representation: 'sectionRepresentation', approaches: 'sectionApproaches',
+};
+
+/** One line per section that could not load (or refresh), each with its own retry; the rest of the hub stays usable. */
+const HubProblems = ({ problems, stale, retrying, onRetry }: { problems: AgentHubSection[]; stale: (section: AgentHubSection) => boolean; retrying: AgentHubSection[]; onRetry?: (section: AgentHubSection) => void }) => {
+    const { copy } = useAgentCopy();
+    if (!problems.length) return null;
+    return <div role="status" className="mb-5 space-y-2">
+        {problems.map(section => <div key={section} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-3">
+            <p className="text-sm text-[var(--fc-text-primary)]">{copy(stale(section) ? 'sectionStale' : 'sectionFailed', { what: copy(sectionNames[section]) })}</p>
+            {onRetry && <button type="button" disabled={retrying.includes(section)} onClick={() => onRetry(section)} className="min-h-[36px] rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 text-sm font-semibold text-[var(--fc-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fc-accent)] disabled:opacity-60">
+                {retrying.includes(section) ? copy('retrying') : copy('retry')}
+            </button>}
+        </div>)}
+    </div>;
+};
+
 interface OverviewProps {
     dashboard: AgentDashboardData;
-    pendingConsentCount: number;
-    newInterestCount: number;
-    pendingRelationshipCount: number;
-    incomingRepresentationCount: number;
+    pendingConsentCount: number | null;
+    newInterestCount: number | null;
+    pendingRelationshipCount: number | null;
+    incomingRepresentationCount: number | null;
+    activeApproachCount: number | null;
+    attention: { known: number; partial: boolean };
     onOpen: (tab: DashboardTab) => void;
 }
 
-const AgentOverview = ({ dashboard, pendingConsentCount, newInterestCount, pendingRelationshipCount, incomingRepresentationCount, onOpen }: OverviewProps) => {
+const AgentOverview = ({ dashboard, pendingConsentCount, newInterestCount, pendingRelationshipCount, incomingRepresentationCount, activeApproachCount, attention, onOpen }: OverviewProps) => {
     const { copy } = useAgentCopy();
-    const actionCount = incomingRepresentationCount + pendingConsentCount + newInterestCount + pendingRelationshipCount;
+    const title = attention.partial ? (attention.known ? copy('attentionAtLeast', { count: attention.known }) : copy('attentionUnknown'))
+        : attention.known > 0 ? copy('attentionCount', { count: attention.known, suffix: attention.known === 1 ? '' : 's' }) : copy('nextActionsClear');
     const actions = [
         { id: 'portfolio' as const, icon: Users, count: incomingRepresentationCount, title: copy('incomingRepresentation'), detail: copy('incomingRepresentationDetail') },
         { id: 'inbox' as const, icon: BellRing, count: newInterestCount, title: copy('newEnquiries'), detail: copy('newEnquiriesDetail') },
@@ -330,16 +326,18 @@ const AgentOverview = ({ dashboard, pendingConsentCount, newInterestCount, pendi
         <section aria-label={copy('overview')}>
             <SectionHeader
                 eyebrow={copy('agentHub')}
-                title={actionCount > 0 ? copy('attentionCount', { count: actionCount, suffix: actionCount === 1 ? '' : 's' }) : copy('nextActionsClear')}
+                title={title}
                 description={copy('overviewDescription')}
             />
-            <button type="button" className="career-button career-primary" onClick={() => onOpen('portfolio')}>Find a player & propose representation</button>
+            <button type="button" className="career-button career-primary" onClick={() => onOpen('portfolio')}>{copy('findPlayer')}</button>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {actions.map(action => (
                     <button key={action.title} type="button" onClick={() => onOpen(action.id)} className="group rounded-2xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4 text-left transition-colors hover:bg-[var(--fc-surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fc-accent)]">
-                        <div className="flex items-center justify-between"><action.icon className="h-5 w-5 text-[var(--fc-accent)]" aria-hidden="true" /><span className="text-2xl font-bold text-[var(--fc-text-primary)]">{action.count}</span></div>
+                        <div className="flex items-center justify-between"><action.icon className="h-5 w-5 text-[var(--fc-accent)]" aria-hidden="true" />{action.count === null
+                            ? <span className="text-2xl font-bold text-[var(--fc-text-muted)]" aria-label={copy('countUnknown')}>–</span>
+                            : <span className="text-2xl font-bold text-[var(--fc-text-primary)]">{action.count}</span>}</div>
                         <h3 className="mt-4 font-semibold text-[var(--fc-text-primary)]">{action.title}</h3>
-                        <p className="mt-1 text-sm leading-5 text-[var(--fc-text-secondary)]">{action.detail}</p>
+                        <p className="mt-1 text-sm leading-5 text-[var(--fc-text-secondary)]">{action.count === null ? copy('countUnknown') : action.detail}</p>
                         <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[var(--fc-accent)]">{copy('open')} <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></span>
                     </button>
                 ))}
@@ -352,8 +350,9 @@ const AgentOverview = ({ dashboard, pendingConsentCount, newInterestCount, pendi
                 </div>
                 <div className="rounded-2xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-5">
                     <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fc-text-muted)]">{copy('activeClubRelationships')}</p>
-                    <p className="mt-2 text-3xl font-bold">{dashboard.activeEngagementCount}</p>
-                    <p className="mt-2 text-sm text-[var(--fc-text-secondary)]">{copy('activeRelationshipDetail')}</p>
+                    {/* Club relationships plus consented club approaches; without the approaches only a lower bound is known. */}
+                    <p className="mt-2 text-3xl font-bold">{activeApproachCount === null ? `${dashboard.activeEngagementCount}+` : dashboard.activeEngagementCount + activeApproachCount}</p>
+                    <p className="mt-2 text-sm text-[var(--fc-text-secondary)]">{activeApproachCount === null ? copy('approachesUnknown') : copy('activeRelationshipDetail')}</p>
                 </div>
             </div>
         </section>

@@ -236,6 +236,48 @@ describe('AgentDashboardPage', () => {
         expect(await screen.findByRole('heading', { name: '3 items need attention' })).toBeInTheDocument();
     });
 
+    it('keeps loaded enquiries when only the club-approaches summary fails, and never counts the unknown as zero', async () => {
+        vi.mocked(fetchClubApproachSummary).mockRejectedValueOnce(new Error('offline'));
+        renderPage();
+
+        expect(await screen.findByRole('heading', { name: 'At least 2 need attention' })).toBeInTheDocument();
+        expect(screen.getByText('Club approaches couldn’t load. The rest of the hub is shown.')).toBeInTheDocument();
+        expect(screen.getByText('Club approaches couldn’t load, so there may be more.')).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Couldn’t load this count').length).toBe(1);
+
+        fireEvent.click(screen.getAllByRole('tab', { name: /Enquiries/ })[0]);
+        expect(screen.getByText('Can we arrange a private call?')).toBeInTheDocument();
+
+        fireEvent.click(screen.getAllByRole('tab', { name: /Overview/ })[0]);
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+        expect(await screen.findByRole('heading', { name: '3 items need attention' })).toBeInTheDocument();
+        expect(fetchClubApproachSummary).toHaveBeenCalledTimes(2);
+        expect(fetchMyInterests).toHaveBeenCalledOnce();
+    });
+
+    it('shows enquiries and relationships even when the agency record fails', async () => {
+        vi.mocked(fetchAgentDashboard).mockRejectedValue(new Error('offline'));
+        renderPage('/agent?tab=inbox');
+
+        expect(await screen.findByText('Can we arrange a private call?')).toBeInTheDocument();
+        expect(screen.getByText('Your agency and portfolio couldn’t load. The rest of the hub is shown.')).toBeInTheDocument();
+    });
+
+    it('keeps a section that fails to refresh, marked as not refreshed, but drops one whose access was refused', async () => {
+        renderPage('/agent?tab=inbox');
+        expect(await screen.findByText('Can we arrange a private call?')).toBeInTheDocument();
+
+        vi.mocked(fetchMyInterests).mockRejectedValueOnce(new Error('offline'));
+        act(() => window.dispatchEvent(new Event('representation-updated')));
+        expect(await screen.findByText('Enquiries couldn’t refresh. Showing what was loaded earlier.')).toBeInTheDocument();
+        expect(screen.getByText('Can we arrange a private call?')).toBeInTheDocument();
+
+        vi.mocked(fetchMyInterests).mockRejectedValueOnce({ response: { status: 403 } });
+        act(() => window.dispatchEvent(new Event('representation-updated')));
+        await waitFor(() => expect(screen.queryByText('Can we arrange a private call?')).not.toBeInTheDocument());
+        expect(screen.getByText('Enquiries couldn’t load. The rest of the hub is shown.')).toBeInTheDocument();
+    });
+
     it('finishes loading through the StrictMode setup-cleanup-setup cycle', async () => {
         render(<StrictMode><MemoryRouter initialEntries={['/agent']}><AgentDashboardPage /></MemoryRouter></StrictMode>);
         expect(await screen.findByRole('heading', { name: '3 items need attention' })).toBeInTheDocument();

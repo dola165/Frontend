@@ -108,3 +108,15 @@
 .gk .gk-fund:hover { transform: translateY(-4px); box-shadow: var(--gk-store-lift); border-color: var(--gk-line-strong); }
 .gk .gk-fund:hover .gk-fund__pic { transform: none; box-shadow: none; }
 .gk .gk-fund__pic { aspect-ratio: 16 / 9; border-radius: var(--gk-r); }
+
+/* The organiser's entrance to one fundraiser: a quiet row, its two common tools in view and the rest behind More. */
+.gk .gk-fund-manage { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); margin-left: auto; }
+.gk .gk-fund-manage[data-compact] { margin-left: 0; padding-top: var(--gk-2); }
+.gk .gk-fund-manage__label { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-fund-manage__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-fund-manage__error { flex-basis: 100%; font-size: var(--gk-fs-sm); color: var(--gk-danger); }
+.gk .gk-fund-grid > li { display: flex; flex-direction: column; }
+/* A manager's tool opened for one fundraiser: inside the page frame, without a second frame's margins. */
+.gk .gk-fund-tool > .cm-page { padding: var(--gk-4) 0 0; max-width: none; }
+.gk .gk-fund-tool[data-tool="report"] { max-width: 720px; }
+@media (max-width: 900px) { .gk .gk-fund-manage { margin-left: 0; flex-basis: 100%; } }

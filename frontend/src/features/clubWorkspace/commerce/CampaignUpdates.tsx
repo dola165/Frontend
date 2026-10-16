@@ -7,15 +7,15 @@ import { campaignDate, type Campaign } from '../../campaigns/api';
 import { EditorDiscardPrompt } from './CommerceEditor';
 
 /** Progress updates for a published campaign: earlier updates, and a new one to publish to supporters. */
-export function CampaignUpdates({ campaign, saving, error, onCancel, onSubmit }: {
-    campaign: Campaign; saving: boolean; error: string; onCancel: () => void; onSubmit: (title: string, body: string) => Promise<void>;
+export function CampaignUpdates({ campaign, saving, error, onCancel, onSubmit, backLabel = 'Back to campaigns' }: {
+    campaign: Campaign; saving: boolean; error: string; onCancel: () => void; onSubmit: (title: string, body: string) => Promise<void>; backLabel?: string;
 }) {
     const [title, setTitle] = useCommerceDraftState('form:updateTitle', '');
     const [body, setBody] = useCommerceDraftState('form:updateBody', '');
     const [discard, setDiscard] = useState(false);
     const close = () => { if (title || body) setDiscard(true); else onCancel(); };
     return <PageFrame className="cw-page cm-page">
-        <div className="cm-editor__back"><Button variant="ghost" size="sm" disabled={saving} onClick={close}><ArrowLeft aria-hidden="true" />Back to campaigns</Button></div>
+        <div className="cm-editor__back"><Button variant="ghost" size="sm" disabled={saving} onClick={close}><ArrowLeft aria-hidden="true" />{backLabel}</Button></div>
         <PageHeader title="Campaign updates" subtitle={campaign.title} />
         <div className="cm-updates">
             <form className="gk-panel cm-section" aria-label="New update" onSubmit={event => { event.preventDefault(); if (!saving) void onSubmit(title.trim(), body.trim()); }}>

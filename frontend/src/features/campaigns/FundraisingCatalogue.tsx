@@ -5,6 +5,7 @@ import { Button, Chip, EmptyNote, Field, SearchInput } from '../../design/primit
 import { useWorldData } from '../world/useWorldData';
 import { CAMPAIGN_CATEGORIES, fetchCampaignLocations, type CampaignSort } from './api';
 import { FundraiserCard, FundraiserSkeletons } from './FundraiserCard';
+import { ManageFundraiser } from './manage/ManageFundraiser';
 import { activeFilters, PAGE_SIZE, readFundraising, SORTS, STATES, withoutFilter, type FundraisingQuery } from './query';
 import { useFundraising } from './useFundraising';
 
@@ -72,7 +73,7 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
 }
 
 /** The fundraising catalogue in the store's frame: filter column (a sheet on phones and inside the club page), toolbar, category pills, grid. */
-export function FundraisingCatalogue({ fixedClubId, revision = 0 }: { fixedClubId?: number; revision?: number }) {
+export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false }: { fixedClubId?: number; revision?: number; /** The viewer runs the club's fundraisers: each card gets its Manage entrance. */ manage?: boolean }) {
     const id = useId();
     const { query, update, campaigns, total, loading, error, retry } = useFundraising(fixedClubId, revision);
     const [sheet, setSheet] = useState(false);
@@ -97,7 +98,7 @@ export function FundraisingCatalogue({ fixedClubId, revision = 0 }: { fixedClubI
                 {error ? <div className="gk-store-results__empty"><EmptyNote title="Fundraisers could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote></div>
                     : loading && !campaigns.length ? <ul className="gk-store-grid gk-fund-grid" aria-busy="true" aria-label="Loading fundraisers"><FundraiserSkeletons count={6} /></ul>
                     : !campaigns.length ? <div className="gk-store-results__empty"><EmptyNote title={query.query ? `Nothing matches “${query.query}”` : 'No fundraisers match these filters'} action={(filters.length > 0 || query.query) && <Button size="sm" onClick={() => update(readFundraising(new URLSearchParams(), fixedClubId))}>Clear search and filters</Button>}>Try another word or fewer filters, or include ended fundraisers.</EmptyNote></div>
-                    : <ul className="gk-store-grid gk-fund-grid" aria-busy={loading} aria-label="Fundraisers">{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} /></li>)}</ul>}
+                    : <ul className="gk-store-grid gk-fund-grid" aria-busy={loading} aria-label="Fundraisers">{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} />{manage && <ManageFundraiser campaign={campaign} allowed onChanged={retry} compact />}</li>)}</ul>}
                 {pages > 1 && <div className="gk-store-results__foot"><Pages page={query.page} pages={pages} onPage={page => { update({ ...query, page }); window.scrollTo({ top: 0 }); }} /></div>}
             </div>
             <Dialog open={sheet} title="Filters" size="sheet" onClose={() => setSheet(false)} footer={<Button variant="primary" onClick={() => setSheet(false)}>Show {total} {total === 1 ? 'fundraiser' : 'fundraisers'}</Button>}>

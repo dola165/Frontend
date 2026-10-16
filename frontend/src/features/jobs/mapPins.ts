@@ -20,22 +20,27 @@ export function filterListings(jobs: Job[], query: JobsSearch) {
     });
 }
 
-/** Listings as pins: a club's roles at its ground (crest and count); people's listings counted at their town, never named. */
-export function pinsOf(jobs: Job[]): { points: WorldMapPoint[]; placed: number } {
-    const pins = new Map<string, WorldMapPoint & { n: number }>();
-    let placed = 0;
+/**
+ * Listings as pins: a club's roles at its ground (crest and count); people's listings counted at their town, never
+ * named. `members` says which listings each pin holds; a pin with one opens it, a pin with several opens their list
+ * (with the column's filters kept).
+ */
+export function pinsOf(jobs: Job[], query?: Partial<JobsSearch>): { points: WorldMapPoint[]; placed: number; members: Map<string, Job[]> } {
+    const members = new Map<string, Job[]>();
     for (const job of jobs) {
         if (!job.place) continue;
-        placed += 1;
         const poster = posterOf(job);
         const id = poster.kind === 'CLUB' ? `club:${poster.id}` : `area:${(job.clubCityName ?? poster.city ?? '').toLowerCase()}`;
-        const pin = pins.get(id);
-        if (pin) { pin.n += 1; continue; }
-        pins.set(id, poster.kind === 'CLUB'
-            ? { id, lat: job.place.lat, lng: job.place.lng, label: poster.name, tone: 'club', crest: poster.avatarUrl, to: clubJobsPath(poster.id), action: 'Open the club’s jobs', n: 1 }
-            : { id, lat: job.place.lat, lng: job.place.lng, label: job.clubCityName ?? poster.city ?? 'Listings', tone: 'person', approximate: 'area', to: jobsPath({ city: job.clubCityName ?? poster.city ?? '', poster: 'people' }), action: 'See the listings', n: 1 });
+        members.set(id, [...(members.get(id) ?? []), job]);
     }
-    const points = [...pins.values()].map(({ n, ...pin }) => ({ ...pin, count: n, meta: pin.tone === 'club' ? `${n} open ${n === 1 ? 'role' : 'roles'}` : `${n} ${n === 1 ? 'listing' : 'listings'} by people` }));
-    return { points, placed };
+    const kept = { ...query, page: 0, job: undefined };
+    const points = [...members.entries()].map(([id, held]): WorldMapPoint => {
+        const job = held[0], poster = posterOf(job), n = held.length, town = job.clubCityName ?? poster.city ?? '';
+        const base = { id, lat: job.place!.lat, lng: job.place!.lng, count: n };
+        const one = n === 1 ? { to: `/jobs/${job.id}`, action: 'Open the listing' } : null;
+        return poster.kind === 'CLUB'
+            ? { ...base, label: poster.name, tone: 'club', crest: poster.avatarUrl, meta: n === 1 ? job.title : `${n} open roles`, ...(one ?? { to: clubJobsPath(poster.id, { ...kept, clubId: undefined }), action: 'Open the club’s jobs' }) }
+            : { ...base, label: town || 'Listings', tone: 'person', approximate: 'area', meta: n === 1 ? job.title : `${n} listings by people`, ...(one ?? { to: jobsPath({ ...kept, city: town, poster: 'people' }), action: 'See the listings' }) };
+    });
+    return { points, placed: [...members.values()].reduce((sum, held) => sum + held.length, 0), members };
 }
-

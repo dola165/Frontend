@@ -15,6 +15,8 @@ import { termsComplete } from './termsComplete';
 import { useAdmissionCopy } from './copy';
 import { PlayerCardEditor } from './PlayerCardEditor';
 import { playerPath, usePlayerSelection } from '../../parents/playerSelection';
+import { Crest } from '../../../design/visuals';
+import { useClubCrest } from '../../squadCommunication/useClubCrest';
 import './joining.css';
 
 const bornIn = (p: Participant) => Number(p.dateOfBirth?.slice(0, 4));
@@ -51,8 +53,8 @@ function OpportunityDetailContent({ id }: { id: number }) {
     const cost = !o.terms.feesKnown ? copy('Price to be confirmed', 'ფასი დასაზუსტებელია') : fee ? `${fee.amount} ${fee.currency} · ${copy(fee.frequency, FREQUENCY_KA[fee.frequency.toLowerCase()] ?? fee.frequency)}` : copy('Free', 'უფასო');
     return <JoinFrame>
         <header className="jn-head">
-            <h1>{o.name}</h1>
-            <p>{o.organizationName} · {copy('born', 'დაბ.')} {o.birthYearFrom}–{o.birthYearTo} · <span className="jn-availability" data-open={o.availability !== 'CLOSED' && o.availability !== 'WAITLIST'}>{availability(o.availability)}</span></p>
+            <div className="jn-head__title"><GroupCrest clubId={o.clubId} name={o.organizationName} /><h1>{o.name}</h1></div>
+            <p>{o.clubId ? <Link to={`/clubs/${o.clubId}`}>{o.organizationName}</Link> : o.organizationName} · {copy('born', 'დაბ.')} {o.birthYearFrom}–{o.birthYearTo} · <span className="jn-availability" data-open={o.availability !== 'CLOSED' && o.availability !== 'WAITLIST'}>{availability(o.availability)}</span></p>
             <ul className="jn-facts">
                 <li><Clock3 aria-hidden="true" />{o.schedule || copy('Arrange with the club', 'შეათანხმეთ კლუბთან')}</li>
                 <li><MapPin aria-hidden="true" />{o.location.latitude != null && o.location.longitude != null ? <Link to={`/world?opportunity=${o.id}${player ? `&player=${player.id}` : ''}`} aria-label={copy('View actual training venue on map', 'ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}>{o.location.name}</Link> : o.location.name}</li>
@@ -86,6 +88,11 @@ function OpportunityDetailContent({ id }: { id: number }) {
         <details className="jn-box jn-fold"><summary>{copy('Full terms', 'სრული პირობები')}</summary><TermsFacts terms={o.terms} /></details>
         <p className="jn-links"><Link to={playerPath(`/admissions/organizations/${o.organizationId}/inquire?group=${o.id}`, player?.id)}>{copy('Ask this organization to recommend a group', 'სთხოვეთ ორგანიზაციას ჯგუფის რეკომენდაცია')}</Link></p>
     </JoinFrame>;
+}
+
+function GroupCrest({ clubId, name }: { clubId: number | null; name: string }) {
+    const crest = useClubCrest(clubId ?? undefined);
+    return <Crest src={crest} name={name} size={40} />;
 }
 
 function JoinFrame({ children }: { children: ReactNode }) {

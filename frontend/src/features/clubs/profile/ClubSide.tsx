@@ -12,17 +12,18 @@ import type { ClubProfile } from './types';
 
 /** The right column beside every club tab: the club's store, jobs and fundraising (the open one marked), then its sponsors. */
 export function ClubSide({ club, canEdit = false }: { club: ClubProfile; canEdit?: boolean }) {
-    const opportunities = useClubOpportunityPreview(club.id);
+    // Visitors see only what the club has published: an empty store, jobs list or fundraising stays out of sight.
+    const opportunities = useClubOpportunityPreview(club.id).filter(item => canEdit || item.source.loading || Boolean(item.count));
     const [params] = useSearchParams();
     const open = clubTabFrom(params.get('tab')) === 'involved' ? involvedKindFrom(params) : null;
     const sponsors = club.presentation?.sponsors.filter(s => s.published && !s.promotionBlocked) ?? [];
     const affiliations = club.presentation?.affiliations.filter(a => a.status === 'ACTIVE') ?? [];
     return <>
-        <SideBlock title="Get involved" hint="Shop, work or give" action={canEdit ? <EditLink to={`/clubs/${club.id}?edit=1&panel=involved`} /> : undefined}>
+        {opportunities.length > 0 && <SideBlock title="Get involved" hint="Shop, work or give" action={canEdit ? <EditLink to={`/clubs/${club.id}?edit=1&panel=involved`} /> : undefined}>
             <List label="Ways to get involved">{opportunities.map(item => <ListRow key={item.key} to={item.to} current={open === (item.key === 'campaigns' ? 'fundraising' : item.key)}
                 lead={<span className="gk-club-icon" data-kind={item.key}><item.icon aria-hidden="true" /></span>} title={item.title}
                 meta={item.source.loading ? 'Loading…' : item.source.failed ? 'Currently unavailable' : item.count ? `${item.count} ${item.count === 1 ? item.unit.replace(/s$/, '') : item.unit}` : item.empty} />)}</List>
-        </SideBlock>
+        </SideBlock>}
         {/* The academy link itself sits under the club name; only managing it stays here. */}
         {affiliations.some(a => a.canManageProfile) && <SideBlock title="Academy profile">
             {affiliations.filter(a => a.canManageProfile).map(a => <ButtonLink key={a.id} size="sm" to={`/clubs/${a.clubId}/profile-settings`}>Manage {a.name} profile</ButtonLink>)}

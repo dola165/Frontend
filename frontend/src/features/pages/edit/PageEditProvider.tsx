@@ -6,9 +6,9 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { recordFunnelEvent } from '../../feed/feedEvents';
 import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } from '../../organizations/setup/setupRecovery';
 import { PageConflict, fetchPage, isPageView, goLive as goLiveCall, saveBox as saveBoxCall, saveIdentity as saveIdentityCall, saveLayout as saveLayoutCall, type PageIdentity, type PageRef, type PageView, type SavableBox } from '../api';
-import { PageEditContext, isPanelKey, type IdentityPatch, type PageEdit, type PanelKey, type SaveOptions, type SaveStatus } from './context';
+import { PageEditContext, SETUP_PANEL, isPanelKey, type IdentityPatch, type PageEdit, type PanelKey, type SaveOptions, type SaveStatus } from './context';
 import { pt } from '../copy';
-import { BOX_COLUMN, insertionIndex, type BoxKey, type Column, type PageLayout } from '../model/kinds';
+import { BOX_COLUMN, insertionIndex, type BoxKey, type Column, type PageLayout, type SetupKey } from '../model/kinds';
 import { boxData } from './boxData';
 
 /** An edit that could not be sent: kept in the tab and sent again when the page opens next. */
@@ -74,6 +74,14 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   // A panel is a step in history, so Back closes it.
   const openPanel = useCallback((next: PanelKey) => go(search => { search.set(EDIT, '1'); search.set(PANEL, next); search.delete(REARRANGE); search.delete('new'); search.delete('claimed'); }, true), [go]);
   const closePanel = useCallback(() => go(next => next.delete(PANEL)), [go]);
+  // The About is no panel: it is typed where it shows, so its step turns edit mode on and opens that line.
+  const openStep = useCallback((step: SetupKey) => {
+    if (step !== 'about') { openPanel(SETUP_PANEL[step]); return; }
+    go(next => { next.set(EDIT, '1'); next.delete(PANEL); next.delete(REARRANGE); });
+    let tries = 0;
+    const open = () => { const button = document.querySelector<HTMLButtonElement>('[data-step="about"] .gk-inline__open'); if (button) button.click(); else if (++tries < 20) window.setTimeout(open, 50); };
+    window.setTimeout(open, 0);
+  }, [go, openPanel]);
 
   const settle = useCallback((next: SaveStatus) => {
     setStatus(next);
@@ -196,8 +204,8 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   const failed = Boolean(loaded?.key === key && loaded.failed), notFound = Boolean(loaded?.key === key && loaded.notFound);
   const value = useMemo<PageEdit>(() => ({
     pageRef, page, loading, failed, notFound, retry: () => setAttempt(value => value + 1),
-    editing, canEdit, setEditing, panel, openPanel, closePanel, rearranging, setRearranging, arrival, status, pendingCount: pending.length,
+    editing, canEdit, setEditing, panel, openPanel, openStep, closePanel, rearranging, setRearranging, arrival, status, pendingCount: pending.length,
     saveIdentity, saveBox, saveLayout, hideBox, showBox, moveBox, reorder, goLive, replace,
-  }), [arrival, canEdit, closePanel, editing, failed, goLive, hideBox, loading, moveBox, notFound, openPanel, page, pageRef, panel, pending.length, rearranging, reorder, replace, saveBox, saveIdentity, saveLayout, setEditing, setRearranging, showBox, status]);
+  }), [arrival, canEdit, closePanel, editing, failed, goLive, hideBox, loading, moveBox, notFound, openPanel, openStep, page, pageRef, panel, pending.length, rearranging, reorder, replace, saveBox, saveIdentity, saveLayout, setEditing, setRearranging, showBox, status]);
   return <PageEditContext.Provider value={value}>{children}</PageEditContext.Provider>;
 }

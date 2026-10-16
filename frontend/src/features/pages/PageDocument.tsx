@@ -5,6 +5,7 @@ import { ProfileLayout } from '../../design/profile/ProfileLayout';
 import type { TabItem } from '../../design/Tabs';
 import { usePagesCopy } from './copy';
 import { EditBar } from './edit/EditBar';
+import { AboutLine } from './edit/AboutLine';
 import { InlineText } from './edit/InlineText';
 import { PageColumn } from './edit/PageColumn';
 import { usePageEdit } from './edit/context';
@@ -39,7 +40,7 @@ export function PageDocument<T extends string>({ renderers, tabs, tab, onTab, ta
         line: <>{t(kind)}{page.viewer.role === 'OWNER' && <> · {t('Your role: Owner')}</>}</>,
         facts: [<><MapPin aria-hidden="true" />{identity.town.name}</>],
         summary: about || undefined,
-        summaryNode: editing ? <InlineText as="p" multiline value={identity.about} placeholder={t('Say what you are, in a line or two')} label={t('About')} maxLength={600} className="gk-profile__summary" onSave={next => void saveIdentity({ about: next, aboutAuto: false }, { label: t('About saved') })} /> : undefined,
+        summaryNode: editing ? <AboutLine /> : undefined,
       }}
       banner={identity.cover?.url ?? null}
       bannerAction={editing ? <Button size="sm" onClick={() => openPanel('cover')}><Camera aria-hidden="true" />{identity.cover ? t('Change cover') : t('Add cover')}</Button> : undefined}

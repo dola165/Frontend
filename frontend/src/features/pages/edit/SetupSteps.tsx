@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Check, ChevronRight, X } from 'lucide-react';
 import { usePagesCopy } from '../copy';
 import { SETUP_ITEMS, type SetupKey } from '../model/kinds';
-import { SETUP_PANEL, usePageEdit } from './context';
+import { usePageEdit } from './context';
 import { SETUP_WORDS, STEP_ICONS } from './words';
 import './edit.css';
 
@@ -32,7 +32,7 @@ export function SetupRing({ done, total, size = 28 }: { done: number; total: num
  */
 export function SetupSteps({ onClose }: { onClose: () => void }) {
   const t = usePagesCopy();
-  const { page, openPanel } = usePageEdit();
+  const { page, openStep } = usePageEdit();
   const [glow, setGlow] = useState(false);
   const done = page?.setup.done ?? 0;
   const previous = useRef(done);
@@ -57,7 +57,7 @@ export function SetupSteps({ onClose }: { onClose: () => void }) {
           const Icon = STEP_ICONS[item.key];
           return (
             <li key={item.key}>
-              <button type="button" className="gk-setup__step" data-done={item.done || undefined} data-next={item.key === next || undefined} onClick={() => { onClose(); openPanel(SETUP_PANEL[item.key]); }}>
+              <button type="button" className="gk-setup__step" data-done={item.done || undefined} data-next={item.key === next || undefined} onClick={() => { onClose(); openStep(item.key); }}>
                 <span className="gk-setup__icon"><Icon aria-hidden="true" /></span>
                 <span className="gk-setup__text"><span className="gk-setup__name">{t(SETUP_WORDS[item.key])}</span><span className="gk-setup__why">{t(WHY[item.key])}</span></span>
                 {item.done

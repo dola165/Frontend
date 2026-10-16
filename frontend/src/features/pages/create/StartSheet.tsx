@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { Check, Loader2, Lock, MapPin } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { getAuthFlow } from '../../../utils/authRedirect';
 import { Dialog } from '../../../design/Dialog';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { recordFunnelEvent } from '../../feed/feedEvents';
@@ -37,7 +38,9 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const preset = kind ?? (FOOTBALL_ENTRIES.includes(from) ? 'CLUB' : null);
   const [chosen, setChosen] = useState<PageKind | null>(() => { const start = kind ?? draft?.kind ?? preset; return start && !locked(start) ? start : null; });
   const [name, setName] = useState(draft?.name ?? '');
-  const [town, setTown] = useState<Town>(() => townByName(draft?.town) ?? DEFAULT_TOWN);
+  // The town is the one the person picked here, else the one they registered with, else the one they chose at the start.
+  const [town, setTown] = useState<Town>(() => townByName(draft?.town) ?? townByName(getAuthFlow().town) ?? DEFAULT_TOWN);
+  const [townPicked, setTownPicked] = useState(Boolean(townByName(draft?.town)));
   const [townOpen, setTownOpen] = useState(false);
   const [found, setFound] = useState<{ key: string; items: SimilarPage[] } | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);
@@ -48,12 +51,12 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   useEffect(() => { recordFunnelEvent('PAGE_CREATE_OPENED', { from }); }, [from]);
   // The town already filled in: the one the person chose at the start, else where they registered.
   useEffect(() => {
-    if (draft?.town) return;
+    if (townByName(draft?.town)) return;
     const controller = new AbortController();
     fetchFeedPreferences(controller.signal).then(prefs => { const known = townByName(prefs.town?.name); if (known && !controller.signal.aborted) setTown(known); }).catch(() => undefined);
     return () => controller.abort();
   }, [draft?.town]);
-  useEffect(() => { writeSetupRecovery(user?.id, DRAFT, { kind: chosen, name, town: town.name } satisfies StartDraft); }, [chosen, name, town.name, user?.id]);
+  useEffect(() => { writeSetupRecovery(user?.id, DRAFT, { kind: chosen, name, town: townPicked ? town.name : '' } satisfies StartDraft); }, [chosen, name, town.name, townPicked, user?.id]);
   // The dialog puts focus on its first control; once a type is chosen the name is what matters.
   // A restored draft is selected so typing replaces it; an empty field is only focused, so no keystroke is swallowed.
   useEffect(() => { if (chosen) { const frame = requestAnimationFrame(() => { const field = nameRef.current; if (!field) return; field.focus(); if (field.value) field.select(); }); return () => cancelAnimationFrame(frame); } }, [chosen]);
@@ -126,7 +129,7 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
           </div>
           {townOpen && (
             <ul className="gk-ctowns" aria-label={t('Town')}>
-              {TOWNS.map(item => <li key={item.name}><button type="button" className="gk-chip" aria-pressed={item.name === town.name} onClick={() => { setTown(item); setTownOpen(false); nameRef.current?.focus(); }}>{item.name}</button></li>)}
+              {TOWNS.map(item => <li key={item.name}><button type="button" className="gk-chip" aria-pressed={item.name === town.name} onClick={() => { setTown(item); setTownPicked(true); setTownOpen(false); nameRef.current?.focus(); }}>{item.name}</button></li>)}
             </ul>
           )}
           {shown.length > 0 && (

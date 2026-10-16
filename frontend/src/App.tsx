@@ -19,6 +19,7 @@ import { AppSettingsPage } from './android/AppSettingsPage';
 import { ExtensionRoute } from './features/capabilities/ExtensionBoundary';
 import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from './features/roles/routes';
 import { LegacyMatchesRedirect, TournamentSetupRedirect, WorldRedirect } from './features/world/WorldRedirect';
+import { keepRegistrationTown } from './features/start/startApi';
 import { useAutomaticActivity } from './features/start/useAutomaticActivity';
 
 import { RouteViewport } from './components/layout/RouteViewport';
@@ -200,7 +201,12 @@ export function MainLayout() {
         // Installing a session remounts this layout. Keep its continuation available
         // until the router arrives, so GuestOnlyRoute and the login callback agree.
         // location.key also covers a late login callback replacing the same destination.
-        if (status === 'authenticated' && !requiredAccountStep(user) && !isAuthFlowRoute(location.pathname)) clearAuthFlow();
+        if (status === 'authenticated' && !requiredAccountStep(user) && !isAuthFlowRoute(location.pathname)) {
+            // A new account's sign-up town outlives the flow even when the first run did not save it.
+            const { newAccount, town } = getAuthFlow();
+            if (newAccount && town) void keepRegistrationTown(town).catch(() => undefined);
+            clearAuthFlow();
+        }
     }, [status, user, location.pathname, location.key]);
     const [myClubId, setMyClubId] = useState<number | null>(null);
     const managedClubs = (user?.navigationCapabilities?.workspaces ?? [])

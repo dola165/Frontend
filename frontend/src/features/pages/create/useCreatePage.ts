@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { appLanguage } from '../../../utils/formatting';
 import { recordFunnelEvent } from '../../feed/feedEvents';
 import { clearSetupRecovery, isRecord, isRequestId, readSetupRecovery, writeSetupRecovery } from '../../organizations/setup/setupRecovery';
 import type { Town } from '../../start/towns';
@@ -49,7 +50,7 @@ export function useCreatePage() {
     const same = pending && pending.body.displayName === displayName && pending.body.pageKind === kind ? pending : null;
     const requestId = same?.requestId ?? crypto.randomUUID();
     const request: Pending = same ?? { requestId, body: { requestId, displayName, pageKind: kind, organizationType: ORGANIZATION_TYPE[kind], clubCategory: kind === 'CLUB' ? DEFAULT_CLUB_CATEGORY : null,
-      venueEnabled: false, tournamentEnabled: draw, location: town ? { latitude: town.latitude, longitude: town.longitude, city: town.name } : null } };
+      venueEnabled: false, tournamentEnabled: draw, location: town ? { latitude: town.latitude, longitude: town.longitude, city: town.name } : null, language: appLanguage() === 'ka' ? 'ka' : 'en' } };
     // Saved before sending: leaving the page can never turn an unanswered request into a fresh one.
     writeSetupRecovery(user?.id, RECOVERY, request);
     setPending(request);

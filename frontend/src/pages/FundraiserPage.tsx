@@ -22,13 +22,16 @@ const share = async (campaign: Campaign) => {
     } catch { toast.error('Could not share this link', { description: url }); }
 };
 
-/** The fundraiser itself, as GoFundMe shows one: the story on the left, the giving card with the bar, Donate and Share beside it. */
+/**
+ * The fundraiser itself, as GoFundMe shows one: the story on the left, the giving card with the bar, Donate and Share
+ * beside it. On a phone the giving card follows the title, cover and organiser, before the story and updates.
+ */
 function Fundraiser({ campaign }: { campaign: Campaign }) {
     const open = campaign.phase === 'ACTIVE';
     const cover = campaign.images?.[0];
     return (
         <div className="gk-fund-page">
-            <article className="gk-fund-story">
+            <header className="gk-fund-story gk-fund-page__head">
                 <h1>{campaign.title}</h1>
                 <div className="gk-fund-cover">{cover ? <MediaImage src={resolveMediaUrl(cover)} alt="" /> : <HeartHandshake size={48} aria-hidden="true" />}</div>
                 <Link className="gk-fund-organiser" to={clubFundraisingPath(campaign.clubId)} style={{ borderTop: 0, paddingTop: 0 }}>
@@ -36,6 +39,8 @@ function Fundraiser({ campaign }: { campaign: Campaign }) {
                     <span className="gk-fund-organiser__text"><small>Run by</small><strong>{campaign.clubName}</strong><small>{[campaign.city, campaignCategory(campaign.category), !open ? campaignPhase(campaign.phase) : null].filter(Boolean).join(' · ')}</small></span>
                     <ChevronRight size={16} aria-hidden="true" style={{ marginLeft: 'auto', color: 'var(--gk-text-3)' }} />
                 </Link>
+            </header>
+            <article className="gk-fund-story gk-fund-page__body">
                 <p className="gk-fund-story__text">{campaign.description || campaign.summary}</p>
                 {campaign.useOfFunds && <section><h2>Where the money goes</h2><p className="gk-fund-story__text">{campaign.useOfFunds}</p></section>}
                 {campaign.updates.length > 0 && <section><h2>Updates</h2>{campaign.updates.map(update => <div key={update.id} className="gk-fund-update"><strong>{update.title}</strong><time dateTime={update.createdAt}>{campaignDate(update.createdAt)}</time><p>{update.body}</p></div>)}</section>}

@@ -47,7 +47,7 @@ export function ClubNumbers({ clubId, overview, roles, boot, tabs, tryoutPending
     const work = useOutstandingWork(has('finance') ? clubId : null, null);
     const overdueMoney = work.rows.filter(record => record.module === 'FINANCE' && !isFinished(record.status) && (record.expired || dueLabel(record.attentionDate ?? record.due_on, now, false)?.overdue)).length;
     const live = commerce?.campaigns?.filter(campaign => campaign.status === 'PUBLISHED') ?? [];
-    const raised = live.reduce((sum, campaign) => sum + progressOf(campaign).raised, 0), goal = live.reduce((sum, campaign) => sum + (campaign.goalAmount ?? 0), 0);
+    const raised = live.reduce((sum, campaign) => sum + (progressOf(campaign).raised ?? 0), 0), goal = live.reduce((sum, campaign) => sum + (campaign.goalAmount ?? 0), 0);
     const currency = live[0]?.currency ?? 'GEL';
     const squads = roles?.squads ?? [], players = squads.reduce((sum, squad) => sum + squad.player_count, 0);
     const trials = overview?.trialistCount ?? 0, overdueTrials = overview?.overdueTrialistCount ?? 0;

@@ -41,6 +41,13 @@ describe('The search in the address', () => {
     });
 });
 
+describe('Progress', () => {
+    it('keeps an unreported amount unknown, never zero raised', () => {
+        expect(api.progressOf({ ...campaign, reportedAmount: null })).toMatchObject({ raised: null, percent: null, donations: null, reached: false });
+        expect(api.progressOf({ ...campaign, reportedAmount: 0 })).toMatchObject({ raised: 0, percent: 0, donations: 31 });
+    });
+});
+
 describe('Front, catalogue and the fundraiser', () => {
     it('shows the fundraisers near the person and opens the catalogue from every door', async () => {
         render(<MemoryRouter initialEntries={['/campaigns']}><Routes><Route path="/campaigns" element={<FundraisingPage />} /></Routes></MemoryRouter>);

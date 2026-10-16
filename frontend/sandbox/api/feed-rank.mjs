@@ -69,7 +69,8 @@ function classify(post) {
   const club = post.clubId ? W.clubById(post.clubId) : null;
   let topic = RULES.find(([, pattern]) => pattern.test(text))?.[0];
   if (!post.clubId && (['REFEREE', 'SPECIALIST', 'AGENT'].includes(author?.role) || ADVICE.test(text))) topic = 'ADVICE';
-  if (!topic) topic = post.clubId ? 'CLUB_NEWS' : 'PERSONAL';
+  // A page's own post (a club, a fan club, a business) is that page's news, never a person's.
+  if (!topic) topic = post.clubId || post.organizationId ? 'CLUB_NEWS' : 'PERSONAL';
   topic = OVERRIDES.get(post.id)?.topic ?? topic;
   const tags = [];
   if (YOUTH.test(text) || club?.type === 'ACADEMY' || club?.type === 'SCHOOL') tags.push('YOUTH');

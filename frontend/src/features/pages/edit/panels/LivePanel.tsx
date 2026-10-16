@@ -37,9 +37,9 @@ export function LivePanel() {
     try { await navigator.clipboard.writeText(url); setCopied(true); recordFunnelEvent('PAGE_SHARED', { via: 'copy', pageRef: `${page.ref.type}-${page.ref.id}` }); window.setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); }
   };
   return (
-    <SplitPanel title={t('Your page is live')} description={t('It now shows in World, in search and in the feed. Share it with the parents’ group.')} onClose={closePanel}
+    <SplitPanel title={t('Your page is live')} description={t(page.kind === 'CLUB' ? 'It now shows in World, in search and in the feed. Share it with the parents’ group.' : 'It now shows in World, in search and in the feed. Share it where your people are.')} onClose={closePanel}
       footer={<Button variant="primary" onClick={closePanel}>{t('Done')}</Button>}
-      preview={<div className="gk-crest-preview"><QRCodeSVG value={url} size={148} bgColor={visualColors.paper} fgColor={visualColors.qrInk} /><span className="gk-muted">{t('For the training ground')}</span></div>}>
+      preview={<div className="gk-crest-preview"><QRCodeSVG value={url} size={148} bgColor={visualColors.paper} fgColor={visualColors.qrInk} /><span className="gk-muted">{t(page.kind === 'CLUB' ? 'For the training ground' : 'To print or show')}</span></div>}>
       <div className="gk-boxedit">
         <div className="gk-cmatch__page"><Crest src={page.identity.crest.url} name={page.identity.name} size={44} /><span className="gk-cmatch__text"><strong>{page.identity.name}</strong><small>{url.replace(/^https?:\/\//, '')}</small></span></div>
         <div className="gk-boxedit__foot">

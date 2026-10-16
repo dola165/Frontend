@@ -10,7 +10,7 @@ import { AboutLine } from './AboutLine';
 import { InlineText } from './InlineText';
 import { SETUP_PANEL, usePageEdit } from './context';
 import { usePhoneSteps } from './usePhoneSteps';
-import { SETUP_WORDS, STEP_ICONS, STEP_WHY } from './words';
+import { STEP_ICONS, stepWhy, stepWords } from './words';
 import './phone-steps.css';
 
 const END = 'end';
@@ -77,7 +77,7 @@ export function PhoneSteps() {
       : null;
     return <>
       {summary && <div className="gk-phonesteps__summary">{summary}</div>}
-      <Button variant={done ? 'secondary' : 'primary'} className="gk-phonesteps__cta" onClick={() => openPanel(SETUP_PANEL[key])}>{t(ACTION[key] ?? SETUP_WORDS[key])}</Button>
+      <Button variant={done ? 'secondary' : 'primary'} className="gk-phonesteps__cta" onClick={() => openPanel(SETUP_PANEL[key])}>{t(ACTION[key] ?? stepWords(page.kind, key))}</Button>
     </>;
   };
 
@@ -90,8 +90,8 @@ export function PhoneSteps() {
       </header>
       <main className="gk-phonesteps__card" key={key ?? END}>
         <span className="gk-phonesteps__icon" data-done={done || undefined}>{done ? <Check aria-hidden="true" /> : <Icon aria-hidden="true" />}</span>
-        <h2 className="gk-phonesteps__title">{key ? t(SETUP_WORDS[key]) : t('Your page is ready')}</h2>
-        <p className="gk-phonesteps__why">{key ? t(STEP_WHY[key]) : t('Anything can change later, right on the page.')}</p>
+        <h2 className="gk-phonesteps__title">{key ? t(stepWords(page.kind, key)) : t('Your page is ready')}</h2>
+        <p className="gk-phonesteps__why">{key ? t(stepWhy(page.kind, key)) : t('Anything can change later, right on the page.')}</p>
         <div className="gk-phonesteps__body">{body()}</div>
       </main>
       <footer className="gk-phonesteps__foot">

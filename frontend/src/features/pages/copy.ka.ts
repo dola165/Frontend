@@ -518,4 +518,12 @@ export const PAGES_KA: Record<string, string> = {
   'Hide Dola': 'დოლას დამალვა',
   'Thinking…': 'ვფიქრობ…',
   'I help with setting up your page. Tap a box to fill it.': 'გვერდის მომზადებაში გეხმარებით. შესავსებად დააჭირეთ ბლოკს.',
+  'Upload your badge, or pick two colours and a shape. The page shows it at once.': 'ატვირთეთ ემბლემა ან აირჩიეთ ორი ფერი და ფორმა. გვერდზე მაშინვე გამოჩნდება.',
+  'Tap your pitch on the map or in the list. Not there? Type it under Another place.': 'მონიშნეთ თქვენი მოედანი რუკაზე ან სიაში. არ ჩანს? ჩაწერეთ „სხვა ადგილში“.',
+  'Say who plays, then tap the birth years you have. Each becomes a team.': 'მიუთითეთ, ვინ თამაშობს, და მონიშნეთ დაბადების წლები. თითოეული გუნდი გახდება.',
+  'Share a team’s link in your parents’ WhatsApp group. They add their own child.': 'გააზიარეთ გუნდის ბმული მშობლების WhatsApp ჯგუფში. შვილს თავად დაამატებენ.',
+  'Invite a coach by phone, or share the invite link.': 'მოიწვიეთ მწვრთნელი ტელეფონით ან გააზიარეთ მოსაწვევი ბმული.',
+  'Save': 'შენახვა',
+  'From': 'დან',
+  'To': 'მდე',
 };

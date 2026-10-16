@@ -10,6 +10,8 @@ import { usePhoneSteps } from '../edit/usePhoneSteps';
 import { stepWords } from '../edit/words';
 import { askPet, type PetAnswer } from './api';
 import { PetSprite, WALK_STEPS, type PetFrame } from './PetSprite';
+import { QuickAnswer } from './QuickAnswer';
+import { isQuick } from './quick';
 import { BOX } from './petFrames';
 import './pet.css';
 
@@ -25,6 +27,14 @@ const LINES: Record<string, string> = {
   players: 'One join link per team. Parents add their own child and you approve.',
   ready: 'That’s everything. Go live when you like; anything can change later.',
   waiting: 'To go live, add a ground or a way to reach you.',
+};
+/** What to do inside the pop-up a step opens; she follows the person into it. */
+const PANEL_LINES: Record<string, string> = {
+  crest: 'Upload your badge, or pick two colours and a shape. The page shows it at once.',
+  grounds: 'Tap your pitch on the map or in the list. Not there? Type it under Another place.',
+  squads: 'Say who plays, then tap the birth years you have. Each becomes a team.',
+  players: 'Share a team’s link in your parents’ WhatsApp group. They add their own child.',
+  staff: 'Invite a coach by phone, or share the invite link.',
 };
 const TITLES: Record<string, string> = { ready: 'Ready to go live', waiting: 'Almost ready' };
 /** Where each step is done on the page. */
@@ -90,9 +100,11 @@ export function DolaPet() {
   // An answer counts until the step it was asked at is done or skipped; then she moves on.
   const fresh = asked && asked.forStep === pending && asked.forCard === phone.open ? asked : null;
   const step = cardStep ?? fresh?.step ?? pending ?? (page?.goLive.ready ? 'ready' : 'waiting');
-  const under = Boolean(phone.open);
-  const selector = under ? '.gk-phonesteps__body' : TARGETS[step];
-  const away = hidden || Boolean(panel) || !page || page.status !== 'DRAFT';
+  // In a step's pop-up she sits on its top edge and says what to do there; other pop-ups she leaves alone.
+  const inPanel = panel && PANEL_LINES[panel] ? panel : null;
+  const under = Boolean(phone.open) && !inPanel;
+  const selector = inPanel ? '.gk-dialog' : under ? '.gk-phonesteps__body' : TARGETS[step];
+  const away = hidden || Boolean(panel && !inPanel) || !page || page.status !== 'DRAFT';
 
   // She waves hello first, and cheers each time a step gets done.
   const done = page?.setup.done ?? 0;
@@ -167,15 +179,18 @@ export function DolaPet() {
   };
 
   const frame: PetFrame = walking ? `Walk ${walking} · ${WALK_STEPS[tick]}` : thinking ? 'Thinking' : pose ?? `Point · ${spot.aim}`;
-  const isStep = items.some(item => item.key === step);
-  const title = isStep ? stepWords(page.kind, step as SetupKey) : TITLES[step];
-  const line = fresh?.answer ?? t(LINES[step]);
+  const shown = inPanel ?? step;
+  const isStep = items.some(item => item.key === shown);
+  const title = isStep ? stepWords(page.kind, shown as SetupKey) : TITLES[shown];
+  const line = inPanel ? t(PANEL_LINES[inPanel]) : fresh?.answer ?? t(LINES[step]);
+  // Short answers are typed right here; the phone's step cards have their own boxes for them.
+  const quick = !inPanel && !cardStep && isQuick(step) ? step : null;
   const vw = window.innerWidth;
   const side = under ? 'below' : spot.x + W + 8 + BUBBLE <= vw ? 'right' : spot.x - 8 - BUBBLE >= 0 ? 'left' : spot.y > 220 ? 'above' : 'below';
 
   return createPortal(
     <div className="gk gk-pet" data-still={still || undefined}>
-      {!under && <div className="gk-pet__spot" style={{ top: spot.rect.top - 6, left: spot.rect.left - 6, width: spot.rect.width + 12, height: spot.rect.height + 12 }} />}
+      {!under && !inPanel && <div className="gk-pet__spot" style={{ top: spot.rect.top - 6, left: spot.rect.left - 6, width: spot.rect.width + 12, height: spot.rect.height + 12 }} />}
       <div className="gk-pet__body" style={{ transform: `translate(${spot.x}px, ${spot.y}px)` }}>
         {!walking && (
           <div className="gk-pet__bubble" data-side={side} role="status" aria-live="polite">
@@ -189,10 +204,11 @@ export function DolaPet() {
               : <>
                   {title && <strong className="gk-pet__title">{t(title)}</strong>}
                   <p className="gk-pet__line">{line}</p>
-                  <span className="gk-pet__actions">
+                  {quick && <QuickAnswer key={quick} step={quick} page={page} />}
+                  {!inPanel && <span className="gk-pet__actions">
                     {isStep && <button type="button" className="gk-pet__action" onClick={skip}>{t('Skip')}</button>}
                     <button type="button" className="gk-pet__action gk-pet__action--quiet" onClick={() => setAsking(true)}>{t('Ask me')}</button>
-                  </span>
+                  </span>}
                 </>}
           </div>
         )}

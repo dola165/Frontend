@@ -1,5 +1,5 @@
-/* Dola, the page-creation pet: a fixed layer over the page (and over the phone's step cards). */
-.gk.gk-pet { position: fixed; inset: 0; z-index: 2100; pointer-events: none; }
+/* Above the phone's step cards and the pop-ups (4000), so she can follow the person into them. */
+.gk.gk-pet { position: fixed; inset: 0; z-index: 4100; pointer-events: none; }
 
 /* The step she points at stays lit; the rest of the page dims a little. Clicks still reach the page. */
 .gk-pet__spot { position: absolute; border-radius: var(--gk-r-lg); background: rgb(255 255 255 / .05);
@@ -42,3 +42,10 @@
 .gk-pet__peek-sprite { width: 100%; height: 100%; }
 @keyframes gk-pet-pop { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .gk-pet__bubble { animation: none; } }
+.gk-pet__quick { display: grid; gap: 6px; margin-top: 4px; }
+.gk-pet__quick .gk-pet__input { width: 100%; }
+.gk-pet__fees { display: flex; align-items: center; gap: 6px; }
+.gk-pet__fees .gk-pet__input { width: 80px; }
+.gk-pet__unit { color: var(--gk-text-2); }
+.gk-pet__action--main { background: var(--gk-accent); color: var(--gk-on-accent, #06210f); }
+.gk-pet__action:disabled { opacity: .6; cursor: default; }

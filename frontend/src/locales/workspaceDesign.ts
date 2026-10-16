@@ -36,7 +36,7 @@ export const workspaceShellKa: Record<keyof typeof workspaceShellEn, string> = {
 export const workspaceNavEn = {
     workspace: 'Club workspace', clubPage: 'Club page', clubStaff: 'Club staff', backTo: 'Back to {{name}}',
     'area-squads': 'Squads', 'area-players': 'Players', 'area-staff': 'Staff', 'area-joining': 'Joining', 'area-club': 'Club', 'area-settings': 'Settings',
-    overview: 'Today', 'coach-hub': 'Coach Hub', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools',
+    overview: 'Today', 'coach-hub': 'Coach Hub', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools', calendar: 'Calendar',
     personnel: 'Staff', players: 'Players', invites: 'Invitations', applications: 'Applications', roles: 'Ownership & access', 'club-approaches': 'Agent approaches',
     jobs: 'Hiring', programmes: 'Programmes & fees', store: 'Store', campaigns: 'Fundraising', settings: 'Club settings', squads: 'Squads',
     'player-cards': 'Player cards', tryouts: 'Tryouts', 'role-requests': 'Roles & requests',
@@ -55,7 +55,7 @@ export const workspaceNavEn = {
 export const workspaceNavKa: Record<keyof typeof workspaceNavEn, string> = {
     workspace: 'კლუბის სამუშაო სივრცე', clubPage: 'კლუბის გვერდი', clubStaff: 'კლუბის პერსონალი', backTo: 'უკან: {{name}}',
     'area-squads': 'გუნდები', 'area-players': 'მოთამაშეები', 'area-staff': 'პერსონალი', 'area-joining': 'გაწევრიანება', 'area-club': 'კლუბი', 'area-settings': 'პარამეტრები',
-    overview: 'დღეს', 'coach-hub': 'მწვრთნელის პანელი', inbox: 'კლუბის სიახლეები', actions: 'სამუშაო რიგი', tools: 'ყველა ინსტრუმენტი',
+    overview: 'დღეს', 'coach-hub': 'მწვრთნელის პანელი', inbox: 'კლუბის სიახლეები', actions: 'სამუშაო რიგი', tools: 'ყველა ინსტრუმენტი', calendar: 'კალენდარი',
     personnel: 'პერსონალი', players: 'მოთამაშეები', invites: 'მოწვევები', applications: 'განაცხადები', roles: 'მფლობელობა და წვდომა', 'club-approaches': 'აგენტების მიმართვები',
     jobs: 'დაქირავება', programmes: 'პროგრამები და საფასური', store: 'მაღაზია', campaigns: 'შემოწირულობები', settings: 'კლუბის პარამეტრები', squads: 'შემადგენლობები',
     'player-cards': 'მოთამაშის ბარათები', tryouts: 'სინჯები', 'role-requests': 'როლები და მოთხოვნები',

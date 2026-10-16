@@ -1,5 +1,6 @@
 import { squadDesignEn, squadsDesignEn } from './squadDesign';
 import { clubOverviewEn } from './clubOverview';
+import { clubRecordsEn } from './clubRecords';
 import { coachHubEn, fixtureCopyEn, responsibilitiesEn, workspaceNavEn, workspaceShellEn } from './workspaceDesign';
 import { recruitmentDesignEn } from './recruitmentDesign';
 
@@ -13,6 +14,7 @@ const en = {
     you: 'You',
   },
   clubOverview: clubOverviewEn,
+  clubRecords: clubRecordsEn,
   workspaceShell: workspaceShellEn,
   workspaceNav: workspaceNavEn,
   coachHub: coachHubEn,

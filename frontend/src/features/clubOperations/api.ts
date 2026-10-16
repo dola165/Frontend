@@ -1,4 +1,7 @@
 import { apiClient } from '../../api/axiosConfig';
+import { translate } from '../../locales/useCopy';
+import { clubRecordsEn, recordWordsKa } from '../../locales/clubRecords';
+import { appLanguage } from '../../utils/formatting';
 
 export interface Field { key: string; label: string; type: string; required: boolean; options: string[] }
 export interface Definition { module: string; kind: string; label: string; states: string[]; fields: Field[] }
@@ -41,20 +44,17 @@ export const root = (club: number) => `/clubs/${club}/operations`;
 export const get = async <T>(path: string, signal?: AbortSignal) => (await apiClient.get<T>(path, { signal })).data;
 export const put = async <T>(path: string, body: unknown) => (await apiClient.put<T>(path, body)).data;
 export const post = async <T>(path: string, body: unknown) => (await apiClient.post<T>(path, body)).data;
-export const label = (value: string) => value.toLowerCase().replaceAll('_', ' ').replace(/^./, c => c.toUpperCase());
+/** An enum word the server sends (PENDING, CLUB_CHECKED…) as a word people read, in the app's language. */
+export const label = (value: string) => (appLanguage() === 'ka' && recordWordsKa[value]) || value.toLowerCase().replaceAll('_', ' ').replace(/^./, c => c.toUpperCase());
 export const appointmentStatus = (a:Appointment) => a.effective_status?label(a.effective_status):a.status==='ACTIVE'?(a.ends_on&&a.ends_on.slice(0,10)<clubToday(a.timezone)?'Expired':a.starts_on.slice(0,10)>clubToday(a.timezone)?'Upcoming':'Active'):label(a.status);
 export const appointmentSquads = (a: Pick<Appointment,'squad_id'|'squad_ids'>) => a.squad_ids ?? (a.squad_id == null ? [] : [a.squad_id]);
 export const scopePayload = (scope: {clubWide:boolean;squadIds:number[]}) => ({clubWide:scope.clubWide,squadIds:scope.clubWide?[]:[...scope.squadIds].sort((a,b)=>a-b)});
 export const appointmentScope = (a: Pick<Appointment,'squad_id'|'squad_ids'|'squad_name'|'squad_names'>, choices: Choice[] = []) => {
   const ids=appointmentSquads(a);return !ids.length?(a.squad_ids?'Whole club':a.squad_name||'Whole club'):ids.map((id,i)=>a.squad_names?.[i] ?? choices.find(s=>s.id===id)?.name ?? (ids.length===1?a.squad_name:null) ?? `Team #${id}`).join(', ');
 };
-export const moduleNames: Record<string, string> = {
-  STAFF: 'Staff & duties', CREDENTIALS: 'Credentials', FACILITIES: 'Venues & facilities', READINESS: 'Emergency & match preparation',
-  GUARDIANS: 'Guardians & permissions', ATTENDANCE: 'Attendance & collection', WELFARE: 'Confidential welfare',
-  MEDICAL: 'Medical coordination', AVAILABILITY: 'Participation restrictions', DEVELOPMENT: 'Player development',
-  EDUCATION: 'Education', REGISTRATION: 'Registration & eligibility', EQUIPMENT: 'Equipment', FINANCE: 'Finance',
-  TRAVEL: 'Travel', SPECIALISTS: 'External specialists', DEPARTURES: 'Departures', MATCHES: 'Match arrangements',
-};
+const MODULES = ['STAFF', 'CREDENTIALS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'WELFARE', 'MEDICAL', 'AVAILABILITY', 'DEVELOPMENT', 'EDUCATION', 'REGISTRATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'SPECIALISTS', 'DEPARTURES', 'MATCHES'] as const;
+/** Each tool's name in the person's language, read when it is shown. */
+export const moduleNames: Record<string, string> = Object.defineProperties({}, Object.fromEntries(MODULES.map(id => [id, { enumerable: true, get: () => translate('clubRecords', clubRecordsEn, `module_${id}`) }])));
 export const moduleGroups = [
   { name: 'People', ids: ['STAFF', 'CREDENTIALS', 'GUARDIANS', 'ATTENDANCE', 'DEVELOPMENT', 'EDUCATION', 'REGISTRATION', 'DEPARTURES'] },
   { name: 'Operations', ids: ['FACILITIES', 'READINESS', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'SPECIALISTS'] },

@@ -12,7 +12,7 @@ vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../features/clubOperations/useClubOperations', () => ({ useClubOperations: () => ({ boot: null, loading: false, error: '', refresh: vi.fn() }) }));
 vi.mock('../features/clubOperations/useWorkspaceRoles', () => ({ useWorkspaceRoles: () => ({ data: null, loading: false, error: '', refresh: vi.fn() }), focusedBootstrap: (boot: unknown) => boot, savedRole: () => null, rememberRole: vi.fn() }));
 vi.mock('../utils/authStorage', () => ({ getStoredUserId: () => '1', getAuthSessionId: () => auth.sessionId, isCurrentAuthSession: (id: string) => id === auth.sessionId }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en', resolvedLanguage: 'en' } }) }));
 vi.mock('../api/axiosConfig', () => ({ apiClient: { get: vi.fn().mockResolvedValue({ data: {} }) }, DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost' } }));
 vi.mock('../features/clubs/api', async importOriginal => ({ ...await importOriginal<object>(), fetchClubManagementOverview: vi.fn() }));
 vi.mock('../features/schedule/api', () => ({ fetchClubSchedule: vi.fn().mockResolvedValue([]) }));

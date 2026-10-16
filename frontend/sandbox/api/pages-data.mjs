@@ -115,6 +115,15 @@ export const canEdit = (page, viewer) => ['OWNER', 'ADMIN'].includes(roleOf(page
 /** A club post may come from its owner or staff, as soon as they join. */
 export const canPostForClub = (viewer, clubId) => { const page = pages.get(`club:${Number(clubId)}`); return Boolean(page && roleOf(page, viewer)); };
 
+/** The one club a person is part of (owner or staff; Luka is Dinamo's), or null. One club per person; fan clubs are not clubs here. */
+export function clubOf(viewer) {
+  if (viewer === W.ME_ID) return { ref: { type: 'club', id: C.CLUB_ID }, name: W.clubById(C.CLUB_ID)?.name ?? 'your club' };
+  const page = ownedPages(viewer).find(owned => owned.clubId);
+  return page ? { ref: page.ref, name: page.identity.name } : null;
+}
+/** The answer when someone already in a club tries to start or claim another: their club, to open instead. */
+export const oneClubRefusal = club => ({ status: 409, body: { status: 409, code: 'ONE_CLUB', message: `You are already part of ${club.name}. One club per person: open it, or start a fan club.`, club } });
+
 export function createPage(viewer, body) {
   const kind = isPageKind(body?.pageKind) ? body.pageKind : body?.organizationType === 'CLUB' ? 'CLUB' : body?.organizationType === 'PARTNER' ? 'FAN_CLUB' : ['COMPANY', 'SPONSOR', 'MEDIA', 'HEALTHCARE'].includes(body?.organizationType) ? 'BUSINESS' : 'PAGE';
   const name = text(body?.displayName, 120);
@@ -122,6 +131,8 @@ export function createPage(viewer, body) {
   if (kind === 'VENUE') return { status: 400, body: { status: 400, message: 'Venues open later.' } };
   const age = viewerAge(viewer);
   if (age == null || age < minimumAge(kind)) return { status: 403, body: { status: 403, code: 'AGE', minimumAge: minimumAge(kind), message: `Creating this page needs an account aged ${minimumAge(kind)} or over.` } };
+  const current = kind === 'CLUB' ? clubOf(viewer) : null;
+  if (current) return oneClubRefusal(current);
   const exact = similarPages(name, null, viewer).find(match => match.exact);
   if (exact) return { status: 409, body: { status: 409, code: 'PAGE_EXISTS', message: `${exact.name} is already on GrassKickZ.`, match: exact } };
   const town = body?.location?.city || V.account(viewer)?.preferences?.town?.name || 'Tbilisi';

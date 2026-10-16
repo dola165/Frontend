@@ -53,4 +53,7 @@ export const hasOwnPage = (capabilities?: NavigationCapabilities) =>
   accessibleClubs(capabilities).some(club => club.relationships.some(relation => relation !== 'Agent engagement'))
   || hasNavigationCapability(capabilities, 'organization.workspace') || hasNavigationCapability(capabilities, 'venue.workspace');
 
+/** The one club the person is part of (one club per person; fan clubs are pages of their own), or null. */
+export const ownClub = (capabilities?: NavigationCapabilities) => accessibleClubs(capabilities).find(club => club.relationships.some(relation => relation !== 'Agent engagement')) ?? null;
+
 export const pagePath = (ref: PageRef) => (ref.type === 'club' ? `/clubs/${ref.id}` : `/organizations/${ref.id}`);

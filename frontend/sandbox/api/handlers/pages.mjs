@@ -106,6 +106,8 @@ for (const [type, base] of [['club', '/clubs/:id/page'], ['organization', '/orga
     if (!visible(page, viewer)) return notFound('Page not found.');
     if (page.claim?.state === 'PENDING' && page.claim.by === viewer) return P.viewOf(page, viewer);
     if (page.claim?.state !== 'UNCLAIMED') return reply(409, { status: 409, code: 'NOT_CLAIMABLE', message: 'Someone already runs this page. Ask them to add you.' });
+    const current = page.kind === 'CLUB' ? P.clubOf(viewer) : null;
+    if (current) { const refusal = P.oneClubRefusal(current); return reply(refusal.status, refusal.body); }
     const age = P.viewerAge(viewer);
     if (age == null || age < minimumAge(page.kind)) return reply(403, { status: 403, code: 'AGE', minimumAge: minimumAge(page.kind), message: 'Claiming a club needs an adult account.' });
     const role = ['CHAIR', 'COACH', 'ADMIN', 'OTHER'].includes(body?.role) ? body.role : null, phone = String(body?.phone ?? '').replace(/[^\d+]/g, '');

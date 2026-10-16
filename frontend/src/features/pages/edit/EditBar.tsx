@@ -6,11 +6,11 @@ import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
 import { claimHref } from '../create/entry';
 import { usePageEdit } from './context';
-import { SETUP_ITEMS } from '../model/kinds';
+import { boxAvailable, SETUP_ITEMS } from '../model/kinds';
 import { PhoneSteps } from './PhoneSteps';
 import { usePhoneSteps } from './usePhoneSteps';
 import { SetupRing, SetupSteps } from './SetupSteps';
-import { SETUP_WORDS, STEP_ICONS } from './words';
+import { STEP_ICONS, stepWords } from './words';
 import './edit.css';
 
 const MISSING: Record<'name' | 'crest' | 'groundOrContact', string> = { name: 'a name', crest: 'a crest', groundOrContact: 'a ground or a way to reach you' };
@@ -46,7 +46,8 @@ export function EditBar() {
   const setup = page.setup;
   const total = SETUP_ITEMS[page.kind].length, next = setup.next;
   const CurrentIcon = next ? STEP_ICONS[next] : null;
-  const missing = page.goLive.missing.map(item => t(MISSING[item]));
+  // A page without a grounds box (a business, a plain page) goes live with a way to reach it.
+  const missing = page.goLive.missing.map(item => t(item === 'groundOrContact' && !boxAvailable(page.kind, 'grounds') ? 'a way to reach you' : MISSING[item]));
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
       <PhoneSteps />
@@ -63,7 +64,7 @@ export function EditBar() {
       {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}><Eye aria-hidden="true" size={12} />{t('What a finished club looks like')}</button>}
       {!setup.completedAt && next && CurrentIcon && (
         <span className="gk-editbar__current-wrap">
-          <button type="button" className="gk-editbar__current" onClick={() => (phoneSteps.available ? phoneSteps.show(next) : openStep(next))}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(SETUP_WORDS[next])}</strong><ChevronRight aria-hidden="true" /></button>
+          <button type="button" className="gk-editbar__current" onClick={() => (phoneSteps.available ? phoneSteps.show(next) : openStep(next))}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(stepWords(page.kind, next))}</strong><ChevronRight aria-hidden="true" /></button>
           {editing && stepsOpen && <div className="gk-editbar__steps"><SetupSteps onClose={() => setStepsOpen(false)} /></div>}
         </span>
       )}

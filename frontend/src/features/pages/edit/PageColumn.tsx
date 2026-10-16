@@ -5,7 +5,7 @@ import type { PageView } from '../api';
 import { addableBoxes, BOX_COLUMN, type BoxKey, type Column } from '../model/kinds';
 import { GhostBox, type GhostNeed } from './GhostBox';
 import { SETUP_PANEL, usePageEdit } from './context';
-import { BOX_NAMES } from './words';
+import { BOX_NAMES, ghostWords } from './words';
 import { DraggableBox, SortableColumn, TrayItem } from './Rearrange';
 import type { BoxRenderers } from './boxRegistry';
 import './edit.css';
@@ -69,7 +69,7 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
           <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined} data-flash={flashing.has(key) || undefined}>
             {(() => { const content = filled[key] || (open && !renderer.panel)
               ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
-              : <GhostBox icon={renderer.icon} words={renderer.words} hint={renderer.hint} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />;
+              : <GhostBox icon={renderer.icon} {...ghostWords(page.kind, key, renderer)} next={isNext} need={page.status === 'DRAFT' ? needOf(page, key) : undefined} onOpen={() => openPanel(target)} />;
               return rearranging ? <DraggableBox box={key} column={column} index={index} count={keys.length}>{content}</DraggableBox> : content; })()}
           </div>
         );

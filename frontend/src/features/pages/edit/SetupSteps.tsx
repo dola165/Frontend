@@ -3,7 +3,7 @@ import { Check, ChevronRight, X } from 'lucide-react';
 import { usePagesCopy } from '../copy';
 import { SETUP_ITEMS } from '../model/kinds';
 import { usePageEdit } from './context';
-import { SETUP_WORDS, STEP_ICONS, STEP_WHY } from './words';
+import { STEP_ICONS, stepWhy, stepWords } from './words';
 import './edit.css';
 
 
@@ -53,7 +53,7 @@ export function SetupSteps({ onClose }: { onClose: () => void }) {
             <li key={item.key}>
               <button type="button" className="gk-setup__step" data-done={item.done || undefined} data-next={item.key === next || undefined} onClick={() => { onClose(); openStep(item.key); }}>
                 <span className="gk-setup__icon"><Icon aria-hidden="true" /></span>
-                <span className="gk-setup__text"><span className="gk-setup__name">{t(SETUP_WORDS[item.key])}</span><span className="gk-setup__why">{t(STEP_WHY[item.key])}</span></span>
+                <span className="gk-setup__text"><span className="gk-setup__name">{t(stepWords(page.kind, item.key))}</span><span className="gk-setup__why">{t(stepWhy(page.kind, item.key))}</span></span>
                 {item.done
                   ? <span className="gk-setup__state gk-setup__state--done"><Check aria-hidden="true" />{t('Done')}</span>
                   : item.key === next ? <span className="gk-setup__state gk-setup__state--next">{t('Next')}<ChevronRight aria-hidden="true" /></span>

@@ -43,7 +43,7 @@ export function ClubTeamsTab({ club, refreshKey = 0, onContact, isAuthenticated,
             {(age || query) && <button type="button" className="gk-section__action" onClick={clear}>Clear</button>}
         </div>
         {club.presentation?.canEdit && <div className="gk-row" style={{ marginBottom: 12 }}><ButtonLink size="sm" variant="primary" to={`/clubs/${club.id}?edit=1&panel=players`}>Invite players</ButtonLink><ButtonLink size="sm" to={`/clubs/${club.id}?edit=1&panel=staff`}>Invite coaches & staff</ButtonLink></div>}
-        <Section boxed title="Squads" hint={squads.data ? `${matchedSquads.length} of ${squads.data.length}` : undefined} action={club.presentation?.canEdit ? { label: 'Edit programmes', to: `/clubs/${club.id}?edit=1&panel=squads` } : undefined}>
+        <Section boxed title="Squads" hint={squads.data ? `${matchedSquads.length} of ${squads.data.length}` : undefined} action={club.presentation?.canEdit ? { label: 'Edit teams', to: `/clubs/${club.id}?edit=1&panel=squads` } : undefined}>
             <Panel flush>{squads.loading ? <div className="gk-panel--pad"><Skeleton height={48} /></div>
                 : squads.failed ? <EmptyNote title="The squads couldn’t load" action={<Button size="sm" onClick={squads.retry}>Try again</Button>} />
                 : matchedSquads.length ? <List label="Squads">{matchedSquads.map(s => <ListRow key={s.id} to={link({ squad: s.id })}

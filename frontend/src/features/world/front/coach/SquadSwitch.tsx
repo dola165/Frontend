@@ -6,6 +6,7 @@ import { buildLoginRedirectPath } from '../../../../utils/authRedirect';
 import { useWorldCopy } from '../../copy';
 import { ErrorNote } from '../../directory/DirectoryResults';
 import type { WorldRole } from '../roles';
+import { useWorldChild } from '../../players';
 import { COACHING_ROLES, useSquadFocus, type SquadFocus } from './mySquads';
 import './squad-switch.css';
 
@@ -18,6 +19,8 @@ export function SquadSwitch({ role }: { role: WorldRole }) {
     const id = useId();
     const { status, squads } = useSquadFocus(role);
     const [params, setParams] = useSearchParams();
+    // A coach who is also a parent sees the child picker beside this one: each says what it chooses.
+    const label = useWorldChild().children.length ? t('My squads') : t('For');
     if (!COACHING_ROLES.has(role) || status !== 'ready' || squads.length < 2) return null;
     const value = squads.some(squad => String(squad.id) === params.get('for')) ? params.get('for')! : '';
     const choose = (next: string) => setParams(current => {
@@ -27,7 +30,7 @@ export function SquadSwitch({ role }: { role: WorldRole }) {
     }, { replace: true, preventScrollReset: true });
     if (squads.length > 4) return (
         <label className="gk-world-area" htmlFor={id}>
-            <span className="gk-faint">{t('For')}</span>
+            <span className="gk-faint">{label}</span>
             <select id={id} className="gk-input" value={value} onChange={event => choose(event.target.value)}>
                 <option value="">{t('All squads')}</option>
                 {squads.map(squad => <option key={squad.id} value={squad.id}>{squad.name}</option>)}
@@ -36,7 +39,7 @@ export function SquadSwitch({ role }: { role: WorldRole }) {
     );
     return (
         <div className="gk-squad-switch">
-            <span className="gk-faint" id={id}>{t('For')}</span>
+            <span className="gk-faint" id={id}>{label}</span>
             <ChoiceChips labelledBy={id} value={value} onChange={choose}
                 choices={[{ value: '', label: t('All squads') }, ...squads.map(squad => ({ value: String(squad.id), label: squad.name }))]} />
         </div>

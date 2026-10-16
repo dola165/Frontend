@@ -366,7 +366,7 @@ export const WORLD_KA: Record<string, string> = {
     'Waiting for offers': 'შეთავაზებებს ველოდებით', 'Offer sent': 'შეთავაზება გაგზავნილია', 'Result disputed': 'შედეგი სადავოა',
     'Opponent agreed': 'მოწინააღმდეგე შეთანხმებულია', 'Opponent to find': 'მოწინააღმდეგე მოსაძებნია', 'Ground booked': 'მოედანი დაჯავშნილია',
     'Ground confirmed': 'მოედანი დადასტურებულია', 'Ground to arrange': 'მოედანი მოსაგვარებელია', 'Ground not booked yet': 'მოედანი ჯერ არ არის დაჯავშნილი',
-    'Use Ctrl + scroll to zoom the map': 'რუკის გასადიდებლად გამოიყენეთ Ctrl + სქროლი', 'Use ⌘ + scroll to zoom the map': 'რუკის გასადიდებლად გამოიყენეთ ⌘ + სქროლი', 'Use two fingers to move the map': 'რუკის გადასაადგილებლად გამოიყენეთ ორი თითი', 'Map credits': 'რუკის წყაროები', 'No referee needed': 'მსაჯი არ სჭირდება',
+    'Use Ctrl + scroll to zoom the map': 'რუკის გასადიდებლად გამოიყენეთ Ctrl + სქროლი', 'Use ⌘ + scroll to zoom the map': 'რუკის გასადიდებლად გამოიყენეთ ⌘ + სქროლი', 'Use two fingers to move the map': 'რუკის გადასაადგილებლად გამოიყენეთ ორი თითი', 'Map credits': 'რუკის წყაროები', 'My squads': 'ჩემი გუნდები', 'No referee needed': 'მსაჯი არ სჭირდება',
     'Referee confirmed': 'მსაჯი დადასტურებულია', 'Result after the match': 'შედეგი მატჩის შემდეგ', 'Result confirmed': 'შედეგი დადასტურებულია',
     'Result to add': 'შედეგი დასამატებელია', 'What this match needs': 'რა სჭირდება მატჩს', 'Invited club': 'მოწვეული კლუბი', 'At home': 'შინ',
     'Away': 'გასვლაზე', 'Neutral ground': 'ნეიტრალური მოედანი', 'To be agreed': 'შესათანხმებელია',

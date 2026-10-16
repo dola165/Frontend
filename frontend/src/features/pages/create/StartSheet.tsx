@@ -107,10 +107,11 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
           const item = KIND_TILES[candidate as Exclude<PageKind, 'VENUE'>], shut = locked(candidate);
           return (
             <button key={candidate} type="button" role="radio" aria-checked={chosen === candidate} aria-disabled={shut || undefined} className="gk-ctile"
+              aria-label={t(item.label)} aria-describedby={`${nameId}-${candidate}`}
               style={{ '--tile-photo': `url(${item.photo})`, '--tile-position': item.position ?? 'center', '--tile': item.color } as CSSProperties} onClick={() => choose(candidate)}>
               <span className="gk-ctile__icon"><item.icon aria-hidden="true" /></span>
               <span className="gk-ctile__label">{t(item.label)}</span>
-              <span className="gk-ctile__hint">{shut ? t('From {age}', { age: minimumAge(candidate) }) : t(item.hint)}</span>
+              <span className="gk-ctile__hint" id={`${nameId}-${candidate}`}>{shut ? t('From {age}', { age: minimumAge(candidate) }) : t(item.hint)}</span>
               {shut ? <span className="gk-ctile__lock"><Lock aria-hidden="true" /></span> : <span className="gk-ctile__tick" aria-hidden="true"><Check /></span>}
             </button>
           );

@@ -7,11 +7,12 @@
     max-height: calc(100dvh - var(--home-rail-top, calc(var(--app-header-height) + 16px)) - 16px);
 }
 .home-side-scroll { max-height: inherit; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; }
-.home-commercial-nav { display: none; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px var(--app-page-gutter, 16px); background: var(--feed-bg, var(--theme-page)); border-bottom: 1px solid var(--feed-card-border, var(--theme-border)); }
+.home-commercial-nav { display: none; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 8px var(--app-page-gutter, 16px); background: var(--feed-bg, var(--theme-page)); border-bottom: 1px solid var(--feed-card-border, var(--theme-border)); }
 .home-opportunity-shortcut { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 7px 4px; border: 1px solid var(--feed-card-border, var(--theme-border)); border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--feed-text-primary, var(--text-primary)); }
 .home-opportunity-shortcut svg { flex-shrink: 0; }
 .home-opportunity-shortcut--store svg { color: var(--social-primary, var(--color-accent)); }
-.home-opportunity-shortcut--stadiums svg { color: var(--social-map, var(--color-cyan)); }
+.home-opportunity-shortcut--start { grid-column: 1 / -1; border-color: color-mix(in srgb, var(--color-accent) 55%, transparent); color: var(--color-accent); }
+.home-opportunity-shortcut--start svg { color: var(--color-accent); }
 .home-opportunity-shortcut--campaigns svg { color: var(--color-orange); }
 .home-opportunity-shortcut--jobs svg { color: var(--color-purple); }
 .home-opportunity-shortcut:hover { background: var(--feed-hover-bg, color-mix(in srgb, var(--color-ink) 7.06%, transparent)); }

@@ -60,7 +60,7 @@ export function GroundsPanel() {
       preview={<div className="gk-boxedit">
         <p className="gk-field__label">{t('Your grounds')}</p>
         {chosen.length ? <List label={t('Your grounds')}>{chosen.map((ground, index) => <li key={ground.id} className="gk-boxedit__row"><div className="gk-list-row" style={{ flex: 1 }}><span className="gk-list-row__lead"><span className="gk-club-icon"><MapPin aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{ground.name}</span><span className="gk-list-row__meta">{ground.address}</span></span></div><Button size="sm" variant="ghost" iconOnly aria-label={t('Remove')} onClick={() => setChosen(current => current.filter((_, i) => i !== index))}><Trash2 aria-hidden="true" /></Button></li>)}</List>
-          : <p className="gk-muted">{t('Tap a pitch on the left.')}</p>}
+          : <p className="gk-muted">{t('Tap a pitch on the map or in the list.')}</p>}
       </div>}>
       <div className="gk-boxedit">
         {/* The map waits for the pitches, so it can open with the nearest ones in view. */}

@@ -9,8 +9,9 @@
 .gk .gk-editbar__dot--live { background: var(--gk-accent); }
 .gk .gk-editbar__saved { min-width: 48px; color: var(--gk-text-2); }
 .gk .gk-editbar__saved[data-status='failed'] { color: var(--gk-danger); }
-.gk .gk-editbar__actions { display: inline-flex; align-items: center; gap: var(--gk-2); margin-left: auto; }
-.gk .gk-editbar__missing { color: var(--gk-text-3); }
+.gk .gk-editbar__actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-2); min-width: 0; max-width: 100%; margin-left: auto; }
+.gk .gk-editbar__missing { min-width: 0; color: var(--gk-text-3); }
+@media (max-width: 640px) { .gk .gk-editbar__missing { flex-basis: 100%; text-align: right; } }
 
 /* The setup ring: a small circle filling up, "4 of 7", and the next thing to do as a button. */
 .gk .gk-ring { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; padding: 0 var(--gk-2) 0 0; border: 0; border-radius: var(--gk-r-pill); background: none; color: inherit; font: inherit; cursor: pointer; }

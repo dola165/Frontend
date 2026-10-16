@@ -69,10 +69,10 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     const search = next.toString();
     navigate({ pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash }, { replace: !push });
   }, [location.hash, location.pathname, location.search, navigate]);
-  const setEditing = useCallback((on: boolean) => go(next => { if (on) next.set(EDIT, '1'); else next.delete(EDIT); for (const drop of [PANEL, REARRANGE, 'new', 'claimed']) next.delete(drop); }), [go]);
+  const setEditing = useCallback((on: boolean) => go(next => { if (on) next.set(EDIT, '1'); else next.delete(EDIT); for (const drop of [PANEL, REARRANGE, 'new', 'claimed', 'steps']) next.delete(drop); }), [go]);
   const setRearranging = useCallback((on: boolean) => go(next => { next.set(EDIT, '1'); next.delete(PANEL); if (on) next.set(REARRANGE, '1'); else next.delete(REARRANGE); }), [go]);
   // A panel is a step in history, so Back closes it.
-  const openPanel = useCallback((next: PanelKey) => go(search => { search.set(EDIT, '1'); search.set(PANEL, next); search.delete(REARRANGE); search.delete('new'); search.delete('claimed'); }, true), [go]);
+  const openPanel = useCallback((next: PanelKey) => go(search => { search.set(EDIT, '1'); search.set(PANEL, next); search.delete(REARRANGE); search.delete('new'); search.delete('claimed'); if (next === 'live') search.delete('steps'); }, true), [go]);
   const closePanel = useCallback(() => go(next => next.delete(PANEL)), [go]);
   // The About is no panel: it is typed where it shows, so its step turns edit mode on and opens that line.
   const openStep = useCallback((step: SetupKey) => {

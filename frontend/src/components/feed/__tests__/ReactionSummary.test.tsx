@@ -66,7 +66,9 @@ it('opens an accessible people list, filters with the keyboard and links to real
     expect(within(dialog).queryByText('Alex Green')).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Reacted by 3 people' })).toHaveFocus();
+    // The page behind comes back and takes focus in the dialog's effect cleanup, which React may run just after
+    // the dialog leaves the DOM.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reacted by 3 people' })).toHaveFocus());
 });
 
 it('paginates without duplicates and retries the failed page', async () => {

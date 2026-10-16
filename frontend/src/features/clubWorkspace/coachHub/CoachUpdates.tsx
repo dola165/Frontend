@@ -20,7 +20,7 @@ import './coach-hub.css';
 
 interface UpdateRow { squad: number; squadName: string; families: number; update: squadApi.SquadMessage; space: squadApi.SquadOverview }
 
-/** Who hasn't read an important update yet, as faces with names, loaded when asked for. */
+/** Who hasn't acknowledged an important update yet, as faces with names, loaded when asked for. Acknowledging is the evidence; reading is not tracked. */
 function Readers({ row }: { row: UpdateRow }) {
     const [list, setList] = useState<squadApi.Receipt[] | null | 'error'>(null);
     useEffect(() => {
@@ -29,15 +29,15 @@ function Readers({ row }: { row: UpdateRow }) {
         return () => { alive = false; };
     }, [row.squad, row.update.id]);
     if (list === null) return <div className="ch-update__readers" role="status"><Skeleton height={26} width="50%" /></div>;
-    if (list === 'error') return <p className="ch-update__readers ch-quiet">Who has read it could not be loaded.</p>;
+    if (list === 'error') return <p className="ch-update__readers ch-quiet">Who has acknowledged it could not be loaded.</p>;
     const missing = list.filter(item => !item.acknowledged_at);
     return <div className="ch-update__readers">{missing.length
-        ? <><FaceStack people={missing.map(item => ({ id: item.user_id, name: item.full_name, tone: 'warning' as const }))} max={10} size={26} label="Not read yet" />
-            <span className="ch-quiet">Not read yet: {missing.map(item => item.full_name).join(', ')}</span></>
-        : <span className="ch-quiet">Every parent or guardian has read it.</span>}</div>;
+        ? <><FaceStack people={missing.map(item => ({ id: item.user_id, name: item.full_name, tone: 'warning' as const }))} max={10} size={26} label="Not acknowledged yet" />
+            <span className="ch-quiet">Not acknowledged yet: {missing.map(item => item.full_name).join(', ')}</span></>
+        : <span className="ch-quiet">Every parent or guardian has acknowledged it.</span>}</div>;
 }
 
-/** One update as a card: who posted it where and when, what it says, how many families have read it, reactions and comments. */
+/** One update as a card: who posted it where and when, what it says, how many families have acknowledged it, reactions and comments. */
 function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onChanged: () => void }) {
     const [open, setOpen] = useState(false), [removing, setRemoving] = useState(false), [error, setError] = useState('');
     const own = row.update.author_id === row.space.viewer_id;
@@ -59,8 +59,8 @@ function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onCh
         <footer className="ch-update__foot">
             {update.important && row.families ? <button type="button" className="ch-update__reads" aria-expanded={open} onClick={() => setOpen(value => !value)}>
                 <ProgressRing value={read} total={row.families} tone={read >= row.families ? 'accent' : pinned ? 'warning' : 'neutral'} />
-                <span><strong>{read} of {row.families}</strong> parents read it</span>
-            </button> : <span className="ch-quiet">No read confirmation asked</span>}
+                <span><strong>{read} of {row.families}</strong> parents acknowledged</span>
+            </button> : <span className="ch-quiet">No acknowledgement asked</span>}
             {own && <button type="button" className="ch-update__delete" disabled={removing} onClick={() => void remove()}><Trash2 aria-hidden="true" />Delete</button>}
         </footer>
         {open && <Readers row={row} />}

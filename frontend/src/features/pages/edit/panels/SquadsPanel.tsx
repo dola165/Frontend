@@ -41,7 +41,9 @@ export function SquadsPanel() {
       ? current.filter(squad => !(squad.ageGroup === age && squad.gender === gender && squad.players === 0))
       : [...current, { id: null, name: teamName(age, gender, language, year), ageGroup: age, gender, days: [], time: null, groundId: grounds[0]?.id ?? null, players: 0 }]));
   };
-  const update = (index: number, patch: Partial<Draft>) => setSquads(current => current.map((squad, i) => (i === index ? { ...squad, ...patch } : squad)));
+  const update = (index: number, patch: Partial<Draft> | ((squad: Draft) => Partial<Draft>)) => setSquads(current => current.map((squad, i) => (i === index ? { ...squad, ...(typeof patch === 'function' ? patch(squad) : patch) } : squad)));
+  // Toggled from the latest state, so two quick taps both count.
+  const toggleDay = (index: number, day: number) => update(index, squad => ({ days: squad.days.includes(day) ? squad.days.filter(value => value !== day) : [...squad.days, day].sort() }));
   const save = async () => {
     setBusy(true);
     try { await saveBox('squads', { items: squads.map(squad => ({ id: squad.id ?? undefined, name: squad.name, ageGroup: squad.ageGroup, gender: squad.gender, days: squad.days, time: squad.time, groundId: squad.groundId })) }, { label: t('Teams saved') }); closePanel(); } finally { setBusy(false); }
@@ -68,7 +70,7 @@ export function SquadsPanel() {
                 <button type="button" className="gk-tap" onClick={() => update(index, { days: planned.days, time: planned.time, groundId: planned.groundId })}><Copy aria-hidden="true" />{t('Same as {team}: {days}', { team: planned.name, days: daysLine(planned) })}</button>
               )}
               <div className="gk-ctowns" role="group" aria-label={t('Training days')}>
-                {DAYS.map((day, dayIndex) => <button key={day} type="button" className="gk-chip" aria-pressed={squad.days.includes(dayIndex + 1)} onClick={() => update(index, { days: squad.days.includes(dayIndex + 1) ? squad.days.filter(value => value !== dayIndex + 1) : [...squad.days, dayIndex + 1].sort() })}>{t(day)}</button>)}
+                {DAYS.map((day, dayIndex) => <button key={day} type="button" className="gk-chip" aria-pressed={squad.days.includes(dayIndex + 1)} onClick={() => toggleDay(index, dayIndex + 1)}>{t(day)}</button>)}
               </div>
               <div className="gk-ctowns" role="group" aria-label={t('Time')}>
                 {TIMES.map(time => <button key={time} type="button" className="gk-chip gk-num" aria-pressed={squad.time === time} onClick={() => update(index, { time: squad.time === time ? null : time })}>{time}</button>)}

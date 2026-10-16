@@ -1,5 +1,3 @@
-import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
-import type { AuthSessionId } from '../../utils/authStorage';
 
 export interface ParentEvent {
     eventId: number;
@@ -34,18 +32,6 @@ export interface ParentHub {
     children: ParentChild[];
     scheduleFrom: string;
     scheduleTo: string;
-}
-
-export async function fetchParentHub(sessionId: AuthSessionId, signal: AbortSignal) {
-    const config: AuthSessionRequestConfig = { signal, _authSessionId: sessionId };
-    return (await apiClient.get<ParentHub>('/parents/hub', config)).data;
-}
-
-export async function activateChild(cardId: number, dateOfBirth: string, email: string, sessionId: AuthSessionId) {
-    const config: AuthSessionRequestConfig = { _authSessionId: sessionId };
-    return (await apiClient.post<{ username: string; email: string; status: string }>(
-        `/player-cards/${cardId}/activate`, { dateOfBirth, email }, config,
-    )).data;
 }
 
 export { fetchJoiningChildren, createPlayerLinkCode } from '../joining-contract/api';

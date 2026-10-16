@@ -8,6 +8,7 @@ import { claimHref } from '../create/entry';
 import { usePageEdit } from './context';
 import { SETUP_ITEMS } from '../model/kinds';
 import { DolaPet } from '../guide/DolaPet';
+import { DeleteDraft } from './DeleteDraft';
 import { PhoneSteps } from './PhoneSteps';
 import { usePhoneSteps } from './usePhoneSteps';
 import { SetupRing, SetupSteps } from './SetupSteps';
@@ -77,6 +78,7 @@ export function EditBar() {
         {editing
           ? <Button size="sm" onClick={() => setEditing(false)}>{t('Done')}</Button>
           : <Button size="sm" variant="primary" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{t('Edit page')}</Button>}
+        <DeleteDraft page={page} />
       </span>
     </div>
   );

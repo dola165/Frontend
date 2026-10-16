@@ -7,11 +7,11 @@
 //   POST /organizations/setup gains `pageKind`; any adult creates (the verified-account gate moves to the unlock list).
 //   GET  /clubs/:id/page | /organizations/:id/page → identity, layout, boxes with versions, status, claim, verification, setup.
 //   PUT  …/page/identity | …/page/boxes/:key | …/page/layout with { version } → 409 VERSION_CONFLICT with the current page.
-//   POST …/page/live { requestId } · …/page/claim { requestId, role, phone } · …/page/verification { action }.
+//   DELETE …/page (the owner cancels a draft; it and its club and teams are gone) · POST …/page/live { requestId } · …/page/claim { requestId, role, phone } · …/page/verification { action }.
 //   GET  /pages/similar?name=&town= (transliteration-aware) · /pages/mine · /pitches?lat=&lng= (OpenStreetMap via Overpass:
 //        leisure=pitch + sport=soccer) · /map/reverse?lat=&lng= (reverse geocoding).
 //   Join links per squad (GET/POST /join/:code, arrivals the coach approves) and staff invite links (GET /invite/:code, accept).
-import { get, post, put, reply } from '../router.mjs';
+import { del, get, post, put, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
@@ -89,6 +89,15 @@ for (const [type, base] of [['club', '/clubs/:id/page'], ['organization', '/orga
     if (body?.version != null && Number(body.version) !== page.layout.version) return conflict(page, viewer);
     page.layout = { version: page.layout.version + 1, ...P.layoutFrom(page, body) };
     return P.viewOf(page, viewer);
+  });
+  // Cancel the creation: only a draft, only by its owner; a live page is never deleted from here.
+  del(base, ({ params, headers }) => {
+    const page = load(params), viewer = viewerOf(headers);
+    if (!visible(page, viewer)) return notFound('Page not found.');
+    if (P.roleOf(page, viewer) !== 'OWNER') return forbidden('Only the page’s owner can delete it.');
+    if (page.status !== 'DRAFT') return bad('A live page cannot be deleted here.', { code: 'LIVE' });
+    P.deleteDraft(page);
+    return reply(204);
   });
   post(`${base}/live`, ({ params, body, headers }) => {
     const page = load(params), viewer = viewerOf(headers);

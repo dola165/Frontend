@@ -110,6 +110,8 @@ export const saveBox = <K extends SavableBox>(ref: PageRef, key: K, version: num
   apiClient.put<PageView>(`${pageBase(ref)}/boxes/${key}`, { version, data }).then(r => r.data, conflictOr);
 export const saveLayout = (ref: PageRef, version: number, layout: PageLayout) =>
   apiClient.put<PageView>(`${pageBase(ref)}/layout`, { version, ...layout }).then(r => r.data, conflictOr);
+/** Cancels a creation: the owner deletes a draft (and the club and teams it made). */
+export const deletePage = (ref: PageRef) => apiClient.delete(pageBase(ref)).then(() => undefined);
 export const goLive = (ref: PageRef, requestId: string) => apiClient.post<PageView>(`${pageBase(ref)}/live`, { requestId }).then(r => r.data);
 export const claimPage = (ref: PageRef, body: { requestId: string; role: string; phone: string }) => apiClient.post<PageView>(`${pageBase(ref)}/claim`, body).then(r => r.data);
 export const requestVerification = (ref: PageRef, body: { action: LockedAction; legalName?: string; registrationNumber?: string; phone?: string }) =>

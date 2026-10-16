@@ -128,7 +128,7 @@ function ClubProfileView({ id }: { id: number }) {
         <RearrangeFrame><ProfileLayout className="gk-club-page"
             identity={{
                 name: page?.identity.name ?? club.name, image: page?.identity.crest.url ?? club.logoUrl, square: true,
-                nameNode: editing ? <InlineText as="span" value={page?.identity.name ?? club.name} placeholder={pt('Name your page')} label={pt('Name')} maxLength={120} onSave={next => { if (next.length >= 2) void edit.saveIdentity({ name: next }, { label: pt('Name saved') }).then(refresh); }} /> : undefined,
+                nameNode: editing ? <InlineText as="span" step="name" value={page?.identity.name ?? club.name} placeholder={pt('Name your page')} label={pt('Name')} maxLength={120} onSave={next => { if (next.length >= 2) void edit.saveIdentity({ name: next }, { label: pt('Name saved') }).then(refresh); }} /> : undefined,
                 summaryNode: editing ? <AboutLine /> : undefined,
                 badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Verified club</Badge> : page?.status === 'DRAFT' ? <Badge tone="warning">{pt('Draft')}</Badge> : undefined,
                 line: <>{kind}{linked && <> · {club.presentation?.profileKind === 'ACADEMY' ? 'Academy of ' : 'Academy: '}<Link className="gk-profile__link" to={`/clubs/${linked.clubId}`}>{linked.name}</Link></>}{can.role && <> · Your role: {clubRoleLabel(can.role)}</>}</>,
@@ -141,7 +141,7 @@ function ClubProfileView({ id }: { id: number }) {
             }}
             banner={page ? page.identity.cover?.url ?? null : club.bannerUrl}
             bannerAction={editing ? <Button size="sm" onClick={() => edit.openPanel('cover')}><Camera aria-hidden="true" />{page?.identity.cover ? pt('Change cover') : pt('Add cover')}</Button> : images.coverAction}
-            imageAction={editing ? <Button size="sm" iconOnly aria-label={pt('Change crest')} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
+            imageAction={editing ? <Button size="sm" iconOnly data-step="crest" aria-label={pt('Change crest')} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
             actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"

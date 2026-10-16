@@ -373,3 +373,16 @@ export const linkedPageClubs = viewer => ownedPages(viewer).filter(page => page.
 
 // Seeded last, once every helper above exists.
 seedUnclaimed();
+
+/** Cancelling a creation: a draft and everything it made (its club, its teams) are gone, as if never started. */
+export function deleteDraft(page) {
+  pages.delete(pageKey(page.ref));
+  if (!page.clubId) return;
+  const id = page.clubId;
+  const without = (list, keep) => { for (let i = list.length - 1; i >= 0; i -= 1) if (!keep(list[i])) list.splice(i, 1); };
+  without(W.clubs, club => club.id !== id);
+  without(W.squads, squad => squad.clubId !== id);
+  for (const map of [C.clubPolicy, C.presentations, C.memberCountHooks, C.clubEdits]) map?.delete?.(id);
+  delete C.followerCounts[id];
+  delete C.honours[id];
+}

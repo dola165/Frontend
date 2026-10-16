@@ -260,3 +260,5 @@
 .gk .gk-editbar:has(.gk-editbar__steps) { z-index: 50; }
 .gk .gk-boxframe[data-opened] { animation: gk-flash 1.6s var(--gk-ease); border-radius: var(--gk-r-lg); }
 @media (max-width: 760px) { .gk .gk-editbar__steps { transform: none; left: 12px; } }
+.gk .gk-editbar__delete { color: var(--gk-text-2); }
+.gk .gk-editbar__delete:hover { color: var(--gk-danger, #e5484d); }

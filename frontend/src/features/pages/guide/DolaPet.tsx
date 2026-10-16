@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useMediaQuery } from '../../world/useMediaQuery';
 import { usePagesCopy } from '../copy';
 import type { SetupKey } from '../model/kinds';
@@ -103,6 +103,8 @@ export function DolaPet() {
   const skipKey = `gk-pet-skipped:${pathname}`;
   const [hidden, setHidden] = useState(() => stored(HIDDEN) === '1');
   const [skipped, setSkipped] = useState<string[]>(() => (stored(skipKey) ?? '').split(',').filter(Boolean));
+  // A step chosen with her arrows, done or not, to change it; answering or skipping it hands back to the next step to do.
+  const [picked, setPicked] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [question, setQuestion] = useState('');
@@ -123,7 +125,7 @@ export function DolaPet() {
   const cardStep = phone.open && phone.open !== 'end' ? phone.open : null;
   // An answer counts until the step it was asked at is done or skipped; then she moves on.
   const fresh = asked && asked.forStep === pending && asked.forCard === phone.open ? asked : null;
-  const step = cardStep ?? fresh?.step ?? pending ?? (page?.goLive.ready ? 'ready' : 'waiting');
+  const step = cardStep ?? fresh?.step ?? picked ?? pending ?? (page?.goLive.ready ? 'ready' : 'waiting');
   // In a step's pop-up she sits on its top edge and says what to do there; other pop-ups she leaves alone.
   const inPanel = panel && PANEL_LINES[panel] ? panel : null;
   // The pop-up can send her to a part of it (the map, to place a named ground) and tell her what to say.
@@ -208,6 +210,7 @@ export function DolaPet() {
   const submit = (event: FormEvent) => { event.preventDefault(); void ask(question); };
   const skip = () => {
     if (cardStep) { const at = items.findIndex(item => item.key === cardStep); phone.show(items[at + 1]?.key ?? 'end'); return; }
+    if (picked) { setPicked(items[items.findIndex(item => item.key === picked) + 1]?.key ?? null); return; }
     if (!pending) return;
     const next = [...skipped, pending];
     setSkipped(next);
@@ -221,6 +224,9 @@ export function DolaPet() {
   const line = inPanel ? hint?.line ?? t(PANEL_LINES[inPanel]) : fresh?.answer ?? t(LINES[step]);
   // Short answers are typed right here; the phone's step cards have their own boxes for them.
   const quick = !inPanel && !cardStep && isQuick(step) ? step : null;
+  // Where she is among the steps (past the last one when all are done or skipped), and whether this one is done.
+  const at = isStep && !inPanel ? items.findIndex(item => item.key === step) : items.length;
+  const stepDone = !inPanel && Boolean(items.find(item => item.key === step)?.done);
   // Steps done in a pop-up (crest, grounds, teams, join links, staff) offer Open; on the phone's cards the card's own button does.
   const opens = !inPanel && !cardStep && isStep && Boolean(PANEL_LINES[SETUP_PANEL[step as SetupKey]]);
   // Words typed to her inside a pop-up go in through the pop-up's own controls; she says what she did.
@@ -255,10 +261,10 @@ export function DolaPet() {
                 </form>
               : <>
                   {saying && !inPanel && <p className="gk-pet__said">{saying}</p>}
-                  {title && <strong className="gk-pet__title">{t(title)}</strong>}
+                  {title && <strong className="gk-pet__title">{t(title)}{stepDone && <span className="gk-pet__done"><Check aria-hidden="true" />{t('Done')}</span>}</strong>}
                   {saying && inPanel && <p className="gk-pet__said">{saying}</p>}
                   {!(saying && inPanel && !aim) && <p className="gk-pet__line">{line}</p>}
-                  {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => setSaid(t('Understood.'))} />}
+                  {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => { setSaid(t('Understood.')); setPicked(null); }} />}
                   {hint?.action && <span className="gk-pet__actions"><button type="button" className="gk-pet__action gk-pet__action--main" onClick={hint.action.run}>{hint.action.label}</button></span>}
                   {listens && <form className="gk-pet__quick" onSubmit={answer}>
                     <input className="gk-pet__input" value={reply} onChange={event => setReply(event.target.value)} maxLength={120} autoComplete="off" autoFocus aria-label={t(PANEL_ASK[listens])} placeholder={t(PANEL_ASK[listens])} />
@@ -270,6 +276,12 @@ export function DolaPet() {
                     {opens
                       ? <button type="button" className="gk-pet__action gk-pet__action--main" onClick={() => openStep(step as SetupKey)}>{t('Open')}</button>
                       : <button type="button" className="gk-pet__action gk-pet__action--quiet" onClick={() => setAsking(true)}>{t('Ask me')}</button>}
+                  </span>}
+                  {/* Back and forth through every step, done or not, to change one and try her again. */}
+                  {!inPanel && !cardStep && <span className="gk-pet__nav">
+                    <button type="button" className="gk-pet__navbtn" aria-label={t('Previous step')} disabled={at <= 0} onClick={() => setPicked(items[at - 1].key)}><ChevronLeft aria-hidden="true" /></button>
+                    <span className="gk-pet__navcount">{t('Step {n} of {total}', { n: Math.min(at + 1, items.length), total: items.length })}</span>
+                    <button type="button" className="gk-pet__navbtn" aria-label={t('Next step')} disabled={at >= items.length - 1} onClick={() => setPicked(items[at + 1].key)}><ChevronRight aria-hidden="true" /></button>
                   </span>}
                 </>}
           </div>

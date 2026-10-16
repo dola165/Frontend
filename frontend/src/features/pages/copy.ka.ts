@@ -543,4 +543,11 @@ export const PAGES_KA: Record<string, string> = {
   'Your teams and their training days': 'თქვენი გუნდები და ვარჯიშის დღეები',
   'Same as {team}': 'როგორც {team}',
   'To go live, name your page.': 'გამოსაქვეყნებლად დაარქვით გვერდს სახელი.',
+  '{name} is deleted.': '{name} წაიშალა.',
+  'The draft could not be deleted. Try again.': 'მონახაზი ვერ წაიშალა. სცადეთ თავიდან.',
+  'Delete draft': 'მონახაზის წაშლა',
+  'Delete {name}?': 'წავშალოთ {name}?',
+  'The draft and its teams are gone for good. Nobody has seen it yet.': 'მონახაზი და მისი გუნდები სამუდამოდ წაიშლება. ჯერ არავის უნახავს.',
+  'Keep it': 'დატოვება',
+  'Previous step': 'წინა ნაბიჯი',
 };

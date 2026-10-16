@@ -11,7 +11,7 @@ import {
   updateFixtureScores,
 } from "../api";
 import type { TournamentDetail, TournamentFixtureDto } from "../domain";
-import { participantName } from "../participantLabels";
+import { distinctParticipantNames } from "../participantLabels";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { TournamentFixtureReferees } from "./TournamentFixtureReferees";
 import { VenueReservationSummary } from '../../eventVenues/VenueReservationSummary';
@@ -55,6 +55,7 @@ export function TournamentMatchDialog({
   useDialogFocus(true, ref, () => {
     if (!busy) onClose();
   });
+  const participantName = distinctParticipantNames(tournament.entries);
   const homeLabel = participantName(
     tournament.entries.find((e) => e.id === fixture.homeEntryId),
   );

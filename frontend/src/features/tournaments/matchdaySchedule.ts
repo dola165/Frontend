@@ -1,5 +1,5 @@
 import type { TournamentDetail, TournamentFixtureDto } from './domain';
-import { participantName } from './participantLabels';
+import { distinctParticipantNames } from './participantLabels';
 
 export interface MatchdayKickoff {
     day: string;
@@ -41,6 +41,7 @@ export interface MatchdayRow {
 export function buildMatchdaySchedule(tournament: TournamentDetail): MatchdayRow[] {
     const entries = new Map(tournament.entries.map(entry => [entry.id, entry]));
     const stages = new Map(tournament.stages.map(stage => [stage.id, stage.name]));
+    const participantName = distinctParticipantNames(tournament.entries);
     const rows: MatchdayRow[] = tournament.fixtures.map(fixture => {
         const kickoff = matchdayKickoff(fixture.scheduledAt);
         const home = fixture.homeEntryId == null ? undefined : entries.get(fixture.homeEntryId);

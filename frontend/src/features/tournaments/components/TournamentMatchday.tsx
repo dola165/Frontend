@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowUpRight, CalendarDays, CheckCircle2, Clock3, Printe
 import { useTranslation } from 'react-i18next';
 import type { TournamentDetail, TournamentFixtureDto } from '../domain';
 import { buildMatchdaySchedule, formatMatchday, type MatchdayRow } from '../matchdaySchedule';
-import { participantName } from '../participantLabels';
+import { distinctParticipantNames } from '../participantLabels';
 import { tournamentFixtureStatusText } from '../../../components/tournaments/tournamentFormatters';
 import './tournament-matchday.css';
 import { downloadTournamentCalendar } from '../tournament-calendar';
@@ -28,6 +28,8 @@ export function TournamentMatchday({ tournament, active, onMatch, onBracket }: P
     const days = [...new Set(rows.flatMap(row => row.kickoff ? [row.kickoff.day] : []))];
     const fixtureTeams = new Set(rows.flatMap(row => [row.fixture.homeEntryId, row.fixture.awayEntryId]));
     const teams = tournament.entries.filter(entry => fixtureTeams.has(entry.id));
+    // Two clubs' "Senior team" are named with their club, in the filter and the rows alike.
+    const participantName = useMemo(() => distinctParticipantNames(tournament.entries), [tournament.entries]);
     const missing = rows.filter(row => row.missingTime).length;
     const clashes = rows.filter(row => row.conflictingIds.length > 0).length;
     const completed = rows.filter(row => row.fixture.status === 'COMPLETED').length;

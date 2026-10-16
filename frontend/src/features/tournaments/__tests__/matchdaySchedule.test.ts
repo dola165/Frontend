@@ -13,6 +13,13 @@ const tournament = (fixtures: TournamentFixtureDto[]): TournamentDetail => ({
 });
 
 describe('Matchday schedule checks', () => {
+    it('names a Senior team brought by two clubs with its club, and a unique squad alone', () => {
+        const entry = (id: number, clubName: string, squadName: string) => ({ id, clubName, squadName, status: 'ACTIVE' }) as TournamentDetail['entries'][number];
+        const [row] = buildMatchdaySchedule({ ...tournament([fixture(1, { awayEntryId: 3 })]),
+            entries: [entry(1, 'Riverside Academy', 'Senior team'), entry(2, 'Didube Stars', 'Senior team'), entry(3, 'FC Dinamo Tbilisi Academy', 'First Team')] });
+        expect([row.home, row.away]).toEqual(['Senior team (Riverside Academy)', 'First Team']);
+    });
+
     it('finds the same actual team at the same kickoff across different stages', () => {
         const rows = buildMatchdaySchedule(tournament([
             fixture(1), fixture(2, { stageId: 2, homeEntryId: 3, awayEntryId: 1, scheduledAt: '2027-06-10T10:00' }),

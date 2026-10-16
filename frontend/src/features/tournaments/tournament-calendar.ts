@@ -1,5 +1,5 @@
 import type { TournamentDetail, TournamentFixtureDto } from './domain';
-import { participantName } from './participantLabels';
+import { distinctParticipantNames } from './participantLabels';
 
 const escape = (value: string) => value.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/[,;]/g, '\\$&');
 // Fold at 75 UTF-8 bytes, including the continuation space (RFC 5545).
@@ -20,6 +20,7 @@ function calendarDate(value: string) {
 }
 export function tournamentCalendar(tournament: TournamentDetail, origin: string, fixtures: TournamentFixtureDto[] = tournament.fixtures, now = new Date()) {
     const rows = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GrassKickZ//Tournament schedule//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+    const participantName = distinctParticipantNames(tournament.entries);
     for (const fixture of fixtures) {
         const start = fixture.scheduledAt ? calendarDate(fixture.scheduledAt) : null;
         if (!start || fixture.status === 'CANCELLED') continue;

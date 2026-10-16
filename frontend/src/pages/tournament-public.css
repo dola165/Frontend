@@ -13,7 +13,7 @@
 .tp-description { color: var(--color-muted); font-size: 13px; line-height: 1.65; max-width: 780px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .tp-hero-meta { justify-content: flex-start; gap: 10px 24px; margin-top: 18px; font-size: 12px; color: var(--color-muted); }
 .tp-hero-meta > span { display: inline-flex; align-items: center; gap: 7px; }
-.tp-entry-bar { margin-top: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle, color-mix(in srgb, var(--color-border) 7.06%, transparent)); background: var(--bg-surface, var(--color-surface)); border-radius: 14px; display: grid; grid-template-columns: minmax(0,1fr) minmax(240px,340px); align-items: center; gap: 16px; }
+.tp-entry-bar { margin-top: 16px; padding: 16px 20px; border: 1px solid var(--border-subtle, color-mix(in srgb, var(--color-border) 7.06%, transparent)); background: var(--bg-surface, var(--color-surface)); border-radius: 14px; display: grid; grid-template-columns: minmax(0,1fr) minmax(240px,340px); align-items: start; gap: 16px; }
 .tp-entry-bar h2 { font-size: 13px; font-weight: 700; }
 .tp-entry-summary { display: flex; gap: 8px 22px; flex-wrap: wrap; margin-top: 6px; color: var(--text-secondary, var(--color-secondary)); font-size: 12px; }
 .tp-entry-summary span { display: inline-flex; gap: 7px; }

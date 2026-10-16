@@ -4,7 +4,9 @@ import { entryGate } from '../../../tournaments/entryGates';
 import { useArrangeableSquadsState } from '../../compose/useArrangeableSquads';
 import { zoned } from '../../scoreboard/standings';
 import { useNow } from '../../scoreboard/useNow';
-import type { TournamentPaneData } from './tournamentPane';
+import { useWorldCopy } from '../../copy';
+import { useWorldData } from '../../useWorldData';
+import { loadTournamentPane, type TournamentPaneData } from './tournamentPane';
 
 const instant = (value?: string | null) => { const at = zoned(value); return at ? Date.parse(at) : null; };
 
@@ -22,7 +24,17 @@ export function useTournamentGate(data: TournamentPaneData) {
         detail: data.detail, signedIn, userId: user?.id ?? null, canManage: data.canManage, squads, invitation: data.invitation, time: instant, now,
         playerEligible: player.status === 'ready' ? player.eligible : player.status === 'error' ? false : undefined,
     });
-    return { gate, squads, now };
+    // A players' tournament whose eligibility could not be read says so with a retry, never "not eligible".
+    return { gate, squads, now, player };
 }
 
 export type TournamentGate = ReturnType<typeof useTournamentGate>;
+
+/** The tournament as World's pane reads it, under one key, so the pane and the full page share one read. */
+export function useTournamentPane(tournamentId: number) {
+    const t = useWorldCopy();
+    const { sessionId, user } = useAuth();
+    const valid = Number.isInteger(tournamentId) && tournamentId > 0;
+    return useWorldData(valid ? `tournament-pane:${sessionId}:${user?.id ?? ''}:${tournamentId}` : null,
+        () => loadTournamentPane(tournamentId, sessionId, user?.id ?? null), t('This tournament could not load.'));
+}

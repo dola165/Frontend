@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import '../../i18n';
@@ -33,6 +33,11 @@ vi.mock('../../features/tournaments/api', () => ({
     resolveTournamentTie: vi.fn(),
 }));
 
+// Entering is World's shared step (`TournamentEntry`, tested on its own); the page hands it the tournament and what to say otherwise.
+vi.mock('../../features/world/peek/tournament/TournamentEntry', () => ({
+    TournamentEntry: ({ tournamentId, otherwise }: { tournamentId: number; otherwise: import('react').ReactNode }) => <div data-testid="entry" data-tournament={tournamentId}>{otherwise}</div>,
+}));
+
 vi.mock('../../context/AuthContext', () => ({
     useAuth: vi.fn(),
 }));
@@ -45,7 +50,7 @@ vi.mock('../../utils/authRedirect', () => ({
     buildLoginRedirectPath: vi.fn(() => '/login?next=%2F'),
 }));
 
-import { fetchTournament, fetchTournamentTieHistory, fetchTournamentTieState, registerPlayer, requestEntry } from '../../features/tournaments/api';
+import { fetchTournament, fetchTournamentTieHistory, fetchTournamentTieState } from '../../features/tournaments/api';
 import { useAuth } from '../../context/AuthContext';
 
 const mockTournament: TournamentDetail = {
@@ -131,57 +136,6 @@ describe('TournamentDetailPage', () => {
         expect((await screen.findAllByText('Registration')).length).toBeGreaterThan(0);
     });
 
-    it('lets a primary coach with eligible player identity enter without changing account role', async () => {
-        vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, user: { id: 1, role: 'COACH', dob: '1990-01-01', profileComplete: true } } as ReturnType<typeof useAuth>);
-        vi.mocked(fetchTournament).mockResolvedValue(mockTournament);
-        vi.mocked(registerPlayer).mockResolvedValue({} as Awaited<ReturnType<typeof registerPlayer>>);
-        renderPage();
-        await userEvent.click(await screen.findByRole('button', { name: 'Register' }));
-        expect(registerPlayer).toHaveBeenCalledWith(42);
-        expect(useAuth().user?.role).toBe('COACH');
-    });
-    it('offers recovery when private eligibility cannot be read without showing Register', async () => {
-        vi.mocked(fetchTournament).mockResolvedValue(mockTournament);
-        let attempts = 0;
-        vi.mocked(apiClient.get).mockImplementation(async url => {
-            if (url !== '/competitions/player-eligibility') return { data: null };
-            if (++attempts === 1) throw new Error('Offline');
-            return { data: { eligible: true } };
-        });
-        renderPage();
-        const retry = await screen.findByRole('button', { name: 'Retry eligibility check' });
-        expect(screen.queryByRole('button', { name: 'Register' })).not.toBeInTheDocument();
-        await userEvent.click(retry);
-        expect(await screen.findByRole('button', { name: 'Register' })).toBeInTheDocument();
-    });
-    it('shows eligibility loading without mislabelling the person as ineligible', async () => {
-        vi.mocked(fetchTournament).mockResolvedValue(mockTournament);
-        vi.mocked(apiClient.get).mockImplementation(async url => {
-            if (url === '/competitions/player-eligibility') return new Promise(() => {});
-            return { data: null };
-        });
-        renderPage();
-        expect(await screen.findByText('Checking entry eligibility…')).toBeInTheDocument();
-        expect(screen.queryByText(/Individual entry requires an adult player/)).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Register' })).not.toBeInTheDocument();
-    });
-
-    it('shows register button for PLANNING + PLAYER-scope tournament', async () => {
-        (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
-        renderPage();
-        expect(await screen.findByText('Register')).toBeInTheDocument();
-    });
-
-    it('hides register button when user is already registered', async () => {
-        (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue({
-            ...mockTournament,
-            entries: [{ id: 1, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]],
-        });
-        renderPage();
-        expect(await screen.findByText('Registered')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /register/i })).not.toBeInTheDocument();
-    });
-
     it('hides register button for non-PLAYER scope', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue({
             ...mockTournament,
@@ -192,39 +146,10 @@ describe('TournamentDetailPage', () => {
         expect(screen.queryByRole('button', { name: /register/i })).not.toBeInTheDocument();
     });
 
-    it('shows a sign-in registration action for unauthenticated users', async () => {
-        (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
-            isAuthenticated: false,
-            user: null,
-        });
-        (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
+    it('hands entering to the same decision as World', async () => {
+        vi.mocked(fetchTournament).mockResolvedValue(mockTournament);
         renderPage();
-        await screen.findByText('Spring Cup');
-        expect(screen.getByRole('button', { name: 'Sign in to register' })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Register' })).not.toBeInTheDocument();
-    });
-
-    it('registers and refreshes tournament on success', async () => {
-        const user = userEvent.setup();
-        (fetchTournament as ReturnType<typeof vi.fn>)
-            .mockResolvedValueOnce(mockTournament)
-            .mockResolvedValueOnce({ ...mockTournament, entries: [{ id: 1, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]] });
-        (registerPlayer as ReturnType<typeof vi.fn>).mockResolvedValue({});
-        renderPage();
-        const btn = await screen.findByText('Register');
-        await user.click(btn);
-        expect(registerPlayer).toHaveBeenCalledWith(42);
-        expect(await screen.findByText('Successfully registered for the tournament.')).toBeInTheDocument();
-    });
-
-    it('shows error message when registration fails', async () => {
-        const user = userEvent.setup();
-        (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
-        (registerPlayer as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Already registered'));
-        renderPage();
-        const btn = await screen.findByText('Register');
-        await user.click(btn);
-        expect(await screen.findByText('Failed to register.')).toBeInTheDocument();
+        expect(await screen.findByTestId('entry')).toHaveAttribute('data-tournament', '42');
     });
 
     it('shows workspace link for staff members', async () => {
@@ -307,41 +232,6 @@ describe('TournamentDetailPage', () => {
 
     afterEach(() => vi.restoreAllMocks());
 
-    it('acknowledges withdrawal that removes private access and clears the private page', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
-        vi.mocked(fetchTournament).mockResolvedValue({
-            ...mockTournament, visibility: 'PRIVATE',
-            entries: [{ id: 7, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]],
-        });
-        vi.mocked(apiClient.post).mockResolvedValue({ status: 204, data: '' });
-        renderPage();
-        await userEvent.click(await screen.findByRole('button', { name: 'Withdraw entry' }));
-        expect(await screen.findByRole('heading', { name: 'Successfully withdrawn from the tournament.' })).toBeInTheDocument();
-        expect(apiClient.post).toHaveBeenCalledWith('/tournaments/42/entries/7/withdraw', {});
-        expect(fetchTournament).toHaveBeenCalledTimes(1);
-        expect(screen.queryByText('Spring Cup')).not.toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Back to tournaments' })).toBeInTheDocument();
-    });
-
-    it('uses the protected withdrawal response when public viewing access remains', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
-        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament,
-            entries: [{ id: 7, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]] });
-        vi.mocked(apiClient.post).mockResolvedValue({ status: 200, data: { ...mockTournament,
-            entries: [{ id: 7, userId: 1, status: 'WITHDRAWN' }] } });
-        renderPage();
-        await userEvent.click(await screen.findByRole('button', { name: 'Withdraw entry' }));
-        expect(await screen.findByRole('button', { name: 'Register' })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Withdraw entry' })).not.toBeInTheDocument();
-        expect(fetchTournament).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not offer registration outside its window', async () => {
-        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, registrationClosesAt: '2000-01-01T00:00:00' });
-        renderPage();
-        expect(await screen.findByText('Registration closed')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Register' })).not.toBeInTheDocument();
-    });
     it('keeps individual entry unavailable to a parent or underage player', async () => {
         vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, user: { id: 1, role: 'PLAYER', dob: '2020-01-01', profileComplete: true } } as ReturnType<typeof useAuth>);
         vi.mocked(apiClient.get).mockImplementation(async url => ({ data: url === '/competitions/player-eligibility' ? { eligible: false } : null }));
@@ -349,42 +239,6 @@ describe('TournamentDetailPage', () => {
         renderPage();
         expect(await screen.findByText(/Individual entry requires an adult player/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Register' })).not.toBeInTheDocument();
-    });
-    it('requires a squad selection, shows loading accurately and retries a failed squad read', async () => {
-        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, participantScope: 'SQUAD' });
-        vi.mocked(apiClient.get).mockImplementation(async url => {
-            if (url === '/clubs/my-membership-context') return { data: { clubId: 1, clubName: 'Dinamo', myRole: 'COACH' } };
-            throw new Error('Offline');
-        });
-        renderPage();
-        await userEvent.click(await screen.findByRole('button', { name: 'Request entry' }));
-        expect(await screen.findByText('Could not load squads. Your request has not been sent.')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Submit request' })).toBeDisabled();
-        vi.mocked(apiClient.get).mockResolvedValue({ data: [{ id: 3, name: 'U16 Boys' }] });
-        await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
-        await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Choose a squad' }), '3');
-        vi.mocked(requestEntry).mockResolvedValue({} as never);
-        await userEvent.click(screen.getByRole('button', { name: 'Submit request' }));
-        await waitFor(() => expect(requestEntry).toHaveBeenCalledWith(42, { clubId: 1, squadId: 3 }));
-    });
-    it('does not offer a club entry using a player membership alone', async () => {
-        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, participantScope: 'CLUB' });
-        vi.mocked(apiClient.get).mockResolvedValue({ data: { clubId: 1, clubName: 'Dinamo', myRole: 'PLAYER' } });
-        renderPage();
-        await screen.findByText('Spring Cup');
-        await waitFor(() => expect(screen.queryByRole('button', { name: 'Request entry' })).not.toBeInTheDocument());
-        expect(requestEntry).not.toHaveBeenCalled();
-    });
-    it.each(['REJECTED', 'WITHDRAWN'] as const)('explains a previous %s club request while allowing another request', async status => {
-        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, participantScope: 'CLUB', entries: [
-            publicEntry({ id: 3, clubId: 1, status }),
-            publicEntry({ id: 4, clubId: 2, status: 'APPROVED' }),
-        ] });
-        vi.mocked(apiClient.get).mockResolvedValue({ data: { clubId: 1, clubName: 'Dinamo', myRole: 'COACH' } });
-        renderPage();
-        expect(await screen.findByText(new RegExp(`Previous request: ${status === 'REJECTED' ? 'Entry declined' : 'Withdrawn'}`))).toHaveTextContent('You can submit a new request.');
-        expect(screen.getByRole('button', { name: 'Request entry' })).toBeEnabled();
-        expect(requestEntry).not.toHaveBeenCalled();
     });
     it('starts with a useful overview and links to the organizer identity', async () => {
         vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, organizerName: 'Dinamo organization' });
@@ -425,7 +279,7 @@ describe('TournamentDetailPage', () => {
         expect(screen.queryByText(/brackets will be added later/)).not.toBeInTheDocument();
         expect(screen.queryByText('Ready to place')).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /Open workspace/ })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Sign in to register/ })).toBeInTheDocument();
+        expect(screen.getByTestId('entry')).toBeInTheDocument();
         expect(apiClient.get).not.toHaveBeenCalled();
         expect(apiClient.post).not.toHaveBeenCalled();
     });

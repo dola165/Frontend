@@ -5,7 +5,6 @@ import { Button, ButtonLink, EmptyNote } from '../../../design/primitives';
 import { Tabs } from '../../../design/Tabs';
 import { Status } from '../../../design/DataTable';
 import { MediaImage } from '../../../components/ui/MediaImage';
-import { useAuth } from '../../../context/AuthContext';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { FormatGlyph } from '../../tournaments/shape/FormatGlyph';
 import { plannedShape } from '../../tournaments/shape/shapeOf';
@@ -13,15 +12,14 @@ import { useWorldCopy } from '../copy';
 import { feeLabel, placesLabel, tournamentFact, whatLabel, type TournamentItem } from '../directories/tournaments/tournamentItem';
 import { shortDate } from '../format';
 import { zoned } from '../scoreboard/standings';
-import { useWorldData } from '../useWorldData';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
 import { FollowHost } from './tournament/FollowHost';
 import { TournamentAction } from './tournament/TournamentAction';
-import { useTournamentGate } from './tournament/useTournamentGate';
+import { useTournamentGate, useTournamentPane } from './tournament/useTournamentGate';
 import { ShapeView } from './tournament/ShapeView';
 import { TournamentOverview } from './tournament/TournamentOverview';
 import { TournamentAbout, TournamentMatches, TournamentTeams } from './tournament/TournamentParts';
-import { loadTournamentPane, organiserOf, placesTaken, tournamentChanged, tournamentParts, type TournamentPaneData, type TournamentPart } from './tournament/tournamentPane';
+import { organiserOf, placesTaken, tournamentChanged, tournamentParts, type TournamentPaneData, type TournamentPart } from './tournament/tournamentPane';
 import { useRelatedOpen, usePeekPart } from './usePeek';
 import './peek.css';
 import './pane.css';
@@ -35,10 +33,9 @@ import './tournament/tournament-pane.css';
  */
 export default function TournamentPeek({ id }: { id: string }) {
     const t = useWorldCopy();
-    const { sessionId, user } = useAuth();
     const tournamentId = Number(id);
     const valid = Number.isInteger(tournamentId) && tournamentId > 0;
-    const data = useWorldData(valid ? `tournament-pane:${sessionId}:${user?.id ?? ''}:${tournamentId}` : null, () => loadTournamentPane(tournamentId, sessionId, user?.id ?? null), t('This tournament could not load.'));
+    const data = useTournamentPane(tournamentId);
     if (data.loading) return <DrawerFrame title={t('Loading…')}><DrawerLoading /></DrawerFrame>;
     if (!data.data) return (
         <DrawerFrame title={t('Tournament')}>

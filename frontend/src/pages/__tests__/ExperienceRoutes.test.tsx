@@ -27,8 +27,8 @@ beforeEach(() => { auth.signedIn = false; clearAuthFlow(); });
 afterEach(() => { cleanup(); clearAuthFlow(); window.history.replaceState({}, '', '/'); });
 const open = (path: string) => { window.history.replaceState({}, '', path); render(<App />); };
 it.each([
-  ['/tryouts', '/world/opportunities', '?type=trials'],
-  ['/tryouts?clubId=4', '/world/opportunities', '?clubId=4&type=trials'],
+  ['/tryouts', '/world/opportunities', '?tab=trials'],
+  ['/tryouts?clubId=4', '/world/opportunities', '?clubId=4&tab=trials'],
   ['/events?location=Tbilisi', '/world/matches', '?location=Tbilisi&tab=events'],
 ])('sends the public directory %s into World without asking to sign in', async (path, pathname, search) => {
   open(path); await screen.findByRole('heading', { name: 'GrassKickZ World' });

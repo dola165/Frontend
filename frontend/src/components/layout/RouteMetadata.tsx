@@ -25,7 +25,8 @@ export const RouteMetadata = () => {
         else if (pathname === '/club-operations') label = 'My club work';
         else if (/^\/clubs\/\d+\/operations$/.test(pathname)) label = 'Club operations';
         else if (pathname === '/match-history') label = i18n.language.startsWith('ka') ? 'შედეგები და ისტორია' : 'Results & history';
-        else if (pathname.startsWith('/match-exchange')) label = t('nav.matchExchange', 'Match Exchange');
+        // Football words: a match page is a match, not the exchange it was arranged through.
+        else if (pathname.startsWith('/match-exchange')) label = i18n.language.startsWith('ka') ? (pathname === '/match-exchange' ? 'მატჩები' : 'მატჩი') : (pathname === '/match-exchange' ? 'Matches' : 'Match');
         else if (pathname === '/demo/commerce') label = t('nav.paymentDemo', 'Payment demo');
         else if (/^\/clubs\/\d+\/workspace$/.test(pathname)) label = t('clubWorkspace.workspace');
         else if (pathname === '/clubs/following') label = t('nav.followedClubs');

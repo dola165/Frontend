@@ -1,11 +1,20 @@
 // Synthetic API: football domain (map, venues, matches, competitions, schedules, journeys,
 // tryouts, admissions discovery, roles, store, campaigns). See sandbox/README.md for conventions.
-import { get, post, put, patch, del, reply } from '../router.mjs';
+import * as R from '../router.mjs';
 import * as W from '../world.mjs';
+import * as V from '../viewer.mjs';
 import * as F from '../world-football.mjs';
 import * as S from '../world-social.mjs';
 import * as C from '../world-club.mjs';
 import * as P from '../pages-data.mjs';
+
+// Every football answer is for the person asking: Dinamo's coach (the demo), a page owner's own clubs, or a plain fan
+// with none. Set once per request, read by the listing views and the "mine" filters.
+const viewerClubs = headers => { const viewer = V.viewerId(headers); return viewer === W.ME_ID ? [DINAMO] : P.ownedPages(viewer).map(page => page.clubId).filter(id => id != null); };
+const viewerSquads = headers => { const clubs = viewerClubs(headers); return clubs.includes(DINAMO) ? F.DINAMO_SQUADS : W.squads.filter(s => clubs.includes(s.clubId)); };
+const viewed = handler => context => { F.setViewerClubs(viewerClubs(context.headers)); return handler(context); };
+const get = (path, handler) => R.get(path, viewed(handler)), post = (path, handler) => R.post(path, viewed(handler)), put = (path, handler) => R.put(path, viewed(handler)), patch = (path, handler) => R.patch(path, viewed(handler)), del = (path, handler) => R.del(path, viewed(handler));
+const { reply } = R;
 
 const { iso, local, isoDate, clubs, venues, squads, matches, clubById, venueById, personById } = W;
 const squadById = F.sq;
@@ -179,8 +188,7 @@ get('/referees/:id', ({ params }) => {
 });
 
 // ============================================================== match exchange
-const dinamoSquadOptions = () => F.DINAMO_SQUADS.map(s => ({ id: s.id, club_id: DINAMO, name: s.name, category: s.ageGroup, club_name: clubById(DINAMO).name }));
-get('/match-exchange/squads', dinamoSquadOptions);
+get('/match-exchange/squads', ({ headers }) => viewerSquads(headers).map(s => ({ id: s.id, club_id: s.clubId, name: s.name, category: s.ageGroup, club_name: clubById(s.clubId).name })));
 get('/match-exchange', ({ query: q }) => {
   const mine = q.get('mine') === 'true', text = q.get('q'), format = q.get('format'), ageGroup = q.get('ageGroup'), level = q.get('level'), pref = q.get('venuePreference');
   const from = q.get('from') ? new Date(`${q.get('from')}T00:00:00`) : null, to = q.get('to') ? new Date(`${q.get('to')}T23:59:59`) : null;
@@ -196,7 +204,7 @@ get('/match-exchange', ({ query: q }) => {
 });
 function listingFromBody(body, existing) {
   const squad = squadById(body?.squadId) || squadById(existing?.hostSquadId);
-  if (!squad || squad.clubId !== DINAMO) return { error: reply(400, { status: 400, message: 'Choose one of your squads.' }) };
+  if (!squad || !F.isMineClub(squad.clubId)) return { error: reply(400, { status: 400, message: 'Choose one of your squads.' }) };
   const start = parseWhen(body.startsAt) || existing?.start, end = parseWhen(body.endsAt) || existing?.end;
   if (!start || !end || end <= start) return { error: reply(400, { status: 400, message: 'Choose a start and end time.' }) };
   return { squad, start, end };
@@ -221,9 +229,9 @@ put('/match-exchange/:id', ({ params, body }) => {
 });
 post('/match-exchange/:id/proposals', ({ params, body }) => {
   const l = F.listingById(params.id), squad = squadById(body?.squadId); if (!l) return notFound();
-  if (!squad || squad.clubId !== DINAMO) return reply(400, { status: 400, message: 'Choose one of your squads.' });
+  if (!squad || !F.isMineClub(squad.clubId)) return reply(400, { status: 400, message: 'Choose one of your squads.' });
   if (l.status !== 'OPEN') return conflict('This listing already has an opponent.');
-  l.proposals.push({ id: W.newId(), squad_id: squad.id, squad_name: squad.name, club_name: clubById(DINAMO).name, club_id: DINAMO, note: body.note || '', status: 'PENDING' });
+  l.proposals.push({ id: W.newId(), squad_id: squad.id, squad_name: squad.name, club_name: clubById(squad.clubId).name, club_id: squad.clubId, note: body.note || '', status: 'PENDING' });
   l.revision++; l.history.push({ id: W.newId(), action: 'PROPOSAL', created_at: iso(new Date()), reason: null });
   return F.listingView(l, { detail: true });
 });
@@ -272,7 +280,7 @@ post('/match-exchange/:id/venue', ({ params, body }) => {
   if (body?.revision != null && Number(body.revision) !== l.revision) return conflict('Listing changed. Reload and review its current arrangements.');
   if (body?.bookingId) {
     const b = F.bookingById(body.bookingId);
-    if (!b || !(b.userId === W.ME_ID || b.allocatedClubId === DINAMO)) return reply(404, { status: 404, message: 'That reservation is not yours to use.' });
+    if (!b || !(b.userId === W.ME_ID || F.isMineClub(b.allocatedClubId))) return reply(404, { status: 404, message: 'That reservation is not yours to use.' });
     // As the backend, by the stored status: a request the venue let lapse still holds the ground until it is released.
     if (['PENDING', 'CONFIRMED'].includes(F.bookingById(l.bookingId)?.status)) return conflict('This match already has a live reservation. Resolve it at the stadium first.');
     if (!['CONFIRMED', 'PENDING'].includes(b.status)) return reply(400, { status: 400, message: 'Only a confirmed or pending reservation can be linked.' });
@@ -319,7 +327,7 @@ const teamView = (l, s) => {
 };
 get('/match-arrangements/:id/participants', ({ params }) => {
   const l = F.listingById(params.id); if (!l) return [];
-  return [l.hostSquadId, l.opponentSquadId].filter(Boolean).map(id => squadById(id)).filter(s => s?.clubId === DINAMO).map(s => teamView(l, s));
+  return [l.hostSquadId, l.opponentSquadId].filter(Boolean).map(id => squadById(id)).filter(s => s && F.isMineClub(s.clubId)).map(s => teamView(l, s));
 });
 get('/match-arrangements/squads/:id/fixtures', ({ params, query: q }) => {
   const from = parseWhen(q.get('from')), to = parseWhen(q.get('to'));
@@ -779,7 +787,7 @@ get('/referees/club-squad/:squadId', ({ params }) => {
   const ids = C.appointments.filter(a => a.status === 'ACTIVE' && a.specialisations.includes('REFEREE') && (a.club_wide || a.squad_ids.includes(s.id))).map(a => a.user_id);
   return F.refereeProfiles.filter(r => ids.includes(r.user_id)).sort((a, b) => a.full_name.localeCompare(b.full_name));
 });
-get('/match-exchange/:id/broadcasts', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { broadcasts: [], manageableSquads: [l.hostSquadId, l.opponentSquadId].map(id => squadById(id)).filter(s => s?.clubId === DINAMO).map(s => ({ id: s.id, name: s.name })) }; });
+get('/match-exchange/:id/broadcasts', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { broadcasts: [], manageableSquads: [l.hostSquadId, l.opponentSquadId].map(id => squadById(id)).filter(s => s && F.isMineClub(s.clubId)).map(s => ({ id: s.id, name: s.name })) }; });
 get('/organizations/mine', () => [{ id: 901, slug: 'fc-dinamo-tbilisi-academy', displayName: clubById(DINAMO).name, description: clubById(DINAMO).description, membershipRole: 'CLUB_ADMIN', kinds: ['CLUB', 'TOURNAMENT_ORGANIZER'], primaryKind: 'CLUB', clubBacked: true, canCreateTournament: true }]);
 get('/organizations/:id/tournament-host-clubs', ({ params }) => Number(params.id) === 901 ? [{ clubId: DINAMO, clubName: clubById(DINAMO).name, organizationId: 901, organizationName: clubById(DINAMO).name, accessType: 'OWN_ORGANIZATION' }] : []);
 
@@ -809,13 +817,13 @@ post('/match-arrangements/:id/response', listingAction((l, body) => {
   const entry = (name, reason = null) => l.history.push({ id: W.newId(), action: name, created_at: iso(new Date()), reason });
   const request = S.requestItems.find(i => i.key === `MATCH_INVITATION:${l.id}`);
   if (request && ['ACCEPT', 'DECLINE'].includes(action)) Object.assign(request, { status: action === 'ACCEPT' ? 'ACCEPTED' : 'DECLINED', actionable: false, updatedAt: iso(new Date()) });
-  if (action === 'ACCEPT') { const s = squadById(body.squadId) ?? squadById(l.requestedSquadId); if (s?.clubId === DINAMO) l.opponentSquadId = s.id; l.status = 'ARRANGED'; entry('OPPONENT_AGREED'); }
+  if (action === 'ACCEPT') { const s = squadById(body.squadId) ?? squadById(l.requestedSquadId); if (s && F.isMineClub(s.clubId)) l.opponentSquadId = s.id; l.status = 'ARRANGED'; entry('OPPONENT_AGREED'); }
   else if (action === 'DECLINE') { l.status = 'CLOSED'; entry('CHALLENGE_DECLINED'); }
   else if (action === 'WITHDRAW') { l.opponentSquadId = null; l.status = 'OPEN'; entry('OPPONENT_WITHDRAWN', body.reason || null); }
 }));
 post('/match-arrangements/:id/open-opponent-search', listingAction(l => { l.requestedClubId = null; l.status = 'OPEN'; }));
 for (const kind of ['attendance', 'participants']) post(`/match-arrangements/:id/squads/:squadId/${kind}`, ({ params, body }) => {
-  const l = F.listingById(params.id), s = squadById(params.squadId); if (!l || !s || s.clubId !== DINAMO) return notFound();
+  const l = F.listingById(params.id), s = squadById(params.squadId); if (!l || !s || !F.isMineClub(s.clubId)) return notFound();
   if (kind === 'participants' && Array.isArray(body?.playerIds)) matchSelections.set(`${l.id}:${s.id}`, new Set(body.playerIds.map(Number)));
   l.revision++; return teamView(l, s);
 });

@@ -614,17 +614,23 @@ const venueStatusOf = l => {
 // An invited referee has not answered yet (`refereeInvite`); one chosen from applications or seeded has accepted.
 const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? (l.refereeInvite?.status ?? 'ACCEPTED') : 'NEEDED';
 export { refereeStatusOf };
-export const involvesDinamo = l => squadById(l.hostSquadId).clubId === DINAMO || l.requestedClubId === DINAMO || (l.opponentSquadId && squadById(l.opponentSquadId).clubId === DINAMO) || l.proposals.some(p => p.club_id === DINAMO);
+// Whose matches these are: the clubs of the person asking. Dinamo's coach by default (the demo); a page owner's own
+// clubs; none for a plain fan. The football handlers set it once per request.
+let viewerClubs = [DINAMO];
+export const setViewerClubs = clubs => { viewerClubs = Array.isArray(clubs) ? clubs : [DINAMO]; };
+export const isMineClub = id => viewerClubs.includes(Number(id));
+export const involves = (l, clubs) => clubs.includes(squadById(l.hostSquadId).clubId) || clubs.includes(l.requestedClubId) || Boolean(l.opponentSquadId && clubs.includes(squadById(l.opponentSquadId).clubId)) || l.proposals.some(p => clubs.includes(p.club_id));
+export const involvesDinamo = l => involves(l, viewerClubs);
 export const listingView = (l, { detail = false } = {}) => {
   const host = squadById(l.hostSquadId), club = clubById(host.clubId), v = l.venueId ? venueById(l.venueId) : null, opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null;
-  const past = l.end.getTime() < Date.now(), mineHost = club.id === DINAMO, mineGuest = opp?.clubId === DINAMO;
+  const past = l.end.getTime() < Date.now(), mineHost = isMineClub(club.id), mineGuest = Boolean(opp && isMineClub(opp.clubId));
   const eventStatus = l.status === 'CANCELLED' ? 'CANCELLED' : past && opp ? 'COMPLETED' : 'SCHEDULED';
   const listingStatus = l.status === 'OPEN' && past ? 'EXPIRED' : l.status;
   const head = mineHost ? personById(host.headCoachId) : null;
   const resultStatus = l.score ? l.resultStatus ?? 'CONFIRMED' : null, scored = resultStatus === 'CONFIRMED';
   const out = {
     requested_club_id: l.requestedClubId, requested_squad_id: l.requestedSquadId ?? null, external_referee_name: l.externalRefereeName ?? null, referee_responsibility: l.refereeResponsibility ?? 'HOST', hosting_choice: l.hostingChoice ?? l.venuePreference,
-    can_respond: !mineHost && listingStatus === 'OPEN' && l.requestedClubId === DINAMO, can_arrange_official: (l.refereeResponsibility ?? 'HOST') === 'OPPONENT' ? mineGuest : mineHost,
+    can_respond: !mineHost && listingStatus === 'OPEN' && isMineClub(l.requestedClubId), can_arrange_official: (l.refereeResponsibility ?? 'HOST') === 'OPPONENT' ? mineGuest : mineHost,
     home_score: scored ? l.score[0] : null, away_score: scored ? l.score[1] : null, result_status: resultStatus, result_legacy: false,
     event_id: l.id, squad_id: host.id, squad_name: host.name, club_id: club.id, club_name: club.name, club_profile_kind: CATEGORY_LABEL[clubCategory(club)], club_logo_url: club.logoUrl, club_banner_url: club.bannerUrl,
     title: l.title, description: l.description, starts_at: local(l.start), ends_at: local(l.end), starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), timezone: TZ,
@@ -636,7 +642,7 @@ export const listingView = (l, { detail = false } = {}) => {
     head_coach_id: head?.id ?? null, coach_name: head ? head.fullName : clubCoachName(club.id), can_manage: mineHost, can_arrange: mineHost || mineGuest, can_record_result: (mineHost || mineGuest) && past && !l.score,
   };
   if (detail) {
-    out.proposals = mineHost ? l.proposals : l.proposals.filter(p => p.club_id === DINAMO);
+    out.proposals = mineHost ? l.proposals : l.proposals.filter(p => isMineClub(p.club_id));
     out.history = l.history;
     const ref = l.refereeId ? personById(l.refereeId) : null;
     out.appointments = [...(ref ? [appointmentView(l, ref)] : []), ...(l.assistants ?? []).map(official => appointmentView(l, personById(official.refereeId), official))];

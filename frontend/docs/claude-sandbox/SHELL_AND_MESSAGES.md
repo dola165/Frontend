@@ -66,7 +66,17 @@ Other chats have added entry points to the header and account menu ("Create a pa
 | F20 | `092f07d` | A failed first status check says "Could not reach Agent Dola" with Try again (and rechecks on window focus) instead of "not available on this server". Each question carries `subject` (the squad on My squads or `/squads/:id`, the child on Parent Hub, a job, fundraiser, product, tournament, match, person, club or page, with its name) and `page` (where to return). A chip above the composer names it and can leave it out. `/my-squads` chooses the coach context. Action cards untouched. |
 | F11 study | `95597a7` | `frontend/design/navigation.html`: Today and alternatives A, B, C as clickable 390px phones for five role mixes. Not built into the app until the owner chooses. |
 
-## F11: the alternatives (owner to choose)
+## F11: decided and built (16 October)
+
+The owner chose C with one change: "like C but instead of 'You' on bottom, we have 'You' only in form of profile picture on top, while 'You' on bottom turns into 'My club' if we have it." Built on phones (under 900px):
+
+- **Bottom bar** (`PhoneTabBar`): Home · World · My squads (coaching) · Parent Hub (a linked child) · My Club (only with a club). Ordinary: 2 tabs; coach: 4; parent: 3; coach + parent: 5. A long Georgian label takes a second line ("ჩემი / გუნდები"), icons stay on one row.
+- **Top bar**: search, Agent Dola, Inbox, **Messages** (icon with its count) and the **profile picture**, which opens **You** (`YouSheet`, a modal sheet under the header): the profile, "Find or start your club" when there is no club, the pins panel (this page, your pins, suggestions, your work, create a page, more places), then the account (schedule, settings, workspaces, appearance, language, sign out). The account items are shared with the desktop menu (`AccountItems`).
+- **Wide screens are unchanged**: the tabs (My Club kept for someone without a club, offering Find/Start), the pins bar and the avatar menu.
+- One club per person (PRODUCT_MODEL §13): no club switcher; the "coach at two clubs" case is gone.
+- The study (`design/navigation.html`, `src/design-preview/navigation/`) is deleted.
+
+### The alternatives that were shown
 
 Open `/design/navigation.html` on the Vite server (`http://localhost:5178/design/navigation.html` once merged; `http://localhost:5191/...` on this branch). Two views: **Compare layouts** (one role mix, Today + A + B + C side by side) and **One layout, every role** (`?view=alt&alt=a`). Language (EN/ქა) and theme switch at the top right; everything is in the address.
 

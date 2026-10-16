@@ -17,6 +17,7 @@ import { HeaderBrand, HeaderTab } from './HeaderTab';
 import { HeaderSearch } from './HeaderSearch';
 import { InboxButton } from './inbox/InboxButton';
 import { PhoneTabBar } from './PhoneTabBar';
+import { YouSheet } from './YouSheet';
 import { describeRoute, normalizePath } from './pins/describeRoute';
 import { workDestinations, workspaceDestinations } from './pins/pinCatalog';
 import { PinsBar } from './pins/PinsBar';
@@ -74,6 +75,10 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         ...(club.path || capabilities !== undefined ? [{ id: 'my-club' as const, to: club.path ?? '/my-club', label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
         ...(hasNavigationCapability(capabilities, 'parent.hub') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
     ];
+    // Phones (owner, 16 October): Home, World, the role tabs, then My Club only for someone who has a club; without one,
+    // finding or starting a club lives in You. Messages and You (the profile picture) are in the top bar.
+    const byId = (id: PrimaryTab['id']) => tabs.filter(tab => tab.id === id);
+    const phoneTabs = [...byId('home'), ...byId('world'), ...byId('my-squads'), ...byId('parent-hub'), ...(club.path ? byId('my-club') : [])];
     const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);
     const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);
@@ -103,10 +108,12 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
                             <MessageSquare aria-hidden="true" /><Count value={unread ?? 0} />
                         </Link>
                         <AccountMenu user={user} workspaces={workspaces} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={onLogout} />
+                        <YouSheet user={user} workspaces={workspaces} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={onLogout}
+                            pins={pins} page={page} work={work} hasClub={Boolean(club.path)} onPinnedPage={pinned !== null} />
                     </div>
                 </div>
             </header>
-            <PhoneTabBar tabs={tabs} unreadMessages={unread} pins={pins} page={page} work={work} onPinnedPage={pinned !== null} />
+            <PhoneTabBar tabs={phoneTabs} />
         </>
     );
 }

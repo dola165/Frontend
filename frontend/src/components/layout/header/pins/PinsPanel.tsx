@@ -14,6 +14,8 @@ export interface PinsPanelProps {
     work: Pin[];
     titleId: string;
     onNavigate: () => void;
+    /** What pins are, where the panel is shown (a phone has no pin tabs). */
+    hint?: string;
 }
 
 export function PinGlyph({ icon }: { icon: PinIcon }) {
@@ -31,7 +33,7 @@ function PinLink({ pin, meta, onNavigate }: { pin: Pin; meta?: string; onNavigat
 }
 
 /** Pin this page, manage pins, take a suggestion, open your own work, or browse everything that can become a tab. */
-export function PinsPanel({ state, page, work, titleId, onNavigate }: PinsPanelProps) {
+export function PinsPanel({ state, page, work, titleId, onNavigate, hint }: PinsPanelProps) {
     const copy = useJourneyCopy();
     const { pins, suggestions, isPinned, pin, unpin, move, full } = state;
     const pageLabel = page.label ?? page.title ?? copy('This page', 'ეს გვერდი');
@@ -54,7 +56,7 @@ export function PinsPanel({ state, page, work, titleId, onNavigate }: PinsPanelP
     return (
         <>
             <div className="gk-pop__head"><h2 id={titleId} className="gk-pop__title">{copy('Pins', 'პინები')}</h2></div>
-            <p className="gk-pop__hint">{copy('Your own tabs next to Home, World and My Club.', 'თქვენი ჩანართები მთავარის, მსოფლიოსა და ჩემი კლუბის გვერდით.')}</p>
+            <p className="gk-pop__hint">{hint ?? copy('Your own tabs next to Home, World and My Club.', 'თქვენი ჩანართები მთავარის, მსოფლიოსა და ჩემი კლუბის გვერდით.')}</p>
 
             {page.pinnable && (
                 <section className="gk-pop__section" aria-label={copy('This page', 'ეს გვერდი')}>

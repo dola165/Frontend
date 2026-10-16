@@ -8,6 +8,7 @@ import { AdmissionError } from '../admissions/applicant/AdmissionFrame';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import './parents.css';
 
 export function PlayerLinkCode({ child, onChanged }: { child: JoiningChild; onChanged?: () => void }) {
     const { sessionId } = useAuth(); const copy = useJourneyCopy();

@@ -7,6 +7,7 @@ import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import './add-child.css';
+import './parents.css';
 
 type Intent = { fullName: string; dateOfBirth: string; responsible: boolean; requestId: string };
 type Props = { onCreated: (childId: number) => void };

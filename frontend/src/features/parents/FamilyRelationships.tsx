@@ -9,6 +9,7 @@ import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import './family-relationships.css';
 import { IdentityActivationForm } from './IdentityActivationForm';
+import './parents.css';
 
 type Guardian = { id: number; guardianId: number; name: string; provenance: string; canRevoke: boolean; self: boolean };
 type Club = { id: number; clubId: number; name: string; status: string; consent: string };

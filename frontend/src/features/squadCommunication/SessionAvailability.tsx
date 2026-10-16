@@ -3,6 +3,7 @@ import { Check, CircleHelp, UserX } from 'lucide-react';
 import { Badge, Button, GkRoot } from '../../design/primitives';
 import type { SquadSession } from './api';
 import { availability, type AttendancePerson } from './attendance';
+import { useJourneyCopy } from './journeyCopy';
 import './session-availability.css';
 
 type Response = 'GOING' | 'NOT_GOING' | 'UNSURE';
@@ -32,36 +33,39 @@ export function SessionAvailability({ session, canManage, playerId, busy, ended,
 }
 
 function FamilyReply({ person, asking, busy, ended, onReply }: { person: AttendancePerson; asking: boolean; busy: boolean; ended: boolean; onReply: Reply }) {
+    const copy = useJourneyCopy();
     const [reason, setReason] = useState<string | null>(null);
-    if (person.active === false) return <p className="gk-availability__line">{person.name} is no longer invited to this event.</p>;
+    if (person.active === false) return <p className="gk-availability__line">{copy(`${person.name} is no longer invited to this event.`, `${person.name} ამ ღონისძიებაზე აღარ არის მოწვეული.`)}</p>;
     const first = firstName(person.name);
     const reconfirm = person.response === 'RECONFIRMATION_REQUIRED';
     const cant = person.response === 'NOT_GOING';
     const unsure = person.response === 'UNSURE';
     const needsAnswer = reconfirm || unsure || (asking && person.response === 'UNANSWERED');
-    const status = cant ? `${person.name} can’t come` : reconfirm ? 'The event changed. Please confirm again.' : unsure ? `${person.name} is not sure yet` : needsAnswer ? 'The coach asked everyone to confirm.'
-        : person.response === 'GOING' ? `${person.name} is coming` : `${person.name} is expected`;
+    const status = cant ? copy(`${first} can’t come`, `${first} ვერ მოვა`) : reconfirm ? copy('The event changed. Please confirm again.', 'ღონისძიება შეიცვალა. დაადასტურეთ ხელახლა.')
+        : unsure ? copy(`${first} is not sure yet`, `${first} ჯერ არ არის დარწმუნებული`) : needsAnswer ? copy(`Is ${first} coming?`, `მოვა ${first}?`)
+        : person.response === 'GOING' ? copy(`${first} is coming`, `${first} მოვა`) : copy(`${first} is expected`, `${first}-ს ელოდებიან`);
+    const previous = (value?: string | null) => value === 'GOING' ? copy('coming', 'მოვა') : value === 'NOT_GOING' ? copy('can’t come', 'ვერ მოვა') : value === 'UNSURE' ? copy('not sure', 'არ ვიცი') : copy('no answer', 'პასუხი არ არის');
     const Icon = cant ? UserX : needsAnswer ? CircleHelp : Check;
-    return <section className="gk-availability__family" aria-label={`Attendance for ${person.name}`} data-state={cant ? 'out' : needsAnswer ? 'ask' : 'in'}>
+    return <section className="gk-availability__family" aria-label={copy(`Attendance for ${person.name}`, `დასწრება: ${person.name}`)} data-state={cant ? 'out' : needsAnswer ? 'ask' : 'in'}>
         <p className="gk-availability__line"><Icon aria-hidden="true" size={18} /><span><strong>{status}</strong>
             {cant && person.reason && <span className="gk-muted"> · {person.reason}</span>}
-            {reconfirm && person.previous_response && <span className="gk-muted"> Previous answer: {answer(person.previous_response)}.</span>}
-            {!cant && !needsAnswer && person.response !== 'GOING' && !ended && <span className="gk-muted"> No need to reply. Let the coach know only if {first} can’t make it.</span>}
+            {reconfirm && person.previous_response && <span className="gk-muted"> {copy('Previous answer', 'წინა პასუხი')}: {previous(person.previous_response)}.</span>}
+            {!cant && !needsAnswer && person.response !== 'GOING' && !ended && <span className="gk-muted"> {copy('No need to reply.', 'პასუხი საჭირო არ არის.')}</span>}
         </span></p>
         {ended ? null : reason !== null ? <form className="gk-availability__reason" onSubmit={event => { event.preventDefault(); onReply(person, 'NOT_GOING', reason.trim() || undefined); setReason(null); }}>
-            <label className="gk-field"><span className="gk-field__label">Reason for the coach (optional)</span>
-                <input className="gk-input" maxLength={140} value={reason} onChange={event => setReason(event.target.value)} placeholder="For example: school trip, injured" autoFocus /></label>
-            <div className="gk-row"><Button type="submit" size="sm" variant="primary" disabled={busy || !reason.trim()}>Send reason</Button><Button size="sm" variant="ghost" onClick={() => setReason(null)}>Skip</Button></div>
+            <label className="gk-field"><span className="gk-field__label">{copy('Reason for the coach (optional)', 'მიზეზი მწვრთნელისთვის (არასავალდებულო)')}</span>
+                <input className="gk-input" maxLength={140} value={reason} onChange={event => setReason(event.target.value)} placeholder={copy('For example: school trip, injured', 'მაგალითად: სასკოლო ექსკურსია, ტრავმა')} autoFocus /></label>
+            <div className="gk-row"><Button type="submit" size="sm" variant="primary" disabled={busy || !reason.trim()}>{copy('Send reason', 'მიზეზის გაგზავნა')}</Button><Button size="sm" variant="ghost" onClick={() => setReason(null)}>{copy('Skip', 'გამოტოვება')}</Button></div>
         </form> : <div className="gk-row gk-availability__actions">
             {cant ? <>
-                <Button size="sm" disabled={busy} onClick={() => onReply(person, 'GOING')}>{first} can come after all</Button>
-                {!person.reason && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setReason('')}>Add a reason</Button>}
+                <Button size="sm" disabled={busy} onClick={() => onReply(person, 'GOING')}>{copy(`${first} can come after all`, `${first} მაინც მოვა`)}</Button>
+                {!person.reason && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setReason('')}>{copy('Add a reason', 'მიზეზის დამატება')}</Button>}
             </> : <>
-                {needsAnswer && <Button size="sm" variant="primary" disabled={busy} onClick={() => onReply(person, 'GOING')}>Coming</Button>}
-                <Button size="sm" disabled={busy} onClick={() => { onReply(person, 'NOT_GOING'); setReason(''); }}>Can’t come</Button>
+                {(needsAnswer || person.response === 'GOING') && <Button size="sm" variant={needsAnswer ? 'primary' : 'secondary'} aria-pressed={person.response === 'GOING'} disabled={busy || person.response === 'GOING'} onClick={() => onReply(person, 'GOING')}>{copy('Coming', 'მოვა')}</Button>}
+                <Button size="sm" disabled={busy} onClick={() => { onReply(person, 'NOT_GOING'); setReason(''); }}>{copy('Can’t come', 'ვერ მოვა')}</Button>
             </>}
         </div>}
-        {person.recorded_by && person.response !== 'UNANSWERED' && <p className="gk-faint">{person.recorded_by === 'COACH' ? 'Recorded by the coach' : person.recorded_by === 'GUARDIAN' ? 'Answered by a parent or guardian' : 'Answered by the player'}</p>}
+        {person.recorded_by && person.response !== 'UNANSWERED' && <p className="gk-faint">{person.recorded_by === 'COACH' ? copy('Recorded by the coach', 'ჩაწერა მწვრთნელმა') : person.recorded_by === 'GUARDIAN' ? copy('Answered by a parent or guardian', 'უპასუხა მშობელმა ან მეურვემ') : copy('Answered by the player', 'უპასუხა მოთამაშემ')}</p>}
     </section>;
 }
 

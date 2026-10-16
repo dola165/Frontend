@@ -5,6 +5,7 @@ import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { todayIso } from '../../utils/age';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import './parents.css';
 
 export function IdentityActivationForm({ childId, adult = false, path, onChanged }: {
     childId?: number; adult?: boolean; path?: string; onChanged: () => void;

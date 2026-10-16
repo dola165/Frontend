@@ -5,6 +5,7 @@ import { ageFromDob, todayIso } from '../../utils/age';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { isCurrentAuthSession, type AuthSessionId } from '../../utils/authStorage';
 import { activateChild, type ParentChild } from './api';
+import './parents.css';
 
 export function ChildActivationDialog({ child, sessionId, onClose, onActivated }: {
     child: ParentChild;

@@ -14,8 +14,8 @@ const initialValues = (campaign: Campaign | null) => [campaign?.title ?? '', cam
     campaign?.startsOn ?? '', campaign?.endsOn ?? '', campaign?.images ?? []];
 
 /** Writing or editing a campaign on one page: the story, the goal and timing, reported funds and photos. */
-export const CampaignForm = ({ campaign, saving, error, onCancel, onSubmit }: {
-    campaign: Campaign | null; saving: boolean; error: string; onCancel: () => void; onSubmit: (input: CampaignInput) => Promise<void>;
+export const CampaignForm = ({ campaign, saving, error, onCancel, onSubmit, backLabel = 'Back to campaigns' }: {
+    campaign: Campaign | null; saving: boolean; error: string; onCancel: () => void; onSubmit: (input: CampaignInput) => Promise<void>; backLabel?: string;
 }) => {
     const [title, setTitle] = useCommerceDraftState('form:title', campaign?.title ?? '');
     const [summary, setSummary] = useCommerceDraftState('form:summary', campaign?.summary ?? '');
@@ -35,7 +35,7 @@ export const CampaignForm = ({ campaign, saving, error, onCancel, onSubmit }: {
     const [discard, setDiscard] = useState(false);
     const draft = !campaign || campaign.status === 'DRAFT';
     const dirty = JSON.stringify([title, summary, description, beneficiary, useOfFunds, category, currency, goal, reported, note, start, end, images]) !== JSON.stringify(initialValues(campaign));
-    return <CommerceEditor title={campaign ? 'Edit campaign' : 'Create a campaign'} formLabel="Campaign editor" backLabel="Back to campaigns" saveLabel="Save campaign"
+    return <CommerceEditor title={campaign ? 'Edit campaign' : 'Create a campaign'} formLabel="Campaign editor" backLabel={backLabel} saveLabel="Save campaign"
         description="Say what the project makes possible, who it helps and how support will be used. A title is enough to save a draft."
         saving={saving} disabled={saving || uploading}
         footerNote={draft ? 'Your campaign stays a draft until you publish it from the campaign list.' : 'Saving updates this campaign. Its publication status stays the same.'}

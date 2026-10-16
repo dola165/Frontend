@@ -38,6 +38,7 @@ const FundraisingPage = lazy(() => import('./pages/FundraisingPage').then(module
 const FundraisingCataloguePage = lazy(() => import('./pages/FundraisingCataloguePage').then(module => ({default: module.FundraisingCataloguePage})));
 const ClubFundraisingPage = lazy(() => import('./pages/ClubFundraisingPage').then(module => ({default: module.ClubFundraisingPage})));
 const FundraiserPage = lazy(() => import('./pages/FundraiserPage').then(module => ({default: module.FundraiserPage})));
+const FundraiserManagePage = lazy(() => import('./pages/FundraiserManagePage').then(module => ({default: module.FundraiserManagePage})));
 const StartFundraiserPage = lazy(() => import('./pages/StartFundraiserPage').then(module => ({default: module.StartFundraiserPage})));
 const JobDetailPage = lazy(() => import('./pages/JobDetailPage').then(module => ({default: module.JobDetailPage})));
 const JobsPage = lazy(() => import('./pages/JobsPage').then(module => ({default: module.JobsPage})));
@@ -418,6 +419,7 @@ export function MainLayout() {
             <Route path="/campaigns/all" element={<FundraisingCataloguePage />} />
             <Route path="/campaigns/new" element={<ProtectedRoute><StartFundraiserPage /></ProtectedRoute>} />
             <Route path="/campaigns/:id" element={<FundraiserPage />} />
+            <Route path="/campaigns/:id/manage/:tool" element={<ProtectedRoute><FundraiserManagePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} />
             <Route path="/people" element={<WorldRedirect to="/world/people" />} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />

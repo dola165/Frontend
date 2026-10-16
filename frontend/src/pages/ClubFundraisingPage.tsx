@@ -33,6 +33,6 @@ export const ClubFundraisingPage = () => {
                 {actions}
             </div>
         </>}
-        <FundraisingCatalogue fixedClubId={clubId} />
+        <FundraisingCatalogue fixedClubId={clubId} manage={canStart} />
     </>);
 };

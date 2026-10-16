@@ -14,6 +14,15 @@ type Squad = Pick<api.SquadOverview, 'id' | 'name'>;
  * expires, and (when asked) each family confirms they have read it. With several squads to choose from
  * (My squads), one announcement goes to each chosen squad.
  */
+/** The announcements coaches send most. Each fills the title and a message to finish in one line. */
+const TEMPLATES = [
+    { title: 'Training cancelled', body: 'No training on [day]. We train again as usual next time.' },
+    { title: 'New time', body: 'Training on [day] moves to [time] at [place]. Everything else stays the same.' },
+    { title: 'What to bring', body: 'Please bring: [kit], shin pads, water. Be there 10 minutes before the start.' },
+    { title: 'Where to meet', body: 'We meet at [place] at [time]. The bus leaves 15 minutes later.' },
+    { title: 'Well done', body: 'Great effort today, everyone. Rest well and see you at the next session.' },
+];
+
 export function AnnouncementComposer({ space, spaces, initialSquads, startOpen = false, onPosted }: {
     space?: Squad; spaces?: Squad[]; initialSquads?: number[]; startOpen?: boolean; onPosted: () => void;
 }) {
@@ -68,7 +77,7 @@ export function AnnouncementComposer({ space, spaces, initialSquads, startOpen =
         <GkRoot className="gk-announce-compose">
             {posted && <p className="gk-notice gk-announce-compose__posted" role="status">{posted}</p>}
             <button type="button" className="gk-announce-compose__open" onClick={() => { setOpen(true); setPosted(''); }}>
-                <Megaphone aria-hidden="true" /><span><strong>New announcement</strong><span>Pinned at the top of the squad’s updates until it expires</span></span>
+                <Megaphone aria-hidden="true" /><span><strong>Write a new announcement</strong><span>To one or several squads · pinned at the top until it expires</span></span>
             </button>
         </GkRoot>
     );
@@ -85,8 +94,14 @@ export function AnnouncementComposer({ space, spaces, initialSquads, startOpen =
                         onClick={() => setTargets(current => current.includes(choice.id) ? current.filter(id => id !== choice.id) : [...current, choice.id])}>{choice.name}</Chip>)}</div>
                     {!targets.length && <span className="gk-field__hint">Choose at least one squad.</span>}
                 </div>}
+                {/* The five messages coaches send most, one press each; the text stays editable. */}
+                <div className="gk-field">
+                    <span className="gk-field__label" id="announce-template">Start from</span>
+                    <div className="gk-chips" role="group" aria-labelledby="announce-template">{TEMPLATES.map(template => <Chip key={template.title} pressed={title === template.title}
+                        onClick={() => { setTitle(template.title); setBody(template.body); }}>{template.title}</Chip>)}</div>
+                </div>
                 <Field label="Title" htmlFor="announce-title">
-                    <input id="announce-title" className="gk-input" required maxLength={140} autoFocus value={title} onChange={event => setTitle(event.target.value)} placeholder="What should families know?" />
+                    <input id="announce-title" className="gk-input" required maxLength={140} autoFocus value={title} onChange={event => setTitle(event.target.value)} placeholder="What should parents know?" />
                 </Field>
                 <Field label="Message" htmlFor="announce-body">
                     <textarea id="announce-body" className="gk-input" required maxLength={4000} rows={4} value={body} onChange={event => setBody(event.target.value)} placeholder="Write a clear update for the squad…" />
@@ -100,7 +115,7 @@ export function AnnouncementComposer({ space, spaces, initialSquads, startOpen =
                 </div>
                 <label className="gk-announce-compose__switch">
                     <input type="checkbox" role="switch" className="gk-switch" checked={confirm} onChange={event => setConfirm(event.target.checked)} />
-                    <span><strong>Ask families to confirm they’ve read it</strong><span className="gk-field__hint">You’ll see who has read it and who hasn’t.</span></span>
+                    <span><strong>Ask parents to confirm they’ve read it</strong><span className="gk-field__hint">You’ll see who has read it and who hasn’t.</span></span>
                 </label>
                 {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
                 {posted && <p className="gk-notice" role="status">{posted}</p>}

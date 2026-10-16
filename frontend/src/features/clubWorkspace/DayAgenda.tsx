@@ -15,6 +15,8 @@ export interface DayAgendaItem {
     /** Something to notice (in progress, a clash). An entry with a status never merges with others. */
     status?: ReactNode;
     squad?: string;
+    /** Small actions beside the entry (cancel, add the result). Shown only while the entry stands alone, never on a merged one. */
+    actions?: ReactNode;
 }
 
 const plural: Record<ScheduleEventType, string> = { TRAINING: 'training sessions', MATCH: 'matches', FRIENDLY: 'friendlies', TRYOUT: 'trials', ACTIVITY: 'club events' };
@@ -64,9 +66,10 @@ export function DayAgenda({ items, label, limit = 5 }: { items: DayAgendaItem[];
                 </span>
                 {row.status && <span className="cw-agenda__status">{row.status}</span>}
             </>;
-            return <li key={row.key}>{row.onClick
+            return <li key={row.key} className="cw-agenda__item">{row.onClick
                 ? <button type="button" className="cw-agenda__row" onClick={row.onClick} aria-label={merged ? `${title} at ${timeLabel(row.startsAt)}` : row.label}>{body}</button>
-                : <div className="cw-agenda__row">{body}</div>}</li>;
+                : <div className="cw-agenda__row">{body}</div>}
+                {!merged && row.actions && <span className="cw-agenda__actions">{row.actions}</span>}</li>;
         })}</ul>
     </section>)}</div>;
 }

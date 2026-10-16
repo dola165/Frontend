@@ -1,6 +1,15 @@
 /* A player as a football card. Scoped under `.gk`; tokens only. A soft club glow behind a large photo,
    the shirt number and position in the corner like a trading card, and no invented ratings. */
 .gk .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
+/* Taking a player out of the squad, from the card's foot. */
+.gk .pc-card__action { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--gk-r-sm); background: var(--gk-danger-soft); color: var(--gk-danger); cursor: pointer; }
+.gk .pc-card__action:hover { background: var(--gk-danger); color: #fff; }
+.gk .pc-card__action svg { width: 15px; height: 15px; }
+/* The fifteenth card of a big squad: blurred, three dots, and the way to all of them. */
+.gk .pc-card--more { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 100%; border: 1px dashed var(--gk-line-strong); background: color-mix(in srgb, var(--gk-surface) 70%, transparent); color: var(--gk-text-2); font-weight: 600; text-decoration: none; backdrop-filter: blur(6px); }
+.gk .pc-card--more:hover { border-color: var(--gk-accent); color: var(--gk-text); }
+.gk .pc-card--more svg { width: 32px; height: 32px; color: var(--gk-text-3); }
+.gk .pc-card--more span { font-size: var(--gk-fs-sm); }
 .gk .pc-card { --glow: var(--gk-accent); position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid color-mix(in srgb, var(--glow) 28%, var(--gk-line)); border-radius: 18px;
   background: radial-gradient(130% 70% at 50% 0%, color-mix(in srgb, var(--glow) 20%, var(--gk-surface)) 0%, var(--gk-surface) 62%); transition: transform .18s var(--gk-ease), box-shadow .18s var(--gk-ease), border-color .18s var(--gk-ease); }
 .gk .pc-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--glow) 55%, var(--gk-line)); box-shadow: 0 10px 28px color-mix(in srgb, var(--glow) 16%, transparent); }

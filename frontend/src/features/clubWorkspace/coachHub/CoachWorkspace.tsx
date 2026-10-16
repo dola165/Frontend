@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarDays, LayoutDashboard, LayoutGrid, Megaphone, Users, UsersRound } from 'lucide-react';
+import { CalendarDays, LayoutGrid, Megaphone, ShieldCheck, Trophy, Users, UsersRound } from 'lucide-react';
 import { WorkspaceShell, type WorkspaceNavItem } from '../../../design/workspace/WorkspaceShell';
 import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
@@ -15,15 +15,17 @@ import { useClubOverview } from '../useClubOverview';
 import { useNow } from '../useNow';
 import { mySquadIds, personName } from './coachData';
 import { useCoachRecords, useCoachSquads, useSquadRosters, type CoachSquad, type SquadRoster } from './useCoachData';
-import { CoachOverview } from './CoachOverview';
+import { MySquads } from './MySquads';
 import { CoachCalendar } from './CoachCalendar';
 import { CoachPlayers } from './CoachPlayers';
 import { CoachUpdates } from './CoachUpdates';
 import { CoachTeam } from './CoachTeam';
+import { CoachMatches } from './CoachMatches';
+import { SquadPage } from './SquadPage';
 import '../club-workspace.css';
 import './coach-hub.css';
 
-const TABS = ['calendar', 'players', 'updates', 'coaches'] as const;
+const TABS = ['calendar', 'players', 'updates', 'coaches', 'matches'] as const;
 type CoachTab = typeof TABS[number] | 'overview';
 
 /** Everything the coach's pages share: my squads as their squad spaces see them, the records about them, and ways out to the club workspace. */
@@ -44,7 +46,7 @@ export interface CoachData {
 
 /**
  * My squads: the coach's own workspace, separate from the club's. It gathers the squads a person coaches,
- * their calendar and who's coming, players, updates to families and the coaching team, and opens club tools
+ * their calendar and who's coming, players, updates to parents and the coaching team, and opens club tools
  * in the club workspace when a task needs them. It owns nothing: every item opens the same squad spaces and
  * records the club uses. One squad switcher at the top narrows every page.
  */
@@ -66,8 +68,10 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
 
     // Older links named the schedule and the team differently.
     const raw = params.get('tab'), tab: CoachTab = raw === 'schedule' ? 'calendar' : raw === 'team' ? 'coaches' : TABS.find(item => item === raw) ?? 'overview';
+    // On the first page a chosen squad opens its own page; on the others the switcher narrows the list.
     const focus = squadIds.find(id => String(id) === params.get('squad')) ?? null;
-    const href = (id: string) => id === 'workspace' ? `/clubs/${clubId}/workspace` : `/my-squads${id === 'overview' ? '' : `?tab=${id}`}${focus ? `${id === 'overview' ? '?' : '&'}squad=${focus}` : ''}`;
+    // The first tab always returns to all squads; the other tabs keep the squad picked in the switcher.
+    const href = (id: string) => id === 'workspace' ? `/clubs/${clubId}/workspace` : id === 'overview' ? '/my-squads' : `/my-squads?tab=${id}${focus ? `&squad=${focus}` : ''}`;
     const workHref = (target: string, context: Record<string, string> = {}) => {
         const query = new URLSearchParams({ ...(target === 'overview' ? {} : { tab: target }), ...context }).toString();
         return `/clubs/${clubId}/workspace${query ? `?${query}` : ''}`;
@@ -78,13 +82,14 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     const responsibilities = focusableViews(roles?.views ?? []);
     const unread = squads?.reduce((total, squad) => total + (squad.overview?.threads.reduce((sum, thread) => sum + thread.unread_count, 0) ?? 0), 0) ?? 0;
     const primary: WorkspaceNavItem[] = [
-        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-        { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+        { id: 'overview', label: 'My squads', icon: ShieldCheck },
         { id: 'players', label: 'Players', icon: Users },
         { id: 'updates', label: 'Updates', icon: Megaphone, count: unread || undefined },
         { id: 'coaches', label: 'Coaches', icon: UsersRound },
+        { id: 'matches', label: 'Matches', icon: Trophy },
     ];
-    const footer: WorkspaceNavItem[] = canOpenWorkspace ? [{ id: 'workspace', label: 'Club workspace', icon: LayoutGrid }] : [];
+    // The calendar sits with the club workspace at the bottom: most coaches keep their timetable on paper (the owner, 14 October).
+    const footer: WorkspaceNavItem[] = [{ id: 'calendar', label: 'Calendar', icon: CalendarDays }, ...(canOpenWorkspace ? [{ id: 'workspace', label: 'Club workspace', icon: LayoutGrid }] : [])];
     const clubName = club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`;
 
     let content;
@@ -104,13 +109,15 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
         // Without a squad yet, the coaches page still lets a person ask for one.
         content = !mine.length && tab !== 'coaches' ? <PageFrame className="cw-page"><PageHeader title="My squads" subtitle={clubName} />
             <Panel><EmptyNote title="No squads yet" action={<ButtonLink size="sm" to="/my-squads?tab=coaches">Ask for a squad</ButtonLink>}>
-                When the club makes you a coach of a squad, it appears here with its calendar, players, families and coaches.
+                When the club makes you a coach of a squad, it appears here with its calendar, players, parents and coaches.
             </EmptyNote></Panel></PageFrame>
             : tab === 'calendar' ? <CoachCalendar data={data} />
                 : tab === 'players' ? <CoachPlayers data={data} />
                     : tab === 'updates' ? <CoachUpdates data={data} />
                         : tab === 'coaches' ? <CoachTeam data={data} />
-                            : <CoachOverview data={data} />;
+                            : tab === 'matches' ? <CoachMatches data={data} />
+                            : focus ? <SquadPage data={data} squad={focus} />
+                            : <MySquads data={data} />;
     }
 
     return <WorkspaceShell label="My squads" storageKey={`coach-${clubId}`} guard={guardWorkspaceNavigation}

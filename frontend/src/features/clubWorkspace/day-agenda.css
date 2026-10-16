@@ -5,6 +5,10 @@
 .gk .cw-agenda__weekday { color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .gk .cw-agenda__near { align-self: center; margin-left: 4px; padding: 1px 8px; border-radius: var(--gk-r-pill); background: var(--gk-accent-soft); color: var(--gk-accent); font-size: var(--gk-fs-xs); font-weight: 600; }
 .gk .cw-agenda__list { margin: 0; padding: 0 0 var(--gk-2); list-style: none; }
+/* An entry with its small actions beside it (cancel, add the result), outside the row's own press target. */
+.gk .cw-agenda__item { display: flex; align-items: center; }
+.gk .cw-agenda__item > .cw-agenda__row { flex: 1; min-width: 0; }
+.gk .cw-agenda__actions { display: flex; flex: none; gap: var(--gk-1); padding-right: var(--gk-3); }
 .gk .cw-agenda__row { display: grid; grid-template-columns: 44px 30px minmax(0, 1fr) auto; align-items: start; gap: var(--gk-3); width: 100%; padding: var(--gk-2) var(--gk-4); border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; }
 .gk button.cw-agenda__row { cursor: pointer; transition: background-color .15s var(--gk-ease); }
 .gk button.cw-agenda__row:hover { background: var(--gk-hover); }

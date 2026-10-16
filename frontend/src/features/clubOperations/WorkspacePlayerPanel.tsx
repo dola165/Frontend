@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ExternalLink, Plus } from 'lucide-react';
-import { Avatar, Badge, Button, EmptyNote, Field, List, ListRow, Section, Skeleton } from '../../design/primitives';
+import { ChevronRight, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { Avatar, Badge, Button, EmptyNote, Field, List, ListRow, Panel, Section, Skeleton } from '../../design/primitives';
 import { Dialog } from '../../design/Dialog';
 import { squadLabel } from '../../components/squads/squadLabels';
 import type { SquadRosterPlayer } from '../../components/squads/SquadRosterTable';
@@ -23,7 +23,8 @@ import './player-panel.css';
 import '../clubWorkspace/club-workspace.css';
 
 type RecordGroup = { module: 'AVAILABILITY' | 'DEVELOPMENT'; rows: OperationRecord[]; error: string };
-const TOOL_MODULES = ['DEVELOPMENT', 'ATTENDANCE', 'GUARDIANS', 'REGISTRATION', 'EQUIPMENT', 'TRAVEL'];
+// Everything the club keeps about one player opens here, filtered to them; attendance stays on paper (the owner, 14 October).
+const TOOL_MODULES = ['DEVELOPMENT', 'GUARDIANS', 'REGISTRATION', 'EDUCATION', 'MEDICAL', 'WELFARE', 'DEPARTURES', 'EQUIPMENT', 'TRAVEL'];
 
 /**
  * One squad player's notes and tools, beside the list that opened it: their open restrictions, recent
@@ -32,9 +33,10 @@ const TOOL_MODULES = ['DEVELOPMENT', 'ATTENDANCE', 'GUARDIANS', 'REGISTRATION', 
  * which one is open lives in the URL (`tool`, `tool.record`). Only records this person may read are
  * requested; an unsaved observation or record is never dropped silently.
  */
-export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, onChanged }: {
+export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, onChanged, onRemove }: {
     player: SquadRosterPlayer; squad: number; squadName: string; boot: Bootstrap | null; onClose: () => void;
     /** A record was saved in a tool opened from here, so the page behind may refresh its signs. */ onChanged?: () => void;
+    /** Takes the player out of this squad (the roster is managed wherever the player is seen). */ onRemove?: () => void;
 }) {
     const { t } = useTranslation();
     const copy = useCopy('coachHub', coachHubEn);
@@ -104,14 +106,16 @@ export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, 
 
     const group = (item: RecordGroup): ReactNode => {
         const isRestriction = item.module === 'AVAILABILITY';
-        return <Section key={item.module} title={isRestriction ? copy('restrictionsTitle') : copy('developmentTitle')}
+        // Each group is one calm box, like the drawer beside it: a title, then rows or one quiet line.
+        return <Section key={item.module} boxed title={isRestriction ? copy('restrictionsTitle') : copy('developmentTitle')} hint={item.rows.length ? `${item.rows.length}` : undefined}
             action={<button type="button" className="gk-section__action cw-text-button" onClick={() => openTool(item.module)}>{copy('viewAll')}</button>}>
-            {item.error ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{item.error}</span><Button size="sm" onClick={() => setRevision(value => value + 1)}>{copy('retry')}</Button></div>
+            <Panel flush>{item.error ? <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{item.error}</span><Button size="sm" onClick={() => setRevision(value => value + 1)}>{copy('retry')}</Button></div></div>
                 : item.rows.length ? <List label={isRestriction ? copy('restrictionsTitle') : copy('developmentTitle')} className="wpp-records">{item.rows.slice(0, 4).map(record => <ListRow key={record.id}
-                    title={record.title} meta={[isRestriction ? record.data.restrictions : label(record.status), record.data.reviewOn ? copy('reviewOn', { date: formatDate(record.data.reviewOn.slice(0, 10), { day: 'numeric', month: 'short' }) }) : null].filter(Boolean).join(' · ')}
+                    lead={<span className={`cw-dot cw-dot--${isRestriction ? 'warning' : record.status === 'DRAFT' ? 'neutral' : 'info'}`} aria-hidden="true" />}
+                    title={record.title.split(' — ')[0]} meta={[isRestriction ? record.data.restrictions : label(record.status), record.data.reviewOn ? copy('reviewOn', { date: formatDate(record.data.reviewOn.slice(0, 10), { day: 'numeric', month: 'short' }) }) : null].filter(Boolean).join(' · ')}
                     trail={isRestriction ? <Badge tone="warning">{label(record.status)}</Badge> : undefined} current={openRecord === String(record.id)}
                     onClick={() => openTool(record.module, record.id)} />)}</List>
-                    : <p className="gk-muted wpp-quiet">{isRestriction ? copy('noRestrictions') : copy('noDevelopment')}</p>}
+                    : <EmptyNote title={isRestriction ? copy('noRestrictions') : copy('noDevelopment')} />}</Panel>
         </Section>;
     };
 
@@ -121,6 +125,7 @@ export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, 
             {writable && !adding && <Button variant="primary" onClick={() => { setSaved(false); setAdding(true); }}><Plus aria-hidden="true" />{copy('addObservation')}</Button>}
             {/* The public profile opens in a new tab, so the work here stays where it is. */}
             {player.isRegistered !== false && <Link className="gk-btn gk-btn--ghost" to={`/profile/${player.id}`} target="_blank" rel="noreferrer">{copy('publicProfile')}<ExternalLink aria-hidden="true" /></Link>}
+            {onRemove && <Button variant="ghost" className="wpp-remove" onClick={onRemove}><Trash2 aria-hidden="true" />{copy('removeFromSquad', { squad: squadName })}</Button>}
         </div>
         {saved && <p role="status" className="gk-notice cw-notices__success">{copy('observationSaved')}</p>}
         {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
@@ -140,9 +145,9 @@ export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, 
         {!boot ? <EmptyNote title={copy('workflowsUnavailable')} />
             : records === null ? <div className="cw-skeleton-rows" role="status" aria-label={copy('loadingInfo')}><Skeleton height={40} /><Skeleton height={40} /></div>
                 : records.map(group)}
-        {tools.length > 0 && <Section title={copy('playerTools')}>
-            <List label={copy('playerTools')} className="wpp-records">{tools.map(tool => <ListRow key={tool.id} lead={<tool.icon aria-hidden="true" className="wpp-tool-icon" />} title={tool.label}
-                current={module === tool.module && !listedHere(openRecord)} onClick={() => openTool(tool.module)} />)}</List>
+        {tools.length > 0 && <Section boxed title={copy('playerTools')}>
+            <Panel flush><List label={copy('playerTools')} className="wpp-records">{tools.map(tool => <ListRow key={tool.id} lead={<tool.icon aria-hidden="true" className="wpp-tool-icon" />} title={tool.label}
+                trail={<ChevronRight className="cw-chevron" aria-hidden="true" />} current={module === tool.module && !listedHere(openRecord)} onClick={() => openTool(tool.module)} />)}</List></Panel>
         </Section>}
         {module && boot && <WorkDrawer boot={boot} module={module} label={`${toolLabel}: ${player.name}`} closing={closing} onClose={closeTool} onClosed={closedTool}
             context={<><Avatar src={resolveMediaUrl(player.photoUrl) || null} name={player.name} size={24} /><strong>{player.name}</strong><span>{squadName}</span></>}

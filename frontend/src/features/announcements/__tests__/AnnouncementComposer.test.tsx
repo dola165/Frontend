@@ -7,7 +7,7 @@ vi.mock('../../squadCommunication/api', () => ({ postMessage: vi.fn() }));
 const space = { id: 105, name: 'U16 Boys', can_manage: true } as api.SquadOverview;
 
 function write() {
-    fireEvent.click(screen.getByRole('button', { name: /New announcement/ }));
+    fireEvent.click(screen.getByRole('button', { name: /new announcement/i }));
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Kit change' } });
     fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Black away kit on Monday.' } });
 }

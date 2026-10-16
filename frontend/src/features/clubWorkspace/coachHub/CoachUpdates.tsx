@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronRight, Pin, Trash2 } from 'lucide-react';
-import { Avatar, Count, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
+import { useSearchParams } from 'react-router-dom';
+import { ChevronRight, MessageCircle, Pin, Plus, Trash2, Users } from 'lucide-react';
+import { Avatar, ButtonLink, Count, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import { FaceStack, ProgressRing } from '../../../design/visuals';
 import { AnnouncementComposer } from '../../announcements/AnnouncementComposer';
 import { isPinned } from '../../announcements/pinning';
@@ -11,6 +11,7 @@ import { SquadNotificationToggle } from '../../squadCommunication/SquadNotificat
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { dayLabel, isToday, timeLabel } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
+import { MessageParentsDialog } from './MessageParentsDialog';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -30,7 +31,7 @@ function Readers({ row }: { row: UpdateRow }) {
     return <div className="ch-update__readers">{missing.length
         ? <><FaceStack people={missing.map(item => ({ id: item.user_id, name: item.full_name, tone: 'warning' as const }))} max={10} size={26} label="Not read yet" />
             <span className="ch-quiet">Not read yet: {missing.map(item => item.full_name).join(', ')}</span></>
-        : <span className="ch-quiet">Every family has read it.</span>}</div>;
+        : <span className="ch-quiet">Every parent or guardian has read it.</span>}</div>;
 }
 
 /** One update as a card: who posted it where and when, what it says, how many families have read it, reactions and comments. */
@@ -38,7 +39,7 @@ function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onCh
     const [open, setOpen] = useState(false), [removing, setRemoving] = useState(false), [error, setError] = useState('');
     const own = row.update.author_id === row.space.viewer_id;
     const remove = async () => {
-        if (removing || !window.confirm('Delete this update for every family?')) return;
+        if (removing || !window.confirm('Delete this update for every parent and guardian?')) return;
         setRemoving(true); setError('');
         try { await squadApi.removeMessage(row.squad, row.update.id); onChanged(); }
         catch (cause) { setError(extractApiErrorMessage(cause, 'The update could not be deleted.')); setRemoving(false); }
@@ -55,7 +56,7 @@ function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onCh
         <footer className="ch-update__foot">
             {update.important && row.families ? <button type="button" className="ch-update__reads" aria-expanded={open} onClick={() => setOpen(value => !value)}>
                 <ProgressRing value={read} total={row.families} tone={read >= row.families ? 'accent' : pinned ? 'warning' : 'neutral'} />
-                <span><strong>{read} of {row.families}</strong> families read it</span>
+                <span><strong>{read} of {row.families}</strong> parents read it</span>
             </button> : <span className="ch-quiet">No read confirmation asked</span>}
             {own && <button type="button" className="ch-update__delete" disabled={removing} onClick={() => void remove()}><Trash2 aria-hidden="true" />Delete</button>}
         </footer>
@@ -66,8 +67,9 @@ function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onCh
 }
 
 /** Coach updates as a feed: write one to one or several squads, see who has read them, and answer families' private messages. */
-export function CoachUpdates({ data }: { data: CoachData }) {
+export function CoachUpdates({ data, embedded }: { data: CoachData; embedded?: boolean }) {
     const [params] = useSearchParams();
+    const [writing, setWriting] = useState(false);
     const { now, names } = data;
     const squads = data.squads?.filter(squad => data.shown.includes(squad.id)) ?? null;
     const rows = (squads ?? []).flatMap(squad => squad.overview ? squad.updates.map((update): UpdateRow => ({ squad: squad.id, squadName: names.get(squad.id) ?? '', families: squad.overview!.threads.length, update, space: squad.overview! })) : [])
@@ -75,36 +77,45 @@ export function CoachUpdates({ data }: { data: CoachData }) {
     const threads = (squads ?? []).flatMap(squad => (squad.overview?.threads ?? []).filter(thread => thread.unread_count > 0).map(thread => ({ ...thread, squad: squad.id })))
         .sort((a, b) => b.unread_count - a.unread_count);
 
-    return <PageFrame className="cw-page ch-page">
-        <PageHeader title="Updates" />
-        <SquadSwitch data={data} />
+    // The grid alone serves the squad page; on its own tab it gets the frame, the title and the switcher.
+    const body = <>
         <div className="gk-grid gk-grid--split">
             <div className="gk-stack">
                 <AnnouncementComposer key={`${params.get('compose') ?? ''}:${data.focus ?? ''}`} spaces={data.mine.filter(squad => data.shown.includes(squad.id))}
                     initialSquads={data.focus ? [data.focus] : undefined} startOpen={params.get('compose') === '1'} onPosted={data.refresh} />
                 {!squads ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading updates">{[0, 1].map(i => <Skeleton key={i} height={140} />)}</div></Panel>
                     : rows.length ? <ul className="ch-feed">{rows.map(row => <li key={`${row.squad}-${row.update.id}`}><UpdateCard row={row} now={now} onChanged={data.refresh} /></li>)}</ul>
-                        : <Panel><EmptyNote title="No updates yet">Your first update to families appears here.</EmptyNote></Panel>}
+                        : <Panel><EmptyNote title="No updates yet">Your first announcement to parents and guardians appears here.</EmptyNote></Panel>}
             </div>
             <div className="gk-stack">
-                <Section boxed title="Messages from families" hint={threads.length ? `${threads.reduce((total, thread) => total + thread.unread_count, 0)} new` : undefined}>
+                <Section boxed title="Messages from parents & guardians" hint={threads.length ? `${threads.reduce((total, thread) => total + thread.unread_count, 0)} new` : undefined}
+                    action={<button type="button" className="gk-section__action cw-text-button" onClick={() => setWriting(true)}>+ Message several parents</button>}>
                     <Panel flush>
                         {!squads ? <div className="cw-skeleton-rows" role="status" aria-label="Loading messages">{[0, 1].map(i => <Skeleton key={i} height={40} />)}</div>
-                            : threads.length ? <List label="Messages from families">{threads.map(thread => <ListRow key={`${thread.squad}-${thread.user_id}`}
+                            : threads.length ? <List label="Messages from parents and guardians">{threads.map(thread => <ListRow key={`${thread.squad}-${thread.user_id}`}
                                 to={`/messages?squadId=${thread.squad}&channel=coach&thread=${thread.user_id}`} lead={<Avatar name={thread.full_name} size={32} />}
                                 title={thread.full_name} meta={names.get(thread.squad)} trail={<><Count value={thread.unread_count} /><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />)}</List>
-                                : <EmptyNote title="All answered">New messages from families appear here.</EmptyNote>}
-                        <div className="gk-panel__foot ch-links">{data.mine.filter(squad => data.shown.includes(squad.id)).map(squad => <span key={squad.id}>
-                            <Link className="cw-text-button" to={`/messages?squadId=${squad.id}&channel=coach`}>{squad.name} families</Link>
-                            <Link className="cw-text-button" to={`/messages?squadId=${squad.id}`}>Squad chat</Link>
-                        </span>)}</div>
+                                : <EmptyNote title="All answered">New messages from parents and guardians appear here.</EmptyNote>}
                     </Panel>
                 </Section>
-                <Section boxed title="Chat notifications" hint="Coach updates always notify families">
-                    <Panel>{(squads ?? []).map(squad => squad.overview && <div key={squad.id} className="ch-notify"><strong>{names.get(squad.id)}</strong>
-                        <SquadNotificationToggle id={squad.id} enabled={squad.overview.notify_chat} onSaved={data.refresh} /></div>)}</Panel>
+                {/* Each squad has two places to talk: a private line to every family, and one chat for everyone. */}
+                <Section boxed title="Chats" hint="Where your squads talk">
+                    <Panel flush><List label="Chats">{(squads ?? []).flatMap(squad => squad.overview ? [
+                        <ListRow key={`${squad.id}-families`} to={`/messages?squadId=${squad.id}&channel=coach`} lead={<span className="ch-chat ch-chat--families"><MessageCircle aria-hidden="true" /></span>}
+                            title={`${names.get(squad.id)} parents & guardians`} meta="Private: each parent writes to you alone" trail={<ChevronRight className="cw-chevron" aria-hidden="true" />} />,
+                        <ListRow key={`${squad.id}-squad`} to={`/messages?squadId=${squad.id}`} lead={<span className="ch-chat ch-chat--squad"><Users aria-hidden="true" /></span>}
+                            title={`${names.get(squad.id)} squad chat`} meta="Everyone together: players, parents and coaches"
+                            trail={<><span onClick={event => event.stopPropagation()} className="ch-chat__notify"><SquadNotificationToggle id={squad.id} enabled={squad.overview.notify_chat} onSaved={data.refresh} label="Notify me" quiet /></span><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />,
+                    ] : [])}</List></Panel>
                 </Section>
             </div>
         </div>
+        {writing && <MessageParentsDialog data={data} onClose={() => setWriting(false)} />}
+    </>;
+    if (embedded) return body;
+    return <PageFrame className="cw-page ch-page">
+        <PageHeader title="Updates" actions={<ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />New announcement</ButtonLink>} />
+        <SquadSwitch data={data} />
+        {body}
     </PageFrame>;
 }

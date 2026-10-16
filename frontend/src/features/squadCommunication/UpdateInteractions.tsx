@@ -1,14 +1,23 @@
 import {useEffect,useId,useRef,useState,type FormEvent} from 'react';
-import {MessageCircle,SmilePlus,Trash2} from 'lucide-react';
+import {Eye,HeartHandshake,MessageCircle,SmilePlus,Trash2,type LucideProps} from 'lucide-react';
+import type {ComponentType} from 'react';
+import Glove from '../../components/feed/reaction-icons/Glove';
+import Fire from '../../components/feed/reaction-icons/Fire';
+import Laugh from '../../components/feed/reaction-icons/Laugh';
+import Skull from '../../components/feed/reaction-icons/Skull';
+import RedCard from '../../components/feed/reaction-icons/RedCard';
+import Sad from '../../components/feed/reaction-icons/Sad';
 import {extractApiErrorMessage} from '../../utils/apiError';
 import * as api from './api';
 import './update-interactions.css';
 
-const reactions: {kind:api.ReactionKind;emoji:string;label:string}[]=[
- {kind:'LIKE',emoji:'👍',label:'Thumbs up'}, {kind:'DISLIKE',emoji:'👎',label:'Thumbs down'},
- {kind:'LAUGH',emoji:'😄',label:'Laugh'}, {kind:'CELEBRATE',emoji:'🎉',label:'Celebrate'},
- {kind:'CONFUSED',emoji:'😕',label:'Confused'}, {kind:'HEART',emoji:'❤️',label:'Heart'},
- {kind:'ROCKET',emoji:'🚀',label:'Rocket'}, {kind:'EYES',emoji:'👀',label:'Eyes'},
+type ReactionIcon=ComponentType<{size?:number}>|ComponentType<LucideProps>;
+/** The app's football reactions (the same six as on posts), on the squad API's kinds. The last two are older kinds still shown when someone used them. */
+const reactions: {kind:api.ReactionKind;Icon:ReactionIcon;label:string;pick:boolean}[]=[
+ {kind:'LIKE',Icon:Glove,label:'Safe hands',pick:true}, {kind:'CELEBRATE',Icon:Fire,label:'On fire',pick:true},
+ {kind:'LAUGH',Icon:Laugh,label:'Dead',pick:true}, {kind:'ROCKET',Icon:Skull,label:'Brutal',pick:true},
+ {kind:'DISLIKE',Icon:RedCard,label:'Red card',pick:true}, {kind:'CONFUSED',Icon:Sad,label:'Gutted',pick:true},
+ {kind:'HEART',Icon:HeartHandshake,label:'Care',pick:false}, {kind:'EYES',Icon:Eye,label:'Seen',pick:false},
 ];
 const errorMessage=(e:unknown)=>extractApiErrorMessage(e,'This could not be saved. Please try again.');
 
@@ -52,14 +61,14 @@ export function UpdateInteractions({space,message,onChanged}:{space:api.SquadOve
   {/* The coaching team sees full read receipts beside the announcement instead. */}
   {message.important&&!space.can_manage&&<AcknowledgedBy people={message.acknowledged_by??[]}/>}
   <div className="update-social-actions">
-   {reactions.map(({kind,emoji,label})=>{
+   {reactions.map(({kind,Icon,label})=>{
     const people=(message.reactions??[]).filter(r=>r.reaction===kind);
     return people.length>0&&<button key={kind} type="button" className="update-reaction" aria-label={`${label}, ${people.length} ${people.length===1?'reaction':'reactions'}`} aria-pressed={people.some(r=>r.user_id===space.viewer_id)}
-     title={`${label}: ${people.map(r=>r.full_name).join(', ')}`} disabled={pending} onClick={()=>void toggle(kind)}><span aria-hidden="true">{emoji}</span>{people.length}</button>;
+     title={`${label}: ${people.map(r=>r.full_name).join(', ')}`} disabled={pending} onClick={()=>void toggle(kind)}><span aria-hidden="true"><Icon size={18}/></span>{people.length}</button>;
    })}
    <div ref={pickerRoot} className="update-reaction-picker" onKeyDown={e=>{if(e.key==='Escape'){setPicker(false);pickerButton.current?.focus();}}}>
     <button ref={pickerButton} type="button" className="update-add-reaction" aria-label="Add a reaction" aria-expanded={picker} disabled={pending} onClick={()=>setPicker(!picker)}><SmilePlus size={16}/></button>
-    {picker&&<div className="update-emoji-picker" role="group" aria-label="Choose a reaction">{reactions.map(({kind,emoji,label})=><button type="button" key={kind} aria-label={label} title={label} aria-pressed={(message.reactions??[]).some(r=>r.reaction===kind&&r.user_id===space.viewer_id)} disabled={pending} onClick={()=>void toggle(kind)}>{emoji}</button>)}</div>}
+    {picker&&<div className="update-emoji-picker" role="group" aria-label="Choose a reaction">{reactions.filter(r=>r.pick).map(({kind,Icon,label})=><button type="button" key={kind} aria-label={label} title={label} aria-pressed={(message.reactions??[]).some(r=>r.reaction===kind&&r.user_id===space.viewer_id)} disabled={pending} onClick={()=>void toggle(kind)}><Icon size={28}/></button>)}</div>}
    </div>
    <button type="button" className="update-comments-toggle" aria-expanded={commentsOpen} aria-controls={commentsId} onClick={()=>{setCommentsVisited(true);setCommentsOpen(!commentsOpen);}}><MessageCircle size={15}/>{message.comment_count??0} {(message.comment_count??0)===1?'comment':'comments'}</button>
   </div>

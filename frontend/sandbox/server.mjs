@@ -1,4 +1,5 @@
-// Sandbox server: serves sandbox/dist and a synthetic /api. No real data, no network.
+// Sandbox server: serves sandbox/dist and a synthetic /api. No real data; the only network calls are the page pet's
+// questions (pet-guide.mjs), and only when the keys file is there.
 // Usage: node sandbox/server.mjs [port]
 import http from 'node:http';
 import { readFile, stat, mkdir, appendFile } from 'node:fs/promises';
@@ -25,6 +26,10 @@ async function readBody(req) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
+    if (url.pathname === '/api/sandbox/pet-guide' && req.method === 'POST') {
+      const { petGuide } = await import('./pet-guide.mjs');
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify(await petGuide(await readBody(req))));
+    }
     if (url.pathname.startsWith('/api/') || url.pathname === '/api') {
       const body = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) ? await readBody(req) : null;
       const result = await handleApi({ method: req.method, path: url.pathname.replace(/^\/api/, '') || '/', query: url.searchParams, body, headers: req.headers });

@@ -7,6 +7,7 @@ import { usePagesCopy } from '../copy';
 import { claimHref } from '../create/entry';
 import { usePageEdit } from './context';
 import { boxAvailable, SETUP_ITEMS } from '../model/kinds';
+import { DolaPet } from '../guide/DolaPet';
 import { PhoneSteps } from './PhoneSteps';
 import { usePhoneSteps } from './usePhoneSteps';
 import { SetupRing, SetupSteps } from './SetupSteps';
@@ -51,6 +52,7 @@ export function EditBar() {
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
       <PhoneSteps />
+      {editing && page.kind === 'CLUB' && <DolaPet />}
       {page.status === 'DRAFT'
         ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
         : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending verification')}</span> : null}

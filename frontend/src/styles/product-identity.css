@@ -74,18 +74,8 @@
 }
 .opportunity-link { min-height: 76px; }
 .opportunity-link__description { color: var(--text-secondary); }
-.home-opportunity-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.home-opportunity-strip .opportunity-link { padding: 12px; }
 .workspace-shortcut { border: 1px solid var(--theme-border); border-radius: 12px; margin-bottom: 8px; }
 .workspace-shortcut .home-shortcut-icon { background: var(--accent-primary-soft); }
-@media (min-width: 1280px) {
-  .home-opportunity-strip { display: none; }
-}
-@media (max-width: 639px) {
-  .home-opportunity-strip { grid-template-columns: 1fr; gap: 6px; }
-  .home-opportunity-strip .opportunity-link { min-height: 44px; padding: 10px 12px; }
-  .home-opportunity-strip .opportunity-link__description { display: none; }
-}
 /* Bounded viewport breaks canvas/parent resize feedback. Zoom only changes geography. */
 .landing-map-viewport {
   position: relative;

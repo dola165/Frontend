@@ -6,6 +6,7 @@ import { MediaImage } from '../components/ui/MediaImage';
 import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Skeleton } from '../design/primitives';
 import { campaignCategory, campaignDate, campaignPhase, fetchCampaign, type Campaign } from '../features/campaigns/api';
 import { Progress } from '../features/campaigns/FundraiserCard';
+import { ManageFundraiser } from '../features/campaigns/manage/ManageFundraiser';
 import { clubFundraisingPath } from '../features/campaigns/query';
 import { Crest } from '../features/world/Crest';
 import { useWorldData } from '../features/world/useWorldData';
@@ -81,6 +82,7 @@ export const FundraiserPage = () => {
                 </nav>
                 <div className="gk-store-club__actions" style={{ paddingTop: 12 }}>
                     <ButtonLink variant="ghost" size="sm" to={`${back.pathname}${back.search}`}><ArrowLeft aria-hidden="true" />Back to fundraisers</ButtonLink>
+                    {data && <ManageFundraiser campaign={data} onChanged={campaign.retry} />}
                 </div>
                 {!valid || campaign.error ? <div className="gk-store-results__empty"><EmptyNote title="This fundraiser is unavailable" action={valid ? <Button size="sm" onClick={campaign.retry}>Retry</Button> : undefined}>{campaign.error || 'The link does not point to a fundraiser.'}</EmptyNote></div>
                     : campaign.loading || !data ? <div className="gk-fund-page" aria-busy="true"><div className="gk-fund-story"><Skeleton height={34} width={420} /><Skeleton height={420} /></div><Skeleton height={260} /></div>

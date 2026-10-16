@@ -169,9 +169,10 @@ export const matches = [];
 const opponents = clubs.filter(c => c.id !== 1 && c.id !== 2);
 for (const sq of squads.filter(s => s.clubId === 1 && s.playerIds.length)) {
   for (const offset of [-13, -6, 1, 8, 15]) {
-    const opp = pick(opponents); const home = rand() < 0.5; const d = day(offset + (sq.id % 2), 11);
+    // An opponent without a ground of its own (Zugdidi) comes to ours: the coin is still tossed, so the draws after it stay put.
+    const opp = pick(opponents); const coin = rand() < 0.5; const home = coin || opp.venueId == null; const d = day(offset + (sq.id % 2), 11);
     const played = offset < 0;
-    const m = { id: newId(), type: 'MATCH', kind: rand() < 0.6 ? 'LEAGUE' : 'FRIENDLY', clubId: 1, squadId: sq.id, opponentClubId: opp.id, opponentName: opp.name, home, start: d, end: new Date(d.getTime() + 105 * 60000), venueId: home ? 202 : opp.venueId ?? 202, status: played ? 'COMPLETED' : 'SCHEDULED', score: played ? [int(0, 4), int(0, 3)] : null, refereeId: pick(referees).id, competition: sq.ageGroup === 'SENIOR' ? 'Tbilisi Community League' : `GFF ${sq.ageGroup} Youth League` };
+    const m = { id: newId(), type: 'MATCH', kind: rand() < 0.6 ? 'LEAGUE' : 'FRIENDLY', clubId: 1, squadId: sq.id, opponentClubId: opp.id, opponentName: opp.name, home, start: d, end: new Date(d.getTime() + 105 * 60000), venueId: home ? 202 : opp.venueId, status: played ? 'COMPLETED' : 'SCHEDULED', score: played ? [int(0, 4), int(0, 3)] : null, refereeId: pick(referees).id, competition: sq.ageGroup === 'SENIOR' ? 'Tbilisi Community League' : `GFF ${sq.ageGroup} Youth League` };
     matches.push(m); events.push({ ...m, title: `${home ? 'FC Dinamo Tbilisi Academy' : opp.name} vs ${home ? opp.name : 'FC Dinamo Tbilisi Academy'}`, eventType: 'MATCH' });
   }
 }

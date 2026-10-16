@@ -47,16 +47,15 @@ it('carries shortcuts chosen before pins existed over once',()=>{
   expect(localStorage.getItem('gk-club-shortcuts-v1:1:11')).toBeNull();
 });
 
-it('focusing on one squad narrows the overview without changing access or submitting role requests',async()=>{
+// My club shows every squad; a squad focus belongs to My squads now (the overview's focus chips went on 10 October).
+it('opens one squad from the overview without changing access or submitting role requests',()=>{
   render(<MemoryRouter><ClubOverview clubId={1} clubName="Academy" overview={null} roles={data} boot={boot} schedule={schedule} unreadInbox={0} inboxAllowed={false} tryoutPending={0}
     canManageOperations={false} canManageLeadership tabs={tabs} pinned={[]} onOpen={onOpen}/></MemoryRouter>);
   expect(screen.getByRole('button',{name:/^U16/})).toBeVisible();
-  fireEvent.click(screen.getByRole('button',{name:'U12',pressed:false}));
-  expect(screen.getByRole('button',{name:/^U12\s*(Next training|No training)/})).toBeVisible();
-  expect(screen.queryByRole('button',{name:/^U16/})).not.toBeInTheDocument();
-  expect(localStorage.getItem('gk-club-overview:1:9')).toBe('squad:11');
+  fireEvent.click(screen.getByRole('button',{name:/^U12\s*1 player/}));
+  expect(onOpen).toHaveBeenCalledExactlyOnceWith('squads',{squad:'11'});
+  expect(screen.getByRole('button',{name:/^U16/})).toBeVisible();
   expect(apiClient.post).not.toHaveBeenCalled();
-  await waitFor(()=>expect(apiClient.get).toHaveBeenCalledWith(expect.stringContaining('module=HOME&squad=11'),expect.anything()));
 });
 
 it('saves a draft observation with the exact squad and player, and only loads permitted coach information',async()=>{

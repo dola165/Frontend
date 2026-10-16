@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceRolesPanel } from './WorkspaceRoleViews';
@@ -11,8 +11,8 @@ afterEach(()=>{cleanup();vi.clearAllMocks();});
 describe('Staff role workflow',()=>{
  it('requests a change with the reviewed original revision, without assigning itself',async()=>{
   render(<MemoryRouter><ResponsibilityRequests open clubId={4} roles={data} onClose={()=>{}} onChanged={()=>{}}/></MemoryRouter>);
-  fireEvent.change(screen.getByRole('combobox',{name:'Responsibility'}),{target:{value:'STRENGTH_CONDITIONING'}});
-  fireEvent.change(screen.getByRole('combobox',{name:'Change an existing role'}),{target:{value:'5'}});
+  fireEvent.click(within(screen.getByRole('radiogroup',{name:'Responsibility'})).getByRole('radio',{name:'Gym & conditioning coach'}));
+  fireEvent.click(screen.getByRole('button',{name:'Replace Equipment'}));
   fireEvent.click(screen.getByRole('button',{name:'U12'}));
   fireEvent.click(screen.getByRole('button',{name:'U16'}));
   fireEvent.click(screen.getByRole('button',{name:'Send for approval'}));

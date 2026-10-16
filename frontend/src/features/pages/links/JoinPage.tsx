@@ -37,9 +37,9 @@ export function JoinPage() {
   useEffect(() => {
     if (who !== 'PARENT') return;
     const controller = new AbortController();
-    fetchJoiningChildren(sessionId, controller.signal).then(found => { if (!controller.signal.aborted) setKids(found.children); }).catch(() => { /* New child only. */ });
+    fetchJoiningChildren(sessionId, controller.signal).then(found => { if (!controller.signal.aborted) setKids(found.children.filter(kid => !kid.clubs.some(club => club.clubName === link?.page.name && club.squadNames.includes(link?.squad.name ?? '')))); }).catch(() => { /* New child only. */ });
     return () => controller.abort();
-  }, [who, sessionId]);
+  }, [who, sessionId, link]);
   const typing = who !== 'PARENT' || !kids.length || picked === 'new';
   const id = useId();
   useEffect(() => {

@@ -75,7 +75,7 @@ describe('FeedPost mutation feedback', () => {
         expect(screen.getByRole('img', { name: 'Post media' })).toBe(image);
         rerender(<MemoryRouter><FeedPost {...props} post={{ ...post, likeCount: 4, isLikedByMe: true }} isCommentsOpen commentsData={[]} /></MemoryRouter>);
         expect(screen.getByRole('img', { name: 'Post media' })).toBe(image);
-        await user.type(screen.getByPlaceholderText('Write a comment...'), 'A steady image');
+        await user.type(screen.getByPlaceholderText('Write a comment…'), 'A steady image');
         expect(screen.getByRole('img', { name: 'Post media' })).toBe(image);
     });
 
@@ -83,7 +83,7 @@ describe('FeedPost mutation feedback', () => {
         const user = userEvent.setup();
         renderInteractivePost({ onSubmitComment: vi.fn().mockRejectedValue(new Error('offline')) });
 
-        const input = screen.getByPlaceholderText('Write a comment...');
+        const input = screen.getByPlaceholderText('Write a comment…');
         await user.type(input, 'Keep this draft');
         await user.click(screen.getByRole('button', { name: 'Post comment' }));
 

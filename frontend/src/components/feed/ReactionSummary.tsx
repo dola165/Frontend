@@ -7,6 +7,7 @@ import { MediaImage } from '../ui/MediaImage';
 import { PostDialog } from './PostDialogs';
 import { ALL_REACTIONS as REACTIONS, reactionDefinition, type Reaction } from './reactions';
 import type { FeedPostDto } from './FeedPost';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import './reaction-summary.css';
 
 interface Person { userId: number; name: string; avatarUrl: string | null; reaction: Reaction }
@@ -26,6 +27,7 @@ export function ReactionSummary({ post }: { post: FeedPostDto }) {
 }
 
 function Summary({ post }: { post: FeedPostDto }) {
+    const copy = useJourneyCopy();
     const [preview, setPreview] = useState<Filter | null>(null), [dialog, setDialog] = useState<Filter | null>(null);
     const anchor = useRef<HTMLButtonElement>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const id = useId(), count = post.reactionCount ?? post.likeCount;
@@ -54,7 +56,7 @@ function Summary({ post }: { post: FeedPostDto }) {
                 className="reaction-summary-icon" aria-label={`${r.label}, ${counts[r.type]?.toLocaleString()} reactions`}
                 {...handlers(r.type)}><r.Icon size={14} /></button>)}</span>
             <button type="button" className="post-liked-by-trigger" {...handlers('ALL')}>
-                <span>Reacted by <strong>{count.toLocaleString()}</strong> {count === 1 ? 'person' : 'people'}</span>
+                <span>{copy('Reacted by', 'რეაქცია:')} <strong>{count.toLocaleString()}</strong> {copy(count === 1 ? 'person' : 'people', 'ადამიანი')}</span>
             </button>
         </div>
         {preview !== null && dialog === null && <NamesPreview key={preview} postId={post.id} filter={preview} anchor={anchor} id={id}
@@ -66,6 +68,7 @@ function Summary({ post }: { post: FeedPostDto }) {
 function NamesPreview({ postId, filter, anchor, id, onEnter, onLeave, onDismiss }: {
     postId: number; filter: Filter; anchor: RefObject<HTMLButtonElement | null>; id: string; onEnter: () => void; onLeave: () => void; onDismiss: () => void;
 }) {
+    const copy = useJourneyCopy();
     const [page, setPage] = useState<ReactionPage | null>(null), [failed, setFailed] = useState(false);
     const [position, setPosition] = useState({ left: 12, top: 12 });
     const ref = useRef<HTMLDivElement>(null), session = getAuthSessionId();
@@ -92,8 +95,8 @@ function NamesPreview({ postId, filter, anchor, id, onEnter, onLeave, onDismiss 
     }, [anchor, page, failed, onDismiss]);
     return createPortal(<div ref={ref} id={id} role="tooltip" className="reaction-names-preview feed-home-shell"
         style={position} onPointerEnter={onEnter} onPointerLeave={onLeave}>
-        <strong>{filter === 'ALL' ? 'People who reacted' : reactionDefinition(filter)?.label}</strong>
-        {failed ? <p>{errorMessage}</p> : !page ? <p>Loading names…</p> : <>
+        <strong>{filter === 'ALL' ? copy('People who reacted', 'ვინ გამოეხმაურა') : reactionDefinition(filter)?.label}</strong>
+        {failed ? <p>{copy(errorMessage, 'რეაქციები ვერ ჩაიტვირთა. სცადეთ ხელახლა.')}</p> : !page ? <p>{copy('Loading names…', 'სახელები იტვირთება…')}</p> : <>
             {REACTIONS.filter(reaction => (filter === 'ALL' || reaction.type === filter) && (page.reactionCounts[reaction.type] ?? 0) > 0)
                 .sort((a, b) => (page.reactionCounts[b.type] ?? 0) - (page.reactionCounts[a.type] ?? 0)).map(reaction => {
                     const people = page.people.filter(person => person.reaction === reaction.type);
@@ -101,13 +104,13 @@ function NamesPreview({ postId, filter, anchor, id, onEnter, onLeave, onDismiss 
                         <header><span aria-hidden="true"><reaction.Icon size={16} /></span><strong>{reaction.label}</strong>
                             <span>{page.reactionCounts[reaction.type]?.toLocaleString()}</span></header>
                         {people.length > 0 ? <ul>{people.map(person => <li key={person.userId}>{person.name}</li>)}</ul>
-                            : <p>Open the list to see these profiles.</p>}
+                            : <p>{copy('Open the list to see these profiles.', 'პროფილების სანახავად გახსენით სია.')}</p>}
                     </section>;
                 })}
             {page.hasMore && <p>and {(page.availableCount - page.people.length).toLocaleString()} more</p>}
-            {page.availableCount < (filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>Some profiles are unavailable.</p>}
-            {!(filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>No reactions yet.</p>}
-            <small>Click to see all reactions</small>
+            {page.availableCount < (filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>{copy('Some profiles are unavailable.', 'ზოგი პროფილი მიუწვდომელია.')}</p>}
+            {!(filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>{copy('No reactions yet.', 'რეაქციები ჯერ არ არის.')}</p>}
+            <small>{copy('Click to see all reactions', 'ყველა რეაქციის სანახავად დააჭირეთ')}</small>
         </>}
     </div>, document.body);
 }
@@ -121,6 +124,7 @@ function PersonAvatar({ person }: { person: Person }) {
 }
 
 function ReactionList({ post, initialFilter, onClose }: { post: FeedPostDto; initialFilter: Filter; onClose: () => void }) {
+    const copy = useJourneyCopy();
     const [filter, setFilter] = useState<Filter>(initialFilter), [page, setPage] = useState<ReactionPage | null>(null);
     const [counts, setCounts] = useState(post.reactionCounts ?? { LIKE: post.reactionCount ?? post.likeCount });
     const [total, setTotal] = useState(post.reactionCount ?? post.likeCount);
@@ -156,9 +160,9 @@ function ReactionList({ post, initialFilter, onClose }: { post: FeedPostDto; ini
         if (next !== null) { event.preventDefault(); items[next]?.focus(); items[next]?.click(); }
     };
     const selectedCount = filter === 'ALL' ? total : counts[filter] ?? 0;
-    return <PostDialog title="Reactions" onClose={onClose}>
+    return <PostDialog title={copy('Reactions', 'რეაქციები')} onClose={onClose}>
         <div className="reactors-content">
-            <div ref={tabs} className="reactors-tabs" role="tablist" aria-label="Filter reactions" onKeyDown={keys}>
+            <div ref={tabs} className="reactors-tabs" role="tablist" aria-label={copy('Filter reactions', 'რეაქციების ფილტრი')} onKeyDown={keys}>
                 {(['ALL', ...REACTIONS.filter(r => (counts[r.type] ?? 0) > 0 || r.type === filter)
                     .sort((a, b) => (counts[b.type] ?? 0) - (counts[a.type] ?? 0)).map(r => r.type)] as Filter[]).map(type => {
                     const label = type === 'ALL' ? 'All' : REACTIONS.find(r => r.type === type)!.label;
@@ -169,13 +173,13 @@ function ReactionList({ post, initialFilter, onClose }: { post: FeedPostDto; ini
             </div>
             <div id={`${id}-people`} role="tabpanel" aria-labelledby={`${id}-${filter}`} aria-busy={busy} tabIndex={0} className="reactors-panel">
                 {page && <ul className="reactors-list">{page.people.map(person => <li key={person.userId}>
-                    <Link to={`/profile/${person.userId}`} onClick={onClose}><PersonAvatar person={person} /><span><strong>{person.name}</strong><small>{person.userId === viewer ? 'You · ' : ''}{REACTIONS.find(r => r.type === person.reaction)?.label}</small></span><span className="reactor-profile-hint" aria-hidden="true">View profile</span></Link>
+                    <Link to={`/profile/${person.userId}`} onClick={onClose}><PersonAvatar person={person} /><span><strong>{person.name}</strong><small>{person.userId === viewer ? copy('You · ', 'თქვენ · ') : ''}{REACTIONS.find(r => r.type === person.reaction)?.label}</small></span><span className="reactor-profile-hint" aria-hidden="true">{copy('View profile', 'პროფილის ნახვა')}</span></Link>
                 </li>)}</ul>}
-                {busy && <p role="status" className="reactors-message">Loading reactions…</p>}
-                {failed && <div role="alert" className="reactors-message">{unavailable ? 'This post is no longer available to you.' : errorMessage}{!unavailable && <button className="post-secondary" type="button" onClick={() => { setFailed(false); setBusy(true); setRequest(previous => ({ ...previous, retry: previous.retry + 1 })); }}>Retry</button>}</div>}
+                {busy && <p role="status" className="reactors-message">{copy('Loading reactions…', 'რეაქციები იტვირთება…')}</p>}
+                {failed && <div role="alert" className="reactors-message">{unavailable ? copy('This post is no longer available to you.', 'ეს პოსტი თქვენთვის აღარ არის ხელმისაწვდომი.') : copy(errorMessage, 'რეაქციები ვერ ჩაიტვირთა. სცადეთ ხელახლა.')}{!unavailable && <button className="post-secondary" type="button" onClick={() => { setFailed(false); setBusy(true); setRequest(previous => ({ ...previous, retry: previous.retry + 1 })); }}>{copy('Retry', 'ხელახლა ცდა')}</button>}</div>}
                 {!busy && !failed && page && !page.people.length && <p className="reactors-message">No {filter === 'ALL' ? '' : `${REACTIONS.find(r => r.type === filter)?.label.toLowerCase()} `}reactions to show.</p>}
-                {page && page.availableCount < selectedCount && <p className="reactors-message">Some profiles are unavailable.</p>}
-                {page?.hasMore && !busy && !failed && <button type="button" className="post-secondary reactors-more" onClick={() => { setBusy(true); setRequest({ filter, cursor: page.nextCursor, retry: 0 }); }}>Show more</button>}
+                {page && page.availableCount < selectedCount && <p className="reactors-message">{copy('Some profiles are unavailable.', 'ზოგი პროფილი მიუწვდომელია.')}</p>}
+                {page?.hasMore && !busy && !failed && <button type="button" className="post-secondary reactors-more" onClick={() => { setBusy(true); setRequest({ filter, cursor: page.nextCursor, retry: 0 }); }}>{copy('Show more', 'მეტის ჩვენება')}</button>}
             </div>
         </div>
     </PostDialog>;

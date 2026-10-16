@@ -2,9 +2,12 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { ChevronDown } from 'lucide-react';
 import Glove from './reaction-icons/Glove';
 import { REACTIONS, reactionDefinition, type Reaction } from './reactions';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import './reactions.css';
 
 export function ReactionButton({ value, onChange, disabled = false, allowAll = true, count }: { value: Reaction | null; onChange: (reaction: Reaction | null) => void; disabled?: boolean; allowAll?: boolean; count?: number }) {
+    const copy = useJourneyCopy();
+    const react = copy('React', 'რეაქცია');
     const [open, setOpen] = useState(false), id = useId();
     const root = useRef<HTMLDivElement>(null), primary = useRef<HTMLButtonElement>(null), picker = useRef<HTMLDivElement>(null);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null), holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null), held = useRef(false);
@@ -28,11 +31,11 @@ export function ReactionButton({ value, onChange, disabled = false, allowAll = t
         onPointerEnter={event => { if (event.pointerType === 'mouse' && !disabled && allowAll) { if (hoverTimer.current) clearTimeout(hoverTimer.current); setOpen(true); } }}
         onPointerLeave={() => { cancelHold(); if (!root.current?.contains(document.activeElement)) hoverTimer.current = setTimeout(() => setOpen(false), 350); }}
         onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) close(); }}>
-        <button ref={primary} type="button" className="post-action post-reaction-primary" data-reaction={value ?? undefined} aria-label={countLabel ? `${selected?.label ?? 'React'}, ${countLabel}` : selected?.label ?? 'React'} aria-pressed={Boolean(value)} disabled={disabled}
+        <button ref={primary} type="button" className="post-action post-reaction-primary" data-reaction={value ?? undefined} aria-label={countLabel ? `${selected?.label ?? react}, ${countLabel}` : selected?.label ?? react} aria-pressed={Boolean(value)} disabled={disabled}
             onPointerDown={event => { held.current = false; if (event.pointerType === 'touch' && allowAll && !disabled) holdTimer.current = setTimeout(() => { held.current = true; setOpen(true); }, 450); }}
             onPointerUp={cancelHold} onPointerCancel={cancelHold} onContextMenu={event => { if (held.current) event.preventDefault(); }}
             onClick={() => { if (held.current) { held.current = false; return; } close(); onChange(value ? null : 'LIKE'); }}>
-            <span aria-hidden="true" className="post-reaction-emoji">{selected ? <selected.Icon size={22} /> : <Glove size={22} />}</span><span>{countLabel ?? selected?.label ?? 'React'}</span>
+            <span aria-hidden="true" className="post-reaction-emoji">{selected ? <selected.Icon size={22} /> : <Glove size={22} />}</span><span>{countLabel ?? selected?.label ?? react}</span>
         </button>
         {allowAll && <button type="button" className="post-reaction-expand" aria-label="Choose a reaction" aria-expanded={open} aria-controls={id} disabled={disabled}
             onClick={() => { setOpen(true); focusOption(Math.max(0, REACTIONS.findIndex(r => r.type === value))); }}><ChevronDown size={14} aria-hidden="true" /></button>}

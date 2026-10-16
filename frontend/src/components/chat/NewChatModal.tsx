@@ -5,6 +5,7 @@ import { chatApi, type UserSearchResult } from '../../api/chat';
 import { useDialogFocus } from '../workspace/useDialogFocus';
 import { usePanelMotion } from '../ui/usePanelMotion';
 import { getStoredUserId } from '../../utils/authStorage';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 
 interface NewChatModalProps {
     open: boolean;
@@ -20,6 +21,7 @@ export function NewChatModal(props: NewChatModalProps) {
     return props.open ? <NewChatContent {...props} /> : null;
 }
 function NewChatContent({ open, onClose: finishClose, onConversationCreated, recentContacts }: NewChatModalProps) {
+    const copy = useJourneyCopy();
     const motion = usePanelMotion(finishClose);
     const onClose = motion.close;
     const [mode, setMode] = useState<ChatMode>('DIRECT');
@@ -79,7 +81,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                     ),
                 );
             } catch {
-                setError('Search failed. Try again.');
+                setError(copy('Search failed. Try again.', 'ძიება ვერ მოხერხდა. სცადეთ ხელახლა.'));
             } finally {
                 setLoading(false);
             }
@@ -88,7 +90,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
         return () => {
             if (debounceRef.current) clearTimeout(debounceRef.current);
         };
-    }, [query, currentUserId, selectedUsers]);
+    }, [query, currentUserId, selectedUsers, copy]);
 
     const handleSelectUser = (user: UserSearchResult) => {
         if (mode === 'DIRECT') {
@@ -121,7 +123,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
             onConversationCreated(res.data.id);
             onClose();
         } catch {
-            setError('Failed to create conversation.');
+            setError(copy('Could not start the conversation.', 'საუბარი ვერ დაიწყო.'));
         } finally {
             setCreating(false);
         }
@@ -129,11 +131,11 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
 
     const handleCreateGroup = async () => {
         if (!groupName.trim()) {
-            setError('Please enter a group name.');
+            setError(copy('Give the group a name.', 'დაარქვით ჯგუფს სახელი.'));
             return;
         }
         if (selectedUsers.length === 0) {
-            setError('Select at least one participant.');
+            setError(copy('Choose at least one person.', 'აირჩიეთ ერთი ადამიანი მაინც.'));
             return;
         }
 
@@ -148,7 +150,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
             onConversationCreated(res.data.id);
             onClose();
         } catch {
-            setError('Failed to create group.');
+            setError(copy('Could not create the group.', 'ჯგუფი ვერ შეიქმნა.'));
         } finally {
             setCreating(false);
         }
@@ -199,7 +201,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                     )}
 
                     <h2 className="font-semibold text-[color:var(--color-text)] text-base flex-1">
-                        {isNameStep ? 'New Group' : 'New Chat'}
+                        {isNameStep ? copy('New group', 'ახალი ჯგუფი') : copy('New chat', 'ახალი ჩატი')}
                     </h2>
 
                     {/* Next button (group mode with selections) */}
@@ -208,7 +210,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                             onClick={goToNameStep}
                             className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[color:var(--color-ink)]/20 text-[color:var(--color-text)] text-sm font-semibold hover:bg-[color:var(--color-ink)]/30 transition-colors"
                         >
-                            Next
+                            {copy('Next', 'შემდეგი')}
                             <ArrowLeft className="w-4 h-4 rotate-180" />
                         </button>
                     )}
@@ -228,7 +230,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                             type="text"
                             value={groupName}
                             onChange={(e) => setGroupName(e.target.value)}
-                            placeholder="Group name"
+                            placeholder={copy('Group name', 'ჯგუფის სახელი')}
                             maxLength={100}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateGroup(); }}
                             className="w-full py-3 text-base font-semibold text-center bg-transparent text-[var(--color-text)] border-b-2 outline-none transition-colors focus:border-[var(--color-accent)]"
@@ -270,10 +272,10 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                             {creating ? (
                                 <span className="inline-flex items-center gap-2">
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    Creating...
+                                    {copy('Creating…', 'იქმნება…')}
                                 </span>
                             ) : (
-                                `Create group with ${selectedUsers.length} ${selectedUsers.length === 1 ? 'person' : 'people'}`
+                                copy(`Create group with ${selectedUsers.length} ${selectedUsers.length === 1 ? 'person' : 'people'}`, `ჯგუფის შექმნა (${selectedUsers.length})`)
                             )}
                         </button>
                     </div>
@@ -293,7 +295,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                                 }`}
                             >
                                 <UserPlus className="w-4 h-4" />
-                                New Contact
+                                {copy('New contact', 'ახალი კონტაქტი')}
                             </button>
                             <button
                                 onClick={() => switchMode('GROUP')}
@@ -304,7 +306,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                                 }`}
                             >
                                 <Users className="w-4 h-4" />
-                                New Group
+                                {copy('New group', 'ახალი ჯგუფი')}
                             </button>
                         </div>
 
@@ -339,8 +341,8 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                                     onChange={(e) => setQuery(e.target.value)}
                                     placeholder={
                                         isGroup
-                                            ? 'Search people to add...'
-                                            : 'Search name or username...'
+                                            ? copy('Search people to add…', 'მოძებნეთ დასამატებელი ადამიანები…')
+                                            : copy('Search a name…', 'მოძებნეთ სახელი…')
                                     }
                                     className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-secondary)]"
                                 />
@@ -364,7 +366,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                             {/* Search results */}
                             {showSearchResults && !loading && results.length === 0 && !error && (
                                 <p className="px-5 py-10 text-sm text-muted text-center">
-                                    No users found.
+                                    {copy('Nobody found.', 'ვერავინ მოიძებნა.')}
                                 </p>
                             )}
 
@@ -416,7 +418,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                             {showRecentContacts && (
                                 <div className="pb-1">
                                     <p className="px-5 py-3 text-xs font-semibold  text-muted">
-                                        Recent Contacts
+                                        {copy('Recent contacts', 'ბოლო კონტაქტები')}
                                     </p>
                                     {visibleRecents.map((user) => (
                                         <button
@@ -460,7 +462,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                             {/* Empty state — no recents, no search */}
                             {!showSearchResults && !showRecentContacts && !loading && (
                                 <p className="px-5 py-10 text-sm text-muted text-center">
-                                    Search for people to start a conversation.
+                                    {copy('Search for someone to start a conversation.', 'მოძებნეთ ადამიანი საუბრის დასაწყებად.')}
                                 </p>
                             )}
                         </div>

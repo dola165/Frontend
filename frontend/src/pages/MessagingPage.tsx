@@ -1,3 +1,4 @@
+import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 import '../features/squadCommunication/squad-life.css';
 import { MessageActions } from '../components/chat/MessageActions';
 import { ConversationIntakeContext } from '../components/chat/ConversationIntakeContext';
@@ -55,6 +56,7 @@ function getAvatarLetter(conv: ConversationDto, currentUserId: number): string {
 // ── Component ──────────────────────────────────────────────────────
 
 export const MessagingPage = () => {
+    const copy = useJourneyCopy();
     const {sessionId} = useAuth();
     const currentUserId = Number(getStoredUserId() || 0);
     const [searchParams, setSearchParams] = useSearchParams();
@@ -387,12 +389,12 @@ export const MessagingPage = () => {
                 <div className="h-14 px-4 border-b border-[var(--chat-card-border)] flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-[var(--chat-accent)]" />
-                        <h2 className="font-bold text-[var(--chat-text-primary)] text-base">Chats</h2>
+                        <h2 className="font-bold text-[var(--chat-text-primary)] text-base">{copy('Chats', 'ჩატები')}</h2>
                     </div>
                     <button
                         onClick={() => setShowNewChat(true)}
                         className="p-1.5 rounded-full text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)] hover:text-[var(--chat-accent)] transition-colors"
-                        title="New Chat"
+                        title={copy('New chat', 'ახალი ჩატი')} aria-label={copy('New chat', 'ახალი ჩატი')}
                     >
                         <Plus className="w-5 h-5" />
                     </button>
@@ -405,14 +407,14 @@ export const MessagingPage = () => {
                         fill="currentColor"
                     />
                     <span className="text-[var(--chat-text-muted)]">
-                        {squadId ? 'Squad messages refresh automatically' : connected ? 'Live updates connected' : 'Reconnecting live updates'}
+                        {squadId ? copy('Squad messages refresh automatically', 'გუნდის შეტყობინებები თავისით ახლდება') : connected ? copy('Live', 'პირდაპირ') : copy('New messages are checked every half minute', 'ახალი შეტყობინებები ყოველ ნახევარ წუთში მოწმდება')}
                     </span>
                 </div>
 
                 {/* One inbox, with the existing squad membership checks. */}
                 <div className="flex-1 overflow-y-auto">
                     <SquadInboxList key={sessionId} selected={squadId} />
-                    <h3 className="messages-other-heading">Other conversations</h3>
+                    <h3 className="messages-other-heading">{copy('Other conversations', 'სხვა საუბრები')}</h3>
                     {sidebarLoading ? (
                         <div className="flex flex-col gap-2 px-3 py-2">
                             <SkeletonMessageRow />
@@ -424,10 +426,10 @@ export const MessagingPage = () => {
                         <div className="px-4 py-12 text-center">
                             <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[var(--chat-text-muted)]" />
                             <p className="text-sm text-[var(--chat-text-secondary)] font-medium">
-                                No other conversations yet
+                                {copy('No other conversations yet', 'სხვა საუბრები ჯერ არ არის')}
                             </p>
                             <p className="text-xs text-[var(--chat-text-muted)] mt-1">
-                                Start a new chat to begin messaging.
+                                {copy('Start a new chat to begin.', 'დაიწყეთ ახალი ჩატი.')}
                             </p>
                         </div>
                     ) : (
@@ -492,7 +494,7 @@ export const MessagingPage = () => {
                                                         {conv.lastMessage}
                                                     </>
                                                 ) : (
-                                                    conv.lastMessage || 'No messages yet'
+                                                    conv.lastMessage || copy('No messages yet', 'შეტყობინებები ჯერ არ არის')
                                                 )}
                                             </p>
 
@@ -516,7 +518,7 @@ export const MessagingPage = () => {
                     <>
                         {/* Header — clickable to toggle info panel */}
                         <div className="h-14 px-5 bg-[var(--chat-card)] border-b border-[var(--chat-card-border)] flex items-center justify-between shrink-0">
-                            <button className="messages-mobile-back" onClick={() => setSearchParams({})} aria-label="Back to all messages">← Chats</button>
+                            <button className="messages-mobile-back" onClick={() => setSearchParams({})} aria-label={copy('Back to all messages', 'ყველა შეტყობინებაზე დაბრუნება')}>← {copy('Chats', 'ჩატები')}</button>
                             <button
                                 onClick={() => setShowInfo(!showInfo)}
                                 className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
@@ -546,7 +548,7 @@ export const MessagingPage = () => {
                                         ? 'bg-[var(--chat-accent-soft)] text-[var(--chat-accent)]'
                                         : 'text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)]'
                                 }`}
-                                title="Conversation info"
+                                title={copy('Conversation info', 'საუბრის ინფორმაცია')}
                             >
                                 <Info className="w-5 h-5" />
                             </button>
@@ -554,17 +556,17 @@ export const MessagingPage = () => {
 
                         <ConversationIntakeContext key={`${sessionId}:${activeConv.id}`} conversationId={activeConv.id} messageRevision={activeMessages.at(-1)?.id ?? activeConv.lastMessageAt ?? ''} />
                         {/* Messages */}
-                        <div ref={messageViewportRef} role="log" aria-label="Conversation messages" style={{ overflowAnchor: 'none' }} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                        <div ref={messageViewportRef} role="log" aria-label={copy('Conversation messages', 'საუბრის შეტყობინებები')} style={{ overflowAnchor: 'none' }} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
                             {!loadingMessages && <OlderMessages available={hasOlder} loading={loadingOlder} error={historyError} onLoad={loadOlder} />}
                             {loadingMessages ? (
                                 <div className="flex items-center justify-center flex-1 gap-2 text-[var(--chat-text-muted)]">
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span className="text-sm">Loading messages...</span>
+                                    <span className="text-sm">{copy('Loading messages…', 'შეტყობინებები იტვირთება…')}</span>
                                 </div>
                             ) : activeMessages.length === 0 ? (
                                 <div className="flex items-center justify-center flex-1">
                                     <p className="text-sm text-[var(--chat-text-muted)]">
-                                        No messages yet. Say hello!
+                                        {copy('No messages yet. Say hello!', 'შეტყობინებები ჯერ არ არის. მიესალმეთ!')}
                                     </p>
                                 </div>
                             ) : (
@@ -610,7 +612,7 @@ export const MessagingPage = () => {
                                     onChange={(e) => setInput(e.target.value)}
                                     disabled={sending}
                                     placeholder={
-                                        sending ? 'Sending...' : 'Type a message...'
+                                        sending ? copy('Sending…', 'იგზავნება…') : copy('Write a message…', 'დაწერეთ შეტყობინება…')
                                     }
                                     className="flex-1 bg-[var(--chat-input-bg)] border border-[var(--chat-card-border)] text-[var(--chat-text-primary)] rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--chat-accent)]/40 transition-all disabled:opacity-50 placeholder:text-[var(--chat-text-placeholder)]"
                                 />
@@ -619,7 +621,7 @@ export const MessagingPage = () => {
 
                                 <button
                                     type="submit"
-                                    aria-label="Send message"
+                                    aria-label={copy('Send message', 'გაგზავნა')}
                                     disabled={!input.trim() || sending}
                                     className="w-10 h-10 bg-[var(--chat-accent)] hover:bg-[var(--chat-accent-hover)] disabled:opacity-40 text-[var(--chat-accent-contrast)] rounded-full flex items-center justify-center transition-colors shrink-0"
                                 >
@@ -636,19 +638,19 @@ export const MessagingPage = () => {
                                 <MessageSquare className="w-8 h-8 text-[var(--chat-accent)]" />
                             </div>
                             <h3 className="text-lg font-bold text-[var(--chat-text-primary)]">
-                                Your Messages
+                                {copy('Your messages', 'თქვენი შეტყობინებები')}
                             </h3>
                             <p className="text-sm text-[var(--chat-text-muted)] mt-1 max-w-xs">
                                 {sidebarLoading
-                                    ? 'Start a new chat to begin messaging with other users.'
-                                    : 'Select a conversation from the sidebar or start a new one.'}
+                                    ? copy('Start a new chat to message someone.', 'დაიწყეთ ახალი ჩატი, რომ ვინმეს მისწეროთ.')
+                                    : copy('Pick a conversation on the left or start a new one.', 'აირჩიეთ საუბარი მარცხნივ ან დაიწყეთ ახალი.')}
                             </p>
                             <button
                                 onClick={() => setShowNewChat(true)}
                                 className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--chat-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--chat-accent-contrast)] transition-colors hover:bg-[var(--chat-accent-hover)]"
                             >
                                 <Plus className="w-4 h-4" />
-                                New Chat
+                                {copy('New chat', 'ახალი ჩატი')}
                             </button>
                         </div>
                     </div>
@@ -668,17 +670,17 @@ export const MessagingPage = () => {
                                 setShowAddPeople(false);
                                 setShowSuggestUser(false);
                             }}
-                            aria-label="Close conversation info"
+                            aria-label={copy('Close conversation info', 'საუბრის ინფორმაციის დახურვა')}
                             className="p-1.5 rounded-full text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)] transition-colors"
                         >
                             <X className="w-4 h-4" />
                         </button>
                         <h2 className="font-semibold text-[var(--chat-text-primary)] text-sm">
                             {activeConv.contextType === 'GROUP'
-                                ? 'Group Settings'
+                                ? copy('Group settings', 'ჯგუფის პარამეტრები')
                                 : activeConv.contextType === 'MATCH_CHALLENGE'
-                                    ? 'Match Chat Info'
-                                    : 'Conversation Info'}
+                                    ? copy('Match chat', 'მატჩის ჩატი')
+                                    : copy('Conversation', 'საუბარი')}
                         </h2>
                     </div>
 
@@ -687,7 +689,7 @@ export const MessagingPage = () => {
                         {managementError && (
                             <div className="mx-4 mt-3 px-3 py-2 rounded-lg border border-[color:var(--color-danger)]/20 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] text-xs">
                                 {managementError}
-                                <button onClick={() => setManagementError(null)} className="ml-2 app-text-action">Dismiss</button>
+                                <button onClick={() => setManagementError(null)} className="ml-2 app-text-action">{copy('Dismiss', 'დახურვა')}</button>
                             </div>
                         )}
 
@@ -737,12 +739,12 @@ export const MessagingPage = () => {
                                                         {isParticipantCreator && (
                                                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[color:var(--color-warning)]/15 text-[color:var(--color-warning)] text-[9px] font-bold uppercase tracking-wider">
                                                                 <Crown className="w-2.5 h-2.5" />
-                                                                Admin
+                                                                {copy('Admin', 'ადმინი')}
                                                             </span>
                                                         )}
                                                     </div>
                                                     {isMe && (
-                                                        <p className="text-[10px] text-[var(--chat-text-muted)]">You</p>
+                                                        <p className="text-[10px] text-[var(--chat-text-muted)]">{copy('You', 'თქვენ')}</p>
                                                     )}
                                                 </div>
 
@@ -751,14 +753,14 @@ export const MessagingPage = () => {
                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button
                                                             onClick={() => handleKickUser(p.userId, p.displayName)}
-                                                            title="Remove"
+                                                            title={copy('Remove', 'წაშლა')}
                                                             className="p-1 rounded text-[var(--chat-text-muted)] hover:text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/10 transition-colors"
                                                         >
                                                             <UserMinus className="w-3.5 h-3.5" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleBlockUser(p.userId, p.displayName)}
-                                                            title="Block"
+                                                            title={copy('Block', 'დაბლოკვა')}
                                                             className="p-1 rounded text-[var(--chat-text-muted)] hover:text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/10 transition-colors"
                                                         >
                                                             <Ban className="w-3.5 h-3.5" />
@@ -787,7 +789,7 @@ export const MessagingPage = () => {
                                             className="w-full flex items-center justify-center gap-2 py-2 rounded-full border border-[var(--chat-card-border)] text-[var(--chat-text-secondary)] text-xs font-semibold hover:bg-[var(--chat-card-hover)] transition-colors"
                                         >
                                             <UserPlus className="w-3.5 h-3.5" />
-                                            Add People
+                                            {copy('Add people', 'ადამიანების დამატება')}
                                         </button>
                                         {showAddPeople && (
                                             <div className="mt-2">
@@ -800,7 +802,7 @@ export const MessagingPage = () => {
                                                             setPeopleSearchQuery(e.target.value);
                                                             searchPeople(e.target.value);
                                                         }}
-                                                        placeholder="Search users..."
+                                                        placeholder={copy('Search people…', 'მოძებნეთ ადამიანები…')}
                                                         className="w-full pl-8 pr-3 py-1.5 rounded-full border border-[var(--chat-card-border)] bg-[var(--chat-input-bg)] text-[var(--chat-text-primary)] text-xs placeholder:text-[var(--chat-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--chat-accent)]/40"
                                                     />
                                                 </div>
@@ -843,7 +845,7 @@ export const MessagingPage = () => {
                                         className="w-full flex items-center justify-center gap-2 py-2 rounded-full border border-[var(--chat-card-border)] text-[var(--chat-text-secondary)] text-xs font-semibold hover:bg-[var(--chat-card-hover)] transition-colors"
                                     >
                                         <UserPlus className="w-3.5 h-3.5" />
-                                        Suggest Someone
+                                        {copy('Suggest someone', 'ვინმეს შეთავაზება')}
                                     </button>
                                 )}
 
@@ -859,7 +861,7 @@ export const MessagingPage = () => {
                                                     setPeopleSearchQuery(e.target.value);
                                                     searchPeople(e.target.value);
                                                 }}
-                                                placeholder="Search users..."
+                                                placeholder={copy('Search people…', 'მოძებნეთ ადამიანები…')}
                                                 className="w-full pl-8 pr-3 py-1.5 rounded-full border border-[var(--chat-card-border)] bg-[var(--chat-input-bg)] text-[var(--chat-text-primary)] text-xs placeholder:text-[var(--chat-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--chat-accent)]/40"
                                             />
                                         </div>
@@ -901,7 +903,7 @@ export const MessagingPage = () => {
                                     className="w-full flex items-center justify-between"
                                 >
                                     <h3 className="text-xs font-semibold uppercase text-[var(--chat-text-muted)] tracking-wide">
-                                        Invite Suggestions
+                                        {copy('Invite suggestions', 'შეთავაზებული მოწვევები')}
                                         {suggestions.length > 0 && (
                                             <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[color:var(--color-warning)]/15 text-[color:var(--color-warning)] text-[9px] font-bold">
                                                 {suggestions.length}
@@ -923,7 +925,7 @@ export const MessagingPage = () => {
                                             </div>
                                         ) : suggestions.length === 0 ? (
                                             <p className="text-xs text-[var(--chat-text-muted)] mt-2 py-2 text-center">
-                                                No pending suggestions.
+                                                {copy('No suggestions waiting.', 'შეთავაზებები არ არის.')}
                                             </p>
                                         ) : (
                                             <div className="flex flex-col gap-2 mt-2">
@@ -947,14 +949,14 @@ export const MessagingPage = () => {
                                                             <button
                                                                 onClick={() => handleApproveSuggestion(s.id)}
                                                                 className="p-1 rounded-full text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)]/10 transition-colors"
-                                                                title="Approve"
+                                                                title={copy('Approve', 'დადასტურება')}
                                                             >
                                                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                                                             </button>
                                                             <button
                                                                 onClick={() => handleRejectSuggestion(s.id)}
                                                                 className="p-1 rounded-full text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/10 transition-colors"
-                                                                title="Reject"
+                                                                title={copy('Decline', 'უარყოფა')}
                                                             >
                                                                 <X className="w-4 h-4" />
                                                             </button>
@@ -982,11 +984,11 @@ export const MessagingPage = () => {
                             }}
                             className="w-full py-2 px-4 rounded-full border border-[color:var(--color-danger)]/30 text-[color:var(--color-danger)] text-sm font-semibold hover:bg-[color:var(--color-danger)]/10 transition-colors"
                         >
-                            Leave {activeConv.contextType === 'GROUP'
-                                ? 'Group'
+                            {activeConv.contextType === 'GROUP'
+                                ? copy('Leave group', 'ჯგუფის დატოვება')
                                 : activeConv.contextType === 'MATCH_CHALLENGE'
-                                    ? 'Match Chat'
-                                    : 'Conversation'}
+                                    ? copy('Leave match chat', 'მატჩის ჩატის დატოვება')
+                                    : copy('Leave conversation', 'საუბრის დატოვება')}
                         </button>
                     </div>
                 </aside>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { CalendarDays, ChevronRight, Cone, MapPin, Plus, Search, Settings, Shield, Store } from 'lucide-react';
+import { crestPalette as paint } from '../../styles/visualColors';
 import { PINS, type Child, type Club, type Person, type ScreenId } from './model';
 
 const copy = (ka: boolean) => (en: string, georgian: string) => ka ? georgian : en;
 const Crest = ({ club }: { club: Pick<Club, 'short' | 'tone'> }) => <span className="nav-crest" style={{ background: club.tone }}>{club.short}</span>;
 const Face = ({ child, size = 32 }: { child: Child; size?: number }) => <span className="nav-face" style={{ background: child.tone, width: size, height: size }}>{child.name[0]}</span>;
-const clubOf = (person: Person, name: string) => person.clubs.find(club => club.name === name) ?? { short: '?', tone: '#667' };
+const clubOf = (person: Person, name: string) => person.clubs.find(club => club.name === name) ?? { short: '?', tone: paint.navy };
 
 /** A squad as the coach sees it: crest, name, the next session. */
 function SquadRow({ person, squad, ka }: { person: Person; squad: Person['squads'][number]; ka: boolean }) {
@@ -22,7 +23,7 @@ function NoClub({ ka }: { ka: boolean }) {
 }
 function ClubPage({ club, ka }: { club: Club; ka: boolean }) {
     const t = copy(ka);
-    return <><div className="nav-cover" style={{ background: `linear-gradient(135deg, ${club.tone}, #0b1a12)` }} /><div className="nav-clubhead"><Crest club={club} /><strong>{club.name}</strong></div><div className="nav-chips"><span>{t('Posts', 'პოსტები')}</span><span>{t('Teams', 'გუნდები')}</span><span>{t('About', 'შესახებ')}</span></div><div className="nav-post" /></>;
+    return <><div className="nav-cover" style={{ background: `linear-gradient(135deg, ${club.tone}, ${paint.forest})` }} /><div className="nav-clubhead"><Crest club={club} /><strong>{club.name}</strong></div><div className="nav-chips"><span>{t('Posts', 'პოსტები')}</span><span>{t('Teams', 'გუნდები')}</span><span>{t('About', 'შესახებ')}</span></div><div className="nav-post" /></>;
 }
 
 /** The squads, grouped by club when there are several; with the club one tap away where the layout says so. */
@@ -56,14 +57,14 @@ function MyFootball({ person, ka }: { person: Person; ka: boolean }) {
 export function Screen({ id, person, ka, clubLink, go }: { id: ScreenId; person: Person; ka: boolean; clubLink: boolean; go: (id: ScreenId) => void }) {
     const t = copy(ka);
     switch (id) {
-        case 'home': return <><div className="nav-composer">{t('Share an update…', 'გააზიარეთ სიახლე…')}</div>{['FC Dinamo Tbilisi Academy', 'Koba Gelashvili'].map((name, i) => <article key={name} className="nav-feedpost"><div className="nav-row nav-row--quiet"><span className="nav-face" style={{ background: i ? '#7a5cc2' : '#2f6fe4' }}>{name[0]}</span><span><strong>{name}</strong><small>{t('2 hours ago', '2 საათის წინ')}</small></span></div><p>{i ? t('Great session with the U14s tonight.', 'კარგი ვარჯიში იყო დღეს.') : t('U16 Boys finished the week with a sharp possession session.', 'U16-მა კვირა კარგი ვარჯიშით დაასრულა.')}</p><div className={i ? 'nav-post nav-post--short' : 'nav-post'} /></article>)}</>;
+        case 'home': return <><div className="nav-composer">{t('Share an update…', 'გააზიარეთ სიახლე…')}</div>{['FC Dinamo Tbilisi Academy', 'Koba Gelashvili'].map((name, i) => <article key={name} className="nav-feedpost"><div className="nav-row nav-row--quiet"><span className="nav-face" style={{ background: i ? paint.purple : paint.blue }}>{name[0]}</span><span><strong>{name}</strong><small>{t('2 hours ago', '2 საათის წინ')}</small></span></div><p>{i ? t('Great session with the U14s tonight.', 'კარგი ვარჯიში იყო დღეს.') : t('U16 Boys finished the week with a sharp possession session.', 'U16-მა კვირა კარგი ვარჯიშით დაასრულა.')}</p><div className={i ? 'nav-post nav-post--short' : 'nav-post'} /></article>)}</>;
         case 'world': return <><div className="nav-map"><MapPin size={18} style={{ left: '30%', top: '40%' }} /><MapPin size={18} style={{ left: '62%', top: '28%' }} /><MapPin size={18} style={{ left: '48%', top: '66%' }} /></div><div className="nav-chips"><span>{t('Clubs', 'კლუბები')}</span><span>{t('Matches', 'მატჩები')}</span><span>{t('Trials', 'სინჯები')}</span></div></>;
         case 'my-squads': return <><h2 className="nav-title">{t('My squads', 'ჩემი გუნდები')}</h2><MySquads person={person} ka={ka} clubLink={clubLink} onClub={() => go('my-club')} /></>;
         case 'my-club': return person.clubs[0] ? <ClubPage club={person.clubs[0]} ka={ka} /> : <><h2 className="nav-title">{t('My Club', 'ჩემი კლუბი')}</h2><NoClub ka={ka} /></>;
         case 'parent': return <><h2 className="nav-title">{t('Parent Hub', 'მშობლის სივრცე')}</h2><div className="nav-faces">{person.children.map(child => <Face key={child.id} child={child} size={40} />)}</div>{person.children.map(child => <ChildRow key={child.id} child={child} ka={ka} />)}</>;
         case 'my-football': return <MyFootball person={person} ka={ka} />;
-        case 'messages': return <><h2 className="nav-title">{t('Messages', 'მიმოწერა')}</h2>{['Koba Gelashvili', 'Nino Lomidze', 'Davit Arveladze', 'U14 Boys coaching staff'].map((name, i) => <div className="nav-row" key={name}><span className="nav-face" style={{ background: ['#7a5cc2', '#c2417a', '#2f6fe4', '#3d9a6a'][i] }}>{name[0]}</span><span><strong>{name}</strong><small>{t('See you at training', 'ვარჯიშზე შევხვდებით')}</small></span></div>)}</>;
-        case 'you': return <><div className="nav-row"><span className="nav-face" style={{ background: '#7a5cc2', width: 40, height: 40 }}>{person.initials}</span><span><strong>{person.name}</strong><small>{t('Your profile', 'თქვენი პროფილი')}</small></span></div>
+        case 'messages': return <><h2 className="nav-title">{t('Messages', 'მიმოწერა')}</h2>{['Koba Gelashvili', 'Nino Lomidze', 'Davit Arveladze', 'U14 Boys coaching staff'].map((name, i) => <div className="nav-row" key={name}><span className="nav-face" style={{ background: [paint.purple, paint.maroon, paint.blue, paint.green][i] }}>{name[0]}</span><span><strong>{name}</strong><small>{t('See you at training', 'ვარჯიშზე შევხვდებით')}</small></span></div>)}</>;
+        case 'you': return <><div className="nav-row"><span className="nav-face" style={{ background: paint.purple, width: 40, height: 40 }}>{person.initials}</span><span><strong>{person.name}</strong><small>{t('Your profile', 'თქვენი პროფილი')}</small></span></div>
             <h3 className="nav-subtitle">{t('Pinned', 'მიმაგრებული')}</h3>{PINS(ka).map(pin => <div className="nav-row nav-row--quiet" key={pin}><Store size={14} /><span><strong>{pin}</strong></span></div>)}
             <h3 className="nav-subtitle">{t('Your club', 'თქვენი კლუბი')}</h3>{person.clubs.length ? person.clubs.map(club => <button type="button" className="nav-row nav-row--quiet" key={club.id} onClick={() => go('my-club')}><Crest club={club} /><span><strong>{club.name}</strong></span><ChevronRight size={14} /></button>) : <div className="nav-row nav-row--quiet"><Shield size={14} /><span><strong>{t('Find your club', 'იპოვეთ კლუბი')}</strong></span></div>}
             <div className="nav-row nav-row--quiet"><Settings size={14} /><span><strong>{t('Settings', 'პარამეტრები')}</strong></span></div></>;

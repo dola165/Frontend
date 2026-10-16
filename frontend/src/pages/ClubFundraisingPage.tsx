@@ -1,5 +1,6 @@
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { ButtonLink, EmptyNote, GkRoot, PageFrame } from '../design/primitives';
 import { canManageClubOperations } from '../features/clubs/domain';
 import { FundraisingCatalogue } from '../features/campaigns/FundraisingCatalogue';
@@ -17,7 +18,8 @@ export const ClubFundraisingPage = () => {
     const valid = Number.isSafeInteger(clubId) && clubId > 0;
     const embedded = !/\/campaigns$/.test(location.pathname);
     const club = useWorldData(valid ? `store-club:${clubId}` : null, signal => fetchStoreClub(clubId, signal));
-    const canStart = valid && canManageClubOperations(club.data?.myRole);
+    const { status } = useAuth();
+    const canStart = valid && status === 'authenticated' && canManageClubOperations(club.data?.myRole);
     const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded" data-market="fundraising">{children}</GkRoot> : <GkRoot className="gk-store gk-page" data-market="fundraising"><PageFrame>{children}</PageFrame></GkRoot>;
     if (!valid) return frame(<EmptyNote title="This club could not be found." action={<ButtonLink to="/campaigns">Back to fundraising</ButtonLink>} />);
     const actions = <div className="gk-store-club__actions">

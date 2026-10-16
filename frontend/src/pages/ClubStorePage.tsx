@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 import { CommerceDraftScope } from '../components/workspace/CommerceDraftScope';
 import { useClearCommerceForm } from '../components/workspace/commerceDraftState';
 import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame } from '../design/primitives';
@@ -44,7 +45,8 @@ export const ClubStorePage = () => {
     const club = useWorldData(valid ? `store-club:${clubId}` : null, signal => fetchStoreClub(clubId, signal));
     const adding = params.get('add') === '1';
     const setAdding = (on: boolean) => setParams(current => { const next = new URLSearchParams(current); if (on) next.set('add', '1'); else next.delete('add'); return next; }, { replace: true, preventScrollReset: true });
-    const canAdd = valid && canManageClubOperations(club.data?.myRole);
+    const { status } = useAuth();
+    const canAdd = valid && status === 'authenticated' && canManageClubOperations(club.data?.myRole);
     const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded" data-market="store">{children}</GkRoot> : <GkRoot className="gk-store gk-page" data-market="store"><PageFrame>{children}</PageFrame></GkRoot>;
     if (!valid) return frame(<EmptyNote title="This club could not be found." action={<ButtonLink to="/store">Back to the store</ButtonLink>} />);
     if (adding && canAdd) return frame(<CommerceDraftScope clubId={clubId} feature="StoreTab"><AddProduct clubId={clubId} onDone={() => { setAdding(false); setRevision(n => n + 1); }} onCancel={() => setAdding(false)} /></CommerceDraftScope>);

@@ -13,6 +13,7 @@ import { useJourneyCopy } from '../journeyCopy';
 import { squadMessageUrl } from '../routes';
 import { useSquadSchedule } from '../useSquadSchedule';
 import type * as api from '../api';
+import { useNow } from '../../clubWorkspace/useNow';
 
 /**
  * The squad page's first tab: the coaches' updates as the main thing; beside them the next session (the child's
@@ -41,7 +42,8 @@ function CoachNext({ space }: { space: api.SquadOverview }) {
     const copy = useJourneyCopy();
     const range = useMemo(() => { const from = new Date(); from.setHours(0, 0, 0, 0); return { from: from.toISOString(), to: new Date(from.getTime() + 15 * 86400000).toISOString() }; }, []);
     const { events, loading } = useSquadSchedule([space], range.from, range.to, 0, undefined, false);
-    const next = events.filter(event => event.session && event.status !== 'CANCELLED' && Date.parse(event.endsAt) > Date.now()).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
+    const now = useNow();
+    const next = events.filter(event => event.session && event.status !== 'CANCELLED' && Date.parse(event.endsAt) > now).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
     if (loading) return <Skeleton height={120} />;
     if (!next?.session) return <section className="sp-box"><p className="sp-quiet">{copy('Nothing planned in the next two weeks.', 'მომდევნო ორ კვირაში არაფერია დაგეგმილი.')}</p></section>;
     const value = availability(next.session);

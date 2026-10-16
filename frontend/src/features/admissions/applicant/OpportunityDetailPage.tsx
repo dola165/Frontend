@@ -19,6 +19,7 @@ import './joining.css';
 
 const bornIn = (p: Participant) => Number(p.dateOfBirth?.slice(0, 4));
 const fitsAge = (o: Opportunity, p: Participant) => bornIn(p) >= o.birthYearFrom && bornIn(p) <= o.birthYearTo;
+const FREQUENCY_KA: Record<string, string> = { monthly: 'თვეში', weekly: 'კვირაში', yearly: 'წელიწადში', once: 'ერთჯერადად', 'per session': 'ვარჯიშზე' };
 const fitsGender = (o: Opportunity, p: Participant) => o.gender === 'ANY' || o.gender === p.gender;
 
 export function OpportunityDetailPage() {
@@ -47,7 +48,7 @@ function OpportunityDetailContent({ id }: { id: number }) {
     const existing = player && o ? home.data?.cases.find(c => c.playerId === player.id && c.organizationId === o.organizationId && c.intake === o.intake && c.stage !== 'CLOSED' && c.enrollment?.status !== 'CANCELLED') : undefined;
     if (!o) return <JoinFrame>{opportunity.error ? <AdmissionError message={opportunity.error} retry={opportunity.refresh} /> : <div className="jn-stack" role="status"><Skeleton height={64} /><Skeleton height={56} /><Skeleton height={120} /></div>}</JoinFrame>;
     const fee = o.terms.charges[0];
-    const cost = !o.terms.feesKnown ? copy('Price to be confirmed', 'ფასი დასაზუსტებელია') : fee ? `${fee.amount} ${fee.currency} · ${fee.frequency}` : copy('Free', 'უფასო');
+    const cost = !o.terms.feesKnown ? copy('Price to be confirmed', 'ფასი დასაზუსტებელია') : fee ? `${fee.amount} ${fee.currency} · ${copy(fee.frequency, FREQUENCY_KA[fee.frequency.toLowerCase()] ?? fee.frequency)}` : copy('Free', 'უფასო');
     return <JoinFrame>
         <header className="jn-head">
             <h1>{o.name}</h1>

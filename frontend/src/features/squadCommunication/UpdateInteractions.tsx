@@ -9,6 +9,7 @@ import RedCard from '../../components/feed/reaction-icons/RedCard';
 import Sad from '../../components/feed/reaction-icons/Sad';
 import {extractApiErrorMessage} from '../../utils/apiError';
 import * as api from './api';
+import {useJourneyCopy} from './journeyCopy';
 import './update-interactions.css';
 
 type ReactionIcon=ComponentType<{size?:number}>|ComponentType<LucideProps>;
@@ -22,6 +23,7 @@ const reactions: {kind:api.ReactionKind;Icon:ReactionIcon;label:string;pick:bool
 const errorMessage=(e:unknown)=>extractApiErrorMessage(e,'This could not be saved. Please try again.');
 
 function AcknowledgedBy({people}:{people:api.Receipt[]}) {
+ const copy=useJourneyCopy();
  const [open,setOpen]=useState(false),[pinned,setPinned]=useState(false);
  const root=useRef<HTMLDivElement>(null),id=useId();
  useEffect(()=>{
@@ -33,16 +35,17 @@ function AcknowledgedBy({people}:{people:api.Receipt[]}) {
   onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget)){setOpen(false);setPinned(false);}}}
   onKeyDown={e=>{if(e.key==='Escape'){setOpen(false);setPinned(false);}}}>
   <button type="button" className="update-ack-line" aria-expanded={open} aria-controls={id} onFocus={()=>setOpen(true)} onClick={()=>{setPinned(!pinned);setOpen(!pinned);}}>
-   Acknowledged by <span>{people.length} {people.length===1?'person':'people'}</span>
+   {copy('Acknowledged by','დაადასტურა')} <span>{copy(`${people.length} ${people.length===1?'person':'people'}`,`${people.length} ადამიანმა`)}</span>
   </button>
-  {open&&<div id={id} className="update-people-popover" role="region" aria-label="People who acknowledged" tabIndex={0}>
-   <strong>Acknowledged by</strong>
-   {people.length?<ul>{people.map(person=><li key={person.user_id}><span className="update-person-avatar" aria-hidden="true">{person.full_name.slice(0,1)}</span><span>{person.full_name}</span></li>)}</ul>:<p>No acknowledgements yet.</p>}
+  {open&&<div id={id} className="update-people-popover" role="region" aria-label={copy('People who acknowledged','ვინ დაადასტურა')} tabIndex={0}>
+   <strong>{copy('Acknowledged by','დაადასტურა')}</strong>
+   {people.length?<ul>{people.map(person=><li key={person.user_id}><span className="update-person-avatar" aria-hidden="true">{person.full_name.slice(0,1)}</span><span>{person.full_name}</span></li>)}</ul>:<p>{copy('No acknowledgements yet.','ჯერ არავის დაუდასტურებია.')}</p>}
   </div>}
  </div>;
 }
 
 export function UpdateInteractions({space,message,onChanged}:{space:api.SquadOverview;message:api.SquadMessage;onChanged:()=>void}) {
+ const copy=useJourneyCopy();
  const [picker,setPicker]=useState(false),[pending,setPending]=useState(false),[error,setError]=useState(''),[commentsOpen,setCommentsOpen]=useState(false);
  const [commentsVisited,setCommentsVisited]=useState(false);
  const busy=useRef(false),pickerRoot=useRef<HTMLDivElement>(null),pickerButton=useRef<HTMLButtonElement>(null),commentsId=useId();
@@ -70,7 +73,7 @@ export function UpdateInteractions({space,message,onChanged}:{space:api.SquadOve
     <button ref={pickerButton} type="button" className="update-add-reaction" aria-label="Add a reaction" aria-expanded={picker} disabled={pending} onClick={()=>setPicker(!picker)}><SmilePlus size={16}/></button>
     {picker&&<div className="update-emoji-picker" role="group" aria-label="Choose a reaction">{reactions.filter(r=>r.pick).map(({kind,Icon,label})=><button type="button" key={kind} aria-label={label} title={label} aria-pressed={(message.reactions??[]).some(r=>r.reaction===kind&&r.user_id===space.viewer_id)} disabled={pending} onClick={()=>void toggle(kind)}><Icon size={28}/></button>)}</div>}
    </div>
-   <button type="button" className="update-comments-toggle" aria-expanded={commentsOpen} aria-controls={commentsId} onClick={()=>{setCommentsVisited(true);setCommentsOpen(!commentsOpen);}}><MessageCircle size={15}/>{message.comment_count??0} {(message.comment_count??0)===1?'comment':'comments'}</button>
+   <button type="button" className="update-comments-toggle" aria-expanded={commentsOpen} aria-controls={commentsId} onClick={()=>{setCommentsVisited(true);setCommentsOpen(!commentsOpen);}}><MessageCircle size={15}/>{copy(`${message.comment_count??0} ${(message.comment_count??0)===1?'comment':'comments'}`,`${message.comment_count??0} კომენტარი`)}</button>
   </div>
   {error&&<p className="squad-error" role="alert">{error}</p>}
   <div id={commentsId} hidden={!commentsOpen}>{commentsVisited&&<UpdateComments space={space} messageId={message.id} onChanged={onChanged} active={commentsOpen}/>}</div>
@@ -78,6 +81,7 @@ export function UpdateInteractions({space,message,onChanged}:{space:api.SquadOve
 }
 
 function UpdateComments({space,messageId,onChanged,active:visible}:{space:api.SquadOverview;messageId:number;onChanged:()=>void;active:boolean}) {
+ const copy=useJourneyCopy();
  const [rows,setRows]=useState<api.UpdateComment[]>([]),[older,setOlder]=useState<api.UpdateComment[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[loadError,setLoadError]=useState('');
  const [draft,setDraft]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0),[more,setMore]=useState(false),[hasMore,setHasMore]=useState(true);
  const sending=useRef(false),request=useRef<{body:string;id:string}|null>(null);
@@ -96,11 +100,11 @@ function UpdateComments({space,messageId,onChanged,active:visible}:{space:api.Sq
   catch(e){setError(errorMessage(e));}finally{sending.current=false;setBusy(false);}
  };
  const merged=[...new Map([...older,...rows].map(c=>[c.id,c])).values()].sort((a,b)=>a.id-b.id);
- return <section className="update-comments" aria-label="Comments on this update">
-  <p className="update-comments-audience">Visible to this squad’s families, players and coaches.</p>
-  {loading?<p role="status">Loading comments…</p>:loadError?<p role="alert">{loadError} <button onClick={()=>setRevision(n=>n+1)}>Retry</button></p>:<>
+ return <section className="update-comments" aria-label={copy('Comments on this update','კომენტარები')}>
+  <p className="update-comments-audience">{copy('Visible to this squad’s parents, guardians and coaches.','ხედავენ გუნდის მშობლები, მეურვეები და მწვრთნელები.')}</p>
+  {loading?<p role="status">{copy('Loading comments…','კომენტარები იტვირთება…')}</p>:loadError?<p role="alert">{loadError} <button onClick={()=>setRevision(n=>n+1)}>Retry</button></p>:<>
    {rows.length===50&&hasMore&&<button disabled={more} onClick={async()=>{setMore(true);try{const data=await api.updateComments(space.id,messageId,undefined,Math.min(...merged.map(c=>c.id)));setOlder(prev=>[...prev,...data]);setHasMore(data.length===50);}catch(e){setError(errorMessage(e));}finally{setMore(false);}}}>Load earlier comments</button>}
-   {!merged.length&&<p className="update-comments-empty">No comments yet. Start the conversation.</p>}
+   {!merged.length&&<p className="update-comments-empty">{copy('No comments yet.','კომენტარები ჯერ არ არის.')}</p>}
    {merged.map(comment=><div className="update-comment" key={comment.id}>
     <span className="update-person-avatar" aria-hidden="true">{comment.author_name.slice(0,1)}</span>
     <div><header><strong>{comment.author_name}</strong><time dateTime={comment.created_at}>{new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(comment.created_at))}</time>

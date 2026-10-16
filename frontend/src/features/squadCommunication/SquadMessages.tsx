@@ -1,5 +1,5 @@
 import {MessageText} from '../../components/chat/MessageText';
-import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import {BellRing,Check,MessageCircle,Send,Share2,Trash2} from 'lucide-react';
 import {extractApiErrorMessage} from '../../utils/apiError';
 import {Link} from 'react-router-dom';
@@ -17,13 +17,13 @@ export function SquadMessages({space,kind,thread,onSent}:{space:api.SquadOvervie
  const [rows,setRows]=useState<api.SquadMessage[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[revision,setRevision]=useState(0),[older,setOlder]=useState<api.SquadMessage[]>([]),[more,setMore]=useState(false);
  const [body,setBody]=useState(''),[busy,setBusy]=useState(false);
  const copy=useJourneyCopy();
- const errorText=(e:unknown)=>extractApiErrorMessage(e,copy('This could not be saved. Please try again.','ვერ შეინახა. სცადეთ ხელახლა.'));
+ const errorText=useCallback((e:unknown)=>extractApiErrorMessage(e,copy('This could not be saved. Please try again.','ვერ შეინახა. სცადეთ ხელახლა.')),[copy]);
  const request=useRef<{signature:string;id:string}|null>(null),log=useRef<HTMLDivElement>(null),follow=useRef(true),sending=useRef(false);
  const refresh=()=>setRevision(n=>n+1);
  useEffect(()=>{let active=true;const abort=new AbortController();
   const load=()=>{if(document.hidden)return;void api.messages(space.id,kind,thread,abort.signal).then(data=>{if(!active)return;if(log.current)follow.current=log.current.scrollHeight-log.current.scrollTop-log.current.clientHeight<100;setRows(data);setLoading(false);setError('');if(data.length&&!document.hidden)void api.markRead(space.id,data[0].id,thread).catch(()=>{});}).catch(e=>{if(active){setRows([]);setOlder([]);setError(errorText(e));setLoading(false);}});};
   load();const timer=setInterval(load,10000);return()=>{active=false;abort.abort();clearInterval(timer);};
- },[space.id,kind,thread,revision]);
+ },[space.id,kind,thread,revision,errorText]);
  useEffect(()=>{if(kind==='CHAT'&&follow.current&&log.current)log.current.scrollTop=log.current.scrollHeight;},[rows,kind]);
  useEffect(()=>{const viewport=log.current;if(kind!=='CHAT'||!viewport||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(()=>{if(follow.current)viewport.scrollTop=viewport.scrollHeight;});observer.observe(viewport);return()=>observer.disconnect();},[loading,kind]);
  useEffect(()=>subscribeNotificationsChanged(()=>setRevision(n=>n+1)),[]);

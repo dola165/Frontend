@@ -122,9 +122,9 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
                     {/* The global store, jobs and fundraising: plain names here, "Club store" and friends only on a club's page. */}
                     <nav className="home-rail-card home-opportunities-card" aria-label="Store, jobs and fundraising">
                         <div className="space-y-2.5 p-3">
-                            <OpportunityLink compact kind="store" to="/store" description="Kit & merchandise from clubs" />
-                            <OpportunityLink compact kind="jobs" to="/jobs" description="Work and volunteer in football" />
-                            <OpportunityLink compact kind="campaigns" to="/campaigns" description="Support club projects" />
+                            <OpportunityLink kind="store" to="/store" description="Kit & merchandise from clubs" />
+                            <OpportunityLink kind="jobs" to="/jobs" description="Work and volunteer in football" />
+                            <OpportunityLink kind="campaigns" to="/campaigns" description="Support club projects" />
                         </div>
                     </nav>
 

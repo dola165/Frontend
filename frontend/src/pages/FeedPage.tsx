@@ -13,7 +13,6 @@ import { PostTheaterModal } from '../components/PostTheaterModal';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { WorkspaceShortcuts, type ManagedClubLink } from '../components/layout/WorkspaceShortcuts';
 import type { NavigationCapabilities } from '../context/navigationCapabilities';
-import { OpportunityLink } from '../components/ui/OpportunityLink';
 import { isAndroidApp } from '../android/bridge';
 import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
 
@@ -238,11 +237,6 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
      <summary><span>Your football</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || 'Your shortcuts'}</span><ChevronDown size={16} aria-hidden="true" /></summary>
      <LeftSidebar user={user} managedClubs={managedClubs} embedded />
     </details>}
-   {isAndroidApp && <nav aria-label="Opportunities" className="home-opportunity-strip xl:hidden">
-    <OpportunityLink kind="store" to="/store" description="Club merchandise" />
-    <OpportunityLink kind="campaigns" to="/campaigns" description="Club projects" />
-    <OpportunityLink kind="jobs" to="/jobs" description="Find your next step" />
-   </nav>}
 
    <PostComposer
     compact

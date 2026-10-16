@@ -16,7 +16,7 @@ const language = params.get('lang') === 'ka' ? 'ka' : 'en';
 document.documentElement.classList.toggle('dark', params.get('theme') === 'dark');
 document.documentElement.lang = language;
 await i18n.changeLanguage(language);
-const variants: AgentHubFixtureVariant[] = ['ready', 'empty', 'error', 'loading', 'protected'];
+const variants: AgentHubFixtureVariant[] = ['ready', 'empty', 'error', 'loading', 'protected', 'partial'];
 const requested = params.get('case') as AgentHubFixtureVariant;
 const variant = variants.includes(requested) ? requested : 'ready';
 createRoot(document.getElementById('root')!).render(<MemoryRouter><AgentHubFixture variant={variant} /></MemoryRouter>);

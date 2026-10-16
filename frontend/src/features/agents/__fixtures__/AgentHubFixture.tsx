@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AgentDashboardPresentation, type DashboardTab } from '../../../pages/AgentDashboardPage';
 import type { AgentDashboardData, AgentEngagement, AgentInterest } from '../domain';
 
-export type AgentHubFixtureVariant = 'ready' | 'empty' | 'error' | 'loading' | 'protected';
+export type AgentHubFixtureVariant = 'ready' | 'empty' | 'error' | 'loading' | 'protected' | 'partial';
 
 const readyDashboard: AgentDashboardData = {
     agencyName: 'North Star Agency',
@@ -122,6 +122,10 @@ export function AgentHubFixture({ variant = 'ready' }: { variant?: AgentHubFixtu
             dashboard={unavailable ? null : empty ? emptyDashboard : readyDashboard}
             interests={empty || unavailable ? [] : readyInterests}
             engagements={empty || unavailable ? [] : readyEngagements}
+            pendingApproachCount={variant === 'partial' ? null : 0}
+            activeApproachCount={variant === 'partial' ? null : 0}
+            problems={variant === 'partial' ? ['approaches'] : []}
+            onRetrySection={() => undefined}
             loading={variant === 'loading'}
             error={variant === 'error'}
             activeTab={activeTab}

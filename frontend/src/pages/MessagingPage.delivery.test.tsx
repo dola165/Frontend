@@ -33,7 +33,7 @@ beforeEach(() => {
 it('keeps the draft after a lost acknowledgement and shows it once after retry, even without live connection', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
-    const input = await screen.findByPlaceholderText('Type a message...');
+    const input = await screen.findByPlaceholderText('Write a message…');
     await screen.findByText('No messages yet. Say hello!');
     await user.type(input, 'Keep this draft');
     vi.mocked(chatApi.sendMessage).mockRejectedValueOnce(new Error('response lost'));
@@ -52,12 +52,12 @@ it('retains each conversation draft when switching', async () => {
     vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [conversation, second] } } as never);
     render(<MemoryRouter><MessagingPage /></MemoryRouter>);
     fireEvent.click(await screen.findByText('Peer'));
-    fireEvent.change(await screen.findByPlaceholderText('Type a message...'), { target: { value: 'First draft' } });
+    fireEvent.change(await screen.findByPlaceholderText('Write a message…'), { target: { value: 'First draft' } });
     fireEvent.click(screen.getByText('Other peer'));
-    await waitFor(() => expect(screen.getByPlaceholderText('Type a message...')).toHaveValue(''));
-    fireEvent.change(screen.getByPlaceholderText('Type a message...'), { target: { value: 'Second draft' } });
+    await waitFor(() => expect(screen.getByPlaceholderText('Write a message…')).toHaveValue(''));
+    fireEvent.change(screen.getByPlaceholderText('Write a message…'), { target: { value: 'Second draft' } });
     fireEvent.click(screen.getByText('Peer'));
-    await waitFor(() => expect(screen.getByPlaceholderText('Type a message...')).toHaveValue('First draft'));
+    await waitFor(() => expect(screen.getByPlaceholderText('Write a message…')).toHaveValue('First draft'));
     await act(async () => {});
 });
 
@@ -65,7 +65,7 @@ it('opens a profile chat link when the inbox is empty', async () => {
     vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [] } } as never);
     vi.mocked(chatApi.createConversation).mockResolvedValue({ data: conversation } as never);
     render(<MemoryRouter initialEntries={['/messages?chatWith=2']}><MessagingPage /></MemoryRouter>);
-    await screen.findByPlaceholderText('Type a message...');
+    await screen.findByPlaceholderText('Write a message…');
     expect(chatApi.createConversation).toHaveBeenCalledWith({ contextType: 'DIRECT', participantIds: [2] });
     await waitFor(() => expect(chatApi.getMessages).toHaveBeenCalledWith(7));
 });

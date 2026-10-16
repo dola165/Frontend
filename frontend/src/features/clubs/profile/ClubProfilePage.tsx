@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,6 +67,16 @@ function ClubProfileView({ id }: { id: number }) {
     const [enquiry, setEnquiry] = useClubEnquiry(club);
     const [notice, setNotice] = useState('');
     const [squadsRevision, setSquadsRevision] = useState(0);
+    // Edits go to the page; the club record, its squads and its posts are read again the moment edit mode or the
+    // share card closes, so Done shows the page exactly as visitors now see it, with no reload.
+    const [postsRevision, setPostsRevision] = useState(0);
+    const shown = useRef({ editing, live: edit.panel === 'live' });
+    useEffect(() => {
+        const before = shown.current;
+        shown.current = { editing, live: edit.panel === 'live' };
+        if (!(before.editing && !editing) && !(before.live && edit.panel !== 'live')) return;
+        refresh(); setSquadsRevision(value => value + 1); setPostsRevision(value => value + 1);
+    }, [editing, edit.panel, refresh]);
     const [dissolveOpen, setDissolveOpen] = useState(false);
     const [dissolving, setDissolving] = useState(false);
     const images = useProfileImageControls({ enabled: can.isLeader, scope: `club:${id}`, imageKind: 'logo', hasCover: Boolean(club?.bannerUrl), onSave: updateImage });
@@ -138,7 +148,7 @@ function ClubProfileView({ id }: { id: number }) {
             sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel="Club information"
             side={editing ? <PageColumn column="right" renderers={clubBoxes} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel="Get involved">
             {tab === 'posts' && editing && page?.status === 'DRAFT' && <ExamplePreview />}
-            {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
+            {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} can={can} crestUrl={page?.identity.crest.url} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
             {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} canManage={can.canManage} />}

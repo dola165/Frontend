@@ -1,6 +1,7 @@
+import { formatDate } from '../../utils/formatting';
 import type { TrainingProgramme } from './presentation';
 
-export interface PublicSquad { id: number; name: string; category: string; gender?: string }
+export interface PublicSquad { id: number; name: string; category: string; gender?: string; trainingDays?: number[]; trainingTime?: string | null }
 export interface PublicResponsibility { title: string; specialisations: string[]; squadId: number | null; squadName: string | null; squadIds?:number[]; squadNames?:string[]; clubWide?:boolean; provenance?:string; startsOn: string; endsOn: string | null }
 export interface PublicStaff { userId: number; fullName: string; avatarUrl?: string | null; role: string; title?: string | null; bio?: string | null; responsibilities: PublicResponsibility[] }
 export interface ClubEnquiryContext { name: string; path: string; squadIds: number[]; intent?: "visit" | "question" }
@@ -22,4 +23,11 @@ export function squadLine(squad: PublicSquad) {
     const senior = squad.category === 'SENIOR';
     const who = squad.gender === 'MALE' ? (senior ? 'Men' : 'Boys') : squad.gender === 'FEMALE' ? (senior ? 'Women' : 'Girls') : squad.gender === 'MIXED' ? 'Mixed' : null;
     return [senior ? 'Senior' : squad.category, who].filter(Boolean).join(' · ');
+}
+/** "Tue & Thu 18:00" from a squad's weekly days (1 Monday … 7 Sunday; 0 is Sunday too) and start time; null until both are set. */
+export function trainingDaysLine(days: number[] = [], time?: string | null) {
+    if (!days.length || !time) return null;
+    // 1 January 2024 was a Monday, so day n of that month is weekday n.
+    const names = [...new Set(days.map(day => (day === 0 ? 7 : day)))].sort((a, b) => a - b).map(day => formatDate(new Date(2024, 0, day), { weekday: 'short' }));
+    return `${names.length > 1 ? `${names.slice(0, -1).join(', ')} & ${names.at(-1)}` : names[0]} ${time}`;
 }

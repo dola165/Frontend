@@ -13,6 +13,8 @@ import type { TrainingSession } from '../trainingCalendar';
 import { money, programmeAge, programmePrice, type TrainingProgramme } from '../presentation';
 import { squadLine, trainingPath, type ClubEnquiryContext, type PublicSquad, type PublicStaff } from '../publicJourney';
 import { useOverviewSource } from '../useOverviewSource';
+import { usePageEditIfAny } from '../../pages/edit/context';
+import { feeBandText } from '../../pages/model/fees';
 import { trainsLine } from './trainsLine';
 import type { ClubProfile } from './types';
 
@@ -39,6 +41,8 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
     // Pitches and grounds only: a gym or a medical room is not where a visitor goes for a first session.
     const venues = (places.data ?? []).filter(f => placeType(f) !== 'FACILITY' && (f.squadId == null || f.squadId === squad.id));
     const programme = programmes[0];
+    // Without a programme, a club with a page still says what training costs: the fee band its owner set.
+    const band = feeBandText(usePageEditIfAny()?.page?.boxes.fees.band ?? null);
     const enquiry: ClubEnquiryContext = { name: squad.name, path: trainingPath(club.id, { squad: squad.id }), squadIds: [squad.id] };
     const roster = `/clubs/${club.id}/squads?squad=${squad.id}`;
     const fact = (label: string, value: React.ReactNode) => <div className="gk-club-squad__fact"><dt>{label}</dt><dd>{value}</dd></div>;
@@ -64,7 +68,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
                     {fact('Trains', timetable.loading ? <Skeleton height={16} width={120} /> : trains ?? (timetable.data && !timetable.data.canView ? 'Times shared with squad members' : 'Times on request'))}
                     {fact('Where', places.loading ? <Skeleton height={16} width={120} /> : venues[0]?.title ?? 'Ask the club')}
                     {fact('Coaches', people.loading ? <Skeleton height={16} width={120} /> : staff.length ? <span className="gk-club-squad__faces">{staff.slice(0, 4).map(p => <Link key={p.userId} to={`/profile/${p.userId}`} className="gk-row"><Crest src={p.avatarUrl} name={p.fullName} size={24} round />{p.fullName.split(' ')[0]}</Link>)}</span> : 'Ask the club')}
-                    {fact('Fees', programme ? <><strong className="gk-num">{programmePrice(programme)}</strong>{programme.trialAmount != null && <span className="gk-muted"> · Trial {Number(programme.trialAmount) === 0 ? 'free' : money(programme.trialAmount, programme.currency)}</span>}</> : 'Ask the club')}
+                    {fact('Fees', programme ? <><strong className="gk-num">{programmePrice(programme)}</strong>{programme.trialAmount != null && <span className="gk-muted"> · Trial {Number(programme.trialAmount) === 0 ? 'free' : money(programme.trialAmount, programme.currency)}</span>}</> : band ? <strong className="gk-num">{band.range}</strong> : 'Ask the club')}
                 </dl>
             </Panel>
         </Section>

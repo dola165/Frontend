@@ -197,6 +197,26 @@ export function groundFromPitch(pitch) {
 const postsOf = page => S.posts.filter(post => (page.clubId ? post.clubId === page.clubId : post.organizationId === page.organizationId) && !post.removed).length;
 function sponsorsOf(page) { return page.clubId ? (C.presentations.get(page.clubId)?.sponsors ?? []) : page.boxes.sponsors.items; }
 function honoursOf(page) { return page.clubId ? (C.honours[page.clubId] ?? []) : []; }
+/**
+ * A page club's training for the next weeks, made from each squad's days and time: the one source for the club
+ * calendar, Coming up and the public squad timetable. Days are 1 (Monday) to 7 (Sunday). The backend would keep these
+ * as recurring sessions of the squad's schedule.
+ */
+export function trainingOf(page, squadId = null, days = 28) {
+  const out = [], grounds = groundsOf(page);
+  for (const s of squadsOf(page)) {
+    if ((squadId != null && s.id !== Number(squadId)) || !s.trainingDays?.length || !s.trainingTime) continue;
+    const [hour, minute] = String(s.trainingTime).split(':').map(Number);
+    const ground = grounds.find(g => g.id === s.groundId) ?? grounds[0] ?? null;
+    for (let d = 0; d < days; d++) {
+      const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() + d);
+      if (!s.trainingDays.includes(start.getDay() === 0 ? 7 : start.getDay())) continue;
+      start.setHours(hour, minute || 0, 0, 0);
+      out.push({ id: 900000 + s.id * 100 + d, squad: s, start, end: new Date(start.getTime() + 90 * 60000), ground });
+    }
+  }
+  return out;
+}
 export const feeBandOf = clubId => pages.get(`club:${Number(clubId)}`)?.boxes.fees.band ?? null;
 /** What World's filters need from a page club that has no priced programmes: its fee band and its squads' ages. */
 export function pageFilterFacts(clubId) {

@@ -10,6 +10,8 @@ import { first, type DirectorySource, type FilterOption, type RememberedChoice }
 import { bilingual, calendarDaysUntil, codeLabel, ENGAGEMENT, factTone, fixtureDay, fixtureTime, postedLabel } from '../format';
 import { peekOf } from '../peek/usePeek';
 import { JobItem, TrainingItem, TrialItem, type GroupResult } from './opportunityItems';
+import { firstName } from '../players';
+import { ChildSwitch } from './ChildSwitch';
 import { clubScope } from './scopes';
 
 // The open-role list is one request; keep it briefly so paging and refining don't refetch it.
@@ -123,6 +125,7 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
         ? [{ kind: 'choice' as const, key: 'player', label: 'Searching for', primary: true, allLabel: 'Anyone', remember, options: participants.map(p => ({ value: String(p.id), label: p.minor ? p.name : wt('{name} (you)', { name: p.name }) })) }]
         : [];
     const chosen = (value: string) => participants.find(p => String(p.id) === value);
+    const children = participants.filter(p => p.minor);
     return {
         id: 'groups',
         label: 'Places to train',
@@ -167,6 +170,12 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
         place: ({ group }) => group.location.latitude != null && group.location.longitude != null
             ? { lat: group.location.latitude, lng: group.location.longitude, noun: ['group', 'groups'], label: group.name, meta: `${group.organizationName} · ${group.location.name}`, tone: 'club', to: `/admissions/opportunities/${group.id}` }
             : null,
+        // A parent sees whom the list is for, with the other children one press away.
+        heading: query => {
+            const child = chosen(first(query, 'player'));
+            return child?.minor ? wt('Training groups for {name}', { name: firstName(child.name) }) : wt('Training groups');
+        },
+        HeadTools: children.length ? props => <ChildSwitch {...props} children={children} remember={remember} /> : undefined,
         empty: { title: 'No groups are taking players', body: 'Include waiting lists, or ask a club directly from its profile.' },
     };
 }

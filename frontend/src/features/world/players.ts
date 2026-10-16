@@ -48,3 +48,6 @@ export function useWorldChild() {
         pending: participants === undefined && Boolean(requested),
     };
 }
+
+/** "Nino" from "Nino Gelashvili": a parent's own child is named by first name. */
+export const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;

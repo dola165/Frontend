@@ -41,9 +41,10 @@
 .gk .gk-section[data-tone='violet'] { --tone: var(--gk-violet); }
 .gk .gk-section[data-tone='danger'] { --tone: var(--gk-danger); }
 .gk .gk-section--boxed { gap: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
-.gk .gk-section--boxed > .gk-section__head { align-items: center; gap: var(--gk-3); min-height: 0; padding: var(--gk-3) var(--gk-4); border-bottom: 1px solid var(--gk-line); }
+/* The head stands apart from the rows: a shade darker, a heavier title (the owner, 14 October: titles were hard to tell from contents). */
+.gk .gk-section--boxed > .gk-section__head { align-items: center; gap: var(--gk-3); min-height: 0; padding: var(--gk-3) var(--gk-4); border-bottom: 1px solid var(--gk-line); background: color-mix(in srgb, var(--gk-text) 4%, var(--gk-surface)); }
 .gk .gk-section--boxed > .gk-section__head > .gk-section__heading { flex: 1; flex-direction: column; align-items: flex-start; gap: 2px; }
-.gk .gk-section--boxed .gk-section__title { font-size: 15px; line-height: 20px; font-weight: 500; }
+.gk .gk-section--boxed .gk-section__title { font-size: 16px; line-height: 22px; font-weight: 650; }
 .gk .gk-section--boxed .gk-section__hint { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); }
 .gk .gk-section__icon { display: grid; place-items: center; flex: none; color: var(--tone); }
 .gk .gk-section__icon svg { width: 20px; height: 20px; }

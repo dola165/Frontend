@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { House, Earth } from 'lucide-react';
 import { AppHeader } from '../AppHeader';
 import { PhoneTabBar } from '../PhoneTabBar';
+import { YouSheet } from '../YouSheet';
+import type { AuthUser } from '../../../../context/AuthContext';
 import { PinsBar } from '../pins/PinsBar';
 import type { Pin, usePins } from '../pins/usePins';
 import type { PrimaryTab } from '../sections';
@@ -107,23 +109,35 @@ describe('pins bar', () => {
     });
 });
 
-describe('phone pins sheet', () => {
+describe('phone navigation', () => {
     const tabs: PrimaryTab[] = [
         { id: 'home', to: '/home', label: 'Home', icon: House, current: true },
         { id: 'world', to: '/world', label: 'World', icon: Earth, current: false },
     ];
-    // The tab bar shows only below the phone breakpoint, a media query jsdom does not apply.
-    let phone: HTMLStyleElement;
-    beforeEach(() => { phone = document.head.appendChild(document.createElement('style')); phone.textContent = '.gk.gk-tabbar { display: block; }'; });
-    afterEach(() => phone.remove());
+    const user = { id: 1, fullName: 'Luka Gelashvili', avatarUrl: null } as unknown as AuthUser;
+    const you = (hasClub: boolean) => render(<MemoryRouter><button type="button">Behind</button><PhoneTabBar tabs={tabs} />
+        <YouSheet user={user} workspaces={[]} themePreference="map-light" setThemePreference={vi.fn()} onLogout={vi.fn()}
+            pins={state(pins.slice(0, 2))} page={page} work={[]} hasClub={hasClub} onPinnedPage={false} /></MemoryRouter>);
 
-    it('is a modal dialog that keeps focus inside until it closes', () => {
-        render(<MemoryRouter><button type="button">Behind</button><PhoneTabBar tabs={tabs} unreadMessages={2} pins={state(pins.slice(0, 2))} page={page} work={[]} onPinnedPage={false} /></MemoryRouter>);
-        const trigger = screen.getByRole('button', { name: /^Pins/ });
+    it('keeps only the places in the bottom bar; Messages and pins are not tabs', () => {
+        const { container } = you(true);
+        // The header stylesheet hides the bar on wide screens (jsdom is wide), so it is read from the markup.
+        const bar = container.querySelector<HTMLElement>('nav.gk-tabbar')!;
+        expect(bar).toHaveAttribute('aria-label', 'Main');
+        expect(Array.from(bar.querySelectorAll('a')).map(link => link.textContent)).toEqual(['Home', 'World']);
+    });
+
+    it('opens You from the profile picture: a modal sheet with pins and the account that keeps focus until it closes', () => {
+        you(true);
+        const trigger = screen.getByRole('button', { name: 'You: Luka Gelashvili' });
         fireEvent.click(trigger);
-        const sheet = screen.getByRole('dialog', { name: 'Pins' });
+        const sheet = screen.getByRole('dialog', { name: 'You' });
         expect(sheet).toHaveAttribute('aria-modal', 'true');
         expect(sheet.contains(document.activeElement)).toBe(true);
+        expect(within(sheet).getByRole('link', { name: 'Squad 1' })).toBeInTheDocument();
+        expect(within(sheet).getByRole('link', { name: /Account & settings/ })).toHaveAttribute('href', '/account');
+        expect(within(sheet).getByRole('button', { name: /Sign out/ })).toBeInTheDocument();
+        expect(within(sheet).queryByRole('link', { name: /Find or start your club/ })).not.toBeInTheDocument();
 
         // Tab from the last control comes back to the first.
         const controls = Array.from(sheet.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), summary'));
@@ -137,5 +151,11 @@ describe('phone pins sheet', () => {
         fireEvent.keyDown(sheet, { key: 'Escape' });
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(trigger).toHaveFocus();
+    });
+
+    it('offers finding or starting a club in You when there is no My Club tab', () => {
+        you(false);
+        fireEvent.click(screen.getByRole('button', { name: 'You: Luka Gelashvili' }));
+        expect(within(screen.getByRole('dialog', { name: 'You' })).getByRole('link', { name: /Find or start your club/ })).toHaveAttribute('href', '/my-club');
     });
 });

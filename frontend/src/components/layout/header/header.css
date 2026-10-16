@@ -111,7 +111,7 @@
 /* ------------------------------------------------------------- popovers */
 /* Page scopes restyle focus rings and menus document-wide; the header keeps the design-system look. */
 .gk.gk-header :is(a, button, input, [tabindex]):focus-visible, .gk.gk-tabbar :is(a, button, [tabindex]):focus-visible { outline: none; }
-.gk.gk-header .gk-pop, .gk.gk-tabbar .gk-sheet { background-color: var(--gk-surface); border-color: var(--gk-line); animation: gk-pop-in .18s var(--gk-ease) backwards; }
+.gk.gk-header .gk-pop, .gk.gk-header .gk-sheet, .gk.gk-tabbar .gk-sheet { background-color: var(--gk-surface); border-color: var(--gk-line); animation: gk-pop-in .18s var(--gk-ease) backwards; }
 @keyframes gk-pop-in { from { opacity: 0; translate: 0 -4px; } }
 .gk .gk-pop { position: absolute; z-index: 10; top: calc(100% + (var(--app-header-height) - 44px) / 2 + 4px); right: 0; width: 400px; max-height: calc(100dvh - var(--app-header-height) - var(--app-bottom-bar-height) - 24px); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: var(--gk-elevation); color: var(--gk-text); }
 .gk .gk-pop:focus-visible { outline: none; box-shadow: var(--gk-elevation), var(--gk-focus); }
@@ -176,16 +176,18 @@
 .gk .gk-menu__label { padding: var(--gk-2) var(--gk-3) var(--gk-1); color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 600; }
 .gk .gk-segment { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-1); margin: 0 var(--gk-1) var(--gk-1); padding: var(--gk-1); border-radius: var(--gk-r); background: var(--gk-sunken); }
 .gk .gk-segment .gk-menu__item { justify-content: center; min-height: 44px; color: var(--gk-text-2); font-size: var(--gk-fs-sm); font-weight: 600; }
-.gk .gk-segment .gk-menu__item[aria-checked='true'] { background: var(--gk-surface); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
-.gk .gk-segment .gk-menu__item[aria-checked='true'] svg { color: var(--gk-accent); }
+.gk .gk-segment .gk-menu__item:is([aria-checked='true'], [aria-pressed='true']) { background: var(--gk-surface); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
+.gk .gk-segment .gk-menu__item:is([aria-checked='true'], [aria-pressed='true']) svg { color: var(--gk-accent); }
 
 /* ------------------------------------------------------------- phone */
 .gk.gk-tabbar { display: none; }
+/* The avatar opens a menu on wide screens and "You" (pins and the account) on phones. */
+.gk .gk-header__you { display: none; }
 .gk .gk-scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--gk-shadow) 45%, transparent); }
 @media (max-width: 899px) {
-  .gk .gk-header__nav, .gk .gk-header__messages, .gk .gk-header__search { display: none; }
+  .gk .gk-header__nav, .gk .gk-header__search, .gk .gk-header__account, .gk .gk-header__brand-name { display: none; }
   .gk .gk-header__search-toggle { display: inline-flex; }
-  .gk .gk-header__brand-name { display: inline; }
+  .gk .gk-header__you { display: flex; }
   .gk .gk-header__actions { gap: 0; }
   /* Popovers span the screen, anchored to the header row rather than their small trigger. */
   .gk .gk-hanchor { position: static; }
@@ -199,9 +201,14 @@
   .gk .gk-tabbar__item[aria-current='page'], .gk .gk-tabbar__item[aria-expanded='true'] { color: var(--gk-text); }
   .gk .gk-tabbar__item[aria-current='page'] svg, .gk .gk-tabbar__item[aria-expanded='true'] svg { color: var(--gk-accent); }
   .gk .gk-tabbar__item[aria-current='page']::before { content: ''; position: absolute; top: -1px; left: 28%; right: 28%; height: 2px; border-radius: 0 0 2px 2px; background: var(--gk-accent); }
-  .gk .gk-tabbar__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A long Georgian label takes a second line rather than losing its end ("ჩემი / გუნდები"). */
+  .gk .gk-tabbar__label { display: -webkit-box; max-width: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; text-align: center; line-height: 12px; }
+  .gk .gk-tabbar__item { justify-content: flex-start; padding-top: 7px; }
   .gk .gk-tabbar__count { position: absolute; top: 6px; left: calc(50% + 4px); }
   .gk .gk-tabbar__count .gk-count { box-shadow: 0 0 0 2px var(--gk-bg); }
+  .gk .gk-sheet--you { top: calc(var(--app-header-height) + 8px); bottom: auto; max-height: calc(100dvh - var(--app-header-height) - var(--app-bottom-bar-height) - 16px); }
+  .gk .gk-you__account { display: grid; padding: var(--gk-2); }
+  .gk .gk-you__account--settings { border-top: 1px solid var(--gk-line); }
   .gk .gk-sheet { position: fixed; z-index: 1; left: 8px; right: 8px; bottom: calc(var(--app-bottom-bar-height) + 8px); max-height: calc(100dvh - var(--app-bottom-bar-height) - 24px); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: var(--gk-elevation); color: var(--gk-text); }
 }
 @media (prefers-reduced-motion: reduce) { .gk .gk-htab__body, .gk .gk-hbtn { transition: none; } }

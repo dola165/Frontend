@@ -162,7 +162,11 @@
 .gk .gk-jobs-stage__list svg { width: 14px; height: 14px; }
 @media (max-width: 1100px) {
   .gk .gk-jobs-stage { --gk-world-map-h: 420px; }
-  .gk .gk-jobs-side, .gk .gk-jobs-ways { position: static; width: auto; max-height: none; box-shadow: none; backdrop-filter: none; background: var(--gk-surface); margin-top: var(--gk-3); }
+  /* The column, the ways in and the foot follow the map instead of floating on it: the frame grows to hold them. */
+  .gk .gk-jobs-stage .gk-world-map__canvas { height: auto; }
+  .gk .gk-jobs-stage .gk-world-map__canvas > :first-child { height: var(--gk-world-map-h) !important; } /* the map library sets 100% inline */
+  .gk .gk-jobs-side__list { max-height: 420px; overflow-y: auto; }
+  .gk .gk-jobs-side, .gk .gk-jobs-ways { position: relative; inset: auto; width: auto; max-height: none; box-shadow: none; backdrop-filter: none; background: var(--gk-surface); margin-top: var(--gk-3); }
   .gk .gk-jobs-stage__foot { position: static; transform: none; margin-top: var(--gk-3); white-space: normal; flex-wrap: wrap; }
 }
 

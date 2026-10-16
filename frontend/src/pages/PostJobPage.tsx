@@ -75,7 +75,7 @@ export const PostJobPage = () => {
     };
     const steps = <div className="gk-fund-start__steps" aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(n => <span key={n} data-done={n <= step || undefined} />)}</div>;
     const body = status === 'bootstrapping' || membership.loading ? <><Skeleton height={34} width={320} /><Skeleton height={120} /></>
-        : status !== 'authenticated' ? <EmptyNote title="Sign in to post" action={<ButtonLink variant="primary" to="/login">Sign in</ButtonLink>}>Anyone with an account can post: a club, a parent, a coach, a referee.</EmptyNote>
+        : status !== 'authenticated' ? <EmptyNote title="Sign in to post" action={<ButtonLink variant="primary" to={`/login?next=${encodeURIComponent(`/jobs/new${params.toString() ? `?${params}` : ''}`)}`}>Sign in</ButtonLink>}>Anyone with an account can post: a club, a parent, a coach, a referee.</EmptyNote>
         : step === 1 ? <>
             {steps}
             <div><h1>{offering ? 'What do you offer?' : 'What do you need?'}</h1><p className="gk-fund-start__lead">{side ? offering ? 'Your line of work. Clubs and families looking to hire find you by it.' : 'The line of work. People find your job by it.' : 'Pick the line of work. People find listings by it.'}</p></div>

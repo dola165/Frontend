@@ -1,7 +1,7 @@
 import { DolaResizeHandle } from './DolaResizeHandle';
 import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowUp, ArrowUpRight, BookOpen, CalendarDays, Check, Compass, MessageCircle, Plus, Sparkles, PanelRightOpen, Maximize2, X } from 'lucide-react';
+import { ArrowUp, ArrowUpRight, BookOpen, CalendarDays, Check, Compass, Crosshair, MessageCircle, Plus, RotateCw, Sparkles, PanelRightOpen, Maximize2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { safeDolaDestination } from './api';
 import { useDola } from './DolaContext';
@@ -9,6 +9,7 @@ import './agent-dola.css';
 import { DolaActionCard } from './DolaActionCard';
 import { HomeOpportunities } from '../../components/layout/HomeOpportunities';
 import { dolaSuggestions, dolaContextLabel, dolaFollowUps, type DolaWorkspace } from './suggestions';
+import { dolaSubjectWord } from './subject';
 
 export function AgentDolaPage() { return <DolaConversation />; }
 export function DolaDock() {
@@ -28,7 +29,8 @@ function DolaConversation({ panel = false }: { panel?: boolean }) {
     const location = useLocation();
     const { i18n } = useTranslation(); const ka = i18n.language?.startsWith('ka');
     const { available, turns, draft, setDraft, personal, setPersonal, busy, error, expired, resume, loading, submit,
-        newConversation, continueConversation, closePanel, dock, expand, keepOpen, contexts, workspace, setWorkspace, welcomeLoading } = useDola();
+        newConversation, continueConversation, closePanel, dock, expand, keepOpen, contexts, workspace, setWorkspace, welcomeLoading,
+        statusFailed, checkStatus, subject, leaveOutSubject } = useDola();
     const composer = useRef<HTMLTextAreaElement>(null); const end = useRef<HTMLDivElement>(null);
     const recoveryButton = useRef<HTMLButtonElement>(null);
     const follow = useRef(true);
@@ -66,9 +68,11 @@ function DolaConversation({ panel = false }: { panel?: boolean }) {
             </div>
             <footer className="dola-compose">
                 {(available === null || loading) && <p role="status" className="dola-notice">{ka ? 'მოწმდება კავშირი…' : 'Checking availability…'}</p>}
-                {available === false && <p role="status" className="dola-notice">{ka ? 'Agent Dola ამ სერვერზე ჯერ არ არის ხელმისაწვდომი.' : 'Agent Dola is not available on this server yet. You can still use GrassKickZ as usual.'}</p>}
+                {statusFailed && available === false && <p role="status" className="dola-notice dola-notice--retry"><span>{ka ? 'Agent Dola-სთან დაკავშირება ვერ მოხერხდა.' : 'Could not reach Agent Dola.'}</span><button type="button" onClick={checkStatus}><RotateCw size={14} aria-hidden="true" />{ka ? 'ხელახლა ცდა' : 'Try again'}</button></p>}
+                {!statusFailed && available === false && <p role="status" className="dola-notice">{ka ? 'Agent Dola ამ სერვერზე ჯერ არ არის ხელმისაწვდომი.' : 'Agent Dola is not available on this server yet. You can still use GrassKickZ as usual.'}</p>}
                 {error && <p role="alert" className="dola-error">{error}</p>}
                 <form onSubmit={event => { event.preventDefault(); follow.current = true; void submit(draft); }}>
+                    {subject && !resume && <p className="dola-subject" title={dolaSubjectWord(subject.kind, !!ka)}><Crosshair size={13} aria-hidden="true" /><span className="sr-only">{ka ? 'კითხვა ეხება:' : 'Asking about:'} </span><strong>{subject.label ?? dolaSubjectWord(subject.kind, !!ka)}</strong><button type="button" onClick={leaveOutSubject} aria-label={ka ? 'კითხვიდან ამოღება' : 'Leave it out of the question'}><X size={13} aria-hidden="true" /></button></p>}
                     <label htmlFor="dola-message" className="sr-only">{ka ? 'შეტყობინება Agent Dola-ს' : 'Message Agent Dola'}</label>
                     <div className="dola-input-wrap"><textarea id="dola-message" ref={composer} rows={2} maxLength={2000} value={draft} onChange={event => setDraft(event.target.value)} placeholder={ka ? 'ჰკითხეთ Agent Dola-ს…' : 'Ask Agent Dola…'} disabled={busy || resume || loading} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} /><button type="submit" aria-label={ka ? 'გაგზავნა' : 'Send message'} disabled={busy || loading || resume || !available || expired || !draft.trim()}><ArrowUp size={21} /></button></div>
                     <label className="dola-personal"><input type="checkbox" checked={personal} disabled={busy || resume} onChange={event => setPersonal(event.target.checked)} /><span className="dola-checkbox"><Check size={12} /></span><span>{ka ? 'საჭიროებისას ჩემი პირადი კალენდრის გამოყენება' : 'Allow my personal calendar when needed'}</span></label>

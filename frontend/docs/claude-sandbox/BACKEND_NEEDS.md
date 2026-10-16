@@ -186,6 +186,13 @@ See 3.1 for the card fields, several age groups and gender. Also:
 | Opt-out attendance: "Can't come" on sessions that do not ask, an optional reason (up to 140 characters, coaches only), training does not ask by default (data decision for existing rows) | MISSING / PARTIAL |
 | Parent Hub: children's squad ids; announcements across a parent's squads with unread state | MISSING |
 | Journeys: `staff[]`, `vehicles[]`, `bring[]` in drafts, `bring` copied to the family itinerary | MISSING (dropped silently today) |
+| A person's own workspace layout per club (pins, responsibilities put first, hidden tools and areas), so Edit tabs follows them across devices: `GET/PUT /clubs/{id}/workspace-roles/me/layout` | MISSING (this browser's storage today) |
+| Sections and seasons on the club model: `section` on every squad (first team, academy, girls, futsal…) and `season` on the club, in `/clubs/{id}/workspace-roles` and `/clubs/{id}/squads`; later a season rollover that moves squads up with a preview | MISSING (the sandbox derives the section from the squad's name) |
+| Staff scopes beyond a squad list ("goalkeeper coach, U12–U16", a section, the whole club) so the rail and the layers follow the scope automatically | MISSING (the data model has squads and club-wide only) |
+| Read-only access as a first-class state: `writable: false` modules already exist in the bootstrap; the workspace now shows them as "View only" with a request for more. UNVERIFIED that the real backend ever issues read-only appointments | PARTIAL |
+| A club calendar result from the coach's page: `POST /schedule/clubs/{id}/events/{eventId}/result` from My squads › Matches, with the squad's own matches in `/match-history?mine=true` carrying `homeSquadId`/`awaySquadId` | PARTIAL; UNVERIFIED which side is home |
+| Cancelling a session and the announcement in one step (today two calls: cancel, then post the pinned message) | MISSING (two requests; a failure between them leaves the session cancelled and parents untold) |
+| A group conversation with chosen parents from a squad (`POST /chat/conversations` with `participantIds`), then the first message | PARTIAL; UNVERIFIED that parents of under-13s may be addressed directly |
 
 ## 6. Profiles, matches, injuries
 

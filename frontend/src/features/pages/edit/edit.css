@@ -105,7 +105,7 @@
 /* The grounds pop-up: a wide map across the top, then the list beside another place and the chosen grounds. */
 .gk .gk-dialog--lg:has(.gk-grounds) { max-width: 980px; }
 .gk .gk-grounds { display: grid; gap: var(--gk-4); }
-.gk .gk-grounds .gk-grounds-map { height: clamp(200px, calc(88dvh - 520px), 300px); border: 0; box-shadow: 0 0 0 1px var(--gk-line), var(--gk-elevation); }
+.gk .gk-grounds .gk-grounds-map { height: clamp(220px, calc(88dvh - 490px), 380px); border: 0; box-shadow: 0 0 0 1px var(--gk-line), var(--gk-elevation); }
 .gk .gk-grounds[data-placing] .gk-grounds-map { box-shadow: 0 0 0 2px var(--gk-accent), 0 0 32px 4px color-mix(in srgb, var(--gk-accent) 30%, transparent), var(--gk-elevation); }
 .gk .gk-grounds[data-placing] .gk-grounds-map canvas { cursor: crosshair; }
 .gk .gk-grounds__cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
@@ -115,6 +115,8 @@
 .gk .gk-grounds-pin { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 2px solid var(--gk-accent); border-radius: 50%; background: var(--gk-surface); box-shadow: 0 2px 10px color-mix(in srgb, var(--gk-shadow) 40%, transparent); color: var(--gk-accent); cursor: pointer; box-shadow: 0 2px 6px color-mix(in srgb, var(--gk-shadow) 30%, transparent); }
 .gk .gk-grounds-pin svg { width: 14px; height: 14px; }
 .gk .gk-grounds-pin[data-chosen] { background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-grounds-pin--pending { width: 36px; height: 36px; background: var(--gk-accent); color: var(--gk-on-accent); cursor: grab; box-shadow: 0 0 0 6px color-mix(in srgb, var(--gk-accent) 30%, transparent), 0 4px 14px color-mix(in srgb, var(--gk-shadow) 45%, transparent); }
+.gk .gk-grounds-pin--pending svg { width: 18px; height: 18px; }
 .gk .gk-grounds-pin--dropped { border-color: var(--gk-warning); color: var(--gk-warning); }
 
 /* Rearrange mode: a tools row over each box, the drop line between boxes, the chip that flies. */

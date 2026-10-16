@@ -536,4 +536,7 @@ export const PAGES_KA: Record<string, string> = {
   'Understood. {name} is on the map.': 'გასაგებია. {name} რუკაზეა.',
   '{name} is on your list.': '{name} სიაშია.',
   'Tap its spot on the map': 'მონიშნეთ ადგილი რუკაზე',
+  'There? Tap again or drag the pin to move it.': 'აქ? გადასატანად კიდევ დააჭირეთ ან გადაათრიეთ ნიშანი.',
+  'This is it': 'აქ არის',
+  'Move on the map': 'რუკაზე გადატანა',
 };

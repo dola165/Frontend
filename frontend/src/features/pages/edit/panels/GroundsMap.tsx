@@ -13,8 +13,10 @@ import type { Pitch } from '../../api';
  * the app's own map style (World's), and the places named by the owner show as their own pins. Loaded only when the
  * panel opens.
  */
-export default function GroundsMap({ center, pitches, chosen, dropped, places, onPick, onDrop, onBounds }: {
+export default function GroundsMap({ center, pitches, chosen, dropped, places, pending, onPick, onDrop, onMovePending, onBounds }: {
   center: { lat: number; lng: number }; pitches: Pitch[]; chosen: Set<string>; dropped: { lat: number; lng: number } | null; places: { lat: number; lng: number; name: string }[];
+  /** The pin of a place being put on the map: every tap moves it, and it can be dragged. */
+  pending: { lat: number; lng: number } | null; onMovePending: (lat: number, lng: number) => void;
   onPick: (pitch: Pitch) => void; onDrop: (lat: number, lng: number) => void; onBounds: (bounds: MapBounds) => void;
 }) {
   const theme = useAppTheme();
@@ -39,6 +41,7 @@ export default function GroundsMap({ center, pitches, chosen, dropped, places, o
           </Marker>
         ))}
         {places.map(place => <Marker key={`${place.name}-${place.lat}`} latitude={place.lat} longitude={place.lng} anchor="center"><span className="gk-grounds-pin" data-chosen title={place.name} aria-label={place.name}><MapPin aria-hidden="true" /></span></Marker>)}
+        {pending && <Marker latitude={pending.lat} longitude={pending.lng} anchor="center" draggable onDragEnd={event => onMovePending(event.lngLat.lat, event.lngLat.lng)}><span className="gk-grounds-pin gk-grounds-pin--pending" aria-hidden="true"><MapPin /></span></Marker>}
         {dropped && <Marker latitude={dropped.lat} longitude={dropped.lng} anchor="center"><span className="gk-grounds-pin gk-grounds-pin--dropped" aria-hidden="true"><MapPin /></span></Marker>}
       </Map>
     </div>

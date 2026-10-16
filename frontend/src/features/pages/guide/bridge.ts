@@ -25,7 +25,13 @@ export const answerPanel = (panel: string, text: string) => handlers.get(panel)?
  * What a pop-up wants Dola to do next: run to a part of it (`selector`) and say `line` there, or say `said` once the
  * person did it. Null: her usual line for the pop-up.
  */
-export interface PetHint { selector?: string; line?: string; said?: string }
+export interface PetHint {
+  selector?: string; line?: string; said?: string;
+  /** The one button she offers there ("This is it"). */
+  action?: { label: string; run: () => void };
+  /** No answer box while the pop-up wants a tap, not words. */
+  quiet?: boolean;
+}
 const hints = new Map<string, PetHint>();
 const listeners = new Set<() => void>();
 export function setPetHint(panel: string, hint: PetHint | null) {

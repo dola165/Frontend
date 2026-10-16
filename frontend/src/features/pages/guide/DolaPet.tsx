@@ -217,7 +217,7 @@ export function DolaPet() {
   // Short answers are typed right here; the phone's step cards have their own boxes for them.
   const quick = !inPanel && !cardStep && isQuick(step) ? step : null;
   // Words typed to her inside a pop-up go in through the pop-up's own controls; she says what she did.
-  const listens = inPanel && panelListens(inPanel) ? inPanel : null;
+  const listens = inPanel && panelListens(inPanel) && !hint?.quiet ? inPanel : null;
   const saying = said ?? hint?.said ?? null;
   const answer = (event: FormEvent) => {
     event.preventDefault();
@@ -251,6 +251,7 @@ export function DolaPet() {
                   {saying && inPanel && <p className="gk-pet__said">{saying}</p>}
                   {!(saying && inPanel && !aim) && <p className="gk-pet__line">{line}</p>}
                   {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => setSaid(t('Understood.'))} />}
+                  {hint?.action && <span className="gk-pet__actions"><button type="button" className="gk-pet__action gk-pet__action--main" onClick={hint.action.run}>{hint.action.label}</button></span>}
                   {listens && <form className="gk-pet__quick" onSubmit={answer}>
                     <input className="gk-pet__input" value={reply} onChange={event => setReply(event.target.value)} maxLength={120} autoComplete="off" autoFocus aria-label={t(PANEL_ASK[listens])} placeholder={t(PANEL_ASK[listens])} />
                     <span className="gk-pet__actions"><button type="submit" className="gk-pet__action gk-pet__action--main">{t('Add')}</button></span>

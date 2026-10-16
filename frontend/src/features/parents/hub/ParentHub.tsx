@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CalendarDays, HeartHandshake, Search } from 'lucide-react';
-import { ButtonLink, EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
+import { ArrowLeft, ArrowRight, CalendarDays, HeartHandshake } from 'lucide-react';
+import { EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
 import { FaceStack } from '../../../design/visuals';
 import { PlayerCard } from '../../clubWorkspace/squads/PlayerCard';
 import { useInquiryCopy } from '../../admissions/inquiryPresentation';
@@ -20,6 +20,7 @@ import { PlayerLinkCode } from '../PlayerLinkCode';
 import { playerPath, usePlayerSelection } from '../playerSelection';
 import { ChildSwitcher } from './ChildSwitcher';
 import { ChildClubs } from './ChildClubs';
+import { GroupsThatFit } from './GroupsThatFit';
 import { LatestUpdate } from './LatestUpdate';
 import { NextUp } from './NextUp';
 import { useChildSquads } from './useChildSquads';
@@ -85,11 +86,7 @@ function ChildView({ child, revision, onChanged }: { child: JoiningChild; revisi
                 <NextUp squads={squads} playerId={child.playerId} childName={first} crest={crest} />
                 <LatestUpdate squads={squads} playerId={child.playerId} />
             </div>)}
-            {!playing.length && !cases.length && <section className="ph-find">
-                <span className="ph-find__icon" aria-hidden="true"><Search /></span>
-                <span className="ph-find__text"><strong>{copy(`Find ${first}’s first squad`, `იპოვეთ ${first}-ს პირველი გუნდი`)}</strong><small>{copy('Got a join link from a coach? Open it. Or look for a group nearby.', 'მწვრთნელის ბმული გაქვთ? გახსენით. ან მოძებნეთ ჯგუფი ახლოს.')}</small></span>
-                <ButtonLink variant="primary" size="sm" to={playerPath('/world/opportunities?tab=groups', child.playerId)}>{copy('Find a group', 'ჯგუფის მოძებნა')}</ButtonLink>
-            </section>}
+            {!playing.length && !cases.length && <GroupsThatFit child={child} />}
             {(cases.length > 0 || enquiries.length > 0) && <Section boxed title={copy('Joining', 'გაწევრიანება')} className="ph-section">
                 <ul className="ph-rows">
                     {cases.map(c => <li key={c.id}><Link className="ph-row" to={playerPath(`/admissions/cases/${c.id}`, child.playerId)}><span className="ph-dot ph-dot--decide" aria-hidden="true" />

@@ -116,14 +116,11 @@
 .gk .ph-alert > svg { width: 16px; height: 16px; color: var(--gk-text-3); }
 .gk .ph-card__face { display: flex; align-items: center; gap: var(--gk-4); }
 .gk .ph-card__face .pc-card { flex: none; width: 150px; }
-.gk .ph-find { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
-.gk .ph-find__icon { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .ph-find__icon svg { width: 20px; height: 20px; }
-.gk .ph-find__text { display: flex; flex: 1; flex-direction: column; min-width: 200px; }
-.gk .ph-find__text strong { font-weight: 650; }
-.gk .ph-find__text small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
 .gk .ph-start { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); max-width: 640px; }
 .gk .ph-start > svg { width: 32px; height: 32px; color: var(--gk-accent); }
 .gk .ph-start h2 { font-size: var(--gk-fs-xl); font-weight: 650; }
 .gk .ph-start > p { color: var(--gk-text-2); }
 .gk .ph-week .family-agenda { padding: 0; border: 0; background: none; }
+.gk .ph-groups__link { display: flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .ph-groups__link svg { flex: none; width: 16px; height: 16px; }
+.gk .ph-groups__all { align-self: flex-start; }

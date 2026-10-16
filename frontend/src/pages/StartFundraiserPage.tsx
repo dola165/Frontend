@@ -1,5 +1,5 @@
 import { CreateLink } from '../features/pages/create/CreateLink';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, HeartHandshake } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,14 +11,13 @@ import { canManageClubOperations } from '../features/clubs/domain';
 import { Crest } from '../features/world/Crest';
 import { useWorldData } from '../features/world/useWorldData';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { useOwnedDraft } from '../utils/ownedDraft';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import '../features/store/store.css';
 import '../features/campaigns/campaigns.css';
 
-interface Draft { category: string; goal: string; currency: string; title: string; summary: string; useOfFunds: string; image: string; donateUrl: string }
-const DRAFT_KEY = 'gk.fundraiser.draft';
-const empty: Draft = { category: '', goal: '', currency: 'GEL', title: '', summary: '', useOfFunds: '', image: '', donateUrl: '' };
-const readDraft = (): Draft => { try { return { ...empty, ...JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? '{}') }; } catch { return empty; } };
+interface Draft { category: string; goal: string; currency: string; title: string; summary: string; useOfFunds: string; image: string; donateUrl: string; /** The club it is written for. */ clubId: number | null }
+const empty: Draft = { category: '', goal: '', currency: 'GEL', title: '', summary: '', useOfFunds: '', image: '', donateUrl: '', clubId: null };
 const GOALS = [1000, 3000, 5000, 10000, 25000];
 /** A stock cover for each category, until the club adds its own photo (the sandbox draws pitch scenes). */
 const stockCover = (category: string) => `/sandbox-media/photo/fundraiser-${category.toLowerCase() || 'other'}.svg`;
@@ -32,14 +31,18 @@ export const StartFundraiserPage = () => {
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
     const step = Math.min(3, Math.max(1, Number(params.get('step')) || 1));
-    const [draft, setDraft] = useState<Draft>(readDraft);
+    // The draft is the signed-in person's, for the club they run it for; another account or club starts afresh.
+    const owned = useOwnedDraft<Draft>('fundraiser', empty);
+    const draft = owned.draft;
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const membership = useWorldData('my-club', () => fetchMyClubMembershipContext());
     const club = membership.data;
     const clubId = club?.clubId ?? null;
     const allowed = !!clubId && canManageClubOperations(club?.myRole);
-    const change = (patch: Partial<Draft>) => setDraft(current => { const next = { ...current, ...patch }; try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next)); } catch { /* the draft lives in memory then */ } return next; });
+    const change = (patch: Partial<Draft>) => owned.change({ ...patch, clubId });
+    const otherClub = draft.clubId != null && !!club && draft.clubId !== clubId;
+    useEffect(() => { if (otherClub) owned.reset(); }, [otherClub]); // eslint-disable-line react-hooks/exhaustive-deps
     const go = (next: number) => setParams(current => { const copy = new URLSearchParams(current); if (next > 1) copy.set('step', String(next)); else copy.delete('step'); return copy; });
     const goalNumber = Number(draft.goal);
     const stepOneDone = !!draft.category && goalNumber > 0;
@@ -51,7 +54,7 @@ export const StartFundraiserPage = () => {
         try {
             const created = await createCampaign(clubId, { title: draft.title.trim(), summary: draft.summary.trim(), description: draft.summary.trim(), beneficiary: club?.clubName ?? '', useOfFunds: draft.useOfFunds.trim(), category: draft.category, currency: draft.currency, goalAmount: goalNumber, reportedAmount: null, reportedNote: '', startsOn: null, endsOn: null, images: cover ? [cover] : [], donateUrl: isGoFundMe(draft.donateUrl) ? draft.donateUrl.trim() : null });
             const published = await changeCampaignState(clubId, created, 'PUBLISHED');
-            try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* nothing to clear */ }
+            owned.clear();
             toast.success('Your fundraiser is live', { description: published.title });
             navigate(`/campaigns/${published.id}`, { replace: true });
         } catch (failure) { setError(extractApiErrorMessage(failure, 'Could not publish. Your answers are still here.')); }

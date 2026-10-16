@@ -61,7 +61,7 @@ export function MySquads({ data }: { data: CoachData }) {
         <ResultsToAdd data={data} />
         <Soon data={data} onOpen={setActivity} onCancel={(squad, session) => setCancelling({ squad, session })} />
         {activity && <ActivitySummary event={activity} data={data} onClose={() => setActivity(null)}
-            editTo={activity.session ? sessionLink(activity.squadId, activity.session) : undefined}
+            editTo={activity.session ? `${sessionLink(activity.squadId, activity.session)}&edit=1` : undefined}
             onEdit={activity.event ? () => data.openEvent(activity.event!) : undefined}
             onCancel={activity.session ? () => { setActivity(null); setCancelling({ squad: activity.squadId, session: activity.session! }); } : undefined} />}
         {cancelling && <CancelSessionDialog squad={cancelling.squad} squadName={data.names.get(cancelling.squad) ?? ''} session={cancelling.session} now={data.now}

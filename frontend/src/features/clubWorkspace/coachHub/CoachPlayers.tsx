@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronRight, Goal, HeartPulse, LayoutGrid, List as ListIcon, MoreHorizontal, PenLine, Trash2, UserPlus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { ChevronRight, Goal, HeartPulse, LayoutGrid, List as ListIcon, PenLine, Trash2, UserPlus } from 'lucide-react';
 import { removePlayerFromSquad } from '../../clubs/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { Avatar, Button, EmptyNote, PageFrame, PageHeader, Panel, SearchInput, Section, Skeleton } from '../../../design/primitives';
@@ -38,14 +38,14 @@ const FILTERS: { id: string; label: string; test: (row: PlayerRow) => boolean }[
  * plans around (a restriction, consent waiting on a parent, a development review). Who's coming belongs to a
  * planned session, so it is shown there, not here. A card opens the player's notes and tools.
  */
-export function CoachPlayers({ data, embedded, onManage }: { data: CoachData; embedded?: boolean; /** Embedded on a squad page: opens the roster dialog from the box's head. */ onManage?: () => void }) {
+export function CoachPlayers({ data }: { data: CoachData }) {
     const { t } = useTranslation();
     const [params, setParams] = useSearchParams();
     const [roster, setRoster] = useState(false);
     const [removing, setRemoving] = useState<number | null>(null);
-    const query = embedded ? '' : params.get('q') ?? '';
-    const filter = (!embedded && FILTERS.find(item => item.id === params.get('view'))) || FILTERS[0];
-    const table = !embedded && params.get('layout') === 'table';
+    const query = params.get('q') ?? '';
+    const filter = FILTERS.find(item => item.id === params.get('view')) ?? FILTERS[0];
+    const table = params.get('layout') === 'table';
     const sortBy = params.get('sort'), descending = params.get('dir') === 'desc';
     const sort = useMemo<TableSort | null>(() => sortBy ? { by: sortBy, descending } : null, [sortBy, descending]);
     const set = (changes: Record<string, string | null>, push = false) => {
@@ -90,8 +90,6 @@ export function CoachPlayers({ data, embedded, onManage }: { data: CoachData; em
         signs={signs(row)} onOpen={() => openRow(row)}
         actions={canManage ? <button type="button" className="pc-card__action" aria-label={`Remove ${row.player.name} from ${data.names.get(row.squad)}`} title="Remove from squad" disabled={removing === row.player.id}
             onClick={event => { event.stopPropagation(); void remove(row); }}><Trash2 aria-hidden="true" /></button> : undefined} /></li>;
-    // On a squad's page the first fourteen cards show; a blurred fifteenth leads to all of them.
-    const CARD_LIMIT = 14;
     const grouped = [...GROUPS, ...new Set(shown.map(row => row.group).filter(group => !GROUPS.includes(group)))]
         .map(group => ({ group, rows: shown.filter(row => row.group === group).sort((a, b) => (a.player.number ?? 999) - (b.player.number ?? 999)) })).filter(item => item.rows.length);
 
@@ -111,13 +109,10 @@ export function CoachPlayers({ data, embedded, onManage }: { data: CoachData; em
             : table ? <DataTable label="Players" columns={columns} rows={sorted} rowKey={row => `${row.squad}-${row.player.id}`} sort={sort}
                 onSort={by => { const value = nextSort(sort, by); set({ sort: value?.by ?? null, dir: value?.descending ? 'desc' : null }); }}
                 onOpen={openRow} actions={() => <ChevronRight className="gk-dt__chevron gk-dt__keep" aria-hidden="true" />} />
-                : embedded ? <ul className="pc-grid">{grouped.flatMap(item => item.rows).slice(0, CARD_LIMIT).map(card)}
-                    {shown.length > CARD_LIMIT && <li><Link className="pc-card pc-card--more" to={data.link('players')}><MoreHorizontal aria-hidden="true" /><span>View all {shown.length}</span></Link></li>}</ul>
-                    : <div className="gk-stack">{grouped.map(item => <Section key={item.group} title={squadLabel(item.group, t)} hint={`${item.rows.length}`}><ul className="pc-grid">{item.rows.map(card)}</ul></Section>)}</div>;
+                : <div className="gk-stack">{grouped.map(item => <Section key={item.group} title={squadLabel(item.group, t)} hint={`${item.rows.length}`}><ul className="pc-grid">{item.rows.map(card)}</ul></Section>)}</div>;
     const panel = open && <WorkspacePlayerPanel key={`${open.squad}-${open.player.id}`} player={open.player} squad={open.squad} squadName={data.names.get(open.squad) ?? ''} boot={data.boot}
         onClose={() => set({ player: null })} onChanged={data.refresh} onRemove={canManage ? () => void remove(open) : undefined} />;
 
-    if (embedded) return <Section boxed title="Players" hint={`${rows.length}`} action={onManage ? <Button size="sm" variant="secondary" onClick={onManage}><UserPlus aria-hidden="true" />Manage roster</Button> : undefined}>{body}{panel}</Section>;
     return <PageFrame className="cw-page ch-page">
         <PageHeader title="Players" subtitle={`${rows.length} in ${several ? 'your squads' : data.names.get(data.shown[0])}`} />
         <SquadSwitch data={data} />

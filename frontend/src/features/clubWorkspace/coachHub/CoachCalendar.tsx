@@ -12,7 +12,8 @@ import './coach-hub.css';
  * My squads' calendar: the squad schedule every coach and family already uses (week board, calendar, agenda,
  * planning, weekly training, results), for all my squads at once or the one picked in the switcher. Coaches move a
  * session by dragging it and plan one by clicking an empty slot; nothing changes until they confirm.
- * A link can open a session (`session=squadId:sessionId`) on its day (`date`).
+ * A link can open a session (`session=squadId:sessionId`) on its day (`date`); `edit=1` opens it straight in its editor
+ * (Edit in My squads' summary), while a plain click shows the calendar's own summary first.
  */
 export function CoachCalendar({ data }: { data: CoachData }) {
     const [params] = useSearchParams();
@@ -24,6 +25,6 @@ export function CoachCalendar({ data }: { data: CoachData }) {
         <SquadSwitch data={data} />
         {!data.squads ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading the calendar"><Skeleton height={420} /></div></Panel>
             : <div className="ch-schedule"><FamilySchedule key={`${data.shown.join(',')}:${params.get('session') ?? ''}:${params.get('date') ?? ''}`} squads={spaces} combined={!data.focus}
-                initialSquadId={data.focus ?? (squadId || undefined)} initialSessionId={sessionId || undefined} initialDate={date ?? undefined} editable hideContext /></div>}
+                initialSquadId={data.focus ?? (squadId || undefined)} initialSessionId={sessionId || undefined} initialDate={date ?? undefined} initialEdit={params.get('edit') === '1'} editable hideContext /></div>}
     </PageFrame>;
 }

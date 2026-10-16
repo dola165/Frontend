@@ -119,7 +119,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
                     : tab === 'updates' ? <CoachUpdates data={data} />
                         : tab === 'coaches' ? <CoachTeam data={data} />
                             : tab === 'matches' ? <CoachMatches data={data} />
-                            : focus ? <SquadPage data={data} squad={focus} />
+                            : focus ? <SquadPage squad={focus} />
                             : <MySquads data={data} />;
         // A part that failed to load is said once above the page, with its retry; the parts that loaded stay usable.
         content = <><LoadProblems data={data} />{page}</>;

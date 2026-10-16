@@ -37,7 +37,10 @@ describe('primary tabs', () => {
         for (const path of ['/world', '/map', '/clubs', '/clubs/3', '/stadiums/202', '/people', '/matches', '/tournaments/301', '/jobs', '/roles', '/events', '/tryouts', '/admissions/opportunities', '/match-exchange/4', '/store', '/campaigns']) {
             expect(primarySectionFor(path, [1])).toBe('world');
         }
-        for (const path of ['/clubs/1', '/clubs/1/workspace', '/squads', '/squads/105', '/my-club']) expect(primarySectionFor(path, [1])).toBe('my-club');
+        for (const path of ['/clubs/1', '/clubs/1/workspace', '/my-club']) expect(primarySectionFor(path, [1])).toBe('my-club');
+        for (const path of ['/my-squads', '/squads', '/squads/105']) expect(primarySectionFor(path, [1])).toBe('my-squads');
+        // A parent on the shared squad page, arriving from Parent Hub with the child in the address.
+        expect(primarySectionFor('/squads/105', [1], '?player=4')).toBe('parent-hub');
         expect(primarySectionFor('/home', [1])).toBe('home');
         expect(primarySectionFor('/calendar', [1])).toBeNull();
         expect(primarySectionFor('/tournaments/301/workspace', [1])).toBeNull();

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { Loader2, AlertCircle, FlaskConical, QrCode } from 'lucide-react';
+import { Loader2, AlertCircle, QrCode } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
 import { useTranslation } from 'react-i18next';
@@ -31,16 +31,6 @@ import {
     authDividerLineClass,
     authDividerLabelClass,
 } from '../components/auth/authClasses';
-
-const IS_MOCK_MODE = import.meta.env.VITE_ENABLE_MOCKS === 'true';
-
-const MOCK_USERS = [
-    { email: 'player@test.dev', password: 'mock', label: 'Marcus Rivera', role: 'PLAYER' },
-    { email: 'organizer@test.dev', password: 'mock', label: 'Sarah Chen', role: 'ORGANIZER' },
-    { email: 'coach@test.dev', password: 'mock', label: 'James Wilson', role: 'COACH' },
-    { email: 'fan@test.dev', password: 'mock', label: 'Emma Thompson', role: 'FAN' },
-    { email: 'admin@test.dev', password: 'mock', label: 'Alex Kim', role: 'SYSTEM_ADMIN' },
-];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -156,21 +146,6 @@ export const LoginPage = () => {
             navigateAfterLogin(authenticatedUser, result.mustChangePassword === true, result.newAccount === true);
         } catch (err) {
             setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleMockLogin = async (mockEmail: string, mockPassword: string) => {
-        setIsLoading(true);
-        setError('');
-        try {
-            const result = await secondFactor.authenticate({ kind: 'password', email: mockEmail, password: mockPassword });
-            if (!result) return;
-            const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            navigateAfterLogin(authenticatedUser);
-        } catch (err) {
-            setError(extractApiErrorMessage(err, 'Mock login failed.'));
         } finally {
             setIsLoading(false);
         }
@@ -322,39 +297,6 @@ export const LoginPage = () => {
                             }}
                         />}
                     </div>}
-
-                    {IS_MOCK_MODE && (
-                        <>
-                            <div className="my-8 flex items-center gap-4">
-                                <div className="h-px bg-[color:var(--accent-muted-soft)] flex-1"></div>
-                                <span className="text-[10px] font-semibold accent-muted flex items-center gap-1.5">
-                                    <FlaskConical className="w-3.5 h-3.5" />
-                                    {t('auth.login.mockLabel')}
-                                </span>
-                                <div className="h-px bg-[color:var(--accent-muted-soft)] flex-1"></div>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                {MOCK_USERS.map((u) => (
-                                    <button
-                                        key={u.email}
-                                        type="button"
-                                        disabled={isLoading}
-                                        onClick={() => handleMockLogin(u.email, u.password)}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border border-[color:var(--accent-muted-soft)] bg-[color:var(--accent-muted-soft)] hover:opacity-80 text-left transition-colors disabled:opacity-50"
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-[color:var(--accent-muted)]/20 flex items-center justify-center text-xs font-semibold accent-muted shrink-0">
-                                            {u.label.charAt(0)}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-[var(--color-text)]">{u.label}</p>
-                                            <p className="text-[10px] font-semibold accent-muted">{u.role}</p>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    )}
                 </>
             )}
         </AuthSplitShell>

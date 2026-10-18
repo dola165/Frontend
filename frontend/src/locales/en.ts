@@ -1048,7 +1048,6 @@ const en = {
       forgot: 'Forgot?',
       submit: 'Sign in',
       qr: 'Sign in with QR code',
-      mockLabel: 'Mock quick sign-in',
       notYet: 'New to GrassKickZ?',
       goRegister: 'Create account',
       errInvalid: 'Email or password is wrong. Please try again.',

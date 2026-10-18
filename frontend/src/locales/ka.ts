@@ -1048,7 +1048,6 @@ const ka = {
       forgot: 'დაგავიწყდათ?',
       submit: 'შესვლა',
       qr: 'შესვლა QR კოდით',
-      mockLabel: 'Mock სწრაფი შესვლა',
       notYet: 'ახალი ხართ GrassKickZ-ზე?',
       goRegister: 'ანგარიშის შექმნა',
       errInvalid: 'ელფოსტა ან პაროლი არასწორია. სცადეთ ხელახლა.',

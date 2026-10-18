@@ -482,9 +482,5 @@
  {
   "name": "post-detail",
   "path": "/posts/900"
- },
- {
-  "name": "design",
-  "path": "/design-system"
  }
 ]

@@ -53,7 +53,6 @@ const ClubStorePage = lazy(() => import('./pages/ClubStorePage').then(module => 
 const StoreProductPage = lazy(() => import('./pages/StoreProductPage').then(module => ({default: module.StoreProductPage})));
 const StoreCartPage = lazy(() => import('./pages/StoreCartPage').then(module => ({default: module.StoreCartPage})));
 const StoreCataloguePage = lazy(() => import('./pages/StoreCataloguePage').then(module => ({default: module.StoreCataloguePage})));
-const DesignSystemPage = lazy(() => import('./design/DesignSystemPage'));
 const CommerceDemoPage = lazy(() => import('./pages/CommerceDemoPage').then(module => ({default: module.CommerceDemoPage})));
 const ParentHubPage = lazy(() => import('./pages/ParentHubPage').then(module => ({default: module.ParentHubPage})));
 const AdmissionHomePage = lazy(() => import('./features/admissions/applicant/AdmissionHomePage').then(module => ({default: module.AdmissionHomePage})));
@@ -323,7 +322,7 @@ export function MainLayout() {
         location.pathname.startsWith('/tournament-series/') ||
         location.pathname === '/matches' || location.pathname.startsWith('/match-exchange') || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
         location.pathname === '/my-squads' || location.pathname === '/squads' || location.pathname.startsWith('/squads/') ||
-        location.pathname === '/demo/commerce' || location.pathname === '/design-system' ||
+        location.pathname === '/demo/commerce' ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/posts/') ||
         location.pathname.startsWith('/store/') ||
@@ -388,7 +387,6 @@ export function MainLayout() {
             <Route path="/my-squads" element={<ProtectedRoute><CoachWorkspacePage /></ProtectedRoute>} />
             <Route path="/squads" element={<ProtectedRoute><MySquadsPage /></ProtectedRoute>} />
             <Route path="/squads/:squadId" element={<ProtectedRoute><SquadCommunicationPage /></ProtectedRoute>} />
-            <Route path="/design-system" element={<ProtectedRoute><DesignSystemPage /></ProtectedRoute>} />
             <Route path="/demo/commerce" element={<ProtectedRoute><CommerceDemoPage /></ProtectedRoute>} />
             {isAndroidApp && <Route path="/app-settings" element={<AppSettingsPage theme={themePreference} />} />}
             <Route path="/tournaments" element={<LegacyMatchesRedirect kind="competitions" />} />

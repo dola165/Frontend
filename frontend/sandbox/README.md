@@ -11,7 +11,7 @@ node sandbox/build.mjs
 node sandbox/server.mjs 4300
 ```
 
-Open http://localhost:4300/home. You are signed in as coach Luka Gelashvili of FC Dinamo Tbilisi Academy; everything is invented and nothing touches a real server. Restart the server to reset the data. The design system reference is at `/design-system`.
+Open http://localhost:4300/home. You are signed in as coach Luka Gelashvili of FC Dinamo Tbilisi Academy; everything is invented and nothing touches a real server. Restart the server to reset the data.
 
 ```
 node sandbox/build.mjs            # bundle src/ into sandbox/dist (≈2 s)

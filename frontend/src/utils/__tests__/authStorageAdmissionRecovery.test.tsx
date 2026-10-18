@@ -26,6 +26,15 @@ async function interruptedReceipt() {
 }
 
 describe('authentication retires private staff admission receipts', () => {
+    it.each(['logout', 'new login'] as const)('retires unmounted chat, commerce, job and organization recovery on %s', change => {
+        setStoredAccessToken('token-A');
+        const keys = ['gk-chat-recovery:', 'gk-campaign-command:', 'gk-job-management:', 'gk-store-change:', 'gk-organization-post:', 'org-invite:'].map(prefix => `${prefix}private`);
+        keys.forEach(key => sessionStorage.setItem(key, 'Private draft or retry identity'));
+        setRefreshedAccessToken('refreshed-A', getAuthSessionId());
+        keys.forEach(key => expect(sessionStorage.getItem(key)).not.toBeNull());
+        if (change === 'logout') clearStoredAuth(); else setStoredAccessToken('token-B');
+        keys.forEach(key => expect(sessionStorage.getItem(key)).toBeNull());
+    });
     it.each(['logout', 'new account', 'same account'] as const)('clears applicant recovery after reloading outside the lazy admission routes on %s', change => {
         setStoredAccessToken('token-A');
         const session=getAuthSessionId();

@@ -26,7 +26,7 @@ function FinalPoster({ data, open }: { data: TournamentPaneData; open: (value: s
         const entry = entryById(data.detail, id), name = sideName(entry, label) ?? t('To be decided');
         return <span className="gk-tpane-final__side" data-tbd={id == null || undefined} data-mine={(id != null && data.mine.has(id)) || undefined}><Crest name={name} size={40} round /><b>{name}</b>{entry?.squadName && <small>{entry.squadName}</small>}</span>;
     };
-    const when = tie.scheduledAt ? `${fixtureDay(zoned(tie.scheduledAt))} · ${fixtureTime(zoned(tie.scheduledAt))}` : t('Date to confirm');
+    const when = tie.scheduledAt ? `${fixtureDay(zoned(tie.scheduledAt), data.rules?.timezone)} · ${fixtureTime(zoned(tie.scheduledAt), data.rules?.timezone)}` : t('Date to confirm');
     return (
         <button type="button" className="gk-tpane-final" onClick={() => open(`match-${fixtureMatch(data.detail, fixture).code}`)}>
             <small>{t('Final')} · {when}</small>

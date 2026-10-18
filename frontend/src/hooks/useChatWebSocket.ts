@@ -3,6 +3,7 @@ import { Client } from '@stomp/stompjs';
 import { buildWebSocketUrl } from '../api/axiosConfig';
 import { getAuthSessionId, getStoredAccessToken, getStoredUserId, isCurrentAuthSession } from '../utils/authStorage';
 import { chatApi, type ChatMessageResponse } from '../api/chat';
+import { createMessageRecovery } from '../components/chat/messageRecovery';
 
 const IS_MOCK_MODE = import.meta.env.VITE_ENABLE_MOCKS === 'true';
 
@@ -31,17 +32,24 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
     // Only REST responses advance this cursor. A newer push must not hide a missed older message.
     const cursor = useRef<Record<number, number>>({});
     const inFlight = useRef(new Set<string>());
-    const pending = useRef(new Map<number, { content: string; key: string }>());
+    const [recovery] = useState(createMessageRecovery);
+    const mounted = useRef(false);
     const sendingRef = useRef(false);
+
+    useEffect(() => {
+        mounted.current = true;
+        const lifecycle = generation;
+        return () => { mounted.current = false; lifecycle.current++; };
+    }, []);
 
     const catchUp = useCallback(async () => {
         const id = activeRef.current;
-        if (id === null) return;
+        if (id === null || !mounted.current || !recovery.current()) return;
         const version = generation.current;
         const flight = `${id}:${version}`;
         if (inFlight.current.has(flight)) return;
         inFlight.current.add(flight);
-        const current = () => version === generation.current && activeRef.current === id;
+        const current = () => mounted.current && recovery.current() && version === generation.current && activeRef.current === id;
         setLoading(cursor.current[id] === undefined);
         try {
             if (cursor.current[id] === undefined) {
@@ -85,16 +93,16 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
             inFlight.current.delete(flight);
             if (current()) setLoading(false);
         }
-    }, []);
+    }, [recovery]);
 
     const loadOlder = useCallback(async () => {
         const id = activeRef.current;
-        if (id === null || !history.current[id]?.hasOlder) return;
+        if (id === null || !mounted.current || !recovery.current() || !history.current[id]?.hasOlder) return;
         const version = generation.current;
         const flight = `${id}:${version}`;
         if (olderFlights.current.has(flight)) return;
         olderFlights.current.add(flight);
-        const current = () => version === generation.current && activeRef.current === id;
+        const current = () => mounted.current && recovery.current() && version === generation.current && activeRef.current === id;
         setLoadingOlder(true);
         setHistoryError(null);
         try {
@@ -124,21 +132,21 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
             olderFlights.current.delete(flight);
             if (current()) setLoadingOlder(false);
         }
-    }, []);
+    }, [recovery]);
 
     const subscribe = useCallback(() => {
         subRef.current?.unsubscribe();
         subRef.current = null;
         const id = activeRef.current;
-        if (id === null || !clientRef.current?.connected) return;
+        if (id === null || !recovery.current() || !clientRef.current?.connected) return;
         subRef.current = clientRef.current.subscribe(`/topic/chat.${id}`, frame => {
-            if (activeRef.current !== id) return;
+            if (!mounted.current || !recovery.current() || activeRef.current !== id) return;
             try {
                 const message = JSON.parse(frame.body) as ChatMessageResponse;
                 if (message.conversationId === id && Number.isSafeInteger(message.id)) onMessageRef.current(message);
             } catch { /* The authoritative history pass recovers malformed or missed pushes. */ }
         });
-    }, []);
+    }, [recovery]);
 
     useEffect(() => {
         if (!getStoredAccessToken()) return;
@@ -186,6 +194,7 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
     }, [catchUp]);
 
     const setActiveConversation = useCallback((id: number | null) => {
+        if (!recovery.current()) return Promise.resolve();
         activeRef.current = id;
         generation.current++;
         setRefreshError(null);
@@ -200,34 +209,33 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
         setHasOlder(id !== null && !!history.current[id]?.hasOlder);
         subscribe();
         return catchUp();
-    }, [catchUp, subscribe, freshHistoryOnSelect]);
+    }, [catchUp, subscribe, freshHistoryOnSelect, recovery]);
 
     const sendMessage = useCallback(async (id: number, content: string, senderName = 'Me') => {
         const clean = content.trim();
-        if (!clean || sendingRef.current) return false;
+        if (!clean || sendingRef.current || !mounted.current || !recovery.current()) return false;
         sendingRef.current = true;
         setSending(true);
         setSendError(null);
-        let request = pending.current.get(id);
-        if (!request || request.content !== clean) {
-            request = { content: clean, key: crypto.randomUUID() };
-            pending.current.set(id, request);
-        }
         try {
+            // Save the exact retry identity before dispatch, including across a page reload.
+            const request = recovery.prepare(id, clean);
             const message = IS_MOCK_MODE
                 ? (await import('../mocks/data/chatStore')).mockSendMessage(id, Number(getStoredUserId() || 0), senderName, clean)
                 : (await chatApi.sendMessage(id, clean, request.key)).data;
-            pending.current.delete(id);
+            if (!recovery.current()) return false;
+            recovery.confirm(id, request);
+            if (!mounted.current) return false;
             if (activeRef.current === id) onMessageRef.current(message);
             return true;
         } catch {
-            if (activeRef.current === id) setSendError('Message was not confirmed. Your draft is kept; press Send to retry.');
+            if (mounted.current && recovery.current() && activeRef.current === id) setSendError('Message was not confirmed. Your draft is kept; press Send to retry.');
             return false;
         } finally {
             sendingRef.current = false;
-            setSending(false);
+            if (mounted.current && recovery.current()) setSending(false);
         }
-    }, []);
+    }, [recovery]);
 
     return { connected, setActiveConversation, sendMessage, loading, error: sendError ?? refreshError, sending, catchUp,
         loadOlder, hasOlder, loadingOlder, historyError } as const;

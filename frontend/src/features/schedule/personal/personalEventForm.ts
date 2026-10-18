@@ -5,7 +5,7 @@ import { dayKey } from '../board/scheduleRange';
 
 const weekdays: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const order: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-const duration: Record<ScheduleEventType, number> = { TRAINING: 90, TRYOUT: 120, MATCH: 120, FRIENDLY: 120, ACTIVITY: 75 };
+const duration: Record<ScheduleEventType, number> = { TRAINING: 90, TRYOUT: 120, MATCH: 120, FRIENDLY: 120, ACTIVITY: 75, MEETING: 60 };
 const pad = (value: number) => String(value).padStart(2, '0');
 const time = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 

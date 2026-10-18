@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '../../../../design/primitives';
 import type { Squad } from '../../../matchExchange/api';
 import { ageGroupOf } from '../../../matchExchange/arrange/matchPlan';
-import { acceptInvitation, declineInvitation, registerPlayer, requestEntry, reviewInvitation, withdrawEntry } from '../../../tournaments/api';
+import { acceptInvitation, declineInvitation, registerPlayer, reviewInvitation, withdrawEntry } from '../../../tournaments/api';
 import { instantEntry, type EntryGate } from '../../../tournaments/entryGates';
 import { useWorldCopy } from '../../copy';
 import { feeLabel, lastEntryDay } from '../../directories/tournaments/tournamentItem';
@@ -13,6 +13,7 @@ import { useWorldData } from '../../useWorldData';
 import { SendError } from '../SendError';
 import { useSend } from '../useSend';
 import { entryWords, type TournamentPaneData } from './tournamentPane';
+import { useTournamentChoice } from './tournamentChoice';
 import '../step.css';
 
 type Copy = ReturnType<typeof useWorldCopy>;
@@ -35,15 +36,15 @@ function Fee({ data }: { data: TournamentPaneData }) {
 }
 
 /** Squads as chips: those of the tournament's age first (a hint only, the backend checks ages from the roster), the rest in a list. */
-function SquadChoice({ squads, age, value, onChange }: { squads: Squad[]; age?: string; value?: number; onChange: (id: number) => void }) {
+function SquadChoice({ squads, age, value, onChange, disabled = false }: { squads: Squad[]; age?: string; value?: number; onChange: (id: number) => void; disabled?: boolean }) {
     const t = useWorldCopy();
     const fitting = squads.filter(squad => ageGroupOf(squad.category) === age);
     const quick = fitting.length ? fitting : squads, others = squads.filter(squad => !quick.includes(squad));
-    if (squads.length < 2) return null;
+    if (!squads.length) return null;
     return (
         <div className="gk-step__row" role="group" aria-label={t('Your squad')}>
-            {quick.map(squad => <button key={squad.id} type="button" className="gk-chip" aria-pressed={squad.id === value} onClick={() => onChange(squad.id)}>{squad.name}</button>)}
-            {others.length > 0 && <select className="gk-input gk-step__other" aria-label={t('Another squad')} value={others.some(squad => squad.id === value) ? value : ''} onChange={event => event.target.value && onChange(Number(event.target.value))}>
+            {quick.map(squad => <button key={squad.id} type="button" className="gk-chip" disabled={disabled} aria-pressed={squad.id === value} onClick={() => onChange(squad.id)}>{squad.name}</button>)}
+            {others.length > 0 && <select className="gk-input gk-step__other" aria-label={t('Another squad')} disabled={disabled} value={others.some(squad => squad.id === value) ? value : ''} onChange={event => event.target.value && onChange(Number(event.target.value))}>
                 <option value="">{t('Another squad…')}</option>
                 {others.map(squad => <option key={squad.id} value={squad.id}>{squad.name}</option>)}
             </select>}
@@ -55,26 +56,21 @@ function SquadChoice({ squads, age, value, onChange }: { squads: Squad[]; age?: 
 export function EnterStep({ data, gate, reload }: { data: TournamentPaneData; gate: Extract<EntryGate, { kind: 'enter' }>; reload: () => void }) {
     const t = useWorldCopy();
     const { detail, rules } = data;
-    const [clubId, setClubId] = useState(gate.clubs[0].id);
-    const club = gate.clubs.find(item => item.id === clubId) ?? gate.clubs[0];
-    const fitting = club.squads.filter(squad => ageGroupOf(squad.category) === rules?.ageGroup);
-    const [picked, setPicked] = useState<number>();
-    const squadId = picked ?? (fitting.length === 1 ? fitting[0].id : club.squads.length === 1 ? club.squads[0].id : undefined);
-    const squad = club.squads.find(item => item.id === squadId);
-    const { busy, error, changed, send } = useSend(reload, CHANGED, true);
+    const choice = useTournamentChoice(detail.id, gate, rules?.ageGroup);
+    const { club, squad, busy, error, changed } = choice;
     return (
         <section className="gk-step" aria-label={t('Enter the tournament')}>
             <h4 className="gk-step__title">{t('Enter {tournament}', { tournament: detail.name })}</h4>
-            {gate.clubs.length > 1 && <div className="gk-step__row" role="group" aria-label={t('Your club')}>
-                {gate.clubs.map(item => <button key={item.id} type="button" className="gk-chip" aria-pressed={item.id === club.id} onClick={() => { setClubId(item.id); setPicked(undefined); }}>{item.name}</button>)}
+            {(gate.clubs.length > 1 || !club) && <div className="gk-step__row" role="group" aria-label={t('Your club')}>
+                {gate.clubs.map(item => <button key={item.id} type="button" className="gk-chip" disabled={!choice.editable} aria-pressed={item.id === club?.id} onClick={() => choice.choose({ clubId: item.id, squadId: undefined })}>{item.name}</button>)}
             </div>}
-            <SquadChoice squads={club.squads} age={rules?.ageGroup} value={squadId} onChange={setPicked} />
+            {club && <SquadChoice squads={club.squads} age={rules?.ageGroup} value={squad?.id} disabled={!choice.editable} onChange={squadId => choice.choose({ squadId })} />}
             <Fee data={data} />
             <p className="gk-step__preview">{squad ? entering(squad.name, data, gate.full, t) : t('Choose the squad that would play.')}</p>
             <SendError error={error} changed={changed} reload={reload} />
             <div className="gk-step__actions">
-                <Button variant="primary" disabled={!squad || busy} onClick={() => void send(() => requestEntry(detail.id, { clubId: club.id, squadId: squad!.id }),
-                    t('Entry sent for {team}.', { team: squad!.name }), t('The entry could not be sent.'))}>
+                <Button variant="primary" disabled={!squad || !choice.editable || changed} onClick={() => void choice.send(team =>
+                    t('Entry sent for {team}.', { team }), t('The entry could not be sent.'))}>
                     {busy ? t('Sending…') : squad ? t('Enter {team}', { team: squad.name }) : t('Enter')}
                 </Button>
             </div>
@@ -105,7 +101,7 @@ export function AnswerStep({ data, gate, squads, reload }: { data: TournamentPan
     const [declining, setDeclining] = useState(false);
     const { busy, error, changed, send } = useSend(reload, CHANGED, true);
     const now = useNow();
-    const closes = lastEntryDay(detail.registrationClosesAt);
+    const closes = lastEntryDay(detail.registrationClosesAt, data.rules?.timezone);
     // Accepting enters the team, so it takes the entry window like any entry: not before it opens, not after it closes
     // (declining stays possible).
     const opensAt = zoned(detail.registrationOpensAt), early = opensAt != null && Date.parse(opensAt) > now;

@@ -1,3 +1,4 @@
+import { ManagedTournamentMatchDialog } from '../features/tournaments/components/ManagedTournamentMatchDialog';
 import { CompetitionOperationsPanel } from '../features/competitions/CompetitionOperationsPanel';
 import { getCompetitionProfile, type Profile } from '../features/competitions/api';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -45,6 +46,7 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
     const copy = (en: string, ka: string) => i18n.language.startsWith('ka') ? ka : en;
     const [tournament, setTournament] = useState<TournamentDetail | null>(null);
     const [profile, setProfile] = useState<Profile>();
+    const [profileError, setProfileError] = useState('');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState('');
@@ -88,10 +90,10 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
 
     useEffect(() => {
         const controller = new AbortController();
-        void getCompetitionProfile(id, controller.signal).then(value => { if (!controller.signal.aborted) setProfile(value); })
-            .catch(() => { if (!controller.signal.aborted) setProfile(undefined); });
+        void getCompetitionProfile(id, controller.signal).then(value => { if (!controller.signal.aborted) { setProfile(value); setProfileError(''); } })
+            .catch(cause => { if (!controller.signal.aborted) setProfileError(extractApiErrorMessage(cause, i18n.language.startsWith('ka') ? 'მატჩის მართვა ვერ ჩაიტვირთა. სცადეთ განახლება.' : 'Could not load match controls. Refresh to try again.')); });
         return () => controller.abort();
-    }, [id, tournament?.fixtures, tournament?.status]);
+    }, [id, tournament?.fixtures, tournament?.status, i18n.language]);
 
     const refresh = useCallback(async () => {
         setRefreshing(true); setError('');
@@ -125,11 +127,13 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
         context={{ name: tournament.name, role: tournamentStatusLabel(tournament.status, t), back: { label: copy('Tournament page', 'ტურნირის გვერდი'), to: `/tournaments/${id}` } }}
         primary={sections} groups={[]} active={tab} onSelect={next => setTab(next as Tab)}>
     <PageFrame className="tws-page">
-        <TournamentWorkspaceHeader tournament={tournament} canEdit={permissions.canEditSettings} legacy={profile ? profile.legacy : null} busy={busy} refreshing={refreshing}
+        <TournamentWorkspaceHeader tournament={tournament} timezone={profile?.rules?.timezone} canEdit={permissions.canEditSettings} legacy={profile ? profile.legacy : null} busy={busy} refreshing={refreshing}
             finishBlocked={Boolean(tieState?.blocked)} startBlockers={startBlockers} onRefresh={() => void refresh().catch(() => {})} onEdit={() => setEditing(true)}
             onStart={() => setLifecycle('start')} onFinish={() => setLifecycle('finish')} onSection={setTab} />
     <div className="tw-workspace tc-workspace tws-body">
         {error && <p className="gk-notice gk-notice--danger tws-error" role="alert">{error}</p>}
+        {profileError && <p role="alert">{profileError} <Button onClick={() => void refresh().catch(() => {})}>{copy('Retry match controls', 'მატჩის მართვის ხელახლა ჩატვირთვა')}</Button></p>}
+        {matchId && !profile && !profileError && <p role="status">{copy('Loading match controls…', 'მატჩის მართვა იტვირთება…')}</p>}
         <div id="tournament-tie-blocker"><TournamentTieBlockerBanner state={tieState} tournament={tournament}/></div>
         {permissions.canManage && tournament.status === 'PLANNING' && tab === 'overview' && <div className="tw-progress">
             <button onClick={() => setTab('participants')}><CheckCircle2 size={20}/><span><strong>{ready.length} {copy(ready.length === 1 ? 'team confirmed' : 'teams confirmed', 'გუნდი დადასტურებულია')}</strong>{waiting ? `${waiting} ${copy('waiting for review', 'განხილვას ელოდება')}` : copy('Add clubs or guest teams', 'დაამატეთ კლუბები ან სტუმარი გუნდები')}</span></button>
@@ -141,7 +145,7 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
         <section hidden={tab !== 'people'}><TournamentPeople tournament={tournament} canEdit={permissions.canEditSettings} onUpdate={update}/></section>
         {/* Keep incomplete editors mounted during workspace tab navigation. */}
         <section hidden={tab !== 'participants'}><TournamentParticipants tournament={tournament} canManage={permissions.canManage} onUpdate={update} onRefresh={refresh} onBracket={() => setTab('bracket')}/><ExtensionSurface capability="tournamentSeries"><TournamentSeriesPanel tournamentId={id} tournamentName={tournament.name} canCreate={permissions.canEditSettings}/></ExtensionSurface></section>
-        <section hidden={tab !== 'bracket'}>{tab === 'bracket' && <CompetitionOperationsPanel tournament={tournament} interactive changed={refresh} />}<TournamentCompetition tournament={tournament} matchesOnly={profile ? !profile.legacy : false} canManage={permissions.canManage && Boolean(profile?.legacy)} canScore={permissions.canScore} onUpdate={update} onMatch={f => setMatchId(f.id)} onTieStateChange={setTieState} onTieResolved={refresh}/></section>
+        <section hidden={tab !== 'bracket'}>{tab === 'bracket' && <CompetitionOperationsPanel tournament={tournament} interactive changed={refresh} />}<TournamentCompetition tournament={tournament} timezone={profile?.rules?.timezone} matchesOnly={profile ? !profile.legacy : false} canManage={permissions.canManage && Boolean(profile?.legacy)} canScore={permissions.canScore} onUpdate={update} onMatch={f => setMatchId(f.id)} onTieStateChange={setTieState} onTieResolved={refresh}/></section>
         <section hidden={tab !== 'schedule'}><TournamentMatchday tournament={tournament} active={tab === 'schedule'} onMatch={f => setMatchId(f.id)} onBracket={() => setTab('bracket')}/></section>
         </div>
         {permissions.canEditSettings && <div hidden={!editing}>
@@ -152,7 +156,8 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
                 </div>
             </div>
         </div>}
-        {match && <TournamentMatchDialog key={match.id} tournament={tournament} fixture={match} canManage={permissions.canManage} canScore={permissions.canScore} onUpdate={update} onClose={() => setMatchId(null)}/>}
+        {match && profile?.legacy && <TournamentMatchDialog key={match.id} tournament={tournament} fixture={match} canManage={permissions.canManage} canScore={permissions.canScore} onUpdate={update} onClose={() => setMatchId(null)}/>}
+        {match && profile?.rules && !profile.legacy && <ManagedTournamentMatchDialog key={match.id} tournament={tournament} fixture={match} profile={profile} canManage={permissions.canManage} canScore={permissions.canScore} onUpdate={update} onClose={() => setMatchId(null)}/>}
         <ConfirmDialog open={lifecycle != null} title={lifecycle === 'start' ? copy('Start this tournament?', 'დაიწყოს ტურნირი?') : copy('Finish this tournament?', 'დასრულდეს ტურნირი?')}
             message={lifecycle === 'start' ? (tournament.visibility === 'PRIVATE' ? copy('This tournament is private. To let visitors see it, choose Edit tournament and change visibility before starting. Starting locks the competition and tournament details.', 'ეს ტურნირი პირადია. საჯაროდ საჩვენებლად დაწყებამდე აირჩიეთ ტურნირის რედაქტირება და შეცვალეთ ხილვადობა. დაწყება შეჯიბრებას და ტურნირის დეტალებს ჩაკეტავს.') : copy('Starting locks the competition and tournament details.', 'დაწყება შეჯიბრებას და ტურნირის დეტალებს ჩაკეტავს.')) : copy('All matches must have final results. The champion will appear on the tournament page.', 'ყველა მატჩის შედეგი საბოლოო უნდა იყოს. ჩემპიონი ტურნირის გვერდზე გამოჩნდება.')}
             confirmLabel={busy ? copy('Saving…', 'ინახება…') : copy('Confirm', 'დადასტურება')} cancelLabel={copy('Cancel', 'გაუქმება')}

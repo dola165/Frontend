@@ -9,6 +9,7 @@ import { ADMIN_CLUB_PAGE_SIZE, fetchAdminClubs, verifyAdminClub, type AdminClubP
 import { ContentReportsPanel } from '../features/jev/ContentReportsPanel';
 import { ModerationPanel } from '../features/moderation/ModerationPanel';
 import { AdmissionGovernancePanel } from '../features/admissions/governance/AdmissionGovernancePanel';
+import { appLanguage } from '../utils/formatting';
 
 type AdminUserListItem = {
     id: number;
@@ -60,6 +61,7 @@ const AdminPanel = () => {
             <h1 className="mt-2 text-3xl font-semibold">Admin Panel</h1>
             <p className="mt-2 max-w-2xl text-sm text-[var(--color-secondary)]">Review account information and verify clubs.</p>
             <nav aria-label="Administration sections" className="mt-5 flex flex-wrap gap-2">
+                <Link to="/admin/page-reviews" className="inline-flex min-h-11 items-center rounded-xl border px-4 py-2 text-sm font-semibold">{appLanguage() === 'ka' ? 'გვერდების მოთხოვნები' : 'Page claims & verification'}</Link>
                 {([{ id: 'users', label: 'Users' }, { id: 'clubs', label: 'Club verification' }, ...(contentReportsEnabled ? [{ id: 'reports', label: 'Content reports' } as const] : []), { id: 'safety', label: 'People & messages' }, { id:'admissions',label:'Admission safeguarding & privacy' }] as const).map(item =>
                     <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)}
                         className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item.id ? 'border-[color:var(--color-accent)] bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)]' : 'border-[color:var(--color-border)] text-[var(--color-secondary)]'}`}>

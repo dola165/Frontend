@@ -15,7 +15,7 @@ import './tournaments.css';
  */
 export function TournamentRow({ item }: { item: TournamentItem }) {
     const t = useWorldCopy();
-    const date = dateColumn(item.start);
+    const date = dateColumn(item.start, item.rules?.timezone);
     const shape = plannedShape(item.rules, item.entryCap, item.entryCount);
     const fact = tournamentFact(item);
     const what = [shape && t(shape.word), ...whatLabel(item)].filter(Boolean).join(' · ');

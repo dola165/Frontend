@@ -6,6 +6,9 @@ import { cancelInvitation, getInvitations, getOperators, inviteOperator, respond
     type Delegation, type OrganizationInvitation } from './api';
 import { activityCopy, activityError, activityStatus } from './copy';
 import './activities.css';
+import { readInvitationDraft, saveInvitationDraft, type InvitationDraft } from '../setup/invitationsApi';
+import { isCurrentAuthSession } from '../../../utils/authStorage';
+import { emitNotificationsChanged } from '../../../utils/notifications';
 
 function useAlive() {
     const alive = useRef(false);
@@ -17,34 +20,47 @@ export function OrganizationDelegationPanel({ id }: { id: number }) {
     return <DelegationPanel key={`${id}-${sessionId}`} id={id} />;
 }
 export function DelegationPanel({ id }: { id: number }) {
+    const { sessionId, user } = useAuth();
+    const draftKey = `org-invite:${sessionId}:${user?.id}:${id}:venue`;
+    const [saved] = useState(() => readInvitationDraft(draftKey));
     const { i18n } = useTranslation(), copy = activityCopy(i18n.language), alive = useAlive();
     const [data, setData] = useState<Delegation | null>(null), [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState('');
-    const [email, setEmail] = useState(''), [confirm, setConfirm] = useState<number | null>(null), [reload, setReload] = useState(0);
+    const [email, setEmail] = useState(saved?.email ?? ''), [confirm, setConfirm] = useState<number | null>(null), [reload, setReload] = useState(0);
     const submitting = useRef(false);
+    const command = useRef<InvitationDraft | null>(saved);
     useEffect(() => {
         const controller = new AbortController();
         setLoading(true); setError(''); setData(null); setConfirm(null);
-        void getOperators(id, controller.signal).then(value => { if (!controller.signal.aborted) setData(value); })
-            .catch(err => { if (!controller.signal.aborted) setError(activityError(err, copy)); })
-            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
+        void getOperators(id, controller.signal).then(value => { if (current()) setData(value); })
+            .catch(err => { if (current()) setError(activityError(err, copy)); })
+            .finally(() => { if (current()) setLoading(false); });
         return () => controller.abort();
-    }, [id, reload, copy]);
+    }, [id, reload, copy, sessionId]);
     const act = async (work: () => Promise<Delegation>, success: string, clearEmail = false) => {
-        if (submitting.current || !data) return;
+        if (submitting.current || !data || !isCurrentAuthSession(sessionId)) return;
         submitting.current = true; setBusy(true); setError(''); setMessage('');
         try {
             const value = await work();
-            if (!alive.current) return;
-            setData(value); setMessage(success); setConfirm(null); if (clearEmail) setEmail('');
+            if (!alive.current || !isCurrentAuthSession(sessionId)) return;
+            setData(value); setMessage(success); setConfirm(null);
+            if (clearEmail) { setEmail(''); command.current = null; saveInvitationDraft(draftKey, null); }
+            window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
         } catch (err) {
-            if (!alive.current) return;
+            if (!alive.current || !isCurrentAuthSession(sessionId)) return;
             setError(activityError(err, copy));
             // Do not retain privileged membership lists after authority loss or an uncertain mutation.
             setData(null); setConfirm(null);
-        } finally { submitting.current = false; if (alive.current) setBusy(false); }
+        } finally { submitting.current = false; if (alive.current && isCurrentAuthSession(sessionId)) setBusy(false); }
     };
-    const invite = (event: FormEvent) => { event.preventDefault(); void act(() => inviteOperator(id, email.trim()), copy.invited, true); };
+    const invite = (event: FormEvent) => {
+        event.preventDefault(); if (submitting.current) return;
+        const normalized = email.trim();
+        const next = command.current?.email === normalized ? command.current : { email: normalized, role: 'VENUE_OPERATOR', requestId: crypto.randomUUID() };
+        command.current = next; saveInvitationDraft(draftKey, next);
+        void act(() => inviteOperator(id, normalized, next.requestId), copy.invited, true);
+    };
     return <section className="organization-activities" aria-labelledby={`operators-${id}`}>
         <h2 id={`operators-${id}`}>{copy.operators}</h2><p>{copy.operatorHelp}</p>
         {loading ? <p role="status">{copy.loading}</p> : data && <>

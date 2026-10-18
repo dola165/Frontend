@@ -1,6 +1,6 @@
 import { formatDate, formatDateTime } from '../utils/formatting';
 import { MediaImage } from '../components/ui/MediaImage';
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -37,6 +37,10 @@ import { ageFromDob, todayIso } from '../utils/age';
 import { activatePlayerCard, fetchMyPlayerCards, type PlayerCard } from '../features/clubs/api';
 import { ClubJourneyPanel } from '../features/journey/components/ClubJourneyPanel';
 import { EntityTabs, type EntityTabItem } from '../components/layout/EntityTabs';
+import { buildProfileForm as buildForm, useAccountProfileDraft, type ProfileForm } from '../features/profiles/account/useAccountProfileDraft';
+import { AccountProfileFeedback } from '../features/profiles/account/AccountProfileFeedback';
+import { useAccountCopy } from '../features/profiles/account/accountCopy';
+import '../features/profiles/account/account-copy.css';
 
 type Tab = 'profile' | 'security' | 'sessions' | 'accounts' | 'danger';
 type Account = {
@@ -72,18 +76,13 @@ type SessionSummary = {
     expiredCount: number;
 };
 type TryoutApp = MyTryoutApplication;
-type ProfileForm = {
-    fullName: string;
-    bio: string;
-    avatarUrl: string;
-    bannerUrl: string;
-    position: string;
-    secondaryPosition: string;
-    preferredFoot: string;
-    heightCm: string;
-    weightKg: string;
-    availabilityStatus: string;
+type AccountError = { literal: string } | { fallback: string };
+const accountError = (failure: unknown, fallback: string): AccountError => {
+    const literal = extractApiErrorMessage(failure, '');
+    return literal ? { literal } : { fallback };
 };
+const accountErrorText = (error: AccountError, copy: (english: string) => string) =>
+    'literal' in error ? error.literal : copy(error.fallback);
 
 const tabItems: EntityTabItem[] = [
     { id: 'profile', label: 'Profile' },
@@ -103,21 +102,8 @@ const btnSecondaryClass = 'inline-flex items-center gap-2 rounded-xl border bord
 
 const normalizeTab = (value: string | null): Tab =>
     value === 'security' || value === 'sessions' || value === 'accounts' || value === 'danger' ? value : 'profile';
-const trimToUndefined = (value: string) => value.trim() || undefined;
 const fmt = (value?: string | null) => (value ? formatDateTime(value) : null);
 const providerLabel = (provider: string) => (provider === 'google' ? 'Google' : provider.charAt(0).toUpperCase() + provider.slice(1));
-const buildForm = (account: Account): ProfileForm => ({
-    fullName: account.fullName ?? '',
-    bio: account.bio ?? '',
-    avatarUrl: account.avatarUrl ?? '',
-    bannerUrl: account.bannerUrl ?? '',
-    position: account.playerProfile?.primaryPosition ?? '',
-    secondaryPosition: account.playerProfile?.secondaryPosition ?? '',
-    preferredFoot: account.playerProfile?.preferredFoot ?? '',
-    heightCm: account.playerProfile?.heightCm != null ? String(account.playerProfile.heightCm) : '',
-    weightKg: account.playerProfile?.weightKg != null ? String(account.playerProfile.weightKg) : '',
-    availabilityStatus: account.playerProfile?.availabilityStatus ?? 'AVAILABLE'
-});
 const sessionTone = (status: 'ACTIVE' | 'REVOKED' | 'EXPIRED') =>
     status === 'ACTIVE'
         ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
@@ -186,6 +172,7 @@ const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
 
 export const AccountPage = () => {
     const { t } = useTranslation();
+    const copy = useAccountCopy();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user, sessionId, bootstrapSession, logout } = useAuth();
     const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -204,13 +191,11 @@ export const AccountPage = () => {
     const [loading, setLoading] = useState(true);
     const [sessionsLoading, setSessionsLoading] = useState(true);
     const [message, setMessage] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [sessionsError, setSessionsError] = useState<string | null>(null);
-    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<AccountError | null>(null);
+    const [sessionsError, setSessionsError] = useState<AccountError | null>(null);
     const [sendingVerification, setSendingVerification] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
     const [revokingSessions, setRevokingSessions] = useState(false);
-    const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
     const [tryoutApps, setTryoutApps] = useState<TryoutApp[]>([]);
     const [showTryoutApps, setShowTryoutApps] = useState(false);
     const [tryoutsLoading, setTryoutsLoading] = useState(false);
@@ -233,17 +218,23 @@ export const AccountPage = () => {
         if (!preserveDraft) setLoading(true);
         try {
             const response = await apiClient.get<Account>('/users/me/account', { signal: controller.signal });
-            if (!current()) return;
+            if (!current()) return false;
             if (response.data.id !== user?.id) throw new Error('Account details did not match the signed-in account.');
             setAccount(response.data);
             if (!preserveDraft) setForm(buildForm(response.data));
             setError(null);
+            return true;
         } catch (requestError) {
-            if (current()) setError(extractApiErrorMessage(requestError, 'Failed to load your account center.'));
+            if (current()) setError(accountError(requestError, 'Failed to load your account center.'));
+            return false;
         } finally {
             if (current() && !preserveDraft) setLoading(false);
         }
     }, [sessionId, user?.id]);
+
+    const refreshProfile = useCallback(() => loadAccount(true), [loadAccount]);
+    const profileDraft = useAccountProfileDraft({ form, setForm, isPlayer, refresh: refreshProfile });
+    const { saving, uploading, saveProfile, uploadAsset } = profileDraft;
 
     const loadSessions = useCallback(async () => {
         sessionsRequest.current?.abort();
@@ -259,7 +250,7 @@ export const AccountPage = () => {
         } catch (requestError) {
             if (!current()) return;
             setSessions(null);
-            setSessionsError(extractApiErrorMessage(requestError, 'Failed to load remembered sessions.'));
+            setSessionsError(accountError(requestError, 'Failed to load remembered sessions.'));
         } finally {
             if (current()) setSessionsLoading(false);
         }
@@ -341,61 +332,15 @@ export const AccountPage = () => {
     const initials = (account?.displayName || account?.username || 'TA').substring(0, 2).toUpperCase();
     const updateForm = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => setForm((current) => (current ? { ...current, [key]: value } : current));
 
-    const uploadAsset = async (event: ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        const body = new FormData();
-        body.append('file', file);
-        setUploading(type);
-        try {
-            const response = await apiClient.post<{ url?: string }>('/media/upload', body, { headers: { 'Content-Type': 'multipart/form-data' }, params: { context: type === 'avatar' ? 'profile' : 'banner' } });
-            if (!response.data?.url) throw new Error('Upload did not return a media URL.');
-            updateForm(type === 'avatar' ? 'avatarUrl' : 'bannerUrl', response.data.url);
-            setMessage(type === 'avatar' ? 'Avatar updated in the draft form.' : 'Banner updated in the draft form.');
-        } catch (requestError) {
-            setError(extractApiErrorMessage(requestError, 'Failed to upload media.'));
-        } finally {
-            setUploading(null);
-            event.target.value = '';
-        }
-    };
-
-    const saveProfile = async () => {
-        if (!account || !form) return;
-        setSaving(true);
-        try {
-            await apiClient.put('/users/me', {
-                fullName: trimToUndefined(form.fullName),
-                bio: trimToUndefined(form.bio),
-                avatarUrl: trimToUndefined(form.avatarUrl),
-                bannerUrl: trimToUndefined(form.bannerUrl),
-                position: isPlayer ? trimToUndefined(form.position) : undefined,
-                secondaryPosition: isPlayer ? trimToUndefined(form.secondaryPosition) : undefined,
-                preferredFoot: isPlayer ? trimToUndefined(form.preferredFoot) : undefined,
-                heightCm: isPlayer && form.heightCm.trim() ? Number(form.heightCm) : undefined,
-                weightKg: isPlayer && form.weightKg.trim() ? Number(form.weightKg) : undefined,
-                availabilityStatus: isPlayer ? trimToUndefined(form.availabilityStatus) : undefined
-            });
-            await loadAccount();
-            await bootstrapSession();
-            setMessage('Account profile updated.');
-            setError(null);
-        } catch (requestError) {
-            setError(extractApiErrorMessage(requestError, 'Failed to save your account profile.'));
-        } finally {
-            setSaving(false);
-        }
-    };
-
     const resendVerification = async () => {
         setSendingVerification(true);
         try {
             const response = await apiClient.post<{ message?: string }>('/auth/send-verification');
-            await loadAccount();
+            await loadAccount(true);
             await bootstrapSession();
             setMessage(response.data?.message || 'Verification email sent.');
         } catch (requestError) {
-            setError(extractApiErrorMessage(requestError, 'Failed to send verification email.'));
+            setError(accountError(requestError, 'Failed to send verification email.'));
         } finally {
             setSendingVerification(false);
         }
@@ -405,7 +350,7 @@ export const AccountPage = () => {
         event.preventDefault();
         if (!confirmSecurityNavigation()) return;
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            setError('New password and confirmation do not match.');
+            setError({ fallback: 'New password and confirmation do not match.' });
             return;
         }
         setChangingPassword(true);
@@ -418,7 +363,7 @@ export const AccountPage = () => {
             setMessage(response.data?.message || 'Password changed. Sign in again with your new password.');
             await logout();
         } catch (requestError) {
-            setError(extractApiErrorMessage(requestError, 'Failed to change password.'));
+            setError(accountError(requestError, 'Failed to change password.'));
         } finally {
             setChangingPassword(false);
         }
@@ -431,7 +376,7 @@ export const AccountPage = () => {
             await loadSessions();
             setMessage(response.data?.message || 'Other remembered sessions have been signed out.');
         } catch (requestError) {
-            setSessionsError(extractApiErrorMessage(requestError, 'Failed to sign out other remembered sessions.'));
+            setSessionsError(accountError(requestError, 'Failed to sign out other remembered sessions.'));
         } finally {
             setRevokingSessions(false);
         }
@@ -440,7 +385,7 @@ export const AccountPage = () => {
     // --- Loading state ---
     if (loading) {
         return (
-            <div className="workspace-page-shell flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+            <div role="status" aria-label={copy('Loading your account…')} className="workspace-page-shell flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
                 <Loader2 className="h-10 w-10 animate-spin text-[color:var(--fc-accent)]" />
             </div>
         );
@@ -452,10 +397,10 @@ export const AccountPage = () => {
             <div className="workspace-page-shell flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
                 <div className={`${surfaceClass} max-w-xl px-8 py-10 text-center`}>
                     <ShieldAlert className="mx-auto mb-4 h-10 w-10 text-[color:var(--fc-state-danger)]" />
-                    <h1 className="text-xl font-bold text-[color:var(--fc-text-primary)]">Account Center Offline</h1>
-                    <p className="mt-3 text-sm leading-6 text-[color:var(--fc-text-secondary)]">{error || 'Your account settings could not be loaded right now.'}</p>
+                    <h1 className="text-xl font-bold text-[color:var(--fc-text-primary)]">{copy("Account Center Offline")}</h1>
+                    <p className="mt-3 text-sm leading-6 text-[color:var(--fc-text-secondary)]">{error ? accountErrorText(error, copy) : copy('Your account settings could not be loaded right now.')}</p>
                     <button type="button" onClick={() => void loadAccount()} className={`${btnPrimaryClass} mt-6`}>
-                        Retry
+                        {copy("Retry")}
                     </button>
                 </div>
             </div>
@@ -472,15 +417,15 @@ export const AccountPage = () => {
                         className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-text-secondary)] transition-colors hover:text-[color:var(--fc-text-primary)]"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" />
-                        Back
+                        {copy("Back")}
                     </Link>
 
                     <div className="account-heading-layout mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
                         <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-accent)]">Account Center</p>
-                            <h1 className="mt-2 text-3xl font-bold text-[color:var(--fc-text-primary)]">Account Settings</h1>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-accent)]">{copy("Account Center")}</p>
+                            <h1 className="mt-2 text-3xl font-bold text-[color:var(--fc-text-primary)]">{copy("Account Settings")}</h1>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-[color:var(--fc-text-secondary)]">
-                                Identity, authentication, linked providers, and session controls — all in one place.
+                                {copy("Identity, authentication, linked providers, and session controls — all in one place.")}
                             </p>
 
                             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -496,7 +441,7 @@ export const AccountPage = () => {
                                                 ? 'border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] text-[color:var(--fc-accent)]'
                                                 : 'border-[var(--fc-state-warning)]/30 bg-[color:var(--fc-state-warning-soft)] text-[color:var(--fc-state-warning)]'
                                         }`}>
-                                            {account.emailVerified ? 'Email Verified' : 'Verification Pending'}
+                                            {account.emailVerified ? copy("Email Verified") : copy("Verification Pending")}
                                         </span>
                                     </div>
                                 </div>
@@ -504,23 +449,23 @@ export const AccountPage = () => {
                         </div>
 
                         {/* Quick Actions */}
-                        <section className={`account-quick-actions ${surfaceClass} px-5 py-4`}>
-                            <p className={labelClass}>Quick Actions</p>
+                        <section className={`account-quick-actions account-quick-actions--copy ${surfaceClass} px-5 py-4`}>
+                            <p className={labelClass}>{copy("Quick Actions")}</p>
                             <div className="mt-4 grid gap-2">
                                 <Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-[color:var(--color-ink)]/[0.04]">
                                     <UserRound className="h-4 w-4 shrink-0" aria-hidden="true" />
-                                    View Public Profile
+                                    {copy("View Public Profile")}
                                 </Link>
                                 <button
                                     type="button"
                                     onClick={() => { if (confirmSecurityNavigation()) setSearchParams({ tab: 'security' }); }}
                                     className={btnPrimaryClass + ' justify-center'}
                                 >
-                                    <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />Security Controls
+                                    <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />{copy("Security Controls")}
                                 </button>
                                 <Link to="/world/tournaments?peek=draw-new" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-[color:var(--color-ink)]/[0.04]">
                                     <Trophy className="h-4 w-4 shrink-0" aria-hidden="true" />
-                                    Tournament Setup
+                                    {copy("Tournament Setup")}
                                 </Link>
                                 {(
                                     <button
@@ -528,7 +473,7 @@ export const AccountPage = () => {
                                         onClick={() => { void loadTryoutApplications(); setShowTryoutApps((v) => !v); }}
                                         className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:border-[color:var(--fc-accent)]"
                                     >
-                                        <ClipboardCheck className="h-4 w-4 shrink-0" aria-hidden="true" />{showTryoutApps ? 'Hide' : 'View'} My Tryout Applications
+                                        <ClipboardCheck className="h-4 w-4 shrink-0" aria-hidden="true" />{copy(showTryoutApps ? 'Hide My Tryout Applications' : 'View My Tryout Applications')}
                                         {tryoutApps.length > 0 && (
                                             <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-1.5 text-[10px] text-[color:var(--fc-accent)]">
                                                 {tryoutApps.length}
@@ -536,11 +481,11 @@ export const AccountPage = () => {
                                         )}
                                     </button>
                                 )}
-                                <Link to="/account/roles" className={btnSecondaryClass}><BadgeCheck className="h-4 w-4 shrink-0" aria-hidden="true" />Football roles</Link>
-                                <Link to="/my-organizations" className={btnSecondaryClass}><Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />My organizations</Link>
+                                <Link to="/account/roles" className={btnSecondaryClass}><BadgeCheck className="h-4 w-4 shrink-0" aria-hidden="true" />{copy("Football roles")}</Link>
+                                <Link to="/my-organizations" className={btnSecondaryClass}><Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />{copy("My organizations")}</Link>
                                 {account.role === 'SYSTEM_ADMIN' && (
                                     <Link to="/admin" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-[color:var(--color-ink)]/[0.04]">
-                                        Admin Panel
+                                        {copy("Admin Panel")}
                                     </Link>
                                 )}
                             </div>
@@ -549,17 +494,17 @@ export const AccountPage = () => {
                 </header>
 
                 {/* Tabs */}
-                <EntityTabs items={tabItems} activeId={activeTab} onChange={(tab) => { if (confirmSecurityNavigation()) setSearchParams({ tab }); }} />
+                <EntityTabs items={tabItems.map(tab => ({ ...tab, label: copy(tab.label) }))} activeId={activeTab} onChange={(tab) => { if (confirmSecurityNavigation()) setSearchParams({ tab }); }} />
 
                 {/* Messages */}
                 {message && (
                     <div className="rounded-xl border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--fc-accent)]">
-                        {message}
+                        {copy(message)}
                     </div>
                 )}
                 {error && (
                     <div className="rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
-                        {error}
+                        {accountErrorText(error, copy)}
                     </div>
                 )}
 
@@ -720,67 +665,69 @@ export const AccountPage = () => {
                 {activeTab === 'profile' && (
                     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
                         <Section
-                            title="Profile Draft"
-                            description="Your public identity data — save to persist changes across the platform."
+                            title={copy("Profile Draft")}
+                            description={copy("Your public identity data — save to persist changes across the platform.")}
                             actions={
                                 <button
                                     type="button"
                                     onClick={() => void saveProfile()}
-                                    disabled={saving}
+                                    disabled={saving || profileDraft.refreshing || Boolean(uploading)}
+                                    aria-busy={saving}
                                     className={btnPrimaryClass}
                                 >
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                    Save Profile
+                                    {copy("Save Profile")}
                                 </button>
                             }
                         >
+                            <AccountProfileFeedback draft={profileDraft} />
                             <div className="grid gap-4 md:grid-cols-2">
-                                <Field label="Display Name">
-                                    <input value={form.fullName} onChange={(event) => updateForm('fullName', event.target.value)} placeholder="Full name" className={inputClass} />
+                                <Field label={copy("Display Name")}>
+                                    <input value={form.fullName} onChange={(event) => updateForm('fullName', event.target.value)} placeholder={copy("Full name")} className={inputClass} />
                                 </Field>
-                                <Field label="Email">
+                                <Field label={copy("Email")}>
                                     <input readOnly value={account.email} className={inputClass} />
                                 </Field>
                             </div>
 
                             <div className="mt-4">
-                                <Field label="Bio">
-                                    <textarea value={form.bio} onChange={(event) => updateForm('bio', event.target.value)} rows={5} placeholder="Football background, experience, or role summary" className={`${inputClass} min-h-[120px] resize-none`} />
+                                <Field label={copy("Bio")}>
+                                    <textarea value={form.bio} onChange={(event) => updateForm('bio', event.target.value)} rows={5} placeholder={copy("Football background, experience, or role summary")} className={`${inputClass} min-h-[120px] resize-none`} />
                                 </Field>
                             </div>
 
                             {isPlayer && (
                                 <div className="mt-5 grid gap-4 md:grid-cols-2">
-                                    <Field label="Primary Position">
+                                    <Field label={copy("Primary Position")}>
                                         <select value={form.position} onChange={(event) => updateForm('position', event.target.value)} className={inputClass}>
-                                            <option value="">Select position</option>
+                                            <option value="">{copy("Select position")}</option>
                                             {['Goalkeeper','Centre-Back','Left-Back','Right-Back','Defensive Midfield','Central Midfield','Attacking Midfield','Left Winger','Right Winger','Striker'].map(p => (
-                                                <option key={p} value={p}>{p}</option>
+                                                <option key={p} value={p}>{copy(p)}</option>
                                             ))}
                                         </select>
                                     </Field>
-                                    <Field label="Secondary Position">
+                                    <Field label={copy("Secondary Position")}>
                                         <input value={form.secondaryPosition} onChange={(event) => updateForm('secondaryPosition', event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Preferred Foot">
+                                    <Field label={copy("Preferred Foot")}>
                                         <select value={form.preferredFoot} onChange={(event) => updateForm('preferredFoot', event.target.value)} className={inputClass}>
-                                            <option value="">Select</option>
-                                            <option value="RIGHT">Right</option>
-                                            <option value="LEFT">Left</option>
-                                            <option value="BOTH">Both</option>
+                                            <option value="">{copy("Select")}</option>
+                                            <option value="RIGHT">{copy("Right")}</option>
+                                            <option value="LEFT">{copy("Left")}</option>
+                                            <option value="BOTH">{copy("Both")}</option>
                                         </select>
                                     </Field>
-                                    <Field label="Availability">
+                                    <Field label={copy("Availability")}>
                                         <select value={form.availabilityStatus} onChange={(event) => updateForm('availabilityStatus', event.target.value)} className={inputClass}>
-                                            <option value="AVAILABLE">Available</option>
-                                            <option value="LIMITED">Limited</option>
-                                            <option value="UNAVAILABLE">Unavailable</option>
+                                            <option value="AVAILABLE">{copy("Available")}</option>
+                                            <option value="LIMITED">{copy("Limited")}</option>
+                                            <option value="UNAVAILABLE">{copy("Unavailable")}</option>
                                         </select>
                                     </Field>
-                                    <Field label="Height (cm)">
+                                    <Field label={copy("Height (cm)")}>
                                         <input type="number" value={form.heightCm} onChange={(event) => updateForm('heightCm', event.target.value)} className={inputClass} />
                                     </Field>
-                                    <Field label="Weight (kg)">
+                                    <Field label={copy("Weight (kg)")}>
                                         <input type="number" value={form.weightKg} onChange={(event) => updateForm('weightKg', event.target.value)} className={inputClass} />
                                     </Field>
                                 </div>
@@ -789,14 +736,14 @@ export const AccountPage = () => {
                         </Section>
 
                         <div className="flex flex-col gap-5">
-                            <Section title="My Club" description="Your club journey: applications, invitations, trials and membership.">
+                            <Section title={copy("My Club")} description={copy("Your club journey: applications, invitations, trials and membership.")}>
                                 <ClubJourneyPanel />
                             </Section>
 
-                            <Section title="Profile Assets" description="Banner and avatar media for your public profile.">
+                            <Section title={copy("Profile Assets")} description={copy("Banner and avatar media for your public profile.")}>
                                 <div className="relative h-32 overflow-hidden rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
                                     {bannerPreview ? (
-                                        <MediaImage src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
+                                        <MediaImage src={bannerPreview} alt={copy("Account banner")} className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center">
                                             <ImageIcon className="h-8 w-8 text-[color:var(--fc-text-secondary)]" />
@@ -805,12 +752,14 @@ export const AccountPage = () => {
                                     <button
                                         type="button"
                                         onClick={() => bannerInputRef.current?.click()}
+                                        disabled={saving || profileDraft.refreshing || Boolean(uploading)}
+                                        aria-busy={uploading === 'banner'}
                                         className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full border border-[color:var(--color-border)]/12 bg-[color:var(--color-overlay)]/24 px-3 py-2 text-xs font-semibold text-[color:var(--color-on-media)] backdrop-blur-md transition-colors hover:bg-[color:var(--color-overlay)]/40"
                                     >
                                         {uploading === 'banner' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                                        Banner
+                                        {copy("Banner")}
                                     </button>
-                                    <input ref={bannerInputRef} aria-label="Upload profile banner" type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'banner')} />
+                                    <input ref={bannerInputRef} aria-label={copy("Upload profile banner")} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'banner')} />
                                 </div>
 
                                 <div className="mt-4 flex items-center gap-4">
@@ -821,21 +770,23 @@ export const AccountPage = () => {
                                         <button
                                             type="button"
                                             onClick={() => avatarInputRef.current?.click()}
+                                            disabled={saving || profileDraft.refreshing || Boolean(uploading)}
+                                            aria-busy={uploading === 'avatar'}
                                             className={btnSecondaryClass}
                                         >
                                             {uploading === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                                            Avatar
+                                            {copy("Avatar")}
                                         </button>
-                                        <input ref={avatarInputRef} aria-label="Upload profile avatar" type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'avatar')} />
-                                        <p className="text-xs leading-5 text-[color:var(--fc-text-secondary)]">Uploads update the draft immediately. Save to persist.</p>
+                                        <input ref={avatarInputRef} aria-label={copy("Upload profile avatar")} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'avatar')} />
+                                        <p className="text-xs leading-5 text-[color:var(--fc-text-secondary)]">{copy("Uploads update the draft immediately. Save to persist.")}</p>
                                     </div>
                                 </div>
                             </Section>
 
-                            <Section title="Profile Notes">
-                                <DetailRow label="Username" value={account.username} />
-                                <DetailRow label="Linked Providers" value={account.linkedAccounts.length || 'None'} />
-                                <DetailRow label="Public View" value={<Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="app-text-action">Open profile</Link>} />
+                            <Section title={copy("Profile Notes")}>
+                                <DetailRow label={copy("Username")} value={account.username} />
+                                <DetailRow label={copy("Linked Providers")} value={account.linkedAccounts.length || copy("None")} />
+                                <DetailRow label={copy("Public View")} value={<Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="app-text-action">{copy("Open profile")}</Link>} />
                             </Section>
                         </div>
                     </div>
@@ -844,16 +795,16 @@ export const AccountPage = () => {
                 {/* ===== SECURITY TAB ===== */}
                 {activeTab === 'security' && (
                     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-                        <Section title="Email And Password" description="Recovery and password flows in one operational section.">
+                        <Section title={copy("Email And Password")} description={copy("Recovery and password flows in one operational section.")}>
                             <div className={`${insetClass} px-4 py-4`}>
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                     <div>
                                         <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--fc-text-primary)]">
                                             {account.emailVerified ? <BadgeCheck className="h-4 w-4 text-[color:var(--fc-accent)]" /> : <Mail className="h-4 w-4 text-[color:var(--fc-state-warning)]" />}
-                                            <span>{account.emailVerified ? 'Email verified' : 'Email verification pending'}</span>
+                                            <span>{account.emailVerified ? copy("Email verified") : copy("Email verification pending")}</span>
                                         </div>
                                         <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
-                                            {account.emailVerified ? `Verified for ${account.email}${fmt(account.emailVerifiedAt) ? ` on ${fmt(account.emailVerifiedAt)}` : '.'}` : `We have not confirmed ${account.email} yet.`}
+                                            {account.emailVerified ? copy(`Verified for ${account.email}${fmt(account.emailVerifiedAt) ? ` on ${fmt(account.emailVerifiedAt)}` : '.'}`, `დადასტურებულია: ${account.email}${fmt(account.emailVerifiedAt) ? ` · ${fmt(account.emailVerifiedAt)}` : ''}`) : copy(`We have not confirmed ${account.email} yet.`, `${account.email} ჯერ არ არის დადასტურებული.`)}
                                         </p>
                                     </div>
                                     <button
@@ -863,7 +814,7 @@ export const AccountPage = () => {
                                         className={account.emailVerified ? `${btnSecondaryClass} opacity-50` : btnSecondaryClass}
                                     >
                                         {sendingVerification ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                                        {account.emailVerified ? 'Verified' : 'Resend Email'}
+                                        {account.emailVerified ? copy("Verified") : copy("Resend Email")}
                                     </button>
                                 </div>
                             </div>
@@ -872,9 +823,9 @@ export const AccountPage = () => {
                                 <div className="flex items-start gap-3">
                                     {account.passwordLoginEnabled ? <ShieldCheck className="mt-0.5 h-5 w-5 text-[color:var(--fc-accent)]" /> : <Lock className="mt-0.5 h-5 w-5 text-[color:var(--fc-state-warning)]" />}
                                     <div>
-                                        <h3 className="text-sm font-semibold text-[color:var(--fc-text-primary)]">Password State</h3>
+                                        <h3 className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{copy("Password State")}</h3>
                                         <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
-                                            {account.passwordLoginEnabled ? 'Changing your password signs you out on every device, including this one. Sign in again with your new password afterward.' : 'This account currently relies on a linked provider. Use the password reset route for this email when you are ready to add a password.'}
+                                            {account.passwordLoginEnabled ? copy("Changing your password signs you out on every device, including this one. Sign in again with your new password afterward.") : copy("This account currently relies on a linked provider. Use the password reset route for this email when you are ready to add a password.")}
                                         </p>
                                     </div>
                                 </div>
@@ -882,28 +833,28 @@ export const AccountPage = () => {
 
                             {account.passwordLoginEnabled && (
                                 <form onSubmit={changePassword} className="mt-4 grid gap-4">
-                                    <Field label="Current Password">
+                                    <Field label={copy("Current Password")}>
                                         <input type="password" value={passwordForm.currentPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))} className={inputClass} />
                                     </Field>
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <Field label="New Password">
+                                        <Field label={copy("New Password")}>
                                             <input type="password" value={passwordForm.newPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))} className={inputClass} />
                                         </Field>
-                                        <Field label="Confirm Password">
+                                        <Field label={copy("Confirm Password")}>
                                             <input type="password" value={passwordForm.confirmPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))} className={inputClass} />
                                         </Field>
                                     </div>
                                     <div className="flex justify-end">
                                         <button type="submit" disabled={changingPassword} className={btnPrimaryClass}>
                                             {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                                            Change Password
+                                            {copy("Change Password")}
                                         </button>
                                     </div>
                                 </form>
                             )}
                         </Section>
 
-                        {securityExtensions && <Section title="Authenticator Security">
+                        {securityExtensions && <Section title={copy("Authenticator Security")}>
                             <TwoFactorSettings accountId={account.id} passwordLoginEnabled={account.passwordLoginEnabled} onCredentialsChanged={refreshOverview} />
                         </Section>}
                     </div>
@@ -912,8 +863,8 @@ export const AccountPage = () => {
                 {/* ===== SESSIONS TAB ===== */}
                 {activeTab === 'sessions' && (
                     <Section
-                        title="Remembered Sessions"
-                        description="Review active, revoked, and expired refresh sessions from one stream."
+                        title={copy("Remembered Sessions")}
+                        description={copy("Review active, revoked, and expired refresh sessions from one stream.")}
                         actions={
                             account.sessionRevocationSupported ? (
                                 <button
@@ -923,32 +874,32 @@ export const AccountPage = () => {
                                     className={btnPrimaryClass}
                                 >
                                     {revokingSessions ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                                    Sign Out Others
+                                    {copy("Sign Out Others")}
                                 </button>
                             ) : null
                         }
                     >
                         {sessionsError && (
                             <div role="alert" className="mb-4 rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
-                                {sessionsError}
-                                <button type="button" className={`${btnSecondaryClass} ml-3`} disabled={sessionsLoading} onClick={() => void loadSessions()}>Retry sessions</button>
+                                {accountErrorText(sessionsError, copy)}
+                                <button type="button" className={`${btnSecondaryClass} ml-3`} disabled={sessionsLoading} onClick={() => void loadSessions()}>{copy("Retry sessions")}</button>
                             </div>
                         )}
 
                         {!account.sessionsSupported ? (
                             <div className={`${insetClass} px-4 py-4 text-sm text-[color:var(--fc-text-secondary)]`}>
-                                Session inventory is not exposed by the backend yet.
+                                {copy("Session inventory is not available for this account.")}
                             </div>
                         ) : sessionsLoading ? (
-                            <div className="flex items-center justify-center py-12">
+                            <div role="status" aria-label={copy("Loading remembered sessions…")} className="flex items-center justify-center py-12">
                                 <Loader2 className="h-6 w-6 animate-spin text-[color:var(--fc-accent)]" />
                             </div>
                         ) : sessions ? (
                             <div className="space-y-4">
                                 <div className="grid gap-3 md:grid-cols-3">
-                                    <StatTile label="Active" value={sessions?.activeCount ?? 0} />
-                                    <StatTile label="Revoked" value={sessions?.revokedCount ?? 0} />
-                                    <StatTile label="Expired" value={sessions?.expiredCount ?? 0} />
+                                    <StatTile label={copy("Active")} value={sessions?.activeCount ?? 0} />
+                                    <StatTile label={copy("Revoked")} value={sessions?.revokedCount ?? 0} />
+                                    <StatTile label={copy("Expired")} value={sessions?.expiredCount ?? 0} />
                                 </div>
 
                                 <div className={surfaceClass}>
@@ -959,26 +910,26 @@ export const AccountPage = () => {
                                                     <div>
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">
-                                                                {session.current ? 'Current Browser Session' : `Remembered Session #${session.id}`}
+                                                                {session.current ? copy('Current Browser Session') : copy(`Remembered Session #${session.id}`, `შენახული სესია #${session.id}`)}
                                                             </p>
                                                             <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${sessionTone(session.status)}`}>
-                                                                {session.status}
+                                                                {copy(session.status)}
                                                             </span>
                                                         </div>
                                                         <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
-                                                            {fmt(session.expiresAt) ? `Refresh access expires ${fmt(session.expiresAt)}.` : 'Expiry details are not available for this session.'}
+                                                            {fmt(session.expiresAt) ? copy(`Refresh access expires ${fmt(session.expiresAt)}.`, `სესიის ვადა იწურება: ${fmt(session.expiresAt)}.`) : copy("Expiry details are not available for this session.")}
                                                         </p>
                                                     </div>
                                                     {session.current && (
                                                         <span className="rounded-full border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-accent)]">
-                                                            Current
+                                                            {copy("Current")}
                                                         </span>
                                                     )}
                                                 </article>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="px-5 py-10 text-sm text-[color:var(--fc-text-secondary)]">No remembered sessions are currently recorded for this account.</div>
+                                        <div className="px-5 py-10 text-sm text-[color:var(--fc-text-secondary)]">{copy("No remembered sessions are currently recorded for this account.")}</div>
                                     )}
                                 </div>
                             </div>
@@ -989,12 +940,12 @@ export const AccountPage = () => {
                 {/* ===== LINKED ACCOUNTS TAB ===== */}
                 {activeTab === 'accounts' && (
                     <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-                        <Section title="Capability Summary">
-                            <DetailRow label="Password Sign-In" value={account.passwordLoginEnabled ? 'Enabled' : 'Not configured'} />
-                            <DetailRow label="External Providers" value={account.linkedAccounts.length > 0 ? `${account.linkedAccounts.length} connected` : 'None'} />
+                        <Section title={copy("Capability Summary")}>
+                            <DetailRow label={copy("Password Sign-In")} value={account.passwordLoginEnabled ? copy("Enabled") : copy("Not configured")} />
+                            <DetailRow label={copy("External Providers")} value={account.linkedAccounts.length > 0 ? copy(`${account.linkedAccounts.length} connected`, `${account.linkedAccounts.length} დაკავშირებულია`) : copy("None")} />
                         </Section>
 
-                        <Section title="Linked Providers" description="Manage the sign-in methods attached to this account.">
+                        <Section title={copy("Linked Providers")} description={copy("Manage the sign-in methods attached to this account.")}>
                             {securityExtensions && <GoogleProviderSettings accountId={account.id} onCredentialsChanged={refreshOverview} />}
                             {account.linkedAccounts.some(linked => !securityExtensions || linked.provider !== 'google') && (
                                 <div className={surfaceClass}>
@@ -1003,7 +954,7 @@ export const AccountPage = () => {
                                             <article key={`${linked.provider}-${linked.linkedAt || 'current'}`} className="flex items-center justify-between gap-4 px-5 py-4">
                                                 <div>
                                                     <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{providerLabel(linked.provider)}</p>
-                                                    <p className="mt-1 text-sm text-[color:var(--fc-text-secondary)]">{linked.linkedAt ? `Linked ${fmt(linked.linkedAt)}` : 'Linked account'}</p>
+                                                    <p className="mt-1 text-sm text-[color:var(--fc-text-secondary)]">{linked.linkedAt ? copy(`Linked ${fmt(linked.linkedAt)}`, `დაკავშირების თარიღი: ${fmt(linked.linkedAt)}`) : copy("Linked account")}</p>
                                                 </div>
                                                 <BadgeCheck className="h-5 w-5 text-[color:var(--fc-accent)]" />
                                             </article>
@@ -1018,16 +969,13 @@ export const AccountPage = () => {
 
                 {/* ===== DANGER TAB ===== */}
                 {activeTab === 'danger' && (
-                    <Section title="Danger Zone" description="Destructive account actions belong here and nowhere else.">
+                    <Section title={copy("Danger Zone")}>
                         <div className="rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-5 py-4">
                             <div className="flex items-start gap-3">
                                 <TriangleAlert className="mt-0.5 h-5 w-5 text-[color:var(--fc-state-danger)]" />
                                 <div>
                                     <p className="text-sm font-semibold text-[color:var(--fc-state-danger)]">
-                                        {account.accountDeletionSupported ? 'Account deletion is available for this account.' : 'Account deletion is not available in this phase.'}
-                                    </p>
-                                    <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
-                                        {account.accountDeletionSupported ? 'This control can be wired here without changing the account-center structure.' : 'The surface stays here so later destructive flows plug into the right place without pretending they work today.'}
+                                        {copy("Account deletion is not available on this page.")}
                                     </p>
                                 </div>
                             </div>

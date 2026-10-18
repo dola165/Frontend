@@ -13,35 +13,61 @@ import '../../../components/workspace/recruitment/recruitment-design.css';
 import { useAuth } from '../../../context/AuthContext';
 import { OrganizationInvitationInbox } from '../../organizations/setup/OrganizationInvitationInbox';
 import { ClubRelationships } from './ClubRelationships';
+import { isCurrentAuthSession } from '../../../utils/authStorage';
+import { emitNotificationsChanged } from '../../../utils/notifications';
 
 /** The player's applications, invitations and club affiliations, with their existing next actions. */
 const ClubJourneyContent = () => {
-    const { refreshNavigationCapabilities } = useAuth();
+    const { sessionId, refreshNavigationCapabilities } = useAuth();
     const { t } = useTranslation();
     const r = useRecruitmentCopy();
     const navigate = useNavigate();
     const [journey, setJourney] = useState<ClubJourney | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [busyKey, setBusyKey] = useState<string | null>(null);
     const actionLock = useRef(false);
+    const mounted = useRef(false);
+    const latestLoad = useRef(0);
 
-    const load = useCallback(async () => {
-        setError(null);
-        try { setJourney(await fetchClubJourney()); }
-        catch (err) { setError(extractApiErrorMessage(err, 'Failed to load your club journey.')); }
-        finally { setLoading(false); }
-    }, []);
-    useEffect(() => { void load(); }, [load]);
+    const load = useCallback(async (signal?: AbortSignal) => {
+        const sequence = ++latestLoad.current;
+        const current = () => mounted.current && !signal?.aborted && sequence === latestLoad.current && isCurrentAuthSession(sessionId);
+        try {
+            const result = await fetchClubJourney({ _authSessionId: sessionId, signal });
+            if (current()) { setJourney(result); setLoadError(null); }
+        } catch (err) { if (current()) setLoadError(extractApiErrorMessage(err, 'Failed to load your club journey.')); }
+        finally { if (current()) setLoading(false); }
+    }, [sessionId]);
+    useEffect(() => {
+        mounted.current = true;
+        const controller = new AbortController();
+        const refresh = () => { void load(controller.signal); };
+        refresh();
+        const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
+        window.addEventListener('requests-updated', refresh);
+        window.addEventListener('focus', refresh);
+        window.addEventListener('online', refresh);
+        return () => { mounted.current = false; controller.abort(); window.clearInterval(timer); window.removeEventListener('requests-updated', refresh); window.removeEventListener('focus', refresh); window.removeEventListener('online', refresh); };
+    }, [load]);
 
     const runAction = async (key: string, action: () => Promise<unknown>) => {
-        if (actionLock.current) return;
+        if (actionLock.current || !isCurrentAuthSession(sessionId)) return;
         actionLock.current = true;
         setBusyKey(key);
         setError(null);
-        try { await action(); await load(); await refreshNavigationCapabilities().catch(() => setError('Your response was saved. Reload to refresh your navigation.')); }
-        catch (err) { setError(extractApiErrorMessage(err, 'Request failed.')); }
-        finally { actionLock.current = false; setBusyKey(null); }
+        try {
+            await action();
+            if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
+            window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
+            await refreshNavigationCapabilities().catch(() => { if (mounted.current && isCurrentAuthSession(sessionId)) setError('Your response was saved. Reload to refresh your navigation.'); });
+        } catch (err) {
+            if (mounted.current && isCurrentAuthSession(sessionId)) {
+                setError(extractApiErrorMessage(err, 'Request failed.'));
+                window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
+            }
+        } finally { actionLock.current = false; if (mounted.current && isCurrentAuthSession(sessionId)) setBusyKey(null); }
     };
     const statusLabel = (status: string) => {
         if (status === 'ACTIVE') return t('journey.member');
@@ -51,7 +77,7 @@ const ClubJourneyContent = () => {
     };
 
     if (loading) return <div className="flex items-center justify-center py-8" role="status"><Loader2 className="h-6 w-6 animate-spin text-[var(--fc-accent)]" /></div>;
-    if (error && !journey) return <div className="squad-design recruitment-design sd-empty" role="alert"><p>{error}</p><button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button></div>;
+    if ((error || loadError) && !journey) return <div className="squad-design recruitment-design sd-empty" role="alert"><p>{error || loadError}</p><button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button></div>;
     if (!journey) return null;
 
     const pills = [
@@ -66,12 +92,12 @@ const ClubJourneyContent = () => {
 
     return <div className="squad-design recruitment-design rc-journey">
         <header className="sd-heading"><div><span className="sd-eyebrow">{r('recruitment')}</span><h2>{r('journey')}</h2><p>{r('journeyIntro')}</p></div></header>
-        {error && <p role="alert" className="text-xs text-[var(--fc-state-danger)]">{error}</p>}
+        {(error || loadError) && <p role="alert" className="text-xs text-[var(--fc-state-danger)]">{error || loadError} {loadError && <button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button>}</p>}
         <div className="rc-journey-counts">{pills.map((pill) => <span key={pill.label}>{pill.label} · {pill.count}</span>)}</div>
         {!hasActivity && <div className="sd-empty"><Users size={28} /><p>{t('journey.empty')}</p><button type="button" className="sd-button" onClick={() => navigate('/map')}>{t('journey.browseClubs')}<ArrowUpRight size={14} /></button></div>}
 
         {journey.invitations.length > 0 && <section className="rc-journey-section"><h3>{t('journey.invitations')}</h3>{journey.invitations.map((invite) => <article key={invite.inviteId} className="sd-panel rc-journey-card rc-journey-invite">
-            <small>{r('invitationNext')}</small><div className="rc-journey-card-row"><div className="rc-journey-card-main"><h4>{invite.clubName}</h4><p>{t('journey.inviteRole', { role: t('recruitmentDesign.' + invite.role, { defaultValue: invite.role ?? '' }) })}</p>{invite.expiresAt && <p>{r('inviteExpires', { date: formatDate(invite.expiresAt) })}</p>}</div><div className="rc-actions"><button type="button" className="sd-primary" disabled={busyKey != null} onClick={() => void runAction(`invite-accept-${invite.inviteId}`, () => acceptClubInvitation(invite.inviteId))}>{busyKey === `invite-accept-${invite.inviteId}` ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}{t('journey.acceptInvite')}</button><button type="button" className="sd-button" disabled={busyKey != null} onClick={() => void runAction(`invite-decline-${invite.inviteId}`, () => declineClubInvitation(invite.inviteId))}><X size={13} />{t('journey.declineInvite')}</button></div></div><p>{r('invitationHint')}</p>{viewClub(invite.clubId)}
+            <small>{r('invitationNext')}</small><div className="rc-journey-card-row"><div className="rc-journey-card-main"><h4>{invite.clubName}</h4><p>{t('journey.inviteRole', { role: t('recruitmentDesign.' + invite.role, { defaultValue: invite.role ?? '' }) })}</p>{invite.expiresAt && <p>{r('inviteExpires', { date: formatDate(invite.expiresAt) })}</p>}</div><div className="rc-actions"><button type="button" className="sd-primary" disabled={busyKey != null || loadError != null} onClick={() => void runAction(`invite-accept-${invite.inviteId}`, () => acceptClubInvitation(invite.inviteId, { _authSessionId: sessionId }))}>{busyKey === `invite-accept-${invite.inviteId}` ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}{t('journey.acceptInvite')}</button><button type="button" className="sd-button" disabled={busyKey != null || loadError != null} onClick={() => void runAction(`invite-decline-${invite.inviteId}`, () => declineClubInvitation(invite.inviteId, { _authSessionId: sessionId }))}><X size={13} />{t('journey.declineInvite')}</button></div></div><p>{r('invitationHint')}</p>{viewClub(invite.clubId)}
         </article>)}</section>}
 
         {journey.affiliations.length > 0 && <section className="rc-journey-section"><h3>{r('yourClubs')}</h3>{journey.affiliations.map((affiliation) => <article key={`${affiliation.clubId}-${affiliation.status}`} className="sd-panel rc-journey-card">

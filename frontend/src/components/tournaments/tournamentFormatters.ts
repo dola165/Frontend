@@ -37,7 +37,7 @@ export const tournamentStageTypeText = (type: TournamentStageType, translate: (k
 export const tournamentStageStatusText = (status: TournamentStageStatus, translate: (key: string) => string) =>
     translate(`tournaments.workspace.stageStatus.${status.toLowerCase()}`);
 
-export const formatTournamentDate = (value: string | null | undefined, language = 'en') => {
+export const formatTournamentDate = (value: string | null | undefined, language = 'en', timezone?: string) => {
     if (!value) return null;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
@@ -45,6 +45,7 @@ export const formatTournamentDate = (value: string | null | undefined, language 
         day: 'numeric',
         month: 'short',
         year: 'numeric',
+        timeZone: timezone,
     }).format(date);
 };
 
@@ -52,9 +53,10 @@ export const formatTournamentDateRange = (
     start: string | null | undefined,
     end: string | null | undefined,
     language = 'en',
+    timezone?: string,
 ) => {
-    const startLabel = formatTournamentDate(start, language);
-    const endLabel = formatTournamentDate(end, language);
+    const startLabel = formatTournamentDate(start, language, timezone);
+    const endLabel = formatTournamentDate(end, language, timezone);
     if (!startLabel) return null;
     return endLabel ? `${startLabel} — ${endLabel}` : startLabel;
 };

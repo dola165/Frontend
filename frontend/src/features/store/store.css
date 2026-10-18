@@ -1,3 +1,5 @@
+@import './store-responsive.css';
+
 /* The store: Fanatics' structure (a storefront of visual entry points, then a catalogue with a filter column and a
    consistent product grid) in GrassKickZ's own skin: 13px, quiet greys, one bright thing per card, big pictures.
    Scoped under .gk-store; tokens only. */

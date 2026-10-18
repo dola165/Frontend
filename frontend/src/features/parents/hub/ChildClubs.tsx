@@ -41,8 +41,9 @@ function ClubBlock({ club, squads, playerId }: { club: ChildClub; squads: api.Sq
 /** What the club has recorded as due. With no recorded statement it says so, never zero. */
 function FeesLine({ fees, ask }: { fees: ChildFees | null; ask: string }) {
     const copy = useJourneyCopy();
-    const due = fees && fees.status !== 'PAID' && fees.amount != null;
-    const summary = !fees ? copy('Not recorded', 'არ არის ჩაწერილი')
+    const recorded = fees?.amount != null && Number.isFinite(fees.amount) && !!fees.currency;
+    const due = recorded && fees.status !== 'PAID';
+    const summary = !recorded ? copy('Not recorded', 'არ არის ჩაწერილი')
         : due ? `${money(fees.amount!, fees.currency)}${fees.dueDate ? ` · ${copy('due', 'ვადა')} ${formatDate(fees.dueDate, { day: 'numeric', month: 'short' })}` : ''}`
         : copy('Paid up', 'გადახდილია');
     return <details className="ph-fees">

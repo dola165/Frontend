@@ -40,18 +40,18 @@ export const cancelClubInvitation = async (clubId: number, inviteId: number) => 
     await apiClient.delete(`/clubs/${clubId}/management/invitations/${inviteId}`);
 };
 
-export const fetchMyClubInvitations = async () => {
-    const response = await apiClient.get<MyClubInvitation[]>('/club-memberships/invites/me');
+export const fetchMyClubInvitations = async (config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.get<MyClubInvitation[]>('/club-memberships/invites/me', config);
     return response.data;
 };
 
-export const acceptClubInvitation = async (inviteId: number) => {
-    const response = await apiClient.post<{ status: string }>(`/club-memberships/invites/${inviteId}/accept`);
+export const acceptClubInvitation = async (inviteId: number, config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.post<{ status: string }>(`/club-memberships/invites/${inviteId}/accept`, null, config);
     return response.data;
 };
 
-export const declineClubInvitation = async (inviteId: number) => {
-    const response = await apiClient.post<{ status: string }>(`/club-memberships/invites/${inviteId}/decline`);
+export const declineClubInvitation = async (inviteId: number, config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.post<{ status: string }>(`/club-memberships/invites/${inviteId}/decline`, null, config);
     return response.data;
 };
 
@@ -119,8 +119,8 @@ export const bulkDecideClubApplications = async (
 };
 
 /** Phase A4 — the authenticated player's club journey aggregate. */
-export const fetchClubJourney = async () => {
-    const response = await apiClient.get<ClubJourney>('/me/club-journey');
+export const fetchClubJourney = async (config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.get<ClubJourney>('/me/club-journey', config);
     return response.data;
 };
 
@@ -214,10 +214,8 @@ export interface ClubJobPayload {
     status?: 'OPEN' | 'CLOSED';
 }
 
-export const fetchOpenJobDirectory = async (signal?: AbortSignal) => {
-    const response = await apiClient.get<ClubJob[]>('/jobs', {signal});
-    return response.data;
-};
+export const fetchOpenJobDirectory = async (params: URLSearchParams, signal?: AbortSignal) =>
+    (await apiClient.get<PageResult<ClubJob>>(`/jobs/listings?${params}`, { signal })).data;
 
 export interface ClubStaffProfilePayload {
     publicTitle?: string | null;

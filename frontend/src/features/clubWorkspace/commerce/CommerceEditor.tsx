@@ -1,3 +1,4 @@
+import { ct, useCommerceCopy } from '../../store/copy';
 import { useEffect, useId, useRef, type FormEventHandler, type ReactNode } from 'react';
 import { ArrowLeft, Check, Circle } from 'lucide-react';
 import { CommerceDraftNotice } from '../../../components/workspace/CommerceDraftScope';
@@ -13,13 +14,14 @@ import './commerce.css';
  */
 export function CommerceEditor({
     title, description, formLabel, children, preview, saveLabel, saving, disabled = saving, footerNote,
-    onSubmit, onRequestClose, closeLabel = 'Close editor', backLabel, feedback, confirmation,
+    onSubmit, onRequestClose, closeLabel = ct("Close editor"), backLabel, feedback, confirmation, saveDisabled = false,
 }: {
     title: string; description: string; formLabel: string; children: ReactNode; preview: ReactNode;
     saveLabel: string; saving: boolean; disabled?: boolean; footerNote: string;
     onSubmit: FormEventHandler<HTMLFormElement>; onRequestClose: () => void;
-    closeLabel?: string; backLabel: string; feedback?: ReactNode; confirmation?: ReactNode;
+    closeLabel?: string; backLabel: string; feedback?: ReactNode; confirmation?: ReactNode; saveDisabled?: boolean;
 }) {
+    useCommerceCopy();
     const descriptionId = useId();
     const form = useRef<HTMLFormElement>(null);
     useEffect(() => { form.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' }); }, []);
@@ -34,20 +36,20 @@ export function CommerceEditor({
     };
     return <PageFrame className="cw-page cm-page">
         <form ref={form} noValidate className="cm-editor" aria-label={formLabel} aria-describedby={descriptionId} aria-busy={disabled}
-            onSubmit={event => { if (disabled || !validate()) { event.preventDefault(); return; } onSubmit(event); }}
+            onSubmit={event => { if (disabled || saveDisabled || !validate()) { event.preventDefault(); return; } onSubmit(event); }}
             onKeyDown={event => { if (event.key === 'Escape' && !disabled && !event.defaultPrevented) { event.preventDefault(); onRequestClose(); } }}>
             <div className="cm-editor__back"><Button variant="ghost" size="sm" disabled={disabled} onClick={onRequestClose}><ArrowLeft aria-hidden="true" />{backLabel}</Button></div>
             <PageHeader title={title} subtitle={<span id={descriptionId}>{description}</span>} />
             <div className="cm-editor__feedback"><CommerceDraftNotice />{feedback}</div>
             <div className="cm-editor__layout">
                 <fieldset disabled={disabled} className="cm-editor__fields">{children}</fieldset>
-                <aside className="cm-editor__aside" aria-label={`${formLabel} preview and guidance`}>{preview}</aside>
+                <aside className="cm-editor__aside" aria-label={ct("{v0} preview and guidance", { v0: formLabel })}>{preview}</aside>
             </div>
             <div className="cm-editor__bar">
                 <p className="cm-editor__note">{footerNote}</p>
                 <div className="cm-editor__actions">
                     <Button disabled={disabled} onClick={onRequestClose}>{closeLabel}</Button>
-                    <Button type="submit" variant="primary" disabled={disabled}>{saving ? 'Saving…' : saveLabel}</Button>
+                    <Button type="submit" variant="primary" disabled={disabled || saveDisabled}>{saving ? ct("Saving…") : saveLabel}</Button>
                 </div>
                 {confirmation}
             </div>
@@ -57,6 +59,7 @@ export function CommerceEditor({
 
 /** A titled group of fields inside the editor. */
 export function EditorSection({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+    useCommerceCopy();
     const titleId = useId();
     return <section className="gk-panel cm-section" aria-labelledby={titleId}>
         <header className="cm-section__head"><h2 id={titleId} className="gk-panel__title">{title}</h2>{description && <p className="cm-hint">{description}</p>}</header>
@@ -64,12 +67,13 @@ export function EditorSection({ title, description, children }: { title: string;
     </section>;
 }
 
-export function EditorChecklist({ title = 'Before you publish', items, children }: { title?: string; items: { label: string; complete: boolean }[]; children?: ReactNode }) {
+export function EditorChecklist({ title = ct("Before you publish"), items, children }: { title?: string; items: { label: string; complete: boolean }[]; children?: ReactNode }) {
+    useCommerceCopy();
     return <section className="gk-panel cm-checklist">
         <h2 className="gk-panel__title">{title}</h2>
-        <ul>{items.map(item => <li key={item.label} data-complete={item.complete}>
+        <ul>{items.map(item => <li key={ct(item.label)} data-complete={item.complete}>
             {item.complete ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
-            <span><span className="gk-visually-hidden">{item.complete ? 'Complete: ' : 'To do: '}</span>{item.label}</span>
+            <span><span className="gk-visually-hidden">{item.complete ? ct("Complete: ") : ct("To do: ")}</span>{ct(item.label)}</span>
         </li>)}</ul>
         {children && <p className="cm-hint">{children}</p>}
     </section>;
@@ -77,8 +81,9 @@ export function EditorChecklist({ title = 'Before you publish', items, children 
 
 /** The live preview card beside the editor: what supporters or candidates will see once it is saved. */
 export function EditorPreview({ label, media, children, footnote }: { label: string; media?: ReactNode; children: ReactNode; footnote?: ReactNode }) {
+    useCommerceCopy();
     return <section className="gk-panel cm-preview" aria-label={label}>
-        <p className="cm-preview__label"><span>{label}</span><span>Unsaved</span></p>
+        <p className="cm-preview__label"><span>{label}</span><span>{ct("Unsaved")}</span></p>
         {media && <div className="cm-preview__media">{media}</div>}
         <div className="cm-preview__body">{children}</div>
         {footnote && <p className="cm-hint cm-preview__foot">{footnote}</p>}
@@ -86,9 +91,10 @@ export function EditorPreview({ label, media, children, footnote }: { label: str
 }
 
 /** Asks before unsaved edits are thrown away. Keep editing returns focus to where the person was. */
-export function EditorDiscardPrompt({ disabled, onKeepEditing, onDiscard, label = 'Discard edits', question = 'Discard your unsaved changes?', detail = 'Your saved version stays as it is.', keepLabel = 'Keep editing', discardLabel = 'Discard edits' }: {
+export function EditorDiscardPrompt({ disabled, onKeepEditing, onDiscard, label = ct("Discard edits"), question = ct("Discard your unsaved changes?"), detail = ct("Your saved version stays as it is."), keepLabel = ct("Keep editing"), discardLabel = ct("Discard edits") }: {
     disabled: boolean; onKeepEditing: () => void; onDiscard: () => void; label?: string; question?: string; detail?: string; keepLabel?: string; discardLabel?: string;
 }) {
+    useCommerceCopy();
     const prompt = useRef<HTMLDivElement>(null);
     const previousFocus = useRef<HTMLElement | null>(null);
     useEffect(() => {

@@ -13,7 +13,7 @@ export interface OrganizationCapabilities {
 }
 export interface OrganizationInvitation {
     id: number; organizationId: number; organizationName: string; recipientName: string | null;
-    status: string; expiresAt: string | null; canRespond: boolean; canOpenVenue: boolean;
+    status: string; expiresAt: string | null; canRespond: boolean; canOpenVenue: boolean; canDecline?: boolean;
 }
 export interface VenueOperator {
     membershipId: number; userId: number; name: string | null; status: string;
@@ -26,8 +26,8 @@ export const updateActivities = async (id: number, payload: { revision: number; 
     (await apiClient.put<OrganizationCapabilities>(`/organizations/${id}/activities`, payload)).data;
 export const getOperators = async (id: number, signal?: AbortSignal) =>
     (await apiClient.get<Delegation>(`/organizations/${id}/venue-operators`, { signal })).data;
-export const inviteOperator = async (id: number, email: string) =>
-    (await apiClient.post<Delegation>(`/organizations/${id}/venue-operators/invitations`, { email })).data;
+export const inviteOperator = async (id: number, email: string, requestId?: string) =>
+    (await apiClient.post<Delegation>(`/organizations/${id}/venue-operators/invitations`, { email, requestId })).data;
 export const cancelInvitation = async (id: number, inviteId: number) =>
     (await apiClient.post<Delegation>(`/organizations/${id}/venue-operators/invitations/${inviteId}/cancel`)).data;
 export const revokeOperator = async (id: number, membershipId: number) =>

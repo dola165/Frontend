@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { opportunityMapPath } from '../admissions/opportunityPaths';
 import { arrangePath } from './compose/arrangeSeed';
 import { WorldLayout } from './WorldLayout';
 import { WorldLoading as PageLoading } from './WorldLoading';
@@ -25,7 +26,10 @@ function ArrangeRedirect() {
 /** `/world` is the Map; a link to a plan on the old full map still opens journey planning. */
 function WorldIndex() {
     const location = useLocation();
-    if (new URLSearchParams(location.search).has('plans')) return <Navigate replace to={{ pathname: '/world/map', search: location.search, hash: location.hash }} />;
+    const params = new URLSearchParams(location.search);
+    const opportunity = positive(params.get('opportunity'));
+    if (opportunity) return <Navigate replace to={opportunityMapPath(opportunity, positive(params.get('player')))} />;
+    if (params.has('plans')) return <Navigate replace to={{ pathname: '/world/map', search: location.search, hash: location.hash }} />;
     return <MapDirectory />;
 }
 

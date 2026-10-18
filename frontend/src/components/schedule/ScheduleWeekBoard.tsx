@@ -158,9 +158,12 @@ export const ScheduleWeekBoard = ({
     );
     const plans = useMemo(() => {
         const series = new Map<string | number, ScheduleWorkspaceEvent>();
-        for (const event of trainingEvents) {
+        // Private squad plans carry a real series identity on their canonical sessions.
+        // The separate calendar timetable feed need not contain those sessions.
+        const sources = [...trainingEvents, ...events.filter(event => event.origin === 'SQUAD_SESSION' && event.seriesId)];
+        for (const event of sources) {
             if (!validEvent(event) || cancelled(event) || !event.recurring || event.eventType !== 'TRAINING') continue;
-            const seriesKey = event.seriesId ?? event.eventId;
+            const seriesKey = `${event.origin ?? 'CLUB_CALENDAR'}:${event.seriesId ?? event.eventId}`;
             const existing = series.get(seriesKey);
             const start = Date.parse(event.startsAt);
             const previous = existing ? Date.parse(existing.startsAt) : NaN;
@@ -174,7 +177,9 @@ export const ScheduleWeekBoard = ({
             }
         }
         return [...series.values()].sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
-    }, [now, trainingEvents]);
+    }, [events, now, trainingEvents]);
+    const showTrainingPlans = showTraining && plans.length > 0;
+    const trainingTitle = t('schedule.direction.trainingPlans', { defaultValue: i18n.resolvedLanguage?.startsWith('ka') ? 'ვარჯიშების გეგმები' : 'Training plans' });
     const available = visible.filter((event) => !cancelled(event));
     const next = available.find((event) => Date.parse(event.endsAt) > now) ?? available[0];
     const nextIsFuture = next && Date.parse(next.startsAt) > now;
@@ -206,7 +211,7 @@ export const ScheduleWeekBoard = ({
         ) : null;
     return (
         <div className="swb-root">
-            {showTraining && (plans.length > 0 || (canCreate && onCreateTraining)) && (
+            {showTrainingPlans && (
                 <button
                     type="button"
                     className="swb-mobile-plans"
@@ -220,14 +225,14 @@ export const ScheduleWeekBoard = ({
                     }}
                 >
                     <Repeat2 size={15} aria-hidden="true" />
-                    {t('schedule.direction.weeklyTraining', { defaultValue: 'Weekly training' })}
+                    {trainingTitle}
                     <span>
                         {t('schedule.direction.planCount', { count: plans.length, defaultValue: '{{count}} plans' })}
                     </span>
                     <ArrowDown size={14} aria-hidden="true" />
                 </button>
             )}
-            <div className={`swb-workbench swb-view-${view}${hideInspector || (!next && !plans.length) ? ' swb-without-rail' : ''}`}>
+            <div className={`swb-workbench swb-view-${view}${hideInspector || (!next && !showTrainingPlans) ? ' swb-without-rail' : ''}`}>
                 <section
                     className="swb-board-region"
                     aria-label={t(`schedule.direction.${view}`, {
@@ -368,7 +373,7 @@ export const ScheduleWeekBoard = ({
                             </p>
                         )}
                     </section>
-                    {showTraining && (
+                    {showTrainingPlans && (
                         <section
                             className="swb-training"
                             ref={trainingRef}
@@ -378,14 +383,14 @@ export const ScheduleWeekBoard = ({
                         >
                             <header>
                                 <h2 className="swb-section-label">
-                                    {t('schedule.direction.weeklyTraining', { defaultValue: 'Weekly training' })}
+                                    {trainingTitle}
                                 </h2>
                                 {canCreate && onCreateTraining && (
                                     <button
                                         type="button"
                                         onClick={onCreateTraining}
-                                        aria-label={t('schedule.direction.addTraining', {
-                                            defaultValue: 'Add weekly training',
+                                        aria-label={t('schedule.direction.addTrainingPlan', {
+                                            defaultValue: i18n.resolvedLanguage?.startsWith('ka') ? 'ვარჯიშის გეგმის დამატება' : 'Add training plan',
                                         })}
                                     >
                                         <Plus size={16} aria-hidden="true" />
@@ -393,7 +398,7 @@ export const ScheduleWeekBoard = ({
                                 )}
                             </header>
                             <p className="swb-rail-hint">
-                                {t('schedule.direction.rhythm', { defaultValue: 'The rhythm behind your week.' })}
+                                {t('schedule.direction.reviewTrainingPlan', { defaultValue: i18n.resolvedLanguage?.startsWith('ka') ? 'აირჩიეთ გეგმა შენახული ვარჯიშის სანახავად.' : 'Choose a plan to see a saved session.' })}
                             </p>
                             {plans.map((plan) => {
                                 const recurrence = plan.recurrence;
@@ -456,6 +461,10 @@ export const ScheduleWeekBoard = ({
                                                 )}
                                             </>
                                         )}
+                                        {!recurrence && plan.origin === 'SQUAD_SESSION' && <small>
+                                            <Clock3 size={12} aria-hidden="true" />
+                                            {formatDate(plan.startsAt, { day: 'numeric', month: 'short' })} · {timeRange(plan)}
+                                        </small>}
                                         {plan.locationText && (
                                             <small>
                                                 <MapPin size={12} aria-hidden="true" />
@@ -465,20 +474,6 @@ export const ScheduleWeekBoard = ({
                                     </button>
                                 );
                             })}
-                            {plans.length === 0 && (
-                                <p className="swb-muted">
-                                    {t('schedule.direction.noPlans', {
-                                        defaultValue: 'No weekly training in this view.',
-                                    })}
-                                </p>
-                            )}
-                            {canCreate && onCreateTraining && (
-                                <button type="button" className="swb-new-plan" onClick={onCreateTraining}>
-                                    <Plus size={15} aria-hidden="true" />
-                                    {t('schedule.direction.createPlan', { defaultValue: 'Create a training plan' })}
-                                    <ArrowRight size={14} aria-hidden="true" />
-                                </button>
-                            )}
                         </section>
                     )}
                 </aside>}

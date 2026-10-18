@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../../context/AuthContext';
 import { Check, MapPin, MessageCircle, Plus } from 'lucide-react';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
@@ -26,6 +27,8 @@ export function FollowButton({ id, name }: { id: number; name: string }) {
 
 export function MessageLink({ id, name, primary }: { id: number; name: string; /** The row's main action (they take clients). */ primary?: boolean }) {
     const t = useWorldCopy();
+    const { user } = useAuth();
+    if (user?.id === id) return <Link className="gk-people-act" to="/account/roles">{t('Edit roles')}</Link>;
     return <Link className="gk-people-act" data-primary={primary || undefined} to={`/messages?chatWith=${id}`} aria-label={t('Message {name}', { name })}><MessageCircle aria-hidden="true" />{t('Message')}</Link>;
 }
 

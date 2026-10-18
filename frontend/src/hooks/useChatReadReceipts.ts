@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { chatApi, type ChatMessageResponse } from '../api/chat';
 import { emitNotificationsChanged } from '../utils/notifications';
-import { getStoredUserId } from '../utils/authStorage';
+import { getAuthSessionId, getStoredUserId, isCurrentAuthSession } from '../utils/authStorage';
 
 /** Delivery is independent of reading. Only visible incoming bubbles are acknowledged. */
 export function useChatReadReceipts(
@@ -16,6 +16,7 @@ export function useChatReadReceipts(
         const root = viewport.current;
         if (conversationId === null || !enabled || !root || typeof IntersectionObserver === 'undefined') return;
         const userId = Number(getStoredUserId());
+        const session = getAuthSessionId();
         const eligible = new Set(messages.filter(message => message.conversationId === conversationId && message.senderId !== userId).map(message => message.id));
         const acknowledged = confirmed.current.get(conversationId) ?? new Set<number>();
         confirmed.current.set(conversationId, acknowledged);
@@ -23,7 +24,7 @@ export function useChatReadReceipts(
         let active = true;
         let sending = false;
         let timer: number | undefined;
-        const canRead = () => active && document.visibilityState === 'visible' && document.hasFocus()
+        const canRead = () => active && isCurrentAuthSession(session) && document.visibilityState === 'visible' && document.hasFocus()
             && !root.closest('[inert], [aria-hidden="true"]')
             && ![...document.querySelectorAll<HTMLElement>('[aria-modal="true"], dialog[open]')]
                 .some(dialog => !dialog.contains(root) && dialog.getClientRects().length > 0);
@@ -57,6 +58,7 @@ export function useChatReadReceipts(
             let saved = false;
             try {
                 await chatApi.markAsRead(conversationId, ids);
+                if (!isCurrentAuthSession(session)) return;
                 ids.forEach(id => acknowledged.add(id));
                 saved = true;
                 // Badges refresh only after the server confirms the read.

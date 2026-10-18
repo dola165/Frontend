@@ -46,7 +46,7 @@ it('submits a record from one page with the permitted squad and without adding a
   fireEvent.change(screen.getByLabelText('Squad'), { target: { value: '2' } });
   fireEvent.click(screen.getByRole('button', { name: 'Save club equipment' }));
   await waitFor(() => expect(saved).toHaveBeenCalledOnce());
-  expect(apiClient.post).toHaveBeenCalledWith('/clubs/12/operations/records', expect.objectContaining({ title: 'Training balls', squadId: 2, data: { quantity: '8' } }));
+  expect(apiClient.post).toHaveBeenCalledWith('/clubs/12/operations/records', expect.objectContaining({ title: 'Training balls', squadId: 2, data: { quantity: '8' } }), { headers: { 'Idempotency-Key': expect.stringMatching(/^[0-9a-f-]{36}$/) }, _authSessionId: null });
 });
 
 it('asks before discarding a changed editor and preserves the draft when kept', () => {

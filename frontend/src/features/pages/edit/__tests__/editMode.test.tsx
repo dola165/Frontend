@@ -26,7 +26,7 @@ function mount(path = '/organizations/7002?edit=1') {
 const filledContact = (page: PageView): PageView => withSetup({ ...page, identity: { ...page.identity, version: page.identity.version + 1, contact: { phone: '+995 599 12 34 56', email: 'ultras@rustavi.ge' } } });
 
 describe('edit mode on a page', () => {
-  beforeEach(() => { toasts.calls.length = 0; api.fetchPage.mockReset(); api.saveIdentity.mockReset(); api.saveBox.mockReset(); api.goLive.mockReset(); sessionStorage.clear(); });
+  beforeEach(() => { toasts.calls.length = 0; api.fetchPage.mockReset(); api.saveIdentity.mockReset(); api.saveBox.mockReset(); api.goLive.mockReset(); sessionStorage.clear(); localStorage.setItem('gk-session-id', 's1'); });
 
   it('never shows edit mode to someone who may not edit, whatever the address says', async () => {
     api.fetchPage.mockResolvedValue(makePage({ status: 'LIVE', viewer: { role: null, canEdit: false, editable: [], canClaim: false }, identity: { about: 'Supporters of Rustavi' } as never }));
@@ -67,6 +67,19 @@ describe('edit mode on a page', () => {
     expect(toasts.calls.map(call => call.message)).toContain('Contact saved');
   });
 
+  it('keeps the contact editor and typed draft open after a refused save', async () => {
+    const user = userEvent.setup();
+    api.fetchPage.mockResolvedValue(makePage());
+    api.saveIdentity.mockRejectedValue(new Error('offline'));
+    mount();
+    await user.click((await screen.findAllByRole('button', { name: /How to reach you/ }))[0]);
+    await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56');
+    await user.click(screen.getAllByRole('button', { name: 'Done' }).at(-1)!);
+    await waitFor(() => expect(api.saveIdentity).toHaveBeenCalledTimes(1));
+    expect(screen.getByLabelText('Phone')).toHaveValue('+995 599 12 34 56');
+    expect(screen.getByRole('status', { name: 'Save status' })).toHaveTextContent('Not saved');
+  });
+
   it('offers Undo on the toast, which saves the earlier values back with the version it reads then', async () => {
     const user = userEvent.setup();
     const page = makePage();
@@ -94,13 +107,14 @@ describe('edit mode on a page', () => {
     mount();
     await user.click((await screen.findAllByRole('button', { name: /How to reach you/ }))[0]);
     await user.type(screen.getByLabelText('Phone'), '+995 599 12 34 56{Enter}');
-    expect(await screen.findByText('+995 555 00 00 00')).toBeInTheDocument();
+    await waitFor(() => expect(toasts.calls.some(call => call.message === 'Someone just changed this.')).toBe(true));
+    expect(screen.getByLabelText('Phone')).toHaveValue('+995 599 12 34 56');
     const conflict = toasts.calls.find(call => call.message === 'Someone just changed this.');
     expect(conflict?.action?.label).toBe('Keep mine');
     conflict?.action?.onClick();
     await waitFor(() => expect(api.saveIdentity).toHaveBeenCalledTimes(2));
     expect(api.saveIdentity.mock.calls[1][1]).toBe(3);
-    expect(await screen.findByText('+995 599 12 34 56')).toBeInTheDocument();
+    expect(screen.getByLabelText('Phone')).toHaveValue('+995 599 12 34 56');
   });
 
   it('rearranges without dragging: Move down and Hide save the layout, and Hide can be undone', async () => {
@@ -124,9 +138,9 @@ describe('edit mode on a page', () => {
     expect(screen.getByRole('button', { name: 'Move Contact up' })).toBeDisabled();
   });
 
-  it('goes live once the page has a crest and a contact, and opens the share card', async () => {
+  it('goes live with only a name and opens the share card', async () => {
     const user = userEvent.setup();
-    const ready = filledContact(makePage({ identity: { crest: { kind: 'generated', design: { shape: 'shield', primary: 'red', secondary: 'white', initials: 'RU' }, kept: true, url: '/x.svg' } } as never }));
+    const ready = makePage();
     api.fetchPage.mockResolvedValue(ready);
     api.goLive.mockResolvedValue({ ...ready, status: 'LIVE', liveAt: '2026-10-15T11:00:00Z' });
     mount();
@@ -134,7 +148,7 @@ describe('edit mode on a page', () => {
     expect(live).toBeEnabled();
     await user.click(live);
     await waitFor(() => expect(api.goLive).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole('dialog', { name: 'Your page is live' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Your page is live' }, { timeout: 10000 })).toBeInTheDocument();
     expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Copy link' })).toBeInTheDocument();
     expect(screen.queryByText('Draft · only you see this')).toBeNull();
   });

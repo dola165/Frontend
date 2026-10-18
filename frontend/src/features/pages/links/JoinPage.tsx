@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, Loader2, Plus, User, Users } from 'lucide-react';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../../design/primitives';
@@ -28,18 +28,22 @@ export function JoinPage() {
   const [card, setCard] = useState({ first: '', last: '', gender: null as 'MALE' | 'FEMALE' | null, birthDate: '', consent: false });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const request = useRef<{ key: string; id: string } | null>(null);
   const [done, setDone] = useState<{ squadName: string | null } | null>(null);
   // A parent who already has children picks one (F33: which child first); "new" types a new one.
   const { sessionId } = useAuth();
   const [kids, setKids] = useState<JoiningChild[]>([]);
   const [picked, setPicked] = useState<number | 'new' | null>(null);
+  const [kidsState, setKidsState] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [kidsRetry, setKidsRetry] = useState(0);
   const chosen = typeof picked === 'number' ? kids.find(kid => kid.playerId === picked) : undefined;
   useEffect(() => {
     if (who !== 'PARENT') return;
     const controller = new AbortController();
-    fetchJoiningChildren(sessionId, controller.signal).then(found => { if (!controller.signal.aborted) setKids(found.children.filter(kid => !kid.clubs.some(club => club.clubName === link?.page.name && club.squadNames.includes(link?.squad.name ?? '')))); }).catch(() => { /* New child only. */ });
+    fetchJoiningChildren(sessionId, controller.signal).then(found => { if (!controller.signal.aborted) { setKids(found.children.filter(kid => !kid.clubs.some(club => club.clubId === link?.page.ref.id && club.squadNames.includes(link?.squad.name ?? '')))); setKidsState('ready'); } })
+      .catch(() => { if (!controller.signal.aborted) setKidsState('failed'); });
     return () => controller.abort();
-  }, [who, sessionId, link]);
+  }, [who, sessionId, link, kidsRetry]);
   const typing = who !== 'PARENT' || !kids.length || picked === 'new';
   const id = useId();
   useEffect(() => {
@@ -48,18 +52,20 @@ export function JoinPage() {
     return () => controller.abort();
   }, [code, t]);
   const adult = card.birthDate ? ageOn(card.birthDate) >= ADULT : false;
-  const ready = chosen ? card.consent : !typing ? false : card.first.trim() && card.birthDate && (who === 'PLAYER' || card.consent);
+  const ready = who === 'PARENT' && kidsState !== 'ready' ? false : chosen ? card.consent : !typing ? false : card.first.trim() && card.birthDate && (who === 'PLAYER' || card.consent);
   const submit = async () => {
-    if (busy || !ready) return;
+    if (busy || !ready || !who) return;
     setBusy(true); setError('');
     try {
       const [first, ...rest] = chosen ? chosen.identity.fullName.split(' ') : [];
-      const sent = chosen ? await sendJoin(code, { playerId: chosen.playerId, childFirstName: first, childLastName: rest.join(' '), childGender: chosen.identity.gender, birthDate: chosen.identity.dateOfBirth ?? '', consent: true })
-        : await sendJoin(code, { childFirstName: card.first.trim(), childLastName: card.last.trim(), childGender: card.gender, birthDate: card.birthDate, consent: true });
+      const body = chosen ? { who, playerId: chosen.playerId, childFirstName: first, childLastName: rest.join(' '), childGender: chosen.identity.gender, birthDate: chosen.identity.dateOfBirth ?? '', consent: true as const }
+        : { who, childFirstName: card.first.trim(), childLastName: card.last.trim(), childGender: card.gender, birthDate: card.birthDate, consent: true as const };
+      const key = JSON.stringify([code, body]); if (request.current?.key !== key) request.current = { key, id: crypto.randomUUID() };
+      const sent = await sendJoin(code, { ...body, requestId: request.current.id });
       setDone({ squadName: sent.squadName });
     }
     // A grown-up on a youth squad's link: the squad decides, not the form.
-    catch (failure) { setError(who === 'PLAYER' && adult ? t('This link is for {squad}. Ask the coach for the right squad’s link.', { squad: link?.squad.name ?? '' }) : extractApiErrorMessage(failure, t('Could not send. Try again.'))); }
+    catch (failure) { setError(extractApiErrorMessage(failure, t('Could not send. Try again.'))); }
     finally { setBusy(false); }
   };
   const header = link && <div className="gk-cmatch__page"><Crest src={link.page.crestUrl} name={link.page.name} size={44} /><span className="gk-cmatch__text"><strong><Link to={link.page.profilePath}>{link.page.name}</Link></strong><small>{[link.squad.name, link.page.town].join(' · ')}</small></span></div>;
@@ -68,11 +74,12 @@ export function JoinPage() {
     : done ? <Panel padded>
       <div className="gk-cmatch__page"><span className="gk-ghost__icon"><Check aria-hidden="true" /></span><span className="gk-cmatch__text"><strong>{t('{child} is on the list for {squad}', { child: chosen ? chosen.identity.fullName.split(' ')[0] : card.first.trim(), squad: done.squadName ?? link.squad.name })}</strong><small>{t('The coach confirms. Nothing is public.')}</small></span></div>
       <div className="gk-boxedit__foot" style={{ marginTop: 12 }}>
-        {who === 'PLAYER' && adult && <ButtonLink variant="primary" to={`/signup?next=${encodeURIComponent(link.page.profilePath)}`}>{t('Create your account')}</ButtonLink>}
+        <ButtonLink variant="primary" to="/admissions">{t('Follow your joining request')}</ButtonLink>
         {who === 'PARENT' && <ButtonLink variant="primary" to={chosen ? `/parent?player=${chosen.playerId}` : '/parent'}>{t('Open Parent Hub')}</ButtonLink>}
         <ButtonLink variant={who === 'PARENT' || adult ? 'ghost' : 'primary'} to={link.page.profilePath}>{t('Open {name}', { name: link.page.name })}</ButtonLink>
       </div>
     </Panel>
+    : who === 'PARENT' && kidsState !== 'ready' ? <Panel padded>{header}{kidsState === 'loading' ? <p role="status">{t('Loading your children…')}</p> : <div role="alert"><p>{t('Could not load your children. Retry before adding a new card.')}</p><Button onClick={() => { setKidsState('loading'); setKidsRetry(value => value + 1); }}>{t('Retry')}</Button></div>}<Button variant="ghost" onClick={() => setWho(null)}>{t('Back')}</Button></Panel>
     : !who ? <Panel padded>
       {header}
       {/* The one question the link asks: the parent's door and the player's own. Each is a tile with a picture, no reading. */}
@@ -101,7 +108,7 @@ export function JoinPage() {
         {typing && <div><label className="gk-field__label" htmlFor={`${id}-dob`}>{t('Date of birth')}</label><input id={`${id}-dob`} className="gk-input" type="date" value={card.birthDate} max={new Date().toISOString().slice(0, 10)} autoComplete={who === 'PLAYER' ? 'bday' : 'off'} style={{ maxWidth: 200 }} onChange={event => setCard({ ...card, birthDate: event.target.value })} /></div>}
         {who === 'PARENT' && !typing && !chosen ? null : who === 'PARENT'
           ? <label className="gk-row" style={{ gap: 8, alignItems: 'flex-start' }}><input type="checkbox" checked={card.consent} onChange={event => setCard({ ...card, consent: event.target.checked })} style={{ marginTop: 3 }} /><span>{t('I am the parent or guardian and I agree to the club keeping this card.')}</span></label>
-          : card.birthDate && !adult ? <p className="gk-field__hint">{t('Under {age}: a parent or the coach confirms your card.', { age: ADULT })}</p> : null}
+          : card.birthDate && !adult ? <p className="gk-field__hint">{t('Under {age}: a parent or guardian confirms the joining terms.', { age: ADULT })}</p> : null}
         {error && <p className="gk-notice gk-notice--warning" role="alert">{error}</p>}
         <div className="gk-boxedit__foot">
           <Button variant="primary" disabled={busy || !ready} onClick={() => void submit()}>{busy ? <Loader2 className="gk-spin" aria-hidden="true" /> : null}{t(who === 'PARENT' ? 'Add my child' : 'Send my card')}</Button>

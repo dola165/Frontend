@@ -29,6 +29,7 @@ const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = n
 
 beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     state.token = 'first-token';
     state.sessionId = 'session-A';
     vi.mocked(chatApi.getMessages).mockResolvedValue(response([]) as never);
@@ -39,6 +40,47 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('reliable chat transport', () => {
+    it('reuses an uncertain request after remount, even after a different draft was sent', async () => {
+        let view = renderHook(() => useChatWebSocket(vi.fn()));
+        await act(async () => { await view.result.current.setActiveConversation(7); });
+        vi.mocked(chatApi.sendMessage).mockRejectedValueOnce(new Error('lost reply'));
+        await act(async () => { await view.result.current.sendMessage(7, 'Synthetic local integration original'); });
+        const key = vi.mocked(chatApi.sendMessage).mock.calls[0][2];
+        vi.mocked(chatApi.sendMessage).mockResolvedValueOnce({ data: message(21) } as never);
+        await act(async () => { await view.result.current.sendMessage(7, 'Synthetic local integration edited'); });
+        view.unmount();
+        view = renderHook(() => useChatWebSocket(vi.fn()));
+        await act(async () => { await view.result.current.setActiveConversation(7); });
+        vi.mocked(chatApi.sendMessage).mockResolvedValueOnce({ data: message(20) } as never);
+        await act(async () => { await view.result.current.sendMessage(7, 'Synthetic local integration original'); });
+        expect(chatApi.sendMessage).toHaveBeenLastCalledWith(7, 'Synthetic local integration original', key);
+    });
+
+    it('does not dispatch when a retry receipt cannot be saved', async () => {
+        const { result } = renderHook(() => useChatWebSocket(vi.fn()));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('unavailable'); });
+        try {
+            await act(async () => { expect(await result.current.sendMessage(7, 'kept')).toBe(false); });
+            expect(chatApi.sendMessage).not.toHaveBeenCalled();
+        } finally { storage.mockRestore(); }
+    });
+
+    it('discards history and send replies and refuses new sends after a session switch', async () => {
+        const incoming = vi.fn();
+        const history = deferred<ReturnType<typeof response>>();
+        const send = deferred<{ data: ChatMessageResponse }>();
+        vi.mocked(chatApi.getMessages).mockReturnValueOnce(history.promise as never);
+        vi.mocked(chatApi.sendMessage).mockReturnValueOnce(send.promise as never);
+        const { result } = renderHook(() => useChatWebSocket(incoming));
+        act(() => { void result.current.setActiveConversation(7); void result.current.sendMessage(7, 'private'); });
+        state.sessionId = 'session-B';
+        await act(async () => { history.resolve(response([message(1)])); send.resolve({ data: message(2) }); });
+        expect(incoming).not.toHaveBeenCalled();
+        await act(async () => { expect(await result.current.sendMessage(7, 'another')).toBe(false); });
+        expect(chatApi.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
     it.each(['beforeConnect', 'onConnect'] as const)('retires the old socket at %s after another tab changes accounts', async phase => {
         const { result } = renderHook(() => useChatWebSocket(vi.fn()));
         await act(async () => { await result.current.setActiveConversation(7); });

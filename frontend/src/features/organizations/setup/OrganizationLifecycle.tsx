@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { useAuth } from '../../../context/AuthContext';
+import { isCurrentAuthSession } from '../../../utils/authStorage';
 import { clearDeparture, loadDeparture, storeDeparture, type OrganizationDeparture } from './departureRecovery';
 
 interface Lifecycle {
@@ -11,28 +12,54 @@ interface Lifecycle {
   transfers: { id: number; recipient_name: string; status: string; expires_at: string; can_respond: boolean }[];
 }
 export function OrganizationLifecycle({ id, onChanged }: { id: number; onChanged: () => void }) {
-  const { user } = useAuth();
-  return <OrganizationLifecycleActor key={`${user?.id ?? 'anonymous'}:${id}`} id={id} actorId={user?.id ?? null} onChanged={onChanged} />;
+  const { user, sessionId } = useAuth();
+  return <OrganizationLifecycleActor key={`${sessionId}:${user?.id ?? 'anonymous'}:${id}`} id={id} actorId={user?.id ?? null} onChanged={onChanged} />;
 }
 function OrganizationLifecycleActor({ id, actorId, onChanged }: { id: number; actorId: number | null; onChanged: () => void }) {
   const [data, setData] = useState<Lifecycle | null>(null), [recipient, setRecipient] = useState('');
   const [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [leaving, setLeaving] = useState(false), [attempt, setAttempt] = useState(0);
-  const submitting = useRef(false), navigate = useNavigate();
-  const { refreshNavigationCapabilities } = useAuth();
+  const submitting = useRef(false), alive = useRef(false), readGeneration = useRef(0), navigate = useNavigate();
+  const { refreshNavigationCapabilities, sessionId } = useAuth();
+  const current = () => alive.current && isCurrentAuthSession(sessionId);
   const [pending, setPending] = useState<OrganizationDeparture | null>(() => loadDeparture(actorId, id));
   const [reviewed, setReviewed] = useState<{ snapshot: string; role: string } | null>(null);
-  useEffect(() => { const controller = new AbortController(); void apiClient.get<Lifecycle>(`/organizations/${id}/lifecycle`, { signal: controller.signal }).then(r => { if (!controller.signal.aborted) setData(r.data); }).catch(e => { if (!controller.signal.aborted) setError(extractApiErrorMessage(e, 'Could not load membership and ownership.')); }); return () => controller.abort(); }, [id, attempt]);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  useEffect(() => {
+    const refresh = () => {
+      if (!isCurrentAuthSession(sessionId)) return;
+      readGeneration.current += 1; // Retire an earlier read before React runs its effect cleanup.
+      setRecipient(''); setData(null); setError(''); setAttempt(n => n + 1);
+    };
+    window.addEventListener('requests-updated', refresh);
+    return () => window.removeEventListener('requests-updated', refresh);
+  }, [sessionId]);
+  useEffect(() => {
+    const controller = new AbortController(), generation = ++readGeneration.current;
+    const valid = () => !controller.signal.aborted && generation === readGeneration.current && isCurrentAuthSession(sessionId);
+    void apiClient.get<Lifecycle>(`/organizations/${id}/lifecycle`, { signal: controller.signal }).then(r => {
+      if (valid()) { setData(r.data); setRecipient(value => r.data.recipients.some(p => String(p.id) === value) ? value : ''); }
+    }).catch(e => { if (valid()) { setData(null); setRecipient(''); setError(extractApiErrorMessage(e, 'Could not load membership and ownership.')); } });
+    return () => controller.abort();
+  }, [id, attempt, sessionId]);
   async function run(path: string, payload?: object) {
-    if (submitting.current) return; submitting.current = true; setBusy(true); setError(''); setNotice('');
+    if (submitting.current || !current()) return;
+    const generation = readGeneration.current;
+    submitting.current = true; setBusy(true); setError(''); setNotice('');
     try {
       const response = await apiClient.post<Lifecycle>(`/organizations/${id}/${path}`, payload);
-      if (path === 'leave') { if (actorId !== null) clearDeparture(actorId, id); setPending(null); await refreshNavigationCapabilities(); navigate('/my-organizations', { replace: true }); return; }
-      setData(response.data); setNotice('Ownership decision recorded. Access follows current responsibilities.');
-      await refreshNavigationCapabilities(); onChanged();
-    } catch (e) { setError(extractApiErrorMessage(e, 'Could not update your membership.')); setAttempt(n => n + 1); }
-    finally { submitting.current = false; setBusy(false); }
+      if (!current()) return;
+      if (path === 'leave') { if (actorId !== null) clearDeparture(actorId, id); setPending(null); await refreshNavigationCapabilities(); if (current()) navigate('/my-organizations', { replace: true }); return; }
+      if (generation === readGeneration.current) setData(response.data);
+      setNotice('Ownership decision recorded. Access follows current responsibilities.');
+      await refreshNavigationCapabilities(); if (current()) onChanged();
+    } catch (e) { if (current()) { setError(extractApiErrorMessage(e, 'Could not update your membership.')); setAttempt(n => n + 1); } }
+    finally { submitting.current = false; if (current()) setBusy(false); }
   }
-  function propose(e: FormEvent) { e.preventDefault(); void run('ownership-transfers', { recipientId: Number(recipient) }); }
+  function propose(e: FormEvent) {
+    e.preventDefault();
+    if (!data?.canTransfer || !data.recipients.some(p => String(p.id) === recipient)) return;
+    void run('ownership-transfers', { recipientId: Number(recipient) });
+  }
   function depart() {
     if (actorId === null || submitting.current) return;
     const command = pending ?? (reviewed ? { requestId: crypto.randomUUID(), snapshot: reviewed.snapshot } : null);

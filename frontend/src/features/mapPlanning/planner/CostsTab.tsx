@@ -1,8 +1,9 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge, Button, EmptyNote, Field, List, Section, StatTile } from '../../../design/primitives';
 import { dateTime, money, type Plan, type PlanArrangement, type PlanContext, type PlanDraft } from '../api';
+import { getAuthSessionId, subscribeAuthSession } from '../../../utils/authStorage';
 
 const KINDS: Record<PlanArrangement['kind'], string> = { TRANSPORT: 'Transport', ACCOMMODATION: 'Accommodation', MEALS: 'Meals', VENUE: 'Venue', OTHER: 'Other' };
 const SUPPLIER: Record<string, { label: string; tone: 'accent' | 'warning' | 'danger' | 'neutral' }> = { CONFIRMED: { label: 'Confirmed', tone: 'accent' }, PENDING: { label: 'Awaiting reply', tone: 'warning' }, DECLINED: { label: 'Declined', tone: 'danger' }, REVIEW_REQUIRED: { label: 'Needs review', tone: 'warning' } };
@@ -37,24 +38,41 @@ function ArrangementForm({ value: initial, draft, context, squad, onSave, onCanc
     );
 }
 
-function EvidenceForm({ onSubmit, busy }: { onSubmit: (status: string, source: string, evidence: string) => void; busy: boolean }) {
+function EvidenceForm({ onSubmit, onSaved, busy }: { onSubmit: (status: string, source: string, evidence: string) => Promise<boolean>; onSaved: () => void; busy: boolean }) {
     const ids = { status: useId(), source: useId(), evidence: useId() };
     const [status, setStatus] = useState('CONFIRMED'), [source, setSource] = useState(''), [evidence, setEvidence] = useState('');
+    const [submitting, setSubmitting] = useState(false), [unconfirmed, setUnconfirmed] = useState(false);
+    const pending = useRef(false);
+    const locked = busy || submitting;
+    const submit = async () => {
+        if (busy || pending.current) return;
+        pending.current = true; setSubmitting(true); setUnconfirmed(false);
+        try { if (await onSubmit(status, source, evidence)) onSaved(); else setUnconfirmed(true); }
+        catch { setUnconfirmed(true); }
+        finally { pending.current = false; setSubmitting(false); }
+    };
     return (
-        <form className="gk-plan-editor" onSubmit={event => { event.preventDefault(); onSubmit(status, source, evidence); }}>
-            <Field label="Supplier’s answer" htmlFor={ids.status}><select id={ids.status} className="gk-input" value={status} onChange={event => setStatus(event.target.value)}><option value="CONFIRMED">Confirmed</option><option value="PENDING">Awaiting reply</option><option value="DECLINED">Declined</option></select></Field>
-            <Field label="Who confirmed, and when" htmlFor={ids.source}><input id={ids.source} className="gk-input" required maxLength={160} value={source} placeholder="Supplier contact, date" onChange={event => setSource(event.target.value)} /></Field>
-            <Field label="Reference or evidence" htmlFor={ids.evidence}><textarea id={ids.evidence} className="gk-input" required rows={2} maxLength={2000} value={evidence} onChange={event => setEvidence(event.target.value)} /></Field>
-            <div className="gk-plan-editor__actions"><Button type="submit" size="sm" variant="primary" disabled={busy}>Record the answer</Button></div>
+        <form className="gk-plan-editor" onSubmit={event => { event.preventDefault(); void submit(); }}>
+            <Field label="Supplier’s answer" htmlFor={ids.status}><select id={ids.status} className="gk-input" disabled={locked} value={status} onChange={event => setStatus(event.target.value)}><option value="CONFIRMED">Confirmed</option><option value="PENDING">Awaiting reply</option><option value="DECLINED">Declined</option></select></Field>
+            <Field label="Who confirmed, and when" htmlFor={ids.source}><input id={ids.source} className="gk-input" disabled={locked} required maxLength={160} value={source} placeholder="Supplier contact, date" onChange={event => setSource(event.target.value)} /></Field>
+            <Field label="Reference or evidence" htmlFor={ids.evidence}><textarea id={ids.evidence} className="gk-input" disabled={locked} required rows={2} maxLength={2000} value={evidence} onChange={event => setEvidence(event.target.value)} /></Field>
+            <div className="gk-plan-editor__actions"><Button type="submit" size="sm" variant="primary" disabled={locked} aria-busy={submitting}>{submitting ? 'Recording…' : 'Record the answer'}</Button></div>
+            {unconfirmed && <p className="gk-field__error" role="alert">Saving wasn’t confirmed. Your entries are kept here.</p>}
         </form>
     );
 }
 
 /** Estimates against the budget, supplier answers and finance approval, each kept as its own record. */
-export function CostsTab({ draft, plan, context, squad, canEdit, busy, dirty, change, command }: {
+interface CostsProps {
     draft: PlanDraft; plan: Plan | null; context?: PlanContext; squad: number; canEdit: boolean; busy: boolean; dirty: boolean;
     change: (patch: Partial<PlanDraft>) => void; command: (path: string, extra?: Record<string, unknown>) => Promise<boolean>;
-}) {
+}
+export function CostsTab(props: CostsProps) {
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    return <CostsEditor key={JSON.stringify([session, props.plan?.id ?? null])} {...props} />;
+}
+
+function CostsEditor({ draft, plan, context, squad, canEdit, busy, dirty, change, command }: CostsProps) {
     const [editing, setEditing] = useState<PlanArrangement | null>(null);
     const [evidence, setEvidence] = useState<string | null>(null);
     const budgetId = useId(), currencyId = useId();
@@ -89,10 +107,10 @@ export function CostsTab({ draft, plan, context, squad, canEdit, busy, dirty, ch
                                     {editing?.key === item.key && <ArrangementForm value={item} draft={draft} context={context} squad={squad} onSave={save} onCancel={() => setEditing(null)} onRemove={() => { change({ arrangements: draft.arrangements.filter(other => other.key !== item.key) }); setEditing(null); }} />}
                                     <div className="gk-plan-arrangement-foot">
                                         {supplier && <span className="gk-faint">{supplier.source} · {dateTime(supplier.at, draft.timezone)}</span>}
-                                        {plan?.rights.travel && <Button size="sm" variant="ghost" onClick={() => setEvidence(evidence === item.key ? null : item.key)}>Record supplier answer</Button>}
+                                        {plan?.rights.travel && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setEvidence(evidence === item.key ? null : item.key)}>Record supplier answer</Button>}
                                         {item.financeRecordId && plan && <Link className="gk-section__action" to={`/clubs/${plan.club_id}/workspace?tab=finance&record=${item.financeRecordId}`}>Finance record</Link>}
                                     </div>
-                                    {evidence === item.key && <EvidenceForm busy={busy} onSubmit={(status, source, text) => { void command('supplier', { arrangementKey: item.key, status, source, evidence: text }); setEvidence(null); }} />}
+                                    {evidence === item.key && <EvidenceForm busy={busy} onSubmit={(status, source, text) => command('supplier', { arrangementKey: item.key, status, source, evidence: text })} onSaved={() => setEvidence(null)} />}
                                 </li>
                             );
                         })}

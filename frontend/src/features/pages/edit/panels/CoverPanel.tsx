@@ -16,17 +16,17 @@ export function CoverPanel() {
   const t = usePagesCopy();
   const { page, saveIdentity, closePanel } = usePageEdit();
   const input = useRef<HTMLInputElement>(null);
-  const editor = useIdentityImageEditor(async (_kind, url) => { await saveIdentity({ cover: { kind: 'image', url } }, { label: t('Cover saved') }); closePanel(); }, `cover:${page?.ref.type}:${page?.ref.id}`);
+  const editor = useIdentityImageEditor(async (_kind, url) => { if (!await saveIdentity({ cover: { kind: 'image', url } }, { label: t('Cover saved') })) throw new Error(t('Not saved. Check your connection and try again.')); closePanel(); }, `cover:${page?.ref.type}:${page?.ref.id}`);
   if (!page) return null;
   const chosen = page.identity.cover?.kind === 'photo' ? page.identity.cover.photo : null;
-  const choose = async (photo: CoverPhoto) => { await saveIdentity({ cover: { kind: 'photo', photo } }, { label: t('Cover saved') }); closePanel(); };
+  const choose = async (photo: CoverPhoto) => { if (await saveIdentity({ cover: { kind: 'photo', photo } }, { label: t('Cover saved') })) closePanel(); };
   const pick = (event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; event.target.value = ''; void editor.select(file, 'banner'); };
   return (
     <SplitPanel title={t('Your cover')} onClose={closePanel}
       footer={<>
         <input ref={input} type="file" hidden accept={CROP_IMAGE_ACCEPT} onChange={pick} />
         <Button variant="ghost" disabled={Boolean(editor.uploading)} onClick={() => input.current?.click()}><Camera aria-hidden="true" />{t('Upload a photo')}</Button>
-        {page.identity.cover && <Button variant="ghost" onClick={() => void saveIdentity({ cover: null }, { label: t('Cover removed') }).then(closePanel)}>{t('No cover')}</Button>}
+        {page.identity.cover && <Button variant="ghost" onClick={() => void saveIdentity({ cover: null }, { label: t('Cover removed') }).then(ok => { if (ok) closePanel(); })}>{t('No cover')}</Button>}
       </>}>
       <div className="gk-covers" role="group" aria-label={t('Football photos')}>
         {COVER_PHOTO_KEYS.map(photo => <button key={photo} type="button" className="gk-cover" style={{ '--cover': `url(${COVER_PHOTOS[photo]})` } as CSSProperties} aria-pressed={chosen === photo} aria-label={t(WORDS[photo])} title={t(WORDS[photo])} onClick={() => void choose(photo)} />)}

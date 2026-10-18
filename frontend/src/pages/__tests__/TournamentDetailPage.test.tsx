@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import '../../i18n';
-vi.mock('../../features/competitions/api',()=>({getCompetitionProfile:vi.fn().mockResolvedValue({legacy:true,rules:null,revision:0})}));
+vi.mock('../../features/competitions/api', async importOriginal => ({ ...await importOriginal<typeof import('../../features/competitions/api')>(), getCompetitionProfile: vi.fn().mockResolvedValue({legacy:true,rules:null,revision:0}) }));
 import { TournamentDetailPage } from '../../pages/TournamentDetailPage';
 import type { TournamentDetail } from '../../features/tournaments/domain';
 import { apiClient } from '../../api/axiosConfig';
@@ -128,6 +128,16 @@ describe('TournamentDetailPage', () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
         expect(await screen.findByRole('link', { name: 'Back to tournaments' })).toHaveAttribute('href', '/world/tournaments');
+    });
+
+    it('shows a closing-only entry window in the published competition timezone', async () => {
+        const { getCompetitionProfile, defaultRules } = await import('../../features/competitions/api');
+        vi.mocked(getCompetitionProfile).mockResolvedValueOnce({ legacy: false, rules: { ...defaultRules('CUP'), timezone: 'America/New_York', sideSize: 7, matchMinutes: 30, tiebreaks: [] }, revision: 0 });
+        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, registrationOpensAt: null, registrationClosesAt: '2099-06-30T00:30:00+04:00' });
+        renderPage();
+        expect(await screen.findByText('Entry window: Closes 29 Jun 2099')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('tab', { name: 'About' }));
+        expect(screen.getByText('Closes 29 Jun 2099')).toBeInTheDocument();
     });
 
     it('shows status badge', async () => {
@@ -282,6 +292,19 @@ describe('TournamentDetailPage', () => {
         expect(screen.getByTestId('entry')).toBeInTheDocument();
         expect(apiClient.get).not.toHaveBeenCalled();
         expect(apiClient.post).not.toHaveBeenCalled();
+    });
+
+    it('shows public allocation status and removes a cancelled venue link after reload', async () => {
+        const reservation = { venueId: 71, venueName: 'Synthetic ground', pitchName: 'Pitch A', status: 'CONFIRMED' as const, startsAt: '2099-07-01T10:00:00Z', endsAt: '2099-07-01T10:30:00Z', timezone: 'Asia/Tbilisi' };
+        const detail = { ...mockTournament, fixtures: [{ id: 10, homeLabel: 'Blue FC', awayLabel: 'Hill FC', status: 'SCHEDULED', venueReservation: reservation }] as TournamentDetail['fixtures'] };
+        vi.mocked(fetchTournament).mockResolvedValueOnce(detail).mockResolvedValueOnce({ ...detail, fixtures: [{ ...detail.fixtures[0], venueReservation: { ...reservation, status: 'UNAVAILABLE', unavailableReason: 'CANCELLED' } }] });
+        renderPage();
+        await userEvent.click(await screen.findByRole('tab', { name: 'Matches' }));
+        expect(screen.getByText('Pitch confirmed')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Synthetic ground · Pitch A' })).toHaveAttribute('href', '/stadiums/71');
+        await userEvent.click(screen.getByRole('button', { name: 'Refresh results' }));
+        expect(await screen.findByText('Venue reservation no longer confirmed')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Synthetic ground · Pitch A' })).not.toBeInTheDocument();
     });
 
     it('keeps eliminated teams in the public history while omitting pending entries', async () => {

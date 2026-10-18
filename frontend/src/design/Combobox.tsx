@@ -8,10 +8,10 @@ import { Search as SearchIcon } from 'lucide-react';
  * `status` keeps loading, failure and "nothing found" distinct so the list never lies.
  * Pass `id` when a visible `Field` label points at the input; otherwise `label` is rendered for screen readers.
  */
-export function Combobox<T>({ id, label, query, onQuery, items, itemKey, renderItem, onSelect, status, placeholder, emptyText, errorText, minChars = 2, inputRef }: {
+export function Combobox<T>({ id, label, query, onQuery, items, itemKey, renderItem, onSelect, status, placeholder, emptyText, errorText, loadingText, minChars = 2, inputRef }: {
     id?: string; label: string; query: string; onQuery: (value: string) => void;
     items: T[]; itemKey: (item: T) => string | number; renderItem: (item: T) => ReactNode; onSelect: (item: T) => void;
-    status: 'idle' | 'loading' | 'ready' | 'error'; placeholder?: string; emptyText?: string; errorText?: string; minChars?: number;
+    status: 'idle' | 'loading' | 'ready' | 'error'; placeholder?: string; emptyText?: string; errorText?: string; loadingText?: string; minChars?: number;
     inputRef?: React.Ref<HTMLInputElement>;
 }) {
     const fallbackId = useId();
@@ -50,7 +50,7 @@ export function Combobox<T>({ id, label, query, onQuery, items, itemKey, renderI
         }
     };
     const optionId = (index: number) => `${inputId}-option-${index}`;
-    const note = status === 'loading' ? 'Searching…' : status === 'error' ? (errorText ?? 'Search is unavailable. Try again.') : status === 'ready' && !items.length ? (emptyText ?? 'Nothing found.') : null;
+    const note = status === 'loading' ? (loadingText ?? 'Searching…') : status === 'error' ? (errorText ?? 'Search is unavailable. Try again.') : status === 'ready' && !items.length ? (emptyText ?? 'Nothing found.') : null;
 
     return (
         <div className="gk-combobox" ref={root}>

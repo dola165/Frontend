@@ -2,10 +2,12 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Trophy } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { isCurrentAuthSession } from '../utils/authStorage';
+import { fetchPage, isPageView, type PageView } from '../features/pages/api';
 import { OrganizationProfileEditor } from './OrganizationProfilePage';
 import { OrganizationPortfolio } from '../features/organizations/OrganizationPortfolio';
 import { OrganizationActivitySettings } from '../features/organizations/activities/OrganizationActivitySettings';
@@ -19,24 +21,70 @@ import '../features/organizations/setup/setup.css';
 interface Workspace { id: number; displayName: string; organizationType: string; identityRevision: number; clubId: number | null; membershipRole: string; canManage: boolean; promotionBlocked: boolean; capabilities: OrganizationCapabilities; team: { userId: number; name: string; role: string }[]; venueCount: number; tournaments: { id: number; name: string; status: string; canManage: boolean }[] }
 export function OrganizationWorkspacePage() {
   const { t } = useTranslation();
-  const { organizationId } = useParams(), { sessionId } = useAuth();
+  const { organizationId } = useParams(), { sessionId, user } = useAuth();
   if (!organizationId || !/^\d+$/.test(organizationId) || !Number.isSafeInteger(Number(organizationId)) || Number(organizationId) <= 0) return <p role="alert">{t('experience.organization.notFound')}</p>;
-  return <WorkspaceContent key={`${organizationId}:${sessionId}`} id={organizationId} />;
+  return <WorkspaceEntry key={`${organizationId}:${sessionId}:${user?.id}`} id={organizationId} />;
+}
+type Entry = { kind: 'loading' | 'legacy' } | { kind: 'page'; page: PageView } | { kind: 'error'; message: string };
+/** New page workspaces use the existing on-page editor; older organizations retain their operational workspace. */
+function WorkspaceEntry({ id }: { id: string }) {
+  const { t } = useTranslation();
+  const { sessionId, status, user } = useAuth();
+  const userId = user?.id;
+  const navigate = useNavigate();
+  const [search] = useSearchParams();
+  const teamEntry = search.get('tab') === 'team';
+  const [entry, setEntry] = useState<Entry>({ kind: 'loading' });
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
+    if (!teamEntry && status === 'authenticated' && userId != null && current()) {
+      fetchPage({ type: 'organization', id: Number(id) }, controller.signal).then(page => {
+        if (!current()) return;
+        if (!isPageView(page) || !['FAN_CLUB', 'BUSINESS', 'PAGE'].includes(page.kind)) { setEntry({ kind: 'legacy' }); return; }
+        if (page.ref?.type !== 'organization' || page.ref.id !== Number(id) || page.organizationId !== Number(id) || page.clubId !== null) {
+          setEntry({ kind: 'error', message: 'loadError' }); return;
+        }
+        setEntry({ kind: 'page', page });
+      }).catch(error => {
+        if (!current()) return;
+        if (error?.response?.status === 404) setEntry({ kind: 'legacy' });
+        else setEntry({ kind: 'error', message: extractApiErrorMessage(error, '') || 'loadError' });
+      });
+    }
+    return () => controller.abort();
+  }, [attempt, id, sessionId, status, userId, teamEntry]);
+  const current = status === 'authenticated' && userId != null && isCurrentAuthSession(sessionId);
+  const editable = entry.kind === 'page' && entry.page.viewer?.canEdit === true && ['OWNER', 'ADMIN'].includes(entry.page.viewer.role ?? '');
+  useEffect(() => {
+    if (editable && !teamEntry && current && isCurrentAuthSession(sessionId)) navigate(`/organizations/${id}?edit=1`, { replace: true });
+  }, [current, editable, id, navigate, sessionId, teamEntry]);
+  if (current && entry.kind === 'legacy') return <WorkspaceContent id={id} />;
+  // Team and lifecycle commands must use the current operational workspace authorization, including for staff.
+  if (current && teamEntry) return <WorkspaceContent id={id} />;
+  const error = current && entry.kind === 'error' ? entry.message : null;
+  const refused = current && entry.kind === 'page' && !editable;
+  return <main className="org-setup"><Link to="/my-organizations">← {t('experience.workspace.back')}</Link>
+    {error ? <><p role="alert">{error === 'loadError' ? t('experience.workspace.error') : error}</p><button type="button" onClick={() => { setEntry({ kind: 'loading' }); setAttempt(value => value + 1); }}>{t('experience.workspace.retry')}</button></>
+      : refused ? <p role="alert">{t('experience.organization.editPermission')}</p>
+        : <p role="status">{t('experience.workspace.loading')}</p>}
+  </main>;
 }
 function WorkspaceContent({ id }: { id: string }) {
   const { t } = useTranslation();
-  const { refreshNavigationCapabilities } = useAuth();
+  const { refreshNavigationCapabilities, sessionId } = useAuth();
   const [search, setSearch] = useSearchParams();
   const [workspace, setWorkspace] = useState<Workspace | null>(null), [error, setError] = useState(''), [attempt, setAttempt] = useState(0);
   const [type, setType] = useState(''), [busy, setBusy] = useState(false);
   const active = useRef(true), submitting = useRef(false);
-  useEffect(() => { active.current = true; const controller = new AbortController(); setError(''); void apiClient.get<Workspace>(`/organizations/${id}/workspace`, { signal: controller.signal }).then(r => { if (!controller.signal.aborted) { setWorkspace(r.data); setType(r.data.organizationType); } }).catch(e => { if (!controller.signal.aborted) setError(extractApiErrorMessage(e, '') || 'loadError'); }); return () => { controller.abort(); active.current = false; }; }, [id, attempt]);
+  useEffect(() => { active.current = true; const controller = new AbortController(); const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId); setError(''); void apiClient.get<Workspace>(`/organizations/${id}/workspace`, { signal: controller.signal }).then(r => { if (current()) { setWorkspace(r.data); setType(r.data.organizationType); } }).catch(e => { if (current()) { setWorkspace(null); setError(extractApiErrorMessage(e, '') || 'loadError'); } }); return () => { controller.abort(); active.current = false; }; }, [id, attempt, sessionId]);
   async function saveType(event: FormEvent) {
-    event.preventDefault(); if (!workspace || submitting.current) return;
+    event.preventDefault(); if (!workspace || submitting.current || !isCurrentAuthSession(sessionId)) return;
     submitting.current = true; setBusy(true); setError('');
-    try { const response = await apiClient.put<Workspace>(`/organizations/${id}/identity`, { revision: workspace.identityRevision, organizationType: type }); if (active.current) setWorkspace(response.data); }
-    catch (err) { if (active.current) setError(extractApiErrorMessage(err, t('experience.workspace.saveError'))); }
-    finally { submitting.current = false; if (active.current) setBusy(false); }
+    try { const response = await apiClient.put<Workspace>(`/organizations/${id}/identity`, { revision: workspace.identityRevision, organizationType: type }); if (active.current && isCurrentAuthSession(sessionId)) setWorkspace(response.data); }
+    catch (err) { if (active.current && isCurrentAuthSession(sessionId)) setError(extractApiErrorMessage(err, t('experience.workspace.saveError'))); }
+    finally { submitting.current = false; if (active.current && isCurrentAuthSession(sessionId)) setBusy(false); }
   }
   if (!workspace) return <main className="org-setup"><Link to="/my-organizations">← {t('experience.workspace.back')}</Link>{error ? <><p role="alert">{error === 'loadError' ? t('experience.workspace.error') : error}</p><button type="button" onClick={() => setAttempt(value => value + 1)}>{t('experience.workspace.retry')}</button></> : <p role="status">{t('experience.workspace.loading')}</p>}</main>;
   if (workspace.clubId) {

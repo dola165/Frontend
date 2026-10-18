@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { isAxiosError } from 'axios';
 import { extractApiErrorMessage } from "../../utils/apiError";
 import { get } from "./api";
+import { useMatchCopy } from './copy';
 export function useLoad<T>(path: string) {
   const [result, setResult] = useState<{ path: string; data: T }>();
   const [failure, setFailure] = useState({ path: "", message: "" });
@@ -41,6 +42,7 @@ export function useLoad<T>(path: string) {
   };
 }
 export function useAction(reload: () => void) {
+  const t = useMatchCopy();
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -70,12 +72,12 @@ export function useAction(reload: () => void) {
       <>
         {error && (
           <p className="mx-error" role="alert">
-            {error}
+            {t(error)}
           </p>
         )}
         {notice && (
           <p className="mx-notice" role="status">
-            {notice}
+            {t(notice)}
           </p>
         )}
       </>

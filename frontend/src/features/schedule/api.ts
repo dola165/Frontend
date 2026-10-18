@@ -1,6 +1,6 @@
 import { apiClient } from '../../api/axiosConfig';
 
-export type ScheduleEventType = 'TRAINING' | 'TRYOUT' | 'MATCH' | 'FRIENDLY' | 'ACTIVITY';
+export type ScheduleEventType = 'TRAINING' | 'TRYOUT' | 'MATCH' | 'FRIENDLY' | 'ACTIVITY' | 'MEETING';
 export type ScheduleVisibility = 'PRIVATE' | 'PUBLIC' | 'SCHEDULED_PUBLICATION';
 export type ScheduleChallengeStatus = 'OPEN' | 'PENDING' | 'ACCEPTED' | 'REJECTED';
 export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';

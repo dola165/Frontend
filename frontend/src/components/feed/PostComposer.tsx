@@ -10,6 +10,7 @@ import { SOCIAL_IMAGE_ACCEPT, socialImageUploadError, validateSocialImage } from
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession, type AuthSessionId } from '../../utils/authStorage';
 import { useOwnedDraft } from '../../utils/ownedDraft';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
+import { useOrganizationPostPublication } from './postPublication';
 
 const MAX_PHOTOS = 10;
 const MAX_CAPTION = 2000;
@@ -32,7 +33,7 @@ interface PostComposerProps {
 
 export const PostComposer = (props: PostComposerProps) => {
   const sessionId = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
-  return <PostComposerEditor key={`${sessionId ?? 'guest'}:${props.clubId ?? props.organizationId ?? 'personal'}`} {...props} sessionId={sessionId} />;
+  return <PostComposerEditor key={`${sessionId ?? 'guest'}:${props.clubId ? `club-${props.clubId}` : props.organizationId ? `organization-${props.organizationId}` : 'personal'}`} {...props} sessionId={sessionId} />;
 };
 
 const PostComposerEditor = ({
@@ -52,8 +53,10 @@ const PostComposerEditor = ({
   // The words survive a detour (Event opens the calendar) and a reload, kept for the signed-in person and the identity
   // they post as; photos stay in memory only. Nothing is ever turned into an event on its own.
   const { draft, change: changeDraft, reset: resetDraft } = useOwnedDraft(`post-composer.${clubId ? `club-${clubId}` : organizationId ? `page-${organizationId}` : 'personal'}`, { content: '' });
-  const content = draft.content;
-  const setContent = (value: string) => changeDraft({ content: value });
+  const publication = useOrganizationPostPublication(organizationId);
+  const held = !!publication.attempt;
+  const content = publication.attempt?.body.content ?? draft.content;
+  const setContent = (value: string) => { if (!held) changeDraft({ content: value }); };
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const photosRef = useRef<DraftPhoto[]>([]);
   const photoSequence = useRef(0);
@@ -149,6 +152,7 @@ const PostComposerEditor = ({
   const handleSubmit = async () => {
     // The ref closes the same-tick gap before React disables the controls.
     if (!current() || submissionPending.current) return;
+    if (clubId && organizationId) { setSubmitError(copy('Choose either a club or a page author.', 'აირჩიეთ კლუბი ან გვერდი ავტორად.'));return; }
     if (!content.trim() || content.length > MAX_CAPTION) {
       setSubmitError(!content.trim() ? copy('Add a caption before publishing your photos.', 'ფოტოების გამოქვეყნებამდე დაამატეთ წარწერა.') : copy('Keep your post to 2,000 characters or fewer.', 'პოსტი 2 000 სიმბოლოს არ უნდა აღემატებოდეს.'));
       return;
@@ -159,7 +163,7 @@ const PostComposerEditor = ({
     const controller = new AbortController();
     requestController.current = controller;
     const config: AuthSessionRequestConfig = { _authSessionId: sessionId, signal: controller.signal };
-    const submittedPhotos = [...photosRef.current];
+    const submittedPhotos = held ? [] : [...photosRef.current];
 
     let uploading = false;
     try {
@@ -185,16 +189,20 @@ const PostComposerEditor = ({
       }
       if (!current()) return;
       setUploadProgress(null);
-      const published = await apiClient.post<{ postId?: number }>('/posts', {
+      const payload = {
         content: content.trim(),
         clubId: clubId || null,
         ...(organizationId ? { organizationId } : {}),
         isPublic: true,
         mediaIds
-      }, config);
+      };
+      const published = organizationId
+        ? { data: { postId: await publication.publish({ ...payload, clubId: null, organizationId }, config) } }
+        : await apiClient.post<{ postId?: number }>('/posts', payload, config);
       if (!current()) return;
       const postId = published.data?.postId;
       const confirmedPostId = typeof postId === 'number' && Number.isSafeInteger(postId) && postId > 0 ? postId : undefined;
+      if (organizationId) publication.complete();
       setPublishedPostId(confirmedPostId ?? null);
       resetDraft();
       resetFile();
@@ -204,6 +212,8 @@ const PostComposerEditor = ({
       if (compact) setIsExpanded(false);
     } catch (error) {
       if (!current() || controller.signal.aborted) return;
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (organizationId && !held && (status === 400 || status === 422)) publication.complete();
       console.error('Failed to create post', error);
       const message = uploading ? socialImageUploadError(error) : copy('Failed to publish this post. Your draft is still here—please try again.', 'პოსტი ვერ გამოქვეყნდა. მონახაზი შენახულია — სცადეთ ხელახლა.');
       setSubmitError(message);
@@ -236,7 +246,7 @@ const PostComposerEditor = ({
 
   return (
     <section ref={containerRef} aria-label={copy('Share an update', 'გააზიარეთ სიახლე')} aria-busy={isSubmitting} className={`${home ? 'home-post-composer' : ''} rounded-2xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[var(--feed-shadow-panel)] transition-shadow focus-within:shadow-[var(--feed-shadow-float)] ${collapsed ? 'p-3' : 'p-4'}`}>
-      <fieldset disabled={isSubmitting} className="min-w-0">
+      <fieldset disabled={isSubmitting || held} className="min-w-0">
       <input type="file" multiple ref={imageInputRef} onChange={handleFileSelect} className="hidden" aria-label={copy('Choose photo', 'აირჩიეთ ფოტო')} accept={SOCIAL_IMAGE_ACCEPT} />
 
       <div className={`flex gap-2.5 ${collapsed ? 'items-center' : 'items-start'}`}>
@@ -305,6 +315,10 @@ const PostComposerEditor = ({
       )}
 
       </fieldset>
+      {held && !isSubmitting && <div role="status" className="gk-notice">
+        <p>{copy('The post was not confirmed. Retry the original post before changing this draft.', 'პოსტი არ დადასტურდა. მონახაზის შეცვლამდე ხელახლა გაგზავნეთ საწყისი პოსტი.')}</p>
+        <button type="button" className="gk-btn gk-btn--secondary" onClick={() => void handleSubmit()}>{copy('Retry original post', 'საწყისი პოსტის ხელახლა გაგზავნა')}</button>
+      </div>}
       {publishedPostId != null && !isSubmitting && <p role="status" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--feed-text-secondary)]">
         {copy('Post published.', 'პოსტი გამოქვეყნდა.')}
         <Link to={`/posts/${publishedPostId}`} className="font-semibold app-text-action">{copy('View your post', 'პოსტის ნახვა')}</Link>

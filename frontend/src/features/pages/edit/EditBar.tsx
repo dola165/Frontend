@@ -13,6 +13,7 @@ import { PhoneSteps } from './PhoneSteps';
 import { usePhoneSteps } from './usePhoneSteps';
 import { SetupRing, SetupSteps } from './SetupSteps';
 import { STEP_ICONS, stepWords } from './words';
+import { UnlockSheet } from '../verify/UnlockSheet';
 import './edit.css';
 
 
@@ -32,15 +33,16 @@ export function EditBar() {
   }, [arrival, page, t]);
   // The steps drop down from the bar when the ring is pressed; they start folded, so the current step is the one thing in view.
   const [stepsOpen, setStepsOpen] = useState(false);
+  const [verificationOpen, setVerificationOpen] = useState(false);
   // On a phone a draft is set up one full-screen card per step; the current step opens its card.
   const phoneSteps = usePhoneSteps();
   if (!page) return null;
   if (!canEdit) {
-    if (page.claim?.state !== 'UNCLAIMED' || !page.viewer.canClaim) return null;
+    if (!page.viewer.canClaim && !page.claim?.mine) return null;
     return (
       <div className="gk-editbar">
-        <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t(page.kind === 'CLUB' ? 'Is this your club?' : 'Is this your page?')}</span>
-        <span className="gk-editbar__actions"><ButtonLink size="sm" variant="primary" to={claimHref(location, page.ref, 'link')}>{t('Claim it')}</ButtonLink></span>
+        <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t(page.claim?.mine ? 'Claim status' : page.kind === 'CLUB' ? 'Is this your club?' : 'Is this your page?')}</span>
+        <span className="gk-editbar__actions"><ButtonLink size="sm" variant="primary" to={claimHref(location, page.ref, 'link')}>{t(page.claim?.mine ? 'View request' : 'Claim it')}</ButtonLink></span>
       </div>
     );
   }
@@ -50,10 +52,11 @@ export function EditBar() {
   return (
     <div className="gk-editbar" data-editing={editing || undefined}>
       <PhoneSteps />
+      {verificationOpen && <UnlockSheet key={`${page.ref.type}-${page.ref.id}`} action="VERIFIED_BADGE" onClose={() => setVerificationOpen(false)} />}
       {editing && page.kind === 'CLUB' && <DolaPet />}
       {page.status === 'DRAFT'
         ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
-        : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending verification')}</span> : null}
+        : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending review')}</span> : null}
       {!setup.completedAt && (
         <button type="button" className="gk-ring" aria-expanded={stepsOpen} onClick={() => setStepsOpen(value => !value)} aria-label={t('{done} of {total} done. Set-up steps', { done: setup.done, total })}>
           <SetupRing done={setup.done} total={total} />
@@ -72,6 +75,7 @@ export function EditBar() {
         {status === 'saving' ? t('Saving…') : status === 'saved' ? t('Saved') : status === 'failed' ? t('Not saved') : pendingCount ? t('{n} edits waiting', { n: pendingCount }) : ''}
       </span>
       <span className="gk-editbar__actions">
+        {page.status === 'LIVE' && <Button size="sm" onClick={() => setVerificationOpen(true)}>{t(page.verification === 'REQUESTED' ? 'Verification requested' : page.verification === 'VERIFIED' ? 'Verified' : 'Verification')}</Button>}
         {page.status === 'DRAFT' && !page.goLive.ready && <span className="gk-editbar__missing">{t('To go live, name your page.')}</span>}
         {page.status === 'DRAFT' && <Button size="sm" variant="primary" data-coach="live" data-ready={page.goLive.ready || undefined} disabled={!page.goLive.ready} onClick={() => void goLive()}>{t('Go live')}</Button>}
         {editing && <Button size="sm" variant={rearranging ? 'primary' : 'ghost'} aria-pressed={rearranging} onClick={() => setRearranging(!rearranging)}><LayoutList aria-hidden="true" />{t('Rearrange')}</Button>}

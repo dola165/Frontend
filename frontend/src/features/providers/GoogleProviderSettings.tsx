@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { GoogleLogin, useGoogleOAuth } from '@react-oauth/google';
 import { Loader2 } from 'lucide-react';
+import { useAccountCopy } from '../profiles/account/accountCopy';
 import { useAuth } from '../../context/AuthContext';
 import { isAndroidApp } from '../../android/bridge';
 import { getAuthSessionId, isCurrentAuthSession } from '../../utils/authStorage';
@@ -12,13 +13,14 @@ const button = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-x
 const input = 'w-full min-h-11 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-sm';
 
 function WebGoogleProof({ nonce, onProof, onError }: { nonce: string; onProof: (token: string) => void; onError: () => void }) {
+    const copy = useAccountCopy();
     const { scriptLoadedSuccessfully } = useGoogleOAuth();
     const [waiting, setWaiting] = useState(false);
     useEffect(() => {
         const timer = window.setTimeout(() => setWaiting(true), 10_000);
         return () => window.clearTimeout(timer);
     }, []);
-    if (!scriptLoadedSuccessfully) return <p role="status" className="text-sm">{waiting ? 'Google sign-in has not loaded. Check your connection and reload this screen.' : 'Loading Google account selection…'}</p>;
+    if (!scriptLoadedSuccessfully) return <p role="status" className="text-sm">{waiting ? copy("Google sign-in has not loaded. Check your connection and reload this screen.") : copy("Loading Google account selection…")}</p>;
     return <GoogleLogin nonce={nonce} auto_select={false} text="continue_with" onSuccess={response => {
         if (response.credential) onProof(response.credential); else onError();
     }} onError={onError} />;
@@ -30,6 +32,7 @@ export function GoogleProviderSettings(props: Props) {
 }
 
 function ScopedGoogleProviderSettings({ accountId, onCredentialsChanged }: Props) {
+    const copy = useAccountCopy();
     const [settings, setSettings] = useState<ProviderSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -111,28 +114,28 @@ function ScopedGoogleProviderSettings({ accountId, onCredentialsChanged }: Props
         }
     };
 
-    if (loading) return <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading linked providers…</p>;
+    if (loading) return <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{copy("Loading linked providers…")}</p>;
     const linked = settings ? googleLinked(settings.linkedAccounts) : false;
     return <div className="space-y-4 text-[var(--fc-text-primary)]">
-        {error && <p role="alert" className="text-sm text-[var(--fc-state-danger)]">{error}</p>}
-        {notice && <p role="status" className="text-sm text-[var(--fc-accent)]">{notice}</p>}
-        <button type="button" className={button} disabled={busy} onClick={() => { cancel(); setRevision(value => value + 1); }}>Refresh provider settings</button>
+        {error && <p role="alert" className="text-sm text-[var(--fc-state-danger)]">{copy(error)}</p>}
+        {notice && <p role="status" className="text-sm text-[var(--fc-accent)]">{copy(notice)}</p>}
+        <button type="button" className={button} disabled={busy} onClick={() => { cancel(); setRevision(value => value + 1); }}>{copy("Refresh provider settings")}</button>
         {settings && <>
-            <div><h3 className="font-semibold">Google {linked ? 'linked' : 'not linked'}</h3><p className="mt-1 text-sm">Link Google to sign in to this same GrassKickZ account. Linking does not merge accounts or change your email.</p></div>
-            {!settings.googleAvailable || !googleConfigured ? <p role="status" className="text-sm">Google linking is not configured for this {settings.googleAvailable ? 'app' : 'server'}. Your existing sign-in methods are unchanged.</p> : null}
-            {linked && !settings.googleUnlinkAllowed && <p className="text-sm">Google is your only sign-in method. <Link className="app-text-action" to="/forgot-password">Set a password through account recovery</Link> before unlinking it.</p>}
+            <div><h3 className="font-semibold">{linked ? copy('Google linked') : copy('Google not linked')}</h3><p className="mt-1 text-sm">{copy("Link Google to sign in to this same GrassKickZ account. Linking does not merge accounts or change your email.")}</p></div>
+            {!settings.googleAvailable || !googleConfigured ? <p role="status" className="text-sm">{settings.googleAvailable ? copy("Google linking is not configured for this app. Your existing sign-in methods are unchanged.") : copy("Google linking is not configured for this server. Your existing sign-in methods are unchanged.")}</p> : null}
+            {linked && !settings.googleUnlinkAllowed && <p className="text-sm">{copy("Google is your only sign-in method. Set a password before unlinking it.")} <Link className="app-text-action" to="/forgot-password">{copy("Set a password through account recovery")}</Link></p>}
             {!flow ? <button type="button" className={button} disabled={linked ? !settings.googleUnlinkAllowed : !settings.googleAvailable || !googleConfigured}
-                onClick={() => begin(linked ? 'unlink' : 'link')}>{linked ? 'Unlink Google' : 'Link Google'}</button>
-                : <section aria-label={flow.action === 'link' ? 'Link Google account' : 'Confirm Google unlink'} className="space-y-4 rounded-xl border border-[var(--fc-border)] p-4">
-                    <p className="text-sm">{flow.action === 'unlink' ? 'Unlink Google from this account? Use your password for future sign-in. Other remembered sessions will be signed out.' : 'Confirm your current account, then choose the Google account to link. Other remembered sessions will be signed out.'}</p>
-                    {settings.passwordLoginEnabled && <label className="block space-y-2 text-sm">Current account password<input type="password" autoComplete="current-password" maxLength={256} value={password} onChange={event => setPassword(event.target.value)} disabled={busy} className={input} /></label>}
-                    {settings.twoFactorEnabled && <label className="block space-y-2 text-sm">Authenticator or unused recovery code<input type="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={40} value={code} onChange={event => setCode(event.target.value)} disabled={busy} className={input} /></label>}
-                    {busy ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{flow.action === 'link' ? 'Confirming Google link…' : 'Unlinking Google…'}</p>
-                        : flow.action === 'unlink' ? <button type="button" className={button} disabled={!proofReady} onClick={() => void submit(flow)}>Confirm unlink Google</button>
-                            : isAndroidApp ? <button type="button" className={button} disabled={!proofReady} onClick={() => void submit(flow)}>Choose Google account</button>
+                onClick={() => begin(linked ? 'unlink' : 'link')}>{linked ? copy("Unlink Google") : copy("Link Google")}</button>
+                : <section aria-label={flow.action === 'link' ? copy("Link Google account") : copy("Confirm Google unlink")} className="space-y-4 rounded-xl border border-[var(--fc-border)] p-4">
+                    <p className="text-sm">{flow.action === 'unlink' ? copy("Unlink Google from this account? Use your password for future sign-in. Other remembered sessions will be signed out.") : copy("Confirm your current account, then choose the Google account to link. Other remembered sessions will be signed out.")}</p>
+                    {settings.passwordLoginEnabled && <label className="block space-y-2 text-sm">{copy("Current account password")}<input type="password" autoComplete="current-password" maxLength={256} value={password} onChange={event => setPassword(event.target.value)} disabled={busy} className={input} /></label>}
+                    {settings.twoFactorEnabled && <label className="block space-y-2 text-sm">{copy("Authenticator or unused recovery code")}<input type="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={40} value={code} onChange={event => setCode(event.target.value)} disabled={busy} className={input} /></label>}
+                    {busy ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{flow.action === 'link' ? copy("Confirming Google link…") : copy("Unlinking Google…")}</p>
+                        : flow.action === 'unlink' ? <button type="button" className={button} disabled={!proofReady} onClick={() => void submit(flow)}>{copy("Confirm unlink Google")}</button>
+                            : isAndroidApp ? <button type="button" className={button} disabled={!proofReady} onClick={() => void submit(flow)}>{copy("Choose Google account")}</button>
                                 : proofReady ? <WebGoogleProof key={flow.nonce} nonce={flow.nonce} onProof={token => void submit(flow, token)} onError={() => { if (activeFlow.current === flow) setError('Google confirmation was not completed. Choose your account again.'); }} />
-                                    : <p className="text-sm">Enter the required account proof to choose your Google account.</p>}
-                    <button type="button" className={button} onClick={cancel}>Cancel {flow.action === 'link' ? 'Google linking' : 'Google unlink'}</button>
+                                    : <p className="text-sm">{copy("Enter the required account proof to choose your Google account.")}</p>}
+                    <button type="button" className={button} onClick={cancel}>{flow.action === 'link' ? copy("Cancel Google linking") : copy("Cancel Google unlink")}</button>
                 </section>}
         </>}
     </div>;

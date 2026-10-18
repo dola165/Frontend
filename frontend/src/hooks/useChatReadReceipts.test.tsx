@@ -6,7 +6,9 @@ import { chatApi, type ChatMessageResponse } from '../api/chat';
 import { emitNotificationsChanged } from '../utils/notifications';
 
 vi.mock('../api/chat', () => ({ chatApi: { markAsRead: vi.fn() } }));
-vi.mock('../utils/authStorage', () => ({ getStoredUserId: () => '1' }));
+const auth = vi.hoisted(() => ({ session: 'session-A' }));
+vi.mock('../utils/authStorage', () => ({ getStoredUserId: () => '1', getAuthSessionId: () => auth.session,
+    isCurrentAuthSession: (session: string) => session === auth.session }));
 vi.mock('../utils/notifications', () => ({ emitNotificationsChanged: vi.fn() }));
 
 const observers: FakeObserver[] = [];
@@ -29,6 +31,7 @@ function Chat({ id = 7, enabled = true, messages = [message(10)] }: { id?: numbe
 const tick = () => act(async () => { await vi.advanceTimersByTimeAsync(210); });
 
 beforeEach(() => {
+    auth.session = 'session-A';
     Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: vi.fn((x: number) =>
         [...document.querySelectorAll<HTMLElement>('[data-chat-message-id]')].find(element => {
             const rect = element.getBoundingClientRect();
@@ -132,6 +135,20 @@ it('only refreshes badges after the captured read request succeeds, even if a ne
     await act(async () => { confirm({} as never); });
     expect(chatApi.markAsRead).toHaveBeenCalledExactlyOnceWith(7, [10]);
     expect(emitNotificationsChanged).toHaveBeenCalledTimes(1);
+});
+
+it('ignores a read response and scheduled retries after the login changes', async () => {
+    let confirm!: (value: never) => void;
+    vi.mocked(chatApi.markAsRead).mockReturnValueOnce(new Promise(resolve => { confirm = resolve; }));
+    render(<Chat />);
+    observers.at(-1)?.show([10]);
+    await tick();
+    auth.session = 'session-B';
+    await act(async () => { confirm({} as never); });
+    window.dispatchEvent(new Event('online'));
+    await tick();
+    expect(chatApi.markAsRead).toHaveBeenCalledTimes(1);
+    expect(emitNotificationsChanged).not.toHaveBeenCalled();
 });
 
 it('rejects a queued read when an opaque overlay opens, then retries immediately after dismissal', async () => {

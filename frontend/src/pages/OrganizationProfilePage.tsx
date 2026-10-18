@@ -14,7 +14,9 @@ import { OrganizationBranding } from '../features/organizations/setup/Organizati
 import { PageEditProvider } from '../features/pages/edit/PageEditProvider';
 import { usePageEdit } from '../features/pages/edit/context';
 import { OrganizationPage } from '../features/pages/OrganizationPage';
+import { useInvitationCopy } from '../features/organizations/setup/invitationCopy';
 import '../features/organizations/presentation/organization-profile.css';
+import '../features/organizations/setup/setup.css';
 
 interface Presentation {
   profile: OrganizationProfile;
@@ -41,9 +43,10 @@ export function OrganizationProfilePage() {
 }
 function OrganizationPageOrLegacy({ id }: { id: string }) {
   const { page, loading, notFound } = usePageEdit();
+  const copy = useInvitationCopy();
   if (notFound) return <OrganizationProfileContent id={id} />;
   if (!page && loading) return <GkRoot className="gk-page gk-profile"><PageFrame width="profile"><div role="status" aria-label="Loading" className="gk-stack gk-stack--tight gk-org-state"><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={160} /></div></PageFrame></GkRoot>;
-  return <OrganizationPage />;
+  return <>{page?.viewer.canEdit && ['OWNER', 'ADMIN'].includes(page.viewer.role ?? '') && <div className="org-page-team-entry"><ButtonLink to={`/organizations/${id}/workspace?tab=team`}>{copy('Manage your organization team')}</ButtonLink></div>}<OrganizationPage /></>;
 }
 export const OrganizationProfilePreview = ({ id = '17' }: { id?: string }) => <OrganizationProfileContent key={id} id={id} />;
 

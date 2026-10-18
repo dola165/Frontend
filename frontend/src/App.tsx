@@ -12,7 +12,7 @@ import { AppPageFrame } from './components/layout/AppPageShell';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { isSystemAdmin } from './context/navigationCapabilities';
 import { AuthSessionBoundary } from './context/AuthSessionBoundary';
-import { buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
+import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, completeSignOutNavigation, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
 import { applyDocumentTheme, readThemePreference, themeForRoute, isThemePreference, type ThemePreference } from './theme';
 import { AppSettingsPage } from './android/AppSettingsPage';
@@ -98,6 +98,8 @@ const RequestsCentre = lazy(() => import('./features/requests/RequestsCentre').t
 const WorldRoutes = lazy(() => import('./features/world/WorldRoutes'));
 const TryoutDetailPage = lazy(() => import('./features/tryouts/TryoutDetailPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({default: module.AdminPage})));
+const PageReviewQueue = lazy(() => import('./features/pages/verify/PageReviewQueue').then(module => ({ default: module.PageReviewQueue })));
+const PageReviewReceipt = lazy(() => import('./features/pages/verify/PageReviewReceipt').then(module => ({ default: module.PageReviewReceipt })));
 const TournamentWorkspacePage = lazy(() => import('./pages/TournamentWorkspacePage').then(module => ({default: module.TournamentWorkspacePage})));
 const TournamentDetailPage = lazy(() => import('./pages/TournamentDetailPage').then(module => ({default: module.TournamentDetailPage})));
 const JoinPage = lazy(() => import('./features/pages/links/JoinPage').then(module => ({ default: module.JoinPage })));
@@ -185,6 +187,7 @@ export function MainLayout() {
     // Re-render presentation on language changes without remounting page state.
     useTranslation();
     const location = useLocation();
+    useEffect(() => { if (location.pathname === '/login') completeSignOutNavigation(); }, [location.pathname]);
     const navigate = useNavigate();
     useEffect(() => {
         if (isAndroidApp) void nativeCall({ kind: 'destination', path: location.pathname });
@@ -285,8 +288,11 @@ export function MainLayout() {
 
     const handleLogout = async () => {
         setMyClubId(null);
-        await logout();
+        beginExplicitSignOut();
+        const endingSession = logout();
+        // Leave private routes now: a delayed response must not capture their address or redirect a later account.
         navigate('/login', { replace: true });
+        await endingSession;
     };
 
     const isLandingPage = location.pathname === '/';
@@ -303,7 +309,7 @@ export function MainLayout() {
         /^\/organizations\/\d+$/.test(location.pathname) ||
         /^\/profile\/\d+$/.test(location.pathname);
     const isFullScreenPage =
-        location.pathname === '/reports' || isWorldPage ||
+        location.pathname === '/reports' || isWorldPage || location.pathname.startsWith('/admin/') || location.pathname.startsWith('/pages/requests/') ||
         location.pathname === '/requests' || location.pathname === '/events' ||
         location.pathname === '/tryouts' || location.pathname.startsWith('/tryouts/') ||
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||
@@ -393,6 +399,8 @@ export function MainLayout() {
             <Route path="/organizations/:organizationId/workspace" element={<ProtectedRoute><OrganizationWorkspacePage /></ProtectedRoute>} />
             <Route path="/organizations/:organizationId" element={<ProtectedRoute><OrganizationProfilePage /></ProtectedRoute>} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
+            <Route path="/admin/page-reviews" element={<SystemAdminRoute><PageReviewQueue /></SystemAdminRoute>} />
+            <Route path="/pages/requests/:reviewId" element={<ProtectedRoute><PageReviewReceipt /></ProtectedRoute>} />
             <Route path="/profile/me" element={<ProtectedRoute><MyProfileRedirect /></ProtectedRoute>} />
             <Route path="/profile/:id" element={<PersonProfilePage />} />
             <Route path="/agents/:id" element={<AgentProfilePage />} />

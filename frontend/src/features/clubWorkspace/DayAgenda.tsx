@@ -54,7 +54,7 @@ export function DayAgenda({ items, label, limit = 5 }: { items: DayAgendaItem[];
             {!/\d/.test(day) && <span className="cw-agenda__near">{day}</span>}
         </h3>
         <ul className="cw-agenda__list">{dayRows.map(row => {
-            const Icon = row.kind ? activityIcons[row.kind] : CalendarDays;
+            const Icon = (row.kind && activityIcons[row.kind]) || CalendarDays;
             const merged = row.count > 1;
             const title = merged ? many(row.kind!, row.count) : row.title;
             const meta = merged ? row.squads.join(', ') : row.meta;

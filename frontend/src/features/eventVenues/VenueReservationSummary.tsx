@@ -2,11 +2,15 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './event-venues.css';
 
-export interface VenueReservationSummaryValue {
+export type VenueReservationSummaryValue = {
     venueId: number; venueName: string; pitchName: string;
-    status: 'CONFIRMED' | 'PENDING' | 'UNAVAILABLE'; startsAt: string; endsAt: string; timezone: string;
+    status: 'CONFIRMED' | 'PENDING'; startsAt: string; endsAt: string; timezone: string;
+} | {
+    status: 'UNAVAILABLE';
+    venueId?: number | null; venueName?: string | null; pitchName?: string | null;
+    startsAt?: string | null; endsAt?: string | null; timezone?: string | null;
     unavailableReason?: 'DECLINED' | 'CANCELLED' | 'EXPIRED' | 'VENUE_UNAVAILABLE';
-}
+};
 
 export function VenueReservationSummary({ value }: { value?: VenueReservationSummaryValue | null }) {
     const { i18n } = useTranslation();

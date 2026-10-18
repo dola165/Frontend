@@ -69,8 +69,14 @@ export function PhoneSteps() {
     </div>;
     if (View) return <View page={page} editing open onEdit={() => undefined} onClose={() => go(at + 1)} />;
     if (key === 'name') return <InlineText as="h1" value={page.identity.name} placeholder={t('Name your page')} label={t('Name')} maxLength={120} className="gk-phonesteps__name"
-      onSave={next => { if (next.length >= 2) void saveIdentity({ name: next }, { label: t('Name saved') }); }} />;
+      onSave={next => next.length >= 2 ? saveIdentity({ name: next }, { label: t('Name saved') }) : false} />;
     if (key === 'about') return <div className="gk-phonesteps__about"><AboutLine /></div>;
+    if (key === 'posts') return <>
+      <p className="gk-muted">{t('Your first post is written for you when you go live.')}</p>
+      {page.goLive.ready
+        ? <Button variant="primary" className="gk-phonesteps__cta" onClick={() => void goLive()}>{t('Go live')}</Button>
+        : <p className="gk-muted">{t('To go live, name your page.')}</p>}
+    </>;
     const summary = key === 'crest' ? <Crest src={page.identity.crest.url} name={page.identity.name} size={96} />
       : key === 'grounds' ? page.boxes.grounds.items.map(ground => ground.name).join(' · ')
       : key === 'squads' ? page.boxes.squads.items.map(squad => squad.name).join(' · ')

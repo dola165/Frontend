@@ -1,3 +1,4 @@
+import { ct, useCommerceCopy } from './copy';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Package } from 'lucide-react';
@@ -11,13 +12,15 @@ import { Row } from './front/Row';
 
 /** Who sells a product, as a small crest (a club) or the GrassKickZ mark, with the name. */
 export function SellerMark({ product, size = 16 }: { product: StoreProduct; size?: number }) {
+    useCommerceCopy();
     return sellerOf(product) === 'GRASSKICKZ'
         ? <img src="/brand/grasskickz-mark.svg" alt="" width={size} height={size} />
-        : <Crest src={product.clubLogoUrl} name={product.clubName ?? 'Club'} size={size} round />;
+        : <Crest src={product.clubLogoUrl} name={product.clubName ?? ct("Club")} size={size} round />;
 }
 
 /** One product the way a store lists it: the picture square, the name, who sells it, the price bright, honest availability. */
 export function ProductCard({ product }: { product: StoreProduct }) {
+    useCommerceCopy();
     const location = useLocation();
     const stock = availability(product);
     const picture = product.images?.[0];
@@ -25,13 +28,13 @@ export function ProductCard({ product }: { product: StoreProduct }) {
         <Link className="gk-product" to={`/store/products/${product.id}`} state={opportunityReturnState('store', location)}>
             <span className="gk-product__pic" data-out={stock.tone === 'out' || undefined}>
                 {picture ? <MediaImage src={resolveMediaUrl(picture)} alt="" loading="lazy" /> : <Package aria-hidden="true" />}
-                {stock.tone === 'out' && <Badge className="gk-product__flag">Out of stock</Badge>}
+                {stock.tone === 'out' && <Badge className="gk-product__flag">{ct("Out of stock")}</Badge>}
             </span>
-            <span className="gk-product__name">{product.name ?? 'Product'}</span>
+            <span className="gk-product__name">{product.name ?? ct("Product")}</span>
             <span className="gk-product__seller"><SellerMark product={product} /><span>{sellerName(product)}</span></span>
             <span className="gk-product__foot">
                 <span className="gk-product__price gk-num">{formatStorePrice(product.price ?? 0, product.currency)}</span>
-                {stock.tone !== 'out' && <span className="gk-product__stock" data-tone={stock.tone}>{stock.label}</span>}
+                {stock.tone !== 'out' && <span className="gk-product__stock" data-tone={stock.tone}>{ct(stock.label)}</span>}
             </span>
         </Link>
     );
@@ -45,10 +48,11 @@ export function ProductRow({ title, hint, to, products, loading, error, retry, e
     title: string; hint?: ReactNode; to: string; products: StoreProduct[]; loading: boolean; error: string; retry: () => void; empty: string;
     /** On the front the row drifts on its own, this way, on a textured band. */ float?: 'left' | 'right'; tone?: 'a' | 'b';
 }) {
+    useCommerceCopy();
     return (
-        <Section title={title} hint={hint} action={products.length ? { label: 'View all', to } : undefined} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
-            {error ? <EmptyNote title="These products could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
-                : loading && !products.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label="Loading products"><ProductSkeletons /></ul>
+        <Section title={title} hint={hint} action={products.length ? { label: ct("View all"), to } : undefined} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
+            {error ? <EmptyNote title={ct("These products could not load")} action={<Button size="sm" onClick={retry}>{ct("Retry")}</Button>}>{error}</EmptyNote>
+                : loading && !products.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label={ct("Loading products")}><ProductSkeletons /></ul>
                 : !products.length ? <EmptyNote title={empty} />
                 : <Row label={title} wide drift={float}>{products.map(product => <li key={product.id}><ProductCard product={product} /></li>)}</Row>}
         </Section>

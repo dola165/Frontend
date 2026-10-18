@@ -24,3 +24,8 @@ it('folds long multilingual lines on UTF-8 boundaries', () => {
     expect(value.split('\r\n').every(line => new TextEncoder().encode(line).length <= 75)).toBe(true);
     expect(value).not.toContain('�');
 });
+it('exports an international kickoff at the same instant for calendar viewers in any zone', () => {
+    const value = tournamentCalendar({ ...tournament, fixtures: [{ ...tournament.fixtures[0], scheduledAt: '2027-06-01T11:30-04:00' }] }, 'https://app.grasskickz.com');
+    expect(value).toContain('DTSTART:20270601T153000Z');
+    expect(value).not.toContain('DTSTART:20270601T113000\r\n');
+});

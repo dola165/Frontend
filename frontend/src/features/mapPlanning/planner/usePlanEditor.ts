@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { getAuthSessionId } from '../../../utils/authStorage';
+import { getAuthSessionId, isCurrentAuthSession } from '../../../utils/authStorage';
 import { emptyDraft, planGet, planPost, savePlan, type Plan, type PlanContext, type PlanDraft, type PlanPlace, type PlanSummary } from '../api';
 import { draftFingerprint, forgetPlan, recoverPlan, recoveryKey, rememberPlan, rememberSelection, validatePlanDraft } from '../draftRecovery';
 
@@ -39,6 +39,10 @@ export function usePlanEditor({ enabled, initialClubId }: { enabled: boolean; in
     const skipLoad = useRef<number | null>(null);
     const mounted = useRef(true);
     useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+    const commandOwner = useRef({ key, loadVersion, enabled });
+    if (commandOwner.current.key !== key || commandOwner.current.loadVersion !== loadVersion || commandOwner.current.enabled !== enabled) commandOwner.current = { key, loadVersion, enabled };
+    const commandPending = useRef<object | null>(null);
+    useEffect(() => { setBusy(null); }, [key, loadVersion, enabled]);
 
     // Which clubs and squads this person may plan for.
     useEffect(() => {
@@ -154,17 +158,22 @@ export function usePlanEditor({ enabled, initialClubId }: { enabled: boolean; in
     };
     /** A recorded decision (publish, approve, travel milestone) on the saved plan. */
     const command = async (path: string, extra: Record<string, unknown> = {}) => {
-        if (!plan || busy) return false;
+        const owner = commandOwner.current;
+        const active = () => mounted.current && owner.enabled && commandOwner.current === owner && isCurrentAuthSession(session);
+        if (!plan || busy || commandPending.current === owner || !active()) return false;
         if (dirty) { setEditing({ ...current!, error: 'Save your changes before publishing or recording a decision.' }); return false; }
-        setBusy('working');
+        commandPending.current = owner; setBusy('working');
         try {
-            received(await planPost(`/${plan.id}/${path}`, { revision: plan.revision, ...extra }));
+            const saved = await planPost(`/${plan.id}/${path}`, { revision: plan.revision, ...extra });
+            if (!active()) return false;
+            received(saved);
             return true;
         } catch (cause) {
-            if (mounted.current) setEditing(value => value ? { ...value, error: extractApiErrorMessage(cause, 'That was not completed. Try again.') } : value);
+            if (active()) setEditing(value => value?.key === owner.key ? { ...value, error: extractApiErrorMessage(cause, 'That was not completed. Try again.') } : value);
             return false;
         } finally {
-            if (mounted.current) setBusy(null);
+            if (commandPending.current === owner) commandPending.current = null;
+            if (mounted.current && commandOwner.current === owner) setBusy(null);
         }
     };
     /** Drops unsaved work, on this device too; the saved plan loads again when it is next opened. */

@@ -8,6 +8,9 @@
 //   GET/POST /join/:code                            the link itself, for codes of the form sq<squad>k<key>
 import { get, post, reply, handleApi } from '../router.mjs';
 import { familyOf } from '../world-family.mjs';
+import { squadAccess } from '../squad-access.mjs';
+import * as V from '../viewer.mjs';
+import './squad-training.mjs';
 import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as F from '../world-football.mjs';
@@ -20,8 +23,9 @@ const arrivals = []; // { id, squadId, childFirstName, childLastName, birthDate,
 let nextArrival = 88001;
 const year = new Date().getFullYear();
 
-get('/squad-communication/:id/join-link', ({ params }) => {
+get('/squad-communication/:id/join-link', ({ params, headers }) => {
   const squad = coachable(params.id);
+  if (squad && !squadAccess(squad, headers)?.canManage) return reply(403, { status: 403, message: 'Only the squad staff invite players.' });
   return squad ? { code: codeOf(squad.id), path: `/join/${codeOf(squad.id)}`, squadName: squad.name } : undefined;
 });
 
@@ -37,23 +41,25 @@ post('/join/:code', ({ params, body, headers }) => {
   if (body?.playerId != null && !headers[PASS]) return undefined; // the guardian check below answers first
   const first = String(body?.childFirstName ?? '').trim(), birthDate = String(body?.birthDate ?? '');
   if (!first || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return reply(400, { status: 400, message: 'Add the child’s name and date of birth.' });
-  const arrival = { id: nextArrival++, squadId: squad.id, childFirstName: first, childLastName: String(body?.childLastName ?? '').trim(), birthDate, gender: body?.childGender ?? null, guardianName: W.me.fullName, playerId: body?.playerId ?? null, createdAt: new Date().toISOString(), status: 'WAITING' };
+  const arrival = { id: nextArrival++, squadId: squad.id, childFirstName: first, childLastName: String(body?.childLastName ?? '').trim(), birthDate, gender: body?.childGender ?? null, guardianName: V.account(V.viewerId(headers))?.fullName ?? W.me.fullName, playerId: body?.playerId ?? null, createdAt: new Date().toISOString(), status: 'WAITING' };
   arrivals.push(arrival);
   return reply(201, { id: arrival.id, status: arrival.status, squadName: squad.name });
 });
 
 // Waiting children: link arrivals plus requests sent through a group tied to this squad.
 const groupRequests = squad => C.admissionCases.filter(c => c.stage === 'REQUEST_RECEIVED' && F.groupById(c.groupId)?.squadId === squad.id);
-get('/squad-communication/:id/join-requests', ({ params }) => {
+get('/squad-communication/:id/join-requests', ({ params, headers }) => {
   const squad = coachable(params.id); if (!squad) return undefined;
+  if (!squadAccess(squad, headers)?.canManage) return reply(403, { status: 403, message: 'Only the squad staff review requests.' });
   return [
     ...arrivals.filter(a => a.squadId === squad.id && a.status === 'WAITING').map(a => ({ id: a.id, source: 'LINK', childName: `${a.childFirstName} ${a.childLastName}`.trim(), birthYear: Number(a.birthDate.slice(0, 4)), guardianName: a.guardianName, createdAt: a.createdAt, caseId: null })),
     ...groupRequests(squad).map(c => ({ id: c.id, source: 'GROUP', childName: c.playerName, birthYear: Number(String(c.dateOfBirth).slice(0, 4)) || null, guardianName: c.history[0]?.actorName ?? null, createdAt: c.submittedAt, caseId: c.id })),
   ];
 });
 
-post('/squad-communication/:id/join-requests/:rid', ({ params, body }) => {
+post('/squad-communication/:id/join-requests/:rid', ({ params, body, headers }) => {
   const squad = coachable(params.id); if (!squad) return undefined;
+  if (!squadAccess(squad, headers)?.canManage) return reply(403, { status: 403, message: 'Only the squad staff decide requests.' });
   const approve = body?.action === 'APPROVE', rid = Number(params.rid);
   const arrival = arrivals.find(a => a.id === rid && a.squadId === squad.id && a.status === 'WAITING');
   const request = !arrival && groupRequests(squad).find(c => c.id === rid);

@@ -1,4 +1,5 @@
-import { apiClient } from '../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
+import type { AuthSessionId } from '../../utils/authStorage';
 import { translate } from '../../locales/useCopy';
 import { clubRecordsEn, recordWordsKa } from '../../locales/clubRecords';
 import { appLanguage } from '../../utils/formatting';
@@ -43,7 +44,10 @@ export interface History { id: number; action: string; from_status: string | nul
 export const root = (club: number) => `/clubs/${club}/operations`;
 export const get = async <T>(path: string, signal?: AbortSignal) => (await apiClient.get<T>(path, { signal })).data;
 export const put = async <T>(path: string, body: unknown) => (await apiClient.put<T>(path, body)).data;
-export const post = async <T>(path: string, body: unknown) => (await apiClient.post<T>(path, body)).data;
+export const post = async <T>(path: string, body: unknown, headers?: Record<string, string>, authSessionId?: AuthSessionId) => {
+  const config = authSessionId === undefined ? headers ? { headers } : undefined : { headers, _authSessionId: authSessionId } satisfies AuthSessionRequestConfig;
+  return (await (config ? apiClient.post<T>(path, body, config) : apiClient.post<T>(path, body))).data;
+};
 /** An enum word the server sends (PENDING, CLUB_CHECKED…) as a word people read, in the app's language. */
 export const label = (value: string) => (appLanguage() === 'ka' && recordWordsKa[value]) || value.toLowerCase().replaceAll('_', ' ').replace(/^./, c => c.toUpperCase());
 export const appointmentStatus = (a:Appointment) => a.effective_status?label(a.effective_status):a.status==='ACTIVE'?(a.ends_on&&a.ends_on.slice(0,10)<clubToday(a.timezone)?'Expired':a.starts_on.slice(0,10)>clubToday(a.timezone)?'Upcoming':'Active'):label(a.status);

@@ -137,6 +137,22 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     const entityId = notificationId(notification.entityId);
     const link = safeNotificationLink(notification.linkPath);
     const path = link ? link.pathname + link.search + link.hash : null;
+    if (notification.entityType === 'organization_invitation' || notification.type.startsWith('ORGANIZATION_INVITATION_')) {
+        if (notification.entityType !== 'organization_invitation' || !entityId) return outcome;
+        // Old notices used Account, which does not render this receipt. Preserve
+        // history, but never take an unrelated ID or arbitrary query from a row.
+        const canonical = `/my-organizations?itemId=${entityId}`;
+        const legacy = `/account?tab=profile&itemId=${entityId}`;
+        return notification.linkPath == null || path === canonical || path === legacy || path === `/invite/org-${entityId}` ? canonical : outcome;
+    }
+    if (notification.entityType === 'page_review' || ['PAGE_REVIEW_REQUESTED', 'PAGE_REVIEW_DECIDED'].includes(notification.type)) {
+        // The numeric entity is a delivery identity. The UUID in the link names
+        // the private review receipt; the destination API checks current access.
+        if (notification.entityType !== 'page_review' || !entityId || !link) return outcome;
+        const requested = notification.type === 'PAGE_REVIEW_REQUESTED' && link.pathname === '/admin/page-reviews';
+        const decided = notification.type === 'PAGE_REVIEW_DECIDED' && link.pathname.startsWith('/pages/requests/');
+        return requested || decided ? path! : outcome;
+    }
     if (notification.entityType === 'admission_case' || notification.entityType === 'admission_inquiry') {
         if (!entityId) return outcome;
         const kind = notification.entityType === 'admission_case' ? 'cases' : 'inquiries';
@@ -267,6 +283,10 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
 };
 
 export const notificationActionLabel = (notification: NotificationItem) => {
+    const reviewCopy = (en: string, ka: string) => appLocale() === 'ka-GE' ? ka : en;
+    if (notification.entityType === 'organization_invitation') return reviewCopy('Review invitation', 'მოწვევის განხილვა');
+    if (notification.type === 'PAGE_REVIEW_REQUESTED' && notification.entityType === 'page_review') return reviewCopy('Review page request', 'გვერდის მოთხოვნის განხილვა');
+    if (notification.type === 'PAGE_REVIEW_DECIDED' && notification.entityType === 'page_review') return reviewCopy('View review outcome', 'განხილვის შედეგის ნახვა');
     if (notification.entityType === 'admission_case') return 'View next step';
     if (notification.entityType === 'admission_inquiry') return 'Open club conversation';
     if (notification.entityType === 'admission_invitation') return 'Review joining invitation';

@@ -21,7 +21,7 @@ const own: api.StoreProduct = { id: 2, clubId: null, clubName: 'GrassKickZ', sel
 const item = { variantId: 7, quantity: 2, productId: 1, name: 'Home shirt', variant: 'M', clubId: 10, seller: 'CLUB' as const, currency: 'GEL' };
 const catalogue = (content: api.StoreProduct[], totalElements = content.length) => ({ content, totalElements });
 beforeEach(() => {
-    vi.clearAllMocks(); localStorage.clear();
+    vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear();
     vi.mocked(api.fetchStoreLocations).mockResolvedValue([]);
     vi.mocked(api.fetchStoreClub).mockResolvedValue({ id: 10, name: 'Alpha FC', cityName: 'Tbilisi', myRole: null });
     vi.mocked(api.fetchStoreFront).mockResolvedValue({ city: 'Tbilisi', collections: [{ id: 'BALLS', products: 4, image: '/p/ball.svg' }], near: [{ clubId: 10, name: 'Alpha FC', logoUrl: null, city: 'Tbilisi', products: 3, distanceKm: 2.4, followed: false }], followed: [], sellers: 1, own: 4 });
@@ -80,8 +80,8 @@ describe('Storefront and catalogue', () => {
         await waitFor(() => expect(api.fetchStoreCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ clubId: 10, query: 'shirt', page: 1 }), expect.any(AbortSignal)));
         expect(screen.queryByRole('button', { name: 'Add a product' })).not.toBeInTheDocument();
     });
-    it('offers Add a product to the club’s staff', async () => {
-        vi.mocked(api.fetchStoreClub).mockResolvedValue({ id: 10, name: 'Alpha FC', myRole: 'COACH' });
+    it('offers Add a product to the club administrator', async () => {
+        vi.mocked(api.fetchStoreClub).mockResolvedValue({ id: 10, name: 'Alpha FC', myRole: 'CLUB_ADMIN' });
         render(<MemoryRouter initialEntries={['/clubs/10/store']}><Routes><Route path="/clubs/:id/store" element={<ClubStorePage />} /></Routes></MemoryRouter>);
         fireEvent.click(await screen.findByRole('button', { name: 'Add a product' }));
         expect(await screen.findByLabelText('Product name')).toBeInTheDocument();
@@ -137,7 +137,9 @@ describe('The club’s own products (workspace)', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save product' }));
         expect(await screen.findByRole('alert')).toHaveTextContent('This product changed');
         expect(screen.getByLabelText('Stock 1')).toHaveValue(4);
-        expect(api.updateStoreProduct).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 3, variants: [{ id: 7, label: 'M', stock: 4 }] }));
+        expect(screen.getByLabelText('Stock 1')).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Retry original change' })).toBeEnabled();
+        expect(api.updateStoreProduct).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 3, variants: [{ id: 7, label: 'M', stock: 4 }] }), expect.any(String), null);
     });
     it('rejects a stale archive and asks again after loading the newer product', async () => {
         vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([product]);
@@ -147,7 +149,7 @@ describe('The club’s own products (workspace)', () => {
         expect(api.deleteStoreProduct).not.toHaveBeenCalled();
         fireEvent.click(screen.getByRole('button', { name: 'Confirm archive' }));
         await screen.findByRole('alert');
-        expect(api.deleteStoreProduct).toHaveBeenLastCalledWith(10, 1, 3);
+        expect(api.deleteStoreProduct).toHaveBeenLastCalledWith(10, 1, 3, expect.any(String), null);
         vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([{ ...product, version: 4, name: 'New kit' }]);
         fireEvent.click(screen.getByRole('button', { name: 'Reload products' }));
         await screen.findByRole('heading', { name: 'New kit' });
@@ -155,6 +157,6 @@ describe('The club’s own products (workspace)', () => {
         vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([]);
         fireEvent.click(screen.getByRole('button', { name: 'Confirm archive' }));
         await screen.findByText('Product archived.');
-        expect(api.deleteStoreProduct).toHaveBeenLastCalledWith(10, 1, 4);
+        expect(api.deleteStoreProduct).toHaveBeenLastCalledWith(10, 1, 4, expect.any(String), null);
     });
 });

@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MatchDetailPage } from '../../../pages/MatchDetailPage';
 import { chatApi } from '../../../api/chat';
 import { useAction, useClock, useLoad } from '../hooks';
 import { getPublicMatchResult, getResultSuggestions, getMatchResult, type Match } from '../api';
+import i18n from '../../../i18n';
 
 vi.mock('../hooks', () => ({ useLoad: vi.fn(), useAction: vi.fn(), useClock: vi.fn() }));
 vi.mock('../../../api/chat', () => ({ chatApi: { findConversationByContext: vi.fn() } }));
@@ -33,7 +34,7 @@ beforeEach(() => {
 it('shows only the public result state to an ordinary match viewer', async () => {
   vi.mocked(getPublicMatchResult).mockResolvedValue({ eventId: 12, status: 'DISPUTED', fixtureStatus: 'COMPLETED', revision: 2, homeScore: 2, awayScore: 1, official: false, legacy: false, canReadAudit: false });
   const spectator = { ...match, can_arrange: false, home_score: null, away_score: null, result_status: 'DISPUTED' as const };
-  renderPage(spectator);
+  await act(async () => { renderPage(spectator); });
   expect(await screen.findByText('Disputed · under review')).toBeInTheDocument();
   expect(getMatchResult).not.toHaveBeenCalled();
 });
@@ -79,4 +80,25 @@ it('uses a truthful Messages fallback when the conversation lookup exposes no ID
   renderPage();
   expect(await screen.findByText('Available in Messages')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Open Messages to find this match conversation' })).toHaveAttribute('href', '/messages');
+});
+
+it('distinguishes same-name squads and opens the exact visiting squad', () => {
+  renderPage();
+  expect(screen.getByRole('link', { name: 'U16 (Alpha FC)' })).toHaveAttribute('href', '/clubs/10?tab=teams&squad=1');
+  expect(screen.getByRole('link', { name: 'U16 (Beta FC)' })).toHaveAttribute('href', '/clubs/11?tab=teams&squad=2');
+});
+
+it('renders the match-day plan in Georgian, including dates, ground and referee states', async () => {
+  await i18n.changeLanguage('ka');
+  try {
+    renderPage({ ...match, can_arrange: false });
+    expect(screen.getByRole('heading', { name: 'დაგეგმეთ მატჩის დღე' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'გუნდის განრიგი' })).toHaveAttribute('href', '/calendar?scope=squad&squadId=1');
+    expect(screen.getByText(/დაჯავშნილია/)).toBeInTheDocument();
+    expect(screen.getAllByText('დანიშნულია').length).toBeGreaterThan(0);
+    expect(screen.getByText(/120 წუთი/)).toBeInTheDocument();
+    expect(screen.getAllByText(/სექ/).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Reserved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sun, 20 Sept')).not.toBeInTheDocument();
+  } finally { await act(async () => { await i18n.changeLanguage('en'); }); }
 });

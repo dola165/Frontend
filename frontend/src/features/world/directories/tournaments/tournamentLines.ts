@@ -23,7 +23,7 @@ export function nearParams(params: URLSearchParams, area?: DirectoryArea) {
 export function tournamentLine(item: TournamentItem): BrowseLine {
     const fact = tournamentFact(item);
     return {
-        when: dateColumn(item.start), title: item.name, to: `/tournaments/${item.id}`, action: wt('Open tournament'), peek: peekOf('tournament', item.id),
+        when: dateColumn(item.start, item.rules?.timezone), title: item.name, to: `/tournaments/${item.id}`, action: wt('Open tournament'), peek: peekOf('tournament', item.id),
         detail: [item.rules && wt(FORMAT_WORD[item.rules.structure]), ...whatLabel(item).slice(0, 2), item.organizer].filter(Boolean).join(' · '),
         fact: fact.label, factTone: factTone(fact.tone),
     };
@@ -32,7 +32,7 @@ export function tournamentLine(item: TournamentItem): BrowseLine {
 /** A tournament at its own ground (a trophy pin). One without a known ground stays in the list only. */
 export function tournamentPlace(item: TournamentItem, places: Places): Placement | null {
     const at = places.competition(item.id);
-    return at ? { lat: at.lat, lng: at.lng, tone: 'tournament', label: item.name, meta: shortDate(item.start) ?? undefined, to: `/tournaments/${item.id}`, action: wt('Open tournament'), noun: ['tournament', 'tournaments'] } : null;
+    return at ? { lat: at.lat, lng: at.lng, tone: 'tournament', label: item.name, meta: shortDate(item.start, item.rules?.timezone) ?? undefined, to: `/tournaments/${item.id}`, action: wt('Open tournament'), noun: ['tournament', 'tournaments'] } : null;
 }
 
 const AGE_ORDER = (age: string) => /^U\d+$/.test(age) ? Number(age.slice(1)) : age === 'SENIOR' ? 30 : age === 'VETERANS' ? 31 : 40;

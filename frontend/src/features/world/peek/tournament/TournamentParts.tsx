@@ -84,13 +84,14 @@ const TIEBREAK: Record<string, string> = { POINTS: 'Points', GOAL_DIFFERENCE: 'G
 export function TournamentAbout({ data }: { data: TournamentPaneData }) {
     const t = useWorldCopy();
     const { detail, rules } = data;
-    const day = (value?: string | null) => shortDate(zoned(value));
+    const day = (value?: string | null) => shortDate(zoned(value), rules?.timezone);
     const facts: [string, string | null | undefined][] = [
         ['Format', rules ? t(FORMAT_WORD[rules.structure]) : null],
         ['Who it is for', rules ? [codeLabel(rules.ageGroup), rules.eligibilityCategory, `${rules.sideSize}v${rules.sideSize}`, codeLabel(rules.playingLevel)].filter(Boolean).join(' · ') : null],
         ['Who enters', SCOPE_LABEL[detail.participantScope] ? t(SCOPE_LABEL[detail.participantScope]) : null],
+        ['Time zone', rules?.timezone],
         ['Dates', [day(detail.startDate), day(detail.endDate)].filter(Boolean).filter((value, index, all) => all.indexOf(value) === index).join(' – ') || null],
-        ['Entries', [detail.registrationOpensAt && t('open {date}', { date: day(detail.registrationOpensAt) ?? '' }), detail.registrationClosesAt && t('last day {date}', { date: lastEntryDay(detail.registrationClosesAt) ?? '' })].filter(Boolean).join(', ') || null],
+        ['Entries', [detail.registrationOpensAt && t('open {date}', { date: day(detail.registrationOpensAt) ?? '' }), detail.registrationClosesAt && t('last day {date}', { date: lastEntryDay(detail.registrationClosesAt, rules?.timezone) ?? '' })].filter(Boolean).join(', ') || null],
         ['How entries work', [detail.registrationPolicy === 'INVITE_ONLY' ? t('By invitation only.') : instantEntry(detail, rules) ? t('Entries are accepted as they come.') : t('The organiser approves each entry.'), detail.entryCap ? t('{cap} places; once full, entries join the waiting list.', { cap: detail.entryCap }) : null].filter(Boolean).join(' ') || null],
         ['Entry fee', rules ? [feeLabel(rules), rules.entryFee ? t('paid to the organiser') : null].filter(Boolean).join(', ') : null],
         ['Prizes', detail.incentives],

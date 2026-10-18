@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Check, Copy, MessageCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
@@ -11,26 +11,44 @@ import { Crest } from '../../../world/Crest';
 import { usePagesCopy } from '../../copy';
 import { usePageEdit } from '../context';
 import { SplitPanel } from '../SplitPanel';
+import { useOrganizationPostPublication } from '../../../../components/feed/postPublication';
+import { getAuthSessionId, isCurrentAuthSession } from '../../../../utils/authStorage';
+import { useJourneyCopy } from '../../../squadCommunication/journeyCopy';
 
 /** Right after going live: "Your page is live", the link to copy, a WhatsApp share and a QR code for the parents' group. */
 export function LivePanel() {
   const t = usePagesCopy();
+  const postCopy = useJourneyCopy();
   const { page, closePanel, openPanel } = usePageEdit();
   const [copied, setCopied] = useState(false);
   const [post, setPost] = useState(() => t('{name} joined GrassKickZ', { name: page?.identity.name ?? '' }));
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
+  const publication = useOrganizationPostPublication(page?.clubId ? undefined : page?.organizationId);
+  const mounted = useRef(false), pending = useRef(false);
+  useEffect(() => { mounted.current = true;return () => { mounted.current = false; }; }, []);
   const id = useId();
   if (!page) return null;
+  const canPublish = !!page.clubId || page.status === 'LIVE' && !!page.organizationId && page.viewer.canEdit && ['OWNER', 'ADMIN', 'CLUB_ADMIN'].includes(page.viewer.role ?? '');
   const url = `${window.location.origin}${page.links.profilePath}`;
   const publish = async () => {
+    if (pending.current) return;
+    const session = getAuthSessionId();
+    const current = () => mounted.current && isCurrentAuthSession(session);
+    pending.current = true;
     setPosting(true);
     try {
-      await apiClient.post('/posts', { content: post.trim(), clubId: page.clubId, organizationId: page.clubId ? null : page.organizationId, isPublic: true, mediaIds: [] });
+      if (page.clubId) await apiClient.post('/posts', { content: post.trim(), clubId: page.clubId, organizationId: null, isPublic: true, mediaIds: [] });
+      else {
+        if (page.status !== 'LIVE' || !page.organizationId || !page.viewer.canEdit || !['OWNER', 'ADMIN', 'CLUB_ADMIN'].includes(page.viewer.role ?? '')) throw new Error('Publish this page before posting.');
+        await publication.publish({ content: post.trim(), clubId: null, organizationId: page.organizationId, isPublic: true, mediaIds: [] }, { _authSessionId: session });
+      }
+      if (!current()) return;
+      if (!page.clubId) publication.complete();
       setPosted(true);
       toast.success(t('Posted'));
-    } catch (error) { toast.error(extractApiErrorMessage(error, t('Could not post. Try again.'))); }
-    finally { setPosting(false); }
+    } catch (error) { if (current()) toast.error(extractApiErrorMessage(error, t('Could not post. Try again.'))); }
+    finally { pending.current = false;if (current()) setPosting(false); }
   };
   const text = t('{name} is on GrassKickZ: {url}', { name: page.identity.name, url });
   const copy = async () => {
@@ -50,9 +68,10 @@ export function LivePanel() {
         {/* The first post, written for the owner: editable, one tap to post, or skipped. */}
         <div>
           <label className="gk-field__label" htmlFor={`${id}-post`}>{t('Your first post')}</label>
-          {posted ? <p className="gk-row"><Check aria-hidden="true" size={14} />{t('Posted')}</p> : <>
-            <textarea id={`${id}-post`} className="gk-input" rows={2} value={post} maxLength={400} onChange={event => setPost(event.target.value)} />
-            <div className="gk-boxedit__foot" style={{ marginTop: 8 }}><Button size="sm" variant="primary" disabled={posting || !post.trim()} onClick={() => void publish()}>{t('Post it')}</Button><span className="gk-faint">{t('or skip it')}</span></div>
+          {posted ? <p className="gk-row"><Check aria-hidden="true" size={14} />{t('Posted')}</p> : !canPublish ? <p>{postCopy('Publish this page before posting.', 'პოსტის გამოქვეყნებამდე გამოაქვეყნეთ გვერდი.')}</p> : <>
+            <textarea id={`${id}-post`} className="gk-input" rows={2} value={publication.attempt?.body.content ?? post} disabled={posting || !!publication.attempt} maxLength={400} onChange={event => setPost(event.target.value)} />
+            {publication.attempt && <p role="status" className="gk-notice">{postCopy('Retry the original post to check its saved result.', 'შენახული შედეგის შესამოწმებლად ხელახლა გაგზავნეთ საწყისი პოსტი.')}</p>}
+            <div className="gk-boxedit__foot" style={{ marginTop: 8 }}><Button size="sm" variant="primary" disabled={posting || !post.trim()} onClick={() => void publish()}>{publication.attempt ? postCopy('Retry original post', 'საწყისი პოსტის ხელახლა გაგზავნა') : t('Post it')}</Button><span className="gk-faint">{t('or skip it')}</span></div>
           </>}
         </div>
       </div>

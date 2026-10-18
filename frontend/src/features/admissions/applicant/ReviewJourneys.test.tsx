@@ -42,7 +42,7 @@ describe('Review: selected player and recoverable eligibility',()=>{
     const o=opportunity();o.location.latitude=41.7;o.location.longitude=44.8;vi.mocked(fetchOpportunity).mockResolvedValue(o);
     render(<MemoryRouter initialEntries={[`/admissions/opportunities/${o.id}?tab=join&player=88`]}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
     await waitFor(()=>expect(screen.getByRole('radio',{name:/^Synthetic first child/})).toBeChecked());
-    expect(screen.getByRole('link',{name:'View actual training venue on map'})).toHaveAttribute('href',`/world?opportunity=${o.id}&player=88`);
+    expect(screen.getByRole('link',{name:'View actual training venue on map'})).toHaveAttribute('href',`/world/opportunities?tab=groups&group=${o.id}&selected=${o.id}&player=88`);
   });
   it('resolves an incoming map child against the current authorized cards',async()=>{
     const wrapper=({children}:{children:ReactNode})=><MemoryRouter initialEntries={['/world/map?player=88']}>{children}</MemoryRouter>;

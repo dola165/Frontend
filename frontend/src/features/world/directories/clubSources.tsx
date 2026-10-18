@@ -51,7 +51,8 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
         label: 'Clubs',
         noun: ['club', 'clubs'],
         searchLabel: 'Search clubs',
-        searchPlaceholder: 'Search clubs by name or area',        pageSize: PAGE,
+        searchPlaceholder: 'Search clubs by name or area',
+        pageSize: PAGE,
         area: true,
         version: String(child?.id ?? ''),
         forWhom: childLabel(child),
@@ -86,7 +87,7 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             const [feeMin, feeMax] = rangeOf(first(query, 'fee'));
             if (feeMin) params.set('feeMin', feeMin);
             if (feeMax) params.set('feeMax', feeMax);
-            // Backend needed: `age` keeps clubs with a published programme for that age.
+            // The server matches age and price against the same current published programme.
             const age = ageOn(child?.dateOfBirth);
             if (age != null) params.set('age', String(age));
             if (query.sort && query.sort !== 'NEWEST') params.set('sort', query.sort);

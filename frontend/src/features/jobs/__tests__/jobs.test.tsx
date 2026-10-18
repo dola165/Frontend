@@ -33,7 +33,7 @@ describe('The search in the address', () => {
         expect(jobsPath(query)).toBe('/jobs/all?direction=OFFERING&category=COACHING&terms=PAID&city=Tbilisi&sort=NEAREST&job=704');
         expect(jobsHeading(query)).toEqual({ title: 'Coaching: people available', hint: 'Coaches, referees and specialists offering their time' });
         expect(activeFilters(query, false).map(f => f.label)).toEqual(['People available', 'Coaching', 'Paid', 'Tbilisi']);
-        expect(worldJobsPath(query)).toBe('/world/opportunities?tab=jobs&category=COACHING&engagement=PAID&city=Tbilisi');
+        expect(worldJobsPath(query)).toBe('/world/opportunities?tab=jobs&category=COACHING&direction=OFFERING&engagement=PAID&city=Tbilisi');
         expect(readJobs(new URLSearchParams('direction=NOPE&hours=NOPE'))).toMatchObject({ direction: '', hours: '', sort: 'RELEVANCE' });
     });
 });
@@ -63,7 +63,7 @@ describe('Front, catalogue and the listing', () => {
         expect(await screen.findByRole('heading', { level: 2, name: 'Personal trainer for a 12-year-old' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Message Nino to apply' })).toHaveAttribute('href', '/messages?chatWith=5038');
         expect(api.fetchJobs).toHaveBeenCalledTimes(1);
-        expect(screen.getByRole('link', { name: 'Show on map' })).toHaveAttribute('href', '/world/opportunities?tab=jobs&category=COACHING');
+        expect(screen.getByRole('link', { name: 'Show on map' })).toHaveAttribute('href', '/world/opportunities?tab=jobs&category=COACHING&poster=people');
     });
     it('shows a person who is available with a way to message them', async () => {
         render(<MemoryRouter initialEntries={['/jobs/704']}><Routes><Route path="/jobs/:id" element={<JobDetailPage />} /></Routes></MemoryRouter>);

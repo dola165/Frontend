@@ -45,6 +45,14 @@ describe('fetchNearbyMap', () => {
         expect(get.mock.calls.every(([, config]) => config.signal === controller.signal)).toBe(true);
     });
 
+    it('offers the next radius page for clubs instead of treating the first hundred as the whole area', async () => {
+        get.mockResolvedValueOnce({ data: { content: [{ entityId: 1, entityType: 'CLUB' }], totalElements: 106, resultsLimited: true } });
+        const result = await fetchMapDiscovery({ lat: 41, lng: 44, type: ['CLUB'], radius: 25 });
+        expect(result.nextPage).toBe(1);
+        expect(result.totalElements).toBe(106);
+        expect(get).toHaveBeenCalledTimes(1);
+    });
+
     it('rejects a failed later page instead of presenting a partial search as complete', async () => {
         get.mockResolvedValueOnce({ data: { content: [], totalElements: 101 } }).mockRejectedValueOnce(new Error('offline'));
         await expect(fetchMapDiscovery({ lat: 41, lng: 44 })).rejects.toThrow('offline');

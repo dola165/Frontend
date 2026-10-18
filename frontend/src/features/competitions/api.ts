@@ -34,3 +34,6 @@ export interface DrawPlan { startsAt:string; daysBetweenRounds:number; groupCoun
 export interface DrawState { plan:DrawPlan|null; transitioned:boolean; stages:{id:number;name:string;stage_type:string;phase:number;title_route:boolean;carry_results:boolean;standings?:Standing[];rankContests?:{entries:Standing[];fromRank:number}[]}[]; slots:{fixture_id:number;pitch_number:number;starts_at:string;ends_at:string}[]; routes:{target_fixture_id:number;slot:string;source_fixture_id:number;outcome:string}[]; aggregates:{deciding_fixture_id:number;first_fixture_id:number;replay_fixture_id:number|null;resolution:string;ready:boolean;tied:boolean;winner:number|null;homeEntryId?:number;awayEntryId?:number;homeAggregate?:number;awayAggregate?:number}[] }
 export const getDraw = async(id:number,signal:AbortSignal)=>(await apiClient.get<DrawState>(`/competitions/${id}/draw`,{signal})).data;
 export const drawOperation = async(id:number,path:string,body:unknown)=>(await apiClient.post<DrawState>(`/competitions/${id}/draw${path?`/${path}`:''}`,body)).data;
+
+/** Managed result writes include a revision and a durable request identifier. */
+export const saveCompetitionResult = async (id: number, body: unknown): Promise<TournamentDetail> => (await apiClient.post<TournamentDetail>(`/competitions/${id}/fixtures/result`, body)).data;

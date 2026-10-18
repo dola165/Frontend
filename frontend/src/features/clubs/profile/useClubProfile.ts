@@ -6,6 +6,7 @@ import { fetchClubManagementOverview, fetchMyClubMembershipContext } from '../ap
 import { canManageClubOperations, isLeadershipRole, type ClubMembershipRole } from '../domain';
 import { currentProgramme } from '../presentation';
 import type { ClubProfile } from './types';
+import { readClubProfile } from './profileResponse';
 
 interface WorkspaceEntry { canOpenWorkspace: boolean; canEditFacilities: boolean; canManageStaff: boolean; invitationOnly?: boolean }
 
@@ -27,7 +28,7 @@ export function useClubProfile(id: number) {
     useEffect(() => {
         const controller = new AbortController();
         void apiClient.get<ClubProfile>(`/clubs/${id}`, { signal: controller.signal })
-            .then(response => { if (!controller.signal.aborted) setResult({ key: clubKey, club: response.data, failed: false }); })
+            .then(response => { if (!controller.signal.aborted) setResult({ key: clubKey, club: readClubProfile(response.data), failed: false }); })
             .catch(error => { if (!controller.signal.aborted) setResult({ key: clubKey, club: null, failed: error?.response?.status !== 404 }); });
         return () => controller.abort();
     }, [id, clubKey]);

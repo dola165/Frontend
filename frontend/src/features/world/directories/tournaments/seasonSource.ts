@@ -6,7 +6,7 @@ import type { ResultGroup } from '../../directory/groups';
 import type { DirectorySource, LoadContext } from '../../directory/types';
 import { isoDay, isoDayOf } from '../../format';
 import { loadMyTeams, NO_TEAMS } from '../../scoreboard/myTeams';
-import { zoned } from '../../scoreboard/standings';
+import { competitionTimestamp as zoned } from '../../../competitions/competitionTime';
 import { TournamentRow } from './TournamentRow';
 import { WaitingLine } from './WaitingLine';
 import { detailOf, fromCard, fromInvitation, fromSummary, rulesOf, tournamentInvitations, withPart, type TournamentItem } from './tournamentItem';
@@ -56,7 +56,7 @@ async function loadSeason({ signal, sessionId, authenticated, area, userId }: Lo
     const itemOf = async (id: number, fallback?: TournamentSummary): Promise<TournamentItem> => {
         const known = card.get(id), about = summary.get(id) ?? fallback;
         const base = known ? fromCard(known) : about ? fromSummary(about, await rulesOf(id)) : fromInvitation(invited.get(id)!, await rulesOf(id));
-        return { ...base, ...(about ? { opensAt: zoned(about.registrationOpensAt), closesAt: zoned(about.registrationClosesAt) } : {}), invitation: invited.get(id) };
+        return { ...base, ...(about ? { opensAt: zoned(about.registrationOpensAt, base.rules?.timezone), closesAt: zoned(about.registrationClosesAt, base.rules?.timezone) } : {}), invitation: invited.get(id) };
     };
     const yourIds = [...new Set([...invitations.map(item => item.tournamentId), ...personal.filter(item => live(item.status)).map(item => item.id)])];
     const yours = await Promise.all(yourIds.map(async (id, index) => {

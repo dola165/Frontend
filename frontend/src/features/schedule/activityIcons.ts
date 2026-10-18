@@ -2,13 +2,13 @@ import { Bus, CalendarDays, Cone, Handshake, Trophy, UserPlus, Users, type Lucid
 import type { ScheduleEventType } from './api';
 
 /** One symbol per kind of activity, used wherever a schedule entry is listed. */
-export const activityIcons: Record<ScheduleEventType, LucideIcon> = { MATCH: Trophy, FRIENDLY: Handshake, TRAINING: Cone, ACTIVITY: Users, TRYOUT: UserPlus };
+export const activityIcons: Record<ScheduleEventType, LucideIcon> = { MATCH: Trophy, FRIENDLY: Handshake, TRAINING: Cone, ACTIVITY: Users, TRYOUT: UserPlus, MEETING: Users };
 
 /**
  * Each kind of activity has its own colour. Every match shares the match colour, whether it is a league,
  * cup, tournament or friendly match; the symbol tells which (a trophy or a handshake).
  */
-export const activityColors: Record<ScheduleEventType, string> = { MATCH: 'var(--gk-accent, var(--color-accent))', FRIENDLY: 'var(--gk-accent, var(--color-accent))', TRAINING: 'var(--gk-info, var(--color-info))', ACTIVITY: 'var(--gk-violet, var(--color-purple))', TRYOUT: 'var(--color-pink)' };
+export const activityColors: Record<ScheduleEventType, string> = { MATCH: 'var(--gk-accent, var(--color-accent))', FRIENDLY: 'var(--gk-accent, var(--color-accent))', TRAINING: 'var(--gk-info, var(--color-info))', ACTIVITY: 'var(--gk-violet, var(--color-purple))', TRYOUT: 'var(--color-pink)', MEETING: 'var(--gk-violet, var(--color-purple))' };
 
 /** A team trip: not a schedule entry of its own, but drawn with the activities. */
 export const outing = { icon: Bus, color: 'var(--color-cyan)' };

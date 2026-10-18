@@ -4,7 +4,7 @@ import { appLocale } from '../../utils/formatting';
 import { isGeorgian, wt } from './copy';
 
 const TZ = 'Asia/Tbilisi';
-const ymd = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+const ymd = (date: Date, zone = TZ) => new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 const parse = (value?: string | null) => {
     if (!value) return null;
     const date = new Date(value);
@@ -27,9 +27,9 @@ export const fixtureDay = (value?: string | null, zone?: string | null) => {
     return date.toLocaleDateString(appLocale(), { weekday: 'short', day: 'numeric', timeZone });
 };
 
-export const shortDate = (value?: string | null) => {
+export const shortDate = (value?: string | null, zone = TZ) => {
     const date = parse(value);
-    return date ? date.toLocaleDateString(appLocale(), { day: 'numeric', month: 'short', timeZone: TZ }) : null;
+    return date ? date.toLocaleDateString(appLocale(), { day: 'numeric', month: 'short', timeZone: zone }) : null;
 };
 
 /** The calendar day (YYYY-MM-DD, Georgian time) of an instant. */
@@ -40,7 +40,7 @@ export const hasStarted = (value?: string | null) => { const date = parse(value)
 /** Hours until an instant (negative once it has passed), or null. */
 export const hoursUntil = (value?: string | null) => { const date = parse(value); return date ? (date.getTime() - Date.now()) / 3_600_000 : null; };
 /** Calendar days from today to an instant, in Georgian time: tomorrow at any hour is 1. */
-export const calendarDaysUntil = (value?: string | null) => { const date = parse(value); return date ? Math.round((Date.parse(ymd(date)) - Date.parse(ymd(new Date()))) / 86_400_000) : null; };
+export const calendarDaysUntil = (value?: string | null, zone = TZ) => { const date = parse(value); return date ? Math.round((Date.parse(ymd(date, zone)) - Date.parse(ymd(new Date(), zone))) / 86_400_000) : null; };
 export const daysUntil = (value?: string | null) => {
     const date = parse(value);
     return date ? Math.ceil((date.getTime() - Date.now()) / 86_400_000) : null;
@@ -99,10 +99,10 @@ export const PERSON_ROLE: Record<string, string> = { COACH: 'Coach', PLAYER: 'Pl
 export const factTone = (tone?: BadgeTone) => tone === 'accent' || tone === 'warning' || tone === 'danger' ? tone : undefined;
 
 /** A date on the fixture line: the day number over the month, or "to confirm". */
-export function dateColumn(value?: string | null) {
+export function dateColumn(value?: string | null, zone = TZ) {
     const start = value ? new Date(value) : null;
     const valid = Boolean(start && !Number.isNaN(start.getTime()));
     return valid
-        ? { time: start!.toLocaleDateString(appLocale(), { day: 'numeric', timeZone: TZ }), day: start!.toLocaleDateString(appLocale(), { month: 'short', timeZone: TZ }) }
+        ? { time: start!.toLocaleDateString(appLocale(), { day: 'numeric', timeZone: zone }), day: start!.toLocaleDateString(appLocale(), { month: 'short', timeZone: zone }) }
         : { time: wt('TBC'), day: wt('Dates to confirm') };
 }

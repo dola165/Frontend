@@ -27,6 +27,7 @@ const invitation: api.OrganizationInvitation = { id: 8, organizationId: 17, orga
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; };
 beforeEach(async () => {
     vi.resetAllMocks(); auth.sessionId = 'owner-session'; await i18n.changeLanguage('en');
+    localStorage.setItem('gk-session-id', auth.sessionId); sessionStorage.clear();
     vi.mocked(api.getActivities).mockResolvedValue(capabilities);
     vi.mocked(api.getOperators).mockResolvedValue({ invitations: [], operators: [] });
     vi.mocked(api.getInvitations).mockResolvedValue([]);
@@ -80,6 +81,21 @@ it('requires concrete revocation confirmation and clears privileged lists on aut
     await user.click(screen.getByRole('button', { name: 'Confirm revocation' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Access has changed');
     expect(screen.queryByText('Venue operator')).not.toBeInTheDocument();
+});
+
+it('retains a venue invitation request after a lost response and remount without making a new command', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.inviteOperator).mockRejectedValueOnce(new Error('Response interrupted')).mockResolvedValue({ invitations: [], operators: [] });
+    const first = render(<OrganizationDelegationPanel id={17} />);
+    await user.type(await screen.findByRole('textbox'), 'operator@example.test');
+    await user.click(screen.getByRole('button', { name: 'Invite venue operator' }));
+    await screen.findByRole('alert');
+    const command = vi.mocked(api.inviteOperator).mock.calls[0]; expect(command).toEqual([17, 'operator@example.test', expect.any(String)]);
+    first.unmount(); render(<OrganizationDelegationPanel id={17} />);
+    expect(await screen.findByRole('textbox')).toHaveValue('operator@example.test');
+    await user.click(screen.getByRole('button', { name: 'Invite venue operator' }));
+    expect(vi.mocked(api.inviteOperator).mock.calls[1]).toEqual(command);
+    await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('')); expect(sessionStorage.length).toBe(0);
 });
 
 it('provides recipient acceptance and only opens the venue after fresh authorization', async () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useClubEntryEligibility, useEntryCopy } from '../../applications/clubEntry';
 import { RecruitmentApplication } from '../../recruitment/RecruitmentApplication';
 import { extractApiErrorMessage } from '../../../utils/apiError';
@@ -16,6 +16,7 @@ const LIVE = ['PENDING', 'OFFERED', 'ACCEPTED', 'EXPIRED'];
  */
 export function JobApplication({ id, status, detail }: { id: number; status: JobViewerStatus; detail: JobDetailState }) {
     const { language, copy } = useJobsOpportunitiesCopy();
+    const here = useLocation();
     const { job, application, setApplication, applicationError, checking, reload } = detail;
     const [message, setMessage] = useState(''),
         [busy, setBusy] = useState(false),
@@ -64,7 +65,7 @@ export function JobApplication({ id, status, detail }: { id: number; status: Job
                     ) : entry.error ? (
                         <p role="alert">{entryCopy.copy('Eligibility could not load.', 'მოთხოვნის უფლება ვერ შემოწმდა.')} <button type="button" onClick={entry.reload}>{entryCopy.copy('Retry eligibility', 'ხელახლა შემოწმება')}</button></p>
                     ) : entry.data && !entry.allowed ? (
-                        <p role="status">{entryCopy.reason(entry.data)} <Link to="/account?tab=profile">{entryCopy.copy('Review account and requests', 'ანგარიშისა და მოთხოვნების ნახვა')}</Link></p>
+                        <p role="status">{entryCopy.reason(entry.data)} <Link to={entry.data.reason === 'IDENTITY_REQUIRED' ? `/account/roles?next=${encodeURIComponent(here.pathname + here.search)}` : '/account?tab=profile'}>{entry.data.reason === 'IDENTITY_REQUIRED' ? entryCopy.copy('Add football identity', 'ფეხბურთის როლის დამატება') : entryCopy.copy('Review account and requests', 'ანგარიშისა და მოთხოვნების ნახვა')}</Link></p>
                     ) : (
                         <form onSubmit={submit} className="jobs-application-form">
                             <h2>{copy('applyTitle')}</h2>

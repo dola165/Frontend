@@ -9,9 +9,11 @@ export const notificationId = (value: unknown): string | null => {
 };
 
 const id = '[1-9]\\d*';
-const route = new RegExp(`^/(?:account|agent|messages|calendar|notifications|reports|parent|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:match-exchange|squads|posts|profile)/${id}|stadiums/${id}(?:/manage)?)$`);
+const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const reviewReceipt = new RegExp(`^/pages/requests/${uuid}$`);
+const route = new RegExp(`^/(?:account|my-organizations|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|calendar|notifications|reports|parent|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:match-exchange|squads|posts|profile)/${id}|stadiums/${id}(?:/manage)?)$`);
 const numericKeys = new Set(['eventId', 'fixtureId', 'conversationId', 'chat', 'clubId', 'applicationId', 'bookingId', 'venueId', 'itemId', 'thread', 'squad', 'squadId', 'approach', 'representation', 'representationRecord', 'representationGeneration', 'permissionId', 'appointmentId', 'player', 'playerId', 'caseId', 'inquiryId']);
-const queryKeys = new Set([...numericKeys, 'tab', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'at']);
+const queryKeys = new Set([...numericKeys, 'tab', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'at', 'review']);
 
 export const safeNotificationLink = (raw?: string | null): URL | null => {
     if (!raw || !raw.startsWith('/') || raw.startsWith('//') || Array.from(raw).some(char => char === '\\' || char.charCodeAt(0) <= 32 || char.charCodeAt(0) === 127)) return null;
@@ -46,6 +48,12 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             if (!squadUpdate && !appointment && !availability && !offer && !coordination && !result) return null;
         }
         const keys = Array.from(url.searchParams.keys());
+        if (url.pathname === '/my-organizations' && (url.hash || keys.length !== 1 || !url.searchParams.has('itemId'))) return null;
+        if (url.pathname.startsWith('/invite/org-') && (url.search || url.hash || !notificationId(url.pathname.slice('/invite/org-'.length)))) return null;
+        if (url.pathname === '/admin/page-reviews' || url.searchParams.has('review')) {
+            if (url.pathname !== '/admin/page-reviews' || url.hash || keys.length !== 1 || !new RegExp(`^${uuid}$`).test(url.searchParams.get('review') ?? '')) return null;
+        }
+        if (reviewReceipt.test(url.pathname) && (url.search || url.hash)) return null;
         if (keys.some(key => ['permissionId', 'appointmentId'].includes(key))
             && (url.pathname !== '/club-operations' || keys.length !== 1 || url.hash)) return null;
         if (url.pathname === '/reports' && (url.hash || !(keys.length === 0 || keys.length === 1 && (url.searchParams.has('itemId') || url.searchParams.get('view') === 'notices')))) return null;

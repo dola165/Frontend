@@ -1,4 +1,5 @@
-import { apiClient } from '../../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../../api/axiosConfig';
+import type { AuthSessionId } from '../../../utils/authStorage';
 import type { SeriesScope, SquadEventPlan } from '../api';
 
 export interface TrainingSelection { venueId: number; pitchId: number; contactName: string; contactPhone: string; note: string }
@@ -10,7 +11,8 @@ export interface BookingChange { requestId: string; revision: number; scope: Ser
 export const selectionSignature = (plan: SquadEventPlan, selection: TrainingSelection) => JSON.stringify({ plan, selection });
 const root = (squad: number) => `/squad-communication/${squad}/training-bookings`;
 export const previewTraining = async (squad: number, plan: SquadEventPlan, selection: TrainingSelection, signal?: AbortSignal) => (await apiClient.post<BookingPreview>(`${root(squad)}/preview`, { plan, ...selection }, { signal })).data;
-export const createTraining = async (squad: number, plan: SquadEventPlan, selection: TrainingSelection, quoteToken: string) => (await apiClient.post(root(squad), { plan, ...selection, quoteToken })).data;
+export const createTraining = async (squad: number, plan: SquadEventPlan, selection: TrainingSelection, quoteToken: string, authSessionId?: AuthSessionId) =>
+    (await apiClient.post(root(squad), { plan, ...selection, quoteToken }, authSessionId === undefined ? undefined : { _authSessionId: authSessionId } as AuthSessionRequestConfig)).data;
 export const bookingContext = async (squad: number, session: number, signal?: AbortSignal) => (await apiClient.get<BookingContext>(`${root(squad)}/${session}`, { signal })).data;
 export const previewBookingChange = async (squad: number, session: number, change: BookingChange) => (await apiClient.post<BookingPreview>(`${root(squad)}/${session}/preview`, change)).data;
 export const saveBookingChange = async (squad: number, session: number, change: BookingChange) => (await apiClient.post(`${root(squad)}/${session}`, change)).data;

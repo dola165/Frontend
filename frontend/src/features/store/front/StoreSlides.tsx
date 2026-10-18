@@ -1,3 +1,4 @@
+import { ct, useCommerceCopy } from '../copy';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -12,6 +13,7 @@ const EVERY = 6000;
 
 /** A slideshow of campaign banners: it moves on its own, pauses under the pointer, and the arrows and dots move it by hand. */
 export function StoreSlides() {
+    useCommerceCopy();
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
     useEffect(() => {
@@ -21,24 +23,24 @@ export function StoreSlides() {
     }, [paused, index]);
     const go = (next: number) => setIndex((next + SLIDES.length) % SLIDES.length);
     return (
-        <section className="gk-store-slides" aria-roledescription="carousel" aria-label="Highlights" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+        <section className="gk-store-slides" aria-roledescription="carousel" aria-label={ct("Highlights")} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
             <div className="gk-store-slides__track" style={{ transform: `translateX(-${index * 100}%)` }}>
                 {SLIDES.map((slide, i) => (
-                    <article key={slide.title} className="gk-store-slide" aria-hidden={i !== index} inert={i !== index ? true : undefined} aria-roledescription="slide" aria-label={`${i + 1} of ${SLIDES.length}`}>
+                    <article key={slide.title} className="gk-store-slide" aria-hidden={i !== index} inert={i !== index ? true : undefined} aria-roledescription="slide" aria-label={ct("{v0} of {v1}", { v0: i + 1, v1: SLIDES.length })}>
                         <img className="gk-store-slide__pic" src={slide.image} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
                         <div className="gk-store-slide__text">
-                            <span className="gk-store-door__eyebrow">{slide.eyebrow}</span>
-                            <h2 className="gk-store-slide__title">{slide.title}</h2>
-                            <p className="gk-store-door__line">{slide.line}</p>
-                            <Link className="gk-store-door__chip" to={slide.to}>{slide.action}</Link>
+                            <span className="gk-store-door__eyebrow">{ct(slide.eyebrow)}</span>
+                            <h2 className="gk-store-slide__title">{ct(slide.title)}</h2>
+                            <p className="gk-store-door__line">{ct(slide.line)}</p>
+                            <Link className="gk-store-door__chip" to={slide.to}>{ct(slide.action)}</Link>
                         </div>
                     </article>
                 ))}
             </div>
-            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--prev" aria-label="Previous slide" onClick={() => go(index - 1)}><ChevronLeft aria-hidden="true" /></button>
-            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--next" aria-label="Next slide" onClick={() => go(index + 1)}><ChevronRight aria-hidden="true" /></button>
-            <div className="gk-store-slides__dots" role="tablist" aria-label="Slides">
-                {SLIDES.map((slide, i) => <button key={slide.title} type="button" role="tab" aria-selected={i === index} aria-label={slide.title} onClick={() => go(i)} />)}
+            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--prev" aria-label={ct("Previous slide")} onClick={() => go(index - 1)}><ChevronLeft aria-hidden="true" /></button>
+            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--next" aria-label={ct("Next slide")} onClick={() => go(index + 1)}><ChevronRight aria-hidden="true" /></button>
+            <div className="gk-store-slides__dots" role="tablist" aria-label={ct("Slides")}>
+                {SLIDES.map((slide, i) => <button key={slide.title} type="button" role="tab" aria-selected={i === index} aria-label={ct(slide.title)} onClick={() => go(i)} />)}
             </div>
         </section>
     );

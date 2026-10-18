@@ -1,11 +1,17 @@
 import { apiClient } from '../../../../api/axiosConfig';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../../../i18n';
 import { ClubJourneyPanel } from '../ClubJourneyPanel';
 const refreshNavigation = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ refreshNavigationCapabilities: refreshNavigation }) }));
+const auth = vi.hoisted(() => ({ sessionId: 'journey-session' }));
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ ...auth, refreshNavigationCapabilities: refreshNavigation }) }));
+vi.mock('../../../../utils/authStorage', async importOriginal => ({
+    ...await importOriginal<typeof import('../../../../utils/authStorage')>(),
+    getAuthSessionId: () => auth.sessionId,
+    isCurrentAuthSession: (id: string) => id === auth.sessionId,
+}));
 vi.mock('../ClubRelationships', () => ({ ClubRelationships: () => null }));
 vi.mock('../../../organizations/setup/OrganizationInvitationInbox', () => ({ OrganizationInvitationInbox: () => null }));
 
@@ -50,6 +56,7 @@ const journeyPayload = {
 describe('ClubJourneyPanel — phase A4', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        auth.sessionId = 'journey-session';
         vi.mocked(fetchClubJourney).mockResolvedValue(journeyPayload);
         const receipts=journeyPayload.applications.map(app=>({...app,id:app.applicationId,applicantName:'Test player',jobId:null,jobTitle:null,message:null,canWithdraw:app.status==='PENDING',canRespond:false,canOffer:false,canCancelOffer:false,unavailableReason:null,offer:null}));
         vi.mocked(apiClient.get).mockImplementation(async url=>({data:String(url)==='/recruitment/applications'?receipts:String(url).startsWith('/recruitment/applications/')?receipts.find(r=>String(r.id)===String(url).split('/').pop()):[]}));
@@ -87,7 +94,7 @@ describe('ClubJourneyPanel — phase A4', () => {
         render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
         await waitFor(() => expect(screen.getByText(/Creekside FC/)).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-        await waitFor(() => expect(acceptClubInvitation).toHaveBeenCalledWith(701));
+        await waitFor(() => expect(acceptClubInvitation).toHaveBeenCalledWith(701, { _authSessionId: 'journey-session' }));
         await waitFor(() => expect(refreshNavigation).toHaveBeenCalledOnce());
         expect(fetchClubJourney).toHaveBeenCalledTimes(2);
     });
@@ -98,5 +105,26 @@ describe('ClubJourneyPanel — phase A4', () => {
         });
         render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
         await waitFor(() => expect(screen.getByText(/No club activity yet/)).toBeInTheDocument());
+    });
+
+    it('removes an invitation cancelled elsewhere when the account panel regains focus', async () => {
+        render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
+        await screen.findByText('Creekside FC');
+        vi.mocked(fetchClubJourney).mockResolvedValue({ ...journeyPayload, invitations: [] });
+        await act(async () => { window.dispatchEvent(new Event('focus')); });
+        await waitFor(() => expect(screen.queryByText('Creekside FC')).not.toBeInTheDocument());
+        expect(acceptClubInvitation).not.toHaveBeenCalled();
+    });
+
+    it('does not refresh navigation after a response from an old login', async () => {
+        let done!: (value: { status: string }) => void;
+        vi.mocked(acceptClubInvitation).mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
+        const view = () => <MemoryRouter><ClubJourneyPanel /></MemoryRouter>;
+        const rendered = render(view());
+        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }));
+        auth.sessionId = 'other-login'; vi.mocked(fetchClubJourney).mockReturnValue(new Promise(() => {})); rendered.rerender(view());
+        expect(screen.queryByText('Creekside FC')).not.toBeInTheDocument();
+        await act(async () => done({ status: 'ACCEPTED' }));
+        expect(refreshNavigation).not.toHaveBeenCalled();
     });
 });

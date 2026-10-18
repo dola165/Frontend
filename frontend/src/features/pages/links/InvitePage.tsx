@@ -7,12 +7,20 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { Crest } from '../../world/Crest';
 import { acceptInvite, fetchInvite, type InviteLink } from '../api';
 import { usePagesCopy } from '../copy';
+import { OrganizationInvitationInbox } from '../../organizations/setup/OrganizationInvitationInbox';
 import '../pages.css';
 
 const ROLE_WORD: Record<InviteLink['role'], string> = { COACH: 'coach', ASSISTANT: 'assistant coach', ADMIN: 'club administrator' };
+const ACCESS_WORD: Record<string, string> = { 'ATTENDANCE:WRITE': 'Record attendance', 'DEVELOPMENT:WRITE': 'Manage player development', 'READINESS:WRITE': 'Manage player readiness', 'MATCHES:WRITE': 'Prepare matches', 'AVAILABILITY:READ': 'View availability', 'FACILITIES:READ': 'View facilities', 'Club administration': 'Club administration' };
+const ENGAGEMENT: Record<string, string> = { EMPLOYEE: 'Employee', VOLUNTEER: 'Volunteer', CONTRACTOR: 'Contractor', SHARED_STAFF: 'Shared staff' };
 
 /** A coach or helper opening an invitation link: the page and the role, one button to join. No account needed first: the route signs them in or up. */
 export function InvitePage() {
+  const { code = '' } = useParams<{ code: string }>();
+  if (/^org-[1-9]\d*$/.test(code)) return <GkRoot className="gk-page gk-join"><PageFrame width="profile"><OrganizationInvitationInbox targetId={code.slice(4)} standalone /></PageFrame></GkRoot>;
+  return <ClubInvitePage key={code} />;
+}
+function ClubInvitePage() {
   const t = usePagesCopy();
   const { code = '' } = useParams<{ code: string }>();
   const navigate = useNavigate();
@@ -21,15 +29,16 @@ export function InvitePage() {
   const [failed, setFailed] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [requestId] = useState(() => crypto.randomUUID());
   useEffect(() => {
     const controller = new AbortController();
     fetchInvite(code, controller.signal).then(found => { if (!controller.signal.aborted) setInvite(found); }).catch(failure => { if (!controller.signal.aborted) setFailed(extractApiErrorMessage(failure, t('This invitation has expired. Ask for a new one.'))); });
     return () => controller.abort();
   }, [code, t]);
   const accept = async () => {
-    if (busy) return;
+    if (busy || !invite) return;
     setBusy(true); setError('');
-    try { const result = await acceptInvite(code); void refreshNavigationCapabilities().catch(() => undefined); navigate(result.profilePath); }
+    try { const result = await acceptInvite(code, { requestId, expectedVersion: invite.version }); void refreshNavigationCapabilities().catch(() => undefined); navigate(result.profilePath); }
     catch (failure) { setError(extractApiErrorMessage(failure, t('Could not join. Try again.'))); setBusy(false); }
   };
   const role = invite ? t(ROLE_WORD[invite.role]) : '';
@@ -38,6 +47,10 @@ export function InvitePage() {
     : <Panel padded>
       <div className="gk-cmatch__page"><Crest src={invite.page.crestUrl} name={invite.page.name} size={44} /><span className="gk-cmatch__text"><strong><Link to={invite.page.profilePath}>{invite.page.name}</Link></strong><small>{[invite.page.town, invite.squad?.name].filter(Boolean).join(' · ')}</small></span></div>
       <p style={{ marginTop: 12 }}>{invite.status === 'JOINED' ? t('This invitation was used.') : t('{name} invites you to join as {role}.', { name: invite.page.name, role })}</p>
+      <p>{invite.squad ? t('Team: {name}', { name: invite.squad.name ?? '' }) : t('Whole club')}</p>
+      {invite.startsOn && <p>{t('Starts {date}', { date: invite.startsOn })}{invite.endsOn ? ` · ${t('Ends {date}', { date: invite.endsOn })}` : ''}</p>}
+      {invite.engagement && <p>{t(ENGAGEMENT[invite.engagement] ?? invite.engagement)}</p>}
+      <ul>{invite.permissions?.map(permission => <li key={permission}>{t(ACCESS_WORD[permission] ?? permission)}</li>)}</ul>
       {error && <p className="gk-notice gk-notice--warning" role="alert">{error}</p>}
       <div className="gk-boxedit__foot" style={{ marginTop: 12 }}>
         {invite.status === 'JOINED' ? <ButtonLink variant="primary" to={invite.page.profilePath}>{t('Open page')}</ButtonLink>

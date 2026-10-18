@@ -21,6 +21,7 @@ import { SquadAgePolicy } from '../../clubOperations/SquadAgePolicy';
 import { usePersistedState } from '../../../utils/usePersistedState';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { SquadRoster } from './SquadRoster';
+import { SquadCoachAssignment } from './SquadCoachAssignment';
 import { arrangePath } from '../../world/compose/arrangeSeed';
 import '../club-workspace.css';
 import './squads.css';
@@ -164,6 +165,7 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
                                     <Button variant="primary" onClick={() => setShowAddPlayers(true)}><Plus aria-hidden="true" />{t('squads.design.addPlayers', { defaultValue: 'Add players' })}</Button>
                                 </div>
                             </div>
+                            {workspace && <SquadCoachAssignment clubId={clubId} squadId={selectedSquad.id} squadName={selectedSquad.name} actorId={workspace.data.actorId} />}
                             {workspace ? <SquadWorkbench data={workspace.data} boot={workspace.boot} squad={selectedSquad.id} onOpen={workspace.onOpen} eligibility={leadership ? <SquadAgePolicy key={selectedSquad.id} club={clubId} squad={selectedSquad.id} /> : undefined}>{roster}</SquadWorkbench>
                                 : <>{leadership && <SquadAgePolicy key={selectedSquad.id} club={clubId} squad={selectedSquad.id} />}{roster}</>}
                         </section>}

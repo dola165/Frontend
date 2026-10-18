@@ -11,7 +11,7 @@ import { plannedShape } from '../../tournaments/shape/shapeOf';
 import { useWorldCopy } from '../copy';
 import { feeLabel, placesLabel, tournamentFact, whatLabel, type TournamentItem } from '../directories/tournaments/tournamentItem';
 import { shortDate } from '../format';
-import { zoned } from '../scoreboard/standings';
+import { competitionTimestamp as zoned } from '../../competitions/competitionTime';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
 import { FollowHost } from './tournament/FollowHost';
 import { TournamentAction } from './tournament/TournamentAction';
@@ -48,9 +48,9 @@ export default function TournamentPeek({ id }: { id: string }) {
 /** The tournament as a list item, so the pane says its one fact exactly as its row does. */
 function asItem({ detail, rules, mine }: TournamentPaneData): TournamentItem {
     return {
-        id: detail.id, name: detail.name, status: detail.status, scope: detail.participantScope, start: zoned(detail.startDate), end: zoned(detail.endDate),
+        id: detail.id, name: detail.name, status: detail.status, scope: detail.participantScope, start: zoned(detail.startDate, rules?.timezone), end: zoned(detail.endDate, rules?.timezone),
         organizer: detail.hostClubName ?? detail.organizerName ?? null, banner: detail.bannerImageUrl ?? null, rules, entryCount: placesTaken(detail), entryCap: detail.entryCap ?? null,
-        opensAt: zoned(detail.registrationOpensAt), closesAt: zoned(detail.registrationClosesAt),
+        opensAt: zoned(detail.registrationOpensAt, rules?.timezone), closesAt: zoned(detail.registrationClosesAt, rules?.timezone),
         champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null,
         mine: detail.entries.filter(entry => mine.has(entry.id)).map(entry => ({ name: entry.squadName ?? entry.clubName ?? '', status: entry.status })),
     };
@@ -78,7 +78,7 @@ function TournamentPane({ data, reload }: { data: TournamentPaneData; reload: ()
     // The step under the head says how my entry stands, the invitation, or when entries open or closed: the head does not repeat it.
     const stepSaysIt = gate.kind === 'entered' || gate.kind === 'answer' || (gate.kind === 'reason' && (gate.reason === 'not-open' || gate.reason === 'closed'));
     const shape = plannedShape(rules, detail.entryCap, item.entryCount);
-    const dates = [...new Set([shortDate(item.start), shortDate(item.end)].filter(Boolean))].join(' – ');
+    const dates = [...new Set([shortDate(item.start, rules?.timezone), shortDate(item.end, rules?.timezone)].filter(Boolean))].join(' – ');
     const banner = resolveMediaUrl(detail.bannerImageUrl);
     const organiser = organiserOf(detail), organiserName = host?.name ?? detail.hostClubName ?? detail.organizerName;
     const shapeLabel = parts.find(entry => entry.id === 'draw')?.label ?? null;

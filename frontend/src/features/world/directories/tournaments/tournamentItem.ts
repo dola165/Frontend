@@ -6,7 +6,7 @@ import type { TournamentDetail, TournamentInvitationInboxItem, TournamentStatus,
 import { shared } from '../../cache';
 import { wt } from '../../copy';
 import { calendarDaysUntil, codeLabel, SCOPE_LABEL, shortDate } from '../../format';
-import { zoned } from '../../scoreboard/standings';
+import { competitionTimestamp as zoned } from '../../../competitions/competitionTime';
 import { sideIsMine, type MyTeams } from '../../scoreboard/myTeams';
 import { appLocale } from '../../../../utils/formatting';
 
@@ -35,20 +35,20 @@ export interface TournamentItem {
 }
 
 export const fromCard = (card: CompetitionCard, entries?: EntriesState): TournamentItem => ({
-    id: card.id, name: card.name, status: card.status, scope: card.participantScope, start: zoned(card.startDate), end: zoned(card.endDate),
+    id: card.id, name: card.name, status: card.status, scope: card.participantScope, start: zoned(card.startDate, card.profile?.rules?.timezone), end: zoned(card.endDate, card.profile?.rules?.timezone),
     organizer: card.hostClubName || card.organizerName, banner: card.bannerImageUrl, rules: card.profile?.rules ?? null,
     entryCount: card.entryCount, entryCap: card.entryCap, entries,
 });
 
 export const fromSummary = (summary: TournamentSummary, rules: CompetitionRules | null): TournamentItem => ({
-    id: summary.id, name: summary.name, status: summary.status, scope: summary.participantScope, start: zoned(summary.startDate), end: zoned(summary.endDate),
+    id: summary.id, name: summary.name, status: summary.status, scope: summary.participantScope, start: zoned(summary.startDate, rules?.timezone), end: zoned(summary.endDate, rules?.timezone),
     organizer: summary.hostClubName || summary.organizerName || null, banner: summary.bannerImageUrl ?? null, rules,
-    entryCount: summary.entryCount, entryCap: null, opensAt: zoned(summary.registrationOpensAt), closesAt: zoned(summary.registrationClosesAt),
+    entryCount: summary.entryCount, entryCap: null, opensAt: zoned(summary.registrationOpensAt, rules?.timezone), closesAt: zoned(summary.registrationClosesAt, rules?.timezone),
 });
 
 export const fromInvitation = (invitation: TournamentInvitationInboxItem, rules: CompetitionRules | null): TournamentItem => ({
     id: invitation.tournamentId, name: invitation.tournamentName, status: invitation.tournamentStatus, scope: invitation.participantScope,
-    start: zoned(invitation.startDate), end: null, organizer: null, banner: null, rules, entryCount: null, entryCap: null, invitation,
+    start: zoned(invitation.startDate, rules?.timezone), end: null, organizer: null, banner: null, rules, entryCount: null, entryCap: null, invitation,
 });
 
 /** A tournament's published rules (format, age, fee), shared for a minute; null for a legacy tournament or on failure. */
@@ -60,10 +60,10 @@ export const detailOf = (id: number) => shared(`tournament:${id}`, () => fetchTo
 export interface OrganiserWork { view: 'participants' | 'schedule'; label: string; count: number }
 
 /** What waits for a tournament's staff: entries to decide, and results of matches already played to add. */
-export function organiserWork(detail: Pick<TournamentDetail, 'entries' | 'fixtures' | 'status'>, now = Date.now()): OrganiserWork[] {
+export function organiserWork(detail: Pick<TournamentDetail, 'entries' | 'fixtures' | 'status'>, now = Date.now(), zone?: string): OrganiserWork[] {
     const entries = detail.entries.filter(entry => entry.status === 'PENDING').length;
     const results = detail.fixtures.filter(fixture => fixture.status === 'SCHEDULED' && fixture.homeEntryId != null && fixture.awayEntryId != null
-        && fixture.scheduledAt != null && Date.parse(zoned(fixture.scheduledAt)!) < now).length;
+        && fixture.scheduledAt != null && Date.parse(zoned(fixture.scheduledAt, zone)!) < now).length;
     // A tournament still being planned with nobody in it waits for its first invitations.
     const empty = detail.status === 'PLANNING' && !detail.entries.some(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status));
     return [
@@ -88,13 +88,13 @@ export async function withPart(item: TournamentItem, userId: number | null | und
         .map(entry => ({ name: (entry.squadId != null ? teams.names.get(entry.squadId) : null) ?? entry.squadName ?? entry.clubName ?? entry.displayName ?? wt('Your team'), status: entry.status }));
     return {
         // The champion by its club (the backend's name for it is "Squad (Club)").
-        ...item, role, mine, work: role === 'running' ? organiserWork(detail) : undefined, champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
+        ...item, role, mine, work: role === 'running' ? organiserWork(detail, Date.now(), item.rules?.timezone) : undefined, champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
         // Places taken as the list card counts them (approved and active entries, and those that played on or went out),
         // always from the detail: a summary counts only approved and active ones, so a finished cup would say 0.
         inviteOnly: detail.registrationPolicy === 'INVITE_ONLY',
         entryCount: detail.entries.filter(entry => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(entry.status)).length,
         organizer: item.organizer ?? detail.hostClubName ?? detail.organizerName ?? null, banner: item.banner ?? detail.bannerImageUrl ?? null,
-        end: item.end ?? zoned(detail.endDate), opensAt: item.opensAt ?? zoned(detail.registrationOpensAt), closesAt: item.closesAt ?? zoned(detail.registrationClosesAt),
+        end: item.end ?? zoned(detail.endDate, item.rules?.timezone), opensAt: item.opensAt ?? zoned(detail.registrationOpensAt, item.rules?.timezone), closesAt: item.closesAt ?? zoned(detail.registrationClosesAt, item.rules?.timezone),
     };
 }
 
@@ -120,7 +120,7 @@ export function whatLabel(item: TournamentItem) {
 /** The last day entries are taken: a window closing at midnight belongs to the day before. */
 const lastDay = (closesAt: string) => new Date(Date.parse(closesAt) - 60_000).toISOString();
 /** The last day to enter, in words ("23 Oct"), from the closing time (a wall time); null when there is none. */
-export const lastEntryDay = (closesAt?: string | null) => { const at = zoned(closesAt); return at ? shortDate(lastDay(at)) : null; };
+export const lastEntryDay = (closesAt?: string | null, zone?: string) => { const at = zoned(closesAt, zone); return at ? shortDate(lastDay(at), zone) : null; };
 
 /**
  * The one fact a tournament's row shows, by what matters most: an invitation to answer, my squads in it, then where
@@ -142,11 +142,11 @@ export function tournamentFact(item: TournamentItem): { label: string; tone: Bad
     if (item.status === 'COMPLETED') return item.champion ? { label: wt('Won by {team}', { team: item.champion }), tone: 'neutral' } : { label: wt('Finished'), tone: 'neutral' };
     if (item.status === 'CANCELLED') return { label: wt('Cancelled'), tone: 'danger' };
     if (item.entryCap && (item.entryCount ?? 0) >= item.entryCap) return { label: wt('Full · waiting list'), tone: 'neutral' };
-    if (item.opensAt && Date.parse(item.opensAt) > Date.now()) return { label: wt('Opens {date}', { date: shortDate(item.opensAt) ?? '' }), tone: 'violet' };
+    if (item.opensAt && Date.parse(item.opensAt) > Date.now()) return { label: wt('Opens {date}', { date: shortDate(item.opensAt, item.rules?.timezone) ?? '' }), tone: 'violet' };
     if (item.closesAt) {
-        const left = calendarDaysUntil(lastDay(item.closesAt));
+        const left = calendarDaysUntil(lastDay(item.closesAt), item.rules?.timezone);
         if (left != null && left < 0) return { label: wt('Entries closed'), tone: 'neutral' };
-        if (left != null) return { label: wt('Last day {date}', { date: shortDate(lastDay(item.closesAt)) ?? '' }), tone: left <= 7 ? 'warning' : 'violet' };
+        if (left != null) return { label: wt('Last day {date}', { date: shortDate(lastDay(item.closesAt), item.rules?.timezone) ?? '' }), tone: left <= 7 ? 'warning' : 'violet' };
     }
     if (item.inviteOnly) return { label: wt('By invitation'), tone: 'neutral' };
     if (item.entries === 'OPEN') return { label: wt('Open for entries'), tone: 'accent' };

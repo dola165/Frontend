@@ -1,3 +1,4 @@
+import { ct } from '../store/copy';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWorldArea } from '../world/useWorldArea';
@@ -15,7 +16,7 @@ export function useJobsList(fixedClubId?: number, revision = 0) {
     const result = useWorldData(key, signal => fetchJobs({
         page: query.page, size: PAGE_SIZE, query: query.query || undefined, direction: query.direction || 'ALL', category: query.category || undefined, terms: query.terms || undefined, hours: query.hours || undefined,
         poster: query.poster || undefined, country: query.country || undefined, city: query.city || undefined, posted: query.posted || undefined, clubId: query.clubId, sort: query.sort, near,
-    }, signal), 'Listings could not load. Please try again.', { keep: true });
+    }, signal), ct("Listings could not load. Please try again."), { keep: true });
     const update = (next: JobsSearch, replace = false) => setParams(current => {
         const copy = new URLSearchParams(current);
         for (const name of JOBS_KEYS) copy.delete(name);

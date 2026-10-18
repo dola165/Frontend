@@ -44,7 +44,7 @@ function typeParams(type: MapMarkerDto['entityType'], filters: MapFilters, base:
     };
 }
 
-interface Loaded { key: string; markers: MapMarkerDto[]; groups: Opportunity[]; nextClubPage?: number; nextGroupPage?: number; limited: boolean; error: string }
+interface Loaded { key: string; markers: MapMarkerDto[]; groups: Opportunity[]; nextClubPage?: number; nextGroupPage?: number; limited: boolean; otherLimited: boolean; error: string }
 
 /**
  * Loads the places for the current search: markers per layer, plus the training groups of
@@ -93,9 +93,10 @@ export function useDiscovery({ filters, q, coverage, center, origin, joinPolicie
             if (controller.signal.aborted) return;
             setLoaded({ key, attempt, markers: pages.flatMap(item => item.content), groups: page.items,
                 nextClubPage: pages.find(item => item.nextPage != null)?.nextPage, nextGroupPage: page.hasMore ? 1 : undefined,
+                otherLimited: pages.some((item, index) => filters.entityType[index] !== 'CLUB' && item.resultsLimited),
                 limited: pages.some(item => item.resultsLimited) || page.hasMore, error: '' });
         }).catch(cause => {
-            if (!controller.signal.aborted) setLoaded({ key, attempt, markers: [], groups: [], limited: false, error: extractApiErrorMessage(cause, wt('Places could not load.')) });
+            if (!controller.signal.aborted) setLoaded({ key, attempt, markers: [], groups: [], limited: false, otherLimited: false, error: extractApiErrorMessage(cause, wt('Places could not load.')) });
         });
         return () => controller.abort();
         // `base`, `area` and `filters` are captured by `key`.
@@ -121,7 +122,7 @@ export function useDiscovery({ filters, q, coverage, center, origin, joinPolicie
                 groups: [...new Map([...previous.groups, ...(groups?.items ?? [])].map(o => [o.id, o])).values()],
                 nextClubPage: clubsLeft ? current.nextClubPage! + 1 : undefined,
                 nextGroupPage: groups?.hasMore ? current.nextGroupPage! + 1 : undefined,
-                limited: clubsLeft || Boolean(groups?.hasMore),
+                limited: previous.otherLimited || clubsLeft || Boolean(groups?.hasMore),
             } : previous);
         } catch (cause) {
             if (!controller.signal.aborted) toast.error(extractApiErrorMessage(cause, wt('More places could not load. Try again.')));

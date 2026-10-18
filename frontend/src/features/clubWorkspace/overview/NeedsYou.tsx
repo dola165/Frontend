@@ -54,7 +54,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
         items.push({ key: `consent-${player.userId}`, title: player.fullName || player.username || copy('playerFallback', { id: player.userId }), meta: copy('parentConsent'), badge: copy(badge), tone, rank: 2, open: () => openPlayers(player.status) });
     });
     if (consentRows.length > 3) items.push({ key: 'consent-more', title: copy('needMoreConsent', { count: consentRows.length - 3 }), meta: copy('consentHint'), badge: copy('consentMissing'), tone: 'warning', rank: 2, open: () => openPlayers('ALL') });
-    const consentNote = consent.result ? (consent.result.reviewed >= consent.result.total ? copy('consentComplete') : copy('consentPartial', { reviewed: consent.result.reviewed, total: consent.result.total })) : null;
+    const consentNote = consent.result && consent.result.total > 0 ? (consent.result.reviewed >= consent.result.total ? copy('consentComplete') : copy('consentPartial', { reviewed: consent.result.reviewed, total: consent.result.total })) : null;
     // Club deadlines assigned to someone else: their own group for leadership, never ahead of the person's work.
     const oversight = Boolean(roles?.leadership);
     for (const record of work.rows) {

@@ -1,0 +1,32 @@
+import { appLanguage } from '../../utils/formatting';
+
+const ka: Record<string, string> = {
+    'Edit listing': 'განცხადების რედაქტირება',
+    'Could not save recovery details. This attempt was not sent. Restore browser storage and try again.': 'აღდგენის მონაცემები ვერ შეინახა. ეს მცდელობა არ გაგზავნილა. აღადგინეთ ბრაუზერის საცავის წვდომა და სცადეთ ხელახლა.',
+    'Could not update recovery details. Restore browser storage and check the previous change.': 'აღდგენის მონაცემები ვერ განახლდა. აღადგინეთ ბრაუზერის საცავის წვდომა და შეამოწმეთ წინა ცვლილება.',
+    'Your draft is only kept on this page while browser storage is unavailable.': 'სანამ ბრაუზერის საცავი მიუწვდომელია, მონახაზი მხოლოდ ამ გვერდზე ინახება.',
+    'Stated licence': 'მითითებული ლიცენზია',
+    'Reopen listing': 'განცხადების ხელახლა გახსნა',
+    'Save changes': 'ცვლილებების შენახვა',
+    'Cancel editing': 'რედაქტირების გაუქმება',
+    'Check previous change': 'წინა ცვლილების შემოწმება',
+    'Checking…': 'მოწმდება…',
+    'Saving…': 'ინახება…',
+    'Your previous change needs checking before another change.': 'ახალ ცვლილებამდე წინა მცდელობის შედეგი შეამოწმეთ.',
+    'Could not save this listing. Your answers are still here.': 'განცხადება ვერ შეინახა. თქვენი პასუხები შენარჩუნებულია.',
+    'Could not change this listing. Try again.': 'განცხადება ვერ შეიცვალა. სცადეთ ხელახლა.',
+    'This listing changed. Review the latest version before saving your answers.': 'განცხადება შეიცვალა. თქვენი პასუხების შენახვამდე გადახედეთ ბოლო ვერსიას.',
+    'Latest listing': 'განცხადების ბოლო ვერსია',
+    'Use latest version': 'ბოლო ვერსიის გამოყენება',
+    'Your answers are kept below.': 'თქვენი პასუხები ქვემოთ შენარჩუნებულია.',
+    'Saving edits keeps this listing closed. Reopen it when you are ready.': 'ცვლილებების შენახვის შემდეგ განცხადება დახურული დარჩება. ხელახლა გახსენით, როცა მზად იქნებით.',
+    'Reopening needs an adult public profile.': 'ხელახლა გასახსნელად საჭიროა სრულწლოვნის საჯარო პროფილი.',
+    'Choose how people can contact you.': 'აირჩიეთ, როგორ დაგიკავშირდნენ.',
+    'Line of work': 'საქმიანობის სფერო',
+    'Contact method': 'დაკავშირების გზა',
+    'Contact': 'კონტაქტი',
+    'Message me in the app': 'მომწერეთ აპში',
+    'Email': 'ელფოსტა',
+    'A link': 'ბმული',
+};
+export const jt = (english: string) => appLanguage() === 'ka' ? ka[english] ?? english : english;

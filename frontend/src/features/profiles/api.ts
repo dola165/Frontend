@@ -52,8 +52,16 @@ export type ProfessionInput = Pick<Profession, 'title' | 'detail' | 'since' | 'p
 
 export const fetchProfessions = async (userId: number, signal?: AbortSignal) =>
     (await apiClient.get<Profession[]>(`/users/${userId}/professions`, { signal })).data;
-export const saveProfessions = async (professions: ProfessionInput[]) =>
-    (await apiClient.put<Profession[]>('/users/me/professions', { professions })).data;
+export interface ProfessionSet { items: Profession[]; version: number }
+export const fetchOwnProfessions = async (signal?: AbortSignal) =>
+    (await apiClient.get<ProfessionSet>('/users/me/professions', { signal })).data;
+export const saveProfessions = async (professions: ProfessionInput[], expectedVersion: number, requestId: string) =>
+    (await apiClient.put<ProfessionSet>('/users/me/professions', { professions, expectedVersion, requestId })).data;
+export interface DiscoveryPreferences { openTo: ('WORK' | 'SERVICES' | 'VOLUNTEER' | 'CLUB' | 'COACHING')[]; licence: 'PRO' | 'A' | 'B' | 'C' | 'GK' | null; rate: { amount: number; currency: string; per: 'SESSION' } | null; version: number }
+export const fetchDiscoveryPreferences = async (signal?: AbortSignal) =>
+    (await apiClient.get<DiscoveryPreferences>('/users/me/discovery', { signal })).data;
+export const saveDiscoveryPreferences = async (value: Omit<DiscoveryPreferences, 'version'>, expectedVersion: number, requestId: string) =>
+    (await apiClient.put<DiscoveryPreferences>('/users/me/discovery', { ...value, expectedVersion, requestId })).data;
 export const saveAbout = async (bio: string) => apiClient.put('/users/me', { bio });
 
 /** Free-text suggestions; people can type anything else. */

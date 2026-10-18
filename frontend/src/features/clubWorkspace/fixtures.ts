@@ -55,6 +55,7 @@ const kinds: Record<ScheduleEventType, { tone: FixtureTone; badge: BadgeTone }> 
     FRIENDLY: { tone: 'match', badge: 'accent' },
     TRYOUT: { tone: 'trial', badge: 'warning' },
     ACTIVITY: { tone: 'event', badge: 'violet' },
+    MEETING: { tone: 'event', badge: 'violet' },
 };
 /** How a calendar entry looks on a fixture line: its tone, badge colour and translated kind. */
 export const kindOf = (event: Pick<ScheduleEventOccurrence, 'eventType'>) => {

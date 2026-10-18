@@ -6,7 +6,7 @@ import { useJourneyCopy } from '../journeyCopy';
 import { previewTraining, selectionSignature, type BookingPreview, type TrainingSelection } from './api';
 import './training-bookings.css';
 
-export interface BookingReview { signature: string; token: string }
+export interface BookingReview { signature: string; token: string; preview?: BookingPreview }
 export function BookingDates({ preview }: { preview: BookingPreview }) {
     const copy = useJourneyCopy();
     const totals = preview.occurrences.reduce<Record<string, number>>((sum, item) => { if (item.quote) sum[item.quote.currency] = (sum[item.quote.currency] ?? 0) + item.quote.totalPrice; return sum; }, {});
@@ -63,7 +63,7 @@ export function TrainingVenuePicker({ squadId, plan, selection, onChange, onRevi
         if (!currentSelection.venueId || !currentSelection.pitchId) return;
         const abort = new AbortController();
         const timer = setTimeout(() => { void previewTraining(squadId, currentPlan, currentSelection, abort.signal).then(preview => {
-            if (!abort.signal.aborted) { setResult({ signature, preview }); setFailure(null); if (preview.canCommit) onReviewed({ signature, token: preview.quoteToken }); }
+            if (!abort.signal.aborted) { setResult({ signature, preview }); setFailure(null); if (preview.canCommit) onReviewed({ signature, token: preview.quoteToken, preview }); }
         }).catch(e => { if (!abort.signal.aborted) setFailure({ signature, message: extractApiErrorMessage(e, 'The venue preview could not load.') }); }); }, 300);
         return () => { clearTimeout(timer); abort.abort(); };
     }, [signature, squadId, onReviewed, attempt]);

@@ -1,3 +1,4 @@
+import { ct } from '../store/copy';
 import { Bus, Flag, HeartHandshake, LandPlot, Users, Volleyball, type LucideIcon } from 'lucide-react';
 import { formatDate, formatMoney } from '../../utils/formatting';
 import { apiClient } from '../../api/axiosConfig';
@@ -66,15 +67,17 @@ export const fetchFundraisingFront = async (near: string | undefined, signal?: A
 // ── A club's own fundraisers ──
 export const fetchManagedCampaigns = async (club: number, signal?: AbortSignal) => (await apiClient.get<Campaign[]>(`/clubs/${club}/campaigns`, { signal })).data;
 export const fetchManagedCampaign = async (club: number, id: number, signal?: AbortSignal) => (await apiClient.get<Campaign>(`/clubs/${club}/campaigns/${id}`, { signal })).data;
-export const createCampaign = async (club: number, input: CampaignInput) => (await apiClient.post<Campaign>(`/clubs/${club}/campaigns`, input)).data;
-export const editCampaign = async (club: number, id: number, input: CampaignInput) => (await apiClient.put<Campaign>(`/clubs/${club}/campaigns/${id}`, input)).data;
-export const changeCampaignState = async (club: number, campaign: Campaign, status: CampaignState) =>
-    (await apiClient.post<Campaign>(`/clubs/${club}/campaigns/${campaign.id}/state`, { version: campaign.version, status })).data;
-export const postCampaignUpdate = async (club: number, campaign: Campaign, title: string, body: string) =>
-    (await apiClient.post<Campaign>(`/clubs/${club}/campaigns/${campaign.id}/updates`, { version: campaign.version, title, body })).data;
+export const createCampaign = async (club: number, input: CampaignInput, idempotencyKey?: string) =>
+    (await apiClient.post<Campaign>(`/clubs/${club}/campaigns`, input, idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined)).data;
+const commandHeaders = (key?: string) => key ? { headers: { 'Idempotency-Key': key } } : undefined;
+export const editCampaign = async (club: number, id: number, input: CampaignInput, key?: string) => (await apiClient.put<Campaign>(`/clubs/${club}/campaigns/${id}`, input, commandHeaders(key))).data;
+export const changeCampaignState = async (club: number, campaign: Campaign, status: CampaignState, key?: string) =>
+    (await apiClient.post<Campaign>(`/clubs/${club}/campaigns/${campaign.id}/state`, { version: campaign.version, status }, commandHeaders(key))).data;
+export const postCampaignUpdate = async (club: number, campaign: Campaign, title: string, body: string, key?: string) =>
+    (await apiClient.post<Campaign>(`/clubs/${club}/campaigns/${campaign.id}/updates`, { version: campaign.version, title, body }, commandHeaders(key))).data;
 
-export const campaignCategory = (value: string) => CAMPAIGN_CATEGORIES.find(c => c.value === value)?.label ?? 'Fundraiser';
-export const campaignPhase = (value: string) => ({ DRAFT: 'Draft', ACTIVE: 'Active', SCHEDULED: 'Starts soon', ENDED: 'Ended', PAUSED: 'Paused', CLOSED: 'Closed', ARCHIVED: 'Archived' })[value] ?? value;
+export const campaignCategory = (value: string) => ct(CAMPAIGN_CATEGORIES.find(c => c.value === value)?.label) ?? ct("Fundraiser");
+export const campaignPhase = (value: string) => ({ DRAFT: ct("Draft"), ACTIVE: ct("Active"), SCHEDULED: ct("Starts soon"), ENDED: ct("Ended"), PAUSED: ct("Paused"), CLOSED: ct("Closed"), ARCHIVED: ct("Archived") })[value] ?? value;
 export const campaignMoney = formatMoney;
 export const campaignDate = (value: string) => formatDate(value);
 /**

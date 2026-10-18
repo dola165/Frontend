@@ -36,13 +36,14 @@ export const fetchUnreadNotificationCount = async (options: NotificationQueryOpt
     return response.data;
 };
 
-export const markNotificationAsRead = async (notificationId: number): Promise<NotificationReadState> => {
-    const response = await apiClient.patch<NotificationReadState>(`/notifications/${notificationId}/read`);
+export const markNotificationAsRead = async (notificationId: number, config?: AuthSessionRequestConfig): Promise<NotificationReadState> => {
+    const response = await apiClient.patch<NotificationReadState>(`/notifications/${notificationId}/read`, null, config);
     return response.data;
 };
 
-export const markAllNotificationsAsRead = async (options: NotificationQueryOptions = {}): Promise<NotificationBulkReadResult> => {
+export const markAllNotificationsAsRead = async (options: NotificationQueryOptions = {}, config?: AuthSessionRequestConfig): Promise<NotificationBulkReadResult> => {
     const response = await apiClient.patch<NotificationBulkReadResult>('/notifications/read-all', null, {
+        ...config,
         params: buildNotificationParams(options)
     });
     return response.data;

@@ -107,6 +107,7 @@ export const eventTypeCopy: Record<ScheduleEventType, { label: string; accent: s
     MATCH: activity('Match', 'MATCH'),
     FRIENDLY: activity('Friendly', 'FRIENDLY'),
     ACTIVITY: activity('Club event', 'ACTIVITY'),
+    MEETING: activity('Meeting', 'MEETING'),
 };
 
 export const visibilityCopy: Record<WorkspaceVisibility, string> = {

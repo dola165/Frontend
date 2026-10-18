@@ -7,6 +7,7 @@ import '../../../i18n';
 import { RouteViewport } from '../RouteViewport';
 
 afterEach(() => vi.restoreAllMocks());
+beforeEach(() => { vi.spyOn(window, 'scrollTo').mockImplementation(() => {}); });
 
 describe('route loading recovery', () => {
     it('keeps navigation available after a chunk fails and recovers on another route', async () => {

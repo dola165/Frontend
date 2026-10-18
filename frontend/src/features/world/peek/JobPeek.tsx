@@ -1,12 +1,16 @@
+import { JobDetail } from '../../jobs/JobDetail';
+import type { Job } from '../../jobs/api';
+import { useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { Badge, Button, EmptyNote } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import type { ClubJob } from '../../clubs/api';
 import { JobApplication } from '../../clubs/jobDetail/JobApplication';
-import { useJobDetail } from '../../clubs/jobDetail/useJobDetail';
+import { useJobDetail, type JobViewerStatus } from '../../clubs/jobDetail/useJobDetail';
 import { labelForCategory } from '../../clubs/jobLabels';
 import { usePersonProfile } from '../../profiles/person/usePersonProfile';
+import { getAuthSessionId, subscribeAuthSession } from '../../../utils/authStorage';
 import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
 import { codeLabel, ENGAGEMENT, postedLabel } from '../format';
@@ -43,11 +47,17 @@ function PostedBy({ job }: { job: ClubJob }) {
  * (the same as on the job page), what the role is, and who posted it.
  */
 export default function JobPeek({ id }: { id: string }) {
-    const t = useWorldCopy();
     const { status, user } = useAuth();
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    // Unsent answers, pending callbacks and saved receipts belong to this exact login and listing.
+    return <JobPeekSession key={JSON.stringify([id, user?.id ?? null, session])} id={id} status={status} userId={user?.id} />;
+}
+
+function JobPeekSession({ id, status, userId }: { id: string; status: JobViewerStatus; userId?: number }) {
+    const t = useWorldCopy();
     const relate = useRelatedOpen();
     const jobId = Number(id);
-    const detail = useJobDetail(jobId, status, user?.id);
+    const detail = useJobDetail(jobId, status, userId);
     const { job } = detail;
     if (detail.loading) return <DrawerFrame title={t('Loading…')}><DrawerLoading /></DrawerFrame>;
     if (detail.error || !job) return (
@@ -55,6 +65,8 @@ export default function JobPeek({ id }: { id: string }) {
             <EmptyNote title={t('This role is no longer open.')} action={<Button size="sm" onClick={detail.retryJob}>{t('Try again')}</Button>} />
         </DrawerFrame>
     );
+    const listing = job as Job;
+    if (listing.poster?.kind === 'PERSON' || listing.applyMethod && listing.applyMethod !== 'IN_APP' || listing.canManage) return <DrawerFrame title={job.title} page={{ to: `/jobs/${job.id}`, label: t('Job page') }}><JobDetail id={job.id} pane /></DrawerFrame>;
     const terms = ENGAGEMENT[job.engagementType ?? 'UNSPECIFIED'] ?? ENGAGEMENT.UNSPECIFIED;
     const place = [job.clubCityName, job.clubCountryName].filter(Boolean).join(', ');
     return (

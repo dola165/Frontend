@@ -27,17 +27,19 @@ export interface PageIdentity {
   businessKind: BusinessKind | null;
   clubCategory: string | null;
 }
-export type Surface = 'GRASS' | 'ARTIFICIAL' | 'HYBRID' | 'INDOOR';
-export type PitchSize = '5v5' | '7v7' | '9v9' | '11v11';
-export interface Ground { id: number; name: string; address: string; town: string; latitude: number; longitude: number; surface: Surface; size: PitchSize; indoor: boolean; pitchId: string | null; venueId: number | null }
+export type Surface = 'GRASS' | 'ARTIFICIAL' | 'HYBRID' | 'INDOOR' | 'HARD_COURT' | 'UNKNOWN';
+export type PitchSize = '5v5' | '7v7' | '9v9' | '11v11' | 'OTHER';
+export interface Ground { id: number; name: string; address: string; town: string; latitude: number | null; longitude: number | null; surface: Surface; size: PitchSize; indoor: boolean; pitchId: string | null; venueId: number | null }
 export type Gender = 'MALE' | 'FEMALE' | 'MIXED';
 export interface SquadItem { id: number; name: string; ageGroup: string; gender: Gender; format: string; days: number[]; time: string | null; groundId: number | null; players: number; coach: { userId: number; name: string; you: boolean } | null }
 export interface FeeBand { min: number; max: number; currency: 'GEL' | 'USD' | 'EUR'; period: 'MONTH'; free: 'NONE' | 'SOME' | 'ALL' }
 export interface StaffMember { userId: number; fullName: string; avatarUrl: string | null; role: 'OWNER' | 'CLUB_ADMIN' | 'COACH'; title: string }
 export type StaffRole = 'COACH' | 'ASSISTANT' | 'ADMIN';
-export interface StaffInvite { id: number; name: string; phone: string; role: StaffRole; squadId: number | null; status: 'INVITED' | 'JOINED'; code: string; at: string }
+export interface StaffInvite { id: number; name: string; phone: string; role: StaffRole; squadId: number | null; status: 'INVITED' | 'JOINED' | 'EXPIRED' | 'CANCELLED'; code: string; at: string }
 export interface Sponsor { id: number; name: string; logoUrl: string | null; websiteUrl: string | null; organizationId: number | null }
-export interface Honour { id: number; title: string; year: number }
+export interface Honour { id: number; title: string; year: number | null }
+export interface ReviewReceipt { id: string; revision: number; status: 'PENDING' | 'APPROVED' | 'REJECTED'; evidence: { role?: string; action?: LockedAction; legalName?: string; registrationNumber?: string; phone: string }; submittedAt: string; reviewedAt: string | null; reason: string | null }
+export interface PageReview extends ReviewReceipt { ref: PageRef; name: string; kind: 'CLAIM' | 'VERIFICATION'; claimantId: number; canApprove: boolean; canDecide: boolean; ownershipAtSubmission: string }
 
 export interface PageBoxes {
   grounds: { version: number; items: Ground[] };
@@ -57,8 +59,11 @@ export interface PageView {
   clubId: number | null;
   kind: PageKind;
   status: 'DRAFT' | 'LIVE';
-  claim: { state: 'UNCLAIMED' | 'PENDING'; role: string | null; mine: boolean } | null;
+  claim: { state: 'UNCLAIMED' | 'PENDING' | 'APPROVED' | 'REJECTED'; role: string | null; mine: boolean; revision?: number; id?: string; reason?: string | null; evidence?: ReviewReceipt['evidence'] } | null;
+  claimRevision?: number;
   verification: VerificationState;
+  verificationRevision?: number;
+  verificationRequest?: ReviewReceipt | null;
   viewer: { role: 'OWNER' | 'ADMIN' | 'COACH' | null; canEdit: boolean; editable: 'ALL' | BoxKey[]; canClaim: boolean };
   identity: PageIdentity;
   layout: PageLayout & { version: number };
@@ -76,9 +81,9 @@ export interface CreatedPage { id: number; clubId: number | null; profilePath: s
 export interface SimilarPage { ref: PageRef; name: string; town: string; kind: PageKind; crestUrl: string | null; status: 'DRAFT' | 'LIVE'; claim: 'UNCLAIMED' | 'PENDING' | null; mine: boolean; exact: boolean }
 export interface MyPage extends CreatedPage { ref: PageRef; name: string; kind: PageKind; status: 'DRAFT' | 'LIVE'; role: string | null; crestUrl: string | null }
 export interface Pitch { id: string; name: string; town: string; latitude: number; longitude: number; address: string; surface: Surface; size: PitchSize; lights: boolean; indoor: boolean; venueId: number | null; distanceKm: number }
-export interface Arrival { id: number; childFirstName: string; childLastName: string; birthYear: number; squadId: number; squadName: string | null; guardianName: string; at: string }
+export interface Arrival { id: number; version: number; childFirstName: string; childLastName: string; birthYear: number; squadId: number; squadName: string | null; guardianName: string; at: string; destination: string; groups: { id: number; version: number; name: string; method: 'DIRECT' | 'INTRODUCTION' | 'SELECTIVE' }[] }
 export interface JoinLink { code: string; page: { ref: PageRef; name: string; town: string; crestUrl: string | null; profilePath: string; live: boolean }; squad: { id: number; name: string; ageGroup: string; gender: Gender } }
-export interface InviteLink { code: string; role: StaffRole; status: 'INVITED' | 'JOINED'; squad: { id: number; name: string | null } | null; page: JoinLink['page'] }
+export interface InviteLink { code: string; role: StaffRole; status: 'INVITED' | 'JOINED'; version: number; permissions: string[]; startsOn: string | null; endsOn: string | null; engagement: string | null; squad: { id: number; name: string | null } | null; page: JoinLink['page'] }
 
 /** What creating sends: the backend's setup request, with the page kind. */
 export interface CreateRequest {
@@ -104,18 +109,21 @@ export const createPage = (body: CreateRequest) => apiClient.post<CreatedPage>('
 /** Whether an answer is a page at all: a backend without pages answers something else for an organisation. */
 export const isPageView = (value: unknown): value is PageView => Boolean(value) && typeof value === 'object' && 'kind' in (value as object) && 'identity' in (value as object) && 'boxes' in (value as object);
 export const fetchPage = (ref: PageRef, signal?: AbortSignal) => apiClient.get<PageView>(pageBase(ref), { signal }).then(r => r.data);
-export const saveIdentity = (ref: PageRef, version: number, patch: Partial<Omit<PageIdentity, 'version' | 'crest' | 'cover' | 'town'>> & { crest?: unknown; cover?: unknown; town?: { name: string } }) =>
+export const saveIdentity = (ref: PageRef, version: number, patch: Partial<Omit<PageIdentity, 'version' | 'crest' | 'cover' | 'town'>> & { crest?: unknown; cover?: unknown; town?: { name: string; latitude?: number | null; longitude?: number | null } }) =>
   apiClient.put<PageView>(`${pageBase(ref)}/identity`, { version, ...patch }).then(r => r.data, conflictOr);
 export const saveBox = <K extends SavableBox>(ref: PageRef, key: K, version: number, data: unknown) =>
   apiClient.put<PageView>(`${pageBase(ref)}/boxes/${key}`, { version, data }).then(r => r.data, conflictOr);
 export const saveLayout = (ref: PageRef, version: number, layout: PageLayout) =>
   apiClient.put<PageView>(`${pageBase(ref)}/layout`, { version, ...layout }).then(r => r.data, conflictOr);
-/** Cancels a creation: the owner deletes a draft (and the club and teams it made). */
+/** Cancels the private draft while retaining its retry tombstone. */
 export const deletePage = (ref: PageRef) => apiClient.delete(pageBase(ref)).then(() => undefined);
 export const goLive = (ref: PageRef, requestId: string) => apiClient.post<PageView>(`${pageBase(ref)}/live`, { requestId }).then(r => r.data);
-export const claimPage = (ref: PageRef, body: { requestId: string; role: string; phone: string }) => apiClient.post<PageView>(`${pageBase(ref)}/claim`, body).then(r => r.data);
-export const requestVerification = (ref: PageRef, body: { action: LockedAction; legalName?: string; registrationNumber?: string; phone?: string }) =>
+export const claimPage = (ref: PageRef, body: { requestId: string; expectedVersion: number; role: string; phone: string }) => apiClient.post<PageView>(`${pageBase(ref)}/claim`, body).then(r => r.data);
+export const requestVerification = (ref: PageRef, body: { requestId: string; expectedVersion: number; action: LockedAction; legalName: string; registrationNumber: string; phone: string }) =>
   apiClient.post<PageView>(`${pageBase(ref)}/verification`, body).then(r => r.data);
+export const fetchPageReviews = (status: ReviewReceipt['status'], signal?: AbortSignal) => apiClient.get<PageReview[]>('/pages/reviews', { params: { status }, signal }).then(r => r.data);
+export const fetchPageReviewReceipt = (id: string, signal?: AbortSignal) => apiClient.get<ReviewReceipt & { kind: PageReview['kind'] }>(`/pages/reviews/${encodeURIComponent(id)}`, { signal }).then(r => r.data);
+export const decidePageReview = (id: string, body: { requestId: string; expectedVersion: number; outcome: 'APPROVED' | 'REJECTED'; reason: string }) => apiClient.post<ReviewReceipt>(`/pages/reviews/${encodeURIComponent(id)}`, body).then(r => r.data);
 
 export const fetchSimilar = (name: string, town: string | null, signal?: AbortSignal) =>
   apiClient.get<SimilarPage[]>('/pages/similar', { params: { name, town: town ?? undefined }, signal }).then(r => r.data);
@@ -128,12 +136,14 @@ export const reverseGeocode = (latitude: number, longitude: number) =>
   apiClient.get<{ address: string | null; town: string | null }>('/map/reverse', { params: { lat: latitude, lng: longitude } }).then(r => r.data);
 
 export const fetchArrivals = (ref: PageRef, signal?: AbortSignal) => apiClient.get<Arrival[]>(`${pageBase(ref)}/arrivals`, { signal }).then(r => r.data);
-export const decideArrival = (ref: PageRef, id: number, action: 'APPROVE' | 'DECLINE', squadId?: number) =>
-  apiClient.post<PageView>(`${pageBase(ref)}/arrivals/${id}`, { action, squadId }).then(r => r.data);
-export const pastePlayers = (ref: PageRef, squadId: number, names: string[]) => apiClient.post<PageView>(`${pageBase(ref)}/players`, { squadId, names }).then(r => r.data);
+export const decideArrival = (ref: PageRef, id: number, body: { requestId: string; expectedVersion: number; action: 'APPROVE' | 'REVIEW' | 'DECLINE'; groupId?: number; groupVersion?: number }) =>
+  apiClient.post<{ page: PageView; outcome: 'PLACE_OFFERED' | 'REVIEW_REQUIRED' | 'DECLINED'; destination: string }>(`${pageBase(ref)}/arrivals/${id}`, body).then(r => r.data);
+export const ensureJoinLinks = (ref: PageRef, signal?: AbortSignal) => apiClient.post<PageView>(`${pageBase(ref)}/players/links`, {}, { signal }).then(r => r.data);
+export const fetchStaffCandidates = (ref: PageRef, q: string, signal?: AbortSignal) => apiClient.get<{ id: number; name: string }[]>(`${pageBase(ref)}/staff-candidates`, { params: { q }, signal }).then(r => r.data);
+export const inviteStaff = (ref: PageRef, body: { requestId: string; userId: number; role: StaffRole; squadId: number | null; engagement: string; startsOn: string }) => apiClient.post<PageView>(`${pageBase(ref)}/staff-invitations`, body).then(r => r.data);
 export const fetchJoinLink = (code: string, signal?: AbortSignal) => apiClient.get<JoinLink>(`/join/${encodeURIComponent(code)}`, { signal }).then(r => r.data);
 /** `playerId`: a child the parent already looks after (the server checks the card is theirs and joins that card). */
-export const sendJoin = (code: string, body: { childFirstName: string; childLastName: string; childGender: 'MALE' | 'FEMALE' | null; birthDate: string; consent: true; playerId?: number }) =>
-  apiClient.post<{ id: number; status: string; squadName: string | null }>(`/join/${encodeURIComponent(code)}`, body).then(r => r.data);
+export const sendJoin = (code: string, body: { requestId: string; who: 'PARENT' | 'PLAYER'; childFirstName: string; childLastName: string; childGender: 'MALE' | 'FEMALE' | null; birthDate: string; consent: true; playerId?: number }) =>
+  apiClient.post<{ id: number; status: string; squadName: string | null; destination: string }>(`/join/${encodeURIComponent(code)}`, body).then(r => r.data);
 export const fetchInvite = (code: string, signal?: AbortSignal) => apiClient.get<InviteLink>(`/invite/${encodeURIComponent(code)}`, { signal }).then(r => r.data);
-export const acceptInvite = (code: string) => apiClient.post<{ profilePath: string }>(`/invite/${encodeURIComponent(code)}/accept`).then(r => r.data);
+export const acceptInvite = (code: string, body: { requestId: string; expectedVersion: number }) => apiClient.post<{ profilePath: string }>(`/invite/${encodeURIComponent(code)}/accept`, body).then(r => r.data);

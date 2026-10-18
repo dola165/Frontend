@@ -1,3 +1,4 @@
+import { useMatchCopy } from './copy';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Compass } from 'lucide-react';
 import { useState } from 'react';
@@ -25,10 +26,11 @@ export function OfficialOpportunities({ availability = [], onChanged }: { availa
 }
 
 export function OpponentRecovery({ match, reload }: { match: Match; reload: () => void }) {
+    const t = useMatchCopy();
   const [review, setReview] = useState(false), [reason, setReason] = useState('');
   const { run, busy, feedback } = useAction(reload);
   const withdraw = match.can_arrange && !match.can_manage && match.listing_status === 'ARRANGED';
   const open = match.can_manage && match.requested_club_id && match.listing_status === 'OPEN';
   if (!withdraw && !open) return null;
-  return <section className="mx-panel"><h2>{withdraw ? 'Unable to play?' : 'Find another opponent'}</h2>{feedback}{!review ? <button onClick={() => setReview(true)}>{withdraw ? 'Withdraw our squad' : 'Open opponent search'}</button> : <><p>{withdraw ? 'Withdrawing ends opponent agreement and referee appointments. The host keeps the fixture and its reservation to arrange a replacement.' : 'This ends the targeted invitation and publishes the squad, time, location and match notes in Match Exchange. Your existing reservation remains linked.'}</p>{withdraw && <label>Reason<textarea maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label>}<div className="mx-actions"><button disabled={busy || (withdraw && !reason.trim())} onClick={() => void run(async () => { await post(`/match-arrangements/${match.event_id}/${withdraw ? 'response' : 'open-opponent-search'}`, { action: 'WITHDRAW', reason, revision: match.revision }); setReview(false); }, withdraw ? 'Squad withdrawn' : 'Open opponent search published')}>{withdraw ? 'Confirm withdrawal' : 'Publish open opponent search'}</button><button disabled={busy} onClick={() => setReview(false)}>Keep current arrangement</button></div></>}</section>;
+  return <section className="mx-panel"><h2>{withdraw ? t("Unable to play?") : t("Find another opponent")}</h2>{feedback}{!review ? <button onClick={() => setReview(true)}>{withdraw ? t("Withdraw our squad") : t("Open opponent search")}</button> : <><p>{withdraw ? t("Withdrawing ends opponent agreement and referee appointments. The host keeps the fixture and its reservation to arrange a replacement.") : t("This ends the targeted invitation and publishes the squad, time, location and match notes in Match Exchange. Your existing reservation remains linked.")}</p>{withdraw && <label>{t("Reason")}<textarea maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label>}<div className="mx-actions"><button disabled={busy || (withdraw && !reason.trim())} onClick={() => void run(async () => { await post(`/match-arrangements/${match.event_id}/${withdraw ? 'response' : 'open-opponent-search'}`, { action: 'WITHDRAW', reason, revision: match.revision }); setReview(false); }, withdraw ? t("Squad withdrawn") : t("Open opponent search published"))}>{withdraw ? t("Confirm withdrawal") : t("Publish open opponent search")}</button><button disabled={busy} onClick={() => setReview(false)}>{t("Keep current arrangement")}</button></div></>}</section>;
 }

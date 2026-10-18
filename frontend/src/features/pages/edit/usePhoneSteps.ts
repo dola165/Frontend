@@ -19,7 +19,7 @@ export function usePhoneSteps() {
     navigate({ pathname: location.pathname, search: `?${next}` }, { replace: true });
   };
   // The cards are for a draft: once the page is live (the share card opens), they are gone.
-  const available = phone && page?.status === 'DRAFT';
+  const available = phone && page?.status === 'DRAFT' && page.kind !== 'CLUB';
   return { available, open: available && editing && current ? current : null, show };
 }
 

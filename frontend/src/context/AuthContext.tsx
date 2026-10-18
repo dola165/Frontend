@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios';
+import { appLanguage } from '../utils/formatting';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { isAndroidApp, nativeCall, nativeSession } from '../android/bridge';
 import { normalizeNavigationCapabilities, type NavigationCapabilities } from './navigationCapabilities';
@@ -22,6 +24,11 @@ import {
     subscribeAuthSession,
     type AuthSessionId,
 } from '../utils/authStorage';
+
+// A connection failure is not evidence of revoked authentication. Keep the
+// exact session and drafts while the account is unresolved; writes stay gated.
+const temporarySessionFailure = (error: unknown) => !isAxiosError(error) || !error.response
+    || error.response.status >= 500 || error.response.status === 408 || error.response.status === 429;
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 
@@ -76,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [resolvedSessionId, setResolvedSessionId] = useState(getAuthSessionId);
     const [status, setStatus] = useState<AuthStatus>('bootstrapping');
     const [user, setUser] = useState<AuthUser | null>(null);
-    const [nativeBootstrapError, setNativeBootstrapError] = useState(false);
+    const [bootstrapError, setBootstrapError] = useState(false);
     const bootstrapPromiseRef = useRef<{ sessionId: AuthSessionId; promise: Promise<AuthUser | null> } | null>(null);
     const currentUserRequestRef = useRef(0);
 
@@ -90,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const clearSession = useCallback(() => {
+        setBootstrapError(false);
         clearStoredAuth();
         setResolvedSessionId(getAuthSessionId());
         setUser(null);
@@ -140,7 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [status, refreshNavigationCapabilities]);
 
     const bootstrapSession = useCallback(async () => {
-        setNativeBootstrapError(false);
+        setBootstrapError(false);
         const sessionId = getAuthSessionId();
         if (bootstrapPromiseRef.current?.sessionId === sessionId) {
             return bootstrapPromiseRef.current.promise;
@@ -162,9 +170,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 return await fetchCurrentUser(sessionId);
             } catch (initialError) {
                 if (!isCurrentAuthSession(sessionId)) return null;
+                if (!isAndroidApp && temporarySessionFailure(initialError)) {
+                    setBootstrapError(true); return null;
+                }
                 if (isAndroidApp) {
                     const session = await nativeSession().catch(() => null);
-                    if (session === null || session.active) { setNativeBootstrapError(true); return null; }
+                    if (session === null || session.active) { setBootstrapError(true); return null; }
                     clearSession(); return null;
                 }
                 if (storedAccessToken) {
@@ -173,6 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         return await fetchCurrentUser(sessionId);
                     } catch (refreshError) {
                         if (!isCurrentAuthSession(sessionId)) return null;
+                        if (temporarySessionFailure(refreshError)) { setBootstrapError(true); return null; }
                         console.error('Failed to restore authenticated session.', refreshError);
                     }
                 } else {
@@ -259,10 +271,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const visibleStatus = resolvedSessionId === sessionId ? status : 'bootstrapping';
     const visibleUser = resolvedSessionId === sessionId ? user : null;
 
-    if (isAndroidApp && nativeBootstrapError && !visibleUser) return <main role="alert" className="p-6 space-y-4">
-        <h1 className="text-xl font-semibold">Your account could not be loaded</h1>
-        <p>Check your connection and try again. Your Android sign-in has been kept.</p>
-        <button className="rounded-xl bg-[color:var(--color-accent)] px-5 py-3 text-[color:var(--color-on-accent)]" onClick={() => void bootstrapSession()}>Try again</button>
+    if (bootstrapError && !visibleUser) return <main role="alert" className="p-6 space-y-4">
+        <h1 className="text-xl font-semibold">{appLanguage() === 'ka' ? 'ანგარიში ვერ ჩაიტვირთა' : 'Your account could not be loaded'}</h1>
+        <p>{appLanguage() === 'ka' ? 'შეამოწმეთ კავშირი და სცადეთ ხელახლა. ანგარიშში შესვლა შენარჩუნებულია.' : 'Check your connection and try again. Your sign-in has been kept.'}</p>
+        <button className="rounded-xl bg-[color:var(--color-accent)] px-5 py-3 text-[color:var(--color-on-accent)]" onClick={() => void bootstrapSession()}>{appLanguage() === 'ka' ? 'ხელახლა ცდა' : 'Try again'}</button>
     </main>;
 
     return (

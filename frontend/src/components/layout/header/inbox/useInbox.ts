@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { fetchNotifications, fetchUnreadNotificationCount, markAllNotificationsAsRead, markNotificationAsRead } from '../../../../api/notifications';
 import { useAuth } from '../../../../context/AuthContext';
@@ -6,13 +6,14 @@ import { requests, type RequestItem } from '../../../../features/requests/api';
 import type { NotificationItem } from '../../../../types/notifications';
 import { emitNotificationsChanged, subscribeNotificationsChanged } from '../../../../utils/notifications';
 import type { Copy } from '../pins/describeRoute';
+import { isCurrentAuthSession, type AuthSessionId } from '../../../../utils/authStorage';
 
 /**
  * `needsYou`: requests waiting for the person's decision; null when they could not load.
  * `needsYouPartial`: some request types could not load, so the real number may be higher.
  * `updates`: unread notifications; null until known.
  */
-export interface InboxCounts { needsYou: number | null; needsYouPartial: boolean; updates: number | null }
+export interface InboxCounts { needsYou: number | null; needsYouPartial: boolean; needsYouLoading?: boolean; updates: number | null }
 
 /** What the Inbox button shows: a count of decisions only, a dot for unread updates, and never an invented zero. */
 export function inboxBadge({ needsYou, needsYouPartial, updates }: InboxCounts): { count: number; atLeast: boolean } | 'dot' | null {
@@ -21,9 +22,9 @@ export function inboxBadge({ needsYou, needsYouPartial, updates }: InboxCounts):
 }
 
 /** The button's accessible name says exactly what is known: decisions, unread updates, and what could not load. */
-export function inboxLabel({ needsYou, needsYouPartial, updates }: InboxCounts, copy: Copy) {
+export function inboxLabel({ needsYou, needsYouPartial, needsYouLoading, updates }: InboxCounts, copy: Copy) {
     const decisions = needsYou === null
-        ? copy('requests could not load', 'მოთხოვნები ვერ ჩაიტვირთა')
+        ? needsYouLoading ? copy('loading requests', 'მოთხოვნები იტვირთება') : copy('requests could not load', 'მოთხოვნები ვერ ჩაიტვირთა')
         : needsYouPartial
             ? copy(`at least ${needsYou} need you, some requests could not load`, `მინიმუმ ${needsYou} გელოდებათ, ზოგი მოთხოვნა ვერ ჩაიტვირთა`)
             : copy(`${needsYou} need you`, `${needsYou} გელოდებათ`);
@@ -39,36 +40,44 @@ export function useInboxCounts(): InboxCounts {
     const { sessionId } = useAuth();
     const { pathname } = useLocation();
     const [revision, setRevision] = useState(0);
-    const [needsYou, setNeedsYou] = useState<{ count: number | null; partial: boolean }>({ count: null, partial: false });
-    const [updates, setUpdates] = useState<number | null>(null);
+    const [needsYou, setNeedsYou] = useState<{ sessionId: AuthSessionId; count: number | null; partial: boolean } | null>(null);
+    const [updates, setUpdates] = useState<{ sessionId: AuthSessionId; count: number } | null>(null);
 
     useEffect(() => {
         const refresh = () => setRevision(value => value + 1);
         const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
         window.addEventListener('focus', refresh);
         window.addEventListener('requests-updated', refresh);
-        return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('requests-updated', refresh); };
+        window.addEventListener('online', refresh);
+        return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('requests-updated', refresh); window.removeEventListener('online', refresh); };
     }, []);
 
     useEffect(() => {
         const controller = new AbortController();
         void requests('INCOMING', 0, sessionId, controller.signal, 1)
-            .then(result => { if (!controller.signal.aborted) setNeedsYou({ count: result.counts.actionable, partial: result.unavailableSources.length > 0 }); })
-            .catch(() => { if (!controller.signal.aborted) setNeedsYou({ count: null, partial: false }); });
+            .then(result => { if (!controller.signal.aborted && isCurrentAuthSession(sessionId)) setNeedsYou({ sessionId, count: result.counts.actionable, partial: result.unavailableSources.length > 0 }); })
+            .catch(() => { if (!controller.signal.aborted && isCurrentAuthSession(sessionId)) setNeedsYou({ sessionId, count: null, partial: false }); });
         return () => controller.abort();
     }, [sessionId, revision, pathname]);
 
     useEffect(() => {
         let active = true;
-        const load = () => void fetchUnreadNotificationCount({}, { _authSessionId: sessionId })
-            .then(result => { if (active) setUpdates(result.unreadCount); })
+        let latest = 0;
+        const load = () => {
+            const request = ++latest;
+            void fetchUnreadNotificationCount({}, { _authSessionId: sessionId })
+            .then(result => { if (active && request === latest && isCurrentAuthSession(sessionId)) setUpdates({ sessionId, count: result.unreadCount }); })
             .catch(() => { /* Keep the last known count; the full page reports errors. */ });
+        };
         load();
         const unsubscribe = subscribeNotificationsChanged(load);
         return () => { active = false; unsubscribe(); };
     }, [sessionId]);
 
-    return { needsYou: needsYou.count, needsYouPartial: needsYou.partial, updates };
+    return { needsYou: needsYou?.sessionId === sessionId ? needsYou.count : null,
+        needsYouPartial: needsYou?.sessionId === sessionId ? needsYou.partial : false,
+        needsYouLoading: needsYou?.sessionId !== sessionId,
+        updates: updates?.sessionId === sessionId ? updates.count : null };
 }
 
 type Load<T> = { status: 'loading' } | { status: 'error' } | { status: 'ready'; data: T };
@@ -82,12 +91,22 @@ export function useInboxPreview() {
     const [updates, setUpdates] = useState<{ attempt: number; value: Load<NotificationItem[]> } | null>(null);
     const [busy, setBusy] = useState(false);
     const [markAllFailed, setMarkAllFailed] = useState(false);
+    const markingAll = useRef(false);
+
+    useEffect(() => {
+        const refresh = () => setAttempt(value => value + 1);
+        const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
+        window.addEventListener('requests-updated', refresh);
+        window.addEventListener('focus', refresh);
+        window.addEventListener('online', refresh);
+        return () => { window.clearInterval(timer); window.removeEventListener('requests-updated', refresh); window.removeEventListener('focus', refresh); window.removeEventListener('online', refresh); };
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
         void requests('INCOMING', 0, sessionId, controller.signal, 10)
-            .then(result => { if (!controller.signal.aborted) setDecisions({ attempt, value: { status: 'ready', data: { items: result.items.filter(item => item.actionable).slice(0, 5), partial: result.unavailableSources.length > 0 } } }); })
-            .catch(() => { if (!controller.signal.aborted) setDecisions({ attempt, value: { status: 'error' } }); });
+            .then(result => { if (!controller.signal.aborted && isCurrentAuthSession(sessionId)) setDecisions({ attempt, value: { status: 'ready', data: { items: result.items.filter(item => item.actionable).slice(0, 5), partial: result.unavailableSources.length > 0 } } }); })
+            .catch(() => { if (!controller.signal.aborted && isCurrentAuthSession(sessionId)) setDecisions({ attempt, value: { status: 'error' } }); });
         return () => controller.abort();
     }, [sessionId, attempt]);
 
@@ -96,17 +115,18 @@ export function useInboxPreview() {
     useEffect(() => {
         const controller = new AbortController();
         void fetchNotifications({ page: 0, size: 6 }, { _authSessionId: sessionId, signal: controller.signal })
-            .then(result => { if (!controller.signal.aborted) setUpdates({ attempt, value: { status: 'ready', data: result.content ?? [] } }); })
-            .catch(() => { if (!controller.signal.aborted) setUpdates(current => current?.attempt === attempt && current.value.status === 'ready' ? current : { attempt, value: { status: 'error' } }); });
+            .then(result => { if (!controller.signal.aborted && isCurrentAuthSession(sessionId)) setUpdates({ attempt, value: { status: 'ready', data: result.content ?? [] } }); })
+            .catch(() => { if (!controller.signal.aborted && isCurrentAuthSession(sessionId)) setUpdates(current => current?.attempt === attempt && current.value.status === 'ready' ? current : { attempt, value: { status: 'error' } }); });
         return () => controller.abort();
     }, [sessionId, attempt, revision]);
 
     const retry = useCallback(() => setAttempt(value => value + 1), []);
 
     const markRead = useCallback(async (notification: NotificationItem) => {
-        if (notification.isRead) return;
+        if (notification.isRead || !isCurrentAuthSession(sessionId)) return;
         try {
-            await markNotificationAsRead(notification.id);
+            await markNotificationAsRead(notification.id, { _authSessionId: sessionId });
+            if (!isCurrentAuthSession(sessionId)) return;
             setUpdates(current => current?.value.status === 'ready'
                 ? { ...current, value: { status: 'ready', data: current.value.data.map(item => item.id === notification.id ? { ...item, isRead: true } : item) } }
                 : current);
@@ -114,23 +134,27 @@ export function useInboxPreview() {
         } catch {
             // Opening the destination still works; the item stays unread and the full page can retry.
         }
-    }, []);
+    }, [sessionId]);
 
     const markAllRead = useCallback(async () => {
+        if (markingAll.current || !isCurrentAuthSession(sessionId)) return;
+        markingAll.current = true;
         setBusy(true);
         setMarkAllFailed(false);
         try {
-            await markAllNotificationsAsRead();
+            await markAllNotificationsAsRead({}, { _authSessionId: sessionId });
+            if (!isCurrentAuthSession(sessionId)) return;
             setUpdates(current => current?.value.status === 'ready'
                 ? { ...current, value: { status: 'ready', data: current.value.data.map(item => ({ ...item, isRead: true })) } }
                 : current);
             emitNotificationsChanged({ allRead: true });
         } catch {
-            setMarkAllFailed(true);
+            if (isCurrentAuthSession(sessionId)) setMarkAllFailed(true);
         } finally {
-            setBusy(false);
+            markingAll.current = false;
+            if (isCurrentAuthSession(sessionId)) setBusy(false);
         }
-    }, []);
+    }, [sessionId]);
 
     const current = <T,>(entry: { attempt: number; value: Load<T> } | null): Load<T> => entry && entry.attempt === attempt ? entry.value : { status: 'loading' };
     return { decisions: current(decisions), updates: current(updates), retry, markRead, markAllRead, busy, markAllFailed };

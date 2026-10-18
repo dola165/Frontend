@@ -17,6 +17,7 @@ import { useScopedSearchParams } from './scopedParams';
 import { navLabel } from '../clubWorkspace/clubTabs';
 import { clubRecordsEn } from '../../locales/clubRecords';
 import { translate, useCopy } from '../../locales/useCopy';
+import { appLanguage } from '../../utils/formatting';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
@@ -32,6 +33,8 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const [params, setParams, hrefOf] = useScopedSearchParams(scope);
   const [result, setResult] = useState<{ key: string; records: OperationRecord[]; error: string } | null>(null);
   const [detailError, setDetailError] = useState('');
+  const [detailRevision, setDetailRevision] = useState(0);
+  const [savedRecord, setSavedRecord] = useState<{ clubId: number; actorId: number; id: number; title: string } | null>(null);
   const [refresh, setRefresh] = useState(0);
   const page = Math.max(0, Number(params.get('page')) || 0), search = params.get('q') ?? '', kind = params.get('kind') ?? '', squad = params.get('squad') ?? '', session = params.get('session') ?? '', person = params.get('person') ?? '';
   const view: RecordView = params.get('mine') === 'true' ? 'mine' : params.get('state') === 'open' && module !== 'HOME' ? 'open' : 'all';
@@ -91,13 +94,18 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
       if (!c.signal.aborted && request === selectRequest.current) { setSelected(value); setEditing(false); setNewKind(''); }
     }).catch(e => { if (!c.signal.aborted) setDetailError(extractApiErrorMessage(e, translate('clubRecords', clubRecordsEn, 'unavailable'))); });
     return () => c.abort();
-  }, [club, linked]);
+  }, [club, linked, detailRevision]);
   const close = () => { selectRequest.current++; setSelected(null); setEditing(false); setNewKind(''); const next = new URLSearchParams(params); next.delete('record'); next.delete('from'); setParams(next, { replace: true }); };
   // A record opened from this tool's list goes back to the list; one opened from elsewhere goes back there.
   const hrefFor = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); return hrefOf(next); };
-  const open = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); setParams(next); };
+  const openId = (id: number) => { const next = new URLSearchParams(params); next.set('record', String(id)); next.set('from', 'list'); setParams(next); };
+  const open = (record: OperationRecord) => openId(record.id);
   const reload = () => { setRefresh(v => v + 1); };
-  const changed = async () => { await onRefresh(); close(); reload(); };
+  const changed = async (record?: Pick<OperationRecord, 'id' | 'title'>) => {
+    await onRefresh();
+    if (record) setSavedRecord({ clubId: club, actorId: boot.actorId, id: record.id, title: record.title });
+    close(); reload();
+  };
   const create = (value: string) => { setNewKind(value); setEditing(true); setSelected(null); setChoosing(false); };
   const tool = operationTabs.find(t => t.module === module);
   const title = module === 'HOME' ? copy('workQueue') : tool ? navLabel(tool.id) : moduleNames[module];
@@ -121,6 +129,12 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const changePage = (to: number) => { const next = new URLSearchParams(params); next.set('page', String(to)); setParams(next); };
   const addOne = (what: string) => copy('add', { what: what.toLowerCase() });
   const addLabel = definitions.length === 1 ? addOne(definitions[0].label) : copy('addRecord');
+  const receipt = savedRecord?.clubId === club && savedRecord.actorId === boot.actorId ? savedRecord : null;
+  const ka = appLanguage() === 'ka';
+  const savedNotice = receipt && <div className="gk-notice cw-notices__success" role="status">
+    <span className="cw-notices__text">{ka ? `შენახულია: ${receipt.title} · #${receipt.id}` : `Saved: ${receipt.title} · #${receipt.id}`}</span>
+    <Button size="sm" onClick={() => openId(receipt.id)}>{ka ? 'ჩანაწერის გახსნა' : 'Open record'}</Button>
+  </div>;
   const pager = page > 0 || records.length === 100 ? <><span>{copy('page', { page: page + 1 })}</span><span className="gk-row">
     <Button size="sm" disabled={page === 0 || loading} onClick={() => changePage(page - 1)}>{copy('previous')}</Button>
     <Button size="sm" disabled={records.length < 100 || loading} onClick={() => changePage(page + 1)}>{copy('next')}</Button></span></> : null;
@@ -128,7 +142,8 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   if (module === 'SETTINGS') return <PageFrame><OperationsSettings key={boot.settings.revision} boot={boot} onSaved={onRefresh} /></PageFrame>;
   if (linked && !selected) return <PageFrame className="rec-page">
     <div className="rec-back"><Button variant="ghost" size="sm" onClick={back}><ArrowLeft aria-hidden="true" />{backLabel}</Button></div>
-    {detailError ? <div className="gk-notice gk-notice--danger" role="alert">{detailError}</div> : <div className="cw-loading" role="status" aria-label={copy('opening')}><Skeleton height={34} width="40%" /><Skeleton height={200} /></div>}
+    {receipt?.id === Number(linked) && savedNotice}
+    {detailError ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{detailError}</span><Button size="sm" onClick={() => setDetailRevision(value => value + 1)}>{copy('tryAgain')}</Button></div> : <div className="cw-loading" role="status" aria-label={copy('opening')}><Skeleton height={34} width="40%" /><Skeleton height={200} /></div>}
   </PageFrame>;
   if (editing && definition) return <PageFrame><RecordForm key={`${newKind}-${selected?.id ?? 'new'}`} boot={editorBoot} definition={definition} record={selected ?? undefined} backLabel={listLabel} onSaved={changed} onCancel={close} /></PageFrame>;
   if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onClose={back} /></PageFrame>;
@@ -141,6 +156,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
         ? <>{definitions.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>{addOne(d.label)}</Button>)}<Button variant="primary" onClick={() => create(definitions[0].kind)}><Plus aria-hidden="true" />{addOne(definitions[0].label)}</Button></>
         : <Button variant="primary" aria-expanded={choosing} onClick={() => setChoosing(v => !v)}><Plus aria-hidden="true" />{addLabel}</Button>)} />
     <div className="gk-stack">
+      {savedNotice}
       {choosing && <Panel flush title={copy('whatToAdd')} action={<Button size="sm" variant="ghost" iconOnly aria-label={copy('closeChoices')} onClick={() => setChoosing(false)}><X aria-hidden="true" /></Button>}>
         <div className="rec-choices">{definitions.map(d => <button type="button" className="rec-choice" key={d.kind} onClick={() => create(d.kind)}><strong>{d.label}</strong></button>)}</div>
       </Panel>}

@@ -24,8 +24,9 @@ export const previewSeriesCancellation = async (squad: number, session: number, 
 export const cancelSeries = async (squad: number, session: number, data: SeriesCancellation) => apiClient.post(`/squad-communication/${squad}/events/${session}/cancellations`,data);
 export const previewSquadEvent = async (id: number, plan: SquadEventPlan, signal?: AbortSignal) =>
     (await apiClient.post<SquadEventPreview>(`/squad-communication/${id}/events/preview`, plan, { signal })).data;
-export const createSquadEvent = async (id: number, plan: SquadEventPlan) =>
-    (await apiClient.post<{ planId: string; sessionIds: number[] }>(`/squad-communication/${id}/events`, plan)).data;
+export const createSquadEvent = async (id: number, plan: SquadEventPlan, authSessionId?: AuthSessionId) =>
+    (await apiClient.post<{ planId: string; sessionIds: number[] }>(`/squad-communication/${id}/events`, plan,
+        authSessionId === undefined ? undefined : { _authSessionId: authSessionId } as AuthSessionRequestConfig)).data;
 
 export interface SquadSpace { id:number; club_id:number; academy_name:string; name:string; category:string; can_manage:boolean; unread_count:number }
 /** A squad member. `number`, `position`, `photo_url`: all the roster shows about another child (refinement 4; backend needed: older servers send only id and name). */
@@ -60,7 +61,11 @@ export const updateComments=async(id:number,messageId:number,signal?:AbortSignal
 export const addUpdateComment=async(id:number,messageId:number,requestId:string,body:string)=>apiClient.post(`${root}/${id}/messages/${messageId}/comments`,{requestId,body});
 export const removeUpdateComment=async(id:number,messageId:number,commentId:number)=>apiClient.delete(`${root}/${id}/messages/${messageId}/comments/${commentId}`);
 export const setChatNotifications=async(id:number,notifyChat:boolean)=>apiClient.put(`${root}/${id}/preferences`,{notifyChat});
-export const assignCoach=async(id:number,userId:number|null)=>apiClient.put(`${root}/${id}/coach`,{userId});
+export const assignCoach=async(id:number,userId:number|null,authSessionId?:AuthSessionId)=>{
+    const url=`${root}/${id}/coach`, command={userId};
+    return authSessionId === undefined ? apiClient.put(url,command)
+        : apiClient.put(url,command,{_authSessionId:authSessionId} as AuthSessionRequestConfig);
+};
 export const createSession=async(id:number,data:{requestId:string;title:string;startsAt:string;endsAt:string;location:string})=>apiClient.post(`${root}/${id}/sessions`,data);
 export const cancelSession=async(id:number,sessionId:number,revision:number,reason:string,requestId:string)=>apiClient.post(`${root}/${id}/sessions/${sessionId}/cancel`,{requestId,revision,reason});
 export const previewCancellation=async(id:number,sessionId:number,revision:number,reason:string,requestId:string)=>(await apiClient.post<SessionConsequence>(`${root}/${id}/sessions/${sessionId}/cancel/preview`,{requestId,revision,reason})).data;

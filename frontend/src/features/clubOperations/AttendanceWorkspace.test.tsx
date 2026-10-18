@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { apiClient } from '../../api/axiosConfig';
+import { getAuthSessionId, setStoredAccessToken } from '../../utils/authStorage';
 import { WorkspaceOperations } from './WorkspaceOperations';
 import { RecordForm } from './records/RecordForm';
 import type { Bootstrap, Definition } from './api';
@@ -22,7 +23,7 @@ const boot: Bootstrap = {
   ],
 };
 beforeEach(() => { vi.clearAllMocks();vi.mocked(apiClient.get).mockResolvedValue({data:[]}); });
-afterEach(cleanup);
+afterEach(() => { cleanup(); localStorage.clear(); });
 function Location() { return <output>{useLocation().search}</output>; }
 function list(value=boot, query='?tab=attendance') { return render(<MemoryRouter initialEntries={[query]}><WorkspaceOperations boot={value} module="ATTENDANCE" onRefresh={vi.fn()}/><Location/></MemoryRouter>); }
 
@@ -56,6 +57,9 @@ it('keeps read-only session access without offering record creation', async () =
 });
 
 it('keeps mandatory person and activity choices required and saves them with the record', async () => {
+  setStoredAccessToken('attendance-workspace-test-token');
+  const sessionId = getAuthSessionId();
+  expect(sessionId).not.toBeNull();
   vi.mocked(apiClient.post).mockResolvedValue({data:{id:5}});
   const saved=vi.fn().mockResolvedValue(undefined);
   render(<RecordForm boot={boot} definition={definition} backLabel="Back to attendance" onSaved={saved} onCancel={vi.fn()}/>);
@@ -67,5 +71,9 @@ it('keeps mandatory person and activity choices required and saves them with the
   fireEvent.change(screen.getByLabelText(/^Training session/),{target:{value:'11'}});
   fireEvent.click(screen.getByRole('button',{name:'Save attendance and collection'}));
   await waitFor(()=>expect(saved).toHaveBeenCalledOnce());
-  expect(apiClient.post).toHaveBeenCalledWith('/clubs/1/operations/records',expect.objectContaining({subjectUserId:7,sessionId:11,squadId:2}));
+  expect(vi.mocked(apiClient.post).mock.calls).toStrictEqual([[
+    '/clubs/1/operations/records',
+    {kind:'ATTENDANCE',title:'Giorgi · Next training',subjectUserId:7,sessionId:11,squadId:2,assignedUserId:null,eventId:null,relatedRecordId:null,dueOn:null,data:{},revision:null},
+    {_authSessionId:sessionId,headers:{'Idempotency-Key':expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)}},
+  ]]);
 });

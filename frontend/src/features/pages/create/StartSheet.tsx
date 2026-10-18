@@ -60,8 +60,19 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   }, [draft?.town]);
   useEffect(() => { writeSetupRecovery(user?.id, DRAFT, { kind: chosen, name, town: townPicked ? town.name : '' } satisfies StartDraft); }, [chosen, name, town.name, townPicked, user?.id]);
   // The dialog puts focus on its first control; once a type is chosen the name is what matters.
-  // A restored draft is selected so typing replaces it; an empty field is only focused, so no keystroke is swallowed.
-  useEffect(() => { if (chosen) { const frame = requestAnimationFrame(() => { const field = nameRef.current; if (!field) return; field.focus(); if (field.value) field.select(); }); return () => cancelAnimationFrame(frame); } }, [chosen]);
+  // Select only an untouched restored draft. Delayed entry focus must not select new input or take over an active edit.
+  useEffect(() => {
+    if (!chosen) return;
+    const field = nameRef.current;
+    if (!field) return;
+    const value = field.value;
+    const frame = requestAnimationFrame(() => {
+      if (nameRef.current !== field || document.activeElement === field || field.value !== value) return;
+      field.focus();
+      if (value) field.select();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [chosen]);
   // The duplicate check while typing, a breath after the last key. What was found is kept with the name it was found for.
   const typed = name.trim();
   const lookupKey = chosen && typed.length >= 3 ? `${chosen}:${typed}` : null;

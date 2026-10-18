@@ -1,4 +1,4 @@
-import { apiClient } from '../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import { buildTournamentTieResolution } from './domain';
 import type {
     AddDraftTeamFakeMemberPayload,
@@ -85,8 +85,8 @@ export const declineInvitation = async (tournamentId: number, invitationId: numb
 export const withdrawEntry = async (tournamentId: number, entryId: number, reason?: string) =>
     (await apiClient.post<TournamentDetail | ''>(`/tournaments/${tournamentId}/entries/${entryId}/withdraw`, reason ? { reason } : {})).data || null;
 
-export const requestEntry = async (tournamentId: number, payload: RequestTournamentEntryPayload) => {
-    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/entries`, payload);
+export const requestEntry = async (tournamentId: number, payload: RequestTournamentEntryPayload, config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/entries`, payload, config);
     return response.data;
 };
 

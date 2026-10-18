@@ -140,7 +140,7 @@ export const geocodePlace = async (q: string, options: GeocodeOptions = {}): Pro
 /** Load the whole bounded pool, so local sorting/filtering never sees only page one. */
 export const fetchMapDiscovery = async (params: NearbyMapParams, signal?: AbortSignal): Promise<MapPageResult> => {
     const first = await fetchNearbyMap({ ...params, page: 0, size: 100 }, signal);
-    if (params.bounds && params.type?.length === 1 && params.type[0] === 'CLUB') {
+    if (params.type?.length === 1 && params.type[0] === 'CLUB') {
         return { ...first, nextPage: first.totalElements > first.content.length ? 1 : undefined };
     }
     const markers = new Map(first.content.map(marker => [`${marker.entityType}:${marker.entityId}`, marker]));

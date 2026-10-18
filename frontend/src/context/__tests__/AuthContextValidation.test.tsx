@@ -4,7 +4,7 @@ import { apiClient } from '../../api/axiosConfig';
 import { clearStoredAuth, getAuthSessionId, getStoredAccessToken, setStoredAccessToken } from '../../utils/authStorage';
 
 vi.mock('../../api/axiosConfig', () => ({
-    apiClient: { get: vi.fn(), post: vi.fn() }, ensureCsrfToken: vi.fn(), refreshAccessToken: vi.fn(),
+    apiClient: { get: vi.fn(), post: vi.fn() }, ensureCsrfToken: vi.fn(async () => undefined), refreshAccessToken: vi.fn(),
     setAccountRestrictionHandler: vi.fn(), setAuthFailureHandler: vi.fn(), setDisplayedAuthSession: vi.fn(),
 }));
 

@@ -46,16 +46,20 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
         const observer = new ResizeObserver(() => {
             const divider = container.querySelector<HTMLElement>('.gk-header__divider');
             const dividerSpace = divider ? divider.offsetWidth + (parseFloat(getComputedStyle(divider).marginLeft) || 0) * 2 : 0;
-            // The nav is centred between two equal outer columns, so it may use the row's width less twice the
-            // wider of them, less the main tabs. Pins that don't fit wait in "more"; the search field never gives way.
+            // Match the real grid: equal outer columns on wide screens, each side's own width on narrow
+            // desktops. Pins that don't fit wait in "more" rather than covering the brand or account tools.
             const nav = container.parentElement, row = nav?.parentElement;
             const tabsWidth = nav?.querySelector<HTMLElement>('.gk-header__tabs')?.offsetWidth ?? 0;
             let available = container.clientWidth;
+            let searchField = 0;
             if (nav && row) {
                 const rowStyle = getComputedStyle(row);
+                searchField = parseFloat(rowStyle.getPropertyValue('--gk-hsearch')) || 0;
                 const inner = row.clientWidth - (parseFloat(rowStyle.paddingLeft) || 0) - (parseFloat(rowStyle.paddingRight) || 0);
-                const side = Math.max(0, ...Array.from(row.children, child => child === nav ? 0 : (child as HTMLElement).offsetWidth));
-                available = inner - 2 * (side + (parseFloat(rowStyle.columnGap) || 0)) - tabsWidth;
+                const sides = Array.from(row.children, child => child === nav ? 0 : (child as HTMLElement).offsetWidth);
+                const sideSpace = rowStyle.getPropertyValue('--gk-header-balanced').trim() === '1'
+                    ? sides.reduce((sum, width) => sum + width, 0) : 2 * Math.max(0, ...sides);
+                available = inner - sideSpace - 2 * (parseFloat(rowStyle.columnGap) || 0) - tabsWidth;
             }
             const result = fitPins({
                 available: available - dividerSpace,
@@ -63,7 +67,7 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
                 more: moreMeasureRef.current?.offsetWidth ?? 0,
                 plus: (panelTriggerRef.current?.offsetWidth ?? 44) + 4,
                 gap: 4,
-                searchField: 0,
+                searchField,
             }, crowdedRef.current);
             setFit(result.fit);
             onCrowdedChange(result.crowded);
@@ -89,7 +93,7 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
                 <ul ref={measureRef} className="gk-pins">
                     {pins.map(pin => <li key={pin.path} className="gk-htab gk-htab--pin"><span className="gk-htab__body"><PinGlyph icon={pin.icon} /><span className="gk-htab__label">{pin.label}</span></span></li>)}
                 </ul>
-                <span ref={moreMeasureRef} className="gk-hbtn gk-hbtn--text">{moreLabel(pins.length)}<ChevronDown /></span>
+                <span ref={moreMeasureRef} className="gk-hbtn gk-hbtn--text"><span className="gk-hbtn__label">{moreLabel(pins.length)}</span><ChevronDown /></span>
             </div>
             {visible.length > 0 && (
                 <ul className="gk-pins" aria-label={copy('Your pins', 'თქვენი პინები')}>
@@ -103,7 +107,7 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
                             aria-controls={overflowOpen ? overflowId : undefined} aria-current={hiddenActive ? 'page' : undefined}
                             onClick={event => { setAlignEnd(current => ({ ...current, overflow: opensLeft(event.currentTarget, 300) })); overflowToggle(); }}
                             onKeyDown={event => { if (event.key.startsWith('Arrow')) setAlignEnd(current => ({ ...current, overflow: opensLeft(event.currentTarget, 300) })); openMenuFromKey(event, overflowShow); }}>
-                            {moreLabel(hidden.length)}<ChevronDown aria-hidden="true" />
+                            <span className="gk-hbtn__label">{moreLabel(hidden.length)}</span><ChevronDown aria-hidden="true" />
                         </button>
                         {overflowOpen && (
                             <div ref={overflowPanelRef} id={overflowId} role="menu" tabIndex={-1} aria-label={visible.length ? copy('More pins', 'სხვა პინები') : copy('Your pins', 'თქვენი პინები')} className={`gk-pop gk-pop--menu${alignEnd.overflow ? '' : ' gk-pop--start'}`} onKeyDown={moveMenuFocus}>
@@ -122,7 +126,7 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
                         aria-controls={panelOpen ? panelId : undefined} aria-label={pins.length ? copy('Manage pins', 'პინების მართვა') : undefined}
                         title={copy('Pin a page as your own tab', 'გვერდის ჩანართად მიმაგრება')}
                         onClick={event => { setTitle(readPageTitle()); setAlignEnd(current => ({ ...current, panel: opensLeft(event.currentTarget, 400) })); panelToggle(); }}>
-                        <Plus aria-hidden="true" />{pins.length === 0 && <span>{copy('Pin', 'მიმაგრება')}</span>}
+                        <Plus aria-hidden="true" />{pins.length === 0 && <span className="gk-hbtn__label">{copy('Pin', 'მიმაგრება')}</span>}
                     </button>
                     {panelOpen && (
                         <div ref={panelPanelRef} id={panelId} role="dialog" tabIndex={-1} aria-labelledby={`${panelId}-title`} className={alignEnd.panel ? 'gk-pop' : 'gk-pop gk-pop--start'}>

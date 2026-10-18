@@ -1,3 +1,4 @@
+import { ct } from './copy';
 import { getStoredUserId } from '../../utils/authStorage';
 import type { StoreSellerKind } from './api';
 
@@ -32,13 +33,13 @@ export const readCart = (): CartItem[] => {
 export const saveCart = (items: CartItem[]) => { localStorage.setItem(cartKey(), JSON.stringify(items)); window.dispatchEvent(new Event(CHANGED)); };
 export const addCartItem = (item: CartItem) => {
     const items = readCart();
-    if (items.some(existing => existing.clubId !== item.clubId || existing.currency !== item.currency)) throw new Error('Your cart has items from another seller or in another currency. Open the cart and clear it before starting a new order.');
+    if (items.some(existing => existing.clubId !== item.clubId || existing.currency !== item.currency)) throw new Error(ct("Your cart has items from another seller or in another currency. Open the cart and clear it before starting a new order."));
     const existing = items.find(entry => entry.variantId === item.variantId);
     if (existing) {
-        if (existing.quantity + item.quantity > 99) throw new Error('A cart line can hold at most 99 items.');
+        if (existing.quantity + item.quantity > 99) throw new Error(ct("A cart line can hold at most 99 items."));
         existing.quantity += item.quantity;
     } else {
-        if (items.length >= 25) throw new Error('The cart can hold at most 25 lines.');
+        if (items.length >= 25) throw new Error(ct("The cart can hold at most 25 lines."));
         items.push(item);
     }
     saveCart(items);

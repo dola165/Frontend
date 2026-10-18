@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { CalendarDays, Clock3, MapPin, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useDialogFocus } from '../../components/workspace/useDialogFocus';
 import { formatDate, formatDateTime } from '../../utils/formatting';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -21,6 +22,7 @@ import { SessionAvailability } from './SessionAvailability';
 
 /** What kind of activity an entry is, in football words, both languages. */
 const ACTIVITY_NAMES: Record<string, [string, string]> = { TRAINING: ['Training', 'ვარჯიში'], MATCH: ['Match', 'მატჩი'], FRIENDLY: ['Friendly', 'ამხანაგური'], ACTIVITY: ['Club event', 'კლუბის ღონისძიება'], TRYOUT: ['Trial', 'ტესტირება'] };
+const WEEKDAY_KEYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
 export function SessionDialog({ title, children, onClose, busy = false, detail = false }: { title: string; children: ReactNode; onClose: () => void; busy?: boolean; detail?: boolean }) {
     const ref = useRef<HTMLDivElement>(null);
@@ -36,6 +38,20 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
     event: SquadCalendarEvent; playerId?: number; canManage?: boolean; onClose: () => void; onSaved: () => void;
 }) {
     const copy = useJourneyCopy();
+    const { t, i18n } = useTranslation();
+    // Reuse the calendar editor's labels when the browser omits Georgian Intl data.
+    const calendarLabels = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('ka') && !Intl.DateTimeFormat.supportedLocalesOf(['ka-GE']).length;
+    const dateLabels = (value: string) => {
+        const date = new Date(value);
+        if (calendarLabels && Number.isFinite(date.getTime())) {
+            const month = t(`schedule.editor.months.${date.getMonth()}`);
+            return { month, weekday: t(`schedule.editor.weekdays.${WEEKDAY_KEYS[date.getDay()]}.long`), full: `${date.getDate()} ${month} ${date.getFullYear()}` };
+        }
+        return { month: formatDate(value, { month: 'short' }), weekday: formatDate(value, { weekday: 'long' }), full: formatDate(value, { day: 'numeric', month: 'long', year: 'numeric' }) };
+    };
+    const startLabels = dateLabels(event.startsAt), endLabels = dateLabels(event.endsAt);
+    const endDateTime = calendarLabels && Number.isFinite(new Date(event.endsAt).getTime())
+        ? `${endLabels.full}, ${formatDate(event.endsAt, { hour: '2-digit', minute: '2-digit' })}` : formatDateTime(event.endsAt);
     const destination = scheduleDestination(event);
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [cancel, setCancel] = useState(false), [reason, setReason] = useState('');
     const [saved, setSaved] = useState(false);
@@ -103,7 +119,7 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
     if (editing && event.session) return <SquadEventEditComposer squad={{ id: event.squadId!, name: event.hostSquadName ?? 'Squad' }} session={event.session} onClose={() => setEditing(false)} onSaved={onSaved}/>;
     return <Dialog title={event.title} onClose={onClose} busy={busy} detail>
         <div className="session-context"><span>{event.hostSquadName}</span><span className="session-type">{copy(...(ACTIVITY_NAMES[event.eventType] ?? [event.eventType, event.eventType]))}</span></div>
-        <div className="session-time-card"><div className="session-date-tile"><span>{formatDate(event.startsAt,{month:'short'})}</span><strong>{formatDate(event.startsAt,{day:'2-digit'})}</strong></div><div><p className="session-eyebrow"><CalendarDays size={13}/>{formatDate(event.startsAt,{weekday:'long'})}</p><strong>{formatDate(event.startsAt,{day:'numeric',month:'long',year:'numeric'})}</strong><p><Clock3 size={15}/>{formatDate(event.startsAt,{hour:'2-digit',minute:'2-digit'})} – {new Date(event.startsAt).toDateString() === new Date(event.endsAt).toDateString() ? formatDate(event.endsAt,{hour:'2-digit',minute:'2-digit'}) : formatDateTime(event.endsAt)}</p><small>{Intl.DateTimeFormat().resolvedOptions().timeZone}</small></div></div>
+        <div className="session-time-card"><div className="session-date-tile"><span>{startLabels.month}</span><strong>{formatDate(event.startsAt,{day:'2-digit'})}</strong></div><div><p className="session-eyebrow"><CalendarDays size={13}/>{startLabels.weekday}</p><strong>{startLabels.full}</strong><p><Clock3 size={15}/>{formatDate(event.startsAt,{hour:'2-digit',minute:'2-digit'})} – {new Date(event.startsAt).toDateString() === new Date(event.endsAt).toDateString() ? formatDate(event.endsAt,{hour:'2-digit',minute:'2-digit'}) : endDateTime}</p><small>{Intl.DateTimeFormat().resolvedOptions().timeZone}</small></div></div>
         {!event.session?.venue_reservation && event.locationText && <div className="session-location"><MapPin size={20}/><div><span className="session-eyebrow">{copy('Where to meet', 'შეხვედრის ადგილი')}</span><strong>{event.locationText}</strong></div></div>}
         {event.description && <div className="session-coach-note"><span className="session-eyebrow">{copy('Session notes', 'სესიის შენიშვნები')}</span><p>{event.description}</p></div>}
         <VenueReservationSummary value={event.session?.venue_reservation}/>

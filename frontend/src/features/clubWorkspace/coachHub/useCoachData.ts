@@ -99,7 +99,7 @@ export function sessionKind(session: squadApi.SquadSession): ScheduleEventType {
 }
 /** Each activity's name in the person's language, read when it is shown. */
 export const kindNames = Object.defineProperties({} as Record<ScheduleEventType, string>,
-    Object.fromEntries((['TRAINING', 'MATCH', 'FRIENDLY', 'ACTIVITY', 'TRYOUT'] as const).map(type => [type, { enumerable: true, get: () => translate('fixtureCopy', fixtureCopyEn, type) }])));
+    Object.fromEntries((['TRAINING', 'MATCH', 'FRIENDLY', 'ACTIVITY', 'TRYOUT', 'MEETING'] as const).map(type => [type, { enumerable: true, get: () => translate('fixtureCopy', fixtureCopyEn, type) }])));
 
 /**
  * Who's coming. Matches ask families to reply, so a missing reply needs chasing; training is opt-out,

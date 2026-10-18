@@ -219,8 +219,10 @@ const TournamentDetailContent = () => {
         );
     }
 
-    const dateRange = formatTournamentDateRange(tournament.startDate, tournament.endDate, i18n.language);
-    const registrationRange = formatTournamentDateRange(tournament.registrationOpensAt, tournament.registrationClosesAt, i18n.language);
+    const dateRange = formatTournamentDateRange(tournament.startDate, tournament.endDate, i18n.language, profile?.rules?.timezone);
+    const registrationClose = formatTournamentDate(tournament.registrationClosesAt, i18n.language, profile?.rules?.timezone);
+    const registrationRange = formatTournamentDateRange(tournament.registrationOpensAt, tournament.registrationClosesAt, i18n.language, profile?.rules?.timezone)
+        || (registrationClose ? t('tournaments.public.registrationCloses', { date: registrationClose }) : null);
     const organizerName = tournament.organizerName ?? t('tournaments.public.organizerFallback');
     const stages = [...tournament.stages].sort((a, b) => a.stageOrder - b.stageOrder);
     const selectedStage = stages.find((stage) => stage.id === selectedStageId)
@@ -352,9 +354,9 @@ const TournamentDetailContent = () => {
                     </div>
                     {visibleFixtures.length ? <div className="tp-match-list">{visibleFixtures.map((fixture) => {
                         const kickoff = fixture.scheduledAt ? new Date(fixture.scheduledAt) : null;
-                        const kickoffTime = kickoff && !Number.isNaN(kickoff.getTime()) ? kickoff.toLocaleTimeString(i18n.language.startsWith('ka') ? 'ka-GE' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
+                        const kickoffTime = kickoff && !Number.isNaN(kickoff.getTime()) ? kickoff.toLocaleTimeString(i18n.language.startsWith('ka') ? 'ka-GE' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: profile?.rules?.timezone }) : null;
                         return <article key={fixture.id} id={`fixture-${fixture.id}`} className="tp-match" style={fixture.id === requestedFixture ? { outline: '2px solid var(--accent-primary, var(--color-accent))', outlineOffset: 3, scrollMarginTop: 100 } : undefined}>
-                            <div className="tp-match-date"><p>{formatTournamentDate(fixture.scheduledAt, i18n.language) || t('tournaments.public.kickoffToBeConfirmed')}{kickoffTime ? ` · ${kickoffTime}` : ''}</p><p className="tp-match-round">{fixture.stageName || selectedStage?.name}{fixture.roundNumber != null ? ` · ${copy.round} ${fixture.roundNumber}` : ''}</p></div>
+                            <div className="tp-match-date"><p>{formatTournamentDate(fixture.scheduledAt, i18n.language, profile?.rules?.timezone) || t('tournaments.public.kickoffToBeConfirmed')}{kickoffTime ? ` · ${kickoffTime}` : ''}</p><p className="tp-match-round">{fixture.stageName || selectedStage?.name}{fixture.roundNumber != null ? ` · ${copy.round} ${fixture.roundNumber}` : ''}</p></div>
                             <div className="tp-match-teams">
                                 <div className="tp-match-team" data-winner={fixture.homeEntryId != null && fixture.winnerEntryId === fixture.homeEntryId}><span>{fixture.homeLabel || t('tournaments.public.toBeDecided')}</span><strong>{fixture.homeScore ?? '–'}</strong></div>
                                 <div className="tp-match-team" data-winner={fixture.awayEntryId != null && fixture.winnerEntryId === fixture.awayEntryId}><span>{fixture.awayLabel || t('tournaments.public.toBeDecided')}</span><strong>{fixture.awayScore ?? '–'}</strong></div>

@@ -1,3 +1,4 @@
+import { useMatchCopy } from '../copy';
 import { CreateLink } from '../../pages/create/CreateLink';
 import './arrange.css';
 import { useEffect, useEffectEvent, useRef, useState, type FormEvent, type ReactNode } from 'react';
@@ -38,6 +39,7 @@ const FIELD_TARGETS: [keyof Problems, string][] = [['opponent', '#arrange-oppone
 export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, onSent, head }: {
     mode: 'direct' | 'open'; opponentId?: number; squadId?: number; storageKey: string; onSent: (match: Match) => void; /** Shown above the preview. */ head?: ReactNode;
 }) {
+    const t = useMatchCopy();
     const { user } = useAuth();
     const form = useRef<HTMLFormElement>(null);
     const [now] = useState(() => new Date());
@@ -94,7 +96,13 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
         event.preventDefault();
         setChecked(true);
         const first = FIELD_TARGETS.find(([key]) => problems[key]);
-        if (first) { form.current?.querySelector<HTMLElement>(first[0] === 'referee' ? refereeTarget(effective, problems.referee ?? '') : first[1])?.focus(); return; }
+        if (first) {
+            const target = form.current?.querySelector<HTMLElement>(first[0] === 'referee' ? refereeTarget(effective, problems.referee ?? '') : first[1]);
+            target?.focus();
+            // Validation adds a summary above the sticky footer. Scroll after that layout so the focused field stays visible.
+            window.requestAnimationFrame(() => target?.scrollIntoView?.({ block: 'center' }));
+            return;
+        }
         if (sending.current || !data.ourSquad) return;
         sending.current = true; setBusy(true); setError('');
         try {
@@ -102,20 +110,20 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
             clear();
             onSent(match);
         } catch (cause) {
-            setError(extractApiErrorMessage(cause, mode === 'direct' ? 'The invitation could not be sent. Your details are kept; try again.' : 'The match could not be posted. Your details are kept; try again.'));
+            setError(extractApiErrorMessage(cause, mode === 'direct' ? t("The invitation could not be sent. Your details are kept; try again.") : t("The match could not be posted. Your details are kept; try again.")));
         } finally { sending.current = false; setBusy(false); }
     }
 
-    if (data.squads.loading) return <div className="gk-stack gk-stack--tight" role="status" aria-label="Loading your squads"><Skeleton height={64} /><Skeleton height={44} /><Skeleton height={120} /></div>;
-    if (data.squads.error) return <EmptyNote title="Your squads could not load" action={<Button onClick={data.squads.retry}>Try again</Button>}>{data.squads.error}</EmptyNote>;
-    if (!data.squads.data?.length) return <EmptyNote title="No squads you can arrange matches for" action={<CreateLink kind="CLUB" from="arrange" size="sm">Start your club</CreateLink>}>Club staff with a squad responsibility arrange matches. Ask your club’s leadership if you should have one.</EmptyNote>;
+    if (data.squads.loading) return <div className="gk-stack gk-stack--tight" role="status" aria-label={t("Loading your squads")}><Skeleton height={64} /><Skeleton height={44} /><Skeleton height={120} /></div>;
+    if (data.squads.error) return <EmptyNote title={t("Your squads could not load")} action={<Button onClick={data.squads.retry}>{t("Try again")}</Button>}>{t(data.squads.error)}</EmptyNote>;
+    if (!data.squads.data?.length) return <EmptyNote title={t("No squads you can arrange matches for")} action={<CreateLink kind="CLUB" from="arrange" size="sm">{t("Start your club")}</CreateLink>}>{t("Club staff with a squad responsibility arrange matches. Ask your club’s leadership if you should have one.")}</EmptyNote>;
 
     const problemCount = Object.keys(shown).length;
     return (
         <form ref={form} className="gk-arrange" onSubmit={event => void submit(event)} noValidate aria-busy={busy}>
             <MatchPreview mode={mode} draft={effective} squad={data.ourSquad} ourLogo={data.ownLogo} ageGroup={ageGroup} targetSquadName={targetSquadName}>{head}</MatchPreview>
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">Teams</legend>
+                <legend className="gk-visually-hidden">{t("Teams")}</legend>
                 {mode === 'direct' && <OpponentField opponent={draft.opponent} ownClubId={data.ownClubId} squads={data.theirSquads} targetSquadId={data.targetSquadId}
                     suggestedSquadId={data.suggestedTheirs} error={shown.opponent}
                     onOpponent={opponent => patch({ opponent, targetSquadId: -1, ...(draft.ground.kind === 'THEIRS' ? { ground: { kind: 'LATER', city: '' }, groundTouched: false }
@@ -124,38 +132,38 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
                 <SquadField squads={data.squads.data} coached={data.coached} value={data.squadId} onChange={id => patch({ squadId: id, minutes: null, format: null, ageGroup: null })} error={shown.squad} />
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">When</legend>
+                <legend className="gk-visually-hidden">{t("When")}</legend>
                 <KickoffField date={draft.date} time={draft.time} minutes={draft.minutes} format={draft.format} ageGroup={ageGroup} squadAge={data.ageGroup} known={Boolean(data.ourSquad)}
                     today={localStamp(now, draft.timezone || zone()).slice(0, 10)} onChange={patch} errors={{ date: shown.date, time: shown.time, length: shown.length }} />
                 {mode === 'open' && data.ourSquad && draft.date && !data.ours.loading && <BeforeYouPost ageGroup={ageGroup} date={draft.date} ownClubId={data.ownClubId}
                     near={data.ours.data?.[0]?.latitude != null && data.ours.data[0].longitude != null ? { lat: data.ours.data[0].latitude, lng: data.ours.data[0].longitude } : null} />}
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">Where</legend>
+                <legend className="gk-visually-hidden">{t("Where")}</legend>
                 <GroundField mode={mode} value={effective.ground} hosting={draft.hosting} onChange={ground => patch({ ground, groundTouched: true })} onHosting={hosting => patch({ hosting })}
                     ours={data.ours} theirs={mode === 'direct' && draft.opponent ? data.theirs : null} opponentName={draft.opponent?.name} opponentCity={draft.opponent?.city} defaultCity={data.ownCity} error={shown.ground} />
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">Referee and notes</legend>
+                <legend className="gk-visually-hidden">{t("Referee and notes")}</legend>
                 <RefereeField mode={mode} draft={draft} squadId={data.squadId} onChange={patch} error={shown.referee} opponentName={draft.opponent?.name} />
-                <Field label={mode === 'direct' ? 'Note for their coach' : 'Details for interested teams'} htmlFor="arrange-note" hint="Optional. Kit colours, arrival time, playing rules.">
+                <Field label={mode === 'direct' ? t("Note for their coach") : t("Details for interested teams")} htmlFor="arrange-note" hint={t("Optional. Kit colours, arrival time, playing rules.")}>
                     <textarea id="arrange-note" className="gk-input" maxLength={2000} rows={3} value={draft.note} onChange={event => patch({ note: event.target.value })}
-                        placeholder={mode === 'direct' ? 'We would love a game before the league restarts…' : 'Squad of 14, happy to play 3 × 25 minutes…'} />
+                        placeholder={mode === 'direct' ? t("We would love a game before the league restarts…") : t("Squad of 14, happy to play 3 × 25 minutes…")} />
                 </Field>
                 <MoreDetails draft={draft} automaticTitle={title} onChange={patch} timezoneError={shown.timezone} />
             </fieldset>
             <footer className="gk-arrange__foot">
-                {problemCount > 0 && <p className="gk-notice gk-notice--warning" role="alert">{problemCount === 1 ? 'One detail needs your attention.' : `${problemCount} details need your attention.`} They are marked in the form.</p>}
-                {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+                {problemCount > 0 && <p className="gk-notice gk-notice--warning" role="alert">{problemCount === 1 ? t("One detail needs your attention.") : t('{count} details need your attention.', { count: problemCount })}{' '}{t("They are marked in the form.")}</p>}
+                {error && <p className="gk-notice gk-notice--danger" role="alert">{t(error)}</p>}
                 <p className="gk-arrange__next">{whatHappens(mode, effective, targetSquadName)}</p>
                 <div className="gk-arrange__actions">
                     {draftStarted(draft) && (confirmReset
-                        ? <span className="gk-arrange__confirm" role="group" aria-label="Clear this draft?">
-                            <Button size="sm" variant="danger" onClick={() => { reset(); setChecked(false); setError(''); setConfirmReset(false); }}>Clear draft</Button>
-                            <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>Keep it</Button>
+                        ? <span className="gk-arrange__confirm" role="group" aria-label={t("Clear this draft?")}>
+                            <Button size="sm" variant="danger" onClick={() => { reset(); setChecked(false); setError(''); setConfirmReset(false); }}>{t("Clear draft")}</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>{t("Keep it")}</Button>
                         </span>
-                        : <Button size="sm" variant="ghost" onClick={() => setConfirmReset(true)}>Start over</Button>)}
-                    <Button variant="primary" type="submit" disabled={busy} className="gk-arrange__send">{busy ? 'Sending…' : mode === 'direct' ? 'Send invitation' : 'Post open match'}</Button>
+                        : <Button size="sm" variant="ghost" onClick={() => setConfirmReset(true)}>{t("Start over")}</Button>)}
+                    <Button variant="primary" type="submit" disabled={busy} className="gk-arrange__send">{busy ? t("Sending…") : mode === 'direct' ? t("Send invitation") : t("Post open match")}</Button>
                 </div>
             </footer>
         </form>

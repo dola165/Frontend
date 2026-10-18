@@ -1,3 +1,4 @@
+import { ct } from './copy';
 import type { StoreSort } from './api';
 import { categoryLabel, collectionLabel, CURRENCIES, SORTS } from './labels';
 
@@ -26,7 +27,7 @@ export function readCatalogue(params: URLSearchParams, fixedClubId?: number): Ca
         country: params.get('country') ?? '', city: params.get('city') ?? '', variant: (params.get('variant') ?? '').slice(0, 40),
         minPrice: number(params.get('minPrice')), maxPrice: number(params.get('maxPrice')),
         currency: CURRENCIES.includes(params.get('currency') ?? '') ? params.get('currency')! : 'GEL',
-        page: Math.min(1_000_000, Math.max(0, Math.floor(Number(params.get('page')) || 0))),
+        page: Math.min(1_000_000, Math.max(0, Math.floor(Number(params.get("page")) || 0))),
     };
     return { ...query, sort: sortOf(params.get('sort')) ?? 'RELEVANCE' };
 }
@@ -38,7 +39,7 @@ export function catalogueSearch(query: Partial<CatalogueQuery>): URLSearchParams
     if (query.clubId) params.set('clubId', String(query.clubId));
     if (query.currency && query.currency !== 'GEL') params.set('currency', query.currency);
     if (query.sort && query.sort !== 'RELEVANCE') params.set('sort', query.sort);
-    if (query.page) params.set('page', String(query.page));
+    if (query.page) params.set("page", String(query.page));
     return params;
 }
 const withSearch = (path: string, params: URLSearchParams) => { const search = params.toString(); return search ? `${path}?${search}` : path; };
@@ -50,27 +51,27 @@ export const clubStorePath = (clubId: number, query: Partial<CatalogueQuery> = {
 /** What the catalogue is called for this search: the thing the person chose, and whose it is. */
 export function catalogueHeading(query: CatalogueQuery, clubName?: string | null): { title: string; hint?: string } {
     const own = query.seller === 'grasskickz';
-    if (query.clubId) return { title: clubName ? `${clubName} store` : 'Club store', hint: query.category ? categoryLabel(query.category) : undefined };
-    if (query.collection && collectionLabel(query.collection)) return { title: collectionLabel(query.collection)!, hint: own ? 'GrassKickZ equipment' : undefined };
-    if (query.category) return { title: categoryLabel(query.category), hint: own ? 'Sold by GrassKickZ' : query.seller === 'clubs' ? 'From club stores' : undefined };
-    if (own) return { title: 'GrassKickZ equipment', hint: 'Sold by GrassKickZ' };
-    if (query.seller === 'clubs') return { title: 'Club stores', hint: 'Kit, tickets and more from clubs on GrassKickZ' };
-    if (query.query) return { title: `Results for “${query.query}”` };
-    return { title: 'All products', hint: 'GrassKickZ equipment and every club store' };
+    if (query.clubId) return { title: clubName ? ct("{v0} store", { v0: clubName }) : ct("Club store"), hint: query.category ? categoryLabel(query.category) : undefined };
+    if (query.collection && collectionLabel(query.collection)) return { title: collectionLabel(query.collection)!, hint: own ? ct("GrassKickZ equipment") : undefined };
+    if (query.category) return { title: categoryLabel(query.category), hint: own ? ct("Sold by GrassKickZ") : query.seller === 'clubs' ? ct("From club stores") : undefined };
+    if (own) return { title: ct("GrassKickZ equipment"), hint: ct("Sold by GrassKickZ") };
+    if (query.seller === 'clubs') return { title: ct("Club stores"), hint: ct("Kit, tickets and more from clubs on GrassKickZ") };
+    if (query.query) return { title: ct("Results for “{v0}”", { v0: query.query }) };
+    return { title: ct("All products"), hint: ct("GrassKickZ equipment and every club store") };
 }
 
 export interface ActiveFilter { key: keyof CatalogueQuery; label: string }
 /** The filters the search holds, each removable on its own. The search words stay in the search box. */
 export function activeFilters(query: CatalogueQuery, fixedClub: boolean): ActiveFilter[] {
     const list: ActiveFilter[] = [];
-    if (query.seller === 'grasskickz') list.push({ key: 'seller', label: 'Sold by GrassKickZ' });
-    if (query.seller === 'clubs') list.push({ key: 'seller', label: 'Club stores' });
-    if (query.clubId && !fixedClub) list.push({ key: 'clubId', label: 'One club' });
+    if (query.seller === 'grasskickz') list.push({ key: 'seller', label: ct("Sold by GrassKickZ") });
+    if (query.seller === 'clubs') list.push({ key: 'seller', label: ct("Club stores") });
+    if (query.clubId && !fixedClub) list.push({ key: 'clubId', label: ct("One club") });
     if (query.collection && collectionLabel(query.collection)) list.push({ key: 'collection', label: collectionLabel(query.collection)! });
     if (query.category) list.push({ key: 'category', label: categoryLabel(query.category) });
     if (query.city) list.push({ key: 'city', label: query.city }); else if (query.country) list.push({ key: 'country', label: query.country });
-    if (query.variant) list.push({ key: 'variant', label: `Size ${query.variant}` });
-    if (query.minPrice || query.maxPrice) list.push({ key: 'minPrice', label: query.minPrice && query.maxPrice ? `${query.minPrice}–${query.maxPrice} ${query.currency}` : query.minPrice ? `From ${query.minPrice} ${query.currency}` : `Up to ${query.maxPrice} ${query.currency}` });
+    if (query.variant) list.push({ key: 'variant', label: ct("Size {v0}", { v0: query.variant }) });
+    if (query.minPrice || query.maxPrice) list.push({ key: 'minPrice', label: query.minPrice && query.maxPrice ? `${query.minPrice}–${query.maxPrice} ${query.currency}` : query.minPrice ? ct("From {v0} {v1}", { v0: query.minPrice, v1: query.currency }) : ct("Up to {v0} {v1}", { v0: query.maxPrice, v1: query.currency }) });
     if (query.currency !== 'GEL') list.push({ key: 'currency', label: query.currency });
     return list;
 }

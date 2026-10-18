@@ -1,4 +1,5 @@
 import { useContext, useSyncExternalStore, type ReactNode } from 'react';
+import { ct, useCommerceCopy } from '../../features/store/copy';
 import { CommerceDraftContext, useScopedDraftStore } from './commerceDraftState';
 export function CommerceDraftScope({ clubId, feature, children }: { clubId: number; feature: string; children: ReactNode }) {
     const {key, store} = useScopedDraftStore(clubId, feature);
@@ -6,7 +7,8 @@ export function CommerceDraftScope({ clubId, feature, children }: { clubId: numb
 }
 /** Shown while an editor is open: the draft survives switching pages, but not closing the app. */
 export function CommerceDraftNotice() {
+    useCommerceCopy();
     const store = useContext(CommerceDraftContext);
     const active = useSyncExternalStore(store?.subscribe ?? (() => () => {}), () => Boolean(store?.values.get('editing') || store?.values.get('updates')));
-    return active ? <p role="status" className="gk-notice">Your unfinished work stays here when you switch pages. Save it before closing or reloading the app.</p> : null;
+    return active ? <p role="status" className="gk-notice">{ct('Your unfinished work stays here when you switch pages. Save it before closing or reloading the app.')}</p> : null;
 }

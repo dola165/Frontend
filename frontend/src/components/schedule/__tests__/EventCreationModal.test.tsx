@@ -260,8 +260,12 @@ describe('EventCreationModal', () => {
         await user.click(screen.getByRole('button', { name: 'Cancel' }));
         await user.click(within(screen.getByRole('dialog', { name: 'Discard Event' })).getByRole('button', { name: 'Discard' }));
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-        const filters = screen.getByRole('button', { name: 'Open calendar filters' });
-        expect(filters.closest('[inert], [aria-hidden="true"]')).toBeNull();
+        // DOM removal can precede the passive effect that releases dialog isolation.
+        const filters = await screen.findByRole('button', { name: 'Open calendar filters' });
+        await waitFor(() => {
+            expect(filters.closest('[inert], [aria-hidden="true"]')).toBeNull();
+            expect(document.body.style.overflow).not.toBe('hidden');
+        });
         await user.click(filters);
         expect(openFilters).toHaveBeenCalledTimes(1);
     });

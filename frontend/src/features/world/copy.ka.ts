@@ -3,6 +3,12 @@
  * keeps a noun singular after a number, so counts use the singular entries ("3 კლუბი").
  */
 export const WORLD_KA: Record<string, string> = {
+    'Listing type': 'განცხადების ტიპი', 'All listings': 'ყველა განცხადება',
+    'People available': 'ხელმისაწვდომი სპეციალისტები', 'Any hours': 'ნებისმიერი საათები',
+    'Clubs and people post jobs and availability here.': 'კლუბები და ადამიანები აქ აქვეყნებენ ვაკანსიებსა და ხელმისაწვდომობას.',
+
+    'Kept while you browse. Reloading clears this draft.': 'გვერდებზე გადასვლისას მონახაზი ინახება. ხელახლა ჩატვირთვისას წაიშლება.',
+    'Discard draft': 'მონახაზის წაშლა',
     'Page': 'გვერდი',
     'Create a page': 'გვერდის შექმნა',
     // Navigation and page titles
@@ -409,4 +415,30 @@ export const WORLD_KA: Record<string, string> = {
     'Clear this draft?': 'წავშალოთ ეს მონახაზი?', 'Clear draft': 'მონახაზის წაშლა', '{hours} h {minutes}': '{hours} სთ {minutes}', '{hours} h': '{hours} სთ', '{minutes} min': '{minutes} წთ',
     'The chosen ground is no longer published. Choose another, or leave it to be agreed.': 'არჩეული მოედანი აღარ არის გამოქვეყნებული. აირჩიეთ სხვა ან დატოვეთ შესათანხმებლად.',
     'Only an Open tournament takes entries as they come.': 'განაცხადებს შემოსვლისთანავე მხოლოდ ღია ტურნირი იღებს.',
+    // Match day: the full page shares these words with World’s match drawer.
+    'Mon': 'ორშ', 'Tue': 'სამ', 'Wed': 'ოთხ', 'Thu': 'ხუთ', 'Fri': 'პარ', 'Sat': 'შაბ', 'Sun': 'კვი',
+    'Jan': 'იან', 'Feb': 'თებ', 'Mar': 'მარ', 'Apr': 'აპრ', 'May': 'მაი', 'Jun': 'ივნ', 'Jul': 'ივლ', 'Aug': 'აგვ', 'Sep': 'სექ', 'Sept': 'სექ', 'Oct': 'ოქტ', 'Nov': 'ნოე', 'Dec': 'დეკ',
+    'Plan your match day': 'დაგეგმეთ მატჩის დღე', 'Match day': 'მატჩის დღე',
+    '{minutes} minutes · {timezone}': '{minutes} წუთი · {timezone}',
+    'Squad schedule': 'გუნდის განრიგი', 'Ground to be arranged': 'მოედანი შესათანხმებელია',
+    'Reserved': 'დაჯავშნილია', 'Reservation waiting for the venue': 'ჯავშანი მოედნის პასუხს ელის',
+    'Reservation request expired; the venue has not released it yet': 'ჯავშნის მოთხოვნას ვადა გაუვიდა; მოედანს ის ჯერ არ გაუუქმებია',
+    'Reservation {status}': 'ჯავშანი: {status}', 'Confirmed with the ground owner': 'დადასტურებულია მოედნის მფლობელთან',
+     'Ground confirmation withdrawn': 'მოედნის დადასტურება მოხსნილია',
+     'Withdraw confirmation': 'დადასტურების მოხსნა', 'Confirm ground': 'მოედნის დადასტურება',
+     'Arranged outside GrassKickZ by the coaching team': 'მწვრთნელები GrassKickZ-ის გარეთ შეთანხმდნენ',
+    'The visiting team arranges the referee': 'მსაჯს სტუმარი გუნდი უზრუნველყოფს', 'The hosting team arranges the referee': 'მსაჯს მასპინძელი გუნდი უზრუნველყოფს',
+    'See officials': 'მსაჯების ნახვა', 'Host coach:': 'მასპინძელი მწვრთნელი:', '{club} squads': '{club} — გუნდები',
+    'Match conversation': 'მატჩის მიმოწერა', 'Both coaching teams': 'ორივე გუნდის მწვრთნელები', 'Find it in Messages': 'იპოვეთ შეტყობინებებში',
+    'Open conversation': 'მიმოწერის გახსნა', 'Open Messages': 'შეტყობინებების გახსნა',
+     'Hosting to be agreed': 'მასპინძლობა შესათანხმებელია', '{club} host': '{club} მასპინძლობს', '{club} travel': '{club} სტუმრად თამაშობს',
+     'To confirm': 'დასადასტურებელია', 'To be arranged': 'შესათანხმებელია',
+    'Not needed': 'არ არის საჭირო', 'Arranged outside GrassKickZ': 'შეთანხმებულია GrassKickZ-ის გარეთ', 'Appointed': 'დანიშნულია',
+    'Replacement needed': 'საჭიროა შემცვლელი', 'Needed': 'საჭიროა',
+    'Fixture': 'მატჩი', 'Your club is invited': 'თქვენი კლუბი მოწვეულია', 'Invited · waiting for their reply': 'მოწვეულია · ველოდებით პასუხს',
+    'Opponent to be agreed': 'მეტოქე შესათანხმებელია', 'Squads can propose to play': 'გუნდებს თამაშის შეთავაზება შეუძლიათ', 'No opponent': 'მეტოქე არ არის',
+     'Agreed': 'შეთანხმებულია', 'Invitation declined': 'მოწვევა უარყოფილია',
+    'Invitation for your club': 'მოწვევა თქვენი კლუბისთვის', 'Invitation sent': 'მოწვევა გაგზავნილია',
+    'After opponent agreement': 'მეტოქესთან შეთანხმების შემდეგ', 'Checking…': 'მოწმდება…', 'Ready': 'მზადაა', 'Available in Messages': 'ხელმისაწვდომია შეტყობინებებში',
+    'Open the exact match conversation': 'ამ მატჩის მიმოწერის გახსნა', 'Open Messages to find this match conversation': 'შეტყობინებების გახსნა ამ მატჩის მიმოწერის მოსაძებნად',
 };

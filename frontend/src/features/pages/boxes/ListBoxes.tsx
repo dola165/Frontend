@@ -71,11 +71,11 @@ export function SponsorsBox({ page, editing, open, onEdit, onClose }: BoxProps) 
   const { saveBox } = usePageEdit();
   const sponsors = page.boxes.sponsors.items;
   const business = page.kind === 'BUSINESS';
-  const persist = (rows: Row[]) => saveBox('sponsors', { items: rows.map(row => ({ id: row.id, name: row.name, websiteUrl: /^https?:\/\//.test(row.extra) ? row.extra : row.extra ? `https://${row.extra}` : null, logoUrl: sponsors.find(sponsor => sponsor.id === row.id)?.logoUrl ?? null, organizationId: sponsors.find(sponsor => sponsor.id === row.id)?.organizationId ?? null } satisfies Sponsor)) }, { label: t(business ? 'Clubs saved' : 'Sponsors saved') });
+  const persist = (rows: Row[]) => saveBox('sponsors', { items: rows.map(row => ({ id: row.id < 0 ? undefined : row.id, name: row.name, websiteUrl: /^https?:\/\//.test(row.extra) ? row.extra : row.extra ? `https://${row.extra}` : null, logoUrl: sponsors.find(sponsor => sponsor.id === row.id)?.logoUrl ?? null, organizationId: sponsors.find(sponsor => sponsor.id === row.id)?.organizationId ?? null } satisfies Omit<Sponsor, 'id'> & { id?: number })) }, { label: t(business ? 'Clubs saved' : 'Sponsors saved') });
   return (
     <SideBlock title={t(business ? 'Clubs we back' : 'Sponsors')} hint={t(business ? 'Who we support' : 'Backing the club')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <NamesEditor rows={sponsors.map(sponsor => ({ id: sponsor.id, name: sponsor.name, extra: sponsor.websiteUrl ?? '' }))} extraLabel={t('Website')} extraPlaceholder="kartuli-bank.ge" addLabel={t(business ? 'Add a club' : 'Add a sponsor')}
-        onSave={rows => persist(rows).then(onClose)} onKeep={rows => void persist(rows)} onCancel={onClose} />
+        onSave={async rows => { if (await persist(rows)) onClose?.(); }} onKeep={rows => void persist(rows)} onCancel={onClose} />
         : <List label={t('Sponsors')}>{sponsors.map(sponsor => {
           const website = safePublicUrl(sponsor.websiteUrl);
           const body = <><Crest src={sponsor.logoUrl} name={sponsor.name} size={36} /><span className="gk-list-row__main"><span className="gk-list-row__title">{sponsor.name}</span></span>{website && <ArrowUpRight aria-hidden="true" className="gk-faint" size={16} />}</>;
@@ -89,13 +89,13 @@ export function SponsorsBox({ page, editing, open, onEdit, onClose }: BoxProps) 
 export function HonoursBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const t = usePagesCopy();
   const { saveBox } = usePageEdit();
-  const honours = [...page.boxes.honours.items].sort((a, b) => b.year - a.year);
-  const persist = (rows: Row[]) => saveBox('honours', { items: rows.filter(row => /^\d{4}$/.test(row.extra)).map(row => ({ id: row.id, title: row.name, year: Number(row.extra) } satisfies Honour)) }, { label: t('Honours saved') });
+  const honours = [...page.boxes.honours.items].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+  const persist = (rows: Row[]) => saveBox('honours', { items: rows.map(row => ({ id: row.id < 0 ? undefined : row.id, title: row.name, year: row.extra.trim() ? Number(row.extra) : null } satisfies Omit<Honour, 'id'> & { id?: number })) }, { label: t('Honours saved') });
   return (
     <SideBlock title={t('Honours')} hint={t('What the club has won')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
-      {open ? <NamesEditor rows={honours.map(honour => ({ id: honour.id, name: honour.title, extra: String(honour.year) }))} extraLabel={t('Year')} extraPlaceholder={String(new Date().getFullYear())} extraType="number" addLabel={t('Add an honour')}
-        onSave={rows => persist(rows).then(onClose)} onKeep={rows => void persist(rows)} onCancel={onClose} />
-        : <List label={t('Honours')}>{honours.map(honour => <ListRow key={honour.id} lead={<span className="gk-club-icon"><Trophy aria-hidden="true" /></span>} title={honour.title} meta={String(honour.year)} />)}</List>}
+      {open ? <NamesEditor rows={honours.map(honour => ({ id: honour.id, name: honour.title, extra: honour.year == null ? '' : String(honour.year) }))} extraLabel={t('Year')} extraPlaceholder={String(new Date().getFullYear())} extraType="number" addLabel={t('Add an honour')}
+        onSave={async rows => { if (await persist(rows)) onClose?.(); }} onKeep={rows => void persist(rows)} onCancel={onClose} />
+        : <List label={t('Honours')}>{honours.map(honour => <ListRow key={honour.id} lead={<span className="gk-club-icon"><Trophy aria-hidden="true" /></span>} title={honour.title} meta={honour.year == null ? t('Year not recorded') : String(honour.year)} />)}</List>}
     </SideBlock>
   );
 }

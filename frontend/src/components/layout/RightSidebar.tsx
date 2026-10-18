@@ -16,6 +16,7 @@ import {
     X
 } from 'lucide-react';
 import { chatApi, type ChatMessageResponse, type ConversationDto, type ParticipantInfo } from '../../api/chat';
+import { useMessageDraft } from '../chat/useMessageDraft';
 import { useChatWebSocket, mergeMessages } from '../../hooks/useChatWebSocket';
 import { useChatReadReceipts } from '../../hooks/useChatReadReceipts';
 import { useChatScroll } from '../../hooks/useChatScroll';
@@ -44,7 +45,7 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [quickChat, setQuickChat] = useState<ContactConversation | null>(null);
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
-    const [messageInput, setMessageInput] = useState('');
+    const { input: messageInput, setInput: setMessageInput, confirmDraft } = useMessageDraft(quickChat?.conversation.id ?? null);
     const [minimized, setMinimized] = useState(false);
     const messageViewportRef = useRef<HTMLDivElement | null>(null);
     const currentUserId = Number(getStoredUserId() || 0);
@@ -56,8 +57,6 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
     const { setActiveConversation, sendMessage, loading: messagesLoading, error: deliveryError, sending, loadOlder, hasOlder, loadingOlder, historyError } = useChatWebSocket(handleIncomingMessage, clearUnavailable, true);
     useChatScroll(messageViewportRef, quickChat?.conversation.id ?? null, !minimized && !messagesLoading);
     useChatReadReceipts(quickChat?.conversation.id ?? null, !minimized && !messagesLoading, messages, messageViewportRef);
-    const draftRef = useRef<Record<number, string>>({});
-    const activeId = useRef<number | null>(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -87,9 +86,6 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
     }, [conversations, currentUserId]);
 
     const openQuickChat = (contact: ContactConversation) => {
-        if (activeId.current !== null) draftRef.current[activeId.current] = messageInput;
-        activeId.current = contact.conversation.id;
-        setMessageInput(draftRef.current[contact.conversation.id] ?? '');
         setQuickChat(contact);
         setMinimized(false);
         setMessages([]);
@@ -97,11 +93,8 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
     };
 
     const closeQuickChat = () => {
-        if (activeId.current !== null) draftRef.current[activeId.current] = messageInput;
-        activeId.current = null;
         setQuickChat(null);
         setMessages([]);
-        setMessageInput('');
         void setActiveConversation(null);
     };
 
@@ -109,11 +102,10 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
         event.preventDefault();
         if (!quickChat || !messageInput.trim() || sending) return;
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}') as { fullName?: string; username?: string };
-        const content = messageInput.trim();
+        const content = messageInput;
         const sent = await sendMessage(quickChat.conversation.id, content, storedUser.fullName || storedUser.username || 'Me');
         if (sent) {
-            draftRef.current[quickChat.conversation.id] = '';
-            if (activeId.current === quickChat.conversation.id) setMessageInput(current => current.trim() === content ? '' : current);
+            confirmDraft(quickChat.conversation.id, content);
         }
     };
 

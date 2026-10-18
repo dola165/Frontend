@@ -24,6 +24,7 @@ import { TournamentTieResolution } from "./TournamentTieResolution";
 
 interface Props {
   tournament: TournamentDetail;
+  timezone?: string;
   canManage: boolean;
   canScore?: boolean;
   matchesOnly?: boolean;
@@ -34,6 +35,7 @@ interface Props {
 }
 export function TournamentCompetition({
   tournament,
+  timezone,
   canManage,
   canScore = canManage,
   matchesOnly = false,
@@ -475,13 +477,14 @@ export function TournamentCompetition({
                       <div>
                         <p>
                           {f.stageName} · {copy("Round", "რაუნდი")}{" "}
-                          {f.roundNumber} ·{" "}
+                          {f.roundNumber} · {timezone && `${timezone} · `}{" "}
                           {f.scheduledAt
                             ? new Date(f.scheduledAt).toLocaleString(
                                 i18n.language.startsWith("ka")
                                   ? "ka-GE"
                                   : "en-GB",
                                 {
+                                  timeZone: timezone,
                                   day: "numeric",
                                   month: "short",
                                   hour: "2-digit",

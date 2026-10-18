@@ -97,15 +97,13 @@
 .gk .gk-fee__some { gap: var(--gk-2); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .gk-split__choices { min-width: 0; }
 
-/* The teams pop-up: a row per birth year with Boys · Girls · Both; each team a compact row with its training days. */
+/* The teams pop-up: a row per birth year with Boys · Girls · Both; each team a compact identity row. */
 .gk .gk-yearrows { display: grid; gap: 2px; }
 .gk .gk-yearrow { display: grid; grid-template-columns: 64px repeat(3, minmax(0, 1fr)); align-items: center; gap: 6px; }
 .gk .gk-yearrow .gk-chip { min-height: 32px; justify-content: center; }
 .gk .gk-yearrow__year { display: flex; align-items: baseline; gap: 4px; font-weight: 600; }
 .gk .gk-yearrow__year small { font-size: 10px; color: var(--gk-text-3); font-weight: 500; }
 .gk .gk-squadrow { display: grid; gap: 6px; padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
-.gk .gk-squadrow__days { display: flex; flex-wrap: wrap; gap: 4px; }
-.gk .gk-squadrow__days .gk-chip { min-height: 30px; padding-inline: 8px; }
 
 /* The grounds pop-up: a wide map across the top, then the list beside another place and the chosen grounds. */
 .gk .gk-dialog--lg:has(.gk-grounds) { max-width: 980px; }
@@ -261,4 +259,6 @@
 .gk .gk-boxframe[data-opened] { animation: gk-flash 1.6s var(--gk-ease); border-radius: var(--gk-r-lg); }
 @media (max-width: 760px) { .gk .gk-editbar__steps { transform: none; left: 12px; } }
 .gk .gk-editbar__delete { color: var(--gk-text-2); }
-.gk .gk-editbar__delete:hover { color: var(--gk-danger, #e5484d); }
+.gk .gk-editbar__delete:hover { color: var(--gk-danger); }
+
+.gk .gk-inline__error { display: block; margin-top: 4px; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-danger); font-weight: 400; }

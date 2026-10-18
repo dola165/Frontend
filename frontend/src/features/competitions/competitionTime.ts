@@ -8,3 +8,11 @@ export function competitionInstant(value:string,zone:string):Date {
  const candidates=new Set<number>();for(const delta of [-86400000,0,86400000]){const probe=wall+delta;const offset=asWall(probe)-probe;const candidate=wall-offset;if(asWall(candidate)===wall)candidates.add(candidate);}
  if(candidates.size!==1)throw new Error('Choose an unambiguous time outside a daylight-saving clock change.');return new Date([...candidates][0]);
 }
+
+/** API reads carry an offset. Older wall-time responses use the published zone. */
+export function competitionTimestamp(value?: string | null, zone = 'Asia/Tbilisi'): string | null {
+ if (!value) return null;
+ if (/(?:Z|[+-]\d{2}:\d{2})$/i.test(value)) return Number.isFinite(Date.parse(value)) ? value : null;
+ try { return competitionInstant(value.length === 10 ? `${value}T00:00` : value.replace(/\.\d+$/, ''), zone).toISOString(); }
+ catch { return null; }
+}

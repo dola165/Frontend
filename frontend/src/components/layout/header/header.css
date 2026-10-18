@@ -43,8 +43,8 @@
 
 /* ------------------------------------------------------------- buttons on the right */
 .gk .gk-header__actions { display: flex; align-items: center; gap: 10px; flex: none; margin-left: auto; }
-/* Signed in: brand and search | tabs and pins | actions. The two outer columns always get equal widths,
-   so the tabs sit in the true centre of the page however wide the search field is. */
+/* Signed in: brand and search | tabs and pins | actions. Wide screens centre the tabs between equal
+   outer columns. Narrow desktops use each side's actual width to keep the navigation clear of both. */
 .gk .gk-header__row--centred { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
 .gk .gk-header__row--centred > .gk-header__start { justify-self: start; }
 .gk .gk-header__row--centred > .gk-header__nav { grid-column: 2; margin-inline: 0; }
@@ -98,10 +98,28 @@
 }
 .gk.gk-header[data-pins='crowded'] .gk-header__search { display: none; }
 .gk.gk-header[data-pins='crowded'] .gk-header__search-toggle { display: inline-flex; }
+@container gk-header (max-width: 1799px) {
+  .gk .gk-header__row--centred { --gk-header-balanced: 1; grid-template-columns: max-content minmax(0, 1fr) max-content; }
+  .gk .gk-header__row--centred .gk-header__tabs .gk-htab { font-size: 14px; }
+  .gk .gk-header__row--centred .gk-header__tabs .gk-htab__body { gap: 8px; padding-inline: 6px; }
+}
 @container gk-header (max-width: 1439px) {
   .gk .gk-header__row { --gk-hsearch: 0px; }
   .gk .gk-header__search { display: none; }
   .gk .gk-header__search-toggle { display: inline-flex; }
+  .gk .gk-header__row--centred .gk-header__brand-name { display: none; }
+}
+/* Five confirmed role tabs still fit above the phone breakpoint. Keep their complete names and icons;
+   pin controls use their icons here, retaining the same accessible names and overflow menu. */
+@container gk-header (max-width: 1199px) {
+  .gk .gk-header__row--centred { column-gap: 8px; }
+  .gk .gk-header__row--centred .gk-header__start { gap: 12px; }
+  .gk .gk-header__row--centred .gk-header__tabs .gk-htab { font-size: 13px; }
+  .gk .gk-header__row--centred .gk-header__tabs .gk-htab__body { flex-direction: column; gap: 2px; padding-inline: 4px; }
+  .gk .gk-header__row--centred .gk-header__tabs .gk-htab svg { width: 20px; height: 20px; }
+  .gk .gk-header__row--centred .gk-header__tabs .gk-htab__label { max-width: 72px; white-space: normal; text-align: center; line-height: 16px; }
+  .gk .gk-header__row--centred .gk-header__pins .gk-hbtn--text { width: 44px; padding-inline: 0; }
+  .gk .gk-header__row--centred .gk-header__pins .gk-hbtn__label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @container gk-header (max-width: 1023px) {
   .gk .gk-header__brand-name { display: none; }

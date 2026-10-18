@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
+import { useAccountCopy } from '../profiles/account/accountCopy';
 
 const guards = new Set<() => boolean>();
 export const confirmSecurityNavigation = () => [...guards].every(guard => guard());
 
 /** Warn on links, account-tab changes and document exits. Same-account back navigation retains secrets in memory. */
 export function useSecurityNavigationGuard(dirty: boolean, busy: boolean) {
+    const copy = useAccountCopy();
     useEffect(() => {
         if (!dirty && !busy) return;
-        const canLeave = () => !busy && window.confirm('Authenticator setup or recovery codes are still open. Save your recovery codes before leaving. Leave this screen?');
+        const canLeave = () => !busy && window.confirm(copy('Authenticator setup or recovery codes are still open. Save your recovery codes before leaving. Leave this screen?'));
         guards.add(canLeave);
         const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
         const click = (event: MouseEvent) => {
@@ -23,5 +25,5 @@ export function useSecurityNavigationGuard(dirty: boolean, busy: boolean) {
             window.removeEventListener('beforeunload', beforeUnload);
             document.removeEventListener('click', click, true);
         };
-    }, [dirty, busy]);
+    }, [dirty, busy, copy]);
 }

@@ -16,14 +16,14 @@ export const FAMILY = [
 export const SECOND_GUARDIAN = { id: 9150, name: 'Tamar Gelashvili' };
 export const SABA = 9102;
 export const U12 = 102, U14 = 103;
-export const familyRequest = headers => /(?:^|;\s*)gk-sandbox-family=1(?:;|$)/.test(String(headers?.cookie ?? ''));
+export const familyRequest = headers => V.viewerId(headers) === W.ME_ID && /(?:^|;\s*)gk-sandbox-family=1(?:;|$)/.test(String(headers?.cookie ?? ''));
 /**
  * The children the viewer looks after: Luka's two in parent mode, else those a person who signed up in the sandbox
  * added themself (kept on their account; `create` starts the list). Null for Luka outside parent mode.
  */
 export const familyOf = (headers, create = false) => {
-  if (familyRequest(headers)) return FAMILY;
   const account = V.account(V.viewerId(headers));
+  if (!account && familyRequest(headers)) return FAMILY;
   if (!account) return null;
   if (!account.children && create) account.children = [];
   return account.children ?? null;

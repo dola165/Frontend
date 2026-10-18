@@ -203,11 +203,11 @@ export const responsibilitiesKa: Record<keyof typeof responsibilitiesEn, string>
 /** Days, event kinds and due dates on fixture lines and record rows. */
 export const fixtureCopyEn = {
     today: 'Today', tomorrow: 'Tomorrow', todayInline: 'today', tomorrowInline: 'tomorrow', dueToday: 'Due today', dueTomorrow: 'Due tomorrow', due: 'Due {{date}}', overdueSince: 'Overdue since {{date}}',
-    TRAINING: 'Training', MATCH: 'Match', FRIENDLY: 'Friendly', TRYOUT: 'Tryout', ACTIVITY: 'Club event',
+    TRAINING: 'Training', MATCH: 'Match', FRIENDLY: 'Friendly', TRYOUT: 'Tryout', ACTIVITY: 'Club event', MEETING: 'Meeting', manyMEETING: '{{count}} meetings',
     daysOverdue_one: '{{count}} day overdue', daysOverdue_other: '{{count}} days overdue', manyTRAINING: '{{count}} training sessions', manyMATCH: '{{count}} matches', manyFRIENDLY: '{{count}} friendlies', manyTRYOUT: '{{count}} trials', manyACTIVITY: '{{count}} club events', activitySymbols: 'Activity symbols', activitySymbolsHint: 'What the icons in schedules mean',
 };
 export const fixtureCopyKa: Record<keyof typeof fixtureCopyEn, string> = {
     today: 'დღეს', tomorrow: 'ხვალ', todayInline: 'დღეს', tomorrowInline: 'ხვალ', dueToday: 'ვადა დღეს', dueTomorrow: 'ვადა ხვალ', due: 'ვადა: {{date}}', overdueSince: 'ვადაგასული {{date}}-დან',
-    TRAINING: 'ვარჯიში', MATCH: 'მატჩი', FRIENDLY: 'ამხანაგური', TRYOUT: 'სინჯები', ACTIVITY: 'კლუბის ღონისძიება',
+    TRAINING: 'ვარჯიში', MATCH: 'მატჩი', FRIENDLY: 'ამხანაგური', TRYOUT: 'სინჯები', ACTIVITY: 'კლუბის ღონისძიება', MEETING: 'შეხვედრა', manyMEETING: '{{count}} შეხვედრა',
     daysOverdue_one: '{{count}} დღით დაგვიანებული', daysOverdue_other: '{{count}} დღით დაგვიანებული', manyTRAINING: '{{count}} ვარჯიში', manyMATCH: '{{count}} მატჩი', manyFRIENDLY: '{{count}} ამხანაგური მატჩი', manyTRYOUT: '{{count}} სინჯი', manyACTIVITY: '{{count}} კლუბის ღონისძიება', activitySymbols: 'აქტივობების სიმბოლოები', activitySymbolsHint: 'რას ნიშნავს ხატულები განრიგში',
 };

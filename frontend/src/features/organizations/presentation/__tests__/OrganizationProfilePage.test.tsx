@@ -6,7 +6,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { OrganizationProfilePage, OrganizationProfileEditor } from '../../../../pages/OrganizationProfilePage';
 import { OrganizationWorkspacePage } from '../../../../pages/OrganizationWorkspacePage';
 import { apiClient } from '../../../../api/axiosConfig';
-const auth = vi.hoisted(() => ({ sessionId: 'owner', refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
+const auth = vi.hoisted(() => ({ sessionId: 'owner', status: 'authenticated', user: { id: 9500 }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), put: vi.fn() } }));
 vi.mock('../OrganizationVenues', () => ({ OrganizationVenues: () => <section>Venue portfolio</section> }));
@@ -17,7 +17,7 @@ const profile = (overrides = {}) => ({ id: 17, displayName: 'Community Partner',
 const presentation = (overrides = {}, extras = {}) => ({ profile: profile(overrides), branding: { revision: 0 }, portfolio: { venues: [] }, competitions: [], canOpenWorkspace: true, membershipRole: 'OWNER', ...extras });
 function Destination() { const location = useLocation(); return <p>Destination: {location.pathname}{location.search}</p>; }
 const open = (entry = '/organizations/17') => render(<MemoryRouter initialEntries={[entry]}><Routes><Route path="/organizations/:organizationId" element={<OrganizationProfilePage />} /><Route path="/organizations/:organizationId/workspace" element={<OrganizationWorkspacePage />} /><Route path="*" element={<Destination />} /></Routes></MemoryRouter>);
-beforeEach(() => { vi.resetAllMocks(); auth.sessionId = 'owner'; });
+beforeEach(() => { vi.resetAllMocks(); auth.sessionId = 'owner'; localStorage.setItem('gk-session-id', auth.sessionId); });
 it('opens the canonical club profile without a second organization profile', async () => {
   vi.mocked(apiClient.get).mockResolvedValue({ data: presentation({ clubId: 1, profileKind: 'CLUB' }) }); open();
   expect(await screen.findByText('Destination: /clubs/1')).toBeInTheDocument(); expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();

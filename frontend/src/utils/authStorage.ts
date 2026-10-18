@@ -16,7 +16,7 @@ const clearMapDraftRecovery = () => {
     // Private drafts and uncertain replies belong to one login, even when unmounted.
     // Page visits behind pin suggestions name what was opened (a child, a player, a tab), so they end with the login too.
     clearRecoveryKeys(() => localStorage, ['gk-map-drafts:', 'gk-availability-uncertain:', 'gk-visits:']);
-    clearRecoveryKeys(() => sessionStorage, ['gk-admission-staff:', 'gk-joining-setup-draft:', 'admission-retry:v1:', 'admission-form:', 'new-child:']);
+    clearRecoveryKeys(() => sessionStorage, ['gk-chat-recovery:', 'gk-campaign-command:', 'gk-job-management:', 'gk-store-change:', 'gk-organization-post:', 'org-invite:', 'gk-admission-staff:', 'gk-joining-setup-draft:', 'admission-retry:v1:', 'admission-form:', 'new-child:']);
 };
 
 // Shared across tabs. Keep the marker on logout so A -> logout -> A cannot

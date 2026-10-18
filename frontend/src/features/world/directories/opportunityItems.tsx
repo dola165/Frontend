@@ -1,3 +1,4 @@
+import { posterOf, type Job } from '../../jobs/api';
 import { MapPin } from 'lucide-react';
 import { Status } from '../../../design/DataTable';
 import type { ClubJob } from '../../clubs/api';
@@ -22,11 +23,12 @@ export interface GroupResult { group: Opportunity; player?: number }
 export function JobItem({ item: job }: { item: ClubJob }) {
     const t = useWorldCopy();
     const terms = ENGAGEMENT[job.engagementType ?? 'UNSPECIFIED'] ?? ENGAGEMENT.UNSPECIFIED;
-    const place = [job.clubCityName, job.clubCountryName].filter(Boolean).join(', ');
+    const poster = posterOf(job as Job);
+    const place = [poster.city, job.clubCountryName].filter(Boolean).join(', ');
     return (
-        <ResultRow lead={<Crest src={job.clubLogoUrl} name={job.clubName ?? job.title} size={40} />} title={job.title} to={`/jobs/${job.id}`} peek={peekOf('job', job.id)}
+        <ResultRow lead={<Crest src={poster.avatarUrl} name={poster.name} round={poster.kind === 'PERSON'} size={40} />} title={job.title} to={`/jobs/${job.id}`} peek={peekOf('job', job.id)}
             lines={[
-                <>{job.clubName}{place && <><span aria-hidden="true">·</span><span className="gk-result__where"><MapPin aria-hidden="true" />{place}</span></>}</>,
+                <>{poster.name}{place && <><span aria-hidden="true">·</span><span className="gk-result__where"><MapPin aria-hidden="true" />{place}</span></>}</>,
                 [job.category ? t(labelForCategory(job.category)) : null, postedLabel(job.createdAt), job.applicationCount ? plural(job.applicationCount, 'applicant') : null].filter(Boolean).join(' · '),
             ]}
             aside={<Status tone={terms.tone}>{t(terms.label)}</Status>} />

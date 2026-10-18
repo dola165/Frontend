@@ -18,7 +18,7 @@ import * as api from '../api';
 import * as clubs from '../../clubs/api';
 vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), fetchCampaigns: vi.fn(), fetchCampaign: vi.fn(), fetchCampaignLocations: vi.fn(), fetchFundraisingFront: vi.fn(), fetchManagedCampaigns: vi.fn(), fetchManagedCampaign: vi.fn(), createCampaign: vi.fn(), editCampaign: vi.fn(), changeCampaignState: vi.fn(), postCampaignUpdate: vi.fn() }));
 vi.mock('../../clubs/api', async original => ({ ...await original<typeof import('../../clubs/api')>(), fetchMyClubMembershipContext: vi.fn() }));
-vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost:8080' }, apiClient: { get: vi.fn(async () => ({ data: { id: 10, name: 'Alpha FC', myRole: 'COACH' } })) } }));
+vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost:8080' }, apiClient: { get: vi.fn(async () => ({ data: { id: 10, name: 'Alpha FC', myRole: 'OWNER' } })) } }));
 vi.mock('../../../components/ui/MediaImage', () => ({ MediaImage: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} /> }));
 const campaign: api.Campaign = { id: 1, clubId: 10, clubName: 'Alpha FC', country: 'Georgia', city: 'Tbilisi', title: 'A pitch for everyone', summary: 'Bring youth football home', description: 'Create a safe place to play.', beneficiary: 'Youth teams', useOfFunds: 'Surface and fencing', category: 'FACILITIES', currency: 'GEL', goalAmount: 10000, reportedAmount: 2500, reportedNote: 'Treasurer', reportedAt: '2026-10-01T10:00:00Z', startsOn: null, endsOn: null, images: ['/photo.svg'], status: 'PUBLISHED', phase: 'ACTIVE', version: 2, updatedAt: '', publishedAt: '2026-09-20T10:00:00Z', updates: [], donateUrl: 'https://www.gofundme.com/f/a-pitch', donations: 31 };
 beforeEach(() => {
@@ -26,7 +26,7 @@ beforeEach(() => {
     vi.mocked(api.fetchCampaigns).mockResolvedValue({ content: [campaign], totalElements: 1 });
     vi.mocked(api.fetchCampaignLocations).mockResolvedValue([{ country: 'Georgia', city: 'Tbilisi' }, { country: 'France', city: 'Paris' }]);
     vi.mocked(api.fetchFundraisingFront).mockResolvedValue({ city: 'Tbilisi', near: [{ ...campaign, distanceKm: 3 }], closest: [campaign], followed: [], fresh: [campaign], active: 1, raised: 2500 });
-    vi.mocked(clubs.fetchMyClubMembershipContext).mockResolvedValue({ hasClubMembership: true, canCreateClub: false, clubId: 10, clubName: 'Alpha FC', myRole: 'COACH' });
+    vi.mocked(clubs.fetchMyClubMembershipContext).mockResolvedValue({ hasClubMembership: true, canCreateClub: false, clubId: 10, clubName: 'Alpha FC', myRole: 'OWNER' });
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -101,8 +101,8 @@ describe('Starting a fundraiser', () => {
         expect(screen.getByRole('link', { name: 'Start your club' })).toHaveAttribute('href', '/campaigns/new?create=club&from=fundraising');
     });
     it('publishes in three screens with the club’s GoFundMe link', async () => {
-        vi.mocked(api.createCampaign).mockResolvedValue({ ...campaign, id: 9, status: 'DRAFT', phase: 'DRAFT' });
-        vi.mocked(api.changeCampaignState).mockResolvedValue({ ...campaign, id: 9 });
+        vi.mocked(api.createCampaign).mockImplementation(async (_club, input) => ({ ...campaign, ...input, id: 9, version: 1, status: 'DRAFT', phase: 'DRAFT' }));
+        vi.mocked(api.changeCampaignState).mockImplementation(async (_club, current) => ({ ...current, version: current.version + 1, status: 'PUBLISHED', phase: 'ACTIVE' }));
         start();
         fireEvent.click(await screen.findByRole('button', { name: /Travel & competitions/ }));
         expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
@@ -111,14 +111,16 @@ describe('Starting a fundraiser', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
         fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Girls to the Black Sea Cup' } });
         fireEvent.change(screen.getByLabelText('Your story'), { target: { value: 'Travel and two nights for 18 players.' } });
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+        fireEvent.change(screen.getByLabelText('Where the money goes'), { target: { value: 'Travel and accommodation' } });
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
         fireEvent.change(screen.getByLabelText('GoFundMe link'), { target: { value: 'https://example.com/not' } });
         expect(screen.getByRole('button', { name: 'Publish fundraiser' })).toBeDisabled();
         fireEvent.change(screen.getByLabelText('GoFundMe link'), { target: { value: 'https://www.gofundme.com/f/black-sea' } });
         fireEvent.click(screen.getByRole('button', { name: 'Publish fundraiser' }));
         await screen.findByRole('heading', { name: 'Published page' });
-        expect(api.createCampaign).toHaveBeenCalledWith(10, expect.objectContaining({ title: 'Girls to the Black Sea Cup', category: 'TRAVEL', goalAmount: 5000, currency: 'GEL', donateUrl: 'https://www.gofundme.com/f/black-sea' }));
-        expect(api.changeCampaignState).toHaveBeenCalledWith(10, expect.objectContaining({ id: 9 }), 'PUBLISHED');
+        expect(api.createCampaign).toHaveBeenCalledWith(10, expect.objectContaining({ title: 'Girls to the Black Sea Cup', category: 'TRAVEL', goalAmount: 5000, currency: 'GEL', useOfFunds: 'Travel and accommodation', images: [], donateUrl: 'https://www.gofundme.com/f/black-sea' }), expect.stringMatching(/^[\da-f-]{36}$/i));
+        expect(api.changeCampaignState).toHaveBeenCalledWith(10, expect.objectContaining({ id: 9, version: 1, title: 'Girls to the Black Sea Cup', goalAmount: 5000 }), 'PUBLISHED');
     });
 });
 
@@ -131,7 +133,7 @@ describe('The club’s own fundraisers (workspace)', () => {
         fireEvent.change(screen.getByLabelText('Campaign title'), { target: { value: 'Our new pitch' } });
         fireEvent.click(screen.getByRole('button', { name: 'Save campaign' }));
         expect(await screen.findByRole('alert')).toHaveTextContent('This campaign changed');
-        expect(api.editCampaign).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 2, title: 'Our new pitch' }));
+        expect(api.editCampaign).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 2, title: 'Our new pitch' }), expect.any(String));
         expect(screen.getByLabelText('Campaign title')).toHaveValue('Our new pitch');
     });
     it('makes Store, Campaigns and Roles reachable in the workspace navigation', () => {

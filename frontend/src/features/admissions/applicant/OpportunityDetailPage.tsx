@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Clock3, MapPin, Plus, Wallet } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Avatar, Button, ButtonLink, GkRoot, PageFrame, Skeleton } from '../../../design/primitives';
 import { buildLoginPath } from '../../../utils/authRedirect';
+import { opportunityMapPath } from '../opportunityPaths';
 import { fetchAdmissionHome, fetchOpportunity, submitAdmission } from '../api';
 import type { Opportunity, Participant, Submission } from '../types';
 import { AddChild } from '../../parents/AddChild';
@@ -57,7 +58,7 @@ function OpportunityDetailContent({ id }: { id: number }) {
             <p>{o.clubId ? <Link to={`/clubs/${o.clubId}`}>{o.organizationName}</Link> : o.organizationName} · {copy('born', 'დაბ.')} {o.birthYearFrom}–{o.birthYearTo} · <span className="jn-availability" data-open={o.availability !== 'CLOSED' && o.availability !== 'WAITLIST'}>{availability(o.availability)}</span></p>
             <ul className="jn-facts">
                 <li><Clock3 aria-hidden="true" />{o.schedule || copy('Arrange with the club', 'შეათანხმეთ კლუბთან')}</li>
-                <li><MapPin aria-hidden="true" />{o.location.latitude != null && o.location.longitude != null ? <Link to={`/world?opportunity=${o.id}${player ? `&player=${player.id}` : ''}`} aria-label={copy('View actual training venue on map', 'ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}>{o.location.name}</Link> : o.location.name}</li>
+                <li><MapPin aria-hidden="true" />{o.location.latitude != null && o.location.longitude != null ? <Link to={opportunityMapPath(o.id, player?.id)} aria-label={copy('View actual training venue on map', 'ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}>{o.location.name}</Link> : o.location.name}</li>
                 <li><Wallet aria-hidden="true" />{cost}</li>
             </ul>
         </header>
@@ -112,7 +113,7 @@ function SubmissionForm({ opportunity: o, participant: p, refresh }: { opportuni
     const [acceptedVersion, setAcceptedVersion] = useState<number | null>(null);
     const accept = acceptedVersion === o.version;
     useEffect(() => { try { sessionStorage.setItem(key, JSON.stringify(draft)); } catch { /* The mutation still requires a durable receipt before sending. */ } }, [draft, key]);
-    const mutation = useAdmissionMutation<Omit<Submission, 'requestId'>, Awaited<ReturnType<typeof submitAdmission>>>(p.id, `submit:${o.id}`, body => submitAdmission(body, sessionId), result => { sessionStorage.removeItem(key); navigate(`/admissions/cases/${result.id}`); }, refresh);
+    const mutation = useAdmissionMutation<Omit<Submission, 'requestId'>, Awaited<ReturnType<typeof submitAdmission>>>(p.id, `submit:${o.id}`, body => submitAdmission(body, sessionId), result => { sessionStorage.removeItem(key); navigate(playerPath(`/admissions/cases/${result.id}`,result.playerId)); }, refresh);
     const birthYearEligible = fitsAge(o, p);
     const eligible = birthYearEligible && fitsGender(o, p);
     const canCommit = (!p.minor || p.guardian) && p.restriction !== 'REVIEW';

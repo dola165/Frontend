@@ -65,7 +65,7 @@ it.each([LoginPage, RegisterPage])('explains the explicit account-linking requir
 
 it('handles the existing-account challenge after registration auto-login without repeating registration', async () => {
     render(<MemoryRouter><RegisterPage /></MemoryRouter>);
-    change('auth-name', 'Example Player'); change('auth-login', 'person@example.test');
+    change('auth-name', 'Example Player'); change('auth-email', 'person@example.test');
     change('auth-password', 'SyntheticPassword1'); change('auth-dob', '2000-01-01');
     fireEvent.submit(document.querySelector('form')!);
     await verify();
@@ -77,7 +77,7 @@ it('registers without a role, keeps the town for the first run and preserves the
     vi.mocked(apiClient.post).mockResolvedValue({ data: { emailVerificationRequired: true } });
     render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
-    change('auth-name', 'Example Parent'); change('auth-login', 'PARENT@example.test');
+    change('auth-name', 'Example Parent'); change('auth-email', 'PARENT@example.test');
     change('auth-password', 'SyntheticPassword1');
     fireEvent.change(document.getElementById('auth-town')!, { target: { value: 'Rustavi' } });
     change('auth-dob', '2020-01-01'); fireEvent.submit(document.querySelector('form')!);
@@ -94,15 +94,13 @@ it('registers without a role, keeps the town for the first run and preserves the
     expect(getAuthFlow().nextPath).toBeUndefined();
 });
 
-it('registers with a phone number instead of an email', async () => {
-    vi.mocked(apiClient.post).mockResolvedValue({ data: { emailVerificationRequired: true } });
-    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
-    change('auth-name', 'Example Player'); change('auth-login', '+995 555 12 34 56');
+it('signs up with email only: a phone number is not accepted', async () => {
+    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /></MemoryRouter>);
+    change('auth-name', 'Example Player'); change('auth-email', '+995 555 12 34 56');
     change('auth-password', 'SyntheticPassword1'); change('auth-dob', '1990-01-01');
     fireEvent.submit(document.querySelector('form')!);
-    await waitFor(() => expect(apiClient.post).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(apiClient.post).mock.calls[0][1]).toMatchObject({ phone: '+995555123456' });
-    expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty('email');
+    expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument();
+    expect(apiClient.post).not.toHaveBeenCalled();
 });
 
 it.each([
@@ -141,7 +139,7 @@ it('asks the same five things whoever opens signup, a club consent link included
     rememberAuthFlow({ nextPath: '/consent?token=synthetic-consent' });
     render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /></MemoryRouter>);
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
-    expect(['auth-name', 'auth-login', 'auth-password', 'auth-dob', 'auth-town'].every(id => document.getElementById(id))).toBe(true);
+    expect(['auth-name', 'auth-email', 'auth-password', 'auth-dob', 'auth-town'].every(id => document.getElementById(id))).toBe(true);
     fireEvent.submit(document.querySelector('form')!);
     expect(apiClient.post).not.toHaveBeenCalled();
 });
@@ -169,7 +167,7 @@ it('aborts registration on unmount and never starts a late auto-login', async ()
     let finish!: (value: { data: { emailVerificationRequired: boolean } }) => void;
     vi.mocked(apiClient.post).mockReturnValue(new Promise(resolve => { finish = resolve; }));
     const view = render(<MemoryRouter><RegisterPage /></MemoryRouter>);
-    change('auth-name', 'Example Player'); change('auth-login', 'person@example.test');
+    change('auth-name', 'Example Player'); change('auth-email', 'person@example.test');
     change('auth-password', 'SyntheticPassword1'); change('auth-dob', '2000-01-01');
     fireEvent.submit(document.querySelector('form')!);
     const signal = vi.mocked(apiClient.post).mock.calls[0][2]?.signal;

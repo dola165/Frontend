@@ -22,7 +22,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, isUnder13, todayIso } from '../utils/age';
-import { isEmail, isPhone, NEUTRAL_REGISTRATION_ROLE, normalizePhone } from '../utils/registration';
+import { isEmail, NEUTRAL_REGISTRATION_ROLE } from '../utils/registration';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../utils/authStorage';
 import { DEFAULT_TOWN, TOWNS, locateTown } from '../features/start/towns';
 import {
@@ -34,10 +34,10 @@ import {
     resolvePostAuthRedirect,
 } from '../utils/authRedirect';
 
-type RegisterField = 'name' | 'login' | 'password' | 'dob';
+type RegisterField = 'name' | 'email' | 'password' | 'dob';
 
 /**
- * One screen: name, email or phone, password, date of birth and town. No role: what a person does in football is
+ * One screen: name, email, password, date of birth and town. No role: what a person does in football is
  * chosen later and never decides access. A new account then goes to its first run (`/start`).
  */
 export const RegisterPage = () => {
@@ -55,7 +55,7 @@ export const RegisterPage = () => {
         return () => { unsubscribe(); registration.current?.abort(); };
     }, []);
     const [fullName, setFullName] = useState('');
-    const [login, setLogin] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [dob, setDob] = useState('');
@@ -84,8 +84,8 @@ export const RegisterPage = () => {
         const errors: Partial<Record<RegisterField, string>> = {};
         if (fullName.trim().length < 2) errors.name = fullName.trim() ? t('auth.register.errNameTooShort') : t('auth.register.errNameRequired');
         else if (fullName.trim().length > 100) errors.name = t('auth.register.nameTooLong');
-        if (!login.trim()) errors.login = t('auth.register.errLoginRequired');
-        else if (!isEmail(login) && !isPhone(login)) errors.login = t('auth.register.errLoginInvalid');
+        if (!email.trim()) errors.email = t('auth.register.errEmailRequired');
+        else if (!isEmail(email)) errors.email = t('auth.register.errEmailInvalid');
         if (!passwordRulesMet) errors.password = t('auth.register.errPasswordWeak');
         if (!dob) errors.dob = t('auth.register.errDobRequired');
         else if (!Number.isFinite(ageFromDob(dob)) || dob > todayIso()) errors.dob = t('auth.register.dobInvalid');
@@ -108,13 +108,13 @@ export const RegisterPage = () => {
         setError('');
         const controller = new AbortController();
         registration.current = controller;
-        const normalizedLogin = isEmail(login) ? login.trim().toLowerCase() : normalizePhone(login);
+        const normalizedEmail = email.trim().toLowerCase();
         let installingSession = false;
         try {
             // The town travels with the sign-up flow to the first run, which saves it; the request keeps the backend's own shape.
             const response = await apiClient.post<{ emailVerificationRequired?: boolean }>('/auth/register', {
                 fullName: fullName.trim(),
-                ...(isEmail(login) ? { email: normalizedLogin } : { phone: normalizedLogin }),
+                email: normalizedEmail,
                 password,
                 role: NEUTRAL_REGISTRATION_ROLE,
                 dateOfBirth: dob,
@@ -123,7 +123,7 @@ export const RegisterPage = () => {
             if (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current)) return;
 
             rememberAuthFlow({
-                email: normalizedLogin,
+                email: normalizedEmail,
                 nextPath,
                 newAccount: true,
                 town,
@@ -135,7 +135,7 @@ export const RegisterPage = () => {
                 return;
             }
 
-            const result = await secondFactor.authenticate({ kind: 'password', email: normalizedLogin, password });
+            const result = await secondFactor.authenticate({ kind: 'password', email: normalizedEmail, password });
             if (!result) return;
             setPassword('');
             installingSession = true;
@@ -211,10 +211,10 @@ export const RegisterPage = () => {
                             {fieldError('auth-name', 'name')}
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="auth-login" className={authLabelClass}>{t('auth.register.labelLogin')}</label>
-                            <input id="auth-login" type="text" inputMode="email" value={login} onChange={(event) => { setLogin(event.target.value); clearFieldError('login'); }} required autoComplete="username"
-                                className={fieldClass('login')} aria-invalid={Boolean(fieldErrors.login)} aria-describedby={describedBy('auth-login', 'login')} />
-                            {fieldError('auth-login', 'login')}
+                            <label htmlFor="auth-email" className={authLabelClass}>{t('auth.register.labelEmail')}</label>
+                            <input id="auth-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); }} required autoComplete="email"
+                                className={fieldClass('email')} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={describedBy('auth-email', 'email')} />
+                            {fieldError('auth-email', 'email')}
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="auth-password" className={authLabelClass}>{t('auth.register.labelPassword')}</label>

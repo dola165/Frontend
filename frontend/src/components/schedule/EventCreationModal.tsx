@@ -30,7 +30,6 @@ import {
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useDialogFocus } from '../workspace/useDialogFocus';
 import { usePanelMotion } from '../ui/usePanelMotion';
-import { ExtensionDemoLabel } from '../../features/capabilities/ExtensionBoundary';
 import { isExtensionCapabilityAvailable } from '../../features/capabilities/extensions';
 import { apiClient } from '../../api/axiosConfig';
 import { durationMinutes, localDateISO, upcomingTrainingDates } from './scheduleFormUtils';
@@ -503,8 +502,8 @@ const EventCreationContent = ({
                 </header>
                 {audienceNotice && <p className="schedule-compose-steps" role="note">{audienceNotice}</p>}
                 {mode === 'edit' && surface === 'CLUB_SCHEDULE' && targetEventId != null && (isExtensionCapabilityAvailable('eventVenueAttachment') || isExtensionCapabilityAvailable('volunteerShifts')) && <div className="schedule-compose-steps">
-                    {isExtensionCapabilityAvailable('eventVenueAttachment') && <a target="_blank" rel="noopener noreferrer" href={`/event-venues?type=CLUB_EVENT&id=${targetEventId}${targetEventStartsAt?`&occurrenceStart=${encodeURIComponent(targetEventStartsAt)}`:''}`}>Stadium reservation ↗<ExtensionDemoLabel capability="eventVenueAttachment" /></a>}
-                    {isExtensionCapabilityAvailable('volunteerShifts') && <a target="_blank" rel="noopener noreferrer" href={`/volunteering?eventId=${targetEventId}&view=manage`}>Volunteer shifts ↗<ExtensionDemoLabel capability="volunteerShifts" /></a>}
+                    {isExtensionCapabilityAvailable('eventVenueAttachment') && <a target="_blank" rel="noopener noreferrer" href={`/event-venues?type=CLUB_EVENT&id=${targetEventId}${targetEventStartsAt?`&occurrenceStart=${encodeURIComponent(targetEventStartsAt)}`:''}`}>Stadium reservation ↗</a>}
+                    {isExtensionCapabilityAvailable('volunteerShifts') && <a target="_blank" rel="noopener noreferrer" href={`/volunteering?eventId=${targetEventId}&view=manage`}>Volunteer shifts ↗</a>}
                 </div>}
                 <nav className="schedule-compose-steps" aria-label={t('schedule.editor.editorSteps')}>
                     {STEPS.map((label, index) => (

@@ -69,14 +69,6 @@ try {
     await mockApi(context);
     const page = await context.newPage();
     page.on('pageerror', error => results.pageErrors.push(error.message));
-    await page.goto(`${origin}/demo/commerce`);
-    // The separate fictional shop was replaced by tests in the actual cart/campaign flows.
-    // The full real-data flow is covered by payment-preview-smoke.mjs.
-    await expect(page).toHaveURL(origin + '/store');
-    await expect(page.getByText('Test payments are on', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Store', exact: true })).toBeVisible();
-    results.steps.push({ name: 'legacy-payment-bookmark-opens-actual-store', passed: true });
-
     await page.goto(`${origin}/parent`);
     await expect(page.getByRole('heading', { name: 'Parent Hub', exact: true })).toBeVisible();
     await expect(page.getByText('Luka Demo', { exact: true }).first()).toBeVisible();
@@ -126,14 +118,6 @@ try {
     }
     await editorContext.close();
 
-    // Preserve the legacy bookmark authentication boundary.
-    const guestContext = await browser.newContext();
-    await mockApi(guestContext, { authenticated: false });
-    const guest = await guestContext.newPage();
-    await guest.goto(`${origin}/demo/commerce`);
-    await expect(guest).toHaveURL(/\/login\?next=/);
-    results.steps.push({ name: 'guest-route-protection', passed: true });
-    await guestContext.close();
     expect(results.pageErrors).toEqual([]);
     expect(results.unexpectedApi).toEqual([]);
     expect(results.writes.filter(write => write.path !== '/api/auth/refresh')).toEqual([]);

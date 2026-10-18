@@ -24,33 +24,11 @@ export function ExtensionRoute({ capability, children }: BoundaryProps) {
         </main>;
     }
 
-    return <>
-        {resolved.availability === 'demo' && <ExtensionDemoNotice capability={capability} />}
-        {children}
-    </>;
+    return <>{children}</>;
 }
 
 export function ExtensionSurface({ capability, children }: BoundaryProps) {
     const resolved = resolveExtensionCapability(capability);
-    if (!resolved.available) return null;
-
-    return <>
-        {resolved.availability === 'demo' && <ExtensionDemoNotice capability={capability} compact />}
-        {children}
-    </>;
+    return resolved.available ? <>{children}</> : null;
 }
 
-export function ExtensionDemoLabel({ capability }: { capability: ExtensionCapabilityKey }) {
-    const resolved = resolveExtensionCapability(capability);
-    return resolved.availability === 'demo'
-        ? <small className="extension-demo-label">Local demo</small>
-        : null;
-}
-
-function ExtensionDemoNotice({ capability, compact = false }: { capability: ExtensionCapabilityKey; compact?: boolean }) {
-    const resolved = resolveExtensionCapability(capability);
-    return <aside className={`extension-demo-notice${compact ? ' is-compact' : ''}`} role="status" data-capability-demo={capability}>
-        <strong>Local demo</strong>
-        <span>{resolved.title} uses temporary mock data here. Nothing on this surface is stored by the production service.</span>
-    </aside>;
-}

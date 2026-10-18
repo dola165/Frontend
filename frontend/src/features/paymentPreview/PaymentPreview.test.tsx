@@ -1,8 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreCartPage } from '../../pages/StoreCartPage';
-import { CommerceDemoPage } from '../../pages/CommerceDemoPage';
 import { fetchCartQuote, type CartQuote } from '../store/api';
 import { saveCart, readCart } from '../store/cart';
 import { fetchCampaign, type Campaign } from '../campaigns/api';
@@ -107,8 +106,4 @@ it('validates money exactly and ignores malformed saved records', () => {
     for (const value of ['0', '-1', '1.234', '1e2', '1001', 'NaN']) expect(contributionMinorUnits(value)).toBeNull();
     localStorage.setItem(previewKey(scope), JSON.stringify([{ kind: 'order', currency: 'INVALID', amount: -3 }]));
     expect(readPreviewRecords(scope)).toEqual([]);
-});
-it.each([['/demo/commerce', 'Actual store'], ['/demo/commerce?section=campaigns', 'Actual campaigns']])('redirects the old bookmark %s into the real product', async (path, destination) => {
-    render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/demo/commerce" element={<CommerceDemoPage />} /><Route path="/store" element={<h1>Actual store</h1>} /><Route path="/campaigns" element={<h1>Actual campaigns</h1>} /></Routes></MemoryRouter>);
-    expect(await screen.findByRole('heading', { name: destination })).toBeInTheDocument();
 });

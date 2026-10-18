@@ -4,7 +4,6 @@ import base from './vite.config';
 // Real Spring API only. No sandbox server, personas or in-memory fallback.
 Object.assign(process.env, {
   VITE_API_BASE_URL: '/api',
-  VITE_ENABLE_MOCKS: 'false',
   VITE_GOOGLE_CLIENT_ID: '',
   VITE_PAYMENT_PREVIEW: 'false',
 });

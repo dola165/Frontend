@@ -3,7 +3,6 @@ import { Building2, CalendarDays, ExternalLink, Pencil, Play, RefreshCw, Trophy 
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, ButtonLink, PageHeader } from '../../../design/primitives';
 import { MatchHistoryLink } from '../../matchHistory/MatchHistoryLink';
-import { ExtensionDemoLabel } from '../../capabilities/ExtensionBoundary';
 import { isExtensionCapabilityAvailable } from '../../capabilities/extensions';
 import { formatTournamentDateRange, tournamentStatusLabel, tournamentVisibilityText } from '../../../components/tournaments/tournamentFormatters';
 import type { TournamentDetail } from '../domain';
@@ -36,7 +35,7 @@ export function TournamentWorkspaceHeader({ tournament, timezone, canEdit, legac
         <Button variant="ghost" iconOnly disabled={refreshing} aria-label={copy('Refresh tournament', 'ტურნირის განახლება')} onClick={onRefresh}><RefreshCw aria-hidden="true" className={refreshing ? 'animate-spin' : undefined} /></Button>
         <ButtonLink variant="ghost" to={`/tournaments/${id}`}><ExternalLink aria-hidden="true" />{copy('View tournament', 'ტურნირის ნახვა')}</ButtonLink>
         <MatchHistoryLink tournamentId={id} className="gk-btn gk-btn--ghost" />
-        {isExtensionCapabilityAvailable('volunteerShifts') && <ButtonLink variant="ghost" to={`/volunteering?tournamentId=${id}&view=manage`}>{copy('Volunteer shifts', 'მოხალისეთა ცვლები')}<ExtensionDemoLabel capability="volunteerShifts" /></ButtonLink>}
+        {isExtensionCapabilityAvailable('volunteerShifts') && <ButtonLink variant="ghost" to={`/volunteering?tournamentId=${id}&view=manage`}>{copy('Volunteer shifts', 'მოხალისეთა ცვლები')}</ButtonLink>}
         {canEdit && <Button onClick={onEdit}><Pencil aria-hidden="true" />{tournament.status === 'PLANNING' ? copy('Edit tournament', 'ტურნირის რედაქტირება') : copy('Tournament details', 'ტურნირის დეტალები')}</Button>}
         {canEdit && tournament.status === 'PLANNING' && <Button variant="primary" aria-describedby={startBlockers.length ? 'tournament-start-blockers' : undefined} disabled={busy || startBlockers.length > 0} onClick={onStart}><Play aria-hidden="true" />{copy('Start tournament', 'ტურნირის დაწყება')}</Button>}
         {canEdit && tournament.status === 'ACTIVE' && legacy === true && <Button variant="primary" aria-describedby={finishBlocked ? 'tournament-tie-blocker' : undefined} disabled={busy || finishBlocked} onClick={onFinish}><Trophy aria-hidden="true" />{copy('Finish tournament', 'ტურნირის დასრულება')}</Button>}

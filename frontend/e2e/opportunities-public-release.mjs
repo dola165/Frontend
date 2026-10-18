@@ -14,7 +14,7 @@ try {
  for(const file of files){const res=await context.request.get(root+'/'+file);expect(res.status()).toBe(200);hashes[file]=hash(await res.body());expect(hashes[file]).toBe(hash(await readFile(build+'/'+file)));}
  const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(root+'/store');await expect(page.getByRole('heading',{name:'Store',exact:true})).toBeVisible();await page.screenshot({path:out+'/public-store.png'});
- for(const route of ['/parent','/demo/commerce','/clubs/1/workspace']){await page.goto(root+route);await expect(page).toHaveURL(/\/login\?next=/);}
+ for(const route of ['/parent','/clubs/1/workspace']){await page.goto(root+route);await expect(page).toHaveURL(/\/login\?next=/);}
  const parent=await context.request.get(root+'/api/parents/hub');expect([401,403]).toContain(parent.status());
  expect(errors).toEqual([]);const report={passed:true,root,release:'opportunities-approved-20260913',verifiedAssetCount:files.size,hashes,protectedRoutes:true,parentUnauthenticatedStatus:parent.status(),errors};await writeFile(out+'/public-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify({passed:true,verifiedAssets:files.size,errors}));
 } finally {await browser.close();}

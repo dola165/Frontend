@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import { buildWebSocketUrl } from '../api/axiosConfig';
-import { getAuthSessionId, getStoredAccessToken, getStoredUserId, isCurrentAuthSession } from '../utils/authStorage';
+import { getAuthSessionId, getStoredAccessToken, isCurrentAuthSession } from '../utils/authStorage';
 import { chatApi, type ChatMessageResponse } from '../api/chat';
 import { createMessageRecovery } from '../components/chat/messageRecovery';
-
-const IS_MOCK_MODE = import.meta.env.VITE_ENABLE_MOCKS === 'true';
 
 export const mergeMessages = (existing: ChatMessageResponse[], incoming: ChatMessageResponse[]) =>
     [...new Map([...existing, ...incoming].map(message => [message.id, message])).values()].sort((a, b) => a.id - b.id);
@@ -150,7 +148,6 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
 
     useEffect(() => {
         if (!getStoredAccessToken()) return;
-        if (IS_MOCK_MODE) { setConnected(true); return; }
         const sessionId = getAuthSessionId();
         const client = new Client({
             brokerURL: buildWebSocketUrl('/ws-chat'),
@@ -211,7 +208,7 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
         return catchUp();
     }, [catchUp, subscribe, freshHistoryOnSelect, recovery]);
 
-    const sendMessage = useCallback(async (id: number, content: string, senderName = 'Me') => {
+    const sendMessage = useCallback(async (id: number, content: string) => {
         const clean = content.trim();
         if (!clean || sendingRef.current || !mounted.current || !recovery.current()) return false;
         sendingRef.current = true;
@@ -220,9 +217,7 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
         try {
             // Save the exact retry identity before dispatch, including across a page reload.
             const request = recovery.prepare(id, clean);
-            const message = IS_MOCK_MODE
-                ? (await import('../mocks/data/chatStore')).mockSendMessage(id, Number(getStoredUserId() || 0), senderName, clean)
-                : (await chatApi.sendMessage(id, clean, request.key)).data;
+            const message = (await chatApi.sendMessage(id, clean, request.key)).data;
             if (!recovery.current()) return false;
             recovery.confirm(id, request);
             if (!mounted.current) return false;

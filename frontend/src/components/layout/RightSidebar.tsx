@@ -101,9 +101,8 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
     const submitQuickMessage = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!quickChat || !messageInput.trim() || sending) return;
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}') as { fullName?: string; username?: string };
         const content = messageInput;
-        const sent = await sendMessage(quickChat.conversation.id, content, storedUser.fullName || storedUser.username || 'Me');
+        const sent = await sendMessage(quickChat.conversation.id, content);
         if (sent) {
             confirmDraft(quickChat.conversation.id, content);
         }

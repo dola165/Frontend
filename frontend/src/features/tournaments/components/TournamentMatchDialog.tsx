@@ -15,7 +15,7 @@ import { distinctParticipantNames } from "../participantLabels";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { TournamentFixtureReferees } from "./TournamentFixtureReferees";
 import { VenueReservationSummary } from '../../eventVenues/VenueReservationSummary';
-import { ExtensionDemoLabel, ExtensionSurface } from '../../capabilities/ExtensionBoundary';
+import { ExtensionSurface } from '../../capabilities/ExtensionBoundary';
 import { isExtensionCapabilityAvailable } from '../../capabilities/extensions';
 
 interface Props {
@@ -261,7 +261,7 @@ export function TournamentMatchDialog({
         <ExtensionSurface capability="tournamentRefereeManagement"><TournamentFixtureReferees key={`${fixture.id}:${fixture.scheduledAt}:${fixture.status}:${fixture.locationId}`}
           tournamentId={tournament.id} fixtureId={fixture.id} canManage={canManage} scheduledAt={fixture.scheduledAt}
           open={fixture.status === "SCHEDULED" && ["PLANNING", "ACTIVE"].includes(tournament.status)} /></ExtensionSurface>
-        {canManage && isExtensionCapabilityAvailable('eventVenueAttachment') && <a className="tw-button" href={`/event-venues?type=TOURNAMENT_FIXTURE&id=${fixture.id}`} target="_blank" rel="noopener noreferrer">{copy('Stadium reservation', 'სტადიონის დაჯავშნა')} ↗<ExtensionDemoLabel capability="eventVenueAttachment" /></a>}
+        {canManage && isExtensionCapabilityAvailable('eventVenueAttachment') && <a className="tw-button" href={`/event-venues?type=TOURNAMENT_FIXTURE&id=${fixture.id}`} target="_blank" rel="noopener noreferrer">{copy('Stadium reservation', 'სტადიონის დაჯავშნა')} ↗</a>}
         {canManage &&
           ["PLANNING", "ACTIVE"].includes(tournament.status) &&
           fixture.status === "SCHEDULED" &&

@@ -54,7 +54,6 @@ const en = {
     people: 'People',
     followedClubs: 'Followed clubs',
     parentHub: 'Parent Hub',
-    paymentDemo: 'Payment demo',
     jobs: 'Jobs & volunteering',
     campaigns: 'Fundraising',
     openNav: 'Open navigation',

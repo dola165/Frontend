@@ -24,10 +24,6 @@ async function startApp() {
     const [session] = await Promise.all([nativeSession(), installAndroidPreferences()]);
     if (session.active) setStoredAccessToken('native-session'); else clearStoredAuth();
   }
-  if (import.meta.env.VITE_ENABLE_MOCKS === 'true') {
-    const { worker } = await import('./mocks/browser');
-    await worker.start({ onUnhandledRequest: 'warn' });
-  }
 
   applyDocumentTheme(themeForRoute(readThemePreference()));
   ReactDOM.createRoot(document.getElementById('root')!).render(

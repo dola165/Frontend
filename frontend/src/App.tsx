@@ -53,7 +53,6 @@ const ClubStorePage = lazy(() => import('./pages/ClubStorePage').then(module => 
 const StoreProductPage = lazy(() => import('./pages/StoreProductPage').then(module => ({default: module.StoreProductPage})));
 const StoreCartPage = lazy(() => import('./pages/StoreCartPage').then(module => ({default: module.StoreCartPage})));
 const StoreCataloguePage = lazy(() => import('./pages/StoreCataloguePage').then(module => ({default: module.StoreCataloguePage})));
-const CommerceDemoPage = lazy(() => import('./pages/CommerceDemoPage').then(module => ({default: module.CommerceDemoPage})));
 const ParentHubPage = lazy(() => import('./pages/ParentHubPage').then(module => ({default: module.ParentHubPage})));
 const AdmissionHomePage = lazy(() => import('./features/admissions/applicant/AdmissionHomePage').then(module => ({default: module.AdmissionHomePage})));
 const OpportunityDetailPage = lazy(() => import('./features/admissions/applicant/OpportunityDetailPage').then(module => ({default: module.OpportunityDetailPage})));
@@ -316,13 +315,12 @@ export function MainLayout() {
         location.pathname === '/assistant' ||
         location.pathname === '/account/roles' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/marketplace', '/needs', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
         location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
         location.pathname.startsWith('/tournament-series/') ||
         location.pathname === '/matches' || location.pathname.startsWith('/match-exchange') || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
         location.pathname === '/my-squads' || location.pathname === '/squads' || location.pathname.startsWith('/squads/') ||
-        location.pathname === '/demo/commerce' ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/posts/') ||
         location.pathname.startsWith('/store/') ||
@@ -387,7 +385,6 @@ export function MainLayout() {
             <Route path="/my-squads" element={<ProtectedRoute><CoachWorkspacePage /></ProtectedRoute>} />
             <Route path="/squads" element={<ProtectedRoute><MySquadsPage /></ProtectedRoute>} />
             <Route path="/squads/:squadId" element={<ProtectedRoute><SquadCommunicationPage /></ProtectedRoute>} />
-            <Route path="/demo/commerce" element={<ProtectedRoute><CommerceDemoPage /></ProtectedRoute>} />
             {isAndroidApp && <Route path="/app-settings" element={<AppSettingsPage theme={themePreference} />} />}
             <Route path="/tournaments" element={<LegacyMatchesRedirect kind="competitions" />} />
             <Route path="/tournaments/setup" element={<TournamentSetupRedirect />} />
@@ -405,9 +402,6 @@ export function MainLayout() {
             <Route path="/posts/:postId" element={<PostPage />} />
             <Route path="/agent" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
             <Route path="/agent/dashboard" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
-            <Route path="/agent/*" element={<RouteRecoveryPage feature="Agent tools" />} />
-            <Route path="/marketplace" element={<RouteRecoveryPage feature="The marketplace" />} />
-            <Route path="/needs" element={<RouteRecoveryPage feature="Player needs" />} />
             <Route path="/store" element={<StorePage />} />
             <Route path="/store/all" element={<StoreCataloguePage />} />
             <Route path="/stadiums" element={<WorldRedirect to="/world/venues" />} />

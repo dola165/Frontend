@@ -54,7 +54,6 @@ const ka = {
     people: 'ხალხი',
     followedClubs: 'მიყოლილი კლუბები',
     parentHub: 'მშობლის სივრცე',
-    paymentDemo: 'გადახდის დემო',
     jobs: 'როლები',
     campaigns: 'ფონდების მოზიდვა',
     openNav: 'ნავიგაციის გახსნა',

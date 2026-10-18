@@ -6,7 +6,6 @@ import base from './vite.config'
 // Same flags as sandbox/build.mjs, minus its offline map and Overpass stand-ins.
 Object.assign(process.env, {
   VITE_API_BASE_URL: '/api',
-  VITE_ENABLE_MOCKS: 'false',
   VITE_GOOGLE_CLIENT_ID: 'sandbox-google-client',
   VITE_PAYMENT_PREVIEW: 'true',
 })

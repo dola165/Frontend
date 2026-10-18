@@ -4,7 +4,6 @@ import { CalendarDays, CheckCircle2, HeartHandshake, MapPin, Plus, Users } from 
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import * as api from '../features/volunteers/api';
-import { ExtensionDemoLabel } from '../features/capabilities/ExtensionBoundary';
 import { isExtensionCapabilityAvailable } from '../features/capabilities/extensions';
 import '../features/volunteers/volunteers.css';
 
@@ -15,7 +14,7 @@ const localInput = (value: string) => { const d = new Date(value); return new Da
 
 export function VolunteerContextLink({ eventId, tournamentId }: { eventId?: number; tournamentId?: number }) {
   if (!isExtensionCapabilityAvailable('volunteerShifts')) return null;
-  return <Link to={`/volunteering?${eventId ? `eventId=${eventId}` : `tournamentId=${tournamentId}`}`}><HeartHandshake size={16} /> Volunteer shifts<ExtensionDemoLabel capability="volunteerShifts" /></Link>;
+  return <Link to={`/volunteering?${eventId ? `eventId=${eventId}` : `tournamentId=${tournamentId}`}`}><HeartHandshake size={16} /> Volunteer shifts</Link>;
 }
 export function VolunteerPage() {
   const { sessionId } = useAuth();

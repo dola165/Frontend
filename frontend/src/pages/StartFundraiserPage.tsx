@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { MediaImage } from '../components/ui/MediaImage';
 import { Button, ButtonLink, EmptyNote, Field, GkRoot, PageFrame, Skeleton } from '../design/primitives';
 import { CAMPAIGN_CATEGORIES, campaignMoney, changeCampaignState, createCampaign, CURRENCIES, editCampaign, fetchManagedCampaign, type Campaign, type CampaignInput } from '../features/campaigns/api';
+import { stockCover } from '../features/campaigns/stockCovers';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { isLeadershipRole } from '../features/clubs/domain';
 import { PhotoField } from '../features/clubWorkspace/commerce/PhotoField';
@@ -26,8 +27,6 @@ interface Draft { category: string; goal: string; currency: string; title: strin
 }
 const empty: Draft = { category: '', goal: '', currency: 'GEL', title: '', summary: '', useOfFunds: '', image: '', donateUrl: '', clubId: null };
 const GOALS = [1000, 3000, 5000, 10000, 25000];
-/** A stock cover for each category, until the club adds its own photo (the sandbox draws pitch scenes). */
-const stockCover = (category: string) => `/sandbox-media/photo/fundraiser-${category.toLowerCase() || 'other'}.svg`;
 const isGoFundMe = (value: string) => /^https:\/\/(www\.)?gofundme\.com\/[^\s]+$/i.test(value.trim());
 /** Compare the creation fields after the backend's trim/null normalization, excluding receipt metadata. */
 const creationDetails = (value: CampaignInput) => JSON.stringify({
@@ -64,7 +63,7 @@ export const StartFundraiserPage = () => {
     const stepOneDone = CAMPAIGN_CATEGORIES.some(category => category.value === draft.category) && /^\d+(?:\.\d{1,2})?$/.test(draft.goal) && goalNumber > 0 && goalNumber <= 9999999999.99;
     const photos = draft.images ?? [];
     const stepTwoDone = draft.title.trim().length >= 4 && draft.title.trim().length <= 120 && draft.summary.trim().length >= 10 && draft.summary.trim().length <= 240 && !!draft.useOfFunds.trim() && !draft.image && !uploading && !uploadError;
-    const cover = photos[0] || (draft.category ? stockCover(draft.category) : '');
+    const cover = photos[0] ? resolveMediaUrl(photos[0]) : draft.category ? stockCover(draft.category) : undefined;
     const publish = async () => {
         if (!clubId || !allowed || pending.current || draft.saved?.reviewRequired || !stepOneDone || !stepTwoDone) return;
         pending.current = true;
@@ -147,7 +146,7 @@ export const StartFundraiserPage = () => {
             <PhotoField noun="campaign" context="CAMPAIGN" images={photos} setImages={next => change({ images: typeof next === 'function' ? next(photos) : next, image: '' })} uploading={uploading} setUploading={setUploading} setUploadError={setUploadError} hint={ct('Upload your own photos. The first photo is the cover.')} />
             {uploading && <p role="status">{ct('Uploading photo…')}</p>}
             {uploadError && <p role="alert">{uploadError}</p>}
-            {cover && <div className="gk-fund-start__preview"><span className="gk-fund__pic"><MediaImage src={resolveMediaUrl(cover)} alt="" /></span><div><strong>{draft.title.trim() || ct("Your title")}</strong><p className="gk-muted">{draft.summary.trim() || ct("Your story shows here.")}</p></div></div>}
+            {cover && <div className="gk-fund-start__preview"><span className="gk-fund__pic"><MediaImage src={cover} alt="" /></span><div><strong>{draft.title.trim() || ct("Your title")}</strong><p className="gk-muted">{draft.summary.trim() || ct("Your story shows here.")}</p></div></div>}
             <div className="gk-fund-start__foot"><Button variant="ghost" onClick={() => go(1)}><ArrowLeft aria-hidden="true" />{ct("Back")}</Button><Button variant="primary" disabled={!stepTwoDone} onClick={() => go(3)}>{ct("Continue")}</Button></div>
         </>
         : <>

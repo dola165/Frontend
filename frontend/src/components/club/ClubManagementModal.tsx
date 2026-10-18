@@ -31,7 +31,6 @@ interface ClubManagementModalProps {
     clubName: string;
     currentRole: string | null;
     initialTab?: ClubManagementTab | null;
-    debugMode?: boolean;
     onClose: () => void;
     onDissolveClub?: () => void;
     onSquadCreated?: () => void;
@@ -55,31 +54,27 @@ const StatCard = ({ label, value, loading }: { label: string; value: number | st
 export const ClubManagementModal = ({
     clubId,
     clubName,
-    currentRole: currentRoleProp,
-    debugMode: debugModeProp = false,
+    currentRole,
     onClose,
     onDissolveClub,
 }: ClubManagementModalProps) => {
     const navigate = useNavigate();
 
-    const debugActive = debugModeProp || localStorage.getItem('__gkz_debug_membership') === 'true';
-    const currentRole = debugActive && !currentRoleProp ? 'OWNER' : currentRoleProp;
-
     const canManageLeadership = isLeadershipRole(currentRole);
     const canManageTryouts = canReviewTryouts(currentRole);
 
     const [overview, setOverview] = useState<ClubManagementOverview | null>(null);
-    const [overviewLoading, setOverviewLoading] = useState(canManageLeadership || debugActive);
+    const [overviewLoading, setOverviewLoading] = useState(canManageLeadership);
     const [overviewError, setOverviewError] = useState<string | null>(null);
     const [tryoutCount, setTryoutCount] = useState(0);
-    const [tryoutsLoading, setTryoutsLoading] = useState(canManageTryouts || debugActive);
+    const [tryoutsLoading, setTryoutsLoading] = useState(canManageTryouts);
     const [errorMessage] = useState<string | null>(null);
     const [successMessage] = useState<string | null>(null);
 
     // Self-healing role recovery
     const [recoveredRole, setRecoveredRole] = useState<string | null>(null);
     useEffect(() => {
-        if (currentRoleProp || overviewLoading) return;
+        if (currentRole || overviewLoading) return;
         let cancelled = false;
         const recover = async () => {
             try {
@@ -89,7 +84,7 @@ export const ClubManagementModal = ({
         };
         void recover();
         return () => { cancelled = true; };
-    }, [clubId, currentRoleProp, overviewLoading]);
+    }, [clubId, currentRole, overviewLoading]);
 
     const effectiveRole = currentRole || recoveredRole;
 
@@ -117,7 +112,7 @@ export const ClubManagementModal = ({
 
     // ── data loading ──
     useEffect(() => {
-        if (!canManageLeadership && !debugActive) { setOverviewLoading(false); return; }
+        if (!canManageLeadership) { setOverviewLoading(false); return; }
         let cancelled = false;
         const load = async () => {
             setOverviewLoading(true);
@@ -133,10 +128,10 @@ export const ClubManagementModal = ({
         };
         void load();
         return () => { cancelled = true; };
-    }, [clubId, canManageLeadership, debugActive]);
+    }, [clubId, canManageLeadership]);
 
     useEffect(() => {
-        if (!canManageTryouts && !debugActive) return;
+        if (!canManageTryouts) return;
         let cancelled = false;
         const load = async () => {
             setTryoutsLoading(true);
@@ -148,7 +143,7 @@ export const ClubManagementModal = ({
         };
         void load();
         return () => { cancelled = true; };
-    }, [clubId, canManageTryouts, debugActive]);
+    }, [clubId, canManageTryouts]);
 
     // ── navigation ──
     const goWorkspace = (tab?: ClubManagementTab) => {
@@ -163,17 +158,14 @@ export const ClubManagementModal = ({
     const applicationCount = overview?.pendingApplications.length ?? 0;
 
     // ── no-access guard ──
-    if (!effectiveRole && !debugActive && !overviewLoading) {
+    if (!effectiveRole && !overviewLoading) {
         return (
             <div className="club-motion-backdrop fixed inset-0 z-[9999] flex items-center justify-center bg-[color:var(--color-overlay)]/30 p-4" data-closing={motion.closing} style={{ pointerEvents: 'auto' } as React.CSSProperties}>
                 <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Club access unavailable" data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd} className="club-motion-dialog w-full max-w-md rounded-[2px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-page)] p-8 text-center shadow-2xl" style={{ pointerEvents: 'auto' } as React.CSSProperties}>
                     <Settings className="mx-auto h-10 w-10 text-[var(--color-secondary)]" />
                     <h2 className="mt-4 text-lg font-semibold text-[var(--color-text)]">No Club Access</h2>
-                    <p className="mt-3 text-sm text-[var(--color-secondary)]">We couldn&apos;t verify your membership role. Try refreshing or enable debug mode.</p>
+                    <p className="mt-3 text-sm text-[var(--color-secondary)]">We couldn&apos;t verify your membership role. Try refreshing the page.</p>
                     <div className="mt-6 flex flex-col gap-2">
-                        <button type="button" onClick={() => { localStorage.setItem('__gkz_debug_membership', 'true'); window.location.reload(); }} className="rounded-[2px] border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)] transition-colors">
-                            Enable Debug Mode
-                        </button>
                         <button type="button" onClick={motion.close} className="rounded-[2px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color-mix(in_srgb,_var(--color-ink)_3%,_transparent)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)] hover:text-[var(--color-text)] transition-colors">
                             Close
                         </button>
@@ -209,13 +201,6 @@ export const ClubManagementModal = ({
                     </button>
                 </div>
 
-                {/* debug banner */}
-                {debugActive && (
-                    <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-orange)]/10 px-4 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-orange)]">
-                        🐛 Debug Mode — Actual role: {currentRoleProp || 'null'}
-                    </div>
-                )}
-
                 {/* errors / success */}
                 <div className="px-5 pt-4 space-y-2">
                     {errorMessage && <div className="rounded-[2px] border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/10 px-4 py-2.5 text-[13px] font-medium text-[var(--color-danger)]">{errorMessage}</div>}
@@ -226,14 +211,14 @@ export const ClubManagementModal = ({
                 <div className="px-5 pt-4">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)]">Club Snapshot</p>
                     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        {(canManageLeadership || debugActive) && (
+                        {canManageLeadership && (
                             <>
                                 <StatCard label="Members" value={memberCount} loading={overviewLoading && !overview} />
                                 <StatCard label="Invites" value={inviteCount} loading={overviewLoading && !overview} />
                                 <StatCard label="Applications" value={applicationCount} loading={overviewLoading && !overview} />
                             </>
                         )}
-                        {(canManageTryouts || debugActive) && (
+                        {canManageTryouts && (
                             <StatCard label="Tryouts" value={tryoutCount} loading={tryoutsLoading} />
                         )}
                     </div>
@@ -258,7 +243,7 @@ export const ClubManagementModal = ({
                             <BellRing className="mr-2 inline-block h-3.5 w-3.5" />
                             Club updates
                         </button>
-                        {(canManageLeadership || debugActive) && (
+                        {canManageLeadership && (
                             <button type="button" onClick={goSquads} className="rounded-[2px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color-mix(in_srgb,_var(--color-ink)_3%,_transparent)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)] hover:border-[color-mix(in_srgb,_var(--color-border)_7.84%,_transparent)] hover:text-[var(--color-text)] transition-colors">
                                 <ShieldCheck className="mr-2 inline-block h-3.5 w-3.5" />
                                 Squads
@@ -266,7 +251,7 @@ export const ClubManagementModal = ({
                         )}
                     </div>
 
-                    {(canManageLeadership || debugActive) && (
+                    {canManageLeadership && (
                         <button type="button" onClick={() => goWorkspace('roles')} className="w-full rounded-[2px] border border-[var(--color-orange)]/20 bg-[var(--color-orange)]/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-orange)] hover:bg-[var(--color-orange)] hover:text-[var(--color-on-accent)] transition-colors">
                             <Crown className="mr-2 inline-block h-3.5 w-3.5" />
                             Ownership &amp; Roles

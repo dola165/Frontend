@@ -10,14 +10,13 @@ const SquadsPanel = lazy(() => import('./panels/SquadsPanel').then(module => ({ 
 const LivePanel = lazy(() => import('./panels/LivePanel').then(module => ({ default: module.LivePanel })));
 const PlayersPanel = lazy(() => import('./panels/PlayersPanel').then(module => ({ default: module.PlayersPanel })));
 const StaffPanel = lazy(() => import('./panels/StaffPanel').then(module => ({ default: module.StaffPanel })));
-const ExamplePanel = lazy(() => import('./panels/ExamplePanel').then(module => ({ default: module.ExamplePanel })));
 
 /** The panel the address names (`?panel=`), for the boxes that need room: a map, a designer, a builder. */
 export function PagePanels() {
   const { panel, editing } = usePageEdit();
   if (!editing || !panel) return null;
   const Panel = panel === 'crest' ? CrestPanel : panel === 'cover' ? CoverPanel : panel === 'identity' ? IdentityPanel : panel === 'grounds' ? GroundsPanel : panel === 'squads' ? SquadsPanel
-    : panel === 'players' ? PlayersPanel : panel === 'staff' ? StaffPanel : panel === 'live' ? LivePanel : panel === 'example' ? ExamplePanel : null;
+    : panel === 'players' ? PlayersPanel : panel === 'staff' ? StaffPanel : panel === 'live' ? LivePanel : null;
   if (!Panel) return null;
   return <Suspense fallback={null}><Panel /></Suspense>;
 }

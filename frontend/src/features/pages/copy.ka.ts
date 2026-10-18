@@ -555,8 +555,6 @@ export const PAGES_KA: Record<string, string> = {
   'I am the parent or guardian and I agree to the club keeping this card.': 'მე ვარ მშობელი ან მეურვე და ვეთანხმები, რომ კლუბმა ეს ბარათი შეინახოს.',
   'This link is for {squad}. Ask the coach for the right squad’s link.': 'ეს ბმული {squad}-ისთვისაა. სთხოვეთ მწვრთნელს სწორი გუნდის ბმული.',
   // The walkthrough, second version: what is new next to Facebook groups and LinkedIn pages; the example page.
-  'A full club page': 'სრული კლუბის გვერდი',
-  'Dinamo’s page as visitors see it. Tap around: yours can look like this.': 'დინამოს გვერდი ისე, როგორც ვიზიტორები ხედავენ. შეეხეთ: თქვენიც ასე შეიძლება გამოიყურებოდეს.',
   // The steps list behind the ring; the example by its name.
   'Steps': 'ნაბიჯები',
   'done': 'შესრულებულია',
@@ -573,7 +571,6 @@ export const PAGES_KA: Record<string, string> = {
   'They act for the club': 'ისინი კლუბის სახელით მოქმედებენ',
   'What visitors see first': 'რასაც ვიზიტორები პირველად ხედავენ',
   'Who you back': 'ვისაც მხარს უჭერთ',
-  'What a finished club looks like': 'როგორ გამოიყურება მზა კლუბი',
   // The set-up card, the sortable column, the example's invitation.
   'Set-up steps': 'მომზადების ნაბიჯები',
   '{done} of {total} done · any order': '{done} / {total} შესრულებულია · ნებისმიერი თანმიმდევრობით',

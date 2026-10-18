@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronRight, Eye, LayoutList, PenLine } from 'lucide-react';
+import { ChevronRight, LayoutList, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
@@ -25,7 +25,7 @@ import './edit.css';
 export function EditBar() {
   const t = usePagesCopy();
   const location = useLocation();
-  const { page, editing, canEdit, setEditing, openPanel, openStep, goLive, status, arrival, pendingCount, rearranging, setRearranging } = usePageEdit();
+  const { page, editing, canEdit, setEditing, openStep, goLive, status, arrival, pendingCount, rearranging, setRearranging } = usePageEdit();
   // The first time on a claimed page, one hint, once. A new page gets no tour: the current step is the one thing it shows.
   useEffect(() => {
     if (arrival !== 'claimed' || !page) return;
@@ -64,7 +64,6 @@ export function EditBar() {
           <span className="gk-ring__next">{t('Set-up steps')}</span>
         </button>
       )}
-      {!setup.completedAt && page.kind === 'CLUB' && <button type="button" className="gk-editbar__example" onClick={() => openPanel('example')}><Eye aria-hidden="true" size={12} />{t('What a finished club looks like')}</button>}
       {!setup.completedAt && next && CurrentIcon && (
         <span className="gk-editbar__current-wrap">
           <button type="button" className="gk-editbar__current" onClick={() => (phoneSteps.available ? phoneSteps.show(next) : openStep(next))}><span className="gk-editbar__current-label">{t('Current step')}</span><CurrentIcon aria-hidden="true" /><strong>{t(stepWords(page.kind, next))}</strong><ChevronRight aria-hidden="true" /></button>

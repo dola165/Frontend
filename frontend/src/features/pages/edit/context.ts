@@ -3,8 +3,8 @@ import type { PageRef, PageView, SavableBox, saveIdentity as saveIdentityCall } 
 import { BOX_KEYS, type BoxKey, type Column, type PageLayout, type SetupKey } from '../model/kinds';
 
 /** What a panel edits: a box, the players' join links, or a part of the identity; `live` is the share card after going live. */
-export type PanelKey = BoxKey | 'players' | 'crest' | 'cover' | 'identity' | 'live' | 'example';
-const PANELS = new Set<string>([...BOX_KEYS, 'players', 'crest', 'cover', 'identity', 'live', 'example']);
+export type PanelKey = BoxKey | 'players' | 'crest' | 'cover' | 'identity' | 'live';
+const PANELS = new Set<string>([...BOX_KEYS, 'players', 'crest', 'cover', 'identity', 'live']);
 export const isPanelKey = (value: string | null): value is PanelKey => value != null && PANELS.has(value);
 /** The panel that fills each setup item. */
 export const SETUP_PANEL: Record<SetupKey, PanelKey> = { name: 'identity', crest: 'crest', grounds: 'grounds', squads: 'squads', contact: 'contact', fees: 'fees', players: 'players', staff: 'staff', posts: 'identity', about: 'identity', sponsors: 'sponsors' };

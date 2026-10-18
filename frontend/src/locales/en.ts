@@ -1193,7 +1193,6 @@ const en = {
       NEAR: '{{name}} is {{km}} km from you.',
       NATIONAL: 'A highlight from across the country.',
       POPULAR: 'Popular: {{reactions}} reactions, from {{place}}.',
-      LESS: 'You asked to see less like this, so it comes last.',
       unknown: 'A public post.',
       topic: 'Topic',
       place: 'Place',
@@ -1218,11 +1217,6 @@ const en = {
       ADVICE: 'Advice',
       PLAYER_SEARCH: 'Looking for a club',
       PERSONAL: 'Personal',
-    },
-    less: {
-      action: 'Show less like this',
-      done: 'You will see less about {{topic}} from {{name}}.',
-      undo: 'Undo',
     },
   },
   tournaments: {

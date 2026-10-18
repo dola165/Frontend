@@ -3,8 +3,8 @@ import { ReactionSummary } from './ReactionSummary';
 import { selectedReaction, type Reaction } from './reactions';
 import { formatDate } from '../../utils/formatting';
 import { MediaImage } from '../ui/MediaImage';
-import { memo, useEffect, useState, useRef, useSyncExternalStore, type ReactNode } from 'react';
-import { MessageCircle, MoreHorizontal, PlayCircle, Send, Share2, Pencil, Trash2, Flag, EyeOff, ExternalLink, Copy, Globe2, LockKeyhole, Info, ThumbsDown, MapPin } from 'lucide-react';
+import { memo, useState, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { MessageCircle, MoreHorizontal, PlayCircle, Send, Share2, Pencil, Trash2, Flag, EyeOff, ExternalLink, Copy, Globe2, LockKeyhole, Info, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { postCount, usePostCopy } from './postCopy';
@@ -13,7 +13,6 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { EditPostDialog, PostDialog, ReportPostDialog, SharePostDialog, SharedPostPreview } from './PostDialogs';
 import { apiClient } from '../../api/axiosConfig';
 import { getAuthSessionId, getStoredUserId, subscribeAuthSession } from '../../utils/authStorage';
-import { recordFeedEvent } from '../../features/feed/feedEvents';
 import { isPostTopic, postTopics, type FeedWhy, type PostPlace, type PostReach, type PostTopic } from '../../features/feed/postTopics';
 
 export interface CommentDto {
@@ -110,7 +109,7 @@ export const FeedPost = ({
     const [savedPost, setSavedPost] = useState<FeedPostDto | null>(null);
     const post = savedPost ? { ...suppliedPost, content: savedPost.content, isPublic: savedPost.isPublic, editedAt: savedPost.editedAt } : suppliedPost;
     const [dialog, setDialog] = useState<'edit' | 'report' | 'share' | 'delete' | 'why' | null>(null);
-    const [removed, setRemoved] = useState<'hidden' | 'deleted' | 'less' | null>(null);
+    const [removed, setRemoved] = useState<'hidden' | 'deleted' | null>(null);
     const [actionPending, setActionPending] = useState(false), [actionError, setActionError] = useState('');
     const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
     const viewerId = Number(getStoredUserId());
@@ -119,18 +118,6 @@ export const FeedPost = ({
     const postActions = useRef<HTMLDetailsElement>(null);
     const [commentPending, setCommentPending] = useState(false);
     const [commentError, setCommentError] = useState('');
-    // Discover records what the person saw (half the card in view) and opened, for the learning algorithm later.
-    const card = useRef<HTMLElement>(null);
-    const ranked = home && Boolean(post.why);
-    useEffect(() => {
-        if (!ranked || !card.current || typeof IntersectionObserver === 'undefined') return;
-        const observer = new IntersectionObserver(entries => {
-            if (entries.some(entry => entry.isIntersecting)) { recordFeedEvent(post.id, 'SEEN'); observer.disconnect(); }
-        }, { threshold: 0.5 });
-        observer.observe(card.current);
-        return () => observer.disconnect();
-    }, [ranked, post.id]);
-    const opened = () => { if (ranked) recordFeedEvent(post.id, 'OPENED'); };
     const topicInfo = isPostTopic(post.topic) ? postTopics[post.topic] : null;
     const topicLabel = post.topic ? t(`feed.topic.${post.topic}`, { defaultValue: String(post.topic).toLowerCase().replaceAll('_', ' ') }) : '';
 
@@ -167,14 +154,11 @@ export const FeedPost = ({
     const copyLink = async () => { closeActions(); try { await navigator.clipboard.writeText(new URL(`/posts/${post.id}`, window.location.origin).toString()); setShareFeedback(copy('Post link copied.', 'ბმული დაკოპირდა.')); } catch { openDialog('share'); } };
     const remove = async (kind: 'hidden' | 'deleted') => {
         if (actionPending) return; closeActions(); setActionPending(true); setActionError('');
-        try { if (kind === 'hidden') await apiClient.post(`/posts/${post.id}/hide`); else await apiClient.delete(`/posts/${post.id}`); setRemoved(kind); setDialog(null); if (kind === 'hidden' && ranked) recordFeedEvent(post.id, 'HIDDEN'); }
+        try { if (kind === 'hidden') await apiClient.post(`/posts/${post.id}/hide`); else await apiClient.delete(`/posts/${post.id}`); setRemoved(kind); setDialog(null); }
         catch (e) { setActionError(extractApiErrorMessage(e, copy('Could not complete this action. Please try again.', 'მოქმედება ვერ შესრულდა. სცადეთ ხელახლა.'))); }
         finally { setActionPending(false); }
     };
     const undoHide = async () => { if (actionPending) return; setActionPending(true); try { await apiClient.post(`/posts/${post.id}/hide`); setRemoved(null); } catch (e) { setActionError(extractApiErrorMessage(e, copy('Could not restore this post.', 'პოსტი ვერ აღდგა.'))); } finally { setActionPending(false); } };
-    // "Show less like this" is a preference, not a hide: the post folds away here and its kind ranks last from now on.
-    const lessLikeThis = () => { closeActions(); recordFeedEvent(post.id, 'LESS'); setRemoved('less'); };
-    const undoLess = () => { recordFeedEvent(post.id, 'UNDO_LESS'); setRemoved(null); };
 
     const mediaList = post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : post.image ? [post.image] : [];
     const authorIdentity = (
@@ -217,7 +201,7 @@ export const FeedPost = ({
                 type="button"
                 aria-label={copy(`Open media from ${displayAuthorName}'s post`, `პოსტის მედიის გახსნა: ${displayAuthorName}`)}
                 className="block w-full cursor-pointer overflow-hidden border-y border-[var(--feed-card-border)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--feed-accent)]"
-                onClick={() => { opened(); onImageClick(); }}
+                onClick={onImageClick}
             >
                 {count === 1 && (
                     <div className={`relative flex w-full items-center justify-center overflow-hidden bg-[color:var(--color-page)] ${compact ? 'h-[clamp(180px,32dvh,320px)]' : 'h-[clamp(240px,50dvh,520px)]'}`}>
@@ -253,20 +237,18 @@ export const FeedPost = ({
     };
 
     if (removed) return <div className="rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-4 text-sm text-[var(--feed-text-secondary)]">
-        <span role="status">{removed === 'hidden' ? copy('Post hidden from your feed.', 'პოსტი დაიმალა.') : removed === 'less' ? t('feed.less.done', { topic: topicLabel.toLowerCase(), name: displayAuthorName, defaultValue: `You will see less about ${topicLabel.toLowerCase()} from ${displayAuthorName}.` }) : copy('Post deleted.', 'პოსტი წაიშალა.')}</span>
+        <span role="status">{removed === 'hidden' ? copy('Post hidden from your feed.', 'პოსტი დაიმალა.') : copy('Post deleted.', 'პოსტი წაიშალა.')}</span>
         {removed === 'hidden' && <button type="button" disabled={actionPending} className="post-text-button ml-3" onClick={() => void undoHide()}>{copy('Undo', 'გაუქმება')}</button>}
-        {removed === 'less' && <button type="button" className="post-text-button ml-3" onClick={undoLess}>{t('feed.less.undo', { defaultValue: 'Undo' })}</button>}
         {actionError && <p role="alert" className="post-error">{actionError}</p>}
     </div>;
     const why = post.why;
     const whyText = why ? t(`feed.why.${why.kind}`, { defaultValue: t('feed.why.unknown', { defaultValue: 'A public post.' }), name: why.name ?? displayAuthorName, km: why.distanceKm ?? '', topic: topicLabel.toLowerCase(), place: why.place ?? '', reactions: why.reactions ?? '' }) : '';
     return (
-        <article ref={card} className={`feed-post ${home ? 'home-feed-post' : ''} rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[0_4px_24px_color-mix(in_srgb,_var(--color-shadow)_12%,_transparent)]`}>
+        <article className={`feed-post ${home ? 'home-feed-post' : ''} rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[0_4px_24px_color-mix(in_srgb,_var(--color-shadow)_12%,_transparent)]`}>
             <div className={`post-header ${compact ? 'px-5 py-4' : 'px-6 py-5'} flex items-start justify-between gap-3`}>
                 {authorProfilePath ? (
                     <Link
                         to={authorProfilePath}
-                        onClick={opened}
                         aria-label={copy(`View ${displayAuthorName} profile`, `პროფილის ნახვა: ${displayAuthorName}`)}
                         className="post-author group/author flex min-w-0 items-start gap-4 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--feed-accent)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--feed-card)]"
                     >
@@ -279,11 +261,10 @@ export const FeedPost = ({
                     <summary aria-label={copy(`Actions for post by ${displayAuthorName}`, `პოსტის მოქმედებები: ${displayAuthorName}`)} className="list-none cursor-pointer rounded-full p-2 text-[var(--feed-text-secondary)] hover:bg-[var(--feed-hover-bg)] focus-visible:outline focus-visible:outline-2"><MoreHorizontal className="h-4 w-4" /></summary>
                     <div className="post-menu">
                         {canEdit && <><button type="button" onClick={() => openDialog('edit')}><Pencil />{copy('Edit post', 'პოსტის რედაქტირება')}</button><button type="button" className="post-danger" onClick={() => openDialog('delete')}><Trash2 />{copy('Delete post', 'პოსტის წაშლა')}</button></>}
-                        <Link to={`/posts/${post.id}`} onClick={() => { closeActions(); opened(); }}><ExternalLink />{copy('Open post', 'პოსტის გახსნა')}</Link>
+                        <Link to={`/posts/${post.id}`} onClick={closeActions}><ExternalLink />{copy('Open post', 'პოსტის გახსნა')}</Link>
                         <button type="button" onClick={handleShare}><Share2 />{copy('Share post', 'პოსტის გაზიარება')}</button>
                         <button type="button" onClick={() => void copyLink()}><Copy />{copy('Copy link', 'ბმულის კოპირება')}</button>
                         {why && <button type="button" onClick={() => openDialog('why')}><Info />{t('feed.why.action', { defaultValue: 'Why am I seeing this?' })}</button>}
-                        {why && viewerId > 0 && !canEdit && why.kind !== 'LESS' && <button type="button" onClick={lessLikeThis}><ThumbsDown />{t('feed.less.action', { defaultValue: 'Show less like this' })}</button>}
                         {viewerId > 0 && !canEdit && <button type="button" disabled={actionPending} onClick={() => void remove('hidden')}><EyeOff />{copy('Hide post', 'პოსტის დამალვა')}</button>}
                         {viewerId > 0 && !canEdit && post.authorId !== viewerId && <button type="button" onClick={() => openDialog('report')}><Flag />{copy('Report post', 'პოსტის შეტყობინება')}</button>}
                     </div>
@@ -302,7 +283,7 @@ export const FeedPost = ({
             <div className="post-action-row">
                 <ReactionButton value={selectedReaction(post)} disabled={likePending} allowAll={Boolean(onReactionChange)}
                     onChange={reaction => { if (onReactionChange) void onReactionChange(post.id, reaction); else void onLikeToggle(post.id); }} />
-                <ActionButton active={isCommentsOpen} icon={<MessageCircle className="h-4 w-4" aria-hidden="true" />} label={copy('Comment', 'კომენტარი')} countLabel={home ? postCount(post.commentCount, 'comment', copy, true) : undefined} onClick={() => { if (!isCommentsOpen) opened(); onToggleComments(post.id); }} />
+                <ActionButton active={isCommentsOpen} icon={<MessageCircle className="h-4 w-4" aria-hidden="true" />} label={copy('Comment', 'კომენტარი')} countLabel={home ? postCount(post.commentCount, 'comment', copy, true) : undefined} onClick={() => onToggleComments(post.id)} />
                 <ActionButton active={false} icon={<Share2 className="h-4 w-4" aria-hidden="true" />} label={copy('Share', 'გაზიარება')} countLabel={home && (post.shareCount ?? 0) > 0 ? postCount(post.shareCount!, 'share', copy, true) : undefined} onClick={handleShare} />
             </div>
 
@@ -382,7 +363,6 @@ export const FeedPost = ({
                     <div><dt>{t('feed.why.place', { defaultValue: 'Place' })}</dt><dd><MapPin aria-hidden="true" />{post.place?.city ?? t('feed.why.nowhere', { defaultValue: 'Everywhere' })}</dd></div>
                     <div><dt>{t('feed.why.reach', { defaultValue: 'Reach' })}</dt><dd>{post.reach ? t(`feed.reach.${post.reach}`, { defaultValue: String(post.reach).toLowerCase() }) : '—'}</dd></div>
                 </dl>
-                {viewerId > 0 && !canEdit && why.kind !== 'LESS' && <footer><button type="button" className="post-secondary" onClick={() => { setDialog(null); lessLikeThis(); }}><ThumbsDown aria-hidden="true" />{t('feed.less.action', { defaultValue: 'Show less like this' })}</button></footer>}
             </PostDialog>}
             {dialog === 'delete' && <PostDialog title={copy('Delete post')} busy={actionPending} onClose={() => setDialog(null)}><p>{copy('This will remove your post and its comments. Shared copies will show that the original is unavailable.')}</p>{actionError && <p role="alert" className="post-error">{actionError}</p>}<footer><button type="button" className="post-secondary" disabled={actionPending} onClick={() => setDialog(null)}>{copy('Cancel')}</button><button type="button" className="post-primary" disabled={actionPending} onClick={() => void remove('deleted')}>{copy(actionPending ? 'Deleting…' : 'Delete post')}</button></footer></PostDialog>}
         </article>

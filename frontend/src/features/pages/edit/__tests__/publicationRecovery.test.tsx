@@ -10,10 +10,8 @@ import { usePageEdit, type PageEdit } from '../context';
 const auth = vi.hoisted(() => ({ id: 1, session: 'owner-a' }));
 const api = vi.hoisted(() => ({ fetchPage: vi.fn(), goLive: vi.fn() }));
 const toasts = vi.hoisted(() => ({ calls: [] as { action?: { label: string; onClick: () => void } }[] }));
-const funnel = vi.hoisted(() => vi.fn());
 vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), ...api }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: auth.id }, sessionId: auth.session, status: 'authenticated' }) }));
-vi.mock('../../../feed/feedEvents', () => ({ recordFunnelEvent: funnel }));
 vi.mock('sonner', () => {
   const record = (_message: string, options?: { action?: { label: string; onClick: () => void } }) => toasts.calls.push(options ?? {});
   return { toast: Object.assign(record, { warning: record, error: record }) };
@@ -52,7 +50,6 @@ it('reuses the publication receipt after an unknown reply and opens the share ca
   expect(api.goLive.mock.calls[1]).toEqual(api.goLive.mock.calls[0]);
   expect(editor.page?.status).toBe('LIVE');
   expect(screen.getByTestId('panel')).toHaveTextContent('live');
-  expect(funnel).toHaveBeenCalledExactlyOnceWith('PAGE_LIVE', { pageRef: 'organization-7002' });
 });
 
 it('coalesces repeated publication while pending and does not republish an acknowledged page', async () => {
@@ -63,7 +60,6 @@ it('coalesces repeated publication while pending and does not republish an ackno
   act(() => { first = editor.goLive(); second = editor.goLive(); });
   expect(api.goLive).toHaveBeenCalledTimes(1);
   await act(async () => { reply.resolve(page('LIVE')); expect(await first).toBe(true); expect(await second).toBe(true); });
-  expect(funnel).toHaveBeenCalledTimes(1);
   await act(async () => { expect(await editor.goLive()).toBe(true); });
   expect(api.goLive).toHaveBeenCalledTimes(1);
 });
@@ -86,7 +82,6 @@ it('cannot retry an old publication as another account', async () => {
   await act(async () => { retry.onClick(); });
   expect(api.goLive).toHaveBeenCalledTimes(1);
   expect(screen.getByTestId('panel')).toBeEmptyDOMElement();
-  expect(funnel).not.toHaveBeenCalled();
 });
 
 it('does not complete a late publication in the next account', async () => {
@@ -100,5 +95,4 @@ it('does not complete a late publication in the next account', async () => {
   await act(async () => { reply.resolve(oldResult); expect(await save).toBe(false); });
   expect(editor.page?.status).toBe('DRAFT');
   expect(screen.getByTestId('panel')).toBeEmptyDOMElement();
-  expect(funnel).not.toHaveBeenCalled();
 });

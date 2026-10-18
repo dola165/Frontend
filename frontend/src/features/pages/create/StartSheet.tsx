@@ -4,7 +4,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { getAuthFlow } from '../../../utils/authRedirect';
 import { Dialog } from '../../../design/Dialog';
 import { Button, ButtonLink } from '../../../design/primitives';
-import { recordFunnelEvent } from '../../feed/feedEvents';
 import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } from '../../organizations/setup/setupRecovery';
 import { fetchFeedPreferences } from '../../start/startApi';
 import { DEFAULT_TOWN, TOWNS, townByName, type Town } from '../../start/towns';
@@ -50,7 +49,6 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const nameRef = useRef<HTMLInputElement>(null);
   const nameId = useId();
 
-  useEffect(() => { recordFunnelEvent('PAGE_CREATE_OPENED', { from }); }, [from]);
   // The town already filled in: the one the person chose at the start, else where they registered.
   useEffect(() => {
     if (townByName(draft?.town)) return;
@@ -89,7 +87,6 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const choose = (next: PageKind) => {
     if (locked(next)) { setNote(t('From {age}: ask an adult at the club to create it and invite you.', { age: minimumAge(next) })); return; }
     setNote(''); clearError(); setChosen(next);
-    recordFunnelEvent('PAGE_TYPE_CHOSEN', { kind: next, from });
   };
   const exact = matches.find(match => match.exact) ?? null;
   const shown = dismissed === nameKey(name) && !exact ? [] : matches.slice(0, 3);
@@ -97,7 +94,7 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const ready = Boolean(chosen) && !oneClub && name.trim().length >= 2 && !busy && !exact;
   const submit = async () => {
     if (!chosen || !ready) return;
-    const outcome = await create({ kind: chosen, name, town, from, draw });
+    const outcome = await create({ kind: chosen, name, town, draw });
     if (outcome.kind === 'created') clearSetupRecovery(user?.id, DRAFT);
     if (outcome.kind === 'exists') { setFound({ key: 'exists', items: [outcome.match] }); setDismissed(null); }
   };

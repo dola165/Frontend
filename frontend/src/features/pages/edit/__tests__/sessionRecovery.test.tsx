@@ -12,7 +12,6 @@ const api = vi.hoisted(() => ({ fetchPage: vi.fn(), saveIdentity: vi.fn(), saveB
 const toasts = vi.hoisted(() => ({ calls: [] as { message: string; action?: { label: string; onClick: () => void } }[] }));
 vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), ...api }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: auth.id }, sessionId: auth.session, status: 'authenticated' }) }));
-vi.mock('../../../feed/feedEvents', () => ({ recordFunnelEvent: vi.fn() }));
 vi.mock('sonner', () => {
   const record = (message: string, options?: { action?: { label: string; onClick: () => void } }) => toasts.calls.push({ message, action: options?.action });
   return { toast: Object.assign(record, { warning: record, error: record, success: record }) };

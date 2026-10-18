@@ -8,13 +8,12 @@ const api = vi.hoisted(() => ({ fetchPage: vi.fn(), claimPage: vi.fn() }));
 const auth = vi.hoisted(() => ({ id: 1 }));
 vi.mock('../../api', () => api);
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: auth.id } }) }));
-vi.mock('../../../feed/feedEvents', () => ({ recordFunnelEvent: vi.fn() }));
 import { ClaimSheet } from '../ClaimSheet';
 
 const ref = { type: 'organization' as const, id: 7002 };
 const available = () => makePage({ status: 'LIVE', claim: null, viewer: { role: null, canEdit: false, editable: [], canClaim: true } });
 const pending = (): PageView => ({ ...available(), claim: { id: 'receipt-a', state: 'PENDING', mine: true, role: 'COACH', revision: 1, evidence: { phone: '+995555123456' } }, viewer: { role: null, canEdit: false, editable: [], canClaim: false } });
-function tree() { return <MemoryRouter><ClaimSheet pageRef={ref} from="link" onClose={vi.fn()} /></MemoryRouter>; }
+function tree() { return <MemoryRouter><ClaimSheet pageRef={ref} onClose={vi.fn()} /></MemoryRouter>; }
 beforeEach(() => { vi.resetAllMocks(); auth.id = 1; api.fetchPage.mockResolvedValue(available()); });
 
 it('submits once, keeps a private pending receipt, and never opens edit mode', async () => {

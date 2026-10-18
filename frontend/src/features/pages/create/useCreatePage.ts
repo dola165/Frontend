@@ -3,13 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { appLanguage } from '../../../utils/formatting';
-import { recordFunnelEvent } from '../../feed/feedEvents';
 import { clearSetupRecovery, isRecord, isRequestId, readSetupRecovery, writeSetupRecovery } from '../../organizations/setup/setupRecovery';
 import type { Town } from '../../start/towns';
 import { createPage, type CreatedPage, type CreateRequest, type SimilarPage } from '../api';
 import { pt } from '../copy';
 import { DEFAULT_CLUB_CATEGORY, isPageKind, minimumAge, ORGANIZATION_TYPE, type PageKind } from '../model/kinds';
-import type { CreateFrom } from './entry';
 
 interface Pending { requestId: string; body: CreateRequest }
 const RECOVERY = 'page-create';
@@ -42,7 +40,7 @@ export function useCreatePage() {
   const [error, setError] = useState('');
   const [pending, setPending] = useState<Pending | null>(() => readSetupRecovery(user?.id, RECOVERY, validPending));
 
-  const create = useCallback(async ({ kind, name, town, from, draw = false }: { kind: PageKind; name: string; town: Town | null; from: CreateFrom; draw?: boolean }): Promise<CreateOutcome> => {
+  const create = useCallback(async ({ kind, name, town, draw = false }: { kind: PageKind; name: string; town: Town | null; draw?: boolean }): Promise<CreateOutcome> => {
     if (busy) return { kind: 'failed' };
     const displayName = name.trim().replace(/\s+/g, ' ');
     const age = ageFromDob(user?.dob);
@@ -58,7 +56,6 @@ export function useCreatePage() {
     try {
       const created = await createPage(request.body);
       clearSetupRecovery(user?.id, RECOVERY); setPending(null);
-      recordFunnelEvent('PAGE_CREATED', { kind, from });
       navigate(pageDestination(created, draw));
       void refreshNavigationCapabilities().catch(() => undefined);
       return { kind: 'created', created };

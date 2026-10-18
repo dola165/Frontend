@@ -6,7 +6,7 @@ export type PostTopic = 'RESULT' | 'FIXTURE' | 'TRAINING' | 'TOURNAMENT' | 'TRIA
 export type PostReach = 'LOCAL' | 'REGIONAL' | 'NATIONAL' | 'FOLLOWERS';
 export interface PostPlace { city: string; latitude?: number | null; longitude?: number | null }
 export interface FeedWhy {
-    kind: 'OWN' | 'LINKED' | 'FOLLOWING' | 'NEAR_TOPIC' | 'NEAR' | 'NATIONAL' | 'POPULAR' | 'LESS';
+    kind: 'OWN' | 'LINKED' | 'FOLLOWING' | 'NEAR_TOPIC' | 'NEAR' | 'NATIONAL' | 'POPULAR';
     name?: string | null;
     place?: string | null;
     distanceKm?: number | null;

@@ -4,11 +4,10 @@ import { useAuth } from '../../../context/AuthContext';
 import { Dialog } from '../../../design/Dialog';
 import { Button, ButtonLink, EmptyNote, Skeleton } from '../../../design/primitives';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { recordFunnelEvent } from '../../feed/feedEvents';
 import { Crest } from '../../world/Crest';
 import { claimPage, fetchPage, type PageRef, type PageView } from '../api';
 import { usePagesCopy } from '../copy';
-import { pagePath, type CreateFrom } from './entry';
+import { pagePath } from './entry';
 import '../pages.css';
 
 const ROLES = [['CHAIR', 'I run it'], ['COACH', 'I coach there'], ['ADMIN', 'I do the admin'], ['OTHER', 'Something else']] as const;
@@ -17,12 +16,12 @@ type ClaimRole = typeof ROLES[number][0];
 /**
  * Claim evidence is private. Submission records a receipt and never grants editing or a verified badge.
  */
-type ClaimProps = { pageRef: PageRef; from: CreateFrom; onClose: () => void };
+type ClaimProps = { pageRef: PageRef; onClose: () => void };
 export function ClaimSheet(props: ClaimProps) {
   const { user } = useAuth();
   return <ClaimForm key={`${user?.id ?? 'guest'}:${props.pageRef.type}:${props.pageRef.id}`} {...props} />;
 }
-function ClaimForm({ pageRef, from, onClose }: ClaimProps) {
+function ClaimForm({ pageRef, onClose }: ClaimProps) {
   const t = usePagesCopy();
   const [page, setPage] = useState<PageView | null>(null);
   const [failed, setFailed] = useState(false);
@@ -48,7 +47,6 @@ function ClaimForm({ pageRef, from, onClose }: ClaimProps) {
     }).catch(() => { if (!controller.signal.aborted) setFailed(true); });
     return () => controller.abort();
   }, [pageRef.id, pageRef.type, attempt]); // eslint-disable-line react-hooks/exhaustive-deps -- the ref's two fields are the key
-  useEffect(() => { recordFunnelEvent('PAGE_CLAIM_STARTED', { from, pageRef: `${pageRef.type}-${pageRef.id}` }); }, [from, pageRef.id, pageRef.type]);
 
   const claimable = page?.viewer.canClaim === true;
   const mine = page?.claim?.mine === true;
@@ -59,7 +57,6 @@ function ClaimForm({ pageRef, from, onClose }: ClaimProps) {
     setBusy(true); setError('');
     try {
       const claimed = await claimPage(pageRef, { requestId: requestId.current, expectedVersion: page.claimRevision ?? page.claim?.revision ?? 0, role, phone });
-      recordFunnelEvent('PAGE_CLAIM_FINISHED', { pageRef: `${pageRef.type}-${pageRef.id}` });
       setPage(claimed);
     } catch (failure) { setError(extractApiErrorMessage(failure, t('Could not claim the page. Try again.'))); }
     finally { setBusy(false); }

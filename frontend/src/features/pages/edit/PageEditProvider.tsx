@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { isCurrentAuthSession } from '../../../utils/authStorage';
-import { recordFunnelEvent } from '../../feed/feedEvents';
 import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } from '../../organizations/setup/setupRecovery';
 import { PageConflict, fetchPage, isPageView, goLive as goLiveCall, saveBox as saveBoxCall, saveIdentity as saveIdentityCall, saveLayout as saveLayoutCall, type PageIdentity, type PageRef, type PageView, type SavableBox } from '../api';
 import { PageEditContext, SETUP_PANEL, isPanelKey, type IdentityPatch, type PageEdit, type PanelKey, type SaveOptions, type SaveStatus } from './context';
@@ -185,10 +184,7 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   const saveBox = useCallback(async <K extends SavableBox>(boxKey: K, data: unknown, options: SaveOptions = {}) => {
     const before = pageState.current; if (!before) return false;
     const previous = boxData(boxKey, before.boxes[boxKey]);
-    const wasDone = before.setup.items.find(item => item.key === (boxKey as string))?.done;
     const ok = await run(current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, data), { ...options, undo: current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, previous), remember: { kind: 'box', key: boxKey, data, id: crypto.randomUUID() } });
-    const after = pageState.current;
-    if (ok && isActive() && after && !wasDone && after.setup.items.find(item => item.key === (boxKey as string))?.done) recordFunnelEvent('PAGE_BOX_FILLED', { box: boxKey, pageRef: `${pageRef.type}-${pageRef.id}` });
     return ok && isActive();
   }, [isActive, pageRef, run]);
 
@@ -246,7 +242,6 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     const promise = (async () => {
       const ok = await run(() => goLiveCall(pageRef, requestId), { label: pt('Your page is live'), retry: () => { void publish(); } });
       if (!ok || !isActive(origin)) return false;
-      recordFunnelEvent('PAGE_LIVE', { pageRef: `${pageRef.type}-${pageRef.id}` });
       openPanel('live');
       return true;
     })();

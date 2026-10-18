@@ -18,7 +18,7 @@ const PARAM_OF_KIND: Record<PageKind, string> = { CLUB: 'club', FAN_CLUB: 'fan-c
 export const kindFromParam = (value: string | null): PageKind | null =>
   (Object.entries(PARAM_OF_KIND).find(([, param]) => param === value)?.[0] as PageKind | undefined) ?? null;
 
-/** Where the person pressed "create": recorded in the funnel, and it decides whether Club is pre-chosen. */
+/** Where the person pressed "create": it decides whether Club is pre-chosen. */
 export type CreateFrom = 'home' | 'account' | 'pins' | 'my-club' | 'world' | 'world-clubs' | 'search' | 'fundraising' | 'jobs' | 'store' | 'arrange' | 'start' | 'profile' | 'organizations' | 'roles' | 'link' | 'dola';
 /** Entry points where the person was already thinking football: the sheet starts on Club. */
 export const FOOTBALL_ENTRIES: readonly CreateFrom[] = ['my-club', 'world-clubs', 'arrange', 'fundraising', 'jobs', 'store', 'start', 'profile'];

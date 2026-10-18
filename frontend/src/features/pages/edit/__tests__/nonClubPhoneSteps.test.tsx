@@ -15,7 +15,6 @@ const api = vi.hoisted(() => ({ fetchPage: vi.fn(), goLive: vi.fn(), saveIdentit
 vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), ...api }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 9502 }, sessionId: 'nonclub-session', status: 'authenticated' }) }));
 vi.mock('../../../world/useMediaQuery', () => ({ useMediaQuery: () => true }));
-vi.mock('../../../feed/feedEvents', () => ({ recordFunnelEvent: vi.fn() }));
 
 function mount(kind: PageKind) {
   const page = makePage({ kind });

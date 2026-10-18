@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { Avatar, Button, ButtonLink, EmptyNote, List, ListRow } from '../../../../design/primitives';
 import { visualColors } from '../../../../styles/visualColors';
 import { extractApiErrorMessage } from '../../../../utils/apiError';
-import { recordFunnelEvent } from '../../../feed/feedEvents';
 import { decideArrival, ensureJoinLinks, fetchArrivals, type Arrival } from '../../api';
 import { usePagesCopy } from '../../copy';
 import { useGuideTask } from '../../guide/bridge';
@@ -44,19 +43,15 @@ export function PlayersPanel() {
   useGuideTask('players', {
     disabled: busy || !page?.boxes.squads.items.length || page.status !== 'LIVE' || arrivals === null || Boolean(failed),
     nextLabel: t('I shared the link'),
-    next: async () => ({ status: await shared('guide') ? 'complete' : 'stay' }),
+    next: async () => ({ status: await shared() ? 'complete' : 'stay' }),
   });
   if (!page) return null;
   if (page.status !== 'LIVE') return <SplitPanel title={t('Invite the players')} onClose={closePanel}><p>{t('Publish the club before sharing invitations.')}</p><Button onClick={() => openPanel('live')}>{t('Go live')}</Button></SplitPanel>;
   const links = page.boxes.players.links;
   const url = (squadId: number) => `${window.location.origin}/join/${links[squadId] ?? ''}`;
-  const shared = async (via: string) => {
-    const ok = page.boxes.players.shared || await saveBox('players', { shared: true }, { undoable: false });
-    if (ok) recordFunnelEvent('PAGE_SHARED', { via, box: 'players', pageRef: `${page.ref.type}-${page.ref.id}` });
-    return ok;
-  };
+  const shared = async () => page.boxes.players.shared || await saveBox('players', { shared: true }, { undoable: false });
   const copy = async (squadId: number) => {
-    try { await navigator.clipboard.writeText(url(squadId)); setCopied(squadId); window.setTimeout(() => setCopied(null), 2000); await shared('copy'); } catch { setCopied(null); }
+    try { await navigator.clipboard.writeText(url(squadId)); setCopied(squadId); window.setTimeout(() => setCopied(null), 2000); await shared(); } catch { setCopied(null); }
   };
   const decide = async (arrival: Arrival, action: 'APPROVE' | 'REVIEW' | 'DECLINE') => {
     setBusy(true);
@@ -99,7 +94,7 @@ export function PlayersPanel() {
               meta={squad.players ? t('{n} players', { n: squad.players }) : t('No players yet')}
               trail={<span className="gk-row" onClick={event => event.stopPropagation()}>
                 <Button size="sm" iconOnly aria-label={t('Copy link')} title={t('Copy link')} disabled={!links[squad.id] || Boolean(failed)} onClick={() => void copy(squad.id)}>{copied === squad.id ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}</Button>
-                {links[squad.id] && !failed && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`https://wa.me/?text=${encodeURIComponent(t('Add your child to {squad} at {page}: {url}', { squad: squad.name, page: page.identity.name, url: url(squad.id) }))}`} target="_blank" rel="noopener noreferrer" onClick={() => void shared('whatsapp')}><MessageCircle aria-hidden="true" />WhatsApp</a>}
+                {links[squad.id] && !failed && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`https://wa.me/?text=${encodeURIComponent(t('Add your child to {squad} at {page}: {url}', { squad: squad.name, page: page.identity.name, url: url(squad.id) }))}`} target="_blank" rel="noopener noreferrer" onClick={() => void shared()}><MessageCircle aria-hidden="true" />WhatsApp</a>}
               </span>} />
           ))}</List>
           {page.clubId && <ButtonLink variant="ghost" to={`/clubs/${page.clubId}/squads${current ? `?squad=${current.id}` : ''}`}>{t('Manage squad roster')}</ButtonLink>}

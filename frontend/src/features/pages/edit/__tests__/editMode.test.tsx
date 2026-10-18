@@ -13,7 +13,6 @@ vi.mock('sonner', () => {
   return { toast: Object.assign(record, { warning: record, error: record, success: record }) };
 });
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 9500 }, sessionId: 's1', status: 'authenticated' }) }));
-vi.mock('../../../feed/feedEvents', () => ({ recordFunnelEvent: vi.fn() }));
 vi.mock('../../../profiles/useProfilePostFeed', () => ({ useProfilePostFeed: () => ({ posts: [], pages: { loading: false, error: null, refresh: vi.fn(), more: false, loadMore: vi.fn() } }) }));
 vi.mock('../../../profiles/ProfilePosts', () => ({ ProfilePosts: ({ empty }: { empty: { title: string } }) => <p>{empty.title}</p> }));
 

@@ -9,7 +9,6 @@ const auth = vi.hoisted(() => ({ user: { id: 9500, dob: '1985-05-02' } as { id: 
 vi.mock('../../api', () => ({ fetchSimilar: api.fetchSimilar, createPage: api.createPage }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, status: 'authenticated', refreshNavigationCapabilities: auth.refresh }) }));
 vi.mock('../../../start/startApi', () => ({ fetchFeedPreferences: vi.fn().mockResolvedValue({ town: { name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }, topics: [], activity: null }) }));
-vi.mock('../../../feed/feedEvents', () => ({ recordFunnelEvent: vi.fn() }));
 
 import { StartSheet } from '../StartSheet';
 

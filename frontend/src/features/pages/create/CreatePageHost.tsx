@@ -29,7 +29,7 @@ export function CreatePageHost() {
   };
   return (
     <Suspense fallback={null}>
-      {claim ? <ClaimSheet key={`${claim.type}-${claim.id}`} pageRef={claim} from={from} onClose={close} />
+      {claim ? <ClaimSheet key={`${claim.type}-${claim.id}`} pageRef={claim} onClose={close} />
         : <StartSheet kind={kindFromParam(create)} from={from} draw={params.get(DRAW_PARAM) === '1'} onClose={close} onClaim={toClaim} />}
     </Suspense>
   );

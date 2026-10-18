@@ -13,6 +13,7 @@ export interface GuidedFlowProps {
   flowId: string;
   title: string;
   tasks: GuideTask[];
+  /** Where the work stands on the server. When given it always wins; without it the device remembers the furthest step. */
   initialTaskId?: string;
   onTaskChange?: (id: string) => void;
   onFinish?: () => void;
@@ -26,7 +27,7 @@ export function GuidedFlow(props: GuidedFlowProps) { return <Flow key={props.flo
 function Flow({ flowId, title, tasks, initialTaskId, onTaskChange, onFinish, suspended = false }: GuidedFlowProps) {
   const t = useGuideCopy();
   const progressKey = `gk-guide:${flowId}`;
-  const [currentId, setCurrentId] = useState(() => read(progressKey) ?? initialTaskId ?? tasks[0]?.id);
+  const [currentId, setCurrentId] = useState(() => initialTaskId ?? read(progressKey) ?? tasks[0]?.id);
   const [hidden, setHidden] = useState(() => read(`${progressKey}:hidden`) === '1');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +62,7 @@ function Flow({ flowId, title, tasks, initialTaskId, onTaskChange, onFinish, sus
     setError(''); setFinished(false); setCurrentId(available[next].id);
     // Back does not erase the furthest point reached during this visit.
     const remembered = available.findIndex(item => item.id === read(progressKey));
-    if (next > remembered) write(progressKey, available[next].id);
+    if (initialTaskId === undefined && next > remembered) write(progressKey, available[next].id);
   };
   const next = async (event: FormEvent) => {
     event.preventDefault();

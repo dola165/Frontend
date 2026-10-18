@@ -12,7 +12,6 @@ import { isQuick } from './quick';
 import { answerPanel, panelListens, usePetHint } from './bridge';
 import { runGuideTask, useGuideTask, useGuideTaskAdapter } from './taskBridge';
 import { useGuideCopy } from './copy';
-import { AskGuide } from './AskGuide';
 
 const WORDS: Record<string, [string, string]> = {
   crest: ['Choose your crest', 'Pick your colours, or upload your badge.'],
@@ -56,7 +55,7 @@ function ClubGuide() {
       description: words ? t(words[1]) : undefined,
       target: !quick && panel === SETUP_PANEL[key] ? '.gk-dialog' : undefined,
       enter: () => enter(key),
-      content: <>{quick ? <QuickAnswer step={key} page={page} /> : <PanelAnswer panelKey={SETUP_PANEL[key]} open={panel === SETUP_PANEL[key]} reopen={() => enter(key)} />}<AskGuide onStep={step => enter(step)} /></>,
+      content: quick ? <QuickAnswer step={key} page={page} /> : <PanelAnswer panelKey={SETUP_PANEL[key]} open={panel === SETUP_PANEL[key]} reopen={() => enter(key)} />,
       nextLabel: selected === key ? registered?.nextLabel : undefined,
       disabled: selected === key && registered?.disabled,
       next: async () => {

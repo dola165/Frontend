@@ -156,6 +156,14 @@ describe('GuidedFlow', () => {
     render(<GuidedFlow flowId="progress" title="Club" tasks={tasks} />);
     expect(screen.getByText('Second task')).toBeInTheDocument();
   });
+  it('starts where the server says the work stands, whatever this device remembers', () => {
+    const tasks = [{ id: 'first', title: 'First task', next: complete }, second];
+    localStorage.setItem('gk-guide:server', 'second');
+    render(<GuidedFlow flowId="server" title="Club" tasks={tasks} initialTaskId="first" />);
+    expect(screen.getByText('First task')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(localStorage.getItem('gk-guide:server')).toBe('second');
+  });
   it('ignores an old account’s delayed result after flow identity changes', async () => {
     let resolve!: (result: GuideResult) => void;
     const tasks = [{ id: 'first', title: 'First task', next: () => new Promise<GuideResult>(done => { resolve = done; }) }, second];

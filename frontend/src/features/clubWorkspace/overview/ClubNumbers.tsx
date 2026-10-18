@@ -34,7 +34,8 @@ function useClubCommerce(club: number, enabled: boolean) {
 /**
  * The club in numbers, for the people who run it: one row per thing a bigger club has to keep an eye on
  * (squads, players, staff, who is joining, money, fundraising, the shop), each with its count, the one thing
- * that needs a decision, and a press into the tool. Counts come from the server; nothing is guessed.
+ * that needs a decision, and a press into the tool. Counts come from the server; nothing is guessed: a row whose
+ * numbers have not arrived yet shows … rather than 0.
  */
 export function ClubNumbers({ clubId, overview, roles, boot, tabs, tryoutPending, onOpen, onOpenPlayers }: {
     clubId: number; overview: ClubManagementOverview | null; roles: RolesWorkspace | null; boot: Bootstrap | null; tabs: TabItem[]; tryoutPending: number;
@@ -50,17 +51,18 @@ export function ClubNumbers({ clubId, overview, roles, boot, tabs, tryoutPending
     const raised = live.reduce((sum, campaign) => sum + (progressOf(campaign).raised ?? 0), 0), goal = live.reduce((sum, campaign) => sum + (campaign.goalAmount ?? 0), 0);
     const currency = live[0]?.currency ?? 'GEL';
     const squads = roles?.squads ?? [], players = squads.reduce((sum, squad) => sum + squad.player_count, 0);
+    const activePlayers = overview?.activePlayerCount ?? (roles ? players : null), staff = boot?.staff.length ?? overview?.members.length ?? null;
     const trials = overview?.trialistCount ?? 0, overdueTrials = overview?.overdueTrialistCount ?? 0;
     const applications = overview?.pendingApplications.length ?? 0, tryouts = overview?.pendingTryoutCount ?? tryoutPending;
 
     type Row = { id: string; icon: LucideIcon; title: string; meta: string; status?: { text: string; tone: 'danger' | 'warning' | 'neutral' }; open?: () => void };
     const rows: Row[] = [
-        { id: 'squads', icon: ShieldCheck, title: copy('numSquads'), meta: copy('numSquadsMeta', { count: squads.length, players }), open: () => onOpen('squads') },
-        { id: 'players', icon: Users, title: copy('numPlayers'), meta: [copy('numActive', { count: overview?.activePlayerCount ?? players }), copy('numTrial', { count: trials })].join(' · '),
+        { id: 'squads', icon: ShieldCheck, title: copy('numSquads'), meta: roles ? copy('numSquadsMeta', { count: squads.length, players }) : '…', open: () => onOpen('squads') },
+        { id: 'players', icon: Users, title: copy('numPlayers'), meta: overview && activePlayers != null ? [copy('numActive', { count: activePlayers }), copy('numTrial', { count: trials })].join(' · ') : '…',
             status: overdueTrials ? { text: copy('numOverdueTrials', { count: overdueTrials }), tone: 'warning' } : undefined, open: onOpenPlayers ? () => onOpenPlayers(overdueTrials ? 'TRIALIST' : 'ACTIVE') : () => onOpen('players') },
-        { id: 'staff', icon: Briefcase, title: copy('numStaff'), meta: copy('numStaffMeta', { count: boot?.staff.length ?? overview?.members.length ?? 0 }), open: has('personnel') ? () => onOpen('personnel') : undefined },
-        { id: 'joining', icon: UserPlus, title: copy('numJoining'), meta: [copy('numApplications', { count: applications }), copy('numTryouts', { count: tryouts })].join(' · '),
-            status: applications + tryouts ? { text: copy('badgeDecide'), tone: 'warning' } : undefined, open: has('applications') ? () => onOpen(applications || !tryouts ? 'applications' : 'tryouts') : undefined },
+        { id: 'staff', icon: Briefcase, title: copy('numStaff'), meta: staff != null ? copy('numStaffMeta', { count: staff }) : '…', open: has('personnel') ? () => onOpen('personnel') : undefined },
+        { id: 'joining', icon: UserPlus, title: copy('numJoining'), meta: overview ? [copy('numApplications', { count: applications }), copy('numTryouts', { count: tryouts })].join(' · ') : '…',
+            status: overview && applications + tryouts ? { text: copy('badgeDecide'), tone: 'warning' } : undefined, open: has('applications') ? () => onOpen(applications || !tryouts ? 'applications' : 'tryouts') : undefined },
         ...(has('finance') ? [{ id: 'money', icon: Landmark, title: copy('numMoney'), meta: work.loading ? '…' : overdueMoney ? copy('numOverdueMoney', { count: overdueMoney }) : copy('numNothingOverdue'),
             status: overdueMoney ? { text: copy('badgeOverdue'), tone: 'danger' as const } : undefined, open: () => onOpen('finance') }] : []),
         ...(has('campaigns') ? [{ id: 'fundraising', icon: HeartHandshake, title: copy('numFundraising'), meta: commerce?.campaigns ? [copy('numLive', { count: live.length }), goal ? copy('numRaised', { raised: campaignMoney(raised, currency), goal: campaignMoney(goal, currency) }) : null].filter(Boolean).join(' · ') : '…', open: () => onOpen('campaigns') }] : []),

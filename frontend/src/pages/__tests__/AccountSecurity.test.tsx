@@ -16,6 +16,7 @@ vi.mock('../../features/journey/components/ClubJourneyPanel', () => ({ ClubJourn
 
 beforeEach(() => {
     vi.resetAllMocks(); localStorage.clear(); clearStoredAuth(); setStoredAccessToken('account-token');
+    vi.stubEnv('VITE_ACCOUNT_SECURITY_EXTENSIONS', 'true');
     vi.mocked(useAuth).mockReturnValue({ user: { id: 7 }, sessionId: getAuthSessionId(), bootstrapSession: vi.fn(), logout: vi.fn() } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(fetchMyPlayerCards).mockResolvedValue([]);
     vi.mocked(apiClient.get).mockImplementation(async path => ({ data: path === '/users/me/account' ? {
@@ -26,8 +27,8 @@ beforeEach(() => {
 });
 afterEach(() => { clearStoredAuth(); vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
-it.each([undefined, 'false', 'TRUE', 'invalid'])('keeps unreleased security panels unmounted in production with flag %s', async flag => {
-    vi.stubEnv('DEV', false);
+it.each([undefined, 'false', 'TRUE', 'invalid'].flatMap(flag => [[flag, false], [flag, true]]))('keeps unreleased security panels unmounted with flag %s (dev server: %s)', async (flag, dev) => {
+    vi.stubEnv('DEV', dev);
     vi.stubEnv('VITE_ACCOUNT_SECURITY_EXTENSIONS', flag);
     const view = render(<MemoryRouter initialEntries={['/account?tab=security']}><AccountPage/></MemoryRouter>);
     await screen.findByText('Email And Password');

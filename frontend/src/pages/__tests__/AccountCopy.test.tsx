@@ -30,6 +30,7 @@ const settledReads = async () => {
 
 beforeEach(async () => {
     vi.resetAllMocks(); localStorage.clear(); clearStoredAuth(); setStoredAccessToken('account-copy-token'); await i18n.changeLanguage('en');
+    vi.stubEnv('VITE_ACCOUNT_SECURITY_EXTENSIONS', 'true');
     vi.stubGlobal('fetch', vi.fn(() => { throw new Error('Unexpected fixture transport'); }));
     vi.stubGlobal('XMLHttpRequest', vi.fn(() => { throw new Error('Unexpected fixture transport'); }));
     bootstrap.mockResolvedValue({ id: 7 });
@@ -39,7 +40,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
     cleanup(); clearStoredAuth(); await i18n.changeLanguage('en');
-    expect(fetch).not.toHaveBeenCalled(); expect(XMLHttpRequest).not.toHaveBeenCalled(); vi.unstubAllGlobals();
+    expect(fetch).not.toHaveBeenCalled(); expect(XMLHttpRequest).not.toHaveBeenCalled(); vi.unstubAllGlobals(); vi.unstubAllEnvs();
 });
 
 describe('account error origin', () => {

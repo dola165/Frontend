@@ -180,7 +180,9 @@ export const AccountPage = () => {
     const accountRequest = useRef<AbortController | null>(null);
     const sessionsRequest = useRef<AbortController | null>(null);
     const tryoutsRequest = useRef<AbortController | null>(null);
-    const securityExtensions = import.meta.env.DEV || import.meta.env.VITE_ACCOUNT_SECURITY_EXTENSIONS === 'true';
+    // The API build leaves out the two-factor and Google-provider endpoints until they are released
+    // (backend deploy/release-source-selection.json), so only the explicit flag shows these panels, dev servers included.
+    const securityExtensions = import.meta.env.VITE_ACCOUNT_SECURITY_EXTENSIONS === 'true';
 
     const [account, setAccount] = useState<Account | null>(null);
     // Player details follow the player profile the server keeps for the person, never the account role.

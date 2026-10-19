@@ -8,7 +8,9 @@ import { OrganizationInvitationInbox } from '../../../organizations/setup/Organi
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), refresh: vi.fn() }));
 vi.mock('../../../../api/axiosConfig', () => ({ apiClient: { get: mocks.get, post: mocks.post } }));
-vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ refreshNavigationCapabilities: mocks.refresh }) }));
+// The inbox drops results from a retired login: it compares the auth session id it rendered with
+// against the stored one. No id is stored in this test, so the rendered id is null too.
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: null, refreshNavigationCapabilities: mocks.refresh }) }));
 beforeEach(async () => { await i18n.changeLanguage('en'); vi.clearAllMocks(); mocks.get.mockResolvedValue({ data: [] }); mocks.post.mockResolvedValue({}); mocks.refresh.mockResolvedValue(undefined); });
 const mount = (element: React.ReactNode, path = '/account') => render(<MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>);
 
@@ -82,13 +84,13 @@ it('invitation locale changes preserve pending names, known and unknown roles, a
   const cards = screen.getAllByRole('article'), reads = [...mocks.get.mock.calls];
   await act(async () => { await i18n.changeLanguage('ka'); });
   expect(screen.getByRole('region', { name: 'ორგანიზაციის მოწვევები' })).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'ორგანიზაციის მოწვევები (3)' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'ორგანიზაციის მოწვევები' })).toBeInTheDocument();
   expect(within(cards[0]).getByRole('heading', { name: 'Draft' })).toBeInTheDocument();
-  expect(within(cards[0]).getByText('მოგიწვიეს როლით: ადმინისტრატორი')).toBeInTheDocument();
+  expect(within(cards[0]).getByText('მოწვეული ხართ: ადმინისტრატორი')).toBeInTheDocument();
   expect(within(cards[1]).getByRole('heading', { name: 'Live' })).toBeInTheDocument();
-  expect(within(cards[1]).getByText('მოგიწვიეს როლით: CUSTOM_Admin')).toBeInTheDocument();
+  expect(within(cards[1]).getByText('მოწვეული ხართ: CUSTOM_Admin')).toBeInTheDocument();
   expect(within(cards[1]).queryByRole('button')).not.toBeInTheDocument();
-  expect(within(cards[2]).getByText('მოგიწვიეს როლით: მოედნის ოპერატორი')).toBeInTheDocument();
+  expect(within(cards[2]).getByText('მოწვეული ხართ: ობიექტის ოპერატორი')).toBeInTheDocument();
   expect(mocks.get.mock.calls).toEqual(reads);
   expect(mocks.post).not.toHaveBeenCalled(); expect(mocks.refresh).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'პასუხისმგებლობის მიღება' }));
@@ -101,13 +103,13 @@ it('invitation locale changes preserve pending names, known and unknown roles, a
   await act(async () => response.resolve({}));
   await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
   expect(accepted).toHaveBeenCalledOnce();
-  expect(screen.getByRole('status')).toHaveTextContent('Responsibility accepted. Your workspace is ready in My organizations.');
+  expect(screen.getByRole('status')).toHaveTextContent('Your response was saved. Check your current access below.');
   expect(screen.getByRole('alert')).toHaveTextContent('Invitation accepted. Reload to refresh your navigation.');
   const settledReads = [...mocks.get.mock.calls];
-  expect(settledReads).toHaveLength(4);
+  expect(settledReads).toHaveLength(6);
   await act(async () => { await i18n.changeLanguage('ka'); });
-  expect(screen.getByRole('status')).toHaveTextContent('პასუხისმგებლობა მიღებულია. თქვენი სამუშაო სივრცე მზადაა „ჩემ ორგანიზაციებში“.');
-  expect(screen.getByRole('alert')).toHaveTextContent('მოწვევა მიღებულია. ნავიგაციის გასაახლებლად ხელახლა ჩატვირთეთ გვერდი.');
+  expect(screen.getByRole('status')).toHaveTextContent('თქვენი პასუხი შენახულია. მიმდინარე წვდომა ქვემოთ შეამოწმეთ.');
+  expect(screen.getByRole('alert')).toHaveTextContent('მოწვევა მიღებულია. ნავიგაციის გასაახლებლად განაახლეთ გვერდი.');
   expect(screen.getByRole('link', { name: 'ჩემი ორგანიზაციები' })).toHaveAttribute('href', '/my-organizations');
   expect(mocks.get.mock.calls).toEqual(settledReads); expect(mocks.post).toHaveBeenCalledTimes(1);
   expect(accepted).toHaveBeenCalledOnce(); expect(mocks.refresh).toHaveBeenCalledOnce();
@@ -115,34 +117,36 @@ it('invitation locale changes preserve pending names, known and unknown roles, a
 
 it.each(['EXPIRED', 'ACCEPTED', 'Mixed_STATUS'])('invitation locale changes retain the %s receipt without granting an action', async status => {
   mocks.get.mockImplementation(async (path: string) => ({ data: path.includes('/invitation-notices/') ? { id: 9, organizationName: 'Draft', role: 'STAFF', status, recipient: true } : [] }));
-  mount(<OrganizationInvitationInbox />, '/my-organizations?itemId=9');
+  mount(<OrganizationInvitationInbox standalone />, '/my-organizations?itemId=9');
   const card = (await screen.findByRole('heading', { name: 'Draft' })).closest('article')!;
   const reads = [...mocks.get.mock.calls];
   await act(async () => { await i18n.changeLanguage('ka'); });
   expect(screen.getByRole('heading', { name: 'Draft' }).closest('article')).toBe(card);
   expect(within(card).getByText(status === 'EXPIRED' ? /მოწვევა: ვადაგასულია/ : status === 'ACCEPTED' ? /მოწვევა: მიღებულია/ : /მოწვევა: Mixed_STATUS/)).toBeInTheDocument();
-  if (status === 'EXPIRED') expect(card).toHaveTextContent('ახალი მოწვევისთვის მიმართეთ ორგანიზაციის ხელმძღვანელობას.');
+  // An expired receipt states only its outcome; guidance is shown for pending and accepted ones.
   if (status === 'ACCEPTED') expect(card).toHaveTextContent('სამუშაო სივრცეზე წვდომა თქვენს მიმდინარე პასუხისმგებლობებზეა დამოკიდებული.');
-  expect(within(card).getByRole('link', { name: 'ჩემი ორგანიზაციები' })).toHaveAttribute('href', '/my-organizations');
+  expect(screen.getByRole('link', { name: 'ჩემი ორგანიზაციები' })).toHaveAttribute('href', '/my-organizations');
   expect(screen.queryByRole('button', { name: 'პასუხისმგებლობის მიღება' })).not.toBeInTheDocument();
   expect(mocks.get.mock.calls).toEqual(reads); expect(mocks.post).not.toHaveBeenCalled(); expect(mocks.refresh).not.toHaveBeenCalled();
 });
 
-it('invitation locale changes preserve literal server error text and the loaded pending record', async () => {
+it('invitation locale changes preserve literal server error text of an unavailable receipt', async () => {
   mocks.get.mockImplementation(async (path: string) => {
-    if (path.includes('/invitation-notices/')) throw { response: { status: 503, data: { message: 'This invitation is unavailable.' } } };
+    if (path.includes('/invitation-notices/')) throw { response: { status: 503, data: { message: 'Invitation 99 was withdrawn by the organization.' } } };
     return { data: path === '/organizations/team-invitations/mine' ? [{ id: 9, organizationName: 'Live', role: 'STAFF', status: 'PENDING', canRespond: false }] : [] };
   });
   mount(<OrganizationInvitationInbox />, '/my-organizations?itemId=99');
-  expect(await screen.findByRole('alert')).toHaveTextContent('This invitation is unavailable.');
-  const card = screen.getByRole('heading', { name: 'Live' }).closest('article'), reads = [...mocks.get.mock.calls];
+  expect(await screen.findByRole('alert')).toHaveTextContent('Invitation 99 was withdrawn by the organization.');
+  // The server text is shown as sent, in either language (only the inbox's own copy is translated).
+  // An item id opens that receipt alone; the pending list is not read alongside it.
+  expect(screen.queryByRole('heading', { name: 'Live' })).not.toBeInTheDocument();
+  const reads = [...mocks.get.mock.calls];
   await act(async () => { await i18n.changeLanguage('ka'); });
-  expect(screen.getByRole('alert')).toHaveTextContent('This invitation is unavailable.');
-  expect(screen.getByRole('heading', { name: 'Live' }).closest('article')).toBe(card);
+  expect(screen.getByRole('alert')).toHaveTextContent('Invitation 99 was withdrawn by the organization.');
   expect(mocks.get.mock.calls).toEqual(reads);
   fireEvent.click(screen.getByRole('button', { name: 'ხელახლა ცდა' }));
-  await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(6));
-  expect(await screen.findByRole('alert')).toHaveTextContent('This invitation is unavailable.');
+  await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(reads.length + 1));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Invitation 99 was withdrawn by the organization.');
   expect(mocks.post).not.toHaveBeenCalled(); expect(mocks.refresh).not.toHaveBeenCalled();
 });
 

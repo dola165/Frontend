@@ -51,7 +51,7 @@ describe('Product variant labels stay product data in every locale', () => {
         expect(within(preview).getByText('L', { exact: true })).toBeInTheDocument();
         expect(within(preview).getByText('Home', { exact: true })).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: ct('Save product') }));
-        await waitFor(() => expect(api.updateStoreProduct).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 3, variants: product.variants })));
+        await waitFor(() => expect(api.updateStoreProduct).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 3, variants: product.variants }), expect.stringMatching(/^[0-9a-f-]{36}$/i), null));
     });
 
     it('saves an edited custom label without translating it into interface copy', async () => {
@@ -60,7 +60,7 @@ describe('Product variant labels stay product data in every locale', () => {
         fireEvent.change(screen.getByLabelText(ct('Variant {v0}', { v0: 1 })), { target: { value: 'Home' } });
         expect(within(screen.getByRole('complementary')).getAllByText('Home', { exact: true })).toHaveLength(2);
         fireEvent.click(screen.getByRole('button', { name: ct('Save product') }));
-        await waitFor(() => expect(api.updateStoreProduct).toHaveBeenCalledWith(10, 1, expect.objectContaining({ variants: [{ id: 7, label: 'Home', stock: 6 }, ...product.variants!.slice(1)] })));
+        await waitFor(() => expect(api.updateStoreProduct).toHaveBeenCalledWith(10, 1, expect.objectContaining({ variants: [{ id: 7, label: 'Home', stock: 6 }, ...product.variants!.slice(1)] }), expect.stringMatching(/^[0-9a-f-]{36}$/i), null));
     });
 
     it.each(['en', 'ka'])('keeps %s selector, selected ID, enquiry and cart labels aligned', async locale => {

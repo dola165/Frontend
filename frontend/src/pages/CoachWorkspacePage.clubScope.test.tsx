@@ -41,6 +41,11 @@ describe('authorized club handoff destination', () => {
         fixture.workspaces = [cap(399, 'A other club'), cap(400, 'Z assigned club', 'club.member')];
         mount('?clubId=400'); expect(screen.getByText('Club squads unavailable')).toBeVisible(); expect(fixture.mounted).toStrictEqual([]);
     });
+    it('lists a player’s or family’s own squads instead of saying there are none', () => {
+        fixture.workspaces = [{ id: 'squad.workspace', context: { type: 'squad', id: 2, label: 'Dinamo Academy — U16 Boys' } }, cap(400, 'Z assigned club', 'club.player')];
+        mount(); expect(screen.getByRole('link', { name: /Dinamo Academy — U16 Boys/ })).toHaveAttribute('href', '/squads/2');
+        expect(screen.queryByText('No squads yet')).not.toBeInTheDocument(); expect(fixture.mounted).toStrictEqual([]);
+    });
     it('keeps unknown current access from becoming a club or coaching grant', () => {
         fixture.known = false; mount('?clubId=400'); expect(screen.getByText('Club squads unavailable')).toBeVisible(); expect(fixture.mounted).toStrictEqual([]);
     });

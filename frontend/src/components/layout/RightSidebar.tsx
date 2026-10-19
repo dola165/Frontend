@@ -26,6 +26,7 @@ import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { useAuth } from '../../context/AuthContext';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { isCurrentAuthSession, type AuthSessionId } from '../../utils/authStorage';
+import './side-links.css';
 
 interface ContactConversation {
     conversation: ConversationDto;

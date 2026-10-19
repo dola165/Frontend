@@ -1,0 +1,84 @@
+/* Home rail links (LeftSidebar, RightSidebar, WorkspaceShortcuts). The layered rules keep their place after Tailwind's utilities; the shortcut rules were unlayered and stay so. */
+@layer utilities {
+  .feed-side-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 40px;
+    border-left: 3px solid transparent;
+    border-radius: 0 8px 8px 0;
+    padding: 7px 14px 7px 11px;
+    background: transparent;
+    color: var(--feed-text-secondary);
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  }
+
+  .feed-side-link:hover {
+    background-color: var(--feed-hover-bg);
+    color: var(--feed-text-primary);
+  }
+
+  .home-social-link {
+    min-height: 56px;
+    border-radius: 12px;
+    padding: 7px 10px;
+  }
+
+  .feed-side-link__visual {
+    display: inline-flex;
+    height: 30px;
+    width: 30px;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background-color: transparent;
+    color: inherit;
+    flex-shrink: 0;
+    transition: color 160ms ease;
+  }
+
+  .feed-side-link__visual--avatar {
+    height: 34px;
+    width: 34px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .feed-side-link__title {
+    display: block;
+    overflow: hidden;
+    color: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .recent-contact-link {
+    min-height: 58px;
+    border-bottom: 1px solid var(--feed-card-border);
+    border-left: 0;
+    border-radius: 0;
+    padding: 10px 8px;
+  }
+
+  .recent-contact-link .feed-side-link__visual--avatar {
+    height: 38px;
+    width: 38px;
+    font-size: 13px;
+  }
+
+  .recent-contact-link .feed-side-link__title {
+    color: var(--feed-text-primary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+.home-profile-shortcut { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--feed-divider); border-radius: 0; }
+.home-social-link { color: var(--feed-text-primary); }
+
+.home-social-link:focus-visible { outline: 2px solid var(--shortcut-accent, var(--social-primary)); outline-offset: 3px; }

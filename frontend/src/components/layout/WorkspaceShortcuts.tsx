@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ShortcutEmblem } from './ShortcutEmblem';
 import { Link } from 'react-router-dom';
 import { workspaceLinks, type NavigationCapabilities } from '../../context/navigationCapabilities';
+import './side-links.css';
 
 export interface ManagedClubLink { clubId: number; clubName: string }
 

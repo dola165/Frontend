@@ -1,0 +1,254 @@
+/* The stadium profile: gallery, introduction, amenities, pitches, contact, opening hours and location. */
+.venue-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--venue-accent);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 42px,
+      var(--venue-accent-soft) 42px,
+      var(--venue-accent-soft) 84px
+    ),
+    var(--bg-inset);
+  font-size: 12px;
+}
+.venue-photo-badge {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  background: color-mix(in srgb, var(--color-elevated) 92.16%, transparent);
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.venue-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 22px;
+}
+.venue-breadcrumb > a {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.venue-breadcrumb > .venue-button {
+  margin-left: auto;
+}
+.venue-gallery {
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-inset);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.venue-gallery-main {
+  height: 410px;
+  position: relative;
+}
+.venue-gallery-main > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.venue-gallery-main > .venue-photo-placeholder {
+  min-height: 410px;
+}
+.venue-gallery-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 34px;
+  background: linear-gradient(transparent 25%, color-mix(in srgb, var(--color-overlay) 90.2%, transparent));
+  color: var(--color-on-media);
+}
+.venue-gallery-overlay .venue-photo-badge {
+  position: static;
+  margin-bottom: 12px;
+  background: color-mix(in srgb, var(--color-overlay) 86.67%, transparent);
+  color: var(--color-on-media);
+}
+.venue-gallery-overlay h1 {
+  color: var(--color-on-media);
+  font-size: clamp(30px, 4vw, 49px);
+  letter-spacing: -1.7px;
+}
+.venue-gallery-overlay p {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-on-media);
+}
+.venue-photo-count {
+  position: absolute;
+  right: 22px;
+  top: 22px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 70.2%, transparent);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.venue-gallery-thumbs {
+  display: flex;
+  gap: 5px;
+  height: 84px;
+  padding: 5px;
+  overflow-x: auto;
+}
+.venue-gallery-thumbs button {
+  flex: 0 0 115px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: var(--bg-inset);
+  padding: 0;
+  opacity: 0.65;
+}
+.venue-gallery-thumbs button[aria-pressed="true"] {
+  border-color: var(--venue-accent);
+  opacity: 1;
+}
+.venue-gallery-thumbs img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.venue-profile-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.venue-profile-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.7fr);
+  gap: 48px;
+  padding: 40px 0;
+}
+.venue-description {
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+  margin: 18px 0 30px !important;
+  max-width: 750px;
+  line-height: 1.9;
+}
+.venue-about > h3 {
+  margin: 25px 0 15px;
+}
+.venue-amenities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.venue-amenities span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+.venue-amenities svg {
+  color: var(--venue-accent);
+}
+.venue-pitch-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.venue-pitch-cards > div {
+  border: 1px solid var(--border-subtle);
+  border-radius: 11px;
+  padding: 18px;
+  background: var(--bg-elevated);
+}
+.venue-pitch-cards svg {
+  color: var(--venue-accent);
+  margin-bottom: 10px;
+}
+.venue-pitch-cards p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 5px;
+}
+.venue-pitch-cards strong {
+  display: block;
+  margin-top: 15px;
+  color: var(--venue-accent);
+}
+.venue-pitch-cards small {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.venue-public-pitch{scroll-margin-top:140px;overflow:hidden}.venue-public-pitch:target{outline:2px solid var(--venue-accent);outline-offset:3px}.venue-public-pitch-photo{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-bottom:14px}.venue-public-pitch .venue-button{margin-top:16px;font-size:12px}.venue-public-pitch .venue-button svg{margin:0;flex:none}
+.venue-contact {
+  align-self: start;
+}
+.venue-contact > p,
+.venue-contact > a {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  margin-bottom: 15px;
+  overflow-wrap: anywhere;
+}
+.venue-contact svg {
+  flex-shrink: 0;
+  color: var(--venue-accent);
+  margin-top: 2px;
+}
+.venue-contact h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 25px;
+}
+.venue-contact > small {
+  color: var(--text-muted);
+}
+.venue-hours {
+  margin: 14px 0;
+}
+.venue-hours > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 7px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.venue-hours dt {
+  color: var(--text-secondary);
+}
+.venue-hours dd {
+  margin: 0;
+}
+.venue-location {
+  padding: 30px 0;
+}
+.venue-location > .venue-map {
+  height: 350px;
+  border-radius: 16px;
+  overflow: hidden;
+}

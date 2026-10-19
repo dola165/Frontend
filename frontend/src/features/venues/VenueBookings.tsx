@@ -8,6 +8,8 @@ import { fetchBookingHistory, updateBooking, type Booking, type BookingHistory }
 import { bookingDate, money } from "./utils";
 import { currentStatus, needsDecision } from "./ownerWorkflow";
 import './venue-owner.css';
+import './venues.css';
+import './venue-bookings.css';
 
 export function BookingRows({
   bookings,

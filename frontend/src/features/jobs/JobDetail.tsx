@@ -12,7 +12,6 @@ import { Crest } from '../world/Crest';
 import { applyMethodOf, categoryLabel, directionOf, distanceLabel, hoursLabel, placeOf, posterOf, postedLabel, termsLabel, type Job } from './api';
 import { JobManagement } from './JobManagement';
 import { clubJobsPath, jobsPath } from './query';
-import '../clubs/jobs-opportunities.css';
 
 const share = async (job: Job) => {
     const url = `${window.location.origin}/jobs/${job.id}`;

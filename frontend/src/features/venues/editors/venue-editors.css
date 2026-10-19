@@ -1,0 +1,107 @@
+/* The stadium page and pitch editors (this folder): photos, opening hours, the pitch list and shared pitch space. */
+.venue-photo-editor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.venue-photo-editor > div {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.venue-photo-editor img {
+  width: 100%;
+  height: 160px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.venue-photo-editor .venue-inline {
+  gap: 5px;
+}
+.venue-photo-editor .venue-button {
+  font-size: 11px;
+  padding: 7px 9px;
+  min-height: 32px;
+}
+.venue-hours-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-top: 18px;
+}
+.venue-hours-editor > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.venue-hours-editor label {
+  min-width: 70px;
+}
+.venue-hours-editor input[type="time"] {
+  width: 91px;
+  padding: 6px;
+  min-height: 34px;
+  font-size: 12px;
+}
+.venue-hours-editor .venue-muted {
+  margin-left: 10px;
+}
+.venue-pitch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.venue-pitch-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  text-align: left;
+  width: 100%;
+  color: var(--text-primary);
+}
+.venue-pitch-list button.is-selected {
+  border-color: var(--venue-accent);
+  background: var(--venue-accent-soft);
+}
+.venue-pitch-list p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 5px 0 10px;
+}
+.venue-pitch-list strong {
+  color: var(--venue-accent);
+  white-space: nowrap;
+}
+.venue-resource-fields {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.venue-resource-fields legend {
+  font-size: 12px;
+  padding: 0 6px;
+}
+@media (max-width: 580px) {
+  .venue-hours-editor > div {
+    gap: 10px;
+  }
+  .venue-hours-editor input[type="time"] {
+    width: 100px;
+  }
+  .venue-pitch-list button {
+    padding: 16px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .venue-resource-fields {
+    padding: 12px;
+  }
+}

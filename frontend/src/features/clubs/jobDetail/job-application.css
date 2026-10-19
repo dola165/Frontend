@@ -1,0 +1,65 @@
+/* The in-app job application (JobApplication): the form, the lifecycle note, feedback and the retry link. */
+.jobs-text-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    color: var(--app-text-primary);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+    text-underline-offset: 4px;
+}
+
+.jobs-text-button:hover {
+    color: var(--app-accent-primary);
+}
+
+.jobs-application-form h2 {
+    font-size: 20px;
+    font-weight: 760;
+    letter-spacing: -.02em;
+}
+
+.jobs-application-form > p {
+    color: var(--app-text-secondary);
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.jobs-application-form {
+    display: grid;
+    gap: 15px;
+}
+
+.jobs-lifecycle {
+    margin-top: 5px;
+    padding-top: 14px;
+    border-top: 1px solid var(--app-border-subtle);
+}
+
+.jobs-lifecycle summary {
+    cursor: pointer;
+    color: var(--app-text-primary);
+    font-size: 12px;
+    font-weight: 720;
+}
+
+.jobs-lifecycle ol {
+    display: grid;
+    gap: 9px;
+    margin: 12px 0 0 18px;
+    color: var(--app-text-secondary);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.jobs-application-feedback {
+    padding: 11px 12px;
+    border: 1px solid color-mix(in srgb, var(--app-state-info) 34%, transparent);
+    border-radius: 9px;
+    background: var(--app-state-info-soft);
+    color: var(--app-text-primary) !important;
+}

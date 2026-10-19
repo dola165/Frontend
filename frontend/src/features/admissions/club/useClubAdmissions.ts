@@ -27,7 +27,8 @@ export function useClubAdmissions(clubId: number, sessionId: AuthSessionId, live
     catch(e) { if(current===sequence.current) { setData(null);setDataScope(scope);setError(e instanceof InvalidAdmissionResponse?c('responseIncomplete'):extractApiErrorMessage(e,c('error'))); } }
     finally { if(current===sequence.current){setLoading(false);if(inFlight.current===scope)inFlight.current=null;} }
   },[clubId,sessionId,scope,c]);
-  useEffect(() => { void reload(); return () => { sequence.current++;inFlight.current=null; }; },[reload]);
+  // The cleanup retires this load's answers by advancing the shared request counter.
+  useEffect(() => { const requests=sequence; void reload(); return () => { requests.current++;inFlight.current=null; }; },[reload]);
   useEffect(() => {
     if(!live)return;
     const refresh=()=>{if(document.visibilityState==='visible'&&navigator.onLine)void reload(true);};

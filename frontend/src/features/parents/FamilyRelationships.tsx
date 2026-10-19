@@ -28,6 +28,8 @@ export function FamilyRelationships({ revision = 0, onChanged, compact = false, 
     const { sessionId, refreshNavigationCapabilities } = useAuth();
     const [data, setData] = useState<Family | null>(null);
     const [error, setError] = useState('');
+    // A failed read keeps its cause; the message is worded at render time, in the current language.
+    const [loadFailure, setLoadFailure] = useState<{ cause: unknown } | null>(null);
     const [notice, setNotice] = useState('');
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -45,11 +47,11 @@ export function FamilyRelationships({ revision = 0, onChanged, compact = false, 
     useEffect(() => { if (confirm) confirmation.current?.focus(); }, [confirm]);
     useEffect(() => {
         const abort = new AbortController();
-        setLoading(true);setError('');
+        setLoading(true);setError('');setLoadFailure(null);
         const config: AuthSessionRequestConfig = { signal: abort.signal, _authSessionId: sessionId };
         void apiClient.get<Family>('/family', config).then(result => {
             if (!abort.signal.aborted && isCurrentAuthSession(sessionId)) setData(result.data);
-        }).catch(e => { if (!abort.signal.aborted && isCurrentAuthSession(sessionId)) { setData(null); setError(extractApiErrorMessage(e, copy("Family connections could not load. Please try again.", "ოჯახური კავშირები ვერ ჩაიტვირთა. სცადეთ ხელახლა."))); } })
+        }).catch(e => { if (!abort.signal.aborted && isCurrentAuthSession(sessionId)) { setData(null); setLoadFailure({ cause: e }); } })
             .finally(() => { if (!abort.signal.aborted && isCurrentAuthSession(sessionId)) setLoading(false); });
         return () => abort.abort();
     }, [sessionId, revision, tick]);
@@ -73,12 +75,13 @@ export function FamilyRelationships({ revision = 0, onChanged, compact = false, 
     };
     const pending = (data?.consentRequests.filter(r => r.canRespond).length ?? 0) + (data?.invitations.filter(i => i.canRespond).length ?? 0);
     const open = !compact || (expanded ?? (pending > 0 || data?.children.length === 0));
+    const shownError = error || (loadFailure ? extractApiErrorMessage(loadFailure.cause, copy("Family connections could not load. Please try again.", "ოჯახური კავშირები ვერ ჩაიტვირთა. სცადეთ ხელახლა.")) : '');
     return <section className={`family-connections parent-panel${compact ? ' family-connections-compact' : ''}${selectedChildId ? ' family-selected-connections' : ''}`} aria-label={copy("Family connections", "ოჯახური კავშირები")}>
         {compact && <button type="button" className="family-connection-toggle" aria-expanded={open} aria-controls="family-connection-content" onClick={() => setExpanded(!open)}><HeartHandshake size={20}/><span><strong>{copy("Family connections", "ოჯახური კავშირები")}</strong><small>{pending ? copy(`${pending} ${pending === 1 ? 'request needs' : 'requests need'} your review`, `${pending} მოთხოვნა განსახილველია`) : copy("Guardians, club consent & account connections", "მეურვეები, კლუბის თანხმობა და ანგარიშები")}</small></span>{pending > 0 && <b>{pending}</b>}<ChevronDown size={18}/></button>}
-        {compact && error && <p role="alert" className="family-error">{error}</p>}
+        {compact && shownError && <p role="alert" className="family-error">{shownError}</p>}
         <div id="family-connection-content" hidden={!open}>
         <div className="family-heading"><div><h2>{copy("Family connections", "ოჯახური კავშირები")}</h2><p>{copy("Manage guardians and club participation. Your family connection stays with your child.", "მართეთ მეურვეები და კლუბში მონაწილეობა. ოჯახური კავშირი რჩება ბავშვთან.")}</p></div><button type="button" className="parent-button" disabled={loading || busy} onClick={() => setTick(v => v + 1)}>{copy("Refresh connections", "კავშირების განახლება")}</button></div>
-        {!compact && error && <p role="alert" className="family-error">{error}</p>}
+        {!compact && shownError && <p role="alert" className="family-error">{shownError}</p>}
         {notice && <p role="status" className="family-notice">{notice}</p>}
         {loading && !data && <p role="status">{copy("Loading family connections…", "ოჯახური კავშირები იტვირთება…")}</p>}
         {confirm && <div className="family-confirm" ref={confirmation} tabIndex={-1} role="group" aria-label={copy("Confirm family change", "ოჯახური ცვლილების დადასტურება")}><p>{confirm.message}</p><div className="family-actions"><button className="parent-button" type="button" disabled={busy} onClick={() => void run(confirm.path, confirm.body)}>{copy("Confirm change", "ცვლილების დადასტურება")}</button><button className="parent-button" type="button" disabled={busy} onClick={() => setConfirm(null)}>{copy("Keep current arrangement", "მიმდინარე მდგომარეობის შენარჩუნება")}</button></div></div>}

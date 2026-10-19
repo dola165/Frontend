@@ -1,3 +1,5 @@
+/* Global styles only: design tokens, resets, a few colour utilities, the app shell (App.tsx) and the home
+   feed theme. Feature and component styles live in a stylesheet next to the component that imports it. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap');
 @import "tailwindcss";
 @import './styles/theme.css';
@@ -800,6 +802,9 @@
     align-items: start;
   }
 
+  /* Schedule board and calendar tutorial (components/schedule: ScheduleGrid, CalendarTutorial).
+     They move next to those components when the schedule files are split. */
+
   /* Tutorial spotlight highlight ring */
   .tutorial-highlight {
     position: relative;
@@ -893,7 +898,6 @@
     --schedule-item-accent-soft: var(--schedule-accent-blue-soft);
     --schedule-item-accent-border: var(--schedule-accent-blue-border);
   }
-
 }
 
 /* Semantic shortcut colours stay consistent across the feed and its composer. */

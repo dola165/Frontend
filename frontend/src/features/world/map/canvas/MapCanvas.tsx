@@ -65,7 +65,8 @@ export function MapCanvas({ mapRef, initialView, children, overlay, cursor, embe
                     scrollZoom={!embedded}
                     dragRotate={!embedded}
                     cursor={cursor}
-                    onError={event => { if (!event.target.getStyle()?.layers?.length) setUnavailable(true); }}
+                    // No target when the map could not be created at all (MapLibre 6 needs WebGL2).
+                    onError={event => { if (!event.target?.getStyle()?.layers?.length) setUnavailable(true); }}
                     onLoad={event => {
                         if (isAndroidApp || embedded || window.innerWidth < 700) {
                             // Keep attribution behind its standard toggle so it never covers controls on first load.

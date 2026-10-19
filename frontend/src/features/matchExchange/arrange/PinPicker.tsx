@@ -1,6 +1,7 @@
 import { useMatchCopy } from '../copy';
 import { useRef, useState } from 'react';
 import Map, { Marker, NavigationControl, type MapRef } from 'react-map-gl/maplibre';
+import { maplibreWorkerUrl } from '../../../components/map/maplibreWorker';
 import { MapPin } from 'lucide-react';
 import { geocodePlace } from '../../../api/map';
 import { MAP_STYLE_DEFAULT } from '../../../components/map/mapLayers';
@@ -37,7 +38,7 @@ export default function PinPicker({ latitude, longitude, onChange }: { latitude:
                 <Chip key={`${place.name}:${place.latitude}`} onClick={() => { map.current?.flyTo({ center: [place.longitude, place.latitude], zoom: 13 }); setPlaces([]); }}>{place.name}</Chip>
             ))}</div>}
             <div className="gk-arrange__map">
-                <Map ref={map} initialViewState={{ latitude: latitude ? Number(latitude) : TBILISI.latitude, longitude: longitude ? Number(longitude) : TBILISI.longitude, zoom: latitude ? 14 : 11 }}
+                <Map ref={map} workerUrl={maplibreWorkerUrl} initialViewState={{ latitude: latitude ? Number(latitude) : TBILISI.latitude, longitude: longitude ? Number(longitude) : TBILISI.longitude, zoom: latitude ? 14 : 11 }}
                     mapStyle={MAP_STYLE_DEFAULT} onClick={event => pin(event.lngLat.lat, event.lngLat.lng)}
                     onError={() => setNotice(t("The map could not load. Enter the coordinates below instead."))}>
                     <NavigationControl showCompass={false} />

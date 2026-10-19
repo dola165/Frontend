@@ -1,6 +1,7 @@
 import { visualColors } from '../../styles/visualColors';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Map, { Layer, Marker, NavigationControl, Source, type MapRef } from 'react-map-gl/maplibre';
+import { maplibreWorkerUrl } from '../../components/map/maplibreWorker';
 import type { StyleSpecification } from 'maplibre-gl';
 import { ArrowLeft, Footprints, LocateFixed, MapPin, X } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
@@ -47,7 +48,7 @@ export function FacilityDirectionsPanel({ clubId, facilityId, title, address, on
         {manual&&<p className="fj-location-note">Arrival point chosen by you for this walk.</p>}
         {!destination&&<div className="fj-location-options"><strong>{location?.matches.length?'Choose the correct address':'The club has not pinned this entrance yet'}</strong>{location?.matches.map((p,i)=><button className="cp-button" key={i} onClick={()=>point(p)}><MapPin size={15}/>{p.label}</button>)}<button className="cp-button" onClick={()=>setPick('destination')}>Choose arrival point on map</button></div>}
         <div className="fj-map" aria-label="Walking route map">
-          <Map ref={map} initialViewState={{longitude:destination?.[0]??location?.area?.longitude??0,latitude:destination?.[1]??location?.area?.latitude??20,zoom:destination?15:location?.area?12:2}} mapStyle={style??MAP_STYLE_DEFAULT} dragRotate={false} touchPitch={false} maxPitch={0} onLoad={fit} onIdle={()=>{if(map.current?.areTilesLoaded()){setMapReady(true);setMapError(false);}}} onError={()=>setMapError(true)} onClick={e=>{if(pick==='start'){locationAttempt.current++;setLocating(false);setOrigin([e.lngLat.lng,e.lngLat.lat]);}if(pick==='destination'){setDestination([e.lngLat.lng,e.lngLat.lat]);setManual(true);}setPick(null);}} cursor={pick?'crosshair':undefined} style={{width:'100%',height:'100%'}}>
+          <Map ref={map} workerUrl={maplibreWorkerUrl} initialViewState={{longitude:destination?.[0]??location?.area?.longitude??0,latitude:destination?.[1]??location?.area?.latitude??20,zoom:destination?15:location?.area?12:2}} mapStyle={style??MAP_STYLE_DEFAULT} dragRotate={false} touchPitch={false} maxPitch={0} onLoad={fit} onIdle={()=>{if(map.current?.areTilesLoaded()){setMapReady(true);setMapError(false);}}} onError={()=>setMapError(true)} onClick={e=>{if(pick==='start'){locationAttempt.current++;setLocating(false);setOrigin([e.lngLat.lng,e.lngLat.lat]);}if(pick==='destination'){setDestination([e.lngLat.lng,e.lngLat.lat]);setManual(true);}setPick(null);}} cursor={pick?'crosshair':undefined} style={{width:'100%',height:'100%'}}>
             <NavigationControl position="bottom-right" showCompass={false}/>
             {destination&&<Marker longitude={destination[0]} latitude={destination[1]} anchor="bottom"><span className="fj-map-pin" aria-label="Training location"><MapPin size={27}/></span></Marker>}
             {origin&&<Marker longitude={origin[0]} latitude={origin[1]}><span className="fj-map-start" aria-label="Your starting point"/></Marker>}

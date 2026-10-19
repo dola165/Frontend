@@ -1,6 +1,7 @@
 import { conversationName, useMessageCopy } from '../components/chat/messageCopy';
 import { useChatPeopleSearch } from '../components/chat/useChatPeopleSearch';
 import { PeopleSearchStatus } from '../components/chat/PeopleSearchStatus';
+import './messaging.css';
 import '../features/squadCommunication/squad-life.css';
 import { MessageActions } from '../components/chat/MessageActions';
 import { ConversationIntakeContext } from '../components/chat/ConversationIntakeContext';

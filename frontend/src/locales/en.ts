@@ -215,12 +215,6 @@ const en = {
       OTHER: 'Other',
     },
   },
-  marketplace: {
-    emptyCta: 'Browse clubs',
-  },
-  needs: {
-    emptyCta: 'Browse clubs',
-  },
   search: {
     placeholder: 'Search people, clubs, events…',
     ariaLabel: 'Global search',

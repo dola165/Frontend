@@ -1,6 +1,7 @@
 import { EmptyState as WorkflowEmptyState } from '../ui/EmptyState';
 import { Inbox, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import './workspace-shell.css';
 
 export const avatarLetter = (value?: string | null) => (value?.trim()?.charAt(0) || '?').toUpperCase();
 

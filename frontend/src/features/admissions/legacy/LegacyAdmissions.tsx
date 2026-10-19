@@ -13,7 +13,7 @@ export function LegacyAdmissions({sessionId,organizationId,playerId,onChanged,vi
  const [showAll,setShowAll]=useState(false);const filterId=useId();const review=tasks.filter(t=>t.state==='REVIEW');const visible=view==='history'?tasks:view==='review'?review:organizationId&&!showAll?review:tasks;
  const sequence=useRef(0);const scope=`${sessionId}:${organizationId}:${playerId}`;const [dataScope,setDataScope]=useState(scope);
  const load=useCallback(async()=>{const seq=++sequence.current;setLoading(true);try{const rows=await fetchLegacyTasks(sessionId,organizationId,playerId);if(!Array.isArray(rows))throw new Error('Existing request response is incomplete. Reload to continue.');if(seq===sequence.current){setTasks(rows);setDataScope(scope);setError('');}}catch(e){if(seq===sequence.current){setTasks([]);setError(extractApiErrorMessage(e,'Could not load existing requests.'));}}finally{if(seq===sequence.current)setLoading(false);}},[sessionId,organizationId,playerId,scope]);
- useEffect(()=>{void load();return()=>{sequence.current++;};},[load]);
+ useEffect(()=>{const requests=sequence;void load();return()=>{requests.current++;};},[load]);
  if(error)return <section className="admission-panel"><p role="alert">{error}</p><button type="button" className="admission-button" onClick={()=>void load()}>{copy('Reload existing requests','არსებული მოთხოვნების განახლება')}</button></section>;
  if(loading||dataScope!==scope)return <p role="status">{copy('Loading existing requests…','არსებული მოთხოვნების ჩატვირთვა…')}</p>;
  if(!tasks.length||view==='review'&&!review.length)return null;

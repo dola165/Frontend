@@ -1,4 +1,5 @@
 import { type CSSProperties, type PropsWithChildren, useEffect, useRef, useState } from 'react';
+import './landing.css';
 
 interface LandingRevealProps extends PropsWithChildren {
     className?: string;

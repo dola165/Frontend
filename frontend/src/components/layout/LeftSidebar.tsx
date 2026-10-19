@@ -12,6 +12,7 @@ import { WorkspaceAccess } from './FootballActivity';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { CreateCard } from '../../features/pages/create/CreateLink';
 import { hasOwnPage } from '../../features/pages/create/entry';
+import './side-links.css';
 
 interface LeftSidebarProps {
   embedded?: boolean;

@@ -1,4 +1,5 @@
 import { type PropsWithChildren, useEffect, useRef } from 'react';
+import './landing.css';
 
 interface LandingParallaxProps extends PropsWithChildren {
     className?: string;

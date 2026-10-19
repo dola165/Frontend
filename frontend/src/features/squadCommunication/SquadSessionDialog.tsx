@@ -64,17 +64,18 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
     const [replyRequests, setReplyRequests] = useState(new Map<number, UncertainReply>());
     const [replyRecoveryErrors, setReplyRecoveryErrors] = useState(new Set<number>());
     const [recovered, setRecovered] = useState(false);
+    const { session: replySession, squadId: replySquadId } = event;
     useEffect(() => {
         const scope = replyScope(), pending = new Map<number, UncertainReply>(), unreadable = new Set<number>();
-        if (scope && event.session && event.squadId) for (const person of event.session.attendance) {
+        if (scope && replySession && replySquadId) for (const person of replySession.attendance) {
             try {
-                const command = readUncertainReply(scope, event.squadId, event.session.id, person.id);
+                const command = readUncertainReply(scope, replySquadId, replySession.id, person.id);
                 if (command) pending.set(person.id, command);
             } catch (e) { unreadable.add(person.id); setError(extractApiErrorMessage(e, 'The earlier reply could not be recovered.')); }
         }
         setReplyRequests(pending);
         setReplyRecoveryErrors(unreadable);
-    }, [authSessionId, event.squadId, event.session?.id, event.session?.attendance]);
+    }, [authSessionId, replySquadId, replySession]);
     const sendReply = async (command: UncertainReply) => {
         requireReplyScope(command);
         await api.attendance(command.squadId, command.occurrenceId, command.playerId, command.response, command.revision, command.requestId, command.sessionId, command.reason);

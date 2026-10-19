@@ -1,6 +1,7 @@
 import { BriefcaseBusiness, ChevronRight, Coins, Shirt } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
+import './opportunity-link.css';
 
 const categories = {
     store: { label: ['Store', 'მაღაზია'], icon: Shirt },

@@ -1,4 +1,5 @@
 import { useSyncExternalStore, type ReactNode } from 'react';
+import '../../../components/workspace/workspace-shell.css';
 import '../../../components/workspace/workspace-design-theme.css';
 
 // The app sets the theme class on <html> after it renders, so the island follows the class itself

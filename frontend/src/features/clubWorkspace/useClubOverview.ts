@@ -19,6 +19,8 @@ export function useClubOverview(clubId: number) {
     const [overview, setOverview] = useState<ClubManagementOverview | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // Refused rather than failed: retrying cannot help, so the page says who the workspace is for.
+    const [forbidden, setForbidden] = useState(false);
     const overviewRequest = useRef(0);
     const [club, setClub] = useState<{ name: string | null; logoUrl: string | null }>({ name: null, logoUrl: null });
     const [events, setEvents] = useState<ScheduleEventOccurrence[]>([]);
@@ -30,11 +32,15 @@ export function useClubOverview(clubId: number) {
         const request = ++overviewRequest.current;
         setLoading(true);
         setError(null);
+        setForbidden(false);
         try {
             const response = await fetchClubManagementOverview(clubId);
             if (request === overviewRequest.current) setOverview(response);
         } catch (failure) {
-            if (request === overviewRequest.current) setError(extractApiErrorMessage(failure, 'Failed to load club management data.'));
+            if (request === overviewRequest.current) {
+                setError(extractApiErrorMessage(failure, 'Failed to load club management data.'));
+                setForbidden((failure as { response?: { status?: number } } | null)?.response?.status === 403);
+            }
         } finally {
             if (request === overviewRequest.current) setLoading(false);
         }
@@ -73,7 +79,7 @@ export function useClubOverview(clubId: number) {
     }, [clubId, reload, reloadSchedule]);
 
     return {
-        overview, loading, error, reload,
+        overview, loading, error, forbidden, reload,
         clubName: club.name, clubLogoUrl: club.logoUrl,
         schedule: { events, loading: scheduleLoading, error: scheduleError, retry: () => { void reloadSchedule(); } },
     };

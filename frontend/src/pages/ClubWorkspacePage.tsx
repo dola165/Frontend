@@ -36,7 +36,7 @@ import { useWorkspacePins } from '../features/clubWorkspace/useWorkspacePins';
 import { parseWorkspaceTab, type WorkspaceTab } from '../components/workspace/types';
 import { useAuth } from '../context/AuthContext';
 import { WorkspaceShell } from '../design/workspace/WorkspaceShell';
-import { Button, EmptyNote, PageFrame, Skeleton } from '../design/primitives';
+import { Button, ButtonLink, EmptyNote, PageFrame, Skeleton } from '../design/primitives';
 import { getStoredUserId, type AuthSessionId } from '../utils/authStorage';
 import '../features/clubWorkspace/club-workspace.css';
 
@@ -177,6 +177,7 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
 
     let content: ReactNode;
     if (loading) content = <PageFrame className="cw-page"><div className="cw-loading" role="status" aria-label="Loading the workspace"><Skeleton height={34} width="40%" /><Skeleton height={18} width="25%" /><Skeleton height={96} /><Skeleton height={280} /></div></PageFrame>;
+    else if (failed && club.forbidden) content = <PageFrame className="cw-page"><EmptyNote title="Only this club’s staff can open its workspace" action={<ButtonLink to={`/clubs/${clubId}`}>Club page</ButtonLink>}>The club page shows its teams, news and how to get involved.</EmptyNote></PageFrame>;
     else if (failed) content = <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{club.error}</span><Button size="sm" onClick={() => { void club.reload(); }}>Try again</Button></div></PageFrame>;
     else if (activeTab === 'overview') content = <ClubOverview key={overviewRevision} clubId={clubId} clubName={club.clubName ?? operations.boot?.clubName ?? null} overview={overview} roles={roles} boot={operations.boot}
         schedule={{ ...club.schedule, open: openCalendar, openEvent }} unreadInbox={inbox.unreadCount} inboxAllowed={canReadInbox} tryoutPending={membership.tryouts.pendingCount}
@@ -214,7 +215,7 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
             </div>}
             sectionTitle={current?.label ?? copy('workspace')}>
             {roles && operations.boot && <WorkspaceGuide boot={operations.boot} roles={roles} mode="club" onRefresh={async () => { await operations.refresh(); setOverviewRevision(value => value + 1); }} suspended={!['overview', 'actions'].includes(activeTab)} />}
-            <WorkspaceNotices error={membership.errorMessage} success={membership.successMessage} rolesError={workspaceRoles.error || null}
+            <WorkspaceNotices error={membership.errorMessage} success={membership.successMessage} rolesError={failed && club.forbidden ? null : workspaceRoles.error || null}
                 onDismissError={() => membership.setErrorMessage(null)} onDismissSuccess={() => membership.setSuccessMessage(null)} onRetryRoles={workspaceRoles.refresh} />
             {!loading && readOnly(activeTab) && <ViewOnlyNote onAsk={askAccess} />}
             {content}

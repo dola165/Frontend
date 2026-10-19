@@ -29,16 +29,16 @@ function Editor({ clubId, part }: { clubId: number; part: Part }) {
     const [profile, setProfile] = useState<ClubPresentation | null>(null);
     const [error, setError] = useState(''), [message, setMessage] = useState('');
     const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [uploading, setUploading] = useState(false), [dirty, setDirty] = useState(false);
-    const [attempt, setAttempt] = useState(0);
+    const [attempt, setAttempt] = useState(0), [forbidden, setForbidden] = useState(false);
     const [query, setQuery] = useState(''), [matches, setMatches] = useState<Array<{ id: number; name: string }>>([]), [searchError, setSearchError] = useState('');
     const [squads, setSquads] = useState<Array<{ id: number; name: string }>>([]);
     const active = useRef(true), submitting = useRef(false);
     // Leaving with unsaved edits (another settings section, a rail item, the club page) asks first.
     const { confirmation } = useClubEditorClose(dirty, busy || uploading, () => undefined);
     useEffect(() => {
-        let current = true; active.current = true; setLoading(true); setError('');
+        let current = true; active.current = true; setLoading(true); setError(''); setForbidden(false);
         void apiClient.get<ClubPresentation>(`/clubs/${clubId}/presentation/manage`).then(r => { if (current) { setProfile(r.data); setDirty(false); } })
-            .catch(e => { if (current) setError(extractApiErrorMessage(e, 'Could not load profile settings.')); })
+            .catch(e => { if (current) { setError(extractApiErrorMessage(e, 'Could not load profile settings.')); setForbidden(e?.response?.status === 403); } })
             .finally(() => { if (current) setLoading(false); });
         return () => { current = false; active.current = false; };
     }, [clubId, attempt]);
@@ -81,6 +81,7 @@ function Editor({ clubId, part }: { clubId: number; part: Part }) {
     };
 
     if (loading) return <div className="cw-loading" role="status" aria-label="Loading public profile settings"><Skeleton height={48} /><Skeleton height={220} /></div>;
+    if (!profile && forbidden) return <EmptyNote title="Only club owners and administrators can edit this profile" />;
     if (!profile) return <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={() => setAttempt(a => a + 1)}>Retry profile settings</Button></div>;
     if (!profile.canEdit) return <EmptyNote title="Only club owners and administrators can edit this profile" />;
     const own = profile.canManageAffiliations === true;

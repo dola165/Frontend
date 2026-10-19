@@ -28,6 +28,14 @@ it('rejects unsafe public links', () => {
     expect(safePublicUrl('https://user:password@example.com')).toBeUndefined();
 });
 
+it('tells someone outside the club leadership who may edit instead of offering a retry', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue({ response: { status: 403, data: { error: 'You do not have permission to perform this action.' } } });
+    render(editor());
+    expect(await screen.findByText('Only club owners and administrators can edit this profile')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry profile settings' })).not.toBeInTheDocument();
+});
+
 it('does not expose a save form after a failed initial load', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new Error('Offline'));
     render(editor());

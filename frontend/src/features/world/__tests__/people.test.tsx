@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { AxiosError, AxiosHeaders } from 'axios';
+import { AxiosError, AxiosHeaders, type AxiosRequestConfig } from 'axios';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../../api/axiosConfig';
@@ -115,7 +115,7 @@ describe('referees', () => {
         location_lat: 41.7631, location_lng: 44.7712, location_name: 'Dinamo Academy Training Centre', referee_responsibility: 'HOST', can_arrange_official: true };
     const centres: Record<string, [number, number]> = { Tbilisi: [41.7151, 44.8271], Rustavi: [41.5495, 45.0012], Kutaisi: [42.2679, 42.6946] };
     function server(referees: ReturnType<typeof referee>[], club: number[] = []) {
-        get.mockImplementation(async (url: string, config?: { params?: Record<string, unknown> }) => {
+        get.mockImplementation(async (url: string, config?: AxiosRequestConfig) => {
             if (url === '/referees') return { data: { items: referees, total: referees.length, pageSize: 24, params: config?.params } };
             if (url.startsWith('/referees/club-squad/')) return { data: referees.filter(item => club.includes(item.user_id)) };
             if (url === '/match-exchange/5823') return { data: match };

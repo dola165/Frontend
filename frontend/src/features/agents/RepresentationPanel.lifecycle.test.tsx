@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { AxiosRequestConfig } from 'axios';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../api/axiosConfig';
@@ -16,7 +17,7 @@ describe('RepresentationPanel lifecycle',()=>{
     beforeEach(()=>{
         vi.clearAllMocks();
         vi.mocked(useAuth).mockReturnValue({sessionId:'player-session',status:'authenticated',user:{id:8,role:'PLAYER',username:'pia'}} as ReturnType<typeof useAuth>);
-        vi.mocked(apiClient.get).mockImplementation((url:string,config?:{params?:{page?:number;generation?:number}})=>Promise.resolve({data:url.endsWith('/history')?{items:config?.params?.page===1?[{...history,id:40,recordKey:'request:40',message:'Older proposal'}]:[history],page:config?.params?.page??0,size:50,total:51,hasMore:(config?.params?.page??0)===0}:url.includes('/representations/91')?endedLegacy:[legacy,history]}));
+        vi.mocked(apiClient.get).mockImplementation((url:string,config?:AxiosRequestConfig)=>Promise.resolve({data:url.endsWith('/history')?{items:config?.params?.page===1?[{...history,id:40,recordKey:'request:40',message:'Older proposal'}]:[history],page:config?.params?.page??0,size:50,total:51,hasMore:(config?.params?.page??0)===0}:url.includes('/representations/91')?endedLegacy:[legacy,history]}));
         vi.mocked(apiClient.patch).mockResolvedValue({data:{...legacy,status:'FORMER'}});
     });
 

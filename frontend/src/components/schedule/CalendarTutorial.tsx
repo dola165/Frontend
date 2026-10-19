@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-
-const STORAGE_KEY = 'tutorial.calendar.completed';
+import { completeTutorial } from '../../features/preferences/preferencesStore';
+import { getStoredUserId } from '../../utils/authStorage';
 
 interface TutorialStep {
     target: string;
@@ -221,7 +221,9 @@ export const CalendarTutorial = ({ onComplete, canCreate = true }: { onComplete:
     const handleBack = () => { setStepIndex((s) => Math.max(0, s - 1)); };
 
     const finish = () => {
-        localStorage.setItem(STORAGE_KEY, 'true');
+        // Seen once is seen on every device: kept with the person's preferences.
+        const userId = Number(getStoredUserId());
+        if (userId > 0) completeTutorial(userId, 'calendar');
         setVisible(false);
         onComplete();
     };
@@ -246,6 +248,3 @@ export const CalendarTutorial = ({ onComplete, canCreate = true }: { onComplete:
         </div>
     );
 };
-
-/** Check whether the calendar tutorial has been completed. */
-export const isTutorialCompleted = (): boolean => localStorage.getItem(STORAGE_KEY) === 'true';

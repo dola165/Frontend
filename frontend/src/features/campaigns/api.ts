@@ -60,7 +60,7 @@ export interface CampaignPage { content: Campaign[]; totalElements: number }
 export const fetchCampaigns = async (params: CampaignQuery, signal?: AbortSignal) => (await apiClient.get<CampaignPage>('/campaigns', { params, signal })).data;
 export const fetchCampaign = async (id: number, signal?: AbortSignal) => (await apiClient.get<Campaign>(`/campaigns/${id}`, { signal })).data;
 export const fetchCampaignLocations = async (clubId?: number, signal?: AbortSignal) => (await apiClient.get<{ country: string; city: string | null }[]>('/campaigns/locations', { params: { clubId }, signal })).data;
-/** The fundraising front page in one request. Backend needed: GET /campaigns/front?near=City. */
+/** The fundraising front page in one request: GET /campaigns/front?near=City. */
 export interface FundraisingFront { city: string | null; near: Campaign[]; closest: Campaign[]; followed: Campaign[]; fresh: Campaign[]; active: number; raised: number }
 export const fetchFundraisingFront = async (near: string | undefined, signal?: AbortSignal) => (await apiClient.get<FundraisingFront>('/campaigns/front', { params: { near }, signal })).data;
 

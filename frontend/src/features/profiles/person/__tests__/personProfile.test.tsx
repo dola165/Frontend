@@ -111,6 +111,16 @@ describe('work and skills recovery', () => {
         expect(reads('/posts/user/30')).toHaveLength(1); readonly();
     });
 
+    it('opens a profile whose answer leaves out zero counts, false flags and empty lists', async () => {
+        const sparse: Record<string, unknown> = { ...player, followingCount: 1, footballProfile: { roles: ['PLAYER'] } };
+        for (const key of ['followerCount', 'isFollowedByMe', 'roleProfiles', 'isPrivate']) delete sparse[key];
+        vi.mocked(apiClient.get).mockImplementation(async path => ({ data: path === '/users/30' ? sparse : path === '/posts/user/30' ? { posts: [] } : [] }));
+        await mountProfile('en');
+        expect(await screen.findByRole('button', { name: /^0\s*followers$/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^1\s*following$/ })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /^Saba Lomidze/ })).toBeInTheDocument();
+    });
+
     it('retires a captured retry and late response when navigation opens a different profile', async () => {
         const old = later<{ data: Profession[] }>(); let oldAttempts = 0;
         vi.mocked(apiClient.get).mockImplementation(async path => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchClubSchedule, type ScheduleEventOccurrence } from '../schedule/api';
+import { localDateTime } from '../schedule/board/scheduleRange';
 import type { ScheduleWorkspaceEvent } from '../../components/schedule/workspaceTypes';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import * as api from './api';
@@ -38,6 +39,9 @@ function assignedEvent(event: ScheduleEventOccurrence, squad: CalendarSquad): Sq
         mapEligible: false, appearsOnMap: event.publicNow, conflictingEventIds: event.conflictingEventIds ?? [] };
 }
 
+/** A day alone is local midnight; anything else is read as written (with or without an offset). */
+const wallTime = (value: string) => localDateTime(new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value));
+
 /**
  * Read the existing sources. Never copy sessions into personal or club event tables.
  * `poll` keeps an open schedule current every few seconds; a summary (Home) refreshes on focus only.
@@ -54,8 +58,9 @@ export function useSquadSchedule(squads: CalendarSquad[], from: string, to: stri
             if (inFlight || abort.signal.aborted) return;
             inFlight = true;
             try {
-                // Sessions store instants; the legacy club feed uses local calendar boundaries.
+                // Sessions store instants; the legacy club feed takes local wall times without an offset. Callers pass either form.
                 const window = { from: new Date(from).toISOString(), to: new Date(to).toISOString(), ...(playerId == null ? {} : { playerId }) };
+                const local = { from: wallTime(from), to: wallTime(to) };
                 // Each squad's sessions load on their own (F06): one failure leaves the others in view, named in the error.
                 const settled = await Promise.allSettled(selected.map(async squad => (await api.sessions(squad.id, abort.signal, window))
                     .filter(session => playerId == null || session.attendance.some(p => p.id === playerId && p.active !== false))
@@ -65,7 +70,7 @@ export function useSquadSchedule(squads: CalendarSquad[], from: string, to: stri
                 const sessions = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
                 // Club feeds can be unavailable to a family; squad sessions must still load.
                 const clubs = [...new Set(selected.flatMap(squad => squad.club_id ? [squad.club_id] : []))];
-                const feeds = await Promise.allSettled(clubs.map(id => fetchClubSchedule(id, from, to, abort.signal)));
+                const feeds = await Promise.allSettled(clubs.map(id => fetchClubSchedule(id, local.from, local.to, abort.signal)));
                 const connectedFeeds = await Promise.allSettled(selected.map(squad => apiClient.get<ScheduleEventOccurrence[]>(`/match-arrangements/squads/${squad.id}/fixtures`, { params: { from: window.from, to: window.to }, signal: abort.signal, timeout: 15000 }).then(r => r.data)));
                 const connected = connectedFeeds.flatMap(feed => feed.status === 'fulfilled' ? [feed.value] : []);
                 const connectedIds = new Set(connected.flat().map(e => e.eventId));

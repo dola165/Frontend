@@ -32,6 +32,27 @@ export interface PersonProfile {
     isPrivate?: boolean;
 }
 
+// Counts, flags and lists can be missing from older API answers; a gap must not take the page down.
+const count = (value: unknown): number => {
+    if (value === undefined || value === null) return 0;
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new Error('The profile response contains an invalid count.');
+    return value;
+};
+const list = <T,>(value: T[] | null | undefined): T[] => Array.isArray(value) ? value : [];
+
+export const readPersonProfile = (value: PersonProfile): PersonProfile => ({
+    ...value,
+    followerCount: count(value.followerCount),
+    followingCount: count(value.followingCount),
+    isFollowedByMe: value.isFollowedByMe === true,
+    isPrivate: value.isPrivate === true,
+    roleProfiles: list(value.roleProfiles),
+    careerHistory: list(value.careerHistory),
+    footballProfile: value.footballProfile && { ...value.footballProfile, appointments: list(value.footballProfile.appointments), entries: list(value.footballProfile.entries) },
+});
+export const fetchPersonProfile = async (id: number, signal?: AbortSignal) =>
+    readPersonProfile((await apiClient.get<PersonProfile>(`/users/${id}`, { signal })).data);
+
 export type Verification = 'SELF_REPORTED' | 'CLUB_CONFIRMED' | 'DOCUMENT_CHECKED';
 
 /**

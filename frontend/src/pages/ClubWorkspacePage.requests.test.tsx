@@ -55,6 +55,14 @@ it.each(['OWNER', 'CLUB_ADMIN', 'COACH'] as const)('loads the authorized %s inbo
     expect(fetchNotifications).toHaveBeenCalledTimes(1);
 });
 
+it('tells a member without staff access who the workspace is for and links the club page', async () => {
+    vi.mocked(fetchClubManagementOverview).mockRejectedValue({ response: { status: 403, data: { error: 'You do not have permission to perform this action.' } } });
+    view();
+    expect(await screen.findByText('Only this club’s staff can open its workspace')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Club page' })).toHaveAttribute('href', '/clubs/1');
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+});
+
 it('cancels pending inbox work when the account is retired', async () => {
     vi.mocked(fetchClubManagementOverview).mockResolvedValue(overview('OWNER'));
     vi.mocked(fetchUnreadNotificationCount).mockReturnValue(new Promise(() => {}));

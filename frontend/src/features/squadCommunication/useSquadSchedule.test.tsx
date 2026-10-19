@@ -4,6 +4,7 @@ import { useSquadSchedule } from './useSquadSchedule';
 import { sessions, type SquadSession } from './api';
 import { fetchClubSchedule, type ScheduleEventOccurrence } from '../schedule/api';
 import { apiClient } from '../../api/axiosConfig';
+import { localDateTime } from '../schedule/board/scheduleRange';
 
 vi.mock('./api', () => ({ sessions: vi.fn() }));
 vi.mock('../schedule/api', () => ({ fetchClubSchedule: vi.fn() }));
@@ -89,6 +90,16 @@ it('carries Exchange origin and canonical event identity into the squad calendar
     const { result } = renderHook(() => useSquadSchedule(squads, '2026-09-14', '2026-09-21'));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.events.find(e => e.eventId === 82)).toMatchObject({ origin: 'MATCH_EXCHANGE', originId: 82, eventId: 82 });
+});
+
+it('asks the club feed for local wall times whether it is given instants or local days', async () => {
+    renderHook(() => useSquadSchedule(squads, '2026-09-13T20:00:00.000Z', '2026-09-20T20:00:00.000Z'));
+    await waitFor(() => expect(fetchClubSchedule).toHaveBeenCalled());
+    expect(vi.mocked(fetchClubSchedule).mock.calls[0].slice(1, 3)).toEqual([localDateTime(new Date('2026-09-13T20:00:00.000Z')), localDateTime(new Date('2026-09-20T20:00:00.000Z'))]);
+    vi.mocked(fetchClubSchedule).mockClear();
+    renderHook(() => useSquadSchedule(squads, '2026-09-14', '2026-09-21'));
+    await waitFor(() => expect(fetchClubSchedule).toHaveBeenCalled());
+    expect(vi.mocked(fetchClubSchedule).mock.calls[0].slice(1, 3)).toEqual(['2026-09-14T00:00:00', '2026-09-21T00:00:00']);
 });
 
 it('requests the selected child and explicit instants, clearing siblings immediately', async () => {

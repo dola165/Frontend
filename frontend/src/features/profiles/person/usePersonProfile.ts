@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { profileRoles } from '../../roles/domain';
-import { fetchProfessions, type PersonProfile, type Profession } from '../api';
+import { fetchPersonProfile, fetchProfessions, type PersonProfile, type Profession } from '../api';
 
 /**
  * A person's profile, their professions and what the viewer may see and do.
@@ -19,8 +19,8 @@ export function usePersonProfile(id: number) {
 
     useEffect(() => {
         const controller = new AbortController();
-        void apiClient.get<PersonProfile>(`/users/${id}`, { signal: controller.signal })
-            .then(response => { if (!controller.signal.aborted) setResult({ key, id, profile: response.data, status: 'ready' }); })
+        void fetchPersonProfile(id, controller.signal)
+            .then(profile => { if (!controller.signal.aborted) setResult({ key, id, profile, status: 'ready' }); })
             .catch(error => { if (!controller.signal.aborted) setResult({ key, id, profile: null, status: error?.response?.status === 404 ? 'missing' : 'failed' }); });
         return () => controller.abort();
     }, [id, key]);

@@ -432,7 +432,8 @@ export function MainLayout() {
             <Route path="/clubs/create" element={<ProtectedRoute><CreateRedirect kind="CLUB" /></ProtectedRoute>} />
             <Route path="/my-organizations" element={<ProtectedRoute><MyOrganizationsPage /></ProtectedRoute>} />
             <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
-            <Route path="/join/:code" element={<ProtectedRoute><JoinPage /></ProtectedRoute>} />
+            {/* Public: the squad and club show before sign-in; asking to join signs in first. */}
+            <Route path="/join/:code" element={<JoinPage />} />
             <Route path="/invite/:code" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />

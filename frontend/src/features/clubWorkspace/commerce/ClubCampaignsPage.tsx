@@ -51,7 +51,7 @@ function ClubCampaigns({ clubId }: { clubId: number }) {
     const command = useCampaignCommand(clubId, saved => {
         setItems(current => [saved, ...(current ?? []).filter(item => item.id !== saved.id)]);
         clearForm(); setEditing(null); setUpdates(null); setFormError('');
-        setMessage(ct("Campaign saved.")); setReload(n => n + 1);
+        setMessage(ct(updates ? "Campaign update published." : "Campaign saved.")); setReload(n => n + 1);
     });
     const transition = async (campaign: Campaign, status: CampaignState) => {
         if (busy || command.attempt) return;

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
     Ban,
@@ -21,10 +21,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
     cancelScheduleEvent,
-    type DayOfWeek,
-    type ScheduleEventType,
     type ScheduleEventUpsertInput,
-    type ScheduleVisibility,
 } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useDialogFocus } from '../workspace/useDialogFocus';
@@ -34,6 +31,7 @@ import { apiClient } from '../../api/axiosConfig';
 import { durationMinutes, localDateISO, upcomingTrainingDates } from './scheduleFormUtils';
 import { eventTypeCopy } from './workspaceTypes';
 import { useMobileSchedule } from './useMobileSchedule';
+import { DAYS, TYPES, wallTime, weekday, type EventCreationFormValues, type EventCreationModalProps, type Issue } from './eventEditor/eventEditorModel';
 import './eventEditor/event-dialog.css';
 import './eventEditor/event-fields.css';
 import './eventEditor/event-review.css';
@@ -45,74 +43,7 @@ import './schedule-editor-identity.css';
 // The venue picker map and its library load only when someone opens the picker, not with every schedule page.
 const MiniMap = lazy(() => import('../MiniMap').then(module => ({ default: module.MiniMap })));
 
-export type ModalSurface = 'MY_SCHEDULE' | 'CLUB_SCHEDULE';
-export type ModalMode = 'create' | 'edit';
-export interface EventCreationFormValues {
-    eventType: ScheduleEventType | null;
-    title: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    endDate?: string;
-    isRecurring: boolean;
-    locationName: string;
-    locationLat: string;
-    locationLng: string;
-    visibility: ScheduleVisibility;
-    publishAt: string;
-    description?: string;
-    hostSquadId?: number | null;
-    opponentClubId?: number | null;
-    recurrenceDays?: DayOfWeek[];
-    recurrenceStartDate?: string;
-    recurrenceEndDate?: string;
-    recurrenceStartTime?: string;
-    recurrenceEndTime?: string;
-    recurrenceInterval?: number;
-    recurrenceTimezone?: string | null;
-}
-interface EventCreationModalProps {
-    audience?: {
-        privateInvitations: boolean;
-        privacyLabel: string;
-        saveLabel: string;
-        dirty: boolean;
-        ready: boolean;
-        planContent: ReactNode;
-        reviewContent: (form: EventCreationFormValues) => ReactNode;
-    };
-    fixedSquad?: boolean;
-    isOpen: boolean;
-    mode: ModalMode;
-    surface: ModalSurface;
-    initialValues: EventCreationFormValues;
-    clubId: number | null;
-    targetEventId?: number;
-    canManageSchedule?: boolean;
-    targetEventClubId?: number | null;
-    targetEventStartsAt?: string | null;
-    onCancelled?: () => void;
-    subjectLabel: string;
-    audienceNotice?: string;
-    onClose: () => void;
-    onSubmit: (
-        payload: ScheduleEventUpsertInput,
-        meta: { eventType: ScheduleEventType; recurring: boolean },
-    ) => Promise<void>;
-}
-const DAYS: { value: DayOfWeek; short: string; label: string }[] = [
-    { value: 'MONDAY', short: 'Mon', label: 'Monday' },
-    { value: 'TUESDAY', short: 'Tue', label: 'Tuesday' },
-    { value: 'WEDNESDAY', short: 'Wed', label: 'Wednesday' },
-    { value: 'THURSDAY', short: 'Thu', label: 'Thursday' },
-    { value: 'FRIDAY', short: 'Fri', label: 'Friday' },
-    { value: 'SATURDAY', short: 'Sat', label: 'Saturday' },
-    { value: 'SUNDAY', short: 'Sun', label: 'Sunday' },
-];
-const TYPES = (['TRAINING', 'MATCH', 'FRIENDLY', 'TRYOUT', 'ACTIVITY'] as const).map(value => ({ value, icon: eventTypeCopy[value].icon }));
-const wallTime = (date: string, time: string) => `${date}T${time.slice(0, 5)}:00`;
-const weekday = (date: string): DayOfWeek => DAYS[(new Date(`${date}T12:00:00`).getDay() + 6) % 7]?.value ?? 'MONDAY';
-type Issue = { step: number; field: string; message: string };
+export type { EventCreationFormValues, ModalMode, ModalSurface } from './eventEditor/eventEditorModel';
 
 export const EventCreationModal = (props: EventCreationModalProps) => props.isOpen ? <EventCreationContent {...props} /> : null;
 

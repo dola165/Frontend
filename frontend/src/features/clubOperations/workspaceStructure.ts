@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { TabItem, WorkspaceTab } from '../../components/workspace/types';
+import { updatePreferences, usePreferences, type WorkspacePreferences } from '../preferences/preferencesStore';
 import type { RoleView } from './useWorkspaceRoles';
 import { operationDescriptions, operationModule, operationTabs } from './workspaceNavigation';
 
@@ -66,30 +67,40 @@ export function focusTabs(views: RoleView[]): Set<WorkspaceTab> | 'all' {
   return tabs;
 }
 
+const NONE: string[] = [];
+
+/**
+ * One club workspace's saved rail choices for this person, from their preferences (shown at once from this device's
+ * copy, kept on the server). Without a signed-in person the choices last for this visit only.
+ */
+function useWorkspacePreference(club: number, user: number | null) {
+  const saved = usePreferences(user).workspaces?.[String(club)];
+  const [visit, setVisit] = useState<WorkspacePreferences>({});
+  const current = user ? saved ?? {} : visit;
+  const save = useCallback((change: WorkspacePreferences) => {
+    if (user) void updatePreferences(user, { workspaces: { [String(club)]: change } }).catch(() => undefined);
+    else setVisit(previous => ({ ...previous, ...change }));
+  }, [club, user]);
+  return [current, save] as const;
+}
+
 /**
  * Which approved responsibilities shape this person's navigation: a personal presentation
- * preference on this browser. It never grants or removes access; the server stays authoritative.
+ * preference. It never grants or removes access; the server stays authoritative.
  */
 export function useResponsibilityFocus(club: number, user: number | null, views: RoleView[]) {
-  const key = `gk-ws-focus:v1:${club}:${user ?? 'me'}`;
-  const [hidden, setHidden] = useState<string[]>(() => {
-    try { const value = JSON.parse(localStorage.getItem(key) ?? '[]'); return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []; } catch { return []; }
-  });
+  const [workspace, save] = useWorkspacePreference(club, user);
+  const hidden = workspace.hiddenResponsibilities ?? NONE;
   const available = useMemo(() => focusableViews(views), [views]);
   // Hiding everything would leave an empty rail, so at least one responsibility always stays on.
   const selectedViews = useMemo(() => { const shown = available.filter(view => !hidden.includes(view.id)); return shown.length ? shown : available; }, [available, hidden]);
   const selected = selectedViews.map(view => view.id);
   const tabs = useMemo(() => focusTabs(selectedViews), [selectedViews]);
-  const toggle = useCallback((id: string) => setHidden(previous => {
-    const next = previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id];
-    if (available.every(view => next.includes(view.id))) return previous;
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* The choice still applies for this visit. */ }
-    return next;
-  }), [available, key]);
-  const showAll = useCallback(() => {
-    setHidden([]);
-    try { localStorage.removeItem(key); } catch { /* The choice still applies for this visit. */ }
-  }, [key]);
+  const toggle = useCallback((id: string) => {
+    const next = hidden.includes(id) ? hidden.filter(value => value !== id) : [...hidden, id];
+    if (!available.every(view => next.includes(view.id))) save({ hiddenResponsibilities: next });
+  }, [available, hidden, save]);
+  const showAll = useCallback(() => save({ hiddenResponsibilities: [] }), [save]);
   return { available, selected, selectedViews, tabs, toggle, showAll };
 }
 export type ResponsibilityFocus = ReturnType<typeof useResponsibilityFocus>;
@@ -97,26 +108,15 @@ export type ResponsibilityFocus = ReturnType<typeof useResponsibilityFocus>;
 // ---------------------------------------------------------------- the person's own rail
 
 interface StoredLayout { tabs: string[]; areas: string[] }
-const readLayout = (key: string): StoredLayout => {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) ?? 'null') as Partial<StoredLayout> | null;
-    const list = (items: unknown) => Array.isArray(items) ? items.filter((id): id is string => typeof id === 'string') : [];
-    return { tabs: list(value?.tabs), areas: list(value?.areas) };
-  } catch { return { tabs: [], areas: [] }; }
-};
 
 /**
- * Which tools and areas this person has hidden from their rail, on this browser. Hiding moves a tool under
- * More tools; it never changes access, and the essentials cannot be hidden. (Pins and the responsibility focus
- * are stored the same way; a per-person layout on the server is a backend need, see BACKEND_NEEDS.md.)
+ * Which tools and areas this person has hidden from their rail, kept with their preferences. Hiding moves a tool
+ * under More tools; it never changes access, and the essentials cannot be hidden.
  */
 export function useWorkspaceLayout(club: number, user: number | null) {
-  const key = `gk-ws-layout:v1:${club}:${user ?? 'me'}`;
-  const [stored, setStored] = useState<StoredLayout>(() => readLayout(key));
-  const save = useCallback((next: StoredLayout) => {
-    setStored(next);
-    try { if (next.tabs.length || next.areas.length) localStorage.setItem(key, JSON.stringify(next)); else localStorage.removeItem(key); } catch { /* The choice still applies for this visit. */ }
-  }, [key]);
+  const [workspace, saveWorkspace] = useWorkspacePreference(club, user);
+  const stored = useMemo<StoredLayout>(() => ({ tabs: workspace.hiddenTabs ?? NONE, areas: workspace.hiddenAreas ?? NONE }), [workspace.hiddenTabs, workspace.hiddenAreas]);
+  const save = useCallback((next: StoredLayout) => saveWorkspace({ hiddenTabs: next.tabs, hiddenAreas: next.areas }), [saveWorkspace]);
   const hiddenTabs = useMemo(() => new Set(stored.tabs.filter(id => !essentialTabs.has(id as WorkspaceTab))), [stored.tabs]);
   const hiddenAreas = useMemo(() => new Set(stored.areas), [stored.areas]);
   const toggleTab = useCallback((id: WorkspaceTab) => {

@@ -15,6 +15,7 @@ import {
     type DragEndEvent,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import './schedule-grid.css';
 
 const SLOT_HEIGHT = 40;
 const TIMELINE_GUTTER_WIDTH = 64;

@@ -1,0 +1,85 @@
+/* Month and timeline boards (ScheduleGrid): scroll surface, cells, slots and the toned buttons.
+   Kept in the utilities layer, where they lived in index.css, so they rank exactly as before. */
+@layer utilities {
+  .schedule-scroll-surface {
+    scrollbar-width: none;
+  }
+
+  .schedule-scroll-surface::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .schedule-scroll-surface:hover,
+  .schedule-scroll-surface:focus-within {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  .schedule-scroll-surface:hover::-webkit-scrollbar,
+  .schedule-scroll-surface:focus-within::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .schedule-scroll-surface:hover::-webkit-scrollbar-thumb,
+  .schedule-scroll-surface:focus-within::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background-color: var(--border-strong);
+  }
+
+  .schedule-board-head {
+    background-color: var(--schedule-board-head);
+  }
+
+  .schedule-board-cell {
+    background-color: var(--schedule-board-cell);
+  }
+
+  .schedule-board-cell--muted {
+    background-color: var(--schedule-board-muted);
+  }
+
+  .schedule-slot-button {
+    background-color: var(--schedule-board-cell);
+  }
+
+  .schedule-slot-button:hover {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 8%, transparent), transparent 130%),
+      var(--schedule-card-muted);
+  }
+
+  .schedule-interactive {
+    border: 1px solid var(--border-subtle);
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  }
+
+  .schedule-interactive:hover,
+  .schedule-interactive[data-active='true'] {
+    border-color: var(--schedule-item-accent-border, var(--border-strong));
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 4%, transparent), transparent 130%),
+      var(--schedule-item-accent-soft, var(--schedule-card-muted));
+    color: var(--schedule-item-accent, var(--text-primary));
+    box-shadow: inset 0 0 0 1px var(--schedule-item-accent-border, transparent);
+  }
+
+  .schedule-interactive:focus-visible {
+    outline: none;
+    border-color: var(--schedule-item-accent-border, var(--accent-primary));
+    box-shadow: inset 0 0 0 1px var(--schedule-item-accent-border, var(--accent-primary));
+  }
+
+  .schedule-tone-green {
+    --schedule-item-accent: var(--schedule-accent-green);
+    --schedule-item-accent-soft: var(--schedule-accent-green-soft);
+    --schedule-item-accent-border: var(--schedule-accent-green-border);
+  }
+
+  .schedule-tone-blue {
+    --schedule-item-accent: var(--schedule-accent-blue);
+    --schedule-item-accent-soft: var(--schedule-accent-blue-soft);
+    --schedule-item-accent-border: var(--schedule-accent-blue-border);
+  }
+}

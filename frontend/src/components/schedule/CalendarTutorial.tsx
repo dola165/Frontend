@@ -3,6 +3,7 @@ import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { completeTutorial } from '../../features/preferences/preferencesStore';
 import { getStoredUserId } from '../../utils/authStorage';
+import './calendar-tutorial.css';
 
 interface TutorialStep {
     target: string;

@@ -1,0 +1,77 @@
+/* Event editor notices, errors and the footer buttons. */
+.schedule-compose-notice,
+.schedule-compose-error {
+    padding: 13px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 11px;
+    border: 1px solid var(--compose-line);
+    background: var(--compose-card);
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--compose-muted);
+}
+.schedule-compose-notice svg {
+    flex-shrink: 0;
+    margin-top: 3px;
+    color: var(--compose-accent);
+}
+.schedule-compose-notice strong {
+    color: var(--compose-text);
+    font-weight: 600;
+}
+.schedule-compose-error {
+    border-color: color-mix(in srgb, var(--color-danger) 50.2%, transparent);
+    color: var(--fc-state-danger, var(--color-danger));
+    background: color-mix(in srgb, var(--color-danger) 3.14%, transparent);
+}
+.schedule-compose-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    flex-shrink: 0;
+    padding: 17px 25px;
+    border-top: 1px solid var(--compose-line);
+    background: var(--compose-bg);
+}
+.schedule-compose-footer > p {
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--compose-muted);
+    max-width: 280px;
+}
+.schedule-compose-footer > div {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.schedule-compose-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border: 1px solid var(--compose-line);
+    border-radius: 8px;
+    color: var(--compose-text);
+    background: transparent;
+    white-space: nowrap;
+}
+.schedule-compose-button.primary {
+    background: var(--compose-accent);
+    border-color: var(--compose-accent);
+    color: var(--color-on-accent);
+}
+.schedule-compose-button.danger {
+    color: var(--fc-state-danger, var(--color-danger));
+    border-color: transparent;
+    font-size: 11px;
+}
+.schedule-compose button:hover:not(:disabled) {
+    filter: brightness(1.1);
+}

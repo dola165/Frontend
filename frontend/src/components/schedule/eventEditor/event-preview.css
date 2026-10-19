@@ -1,0 +1,139 @@
+/* Event editor live preview: the event card and the first sessions of a weekly routine. */
+.schedule-compose-preview {
+    position: sticky;
+    top: 0;
+    display: grid;
+    gap: 17px;
+    min-width: 0;
+}
+.schedule-compose-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 9px;
+    color: var(--compose-muted);
+    letter-spacing: 0.07em;
+    font-weight: 550;
+}
+.schedule-compose-preview-heading > span:last-child {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    letter-spacing: 0;
+    color: var(--compose-accent);
+    font-size: 10px;
+}
+.schedule-compose-preview-heading i {
+    width: 5px;
+    height: 5px;
+    background: currentColor;
+    border-radius: 50%;
+}
+.schedule-compose-event-card {
+    border: 1px solid var(--compose-line);
+    border-top: 3px solid var(--event-accent);
+    border-radius: 10px;
+    background: var(--compose-card);
+    padding: 18px 17px 0;
+    overflow: hidden;
+}
+.schedule-compose-event-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    color: var(--event-accent);
+    font-size: 10px;
+    font-weight: 600;
+    margin-bottom: 11px;
+}
+.schedule-compose-event-card h3 {
+    font-size: 20px;
+    line-height: 1.45;
+    letter-spacing: -0.025em;
+    font-weight: 650;
+    margin-bottom: 18px;
+    overflow-wrap: anywhere;
+}
+.schedule-compose-event-card > p {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--compose-muted);
+    margin-top: 12px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.schedule-compose-event-card > p > svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.schedule-compose-event-card > p > small {
+    font-size: 9px;
+    margin-left: auto;
+    white-space: nowrap;
+}
+.schedule-compose-event-card footer {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-top: 1px solid var(--compose-line);
+    margin: 19px -17px 0;
+    padding: 12px 14px;
+    font-size: 9px;
+    color: var(--compose-muted);
+}
+.schedule-compose-event-card footer > span {
+    margin-left: auto;
+    font-size: 9px;
+}
+.schedule-compose-next {
+    padding: 1px 2px 0;
+}
+.schedule-compose-next h4 {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 13px;
+}
+.schedule-compose-next ol {
+    display: grid;
+    gap: 12px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.schedule-compose-next li {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+}
+.schedule-compose-next li > span {
+    font-size: 9px;
+    color: var(--compose-muted);
+    padding-top: 3px;
+}
+.schedule-compose-next strong {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.7;
+}
+.schedule-compose-next small {
+    display: block;
+    font-size: 10px;
+    color: var(--compose-muted);
+    margin-top: 2px;
+}
+.schedule-compose-next > p {
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--compose-muted);
+}
+.schedule-compose-preview-note {
+    font-size: 10px;
+    line-height: 1.8;
+    color: var(--compose-muted);
+    border-top: 1px solid var(--compose-line);
+    padding-top: 15px;
+}

@@ -6,6 +6,7 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { createClubApplication } from '../api';
 import { useJobsOpportunitiesCopy } from '../jobsOpportunitiesCopy';
 import type { JobDetailState, JobViewerStatus } from './useJobDetail';
+import './job-application.css';
 
 const LIVE = ['PENDING', 'OFFERED', 'ACCEPTED', 'EXPIRED'];
 

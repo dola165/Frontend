@@ -22,6 +22,11 @@ const logout = vi.fn();
 const mount = () => render(<MemoryRouter initialEntries={['/account?tab=profile']}><AccountPage /></MemoryRouter>);
 const language = (value: string) => act(async () => { await i18n.changeLanguage(value); });
 const section = (title: string) => screen.getByRole('heading', { name: title }).closest('section')!;
+// A loaded account starts its tryout read behind a lazy import, which lands late on a busy machine. Count reads after it.
+const settledReads = async () => {
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalledWith('/tryouts/my-applications', expect.anything()));
+    return vi.mocked(apiClient.get).mock.calls.length;
+};
 
 beforeEach(async () => {
     vi.resetAllMocks(); localStorage.clear(); clearStoredAuth(); setStoredAccessToken('account-copy-token'); await i18n.changeLanguage('en');
@@ -60,7 +65,7 @@ describe('account error origin', () => {
             explanation = (await screen.findByRole('alert')).firstChild!;
         }
         expect(explanation.textContent).toBe(literal);
-        const reads = vi.mocked(apiClient.get).mock.calls.length;
+        const reads = target === 'account' ? vi.mocked(apiClient.get).mock.calls.length : await settledReads();
         await language('en');
         expect(explanation.textContent).toBe(literal);
         expect(apiClient.get).toHaveBeenCalledTimes(reads);
@@ -74,7 +79,7 @@ describe('account error origin', () => {
         });
         mount(); fireEvent.click(await screen.findByRole('button', { name: 'Sessions' }));
         expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load remembered sessions.');
-        const reads = vi.mocked(apiClient.get).mock.calls.length;
+        const reads = await settledReads();
         await language('ka');
         expect(screen.getByRole('alert')).toHaveTextContent('შენახული სესიები ვერ ჩაიტვირთა.');
         expect(apiClient.get).toHaveBeenCalledTimes(reads);
@@ -119,7 +124,7 @@ describe('account error origin', () => {
         await language('ka');
         await failOperation(operation, { response: { status: 400, data: { message: literal } } }, true);
         expect(await screen.findByText(literal, { exact: true })).toBeInTheDocument();
-        const reads = vi.mocked(apiClient.get).mock.calls.length;
+        const reads = await settledReads();
         await language('en');
         await unchangedAfterLanguage(reads);
         expect(screen.getByText(literal, { exact: true })).toBeInTheDocument();
@@ -128,7 +133,7 @@ describe('account error origin', () => {
     it.each(operations)('localizes the owned %s fallback without repeating the failed request or losing drafts', async (operation, english, georgian) => {
         await failOperation(operation, new Error('offline'));
         await screen.findByText(english, { exact: true });
-        const reads = vi.mocked(apiClient.get).mock.calls.length;
+        const reads = await settledReads();
         await unchangedAfterLanguage(reads);
         expect(screen.getByText(georgian, { exact: true })).toBeInTheDocument();
         if (operation !== 'revoke') {
@@ -148,7 +153,7 @@ describe('account error origin', () => {
         fireEvent.change(passwords.getByLabelText('Confirm Password'), { target: { value: 'DifferentSynthetic123' } });
         fireEvent.click(screen.getByRole('button', { name: 'Change Password' }));
         expect(screen.getByText('New password and confirmation do not match.')).toBeInTheDocument();
-        const reads = vi.mocked(apiClient.get).mock.calls.length;
+        const reads = await settledReads();
         await language('ka');
         expect(screen.getByText('ახალი პაროლი და განმეორებული პაროლი არ ემთხვევა.')).toBeInTheDocument();
         expect(passwords.getByLabelText('გაიმეორეთ პაროლი')).toHaveValue('DifferentSynthetic123');
@@ -161,7 +166,7 @@ it('changes the profile labels and option text while retaining its saved receipt
     fireEvent.click(screen.getByRole('button', { name: 'Save Profile' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/^Profile saved\.$/));
     fireEvent.change(screen.getByRole('textbox', { name: 'Bio' }), { target: { value: 'Newer unsaved bio' } });
-    const reads = vi.mocked(apiClient.get).mock.calls.length;
+    const reads = await settledReads();
     await language('ka');
     expect(screen.getByRole('heading', { name: 'ანგარიშის პარამეტრები' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'სახელი' })).toHaveValue('Saved name');
@@ -185,7 +190,7 @@ it('retains both password-form drafts and authenticator proof when the security 
     const authenticator = within(section('Authenticator Security'));
     fireEvent.change(await authenticator.findByLabelText('Authenticator or unused recovery code'), { target: { value: '123456' } });
     fireEvent.change(authenticator.getByLabelText('Current password'), { target: { value: 'SyntheticProof1' } });
-    const reads = vi.mocked(apiClient.get).mock.calls.length;
+    const reads = await settledReads();
     await language('ka');
     expect(passwords.getByLabelText('მიმდინარე პაროლი')).toHaveValue('SyntheticCurrent1');
     expect(passwords.getByLabelText('ახალი პაროლი')).toHaveValue('SyntheticNew123');
@@ -218,7 +223,7 @@ it('translates an existing verification error without retrying delivery or clear
     fireEvent.change(passwords.getByLabelText('New Password'), { target: { value: 'UnsentSynthetic123' } });
     fireEvent.click(screen.getByRole('button', { name: 'Resend Email' }));
     await screen.findByText('Failed to send verification email.');
-    const reads = vi.mocked(apiClient.get).mock.calls.length;
+    const reads = await settledReads();
     await language('ka');
     expect(screen.getByText('დადასტურების წერილი ვერ გაიგზავნა.')).toBeInTheDocument();
     expect(passwords.getByLabelText('ახალი პაროლი')).toHaveValue('UnsentSynthetic123');

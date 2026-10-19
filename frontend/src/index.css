@@ -548,17 +548,6 @@
 }
 
 @layer utilities {
-  .club-directory-card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  }
-
-  .bg-base {
-    background-color: var(--bg-base);
-  }
-
-  .bg-surface {
-    background-color: var(--bg-surface);
-  }
 
   .bg-elevated {
     background-color: var(--bg-elevated);
@@ -566,14 +555,6 @@
 
   .bg-inset {
     background-color: var(--bg-inset);
-  }
-
-  .bg-accent-primary-soft {
-    background-color: var(--accent-primary-soft);
-  }
-
-  .bg-accent-muted-soft {
-    background-color: var(--accent-muted-soft);
   }
 
   .text-primary {
@@ -588,36 +569,8 @@
     color: var(--text-muted);
   }
 
-  .accent-primary {
-    color: var(--accent-primary);
-  }
-
-  .accent-muted {
-    color: var(--accent-muted);
-  }
-
-  .border-subtle {
-    border-color: var(--border-subtle);
-  }
-
   .border-strong {
     border-color: var(--border-strong);
-  }
-
-  .border-accent-primary {
-    border-color: var(--accent-primary);
-  }
-
-  .border-accent-muted {
-    border-color: var(--accent-muted);
-  }
-
-  .shadow-panel {
-    box-shadow: var(--shadow-panel);
-  }
-
-  .shadow-float {
-    box-shadow: var(--shadow-float);
   }
 
   .theme-page {
@@ -628,24 +581,12 @@
     background-color: var(--theme-surface);
   }
 
-  .theme-surface-muted {
-    background-color: var(--theme-surface-muted);
-  }
-
   .theme-surface-strong {
     background-color: var(--theme-surface-strong);
   }
 
-  .theme-surface-inset {
-    background-color: var(--theme-surface-inset);
-  }
-
   .theme-border {
     border-color: var(--theme-border);
-  }
-
-  .theme-border-strong {
-    border-color: var(--theme-border-strong);
   }
 
   .theme-overlay {
@@ -656,20 +597,8 @@
     background-color: var(--theme-overlay-strong);
   }
 
-  .theme-shadow {
-    box-shadow: var(--theme-shadow);
-  }
-
   .app-page-shell {
     background-color: var(--theme-page);
-  }
-
-  /* Legacy destination pages used fixed dark utilities.  Keep their existing
-     structure while making every product route inherit the real app canvas and
-     colour scheme instead of painting an inset dark rectangle. */
-
-  .app-page-hero {
-    background-color: var(--workspace-left-bg);
   }
 
   .app-page-frame {
@@ -776,41 +705,6 @@
       linear-gradient(180deg, var(--workspace-zone-highlight), transparent 140%),
       var(--workspace-card-muted);
     border: 1px solid var(--border-subtle);
-  }
-
-  .club-page-shell {
-    --bg-base: var(--club-theme-base);
-    --bg-surface: var(--club-theme-surface);
-    --bg-elevated: var(--color-elevated);
-    --bg-inset: var(--club-theme-inset);
-    --border-subtle: var(--club-theme-border-subtle);
-    --border-strong: var(--club-theme-border-strong);
-    --text-primary: var(--club-theme-text-primary);
-    --text-secondary: var(--club-theme-text-secondary);
-    --text-muted: var(--club-theme-text-muted);
-    --accent-primary: var(--club-tone-green);
-    --accent-primary-soft: var(--club-tone-green-soft);
-    --accent-muted: var(--club-tone-pink);
-    --accent-muted-soft: var(--club-tone-pink-soft);
-    --state-success: var(--color-accent);
-    --state-success-soft: var(--color-accent-soft);
-    --state-danger: var(--color-danger);
-    --state-danger-soft: var(--color-danger-soft);
-    --state-info: var(--color-info);
-    --state-info-soft: var(--color-info-soft);
-    --theme-overlay: var(--club-theme-overlay);
-    --theme-overlay-strong: var(--club-theme-overlay-strong);
-    --shadow-panel: var(--club-shadow-panel);
-    --shadow-float: var(--club-shadow-float);
-    --workspace-shell-glow: var(--club-shell-glow);
-    --workspace-shell-top: var(--club-shell-top);
-    --workspace-shell-bottom: var(--club-shell-bottom);
-    --workspace-left-bg: var(--club-left-bg);
-    --workspace-center-bg: var(--club-center-bg);
-    --workspace-right-bg: var(--club-right-bg);
-    --workspace-card-bg: var(--club-card);
-    --workspace-card-muted: color-mix(in srgb, var(--club-card) 78%, var(--workspace-zone-highlight));
-    --workspace-zone-highlight: var(--club-zone-highlight);
   }
 
   /* ---- Workspace page shell: theme-aware management surface ---- */
@@ -1016,12 +910,6 @@
     padding: 7px 10px;
   }
 
-  .feed-side-link--active {
-    border-left-color: var(--feed-accent);
-    background-color: var(--feed-accent-soft);
-    color: var(--feed-text-primary);
-  }
-
   .feed-side-link__visual {
     display: inline-flex;
     height: 30px;
@@ -1074,357 +962,6 @@
     font-weight: 600;
   }
 
-  .feed-side-link__badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background-color: var(--feed-accent);
-    color: var(--feed-accent-contrast);
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .feed-story-shell {
-    border: 1px solid var(--feed-card-border);
-    border-radius: 0;
-    background-color: var(--feed-card);
-  }
-
-  .feed-story-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    outline: none;
-    padding: 0;
-    min-width: 72px;
-  }
-
-  .feed-story-thumb {
-    width: 72px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--feed-layer-bg);
-    border: 1px solid var(--feed-accent);
-    border-radius: 0;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--feed-text-primary);
-    flex-shrink: 0;
-  }
-
-  .feed-story-thumb--own {
-    border-style: dashed;
-    border-color: var(--feed-text-muted);
-  }
-
-  .feed-story-title {
-    display: block;
-    max-width: 72px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--feed-text-secondary);
-    text-align: center;
-  }
-
-  .club-page-frame {
-    max-width: min(1880px, calc(100vw - 24px)) !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-
-  .club-page-columns-band {
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight) 0, color-mix(in srgb, var(--color-info) 6%, transparent) 54px, transparent 54px),
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 1.5%, transparent), transparent 96px);
-  }
-
-  .club-page-panel {
-    background-color: var(--club-card);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .club-page-canvas {
-    background-color: var(--club-center-bg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-float);
-  }
-
-  .club-page-rail {
-    background-color: var(--club-left-bg);
-  }
-
-  .club-page-left-zone {
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight), transparent 18%),
-      var(--club-left-bg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .club-page-center-zone {
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 14%, transparent) 0, color-mix(in srgb, var(--color-info) 6%, transparent) 54px, transparent 118px),
-      var(--club-center-bg);
-    border: 1px solid var(--border-strong);
-    box-shadow: var(--shadow-float);
-  }
-
-  .club-page-right-zone {
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight) 0, color-mix(in srgb, var(--color-info) 7%, transparent) 58px, color-mix(in srgb, var(--color-ink) 2.5%, transparent) 58px, transparent 120px),
-      var(--club-right-bg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .club-banner-fallback {
-    background: var(--club-hero-fallback);
-  }
-
-  .club-banner-scrim {
-    background: var(--club-hero-scrim);
-  }
-
-  .club-upload-button {
-    border: 1px solid var(--club-upload-action-border);
-    background-color: var(--club-upload-action-bg);
-    color: var(--club-upload-action-text);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .club-action-button {
-    border: 1px solid transparent;
-    box-shadow: var(--shadow-panel);
-  }
-
-  .club-action-button--system {
-    border-color: var(--club-system-action-border);
-    background-color: var(--club-system-action-bg);
-    color: var(--club-system-action-text);
-  }
-
-  .club-action-button--primary {
-    border-color: var(--club-tone-green-border);
-    background-color: var(--club-tone-green);
-    color: var(--color-on-accent);
-  }
-
-  .club-action-button--danger {
-    border-color: var(--club-tone-pink-border);
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight), transparent 130%),
-      var(--club-tone-pink);
-    color: var(--color-text);
-  }
-
-  .club-action-button--soft-danger {
-    border-color: var(--state-danger);
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight), transparent 90%),
-      var(--state-danger-soft);
-    color: var(--state-danger);
-  }
-
-  .club-sidebar-item {
-    border: 1px solid transparent;
-    color: var(--text-secondary);
-  }
-
-  .club-sidebar-item:hover,
-  .club-sidebar-item--active {
-    border-color: var(--club-item-accent-border);
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight), transparent 120%),
-      var(--club-item-accent-soft);
-    color: var(--club-item-accent);
-  }
-
-  .club-sidebar-badge {
-    background-color: var(--club-zone-highlight);
-  }
-
-  .club-sidebar-badge--active {
-    border-color: var(--club-item-accent-border);
-    color: var(--club-item-accent);
-  }
-
-  .club-opportunity-tile {
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight), transparent 120%),
-      var(--club-item-accent-soft);
-    border-color: var(--club-item-accent-border);
-  }
-
-  .club-open-board-button {
-    background:
-      linear-gradient(180deg, var(--club-zone-highlight), transparent 140%),
-      var(--club-card);
-  }
-
-  .club-profile-top-grid,
-  .club-profile-main-grid {
-    gap: 20px;
-    align-items: start;
-  }
-
-  .club-profile-left,
-  .club-profile-center {
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-  }
-
-  .club-profile-frame {
-    width: 100%;
-    max-width: var(--app-page-max-width);
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: var(--app-page-gutter);
-    padding-right: var(--app-page-gutter);
-    background: transparent;
-  }
-
-  .club-profile-top-span {
-    min-width: 0;
-  }
-
-  @media (min-width: 1024px) {
-    .club-profile-top-grid,
-    .club-profile-main-grid {
-      grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
-    }
-
-    .club-profile-top-span {
-      grid-column: 1 / span 2;
-    }
-
-    .club-profile-left {
-      grid-column: 1;
-    }
-
-    .club-profile-center {
-      grid-column: 2;
-    }
-
-    .club-profile-right {
-      grid-column: 1 / span 2;
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .club-profile-top-grid,
-    .club-profile-main-grid {
-      grid-template-columns: minmax(340px, 390px) minmax(0, 720px) minmax(264px, 292px);
-      justify-content: space-between;
-      gap: 24px;
-    }
-
-    .club-profile-top-span {
-      grid-column: 1 / span 2;
-    }
-
-    .club-profile-left {
-      grid-column: 1;
-    }
-
-    .club-profile-center {
-      grid-column: 2;
-    }
-
-    .club-profile-right {
-      grid-column: 3;
-    }
-
-    .club-profile-main-grid--business {
-      grid-template-columns: minmax(280px, 320px) minmax(0, 1120px);
-      justify-content: center;
-    }
-  }
-
-  .club-top-nav-shell {
-    z-index: 30;
-    border-bottom: 1px solid var(--border-subtle);
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 10%, transparent), color-mix(in srgb, var(--color-info) 4%, transparent) 100%),
-      color-mix(in srgb, var(--club-left-bg) 82%, var(--club-card));
-    box-shadow: var(--shadow-panel);
-    backdrop-filter: blur(12px);
-  }
-
-  .club-top-nav-strip {
-    background: transparent;
-  }
-
-  .club-info-panel {
-    border: 1px solid color-mix(in srgb, var(--club-tone-blue) 18%, var(--border-subtle));
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 10%, transparent), color-mix(in srgb, var(--color-info) 3%, transparent) 130%),
-      color-mix(in srgb, var(--club-card) 92%, var(--club-center-bg));
-    box-shadow: var(--shadow-panel);
-  }
-
-  @media (min-width: 1024px) {
-    .club-info-panel-shell {
-      width: 100%;
-    }
-
-    .club-info-panel {
-      display: flex;
-      width: 100%;
-      min-height: min(460px, calc(100vh - var(--app-header-height) - 96px));
-      max-height: calc(100vh - var(--app-header-height) - 96px);
-      flex-direction: column;
-    }
-
-    .club-info-panel__body {
-      overflow-y: auto;
-      min-height: 0;
-    }
-  }
-
-  .club-feed-post-shell {
-    border: 1px solid color-mix(in srgb, var(--club-tone-blue) 22%, var(--border-subtle));
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 18%, transparent), color-mix(in srgb, var(--color-info) 8%, transparent) 110%),
-      color-mix(in srgb, var(--club-center-bg) 84%, var(--club-card));
-    box-shadow: 0 10px 24px color-mix(in srgb, var(--color-shadow) 12%, transparent);
-  }
-
-  .club-info-link-pill {
-    border: 1px solid color-mix(in srgb, var(--club-item-accent-border) 86%, var(--border-subtle));
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 5%, transparent), transparent 140%),
-      color-mix(in srgb, var(--club-card) 92%, var(--club-item-accent-soft));
-    transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
-  }
-
-  .club-info-link-pill:hover {
-    border-color: var(--club-item-accent-border);
-    box-shadow: inset 0 0 0 1px var(--club-item-accent-border);
-    transform: translateY(-1px);
-  }
-
-  .club-tone-amber {
-    --club-item-accent: var(--color-orange);
-    --club-item-accent-soft: color-mix(in srgb, var(--color-orange) 12%, transparent);
-    --club-item-accent-border: color-mix(in srgb, var(--color-orange) 30%, transparent);
-  }
-
   .club-tone-green {
     --club-item-accent: var(--club-tone-green);
     --club-item-accent-soft: var(--club-tone-green-soft);
@@ -1449,23 +986,6 @@
     --club-item-accent-border: var(--club-tone-purple-border);
   }
 
-  .club-tone-violet {
-    --club-item-accent: var(--club-tone-violet);
-    --club-item-accent-soft: var(--club-tone-violet-soft);
-    --club-item-accent-border: var(--club-tone-violet-border);
-  }
-
-  .club-tone-pink {
-    --club-item-accent: var(--club-tone-pink);
-    --club-item-accent-soft: var(--club-tone-pink-soft);
-    --club-item-accent-border: var(--club-tone-pink-border);
-  }
-
-  @keyframes schedule-scale-in {
-    from { opacity: 0; transform: scale(0.95) translateY(8px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
-
   /* Tutorial spotlight highlight ring */
   .tutorial-highlight {
     position: relative;
@@ -1473,191 +993,6 @@
     box-shadow: 0 0 0 4px var(--fc-accent, var(--color-accent)), 0 0 20px color-mix(in srgb, var(--fc-accent, var(--color-accent)) 35%, transparent) !important;
     border-radius: var(--fc-radius, 6px) !important;
     transition: box-shadow 300ms ease;
-  }
-
-  .schedule-page-shell {
-    --bg-base: var(--schedule-theme-base);
-    --bg-surface: var(--schedule-theme-surface);
-    --bg-elevated: var(--color-elevated);
-    --bg-inset: var(--schedule-theme-inset);
-    --border-subtle: var(--schedule-theme-border-subtle);
-    --border-strong: var(--schedule-theme-border-strong);
-    --text-primary: var(--schedule-theme-text-primary);
-    --text-secondary: var(--schedule-theme-text-secondary);
-    --text-muted: var(--schedule-theme-text-muted);
-    --accent-primary: var(--schedule-accent-green);
-    --accent-primary-soft: var(--schedule-accent-green-soft);
-    --accent-muted: var(--schedule-accent-pink);
-    --accent-muted-soft: var(--schedule-accent-pink-soft);
-    --state-info: var(--color-info);
-    --state-info-soft: var(--color-info-soft);
-    --workspace-shell-glow: var(--schedule-shell-glow);
-    --workspace-shell-top: var(--schedule-shell-top);
-    --workspace-shell-bottom: var(--schedule-shell-bottom);
-    --workspace-left-bg: var(--schedule-left-bg);
-    --workspace-center-bg: var(--schedule-center-bg);
-    --workspace-right-bg: var(--schedule-right-bg);
-    --workspace-card-bg: var(--schedule-card);
-    --workspace-card-muted: var(--schedule-card-muted);
-    --workspace-zone-highlight: var(--schedule-zone-highlight);
-    --shadow-panel: var(--schedule-shadow-panel);
-    --shadow-float: var(--schedule-shadow-float);
-  }
-
-  .schedule-page-frame {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0 4px 4px;
-  }
-
-  .schedule-workspace-topbar {
-    border-bottom: 1px solid var(--border-subtle);
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 6%, transparent), transparent 88px),
-      var(--schedule-theme-surface);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .schedule-workspace-command {
-    min-height: 56px;
-  }
-
-  .schedule-ribbon-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 2px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-subtle);
-  }
-
-  .schedule-ribbon-tab {
-    height: 34px;
-    padding: 0 12px;
-    border: 1px solid transparent;
-    border-bottom: 2px solid transparent;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.01em;
-    color: var(--text-secondary);
-    transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
-  }
-
-  .schedule-ribbon-tab:hover {
-    color: var(--text-primary);
-    background-color: color-mix(in srgb, var(--color-info) 6%, transparent);
-  }
-
-  .schedule-ribbon-tab[data-active='true'] {
-    color: var(--text-primary);
-    border-color: var(--border-subtle);
-    border-bottom-color: var(--accent-primary);
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
-      var(--schedule-card-muted);
-  }
-
-  .schedule-workspace-ribbon {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: stretch;
-    padding-top: 6px;
-  }
-
-  .schedule-ribbon-group {
-    display: flex;
-    min-width: 0;
-    align-items: stretch;
-    gap: 8px;
-    padding: 8px 12px 6px;
-    border-right: 1px solid var(--border-subtle);
-  }
-
-  .schedule-ribbon-group__body {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .schedule-ribbon-group__label {
-    align-self: flex-end;
-    white-space: nowrap;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-  }
-
-  .schedule-workspace-grid {
-    display: grid;
-    gap: 0;
-    align-items: stretch;
-  }
-
-  .schedule-page-columns-band {
-    background:
-      linear-gradient(180deg, var(--schedule-zone-highlight) 0, color-mix(in srgb, var(--color-info) 2.5%, transparent) 32px, transparent 32px),
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 1%, transparent), transparent 92px);
-  }
-
-  .schedule-page-left-zone {
-    background:
-      linear-gradient(180deg, var(--schedule-zone-highlight), transparent 14%),
-      var(--schedule-left-bg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .schedule-page-center-zone {
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 4.5%, transparent) 0, color-mix(in srgb, var(--color-info) 1.8%, transparent) 40px, transparent 76px),
-      var(--schedule-center-bg);
-    border: 1px solid var(--border-strong);
-    box-shadow: var(--shadow-float);
-  }
-
-  .schedule-page-right-zone {
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 5%, transparent) 0, color-mix(in srgb, var(--color-info) 1.5%, transparent) 40px, transparent 84px),
-      var(--schedule-right-bg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .schedule-rail-resizer {
-    position: relative;
-    cursor: col-resize;
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 3%, transparent), transparent 60%),
-      transparent;
-  }
-
-  .schedule-rail-resizer::after {
-    content: "";
-    position: absolute;
-    top: 12px;
-    bottom: 12px;
-    left: 50%;
-    width: 2px;
-    transform: translateX(-50%);
-    border-radius: 2px;
-    background-color: color-mix(in srgb, var(--color-info) 12%, transparent);
-    transition: background-color 160ms ease, box-shadow 160ms ease;
-  }
-
-  .schedule-rail-resizer:hover::after,
-  .schedule-rail-resizer:focus-visible::after,
-  .schedule-rail-resizer--active::after {
-    background-color: var(--schedule-accent-blue);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-shadow) 14%, transparent);
-  }
-
-  .schedule-rail-resizer:focus-visible {
-    outline: none;
   }
 
   .schedule-scroll-surface {
@@ -1687,38 +1022,6 @@
     background-color: var(--border-strong);
   }
 
-  .schedule-page-shell .app-chip {
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
-      var(--schedule-chip);
-    border-color: var(--schedule-chip-border);
-    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
-  }
-
-  .schedule-page-shell .app-chip:hover {
-    border-color: var(--schedule-accent-blue-border);
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 6%, transparent), transparent 130%),
-      var(--schedule-chip);
-    box-shadow: inset 0 0 0 1px var(--schedule-accent-blue-border);
-  }
-
-  .schedule-panel-card {
-    background-color: var(--schedule-card);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .schedule-metric-tile,
-  .schedule-detail-tile,
-  .schedule-toggle-row,
-  .schedule-control-chip {
-    background:
-      linear-gradient(180deg, var(--schedule-zone-highlight), transparent 130%),
-      var(--schedule-card-muted);
-    border: 1px solid var(--border-subtle);
-  }
-
   .schedule-board-head {
     background-color: var(--schedule-board-head);
   }
@@ -1739,54 +1042,6 @@
     background:
       linear-gradient(180deg, color-mix(in srgb, var(--color-info) 8%, transparent), transparent 130%),
       var(--schedule-card-muted);
-  }
-
-  .schedule-toggle-track {
-    background-color: var(--schedule-card);
-  }
-
-  .schedule-toggle-track--active {
-    background-color: var(--accent-primary-soft);
-  }
-
-  .schedule-action-button {
-    background:
-      linear-gradient(180deg, var(--schedule-zone-highlight), transparent 130%),
-      var(--schedule-card-muted);
-    border: 1px solid var(--border-subtle);
-  }
-
-  .schedule-action-button--danger {
-    background:
-      linear-gradient(180deg, var(--schedule-zone-highlight), transparent 130%),
-      var(--state-danger-soft);
-    border-color: var(--state-danger);
-  }
-
-  .schedule-inline-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 32px;
-    border: 1px solid transparent;
-    padding: 0 10px;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
-      var(--schedule-card-muted);
-    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
-  }
-
-  .schedule-toolbar-action {
-    border: 1px solid transparent;
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
-      var(--schedule-card-muted);
-    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   }
 
   .schedule-interactive {
@@ -1813,14 +1068,6 @@
     box-shadow: inset 0 0 0 1px var(--schedule-item-accent-border, var(--accent-primary));
   }
 
-  .schedule-toggle-row:hover,
-  .schedule-action-button:hover {
-    border-color: var(--schedule-item-accent-border, var(--schedule-accent-blue-border));
-    background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 4%, transparent), transparent 130%),
-      var(--schedule-item-accent-soft, var(--schedule-card-muted));
-  }
-
   .schedule-tone-green {
     --schedule-item-accent: var(--schedule-accent-green);
     --schedule-item-accent-soft: var(--schedule-accent-green-soft);
@@ -1831,45 +1078,6 @@
     --schedule-item-accent: var(--schedule-accent-blue);
     --schedule-item-accent-soft: var(--schedule-accent-blue-soft);
     --schedule-item-accent-border: var(--schedule-accent-blue-border);
-  }
-
-  .schedule-tone-purple {
-    --schedule-item-accent: var(--schedule-accent-purple);
-    --schedule-item-accent-soft: var(--schedule-accent-purple-soft);
-    --schedule-item-accent-border: var(--schedule-accent-purple-border);
-  }
-
-  .schedule-tone-pink {
-    --schedule-item-accent: var(--schedule-accent-pink);
-    --schedule-item-accent-soft: var(--schedule-accent-pink-soft);
-    --schedule-item-accent-border: var(--schedule-accent-pink-border);
-  }
-
-  .operational-divider {
-    position: relative;
-  }
-
-  .operational-divider::after {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    bottom: 0;
-    height: 1px;
-    background-color: var(--border-subtle);
-  }
-
-  .precision-rule {
-    position: relative;
-  }
-
-  .precision-rule::before {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    top: 0;
-    height: 1px;
-    background-color: var(--accent-muted);
-    opacity: 0.75;
   }
 
   .map-help {
@@ -1944,13 +1152,6 @@
     transform: translate(-50%, 0);
   }
 
-  .maplibregl-ctrl-geolocate {
-    background-color: var(--map-panel-bg) !important;
-    border: 1px solid var(--map-panel-border) !important;
-    border-radius: 999px !important;
-    box-shadow: var(--map-shadow-soft) !important;
-  }
-
   .talanti-map-marker {
     position: relative;
     display: block;
@@ -2020,141 +1221,6 @@
     color: var(--color-secondary);
   }
 
-  .dark .maplibregl-ctrl-geolocate {
-    background-color: var(--map-panel-bg) !important;
-    border-color: var(--map-panel-border) !important;
-  }
-
-}
-
-/* ── Tournament Workspace (Soviet Brutalist) ── */
-.tournament-workspace-shell {
-  --accent-highlight: color-mix(in srgb, var(--color-danger) 12%, transparent);
-  --accent-highlight-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
-  --tw-font-weight-black: 900;
-}
-
-.tournament-workspace-shell .tw-table {
-  font-size: 0.8125rem;
-  line-height: 1.25rem;
-}
-
-.tournament-workspace-shell .tw-table th {
-  font-size: 0.6875rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 2px solid var(--border-strong);
-}
-
-.tournament-workspace-shell .tw-table td {
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.tournament-workspace-shell .tw-btn-destructive {
-  background: var(--accent-highlight-soft);
-  border: 1px solid var(--accent-highlight);
-  color: var(--accent-highlight);
-  font-size: 0.6875rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 0.375rem 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.tournament-workspace-shell .tw-btn-destructive:hover {
-  background: var(--accent-highlight);
-  color: var(--color-text);
-}
-
-.tournament-workspace-shell .tw-btn-default {
-  border: 1px solid var(--border-strong);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: 0.6875rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 0.375rem 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.tournament-workspace-shell .tw-btn-default:hover {
-  background: var(--bg-elevated);
-}
-
-.tournament-workspace-shell .tw-section-header {
-  font-size: 0.6875rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  padding: 0.625rem 0.75rem;
-  border-bottom: 2px solid var(--border-strong);
-  background: var(--bg-inset);
-}
-
-.tournament-workspace-shell .tw-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 1px;
-  background: var(--border-subtle);
-  border: 1px solid var(--border-subtle);
-}
-
-.tournament-workspace-shell .tw-stat-cell {
-  background: var(--bg-base);
-  padding: 0.5rem 0.625rem;
-  text-align: center;
-}
-
-.tournament-workspace-shell .tw-stat-value {
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.tournament-workspace-shell .tw-stat-label {
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-top: 0.125rem;
-}
-
-.tournament-workspace-shell .tw-status-badge {
-  display: inline-block;
-  font-size: 0.625rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 0.1875rem 0.5rem;
-  border: 1px solid currentColor;
-}
-
-.tournament-workspace-shell .tw-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--color-overlay) 55%, transparent);
-}
-
-.tournament-workspace-shell .tw-modal-panel {
-  background: var(--bg-elevated);
-  border: 2px solid var(--border-strong);
-  min-width: 360px;
-  max-width: 480px;
-  box-shadow: 0 20px 50px color-mix(in srgb, var(--color-shadow) 35%, transparent);
 }
 
 /* ── Chat Messenger Shell ────────────────────────────────────────── */
@@ -2232,162 +1298,6 @@
   color: var(--chat-text-primary);
 }
 
-/* ── Chat Role Badges ──────────────────────────────────────────── */
-
-.chat-messenger-shell .chat-role-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 9px;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.chat-messenger-shell .chat-role-badge--creator {
-  background: color-mix(in srgb, var(--color-orange) 15%, transparent);
-  color: var(--color-orange);
-}
-
-.dark .chat-messenger-shell .chat-role-badge--creator {
-  background: color-mix(in srgb, var(--color-orange) 12%, transparent);
-  color: var(--color-orange);
-}
-
-/* ── Chat Suggestion Card ──────────────────────────────────────── */
-
-.chat-messenger-shell .chat-suggestion-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  background: var(--chat-surface);
-  border: 1px solid var(--chat-card-border);
-}
-
-/* ── Chat Management Section ────────────────────────────────────── */
-
-.chat-messenger-shell .chat-management-section {
-  padding: 16px;
-  border-bottom: 1px solid var(--chat-card-border);
-}
-
-.chat-messenger-shell .chat-management-section__title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--chat-text-muted);
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ── Chat Participant Hover Actions ─────────────────────────────── */
-
-.chat-messenger-shell .chat-participant-row:hover .chat-participant-actions {
-  opacity: 1;
-}
-
-.chat-messenger-shell .chat-participant-actions {
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-/* ── Chat Inline Search ─────────────────────────────────────────── */
-
-.chat-messenger-shell .chat-inline-search-result:hover {
-  background: var(--chat-card-hover);
-}
-
-/* ── Chat Info Panel Slide ─────────────────────────────────────── */
-
-.chat-messenger-shell .chat-info-panel {
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-left-width 0.3s ease;
-}
-
-.chat-messenger-shell .chat-info-panel--open {
-  width: 300px;
-  opacity: 1;
-}
-
-.chat-messenger-shell .chat-info-panel--closed {
-  width: 0;
-  opacity: 0;
-  border-left-width: 0;
-  overflow: hidden;
-}
-
-/* ── Chat Message Status Ticks ─────────────────────────────────── */
-
-.chat-messenger-shell .chat-msg-tick {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.chat-messenger-shell .chat-msg-tick--sent {
-  color: var(--chat-text-muted);
-}
-
-.chat-messenger-shell .chat-msg-tick--read {
-  color: var(--chat-accent);
-}
-
-/* ── Chat Unread Badge ─────────────────────────────────────────── */
-
-.chat-messenger-shell .chat-unread-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background-color: var(--color-accent);
-  color: var(--color-on-accent);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-shadow) 25%, transparent);
-}
-
-/* ── Chat Input Actions ────────────────────────────────────────── */
-
-.chat-messenger-shell .chat-input-action {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--chat-text-muted);
-  transition: color 0.15s ease, background-color 0.15s ease;
-  flex-shrink: 0;
-}
-
-.chat-messenger-shell .chat-input-action:hover {
-  color: var(--chat-accent);
-  background: var(--chat-card-hover);
-}
-
-/* ── Help Drawer Slide Animation ─────────────────────────────── */
-
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.2s ease-out;
-}
-
 /* Landing page motion stays isolated from the application shell. */
 .landing-reveal {
   opacity: 0;
@@ -2406,10 +1316,6 @@
   will-change: transform;
 }
 
-.landing-playground-canvas {
-  contain: strict;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .landing-reveal,
   .landing-reveal--visible,
@@ -2418,50 +1324,6 @@
     transform: none;
     transition: none;
   }
-}
-
-/* Shared dual-handle directory ranges keep the track click-free so each thumb remains independently draggable. */
-.directory-range-input {
-  appearance: none;
-  -webkit-appearance: none;
-  pointer-events: none;
-  background: transparent;
-  outline: none;
-}
-
-.directory-range-input::-webkit-slider-runnable-track {
-  height: 0.375rem;
-  background: transparent;
-}
-
-.directory-range-input::-moz-range-track {
-  height: 0.375rem;
-  background: transparent;
-}
-
-.directory-range-input::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
-  pointer-events: auto;
-  width: 1.125rem;
-  height: 1.125rem;
-  margin-top: -0.375rem;
-  border: 2px solid var(--theme-surface);
-  border-radius: 9999px;
-  background: var(--text-primary);
-  box-shadow: 0 0 0 1px var(--theme-border-strong);
-  cursor: grab;
-}
-
-.directory-range-input::-moz-range-thumb {
-  pointer-events: auto;
-  width: 1.125rem;
-  height: 1.125rem;
-  border: 2px solid var(--theme-surface);
-  border-radius: 9999px;
-  background: var(--text-primary);
-  box-shadow: 0 0 0 1px var(--theme-border-strong);
-  cursor: grab;
 }
 
 /* ---- Club workspace responsive shell ---- */
@@ -2511,40 +1373,6 @@
 .opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 13%, transparent); border-color: var(--opportunity-color); }
 .opportunity-link:focus-visible { outline: 2px solid var(--opportunity-color); outline-offset: 3px; }
 .opportunity-link__description { color: var(--text-secondary); }
-.dark .club-page-shell {
-  --club-tone-green: var(--color-accent);
-  --club-tone-green-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  --club-tone-green-border: color-mix(in srgb, var(--color-accent) 42%, transparent);
-  --club-tone-cyan: var(--color-cyan);
-  --club-tone-blue: var(--color-info);
-  --club-tone-violet: var(--color-purple);
-  --club-tone-amber: var(--color-orange);
-  --club-theme-text-primary: var(--color-text);
-  --club-theme-text-secondary: var(--color-secondary);
-  --club-theme-border-subtle: var(--color-border);
-  --feed-card-border: var(--color-border);
-  --club-band: var(--color-surface);
-  --feed-card: var(--color-elevated);
-  --feed-input-bg: var(--color-surface);
-  --feed-text-muted: var(--color-muted);
-  --feed-icon-muted: var(--color-muted);
-  --club-theme-base: var(--color-page);
-  --club-theme-surface: var(--color-surface);
-  --club-theme-elevated: var(--color-elevated);
-  --club-card: var(--color-elevated);
-  --club-theme-text-muted: var(--color-muted);
-}
-
-.club-page-shell {
-  --feed-text-primary: var(--club-theme-text-primary);
-  --feed-text-secondary: var(--club-theme-text-secondary);
-  --feed-text-muted: var(--club-theme-text-muted);
-  --feed-text-placeholder: var(--club-theme-text-secondary);
-  --feed-accent: var(--accent-primary);
-  --feed-accent-soft: var(--accent-primary-soft);
-  --feed-hover-bg: var(--club-theme-elevated);
-}
-.club-page-shell .app-page-hero { background-color: var(--club-theme-surface); }
 
 /* Semantic shortcut colours stay consistent across the feed and its composer. */
 :root {
@@ -2565,35 +1393,7 @@
 }
 .home-profile-shortcut { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--feed-divider); border-radius: 0; }
 .home-social-link { color: var(--feed-text-primary); }
-.home-shortcut-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  color: var(--shortcut-accent);
-  background: color-mix(in srgb, var(--shortcut-accent) 14%, transparent);
-}
-.home-social-link:hover .home-shortcut-icon { background: color-mix(in srgb, var(--shortcut-accent) 22%, transparent); }
+
 .home-social-link:focus-visible { outline: 2px solid var(--shortcut-accent, var(--social-primary)); outline-offset: 3px; }
 .dark .opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 18%, transparent); border-color: var(--opportunity-color); }
 
-.club-activity-panel {
-  --club-tone-blue: var(--social-schedule);
-  --club-tone-green: var(--social-primary);
-  --club-tone-green-soft: color-mix(in srgb, var(--social-primary) 12%, transparent);
-}
-.club-activity-action {
-  border: 1px solid var(--club-theme-border-subtle);
-  background: var(--club-theme-surface);
-  color: var(--club-theme-text-primary);
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 12px;
-  max-width: 100%;
-}
-.club-activity-action:hover { border-color: var(--club-tone-blue); }
-.club-activity-action[aria-pressed="true"] { background: var(--club-tone-green-soft); border-color: var(--club-tone-green); }
-.club-activity-action:focus-visible { outline: 2px solid var(--club-tone-blue); outline-offset: 3px; }

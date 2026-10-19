@@ -1,0 +1,40 @@
+/* Shared social surfaces: restrained accents, with the same treatment in both rails. */
+.opportunity-link {
+  --opportunity-color: var(--color-accent);
+  display: block;
+  border: 1px solid color-mix(in srgb, var(--opportunity-color) 32%, transparent);
+  border-radius: 12px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--opportunity-color) 7%, transparent);
+  color: var(--opportunity-color);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.opportunity-link--campaigns { --opportunity-color: var(--color-orange); }
+.opportunity-link--stadiums { --opportunity-color: var(--color-cyan); }
+.opportunity-link--jobs { --opportunity-color: var(--color-purple); }
+.dark .opportunity-link { --opportunity-color: var(--color-accent); background: color-mix(in srgb, var(--opportunity-color) 12%, transparent); border-color: color-mix(in srgb, var(--opportunity-color) 48%, transparent); }
+.dark .opportunity-link--campaigns { --opportunity-color: var(--color-orange); }
+.dark .opportunity-link--stadiums { --opportunity-color: var(--color-cyan); }
+.dark .opportunity-link--jobs { --opportunity-color: var(--color-purple); }
+.opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 13%, transparent); border-color: var(--opportunity-color); }
+.opportunity-link:focus-visible { outline: 2px solid var(--opportunity-color); outline-offset: 3px; }
+.opportunity-link__description { color: var(--text-secondary); }
+
+.dark .opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 18%, transparent); border-color: var(--opportunity-color); }
+
+/* The product identity layer: deeper dark surfaces and a fixed height (was styles/product-identity.css). */
+.dark .opportunity-link {
+  background: linear-gradient(115deg, color-mix(in srgb, var(--opportunity-color) 14%, var(--color-page)), var(--color-page) 90%);
+  border-color: color-mix(in srgb, var(--opportunity-color) 78%, transparent);
+  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 12px color-mix(in srgb, var(--opportunity-color) 9%, transparent);
+}
+.dark .opportunity-link:hover {
+  background: color-mix(in srgb, var(--opportunity-color) 17%, var(--color-page));
+  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 16px color-mix(in srgb, var(--opportunity-color) 16%, transparent);
+}
+.opportunity-link { min-height: 76px; }
+.opportunity-link__description { color: var(--text-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .opportunity-link { animation: none; transition: none; }
+}

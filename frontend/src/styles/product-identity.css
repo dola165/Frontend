@@ -63,17 +63,6 @@
   --club-card: var(--gk-surface);
 }
 .dark .landing-stadium { background: var(--gk-canvas); }
-.dark .opportunity-link {
-  background: linear-gradient(115deg, color-mix(in srgb, var(--opportunity-color) 14%, var(--color-page)), var(--color-page) 90%);
-  border-color: color-mix(in srgb, var(--opportunity-color) 78%, transparent);
-  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 12px color-mix(in srgb, var(--opportunity-color) 9%, transparent);
-}
-.dark .opportunity-link:hover {
-  background: color-mix(in srgb, var(--opportunity-color) 17%, var(--color-page));
-  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 16px color-mix(in srgb, var(--opportunity-color) 16%, transparent);
-}
-.opportunity-link { min-height: 76px; }
-.opportunity-link__description { color: var(--text-secondary); }
 .workspace-shortcut { border: 1px solid var(--theme-border); border-radius: 12px; margin-bottom: 8px; }
 .workspace-shortcut .home-shortcut-icon { background: var(--accent-primary-soft); }
 /* Bounded viewport breaks canvas/parent resize feedback. Zoom only changes geography. */
@@ -88,6 +77,3 @@
 }
 .landing-content-frame > * { min-width: 0; }
 @media (max-width: 639px) { .landing-map-viewport { height: 520px; max-height: 75dvh; } }
-@media (prefers-reduced-motion: reduce) {
-  .opportunity-link { animation: none; transition: none; }
-}

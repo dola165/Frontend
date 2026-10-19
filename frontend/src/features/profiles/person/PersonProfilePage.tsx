@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ConnectionsDialog } from '../../../components/profile/ConnectionsDialog';
+import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { isProfessionalRole, roleCopy } from '../../roles/domain';
@@ -118,13 +119,15 @@ function PersonProfileView({ id }: { id: number }) {
             actions={<PersonActions profile={profile} own={own} onFollow={() => void follow()} onShare={() => void share()} onRepresentation={openRepresentation} />}
             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}
             tabs={tabs} tab={tab} onTab={setTab} tabsLabel={copy('Profile sections', 'პროფილის სექციები')}
-            side={tab === 'schedule' ? undefined : <PersonSide view={view} />} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>
+            side={tab === 'schedule' ? undefined : <ErrorBoundary key={`side:${profile.id}`} fallback={<SectionFailed />}><PersonSide view={view} /></ErrorBoundary>} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>
+            <ErrorBoundary key={`${tab}:${profile.id}`} fallback={<SectionFailed />}>
             {tab === 'overview' && <PersonOverviewTab view={view} />}
             {tab === 'posts' && <PersonPostsTab view={view} />}
             {tab === 'career' && <ProfileCareer key={`career-${profile.id}`} profile={profile} isMyProfile={own}
                 onChanged={footballProfile => view.setProfile(current => current?.id === profile.id ? { ...current, footballProfile } : current)} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/user/${profile.id}`} />}
             {tab === 'schedule' && own && <PersonalSchedule />}
+            </ErrorBoundary>
         </ProfileLayout>
         {(connections === 'followers' || connections === 'following') && !hidden && <ConnectionsDialog key={`${profile.id}-${connections}`} userId={profile.id} kind={connections}
             showFollowingStatus={connections === 'following' && own} onClose={() => setConnections(null)} />}
@@ -136,6 +139,12 @@ function PersonLoading() {
     return <GkRoot className="gk-page gk-profile"><PageFrame width="profile">
         <div className="gk-person-loading" role="status" aria-label={copy('Loading profile', 'პროფილი იტვირთება')}><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={44} /><Skeleton height={220} /></div>
     </PageFrame></GkRoot>;
+}
+
+/** One section that fails to draw keeps the rest of the profile on screen. */
+function SectionFailed() {
+    const copy = useJourneyCopy();
+    return <Panel><EmptyNote title={copy('This part of the profile couldn’t be shown', 'პროფილის ეს ნაწილი ვერ გამოჩნდა')}>{copy('Open another tab or reload the page.', 'გახსენით სხვა ჩანართი ან განაახლეთ გვერდი.')}</EmptyNote></Panel>;
 }
 
 function PersonUnavailable({ failed = false, onRetry }: { failed?: boolean; onRetry?: () => void }) {

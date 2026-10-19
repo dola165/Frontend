@@ -707,78 +707,6 @@
     border: 1px solid var(--border-subtle);
   }
 
-  /* ---- Workspace page shell: theme-aware management surface ---- */
-  .workspace-page-shell {
-    /* Remap generic tokens to FC */
-    --bg-base: var(--fc-page-bg);
-    --bg-surface: var(--fc-card-bg);
-    --bg-elevated: var(--color-elevated);
-    --bg-inset: var(--fc-page-bg);
-    --border-subtle: var(--fc-border);
-    --border-strong: var(--fc-border);
-    --text-primary: var(--fc-text-primary);
-    --text-secondary: var(--fc-text-secondary);
-    --text-muted: var(--fc-text-muted);
-    --accent-primary: var(--fc-accent);
-    --accent-primary-soft: var(--fc-accent-soft);
-    --state-success: var(--color-accent);
-    --state-success-soft: var(--color-accent-soft);
-    --state-danger: var(--color-danger);
-    --state-danger-soft: var(--color-danger-soft);
-    --state-warning: var(--color-warning);
-    --state-warning-soft: var(--color-warning-soft);
-    --state-info: var(--color-info);
-    --state-info-soft: var(--color-info-soft);
-    --shadow-panel: none;
-    --shadow-float: none;
-
-    /* Backward compat: map legacy --workspace-* to --fc-* */
-    --workspace-theme-base: var(--fc-page-bg);
-    --workspace-theme-sidebar-bg: var(--fc-sidebar-bg);
-    --workspace-theme-text-primary: var(--fc-text-primary);
-    --workspace-theme-text-secondary: var(--fc-text-secondary);
-    --workspace-theme-text-muted: var(--fc-text-muted);
-    --workspace-theme-border: var(--fc-border);
-    --workspace-theme-surface: var(--fc-card-bg);
-    --workspace-theme-surface-hover: var(--fc-surface-hover);
-    --workspace-accent: var(--fc-accent);
-    --workspace-accent-soft: var(--fc-accent-soft);
-    --workspace-accent-border: var(--fc-accent-border);
-    --workspace-state-success: var(--color-accent);
-    --workspace-state-success-soft: var(--color-accent-soft);
-    --workspace-state-danger: var(--color-danger);
-    --workspace-state-danger-soft: var(--color-danger-soft);
-    --workspace-state-warning: var(--color-warning);
-    --workspace-state-warning-soft: var(--color-warning-soft);
-    --workspace-state-info: var(--color-info);
-    --workspace-state-info-soft: var(--color-info-soft);
-
-    font-family: "Inter", "IBM Plex Sans", "Segoe UI", sans-serif;
-  }
-
-  /* ── Workspace light mode overrides ── */
-  .workspace-light {
-    --fc-page-bg: var(--color-page);
-    --fc-card-bg: var(--color-elevated);
-    --fc-sidebar-bg: var(--color-surface);
-    --fc-surface-hover: var(--color-inset);
-    --fc-border: var(--color-border);
-    --fc-text-primary: var(--color-text);
-    --fc-text-secondary: var(--color-secondary);
-    --fc-text-muted: var(--color-muted);
-    --fc-accent: var(--color-accent);
-    --fc-accent-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
-    --fc-accent-border: color-mix(in srgb, var(--color-accent) 20%, transparent);
-    --fc-state-success: var(--color-accent);
-    --fc-state-success-soft: var(--color-accent-soft);
-    --fc-state-warning: var(--color-warning);
-    --fc-state-warning-soft: var(--color-warning-soft);
-    --fc-state-danger: var(--color-danger);
-    --fc-state-danger-soft: var(--color-danger-soft);
-    --fc-state-info: var(--color-info);
-    --fc-state-info-soft: var(--color-info-soft);
-  }
-
   /* ---- Feed home shell: light mode (creamy white) ---- */
   .feed-home-shell {
     /* Accent (green — same in both modes) */
@@ -1326,32 +1254,6 @@
   }
 }
 
-/* ---- Club workspace responsive shell ---- */
-.workspace-mobile-only {
-  display: none;
-}
-
-@media (max-width: 1023px) {
-  .club-workspace-shell {
-    display: block !important;
-    height: calc(100dvh - var(--app-active-header-height)) !important;
-    overflow: hidden;
-  }
-
-  .workspace-mobile-only {
-    display: inline-flex;
-  }
-
-  .workspace-data-table-wrap > .workspace-mobile-only {
-    display: block;
-  }
-
-  /* Row actions must not depend on hover on touch-sized layouts. */
-  .workspace-page-shell .opacity-0 {
-    opacity: 1 !important;
-  }
-}
-
 /* Shared social surfaces: restrained accents, with the same treatment in both rails. */
 .opportunity-link {
   --opportunity-color: var(--color-accent);
@@ -1396,4 +1298,3 @@
 
 .home-social-link:focus-visible { outline: 2px solid var(--shortcut-accent, var(--social-primary)); outline-offset: 3px; }
 .dark .opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 18%, transparent); border-color: var(--opportunity-color); }
-

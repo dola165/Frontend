@@ -41,6 +41,7 @@ import { buildProfileForm as buildForm, useAccountProfileDraft, type ProfileForm
 import { AccountProfileFeedback } from '../features/profiles/account/AccountProfileFeedback';
 import { useAccountCopy } from '../features/profiles/account/accountCopy';
 import '../features/profiles/account/account-copy.css';
+import '../components/workspace/workspace-shell.css';
 
 type Tab = 'profile' | 'security' | 'sessions' | 'accounts' | 'danger';
 type Account = {

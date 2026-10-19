@@ -63,12 +63,15 @@
 .gk .sp-invite { display: flex; flex-direction: column; gap: var(--gk-3); }
 .gk .sp-invite__link { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 .gk .sp-invite__link input { flex: 1 1 220px; min-width: 0; }
+.gk .sp-invite__manage { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .sp-invite__manage small { flex: 1 1 200px; }
 .gk .sp-invite__head { margin-top: var(--gk-2); font-size: var(--gk-fs-md); font-weight: 650; }
 .gk .sp-requests { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .gk .sp-requests li { display: flex; align-items: center; gap: var(--gk-2); min-height: 52px; border-bottom: 1px solid var(--gk-line); }
 .gk .sp-requests__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .gk .sp-requests__text strong { font-weight: 650; }
 .gk .sp-requests__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .sp-requests__group { margin-top: 4px; max-width: 240px; font-size: var(--gk-fs-sm); }
 
 /* ---------------------------------------------------------------- grounds */
 .gk .sp-grounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }

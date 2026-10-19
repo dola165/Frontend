@@ -78,9 +78,20 @@ export const attendance=async(id:number,sessionId:number,playerId:number,respons
         : apiClient.put(url,command,{_authSessionId:authSessionId} as AuthSessionRequestConfig);
 };
 
-/** The squad's join link for the parents' group, and the children waiting for a coach's yes (backend needed: new). */
-export interface SquadJoinLink { code:string; path:string; squadName:string }
-export interface SquadJoinRequest { id:number; source:'LINK'|'GROUP'; childName:string; birthYear:number|null; guardianName:string|null; createdAt:string; caseId:number|null }
+/**
+ * The squad's join link for the parents' group (one per squad; `code` and `path` only while ACTIVE), and the
+ * children waiting for a coach's yes. A request is an admissions inquiry: the coach's yes routes it into a joining
+ * group and offers the place, which the family still accepts; nothing joins the roster here.
+ */
+export type SquadJoinLinkStatus='NONE'|'ACTIVE'|'EXPIRED'|'DISABLED';
+export interface SquadJoinLink { squadId:number; squadName:string; status:SquadJoinLinkStatus; code:string|null; path:string|null; createdAt:string|null; createdBy:number|null; createdByName:string|null; expiresAt:string|null; disabledAt:string|null }
+export interface SquadJoinGroup { id:number; version:number; name:string; method:'DIRECT'|'INTRODUCTION'|'SELECTIVE' }
+export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null } }
+export interface SquadJoinDecision { requestId:string; expectedVersion:number; action:'APPROVE'|'DECLINE'; groupId?:number|null; groupVersion?:number|null }
+export interface SquadJoinOutcome { inquiryId:number; outcome:'PLACE_OFFERED'|'REVIEW_REQUIRED'|'DECLINED'; destination:string|null }
 export const joinLink=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinLink>(`${root}/${id}/join-link`,{signal})).data;
+/** Creates the link, or replaces its code so the old one stops working at once. Same requestId: same link. */
+export const createJoinLink=async(id:number,body:{requestId:string;expiresInDays?:number|null})=>(await apiClient.post<SquadJoinLink>(`${root}/${id}/join-link`,body)).data;
+export const disableJoinLink=async(id:number)=>(await apiClient.delete<SquadJoinLink>(`${root}/${id}/join-link`)).data;
 export const joinRequests=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal})).data;
-export const decideJoinRequest=async(id:number,requestId:number,action:'APPROVE'|'DECLINE')=>apiClient.post(`${root}/${id}/join-requests/${requestId}`,{action});
+export const decideJoinRequest=async(id:number,inquiryId:number,body:SquadJoinDecision)=>(await apiClient.post<SquadJoinOutcome>(`${root}/${id}/join-requests/${inquiryId}`,body)).data;

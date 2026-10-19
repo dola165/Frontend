@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { Check, Loader2, Plus, User, Users } from 'lucide-react';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchJoiningChildren, type JoiningChild } from '../../parents/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { buildLoginRedirectPath, buildSignupPath } from '../../../utils/authRedirect';
 import { Crest } from '../../world/Crest';
 import { fetchJoinLink, sendJoin, type JoinLink } from '../api';
 import { usePagesCopy } from '../copy';
@@ -17,11 +18,13 @@ const ageOn = (birthDate: string) => { const born = new Date(birthDate), now = n
 /**
  * A squad's join link, opened from the parents' WhatsApp group. First "Who are you?": a parent adds their child
  * (and can run things from Parent Hub with a parent account), or the player makes their own card; an adult player
- * can make an account from it. Nothing on the card is public; the coach confirms. Signed in first (the route is protected).
+ * can make an account from it. Nothing on the card is public; the coach confirms. The page itself is public (club and
+ * squad only); asking to join signs in first and comes back here.
  */
 export function JoinPage() {
   const t = usePagesCopy();
   const { code = '' } = useParams<{ code: string }>();
+  const location = useLocation();
   const [link, setLink] = useState<JoinLink | null>(null);
   const [failed, setFailed] = useState('');
   const [who, setWho] = useState<Who | null>(null);
@@ -31,7 +34,7 @@ export function JoinPage() {
   const request = useRef<{ key: string; id: string } | null>(null);
   const [done, setDone] = useState<{ squadName: string | null } | null>(null);
   // A parent who already has children picks one (F33: which child first); "new" types a new one.
-  const { sessionId } = useAuth();
+  const { sessionId, isAuthenticated, isBootstrapping } = useAuth();
   const [kids, setKids] = useState<JoiningChild[]>([]);
   const [picked, setPicked] = useState<number | 'new' | null>(null);
   const [kidsState, setKidsState] = useState<'loading' | 'ready' | 'failed'>('loading');
@@ -70,7 +73,15 @@ export function JoinPage() {
   };
   const header = link && <div className="gk-cmatch__page"><Crest src={link.page.crestUrl} name={link.page.name} size={44} /><span className="gk-cmatch__text"><strong><Link to={link.page.profilePath}>{link.page.name}</Link></strong><small>{[link.squad.name, link.page.town].join(' · ')}</small></span></div>;
   const body = failed ? <Panel><EmptyNote title={failed} action={<ButtonLink to="/world/clubs">{t('Find your club')}</ButtonLink>} /></Panel>
-    : !link ? <div className="gk-stack gk-stack--tight" role="status"><Skeleton height={56} /><Skeleton height={44} /><Skeleton height={44} /></div>
+    : !link || isBootstrapping ? <div className="gk-stack gk-stack--tight" role="status"><Skeleton height={56} /><Skeleton height={44} /><Skeleton height={44} /></div>
+    : !isAuthenticated ? <Panel padded>
+      {header}
+      <p style={{ marginTop: 12 }}>{t('Sign in to ask for a place. The coach confirms; nothing about the player is public.')}</p>
+      <div className="gk-boxedit__foot">
+        <ButtonLink variant="primary" to={buildLoginRedirectPath(location.pathname, location.search, location.hash)}>{t('Sign in to ask to join')}</ButtonLink>
+        <ButtonLink to={buildSignupPath(`${location.pathname}${location.search}${location.hash}`)}>{t('Create an account')}</ButtonLink>
+      </div>
+    </Panel>
     : done ? <Panel padded>
       <div className="gk-cmatch__page"><span className="gk-ghost__icon"><Check aria-hidden="true" /></span><span className="gk-cmatch__text"><strong>{t('{child} is on the list for {squad}', { child: chosen ? chosen.identity.fullName.split(' ')[0] : card.first.trim(), squad: done.squadName ?? link.squad.name })}</strong><small>{t('The coach confirms. Nothing is public.')}</small></span></div>
       <div className="gk-boxedit__foot" style={{ marginTop: 12 }}>

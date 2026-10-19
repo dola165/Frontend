@@ -11,7 +11,7 @@ import { InvitePage } from '../../links/InvitePage';
 const calls = vi.hoisted(() => ({ candidates: vi.fn(), invite: vi.fn(), links: vi.fn(), arrivals: vi.fn(), decide: vi.fn(), joinLink: vi.fn(), join: vi.fn(), kids: vi.fn(), fetchInvite: vi.fn(), accept: vi.fn(), navigate: vi.fn(), refresh: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), fetchStaffCandidates: calls.candidates, inviteStaff: calls.invite, ensureJoinLinks: calls.links, fetchArrivals: calls.arrivals, decideArrival: calls.decide, fetchJoinLink: calls.joinLink, sendJoin: calls.join, fetchInvite: calls.fetchInvite, acceptInvite: calls.accept }));
 vi.mock('../../../parents/api', () => ({ fetchJoiningChildren: calls.kids }));
-vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'test-session', refreshNavigationCapabilities: calls.refresh }) }));
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'test-session', isAuthenticated: true, isBootstrapping: false, refreshNavigationCapabilities: calls.refresh }) }));
 vi.mock('react-router-dom', async original => ({ ...await original<typeof import('react-router-dom')>(), useNavigate: () => calls.navigate }));
 
 function page() {

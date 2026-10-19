@@ -16,11 +16,6 @@ export const fetchClubDirectory = async (params: URLSearchParams, signal?: Abort
 export const fetchClubProfile = async (clubId: number, signal?: AbortSignal) =>
     (await apiClient.get<ClubProfile>(`/clubs/${clubId}`, { signal })).data;
 
-/** Following a club is a toggle on the server, as on the club profile. */
-export const toggleClubFollow = async (clubId: number) => {
-    await apiClient.post(`/clubs/${clubId}/follow`);
-};
-
 /** The People view a person is in, worked out from their job (a club physio is a specialist). */
 export type PersonRole = 'COACH' | 'CLUB_STAFF' | 'SPECIALIST' | 'PLAYER' | 'REFEREE';
 /** A licence as the person states it: UEFA Pro, A, B or C, or a goalkeeper licence. */

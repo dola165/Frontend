@@ -3,9 +3,8 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import type { Participant } from '../../admissions/types';
-import { createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
+import { createClubApplication, selfRegisterClubPlayer, setClubFollowing } from '../../clubs/api';
 import type { ClubMembershipContext } from '../../clubs/domain';
-import { toggleClubFollow } from '../api';
 import { ClubMainAction, FollowClubButton } from '../cards/ClubActions';
 import { ClubRow } from '../cards/ClubRow';
 import { forgetClubChanges } from '../cards/clubState';
@@ -14,8 +13,7 @@ import { WorldSessionContext } from '../worldSession';
 
 const auth = vi.hoisted(() => ({ status: 'authenticated' as string }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: auth.status, sessionId: 'world', user: { id: 1 } }) }));
-vi.mock('../api', () => ({ toggleClubFollow: vi.fn() }));
-vi.mock('../../clubs/api', () => ({ createClubApplication: vi.fn(), selfRegisterClubPlayer: vi.fn() }));
+vi.mock('../../clubs/api', () => ({ createClubApplication: vi.fn(), selfRegisterClubPlayer: vi.fn(), setClubFollowing: vi.fn() }));
 /** The squads the person may arrange matches for (`GET /match-exchange/squads`): none unless a test says so. */
 const arranging = vi.hoisted(() => ({ squads: [] as { id: number; club_id: number; name: string; category: string; club_name: string }[] | undefined }));
 vi.mock('../compose/useArrangeableSquads', () => ({ useArrangeableSquads: () => arranging.squads }));
@@ -68,16 +66,16 @@ beforeEach(() => {
 
 describe('following', () => {
     it('follows at once and keeps the change when the club confirms it', async () => {
-        vi.mocked(toggleClubFollow).mockResolvedValue(undefined);
+        vi.mocked(setClubFollowing).mockResolvedValue({ following: true });
         show(club());
         fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
         expect(screen.getByRole('button', { name: 'Following' })).toHaveAttribute('aria-pressed', 'true');
-        await waitFor(() => expect(toggleClubFollow).toHaveBeenCalledWith(4));
+        await waitFor(() => expect(setClubFollowing).toHaveBeenCalledWith(4, true));
         expect(screen.getByRole('button', { name: 'Following' })).toBeInTheDocument();
     });
 
     it('puts the button back and says so when following fails', async () => {
-        vi.mocked(toggleClubFollow).mockRejectedValue(new Error('offline'));
+        vi.mocked(setClubFollowing).mockRejectedValue(new Error('offline'));
         show(club());
         fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
         expect(await screen.findByRole('alert')).toBeInTheDocument();
@@ -89,7 +87,7 @@ describe('following', () => {
         show(club());
         fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
         expect(screen.getByTestId('where').textContent).toMatch(/^\/login/);
-        expect(toggleClubFollow).not.toHaveBeenCalled();
+        expect(setClubFollowing).not.toHaveBeenCalled();
     });
 });
 

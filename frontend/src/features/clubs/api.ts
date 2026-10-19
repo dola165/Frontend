@@ -405,3 +405,9 @@ export const fetchPublicJob = async (id: number, signal?: AbortSignal) => (await
 export interface MyJobApplication { id: number; clubId: number; status: string; }
 export const fetchMyJobApplication = async (id: number, signal?: AbortSignal): Promise<MyJobApplication | null> =>
     (await apiClient.get<MyJobApplication | null>(`/jobs/${id}/application`, {signal})).data || null;
+
+/** Follows (POST) or stops following (DELETE) a club. Both are safe to repeat; the server answers the resulting state. */
+export const setClubFollowing = async (clubId: number, following: boolean) => {
+    const url = `/clubs/${clubId}/follow`;
+    return (await (following ? apiClient.post<{ following: boolean }>(url) : apiClient.delete<{ following: boolean }>(url))).data;
+};

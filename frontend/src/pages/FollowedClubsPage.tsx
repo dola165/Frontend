@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Loader2, MapPin, Search, Shield, Users } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
+import { setClubFollowing } from '../features/clubs/api';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
 interface FollowedClub {
@@ -54,7 +55,7 @@ export const FollowedClubsPage = () => {
     const unfollow = async (clubId: number) => {
         setBusyClubId(clubId);
         try {
-            await apiClient.post(`/clubs/${clubId}/follow`);
+            await setClubFollowing(clubId, false);
             setClubs((current) => current.filter((club) => club.id !== clubId));
         } catch (requestError) {
             console.error('Failed to unfollow club', requestError);

@@ -3,9 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
+import { createClubApplication, selfRegisterClubPlayer, setClubFollowing } from '../../clubs/api';
 import type { ClubProfile, ClubRelationshipState } from '../../../components/discovery/clubDirectoryTypes';
-import { toggleClubFollow } from '../api';
 import { useWorldCopy } from '../copy';
 import { JOIN_POLICY } from '../format';
 import { useArrangeableSquads } from '../compose/useArrangeableSquads';
@@ -59,7 +58,7 @@ export function useClubActions(club: ClubProfile) {
         if (status !== 'authenticated') return signIn();
         setBusy('follow');
         changeClub(key, { following: !following });
-        try { await toggleClubFollow(club.id); setMessage(null); }
+        try { await setClubFollowing(club.id, !following); setMessage(null); }
         catch (error) { changeClub(key, { following }); setMessage({ text: extractApiErrorMessage(error, t('Following could not be updated.')), error: true }); }
         finally { setBusy(null); }
     };

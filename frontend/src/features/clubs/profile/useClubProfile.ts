@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { clubViewerRole } from '../../../components/club/clubViewerRole';
-import { fetchClubManagementOverview, fetchMyClubMembershipContext } from '../api';
+import { fetchClubManagementOverview, fetchMyClubMembershipContext, setClubFollowing } from '../api';
 import { canManageClubOperations, isLeadershipRole, type ClubMembershipRole } from '../domain';
 import { currentProgramme } from '../presentation';
 import type { ClubProfile } from './types';
@@ -99,7 +99,7 @@ export function useClubProfile(id: number) {
         if (!club) return;
         const previous = club;
         setClub(() => ({ ...club, isFollowedByMe: !club.isFollowedByMe, followerCount: Math.max(0, club.followerCount + (club.isFollowedByMe ? -1 : 1)) }));
-        try { await apiClient.post(`/clubs/${id}/follow`); refresh(); }
+        try { await setClubFollowing(id, !club.isFollowedByMe); refresh(); }
         catch (error) { setClub(() => previous); throw error; }
     };
     // Leaving the club changes the membership as well as the club, so both are asked again.

@@ -694,19 +694,6 @@
     box-shadow: var(--shadow-panel);
   }
 
-  .app-card {
-    background-color: var(--workspace-card-bg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-panel);
-  }
-
-  .app-chip {
-    background:
-      linear-gradient(180deg, var(--workspace-zone-highlight), transparent 140%),
-      var(--workspace-card-muted);
-    border: 1px solid var(--border-subtle);
-  }
-
   /* ---- Feed home shell: light mode (creamy white) ---- */
   .feed-home-shell {
     /* Accent (green — same in both modes) */
@@ -813,30 +800,6 @@
     align-items: start;
   }
 
-  .club-tone-green {
-    --club-item-accent: var(--club-tone-green);
-    --club-item-accent-soft: var(--club-tone-green-soft);
-    --club-item-accent-border: var(--club-tone-green-border);
-  }
-
-  .club-tone-cyan {
-    --club-item-accent: var(--club-tone-cyan);
-    --club-item-accent-soft: var(--club-tone-cyan-soft);
-    --club-item-accent-border: var(--club-tone-cyan-border);
-  }
-
-  .club-tone-blue {
-    --club-item-accent: var(--club-tone-blue);
-    --club-item-accent-soft: var(--club-tone-blue-soft);
-    --club-item-accent-border: var(--club-tone-blue-border);
-  }
-
-  .club-tone-purple {
-    --club-item-accent: var(--club-tone-purple);
-    --club-item-accent-soft: var(--club-tone-purple-soft);
-    --club-item-accent-border: var(--club-tone-purple-border);
-  }
-
   /* Tutorial spotlight highlight ring */
   .tutorial-highlight {
     position: relative;
@@ -931,34 +894,6 @@
     --schedule-item-accent-border: var(--schedule-accent-blue-border);
   }
 
-}
-
-/* Landing page motion stays isolated from the application shell. */
-.landing-reveal {
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
-  transition: opacity 560ms ease, transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
-  transition-delay: var(--landing-reveal-delay, 0ms);
-}
-
-.landing-reveal--visible {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-.landing-parallax {
-  transform: translate3d(0, var(--landing-parallax-y, 0px), 0);
-  will-change: transform;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-reveal,
-  .landing-reveal--visible,
-  .landing-parallax {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
 }
 
 /* Semantic shortcut colours stay consistent across the feed and its composer. */

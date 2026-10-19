@@ -1,4 +1,5 @@
 import type { ClubProfile } from '../../features/clubs/profile/types';
+import './club-tones.css';
 
 export interface ClubProfileActionLink {
     href: string;

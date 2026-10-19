@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import './app-card.css';
 
 interface DetailPanelSectionProps {
     title: string;

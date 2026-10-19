@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from 'react';
 import { ChevronDown, CircleHelp } from 'lucide-react';
+import './app-card.css';
 
 interface CollapsiblePanelProps {
     title: string;

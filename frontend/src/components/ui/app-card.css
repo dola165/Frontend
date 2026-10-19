@@ -1,0 +1,15 @@
+/* Shared card and chip surfaces (CollapsiblePanel, CompactFilterSummary, DetailPanelSection), in the utilities layer as before. */
+@layer utilities {
+  .app-card {
+    background-color: var(--workspace-card-bg);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .app-chip {
+    background:
+      linear-gradient(180deg, var(--workspace-zone-highlight), transparent 140%),
+      var(--workspace-card-muted);
+    border: 1px solid var(--border-subtle);
+  }
+}

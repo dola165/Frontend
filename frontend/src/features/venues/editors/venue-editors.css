@@ -1,4 +1,4 @@
-/* Venue editors (VenueEditors): photos, opening hours, the pitch list and pitch resources. */
+/* The stadium page and pitch editors (this folder): photos, opening hours, the pitch list and shared pitch space. */
 .venue-photo-editor {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

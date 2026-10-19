@@ -1,0 +1,12 @@
+/* The focused booking journey (?book=1): its page width and the stadium identity above the calendar. */
+.venue-booking-page { max-width: 1160px; }
+.venue-booking-identity { display: flex; gap: 18px; align-items: center; padding: 12px 0 24px; }
+.venue-booking-identity > img { width: 100px; height: 76px; border-radius: 12px; object-fit: cover; }
+.venue-booking-identity h1 { font-size: clamp(22px, 3vw, 30px); margin: 3px 0 6px; }
+.venue-booking-identity p:last-child { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 13px; }
+@media (max-width: 767px) {
+  .venue-booking-identity > img { width: 68px; height: 68px; }
+}
+.venue-booking-page .venue-booking-identity { padding: 8px 0 18px; }
+.venue-booking-page h2:focus { outline: none; }
+.venue-booking-page h2 { scroll-margin-top: calc(var(--app-active-header-height, 100px) + 20px); }

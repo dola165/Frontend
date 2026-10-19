@@ -1,0 +1,67 @@
+/* Reservation rows (VenueBookings): one row per booking with its status and actions. */
+.venue-bookings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+.venue-booking-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 13px;
+  background: var(--bg-elevated);
+}
+.venue-booking-icon {
+  background: var(--venue-accent-soft);
+  color: var(--venue-accent);
+  padding: 13px;
+  border-radius: 12px;
+}
+.venue-booking-main {
+  flex: 1;
+  min-width: 0;
+}
+.venue-booking-main p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 7px;
+}
+.venue-booking-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+}
+@media (max-width: 800px) {
+  .venue-booking-row {
+    flex-wrap: wrap;
+  }
+  .venue-booking-actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 12px;
+  }
+  .venue-booking-icon {
+    display: none;
+  }
+}
+@media (max-width: 580px) {
+  .venue-booking-row {
+    padding: 17px;
+  }
+  .venue-booking-main h3 {
+    font-size: 15px;
+  }
+  .venue-booking-main .venue-inline {
+    gap: 7px;
+  }
+  .venue-booking-actions {
+    flex-wrap: wrap;
+  }
+}

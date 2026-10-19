@@ -7,6 +7,8 @@ import { extractApiErrorMessage } from "../../utils/apiError";
 import { createBooking, fetchAvailability, formats, surfaces, type Availability, type Slot, type Venue } from "./api";
 import { addDays, dayLabel, money, timeLabel, today, validDate } from "./utils";
 import { availableEnds, hoursLabel } from "./timeRange";
+import "./venues.css";
+import "./venue-calendar.css";
 
 export function VenueCalendar({ venue }: { venue: Venue }) {
   const { user, isAuthenticated, sessionId } = useAuth();

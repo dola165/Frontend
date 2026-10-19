@@ -10,6 +10,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { Venue } from "./api";
 import { fromPrice, money } from "./utils";
 import { venueMapLink } from './venueMapLink';
+import "./venues.css";
+import "./venue-map.css";
 
 function FitVenues({ venues }: { venues: Venue[] }) {
   const { current: map } = useMap();

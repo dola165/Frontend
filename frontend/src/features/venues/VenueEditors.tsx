@@ -27,6 +27,10 @@ import {
 } from "./api";
 import { LocationPicker } from '../../components/workspace/editor/LocationPicker';
 import { money } from "./utils";
+// venue-owner.css holds the pitch card styles and loads before the shared venue styles, as on the venue workspace.
+import './venue-owner.css';
+import './venues.css';
+import './venue-editors.css';
 
 const asDraft = (venue: Venue): VenueDraft => ({
   revision: venue.revision,

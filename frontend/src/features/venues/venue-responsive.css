@@ -1,0 +1,166 @@
+/* Wide and narrow screens for the page frame, the building blocks and the stadium profile. These come after all three
+   because several of them override rules from more than one of those files. */
+@media (min-width: 1600px) {
+  .venue-page {
+    padding: 30px 35px;
+  }
+  .venue-gallery-main {
+    height: 455px;
+  }
+}
+@media (max-width: 1100px) {
+  .venue-page {
+    padding: 20px;
+  }
+  .venue-profile-details {
+    gap: 25px;
+  }
+  .venue-panel {
+    padding: 20px;
+  }
+}
+@media (max-width: 800px) {
+  .venue-profile-details {
+    grid-template-columns: 1fr;
+  }
+  .venue-contact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+  }
+  .venue-contact h2 {
+    grid-column: 1/-1;
+  }
+  .venue-contact h3 {
+    margin-top: 10px;
+  }
+  .venue-contact .venue-hours {
+    grid-column: 1/-1;
+  }
+  .venue-amenities {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .venue-gallery-main {
+    height: 330px;
+  }
+  .venue-gallery-main > .venue-photo-placeholder {
+    min-height: 330px;
+  }
+  .venue-gallery-overlay {
+    padding: 26px;
+  }
+  .venue-profile-intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .venue-workspace-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 580px) {
+  .venue-page {
+    padding: 14px 10px;
+  }
+  .venue-page h1 {
+    font-size: 31px;
+  }
+  .venue-page h2 {
+    font-size: 21px;
+  }
+  .venue-eyebrow {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+  }
+  .venue-photo-badge {
+    font-size: 8px;
+    left: 8px;
+    top: 8px;
+    padding: 4px 6px;
+  }
+  .venue-photo-placeholder {
+    min-height: 130px;
+  }
+  .venue-photo-placeholder span {
+    font-size: 10px;
+  }
+  .venue-breadcrumb {
+    gap: 6px;
+    font-size: 10px;
+    flex-wrap: wrap;
+  }
+  .venue-breadcrumb > .venue-button {
+    min-height: 34px;
+    font-size: 11px;
+    padding: 7px 9px;
+  }
+  .venue-gallery-main {
+    height: 315px;
+  }
+  .venue-gallery-overlay {
+    padding: 23px;
+  }
+  .venue-gallery-overlay h1 {
+    font-size: 33px;
+  }
+  .venue-gallery-thumbs {
+    height: 68px;
+  }
+  .venue-gallery-thumbs button {
+    flex-basis: 90px;
+  }
+  .venue-profile-details {
+    padding: 30px 0;
+    gap: 25px;
+  }
+  .venue-profile-intro {
+    padding: 20px 0;
+  }
+  .venue-profile-intro > .venue-button {
+    width: 100%;
+    font-size: 12px;
+  }
+  .venue-contact {
+    display: block;
+  }
+  .venue-section-heading {
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .venue-section-heading > .venue-status {
+    font-size: 9px;
+    padding: 4px 7px;
+  }
+  .venue-pitch-cards {
+    gap: 10px;
+  }
+  .venue-pitch-cards > div {
+    padding: 14px;
+  }
+  .venue-pitch-cards p {
+    font-size: 11px;
+  }
+  .venue-location > .venue-map {
+    height: 280px;
+  }
+  .venue-location .venue-button {
+    font-size: 11px;
+    padding: 9px;
+  }
+  .venue-panel {
+    padding: 18px;
+  }
+  .venue-form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .venue-workspace-heading h1 {
+    font-size: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .venue-page * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

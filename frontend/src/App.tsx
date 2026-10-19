@@ -21,6 +21,7 @@ import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from './features/
 import { LegacyMatchesRedirect, TournamentSetupRedirect, WorldRedirect } from './features/world/WorldRedirect';
 import { keepRegistrationTown } from './features/start/startApi';
 import { useAutomaticActivity } from './features/start/useAutomaticActivity';
+import { useMediaQuery } from './features/world/useMediaQuery';
 
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
@@ -117,6 +118,18 @@ const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(mo
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
 const StartPage = lazy(() => import('./features/start/StartPage').then(module => ({ default: module.StartPage })));
+
+/**
+ * Below 1000px no rule shows the Home side rails (Tailwind hides them below lg/xl; the Dola panel layouts show them
+ * from 1000px), so phones skip their code and the right rail's conversation list and chat connection. Once the
+ * window has been wide enough they stay mounted, as before, so narrowing it keeps an open quick chat.
+ */
+function useRailsFit() {
+    const fits = useMediaQuery('(min-width: 1000px)', true);
+    const [fitted, setFitted] = useState(fits);
+    if (fits && !fitted) setFitted(true);
+    return fitted;
+}
 
 // Sign-in and the first run render without the app header.
 const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent', '/start']);
@@ -217,6 +230,7 @@ export function MainLayout() {
         .filter(workspace => workspace.id === 'club.workspace')
         .map(workspace => ({ clubId: workspace.context.id, clubName: workspace.context.label }));
     const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference);
+    const railsFit = useRailsFit();
 
     useEffect(() => {
         if (!isAndroidApp) return;
@@ -491,7 +505,7 @@ export function MainLayout() {
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
                     {isHomeFeed && <HomeOpportunities className="home-opportunities--feed" />}
                     <div className={isHomeFeed ? 'feed-home-grid home-feed-layout' : 'grid grid-cols-1 gap-6 pb-10 pt-6 mx-auto max-w-[1480px] px-4 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}>
-                            {LeftSidebar && <Suspense fallback={null}><LeftSidebar user={user} managedClubs={managedClubs} /></Suspense>}
+                            {LeftSidebar && railsFit && <Suspense fallback={null}><LeftSidebar user={user} managedClubs={managedClubs} /></Suspense>}
 
                         <main className="min-w-0">
                             <RouteViewport><Routes>
@@ -501,7 +515,7 @@ export function MainLayout() {
                             </Routes></RouteViewport>
                         </main>
 
-                        {RightSidebar && <Suspense fallback={null}><RightSidebar /></Suspense>}
+                        {RightSidebar && railsFit && <Suspense fallback={null}><RightSidebar /></Suspense>}
                     </div>
                 </div>
             )}

@@ -1,8 +1,9 @@
 import { visualColors } from '../../styles/visualColors';
 import { useEffect, useRef, useState } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource, Map as LibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { maplibreWorkerUrl } from '../../components/map/maplibreWorker';
 import { Crosshair, Layers, MapPin, Minus, Plus, RotateCcw } from 'lucide-react';
 import { placeById, places } from './fixtures';
 import type { Plan } from './model';
@@ -23,6 +24,7 @@ export function MapCanvas({plan,selected,day,discoveryIds,resetToken,focus,onSel
     if(fallback||!container.current)return;
     let instance:LibreMap;
     const styleUrl=new URLSearchParams(location.search).has('no-tiles')?'/map-workspace-basemap-unavailable.json':'https://tiles.openfreemap.org/styles/dark';
+    maplibregl.setWorkerUrl(maplibreWorkerUrl);
     try {instance=new maplibregl.Map({container:container.current,style:styleUrl,center:plan.region==='Tallinn'?[24.85,59.43]:[44.815,41.757],zoom:11,pitch:0,attributionControl:{compact:true}});map.current=instance;}catch{onFallback();return;}
     let failures=0;
     instance.on('error',()=>{failures++;if(failures>3)onFallback();});

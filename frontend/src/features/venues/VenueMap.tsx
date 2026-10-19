@@ -3,6 +3,7 @@ import { getHeritageStyle } from "../../components/map/heritageStyle";
 import { MAP_STYLE_DEFAULT } from "../../components/map/mapLayers";
 import { useEffect, useState } from "react";
 import Map, { Marker, NavigationControl, useMap } from "react-map-gl/maplibre";
+import { maplibreWorkerUrl } from "../../components/map/maplibreWorker";
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -64,6 +65,7 @@ export function VenueMap({
       }
     >
       <Map
+        workerUrl={maplibreWorkerUrl}
         initialViewState={{
           latitude: venues[0]?.latitude ?? 41.7151,
           longitude: venues[0]?.longitude ?? 44.8271,

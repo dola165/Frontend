@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import Map, { Marker, NavigationControl, type MapRef } from 'react-map-gl/maplibre';
+import { maplibreWorkerUrl } from '../../../../components/map/maplibreWorker';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapPin } from 'lucide-react';
 import type { MapBounds } from '../../../../components/map/areaSearch';
@@ -32,7 +33,7 @@ export default function GroundsMap({ center, pitches, chosen, dropped, places, p
   if (!style) return <div className="gk-grounds-map" aria-busy="true" />;
   return (
     <div className="gk-grounds-map">
-      <Map ref={map} initialViewState={view} mapStyle={style}
+      <Map ref={map} workerUrl={maplibreWorkerUrl} initialViewState={view} mapStyle={style}
         onMoveEnd={event => { if (event.originalEvent) report(); }} onClick={event => onDrop(event.lngLat.lat, event.lngLat.lng)} attributionControl={false}>
         <NavigationControl showCompass={false} />
         {pitches.map(pitch => (

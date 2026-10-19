@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, type CSSProperties } from 'react';
 import type { StyleSpecification } from 'maplibre-gl';
 import Map, { Marker, NavigationControl, useMap, type ViewStateChangeEvent } from 'react-map-gl/maplibre';
+import { maplibreWorkerUrl } from '../../../components/map/maplibreWorker';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { prefersLightMapRendering } from '../../../components/map/mapPerformance';
@@ -123,6 +124,7 @@ export default function WorldLiveMap({ style, points, context = [], reach, away,
     };
     return (
         <Map
+            workerUrl={maplibreWorkerUrl}
             initialViewState={{ latitude: first?.lat ?? 41.7151, longitude: first?.lng ?? 44.8271, zoom: 11 }}
             mapStyle={style}
             style={{ width: '100%', height: '100%' }}

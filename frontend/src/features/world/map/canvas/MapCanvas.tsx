@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode, type RefObject } from 'react';
 import MapGL, { useMap, type MapLayerMouseEvent, type MapRef, type ViewStateChangeEvent } from 'react-map-gl/maplibre';
+import { maplibreWorkerUrl } from '../../../../components/map/maplibreWorker';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { isAndroidApp } from '../../../../android/bridge';
@@ -53,6 +54,7 @@ export function MapCanvas({ mapRef, initialView, children, overlay, cursor, embe
             {!style && <div className="gk-map-canvas__waiting" aria-hidden="true" />}
             {style && !unavailable && (
                 <MapGL
+                    workerUrl={maplibreWorkerUrl}
                     key={attempt}
                     ref={mapRef}
                     initialViewState={initialView}
@@ -63,7 +65,8 @@ export function MapCanvas({ mapRef, initialView, children, overlay, cursor, embe
                     scrollZoom={!embedded}
                     dragRotate={!embedded}
                     cursor={cursor}
-                    onError={event => { if (!event.target.getStyle()?.layers?.length) setUnavailable(true); }}
+                    // No target when the map could not be created at all (MapLibre 6 needs WebGL2).
+                    onError={event => { if (!event.target?.getStyle()?.layers?.length) setUnavailable(true); }}
                     onLoad={event => {
                         if (isAndroidApp || embedded || window.innerWidth < 700) {
                             // Keep attribution behind its standard toggle so it never covers controls on first load.

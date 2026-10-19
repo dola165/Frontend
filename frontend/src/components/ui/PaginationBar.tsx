@@ -63,36 +63,3 @@ export const PaginationBar = ({
         </div>
     );
 };
-
-export const PaginationTopBar = ({
-    totalElements,
-    pageSize,
-    onPageSizeChange,
-    pageSizeOptions = DEFAULT_PAGE_SIZES,
-    label = 'items'
-}: {
-    totalElements: number;
-    pageSize: number;
-    onPageSizeChange: (size: number) => void;
-    pageSizeOptions?: number[];
-    label?: string;
-}) => {
-    return (
-        <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-[var(--color-secondary)]">{totalElements} {label}</span>
-            <div className="flex items-center gap-2">
-                <span className="text-[11px] text-[var(--color-secondary)]">Show:</span>
-                <select
-                    aria-label="Results per page"
-                    value={pageSize}
-                    onChange={e => onPageSizeChange(Number(e.target.value))}
-                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs text-[var(--color-secondary)] px-2 py-1 outline-none focus:border-[var(--color-accent)]"
-                >
-                    {pageSizeOptions.map(s => (
-                        <option key={s} value={s}>{s}</option>
-                    ))}
-                </select>
-            </div>
-        </div>
-    );
-};

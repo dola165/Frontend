@@ -215,12 +215,6 @@ const ka = {
       OTHER: 'სხვა',
     },
   },
-  marketplace: {
-    emptyCta: 'კლუბების ნახვა',
-  },
-  needs: {
-    emptyCta: 'კლუბების ნახვა',
-  },
   search: {
     placeholder: 'მოძებნეთ ხალხი, კლუბები, ღონისძიებები…',
     ariaLabel: 'გლობალური ძებნა',

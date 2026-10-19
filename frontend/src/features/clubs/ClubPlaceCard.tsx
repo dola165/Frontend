@@ -6,7 +6,7 @@ import { ArrowRight, Building2, MapPin, Navigation, Warehouse, X } from 'lucide-
 import { MediaImage } from '../../components/ui/MediaImage';
 import { useDialogFocus } from '../../components/workspace/useDialogFocus';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
-import { FacilityDirectionsPanel } from './FacilityDirectionsPanel';
+import { FacilityDirections } from './FacilityDirections';
 import './club-places.css';
 import { placeType } from './clubPlaceTypes';
 import { useClubPanelMotion } from './useClubPanelMotion';
@@ -41,7 +41,7 @@ export function FacilityCard({ facility, clubId, showVenueLinks = true, detailsO
       <div className="club-place-actions"><button type="button" className="cp-button" onClick={()=>setOpen(true)}>{t(placeType(facility)==='VENUE'?(showVenueLinks?'View venue':'View ground'):placeType(facility)==='FACILITY'?'View facility':'View location')}<ArrowRight size={16}/></button>{clubId&&facility.id>0&&<button type="button" className="cp-button" onClick={()=>setDirections(true)}><Navigation size={16}/>{t('Get directions')}</button>}</div>
     </div>
     {open&&<PlaceDetails place={facility} clubId={clubId} showVenueLinks={showVenueLinks} onClose={()=>setOpen(false)}/>}
-    {directions&&clubId&&<FacilityDirectionsPanel clubId={clubId} facilityId={facility.id} title={facility.title} address={address} onClose={()=>setDirections(false)}/>}
+    {directions&&clubId&&<FacilityDirections clubId={clubId} facilityId={facility.id} title={facility.title} address={address} onClose={()=>setDirections(false)}/>}
   </article>;
 }
 
@@ -67,6 +67,6 @@ function PlaceDetails({place,clubId,onClose,showVenueLinks}:{place:PublicFacilit
       {showVenueLinks&&!venue&&placeType(place)==='VENUE'&&<p className="cp-muted">{t("Listed as a place the club plays or trains. No rental booking is offered through this listing.")}</p>}
       {clubId&&<Link className="cp-button" to={`/clubs/${clubId}?tab=contact`} onClick={onClose}>{t('Contact the club')}<ArrowRight size={16}/></Link>}
     </div>
-    {directions&&clubId&&<FacilityDirectionsPanel clubId={clubId} facilityId={place.id} title={place.title} address={d.address} onClose={()=>setDirections(false)}/>}
+    {directions&&clubId&&<FacilityDirections clubId={clubId} facilityId={place.id} title={place.title} address={d.address} onClose={()=>setDirections(false)}/>}
   </section></div>,document.body);
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { Loader2, AlertCircle, QrCode } from 'lucide-react';
@@ -6,7 +6,6 @@ import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { QrLoginSection } from '../components/auth/QrLoginSection';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
@@ -31,6 +30,9 @@ import {
     authDividerLineClass,
     authDividerLabelClass,
 } from '../components/auth/authClasses';
+
+// The QR code library loads only when someone opens QR sign-in, not with the app.
+const QrLoginSection = lazy(() => import('../components/auth/QrLoginSection').then(module => ({ default: module.QrLoginSection })));
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -177,7 +179,9 @@ export const LoginPage = () => {
         >
             {new URLSearchParams(location.search).get('passwordChanged') === '1' && <p role="status" className="mb-4 text-sm text-[var(--color-secondary)]">Sign in with your new password to continue.</p>}
             {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); }} /> : showQr ? (
-                <QrLoginSection onBack={() => setShowQr(false)} />
+                <Suspense fallback={<div className="flex flex-col items-center gap-4 py-6"><Loader2 className="h-8 w-8 animate-spin text-[var(--fc-accent)]" /><p className="text-sm text-[var(--fc-text-secondary)]">Generating QR code…</p></div>}>
+                    <QrLoginSection onBack={() => setShowQr(false)} />
+                </Suspense>
             ) : (
                 <>
                     {error && (

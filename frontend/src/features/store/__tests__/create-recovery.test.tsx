@@ -59,6 +59,10 @@ let seq = 0;
 // Prime the large fixture router outside the first retry's action assertion window.
 // @ts-expect-error The process-local fixture router is intentionally JavaScript.
 beforeAll(async () => { await import('../../../../sandbox/api/handlers/index.mjs'); });
+// Each test drives the real store page, its CSS and the synthetic API through several saves: 1-2 s on an idle machine,
+// up to about 11 s with every core busy (measured). Role queries recompute styles after each render, so the cost is CPU,
+// not waiting; nothing here sleeps. The 5 s default left no headroom, so this file gets a budget that matches its work.
+vi.setConfig({ testTimeout: 30_000 });
 beforeEach(() => { cleanup(); f.session = `fixed-session-${++seq}`; f.mode = 'normal'; f.calls = []; f.reads = []; f.patches = []; f.pending = []; f.context = null; sessionStorage.clear(); window.dispatchEvent(new Event('gk-auth-changed')); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 async function fill(page: 'workspace' | 'public' = 'workspace') {

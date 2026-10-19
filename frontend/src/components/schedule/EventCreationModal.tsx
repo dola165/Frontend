@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
     Ban,
@@ -18,7 +18,6 @@ import {
     X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { MiniMap } from '../MiniMap';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
     cancelScheduleEvent,
@@ -37,6 +36,9 @@ import { eventTypeCopy } from './workspaceTypes';
 import { useMobileSchedule } from './useMobileSchedule';
 import './schedule-event-editor.css';
 import './schedule-editor-identity.css';
+
+// The venue picker map and its library load only when someone opens the picker, not with every schedule page.
+const MiniMap = lazy(() => import('../MiniMap').then(module => ({ default: module.MiniMap })));
 
 export type ModalSurface = 'MY_SCHEDULE' | 'CLUB_SCHEDULE';
 export type ModalMode = 'create' | 'edit';
@@ -925,7 +927,7 @@ const EventCreationContent = ({
                                                 )}
                                             </div>}
                                             {mapOpen && !audience?.privateInvitations && (
-                                                <MiniMap
+                                                <Suspense fallback={<div aria-hidden="true" className="h-[264px]" />}><MiniMap
                                                     mode="picker"
                                                     title={t('schedule.editor.chooseVenue')}
                                                     selectedLocation={{ lat, lng }}
@@ -936,7 +938,7 @@ const EventCreationContent = ({
                                                             locationLng: String(lng),
                                                         }))
                                                     }
-                                                />
+                                                /></Suspense>
                                             )}
                                             <p className="schedule-compose-muted">
                                                 {t('schedule.direction.timezone', { timezone: recurring && form.recurrenceTimezone ? form.recurrenceTimezone.replaceAll('_', ' ') : Intl.DateTimeFormat().resolvedOptions().timeZone })}

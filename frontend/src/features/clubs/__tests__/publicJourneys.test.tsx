@@ -54,7 +54,7 @@ describe('public club journeys', () => {
     expect(details.queryByRole('heading', { name: 'Amenities' })).not.toBeInTheDocument();
     expect(screen.queryByText('Accessible toilets')).not.toBeInTheDocument();
     fireEvent.click(details.getByRole('button', { name: 'Get directions' }));
-    expect(screen.getByRole('dialog', { name: 'Directions for School pitch' })).toHaveTextContent('School street 79');
+    expect(await screen.findByRole('dialog', { name: 'Directions for School pitch' })).toHaveTextContent('School street 79');
     expect(directions.received).toHaveBeenCalledWith(expect.objectContaining({ clubId: 1, facilityId: 1, title: 'School pitch', address: 'School street 79' }));
     expect(screen.queryByText('Accessible toilets')).not.toBeInTheDocument();
   });

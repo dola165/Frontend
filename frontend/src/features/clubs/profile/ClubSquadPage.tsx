@@ -6,7 +6,7 @@ import { Crest } from '../../world/Crest';
 import { dayLabel, timeLabel } from '../../clubWorkspace/fixtures';
 import { activityColors, activityIcons } from '../../schedule/activityIcons';
 import { SquadTrainingSchedule } from '../SquadTrainingSchedule';
-import { FacilityDirectionsPanel } from '../FacilityDirectionsPanel';
+import { FacilityDirections } from '../FacilityDirections';
 import type { PublicFacility } from '../ClubPlaceCard';
 import { placeType } from '../clubPlaceTypes';
 import type { TrainingSession } from '../trainingCalendar';
@@ -111,6 +111,6 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
         <Section boxed icon={Users} tone="info" title={copy('Players', 'მოთამაშეები')}>
             <Panel flush><List label={copy('Players', 'მოთამაშეები')}><ListRow to={roster} lead={<span className="gk-club-icon gk-club-icon--info"><Users aria-hidden="true" /></span>} title={copy('See the squad', 'გუნდის ნახვა')} meta={isAuthenticated ? copy('Players, positions and squad profiles', 'მოთამაშეები, პოზიციები და გუნდის პროფილები') : copy('Sign in to see player profiles', 'მოთამაშეთა პროფილების სანახავად შედით')} trail={<ArrowRight aria-hidden="true" className="gk-faint" size={16} />} /></List></Panel>
         </Section>
-        {directions && <FacilityDirectionsPanel clubId={club.id} facilityId={directions.id} title={directions.title} address={directions.details.address || directions.linkedVenue?.address} onClose={() => setDirections(null)} />}
+        {directions && <FacilityDirections clubId={club.id} facilityId={directions.id} title={directions.title} address={directions.details.address || directions.linkedVenue?.address} onClose={() => setDirections(null)} />}
     </>;
 }

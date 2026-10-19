@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Map, { Marker, useMap } from 'react-map-gl/maplibre';
 import { maplibreWorkerUrl } from './map/maplibreWorker';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import './mini-map.css';
 import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MapHelpHint } from './map/MapHelpHint';

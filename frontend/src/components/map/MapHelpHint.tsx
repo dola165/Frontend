@@ -1,4 +1,5 @@
 import { CircleHelp } from 'lucide-react';
+import './map-help.css';
 
 interface MapHelpHintProps {
     text: string;

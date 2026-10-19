@@ -34,7 +34,12 @@ import { apiClient } from '../../api/axiosConfig';
 import { durationMinutes, localDateISO, upcomingTrainingDates } from './scheduleFormUtils';
 import { eventTypeCopy } from './workspaceTypes';
 import { useMobileSchedule } from './useMobileSchedule';
-import './schedule-event-editor.css';
+import './eventEditor/event-dialog.css';
+import './eventEditor/event-fields.css';
+import './eventEditor/event-review.css';
+import './eventEditor/event-preview.css';
+import './eventEditor/event-actions.css';
+import './eventEditor/event-responsive.css';
 import './schedule-editor-identity.css';
 
 // The venue picker map and its library load only when someone opens the picker, not with every schedule page.

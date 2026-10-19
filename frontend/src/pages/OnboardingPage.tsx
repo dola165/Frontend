@@ -9,7 +9,7 @@ import { isAndroidApp } from '../android/bridge';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, isUnder13, todayIso } from '../utils/age';
-import { NEUTRAL_REGISTRATION_ROLE } from '../utils/registration';
+import { NEUTRAL_ONBOARDING_ROLE } from '../utils/registration';
 import {
     authFieldErrorClass,
     authInputClass,
@@ -72,7 +72,7 @@ const OnboardingForm = () => {
             // The backend still wants a role here; an account keeps the one it has, a new one stays neutral.
             await credentialUpdate(config => apiClient.put<{ accessToken?: string }>('/users/me/onboarding', {
                 fullName: trimmedName,
-                role: user.role ?? NEUTRAL_REGISTRATION_ROLE,
+                role: user.role ?? NEUTRAL_ONBOARDING_ROLE,
                 dateOfBirth,
             }, config), response => {
                 const token = response.data.accessToken;

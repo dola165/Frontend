@@ -22,7 +22,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, isUnder13, todayIso } from '../utils/age';
-import { isEmail, NEUTRAL_REGISTRATION_ROLE } from '../utils/registration';
+import { isEmail } from '../utils/registration';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../utils/authStorage';
 import { DEFAULT_TOWN, TOWNS, locateTown } from '../features/start/towns';
 import {
@@ -116,7 +116,6 @@ export const RegisterPage = () => {
                 fullName: fullName.trim(),
                 email: normalizedEmail,
                 password,
-                role: NEUTRAL_REGISTRATION_ROLE,
                 dateOfBirth: dob,
                 continuationPath: publicContinuationPath(nextPath),
             }, { signal: controller.signal });

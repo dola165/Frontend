@@ -85,9 +85,10 @@ it('registers without a role, keeps the town for the first run and preserves the
     change('auth-dob', '1990-01-01'); fireEvent.submit(document.querySelector('form')!);
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/verify-email'));
     expect(apiClient.post).toHaveBeenCalledWith('/auth/register', expect.objectContaining({
-        fullName: 'Example Parent', email: 'parent@example.test', role: 'FAN', dateOfBirth: '1990-01-01',
+        fullName: 'Example Parent', email: 'parent@example.test', dateOfBirth: '1990-01-01',
     }), expect.anything());
     expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty('town');
+    expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty('role');
     expect(apiClient.post).toHaveBeenCalledTimes(1);
     expect(login).not.toHaveBeenCalled();
     expect(getAuthFlow()).toMatchObject({ email: 'parent@example.test', newAccount: true, awaitingVerification: true, town: 'Rustavi' });

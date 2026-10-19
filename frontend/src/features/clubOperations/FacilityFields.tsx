@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ImageUploadField } from '../../components/workspace/editor/ImageUploadField';
-import { LocationPicker } from '../../components/workspace/editor/LocationPicker';
-import { Button, Field, SearchInput } from '../../design/primitives';
+import { Button, Field, SearchInput, Skeleton } from '../../design/primitives';
 import type { Bootstrap, Definition, Field as FieldDefinition } from './api';
 import './records/records.css';
+
+// The entrance map and its library load when someone opens it, not with the club workspace.
+const LocationPicker = lazy(() => import('../../components/workspace/editor/LocationPicker').then(module => ({ default: module.LocationPicker })));
 
 function Part({ title, description, children }: { title: string; description: string; children: ReactNode }) {
     return <section className="rec-subgroup"><div className="rec-form__group-head"><h4>{title}</h4><p>{description}</p></div>{children}</section>;
@@ -48,7 +50,7 @@ export function FacilityFields({ mode, boot, definition, data, change, renderFie
         </details>
         <details className="rec-disclosure" onToggle={event => setMapOpen(event.currentTarget.open)}>
             <summary>Set the visitor entrance on the map (optional)</summary>
-            <div className="rec-disclosure__body">{mapOpen && <LocationPicker latitude={data.latitude ?? ''} longitude={data.longitude ?? ''} onChange={(latitude, longitude) => change({ latitude, longitude })} />}</div>
+            <div className="rec-disclosure__body">{mapOpen && <Suspense fallback={<Skeleton height={280} />}><LocationPicker latitude={data.latitude ?? ''} longitude={data.longitude ?? ''} onChange={(latitude, longitude) => change({ latitude, longitude })} /></Suspense>}</div>
         </details>
     </div>;
 }

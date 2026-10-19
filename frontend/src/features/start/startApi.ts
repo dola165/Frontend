@@ -1,4 +1,6 @@
 import { apiClient } from '../../api/axiosConfig';
+import { getStoredUserId } from '../../utils/authStorage';
+import { loadPreferences, updatePreferences, type Preferences, type StartPreferences } from '../preferences/preferencesStore';
 import type { FootballRole } from '../roles/domain';
 import { kmBetween, townByName, type Town } from './towns';
 
@@ -14,9 +16,33 @@ export interface FeedPreferences {
     updatedAt?: string | null;
 }
 
-// Backend needed: GET/PUT /users/me/feed-preferences (BACKEND_NEEDS.md, "Sign-in and the start").
-export const fetchFeedPreferences = async (signal?: AbortSignal) => (await apiClient.get<FeedPreferences>('/users/me/feed-preferences', { signal })).data;
-export const saveFeedPreferences = async (changes: Partial<FeedPreferences>) => (await apiClient.put<FeedPreferences>('/users/me/feed-preferences', changes)).data;
+const signedInUser = () => {
+    const id = Number(getStoredUserId());
+    if (!Number.isInteger(id) || id <= 0) throw new Error('Sign in to keep your choices.');
+    return id;
+};
+const toFeed = ({ start, updatedAt }: Preferences): FeedPreferences => ({
+    town: start?.town ?? null, topics: (start?.topics ?? []) as Interest[], activity: (start?.activity ?? null) as Activity | null, updatedAt,
+});
+const abortable = <T,>(work: Promise<T>, signal?: AbortSignal) => signal
+    ? Promise.race([work, new Promise<never>((_, reject) => {
+        if (signal.aborted) reject(new DOMException('Aborted', 'AbortError'));
+        signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+    })])
+    : work;
+
+/** The first-run answers, kept as the "start" section of the person's preferences (GET /users/me/preferences). */
+export const fetchFeedPreferences = async (signal?: AbortSignal) => toFeed(await abortable(loadPreferences(signedInUser()), signal));
+/** Changes some answers and keeps the others; resolves once the server holds them. */
+export async function saveFeedPreferences(changes: Partial<FeedPreferences>) {
+    const userId = signedInUser();
+    const current = (await loadPreferences(userId)).start ?? {};
+    const start: StartPreferences = { ...current };
+    if (changes.town !== undefined) start.town = changes.town;
+    if (changes.topics !== undefined) start.topics = changes.topics;
+    if (changes.activity !== undefined) start.activity = changes.activity;
+    return toFeed(await updatePreferences(userId, { start }));
+}
 /**
  * The town given at sign-up, kept when the first run never saved it (skipped, or not shown): only when the account has
  * no town yet, so a town chosen later always wins. Everything local (Home, World, creating a club) starts from it.

@@ -1,8 +1,9 @@
+import { readPreferences, subscribePreferences, updatePreferences, type Preferences } from '../../../../features/preferences/preferencesStore';
 import { isPinIcon, type PinIcon } from './pinIcons';
 
 /**
- * Device-local pins and visit counts, one record per account. `usePins` is the only consumer,
- * so a server-backed store can replace this module without touching the header.
+ * Pins live with the person's preferences on the server (shown at once from this device's copy); visit counts stay
+ * on this device and end with the sign-in. `usePins` is the only consumer of both.
  */
 export interface Pin { path: string; label: string; icon: PinIcon }
 export interface Visit { t: number[]; label?: string; icon?: PinIcon }
@@ -13,7 +14,6 @@ export const VISIT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const REVISIT_GAP_MS = 10 * 60 * 1000;
 const MAX_VISITED_PAGES = 80;
 
-const pinKey = (userId: number) => `gk-pins:v1:${userId}`;
 const visitKey = (userId: number) => `gk-visits:v1:${userId}`;
 const cache = new Map<string, unknown>();
 const listeners = new Set<() => void>();
@@ -23,7 +23,7 @@ const EMPTY_PINS: Pin[] = [];
 export const isSafePath = (value: unknown): value is string =>
     typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && value.length <= 300 && !/[\\\s]/.test(value);
 
-/** Stored as `{ pins: [...] }`. Anything malformed is dropped item by item rather than discarding the rest. */
+/** Saved as `{ pins: [...] }`. Anything malformed is dropped item by item rather than discarding the rest. */
 function parsePins(raw: unknown): Pin[] {
     if (!raw || typeof raw !== 'object' || !Array.isArray((raw as { pins?: unknown }).pins)) return EMPTY_PINS;
     const pins: Pin[] = [];
@@ -62,18 +62,14 @@ function read<T>(key: string, parse: (raw: unknown) => T): T {
     return value;
 }
 
-function persist(key: string, stored: unknown) {
-    try { window.localStorage.setItem(key, JSON.stringify(stored)); } catch { /* Pins still work for this visit without storage. */ }
+function write(key: string, value: unknown) {
+    cache.set(key, value);
+    try { window.localStorage.setItem(key, JSON.stringify(value)); } catch { /* Suggestions still work for this visit without storage. */ }
     listeners.forEach(listener => listener());
 }
 
-function write(key: string, value: unknown) {
-    cache.set(key, value);
-    persist(key, value);
-}
-
 // Visit history belongs to one sign-in: sign-in and sign-out remove it from storage (`clearStoredAuth`), so the
-// in-memory copy is dropped as well. Pins are the person's own choice and stay.
+// in-memory copy is dropped as well. Pins come back from the server with the next sign-in.
 if (typeof window !== 'undefined') {
     window.addEventListener('gk-auth-changed', () => {
         for (const key of [...cache.keys()]) if (key.startsWith('gk-visits:')) cache.delete(key);
@@ -84,20 +80,27 @@ if (typeof window !== 'undefined') {
 export function subscribePins(listener: () => void) {
     listeners.add(listener);
     const onStorage = (event: StorageEvent) => {
-        if (!event.key?.startsWith('gk-pins:') && !event.key?.startsWith('gk-visits:')) return;
+        if (!event.key?.startsWith('gk-visits:')) return;
         cache.delete(event.key);
         listener();
     };
     window.addEventListener('storage', onStorage);
-    return () => { listeners.delete(listener); window.removeEventListener('storage', onStorage); };
+    const stopPreferences = subscribePreferences(listener);
+    return () => { listeners.delete(listener); window.removeEventListener('storage', onStorage); stopPreferences(); };
 }
 
-export const readPins = (userId: number) => read(pinKey(userId), parsePins);
+// One parsed list per saved document, so readers get the same array until the pins change.
+const parsedPins = new WeakMap<Preferences, Pin[]>();
+export function readPins(userId: number) {
+    const preferences = readPreferences(userId);
+    let pins = parsedPins.get(preferences);
+    if (!pins) { pins = parsePins(preferences.pins); parsedPins.set(preferences, pins); }
+    return pins;
+}
 export const readVisits = (userId: number) => read(visitKey(userId), parseVisits);
+/** Shows the new pins at once and keeps them for the person on every device. */
 export function writePins(userId: number, pins: Pin[]) {
-    const next = pins.slice(0, MAX_PINS);
-    cache.set(pinKey(userId), next);
-    persist(pinKey(userId), { pins: next });
+    void updatePreferences(userId, { pins: { pins: pins.slice(0, MAX_PINS) } }).catch(() => undefined);
 }
 
 /**

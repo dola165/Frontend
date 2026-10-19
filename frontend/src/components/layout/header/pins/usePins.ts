@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { NavigationCapabilities } from '../../../../context/navigationCapabilities';
+import { loadPreferences } from '../../../../features/preferences/preferencesStore';
 import { useJourneyCopy } from '../../../../features/squadCommunication/journeyCopy';
 import { pinLabel, type Copy } from './describeRoute';
 import { workspaceDestinations } from './pinCatalog';
@@ -39,6 +40,8 @@ export function usePins(userId: number | undefined, capabilities: NavigationCapa
     const copy = useJourneyCopy();
     const stored = useSyncExternalStore(subscribePins, () => userId ? readPins(userId) : NO_PINS, () => NO_PINS);
     const visits = useSyncExternalStore(subscribePins, () => userId ? readVisits(userId) : NO_VISITS, () => NO_VISITS);
+    // The header is on every signed-in page, so this is where a sign-in first reads its saved preferences.
+    useEffect(() => { if (userId) void loadPreferences(userId).catch(() => undefined); }, [userId]);
     const context = useMemo(() => ({ capabilities, userId, myClubPath, copy }), [capabilities, userId, myClubPath, copy]);
 
     const pins = useMemo(() => stored.map(pin => ({ ...pin, label: pinLabel(pin.path, pin.label, context) ?? pin.label })), [stored, context]);

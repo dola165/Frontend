@@ -6,6 +6,7 @@ import { WorkspacePlayerPanel } from './WorkspacePlayerPanel';
 import { ClubOverview } from '../clubWorkspace/overview/ClubOverview';
 import { AllTools } from '../clubWorkspace/AllTools';
 import { useWorkspacePins } from '../clubWorkspace/useWorkspacePins';
+import { readPins } from '../../components/layout/header/pins/pinStore';
 import { apiClient } from '../../api/axiosConfig';
 import type { Bootstrap } from './api';
 import type { RolesWorkspace } from './useWorkspaceRoles';
@@ -32,7 +33,7 @@ it('pins tools as top-bar pins, keeps the chosen order and isolates accounts',()
   fireEvent.click(screen.getByRole('button',{name:'Pin Squads'}));
   fireEvent.click(screen.getByRole('button',{name:'Pin Travel'}));
   fireEvent.click(screen.getByRole('button',{name:'Move Travel up'}));
-  expect(JSON.parse(localStorage.getItem('gk-pins:v1:9')!).pins.map((pin:{path:string})=>pin.path)).toEqual(['/clubs/1/workspace?tab=travel','/clubs/1/workspace?tab=squads']);
+  expect(readPins(9).map(pin=>pin.path)).toEqual(['/clubs/1/workspace?tab=travel','/clubs/1/workspace?tab=squads']);
   first.unmount();
   account.id=10;
   render(<MemoryRouter><Tools/></MemoryRouter>);
@@ -43,7 +44,7 @@ it('carries shortcuts chosen before pins existed over once',()=>{
   account.id=11;
   localStorage.setItem('gk-club-shortcuts-v1:1:11',JSON.stringify(['travel','unknown']));
   render(<MemoryRouter><Tools/></MemoryRouter>);
-  expect(JSON.parse(localStorage.getItem('gk-pins:v1:11')!).pins.map((pin:{path:string})=>pin.path)).toEqual(['/clubs/1/workspace?tab=travel']);
+  expect(readPins(11).map(pin=>pin.path)).toEqual(['/clubs/1/workspace?tab=travel']);
   expect(localStorage.getItem('gk-club-shortcuts-v1:1:11')).toBeNull();
 });
 

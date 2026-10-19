@@ -30,9 +30,11 @@ import { LoginPage } from './pages/LoginPage';
 // behind the build flag as well as their rendering, so hidden quick chat never
 // fetches conversations or starts a second connection in Android.
 const LeftSidebar = isAndroidApp ? null : lazy(() => import('./components/layout/LeftSidebar').then(module => ({ default: module.LeftSidebar })));
-import { AgentDolaPage, DolaDock } from './features/dola/AgentDolaPage';
 import { DolaProvider } from './features/dola/DolaProvider';
 const RightSidebar = isAndroidApp ? null : lazy(() => import('./components/layout/RightSidebar').then(module => ({ default: module.RightSidebar })));
+// Agent Dola's conversation shows only on /assistant or once its panel is opened, so its code and styles load after the first screen.
+const AgentDolaPage = lazy(() => import('./features/dola/AgentDolaPage').then(module => ({ default: module.AgentDolaPage })));
+const DolaDock = lazy(() => import('./features/dola/AgentDolaPage').then(module => ({ default: module.DolaDock })));
 
 const FundraisingPage = lazy(() => import('./pages/FundraisingPage').then(module => ({default: module.FundraisingPage})));
 const FundraisingCataloguePage = lazy(() => import('./pages/FundraisingCataloguePage').then(module => ({default: module.FundraisingCataloguePage})));
@@ -513,7 +515,7 @@ export default function App() {
     return (
         <Router>
             <AuthProvider>
-                <AuthSessionBoundary><DolaProvider><MainLayout /><DolaDock /></DolaProvider></AuthSessionBoundary>
+                <AuthSessionBoundary><DolaProvider><MainLayout /><Suspense fallback={null}><DolaDock /></Suspense></DolaProvider></AuthSessionBoundary>
             </AuthProvider>
         </Router>
     );

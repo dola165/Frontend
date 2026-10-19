@@ -10,6 +10,7 @@ import { ClubCampaignsPage } from '../../features/clubWorkspace/commerce/ClubCam
 import { OpenRolesPage } from '../../features/clubWorkspace/commerce/OpenRolesPage';
 import * as store from '../../features/store/api';
 import * as campaigns from '../../features/campaigns/api';
+import { commandCopy } from '../../features/campaigns/useCampaignCommand';
 import * as jobs from '../../features/clubs/api';
 const {translate} = vi.hoisted(()=>({translate:(key:string)=>key}));
 vi.mock('react-i18next',()=>({useTranslation:()=>({t:translate})}));
@@ -56,7 +57,7 @@ for(const c of cases){
   fireEvent.click(screen.getByRole('button',{name:c.close}));fireEvent.click(screen.getByRole('button',{name:'Discard edits'}));expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();expect(beforeUnload()).toBe(false);
   fireEvent.click(screen.getByRole('button',{name:c.create}));expect(screen.getByLabelText(c.field)).toHaveValue('');
  });
- it(`${c.feature} keeps a pending save single-flight through navigation and ${c.feature === 'Store' ? 'reviews a retired acknowledgement' : 'clears only on success'}`,async()=>{
+ it(`${c.feature} keeps a pending save single-flight through navigation and ${c.feature === 'Store' ? 'reviews a retired acknowledgement' : c.feature === 'Campaigns' ? 'retries the original change to learn its result' : 'clears only on success'}`,async()=>{
   let finish!:(value:never)=>void;vi.mocked(c.api).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}) as never);
   setup(c.feature);fireEvent.click(await screen.findByRole('button',{name:c.create}));fireEvent.change(screen.getByLabelText(c.field),{target:{value:'Save me'}});
   if(c.feature==='Store') fireEvent.change(screen.getByLabelText('Price'),{target:{value:'12.34'}});fireEvent.submit(screen.getByLabelText(c.field).closest('form')!);expect(c.api).toHaveBeenCalledTimes(1);leave();back();expect(await screen.findByLabelText(c.field)).toHaveValue('Save me');expect(screen.getByLabelText(c.field)).toBeDisabled();
@@ -72,13 +73,28 @@ for(const c of cases){
    fireEvent.click(screen.getByRole('button',{name:'Review saved products'}));await screen.findByRole('button',{name:'Edit Save me'});
    expect(screen.getByText(/#2/)).toBeVisible();fireEvent.click(screen.getByRole('button',{name:'Finish reviewing this create'}));fireEvent.click(screen.getByRole('button',{name:'Finish review'}));
    expect(Object.values(sessionStorage)).not.toContain(request[2]);
+  } else if(c.feature==='Campaigns') {
+   // A reply that arrives while the page is closed is not applied: the command stays held and the
+   // same request (same idempotency key) is sent again to learn its saved result.
+   await act(async()=>finish(c.result as never));back();
+   await screen.findByText(commandCopy('held'));expect(screen.getByLabelText(c.field)).toBeDisabled();
+   vi.mocked(c.api).mockResolvedValueOnce(c.result as never);fireEvent.click(screen.getByRole('button',{name:commandCopy('retry')}));
+   await screen.findByText('Campaign saved.');expect(vi.mocked(c.api).mock.calls[1]).toEqual(vi.mocked(c.api).mock.calls[0]);
   } else { await act(async()=>finish(c.result as never));back(); }
-  await screen.findByRole('button',{name:c.create});expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();expect(c.api).toHaveBeenCalledTimes(1);expect(beforeUnload()).toBe(false);
+  await screen.findByRole('button',{name:c.create});expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();expect(c.api).toHaveBeenCalledTimes(c.feature==='Campaigns'?2:1);expect(beforeUnload()).toBe(false);
  });
  it(`${c.feature} retains a failed save after leaving and offers retry without losing fields`,async()=>{
   let fail!:(reason:Error)=>void;vi.mocked(c.api).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}) as never);
   setup(c.feature);fireEvent.click(await screen.findByRole('button',{name:c.create}));fireEvent.change(screen.getByLabelText(c.field),{target:{value:'Retry me'}});if(c.feature==='Store') fireEvent.change(screen.getByLabelText('Price'),{target:{value:'12.34'}});fireEvent.submit(screen.getByLabelText(c.field).closest('form')!);leave();await act(async()=>fail(new Error('Offline')));back();
-  expect(await screen.findByLabelText(c.field)).toHaveValue('Retry me');expect(screen.getByLabelText(c.field)).not.toBeDisabled();expect(screen.getByRole('button',{name:c.save})).toBeEnabled();
+  expect(await screen.findByLabelText(c.field)).toHaveValue('Retry me');
+  if(c.feature==='Campaigns') {
+   // The failure happened while the page was closed, so the command is held until the same request is retried.
+   await screen.findByText(commandCopy('held'));expect(screen.getByLabelText(c.field)).toBeDisabled();
+   vi.mocked(c.api).mockResolvedValueOnce(c.result as never);fireEvent.click(screen.getByRole('button',{name:commandCopy('retry')}));
+   await screen.findByText('Campaign saved.');expect(vi.mocked(c.api).mock.calls[1]).toEqual(vi.mocked(c.api).mock.calls[0]);expect(beforeUnload()).toBe(false);
+   return;
+  }
+  expect(screen.getByLabelText(c.field)).not.toBeDisabled();expect(screen.getByRole('button',{name:c.save})).toBeEnabled();
   if(c.feature==='Store') {
    const original = structuredClone(vi.mocked(store.createStoreProduct).mock.calls[0]);
    vi.mocked(store.createStoreProduct).mockResolvedValueOnce(storeReceipt());fireEvent.click(screen.getByRole('button',{name:c.save}));
@@ -105,10 +121,12 @@ it('an in-flight photo upload stays attached to its draft after leaving and retu
  setup();fireEvent.click(await screen.findByRole('button',{name:'Add product'}));fireEvent.change(screen.getByLabelText('Product name'),{target:{value:'Photo draft'}});fireEvent.change(screen.getByLabelText('Add product photo (up to 8)'),{target:{files:[new File(['photo'],'photo.png',{type:'image/png'})]}});
  leave();back();expect(await screen.findByLabelText('Product name')).toBeDisabled();await act(async()=>finish({data:{url:'/api/media/44'}}));expect(await screen.findByAltText('Product photo 1')).toHaveAttribute('src','http://localhost:8080/api/media/44');expect(screen.getByLabelText('Product name')).toHaveValue('Photo draft');expect(screen.getByLabelText('Product name')).not.toBeDisabled();
 });
-it('campaign update completion is recorded even when its originating page has closed',async()=>{
+it('a campaign update that completes while its page is closed stays held until the same request is retried',async()=>{
  vi.mocked(campaigns.fetchManagedCampaigns).mockResolvedValue([campaign]);vi.mocked(campaigns.fetchManagedCampaign).mockResolvedValue(campaign);
  let finish!:(value:campaigns.Campaign)=>void;vi.mocked(campaigns.postCampaignUpdate).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
- setup('Campaigns');fireEvent.click(await screen.findByRole('button',{name:'Updates for Pitch'}));fireEvent.change(await screen.findByLabelText('Update title'),{target:{value:'Milestone'}});fireEvent.change(screen.getByLabelText('Update message'),{target:{value:'Full update'}});fireEvent.submit(screen.getByLabelText('Update title').closest('form')!);leave();back();expect(await screen.findByLabelText('Update title')).toBeDisabled();leave();await act(async()=>finish({...campaign,version:4}));back();expect(await screen.findByText('Campaign update published.')).toBeInTheDocument();expect(screen.queryByLabelText('Update title')).not.toBeInTheDocument();expect(campaigns.postCampaignUpdate).toHaveBeenCalledTimes(1);expect(beforeUnload()).toBe(false);
+ setup('Campaigns');fireEvent.click(await screen.findByRole('button',{name:'Updates for Pitch'}));fireEvent.change(await screen.findByLabelText('Update title'),{target:{value:'Milestone'}});fireEvent.change(screen.getByLabelText('Update message'),{target:{value:'Full update'}});fireEvent.submit(screen.getByLabelText('Update title').closest('form')!);leave();back();expect(await screen.findByLabelText('Update title')).toBeDisabled();leave();await act(async()=>finish({...campaign,version:4}));back();await screen.findByText(commandCopy('held'));expect(screen.getByLabelText('Update title')).toBeDisabled();
+ vi.mocked(campaigns.postCampaignUpdate).mockResolvedValueOnce({...campaign,version:4});fireEvent.click(screen.getByRole('button',{name:commandCopy('retry')}));
+ expect(await screen.findByText('Campaign update published.')).toBeInTheDocument();expect(screen.queryByLabelText('Update title')).not.toBeInTheDocument();expect(campaigns.postCampaignUpdate).toHaveBeenCalledTimes(2);expect(vi.mocked(campaigns.postCampaignUpdate).mock.calls[1]).toEqual(vi.mocked(campaigns.postCampaignUpdate).mock.calls[0]);expect(beforeUnload()).toBe(false);
 });
 it('a late save from a logged-out account cannot clear or change the next accounts draft',async()=>{
  let finish!:(value:never)=>void;vi.mocked(store.createStoreProduct).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}) as never);
@@ -140,8 +158,8 @@ for (const feature of ['Store', 'Campaigns']) {
  });
 }
 for(const c of cases.filter(c=>c.feature!=='Jobs')) {
- it(`${c.feature} blocks pending-save ${c.feature==='Store'?'close and retains recovery after an unknown result':'discard and permits discard after failure'}`,async()=>{
-  let fail!:(error:Error)=>void;vi.mocked(c.api).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}) as never);
+ it(`${c.feature} blocks pending-save ${c.feature==='Store'?'close and retains recovery after an unknown result':'discard and permits discard after a definite rejection'}`,async()=>{
+  let fail!:(error:unknown)=>void;vi.mocked(c.api).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}) as never);
   setup(c.feature);fireEvent.click(await screen.findByRole('button',{name:c.create}));
   fireEvent.change(screen.getByLabelText(c.field),{target:{value:'Keep my work'}});
   fireEvent.click(screen.getByRole('button',{name:'Close editor'}));
@@ -150,7 +168,9 @@ for(const c of cases.filter(c=>c.feature!=='Jobs')) {
   expect(screen.getByRole('button',{name:closeLabel})).toBeDisabled();
   fireEvent.click(screen.getByRole('button',{name:closeLabel}));
   expect(screen.getByLabelText(c.field)).toHaveValue('Keep my work');
-  await act(async()=>fail(new Error('Save failed')));
+  // A definite rejection (validation or conflict) releases the editor for correction; an unconfirmed
+  // failure keeps the command held until the same request is retried.
+  await act(async()=>fail(c.feature==='Campaigns'?{response:{status:409,data:{error:'Save failed'}}}:new Error('Save failed')));
   expect(screen.getByRole('button',{name:closeLabel})).toBeEnabled();
   fireEvent.click(screen.getByRole('button',{name:closeLabel}));
   expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();
@@ -164,13 +184,14 @@ for(const c of cases.filter(c=>c.feature!=='Jobs')) {
 }
 it('campaign update discard cannot interrupt a pending publish',async()=>{
  vi.mocked(campaigns.fetchManagedCampaigns).mockResolvedValue([campaign]);vi.mocked(campaigns.fetchManagedCampaign).mockResolvedValue(campaign);
- let fail!:(error:Error)=>void;vi.mocked(campaigns.postCampaignUpdate).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}));
+ let fail!:(error:unknown)=>void;vi.mocked(campaigns.postCampaignUpdate).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}));
  setup('Campaigns');fireEvent.click(await screen.findByRole('button',{name:'Updates for Pitch'}));
  fireEvent.change(await screen.findByLabelText('Update title'),{target:{value:'Milestone'}});fireEvent.change(screen.getByLabelText('Update message'),{target:{value:'Keep this update'}});
  fireEvent.click(screen.getByRole('button',{name:'Close updates'}));fireEvent.submit(screen.getByLabelText('Update title').closest('form')!);
  expect(screen.getByRole('button',{name:'Discard update'})).toBeDisabled();fireEvent.click(screen.getByRole('button',{name:'Discard update'}));
  expect(screen.getByLabelText('Update message')).toHaveValue('Keep this update');
- await act(async()=>fail(new Error('Failed')));fireEvent.click(screen.getByRole('button',{name:'Discard update'}));expect(screen.queryByLabelText('Update message')).not.toBeInTheDocument();
+ // A definite rejection releases the editor; an unconfirmed failure would keep the publish held.
+ await act(async()=>fail({response:{status:409,data:{error:'Failed'}}}));fireEvent.click(screen.getByRole('button',{name:'Discard update'}));expect(screen.queryByLabelText('Update message')).not.toBeInTheDocument();
 });
 
 it('retired form callbacks cannot write into a replacement form in the same scope',()=>{
@@ -212,7 +233,19 @@ for(const feature of ['Store','Campaigns','Jobs']) {
   if(feature==='Store'){fireEvent.click(await screen.findByRole('button',{name:'Archive Kit'}));fireEvent.click(screen.getByRole('button',{name:'Confirm archive'}));}
   else fireEvent.click(await screen.findByRole('button',{name:feature==='Campaigns'?'Pause Pitch':'jobs.close'}));
   leave();back();await act(async()=>fail({response:{status:409,data:{error:'Changed by colleague'}}}));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Changed by colleague');leave();back();expect(await screen.findByRole('alert')).toHaveTextContent('Changed by colleague');
+  if(feature==='Store') {
+   // A rejection answered after the page was remounted keeps a review marker across visits, not
+   // the server text (only the page that sent the change can show it); reviewing clears it.
+   const notice='This product change needs confirmation. New changes are paused; your entered details stay here.';
+   await screen.findByText(notice);leave();back();await screen.findByText(notice);
+   fireEvent.click(screen.getByRole('button',{name:'Reload products'}));expect(screen.queryByText(notice)).not.toBeInTheDocument();
+  } else if(feature==='Campaigns') {
+   // The command stays held across visits; retrying the same request surfaces the conflict and releases the page.
+   await screen.findByText(commandCopy('held'));leave();back();await screen.findByText(commandCopy('held'));
+   vi.mocked(campaigns.changeCampaignState).mockRejectedValueOnce({response:{status:409,data:{error:'Changed by colleague'}}});
+   fireEvent.click(screen.getByRole('button',{name:commandCopy('retry')}));expect(await screen.findByRole('alert')).toHaveTextContent('Changed by colleague');
+   expect(screen.queryByText(commandCopy('held'))).not.toBeInTheDocument();
+  } else { expect(await screen.findByRole('alert')).toHaveTextContent('Changed by colleague');leave();back();expect(await screen.findByRole('alert')).toHaveTextContent('Changed by colleague'); }
  });
 }
 it('late action errors from a retired account do not enter the next account',async()=>{
@@ -264,7 +297,9 @@ for (const feature of ['Store', 'Campaigns', 'Jobs']) {
   await act(async () => fail({response:{status:409,data:{error:'This action conflicted with a colleague.'}}}));
   back();
   await screen.findByText(feature === 'Store' ? /Could not load products/ : feature === 'Campaigns' ? /Campaigns could not load/ : 'jobs.loadFailed');
-  expect(await screen.findByText(/This action conflicted with a colleague/)).toBeInTheDocument();
+  // Store keeps a review marker and Campaigns a held command across the visit; Jobs keeps the server text.
+  const retained = feature === 'Store' ? /This product change needs confirmation/ : feature === 'Campaigns' ? commandCopy('held') : /This action conflicted with a colleague/;
+  expect(await screen.findByText(retained)).toBeInTheDocument();
   expect(beforeUnload()).toBe(false);
  });
 }

@@ -18,6 +18,22 @@ const clearMapDraftRecovery = () => {
     clearRecoveryKeys(() => localStorage, ['gk-map-drafts:', 'gk-availability-uncertain:', 'gk-visits:']);
     clearRecoveryKeys(() => sessionStorage, ['gk-chat-recovery:', 'gk-campaign-command:', 'gk-job-management:', 'gk-store-change:', 'gk-organization-post:', 'org-invite:', 'gk-admission-staff:', 'gk-joining-setup-draft:', 'admission-retry:v1:', 'admission-form:', 'new-child:']);
 };
+// What a person leaves on this browser goes with their sign-out, so the next account here never sees it: their
+// preferences copy, pins and workspace choices from before preferences were saved, their cart, and the drafts and
+// retries kept per account. Shared choices (theme, map and list layouts) and a guest's cart stay.
+const PERSONAL_KEYS = ['gk-prefs:', 'gk-pins:', 'gk-ws-layout:', 'gk-ws-focus:', 'gk-club-shortcuts-v1:', 'gk-workspace-role:', 'gk:workspace:', 'tutorial.calendar.completed'];
+const PERSONAL_DRAFTS = ['family-player:', 'gk.first-use.v1:', 'organization-departure:', 'draw-draft:', 'squad-training:', 'gk-record-create:', 'gk-store-create:', 'gk-training-create:', 'gk:arrange:'];
+const clearPersonalData = () => {
+    clearRecoveryKeys(() => localStorage, PERSONAL_KEYS);
+    clearRecoveryKeys(() => sessionStorage, PERSONAL_DRAFTS);
+    try {
+        for (const key of Object.keys(localStorage)) if (key.startsWith('gk.store.cart.v1:') && key !== 'gk.store.cart.v1:guest') localStorage.removeItem(key);
+    } catch { /* Browser storage can be unavailable. */ }
+    try {
+        // Drafts kept by `ownedDraft`, such as a job post being written.
+        for (const key of Object.keys(sessionStorage)) if (/^gk\.[\w-]+\.draft:/.test(key)) sessionStorage.removeItem(key);
+    } catch { /* Browser storage can be unavailable. */ }
+};
 
 // Shared across tabs. Keep the marker on logout so A -> logout -> A cannot
 // make work from the first login current again, even if the token is identical.
@@ -94,6 +110,7 @@ export const setStoredUser = (user: unknown) => {
 
 export const clearStoredAuth = () => {
     clearMapDraftRecovery();
+    clearPersonalData();
     const previousSessionId = getAuthSessionId();
     localStorage.setItem(SESSION_ID_KEY, crypto.randomUUID());
     localStorage.removeItem(sessionTokenKey(previousSessionId));

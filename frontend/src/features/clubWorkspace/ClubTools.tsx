@@ -100,7 +100,7 @@ export function ClubTools(ctx: ClubToolsContext) {
         case 'tryouts': return <>
             {ctx.focusedApplicationId != null && focusNote(!m.tryouts.loading && !m.tryouts.applicants.some(a => a.id === ctx.focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.')}
             <TryoutsPage clubId={clubId} tryoutApplicants={ctx.focusedApplicationId != null ? m.tryouts.applicants.filter(a => a.id === ctx.focusedApplicationId) : m.tryouts.applicants}
-                tryoutsLoading={m.tryouts.loading} pendingKey={m.pendingKey} onTryoutStatus={m.actions.tryoutStatus}
+                tryoutsLoading={m.tryouts.loading} pendingKey={m.pendingKey} onTryoutStatus={can.leadership ? m.actions.tryoutStatus : undefined}
                 onOpenPlayers={ctx.allowed('players') ? () => ctx.openPlayers() : undefined} />
         </>;
         case 'inbox': return <InboxTab notifications={ctx.inbox.notifications} loading={ctx.inbox.loading} loadingMore={ctx.inbox.loadingMore} busyId={ctx.inbox.busyId}

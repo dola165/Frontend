@@ -8,7 +8,7 @@ const api = vi.hoisted(() => ({ fetchSimilar: vi.fn(), createPage: vi.fn() }));
 const auth = vi.hoisted(() => ({ user: { id: 9500, dob: '1985-05-02' } as { id: number; dob: string }, refresh: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../api', () => ({ fetchSimilar: api.fetchSimilar, createPage: api.createPage }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, status: 'authenticated', refreshNavigationCapabilities: auth.refresh }) }));
-vi.mock('../../../start/startApi', () => ({ fetchFeedPreferences: vi.fn().mockResolvedValue({ town: { name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }, topics: [], activity: null }) }));
+vi.mock('../../../start/startApi', () => ({ fetchSavedTown: vi.fn().mockResolvedValue({ name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }) }));
 
 import { StartSheet } from '../StartSheet';
 
@@ -81,6 +81,15 @@ describe('the start sheet', () => {
     expect(api.createPage.mock.calls[0][0]).toMatchObject({ displayName: 'Rustavi Lions', pageKind: 'CLUB', organizationType: 'CLUB', clubCategory: 'COMMUNITY_CLUB', location: { city: 'Rustavi' } });
     expect(api.createPage.mock.calls[0][0].requestId).toMatch(/^[\da-f-]{36}$/);
     expect(await screen.findByText('The club page')).toBeInTheDocument();
+  });
+
+  it('starts a business page with the kind of business the person already picked', async () => {
+    const user = userEvent.setup();
+    api.createPage.mockResolvedValue({ id: 7001, clubId: null, profilePath: '/organizations/7001', workspacePath: '/organizations/7001/workspace' });
+    mount({ kind: 'BUSINESS', business: 'SPONSOR' });
+    await user.type(screen.getByLabelText('Business name'), 'Kartuli Sponsor{Enter}');
+    await waitFor(() => expect(api.createPage).toHaveBeenCalledTimes(1));
+    expect(api.createPage.mock.calls[0][0]).toMatchObject({ pageKind: 'BUSINESS', organizationType: 'COMPANY', businessKind: 'SPONSOR' });
   });
 
   it('retries with the same request id, so a lost answer never makes two pages', async () => {

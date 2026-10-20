@@ -7,7 +7,7 @@ import { clearSetupRecovery, isRecord, isRequestId, readSetupRecovery, writeSetu
 import type { Town } from '../../start/towns';
 import { createPage, type CreatedPage, type CreateRequest, type SimilarPage } from '../api';
 import { pt } from '../copy';
-import { DEFAULT_CLUB_CATEGORY, isPageKind, minimumAge, ORGANIZATION_TYPE, type PageKind } from '../model/kinds';
+import { DEFAULT_CLUB_CATEGORY, isPageKind, minimumAge, ORGANIZATION_TYPE, type BusinessKind, type PageKind } from '../model/kinds';
 
 interface Pending { requestId: string; body: CreateRequest }
 const RECOVERY = 'page-create';
@@ -40,15 +40,15 @@ export function useCreatePage() {
   const [error, setError] = useState('');
   const [pending, setPending] = useState<Pending | null>(() => readSetupRecovery(user?.id, RECOVERY, validPending));
 
-  const create = useCallback(async ({ kind, name, town, draw = false }: { kind: PageKind; name: string; town: Town | null; draw?: boolean }): Promise<CreateOutcome> => {
+  const create = useCallback(async ({ kind, name, town, draw = false, business = null }: { kind: PageKind; name: string; town: Town | null; draw?: boolean; business?: BusinessKind | null }): Promise<CreateOutcome> => {
     if (busy) return { kind: 'failed' };
     const displayName = name.trim().replace(/\s+/g, ' ');
     const age = ageFromDob(user?.dob);
     if (age != null && age < minimumAge(kind)) { setError(pt('From {age}: ask an adult at the club to create it and invite you.', { age: minimumAge(kind) })); return { kind: 'failed' }; }
-    const same = pending && pending.body.displayName === displayName && pending.body.pageKind === kind ? pending : null;
+    const same = pending && pending.body.displayName === displayName && pending.body.pageKind === kind && (pending.body.businessKind ?? null) === business ? pending : null;
     const requestId = same?.requestId ?? crypto.randomUUID();
     const request: Pending = same ?? { requestId, body: { requestId, displayName, pageKind: kind, organizationType: ORGANIZATION_TYPE[kind], clubCategory: kind === 'CLUB' ? DEFAULT_CLUB_CATEGORY : null,
-      venueEnabled: false, tournamentEnabled: draw, location: town ? { latitude: town.latitude, longitude: town.longitude, city: town.name } : null, language: appLanguage() === 'ka' ? 'ka' : 'en' } };
+      ...(business ? { businessKind: business } : {}), venueEnabled: false, tournamentEnabled: draw, location: town ? { latitude: town.latitude, longitude: town.longitude, city: town.name } : null, language: appLanguage() === 'ka' ? 'ka' : 'en' } };
     // Saved before sending: leaving the page can never turn an unanswered request into a fresh one.
     writeSetupRecovery(user?.id, RECOVERY, request);
     setPending(request);

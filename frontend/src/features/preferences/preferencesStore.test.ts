@@ -26,12 +26,12 @@ describe('preferences', () => {
         server.docs.set(user, { tutorials: { completed: ['calendar'] } });
         await loadPreferences(user);
         await Promise.all([
-            updatePreferences(user, { start: { topics: ['CLUBS'], activity: 'COACH' } }),
+            updatePreferences(user, { start: { welcome: { state: 'OPEN', at: 'ROLES' } } }),
             updatePreferences(user, { workspaces: { 7: { hiddenTabs: ['store'] } } }),
         ]);
         const bodies = vi.mocked(apiClient.put).mock.calls.map(([, body]) => body);
         expect(bodies.every(body => !('tutorials' in (body as object)))).toBe(true);
-        expect(server.docs.get(user)).toEqual({ tutorials: { completed: ['calendar'] }, start: { topics: ['CLUBS'], activity: 'COACH' }, workspaces: { 7: { hiddenTabs: ['store'] } } });
+        expect(server.docs.get(user)).toEqual({ tutorials: { completed: ['calendar'] }, start: { welcome: { state: 'OPEN', at: 'ROLES' } }, workspaces: { 7: { hiddenTabs: ['store'] } } });
         expect(readPreferences(user)).toMatchObject(server.docs.get(user)!);
     });
 

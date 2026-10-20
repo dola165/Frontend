@@ -19,17 +19,10 @@ async function register(page: Page, name: string, email: string) {
   await page.getByLabel('Date of birth').fill('1985-05-02');
   await page.getByLabel('Your town').selectOption({ label: 'Rustavi' });
   await page.getByRole('button', { name: 'Create account' }).click();
-  await page.waitForURL(/\/(start|home)/);
-  // The first run's four screens: Skip through them (Skip on the town screen still keeps the town given at sign-up).
-  if (/\/start/.test(page.url())) {
-    await expect(page.getByRole('button', { name: 'Skip' })).toBeVisible();
-    for (let i = 0; i < 5 && /\/start/.test(page.url()); i++) {
-      await page.getByRole('button', { name: 'Skip' }).click();
-      await page.waitForTimeout(300);
-    }
-  }
-  await page.goto('/home');
-  await expect(page).toHaveURL(/\/home/);
+  // A new account lands on Home under the welcome; closing it ends it for good (the town given at sign-up is kept).
+  await page.waitForURL(/\/home\?welcome=roles/);
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+  await expect(page).toHaveURL(/\/home$/);
 }
 
 /** The steps drop down from the bar's ring (open from the start on a wide screen); a step's row opens its editor and folds the list. */

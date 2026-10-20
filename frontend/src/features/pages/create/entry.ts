@@ -1,7 +1,7 @@
 import { accessibleClubs } from '../../../components/layout/clubAccess';
 import { hasNavigationCapability, type NavigationCapabilities } from '../../../context/navigationCapabilities';
 import type { PageRef } from '../api';
-import type { PageKind } from '../model/kinds';
+import { BUSINESS_KINDS, type BusinessKind, type PageKind } from '../model/kinds';
 
 /**
  * One "create" entry point for the whole app. Every place that offers it links to the current page with `?create=`
@@ -13,6 +13,8 @@ export const CLAIM_PARAM = 'claim';
 export const FROM_PARAM = 'from';
 /** Set when the Draw room sent the person to set up an organiser: afterwards the way back leads there. */
 export const DRAW_PARAM = 'draw';
+/** The kind of business, when the person already said (the welcome's "Here as a business?"). */
+export const BUSINESS_PARAM = 'business';
 
 const PARAM_OF_KIND: Record<PageKind, string> = { CLUB: 'club', FAN_CLUB: 'fan-club', BUSINESS: 'business', PAGE: 'page', VENUE: 'venue' };
 export const kindFromParam = (value: string | null): PageKind | null =>
@@ -25,14 +27,15 @@ export const FOOTBALL_ENTRIES: readonly CreateFrom[] = ['my-club', 'world-clubs'
 export const fromParam = (value: string | null): CreateFrom => (value && (['home', 'account', 'pins', 'my-club', 'world', 'world-clubs', 'search', 'fundraising', 'jobs', 'store', 'arrange', 'start', 'profile', 'organizations', 'roles', 'link', 'dola'] as string[]).includes(value) ? value as CreateFrom : 'link');
 
 type Location = { pathname: string; search: string; hash?: string };
-const without = (search: string) => { const params = new URLSearchParams(search); for (const key of [CREATE_PARAM, CLAIM_PARAM, FROM_PARAM, DRAW_PARAM]) params.delete(key); return params; };
+const without = (search: string) => { const params = new URLSearchParams(search); for (const key of [CREATE_PARAM, CLAIM_PARAM, FROM_PARAM, DRAW_PARAM, BUSINESS_PARAM]) params.delete(key); return params; };
 const href = (location: Location, params: URLSearchParams) => `${location.pathname}?${params}${location.hash ?? ''}`;
 
-export function createHref(location: Location, kind: PageKind | null, from: CreateFrom, draw = false): string {
+export function createHref(location: Location, kind: PageKind | null, from: CreateFrom, draw = false, business: BusinessKind | null = null): string {
   const params = without(location.search);
   params.set(CREATE_PARAM, kind ? PARAM_OF_KIND[kind] : 'any');
   params.set(FROM_PARAM, from);
   if (draw) params.set(DRAW_PARAM, '1');
+  if (business && kind === 'BUSINESS') params.set(BUSINESS_PARAM, business);
   return href(location, params);
 }
 export function claimHref(location: Location, ref: PageRef, from: CreateFrom): string {
@@ -57,3 +60,5 @@ export const hasOwnPage = (capabilities?: NavigationCapabilities) =>
 export const ownClub = (capabilities?: NavigationCapabilities) => accessibleClubs(capabilities).find(club => club.relationships.some(relation => relation !== 'Agent engagement')) ?? null;
 
 export const pagePath = (ref: PageRef) => (ref.type === 'club' ? `/clubs/${ref.id}` : `/organizations/${ref.id}`);
+export const businessFromParam = (value: string | null): BusinessKind | null =>
+  (BUSINESS_KINDS as readonly string[]).includes(value ?? '') ? value as BusinessKind : null;

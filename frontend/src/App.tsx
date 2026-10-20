@@ -20,7 +20,7 @@ import { ExtensionRoute } from './features/capabilities/ExtensionBoundary';
 import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from './features/roles/routes';
 import { LegacyMatchesRedirect, TournamentSetupRedirect, WorldRedirect } from './features/world/WorldRedirect';
 import { keepRegistrationTown } from './features/start/startApi';
-import { useAutomaticActivity } from './features/start/useAutomaticActivity';
+import { WELCOME_PARAM } from './features/start/welcomeSteps';
 import { useMediaQuery } from './features/world/useMediaQuery';
 
 import { RouteViewport } from './components/layout/RouteViewport';
@@ -117,7 +117,6 @@ const CoachWorkspacePage = lazy(() => import('./pages/CoachWorkspacePage'));
 const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
-const StartPage = lazy(() => import('./features/start/StartPage').then(module => ({ default: module.StartPage })));
 
 /**
  * Below 1000px no rule shows the Home side rails (Tailwind hides them below lg/xl; the Dola panel layouts show them
@@ -131,7 +130,7 @@ function useRailsFit() {
     return fitted;
 }
 
-// Sign-in and the first run render without the app header.
+// Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
 const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent', '/start']);
 const boundedCanvasPages = new Set(['/messages']);
 
@@ -212,8 +211,6 @@ export function MainLayout() {
     useEffect(() => {
         if (status === 'authenticated') void refreshNavigationCapabilities?.();
     }, [location.key, status, refreshNavigationCapabilities]);
-    // Someone who skipped "What do you do in football?" gets it from their links once a club, squad or child is confirmed.
-    useAutomaticActivity(status === 'authenticated' ? user : null);
     useEffect(() => {
         // Installing a session remounts this layout. Keep its continuation available
         // until the router arrives, so GuestOnlyRoute and the login callback agree.
@@ -221,7 +218,7 @@ export function MainLayout() {
         if (status === 'authenticated' && !requiredAccountStep(user) && !isAuthFlowRoute(location.pathname)) {
             // A new account's sign-up town outlives the flow even when the first run did not save it.
             const { newAccount, town } = getAuthFlow();
-            if (newAccount && town) void keepRegistrationTown(town).catch(() => undefined);
+            if (newAccount && town && user) void keepRegistrationTown(user.id, town).catch(() => undefined);
             clearAuthFlow();
         }
     }, [status, user, location.pathname, location.key]);
@@ -480,7 +477,7 @@ export function MainLayout() {
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
-                        <Route path="/start" element={<ProtectedRoute><StartPage /></ProtectedRoute>} />
+                        <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=roles`} replace /></ProtectedRoute>} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes></RouteViewport>
                 </main>

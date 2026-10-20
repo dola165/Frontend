@@ -5,12 +5,12 @@ import { getAuthFlow } from '../../../utils/authRedirect';
 import { Dialog } from '../../../design/Dialog';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } from '../../organizations/setup/setupRecovery';
-import { fetchFeedPreferences } from '../../start/startApi';
+import { fetchSavedTown } from '../../start/startApi';
 import { DEFAULT_TOWN, TOWNS, townByName, type Town } from '../../start/towns';
 import { Crest } from '../../world/Crest';
 import { fetchSimilar, type PageRef, type SimilarPage } from '../api';
 import { usePagesCopy } from '../copy';
-import { CREATABLE_KINDS, minimumAge, type PageKind } from '../model/kinds';
+import { CREATABLE_KINDS, minimumAge, type BusinessKind, type PageKind } from '../model/kinds';
 import { nameKey } from '../model/nameMatch';
 import { FOOTBALL_ENTRIES, ownClub, pagePath, type CreateFrom } from './entry';
 import { KIND_TILES } from './kindTiles';
@@ -27,7 +27,7 @@ const KIND_WORD: Record<PageKind, string> = { CLUB: 'Club', FAN_CLUB: 'Fan club'
  * Create. While the name is typed, known pages that look like it are shown with "Claim it", so a copy of a known club
  * goes to that club and never becomes a second page. Nothing else is asked here.
  */
-export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageKind | null; from: CreateFrom; draw: boolean; onClose: () => void; onClaim: (ref: PageRef) => void }) {
+export function StartSheet({ kind, business = null, from, draw, onClose, onClaim }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void; onClaim: (ref: PageRef) => void }) {
   const t = usePagesCopy();
   const { user } = useAuth();
   const { create, busy, error, clearError, unanswered, age } = useCreatePage();
@@ -50,12 +50,13 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const nameId = useId();
 
   // The town already filled in: the one the person chose at the start, else where they registered.
+  const userId = user?.id;
   useEffect(() => {
-    if (townByName(draft?.town)) return;
+    if (townByName(draft?.town) || !userId) return;
     const controller = new AbortController();
-    fetchFeedPreferences(controller.signal).then(prefs => { const known = townByName(prefs.town?.name); if (known && !controller.signal.aborted) setTown(known); }).catch(() => undefined);
+    fetchSavedTown(userId, controller.signal).then(saved => { const known = townByName(saved?.name); if (known && !controller.signal.aborted) setTown(known); }).catch(() => undefined);
     return () => controller.abort();
-  }, [draft?.town]);
+  }, [draft?.town, userId]);
   useEffect(() => { writeSetupRecovery(user?.id, DRAFT, { kind: chosen, name, town: townPicked ? town.name : '' } satisfies StartDraft); }, [chosen, name, town.name, townPicked, user?.id]);
   // The dialog puts focus on its first control; once a type is chosen the name is what matters.
   // Select only an untouched restored draft. Delayed entry focus must not select new input or take over an active edit.
@@ -94,7 +95,7 @@ export function StartSheet({ kind, from, draw, onClose, onClaim }: { kind: PageK
   const ready = Boolean(chosen) && !oneClub && name.trim().length >= 2 && !busy && !exact;
   const submit = async () => {
     if (!chosen || !ready) return;
-    const outcome = await create({ kind: chosen, name, town, draw });
+    const outcome = await create({ kind: chosen, name, town, draw, business: chosen === 'BUSINESS' ? business : null });
     if (outcome.kind === 'created') clearSetupRecovery(user?.id, DRAFT);
     if (outcome.kind === 'exists') { setFound({ key: 'exists', items: [outcome.match] }); setDismissed(null); }
   };

@@ -1,7 +1,7 @@
 import { useAccountCopy } from './accountCopy';
 import { useEffect } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { BriefcaseBusiness, ShieldCheck, Shirt } from 'lucide-react';
+import { BriefcaseBusiness, ShieldCheck, Shirt, Sparkles } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { ButtonLink, GkRoot, List, ListRow, PageFrame, PageHeader, Panel } from '../../../design/primitives';
 import { AboutEditor } from './AboutEditor';
@@ -10,6 +10,7 @@ import { ProfessionsEditor } from './ProfessionsEditor';
 import { RolesEditor } from './RolesEditor';
 import { createHref } from '../../pages/create/entry';
 import { sanitizeAuthRedirect } from '../../../utils/authRedirect';
+import { WELCOME_PARAM } from '../../start/welcomeSteps';
 import './account-roles.css';
 
 /** `/account/roles`: change your football roles, add what you do professionally, and write about yourself. */
@@ -38,7 +39,11 @@ function AccountRoles() {
             <PageHeader crumbs={[{ label: copy('Account'), to: '/account' }, { label: copy('Roles and work') }]}
                 title={firstUse ? copy("Make your profile yours") : copy("Roles and work")}
                 subtitle={firstUse ? copy("Your account is ready. Add what describes you now; you can change it any time.") : copy("What you do in football and professionally. Change it whenever your life in football changes.")}
-                actions={next ? <ButtonLink to={next}>{copy("Back to opportunity", "შეთავაზებაზე დაბრუნება")}</ButtonLink> : <ButtonLink to={`/profile/${user.id}`}>{copy("View your profile")}</ButtonLink>} />
+                actions={next ? <ButtonLink to={next}>{copy("Back to opportunity", "შეთავაზებაზე დაბრუნება")}</ButtonLink> : <>
+                    {/* The welcome after sign-up, from its first step, over Home. */}
+                    <ButtonLink variant="ghost" to={`/home?${WELCOME_PARAM}=roles`}><Sparkles aria-hidden="true" />{copy("Guided set-up", "ნაბიჯ-ნაბიჯ დაყენება")}</ButtonLink>
+                    <ButtonLink to={`/profile/${user.id}`}>{copy("View your profile")}</ButtonLink>
+                </>} />
             <div className="gk-grid gk-grid--split gk-account-roles__body">
                 <div className="gk-stack">
                     <RolesEditor />

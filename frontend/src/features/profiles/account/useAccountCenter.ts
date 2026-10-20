@@ -29,6 +29,7 @@ export function useAccountCenter() {
     const [sendingVerification, setSendingVerification] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
     const [revokingSessions, setRevokingSessions] = useState(false);
+    const [endingSessionId, setEndingSessionId] = useState<number | null>(null);
     const [tryoutApps, setTryoutApps] = useState<TryoutApp[]>([]);
     const [showTryoutApps, setShowTryoutApps] = useState(false);
     const [tryoutsLoading, setTryoutsLoading] = useState(false);
@@ -177,9 +178,24 @@ export function useAccountCenter() {
         }
     };
 
+    // Signs out one other device, for example a lost phone. Its next request is refused.
+    const endSession = async (id: number) => {
+        setEndingSessionId(id);
+        try {
+            const response = await apiClient.delete<{ message?: string }>(`/auth/sessions/${id}`);
+            if (!isCurrentAuthSession(sessionId)) return;
+            await loadSessions();
+            setMessage(response.data?.message || 'The session has been signed out.');
+        } catch (requestError) {
+            if (isCurrentAuthSession(sessionId)) setSessionsError(accountError(requestError, 'Failed to sign out that session.'));
+        } finally {
+            setEndingSessionId(null);
+        }
+    };
+
     return {
         account, isPlayer, form, setForm, profileDraft, loading, message, error, loadAccount, refreshOverview,
-        sessions, sessionsLoading, sessionsError, loadSessions, revokingSessions, revokeOtherSessions,
+        sessions, sessionsLoading, sessionsError, loadSessions, revokingSessions, revokeOtherSessions, endingSessionId, endSession,
         passwordForm, setPasswordForm, changingPassword, changePassword, sendingVerification, resendVerification,
         tryoutApps, showTryoutApps, setShowTryoutApps, tryoutsLoading, tryoutsError, loadTryoutApplications,
         myCards, setMyCards,

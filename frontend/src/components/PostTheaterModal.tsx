@@ -199,24 +199,24 @@ const PostTheaterContent = ({
                         ) : commentsData.length === 0 ? (
                             <div className="flex justify-center py-10"><span className="text-xs font-medium text-[var(--color-secondary)]">No comments yet.</span></div>
                         ) : (
-                            commentsData.map(comment => (
+                            commentsData.map(comment => { const author = comment.authorName ?? 'Member'; return (
                                 <div key={comment.id} className="flex gap-3">
                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-secondary)]">
                                         {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
+                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={author} className="h-full w-full object-cover" />
                                         ) : (
-                                            comment.authorName.substring(0, 2).toUpperCase()
+                                            author.substring(0, 2).toUpperCase()
                                         )}
                                     </div>
                                     <div className="flex-1 rounded-xl bg-[var(--color-surface)] p-3">
                                         <div className="mb-1 flex items-center gap-2">
-                                            <span className="text-sm font-semibold text-[var(--color-text)]">{comment.authorName}</span>
+                                            <span className="text-sm font-semibold text-[var(--color-text)]">{author}</span>
                                             <span className="text-xs text-[var(--color-muted)]">{formatTime(comment.createdAt)}</span>
                                         </div>
                                         <p className="text-sm text-[var(--color-muted)]">{comment.content}</p>
                                     </div>
                                 </div>
-                            ))
+                            ); })
                         )}
                     </div>
 

@@ -8,7 +8,7 @@ import { saveStart } from './startApi';
 import { cardSteps, WELCOME_PARAM, type Step } from './welcomeSteps';
 import './welcome.css';
 
-const ROWS: Record<Exclude<Step, 'profile'>, { icon: LucideIcon; en: string; ka: string }> = {
+const ROWS: Record<Exclude<Step, 'profile' | 'page'>, { icon: LucideIcon; en: string; ka: string }> = {
     roles: { icon: Shirt, en: 'Say what you do in football', ka: 'მიუთითეთ, რას აკეთებთ ფეხბურთში' },
     about: { icon: UserRound, en: 'Add a photo and a few words about you', ka: 'დაამატეთ ფოტო და რამდენიმე სიტყვა თქვენ შესახებ' },
     clubs: { icon: Heart, en: 'Follow clubs near you', ka: 'მიჰყევით ახლომდებარე კლუბებს' },
@@ -23,7 +23,7 @@ export function FinishSetup() {
     const [params] = useSearchParams();
     const userId = useAuth().user?.id;
     const progress = usePreferences(userId).start?.welcome;
-    const steps = cardSteps(progress).filter((step): step is keyof typeof ROWS => step !== 'profile');
+    const steps = cardSteps(progress).filter((step): step is keyof typeof ROWS => step in ROWS);
     if (!userId || !steps.length || params.has(WELCOME_PARAM)) return null;
     const dismiss = () => void saveStart(userId, current => ({ welcome: { ...current.welcome, state: current.welcome?.state ?? 'DONE', cardDismissed: true } as WelcomeProgress })).catch(() => undefined);
     return <section className="gk gk-welcome-card" aria-labelledby="gk-welcome-card-title">

@@ -1,36 +1,15 @@
-import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
+import { useId, useRef, useState, type ChangeEvent } from 'react';
 import { Camera, Loader2, LocateFixed } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Avatar, Button, Field, Skeleton } from '../../../design/primitives';
-import type { useRoleProfiles } from '../../profiles/account/useRoleProfiles';
+import type { FootballRole } from '../../roles/domain';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { countryOf, saveAbout, useSuggestedHeadline } from '../setupWords';
+import { countryOf } from '../setupWords';
 import { saveStart } from '../startApi';
 import { TOWNS } from '../towns';
 import type { WelcomeFacts } from '../useWelcomeFacts';
-import { aboutDraft, type AboutDraft, type SetupProfile } from '../useSetupProfile';
-
-/** One short line per chosen role, on that role's section: where they play, the age groups they coach, their work, their level. */
-export function RoleFields({ draft, onChange, chosen }: { draft: AboutDraft; onChange: (key: keyof AboutDraft, value: string) => void; chosen: string[] }) {
-    const copy = useJourneyCopy();
-    const id = useId();
-    const set = (key: keyof AboutDraft) => (event: ChangeEvent<HTMLInputElement>) => onChange(key, event.target.value);
-    const fields = [
-        chosen.includes('PLAYER') && <Field key="playing" label={copy('Where you play', 'სად თამაშობთ')} htmlFor={`${id}-playing`}>
-            <input id={`${id}-playing`} className="gk-input" maxLength={120} placeholder={copy('For example central midfield, left foot', 'მაგალითად ცენტრალური ნახევარმცველი, მარცხენა ფეხი')} value={draft.playing} onChange={set('playing')} />
-        </Field>,
-        chosen.includes('COACH') && <Field key="ages" label={copy('Age groups you coach', 'ასაკობრივი ჯგუფები, რომლებსაც წვრთნით')} htmlFor={`${id}-ages`}>
-            <input id={`${id}-ages`} className="gk-input" maxLength={120} placeholder={copy('For example U10, U12', 'მაგალითად U10, U12')} value={draft.coachAges} onChange={set('coachAges')} />
-        </Field>,
-        chosen.includes('CLUB_STAFF') && <Field key="work" label={copy('Your work at the club', 'თქვენი საქმე კლუბში')} htmlFor={`${id}-work`}>
-            <input id={`${id}-work`} className="gk-input" maxLength={120} placeholder={copy('For example kit manager, physio', 'მაგალითად ეკიპირების მენეჯერი, ფიზიოთერაპევტი')} value={draft.staffWork} onChange={set('staffWork')} />
-        </Field>,
-        chosen.includes('REFEREE') && <Field key="level" label={copy('Refereeing level', 'სამსაჯო დონე')} htmlFor={`${id}-level`}>
-            <input id={`${id}-level`} className="gk-input" maxLength={120} placeholder={copy('For example regional, national', 'მაგალითად რეგიონული, ეროვნული')} value={draft.refereeLevel} onChange={set('refereeLevel')} />
-        </Field>,
-    ].filter(Boolean);
-    return fields.length ? <div className="gk-setup__grid">{fields}</div> : null;
-}
+import type { SetupDraft, SetupProfile } from '../useSetupProfile';
+import { SkillPicker } from './SkillPicker';
 
 /** The person's photo with one small action to change it. */
 export function PhotoField({ name, url, setup }: { name: string; url: string; setup: SetupProfile }) {
@@ -89,39 +68,26 @@ export function TownLine({ facts }: { facts: WelcomeFacts }) {
     </p>;
 }
 
-/** Step 2: what people see on the profile. Everything optional; Next saves what changed. */
-export function AboutStep({ setup, roles, facts, register }: { setup: SetupProfile; roles: ReturnType<typeof useRoleProfiles>; facts: WelcomeFacts; register: (save: (() => Promise<boolean>) | null) => void }) {
+/**
+ * Step 2: what people see on the profile: photo, headline (on the main role's section, so only with a role), a line
+ * or two, the town, and "What do you do?". Everything optional; Next saves what changed.
+ */
+export function AboutStep({ setup, draft, onChange, facts, main, suggestion }: {
+    setup: SetupProfile; draft: SetupDraft | null; onChange: (draft: SetupDraft) => void; facts: WelcomeFacts; main: FootballRole | null; suggestion: string;
+}) {
     const copy = useJourneyCopy();
     const id = useId();
-    const suggestion = useSuggestedHeadline(roles.profiles, facts.place);
-    // What the person changed, over the profile as loaded.
-    const [edited, setEdited] = useState<AboutDraft | null>(null);
-    const [error, setError] = useState('');
-    const draft = edited ?? (setup.profile && roles.state === 'ready' && facts.ready ? aboutDraft(setup.profile, roles.profiles, suggestion) : null);
-    const update = (key: keyof AboutDraft, value: string) => setEdited(current => current ?? draft ? { ...(current ?? draft)!, [key]: value } : current);
-    // Next saves what changed here; the dialog asks for it.
-    useEffect(() => {
-        register(async () => {
-            if (!draft) return true;
-            const failure = await saveAbout(draft, setup, roles, copy('Your details couldn’t be saved. They are still here.', 'მონაცემები ვერ შეინახა. ისინი აქვეა.'));
-            setError(failure);
-            return !failure;
-        });
-        return () => register(null);
-    });
     if (setup.failed) return <p className="gk-notice gk-notice--danger" role="alert">{copy('Your profile couldn’t load.', 'პროფილი ვერ ჩაიტვირთა.')} <button type="button" className="gk-setup__link" onClick={setup.retry}>{copy('Retry', 'ხელახლა ცდა')}</button></p>;
-    if (!draft || !setup.profile) return <div role="status" aria-label={copy('Loading your profile', 'პროფილი იტვირთება')} className="gk-stack gk-stack--tight"><Skeleton height={56} width={220} /><Skeleton height={40} /><Skeleton height={64} /></div>;
-    const change = (key: keyof AboutDraft) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => update(key, event.target.value);
+    if (!draft || !setup.loaded) return <div role="status" aria-label={copy('Loading your profile', 'პროფილი იტვირთება')} className="gk-setup__loading"><Skeleton height={56} width={220} /><Skeleton height={40} /><Skeleton height={64} /></div>;
     return <div className="gk-setup__form">
-        <PhotoField name={setup.profile.fullName} url={setup.profile.avatarUrl} setup={setup} />
-        <Field label={copy('Headline', 'სათაური')} htmlFor={`${id}-headline`} hint={copy('One line under your name.', 'ერთი სტრიქონი თქვენი სახელის ქვეშ.')}>
-            <input id={`${id}-headline`} className="gk-input" maxLength={120} value={draft.headline} onChange={change('headline')} />
-        </Field>
+        <PhotoField name={draft.fullName} url={setup.loaded.profile.avatarUrl} setup={setup} />
+        {draft.roles.length > 0 && <Field label={copy('Headline', 'სათაური')} htmlFor={`${id}-headline`} hint={copy('One line under your name.', 'ერთი სტრიქონი თქვენი სახელის ქვეშ.')}>
+            <input id={`${id}-headline`} className="gk-input" maxLength={120} value={draft.headline ?? suggestion} onChange={event => onChange({ ...draft, headline: event.target.value })} />
+        </Field>}
         <Field label={copy('About me', 'ჩემ შესახებ')} htmlFor={`${id}-about`} hint={copy('One or two lines.', 'ერთი-ორი სტრიქონი.')}>
-            <textarea id={`${id}-about`} className="gk-input" rows={2} maxLength={300} value={draft.bio} onChange={change('bio')} />
+            <textarea id={`${id}-about`} className="gk-input" rows={2} maxLength={300} value={draft.bio} onChange={event => onChange({ ...draft, bio: event.target.value })} />
         </Field>
         <TownLine facts={facts} />
-        <RoleFields draft={draft} onChange={update} chosen={roles.profiles.map(item => item.role)} />
-        {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+        <SkillPicker draft={draft} onChange={onChange} main={main} />
     </div>;
 }

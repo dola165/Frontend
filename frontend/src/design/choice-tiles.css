@@ -1,0 +1,22 @@
+/* Tiles to pick from (Roles and work, "Set up your profile"). Scoped under .gk; tokens only. */
+.gk .gk-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--gk-2); }
+.gk .gk-tile { position: relative; display: flex; align-items: flex-start; gap: var(--gk-3); min-height: 64px; padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); cursor: pointer; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }
+.gk .gk-tile:hover { border-color: var(--gk-line-strong); }
+.gk .gk-tile[data-checked] { border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); background: var(--gk-accent-soft); }
+.gk .gk-tile > input { position: absolute; top: var(--gk-3); right: var(--gk-3); width: 18px; height: 18px; margin: 0; accent-color: var(--gk-accent); cursor: pointer; }
+.gk .gk-tile:has(> input:focus-visible) { box-shadow: var(--gk-focus); }
+.gk .gk-tile__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-right: var(--gk-6); }
+.gk .gk-tile__text strong { font-weight: 600; overflow-wrap: anywhere; }
+.gk .gk-tile__text small { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+.gk .gk-tile__icon { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: var(--gk-r); background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-tile__icon svg { width: 18px; height: 18px; }
+
+/* The tighter grid of a guided flow: three or four across, two on a phone. */
+.gk .gk-tiles--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); }
+.gk .gk-tiles--compact .gk-tile { min-height: 0; gap: var(--gk-2); padding: var(--gk-2) var(--gk-3); }
+.gk .gk-tiles--compact .gk-tile > input { top: var(--gk-2); right: var(--gk-2); width: 16px; height: 16px; }
+.gk .gk-tiles--compact .gk-tile__text { padding-right: var(--gk-5); }
+.gk .gk-tiles--compact .gk-tile__text strong { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
+@media (max-width: 640px) {
+  .gk .gk-tiles--compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

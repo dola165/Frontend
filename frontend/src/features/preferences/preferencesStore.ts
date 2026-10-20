@@ -9,12 +9,12 @@ import { getAuthSessionId } from '../../utils/authStorage';
  */
 export interface PreferencesTown { name: string; latitude: number; longitude: number; countryCode?: string }
 /** A step of the welcome popup after sign-up. */
-/** "Set up your profile": ROLES, ABOUT, FOLLOW (clubs near you), PROFILE; the rest are the earlier welcome's, still read. */
-export type WelcomeStep = 'ROLES' | 'ABOUT' | 'FOLLOW' | 'PROFILE' | 'CLUB' | 'CHILD' | 'TOURNAMENT' | 'VENUE' | 'BUSINESS';
+/** "Set up your profile": ROLES, ABOUT, FOLLOW (clubs), PROFILE, PAGE; the rest are the earlier welcome's, still read. */
+export type WelcomeStep = 'ROLES' | 'ABOUT' | 'FOLLOW' | 'PROFILE' | 'PAGE' | 'CLUB' | 'CHILD' | 'TOURNAMENT' | 'VENUE' | 'BUSINESS';
 /** OPEN shows the popup over Home until finished or closed; DONE never shows it by itself again. Skipped steps come back once as a card. */
 export interface WelcomeProgress { state: 'OPEN' | 'DONE'; at?: WelcomeStep | null; skipped?: WelcomeStep[]; cardDismissed?: boolean }
 /** The first run: the town Home and World start from, and the welcome's progress. */
-export interface StartPreferences { town?: PreferencesTown | null; welcome?: WelcomeProgress | null }
+export interface StartPreferences { town?: PreferencesTown | null; welcome?: WelcomeProgress | null; /** Said in the setup: here as a business or sponsor. */ business?: boolean | null }
 export interface StoredPin { path: string; label: string; icon: string }
 export interface WorkspacePreferences { hiddenTabs?: string[]; hiddenAreas?: string[]; hiddenResponsibilities?: string[] }
 export interface Preferences {

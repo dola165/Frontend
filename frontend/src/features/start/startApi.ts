@@ -78,8 +78,9 @@ export interface NearbyClub {
     followers: number;
     following: boolean;
 }
-export const fetchClubsNearYou = (limit = 8, signal?: AbortSignal) =>
-    apiClient.get<NearbyClub[]>('/clubs/near-you', { params: { limit }, signal }).then(r => r.data);
+/** Clubs in the person's own country: nearest first from a town they gave, or the most followed first. */
+export const fetchClubsNearYou = (limit = 8, sort: 'NEAREST' | 'POPULAR' = 'NEAREST', signal?: AbortSignal) =>
+    apiClient.get<NearbyClub[]>('/clubs/near-you', { params: { limit, sort }, signal }).then(r => r.data);
 
 /** Clubs found by name, anywhere: searching is how a club far away is found. */
 export const searchClubs = async (query: string, signal?: AbortSignal): Promise<NearbyClub[]> =>
@@ -87,9 +88,6 @@ export const searchClubs = async (query: string, signal?: AbortSignal): Promise<
         id: club.id, name: club.name, logoUrl: club.logoUrl ?? null, bannerUrl: null, cityName: club.cityName ?? null, km: null,
         followers: club.followerCount ?? 0, following: club.isFollowedByMe === true,
     }));
-/** How many clubs the person follows. */
-export const fetchFollowedClubCount = async (signal?: AbortSignal) =>
-    (await apiClient.get<unknown[]>('/clubs/followed', { signal })).data.length;
 
 export const followClub = (id: number) => apiClient.post(`/clubs/${id}/follow`);
 export const unfollowClub = (id: number) => apiClient.delete(`/clubs/${id}/follow`);

@@ -1,34 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { cardSteps, closed, done, opened, skipped, welcomeSteps } from './welcomeSteps';
+import { cardSteps, closed, done, opened, skipped, stepFromParam, stepFromStored } from './welcomeSteps';
 
-describe('the welcome steps', () => {
-    it('follow from what the person does, and go straight to clubs near you when nothing fits', () => {
-        expect(welcomeSteps(['COACH', 'PARENT'])).toEqual(['roles', 'club', 'child', 'follow', 'business']);
-        expect(welcomeSteps(['CLUB_STAFF', 'ORGANIZER', 'VENUE_MANAGER'])).toEqual(['roles', 'club', 'tournament', 'venue', 'follow', 'business']);
-        expect(welcomeSteps(['FAN', 'PLAYER', 'REFEREE'])).toEqual(['roles', 'follow', 'business']);
-        expect(welcomeSteps([])).toEqual(['roles', 'follow', 'business']);
+describe('the setup steps', () => {
+    it('are the same four for everyone; old addresses and saved progress land on the step that replaced theirs', () => {
+        expect(['roles', 'about', 'clubs', 'profile'].map(stepFromParam)).toEqual(['roles', 'about', 'clubs', 'profile']);
+        expect(['club', 'follow', 'child', 'tournament', 'venue', 'business', 'nope'].map(stepFromParam))
+            .toEqual(['clubs', 'clubs', 'profile', 'profile', 'profile', 'profile', null]);
+        expect(stepFromStored('FOLLOW')).toBe('clubs');
+        expect(stepFromStored('ABOUT')).toBe('about');
+        expect(stepFromStored('CHILD')).toBe('profile');
+        expect(stepFromStored(null)).toBeNull();
     });
 
-    it('remember skipped steps once, never the optional business question, and forget what was done', () => {
+    it('remember skipped steps once, never the finished-profile review, and forget what was done', () => {
         let progress = opened(null, 'roles');
         expect(progress).toEqual({ state: 'OPEN', at: 'ROLES' });
+        progress = skipped(progress, 'about');
         progress = skipped(progress, 'roles');
-        progress = skipped(progress, 'business');
-        expect(progress.skipped).toEqual(['ROLES']);
-        expect(done(progress, 'roles').skipped).toEqual([]);
+        progress = skipped(progress, 'profile');
+        expect(progress.skipped).toEqual(['ROLES', 'ABOUT']);
+        expect(done(progress, 'roles').skipped).toEqual(['ABOUT']);
     });
 
-    it('closing ends the popup for good; what was not reached comes back on the card until dismissed', () => {
-        const steps = welcomeSteps(['PARENT']);
-        const progress = closed(skipped(opened(null, 'child'), 'roles'), steps, 'child');
-        expect(progress).toEqual({ state: 'DONE', at: null, skipped: ['ROLES', 'CHILD', 'FOLLOW'] });
-        expect(cardSteps(progress)).toEqual(['roles', 'child', 'follow']);
+    it('"Skip setup" ends it for good; the steps not reached come back on the card until dismissed', () => {
+        const progress = closed(opened(null, 'about'), 'about');
+        expect(progress).toEqual({ state: 'DONE', at: null, skipped: ['ABOUT', 'FOLLOW'] });
+        expect(cardSteps(progress)).toEqual(['about', 'clubs']);
         expect(cardSteps({ ...progress, cardDismissed: true })).toEqual([]);
-        // Leaving to do the step's own task counts it as done.
-        expect(closed(done(opened(null, 'child'), 'child'), steps, 'follow').skipped).toEqual(['FOLLOW']);
-        // An open popup, a finished one and an account that never had one show no card.
+        // Finishing, or leaving through "What's next", keeps only what was skipped on the way.
+        expect(closed(skipped(opened(null, 'roles'), 'roles'), null).skipped).toEqual(['ROLES']);
+        // Progress saved by the earlier welcome still shows, as the steps that replaced it.
+        expect(cardSteps({ state: 'DONE', skipped: ['CLUB', 'FOLLOW', 'BUSINESS', 'ROLES'] })).toEqual(['roles', 'clubs']);
+        // An open setup, a finished one and an account that never had one show no card.
         expect(cardSteps(opened(null, 'roles'))).toEqual([]);
-        expect(cardSteps(closed(opened(null, 'business'), steps, null))).toEqual([]);
+        expect(cardSteps(closed(opened(null, 'profile'), null))).toEqual([]);
         expect(cardSteps(null)).toEqual([]);
     });
 });

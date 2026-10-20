@@ -1,4 +1,5 @@
 import { apiClient } from '../../api/axiosConfig';
+import { fetchClubDirectory } from '../world/api';
 import { loadPreferences, readPreferences, updatePreferences, type StartPreferences } from '../preferences/preferencesStore';
 import { townByName, type Town } from './towns';
 
@@ -79,6 +80,16 @@ export interface NearbyClub {
 }
 export const fetchClubsNearYou = (limit = 8, signal?: AbortSignal) =>
     apiClient.get<NearbyClub[]>('/clubs/near-you', { params: { limit }, signal }).then(r => r.data);
+
+/** Clubs found by name, anywhere: searching is how a club far away is found. */
+export const searchClubs = async (query: string, signal?: AbortSignal): Promise<NearbyClub[]> =>
+    (await fetchClubDirectory(new URLSearchParams({ search: query, page: '0', size: '8' }), signal)).content.map(club => ({
+        id: club.id, name: club.name, logoUrl: club.logoUrl ?? null, bannerUrl: null, cityName: club.cityName ?? null, km: null,
+        followers: club.followerCount ?? 0, following: club.isFollowedByMe === true,
+    }));
+/** How many clubs the person follows. */
+export const fetchFollowedClubCount = async (signal?: AbortSignal) =>
+    (await apiClient.get<unknown[]>('/clubs/followed', { signal })).data.length;
 
 export const followClub = (id: number) => apiClient.post(`/clubs/${id}/follow`);
 export const unfollowClub = (id: number) => apiClient.delete(`/clubs/${id}/follow`);

@@ -5,87 +5,66 @@ import { Button } from '../../../design/primitives';
 import { fetchSimilar } from '../../pages/api';
 import { claimHref, createHref, ownClub, pagePath } from '../../pages/create/entry';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { Crest } from '../../world/Crest';
-import { fetchClubsNear, fetchSavedTown, type NearbyClub } from '../startApi';
-import { DEFAULT_TOWN, type Town } from '../towns';
+import type { WelcomeFacts } from '../useWelcomeFacts';
 import type { StepProps } from '../WelcomeDialog';
+import { ClubCard, type CardClub } from './ClubCard';
 
 const HOME = { pathname: '/home', search: '' };
-interface Found { key: string; name: string; town: string | null; crestUrl: string | null; to: string; action: 'open' | 'mine' | 'claim' }
+interface Found { key: string; club: CardClub; to: string; action: 'open' | 'mine' | 'claim' }
 
 /**
- * Coach or club staff: find the club first, so nobody makes a second page of it. The clubs near the person's town show
- * at once; typing searches every page. A known club opens (to ask to join), an unclaimed one goes to the claim flow,
- * and only then "Create your club's page" (whose sheet checks for look-alikes again).
+ * Coach or club staff: find the club first, so nobody makes a second page of it. The clubs near the person (their own
+ * country) show at once; typing searches every page, here or abroad. A known club opens (to ask to join), an unclaimed
+ * one goes to the claim flow, and an adult can still create the club's page (its sheet checks for look-alikes again).
  */
-export function ClubStep({ leave }: StepProps) {
+export function ClubStep({ leave, facts }: StepProps & { facts: WelcomeFacts }) {
     const copy = useJourneyCopy();
     const { user } = useAuth();
-    const userId = user?.id;
     const club = ownClub(user?.navigationCapabilities);
     const inputId = useId();
-    const [town, setTown] = useState<Town>(DEFAULT_TOWN);
     const [name, setName] = useState('');
-    const [near, setNear] = useState<Found[] | null>(null);
     const [matches, setMatches] = useState<{ query: string; items: Found[] } | null>(null);
     const query = name.trim();
 
     useEffect(() => {
-        if (!userId) return;
-        const controller = new AbortController();
-        void (async () => {
-            const saved = await fetchSavedTown(userId, controller.signal).catch(() => null);
-            const around = saved ?? DEFAULT_TOWN;
-            if (!controller.signal.aborted) setTown(around);
-            const clubs = await fetchClubsNear(around, 4, controller.signal).catch(() => [] as NearbyClub[]);
-            if (!controller.signal.aborted) setNear(clubs.map(item => ({ key: `club-${item.id}`, name: item.name, town: item.cityName ?? null, crestUrl: item.logoUrl ?? null, to: `/clubs/${item.id}`, action: 'open' })));
-        })();
-        return () => controller.abort();
-    }, [userId]);
-    useEffect(() => {
         if (query.length < 3) return;
         const controller = new AbortController();
         const timer = window.setTimeout(() => {
-            fetchSimilar(query, town.name, controller.signal).then(items => {
+            fetchSimilar(query, null, controller.signal).then(items => {
                 if (controller.signal.aborted) return;
                 setMatches({ query, items: items.filter(item => item.kind === 'CLUB').map(item => ({
-                    key: `${item.ref.type}-${item.ref.id}`, name: item.name, town: item.town || null, crestUrl: item.crestUrl,
+                    key: `${item.ref.type}-${item.ref.id}`,
+                    club: { name: item.name, logoUrl: item.crestUrl, cityName: item.town || null, note: item.claim === 'UNCLAIMED' ? copy('Unclaimed', 'დაუკავებელი') : null },
                     to: item.mine ? pagePath(item.ref) : item.claim === 'UNCLAIMED' ? claimHref(HOME, item.ref, 'start') : pagePath(item.ref),
                     action: item.mine ? 'mine' : item.claim === 'UNCLAIMED' ? 'claim' : 'open',
                 })) });
             }).catch(() => undefined);
         }, 300);
         return () => { window.clearTimeout(timer); controller.abort(); };
-    }, [query, town.name]);
+    }, [query, copy]);
 
-    if (club) return <ul className="gk-welcome__list" aria-label={copy('Your club', 'თქვენი კლუბი')}>
-        <Row item={{ key: 'own', name: club.name, town: null, crestUrl: null, to: `/clubs/${club.id}`, action: 'mine' }} leave={leave} />
+    const label = (action: Found['action']) => action === 'claim' ? copy('Claim it', 'ეს ჩემია') : action === 'mine' ? copy('Open yours', 'თქვენის გახსნა') : copy('Open', 'გახსნა');
+    if (club) return <ul className="gk-welcome__cards" aria-label={copy('Your club', 'თქვენი კლუბი')}>
+        <ClubCard club={{ name: club.name, logoUrl: null }} index={0} action={<Button variant="primary" onClick={() => leave(`/clubs/${club.id}`)}>{label('mine')}</Button>} />
     </ul>;
+
     const searching = query.length >= 3;
+    const near: Found[] = (facts.clubs ?? []).map(item => ({ key: `club-${item.id}`, club: item, to: `/clubs/${item.id}`, action: 'open' }));
     const shown = searching ? (matches?.query === query ? matches.items : null) : near;
     return <>
-        <label className="gk-welcome__search" htmlFor={inputId}>
-            <Search aria-hidden="true" />
-            <span className="gk-visually-hidden">{copy('Club name', 'კლუბის სახელი')}</span>
-            <input id={inputId} className="gk-input" value={name} maxLength={120} autoComplete="organization" placeholder={copy('Club name', 'კლუბის სახელი')} onChange={event => setName(event.target.value)} />
-        </label>
-        <p className="gk-welcome__label">{searching ? copy('On GrassKickZ', 'GrassKickZ-ზე') : copy(`Near ${town.name}`, `${town.name}-თან ახლოს`)}</p>
-        {shown === null ? <p role="status" className="gk-welcome__note">{copy('Looking…', 'ვეძებთ…')}</p>
-            : shown.length === 0 ? <p className="gk-welcome__note">{searching ? copy('No club with this name yet.', 'ამ სახელით კლუბი ჯერ არ არის.') : copy('No clubs near you yet.', 'ახლოს კლუბები ჯერ არ არის.')}</p>
-            : <ul className="gk-welcome__list" aria-label={copy('Clubs', 'კლუბები')}>{shown.map(item => <Row key={item.key} item={item} leave={leave} />)}</ul>}
-        <div className="gk-welcome__create">
-            <span>{copy('Not here?', 'აქ არ არის?')}</span>
-            <Button variant="primary" onClick={() => leave(createHref(HOME, 'CLUB', 'start'))}><Plus aria-hidden="true" />{copy('Create your club’s page', 'შექმენით კლუბის გვერდი')}</Button>
+        <div className="gk-welcome__bar">
+            <label className="gk-welcome__search" htmlFor={inputId}>
+                <Search aria-hidden="true" />
+                <span className="gk-visually-hidden">{copy('Club name', 'კლუბის სახელი')}</span>
+                <input id={inputId} className="gk-input" value={name} maxLength={120} autoComplete="organization" placeholder={copy('Search every club by name', 'მოძებნეთ ნებისმიერი კლუბი სახელით')} onChange={event => setName(event.target.value)} />
+            </label>
+            {facts.adult && <Button variant="primary" onClick={() => leave(createHref(HOME, 'CLUB', 'start'))}><Plus aria-hidden="true" />{copy('Create your club’s page', 'შექმენით კლუბის გვერდი')}</Button>}
         </div>
+        {shown === null ? <p role="status" className="gk-welcome__note">{copy('Looking…', 'ვეძებთ…')}</p>
+            : shown.length === 0 ? (searching ? <p className="gk-welcome__note">{copy('No club with this name yet.', 'ამ სახელით კლუბი ჯერ არ არის.')}</p> : null)
+            : <ul className="gk-welcome__cards" aria-label={searching ? copy('Clubs found', 'ნაპოვნი კლუბები') : copy('Clubs near you', 'კლუბები თქვენთან ახლოს')}>
+                {shown.map((item, index) => <ClubCard key={item.key} club={item.club} index={index}
+                    action={<Button variant={item.action === 'claim' ? 'primary' : 'secondary'} onClick={() => leave(item.to)}>{label(item.action)}</Button>} />)}
+            </ul>}
     </>;
-}
-
-function Row({ item, leave }: { item: Found; leave: (to: string) => void }) {
-    const copy = useJourneyCopy();
-    const label = item.action === 'claim' ? copy('Claim it', 'ეს ჩემია') : item.action === 'mine' ? copy('Open yours', 'თქვენის გახსნა') : copy('Open', 'გახსნა');
-    return <li className="gk-welcome__row">
-        <Crest src={item.crestUrl} name={item.name} size={40} />
-        <span className="gk-welcome__text"><strong>{item.name}</strong>{(item.town || item.action === 'claim') && <small>{[item.town, item.action === 'claim' ? copy('Unclaimed', 'დაუკავებელი') : null].filter(Boolean).join(' · ')}</small>}</span>
-        <Button size="sm" variant={item.action === 'claim' ? 'primary' : 'secondary'} onClick={() => leave(item.to)}>{label}</Button>
-    </li>;
 }

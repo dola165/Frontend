@@ -13,14 +13,25 @@ export const stepFromParam = (value: string | null): Step | null => (STEPS as re
 export const storedStep = (step: Step) => step.toUpperCase() as WelcomeStep;
 export const stepFromStored = (stored?: WelcomeStep | null): Step | null => stepFromParam(stored ? stored.toLowerCase() : null);
 
-/** The steps for these football roles, in order. Nothing relevant chosen: straight to clubs near you. */
-export function welcomeSteps(roles: readonly string[]): Step[] {
+/** Roles that need an adult account (the server refuses them under 18), so a minor never sees them. */
+export const ADULT_ROLES = ['PARENT', 'ORGANIZER', 'AGENT', 'VENUE_MANAGER'] as const;
+
+/** What decides which steps make sense: the person's age, and whether any club near them is known. */
+export interface StepFacts { adult: boolean; clubsNearby: boolean }
+
+/**
+ * The steps for these football roles, in order. A step with nothing for this person is left out: nothing relevant
+ * chosen goes straight to clubs near them; no known club near them skips that; pages and businesses are for adults.
+ */
+export function welcomeSteps(roles: readonly string[], facts: StepFacts = { adult: true, clubsNearby: true }): Step[] {
     const next: Step[] = [];
     if (roles.includes('COACH') || roles.includes('CLUB_STAFF')) next.push('club');
-    if (roles.includes('PARENT')) next.push('child');
-    if (roles.includes('ORGANIZER')) next.push('tournament');
-    if (roles.includes('VENUE_MANAGER')) next.push('venue');
-    return ['roles', ...next, 'follow', 'business'];
+    if (facts.adult && roles.includes('PARENT')) next.push('child');
+    if (facts.adult && roles.includes('ORGANIZER')) next.push('tournament');
+    if (facts.adult && roles.includes('VENUE_MANAGER')) next.push('venue');
+    if (facts.clubsNearby) next.push('follow');
+    if (facts.adult) next.push('business');
+    return ['roles', ...next];
 }
 
 /** "Here as a business?" is a question, not a task: a skip never brings it back. */

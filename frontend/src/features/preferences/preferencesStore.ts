@@ -7,7 +7,7 @@ import { getAuthSessionId } from '../../utils/authStorage';
  * copy per account renders instantly and is replaced by the server's on load; changes show at once and are written
  * through. Nothing here grants or removes access. Sign-out removes the local copy (`clearStoredAuth`).
  */
-export interface PreferencesTown { name: string; latitude: number; longitude: number }
+export interface PreferencesTown { name: string; latitude: number; longitude: number; countryCode?: string }
 /** A step of the welcome popup after sign-up. */
 export type WelcomeStep = 'ROLES' | 'CLUB' | 'CHILD' | 'TOURNAMENT' | 'VENUE' | 'FOLLOW' | 'BUSINESS';
 /** OPEN shows the popup over Home until finished or closed; DONE never shows it by itself again. Skipped steps come back once as a card. */

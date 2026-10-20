@@ -21,8 +21,8 @@ import './recruitment.css';
 
 interface Props {
     clubId: number; tryoutApplicants: TryoutApplicantDto[]; tryoutsLoading: boolean; pendingKey: string | null;
-    /** The parent owns the decision note and status mutation. */
-    onTryoutStatus: (applicationId: number, status: 'ACCEPTED' | 'REJECTED') => void;
+    /** The parent owns the decision note and status mutation; absent unless the viewer is the owner or an admin, who decide. */
+    onTryoutStatus?: (applicationId: number, status: 'ACCEPTED' | 'REJECTED') => void;
     onOpenPlayers?: () => void;
 }
 interface Postings { total: number; openCount: number; hasMore: boolean; canManage: boolean }
@@ -131,7 +131,7 @@ export function TryoutsPage({ clubId, tryoutApplicants, tryoutsLoading, pendingK
                                 <Avatar src={resolveMediaUrl(a.profilePictureUrl) || null} name={a.name} size={40} />
                                 <span className="gk-list-row__main"><span className="gk-list-row__title">{a.name}</span><span className="gk-list-row__meta">{[a.position ? squadLabel(a.position, t) : null, a.ageGroup].filter(Boolean).join(' · ') || '—'}</span></span>
                                 <span className="gk-list-row__trail tr-trail"><Badge tone={outcomeTone(a.status)}>{statusLabel(a.status)}</Badge>
-                                    {open ? <><Button size="sm" variant="primary" disabled={busy} onClick={() => onTryoutStatus(a.id, 'ACCEPTED')}>{r('accept')}</Button>
+                                    {open ? onTryoutStatus && <><Button size="sm" variant="primary" disabled={busy} onClick={() => onTryoutStatus(a.id, 'ACCEPTED')}>{r('accept')}</Button>
                                         <Button size="sm" variant="ghost" className="tr-danger" disabled={busy} onClick={() => onTryoutStatus(a.id, 'REJECTED')}>{r('decline')}</Button></>
                                         : <span className="gk-faint tr-done">{r('decisionComplete')}</span>}</span>
                             </div></li>;

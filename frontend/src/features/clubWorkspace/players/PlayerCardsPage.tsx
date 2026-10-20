@@ -18,8 +18,9 @@ interface Squad { id: number; name: string }
 /**
  * Player cards: roster entries the club keeps for players, including children without an account. Edit a card,
  * invite an adult to take over their own account, or remove a card (asked first; an account is never deleted with it).
+ * Removing ends the player's affiliation, so only the owner or an admin sees it (canRemove).
  */
-export function PlayerCardsPage({ clubId, setParentError, setParentSuccess }: { clubId: number; setParentError: (message: string | null) => void; setParentSuccess: (message: string | null) => void }) {
+export function PlayerCardsPage({ clubId, canRemove = false, setParentError, setParentSuccess }: { clubId: number; canRemove?: boolean; setParentError: (message: string | null) => void; setParentSuccess: (message: string | null) => void }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [cards, setCards] = useState<PlayerCard[]>([]), [squads, setSquads] = useState<Squad[]>([]), [loading, setLoading] = useState(true), [loadError, setLoadError] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export function PlayerCardsPage({ clubId, setParentError, setParentSuccess }: { 
                 {card.claimed && <Badge tone="info">{t('minors.playerCard.claimed')}</Badge>}
                 {!card.registered && card.birthYear != null && year - card.birthYear >= 18 && <IdentityActivationForm adult path={`/clubs/${clubId}/player-cards/${card.id}/activation-invitation`} onChanged={() => void load()} />}
                 <Button size="sm" variant="ghost" iconOnly aria-label={t('squadDesign.editNamedPlayer', { defaultValue: 'Edit {{name}}', name })} title={t('minors.playerCard.edit')} onClick={() => setEditing(card)}><Pencil aria-hidden="true" /></Button>
-                <Button size="sm" variant="ghost" iconOnly className="pc-danger" aria-label={`${t(card.registered ? 'minors.playerCard.remove' : 'minors.playerCard.delete')}: ${name}`} disabled={removingId === card.id} onClick={() => setRemoving(card)}><Trash2 aria-hidden="true" /></Button>
+                {canRemove && <Button size="sm" variant="ghost" iconOnly className="pc-danger" aria-label={`${t(card.registered ? 'minors.playerCard.remove' : 'minors.playerCard.delete')}: ${name}`} disabled={removingId === card.id} onClick={() => setRemoving(card)}><Trash2 aria-hidden="true" /></Button>}
             </span>
         </div></li>;
     })}</ul></Panel>;

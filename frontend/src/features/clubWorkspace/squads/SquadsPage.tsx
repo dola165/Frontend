@@ -135,6 +135,9 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
         catch (error) { setParentError(extractApiErrorMessage(error, t('squads.design.playerUpdateError', { defaultValue: 'Could not update player.' }))); throw error; }
     };
     const leadership = Boolean(workspace?.data.leadership || overview?.currentUserRole === 'OWNER' || overview?.currentUserRole === 'CLUB_ADMIN');
+    // The server lets a coach change only the squads they coach; deleting a squad is for leadership.
+    const coached = workspace?.data.views.find(v => v.id === 'coaching')?.squadIds;
+    const canChangeSquad = (id: number) => leadership || !coached || coached.includes(id);
 
     const roster = selectedSquad && <SquadRoster squadId={selectedSquad.id} groups={rosterGroups} visibleGroups={visibleGroups} loading={rosterLoading} error={rosterError} onRetry={() => void loadRoster(selectedSquad.id)}
         query={query} position={position} onQuery={value => { setQuery(value); keepInUrl('playerSearch', value); }} onPosition={value => { setPosition(value); keepInUrl('position', value); }} onClear={clearFilters}
@@ -160,9 +163,9 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
                                 <div className="sq-actions">
                                     <ButtonLink to={`/squads/${selectedSquad.id}`} variant="ghost"><MessagesSquare aria-hidden="true" />Messages & plans</ButtonLink>
                                     <ButtonLink to={arrangePath({ mode: 'direct', squadId: selectedSquad.id })} variant="ghost"><CalendarPlus aria-hidden="true" />Arrange a match</ButtonLink>
-                                    <Button onClick={() => setSquadEditor(selectedSquad)}><Pencil aria-hidden="true" />{t('squads.design.editSquad', { defaultValue: 'Edit squad' })}</Button>
-                                    <Button variant="ghost" iconOnly disabled={deletingSquadId != null} aria-label={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} title={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} onClick={() => setPendingDelete(selectedSquad)}><Trash2 aria-hidden="true" /></Button>
-                                    <Button variant="primary" onClick={() => setShowAddPlayers(true)}><Plus aria-hidden="true" />{t('squads.design.addPlayers', { defaultValue: 'Add players' })}</Button>
+                                    {canChangeSquad(selectedSquad.id) && <Button onClick={() => setSquadEditor(selectedSquad)}><Pencil aria-hidden="true" />{t('squads.design.editSquad', { defaultValue: 'Edit squad' })}</Button>}
+                                    {leadership && <Button variant="ghost" iconOnly disabled={deletingSquadId != null} aria-label={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} title={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} onClick={() => setPendingDelete(selectedSquad)}><Trash2 aria-hidden="true" /></Button>}
+                                    {canChangeSquad(selectedSquad.id) && <Button variant="primary" onClick={() => setShowAddPlayers(true)}><Plus aria-hidden="true" />{t('squads.design.addPlayers', { defaultValue: 'Add players' })}</Button>}
                                 </div>
                             </div>
                             {workspace && <SquadCoachAssignment clubId={clubId} squadId={selectedSquad.id} squadName={selectedSquad.name} actorId={workspace.data.actorId} />}

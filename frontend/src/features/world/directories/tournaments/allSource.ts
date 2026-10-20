@@ -68,14 +68,18 @@ export const TOURNAMENT_FILTERS: FilterDef[] = [
 /** Keys sent to `GET /competitions` exactly as the filters hold them. */
 const PASSED = ['registration', 'family', 'structure', 'ageGroup', 'scope', 'sideSize', 'discipline', 'playingLevel', 'status', 'country', 'city', 'eligibilityCategory', 'from', 'to', 'minFee', 'maxFee', 'currency', 'feeBasis', 'openPlaces'];
 
-/** The list's search as `GET /competitions` parameters: filters, the format tile, the organiser, and where (a spot from an old link, else the World area). */
-export function cardParams(query: DirectoryQuery, area: Parameters<typeof nearParams>[1]) {
+/**
+ * The list's search as `GET /competitions` parameters: filters, the format tile, the organiser, and where (a spot from an
+ * old link, else the World area, kept to the person's own country unless a place or an organiser is named).
+ */
+export function cardParams(query: DirectoryQuery, area: Parameters<typeof nearParams>[1], country?: string | null) {
     const params = new URLSearchParams();
     for (const key of PASSED) if (first(query, key)) params.set(key, first(query, key));
     const format = first(query, 'format');
     if (format) { const key = FAMILIES.has(format) ? 'family' : 'structure'; if (!params.has(key)) params.set(key, format); }
     const around = nearbyPoint(query, 'around');
-    if (around) { params.set('latitude', String(around.lat)); params.set('longitude', String(around.lng)); params.set('radiusKm', '25'); } else nearParams(params, area);
+    const named = Boolean(around || first(query, 'host') || first(query, 'country') || first(query, 'city'));
+    if (around) { params.set('latitude', String(around.lat)); params.set('longitude', String(around.lng)); params.set('radiusKm', '25'); } else nearParams(params, area, named ? null : country);
     const [hostKind, hostId] = first(query, 'host').split(':');
     if ((hostKind === 'CLUB' || hostKind === 'ORGANIZATION') && /^[1-9]\d*$/.test(hostId ?? '')) { params.set('hostKind', hostKind); params.set('hostId', hostId); }
     if (query.q) params.set('q', query.q);
@@ -117,10 +121,10 @@ export const allTournaments: DirectorySource<TournamentItem> = {
     area: true,
     filters: TOURNAMENT_FILTERS,
     sorts: [{ value: 'date', label: 'Starts soonest' }, { value: 'newest', label: 'Newest' }, { value: 'name', label: 'Name A–Z' }],
-    async load(query, page, { signal, area }) {
+    async load(query, page, { signal, area, country }) {
         const notice = feeNotice(first(query, 'minFee'), first(query, 'maxFee'));
         if (notice) return { items: [], total: null, hasMore: false, notice };
-        const params = cardParams(query, area);
+        const params = cardParams(query, area, country);
         const entries = (first(query, 'registration') || undefined) as EntriesState | undefined;
         const sort = query.sort || 'date';
         if (sort === 'date' && !first(query, 'status') && !first(query, 'from') && !first(query, 'to')) {

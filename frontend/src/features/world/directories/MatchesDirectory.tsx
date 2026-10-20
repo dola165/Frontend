@@ -11,7 +11,8 @@ import { useWorldRole } from '../front/useWorldRole';
 import { WorldLoading } from '../WorldLoading';
 import { useWorldSession } from '../worldSession';
 import { fixtures } from './matches/fixturesSource';
-import { loadWindow, openingDay } from './matches/matchday';
+import { loadWindow, NAMED_KEYS, openingDay } from './matches/matchday';
+import { useWorldArea } from '../useWorldArea';
 import { exchange } from './matches/exchangeSource';
 import { arrangements, events } from './matches/otherSources';
 
@@ -29,11 +30,14 @@ function useOpeningDay(opening: string, role: WorldRole) {
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
     const onFixtures = (params.get('tab') ?? opening) === 'fixtures';
-    const needed = status === 'authenticated' && onFixtures && !params.has('day') && !params.has('period');
+    const { area } = useWorldArea();
+    const needed = status === 'authenticated' && onFixtures && area.ready && !params.has('day') && !params.has('period');
     // The window as the list will ask for it, with the person's own teams when that is how the tab opens for them.
     const filters = new URLSearchParams();
     for (const key of WINDOW_KEYS) if (params.get(key)) filters.set(key, params.get(key)!);
     if (!filters.has('mine') && [...filters.keys()].length === 0 && (COACHING_ROLES.has(role) || role === 'player')) filters.set('mine', 'true');
+    // Nothing searched or named: the person's own country, as the list asks for it.
+    if (area.country && !filters.has('q') && !NAMED_KEYS.some(name => filters.has(name))) filters.set('country', area.country);
     const key = filters.toString();
     useEffect(() => {
         if (!needed) return;

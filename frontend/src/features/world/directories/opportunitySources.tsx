@@ -37,13 +37,15 @@ export const jobs: DirectorySource<ClubJob> = {
         { kind: 'choice', key: 'posted', label: 'Posted', allLabel: 'Any time', options: [{ value: '7D', label: 'Past 7 days' }, { value: '30D', label: 'Past 30 days' }] },
     ],
     sorts: [{ value: 'NEWEST', label: 'Newest first' }, { value: 'OLDEST', label: 'Oldest first' }],
-    async load(query, page, { signal }) {
+    async load(query, page, { signal, country }) {
         const params = new URLSearchParams({ page: String(page), size: String(PAGE) });
         if (query.q) params.set('q', query.q);
         for (const key of ['direction', 'poster', 'hours', 'engagement', 'category', 'clubId', 'country', 'city', 'ageGroup', 'level', 'posted']) {
             const value = first(query, key);
             if (value) params.set(key, value);
         }
+        // The person's own country unless a club or a place is named.
+        if (country && !['clubId', 'country', 'city'].some(key => first(query, key))) params.set('countryCode', country);
         if (query.sort) params.set('sort', query.sort);
         const result = await fetchOpenJobDirectory(params, signal);
         return { items: result.content, total: result.totalElements, hasMore: (page + 1) * PAGE < result.totalElements };
@@ -81,10 +83,16 @@ export const trials: DirectorySource<TryoutPosting> = {
         { kind: 'date', key: 'from', label: 'From' },
         { kind: 'date', key: 'to', label: 'Until' },
         { kind: 'choice', key: 'closed', label: 'Show only', allLabel: 'Any state', when: query => first(query, 'status') === 'ALL', options: ['CLOSED', 'FILLED', 'EXPIRED', 'CANCELLED'].map(value => ({ value, label: postingLabel(value, en => en) })) },
+        // Age groups that suit the person or their children, in their country: on for players, parents and anyone under 18,
+        // theirs to turn off.
+        { kind: 'toggle', key: 'forMe', label: 'Fits my age or my children’s', primary: true },
     ],
-    async load(query, page, { signal }) {
+    defaults: ({ role, minor }): Record<string, string[]> => role === 'player' || role === 'parent' || minor ? { forMe: ['true'] } : {},
+    async load(query, page, { signal, country, authenticated }) {
         const status = first(query, 'status') === 'ALL' ? first(query, 'closed') || 'ALL' : 'OPEN';
-        const result = await searchTryouts({ q: query.q, location: first(query, 'location'), status, clubId: first(query, 'clubId') || undefined, from: first(query, 'from') || undefined, to: first(query, 'to') || undefined, page, size: PAGE }, signal);
+        const clubId = first(query, 'clubId') || undefined, location = first(query, 'location');
+        const result = await searchTryouts({ q: query.q, location, status, clubId, from: first(query, 'from') || undefined, to: first(query, 'to') || undefined,
+            countryCode: country && !clubId && !location ? country : undefined, forMe: authenticated && first(query, 'forMe') === 'true' ? 'true' : undefined, page, size: PAGE }, signal);
         return { items: result.items, total: result.total, hasMore: result.hasMore };
     },
     key: trial => String(trial.id),
@@ -106,6 +114,9 @@ export const trials: DirectorySource<TryoutPosting> = {
     },
     empty: { title: 'No open trials right now', body: 'Clubs publish trials here before each intake.' },
 };
+
+/** Trials as a guest sees them: without "fits my age", which needs to know who is looking. */
+export const guestTrials: DirectorySource<TryoutPosting> = { ...trials, filters: trials.filters.filter(filter => filter.key !== 'forMe'), defaults: undefined };
 
 const birthYearOf = (participant?: Participant) => participant?.dateOfBirth ? Number(participant.dateOfBirth.slice(0, 4)) : undefined;
 
@@ -145,7 +156,7 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
             { kind: 'scope', key: 'group', label: 'Training group', name: (value, signal) => fetchOpportunity(Number(value), signal).then(group => group.name) },
             ...searchFilters.map(filter => ({ ...filter, when: (query: DirectoryQuery) => !first(query, 'group') && (filter.when?.(query) ?? true) })),
         ],
-        async load(query, page, { signal }) {
+        async load(query, page, { signal, country }) {
             const participant = chosen(first(query, 'player'));
             // A link from a joining page reads that exact public group, even when it is no longer taking players.
             // Its actual venue must not be replaced by the club pin or lost beyond the first search page.
@@ -166,6 +177,8 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
                 gender: (participant?.gender || first(query, 'gender') || undefined) as DiscoveryQuery['gender'],
                 method: (first(query, 'method') || undefined) as DiscoveryQuery['method'],
                 clubId: id('club'), organizationId: id('organization'), birthYear, page, size: PAGE,
+                // The person's own country unless a club or an organisation is named.
+                country: country && !id('club') && !id('organization') ? [country] : undefined,
             }, signal);
             return { items: result.items.map(group => ({ group, player: participant?.id })), total: result.total, hasMore: result.hasMore };
         },

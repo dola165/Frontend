@@ -3,7 +3,8 @@
  * market; the list is short on purpose and the device's location picks the nearest one when allowed.
  * (Backend needed: a towns lookup, so this list is not shipped with the app.)
  */
-export interface Town { name: string; latitude: number; longitude: number }
+/** A town; `countryCode` when known (the list below is Georgian). */
+export interface Town { name: string; latitude: number; longitude: number; countryCode?: string }
 
 export const TOWNS: Town[] = [
     { name: 'Tbilisi', latitude: 41.7151, longitude: 44.8271 }, { name: 'Batumi', latitude: 41.6168, longitude: 41.6367 },

@@ -18,14 +18,15 @@ export const exchangeFilters = [
     { kind: 'date', key: 'to', label: 'Until' },
 ] satisfies DirectorySource<Match>['filters'];
 
-/** One page of open matches, or of my arrangements (`mine`). */
-export async function loadListings(mine: boolean, query: Parameters<DirectorySource<Match>['load']>[0], page: number, signal: AbortSignal) {
+/** One page of open matches, or of my arrangements (`mine`); `country` keeps open matches to the person's own country. */
+export async function loadListings(mine: boolean, query: Parameters<DirectorySource<Match>['load']>[0], page: number, signal: AbortSignal, country?: string | null) {
     const params = new URLSearchParams();
     for (const key of ['format', 'ageGroup', 'level', 'venuePreference', 'from', 'to']) if (first(query, key)) params.set(key, first(query, key));
     const around = nearbyPoint(query, 'around');
     if (around) { params.set('lat', String(around.lat)); params.set('lng', String(around.lng)); params.set('radiusKm', '50'); }
     if (query.q) params.set('q', query.q);
     if (mine) params.set('mine', 'true');
+    if (country) params.set('country', country);
     if (page) params.set('page', String(page));
     const result = await fetchMatchListings(params, signal);
     const size = result.pageSize ?? 24;

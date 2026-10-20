@@ -39,9 +39,9 @@ function useTabCounts(sources: AnySource[], signedIn: boolean) {
     const counting = sources.filter(source => source.count && (signedIn || !source.signInReason));
     const where = counting.map(source => directoryArea(source, worldArea));
     const ready = worldArea.ready && counting.length > 0;
-    const key = ready ? `tab-counts|${sessionId}|${counting.map((source, i) => `${source.id}:${source.version ?? ''}:${where[i]?.city ?? (where[i] ? 'anywhere' : '')}`).join(',')}` : null;
+    const key = ready ? `tab-counts|${sessionId}|${counting.map((source, i) => `${source.id}:${source.version ?? ''}:${where[i]?.city ?? (where[i] ? 'anywhere' : '')}`).join(',')}|${worldArea.country ?? ''}` : null;
     const counts = useWorldData(key, signal => Promise.all(counting.map((source, i) =>
-        source.count!({ signal, sessionId, authenticated: signedIn, area: where[i], userId: user?.id ?? null }).catch(() => null))), undefined, { follow: true });
+        source.count!({ signal, sessionId, authenticated: signedIn, area: where[i], userId: user?.id ?? null, country: worldArea.country }).catch(() => null))), undefined, { follow: true });
     return (id: string): { count: number | string; tone?: 'warning'; label?: string } | undefined => {
         const index = counting.findIndex(source => source.id === id);
         if (index < 0) return undefined;

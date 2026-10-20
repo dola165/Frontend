@@ -34,8 +34,8 @@ const live = (status: string) => status === 'PLANNING' || status === 'ACTIVE';
  * what is on now, what takes entries (my squads' ages first) and what is coming up, near the World area. A guest first
  * sees the overview's spotlight. Each tournament is listed once, in its first group.
  */
-async function loadSeason({ signal, sessionId, authenticated, area, userId }: LoadContext): Promise<SeasonItem[]> {
-    const near = nearParams(new URLSearchParams({ page: '0', size: SIZE }), area);
+async function loadSeason({ signal, sessionId, authenticated, area, userId, country }: LoadContext): Promise<SeasonItem[]> {
+    const near = nearParams(new URLSearchParams({ page: '0', size: SIZE }), area, country);
     const cards = (extra: Record<string, string>) => {
         const params = new URLSearchParams(near);
         for (const [key, value] of Object.entries(extra)) params.set(key, value);

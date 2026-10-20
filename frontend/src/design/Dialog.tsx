@@ -10,11 +10,12 @@ import { Button, GkRoot } from './primitives';
  * Focus is contained and returned, Escape closes, and the page behind is inert.
  * `role="alertdialog"` is for confirmations that interrupt work (unsaved changes).
  * `size="sheet"` docks it to the right edge at full height (a bottom sheet on phones), for detail beside a list.
+ * `size="xl"` takes most of the screen with the page still showing around it (nearly all of a phone), for a guided flow.
  * `onEscape` replaces closing on Escape, for a sheet that first closes what it opened beside it.
  */
 export function Dialog({ open, title, description, onClose, onEscape, children, footer, size = 'md', role = 'dialog', closeLabel = 'Close' }: {
     open: boolean; title: ReactNode; description?: ReactNode; onClose: () => void; onEscape?: () => void; children?: ReactNode; footer?: ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'sheet'; role?: 'dialog' | 'alertdialog'; closeLabel?: string;
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'sheet'; role?: 'dialog' | 'alertdialog'; closeLabel?: string;
 }) {
     const ref = useRef<HTMLElement>(null);
     const titleId = useId(), descriptionId = useId();

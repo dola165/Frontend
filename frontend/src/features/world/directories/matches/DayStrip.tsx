@@ -1,6 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import { useWorldArea } from '../../useWorldArea';
 import { Button, EmptyNote, Panel } from '../../../../design/primitives';
 import { appLocale } from '../../../../utils/formatting';
 import { plural, useWorldCopy } from '../../copy';
@@ -13,7 +14,8 @@ import './day-strip.css';
 /** The matchday window for this query, shared with the list (one request). */
 function useWindow(query: NavProps['query']) {
     const { sessionId } = useAuth();
-    const filters = windowFilters(query), today = isoDay(0);
+    const { area } = useWorldArea();
+    const filters = windowFilters(query, area.country), today = isoDay(0);
     return useWorldData(`matchday-strip:${sessionId}:${today}:${filters}`, () => loadWindow(sessionId, filters, today), undefined, { keep: true, follow: true });
 }
 

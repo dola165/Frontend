@@ -10,8 +10,12 @@ import { tournamentFact, whatLabel, type TournamentItem } from './tournamentItem
 /** How far "near" reaches for tournaments: the city and the towns a team would travel to for a day. */
 export const NEAR_KM = 40;
 
-/** The World area as the backend's distance search (`/competitions` takes up to 500 km). */
-export function nearParams(params: URLSearchParams, area?: DirectoryArea) {
+/**
+ * The World area as the backend's distance search (`/competitions` takes up to 500 km), kept to the person's own country
+ * when one is given.
+ */
+export function nearParams(params: URLSearchParams, area?: DirectoryArea, country?: string | null) {
+    if (country) params.set('countryCode', country);
     if (!area?.centre) return params;
     params.set('latitude', String(area.centre.lat));
     params.set('longitude', String(area.centre.lng));

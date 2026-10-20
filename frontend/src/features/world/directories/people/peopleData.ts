@@ -41,7 +41,7 @@ export async function loadPeople({ roles, params, query, page, context, searchOn
     if (searchOnly && asksDirectory(query)) return unavailable;
     // Distances are measured from the World area's centre; with it known, the nearest come first unless another order is asked for.
     const centre = context.area?.centre;
-    const result = await fetchPeople({ ...params, role: roles, q: query.q || undefined, lat: centre?.lat, lng: centre?.lng, sort: query.sort || (centre ? 'NEAREST' : undefined), page, size: PAGE },
+    const result = await fetchPeople({ ...params, role: roles, q: query.q || undefined, country: context.country ?? undefined, lat: centre?.lat, lng: centre?.lng, sort: query.sort || (centre ? 'NEAREST' : undefined), page, size: PAGE },
         context.sessionId, context.signal);
     if (result.searchOnly && !searchOnly) {
         onSearchOnly?.();
@@ -52,5 +52,5 @@ export async function loadPeople({ roles, params, query, page, context, searchOn
 
 /** How many people a view has, for its tab (unknown without the people directory). */
 export const countPeople = (roles: PersonRole[]) => async (context: LoadContext) =>
-    (await fetchPeople({ role: roles, page: 0, size: 1 }, context.sessionId, context.signal)).total;
+    (await fetchPeople({ role: roles, country: context.country ?? undefined, page: 0, size: 1 }, context.sessionId, context.signal)).total;
 

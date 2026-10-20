@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useAuth } from '../../../context/AuthContext';
 import { CreateMenu } from '../compose/CreateMenu';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
@@ -8,12 +9,13 @@ import { useClubLocations, useWorldArea } from '../useWorldArea';
 import { WorldLoading } from '../WorldLoading';
 import { clubsSource } from './clubSources';
 import { events as allEvents } from './matches/otherSources';
-import { trials as allTrials } from './opportunitySources';
+import { guestTrials, trials as allTrials } from './opportunitySources';
 import { allTournaments } from './tournaments/allSource';
 
 /** The Map's kinds, named plainly and coloured as their pins: kinds of thing, not lists of a tab. */
 const events: AnySource = { ...allEvents, tone: 'event' };
 const trials: AnySource = { ...allTrials, tone: 'trial' };
+const trialsForGuests: AnySource = { ...guestTrials, tone: 'trial' };
 const tournaments: AnySource = { ...allTournaments, id: 'tournaments', tabLabel: 'Tournaments', tone: 'tournament' };
 
 /**
@@ -24,6 +26,7 @@ export default function MapDirectory() {
     const t = useWorldCopy();
     const { child, pending } = useWorldChild();
     const { area } = useWorldArea();
+    const signedIn = useAuth().status === 'authenticated';
     const lat = area.centre?.lat, lng = area.centre?.lng;
     const locations = useClubLocations();
     const clubs = useMemo<AnySource>(() => ({ ...clubsSource({ child, centre: lat != null && lng != null ? { lat, lng } : null, locations }), tone: 'club' }), [child, lat, lng, locations]);
@@ -33,7 +36,7 @@ export default function MapDirectory() {
         <DirectoryPage
             title={t('Map')}
             subtitle={area.anywhere ? t('Everywhere') : t('Near {city}', { city: area.city })}
-            sources={[clubs, events, trials, tournaments]}
+            sources={[clubs, events, signedIn ? trials : trialsForGuests, tournaments]}
             actions={<CreateMenu />}
         />
     );

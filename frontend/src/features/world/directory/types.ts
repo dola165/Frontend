@@ -94,6 +94,11 @@ export interface DirectoryArea { city: string | null; centre: { lat: number; lng
 export interface LoadContext {
     signal: AbortSignal; sessionId: AuthSessionId; authenticated: boolean; /** Set for sources with `area`. */ area?: DirectoryArea;
     /** The signed-in person (whether they run a tournament is in its staff list). */ userId?: number | null;
+    /**
+     * The person's own country (ISO code) while World shows their own area and nothing is searched: a list then keeps to
+     * it, so a far-away or foreign result appears only when looked for (a search, another city, Anywhere).
+     */
+    country?: string | null;
 }
 
 /**
@@ -127,7 +132,7 @@ export interface BrowseLine {
 export interface NavProps { query: DirectoryQuery; go: (values: Record<string, string[]>) => void }
 
 /** Who is looking, for a source's defaults: their World role and whether they chose a child. */
-export interface DefaultsContext { role: WorldRole; child: boolean; signedIn: boolean }
+export interface DefaultsContext { role: WorldRole; child: boolean; signedIn: boolean; /** Signed in and under 18 by their date of birth. */ minor: boolean }
 
 /** One searchable list in a directory. A directory with several sources shows them as tabs. */
 export interface DirectorySource<T> {

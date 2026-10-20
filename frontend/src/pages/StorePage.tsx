@@ -23,7 +23,7 @@ export const StorePage = () => {
     const [params] = useSearchParams();
     const { status } = useAuth();
     const { area, setCity } = useWorldArea();
-    const near = area.anywhere ? undefined : area.city;
+    const near = area.anywhere || area.guessed ? undefined : area.city;
     const front = useWorldData(area.ready ? `store-front:${near ?? ''}` : null, signal => fetchStoreFront(near, signal), ct("The store could not load."));
     const picks = useWorldData(area.ready ? `store-picks:${near ?? ''}` : null, signal => fetchStoreCatalog({ sort: 'RELEVANCE', near, size: 10 }, signal), ct("These products could not load."));
     const fresh = useWorldData('store-new', signal => fetchStoreCatalog({ sort: 'NEWEST', size: 10 }, signal), ct("These products could not load."));

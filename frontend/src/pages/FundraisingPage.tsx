@@ -26,7 +26,7 @@ export const FundraisingPage = () => {
     const { status } = useAuth();
     const { area, setCity } = useWorldArea();
     const [text, setText] = useState('');
-    const near = area.anywhere ? undefined : area.city;
+    const near = area.anywhere || area.guessed ? undefined : area.city;
     const front = useWorldData(area.ready ? `fund-front:${near ?? ''}` : null, signal => fetchFundraisingFront(near, signal), ct("Fundraisers could not load."));
     if (FUNDRAISING_KEYS.some(key => key !== 'page' && params.has(key)) || params.has('q')) return <Navigate to={`/campaigns/all?${params}`} replace />;
     const signedIn = status === 'authenticated';

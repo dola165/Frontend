@@ -11,7 +11,7 @@ export function useFundraising(fixedClubId?: number, revision = 0) {
     const [params, setParams] = useSearchParams();
     const query = useMemo(() => readFundraising(params, fixedClubId), [params, fixedClubId]);
     const { area } = useWorldArea();
-    const near = area.anywhere ? undefined : area.city;
+    const near = area.anywhere || area.guessed ? undefined : area.city;
     const key = `${JSON.stringify(query)}|${near ?? ''}|${revision}`;
     const result = useWorldData(key, signal => fetchCampaigns({
         page: query.page, size: PAGE_SIZE, clubId: query.clubId, query: query.query || undefined, category: query.category || undefined, state: query.state,

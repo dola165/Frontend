@@ -12,7 +12,7 @@ import { useWorldData } from '../useWorldData';
 import { WorldLoading } from '../WorldLoading';
 import { useWorldSession } from '../worldSession';
 import { firstName } from '../players';
-import { groupsSource, jobs, trials } from './opportunitySources';
+import { groupsSource, guestTrials, jobs, trials } from './opportunitySources';
 
 /**
  * World › Opportunities: jobs and volunteering, trials, and training groups taking players. One route, but the page
@@ -46,7 +46,7 @@ export default function OpportunitiesDirectory() {
             title={title}
             subtitle={t('Jobs, trials and places to train')}
             tabAlias="type"
-            sources={[jobs, trials, groups]}
+            sources={[jobs, status === 'authenticated' ? trials : guestTrials, groups]}
             // The main action follows the list: a job for club staff, the family's joining requests for a group.
             actions={<>{joining}{!onGroups && <CreateMenu face={tab === 'jobs' ? 'post-job' : undefined} />}</>}
         />

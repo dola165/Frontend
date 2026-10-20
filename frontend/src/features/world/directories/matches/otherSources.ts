@@ -63,8 +63,10 @@ export const events: DirectorySource<EventItem> = {
         { kind: 'date', key: 'from', label: 'From' },
         { kind: 'date', key: 'to', label: 'Until' },
     ],
-    async load(query, page, { signal, sessionId }) {
-        const result = await eventSearch({ q: query.q, location: first(query, 'location'), activity: first(query, 'activity') || 'ALL', from: first(query, 'from') || undefined, to: first(query, 'to') || undefined, page, size: 20 }, sessionId, signal);
+    async load(query, page, { signal, sessionId, country }) {
+        const location = first(query, 'location');
+        const result = await eventSearch({ q: query.q, location, activity: first(query, 'activity') || 'ALL', from: first(query, 'from') || undefined, to: first(query, 'to') || undefined,
+            country: country && !location ? country : undefined, page, size: 20 }, sessionId, signal);
         return { items: result.items, total: result.total, hasMore: result.hasMore };
     },
     key: item => `${item.kind}:${item.id}`,

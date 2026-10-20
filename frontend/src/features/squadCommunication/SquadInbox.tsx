@@ -63,8 +63,13 @@ export function SquadInboxConversation({ id }: { id: number }) {
         load(); const timer = setInterval(load, 15000);
         return () => { abort.abort(); clearInterval(timer); };
     }, [id, revision, copy]);
+    // A guardian also reads (never writes) the private thread of their 13-17 child in this squad.
+    const children = space?.can_manage ? [] : space?.child_threads ?? [];
+    const childThread = children.find(child => child.user_id === requested)?.user_id ?? null;
     const thread = !coaching ? null : space?.can_manage
-        ? space.threads.find(person => person.user_id === requested)?.user_id ?? null : space?.viewer_id ?? null;
+        ? space.threads.find(person => person.user_id === requested)?.user_id ?? null : childThread ?? space?.viewer_id ?? null;
+    const guardiansCanView = space?.can_manage ? Boolean(space.threads.find(person => person.user_id === thread)?.guardians_can_view)
+        : childThread !== null || Boolean(space?.viewer_thread_guardians_can_view);
     return <div className="squad-page squad-inbox-conversation" data-channel={coaching ? 'coach' : 'squad'}>
         <nav className="squad-return-nav" aria-label={copy('Go back', 'უკან')}><Link className="squad-back" to={`/squads/${id}`}><ArrowLeft size={20} />{copy('Back to squad', 'გუნდზე დაბრუნება')}</Link><Link className="squad-inbox-back" to="/messages">{copy('All messages', 'ყველა შეტყობინება')}</Link></nav>
         {error ? <div role="alert" className="squad-empty"><h2>{copy('Conversation unavailable', 'საუბარი მიუწვდომელია')}</h2><p>{error}</p><button onClick={refresh}>{copy('Try again', 'ხელახლა ცდა')}</button></div> : !space ? <p role="status">{copy('Opening your squad…', 'გუნდი იხსნება…')}</p> : <>
@@ -75,7 +80,12 @@ export function SquadInboxConversation({ id }: { id: number }) {
                 if (e.target.value) next.set('thread', e.target.value); else next.delete('thread');
                 setParams(next);
             }}><option value="">{copy('Choose a conversation', 'აირჩიეთ საუბარი')}</option>{space.threads.map(person => <option key={person.user_id} value={person.user_id}>{person.full_name}{person.unread_count ? copy(` (${person.unread_count} unread)`, ` (${person.unread_count} წაუკითხავი)`) : ''}</option>)}</select></label>}
-            {coaching && !thread ? <div className="squad-empty"><h2>{copy('Choose a family or player', 'აირჩიეთ ოჯახი ან მოთამაშე')}</h2><p>{copy('Private conversations are shared only with that person and this squad’s coaching team.', 'პირადი საუბარი მხოლოდ ამ ადამიანს და გუნდის მწვრთნელებს შორისაა.')}</p></div> : <SquadMessages key={`${id}:${thread ?? 'group'}`} space={space} kind="CHAT" thread={thread} onSent={refresh} />}
+            {coaching && children.length > 0 && <label className="squad-inbox-family">{copy('Conversation', 'საუბარი')}<select aria-label={copy('Conversation', 'საუბარი')} value={childThread ?? ''} onChange={e => {
+                const next = new URLSearchParams(params);
+                if (e.target.value) next.set('thread', e.target.value); else next.delete('thread');
+                setParams(next);
+            }}><option value="">{copy('My conversation with the coaches', 'ჩემი საუბარი მწვრთნელებთან')}</option>{children.map(child => <option key={child.user_id} value={child.user_id}>{copy(`${child.full_name ?? 'Your child'} (read only)`, `${child.full_name ?? 'თქვენი შვილი'} (მხოლოდ კითხვა)`)}</option>)}</select></label>}
+            {coaching && !thread ? <div className="squad-empty"><h2>{copy('Choose a family or player', 'აირჩიეთ ოჯახი ან მოთამაშე')}</h2><p>{copy('Private conversations are shared only with that person and this squad’s coaching team.', 'პირადი საუბარი მხოლოდ ამ ადამიანს და გუნდის მწვრთნელებს შორისაა.')}</p></div> : <SquadMessages key={`${id}:${thread ?? 'group'}`} space={space} kind="CHAT" thread={thread} readOnly={coaching && childThread !== null} guardiansCanView={coaching && guardiansCanView} onSent={refresh} />}
         </>}
     </div>;
 }

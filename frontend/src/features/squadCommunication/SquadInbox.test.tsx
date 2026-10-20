@@ -51,3 +51,18 @@ it('shows access failures without exposing a composer or cached history', async 
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(api.messages).not.toHaveBeenCalled();
 });
+it('lets a guardian read, but not write in, their teen\'s private coach thread', async () => {
+    vi.mocked(api.overview).mockResolvedValue({...room,child_threads:[{user_id:31,full_name:'Nino'}]});
+    render(<MemoryRouter initialEntries={['/messages?squadId=171&channel=coach&thread=31']}><SquadInboxConversation id={171}/></MemoryRouter>);
+    await screen.findByText('Bring your boots');
+    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',31,expect.any(AbortSignal));
+    expect(screen.getByText(/because you are this player’s parent or guardian/)).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('option',{name:'Nino (read only)'})).toBeInTheDocument();
+});
+it('tells a teen and the coaches that the teen\'s guardians can read the thread', async () => {
+    vi.mocked(api.overview).mockResolvedValue({...room,viewer_thread_guardians_can_view:true});
+    render(<MemoryRouter initialEntries={['/messages?squadId=171&channel=coach']}><SquadInboxConversation id={171}/></MemoryRouter>);
+    expect(await screen.findByText('This player, their parents or guardians and the coaches see it.')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Message the coaches…')).toBeInTheDocument();
+});

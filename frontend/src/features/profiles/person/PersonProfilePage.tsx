@@ -1,15 +1,14 @@
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { MapPin, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
+import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ConnectionsDialog } from '../../../components/profile/ConnectionsDialog';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { isProfessionalRole, roleCopy } from '../../roles/domain';
+import { isProfessionalRole } from '../../roles/domain';
 import { ProfileCareer } from '../../roles/ProfileCareer';
 import { PersonalSchedule } from '../../schedule/personal/PersonalSchedule';
 import { ProfileMediaTab } from '../ProfileMediaTab';
@@ -18,6 +17,7 @@ import { PersonActions } from './PersonActions';
 import { PersonOverviewTab } from './PersonOverviewTab';
 import { PersonPostsTab } from './PersonPostsTab';
 import { PersonSide } from './PersonSide';
+import { personIdentity } from './personIdentity';
 import { personTabFrom, personTabs, type PersonTab } from './personTabs';
 import { usePersonProfile } from './usePersonProfile';
 import './person-profile.css';
@@ -94,27 +94,11 @@ function PersonProfileView({ id }: { id: number }) {
     if (!profile) return <PersonUnavailable failed={view.status === 'failed'} onRetry={view.reload} />;
 
     const name = profile.fullName || profile.username;
-    const details = new Map((profile.roleProfiles ?? []).map(item => [item.role, item]));
-    const primary = (profile.roleProfiles ?? []).find(item => item.primary && (own || item.published));
-    const appointments = profile.footballProfile?.appointments ?? [];
-    // Where someone works is public for adults; a possible minor's town stays off their header.
-    const place = hidden || view.possibleMinor ? null : primary?.serviceArea || [...details.values()].find(item => item.serviceArea)?.serviceArea;
     const counts = (kind: 'followers' | 'following', value: number) => <button type="button" disabled={hidden} title={hidden ? copy('Connections are private', 'კავშირები დამალულია') : undefined}
         onClick={() => setConnections(kind)}><strong>{value.toLocaleString()}</strong>{kind === 'followers' ? copy(value === 1 ? 'follower' : 'followers', 'გამომწერი') : copy('following', 'გამოწერილი')}</button>;
     return <>
         <ProfileLayout
-            identity={{
-                name, image: hidden ? null : profile.avatarUrl,
-                badge: !hidden && appointments.length > 0 ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />{copy('Confirmed by', 'დაადასტურა:')} {appointments.length === 1 ? appointments[0].clubName : copy(`${appointments.length} clubs`, `${appointments.length} კლუბმა`)}</Badge> : undefined,
-                line: !hidden && primary?.headline ? primary.headline : roles.map(role => roleCopy(role, copy).label).join(' · '),
-                facts: [
-                    <>@{profile.username}</>,
-                    !hidden && primary?.headline ? <>{roles.map(role => roleCopy(role, copy).label).join(' · ')}</> : null,
-                    place ? <><MapPin aria-hidden="true" />{place}</> : null,
-                    counts('followers', profile.followerCount),
-                    counts('following', profile.followingCount),
-                ],
-            }}
+            identity={personIdentity({ profile, roles, own, hidden, possibleMinor: view.possibleMinor, copy, counts })}
             banner={hidden ? null : profile.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
             actions={<PersonActions profile={profile} own={own} onFollow={() => void follow()} onShare={() => void share()} onRepresentation={openRepresentation} />}
             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}

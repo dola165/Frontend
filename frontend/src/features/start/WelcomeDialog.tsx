@@ -4,38 +4,54 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
+import { createHref } from '../pages/create/entry';
+import type { PageKind } from '../pages/model/kinds';
 import { readPreferences, type WelcomeProgress } from '../preferences/preferencesStore';
-import { useRoleProfiles } from '../profiles/account/useRoleProfiles';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { useChoiceName } from './setupWords';
 import { saveStart } from './startApi';
 import { AboutStep } from './steps/AboutStep';
 import { ClubsStep } from './steps/ClubsStep';
+import { PageStep } from './steps/PageStep';
 import { ProfileStep } from './steps/ProfileStep';
 import { RolesStep } from './steps/RolesStep';
-import { useSetupProfile, rolesToKeep } from './useSetupProfile';
+import { draftOf, mainRoleOf, useSetupProfile, type SetupDraft } from './useSetupProfile';
 import { useWelcomeFacts } from './useWelcomeFacts';
 import { closed, done, opened, skipped, STEPS, storedStep, WELCOME_PARAM, type Step } from './welcomeSteps';
 import './welcome.css';
 
+const HOME = { pathname: '/home', search: '' };
+
 /**
- * "Set up your profile" over Home, four steps: what you do in football, about you, clubs near you, and the finished
- * profile with what to do next. Everything is optional: each step can be skipped, and "Skip setup" (or Escape, or the
- * close action) ends it, the rest coming back once as a card on Home. Only "What's next" leaves it.
+ * "Set up your profile" over Home, five steps: what you do in football, about you, clubs, your profile (beside its
+ * preview), and creating a page. Everything is optional: each step can be skipped, and "Skip setup" (or Escape, or the
+ * close action) ends it, the rest coming back once as a card on Home. Only "Create page" leaves it.
  */
 export function WelcomeDialog({ step }: { step: Step }) {
     const copy = useJourneyCopy();
+    const choiceName = useChoiceName();
     const navigate = useNavigate();
     const [params] = useSearchParams();
     const userId = useAuth().user?.id ?? 0;
-    const roles = useRoleProfiles();
     const facts = useWelcomeFacts();
     const setup = useSetupProfile(userId);
     const submit = useRef<(() => Promise<boolean>) | null>(null);
     const register = useCallback((save: (() => Promise<boolean>) | null) => { submit.current = save; }, []);
+    const [edited, setEdited] = useState<SetupDraft | null>(null);
     const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const [other, setOther] = useState(false);
+    const [kind, setKind] = useState<PageKind | null>(null);
     const index = STEPS.indexOf(step);
     const following = STEPS[index + 1] ?? null;
     const earlier = STEPS[index - 1] ?? null;
+
+    // What the person changed, over their profile as loaded: one draft for every step.
+    const loaded = setup.loaded;
+    const draft = edited ?? (loaded ? draftOf(loaded.profile, loaded.roles, setup.business, loaded.professions?.items ?? []) : null);
+    const main = draft && loaded ? mainRoleOf(draft.roles, loaded.roles) : null;
+    const town = facts.place?.source === 'SAVED' ? facts.place.name : null;
+    const suggestion = [main ? choiceName(main) : null, town].filter(Boolean).join(' · ');
 
     const record = (change: (current: WelcomeProgress | null) => WelcomeProgress) =>
         void saveStart(userId, current => ({ welcome: change(current.welcome ?? null) })).catch(() => undefined);
@@ -46,44 +62,39 @@ export function WelcomeDialog({ step }: { step: Step }) {
             void saveStart(userId, start => ({ welcome: opened(start.welcome, step) })).catch(() => undefined);
     }, [step, userId]);
 
-    // The obvious answer for a young person is that they play: chosen for them, still theirs to change.
-    const preselected = useRef(false);
-    const { state: roleState, profiles, dirty, toggle } = roles;
-    useEffect(() => {
-        if (preselected.current || roleState !== 'ready' || !facts.minor || dirty) return;
-        preselected.current = true;
-        if (profiles.length === 1 && profiles[0].role === 'FAN') toggle('PLAYER');
-    }, [roleState, facts.minor, dirty, profiles, toggle]);
-
-    // The finished profile counts the clubs followed so far.
-    const { countFollowed } = setup;
-    useEffect(() => { if (step === 'profile') countFollowed(); }, [step, countFollowed]);
-
     const address = (to: Step | null) => {
         const search = new URLSearchParams(params);
         if (to) search.set(WELCOME_PARAM, to); else search.delete(WELCOME_PARAM);
         const query = search.toString();
         return `/home${query ? `?${query}` : ''}`;
     };
-    const go = (to: Step | null) => (to ? navigate(address(to)) : navigate(address(null), { replace: true }));
+    const go = (to: Step | null) => { setError(''); setOther(false); if (to) navigate(address(to)); else navigate(address(null), { replace: true }); };
     const skipSetup = () => { record(value => closed(value, step)); go(null); };
-    const finish = () => { record(value => closed(done(value, 'profile'), null)); go(null); };
+    const finish = () => { record(value => closed(done(value, 'page'), null)); go(null); };
     const skipStep = () => { record(value => skipped(value, step)); go(following); };
-    const leave = (to: string) => { record(value => closed(done(value, step), null)); navigate(to, { replace: true }); };
-    // What the person does in football, shown on their profile. Nothing chosen and nothing to show: nothing to save.
-    const saveRoles = async () => {
-        if (roles.state !== 'ready' || !roles.profiles.length) return true;
-        const kept = rolesToKeep(roles.profiles);
-        const same = kept.every((item, position) => item.published === roles.profiles[position].published && item.primary === roles.profiles[position].primary);
-        if (!roles.dirty && same) return true;
-        return (await roles.save(kept)) !== null;
+    const createPage = () => {
+        if (!kind) return;
+        record(value => closed(done(value, 'page'), null));
+        navigate(createHref(HOME, kind, 'start'), { replace: true });
     };
-    const next = async () => {
-        if (busy) return;
+    // Each step keeps what it changed before moving on: the draft for roles, about and the profile; follows for clubs.
+    const next = async (asOther = false) => {
+        if (busy || !draft) return;
+        if (step === 'roles' && !asOther && !draft.roles.length && !draft.business) { setOther(true); return; }
+        setOther(false);
         setBusy(true);
-        const saved = step === 'roles' ? await saveRoles() : submit.current ? await submit.current() : true;
+        const failure = copy('That couldn’t be saved. Your changes are still here.', 'ვერ შეინახა. ცვლილებები აქვეა.');
+        let ok = true;
+        if (step === 'clubs') ok = submit.current ? await submit.current() : true;
+        else {
+            // The suggested headline is kept once the person has seen it (About you onwards).
+            const problem = await setup.save(draft, step === 'roles' ? '' : suggestion, failure);
+            setError(problem);
+            ok = !problem;
+            if (ok) setEdited({ ...draft, headline: step === 'roles' ? draft.headline : draft.headline ?? (suggestion || null), history: [] });
+        }
         setBusy(false);
-        if (!saved) return;
+        if (!ok) return;
         record(value => done(value, step));
         go(following);
     };
@@ -91,33 +102,53 @@ export function WelcomeDialog({ step }: { step: Step }) {
     const titles: Record<Step, [string, string]> = {
         roles: [copy('What do you do in football?', 'რას აკეთებთ ფეხბურთში?'), copy('Choose all that fit. This shapes your profile; it never gives access to anything.', 'აირჩიეთ ყველა, რაც გეხებათ. ეს თქვენს პროფილს აყალიბებს და არაფერზე წვდომას არ იძლევა.')],
         about: [copy('About you', 'თქვენ შესახებ'), copy('What people see on your profile.', 'რას ხედავენ სხვები თქვენს პროფილზე.')],
-        clubs: [copy('Clubs near you', 'ახლომდებარე კლუბები'), copy('Follow clubs to see their news on Home.', 'გამოიწერეთ კლუბები, რომ მათი სიახლეები მთავარ გვერდზე ნახოთ.')],
-        profile: [copy('Your profile', 'თქვენი პროფილი'), copy('This is how others see you. Change anything.', 'ასე გხედავენ სხვები. შეცვალეთ ნებისმიერი რამ.')],
+        clubs: [copy('Clubs', 'კლუბები'), copy('Follow clubs to see their news on Home.', 'გამოიწერეთ კლუბები, რომ მათი სიახლეები მთავარ გვერდზე ნახოთ.')],
+        profile: [copy('Your profile', 'თქვენი პროფილი'), copy('Change anything and see it as others will. Save when it looks right.', 'შეცვალეთ ნებისმიერი რამ და ნახეთ, როგორ დაინახავენ სხვები. შეინახეთ, როცა მოგეწონებათ.')],
+        page: [copy('Create a page', 'გვერდის შექმნა'), copy('A page for your club, fan club or business. Optional.', 'გვერდი თქვენი კლუბის, გულშემატკივართა კლუბის ან ბიზნესისთვის. არასავალდებულო.')],
     };
     const [title, hint] = titles[step];
+    const change = (value: SetupDraft) => setEdited(value);
     const body = {
-        roles: <RolesStep roles={roles} adult={facts.adult} />,
-        about: <AboutStep setup={setup} roles={roles} facts={facts} register={register} />,
-        clubs: <ClubsStep facts={facts} />,
-        profile: <ProfileStep setup={setup} roles={roles} facts={facts} leave={leave} goTo={go} />,
+        roles: <RolesStep draft={draft} onChange={change} adult={facts.adult} />,
+        about: <AboutStep setup={setup} draft={draft} onChange={change} facts={facts} main={main} suggestion={suggestion} />,
+        clubs: <ClubsStep facts={facts} register={register} />,
+        profile: <ProfileStep setup={setup} draft={draft} onChange={change} facts={facts} main={main} suggestion={suggestion} userId={userId} />,
+        page: <PageStep roles={draft?.roles ?? []} business={draft?.business ?? false} kind={kind} onKind={setKind} />,
     }[step];
     const position = index + 1;
+    const spinner = <><Loader2 className="gk-setup__spin" aria-hidden="true" />{copy('Saving…', 'ინახება…')}</>;
 
-    return <Dialog open size="lg" className="gk-setup-dialog" title={title} description={hint} onClose={skipSetup}
+    return <Dialog open size="lg" className={`gk-setup-dialog${step === 'profile' ? ' gk-setup-dialog--wide' : ''}`} title={title} description={hint}
+        onClose={skipSetup} onEscape={other ? () => setOther(false) : skipSetup}
         eyebrow={`${copy('Set up your profile', 'პროფილის მომზადება')} · ${copy(`Step ${position} of ${STEPS.length}`, `ნაბიჯი ${position} / ${STEPS.length}`)}`}
         closeText={copy('Skip setup', 'მომზადების გამოტოვება')}
         progress={<div className="gk-setup__bar" role="progressbar" aria-label={copy('Setup progress', 'მომზადების პროგრესი')} aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={position}>
             <span style={{ width: `${(position / STEPS.length) * 100}%` }} />
         </div>}
         footer={<>
+            {other && <div className="gk-setup-other" role="dialog" aria-label={copy('Continue as Other', 'გაგრძელება როგორც „სხვა“')}>
+                <p>{copy('You’ll continue as Other, an everyday member. Add roles any time.', 'გააგრძელებთ როგორც „სხვა“ — ჩვეულებრივი წევრი. როლებს ნებისმიერ დროს დაამატებთ.')}</p>
+                <div className="gk-setup-other__actions">
+                    <Button size="sm" variant="ghost" onClick={() => setOther(false)}>{copy('Choose a role', 'როლის არჩევა')}</Button>
+                    <Button size="sm" variant="primary" autoFocus onClick={() => void next(true)}>{copy('Continue', 'გაგრძელება')}</Button>
+                </div>
+            </div>}
             {earlier && <Button variant="ghost" className="gk-setup__back" disabled={busy} onClick={() => go(earlier)}>{copy('Back', 'უკან')}</Button>}
-            {step !== 'profile' && <Button variant="ghost" disabled={busy || roles.saving} onClick={skipStep}>{copy('Skip this step', 'ნაბიჯის გამოტოვება')}</Button>}
-            {step === 'profile'
-                ? <Button variant="primary" onClick={finish}>{copy('Finish', 'დასრულება')}</Button>
-                : <Button variant="primary" disabled={busy || roles.state === 'loading'} onClick={() => void next()}>
-                    {busy ? <><Loader2 className="gk-setup__spin" aria-hidden="true" />{copy('Saving…', 'ინახება…')}</> : copy('Next', 'შემდეგი')}
-                </Button>}
+            {step === 'page'
+                ? <>
+                    <Button variant="ghost" onClick={finish}>{copy('Not now', 'ახლა არა')}</Button>
+                    <Button variant="primary" disabled={!kind} onClick={createPage}>{copy('Create page', 'გვერდის შექმნა')}</Button>
+                </>
+                : <>
+                    <Button variant="ghost" disabled={busy} onClick={skipStep}>{copy('Skip this step', 'ნაბიჯის გამოტოვება')}</Button>
+                    <Button variant="primary" disabled={busy || !draft} onClick={() => void next()}>
+                        {busy ? spinner : step === 'profile' ? copy('Save profile', 'პროფილის შენახვა') : copy('Next', 'შემდეგი')}
+                    </Button>
+                </>}
         </>}>
-        <div className="gk-setup" data-step={step}>{body}</div>
+        <div className="gk-setup" data-step={step}>
+            {body}
+            {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+        </div>
     </Dialog>;
 }

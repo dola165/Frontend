@@ -1,17 +1,17 @@
 import type { WelcomeProgress, WelcomeStep } from '../preferences/preferencesStore';
 
 /**
- * "Set up your profile" after sign-up, over Home, four steps: what you do in football, about you, clubs near you, and
- * your finished profile (with what to do next). Every step can be skipped; the step is in the address
- * (`?welcome=about`), so Back works; the progress is kept in the person's preferences.
+ * "Set up your profile" after sign-up, over Home, five steps: what you do in football, about you, clubs, your profile,
+ * and creating a page. Every step can be skipped; the step is in the address (`?welcome=about`), so Back works; the
+ * progress is kept in the person's preferences.
  */
 export const WELCOME_PARAM = 'welcome';
-export const STEPS = ['roles', 'about', 'clubs', 'profile'] as const;
+export const STEPS = ['roles', 'about', 'clubs', 'profile', 'page'] as const;
 export type Step = typeof STEPS[number];
 
-const STORED: Record<Step, WelcomeStep> = { roles: 'ROLES', about: 'ABOUT', clubs: 'FOLLOW', profile: 'PROFILE' };
+const STORED: Record<Step, WelcomeStep> = { roles: 'ROLES', about: 'ABOUT', clubs: 'FOLLOW', profile: 'PROFILE', page: 'PAGE' };
 /** Steps of the earlier welcome, as old links and progress saved then still name them. */
-const EARLIER: Record<string, Step> = { follow: 'clubs', club: 'clubs', child: 'profile', tournament: 'profile', venue: 'profile', business: 'profile' };
+const EARLIER: Record<string, Step> = { follow: 'clubs', club: 'clubs', child: 'page', tournament: 'page', venue: 'page', business: 'page' };
 
 export const stepFromParam = (value: string | null): Step | null =>
     (STEPS as readonly string[]).includes(value ?? '') ? value as Step : EARLIER[value ?? ''] ?? null;
@@ -22,8 +22,8 @@ export const stepFromStored = (stored?: WelcomeStep | null): Step | null =>
 /** Roles that need an adult account (the server refuses them under 18), so a minor never sees them. */
 export const ADULT_ROLES = ['PARENT', 'ORGANIZER', 'AGENT', 'VENUE_MANAGER'] as const;
 
-/** Looking at the finished profile is not a task: skipping it never brings it back. */
-const remembered = (step: Step) => step !== 'profile';
+/** The profile and a page are offers, not tasks: skipping them never brings them back. */
+const remembered = (step: Step) => step !== 'profile' && step !== 'page';
 const inOrder = (steps: Iterable<Step>) => STEPS.filter(step => [...steps].includes(step));
 const stepsOf = (stored?: WelcomeStep[]) => (stored ?? []).map(stepFromStored).filter((step): step is Step => step !== null);
 const storedList = (steps: Iterable<Step>) => inOrder(steps).map(storedStep);

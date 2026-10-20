@@ -1,0 +1,20 @@
+{
+  "name": "grasskickz-landing",
+  "private": true,
+  "type": "module",
+  "description": "The one-screen grasskickz.com landing page (static, built for Cloudflare Pages).",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/build.mjs && node scripts/serve.mjs",
+    "images": "node scripts/build.mjs && node scripts/render-images.mjs",
+    "check": "node scripts/build.mjs && node scripts/validate.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "@fontsource/bricolage-grotesque": "5.3.0",
+    "@fontsource/unbounded": "5.3.0",
+    "vnu-jar": "26.10.12"
+  }
+}

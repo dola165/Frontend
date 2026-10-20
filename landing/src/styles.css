@@ -1,0 +1,455 @@
+/* Grasskickz landing: one screen, brand book F v2 colours and type. */
+
+@font-face {
+  font-family: 'Unbounded';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('fonts/unbounded-latin-800-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('fonts/bricolage-grotesque-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --navy: #0E1B33;
+  --lime: #C8F135;
+  --grass: #2FA352;
+  --cream: #F6F1E6;
+  --white: #FFFFFF;
+  --pitch-line: #1A2A4A;
+  --pill: #1F3031;
+  --muted: rgb(246 241 230 / 0.76);
+  --field: #0A1528;
+  --field-line: rgb(246 241 230 / 0.42);
+  --error: #FF9E8F;
+  --display: 'Unbounded', 'Arial Black', system-ui, sans-serif;
+  --body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --edge: clamp(24px, 7.3vw, 140px);
+  --block: clamp(20px, 6.5vh, 72px);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  background: var(--navy);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--navy);
+  color: var(--white);
+  font: 500 16px/1.4 var(--body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Faint pitch markings: penalty areas cut by the side edges, lime corner arcs. */
+
+.pitch {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pitch svg {
+  position: absolute;
+  overflow: visible;
+  fill: none;
+}
+
+.pitch-area {
+  top: 50%;
+  height: 76vh;
+  aspect-ratio: 21 / 42;
+  stroke: var(--pitch-line);
+  stroke-width: 2;
+  translate: 0 -50%;
+}
+
+.pitch-area .pitch-spot {
+  fill: var(--pitch-line);
+  stroke: none;
+}
+
+.pitch-area--left {
+  left: -3.6vh;
+}
+
+.pitch-area--right {
+  right: -12vh;
+  scale: -1 1;
+}
+
+.pitch-corner {
+  right: 0;
+  width: clamp(72px, 13vh, 150px);
+  height: clamp(72px, 13vh, 150px);
+  stroke: var(--lime);
+  stroke-width: 2;
+  opacity: 0.6;
+}
+
+.pitch-corner--top {
+  top: 0;
+}
+
+.pitch-corner--bottom {
+  bottom: 0;
+}
+
+/* Layout */
+
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 5vw;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--block) var(--edge);
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.lockup {
+  display: block;
+  width: clamp(240px, 22vw, 440px);
+  height: auto;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9em;
+  margin: clamp(28px, 8vh, 96px) 0 0;
+  padding: 0.95em 1em 0.95em 1.25em;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--lime);
+  font: 800 clamp(11px, 0.72vw, 14px)/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.pill-dot {
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 0 0.32em rgb(200 241 53 / 0.16);
+}
+
+.headline {
+  margin: clamp(16px, 3.6vh, 40px) 0 0;
+  font: 800 min(5.6vw, 10.4vh)/0.98 var(--display);
+  letter-spacing: -0.025em;
+}
+
+.headline span {
+  display: block;
+  white-space: nowrap;
+}
+
+.headline-lime {
+  color: var(--lime);
+}
+
+.kick {
+  display: block;
+  width: min(33vw, 60vh);
+  height: auto;
+  margin: clamp(8px, 1.6vh, 20px) 0 0;
+  overflow: visible;
+}
+
+.kick-trail {
+  fill: none;
+  stroke: url(#trail-fade);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 0 14;
+}
+
+.kick-reveal {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 16;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.ball-move {
+  filter: drop-shadow(0 14px 14px rgb(0 0 0 / 0.42));
+}
+
+.ball-patch {
+  fill: var(--navy);
+}
+
+.ball-seam {
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.side {
+  justify-self: start;
+  width: min(100%, 430px);
+  margin-left: clamp(0px, 2.5vw, 56px);
+}
+
+.side-line {
+  max-width: 19em;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(17px, 1.3vw, 25px);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+/* The team password. Phones only get it through the team link. */
+
+.gate {
+  margin-top: clamp(24px, 4.4vh, 48px);
+}
+
+.gate-label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--cream);
+  font-size: 15px;
+}
+
+.gate-row {
+  display: flex;
+  gap: 10px;
+}
+
+.gate-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 54px;
+  padding: 0 16px;
+  border: 1.5px solid var(--field-line);
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--white);
+  font: 500 18px/1 var(--body);
+  letter-spacing: 0.08em;
+}
+
+.gate-input:hover {
+  border-color: rgb(246 241 230 / 0.5);
+}
+
+.gate-input:focus-visible {
+  border-color: var(--lime);
+  outline: 3px solid var(--lime);
+  outline-offset: 2px;
+}
+
+.gate-input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.gate-button {
+  flex: none;
+  height: 54px;
+  padding: 0 24px 0 calc(24px + 0.12em);
+  border: 0;
+  border-radius: 12px;
+  background: var(--lime);
+  color: var(--navy);
+  font: 800 14px/1 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.gate-button:hover {
+  background: #D6F75E;
+}
+
+.gate-button:active {
+  translate: 0 1px;
+}
+
+.gate-button:focus-visible {
+  outline: 3px solid var(--cream);
+  outline-offset: 3px;
+}
+
+.gate-error {
+  margin: 10px 0 0;
+  color: var(--error);
+  font-size: 15px;
+}
+
+/* One kick-off roll for the ball; nothing loops. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .ball-move {
+    animation: ball-move 1.5s linear 0.25s both;
+  }
+
+  .ball-spin {
+    animation: ball-spin 1.5s linear 0.25s both;
+  }
+
+  .kick-reveal {
+    animation: trail 1.5s linear 0.25s both;
+  }
+}
+
+@keyframes ball-move {
+  0% { transform: translate(-578px, 136px); }
+  10% { transform: translate(-413.05px, 128.05px); }
+  20% { transform: translate(-282.6px, 107.06px); }
+  30% { transform: translate(-184.25px, 81.02px); }
+  40% { transform: translate(-113.2px, 55.55px); }
+  50% { transform: translate(-64.21px, 34.06px); }
+  60% { transform: translate(-32.4px, 18.11px); }
+  70% { transform: translate(-13.54px, 7.81px); }
+  80% { transform: translate(-3.99px, 2.34px); }
+  90% { transform: translate(-0.5px, 0.29px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes ball-spin {
+  0% { transform: rotate(-860.74deg); }
+  10% { transform: rotate(-624.05deg); }
+  20% { transform: rotate(-434.71deg); }
+  30% { transform: rotate(-288.92deg); }
+  40% { transform: rotate(-180.79deg); }
+  50% { transform: rotate(-104.15deg); }
+  60% { transform: rotate(-53.17deg); }
+  70% { transform: rotate(-22.39deg); }
+  80% { transform: rotate(-6.63deg); }
+  90% { transform: rotate(-0.83deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes trail {
+  0% { stroke-dashoffset: 1; }
+  10% { stroke-dashoffset: 0.73; }
+  20% { stroke-dashoffset: 0.51; }
+  30% { stroke-dashoffset: 0.34; }
+  40% { stroke-dashoffset: 0.21; }
+  50% { stroke-dashoffset: 0.12; }
+  60% { stroke-dashoffset: 0.06; }
+  70% { stroke-dashoffset: 0.03; }
+  80% { stroke-dashoffset: 0.01; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Narrower screens: one column. */
+
+@media (max-width: 1099px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    row-gap: clamp(20px, 4vh, 48px);
+  }
+
+  .side {
+    margin-left: 0;
+  }
+
+  .headline {
+    font-size: min(9.4vw, 7.4vh);
+  }
+
+  .kick {
+    width: min(64vw, 34vh);
+  }
+
+  .pitch-area--right {
+    display: none;
+  }
+}
+
+/* Phones: the logo stays at the top, everything else sits centred below it. */
+
+@media (max-width: 767px) {
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: clamp(24px, 5vh, 44px) 24px;
+  }
+
+  .intro {
+    display: contents;
+  }
+
+  .lockup {
+    width: min(64vw, 260px);
+  }
+
+  .pill {
+    margin-top: auto;
+    font-size: 11px;
+  }
+
+  .headline {
+    margin-top: clamp(16px, 2.6vh, 28px);
+    font-size: min(11.4vw, 6.6vh);
+  }
+
+  .kick {
+    width: min(86vw, 44vh);
+  }
+
+  .side {
+    margin: clamp(20px, 3.4vh, 36px) 0 auto;
+  }
+
+  .side-line {
+    font-size: 17px;
+  }
+
+  .gate {
+    display: none;
+  }
+
+  .gate:has(:target),
+  .show-gate .gate {
+    display: block;
+  }
+
+  .pitch-area {
+    height: 52vh;
+  }
+
+  .pitch-area--left {
+    left: -2.6vh;
+  }
+
+  .pitch-corner {
+    width: 76px;
+    height: 76px;
+  }
+}

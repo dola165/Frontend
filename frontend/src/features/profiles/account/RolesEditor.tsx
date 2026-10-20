@@ -1,14 +1,11 @@
 import { useAccountCopy } from './accountCopy';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { apiClient } from '../../../api/axiosConfig';
-import { useAuth } from '../../../context/AuthContext';
 import { Button, EmptyNote, Field, Panel, Section, Skeleton } from '../../../design/primitives';
-import { extractApiErrorMessage } from '../../../utils/apiError';
-import { footballRoles, isProfessionalRole, roleCopy, rolePresentation, type FootballRole, type RoleProfile } from '../../roles/domain';
+import { isProfessionalRole, roleCopy, rolePresentation, type RoleProfile } from '../../roles/domain';
 import { RoleIcon } from '../person/RoleIcon';
-
-const explicitFlags = (profiles: RoleProfile[]) => profiles.map(profile => ({ ...profile, primary: profile.primary === true, published: profile.published === true }));
+import { RoleGrid } from './RoleGrid';
+import { useRoleProfiles } from './useRoleProfiles';
 
 /**
  * What you do in football: several roles at once, changeable any time. A role adds profile sections
@@ -16,60 +13,16 @@ const explicitFlags = (profiles: RoleProfile[]) => profiles.map(profile => ({ ..
  */
 export function RolesEditor() {
     const copy = useAccountCopy();
-    const { refreshNavigationCapabilities } = useAuth();
-    const [profiles, setProfiles] = useState<RoleProfile[]>([]);
-    const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
-    const [saved, setSaved] = useState(false);
-    const [attempt, setAttempt] = useState(0);
-    const active = useRef(true), submitting = useRef(false);
-    useEffect(() => {
-        let current = true;
-        active.current = true;
-        setState('loading'); setError('');
-        void apiClient.get<RoleProfile[]>('/users/me/roles')
-            .then(response => { if (current) { setProfiles(explicitFlags(response.data)); setState('ready'); } })
-            .catch(reason => { if (current) { setError(extractApiErrorMessage(reason, 'Your football roles couldn’t load.')); setState('failed'); } });
-        return () => { current = false; active.current = false; };
-    }, [attempt]);
-
-    const change = (next: (current: RoleProfile[]) => RoleProfile[]) => { setSaved(false); setProfiles(next); };
-    const update = (role: FootballRole, values: Partial<RoleProfile>) => change(current => current.map(item => item.role === role ? { ...item, ...values } : item));
-    const toggle = (role: FootballRole) => change(current => {
-        const remaining = current.filter(item => item.role !== role);
-        if (remaining.length === current.length) return [...current, { role, primary: current.length === 0, published: false }];
-        if (remaining.length && !remaining.some(item => item.primary)) remaining[0] = { ...remaining[0], primary: true };
-        return remaining;
-    });
-    const save = async (event: FormEvent) => {
-        event.preventDefault();
-        if (submitting.current) return;
-        submitting.current = true; setSaving(true); setError(''); setSaved(false);
-        try {
-            const response = await apiClient.put<RoleProfile[]>('/users/me/roles', { profiles: explicitFlags(profiles) });
-            void refreshNavigationCapabilities().catch(() => undefined);
-            if (active.current) { setProfiles(explicitFlags(response.data)); setSaved(true); }
-        } catch (reason) {
-            if (active.current) setError(extractApiErrorMessage(reason, 'Your football roles couldn’t be saved. Your changes are still here.'));
-        } finally { submitting.current = false; if (active.current) setSaving(false); }
-    };
+    const { profiles, state, saving, error, saved, retry, change, update, toggle, save } = useRoleProfiles();
+    const submit = (event: FormEvent) => { event.preventDefault(); void save(); };
 
     return <Section id="roles" title={copy("What you do in football")} hint={copy("Choose all that apply")}>
         {state === 'loading' ? <Panel padded><div role="status" aria-label={copy("Loading your roles")} className="gk-stack gk-stack--tight"><Skeleton height={72} /><Skeleton height={72} /></div></Panel>
-            : state === 'failed' ? <Panel><EmptyNote title={copy("Your football roles couldn’t load")} action={<Button onClick={() => setAttempt(value => value + 1)}>{copy("Retry")}</Button>}><span role="alert">{copy(error)}</span></EmptyNote></Panel>
-            : <form onSubmit={save} className="gk-roles">
+            : state === 'failed' ? <Panel><EmptyNote title={copy("Your football roles couldn’t load")} action={<Button onClick={retry}>{copy("Retry")}</Button>}><span role="alert">{copy(error)}</span></EmptyNote></Panel>
+            : <form onSubmit={submit} className="gk-roles">
                 <fieldset disabled={saving} className="gk-roles__fieldset">
                     <legend className="gk-visually-hidden">{copy("Your football roles")}</legend>
-                    <div className="gk-roles__options">{footballRoles.map(role => {
-                        const checked = profiles.some(item => item.role === role);
-                        const presentation = roleCopy(role, copy);
-                        return <label key={role} className="gk-role-option" data-checked={checked || undefined}>
-                            <input type="checkbox" checked={checked} onChange={() => toggle(role)} aria-describedby={`role-hint-${role}`} />
-                            <RoleIcon role={role} />
-                            <span className="gk-role-option__text"><strong>{presentation.label}</strong><small id={`role-hint-${role}`}>{presentation.description}</small></span>
-                        </label>;
-                    })}</div>
+                    <RoleGrid chosen={profiles.map(item => item.role)} onToggle={toggle} copy={copy} />
                     {profiles.map(item => <RoleDetails key={item.role} item={item} only={profiles.length === 1} onChange={values => update(item.role, values)}
                         onPrimary={() => change(current => current.map(other => ({ ...other, primary: other.role === item.role })))} />)}
                 </fieldset>

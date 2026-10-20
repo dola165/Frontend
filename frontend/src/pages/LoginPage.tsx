@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { Loader2, AlertCircle, QrCode } from 'lucide-react';
@@ -112,8 +113,13 @@ export const LoginPage = () => {
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
             navigateAfterLogin(authenticatedUser, result.mustChangePassword === true);
         } catch (err) {
-            setError(extractApiErrorMessage(err, t('auth.login.errInvalid')));
-            setEmailNotVerified(extractApiErrorCode(err) === 'EMAIL_NOT_VERIFIED');
+            const code = extractApiErrorCode(err);
+            // After five failed tries the server asks for a growing wait; other limits are per minute.
+            const wait = Number(isAxiosError(err) ? err.response?.headers?.['retry-after'] : NaN);
+            setError(code === 'SIGN_IN_DELAYED' || code === 'TOO_MANY_REQUESTS'
+                ? t('auth.login.errDelayed', { seconds: Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : 60 })
+                : extractApiErrorMessage(err, t('auth.login.errInvalid')));
+            setEmailNotVerified(code === 'EMAIL_NOT_VERIFIED');
         } finally {
             setIsLoading(false);
         }

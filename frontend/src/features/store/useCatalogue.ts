@@ -15,7 +15,7 @@ export function useCatalogue(fixedClubId?: number, revision = 0) {
     const [params, setParams] = useSearchParams();
     const query = useMemo(() => readCatalogue(params, fixedClubId), [params, fixedClubId]);
     const { area } = useWorldArea();
-    const near = area.anywhere ? undefined : area.city;
+    const near = area.anywhere || area.guessed ? undefined : area.city;
     const key = `${JSON.stringify(query)}|${near ?? ''}|${revision}`;
     const result = useWorldData(key, signal => fetchStoreCatalog({
         page: query.page, size: PAGE_SIZE, clubId: query.clubId, seller: query.seller || undefined, query: query.query || undefined, category: query.category || undefined,

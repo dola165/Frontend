@@ -34,8 +34,8 @@ export const exchange: DirectorySource<OpenMatch> = {
     signInReason: 'Teams looking for an opponent are visible to signed-in members.',
     // Age group, format and Near me first; the ground, level and dates under More filters.
     filters: exchangeFilters.map(filter => filter.key === 'ageGroup' ? { ...filter, primary: true } : filter),
-    async load(query, page, { signal, sessionId }) {
-        const [result, fit] = await Promise.all([loadListings(false, query, page, signal), loadMyFit(sessionId)]);
+    async load(query, page, { signal, sessionId, country }) {
+        const [result, fit] = await Promise.all([loadListings(false, query, page, signal, country), loadMyFit(sessionId)]);
         return { ...result, items: toOpenMatches(result.items, fit) };
     },
     key: o => o.code,

@@ -10,7 +10,7 @@ import { useWorldRole } from '../front/useWorldRole';
 import { isReturn } from '../history';
 import { pairBounds } from '../map/away';
 import { reachBounds } from '../map/reach';
-import { useWorldChild } from '../players';
+import { ageOn, useWorldChild } from '../players';
 import { BelowMapHead } from '../stage/BelowMap';
 import { StagePanel, StageSide, StageTop } from '../stage/WorldStage';
 import { useStage, WIDE } from '../stage/stageContext';
@@ -44,7 +44,8 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
     const role = useWorldRole();
     const { child } = useWorldChild();
     const { membership } = useWorldSession();
-    const { status } = useAuth();
+    const { status, user } = useAuth();
+    const age = ageOn(user?.dob);
     const [params] = useSearchParams();
     const navigation = useNavigationType();
     const done = useRef(false);
@@ -54,7 +55,7 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
         done.current = true;
         const { source, query } = state;
         const skip = !source.defaults || query.q || params.has(SELECTED) || source.filters.some(filter => !CARRIED.includes(filter.key) && !filter.nav && params.has(filter.key));
-        const values = skip ? {} : source.defaults!({ role, child: Boolean(child), signedIn });
+        const values = skip ? {} : source.defaults!({ role, child: Boolean(child), signedIn, minor: signedIn && age != null && age < 18 });
         // Writing them also names a tab chosen for who is looking.
         if (Object.keys(values).length || state.unnamed) state.setMany(values);
     });

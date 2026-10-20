@@ -50,9 +50,11 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     // A list that follows the area waits until the person's area is known (and, to put the nearest first, located),
     // so it loads once, for the right place.
     const area = directoryArea(source, worldArea);
-    const waiting = Boolean(source.area) && (!worldArea.ready || (source.area === 'nearest' && !worldArea.centre));
+    // Nothing searched in the person's own area: the list keeps to their country, once it is known.
+    const country = query.q.trim() ? null : worldArea.country;
+    const waiting = (Boolean(source.area) || !query.q.trim()) && (!worldArea.ready || (source.area === 'nearest' && !worldArea.centre));
     const key = gated || badRange || waiting || status === 'bootstrapping' ? null
-        : `${source.id}|${source.version ?? ''}|${sessionId}|${area ? `${area.city ?? 'anywhere'}@${area.centre ? `${area.centre.lat},${area.centre.lng}` : ''}` : ''}|${JSON.stringify(query)}`;
+        : `${source.id}|${source.version ?? ''}|${sessionId}|${area ? `${area.city ?? 'anywhere'}@${area.centre ? `${area.centre.lat},${area.centre.lng}` : ''}` : ''}|${country ?? ''}|${JSON.stringify(query)}`;
     const [attempt, setAttempt] = useState(0);
     const pagesRef = useRef(onPages);
     useEffect(() => { pagesRef.current = onPages; });
@@ -60,7 +62,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     const [more, setMore] = useState<{ key: string; busy: boolean; error: string }>();
     const moreController = useRef<AbortController | null>(null);
     // The number of pages to restore is read when a query loads, not tracked: showing more never reloads.
-    const firstLoad = useEffectEvent((signal: AbortSignal) => loadPages(source, query, pages, { signal, sessionId, authenticated, area, userId }));
+    const firstLoad = useEffectEvent((signal: AbortSignal) => loadPages(source, query, pages, { signal, sessionId, authenticated, area, userId, country }));
 
     useEffect(() => {
         if (!key) return;
@@ -75,7 +77,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     // A live list reloads what is on screen in the background; a failed refresh keeps the last results.
     const refresh = useEffectEvent((signal: AbortSignal) => {
         if (!key || !loaded || loaded.key !== key || loaded.error || (more?.key === key && more.busy)) return;
-        void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated, area, userId })
+        void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated, area, userId, country })
             .then(result => { if (!signal.aborted) setLoaded(previous => previous && previous.key === key ? { ...previous, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, notice: result.notice ?? '', checkedAt: Date.now() } : previous); })
             .catch(() => undefined);
     });
@@ -102,7 +104,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
         const controller = new AbortController();
         moreController.current = controller;
         setMore({ key, busy: true, error: '' });
-        void source.load(query, current.page + 1, { signal: controller.signal, sessionId, authenticated, area, userId })
+        void source.load(query, current.page + 1, { signal: controller.signal, sessionId, authenticated, area, userId, country })
             .then(page => {
                 if (controller.signal.aborted) return;
                 setLoaded(previous => previous && previous.key === key ? { ...previous, items: [...previous.items, ...page.items], hasMore: page.hasMore, total: page.total ?? previous.total, page: previous.page + 1 } : previous);

@@ -194,7 +194,7 @@ export const WORLD_KA: Record<string, string> = {
     'Coaching': 'მწვრთნელობა', 'Football operations': 'საფეხბურთო ოპერაციები', 'Administration': 'ადმინისტრაცია', 'Media & communications': 'მედია და კომუნიკაცია', 'Facilities & maintenance': 'ინფრასტრუქტურა და მოვლა',
     'Medical & wellbeing': 'სამედიცინო და კეთილდღეობა', 'Matchday staff': 'მატჩის დღის პერსონალი', 'Other club roles': 'კლუბის სხვა როლები', 'Other club role': 'კლუბის სხვა როლი',
     'Trials': 'გასინჯვები', 'Search trials': 'გასინჯვების ძიება', 'Search by club, position or age group': 'მოძებნეთ კლუბით, პოზიციით ან ასაკით', 'Applications': 'განაცხადები',
-    'Open now': 'ახლა ღიაა', 'All published': 'ყველა გამოქვეყნებული', 'City or ground': 'ქალაქი ან მოედანი', 'Show only': 'აჩვენე მხოლოდ', 'Any state': 'ნებისმიერი მდგომარეობა',
+    'Fits my age or my children’s': 'ჩემს ან ჩემი შვილების ასაკს შეეფერება', 'Open now': 'ახლა ღიაა', 'All published': 'ყველა გამოქვეყნებული', 'City or ground': 'ქალაქი ან მოედანი', 'Show only': 'აჩვენე მხოლოდ', 'Any state': 'ნებისმიერი მდგომარეობა',
     'Applications closed': 'განაცხადების მიღება დახურულია', 'Places filled': 'ადგილები შევსებულია', 'Tryout date passed': 'გასინჯვის თარიღი გავიდა',
     'No open trials right now': 'ახლა ღია გასინჯვები არ არის', 'Clubs publish trials here before each intake.': 'კლუბები აქ აქვეყნებენ გასინჯვებს ყოველი მიღების წინ.',
     'Places to train': 'სავარჯიშო ჯგუფები', 'Search training groups': 'სავარჯიშო ჯგუფების ძიება', 'Search groups or organisations': 'მოძებნეთ ჯგუფები ან ორგანიზაციები', 'Beginners welcome': 'დამწყებთათვის',

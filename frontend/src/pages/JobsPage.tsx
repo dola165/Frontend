@@ -33,7 +33,7 @@ export const JobsPage = () => {
     const { status } = useAuth();
     const { area } = useWorldArea();
     const landing = useReveal<HTMLDivElement>();
-    const near = area.anywhere ? undefined : area.city;
+    const near = area.anywhere || area.guessed ? undefined : area.city;
     const front = useWorldData(area.ready ? `jobs-front:${near ?? ''}` : null, signal => fetchJobsFront(near, signal), ct("Jobs could not load."));
     const listings = useWorldData(area.ready ? `jobs-map:${near ?? ''}` : null, signal => fetchJobs({ page: 0, size: 200, direction: 'ALL', near, sort: 'NEWEST' }, signal), ct("Listings could not load."));
     const signedIn = status === 'authenticated';

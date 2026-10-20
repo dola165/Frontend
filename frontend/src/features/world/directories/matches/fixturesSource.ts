@@ -9,7 +9,7 @@ import { DayEmpty, DayStep, DayStrip } from './DayStrip';
 import { fixtureGroup, fixtureWhere, sharedGround, toFixtures, type Fixture } from './fixtures';
 import { FixtureRow } from './FixtureRow';
 import { fixtureLine } from './matchBrowse';
-import { loadWindow, longDay, openingDay, windowFilters } from './matchday';
+import { loadWindow, longDay, matchCountry, openingDay, windowFilters } from './matchday';
 import { wt } from '../../copy';
 import { awayLine, farthest } from '../../map/away';
 import { rememberMatches } from '../../scoreboard/matchRegistry';
@@ -21,10 +21,12 @@ const PERIOD_HEADING: Record<string, string> = { HISTORY: 'Results', UPCOMING: '
 const QUERY_KEYS = ['source', 'resultStatus', 'from', 'to', 'mine', 'clubId', 'squadId', 'tournamentId'];
 
 /** One page of an end of the list (Results newest first, Upcoming soonest first), with each row's day. */
-async function loadPeriod(query: DirectoryQuery, period: string, page: number, signal: AbortSignal, sessionId: Parameters<typeof getMatchHistory>[2]) {
+async function loadPeriod(query: DirectoryQuery, period: string, page: number, signal: AbortSignal, sessionId: Parameters<typeof getMatchHistory>[2], country?: string | null) {
     const params = new URLSearchParams({ period, page: String(page), size: '24' });
     for (const key of QUERY_KEYS) if (first(query, key)) params.set(key, first(query, key));
     if (query.q) params.set('q', query.q);
+    const local = matchCountry(query, country);
+    if (local) params.set('country', local);
     const [result, mine] = await Promise.all([getMatchHistory(params.toString(), signal, sessionId), loadMyTeams(sessionId)]);
     rememberMatches(sessionId, result.items);
     // Placeholder knockout fixtures are not listed, and Results leaves out matches still to come (one called off sits on
@@ -35,8 +37,8 @@ async function loadPeriod(query: DirectoryQuery, period: string, page: number, s
 }
 
 /** One day's matches: from the window when the day is in it, else asked for on their own (at most 100). */
-async function loadDay(query: DirectoryQuery, day: string | null, signal: AbortSignal, sessionId: Parameters<typeof getMatchHistory>[2]) {
-    const today = isoDay(0), filters = windowFilters(query);
+async function loadDay(query: DirectoryQuery, day: string | null, signal: AbortSignal, sessionId: Parameters<typeof getMatchHistory>[2], country?: string | null) {
+    const today = isoDay(0), filters = windowFilters(query, country);
     const window = await loadWindow(sessionId, filters, today);
     // With no day named (before the opening day reaches the address), the list opens where the strip does.
     const shown = day ?? openingDay(window.counts, today);
@@ -83,13 +85,13 @@ export const fixtures: DirectorySource<Fixture> = {
         { kind: 'date', key: 'from', label: 'From', when: query => Boolean(first(query, 'period')) },
         { kind: 'date', key: 'to', label: 'Until', when: query => Boolean(first(query, 'period')) },
     ],
-    async load(query, page, { signal, sessionId }) {
+    async load(query, page, { signal, sessionId, country }) {
         const period = first(query, 'period'), day = first(query, 'day');
         if (!period) {
-            const listed = await loadDay(query, day || null, signal, sessionId);
+            const listed = await loadDay(query, day || null, signal, sessionId, country);
             if (listed) return listed;
         }
-        return loadPeriod(query, period || 'UPCOMING', page, signal, sessionId);
+        return loadPeriod(query, period || 'UPCOMING', page, signal, sessionId, country);
     },
     heading: query => {
         const period = first(query, 'period'), day = first(query, 'day');

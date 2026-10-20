@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiClient } from '../../../api/axiosConfig';
+import { forget } from '../cache';
 import { DirectorySearch } from '../directory/DirectorySearch';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { readQuery, useDirectoryState } from '../directory/useDirectoryState';
@@ -282,5 +284,26 @@ describe('the directory page', () => {
         expect(await screen.findByText('Dinamo Tbilisi')).toBeInTheDocument();
         await act(async () => release({ items: [{ id: 1, name: 'Old result' }], total: 1, hasMore: false }));
         expect(screen.queryByText('Old result')).not.toBeInTheDocument();
+    });
+
+    it('keeps a list to the person’s own country until they search, choose a city or pick Anywhere', async () => {
+        forget('own-place');
+        const get = vi.spyOn(apiClient, 'get').mockImplementation(async (url: string) => {
+            if (url === '/users/me/place') return { data: { name: 'Rustavi', latitude: 41.55, longitude: 45.0, countryCode: 'GE', countryName: 'Georgia', source: 'SAVED' } };
+            throw new Error(`Not expected: ${url}`);
+        });
+        const countries = async (path: string) => {
+            const clubs = source();
+            const view = page(path, [clubs]);
+            await waitFor(() => expect(clubs.load).toHaveBeenCalled());
+            view.unmount();
+            return vi.mocked(clubs.load).mock.calls.map(call => call[2].country ?? null);
+        };
+        expect(await countries('/world/clubs')).toEqual(['GE']);
+        expect(await countries('/world/clubs?q=gyumri')).toEqual([null]);
+        expect(await countries('/world/clubs?near=Gyumri')).toEqual([null]);
+        expect(await countries('/world/clubs?near=anywhere')).toEqual([null]);
+        get.mockRestore();
+        forget('own-place');
     });
 });

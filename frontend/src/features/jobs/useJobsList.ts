@@ -11,7 +11,7 @@ export function useJobsList(fixedClubId?: number, revision = 0) {
     const [params, setParams] = useSearchParams();
     const query = useMemo(() => readJobs(params, fixedClubId), [params, fixedClubId]);
     const { area } = useWorldArea();
-    const near = area.anywhere ? undefined : area.city;
+    const near = area.anywhere || area.guessed ? undefined : area.city;
     const key = `${JSON.stringify({ ...query, job: undefined })}|${near ?? ''}|${revision}`;
     const result = useWorldData(key, signal => fetchJobs({
         page: query.page, size: PAGE_SIZE, query: query.query || undefined, direction: query.direction || 'ALL', category: query.category || undefined, terms: query.terms || undefined, hours: query.hours || undefined,

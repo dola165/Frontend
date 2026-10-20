@@ -59,13 +59,13 @@ export const refereeSource: DirectorySource<RefereeItem> = {
     signInReason: 'Profiles of coaches, players, referees and specialists are visible to signed-in members.',
     filters,
     sorts: [{ value: 'NEAREST', label: 'Nearest' }, { value: 'FEE', label: 'Volunteers, then lowest fee' }, { value: 'NAME', label: 'Name A–Z' }],
-    count: async ({ signal }) => (await fetchReferees({ page: 0 }, signal)).total,
-    async load(query, page, { signal, sessionId, area }) {
+    count: async ({ signal, country }) => (await fetchReferees({ page: 0, country: country ?? undefined }, signal)).total,
+    async load(query, page, { signal, sessionId, area, country }) {
         const id = matchId(first(query, 'match'));
         const match = id ? await listingDetail(sessionId, id) : undefined;
         const free = match && first(query, 'free') === 'true';
         const result = await fetchReferees({ q: query.q || undefined, format: match?.format ?? (first(query, 'format') || undefined), volunteer: first(query, 'volunteer') || undefined,
-            from: free ? match.starts_at_iso : undefined, to: free ? match.ends_at_iso : undefined, page }, signal);
+            from: free ? match.starts_at_iso : undefined, to: free ? match.ends_at_iso : undefined, country: country ?? undefined, page }, signal);
         const squad = match && (match.referee_responsibility === 'OPPONENT' ? match.target_squad_id : match.squad_id);
         const ours = new Set((squad ? await clubReferees(sessionId, squad) : []).map(referee => referee.user_id));
         const cities = [...new Set(result.items.map(referee => firstCity(referee.service_area)).filter((city): city is string => Boolean(city)))];

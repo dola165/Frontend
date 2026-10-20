@@ -48,7 +48,11 @@ it('signs out one other device or all others', () => {
     expect(revokeOtherSessions).toHaveBeenCalledOnce();
 });
 
-it('offers no sign-out of others when this is the only device', () => {
-    render(<AccountSessionsTab {...props({ sessions: { ...sessions, activeCount: 1, sessions: [sessions.sessions[0]] } })} />);
-    expect(screen.queryByRole('button', { name: 'Sign Out Others' })).toBeNull();
+it('keeps the earlier labels when the server sends no device names', () => {
+    render(<AccountSessionsTab {...props({ sessions: { ...sessions, sessions: [
+        { id: 1, current: true, status: 'ACTIVE' as const }, { id: 2, current: false, status: 'REVOKED' as const }] } })} />);
+    expect(screen.getByText('Current Browser Session')).toBeVisible();
+    expect(screen.getByText('Remembered Session #2')).toBeVisible();
+    expect(screen.queryByText('This device')).toBeNull(); expect(screen.getByText('Current')).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^Sign out Remembered/ })).toBeNull();
 });

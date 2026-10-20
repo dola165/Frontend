@@ -4,6 +4,13 @@ import { Section, StatTile } from './AccountFields';
 import { accountErrorText, btnPrimaryClass, btnSecondaryClass, fmt, insetClass, surfaceClass } from './accountModel';
 import type { AccountCenter } from './useAccountCenter';
 
+const sessionTone = (status: 'ACTIVE' | 'REVOKED' | 'EXPIRED') =>
+    status === 'ACTIVE'
+        ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
+        : status === 'REVOKED'
+            ? 'bg-[var(--fc-state-warning-soft)] text-[var(--fc-state-warning)]'
+            : 'bg-transparent text-[var(--fc-text-muted)]';
+
 type SessionsProps = Pick<AccountCenter, 'sessions' | 'sessionsLoading' | 'sessionsError' | 'loadSessions' | 'revokingSessions' | 'revokeOtherSessions' | 'endingSessionId' | 'endSession'> & {
     account: NonNullable<AccountCenter['account']>;
 };
@@ -12,13 +19,12 @@ const UNKNOWN_DEVICE = 'Unknown device';
 
 export const AccountSessionsTab = ({ account, sessions, sessionsLoading, sessionsError, loadSessions, revokingSessions, revokeOtherSessions, endingSessionId, endSession }: SessionsProps) => {
     const copy = useAccountCopy();
-    const others = sessions?.sessions.filter(session => !session.current).length ?? 0;
     return (
         <Section
             title={copy("Signed-in devices")}
             description={copy("Every browser and app signed in to your account. Sign out any you do not recognise, then change your password.")}
             actions={
-                account.sessionRevocationSupported && others > 0 ? (
+                account.sessionRevocationSupported ? (
                     <button
                         type="button"
                         onClick={() => void revokeOtherSessions()}
@@ -58,25 +64,33 @@ export const AccountSessionsTab = ({ account, sessions, sessionsLoading, session
                         {sessions.sessions.length ? (
                             <ul className="divide-y divide-[color:var(--fc-border)]" aria-label={copy("Signed-in devices")}>
                                 {sessions.sessions.map((session) => {
-                                    const device = !session.deviceName || session.deviceName === UNKNOWN_DEVICE
-                                        ? copy(UNKNOWN_DEVICE) : session.deviceName;
+                                    // Servers from before device names send none; keep their labels.
+                                    const device = !session.deviceName
+                                        ? session.current ? copy('Current Browser Session') : copy(`Remembered Session #${session.id}`, `შენახული სესია #${session.id}`)
+                                        : session.deviceName === UNKNOWN_DEVICE ? copy(UNKNOWN_DEVICE) : session.deviceName;
                                     const signedIn = fmt(session.createdAt);
                                     const lastUsed = fmt(session.lastUsedAt);
                                     return (
-                                        <li key={session.id} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                                        <li key={session.id}>
+                                            <article className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
                                             <div className="flex min-w-0 items-start gap-3">
                                                 <MonitorSmartphone aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--fc-text-muted)]" />
                                                 <div className="min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <p className="break-words text-sm font-semibold text-[color:var(--fc-text-primary)]">{device}</p>
+                                                        <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${sessionTone(session.status)}`}>
+                                                            {copy(session.status)}
+                                                        </span>
                                                         {session.current && (
                                                             <span className="rounded-full border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-accent)]">
-                                                                {copy("This device")}
+                                                                {session.deviceName ? copy("This device") : copy("Current")}
                                                             </span>
                                                         )}
                                                     </div>
                                                     <p className="mt-1 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
-                                                        {[
+                                                        {!signedIn && !lastUsed
+                                                            ? fmt(session.expiresAt) ? copy(`Refresh access expires ${fmt(session.expiresAt)}.`, `სესიის ვადა იწურება: ${fmt(session.expiresAt)}.`) : copy("Expiry details are not available for this session.")
+                                                            : [
                                                             session.place,
                                                             signedIn ? copy(`Signed in ${signedIn}`, `შესვლა: ${signedIn}`) : null,
                                                             lastUsed ? copy(`Last active ${lastUsed}`, `ბოლო აქტივობა: ${lastUsed}`) : null,
@@ -84,7 +98,7 @@ export const AccountSessionsTab = ({ account, sessions, sessionsLoading, session
                                                     </p>
                                                 </div>
                                             </div>
-                                            {!session.current && account.sessionRevocationSupported && (
+                                            {!session.current && session.status === 'ACTIVE' && account.sessionRevocationSupported && (
                                                 <button
                                                     type="button"
                                                     className={`${btnSecondaryClass} min-h-11 self-start md:self-center`}
@@ -96,6 +110,7 @@ export const AccountSessionsTab = ({ account, sessions, sessionsLoading, session
                                                     {copy("Sign out")}
                                                 </button>
                                             )}
+                                            </article>
                                         </li>
                                     );
                                 })}

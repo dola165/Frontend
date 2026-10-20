@@ -8,15 +8,3 @@
 .gk .gk-role-option__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-right: var(--gk-6); }
 .gk .gk-role-option__text strong { font-weight: 600; }
 .gk .gk-role-option__text small { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
-
-/* Picture tiles (the welcome): each role over its football photo, the words on a soft shade, the tick top right. */
-.gk .gk-roles__options--pictures { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(132px, 1fr); gap: var(--gk-3); height: 100%; }
-.gk .gk-roles__options--pictures .gk-role-option { flex-direction: column; justify-content: flex-end; gap: var(--gk-2); min-height: 132px; padding: var(--gk-4); overflow: hidden; border-width: 2px; background: var(--role-photo) var(--role-position, center) / cover no-repeat, var(--gk-bg); isolation: isolate; }
-.gk .gk-roles__options--pictures .gk-role-option::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, color-mix(in srgb, var(--gk-bg) 15%, transparent) 0%, color-mix(in srgb, var(--gk-bg) 92%, transparent) 70%); }
-.gk .gk-roles__options--pictures .gk-role-option[data-checked] { border-color: var(--gk-accent); box-shadow: 0 0 0 3px var(--gk-accent-soft); background: var(--role-photo) var(--role-position, center) / cover no-repeat, var(--gk-bg); }
-.gk .gk-roles__options--pictures .gk-role-option > input { width: 22px; height: 22px; }
-.gk .gk-roles__options--pictures .gk-role-option__text { padding-right: 0; }
-.gk .gk-roles__options--pictures .gk-role-option__text strong { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
-.gk .gk-roles__options--pictures .gk-role-option__text small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
-@media (max-width: 900px) { .gk .gk-roles__options--pictures { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(120px, auto); height: auto; } }
-@media (max-width: 480px) { .gk .gk-roles__options--pictures { grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(96px, auto); } .gk .gk-roles__options--pictures .gk-role-option { min-height: 96px; } }

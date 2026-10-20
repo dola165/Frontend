@@ -4,8 +4,8 @@ import { ageFromDob } from '../pages/create/useCreatePage';
 import { usePreferences } from '../preferences/preferencesStore';
 import { devicePosition, fetchClubsNearYou, fetchPlace, resolveTown, saveStart, type NearbyClub, type Place } from './startApi';
 
-/** How many nearby clubs the welcome shows: two full rows of cards on a wide screen. */
-const NEARBY = 12;
+/** How many nearby clubs the setup loads: eight shown, the rest behind "Show more". */
+const NEARBY = 24;
 
 /**
  * What the welcome already knows about the person, so it asks nothing it can decide: their place (from sign-up, the

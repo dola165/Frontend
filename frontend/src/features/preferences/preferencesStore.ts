@@ -9,7 +9,8 @@ import { getAuthSessionId } from '../../utils/authStorage';
  */
 export interface PreferencesTown { name: string; latitude: number; longitude: number; countryCode?: string }
 /** A step of the welcome popup after sign-up. */
-export type WelcomeStep = 'ROLES' | 'CLUB' | 'CHILD' | 'TOURNAMENT' | 'VENUE' | 'FOLLOW' | 'BUSINESS';
+/** "Set up your profile": ROLES, ABOUT, FOLLOW (clubs near you), PROFILE; the rest are the earlier welcome's, still read. */
+export type WelcomeStep = 'ROLES' | 'ABOUT' | 'FOLLOW' | 'PROFILE' | 'CLUB' | 'CHILD' | 'TOURNAMENT' | 'VENUE' | 'BUSINESS';
 /** OPEN shows the popup over Home until finished or closed; DONE never shows it by itself again. Skipped steps come back once as a card. */
 export interface WelcomeProgress { state: 'OPEN' | 'DONE'; at?: WelcomeStep | null; skipped?: WelcomeStep[]; cardDismissed?: boolean }
 /** The first run: the town Home and World start from, and the welcome's progress. */

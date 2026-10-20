@@ -5,11 +5,12 @@
 .gk .gk-dialog--sm { max-width: 440px; }
 .gk .gk-dialog--md { max-width: 580px; }
 .gk .gk-dialog--lg { max-width: 760px; }
-.gk .gk-dialog--xl { width: min(1480px, 92vw); max-width: none; height: min(90dvh, 1080px); max-height: none; }
 .gk .gk-dialog__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gk-3); padding: var(--gk-5) var(--gk-5) var(--gk-3); }
 .gk .gk-dialog__titles { display: flex; flex-direction: column; gap: var(--gk-1); min-width: 0; padding-top: var(--gk-1); }
 .gk .gk-dialog__title { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
 .gk .gk-dialog__description { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
+.gk .gk-dialog__eyebrow { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; color: var(--gk-text-3); }
+.gk .gk-dialog__progress { padding: 0 var(--gk-5) var(--gk-3); }
 .gk .gk-dialog__body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-2) var(--gk-5) var(--gk-5); }
 .gk .gk-dialog__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--gk-2); padding: var(--gk-3) var(--gk-5); border-top: 1px solid var(--gk-line); }
 /* Sheet: docked to the right at full height on wider screens. */
@@ -19,6 +20,5 @@
   .gk.gk-dialog-layer { place-items: end stretch; padding: 0; }
   .gk .gk-dialog { max-width: none; max-height: 92dvh; border-radius: var(--gk-r-lg) var(--gk-r-lg) 0 0; }
   .gk .gk-dialog__foot > .gk-btn { flex: 1; }
-  .gk .gk-dialog--xl { width: 100%; height: 96dvh; max-height: 96dvh; }
   .gk .gk-dialog--sheet { width: 100%; border-width: 1px 0 0; }
 }

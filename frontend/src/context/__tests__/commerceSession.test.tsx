@@ -181,17 +181,17 @@ it('preserves every feature store across a remote renewal and still retires them
     for (const feature of ['StoreTab', 'CampaignsTab', 'JobsTab']) fireEvent.change(screen.getByLabelText(feature), { target: { value: feature + ' draft' } });
     const sessionId = getAuthSessionId();
     await act(async () => {
-        localStorage.setItem(`gk-session-token:${sessionId}`, 'Alpha renewed');
-        window.dispatchEvent(new StorageEvent('storage', { key: `gk-session-token:${sessionId}`, storageArea: localStorage }));
+        // Another tab renewing the same session changes nothing visible here.
         window.dispatchEvent(new StorageEvent('storage', { key: 'theme', storageArea: localStorage }));
     });
+    expect(getAuthSessionId()).toBe(sessionId);
     view.rerender(featureApp(2));
     for (const feature of ['StoreTab', 'CampaignsTab', 'JobsTab']) expect(screen.getByLabelText(feature)).toHaveValue(feature + ' draft');
     expect(beforeUnload()).toBe(true);
     await act(async () => {
         const newSession = crypto.randomUUID();
-        localStorage.setItem(`gk-session-token:${newSession}`, 'Alpha');
         localStorage.setItem('gk-session-id', newSession);
+        localStorage.setItem('gk-signed-in-session', newSession);
         window.dispatchEvent(new StorageEvent('storage', { key: 'gk-session-id', storageArea: localStorage }));
     });
     await screen.findByText('authenticated:Alpha'); view.rerender(featureApp(3));

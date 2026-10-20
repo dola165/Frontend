@@ -18,6 +18,7 @@ import {
     getAuthSessionId,
     getStoredAccessToken,
     isCurrentAuthSession,
+    isSignedInSession,
     setStoredAccessToken,
     setStoredUser,
     setStoredUserId,
@@ -253,8 +254,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         // Adopt another tab's logout without rotating the shared marker or
-        // refreshing its cookie, which could resurrect the retired login.
-        if (sessionId !== null && !getStoredAccessToken(sessionId)) {
+        // refreshing its cookie, which could resurrect the retired login. A signed-in
+        // session without a token in this tab (a reload, another tab's sign-in) gets
+        // one from the refresh cookie while bootstrapping.
+        if (sessionId !== null && !getStoredAccessToken(sessionId) && !isSignedInSession(sessionId)) {
             setResolvedSessionId(sessionId);
             setUser(null);
             setStatus('anonymous');

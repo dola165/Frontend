@@ -5,6 +5,7 @@ import { setupServer } from 'msw/node';
 import { AuthProvider, useAuth } from '../AuthContext';
 import { apiClient } from '../../api/axiosConfig';
 import { requiredAccountStep } from '../../utils/authRedirect';
+import { getStoredAccessToken, setRefreshedAccessToken } from '../../utils/authStorage';
 
 const server = setupServer(
     http.get('*/auth/csrf', () => HttpResponse.json({ headerName: 'X-XSRF-TOKEN', token: 'masked-request-token' })),
@@ -24,7 +25,7 @@ it.each([
     ['DOB_REQUIRED', '/onboarding'],
     ['ONBOARDING_REQUIRED', '/onboarding'],
 ])('updates a running session to the completion screen for %s', async (code, destination) => {
-    localStorage.setItem('accessToken', 'existing-session');
+    setRefreshedAccessToken('existing-session', null);
     server.use(http.get('*/restricted-action', () => HttpResponse.json({ code }, { status: 403 })));
     render(<AuthProvider><Destination /></AuthProvider>);
     await screen.findByText('/home');
@@ -32,5 +33,5 @@ it.each([
         await expect(apiClient.get('/restricted-action')).rejects.toMatchObject({ response: { status: 403 } });
     });
     await waitFor(() => expect(screen.getByText(destination)).toBeInTheDocument());
-    expect(localStorage.getItem('accessToken')).toBe('existing-session');
+    expect(getStoredAccessToken()).toBe('existing-session');
 });

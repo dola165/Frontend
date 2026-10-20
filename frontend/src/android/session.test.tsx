@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 vi.mock('./bridge', async importOriginal => ({ ...await importOriginal<typeof import('./bridge')>(), isAndroidApp: true }));
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { setStoredAccessToken } from '../utils/authStorage';
+import { getAuthSessionId, getStoredAccessToken, isSignedInSession, setStoredAccessToken } from '../utils/authStorage';
 
 afterEach(() => { cleanup(); localStorage.clear(); delete window.GrassKickZ; });
 function Account() { const { user, status } = useAuth(); return <p>{user?.fullName ?? status}</p>; }
@@ -26,7 +26,8 @@ it('keeps native sign-in through a failed bootstrap and recovers with retry', as
     const requests = connection(true, () => offline);
     render(<AuthProvider><Account /></AuthProvider>);
     await screen.findByRole('alert');
-    expect(localStorage.getItem('accessToken')).toBe('native-session');
+    expect(getStoredAccessToken()).toBe('native-session');
+    expect(isSignedInSession(getAuthSessionId())).toBe(true);
     expect(requests).not.toContain('logout');
     offline = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));

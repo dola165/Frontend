@@ -141,11 +141,12 @@ it('rejects a retired origin-lock waiter instead of reusing the other account to
     const refresh = vi.fn(() => HttpResponse.json({ accessToken: 'unexpected' }));
     server.use(http.post('*/auth/refresh', refresh));
     auth.setStoredAccessToken('A'); const pending = observe(refreshAccessToken()); await waiting.promise;
-    // A separate module shares storage, like a second tab, without sharing the promise.
+    // A separate module shares storage, like a second tab, but not its memory or the promise.
     vi.resetModules(); const otherTab = await import('../../utils/authStorage');
     otherTab.setStoredAccessToken('B'); releaseLock.release();
     expect(await pending).toHaveProperty('error.code', 'AUTH_SESSION_CHANGED');
-    expect(refresh).not.toHaveBeenCalled(); expect(auth.getStoredAccessToken()).toBe('B');
+    expect(refresh).not.toHaveBeenCalled();
+    expect(otherTab.getStoredAccessToken()).toBe('B'); expect(auth.getStoredAccessToken()).toBeNull();
 });
 
 it('does not send refresh after its CSRF request crosses logout', async () => {
@@ -205,30 +206,30 @@ it('preserves the generation and retries normally for renewal of the same accoun
 it('cannot overwrite B if its login interleaves between the refresh guard and token write', async () => {
     const auth = await import('../../utils/authStorage');
     auth.setStoredAccessToken('A'); const retiredId = auth.getAuthSessionId();
-    const originalSet = Storage.prototype.setItem;
-    let interleaved = false;
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
-        if (key === `gk-session-token:${retiredId}` && value === 'A-renewed' && !interleaved) {
-            interleaved = true; auth.setStoredAccessToken('B');
-        }
-        originalSet.call(this, key, value);
+    const originalGet = Storage.prototype.getItem;
+    let armed = true;
+    // Another tab signs in as B right after the guard read the session id.
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key) {
+        const value = originalGet.call(this, key);
+        if (key === 'gk-session-id' && armed) { armed = false; auth.setStoredAccessToken('B'); }
+        return value;
     });
     expect(() => auth.setRefreshedAccessToken('A-renewed', retiredId)).toThrow('session changed');
     expect(auth.getStoredAccessToken()).toBe('B');
-    expect(localStorage.getItem(`gk-session-token:${retiredId}`)).toBeNull();
+    expect(auth.getStoredAccessToken(retiredId)).toBeNull();
 });
 
 it('cannot read B credentials into A when login interleaves with request token selection', async () => {
     const auth = await import('../../utils/authStorage');
     const { apiClient } = await import('../axiosConfig');
-    auth.setStoredAccessToken('A'); const retiredId = auth.getAuthSessionId();
+    auth.setStoredAccessToken('A');
     const originalGet = Storage.prototype.getItem;
-    let interleaved = false;
+    let armed = true;
+    // Another tab signs in as B while this request picks its session and token.
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key) {
-        if (key === `gk-session-token:${retiredId}` && !interleaved) {
-            interleaved = true; auth.setStoredAccessToken('B');
-        }
-        return originalGet.call(this, key);
+        const value = originalGet.call(this, key);
+        if (key === 'gk-session-id' && armed) { armed = false; auth.setStoredAccessToken('B'); }
+        return value;
     });
     const writes = vi.fn(() => HttpResponse.json({ id: 1 }));
     server.use(http.post('*/posts', writes));

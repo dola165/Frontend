@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grasskickz</title>
+  <meta name="description" content="Grasskickz is in private preview: clubs, squads, families and matches, together in one place.">
+  <meta name="robots" content="index">
+  <meta name="theme-color" content="#0E1B33">
+  <meta name="color-scheme" content="dark">
+  <link rel="canonical" href="https://grasskickz.com/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Grasskickz">
+  <meta property="og:url" content="https://grasskickz.com/">
+  <meta property="og:title" content="Grasskickz">
+  <meta property="og:description" content="Grasskickz is in private preview: clubs, squads, families and matches, together in one place.">
+  <meta property="og:image" content="https://grasskickz.com/assets/share.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Grasskickz. We’re marking out the pitch.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Grasskickz">
+  <meta name="twitter:description" content="Grasskickz is in private preview: clubs, squads, families and matches, together in one place.">
+  <meta name="twitter:image" content="https://grasskickz.com/assets/share.png">
+  <meta name="twitter:image:alt" content="Grasskickz. We’re marking out the pitch.">
+
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/fonts/unbounded-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/bricolage-grotesque-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/kick.css">
+  <link rel="stylesheet" href="/network.css">
+  <script src="/landing.js" defer></script>
+</head>
+<body>
+  <div class="pitch" aria-hidden="true">
+    <svg class="pitch-area" viewBox="0 0 21 42" preserveAspectRatio="xMinYMid meet" focusable="false">
+      <path vector-effect="non-scaling-stroke" d="M0 0.84H16.5V41.16H0M0 11.84H5.5V30.16H0M16.5 13.69A9.15 9.15 0 0 1 16.5 28.31"/>
+      <circle class="pitch-spot" cx="11" cy="21" r="0.22"/>
+    </svg>
+    <svg class="pitch-corner pitch-corner--top" viewBox="0 0 10 10" focusable="false">
+      <path vector-effect="non-scaling-stroke" d="M0 0A10 10 0 0 0 10 10"/>
+    </svg>
+    <svg class="pitch-corner pitch-corner--bottom" viewBox="0 0 10 10" focusable="false">
+      <path vector-effect="non-scaling-stroke" d="M0 10A10 10 0 0 1 10 0"/>
+    </svg>
+  </div>
+
+  <main class="stage">
+    <section class="intro">
+      <img class="lockup" src="/assets/grasskickz-lockup.svg" width="1084" height="199" alt="Grasskickz. Connecting the game.">
+      <p class="pill"><span class="pill-dot"></span>Private preview</p>
+      <h1 class="headline"><span>We’re</span> <span>marking out</span> <span class="headline-lime">the pitch.</span></h1>
+      <svg class="kick" viewBox="0 0 640 240" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="trail-fade" gradientUnits="userSpaceOnUse" x1="8" y1="0" x2="586" y2="0">
+            <stop offset="0" stop-color="#C8F135" stop-opacity="0.15"/>
+            <stop offset="1" stop-color="#C8F135"/>
+          </linearGradient>
+          <mask id="trail-reveal" maskUnits="userSpaceOnUse" x="0" y="0" width="640" height="240">
+            <path class="kick-reveal" d="M8 188C210 190 420 150 586 52" pathLength="1"/>
+          </mask>
+          <clipPath id="ball-clip"><circle r="40"/></clipPath>
+          <radialGradient id="ball-shade" cx="-12" cy="-14" r="58" gradientUnits="userSpaceOnUse">
+            <stop offset="0.55" stop-color="#FFFFFF"/>
+            <stop offset="1" stop-color="#C9D1DE"/>
+          </radialGradient>
+        </defs>
+        <path class="kick-trail" d="M8 188C210 190 420 150 586 52" mask="url(#trail-reveal)"/>
+        <g class="ball-move">
+          <g class="ball" transform="translate(586 52)">
+            <g class="ball-spin">
+              <circle r="40" fill="url(#ball-shade)"/>
+              <g clip-path="url(#ball-clip)">
+                <path class="ball-patch" d="M0 -12.5L11.89 -3.86L7.35 10.11L-7.35 10.11L-11.89 -3.86ZM0 -23L-11.41 -31.29L-7.05 -44.71L7.05 -44.71L11.41 -31.29ZM21.87 -7.11L26.23 -20.52L40.34 -20.52L44.7 -7.11L33.29 1.18ZM13.52 18.61L27.63 18.61L31.99 32.02L20.57 40.32L9.16 32.02ZM-13.52 18.61L-9.16 32.02L-20.57 40.32L-31.99 32.02L-27.63 18.61ZM-21.87 -7.11L-33.29 1.18L-44.7 -7.11L-40.34 -20.52L-26.23 -20.52Z"/>
+                <path class="ball-seam" d="M0 -12.5L0 -23M11.89 -3.86L21.87 -7.11M7.35 10.11L13.52 18.61M-7.35 10.11L-13.52 18.61M-11.89 -3.86L-21.87 -7.11M11.41 -31.29L26.23 -20.52M33.29 1.18L27.63 18.61M9.16 32.02L-9.16 32.02M-27.63 18.61L-33.29 1.18M-26.23 -20.52L-11.41 -31.29"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </section>
+
+    <figure class="network">
+      <svg class="network-art" viewBox="0 0 640 520" aria-hidden="true" focusable="false">
+        <defs>
+          <mask id="links-reveal" maskUnits="userSpaceOnUse" x="0" y="0" width="640" height="520">
+            <g class="network-reveal">
+              <path d="M152.4 121.7Q194 175.7 257.6 200.3" pathLength="1"/>
+              <path d="M424.8 99.6Q387.5 162.2 323.2 196.4" pathLength="1"/>
+              <path d="M160.9 92.7Q284.3 47.7 413.1 73.3" pathLength="1"/>
+              <path d="M267.4 261.3Q217.8 302.1 196.6 362.7" pathLength="1"/>
+              <path d="M334 235.4Q427.5 230.4 510 274.6" pathLength="1"/>
+              <path d="M214.5 404.6Q304.8 393.8 387.5 431.4" pathLength="1"/>
+              <path d="M456.7 404.3Q503.1 370.6 525.3 317.7" pathLength="1"/>
+            </g>
+          </mask>
+        </defs>
+        <g class="network-links" mask="url(#links-reveal)">
+          <path d="M152.4 121.7Q194 175.7 257.6 200.3"/>
+          <path d="M424.8 99.6Q387.5 162.2 323.2 196.4"/>
+          <path d="M160.9 92.7Q284.3 47.7 413.1 73.3"/>
+          <path d="M267.4 261.3Q217.8 302.1 196.6 362.7"/>
+          <path d="M334 235.4Q427.5 230.4 510 274.6"/>
+          <path d="M214.5 404.6Q304.8 393.8 387.5 431.4"/>
+          <path d="M456.7 404.3Q503.1 370.6 525.3 317.7"/>
+        </g>
+        <g transform="translate(292 226)">
+          <g class="network-node">
+            <circle r="34"/>
+            <g class="network-icon" transform="translate(-16.8 -16.8) scale(1.4)"><circle cx="12" cy="8.2" r="3"/><path d="M6.6 19.5a5.4 5.4 0 0 1 10.8 0"/><circle cx="5" cy="10.4" r="2.2"/><path d="M1.6 18.4a3.9 3.9 0 0 1 4.6-3.7"/><circle cx="19" cy="10.4" r="2.2"/><path d="M22.4 18.4a3.9 3.9 0 0 0-4.6-3.7"/></g>
+            <text y="61">Squad</text>
+          </g>
+        </g>
+        <g transform="translate(118 96)">
+          <g class="network-node">
+            <circle r="34"/>
+            <g class="network-icon" transform="translate(-16.8 -16.8) scale(1.4)"><path d="M12 2.8 19.5 5.6v5.9c0 4.6-3.1 8.1-7.5 9.7-4.4-1.6-7.5-5.1-7.5-9.7V5.6Z"/><path d="M8.5 11.2h7"/></g>
+            <text y="61">Club</text>
+          </g>
+        </g>
+        <g transform="translate(456 70)">
+          <g class="network-node">
+            <circle r="34"/>
+            <g class="network-icon" transform="translate(-16.8 -16.8) scale(1.4)"><circle cx="9" cy="15" r="5"/><path d="M11.6 10.6H21v3.6h-6.4M5.6 11.3 3.4 8.2"/></g>
+            <text y="61">Coach</text>
+          </g>
+        </g>
+        <g transform="translate(552 284)">
+          <g class="network-node">
+            <circle r="34"/>
+            <g class="network-icon" transform="translate(-16.8 -16.8) scale(1.4)"><rect x="2.5" y="5.5" width="19" height="13" rx="1.5"/><path d="M12 5.5v13"/><circle cx="12" cy="12" r="2.6"/></g>
+            <text y="61">Match</text>
+          </g>
+        </g>
+        <g transform="translate(172 398)">
+          <g class="network-node">
+            <circle r="34"/>
+            <g class="network-icon" transform="translate(-16.8 -16.8) scale(1.4)"><path d="M8.6 3.5 3.5 6.3l1.9 4.4 2.6-1v10.8h8V9.7l2.6 1 1.9-4.4-5.1-2.8c-.7 1.6-2 2.5-3.4 2.5s-2.7-.9-3.4-2.5Z"/></g>
+            <text y="61">Player</text>
+          </g>
+        </g>
+        <g transform="translate(430 438)">
+          <g class="network-node">
+            <circle r="34"/>
+            <g class="network-icon" transform="translate(-16.8 -16.8) scale(1.4)"><circle cx="8.5" cy="6.5" r="2.6"/><path d="M4 20.5v-5.2a4.5 4.5 0 0 1 9 0v5.2"/><circle cx="17" cy="10.6" r="2"/><path d="M14 20.5v-2.9a3 3 0 0 1 6 0v2.9"/></g>
+            <text y="61">Family</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption class="network-caption">Clubs, squads, families and matches in one place.</figcaption>
+    </figure>
+
+    <form class="gate" method="post" action="https://app.grasskickz.com/__preview/unlock">
+      <label class="gate-label" for="team">Team password</label>
+      <input type="text" name="username" value="Grasskickz team" autocomplete="username" hidden>
+      <input type="hidden" name="via" value="">
+      <div class="gate-row">
+        <input class="gate-input" id="team" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+        <button class="gate-button" type="submit">Enter</button>
+      </div>
+      <p class="gate-error" id="gate-error" role="alert" hidden>That password isn’t right.</p>
+    </form>
+  </main>
+</body>
+</html>

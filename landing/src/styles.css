@@ -1,0 +1,359 @@
+/* Grasskickz landing: one screen, brand book F v2 colours and type.
+   kick.css draws the kick-off line and ball, network.css the picture on the right. */
+
+@font-face {
+  font-family: 'Unbounded';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('fonts/unbounded-latin-800-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('fonts/bricolage-grotesque-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --navy: #0E1B33;
+  --lime: #C8F135;
+  --grass: #2FA352;
+  --cream: #F6F1E6;
+  --white: #FFFFFF;
+  --pitch-line: #1A2A4A;
+  --pill: #1F3031;
+  --muted: rgb(246 241 230 / 0.76);
+  --field: #0A1528;
+  --field-line: rgb(246 241 230 / 0.42);
+  --error: #FF9E8F;
+  --display: 'Unbounded', 'Arial Black', system-ui, sans-serif;
+  --body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --edge: clamp(24px, 7.3vw, 140px);
+  --block: clamp(20px, 6.5vh, 72px);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  background: var(--navy);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--navy);
+  color: var(--white);
+  font: 500 16px/1.4 var(--body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Faint pitch markings: a penalty area cut by the left edge, lime corner arcs on the right. */
+
+.pitch {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pitch svg {
+  position: absolute;
+  overflow: visible;
+  fill: none;
+}
+
+.pitch-area {
+  top: 50%;
+  left: -3.6vh;
+  height: 76vh;
+  aspect-ratio: 21 / 42;
+  stroke: var(--pitch-line);
+  stroke-width: 2;
+  translate: 0 -50%;
+}
+
+.pitch-area .pitch-spot {
+  fill: var(--pitch-line);
+  stroke: none;
+}
+
+.pitch-corner {
+  right: 0;
+  width: clamp(56px, 9vh, 110px);
+  height: clamp(56px, 9vh, 110px);
+  stroke: var(--lime);
+  stroke-width: 2;
+  opacity: 0.6;
+}
+
+.pitch-corner--top {
+  top: 0;
+}
+
+.pitch-corner--bottom {
+  bottom: 0;
+}
+
+/* Layout: the story on the left, the picture on the right, the password in the corner. */
+
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  column-gap: 5vw;
+  row-gap: clamp(12px, 2.4vh, 28px);
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--block) var(--edge);
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  grid-row: 1 / -1;
+  align-self: center;
+}
+
+.lockup {
+  display: block;
+  width: clamp(240px, 22vw, 440px);
+  height: auto;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9em;
+  margin: clamp(28px, 8vh, 96px) 0 0;
+  padding: 0.95em 1em 0.95em 1.25em;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--lime);
+  font: 800 clamp(11px, 0.72vw, 14px)/1 var(--display);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.pill-dot {
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 0 0.32em rgb(200 241 53 / 0.16);
+}
+
+.headline {
+  margin: clamp(16px, 3.6vh, 40px) 0 0;
+  font: 800 min(5.6vw, 10.4vh)/0.98 var(--display);
+  letter-spacing: -0.025em;
+}
+
+.headline span {
+  display: block;
+  white-space: nowrap;
+}
+
+.headline-lime {
+  color: var(--lime);
+}
+
+/* The team password: small, in the bottom-right corner. Phones only get it through the team link. */
+
+.gate {
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  width: min(100%, 320px);
+}
+
+.gate-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.gate-row {
+  display: flex;
+  gap: 8px;
+}
+
+.gate-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--field-line);
+  border-radius: 10px;
+  background: var(--field);
+  color: var(--white);
+  font: 500 16px/1 var(--body);
+  letter-spacing: 0.08em;
+}
+
+.gate-input:hover {
+  border-color: rgb(246 241 230 / 0.5);
+}
+
+.gate-input:focus-visible {
+  border-color: var(--lime);
+  outline: 3px solid var(--lime);
+  outline-offset: 2px;
+}
+
+.gate-input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.gate-button {
+  flex: none;
+  height: 44px;
+  padding: 0 16px 0 calc(16px + 0.12em);
+  border: 1.5px solid var(--lime);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lime);
+  font: 800 12px/1 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.gate-button:hover {
+  background: rgb(200 241 53 / 0.12);
+}
+
+.gate-button:active {
+  translate: 0 1px;
+}
+
+.gate-button:focus-visible {
+  outline: 3px solid var(--cream);
+  outline-offset: 3px;
+}
+
+/* Under the field, in the page margin, so the corner never shifts. */
+.gate-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin: 8px 0 0;
+  color: var(--error);
+  font-size: 14px;
+}
+
+/* Narrower screens: one column, the password under the story. */
+
+@media (max-width: 999px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    align-content: center;
+    row-gap: clamp(20px, 4vh, 48px);
+  }
+
+  .intro {
+    grid-row: auto;
+  }
+
+  .headline {
+    font-size: min(9.4vw, 7.4vh);
+  }
+
+  .gate {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: start;
+  }
+}
+
+/* Phones: the logo stays at the top, the story sits centred below it, the field (team link only) at the bottom. */
+
+@media (max-width: 767px) {
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: clamp(24px, 5vh, 44px) 24px;
+  }
+
+  .intro {
+    display: contents;
+  }
+
+  .lockup {
+    width: min(64vw, 260px);
+  }
+
+  .pill {
+    margin-top: auto;
+    font-size: 11px;
+  }
+
+  .headline {
+    margin-top: clamp(16px, 2.6vh, 28px);
+    font-size: min(11.4vw, 6.6vh);
+  }
+
+  .gate {
+    display: none;
+    width: 100%;
+  }
+
+  .gate:has(:target),
+  .show-gate .gate {
+    display: block;
+  }
+
+  .gate-error {
+    position: static;
+  }
+
+  .pitch-area {
+    left: -2.6vh;
+    height: 52vh;
+  }
+
+  .pitch-corner {
+    width: 64px;
+    height: 64px;
+  }
+
+  /* The field takes the bottom of the screen; the corner arc steps aside. */
+  .show-gate .pitch-corner--bottom,
+  body:has(.gate :target) .pitch-corner--bottom {
+    display: none;
+  }
+}
+
+/* Short phone screens (browser bars showing): tighten the gaps. */
+
+@media (max-width: 767px) and (max-height: 720px) {
+  .stage {
+    padding-block: 20px;
+  }
+
+  .pill {
+    padding-block: 0.8em;
+  }
+
+  .headline {
+    margin-top: 14px;
+  }
+}

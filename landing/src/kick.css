@@ -1,0 +1,117 @@
+/* The kick-off: a dotted lime line rising to the ball, which rolls in once. */
+
+.kick {
+  display: block;
+  width: min(33vw, 60vh);
+  height: auto;
+  margin: clamp(8px, 1.6vh, 20px) 0 0;
+  overflow: visible;
+}
+
+.kick-trail {
+  fill: none;
+  stroke: url(#trail-fade);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 0 14;
+}
+
+.kick-reveal {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 16;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.ball-move {
+  filter: drop-shadow(0 14px 14px rgb(0 0 0 / 0.42));
+}
+
+.ball-patch {
+  fill: var(--navy);
+}
+
+.ball-seam {
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+@media (max-width: 999px) {
+  .kick {
+    width: min(64vw, 34vh);
+  }
+}
+
+@media (max-width: 767px) {
+  .kick {
+    width: min(86vw, 44vh);
+  }
+}
+
+@media (max-width: 767px) and (max-height: 720px) {
+  .kick {
+    width: min(86vw, 32vh);
+  }
+}
+
+/* One roll, nothing loops; with reduced motion the ball simply rests at the end of the line. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .ball-move {
+    animation: ball-move 1.5s linear 0.25s both;
+  }
+
+  .ball-spin {
+    animation: ball-spin 1.5s linear 0.25s both;
+  }
+
+  .kick-reveal {
+    animation: trail 1.5s linear 0.25s both;
+  }
+}
+
+/* Sampled along the line with an ease-out, so the ball slows as it reaches the end. */
+
+@keyframes ball-move {
+  0% { transform: translate(-578px, 136px); }
+  10% { transform: translate(-413.05px, 128.05px); }
+  20% { transform: translate(-282.6px, 107.06px); }
+  30% { transform: translate(-184.25px, 81.02px); }
+  40% { transform: translate(-113.2px, 55.55px); }
+  50% { transform: translate(-64.21px, 34.06px); }
+  60% { transform: translate(-32.4px, 18.11px); }
+  70% { transform: translate(-13.54px, 7.81px); }
+  80% { transform: translate(-3.99px, 2.34px); }
+  90% { transform: translate(-0.5px, 0.29px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes ball-spin {
+  0% { transform: rotate(-860.74deg); }
+  10% { transform: rotate(-624.05deg); }
+  20% { transform: rotate(-434.71deg); }
+  30% { transform: rotate(-288.92deg); }
+  40% { transform: rotate(-180.79deg); }
+  50% { transform: rotate(-104.15deg); }
+  60% { transform: rotate(-53.17deg); }
+  70% { transform: rotate(-22.39deg); }
+  80% { transform: rotate(-6.63deg); }
+  90% { transform: rotate(-0.83deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes trail {
+  0% { stroke-dashoffset: 1; }
+  10% { stroke-dashoffset: 0.73; }
+  20% { stroke-dashoffset: 0.51; }
+  30% { stroke-dashoffset: 0.34; }
+  40% { stroke-dashoffset: 0.21; }
+  50% { stroke-dashoffset: 0.12; }
+  60% { stroke-dashoffset: 0.06; }
+  70% { stroke-dashoffset: 0.03; }
+  80% { stroke-dashoffset: 0.01; }
+  100% { stroke-dashoffset: 0; }
+}

@@ -159,7 +159,7 @@ function ClubProfileView({ id }: { id: number }) {
         <PagePanels />
 
         {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))} onClose={() => setManaging(false)}
-            onDissolveClub={can.isLeader ? () => { setManaging(false); setDissolveOpen(true); } : undefined}
+            onDissolveClub={can.own && can.role === 'OWNER' ? () => { setManaging(false); setDissolveOpen(true); } : undefined}
             onSquadCreated={() => setSquadsRevision(value => value + 1)}
             onDataChanged={() => { refresh(); setSquadsRevision(value => value + 1); }}
             onMembershipLeft={async () => { setManaging(false); await leftClub(); setSquadsRevision(value => value + 1); }} />}

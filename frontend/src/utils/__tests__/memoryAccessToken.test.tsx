@@ -76,3 +76,14 @@ it('stays signed out after a reload of a signed-out session without asking for a
     await screen.findByText('anonymous');
     expect(refresh).not.toHaveBeenCalled();
 });
+
+it('keeps the sign-in when a reload meets a refresh conflict instead of signing every tab out', async () => {
+    localStorage.setItem('gk-session-id', 'session-4');
+    localStorage.setItem('gk-signed-in-session', 'session-4');
+    server.use(http.post('*/auth/refresh', () => HttpResponse.json({ code: 'REFRESH_ALREADY_ROTATED' }, { status: 409 })));
+    const { AuthProvider } = await import('../../context/AuthContext');
+    render(<AuthProvider><output>signed-in shell</output></AuthProvider>);
+    await screen.findByRole('alert', {}, { timeout: 5000 });
+    expect(localStorage.getItem('gk-signed-in-session')).toBe('session-4');
+    expect(localStorage.getItem('gk-session-id')).toBe('session-4');
+});

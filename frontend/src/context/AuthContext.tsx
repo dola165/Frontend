@@ -28,8 +28,10 @@ import {
 
 // A connection failure is not evidence of revoked authentication. Keep the
 // exact session and drafts while the account is unresolved; writes stay gated.
+// A refresh conflict (409) only means another request renewed the cookie first.
 const temporarySessionFailure = (error: unknown) => !isAxiosError(error) || !error.response
-    || error.response.status >= 500 || error.response.status === 408 || error.response.status === 429;
+    || error.response.status >= 500 || error.response.status === 408 || error.response.status === 429
+    || error.response.status === 409;
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 

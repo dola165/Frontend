@@ -108,8 +108,9 @@ export const setStoredAccessToken = (token: string) => {
     const previousSessionId = getAuthSessionId();
     const sessionId = crypto.randomUUID();
     accessTokens.set(sessionTokenKey(sessionId), token);
-    localStorage.setItem(SESSION_ID_KEY, sessionId);
+    // Marker before id: another tab reacts to the id change and must already see the marker.
     localStorage.setItem(SIGNED_IN_KEY, sessionId);
+    localStorage.setItem(SESSION_ID_KEY, sessionId);
     accessTokens.delete(sessionTokenKey(previousSessionId));
     window.dispatchEvent(new Event('gk-auth-changed'));
 };

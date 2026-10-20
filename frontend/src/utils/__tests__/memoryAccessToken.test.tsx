@@ -32,6 +32,19 @@ it('never writes an access token to browser storage', async () => {
     expect(auth.isSignedInSession(auth.getAuthSessionId())).toBe(false);
 });
 
+it('marks a new sign-in before announcing its session id to other tabs', async () => {
+    const auth = await import('../authStorage');
+    const writes: string[] = [];
+    const original = Storage.prototype.setItem;
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+        writes.push(key); original.call(this, key, value);
+    });
+    auth.setStoredAccessToken('signed-in');
+    spy.mockRestore();
+    expect(writes.indexOf('gk-signed-in-session')).toBeGreaterThanOrEqual(0);
+    expect(writes.indexOf('gk-signed-in-session')).toBeLessThan(writes.indexOf('gk-session-id'));
+});
+
 it('deletes tokens stored before the switch on first load and keeps that session signed in', async () => {
     localStorage.setItem('gk-session-id', 'session-1');
     localStorage.setItem('gk-session-token:session-1', 'old-token');

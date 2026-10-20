@@ -1,4 +1,5 @@
-/* Grasskickz landing: one screen, brand book F v2 colours and type. */
+/* Grasskickz landing: one screen, brand book F v2 colours and type.
+   kick.css draws the kick-off line and ball, network.css the picture on the right. */
 
 @font-face {
   font-family: 'Unbounded';
@@ -59,7 +60,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Faint pitch markings: penalty areas cut by the side edges, lime corner arcs. */
+/* Faint pitch markings: a penalty area cut by the left edge, lime corner arcs on the right. */
 
 .pitch {
   position: fixed;
@@ -76,6 +77,7 @@ body {
 
 .pitch-area {
   top: 50%;
+  left: -3.6vh;
   height: 76vh;
   aspect-ratio: 21 / 42;
   stroke: var(--pitch-line);
@@ -88,19 +90,10 @@ body {
   stroke: none;
 }
 
-.pitch-area--left {
-  left: -3.6vh;
-}
-
-.pitch-area--right {
-  right: -12vh;
-  scale: -1 1;
-}
-
 .pitch-corner {
   right: 0;
-  width: clamp(72px, 13vh, 150px);
-  height: clamp(72px, 13vh, 150px);
+  width: clamp(56px, 9vh, 110px);
+  height: clamp(56px, 9vh, 110px);
   stroke: var(--lime);
   stroke-width: 2;
   opacity: 0.6;
@@ -114,14 +107,15 @@ body {
   bottom: 0;
 }
 
-/* Layout */
+/* Layout: the story on the left, the picture on the right, the password in the corner. */
 
 .stage {
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
+  grid-template-rows: minmax(0, 1fr) auto;
   column-gap: 5vw;
+  row-gap: clamp(12px, 2.4vh, 28px);
   min-height: 100vh;
   min-height: 100svh;
   padding: var(--block) var(--edge);
@@ -131,6 +125,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  grid-row: 1 / -1;
+  align-self: center;
 }
 
 .lockup {
@@ -176,88 +172,38 @@ body {
   color: var(--lime);
 }
 
-.kick {
-  display: block;
-  width: min(33vw, 60vh);
-  height: auto;
-  margin: clamp(8px, 1.6vh, 20px) 0 0;
-  overflow: visible;
-}
-
-.kick-trail {
-  fill: none;
-  stroke: url(#trail-fade);
-  stroke-width: 5;
-  stroke-linecap: round;
-  stroke-dasharray: 0 14;
-}
-
-.kick-reveal {
-  fill: none;
-  stroke: #FFFFFF;
-  stroke-width: 16;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-}
-
-.ball-move {
-  filter: drop-shadow(0 14px 14px rgb(0 0 0 / 0.42));
-}
-
-.ball-patch {
-  fill: var(--navy);
-}
-
-.ball-seam {
-  fill: none;
-  stroke: var(--navy);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-}
-
-.side {
-  justify-self: start;
-  width: min(100%, 430px);
-  margin-left: clamp(0px, 2.5vw, 56px);
-}
-
-.side-line {
-  max-width: 19em;
-  margin: 0;
-  color: var(--muted);
-  font-size: clamp(17px, 1.3vw, 25px);
-  line-height: 1.35;
-  text-wrap: balance;
-}
-
-/* The team password. Phones only get it through the team link. */
+/* The team password: small, in the bottom-right corner. Phones only get it through the team link. */
 
 .gate {
-  margin-top: clamp(24px, 4.4vh, 48px);
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  width: min(100%, 320px);
 }
 
 .gate-label {
   display: block;
-  margin-bottom: 10px;
-  color: var(--cream);
-  font-size: 15px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .gate-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .gate-input {
   flex: 1 1 auto;
   min-width: 0;
-  height: 54px;
-  padding: 0 16px;
+  height: 44px;
+  padding: 0 14px;
   border: 1.5px solid var(--field-line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--field);
   color: var(--white);
-  font: 500 18px/1 var(--body);
+  font: 500 16px/1 var(--body);
   letter-spacing: 0.08em;
 }
 
@@ -277,20 +223,20 @@ body {
 
 .gate-button {
   flex: none;
-  height: 54px;
-  padding: 0 24px 0 calc(24px + 0.12em);
-  border: 0;
-  border-radius: 12px;
-  background: var(--lime);
-  color: var(--navy);
-  font: 800 14px/1 var(--display);
+  height: 44px;
+  padding: 0 16px 0 calc(16px + 0.12em);
+  border: 1.5px solid var(--lime);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--lime);
+  font: 800 12px/1 var(--display);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
 }
 
 .gate-button:hover {
-  background: #D6F75E;
+  background: rgb(200 241 53 / 0.12);
 }
 
 .gate-button:active {
@@ -302,96 +248,42 @@ body {
   outline-offset: 3px;
 }
 
+/* Under the field, in the page margin, so the corner never shifts. */
 .gate-error {
-  margin: 10px 0 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin: 8px 0 0;
   color: var(--error);
-  font-size: 15px;
+  font-size: 14px;
 }
 
-/* One kick-off roll for the ball; nothing loops. */
+/* Narrower screens: one column, the password under the story. */
 
-@media (prefers-reduced-motion: no-preference) {
-  .ball-move {
-    animation: ball-move 1.5s linear 0.25s both;
-  }
-
-  .ball-spin {
-    animation: ball-spin 1.5s linear 0.25s both;
-  }
-
-  .kick-reveal {
-    animation: trail 1.5s linear 0.25s both;
-  }
-}
-
-@keyframes ball-move {
-  0% { transform: translate(-578px, 136px); }
-  10% { transform: translate(-413.05px, 128.05px); }
-  20% { transform: translate(-282.6px, 107.06px); }
-  30% { transform: translate(-184.25px, 81.02px); }
-  40% { transform: translate(-113.2px, 55.55px); }
-  50% { transform: translate(-64.21px, 34.06px); }
-  60% { transform: translate(-32.4px, 18.11px); }
-  70% { transform: translate(-13.54px, 7.81px); }
-  80% { transform: translate(-3.99px, 2.34px); }
-  90% { transform: translate(-0.5px, 0.29px); }
-  100% { transform: translate(0, 0); }
-}
-
-@keyframes ball-spin {
-  0% { transform: rotate(-860.74deg); }
-  10% { transform: rotate(-624.05deg); }
-  20% { transform: rotate(-434.71deg); }
-  30% { transform: rotate(-288.92deg); }
-  40% { transform: rotate(-180.79deg); }
-  50% { transform: rotate(-104.15deg); }
-  60% { transform: rotate(-53.17deg); }
-  70% { transform: rotate(-22.39deg); }
-  80% { transform: rotate(-6.63deg); }
-  90% { transform: rotate(-0.83deg); }
-  100% { transform: rotate(0deg); }
-}
-
-@keyframes trail {
-  0% { stroke-dashoffset: 1; }
-  10% { stroke-dashoffset: 0.73; }
-  20% { stroke-dashoffset: 0.51; }
-  30% { stroke-dashoffset: 0.34; }
-  40% { stroke-dashoffset: 0.21; }
-  50% { stroke-dashoffset: 0.12; }
-  60% { stroke-dashoffset: 0.06; }
-  70% { stroke-dashoffset: 0.03; }
-  80% { stroke-dashoffset: 0.01; }
-  100% { stroke-dashoffset: 0; }
-}
-
-/* Narrower screens: one column. */
-
-@media (max-width: 1099px) {
+@media (max-width: 999px) {
   .stage {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
     align-content: center;
     row-gap: clamp(20px, 4vh, 48px);
   }
 
-  .side {
-    margin-left: 0;
+  .intro {
+    grid-row: auto;
   }
 
   .headline {
     font-size: min(9.4vw, 7.4vh);
   }
 
-  .kick {
-    width: min(64vw, 34vh);
-  }
-
-  .pitch-area--right {
-    display: none;
+  .gate {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: start;
   }
 }
 
-/* Phones: the logo stays at the top, everything else sits centred below it. */
+/* Phones: the logo stays at the top, the story sits centred below it, the field (team link only) at the bottom. */
 
 @media (max-width: 767px) {
   .stage {
@@ -419,20 +311,9 @@ body {
     font-size: min(11.4vw, 6.6vh);
   }
 
-  .kick {
-    width: min(86vw, 44vh);
-  }
-
-  .side {
-    margin: clamp(20px, 3.4vh, 36px) 0 auto;
-  }
-
-  .side-line {
-    font-size: 17px;
-  }
-
   .gate {
     display: none;
+    width: 100%;
   }
 
   .gate:has(:target),
@@ -440,16 +321,39 @@ body {
     display: block;
   }
 
+  .gate-error {
+    position: static;
+  }
+
   .pitch-area {
+    left: -2.6vh;
     height: 52vh;
   }
 
-  .pitch-area--left {
-    left: -2.6vh;
+  .pitch-corner {
+    width: 64px;
+    height: 64px;
   }
 
-  .pitch-corner {
-    width: 76px;
-    height: 76px;
+  /* The field takes the bottom of the screen; the corner arc steps aside. */
+  .show-gate .pitch-corner--bottom,
+  body:has(.gate :target) .pitch-corner--bottom {
+    display: none;
+  }
+}
+
+/* Short phone screens (browser bars showing): tighten the gaps. */
+
+@media (max-width: 767px) and (max-height: 720px) {
+  .stage {
+    padding-block: 20px;
+  }
+
+  .pill {
+    padding-block: 0.8em;
+  }
+
+  .headline {
+    margin-top: 14px;
   }
 }

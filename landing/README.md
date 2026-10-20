@@ -3,8 +3,9 @@
 The one-screen page served at grasskickz.com while Grasskickz is in private preview. It is a static
 site for Cloudflare Pages and is separate from the web app in `frontend/`, which it never imports.
 
-- `src/` — the page (`index.html`, `styles.css`, a small `landing.js`), `_headers` for Pages, icons
-  and the share card.
+- `src/` — the page (`index.html`; `styles.css` for the page, layout and password, `kick.css` for the
+  kick-off line and ball, `network.css` for the picture of what Grasskickz connects; a small
+  `landing.js`), `_headers` for Pages, icons and the share card.
 - `scripts/build.mjs` — copies `src/` to `dist/` and adds the two self-hosted font files
   (Unbounded ExtraBold, Bricolage Grotesque Medium) from the pinned `@fontsource` packages, so the
   page makes no requests to other hosts.

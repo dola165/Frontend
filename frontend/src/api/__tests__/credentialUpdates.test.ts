@@ -44,38 +44,41 @@ async function mutation(change: Change, signal = new AbortController().signal) {
         response => auth.setRefreshedAccessToken(response.data.accessToken, session), signal);
 }
 
-it.each(changes)('%s adopts its credentials before another tab can refresh a rejected old bearer', async change => {
-    const started = latch(), finish = latch(), rejected = latch(); let refreshes = 0; let reads = 0;
+// Access tokens live in each tab's memory; tabs share only the refresh cookie and the
+// origin-wide lock. A credential change holds that lock, so no other tab renews with the
+// cookie it is about to replace.
+it.each(changes)('%s adopts its credentials before another tab can renew with the old cookie', async change => {
+    const started = latch(), finish = latch(); let refreshes = 0;
     const handler = async () => { started.release(); await finish.promise; return HttpResponse.json(resultFor(change)); };
     server.use(change === 'onboarding' ? http.put(`*${pathFor(change)}`, handler) : http.post(`*${pathFor(change)}`, handler),
-        http.get('*/protected', ({ request }) => {
-            reads++;
-            if (request.headers.get('Authorization') === `Bearer ${jwt('old')}`) { rejected.release(); return new HttpResponse(null, { status: 401 }); }
-            expect(request.headers.get('Authorization')).toBe(`Bearer ${jwt('updated')}`); return HttpResponse.json({ ok: true });
-        }), http.post('*/auth/refresh', () => { refreshes++; return new HttpResponse(null, { status: 401 }); }));
+        http.post('*/auth/refresh', () => { refreshes++; return HttpResponse.json({ accessToken: jwt('other-tab') }); }));
     const auth = await import('../../utils/authStorage'); const session = auth.getAuthSessionId();
     const updated = mutation(change); await started.promise;
     vi.resetModules(); const otherTab = await import('../axiosConfig');
-    const read = otherTab.apiClient.get('/protected'); await rejected.promise;
+    const renewed = otherTab.refreshAccessToken();
     await waitFor(() => expect(lock).toHaveBeenCalledTimes(2)); expect(refreshes).toBe(0);
-    finish.release(); const result = await updated; await read;
-    expect(refreshes).toBe(0); expect(reads).toBe(2); expect(auth.getStoredAccessToken()).toBe(jwt('updated'));
+    finish.release(); const result = await updated;
+    expect(await renewed).toBe(jwt('other-tab')); expect(refreshes).toBe(1);
+    expect(auth.getStoredAccessToken()).toBe(jwt('updated'));
     expect(auth.getAuthSessionId()).toBe(session);
     if (change === 'enable') expect(result).toEqual(codes);
 });
 
-it.each(changes)('%s waits for another tab refresh before sending its mutation with the new bearer', async change => {
+it.each(changes)('%s waits for another tab refresh before sending its mutation with its own bearer', async change => {
     const started = latch(), finish = latch(); let writes = 0;
     server.use(http.post('*/auth/refresh', async () => { started.release(); await finish.promise; return HttpResponse.json({ accessToken: jwt('refreshed') }); }));
     const handler = ({ request }: { request: Request }) => {
-        writes++; expect(request.headers.get('Authorization')).toBe(`Bearer ${jwt('refreshed')}`); return HttpResponse.json(resultFor(change));
+        writes++; expect(request.headers.get('Authorization')).toBe(`Bearer ${jwt('tab-two')}`); return HttpResponse.json(resultFor(change));
     };
     server.use(change === 'onboarding' ? http.put(`*${pathFor(change)}`, handler) : http.post(`*${pathFor(change)}`, handler));
     const firstTab = await import('../axiosConfig'); const refresh = firstTab.refreshAccessToken(); await started.promise;
-    vi.resetModules(); const pending = mutation(change);
+    vi.resetModules();
+    const secondTab = await import('../../utils/authStorage');
+    secondTab.setRefreshedAccessToken(jwt('tab-two'), secondTab.getAuthSessionId());
+    const pending = mutation(change);
     await waitFor(() => expect(lock).toHaveBeenCalledTimes(2)); expect(writes).toBe(0);
-    finish.release(); await refresh; await pending;
-    expect(writes).toBe(1); expect((await import('../../utils/authStorage')).getStoredAccessToken()).toBe(jwt('updated'));
+    finish.release(); expect(await refresh).toBe(jwt('refreshed')); await pending;
+    expect(writes).toBe(1); expect(secondTab.getStoredAccessToken()).toBe(jwt('updated'));
 });
 
 it('releases the mutation lock before its 401 renewal and retries the write only once', async () => {

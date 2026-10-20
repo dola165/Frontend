@@ -1044,6 +1044,7 @@ const en = {
       notYet: 'New to GrassKickZ?',
       goRegister: 'Create account',
       errInvalid: 'Email or password is wrong. Please try again.',
+      errDelayed: 'Too many sign-in attempts. Wait {{seconds}} seconds, then try again.',
       errEmailRequired: 'Email is required.',
       errEmailInvalid: 'Enter a valid email address.',
       errPasswordRequired: 'Password is required.',

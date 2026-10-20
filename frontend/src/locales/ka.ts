@@ -1044,6 +1044,7 @@ const ka = {
       notYet: 'ახალი ხართ GrassKickZ-ზე?',
       goRegister: 'ანგარიშის შექმნა',
       errInvalid: 'ელფოსტა ან პაროლი არასწორია. სცადეთ ხელახლა.',
+      errDelayed: 'შესვლის ძალიან ბევრი მცდელობა. დაელოდეთ {{seconds}} წამს და სცადეთ ხელახლა.',
       errEmailRequired: 'ელფოსტა აუცილებელია.',
       errEmailInvalid: 'შეიყვანეთ სწორი ელფოსტა.',
       errPasswordRequired: 'პაროლი აუცილებელია.',

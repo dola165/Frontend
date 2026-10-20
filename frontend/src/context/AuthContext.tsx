@@ -18,6 +18,7 @@ import {
     getAuthSessionId,
     getStoredAccessToken,
     isCurrentAuthSession,
+    isSignedInSession,
     setStoredAccessToken,
     setStoredUser,
     setStoredUserId,
@@ -27,8 +28,10 @@ import {
 
 // A connection failure is not evidence of revoked authentication. Keep the
 // exact session and drafts while the account is unresolved; writes stay gated.
+// A refresh conflict (409) only means another request renewed the cookie first.
 const temporarySessionFailure = (error: unknown) => !isAxiosError(error) || !error.response
-    || error.response.status >= 500 || error.response.status === 408 || error.response.status === 429;
+    || error.response.status >= 500 || error.response.status === 408 || error.response.status === 429
+    || error.response.status === 409;
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 
@@ -253,8 +256,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         // Adopt another tab's logout without rotating the shared marker or
-        // refreshing its cookie, which could resurrect the retired login.
-        if (sessionId !== null && !getStoredAccessToken(sessionId)) {
+        // refreshing its cookie, which could resurrect the retired login. A signed-in
+        // session without a token in this tab (a reload, another tab's sign-in) gets
+        // one from the refresh cookie while bootstrapping.
+        if (sessionId !== null && !getStoredAccessToken(sessionId) && !isSignedInSession(sessionId)) {
             setResolvedSessionId(sessionId);
             setUser(null);
             setStatus('anonymous');

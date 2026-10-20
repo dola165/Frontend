@@ -17,7 +17,8 @@ afterEach(() => server.resetHandlers());
 describe('refresh coordination', () => {
     it.each(['PASSWORD_CHANGE_REQUIRED', 'DOB_REQUIRED', 'ONBOARDING_REQUIRED'])(
         'routes %s to account completion without refreshing or deleting the session', async code => {
-            localStorage.setItem('accessToken', 'restricted-session');
+            const auth = await import('../../utils/authStorage');
+            auth.setRefreshedAccessToken('restricted-session', null);
             server.use(http.get('*/protected', () => HttpResponse.json({ code }, { status: 403 })));
             const { apiClient, setAccountRestrictionHandler, setAuthFailureHandler } = await import('../axiosConfig');
             const onRestriction = vi.fn();
@@ -27,7 +28,7 @@ describe('refresh coordination', () => {
             await expect(apiClient.get('/protected')).rejects.toMatchObject({ response: { status: 403 } });
             expect(onRestriction).toHaveBeenCalledWith(code);
             expect(onFailure).not.toHaveBeenCalled();
-            expect(localStorage.getItem('accessToken')).toBe('restricted-session');
+            expect(auth.getStoredAccessToken()).toBe('restricted-session');
         },
     );
     it('shares refresh between direct callers and simultaneous rejected API requests', async () => {
@@ -51,7 +52,7 @@ describe('refresh coordination', () => {
         expect((await import('../../utils/authStorage')).getStoredAccessToken()).toBe('new-token');
     });
 
-    it('serializes independent tab modules and reuses the token published by the winner', async () => {
+    it('serializes independent tab modules so each renews its own memory token without a conflict', async () => {
         let tail: Promise<unknown> = Promise.resolve();
         const requestLock = vi.fn((_name: string, _options: LockOptions, callback: () => Promise<string>) => {
             const result = tail.then(callback);
@@ -59,20 +60,24 @@ describe('refresh coordination', () => {
             return result;
         });
         Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: requestLock } });
-        let refreshes = 0;
+        let refreshes = 0, inFlight = 0, overlapped = false;
         server.use(http.post('*/auth/refresh', async () => {
             refreshes++;
+            overlapped ||= ++inFlight > 1;
             await delay(50);
-            return HttpResponse.json({ accessToken: 'shared-token' });
+            inFlight--;
+            return HttpResponse.json({ accessToken: `token-${refreshes}` });
         }));
         const tabOne = await import('../axiosConfig');
         vi.resetModules();
         const tabTwo = await import('../axiosConfig');
 
+        // Tokens live in each tab's memory, so each tab renews with the shared cookie, one at a time.
         expect(await Promise.all([tabOne.refreshAccessToken(), tabTwo.refreshAccessToken()]))
-            .toEqual(['shared-token', 'shared-token']);
+            .toEqual(['token-1', 'token-2']);
         expect(requestLock).toHaveBeenCalledTimes(2);
-        expect(refreshes).toBe(1);
+        expect(refreshes).toBe(2);
+        expect(overlapped).toBe(false);
     });
 
     it('retries the explicit duplicate response when browser locks are unavailable', async () => {
@@ -86,7 +91,8 @@ describe('refresh coordination', () => {
     });
 
     it('bounds duplicate retries and does not erase stored auth on a transient conflict', async () => {
-        localStorage.setItem('accessToken', 'existing-token');
+        const auth = await import('../../utils/authStorage');
+        auth.setRefreshedAccessToken('existing-token', null);
         let refreshes = 0;
         server.use(
             http.get('*/protected', () => new HttpResponse(null, { status: 401 })),
@@ -100,12 +106,13 @@ describe('refresh coordination', () => {
         setAuthFailureHandler(onFailure);
         await expect(apiClient.get('/protected')).rejects.toMatchObject({ response: { status: 409 } });
         expect(refreshes).toBe(3);
-        expect(localStorage.getItem('accessToken')).toBe('existing-token');
+        expect(auth.getStoredAccessToken()).toBe('existing-token');
         expect(onFailure).not.toHaveBeenCalled();
     });
 
     it('clears rejected sessions on 401 and permits a later refresh attempt', async () => {
-        localStorage.setItem('accessToken', 'old-token');
+        const auth = await import('../../utils/authStorage');
+        auth.setRefreshedAccessToken('old-token', null);
         server.use(
             http.get('*/protected', () => new HttpResponse(null, { status: 401 })),
             http.post('*/auth/refresh', () => new HttpResponse(null, { status: 401 })),
@@ -114,7 +121,7 @@ describe('refresh coordination', () => {
         const onFailure = vi.fn();
         setAuthFailureHandler(onFailure);
         await expect(apiClient.get('/protected')).rejects.toMatchObject({ response: { status: 401 } });
-        expect(localStorage.getItem('accessToken')).toBeNull();
+        expect(auth.getStoredAccessToken()).toBeNull();
         expect(onFailure).toHaveBeenCalledOnce();
 
         server.use(http.post('*/auth/refresh', () => HttpResponse.json({ accessToken: 'later-token' })));

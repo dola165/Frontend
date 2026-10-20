@@ -1,7 +1,28 @@
-const ACCESS_TOKEN_KEY = 'accessToken';
 const USER_ID_KEY = 'userId';
 const USER_KEY = 'user';
 const SESSION_ID_KEY = 'gk-session-id';
+// Which session id is signed in. Not a credential: the access token lives only in this tab's
+// memory and a reload gets a fresh one with the HttpOnly refresh cookie.
+const SIGNED_IN_KEY = 'gk-signed-in-session';
+// Kept access tokens in browser storage before 20 October 2026.
+const LEGACY_TOKEN_KEY = 'accessToken';
+const LEGACY_TOKEN_PREFIX = 'gk-session-token:';
+
+const accessTokens = new Map<string, string>();
+
+// First load after the switch: a stored token means this session was signed in. Remember that,
+// then delete every stored token so no script can read one from storage again.
+const forgetStoredTokens = () => {
+    try {
+        const sessionId = localStorage.getItem(SESSION_ID_KEY);
+        const signedIn = sessionId !== null && localStorage.getItem(LEGACY_TOKEN_PREFIX + sessionId) !== null;
+        if (signedIn && localStorage.getItem(SIGNED_IN_KEY) === null) localStorage.setItem(SIGNED_IN_KEY, sessionId);
+        for (const key of Object.keys(localStorage)) {
+            if (key === LEGACY_TOKEN_KEY || key.startsWith(LEGACY_TOKEN_PREFIX)) localStorage.removeItem(key);
+        }
+    } catch { /* Browser storage can be unavailable. */ }
+};
+forgetStoredTokens();
 const clearRecoveryKeys = (getStorage: () => Storage, prefixes: string[]) => {
     // A blocked store must not prevent cleanup in the other store or auth changes.
     try {
@@ -66,33 +87,39 @@ export const assertCurrentAuthSession = (sessionId: AuthSessionId) => {
     if (!isCurrentAuthSession(sessionId)) throw new AuthSessionChangedError();
 };
 
-const sessionTokenKey = (sessionId: AuthSessionId) => `gk-session-token:${sessionId ?? 'legacy'}`;
+const sessionTokenKey = (sessionId: AuthSessionId) => sessionId ?? 'legacy';
 
-// A retired tab can only write its own token slot. Checking then writing a
-// shared accessToken key is not atomic across tabs, even without an await.
+// Tokens are held per session id, in memory, so a retired session can never hand its token
+// to the next one. Another tab's sign-in is only visible here as a new session id.
 export const getStoredAccessToken = (sessionId: AuthSessionId = getAuthSessionId()) =>
-    localStorage.getItem(sessionTokenKey(sessionId))
-        ?? (sessionId === null ? localStorage.getItem(ACCESS_TOKEN_KEY) : null);
+    accessTokens.get(sessionTokenKey(sessionId)) ?? null;
 
 export const hasStoredAccessToken = () => Boolean(getStoredAccessToken());
+
+/** True when this session id belongs to a sign-in (in any tab), so a reload should restore it. */
+export const isSignedInSession = (sessionId: AuthSessionId) => {
+    if (sessionId === null) return false;
+    try { return localStorage.getItem(SIGNED_IN_KEY) === sessionId; } catch { return false; }
+};
 
 export const setStoredAccessToken = (token: string) => {
     // This setter installs a login, including a new login to the same account.
     clearMapDraftRecovery();
     const previousSessionId = getAuthSessionId();
     const sessionId = crypto.randomUUID();
-    localStorage.setItem(sessionTokenKey(sessionId), token);
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    accessTokens.set(sessionTokenKey(sessionId), token);
+    // Marker before id: another tab reacts to the id change and must already see the marker.
+    localStorage.setItem(SIGNED_IN_KEY, sessionId);
     localStorage.setItem(SESSION_ID_KEY, sessionId);
-    localStorage.removeItem(sessionTokenKey(previousSessionId));
+    accessTokens.delete(sessionTokenKey(previousSessionId));
     window.dispatchEvent(new Event('gk-auth-changed'));
 };
 
 export const setRefreshedAccessToken = (token: string, sessionId: AuthSessionId) => {
     assertCurrentAuthSession(sessionId);
-    localStorage.setItem(sessionTokenKey(sessionId), token);
+    accessTokens.set(sessionTokenKey(sessionId), token);
     if (!isCurrentAuthSession(sessionId)) {
-        localStorage.removeItem(sessionTokenKey(sessionId));
+        accessTokens.delete(sessionTokenKey(sessionId));
         throw new AuthSessionChangedError();
     }
     window.dispatchEvent(new Event('gk-auth-changed'));
@@ -111,10 +138,9 @@ export const setStoredUser = (user: unknown) => {
 export const clearStoredAuth = () => {
     clearMapDraftRecovery();
     clearPersonalData();
-    const previousSessionId = getAuthSessionId();
     localStorage.setItem(SESSION_ID_KEY, crypto.randomUUID());
-    localStorage.removeItem(sessionTokenKey(previousSessionId));
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(SIGNED_IN_KEY);
+    accessTokens.clear();
     localStorage.removeItem(USER_ID_KEY);
     localStorage.removeItem(USER_KEY);
     window.dispatchEvent(new Event('gk-auth-changed'));

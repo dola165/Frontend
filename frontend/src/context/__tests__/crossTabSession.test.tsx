@@ -12,7 +12,9 @@ import { CommerceDraftContext, useCommerceDraftState, useScopedDraftStore } from
 const profile = (token: string | null) => HttpResponse.json({ id: token === 'Bearer B' ? 2 : 1,
     fullName: token === 'Bearer B' ? 'Bravo' : 'Alpha', profileComplete: true, emailVerified: true });
 const writes = vi.fn(({ request }: { request: Request }) => HttpResponse.json({ id: 10, authorization: request.headers.get('Authorization') }));
-const refresh = vi.fn(() => new HttpResponse(null, { status: 401 }));
+// The HttpOnly refresh cookie is shared by every tab; it always belongs to the latest sign-in.
+let cookie: string | null = null;
+const refresh = vi.fn(() => cookie ? HttpResponse.json({ accessToken: cookie }) : new HttpResponse(null, { status: 401 }));
 const profiles = vi.fn(({ request }: { request: Request }) => profile(request.headers.get('Authorization')));
 const server = setupServer(
     http.get('*/auth/csrf', () => HttpResponse.json({ headerName: 'X-XSRF-TOKEN', token: 'csrf' })),
@@ -20,7 +22,7 @@ const server = setupServer(
 );
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
-beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); setStoredAccessToken('A'); });
+beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); setStoredAccessToken('A'); cookie = 'A'; });
 afterEach(() => { cleanup(); server.resetHandlers(); });
 let auth!: ReturnType<typeof useAuth>;
 const unmounted = vi.fn();
@@ -46,13 +48,14 @@ async function start() {
     fireEvent.change(screen.getByLabelText('Post draft'), { target: { value: 'Alpha post' } });
     fireEvent.change(screen.getByLabelText('Workspace draft'), { target: { value: 'Alpha workspace' } });
 }
-// Storage writes in another document do not fire this tab's custom event.
+// Storage writes in another document do not fire this tab's custom event. Another tab's
+// access token stays in that tab's memory; this tab only sees the new session id.
 function otherTab(token: string | null, notify = true) {
     const id = crypto.randomUUID();
-    if (token) localStorage.setItem(`gk-session-token:${id}`, token);
+    cookie = token;
     localStorage.setItem('gk-session-id', id);
-    if (token) localStorage.setItem('accessToken', token);
-    else { localStorage.removeItem('accessToken'); localStorage.removeItem('userId'); localStorage.removeItem('user'); }
+    if (token) localStorage.setItem('gk-signed-in-session', id);
+    else { localStorage.removeItem('gk-signed-in-session'); localStorage.removeItem('userId'); localStorage.removeItem('user'); }
     if (notify) window.dispatchEvent(new StorageEvent('storage', { key: 'gk-session-id', newValue: id, storageArea: localStorage }));
     return id;
 }
@@ -68,9 +71,11 @@ it('blocks a stale-screen write and logout before the storage event is delivered
     expect(screen.getByText('authenticated:Alpha')).toBeVisible();
     await expect(apiClient.post('/posts', { content: 'Alpha post' })).rejects.toMatchObject({ code: 'AUTH_SESSION_CHANGED' });
     await expect(auth.logout()).rejects.toMatchObject({ code: 'AUTH_SESSION_CHANGED' });
-    expect(writes).not.toHaveBeenCalled(); expect(getStoredAccessToken()).toBe('B');
+    // This tab never sees B's token; it gets its own from the cookie once it adopts B.
+    expect(writes).not.toHaveBeenCalled(); expect(getStoredAccessToken()).toBeNull();
     await act(async () => { window.dispatchEvent(new Event('storage')); });
     await screen.findByText('authenticated:Bravo');
+    expect(getStoredAccessToken()).toBe('B');
 });
 
 it('removes the old shell while B loads, then starts B with empty account drafts and B credentials', async () => {
@@ -138,5 +143,5 @@ it('ignores a held B profile after another tab returns to a new A login', async 
     await screen.findByText('authenticated:Alpha');
     await act(async () => { finish.release(); await pending; });
     await waitFor(() => expect(screen.getByText('authenticated:Alpha')).toBeVisible());
-    expect(getStoredAccessToken()).toBe('A'); expect(refresh).not.toHaveBeenCalled();
+    expect(getStoredAccessToken()).toBe('A');
 });

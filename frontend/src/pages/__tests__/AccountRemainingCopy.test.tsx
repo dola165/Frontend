@@ -80,7 +80,7 @@ it('translates a pending session read and keeps sign-out disabled until it compl
     let resolve!: (value: { data: typeof sessions }) => void;
     const response = new Promise<{ data: typeof sessions }>(done => { resolve = done; });
     vi.mocked(apiClient.get).mockImplementation(async path => path === '/auth/sessions' ? response : { data: dataFor(path) });
-    mount(); await screen.findByRole('heading', { name: 'Remembered Sessions' });
+    mount(); await screen.findByRole('heading', { name: 'Signed-in devices' });
     await language('ka');
     expect(screen.getByRole('status', { name: 'შენახული სესიები იტვირთება…' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'სხვა სესიებიდან გამოსვლა' })).toBeDisabled();

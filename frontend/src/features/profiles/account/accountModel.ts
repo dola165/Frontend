@@ -31,8 +31,13 @@ export type Account = {
     sessionRevocationSupported: boolean;
     accountDeletionSupported: boolean;
 };
+/** One signed-in device; `place` is approximate and only present when the server knows it. */
+export type AccountSession = {
+    id: number; current: boolean; status: 'ACTIVE' | 'REVOKED' | 'EXPIRED'; expiresAt?: string | null;
+    deviceName?: string | null; place?: string | null; createdAt?: string | null; lastUsedAt?: string | null;
+};
 export type SessionSummary = {
-    sessions: Array<{ id: number; current: boolean; status: 'ACTIVE' | 'REVOKED' | 'EXPIRED'; expiresAt?: string | null }>;
+    sessions: AccountSession[];
     activeCount: number;
     revokedCount: number;
     expiredCount: number;

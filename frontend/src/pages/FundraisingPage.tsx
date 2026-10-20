@@ -47,7 +47,7 @@ export const FundraisingPage = () => {
                 </div>
                 <div className="gk-store-stack">
                     <article className="gk-store-door gk-fund-hero">
-                        <img className="gk-store-door__pic" src="/landing/after-the-whistle.png" alt="" />
+                        <img className="gk-store-door__pic" src="/landing/after-the-whistle.jpg" alt="" />
                         <span className="gk-store-door__eyebrow"><HeartHandshake aria-hidden="true" size={16} />{ct("Fundraising on GrassKickZ")}</span>
                         <Link className="gk-store-door__title" to="/campaigns/new">{ct("Your club’s next project starts here")}</Link>
                         <p className="gk-store-door__line">{ct("Set a goal, tell the story, publish. Donations are taken on GoFundMe, so there is nothing to set up for payments.")}</p>

@@ -7,7 +7,7 @@ import { cataloguePath } from '../query';
 const SLIDES = [
     { image: '/football/touchline.jpg', eyebrow: 'New season', title: 'Club shirts for 2026/27', line: 'Home and away shirts from the clubs on GrassKickZ', action: 'Shop shirts', to: cataloguePath({ seller: 'clubs', category: 'SHIRT' }) },
     { image: '/football/ball-field.jpg', eyebrow: 'Sold by GrassKickZ', title: 'Equip the whole squad', line: 'Match balls, cones, bibs and goals, delivered to your ground', action: 'Shop equipment', to: cataloguePath({ seller: 'grasskickz' }) },
-    { image: '/landing/after-the-whistle.png', eyebrow: 'Support your club', title: 'Every purchase backs a club', line: 'Scarves, memberships and match tickets from the clubs you follow', action: 'Explore club stores', to: cataloguePath({ seller: 'clubs' }) },
+    { image: '/landing/after-the-whistle.jpg', eyebrow: 'Support your club', title: 'Every purchase backs a club', line: 'Scarves, memberships and match tickets from the clubs you follow', action: 'Explore club stores', to: cataloguePath({ seller: 'clubs' }) },
 ];
 const EVERY = 6000;
 

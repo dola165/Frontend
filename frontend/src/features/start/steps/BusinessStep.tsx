@@ -13,7 +13,7 @@ const TILES: { id: string; kind: BusinessKind; icon: LucideIcon; tone: string; p
     { id: 'sponsor', kind: 'SPONSOR', icon: Handshake, tone: 'var(--gk-accent)', photo: '/venue-demo/pitch-sun.jpg', en: 'Sponsor or brand', ka: 'სპონსორი ან ბრენდი' },
     { id: 'shop', kind: 'COMPANY', icon: Store, tone: 'var(--color-cyan)', photo: '/venue-demo/pitch-day.jpg', en: 'Shop or manufacturer', ka: 'მაღაზია ან მწარმოებელი' },
     { id: 'events', kind: 'COMPANY', icon: CalendarHeart, tone: 'var(--gk-violet)', photo: '/venue-demo/pitch-indoor.jpg', en: 'Event host', ka: 'ღონისძიებების მასპინძელი' },
-    { id: 'agency', kind: 'COMPANY', icon: Building2, tone: 'var(--gk-info)', photo: '/landing/after-the-whistle.png', en: 'Agency', ka: 'სააგენტო' },
+    { id: 'agency', kind: 'COMPANY', icon: Building2, tone: 'var(--gk-info)', photo: '/landing/after-the-whistle.jpg', en: 'Agency', ka: 'სააგენტო' },
     { id: 'media', kind: 'MEDIA', icon: Megaphone, tone: 'var(--gk-warning)', photo: '/venue-demo/pitch-aerial.jpg', en: 'Media', ka: 'მედია' },
 ];
 

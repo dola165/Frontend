@@ -944,7 +944,7 @@ export const campaigns = campaignPlan.map(([clubId, title, category, goal, raise
   return { id: 1201 + i, clubId, clubName: c.name, clubLogoUrl: c.logoUrl, country: 'Georgia', city: c.city, title, summary,
     description: `${summary}\n\n${c.name} has run this project with parents and local partners. Every contribution is reported on this page with a short update when the money is spent.`,
     beneficiary: `${c.name} players and families`, useOfFunds, category, currency: 'GEL', goalAmount: goal, reportedAmount: raised, reportedNote: 'Reported by the club treasurer from bank transfers and cash collections.', reportedAt: iso(day(-2 - i)),
-    startsOn: isoDate(day(startOffset)), endsOn: isoDate(day(endOffset)), images: [['/football/touchline.jpg', '/landing/after-the-whistle.png', '/football/ball-field.jpg'][i % 3]], status: ended ? 'CLOSED' : 'PUBLISHED', phase: ended ? 'ENDED' : 'ACTIVE', version: 3,
+    startsOn: isoDate(day(startOffset)), endsOn: isoDate(day(endOffset)), images: [['/football/touchline.jpg', '/landing/after-the-whistle.jpg', '/football/ball-field.jpg'][i % 3]], status: ended ? 'CLOSED' : 'PUBLISHED', phase: ended ? 'ENDED' : 'ACTIVE', version: 3,
     updatedAt: iso(day(-2 - i)), publishedAt: iso(day(startOffset)),
     updates: [{ id: 1250 + i * 2, title: 'Halfway there', body: `Thank you. We have reached ${Math.round(raised / goal * 100)}% of the goal.`, createdAt: iso(day(-3 - i)) }, { id: 1251 + i * 2, title: 'Campaign launched', body: summary, createdAt: iso(day(startOffset)) }] };
 });

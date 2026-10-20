@@ -5,7 +5,7 @@ import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { Crest } from '../../world/Crest';
 
 /** The app's football photos, for clubs without a picture of their own. */
-const PHOTOS = ['/football/ball-field.jpg', '/venue-demo/pitch-day.jpg', '/football/touchline.jpg', '/venue-demo/pitch-sun.jpg', '/preview/club-ground.png', '/venue-demo/pitch-aerial.jpg'];
+const PHOTOS = ['/football/ball-field.jpg', '/venue-demo/pitch-day.jpg', '/football/touchline.jpg', '/venue-demo/pitch-sun.jpg', '/preview/club-ground.jpg', '/venue-demo/pitch-aerial.jpg'];
 
 export interface CardClub { name: string; logoUrl: string | null; bannerUrl?: string | null; cityName?: string | null; km?: number | null; followers?: number; note?: string | null }
 

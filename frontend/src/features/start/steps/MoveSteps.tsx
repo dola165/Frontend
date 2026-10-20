@@ -9,7 +9,7 @@ import type { StepProps } from '../WelcomeDialog';
 export function ChildStep({ next }: StepProps) {
     return <div className="gk-welcome__split">
         <div className="gk-welcome__split-form"><AddChild inline onCreated={() => next()} /></div>
-        <div className="gk-welcome__split-picture" aria-hidden="true" style={{ '--move-photo': 'url(/landing/after-the-whistle.png)' } as CSSProperties} />
+        <div className="gk-welcome__split-picture" aria-hidden="true" style={{ '--move-photo': 'url(/landing/after-the-whistle.jpg)' } as CSSProperties} />
     </div>;
 }
 

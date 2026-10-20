@@ -1,6 +1,6 @@
 # Landing page imagery
 
-`after-the-whistle.png` was created with the built-in image_gen tool on 2026-09-13 for the GrassKickZ landing page. It is an illustrative neighborhood football scene, not a photograph of a listed club. The original generated image was copied into this directory without alteration. It is lazy-loaded below the live map and login, with explicit image dimensions.
+`after-the-whistle.jpg` was created with the built-in image_gen tool on 2026-09-13 for the GrassKickZ landing page. It is an illustrative neighborhood football scene, not a photograph of a listed club. The original generated image was copied into this directory without alteration. It is lazy-loaded below the live map and login, with explicit image dimensions.
 
 Final generation prompt:
 

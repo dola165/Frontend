@@ -96,7 +96,7 @@ export function ClubTools(ctx: ClubToolsContext) {
         case 'jobs': return <OpenRolesPage clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
         case 'store': return can.leadership ? <StoreProductsPage key={clubId} clubId={clubId} /> : null;
         case 'campaigns': return can.leadership ? <ClubCampaignsPage key={clubId} clubId={clubId} /> : null;
-        case 'player-cards': return <PlayerCardsPage clubId={clubId} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
+        case 'player-cards': return <PlayerCardsPage clubId={clubId} canRemove={can.leadership} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
         case 'tryouts': return <>
             {ctx.focusedApplicationId != null && focusNote(!m.tryouts.loading && !m.tryouts.applicants.some(a => a.id === ctx.focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.')}
             <TryoutsPage clubId={clubId} tryoutApplicants={ctx.focusedApplicationId != null ? m.tryouts.applicants.filter(a => a.id === ctx.focusedApplicationId) : m.tryouts.applicants}

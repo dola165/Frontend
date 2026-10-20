@@ -8,7 +8,12 @@ import { getAuthSessionId } from '../../utils/authStorage';
  * through. Nothing here grants or removes access. Sign-out removes the local copy (`clearStoredAuth`).
  */
 export interface PreferencesTown { name: string; latitude: number; longitude: number }
-export interface StartPreferences { town?: PreferencesTown | null; topics?: string[]; activity?: string | null }
+/** A step of the welcome popup after sign-up. */
+export type WelcomeStep = 'ROLES' | 'CLUB' | 'CHILD' | 'TOURNAMENT' | 'VENUE' | 'FOLLOW' | 'BUSINESS';
+/** OPEN shows the popup over Home until finished or closed; DONE never shows it by itself again. Skipped steps come back once as a card. */
+export interface WelcomeProgress { state: 'OPEN' | 'DONE'; at?: WelcomeStep | null; skipped?: WelcomeStep[]; cardDismissed?: boolean }
+/** The first run: the town Home and World start from, and the welcome's progress. */
+export interface StartPreferences { town?: PreferencesTown | null; welcome?: WelcomeProgress | null }
 export interface StoredPin { path: string; label: string; icon: string }
 export interface WorkspacePreferences { hiddenTabs?: string[]; hiddenAreas?: string[]; hiddenResponsibilities?: string[] }
 export interface Preferences {

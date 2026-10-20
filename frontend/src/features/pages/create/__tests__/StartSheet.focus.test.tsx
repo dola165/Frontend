@@ -7,7 +7,7 @@ import type { SimilarPage } from '../../api';
 const api = vi.hoisted(() => ({ fetchSimilar: vi.fn(), createPage: vi.fn() }));
 vi.mock('../../api', () => api);
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 9500, dob: '1985-05-02' }, status: 'authenticated', refreshNavigationCapabilities: vi.fn() }) }));
-vi.mock('../../../start/startApi', () => ({ fetchFeedPreferences: vi.fn().mockResolvedValue({ town: { name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }, topics: [], activity: null }) }));
+vi.mock('../../../start/startApi', () => ({ fetchSavedTown: vi.fn().mockResolvedValue({ name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }) }));
 import { StartSheet } from '../StartSheet';
 
 const unclaimed: SimilarPage = { ref: { type: 'club', id: 307 }, name: 'Rustavi Metallurgi Kids', town: 'Rustavi', kind: 'CLUB', crestUrl: null, status: 'LIVE', claim: 'UNCLAIMED', mine: false, exact: false };

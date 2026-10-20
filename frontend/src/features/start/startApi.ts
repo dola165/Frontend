@@ -1,29 +1,7 @@
 import { apiClient } from '../../api/axiosConfig';
-import { getStoredUserId } from '../../utils/authStorage';
-import { loadPreferences, updatePreferences, type Preferences, type StartPreferences } from '../preferences/preferencesStore';
-import type { FootballRole } from '../roles/domain';
+import { loadPreferences, readPreferences, updatePreferences, type StartPreferences } from '../preferences/preferencesStore';
 import { kmBetween, townByName, type Town } from './towns';
 
-/** What a person chose to see; the feed ranks local posts on these topics first. */
-export type Interest = 'CLUBS' | 'YOUTH' | 'MATCHES' | 'TOURNAMENTS' | 'WOMENS' | 'JOBS' | 'STORE';
-/** What a person does in football. Sets what they see first, never what they may open. */
-export type Activity = 'PLAY' | 'COACH' | 'PARENT' | 'WATCH';
-
-export interface FeedPreferences {
-    town: Town | null;
-    topics: Interest[];
-    activity: Activity | null;
-    updatedAt?: string | null;
-}
-
-const signedInUser = () => {
-    const id = Number(getStoredUserId());
-    if (!Number.isInteger(id) || id <= 0) throw new Error('Sign in to keep your choices.');
-    return id;
-};
-const toFeed = ({ start, updatedAt }: Preferences): FeedPreferences => ({
-    town: start?.town ?? null, topics: (start?.topics ?? []) as Interest[], activity: (start?.activity ?? null) as Activity | null, updatedAt,
-});
 const abortable = <T,>(work: Promise<T>, signal?: AbortSignal) => signal
     ? Promise.race([work, new Promise<never>((_, reject) => {
         if (signal.aborted) reject(new DOMException('Aborted', 'AbortError'));
@@ -31,35 +9,37 @@ const abortable = <T,>(work: Promise<T>, signal?: AbortSignal) => signal
     })])
     : work;
 
-/** The first-run answers, kept as the "start" section of the person's preferences (GET /users/me/preferences). */
-export const fetchFeedPreferences = async (signal?: AbortSignal) => toFeed(await abortable(loadPreferences(signedInUser()), signal));
-/** Changes some answers and keeps the others; resolves once the server holds them. */
-export async function saveFeedPreferences(changes: Partial<FeedPreferences>) {
-    const userId = signedInUser();
-    const current = (await loadPreferences(userId)).start ?? {};
-    const start: StartPreferences = { ...current };
-    if (changes.town !== undefined) start.town = changes.town;
-    if (changes.topics !== undefined) start.topics = changes.topics;
-    if (changes.activity !== undefined) start.activity = changes.activity;
-    return toFeed(await updatePreferences(userId, { start }));
+/** The first-run section of the person's preferences (GET /users/me/preferences). */
+export const fetchStart = async (userId: number, signal?: AbortSignal): Promise<StartPreferences> =>
+    (await abortable(loadPreferences(userId), signal)).start ?? {};
+/** The town Home, World and a new page start from, when the person gave one. */
+export const fetchSavedTown = async (userId: number, signal?: AbortSignal): Promise<Town | null> => {
+    const town = (await fetchStart(userId, signal)).town;
+    return town ? townByName(town.name) ?? town : null;
+};
+/**
+ * Changes part of the first-run section and keeps the rest; resolves once the server holds it. The change is worked
+ * out from the section as it is when it applies, so two changes made one after the other never undo each other.
+ */
+export async function saveStart(userId: number, changes: Partial<StartPreferences> | ((current: StartPreferences) => Partial<StartPreferences>)) {
+    await loadPreferences(userId);
+    const current = readPreferences(userId).start ?? {};
+    const next = typeof changes === 'function' ? changes(current) : changes;
+    return (await updatePreferences(userId, { start: { ...current, ...next } })).start ?? {};
 }
 /**
- * The town given at sign-up, kept when the first run never saved it (skipped, or not shown): only when the account has
- * no town yet, so a town chosen later always wins. Everything local (Home, World, creating a club) starts from it.
+ * The town given at sign-up, kept when the account has no town yet, so a town chosen later always wins.
  * Backend needed: POST /auth/register accepting `town`, which makes this unnecessary.
  */
-export async function keepRegistrationTown(name: string) {
+export async function keepRegistrationTown(userId: number, name: string) {
     const town = townByName(name);
-    if (!town) return;
-    const current = await fetchFeedPreferences();
-    if (!current.town) await saveFeedPreferences({ town });
+    if (town) await saveStart(userId, current => (current.town ? {} : { town }));
 }
 
 export interface NearbyClub {
     id: number;
     name: string;
     logoUrl?: string | null;
-    type?: string | null;
     cityName?: string | null;
     latitude?: number | null;
     longitude?: number | null;
@@ -80,6 +60,3 @@ export async function fetchClubsNear(town: Town, limit = 6, signal?: AbortSignal
 
 export const followClub = (id: number) => apiClient.post(`/clubs/${id}/follow`);
 export const unfollowClub = (id: number) => apiClient.delete(`/clubs/${id}/follow`);
-
-/** The football role the person named at the start, as their primary public role (changed any time on Account › Roles and work). */
-export const saveFootballRole = (role: FootballRole) => apiClient.put('/users/me/roles', { profiles: [{ role, primary: true, published: true }] });

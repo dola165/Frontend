@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
-import { CLAIM_PARAM, CREATE_PARAM, DRAW_PARAM, FROM_PARAM, fromParam, kindFromParam, refFromParam, withoutCreate } from './entry';
+import { BUSINESS_PARAM, businessFromParam, CLAIM_PARAM, CREATE_PARAM, DRAW_PARAM, FROM_PARAM, fromParam, kindFromParam, refFromParam, withoutCreate } from './entry';
 
 const StartSheet = lazy(() => import('./StartSheet').then(module => ({ default: module.StartSheet })));
 const ClaimSheet = lazy(() => import('./ClaimSheet').then(module => ({ default: module.ClaimSheet })));
@@ -30,7 +30,7 @@ export function CreatePageHost() {
   return (
     <Suspense fallback={null}>
       {claim ? <ClaimSheet key={`${claim.type}-${claim.id}`} pageRef={claim} onClose={close} />
-        : <StartSheet kind={kindFromParam(create)} from={from} draw={params.get(DRAW_PARAM) === '1'} onClose={close} onClaim={toClaim} />}
+        : <StartSheet kind={kindFromParam(create)} business={businessFromParam(params.get(BUSINESS_PARAM))} from={from} draw={params.get(DRAW_PARAM) === '1'} onClose={close} onClaim={toClaim} />}
     </Suspense>
   );
 }

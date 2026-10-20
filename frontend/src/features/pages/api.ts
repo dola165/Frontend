@@ -88,6 +88,7 @@ export interface InviteLink { code: string; role: StaffRole; status: 'INVITED' |
 /** What creating sends: the backend's setup request, with the page kind. */
 export interface CreateRequest {
   requestId: string; displayName: string; pageKind: PageKind; organizationType: string; clubCategory: string | null;
+  /** Business pages only: the kind of business, when the person already said (the welcome's "Here as a business?"). */ businessKind?: BusinessKind;
   venueEnabled: false; /** On for an organiser set up from the Draw room. */ tournamentEnabled: boolean;
   location: { latitude: number | null; longitude: number | null; city: string } | null;
   /** The owner's language: the About written for them is in it. */

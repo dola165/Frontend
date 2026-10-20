@@ -143,4 +143,21 @@ describe('refresh coordination', () => {
         expect(results.every(result => result.status === 'rejected')).toBe(true);
         expect(refreshes).toBe(1);
     });
+    it('never spends the shared refresh cookie once a newer build is known: the tab reloads into it, keeping the session', async () => {
+        vi.stubGlobal('__BUILD_ID__', 'old-build');
+        localStorage.setItem('gk-build', 'new-build');
+        sessionStorage.clear();
+        let refreshes = 0;
+        server.use(http.post('*/auth/refresh', () => { refreshes++; return HttpResponse.json({ accessToken: 'new-token' }); }));
+        const auth = await import('../../utils/authStorage');
+        auth.setRefreshedAccessToken('old-token', null);
+        const build = await import('../../utils/buildVersion');
+        const reload = vi.spyOn(build.page, 'reload').mockImplementation(() => undefined);
+        const { refreshAccessToken } = await import('../axiosConfig');
+        await expect(refreshAccessToken()).rejects.toMatchObject({ name: 'CanceledError' });
+        expect(refreshes).toBe(0);
+        expect(reload).toHaveBeenCalledTimes(1);
+        expect(auth.getStoredAccessToken()).toBe('old-token');
+        vi.unstubAllGlobals();
+    });
 });

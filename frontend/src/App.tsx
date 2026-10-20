@@ -25,6 +25,7 @@ import { useMediaQuery } from './features/world/useMediaQuery';
 
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
+import { useBuildWatch } from './hooks/useBuildWatch';
 import { LoginPage } from './pages/LoginPage';
 
 // Native navigation and chat replace these browser surfaces. Keep their imports
@@ -208,6 +209,8 @@ export function MainLayout() {
         }
     }, [location.pathname, location.search]);
     const { status, user, logout, refreshNavigationCapabilities } = useAuth();
+    // A tab left open across a release moves to the new build instead of competing with it for the session.
+    useBuildWatch(status === 'anonymous');
     useEffect(() => {
         if (status === 'authenticated') void refreshNavigationCapabilities?.();
     }, [location.key, status, refreshNavigationCapabilities]);

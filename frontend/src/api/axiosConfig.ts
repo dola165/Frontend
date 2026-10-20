@@ -7,6 +7,7 @@ import {
 } from '../utils/authStorage';
 import { buildWebSocketUrlFromBase, resolveDeploymentUrls } from './deploymentUrls';
 import { withSessionCredentialLock } from './sessionCredentialLock';
+import { reloadForBuild, staleBuild } from '../utils/buildVersion';
 
 const browserOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin;
 export const DEPLOYMENT_URLS = resolveDeploymentUrls(isAndroidApp ? '/api' : import.meta.env.VITE_API_BASE_URL, browserOrigin);
@@ -138,6 +139,8 @@ export const refreshAccessToken = (rejectedAccessToken?: string | null, expected
             assertRefreshAccount(currentToken, expectedSubject);
             return currentToken;
         }
+        // A newer build is known: this tab never spends the shared refresh cookie; it reloads into that build instead.
+        if (staleBuild() && reloadForBuild()) throw new axios.CanceledError('A newer version of GrassKickZ is loading.');
         return requestFreshAccessToken(sessionId, controller.signal, expectedSubject, currentToken);
     };
     const task = withSessionCredentialLock(controller.signal, refresh).catch(error => {

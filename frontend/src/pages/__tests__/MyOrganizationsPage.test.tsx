@@ -227,3 +227,17 @@ it.each([['fallback', null], ['server', 'Could not load your organizations.']] a
   expect(within(card).getByText('Draft')).toBeInTheDocument();
   expect(directoryCalls).toBe(2);
 });
+
+it('lists every other workspace under the cards, so the account menu’s one line reaches them all', async () => {
+  auth.user.navigationCapabilities = { version: 1, workspaces: [
+    { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } }, { id: 'tournament.workspace', context: { type: 'tournament', id: 301, label: 'Tbilisi Cup' } },
+    { id: 'referee.workspace', context: { type: 'user', id: 9502, label: 'Me' } }, { id: 'club.workspace', context: { type: 'club', id: 400, label: 'My academy' } },
+  ] };
+  reply([row(7000, 'My academy', { clubId: 400, organizationType: 'CLUB' })]); render(tree());
+  const other = within(await screen.findByRole('region', { name: 'Squads, tournaments and other work' }));
+  expect(other.getByRole('link', { name: /U16 Boys/ })).toHaveAttribute('href', '/squads/105');
+  expect(other.getByRole('link', { name: /Tbilisi Cup/ })).toHaveAttribute('href', '/tournaments/301/workspace');
+  expect(other.getByRole('link', { name: /Referee workspace/ })).toHaveAttribute('href', '/referees/me');
+  // The club already has its card.
+  expect(other.queryByRole('link', { name: /My academy/ })).not.toBeInTheDocument();
+});

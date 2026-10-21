@@ -24,15 +24,18 @@ describe("LeftSidebar", () => {
     ] }, 9);
     render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: 'Alex Morgan', navigationCapabilities: caps }} /></MemoryRouter>);
     // Someone without a page of their own is offered one; My Schedule came back to Home's rail (owner, 10 October).
+    // The workspace row opens the first workspace; Joining football left the rail (owner, 21 October).
     expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([
-      '/profile/9', '/?create=any&from=home', '/admissions', '/referees/me', '/agent', '/calendar?scope=personal',
+      '/profile/9', '/referees/me', '/?create=any&from=home', '/referees/me', '/agent', '/calendar?scope=personal',
     ]);
+    expect(screen.getByRole('button', { name: 'Switch workspace' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('link', { name: /My squads/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Agent Dola/ })).not.toBeInTheDocument();
   });
   it('keeps a family-only club connection in Parent Hub', () => {
     render(<MemoryRouter><LeftSidebar user={{id:9,navigationCapabilities:{version:1,workspaces:[{id:'club.family',context:{type:'club',id:21,label:'Academy'}}]}}}/></MemoryRouter>);
-    expect(screen.getByRole('link',{name:/Parent Hub/})).toHaveAttribute('href','/parent');
+    expect(screen.getAllByRole('link',{name:/Parent Hub/}).map(link=>link.getAttribute('href'))).toEqual(['/parent','/parent']);
+    expect(screen.queryByRole('button',{name:'Switch workspace'})).not.toBeInTheDocument();
     expect(screen.getAllByRole('link').some(link=>link.getAttribute('href')==='/clubs/21/workspace')).toBe(false);
   });
   it('removes squads when current access is revoked', () => {
@@ -92,4 +95,16 @@ it.each([
     expect(screen.queryByRole('button',{name:/Following/})).not.toBeInTheDocument();
     expect(screen.queryByRole('link',{name:/Followed clubs/})).not.toBeInTheDocument();
     expect(screen.queryByRole('link',{name:/^Map/})).not.toBeInTheDocument();
+});
+
+it('opens the workspace from one row and switches only through the short list', async () => {
+    const ws = (id: string, type: string, cid: number, label: string) => ({ id, context: { type, id: cid, label } });
+    render(<MemoryRouter><LeftSidebar user={{ id: 9, navigationCapabilities: { version: 1, workspaces: [ws('club.workspace', 'club', 1, 'Academy'), ws('squad.workspace', 'squad', 18, 'U12'), ws('squad.workspace', 'squad', 19, 'U13'), ws('squad.workspace', 'squad', 20, 'U14'), ws('squad.workspace', 'squad', 21, 'U15'), ws('squad.workspace', 'squad', 22, 'U16')] } }} /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: /Academy.*Workspace/ })).toHaveAttribute('href', '/clubs/1/workspace');
+    await userEvent.click(screen.getByRole('button', { name: 'Switch workspace' }));
+    const list = screen.getByRole('navigation', { name: 'Switch workspace' });
+    expect(Array.from(list.querySelectorAll('a')).map(link => link.getAttribute('href'))).toEqual(['/squads/18', '/squads/19', '/squads/20', '/squads/21', '/workspaces']);
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('navigation', { name: 'Switch workspace' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Switch workspace' })).toHaveFocus();
 });

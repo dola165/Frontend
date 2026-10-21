@@ -2,20 +2,34 @@
 .club-place-section > header { margin-bottom: 1.1rem; }
 .club-place-section > header h3 { font-size: 1.2rem; margin: 0 0 .4rem; }
 .club-place-section > header p { color: var(--muted-foreground, var(--color-secondary)); margin: 0; }
-.club-places-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,270px),1fr)); gap: 1.25rem; align-items: stretch; }
-.club-place-card { min-width: 0; border: 1px solid var(--club-theme-border-subtle, var(--color-border)); border-radius: 18px; background: var(--club-theme-surface, var(--color-surface)); color:var(--club-theme-text-primary); overflow: hidden; display: flex; flex-direction: column; }
-.club-place-photo { aspect-ratio: 16 / 9; background: var(--club-theme-elevated,var(--color-surface)); display: grid; place-items: center; color: var(--club-theme-text-secondary,var(--color-muted)); overflow: hidden; }
-.club-place-photo img { width: 100%; height: 100%; object-fit: cover; }
-.club-place-content { padding: 1.3rem; display: flex; flex-direction: column; gap: .8rem; flex: 1; min-width: 0; }
-.club-place-content h3 { margin: 0; font-size: 1.2rem; line-height: 1.4; overflow-wrap: anywhere; }
-.club-place-content p { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
-.club-place-tags { display: flex; gap: .5rem; flex-wrap: wrap; font-size: .75rem; color: var(--club-theme-text-secondary,var(--color-muted)); }
-.club-place-tags span { padding: .25rem .5rem; background: var(--club-theme-elevated,color-mix(in srgb, var(--color-ink) 3.53%, transparent)); border-radius: 5px; }
-.club-place-address { display: flex; align-items: start; gap: .4rem; }
-.club-place-address svg { flex-shrink: 0; margin-top: .25rem; }
-.club-place-summary { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.club-place-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: auto; padding-top: .5rem; }
-.club-place-actions .cp-button { font-size: .85rem; min-height: 42px; }
+/* Locations as compact rows, two across where there is room: photo, name, what and for whom, where, one line. */
+.club-places-grid, .gk .club-places-grid.gk-club-places { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: var(--gk-2, .5rem); align-items: stretch; }
+.club-place-card.club-place-row { --place-line: var(--gk-line, var(--club-theme-border-subtle, var(--color-border))); --place-muted: var(--gk-text-2, var(--club-theme-text-secondary, var(--color-secondary)));
+  min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--place-line); border-radius: var(--gk-r, 10px);
+  background: var(--gk-surface, var(--club-theme-surface, var(--color-surface))); color: var(--gk-text, var(--club-theme-text-primary)); overflow: hidden; }
+.club-place-thumb { width: 56px; height: 56px; border-radius: var(--gk-r-sm, 8px); overflow: hidden; display: grid; place-items: center; background: var(--gk-accent-soft, var(--club-theme-elevated, var(--color-surface))); color: var(--gk-accent, var(--club-theme-text-secondary, var(--color-muted))); }
+.club-place-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.club-place-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.club-place-text h3 { margin: 0; font-size: var(--gk-fs-md, 1rem); line-height: var(--gk-lh-md, 1.4); font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-place-text p { margin: 0; overflow-wrap: anywhere; }
+.club-place-meta { display: flex; flex-wrap: wrap; font-size: var(--gk-fs-xs, .75rem); line-height: var(--gk-lh-xs, 1.4); color: var(--place-muted); }
+.club-place-meta span + span::before { content: '·'; margin: 0 6px; }
+.club-place-address { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: var(--gk-fs-sm, .85rem); line-height: var(--gk-lh-sm, 1.45); }
+.club-place-address svg { flex-shrink: 0; color: var(--place-muted); }
+.club-place-address span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-place-summary { font-size: var(--gk-fs-xs, .75rem); line-height: var(--gk-lh-xs, 1.4); color: var(--place-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-place-row-actions { display: flex; align-items: center; gap: 6px; }
+.club-place-row-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; border: 1px solid var(--place-line); border-radius: var(--gk-r-sm, 8px); background: transparent; color: inherit; font: inherit; font-size: var(--gk-fs-sm, .85rem); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.club-place-open { padding: 0 12px; }
+.club-place-row-actions .club-place-directions { width: 40px; color: var(--place-muted); }
+.club-place-row-actions button:hover { background: var(--gk-hover, color-mix(in srgb, var(--color-ink) 4%, transparent)); border-color: var(--gk-line-strong, var(--place-line)); }
+.club-place-row-actions button:focus-visible { outline: none; box-shadow: var(--gk-focus, 0 0 0 2px var(--color-accent)); }
+@media (max-width: 520px) {
+  .club-place-card.club-place-row { grid-template-columns: 48px minmax(0, 1fr); gap: 10px; }
+  .club-place-thumb { width: 48px; height: 48px; }
+  .club-place-row-actions { grid-column: 1 / -1; }
+  .club-place-open { flex: 1; }
+}
 .club-place-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--color-overlay) 60%, transparent); z-index: 10000; display: flex; justify-content: flex-end; }
 .club-place-dialog { width: min(760px,100%); height: 100%; overflow: auto; background: var(--club-theme-surface,var(--color-surface)); color:var(--club-theme-text-primary); box-shadow: -8px 0 30px color-mix(in srgb, var(--color-shadow) 26.67%, transparent); }
 .club-place-dialog > header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: 1.5rem; border-bottom: 1px solid var(--club-theme-border-subtle,color-mix(in srgb, var(--color-border) 12.55%, transparent)); }

@@ -32,14 +32,17 @@ export function FacilityCard({ facility, clubId, showVenueLinks = true, detailsO
   const setOpen = (value: boolean) => { if (onDetailsChange) onDetailsChange(value); else setLocalOpen(value); };
   const photos=photosFor(facility), photo=photos[0]!==failed?photos[0]:null;
   const address=facility.details.address || (placeType(facility)==='VENUE'?facility.linkedVenue?.address:undefined);
-  return <article className="club-place-card" id={`facility-${facility.id}`}>
-    <div className="club-place-photo">{photo?<MediaImage src={resolveMediaUrl(photo)} alt={facility.title} loading="lazy" onError={()=>setFailed(photo)}/>:placeType(facility)==='FACILITY'?<Building2 size={36}/>:<Warehouse size={36}/>}</div>
-    <div className="club-place-content"><div className="club-place-tags"><span>{t(typeLabel(facility))}</span>{relationship(facility.details.relationship)&&<span>{t(relationship(facility.details.relationship))}</span>}</div>
-      <h3>{facility.title || t('Location name')}</h3><p className="club-place-address"><MapPin size={16}/>{address || t('Address not published')}</p>
-      <p className="cp-muted">{facility.squadName || (t(facility.squadId ? 'Assigned squad' : 'Club-wide'))}</p>
+  // One compact row: a small photo, the name, what it is and for whom, where, one line about it, and the two actions.
+  return <article className="club-place-card club-place-row" id={`facility-${facility.id}`}>
+    <div className="club-place-thumb">{photo?<MediaImage src={resolveMediaUrl(photo)} alt={facility.title} loading="lazy" onError={()=>setFailed(photo)}/>:placeType(facility)==='FACILITY'?<Building2 size={22} aria-hidden="true"/>:<Warehouse size={22} aria-hidden="true"/>}</div>
+    <div className="club-place-text">
+      <h3>{facility.title || t('Location name')}</h3>
+      <p className="club-place-meta"><span>{t(typeLabel(facility))}</span>{relationship(facility.details.relationship)&&<span>{t(relationship(facility.details.relationship))}</span>}<span>{facility.squadName || (t(facility.squadId ? 'Assigned squad' : 'Club-wide'))}</span></p>
+      <p className="club-place-address"><MapPin size={14} aria-hidden="true"/><span>{address || t('Address not published')}</span></p>
       {facility.details.description&&<p className="club-place-summary">{facility.details.description}</p>}
-      <div className="club-place-actions"><button type="button" className="cp-button" onClick={()=>setOpen(true)}>{t(placeType(facility)==='VENUE'?(showVenueLinks?'View venue':'View ground'):placeType(facility)==='FACILITY'?'View facility':'View location')}<ArrowRight size={16}/></button>{clubId&&facility.id>0&&<button type="button" className="cp-button" onClick={()=>setDirections(true)}><Navigation size={16}/>{t('Get directions')}</button>}</div>
     </div>
+    <div className="club-place-row-actions"><button type="button" className="club-place-open" onClick={()=>setOpen(true)}>{t(placeType(facility)==='VENUE'?(showVenueLinks?'View venue':'View ground'):placeType(facility)==='FACILITY'?'View facility':'View location')}<ArrowRight size={15} aria-hidden="true"/></button>
+      {clubId&&facility.id>0&&<button type="button" className="club-place-directions" aria-label={t('Get directions')} title={t('Get directions')} onClick={()=>setDirections(true)}><Navigation size={16} aria-hidden="true"/></button>}</div>
     {open&&<PlaceDetails place={facility} clubId={clubId} showVenueLinks={showVenueLinks} onClose={()=>setOpen(false)}/>}
     {directions&&clubId&&<FacilityDirections clubId={clubId} facilityId={facility.id} title={facility.title} address={address} onClose={()=>setDirections(false)}/>}
   </article>;

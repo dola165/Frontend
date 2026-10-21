@@ -120,7 +120,8 @@ describe('work and explore catalogues', () => {
 
     it('keeps the rest of the person’s work in "Your work"', () => {
         const paths = workDestinations(director, '/clubs/1/workspace').map(item => item.path);
-        expect(paths).toEqual(expect.arrayContaining(['/clubs/1', '/squads', '/calendar', '/admissions', '/squads/105']));
+        expect(paths).toEqual(expect.arrayContaining(['/clubs/1', '/squads', '/calendar', '/squads/105']));
+        expect(paths).not.toContain('/admissions');
         expect(paths).not.toContain('/clubs/1/workspace');
     });
 

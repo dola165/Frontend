@@ -51,10 +51,7 @@ export function workDestinations(capabilities: NavigationCapabilities | undefine
         if (club.canOpenWorkspace) work.push({ path: `/clubs/${club.id}`, label: club.name, icon: 'club' });
     }
     if (capabilities === undefined || hasNavigationCapability(capabilities, 'squad.workspace')) work.push({ path: '/squads', label: copy('My squads', 'ჩემი გუნდები'), icon: 'squad' });
-    work.push(
-        { path: '/calendar', label: copy('My schedule', 'ჩემი განრიგი'), icon: 'calendar' },
-        { path: '/admissions', label: copy('Joining football', 'ფეხბურთში მონაწილეობა'), icon: 'clipboard' },
-    );
+    work.push({ path: '/calendar', label: copy('My schedule', 'ჩემი განრიგი'), icon: 'calendar' });
     return work.filter((item, index, all) => all.findIndex(other => other.path === item.path) === index);
 }
 

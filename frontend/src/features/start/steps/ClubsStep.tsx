@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Check, Plus } from 'lucide-react';
 import { Button, SearchInput, Skeleton } from '../../../design/primitives';
-import { ChoiceTiles } from '../../../design/ChoiceTiles';
+import { ActionTiles } from '../../../design/ChoiceTiles';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { Crest } from '../../world/Crest';
 import { countryOf, inGeorgian } from '../setupWords';
@@ -11,32 +12,27 @@ const SHOWN = 8;
 
 /**
  * Step 3: clubs as tiles, in the person's own country: the most followed first, then those near a town they gave
- * (without repeats); a search on top finds any club by name. A tap picks; Next follows what is picked and unfollows
- * what was un-picked. Nothing is picked but the clubs the person already follows.
+ * (without repeats); a search on top finds any club by name. Each tile has the app's Follow button, which follows at
+ * once and unfollows on a second tap; the rest of the tile does nothing. A follow that fails goes back and says so.
  */
-export function ClubsStep({ facts, register }: { facts: WelcomeFacts; register: (save: (() => Promise<boolean>) | null) => void }) {
+export function ClubsStep({ facts }: { facts: WelcomeFacts }) {
     const copy = useJourneyCopy();
     const town = facts.place?.source === 'SAVED' ? facts.place.name : null;
     const [lists, setLists] = useState<{ popular: NearbyClub[]; near: NearbyClub[] } | null>(null);
     const [found, setFound] = useState<NearbyClub[] | null>(null);
     const [query, setQuery] = useState('');
-    const [seen, setSeen] = useState<Map<number, NearbyClub>>(new Map());
-    const [picked, setPicked] = useState<Set<number>>(new Set());
+    // What changed here, over each club as it was loaded: following now, and the follower count with it.
+    const [changed, setChanged] = useState<Map<number, boolean>>(new Map());
+    const [busy, setBusy] = useState<Set<number>>(new Set());
     const [more, setMore] = useState({ popular: false, near: false });
     const [failed, setFailed] = useState(false);
     const searching = query.trim().length >= 2;
-
-    // Every club shown is remembered with whether the person followed it when it first appeared.
-    const remember = (clubs: NearbyClub[]) => {
-        setSeen(current => { const next = new Map(current); clubs.forEach(club => { if (!next.has(club.id)) next.set(club.id, club); }); return next; });
-        setPicked(current => { const next = new Set(current); clubs.forEach(club => { if (club.following) next.add(club.id); }); return next; });
-    };
 
     useEffect(() => {
         if (!facts.place) return;
         const controller = new AbortController();
         Promise.all([fetchClubsNearYou(24, 'POPULAR', controller.signal), town ? fetchClubsNearYou(24, 'NEAREST', controller.signal) : Promise.resolve([])])
-            .then(([popular, near]) => { if (!controller.signal.aborted) { remember([...popular, ...near]); setLists({ popular, near }); } })
+            .then(([popular, near]) => { if (!controller.signal.aborted) setLists({ popular, near }); })
             .catch(() => { if (!controller.signal.aborted) setLists({ popular: [], near: [] }); });
         return () => controller.abort();
     }, [facts.place, town]);
@@ -45,37 +41,36 @@ export function ClubsStep({ facts, register }: { facts: WelcomeFacts; register: 
         if (!searching) return;
         const controller = new AbortController();
         const timer = window.setTimeout(() => {
-            searchClubs(query.trim(), controller.signal).then(clubs => { remember(clubs); setFound(clubs); }).catch(() => { if (!controller.signal.aborted) setFound([]); });
+            searchClubs(query.trim(), controller.signal).then(setFound).catch(() => { if (!controller.signal.aborted) setFound([]); });
         }, 300);
         return () => { window.clearTimeout(timer); controller.abort(); };
     }, [query, searching]);
 
-    // Next follows what is picked and unfollows what was un-picked; nothing else changes.
-    useEffect(() => {
-        register(async () => {
-            setFailed(false);
-            const changes = [...seen.values()].filter(club => picked.has(club.id) !== club.following);
-            try {
-                await Promise.all(changes.map(club => (picked.has(club.id) ? followClub(club.id) : unfollowClub(club.id))));
-                setSeen(current => new Map([...current].map(([id, club]) => [id, { ...club, following: picked.has(id) }])));
-                return true;
-            } catch { setFailed(true); return false; }
-        });
-        return () => register(null);
-    });
-
-    const toggle = (id: string) => setPicked(current => { const next = new Set(current); const club = Number(id); if (next.has(club)) next.delete(club); else next.add(club); return next; });
+    const following = (club: NearbyClub) => changed.get(club.id) ?? club.following;
+    const mark = (id: number, value: boolean) => setChanged(current => new Map(current).set(id, value));
+    const toggle = async (club: NearbyClub) => {
+        const on = !following(club);
+        setFailed(false);
+        setBusy(current => new Set(current).add(club.id));
+        mark(club.id, on);
+        try { await (on ? followClub(club.id) : unfollowClub(club.id)); }
+        catch { mark(club.id, !on); setFailed(true); }
+        finally { setBusy(current => { const next = new Set(current); next.delete(club.id); return next; }); }
+    };
     const tiles = (clubs: NearbyClub[]) => clubs.map(club => {
-        const followers = club.followers + (picked.has(club.id) === club.following ? 0 : picked.has(club.id) ? 1 : -1);
+        const now = following(club);
+        const followers = club.followers + (now === club.following ? 0 : now ? 1 : -1);
         return {
             id: String(club.id), label: club.name, icon: <Crest src={club.logoUrl} name={club.name} size={36} />,
             hint: [club.cityName, copy(`${followers} ${followers === 1 ? 'follower' : 'followers'}`, `${followers} გამომწერი`)].filter(Boolean).join(' · '),
+            action: <Button size="sm" aria-pressed={now} disabled={busy.has(club.id)} aria-label={copy(`${now ? 'Following' : 'Follow'} ${club.name}`, `${club.name} — ${now ? 'გამოწერილია' : 'გამოწერა'}`)} onClick={() => void toggle(club)}>
+                {now ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{now ? copy('Following', 'გამოწერილია') : copy('Follow', 'გამოწერა')}
+            </Button>,
         };
     });
-    const chosen = [...picked].map(String);
     const group = (title: string, clubs: NearbyClub[], key: 'popular' | 'near') => clubs.length > 0 && <section className="gk-setup-group" aria-label={title}>
         <h3>{title}</h3>
-        <ChoiceTiles compact items={tiles(more[key] ? clubs : clubs.slice(0, SHOWN))} chosen={chosen} onToggle={toggle} label={title} />
+        <ActionTiles items={tiles(more[key] ? clubs : clubs.slice(0, SHOWN))} label={title} />
         {!more[key] && clubs.length > SHOWN && <Button variant="ghost" size="sm" onClick={() => setMore(current => ({ ...current, [key]: true }))}>{copy('Show more', 'მეტის ჩვენება')}</Button>}
     </section>;
 
@@ -88,7 +83,7 @@ export function ClubsStep({ facts, register }: { facts: WelcomeFacts; register: 
             onChange={event => { setQuery(event.target.value); if (event.target.value.trim().length < 2) setFound(null); }} />
         {searching
             ? found === null ? loading
-                : found.length ? <ChoiceTiles compact items={tiles(found)} chosen={chosen} onToggle={toggle} label={copy('Clubs found', 'ნაპოვნი კლუბები')} />
+                : found.length ? <ActionTiles items={tiles(found)} label={copy('Clubs found', 'ნაპოვნი კლუბები')} />
                 : <p className="gk-setup__hint">{copy('No club by that name yet.', 'ასეთი სახელის კლუბი ჯერ არ არის.')}</p>
             : !lists ? loading
             : lists.popular.length === 0 ? <p className="gk-setup__hint">{copy('No clubs here yet. Search for one by name.', 'აქ კლუბები ჯერ არ არის. მოძებნეთ სახელით.')}</p>
@@ -96,6 +91,6 @@ export function ClubsStep({ facts, register }: { facts: WelcomeFacts; register: 
                 {group(copy(`Popular in ${country}`, `პოპულარული ${inGeorgian(country)}`), lists.popular, 'popular')}
                 {town && group(copy(`Near ${town}`, `${town}-თან ახლოს`), near, 'near')}
             </>}
-        {failed && <p role="alert" className="gk-notice gk-notice--warning">{copy('Some follows did not go through. Try again.', 'ზოგიერთი გამოწერა ვერ შესრულდა. სცადეთ ხელახლა.')}</p>}
+        {failed && <p role="alert" className="gk-notice gk-notice--warning">{copy('That follow did not go through. Try again.', 'გამოწერა ვერ შესრულდა. სცადეთ ხელახლა.')}</p>}
     </div>;
 }

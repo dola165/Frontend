@@ -20,3 +20,24 @@
 @media (max-width: 640px) {
   .gk .gk-tiles--compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Tiles that act: the whole tile is a button, or it carries its own small action (Follow). */
+.gk ul.gk-tiles { margin: 0; padding: 0; list-style: none; }
+.gk .gk-tile--pick { width: 100%; height: 100%; color: var(--gk-text); font: inherit; text-align: left; }
+.gk .gk-tile--pick:hover { border-color: var(--gk-accent); }
+.gk .gk-tile--pick:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-tile--action { align-items: center; height: 100%; cursor: default; }
+.gk .gk-tile--pick .gk-tile__text, .gk .gk-tile--action .gk-tile__text { flex: 1; padding-right: 0; }
+.gk .gk-tile--action > .gk-btn { flex: none; }
+/* Tiles with their own action are wider: two across in the dialog, so a name never breaks mid-word. */
+.gk .gk-tiles--act:has(.gk-tile--action) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.gk .gk-tile__more { color: var(--gk-text-2); }
+@media (hover: hover) {
+  .gk .gk-tile__more { position: absolute; top: calc(100% + 6px); left: var(--gk-2); right: var(--gk-2); z-index: 3; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); box-shadow: var(--gk-elevation); color: var(--gk-text); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s var(--gk-ease), visibility .12s; }
+  .gk .gk-tile:hover .gk-tile__more, .gk .gk-tile:focus-visible .gk-tile__more { opacity: 1; visibility: visible; }
+  /* Room under the last row for its explanation. */
+  .gk .gk-tiles--act:has(.gk-tile__more) { padding-bottom: 76px; }
+}
+@media (max-width: 640px) {
+  .gk .gk-tiles--act { grid-template-columns: minmax(0, 1fr); }
+}

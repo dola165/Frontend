@@ -31,6 +31,12 @@
 .gk .gk-setup-group > .gk-tiles { align-self: stretch; }
 .gk .gk-setup-group h3 { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; }
 
+/* Create a page: how a page looks, the pages' own header and tabs, small. */
+.gk .gk-setup-sample { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; }
+.gk .gk-setup-sample__frame { overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-bg); }
+.gk .gk-setup-sample__page > .gk-page { min-height: 0; }
+.gk .gk-setup-sample__page .gk-profile__body { display: none; }
+
 /* About you: the photo with one action, the town in small text. */
 .gk .gk-setup__photo { display: flex; align-items: center; gap: var(--gk-3); }
 .gk .gk-setup__photo-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }

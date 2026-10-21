@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -35,13 +35,12 @@ export function WelcomeDialog({ step }: { step: Step }) {
     const userId = useAuth().user?.id ?? 0;
     const facts = useWelcomeFacts();
     const setup = useSetupProfile(userId);
-    const submit = useRef<(() => Promise<boolean>) | null>(null);
-    const register = useCallback((save: (() => Promise<boolean>) | null) => { submit.current = save; }, []);
     const [edited, setEdited] = useState<SetupDraft | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [other, setOther] = useState(false);
-    const [kind, setKind] = useState<PageKind | null>(null);
+    // Step 5 first asks whether to create a page; the kinds come after "Create a page".
+    const [pageView, setPageView] = useState<'ask' | 'choose'>('ask');
     const index = STEPS.indexOf(step);
     const following = STEPS[index + 1] ?? null;
     const earlier = STEPS[index - 1] ?? null;
@@ -68,16 +67,15 @@ export function WelcomeDialog({ step }: { step: Step }) {
         const query = search.toString();
         return `/home${query ? `?${query}` : ''}`;
     };
-    const go = (to: Step | null) => { setError(''); setOther(false); if (to) navigate(address(to)); else navigate(address(null), { replace: true }); };
+    const go = (to: Step | null) => { setError(''); setOther(false); setPageView('ask'); if (to) navigate(address(to)); else navigate(address(null), { replace: true }); };
     const skipSetup = () => { record(value => closed(value, step)); go(null); };
     const finish = () => { record(value => closed(done(value, 'page'), null)); go(null); };
     const skipStep = () => { record(value => skipped(value, step)); go(following); };
-    const createPage = () => {
-        if (!kind) return;
+    const createPage = (kind: PageKind) => {
         record(value => closed(done(value, 'page'), null));
         navigate(createHref(HOME, kind, 'start'), { replace: true });
     };
-    // Each step keeps what it changed before moving on: the draft for roles, about and the profile; follows for clubs.
+    // Each step keeps what it changed before moving on: the draft for roles, about and the profile (clubs follow at once).
     const next = async (asOther = false) => {
         if (busy || !draft) return;
         if (step === 'roles' && !asOther && !draft.roles.length && !draft.business) { setOther(true); return; }
@@ -85,8 +83,7 @@ export function WelcomeDialog({ step }: { step: Step }) {
         setBusy(true);
         const failure = copy('That couldn’t be saved. Your changes are still here.', 'ვერ შეინახა. ცვლილებები აქვეა.');
         let ok = true;
-        if (step === 'clubs') ok = submit.current ? await submit.current() : true;
-        else {
+        if (step !== 'clubs') {
             // The suggested headline is kept once the person has seen it (About you onwards).
             const problem = await setup.save(draft, step === 'roles' ? '' : suggestion, failure);
             setError(problem);
@@ -104,16 +101,18 @@ export function WelcomeDialog({ step }: { step: Step }) {
         about: [copy('About you', 'თქვენ შესახებ'), copy('What people see on your profile.', 'რას ხედავენ სხვები თქვენს პროფილზე.')],
         clubs: [copy('Clubs', 'კლუბები'), copy('Follow clubs to see their news on Home.', 'გამოიწერეთ კლუბები, რომ მათი სიახლეები მთავარ გვერდზე ნახოთ.')],
         profile: [copy('Your profile', 'თქვენი პროფილი'), copy('Change anything and see it as others will. Save when it looks right.', 'შეცვალეთ ნებისმიერი რამ და ნახეთ, როგორ დაინახავენ სხვები. შეინახეთ, როცა მოგეწონებათ.')],
-        page: [copy('Create a page', 'გვერდის შექმნა'), copy('A page for your club, fan club or business. Optional.', 'გვერდი თქვენი კლუბის, გულშემატკივართა კლუბის ან ბიზნესისთვის. არასავალდებულო.')],
+        page: pageView === 'ask'
+            ? [copy('Do you want to create a page?', 'გსურთ გვერდის შექმნა?'), copy('Your club, fan club or business gets its own home on GrassKickZ: posts, people and how to reach you.', 'თქვენს კლუბს, გულშემატკივართა კლუბს ან ბიზნესს GrassKickZ-ზე საკუთარი სახლი ექნება: პოსტები, ადამიანები და კონტაქტი.')]
+            : [copy('Create a page', 'გვერდის შექმნა'), copy('Choose what it is for. You can change everything later.', 'აირჩიეთ, რისთვისაა. ყველაფრის შეცვლა მოგვიანებითაც შეიძლება.')],
     };
     const [title, hint] = titles[step];
     const change = (value: SetupDraft) => setEdited(value);
     const body = {
         roles: <RolesStep draft={draft} onChange={change} adult={facts.adult} />,
         about: <AboutStep setup={setup} draft={draft} onChange={change} facts={facts} main={main} suggestion={suggestion} />,
-        clubs: <ClubsStep facts={facts} register={register} />,
+        clubs: <ClubsStep facts={facts} />,
         profile: <ProfileStep setup={setup} draft={draft} onChange={change} facts={facts} main={main} suggestion={suggestion} userId={userId} />,
-        page: <PageStep roles={draft?.roles ?? []} business={draft?.business ?? false} kind={kind} onKind={setKind} />,
+        page: <PageStep view={pageView} roles={draft?.roles ?? []} business={draft?.business ?? false} onPick={createPage} />,
     }[step];
     const position = index + 1;
     const spinner = <><Loader2 className="gk-setup__spin" aria-hidden="true" />{copy('Saving…', 'ინახება…')}</>;
@@ -133,11 +132,11 @@ export function WelcomeDialog({ step }: { step: Step }) {
                     <Button size="sm" variant="primary" autoFocus onClick={() => void next(true)}>{copy('Continue', 'გაგრძელება')}</Button>
                 </div>
             </div>}
-            {earlier && <Button variant="ghost" className="gk-setup__back" disabled={busy} onClick={() => go(earlier)}>{copy('Back', 'უკან')}</Button>}
+            {earlier && <Button variant="ghost" className="gk-setup__back" disabled={busy} onClick={() => (step === 'page' && pageView === 'choose' ? setPageView('ask') : go(earlier))}>{copy('Back', 'უკან')}</Button>}
             {step === 'page'
                 ? <>
                     <Button variant="ghost" onClick={finish}>{copy('Not now', 'ახლა არა')}</Button>
-                    <Button variant="primary" disabled={!kind} onClick={createPage}>{copy('Create page', 'გვერდის შექმნა')}</Button>
+                    {pageView === 'ask' && <Button variant="primary" onClick={() => setPageView('choose')}>{copy('Create a page', 'გვერდის შექმნა')}</Button>}
                 </>
                 : <>
                     <Button variant="ghost" disabled={busy} onClick={skipStep}>{copy('Skip this step', 'ნაბიჯის გამოტოვება')}</Button>

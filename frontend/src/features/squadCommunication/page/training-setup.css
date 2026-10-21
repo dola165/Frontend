@@ -1,0 +1,13 @@
+.gk .sp-training-setup { margin-bottom: var(--gk-3); }
+.gk .sp-training-setup h2 { margin-right: auto; font-size: var(--gk-fs-md); }
+.gk .sp-training-setup .sp-training-bar { margin-bottom: 0; }
+.gk .sp-training-days { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gk-1); }
+.gk .sp-training-days label, .gk .sp-training-check { display: flex; align-items: center; gap: var(--gk-2); min-height: 44px; }
+.gk .sp-training-days input, .gk .sp-training-check input { flex: none; width: 18px; height: 18px; accent-color: var(--gk-accent); }
+.gk .sp-training-fields { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; }
+.gk .sp-training-fields label:not(.sp-training-check) { display: flex; flex-direction: column; gap: var(--gk-1); min-width: 0; }
+.gk .sp-training-fields input:not([type=checkbox]), .gk .sp-training-fields select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; }
+.gk .sp-training-fields select { border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r); padding: 8px; background: var(--gk-bg); color: var(--gk-text); font: inherit; }
+.gk .sp-training-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-2); }
+.gk .sp-training-setup .squad-plan-review { font-size: var(--gk-fs-sm); }
+@media (max-width: 640px) { .gk .sp-training-fields select { font-size: 16px; } }

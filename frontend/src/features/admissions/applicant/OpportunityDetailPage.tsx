@@ -112,7 +112,7 @@ function SubmissionForm({ opportunity: o, participant: p, refresh }: { opportuni
     const [acceptedVersion, setAcceptedVersion] = useState<number | null>(null);
     const accept = acceptedVersion === o.version;
     useEffect(() => { try { sessionStorage.setItem(key, JSON.stringify(draft)); } catch { /* The mutation still requires a durable receipt before sending. */ } }, [draft, key]);
-    const mutation = useAdmissionMutation<Omit<Submission, 'requestId'>, Awaited<ReturnType<typeof submitAdmission>>>(p.id, `submit:${o.id}`, body => submitAdmission(body, sessionId), result => { sessionStorage.removeItem(key); navigate(`/admissions/cases/${result.id}`); }, refresh);
+    const mutation = useAdmissionMutation<Omit<Submission, 'requestId'>, Awaited<ReturnType<typeof submitAdmission>>>(p.id, `submit:${o.id}`, body => submitAdmission(body, sessionId), result => { sessionStorage.removeItem(key); navigate(playerPath(`/admissions/cases/${result.id}`,result.playerId)); }, refresh);
     const birthYearEligible = fitsAge(o, p);
     const eligible = birthYearEligible && fitsGender(o, p);
     const canCommit = (!p.minor || p.guardian) && p.restriction !== 'REVIEW';

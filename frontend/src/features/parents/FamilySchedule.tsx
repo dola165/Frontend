@@ -23,6 +23,7 @@ import { SessionDialog } from '../squadCommunication/SquadSessionDialog';
 import { EventSummary } from '../squadCommunication/EventSummary';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { scheduleDestination } from '../schedule/origin';
+import { useFamilyDateLabels } from './useFamilyDateLabels';
 import './family-schedule.css';
 import '../squadCommunication/squad-schedule.css';
 
@@ -38,6 +39,7 @@ function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playe
     onPrevious: () => void; onNext: () => void; onToday: () => void; onSelect: (event: { id: string }) => void; onRefresh: () => void; nextActions: import('react').ReactNode;
 }) {
     const copy = useJourneyCopy();
+    const dateLabels = useFamilyDateLabels();
     const [expandedRange, setExpandedRange] = useState<string | null>(null);
     const rangeKey = from.toISOString() + ':' + squadId;
     const showAll = expandedRange === rangeKey;
@@ -46,14 +48,14 @@ function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playe
     const last = new Date(to); last.setDate(last.getDate() - 1);
     const kinds: Record<string, string> = { TRAINING: 'ვარჯიში', MATCH: 'მატჩი', TRYOUT: 'სინჯები', FRIENDLY: 'ამხანაგური', ACTIVITY: 'აქტივობა' };
     return <>
-        <header className="family-agenda-heading"><div><CalendarDays size={17}/><strong>{formatDate(from, { day: 'numeric', month: 'short' })} – {formatDate(last, { day: 'numeric', month: 'short' })}</strong></div>
+        <header className="family-agenda-heading"><div><CalendarDays size={17}/><strong>{dateLabels.shortDate(from)} – {dateLabels.shortDate(last)}</strong></div>
             <div className="family-agenda-controls"><button type="button" aria-label={copy('Previous week', 'წინა კვირა')} onClick={onPrevious}><ChevronLeft size={16}/></button><button type="button" onClick={onToday}>{copy('Today', 'დღეს')}</button><button type="button" aria-label={copy('Next week', 'შემდეგი კვირა')} onClick={onNext}><ChevronRight size={16}/></button></div></header>
         {squads.length > 1 && !combined && <label className="family-agenda-squad">{copy('Squad', 'გუნდი')}<select value={squadId ?? ''} onChange={e => onSquad(Number(e.target.value))}>{squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
         {error && <p role="alert" className="family-error">{error} <button type="button" onClick={onRefresh}>{copy('Try again', 'ხელახლა სცადეთ')}</button></p>}
         {loading ? <p role="status" className="family-agenda-empty">{copy('Loading activities…', 'ღონისძიებები იტვირთება…')}</p> : <>
             {nextActions}
             <div className="family-agenda-list">{shown.map(event => <button type="button" key={event.id} onClick={() => onSelect(event)} className={'family-agenda-event' + (event.status === 'CANCELLED' ? ' is-cancelled' : '')}>
-                <time dateTime={event.startsAt}><small>{formatDate(event.startsAt, { weekday: 'short' })}</small><b>{formatDate(event.startsAt, { day: 'numeric' })}</b></time>
+                <time dateTime={event.startsAt}><small>{dateLabels.weekday(new Date(event.startsAt))}</small><b>{formatDate(event.startsAt, { day: 'numeric' })}</b></time>
                 <span className="family-agenda-event-copy"><span className="family-agenda-kind">{event.status === 'CANCELLED' ? copy('Cancelled', 'გაუქმებულია') : copy(event.eventType.toLowerCase().replace(/^./, c => c.toUpperCase()), kinds[event.eventType] ?? event.eventType)} · {event.ownerLabel}</span>
                     <strong>{event.title}</strong><span className="family-agenda-meta"><span><Clock3 size={12}/>{formatTime(event.startsAt)} – {formatTime(event.endsAt)}</span>{event.locationText && <span><MapPin size={12}/>{event.locationText}</span>}</span></span><ArrowRight size={16}/>
             </button>)}</div>

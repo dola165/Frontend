@@ -9,6 +9,8 @@ import * as P from '../world-profile.mjs';
 import * as F from '../world-football.mjs';
 import * as V from '../viewer.mjs';
 import { familyRequest } from '../world-family.mjs';
+import { canReadSquadSession, canSelectSessionPlayer, squadAccess } from '../squad-access.mjs';
+import { squadSessionDto as sessionDto, sessionResponseOf as responseOf, projectSquadSession } from '../squad-session-dto.mjs';
 import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
 import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs, createPage, viewerAge as pageAge } from '../pages-data.mjs';
 import { minimumAge, ORGANIZATION_TYPE } from '../../../src/features/pages/model/kinds.ts';
@@ -29,7 +31,7 @@ const badRequest = message => reply(400, { status: 400, message });
 const created = body => reply(201, body);
 const noContent = () => reply(204);
 const person = id => W.personById(id);
-const displayName = id => person(id)?.fullName ?? 'GrassKickZ member';
+const displayName = id => person(id)?.fullName ?? V.account(id)?.fullName ?? 'GrassKickZ member';
 const avatarOf = id => person(id)?.avatarUrl ?? null;
 /** Spring-style page used by chat, notifications and connection lists. */
 const pageOf = (list, query, defaultSize = 20) => {
@@ -601,87 +603,101 @@ get('/joining/conversations/:id/enquiries', ({ params }) => (S.conversationById(
 
 // ================================================================ squad communication
 const DINAMO = W.clubById(1);
-const squadFor = id => { const s = W.squadById(id); return s && s.clubId === 1 ? s : null; };
-const coachesOf = s => [...new Set([s.headCoachId, S.STAFF.assistant, S.STAFF.gk].filter(Boolean))];
+const squadFor = id => W.squadById(id);
+const coachesOf = s => [...new Set([s.headCoachId, ...(s.clubId === 1 ? [S.STAFF.assistant, S.STAFF.gk] : [])].filter(Boolean))];
+const availableCoaches = s => W.staff.filter(x => x.kind === 'COACH' && x.clubId === s.clubId);
 const unreadFor = s => [...(S.squadUnread.get(s.id)?.values() ?? [])].reduce((a, b) => a + b, 0);
-const spaceDto = s => ({ id: s.id, club_id: s.clubId, academy_name: DINAMO.name, name: s.name, category: s.ageGroup, can_manage: true, unread_count: unreadFor(s) });
+const spaceDto = (s, headers) => ({ id: s.id, club_id: s.clubId, academy_name: W.clubById(s.clubId)?.name ?? '', name: s.name, category: s.ageGroup, can_manage: squadAccess(s, headers)?.canManage ?? false, unread_count: squadAccess(s, headers)?.canManage ? unreadFor(s) : S.squadUnread.get(s.id)?.get(viewerOf(headers)) ?? 0 });
 const sessionEvents = s => W.events.filter(e => e.squadId === s.id && (e.type === 'TRAINING' || e.type === 'MATCH')).sort((a, b) => a.start - b.start);
-const defaultResponse = (event, playerId) => {
-  const h = (event.id * 31 + playerId * 17) % 20;
-  if (event.start < W.NOW) return h < 18 ? 'GOING' : 'NOT_GOING';
-  const days = (event.start - W.NOW) / 86400000;
-  return days > 6 ? (h < 6 ? 'GOING' : 'UNANSWERED') : h < 16 ? 'GOING' : h < 18 ? 'NOT_GOING' : 'UNANSWERED';
-};
-// Opt-out attendance: where nobody was asked to confirm, families only ever say "can't come".
-const optOutDefault = (event, playerId) => { const r = defaultResponse(event, playerId); return r === 'GOING' && !P.confirmationRequested(event) ? 'UNANSWERED' : r; };
-const responseOf = (event, playerId) => S.sessionResponses.get(`${event.id}:${playerId}`) ?? optOutDefault(event, playerId);
-function overviewDto(s) {
+function overviewDto(s, headers) {
+  const access = squadAccess(s, headers);
   const families = S.familiesOf(s.id);
   const coaches = coachesOf(s);
-  const week = sessionEvents(s).filter(e => e.start > W.NOW && e.start - W.NOW < 7 * 86400000);
+  const week = sessionEvents(s).filter(e => e.start > W.NOW && e.start - W.NOW < 7 * 86400000 && canReadSquadSession(e, access));
   const latestImportant = S.squadMessages.filter(m => m.squadId === s.id && m.kind === 'ANNOUNCEMENT' && m.important && !m.removed).sort((a, b) => b.createdAt - a.createdAt)[0];
   return {
-    ...spaceDto(s), viewer_id: ME, member_count: s.playerIds.length + families.filter(id => !s.playerIds.includes(id)).length + coaches.length,
-    notify_chat: S.squadNotify.get(s.id) ?? true, head_coach_id: s.headCoachId, can_assign_coach: true,
-    available_coaches: W.staff.filter(x => x.kind === 'COACH').map(x => ({ user_id: x.personId, full_name: displayName(x.personId) })),
+    ...spaceDto(s, headers), viewer_id: access.viewer, member_count: s.playerIds.length + families.filter(id => !s.playerIds.includes(id)).length + coaches.length,
+    notify_chat: S.squadNotify.get(access.viewer === ME ? s.id : `${s.id}:${access.viewer}`) ?? true, head_coach_id: s.headCoachId, can_assign_coach: access.canAssignCoach,
+    available_coaches: access.canAssignCoach ? availableCoaches(s).map(x => ({ user_id: x.personId, full_name: displayName(x.personId) })) : [],
     coaches: coaches.map(id => ({ user_id: id, full_name: displayName(id) })),
     // Only what the roster shows about another child: name, shirt number, position, photo (refinement 4).
     players: s.playerIds.map(id => ({ id, name: displayName(id), number: person(id)?.shirtNumber ?? null, position: person(id)?.position ?? null, photo_url: person(id)?.avatarUrl ?? null })),
-    threads: families.map(id => ({ user_id: id, full_name: person(id).role === 'PARENT' ? `${displayName(id)} (${person(S.childOf(id))?.firstName ?? 'family'})` : displayName(id), unread_count: S.squadUnread.get(s.id)?.get(id) ?? 0 })),
+    threads: (access.canManage ? families : [access.viewer]).map(id => ({ user_id: id, full_name: person(id)?.role === 'PARENT' ? `${displayName(id)} (${person(S.childOf(id))?.firstName ?? 'family'})` : displayName(id), unread_count: S.squadUnread.get(s.id)?.get(id) ?? 0 })),
     attention: {
       upcoming_sessions: week.length,
-      replies_needed: week.filter(e => P.confirmationRequested(e)).reduce((n, e) => n + s.playerIds.filter(id => responseOf(e, id) === 'UNANSWERED').length, 0),
+      replies_needed: week.filter(e => P.confirmationRequested(e)).reduce((n, e) => n + (e.invitedPlayerIds ?? s.playerIds).filter(id => (access.canManage || access.playerIds.includes(id)) && responseOf(e, id) === 'UNANSWERED').length, 0),
       acknowledgements_needed: latestImportant ? families.filter(id => !latestImportant.acknowledged.has(id)).length : 0,
     },
   };
 }
-const squadMessageDto = m => {
+const squadMessageDto = (m, viewer = ME) => {
   const reactions = [...m.reactions.entries()].map(([user_id, reaction]) => ({ user_id, full_name: displayName(user_id), reaction }));
   return {
     id: m.id, author_id: m.authorId, author_name: displayName(m.authorId), thread_user_id: m.threadUserId, kind: m.kind, title: m.title, body: m.body, important: m.important,
-    created_at: iso(m.createdAt), expires_at: m.expiresAt ? iso(m.expiresAt) : null, acknowledgement_requested: m.important && m.authorId !== ME, acknowledged_at: m.acknowledged.has(ME) ? iso(m.acknowledged.get(ME)) : null,
+    created_at: iso(m.createdAt), expires_at: m.expiresAt ? iso(m.expiresAt) : null, acknowledgement_requested: m.important && m.authorId !== viewer, acknowledged_at: m.acknowledged.has(viewer) ? iso(m.acknowledged.get(viewer)) : null,
     acknowledged_by: [...m.acknowledged.entries()].map(([user_id, at]) => ({ user_id, full_name: displayName(user_id), acknowledged_at: iso(at) })),
     reactions, comment_count: m.comments.length,
   };
 };
-const withSquad = fn => ({ params, ...req }) => { const s = squadFor(params.id); return s ? fn(s, { params, ...req }) : forbidden('This squad space is not available to you.'); };
+const withSquad = fn => async ({ params, ...req }) => {
+  const s = squadFor(params.id), access = squadAccess(s, req.headers);
+  if (!access) return forbidden('This squad space is not available to you.');
+  const session = params.sid ? sessionEvents(s).find(event => event.id === Number(params.sid)) : null;
+  if (session && !canReadSquadSession(session, access)) return forbidden('This session invitation is not available to your family.');
+  if (!access.canManage) {
+    const thread = req.query?.get('threadUserId') ?? req.body?.threadUserId;
+    if (thread != null && Number(thread) !== access.viewer) return forbidden('Use your own family conversation.');
+    const message = params.mid ? S.squadMessages.find(m => m.squadId === s.id && m.id === Number(params.mid)) : null;
+    if (message?.threadUserId != null && Number(message.threadUserId) !== access.viewer) return forbidden('This private conversation is not yours.');
+    if (req.path.endsWith('/receipts')) return forbidden('Only the coaches see acknowledgements.');
+    const allowed = req.method === 'GET' || req.method === 'POST' && (/\/read$|\/acknowledge$|\/comments$/.test(req.path) || req.path.endsWith('/messages') && req.body?.kind === 'CHAT') || req.method === 'PUT' && (/\/reactions$|\/preferences$/.test(req.path) || req.path.endsWith('/attendance') && access.playerIds.includes(Number(req.body?.playerId)));
+    if (!allowed) return forbidden('This action needs squad staff or authority for your own child.');
+  }
+  const result = await fn(s, { params, ...req });
+  const project = value => value?.attendance ? projectSquadSession(s, value, access, { selectedPlayerId: req.query?.get('playerId') }) : value;
+  return Array.isArray(result) ? result.map(project).filter(value => value !== null) : project(result);
+};
 const findSquadMessage = (s, id) => S.squadMessages.find(m => m.squadId === s.id && m.id === Number(id) && !m.removed);
 
-get('/squad-communication', () => S.MY_SQUADS.map(id => spaceDto(W.squadById(id))));
-get('/squad-communication/:id', withSquad(s => overviewDto(s)));
-get('/squad-communication/:id/messages', withSquad((s, { query }) => {
+get('/squad-communication', ({ headers }) => W.squads.filter(s => {
+  const access = squadAccess(s, headers);
+  return access && (s.clubId !== 1 && access.canManage || S.MY_SQUADS.includes(s.id) || access.playerIds.length);
+}).map(s => spaceDto(s, headers)));
+get('/squad-communication/:id', withSquad((s, { headers }) => overviewDto(s, headers)));
+get('/squad-communication/:id/messages', withSquad((s, { query, headers }) => {
   const kind = query.get('kind') === 'CHAT' ? 'CHAT' : 'ANNOUNCEMENT';
   const thread = query.get('threadUserId') ? Number(query.get('threadUserId')) : null;
   const before = query.get('before') ? Number(query.get('before')) : Infinity;
   return S.squadMessages.filter(m => m.squadId === s.id && !m.removed && m.kind === kind && (kind === 'ANNOUNCEMENT' || m.threadUserId === thread) && m.id < before)
-    .sort((a, b) => b.id - a.id).slice(0, 50).map(squadMessageDto);
+    .sort((a, b) => b.id - a.id).slice(0, 50).map(m => squadMessageDto(m, viewerOf(headers)));
 }));
-post('/squad-communication/:id/messages', withSquad((s, { body }) => {
+post('/squad-communication/:id/messages', withSquad((s, { body, headers }) => {
   const text = String(body?.body ?? '').trim();
   if (!text) return badRequest('Write a message first.');
   const kind = body?.kind === 'CHAT' ? 'CHAT' : 'ANNOUNCEMENT';
   const expiresAt = kind === 'ANNOUNCEMENT' && body?.expiresAt ? new Date(body.expiresAt) : null;
   if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date())) return badRequest('Choose a pinned-until day from today on.');
   // A retried post with the same request id returns the first one.
-  const repeat = body?.requestId && S.squadMessages.find(x => x.requestId === body.requestId);
+  const repeat = body?.requestId && S.squadMessages.find(x => x.squadId === s.id && x.authorId === viewerOf(headers) && x.requestId === body.requestId);
   if (repeat) return created({ id: repeat.id });
-  const m = { id: S.newSquadMessageId(), squadId: s.id, authorId: ME, threadUserId: body?.threadUserId ?? null, kind, title: body?.title ?? null, body: text, important: !!body?.important, createdAt: new Date(), expiresAt, requestId: body?.requestId ?? null, reactions: new Map(), comments: [], acknowledged: new Map() };
+  const m = { id: S.newSquadMessageId(), squadId: s.id, authorId: viewerOf(headers), threadUserId: body?.threadUserId ?? null, kind, title: body?.title ?? null, body: text, important: !!body?.important, createdAt: new Date(), expiresAt, requestId: body?.requestId ?? null, reactions: new Map(), comments: [], acknowledged: new Map() };
   S.squadMessages.push(m);
   return created({ id: m.id });
 }));
 post('/squad-communication/:id/read', withSquad((s, { body }) => { const thread = body?.threadUserId; if (thread != null) S.squadUnread.get(s.id)?.set(Number(thread), 0); return noContent(); }));
-post('/squad-communication/:id/messages/:mid/acknowledge', withSquad((s, { params }) => { const m = findSquadMessage(s, params.mid); if (!m) return notFound(); m.acknowledged.set(ME, new Date()); return squadMessageDto(m); }));
+post('/squad-communication/:id/messages/:mid/acknowledge', withSquad((s, { params, headers }) => { const m = findSquadMessage(s, params.mid); if (!m) return notFound(); m.acknowledged.set(viewerOf(headers), new Date()); return squadMessageDto(m, viewerOf(headers)); }));
 del('/squad-communication/:id/messages/:mid', withSquad((s, { params }) => { const m = findSquadMessage(s, params.mid); if (!m) return notFound(); m.removed = true; return noContent(); }));
 get('/squad-communication/:id/messages/:mid/receipts', withSquad((s, { params }) => {
   const m = findSquadMessage(s, params.mid);
   if (!m) return notFound();
   return S.familiesOf(s.id).map(id => ({ user_id: id, full_name: displayName(id), acknowledged_at: m.acknowledged.has(id) ? iso(m.acknowledged.get(id)) : null }));
 }));
-put('/squad-communication/:id/messages/:mid/reactions', withSquad((s, { params, body }) => {
+put('/squad-communication/:id/messages/:mid/reactions', withSquad((s, { params, body, headers }) => {
   const m = findSquadMessage(s, params.mid);
   if (!m) return notFound();
-  if (body?.active) m.reactions.set(ME, body.reaction); else if (m.reactions.get(ME) === body?.reaction) m.reactions.delete(ME);
-  return squadMessageDto(m);
+  const viewer = viewerOf(headers);
+  if (body?.active) m.reactions.set(viewer, body.reaction); else if (m.reactions.get(viewer) === body?.reaction) m.reactions.delete(viewer);
+  return squadMessageDto(m, viewer);
 }));
 const updateCommentDto = c => ({ id: c.id, author_id: c.authorId, author_name: displayName(c.authorId), body: c.body, created_at: iso(c.createdAt) });
 get('/squad-communication/:id/messages/:mid/comments', withSquad((s, { params, query }) => {
@@ -690,37 +706,38 @@ get('/squad-communication/:id/messages/:mid/comments', withSquad((s, { params, q
   const before = query.get('before') ? Number(query.get('before')) : Infinity;
   return m.comments.filter(c => c.id < before && !c.removed).slice(-50).map(updateCommentDto);
 }));
-post('/squad-communication/:id/messages/:mid/comments', withSquad((s, { params, body }) => {
+post('/squad-communication/:id/messages/:mid/comments', withSquad((s, { params, body, headers }) => {
   const m = findSquadMessage(s, params.mid);
   if (!m) return notFound();
-  const c = { id: S.newCommentId(), authorId: ME, body: String(body?.body ?? '').trim(), createdAt: new Date() };
+  const c = { id: S.newCommentId(), authorId: viewerOf(headers), body: String(body?.body ?? '').trim(), createdAt: new Date() };
   if (!c.body) return badRequest('Write a comment first.');
   m.comments.push(c);
   return created(updateCommentDto(c));
 }));
 del('/squad-communication/:id/messages/:mid/comments/:cid', withSquad((s, { params }) => { const m = findSquadMessage(s, params.mid); const c = m?.comments.find(x => x.id === Number(params.cid)); if (!c) return notFound(); c.removed = true; return noContent(); }));
-put('/squad-communication/:id/preferences', withSquad((s, { body }) => { S.squadNotify.set(s.id, !!body?.notifyChat); return { notifyChat: S.squadNotify.get(s.id) }; }));
-put('/squad-communication/:id/coach', withSquad((s, { body }) => { s.headCoachId = body?.userId ? Number(body.userId) : null; return overviewDto(s); }));
-function sessionDto(s, e) {
-  const venue = W.venueById(e.venueId);
-  return {
-    id: e.id, title: e.type === 'MATCH' ? e.title : e.title, event_type: e.type, description: e.type === 'MATCH' ? `${e.competition} · ${e.kind === 'LEAGUE' ? 'League match' : 'Friendly'}` : e.notes ?? null,
-    starts_at: W.local(e.start), ends_at: W.local(e.end), location: venue ? `${venue.name}${e.pitch ? ` · ${e.pitch}` : ''}` : null,
-    status: e.cancelled ? 'CANCELLED' : 'SCHEDULED', cancellation_reason: e.cancelled ?? null, revision: e.revision ?? 1, response_revision: 1, response_kind: 'INTENT',
-    response_requested: P.confirmationRequested(e), series_id: e.type === 'TRAINING' ? `squad-${s.id}-training` : null,
-    attendance: s.playerIds.map(id => ({ id, name: displayName(id), response: responseOf(e, id), reason: responseOf(e, id) === 'NOT_GOING' ? P.replyReasons.get(`${e.id}:${id}`) ?? (S.sessionResponses.has(`${e.id}:${id}`) ? null : P.defaultReason(e.id, id)) : null, active: true, response_status: 'CURRENT', response_valid: true, previous_response: null, recorded_by: responseOf(e, id) === 'UNANSWERED' ? null : 'PLAYER', responded_at: null })),
-    venue_reservation: null, introductory_visitors: [],
-  };
-}
-get('/squad-communication/:id/sessions', withSquad((s, { query }) => {
+put('/squad-communication/:id/preferences', withSquad((s, { body, headers }) => { const key = viewerOf(headers) === ME ? s.id : `${s.id}:${viewerOf(headers)}`; S.squadNotify.set(key, !!body?.notifyChat); return { notifyChat: S.squadNotify.get(key) }; }));
+put('/squad-communication/:id/coach', withSquad((s, { body, headers }) => {
+  if (!squadAccess(s, headers)?.canAssignCoach) return forbidden('Only academy leadership can appoint the squad coach.');
+  const userId = body?.userId;
+  if (userId !== null && (!Number.isSafeInteger(userId) || userId <= 0 || !availableCoaches(s).some(coach => coach.personId === userId))) {
+    return badRequest('Choose a current coach from this academy staff, or explicitly clear the appointment.');
+  }
+  s.headCoachId = userId;
+  return overviewDto(s, headers);
+}));
+get('/squad-communication/:id/sessions', withSquad((s, { query, headers }) => {
+  const access = squadAccess(s, headers), selected = query.get('playerId');
+  if (!canSelectSessionPlayer(s, access, selected)) return forbidden('Choose your own authorized player.');
   const from = query.get('from') ? new Date(query.get('from')) : new Date(W.NOW.getTime() - 7 * 86400000);
   const to = query.get('to') ? new Date(query.get('to')) : new Date(W.NOW.getTime() + 28 * 86400000);
-  return sessionEvents(s).filter(e => e.end >= from && e.start <= to).map(e => sessionDto(s, e));
+  return sessionEvents(s).filter(e => e.end >= from && e.start <= to && canReadSquadSession(e, access))
+    .filter(e => selected == null || (e.invitedPlayerIds ?? s.playerIds).includes(Number(selected))).map(e => sessionDto(s, e));
 }));
 put('/squad-communication/:id/sessions/:sid/attendance', withSquad((s, { params, body }) => {
   const e = sessionEvents(s).find(x => x.id === Number(params.sid));
   if (!e) return notFound('Session not found.');
   if (!s.playerIds.includes(Number(body?.playerId))) return badRequest('This player is not in the squad.');
+  if (e.invitationPlan && !e.invitedPlayerIds?.includes(Number(body?.playerId))) return forbidden('This player was not invited to this session.');
   S.sessionResponses.set(`${e.id}:${Number(body.playerId)}`, body?.response === 'NOT_GOING' ? 'NOT_GOING' : body?.response === 'GOING' ? 'GOING' : body?.response === 'UNSURE' ? 'UNSURE' : 'UNANSWERED');
   if (body?.response === 'NOT_GOING' && body?.reason) P.replyReasons.set(`${e.id}:${Number(body.playerId)}`, String(body.reason).trim().slice(0, 140)); else if (body?.response !== 'NOT_GOING') P.replyReasons.delete(`${e.id}:${Number(body.playerId)}`);
   return sessionDto(s, e);

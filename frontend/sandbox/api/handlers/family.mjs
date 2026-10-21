@@ -11,9 +11,10 @@ import { FAMILY, SECOND_GUARDIAN, statements, familyRequest, familyOf, newChildI
 
 /** The signed-in parent: their id, name and birth date, and whether the second guardian (parent mode only) exists. */
 const parentOf = headers => {
-  if (familyRequest(headers)) return { id: W.ME_ID, name: W.me.fullName, dateOfBirth: '1988-04-12', gender: 'MALE', luka: true };
   const account = V.account(V.viewerId(headers));
-  return account ? { id: account.id, name: account.fullName, dateOfBirth: account.dateOfBirth ?? null, gender: null, luka: false } : null;
+  if (account) return { id: account.id, name: account.fullName, dateOfBirth: account.dateOfBirth ?? null, gender: null, luka: false };
+  if (familyRequest(headers)) return { id: W.ME_ID, name: W.me.fullName, dateOfBirth: '1988-04-12', gender: 'MALE', luka: true };
+  return null;
 };
 /** A family with at least one child; a new person with none yet is left to newcomer.mjs. */
 const withChildren = headers => { const family = familyOf(headers); return family?.length ? family : null; };
@@ -31,6 +32,14 @@ const clubsOf = child => [...new Set(squadsOf(child).map(s => s.clubId))].map(cl
 const state = { invitations: [], revoked: new Set(), codes: [] };
 let nextFamilyId = 99001;
 const secondGuardian = (parent, child) => parent.luka && !state.revoked.has(child.id);
+
+get('/squad-communication', ({ headers }) => {
+  const parent = parentOf(headers), children = withChildren(headers);
+  if (!parent || parent.luka || !children) return undefined;
+  return W.squads.filter(squad => children.some(child => squad.playerIds.includes(child.id))).map(squad => ({
+    id: squad.id, club_id: squad.clubId, academy_name: W.clubById(squad.clubId)?.name ?? '', name: squad.name, category: squad.ageGroup, can_manage: false, unread_count: 0,
+  }));
+});
 
 get('/admissions/home', ({ headers }) => {
   const family = withChildren(headers), parent = parentOf(headers);
@@ -79,6 +88,8 @@ post('/family/children', ({ headers, body }) => {
   if (repeat) return { childId: repeat.id, name: repeat.name };
   const child = { id: newChildId(), name: fullName, dateOfBirth, gender: null, positions: [], requestId: body.requestId ?? null };
   family.push(child);
+  const parent = parentOf(headers);
+  if (parent && !W.parents.some(link => link.parentId === parent.id && link.childId === child.id)) W.parents.push({ parentId: parent.id, childId: child.id });
   if (!W.personById(child.id)) { const [first, ...rest] = fullName.split(/\s+/); W.people.push({ id: child.id, firstName: first, lastName: rest.join(' '), fullName, username: null, gender: 'MALE', role: 'PLAYER', birthYear: Number(dateOfBirth.slice(0, 4)), city: 'Tbilisi', clubId: null, position: null, headline: null, avatarUrl: null }); }
   return { __created: true, childId: child.id, name: child.name };
 });

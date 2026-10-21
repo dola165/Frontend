@@ -12,6 +12,7 @@ import { PlayerCardEditor } from './PlayerCardEditor';
 import { useAdmissionCopy } from './copy';
 import { useAdmissionData } from './useAdmissionData';
 import { useAdmissionMutation } from './useAdmissionMutation';
+import { formatDateTime } from '../../../utils/formatting';
 import { useInquiryCopy } from '../inquiryPresentation';
 
 export function GeneralAdmissionInquiryPage() {
@@ -28,7 +29,7 @@ function GeneralInquiryContent({organizationId}:{organizationId:number}) {
     const people:{id:number;name:string}[]=home.error?[]:[...(home.data?.participants??[])];
     if(!home.error&&user?.id&&!people.some(p=>p.id===user.id))people.unshift({id:user.id,name:user.fullName||user.username||copy('Myself','მე')});
     const person=people.find(p=>p.id===selected);
-    return <AdmissionFrame title={copy('Ask for a suitable football arrangement','შესაფერისი საფეხბურთო მონაწილეობის შესახებ კითხვა')} description={organization.data?.profile.displayName} back="/world/opportunities?tab=groups">
+    return <AdmissionFrame playerId={person?.id??null} title={copy('Ask for a suitable football arrangement','შესაფერისი საფეხბურთო მონაწილეობის შესახებ კითხვა')} description={organization.data?.profile.displayName} back="/world/opportunities?tab=groups">
         {organization.loading?<AdmissionLoading/>:organization.error?<AdmissionError message={organization.error} retry={organization.refresh}/>:<section className="admission-panel">
             <p>{copy('You can ask the organization to recommend a group before choosing one. This inquiry agrees to no schedule, fees, attendance or enrollment.','შეგიძლიათ ჯგუფის არჩევამდე ორგანიზაციას რჩევა სთხოვოთ. კითხვა განრიგზე, გადასახადზე, დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p>
             {home.loading?<AdmissionLoading/>:home.error?<AdmissionError message={home.error} retry={home.refresh}/>:<>
@@ -37,7 +38,7 @@ function GeneralInquiryContent({organizationId}:{organizationId:number}) {
                 {home.data?.selfCardNeedsDetails&&user?.id&&<PlayerCardEditor playerId={user.id} initialName={user.fullName||user.username||''} onChanged={home.refresh}/>}
             </>}
             <AddChild onCreated={id=>{home.refresh();setSelected(id);}}/>
-            <Link className="admission-button" to={playerPath("/parent",selected)}>{copy('Manage existing child connections','არსებული ბავშვის კავშირების მართვა')}</Link>
+            <Link className="admission-button" to={playerPath("/parent?tab=connections",person?.id)}>{copy('Manage existing child connections','არსებული ბავშვის კავშირების მართვა')}</Link>
         </section>}
     </AdmissionFrame>;
 }
@@ -63,14 +64,14 @@ function InquiryContent({id}:{id:number}) {
     const tab=useAdmissionTab(['overview','conversation','history']);
     const inquiry=data.data;const [detailsParams]=useSearchParams();
     if(inquiry?.conversationDestination&&inquiry.playerId&&detailsParams.get("details")!=="1")return <Navigate to={inquiry.conversationDestination} replace/>;
-    return <AdmissionFrame title={copy('Your club enquiry','თქვენი კითხვა კლუბისთვის')} description={data.error?undefined:inquiry?.organizationName} back="/admissions" tabs={[{id:'overview',label:copy('Overview','მიმოხილვა')},{id:'conversation',label:copy('Conversation','საუბარი')},{id:'history',label:copy('History','ისტორია')}]} activeTab={tab}>
+    return <AdmissionFrame playerId={inquiry?.playerId} title={copy('Your club enquiry','თქვენი კითხვა კლუბისთვის')} description={data.error?undefined:inquiry?.organizationName} back="/admissions" tabs={[{id:'overview',label:copy('Overview','მიმოხილვა')},{id:'conversation',label:copy('Conversation','საუბარი')},{id:'history',label:copy('History','ისტორია')}]} activeTab={tab}>
         {data.loading?<AdmissionLoading/>:data.error?<AdmissionError message={data.error} retry={data.refresh}/>:inquiry&&<div className="admission-stack"><AdmissionSection active={tab==='overview'}><section className="admission-panel"><h2>{inquiry.playerName||copy("General question","ზოგადი კითხვა")}</h2><span className="admission-badge">{status(inquiry)}</span><p>{inquiry.message}</p>
             <p role="status">{next(inquiry)}</p>
             {inquiry.conversationDestination&&<Link className="admission-button" to={inquiry.conversationDestination}>{copy("Open club conversation","კლუბთან საუბრის გახსნა")}</Link>}
-            {inquiry.caseId&&<><p>{copy('Review the proposed group and its next steps. Routing this inquiry gives no consent to attendance or enrollment.','იხილეთ შემოთავაზებული ჯგუფი და შემდეგი ნაბიჯები. ამ კითხვის საქმეში გადატანა დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p><Link className="admission-button admission-primary" to={`/admissions/cases/${inquiry.caseId}`}>{copy('Review the proposed group','შემოთავაზებული ჯგუფის განხილვა')}</Link></>}
+            {inquiry.caseId&&<><p>{copy('Review the proposed group and its next steps. Routing this inquiry gives no consent to attendance or enrollment.','იხილეთ შემოთავაზებული ჯგუფი და შემდეგი ნაბიჯები. ამ კითხვის საქმეში გადატანა დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p><Link className="admission-button admission-primary" to={playerPath(`/admissions/cases/${inquiry.caseId}`,inquiry.playerId)}>{copy('Review the proposed group','შემოთავაზებული ჯგუფის განხილვა')}</Link></>}
         </section><Link className="admission-button" to={playerPath('/admissions/inquiries/'+id+'?details=1&tab=conversation',inquiry.playerId)}>{copy('Send more information','დამატებითი ინფორმაციის გაგზავნა')}</Link></AdmissionSection><AdmissionSection active={tab==='conversation'}>{inquiry.actions.includes('ASSOCIATE_PLAYER')&&<AssociateInquiryPlayer inquiry={inquiry} onChanged={data.setData} refresh={data.refresh}/>}
         {(['MESSAGE','RESOLVE','REOPEN','WITHDRAW'] as const).filter(action=>inquiry.actions.includes(action)).map(action=><InquiryResponse key={`${action}:${id}`} inquiry={inquiry} action={action} onChanged={data.setData} refresh={data.refresh}/>)}
-        </AdmissionSection><AdmissionSection active={tab==='history'}><section className="admission-panel"><h2>{copy('Inquiry history','კითხვის ისტორია')}</h2><ol className="admission-timeline">{inquiry.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{new Date(e.createdAt).toLocaleString()}</time><strong>{e.actorName}</strong>{e.message&&<p>{e.message}</p>}</li>)}</ol></section></AdmissionSection></div>}
+        </AdmissionSection><AdmissionSection active={tab==='history'}><section className="admission-panel"><h2>{copy('Inquiry history','კითხვის ისტორია')}</h2><ol className="admission-timeline">{inquiry.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{formatDateTime(e.createdAt)}</time><strong>{e.actorName}</strong>{e.message&&<p>{e.message}</p>}</li>)}</ol></section></AdmissionSection></div>}
     </AdmissionFrame>;
 }
 function InquiryResponse({inquiry:i,action,onChanged,refresh}:{inquiry:AdmissionInquiry;action:Extract<InquiryAction,'MESSAGE'|'WITHDRAW'|'RESOLVE'|'REOPEN'>;onChanged:(i:AdmissionInquiry)=>void;refresh:()=>void}) {

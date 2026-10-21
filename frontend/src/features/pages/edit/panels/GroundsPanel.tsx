@@ -4,7 +4,7 @@ import type { MapBounds } from '../../../../components/map/areaSearch';
 import { Button, List, ListRow, Skeleton } from '../../../../design/primitives';
 import { fetchPitches, reverseGeocode, type Ground, type Pitch } from '../../api';
 import { usePagesCopy } from '../../copy';
-import { setPetHint, usePetAnswer } from '../../guide/bridge';
+import { setPetHint, useGuideTask, usePetAnswer } from '../../guide/bridge';
 import { usePageEdit } from '../context';
 import { SplitPanel } from '../SplitPanel';
 
@@ -52,13 +52,22 @@ export function GroundsPanel() {
     setPlaced(placing.name); setPlacing(null); setPending(null);
   };
   const save = async () => {
+    if (busy) return false;
     setBusy(true);
     // A pin still being placed counts as placed.
     const items = chosen.map(ground => (ground.id === placing?.id && pending ? { ...ground, latitude: pending.lat, longitude: pending.lng, address: pending.address ?? ground.address } : ground));
-    try { await saveBox('grounds', { items: items.map(ground => ({ ...ground, id: ground.id < 0 ? undefined : ground.id })) }, { label: t('Grounds saved') }); closePanel(); } finally { setBusy(false); }
+    try { const ok = await saveBox('grounds', { items: items.map(ground => ({ ...ground, id: ground.id < 0 ? undefined : ground.id })) }, { label: t('Grounds saved') }); if (ok) closePanel(); return ok; } finally { setBusy(false); }
   };
-  const confirmRef = useRef(confirm), saveRef = useRef(save);
-  useEffect(() => { confirmRef.current = confirm; saveRef.current = save; });
+  useGuideTask('grounds', {
+    disabled: busy || (!chosen.length && !placing),
+    nextLabel: placing ? t('This is it') : t('Next'),
+    next: async () => {
+      if (placing) { if (pending) confirm(); return { status: 'stay' }; }
+      return { status: await save() ? 'complete' : 'stay' };
+    },
+  });
+  const confirmRef = useRef(confirm);
+  useEffect(() => { confirmRef.current = confirm; });
   // Dola follows along: to the map while a place waits for its spot, then she says it is there; once there is a
   // ground, she offers Next (saved, as Done does, and on to the next step).
   useEffect(() => {
@@ -66,7 +75,7 @@ export function GroundsPanel() {
       ? { selector: '.gk-grounds-map', quiet: true, ...(pending
         ? { line: t('There? Tap again or drag the pin to move it.'), action: { label: t('This is it'), run: () => confirmRef.current() } }
         : { line: t('Where is {name}? Tap its spot on the map.', { name: placing.name }) }) }
-      : chosen.length ? { ...(placed ? { said: t('Understood. {name} is on the map.', { name: placed }) } : {}), action: { label: t('Next'), run: () => void saveRef.current() } }
+      : chosen.length ? { ...(placed ? { said: t('Understood. {name} is on the map.', { name: placed }) } : {}) }
       : null);
   }, [chosen.length, pending, placed, placing, t]);
   useEffect(() => () => setPetHint('grounds', null), []);

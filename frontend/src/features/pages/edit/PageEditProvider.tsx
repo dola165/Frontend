@@ -134,24 +134,25 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   useEffect(() => { runRef.current = run; }, [run]);
 
   const saveIdentity = useCallback(async (patch: IdentityPatch, options: SaveOptions = {}) => {
-    const before = pageState.current; if (!before) return;
+    const before = pageState.current; if (!before) return false;
     const previous = Object.fromEntries(Object.keys(patch).map(field => [field, before.identity[field as keyof PageIdentity]])) as IdentityPatch;
-    await run(current => saveIdentityCall(pageRef, current.identity.version, patch), { ...options, undo: current => saveIdentityCall(pageRef, current.identity.version, previous), remember: { kind: 'identity', patch, id: crypto.randomUUID() } });
+    return run(current => saveIdentityCall(pageRef, current.identity.version, patch), { ...options, undo: current => saveIdentityCall(pageRef, current.identity.version, previous), remember: { kind: 'identity', patch, id: crypto.randomUUID() } });
   }, [pageRef, run]);
 
   const saveBox = useCallback(async <K extends SavableBox>(boxKey: K, data: unknown, options: SaveOptions = {}) => {
-    const before = pageState.current; if (!before) return;
+    const before = pageState.current; if (!before) return false;
     const previous = boxData(boxKey, before.boxes[boxKey]);
     const wasDone = before.setup.items.find(item => item.key === (boxKey as string))?.done;
     const ok = await run(current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, data), { ...options, undo: current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, previous), remember: { kind: 'box', key: boxKey, data, id: crypto.randomUUID() } });
     const after = pageState.current;
     if (ok && after && !wasDone && after.setup.items.find(item => item.key === (boxKey as string))?.done) recordFunnelEvent('PAGE_BOX_FILLED', { box: boxKey, pageRef: `${pageRef.type}-${pageRef.id}` });
+    return ok;
   }, [pageRef, run]);
 
   const saveLayout = useCallback(async (layout: PageLayout, options: SaveOptions = {}) => {
-    const before = pageState.current; if (!before) return;
+    const before = pageState.current; if (!before) return false;
     const previous: PageLayout = { columns: before.layout.columns, hidden: before.layout.hidden };
-    await run(current => saveLayoutCall(pageRef, current.layout.version, layout), {
+    return run(current => saveLayoutCall(pageRef, current.layout.version, layout), {
       optimistic: current => ({ ...current, layout: { ...current.layout, ...layout } }), ...options,
       undo: current => saveLayoutCall(pageRef, current.layout.version, previous), remember: { kind: 'layout', layout, id: crypto.randomUUID() },
     });

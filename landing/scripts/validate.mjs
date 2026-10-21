@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const vnu = String(createRequire(import.meta.url)('vnu-jar'));
 const dist = (file) => fileURLToPath(new URL(`../dist/${file}`, import.meta.url));
-const files = ['index.html', 'styles.css', 'kick.css', 'network.css', 'assets/grasskickz-lockup.svg', 'assets/favicon.svg'].map(dist);
+const files = ['index.html', 'styles.css', 'kick.css', 'hub.css', 'assets/grasskickz-lockup.svg', 'assets/favicon.svg'].map(dist);
 
 try {
   execFileSync('java', ['-jar', vnu, '--also-check-css', '--also-check-svg', '--verbose', ...files], { stdio: 'inherit' });

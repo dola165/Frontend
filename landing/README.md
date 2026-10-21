@@ -4,8 +4,8 @@ The one-screen page at grasskickz.com, behind the private-preview lock screen. I
 site for Cloudflare Pages and is separate from the web app in `frontend/`, which it never imports.
 
 - `src/` — the page (`index.html`; `styles.css` for the page, layout and the corner link,
-  `kick.css` for the kick-off line and ball, `network.css` for the picture of what Grasskickz
-  connects; no JavaScript), `_headers` for Pages, icons, the share card and `lock/photo.jpg`.
+  `kick.css` for the kick-off line and ball, `hub.css` for the hub of everything grassroots
+  football brings together; no JavaScript), `_headers` for Pages, icons, the share card and `lock/photo.jpg`.
 - `scripts/build.mjs` — copies `src/` to `dist/` and adds the two self-hosted font files
   (Unbounded ExtraBold, Bricolage Grotesque Medium) from the pinned `@fontsource` packages, so the
   page makes no requests to other hosts.
@@ -27,4 +27,6 @@ the Worker serves it on the lock screen. The corner link opens the app.
 
 The lockup (`assets/grasskickz-lockup.svg`) is the master artwork from the Grasskickz brand book
 (Concept F v2, primary dark lockup), taken from the book's vector paths, not redrawn. Replace it if
-the founders supply master SVG files. Colours and type follow the same book.
+the founders supply master SVG files. Colours and type follow the same book. Five hub icons
+(training, tournaments, messages, volunteers, sponsors) are from Lucide (ISC licence, the icon set
+the web app already uses); the others are drawn for this page.

@@ -169,9 +169,10 @@ body {
   color: var(--lime);
 }
 
-/* The way into the app, in the bottom-right corner: a quiet link and, under it, the password bar. */
+/* The way in, in the bottom-right corner: "Open Grasskickz" labels the password bar under it. */
 
 .corner {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -179,6 +180,7 @@ body {
   grid-column: 2;
   grid-row: 2;
   justify-self: end;
+  margin: 0;
 }
 
 .open-app {
@@ -191,6 +193,7 @@ body {
   color: var(--muted);
   font-size: 15px;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .open-app-arrow {
@@ -224,16 +227,6 @@ body {
   position: relative;
   width: 320px;
   max-width: 100%;
-  margin: 0;
-}
-
-.pass-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 .pass-field {
@@ -285,6 +278,20 @@ body {
 .pass-go:focus-visible {
   outline: 3px solid var(--cream);
   outline-offset: 2px;
+}
+
+.pass-field[aria-invalid='true'] {
+  border-color: #FF9E8F;
+}
+
+/* Under the bar, in the page margin, so the corner never shifts. */
+.pass-wrong {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin: 8px 0 0;
+  color: #FF9E8F;
+  font-size: 14px;
 }
 
 
@@ -344,6 +351,11 @@ body {
 
   .pass {
     width: 100%;
+  }
+
+  .pass-wrong {
+    position: static;
+    margin: 0;
   }
 
   /* The bar spans the bottom of the screen; the corner arc steps aside. */

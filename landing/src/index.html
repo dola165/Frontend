@@ -15,7 +15,7 @@
   <meta property="og:url" content="https://grasskickz.com/">
   <meta property="og:title" content="Grasskickz">
   <meta property="og:description" content="Grasskickz is in private preview: clubs, squads, families and matches, together in one place.">
-  <meta property="og:image" content="https://grasskickz.com/assets/share.png">
+  <meta property="og:image" content="https://grasskickz.com/__preview/assets/share.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -23,17 +23,18 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Grasskickz">
   <meta name="twitter:description" content="Grasskickz is in private preview: clubs, squads, families and matches, together in one place.">
-  <meta name="twitter:image" content="https://grasskickz.com/assets/share.png">
+  <meta name="twitter:image" content="https://grasskickz.com/__preview/assets/share.png">
   <meta name="twitter:image:alt" content="Grasskickz. We’re marking out the pitch.">
 
-  <link rel="icon" href="/favicon.ico" sizes="32x32">
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-  <link rel="preload" href="/fonts/unbounded-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/fonts/bricolage-grotesque-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/kick.css">
-  <link rel="stylesheet" href="/hub.css">
+  <link rel="icon" href="/__preview/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/__preview/assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/__preview/assets/apple-touch-icon.png">
+  <link rel="preload" href="/__preview/fonts/unbounded-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/__preview/fonts/bricolage-grotesque-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/__preview/styles.css">
+  <link rel="stylesheet" href="/__preview/kick.css">
+  <link rel="stylesheet" href="/__preview/hub.css">
+  <script src="/__preview/landing.js" defer></script>
 </head>
 <body>
   <div class="pitch" aria-hidden="true">
@@ -51,7 +52,7 @@
 
   <main class="stage">
     <section class="intro">
-      <img class="lockup" src="/assets/grasskickz-lockup.svg" width="1084" height="199" alt="Grasskickz. Connecting the game.">
+      <img class="lockup" src="/__preview/assets/grasskickz-lockup.svg" width="1084" height="199" alt="Grasskickz. Connecting the game.">
       <p class="pill"><span class="pill-dot"></span>Private preview</p>
       <h1 class="headline"><span>We’re</span> <span>marking out</span> <span class="headline-lime">the pitch.</span></h1>
       <svg class="kick" viewBox="0 0 640 240" aria-hidden="true" focusable="false">
@@ -216,15 +217,16 @@
       </svg>
     </figure>
 
-    <div class="corner">
-      <a class="open-app" id="team" href="https://app.grasskickz.com/home">Open Grasskickz<span class="open-app-arrow" aria-hidden="true">→</span></a>
-      <form class="pass" method="post" action="https://app.grasskickz.com/__preview/unlock">
-        <label class="pass-label" for="pass">Password</label>
-        <input type="hidden" name="next" value="/home">
+    <form class="corner" method="post" action="/__preview/unlock">
+      <label class="open-app" for="pass">Open Grasskickz<span class="open-app-arrow" aria-hidden="true">→</span></label>
+      <input type="text" name="username" value="Grasskickz" autocomplete="username" hidden>
+      <input type="hidden" name="next" value="/">
+      <div class="pass">
         <input class="pass-field" id="pass" name="password" type="password" placeholder="Password" autocomplete="current-password" autocapitalize="off" spellcheck="false" enterkeyhint="go" maxlength="64" required>
         <button class="pass-go" type="submit" aria-label="Enter"><span aria-hidden="true">→</span></button>
-      </form>
-    </div>
+      </div>
+      <p class="pass-wrong" id="pass-wrong" hidden>Wrong password</p>
+    </form>
   </main>
 </body>
 </html>

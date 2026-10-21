@@ -1,5 +1,6 @@
-// Serves landing/dist locally the way Cloudflare Pages will: unknown paths fall
-// back to index.html and the rules in _headers are applied.
+// Serves landing/dist locally the way the lock Worker and Cloudflare Pages will: the
+// page's files live under /__preview/, unknown paths fall back to index.html, and the
+// rules in _headers are applied.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
@@ -33,7 +34,8 @@ const matches = (pattern, path) => pattern.endsWith('*') ? path.startsWith(patte
 export async function startServer(port = 0) {
   const rules = parseHeaders(await readFile(dist + '_headers', 'utf8'));
   const server = createServer(async (request, response) => {
-    const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+    const requested = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+    const path = requested.startsWith('/__preview/') ? requested.slice('/__preview'.length) : requested;
     let file = path.endsWith('/') ? path + 'index.html' : path;
     let body;
     try {

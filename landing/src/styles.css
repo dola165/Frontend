@@ -30,7 +30,7 @@
   --muted: rgb(246 241 230 / 0.76);
   --display: 'Unbounded', 'Arial Black', system-ui, sans-serif;
   --body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --edge: clamp(24px, 7.3vw, 140px);
+  --edge: clamp(24px, 13.5vw, 260px);
   --block: clamp(20px, 6.5vh, 72px);
   color-scheme: dark;
 }
@@ -128,7 +128,7 @@ body {
 
 .lockup {
   display: block;
-  width: clamp(240px, 22vw, 440px);
+  width: clamp(220px, 14vw, 280px);
   height: auto;
 }
 
@@ -156,7 +156,7 @@ body {
 
 .headline {
   margin: clamp(16px, 3.6vh, 40px) 0 0;
-  font: 800 min(5.6vw, 10.4vh)/0.98 var(--display);
+  font: 800 min(4.7vw, 9.2vh)/0.98 var(--display);
   letter-spacing: -0.025em;
 }
 
@@ -341,13 +341,13 @@ body {
   }
 
   .pill {
-    margin-top: auto;
+    margin-top: 22px;
     font-size: 11px;
   }
 
   .corner {
     align-self: stretch;
-    margin-top: auto;
+    margin-top: 36px;
   }
 
   .pass {

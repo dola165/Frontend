@@ -67,6 +67,8 @@ export const ClubStorePage = () => {
                 {actions}
             </div>
         </>}
-        <Catalogue fixedClubId={clubId} revision={revision} />
+        <Catalogue fixedClubId={clubId} revision={revision} empty={canAdd
+            ? <EmptyNote title="Your store is empty" action={<Button variant="primary" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Add your first product</Button>}>Kit, tickets or memberships: supporters buy them here.</EmptyNote>
+            : <EmptyNote title="Nothing for sale yet" action={<ButtonLink to="/store">Browse the store</ButtonLink>} />} />
     </>);
 };

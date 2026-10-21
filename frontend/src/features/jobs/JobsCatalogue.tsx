@@ -78,7 +78,8 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
  * The jobs catalogue as LinkedIn lays it out: the filter column, the toolbar, the rows on the left and the chosen
  * listing open on the right (on a narrow screen a row opens the job page). "Show on map" takes the same search to World.
  */
-export function JobsCatalogue({ fixedClubId, revision = 0, embedded = false }: { fixedClubId?: number; revision?: number; /** Inside the club page the column is narrow: rows open the job page. */ embedded?: boolean }) {
+export function JobsCatalogue({ fixedClubId, revision = 0, embedded = false, empty }: { fixedClubId?: number; revision?: number; /** Inside the club page the column is narrow: rows open the job page. */ embedded?: boolean;
+    /** Replaces the whole catalogue while the club has nothing listed (no toolbar or filters over nothing). */ empty?: ReactNode }) {
     const id = useId();
     const { query, update, jobs, total, loading, error, retry } = useJobsList(fixedClubId, revision);
     const [sheet, setSheet] = useState(false);
@@ -87,6 +88,7 @@ export function JobsCatalogue({ fixedClubId, revision = 0, embedded = false }: {
     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const selected = jobs.find(job => job.id === query.job) ?? jobs[0];
     const column = <Filters query={query} onChange={next => update(next)} fixedClub={!!fixedClubId} />;
+    if (empty && fixedClubId && !error && !loading && total === 0 && !filters.length && !query.query) return <div className="gk-store-results__empty">{empty}</div>;
     return (
         <div className="gk-store-catalogue">
             <aside className="gk-store-filters" aria-label="Filters">{column}</aside>

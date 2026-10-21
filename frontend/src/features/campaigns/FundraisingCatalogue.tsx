@@ -73,7 +73,7 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
 }
 
 /** The fundraising catalogue in the store's frame: filter column (a sheet on phones and inside the club page), toolbar, category pills, grid. */
-export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false }: { fixedClubId?: number; revision?: number; /** The viewer runs the club's fundraisers: each card gets its Manage entrance. */ manage?: boolean }) {
+export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false, empty }: { fixedClubId?: number; revision?: number; /** Replaces the whole catalogue while the club runs no fundraiser. */ empty?: ReactNode; /** The viewer runs the club's fundraisers: each card gets its Manage entrance. */ manage?: boolean }) {
     const id = useId();
     const { query, update, campaigns, total, loading, error, retry } = useFundraising(fixedClubId, revision);
     const [sheet, setSheet] = useState(false);
@@ -81,6 +81,7 @@ export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false
     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const first = query.page * PAGE_SIZE + 1, last = Math.min(total, (query.page + 1) * PAGE_SIZE);
     const column = <Filters query={query} onChange={update} fixedClub={!!fixedClubId} />;
+    if (empty && fixedClubId && !error && !loading && total === 0 && !filters.length && !query.query && query.state === 'ACTIVE') return <div className="gk-store-results__empty">{empty}</div>;
     return (
         <div className="gk-store-catalogue">
             <aside className="gk-store-filters" aria-label="Filters">{column}</aside>

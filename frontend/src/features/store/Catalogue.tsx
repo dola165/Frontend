@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button, Chip, EmptyNote, SearchInput } from '../../design/primitives';
@@ -34,9 +34,10 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
 
 /**
  * The catalogue: the filter column (a sheet on phones), the toolbar (search, count, sort, pages), category
- * shortcuts and the product grid. The search lives in the address; `fixedClubId` is a club's own store.
+ * shortcuts and the product grid. The search lives in the address; `fixedClubId` is a club's own store, and `empty`
+ * replaces the whole catalogue while that club has nothing for sale (no toolbar or filters over nothing).
  */
-export function Catalogue({ fixedClubId, revision = 0 }: { fixedClubId?: number; revision?: number }) {
+export function Catalogue({ fixedClubId, revision = 0, empty }: { fixedClubId?: number; revision?: number; empty?: ReactNode }) {
     const id = useId();
     const { query, update, products, total, loading, error, retry } = useCatalogue(fixedClubId, revision);
     const [sheet, setSheet] = useState(false);
@@ -46,6 +47,7 @@ export function Catalogue({ fixedClubId, revision = 0 }: { fixedClubId?: number;
     const change = (next: CatalogueQuery) => update(next);
     const clear = () => update(readCatalogue(new URLSearchParams(), fixedClubId));
     const column = <StoreFilters query={query} onChange={change} fixedClub={!!fixedClubId} />;
+    if (empty && fixedClubId && !error && !loading && total === 0 && !filters.length && !query.query) return <div className="gk-store-results__empty">{empty}</div>;
     const shortcuts = CATEGORIES.filter(category => category.id !== 'OTHER' && (!query.seller || query.seller === 'clubs' || ['EQUIPMENT', 'TRAINING', 'ACCESSORIES'].includes(category.id)));
     return (
         <div className="gk-store-catalogue">

@@ -42,7 +42,7 @@ try {
   const share = await browser.newPage({ viewport: { width: 1200, height: 630 }, reducedMotion: 'reduce', bypassCSP: true });
   await share.goto(`http://127.0.0.1:${server.address().port}/`);
   await share.evaluate(() => document.fonts.ready);
-  await share.addStyleTag({ content: '.gate { display: none !important; }' });
+  await share.addStyleTag({ content: '.open-app { display: none !important; }' });
   await writeFile(new URL('assets/share.png', src), await share.screenshot({ type: 'png' }));
 
   const icon = await browser.newPage({ viewport: { width: 180, height: 180 } });

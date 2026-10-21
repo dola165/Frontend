@@ -28,9 +28,6 @@
   --pitch-line: #1A2A4A;
   --pill: #1F3031;
   --muted: rgb(246 241 230 / 0.76);
-  --field: #0A1528;
-  --field-line: rgb(246 241 230 / 0.42);
-  --error: #FF9E8F;
   --display: 'Unbounded', 'Arial Black', system-ui, sans-serif;
   --body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --edge: clamp(24px, 7.3vw, 140px);
@@ -172,93 +169,51 @@ body {
   color: var(--lime);
 }
 
-/* The team password: small, in the bottom-right corner. Phones only get it through the team link. */
+/* The way into the app: a quiet link in the bottom-right corner (everyone here has unlocked). */
 
-.gate {
-  position: relative;
+.open-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
   grid-column: 2;
   grid-row: 2;
   justify-self: end;
-  width: min(100%, 320px);
-}
-
-.gate-label {
-  display: block;
-  margin-bottom: 8px;
+  min-height: 44px;
+  padding: 0 2px;
+  border-radius: 8px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
+  text-decoration: none;
 }
 
-.gate-row {
-  display: flex;
-  gap: 8px;
-}
-
-.gate-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 44px;
-  padding: 0 14px;
-  border: 1.5px solid var(--field-line);
-  border-radius: 10px;
-  background: var(--field);
-  color: var(--white);
-  font: 500 16px/1 var(--body);
-  letter-spacing: 0.08em;
-}
-
-.gate-input:hover {
-  border-color: rgb(246 241 230 / 0.5);
-}
-
-.gate-input:focus-visible {
-  border-color: var(--lime);
-  outline: 3px solid var(--lime);
-  outline-offset: 2px;
-}
-
-.gate-input[aria-invalid='true'] {
-  border-color: var(--error);
-}
-
-.gate-button {
-  flex: none;
-  height: 44px;
-  padding: 0 16px 0 calc(16px + 0.12em);
-  border: 1.5px solid var(--lime);
-  border-radius: 10px;
-  background: transparent;
+.open-app-arrow {
   color: var(--lime);
-  font: 800 12px/1 var(--display);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
+  transition: translate 0.2s ease;
 }
 
-.gate-button:hover {
-  background: rgb(200 241 53 / 0.12);
+.open-app:hover {
+  color: var(--cream);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
 }
 
-.gate-button:active {
-  translate: 0 1px;
+.open-app:hover .open-app-arrow {
+  translate: 3px 0;
 }
 
-.gate-button:focus-visible {
-  outline: 3px solid var(--cream);
-  outline-offset: 3px;
+.open-app:focus-visible {
+  color: var(--cream);
+  outline: 3px solid var(--lime);
+  outline-offset: 4px;
 }
 
-/* Under the field, in the page margin, so the corner never shifts. */
-.gate-error {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin: 8px 0 0;
-  color: var(--error);
-  font-size: 14px;
+@media (prefers-reduced-motion: reduce) {
+  .open-app-arrow {
+    transition: none;
+  }
 }
 
-/* Narrower screens: one column, the password under the story. */
+/* Narrower screens: one column, the link under the story. */
 
 @media (max-width: 999px) {
   .stage {
@@ -276,14 +231,14 @@ body {
     font-size: min(9.4vw, 7.4vh);
   }
 
-  .gate {
+  .open-app {
     grid-column: auto;
     grid-row: auto;
     justify-self: start;
   }
 }
 
-/* Phones: the logo stays at the top, the story sits centred below it, the field (team link only) at the bottom. */
+/* Phones: the logo stays at the top, the story sits centred below it, the link at the bottom. */
 
 @media (max-width: 767px) {
   .stage {
@@ -311,20 +266,6 @@ body {
     font-size: min(11.4vw, 6.6vh);
   }
 
-  .gate {
-    display: none;
-    width: 100%;
-  }
-
-  .gate:has(:target),
-  .show-gate .gate {
-    display: block;
-  }
-
-  .gate-error {
-    position: static;
-  }
-
   .pitch-area {
     left: -2.6vh;
     height: 52vh;
@@ -333,12 +274,6 @@ body {
   .pitch-corner {
     width: 64px;
     height: 64px;
-  }
-
-  /* The field takes the bottom of the screen; the corner arc steps aside. */
-  .show-gate .pitch-corner--bottom,
-  body:has(.gate :target) .pitch-corner--bottom {
-    display: none;
   }
 }
 

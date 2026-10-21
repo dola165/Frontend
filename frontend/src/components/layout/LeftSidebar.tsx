@@ -7,8 +7,7 @@ import { BriefcaseBusiness, CalendarDays, Flag, Heart, MapPinned, Shield, UserCh
 import { resolveMediaUrl } from "../../utils/resolveMediaUrl";
 import { capabilitiesKnown, hasConfirmedLinks, hasNavigationCapability, type NavigationCapabilities } from '../../context/navigationCapabilities';
 import { ConnectionsDialog } from "../profile/ConnectionsDialog";
-import { type ManagedClubLink } from "./WorkspaceShortcuts";
-import { WorkspaceAccess } from './FootballActivity';
+import { WorkspaceAccess } from './WorkspaceAccess';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { CreateCard } from '../../features/pages/create/CreateLink';
 import { hasOwnPage } from '../../features/pages/create/entry';
@@ -16,7 +15,6 @@ import './side-links.css';
 
 interface LeftSidebarProps {
   embedded?: boolean;
-  managedClubs?: ManagedClubLink[];
   user: {
     id?: number;
     username?: string;
@@ -42,12 +40,11 @@ const HomeIcon = ({ kind }: { kind: ShortcutKind }) => {
   return <span className={`home-nav-icon home-nav-icon--${kind}`}><Icon size={19} aria-hidden="true" /></span>;
 };
 
-export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftSidebarProps) => {
+export const LeftSidebar = ({ user, embedded = false }: LeftSidebarProps) => {
   const copy = useJourneyCopy();
   const [showFollowing, setShowFollowing] = useState(false);
   const capabilities = user?.navigationCapabilities;
   const primary: { to: string; label: string; description: string; icon: ShortcutKind }[] = [
-    { to: '/admissions', label: copy('Joining football', 'ფეხბურთში მონაწილეობა'), description: copy('Your player cards and next steps', 'მოთამაშის ბარათები და შემდეგი ნაბიჯები'), icon: 'clubs' },
     ...(hasNavigationCapability(capabilities, 'parent.hub') || hasNavigationCapability(capabilities, 'club.family') ? [{ to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), description: copy('Your children and their football', 'თქვენი შვილები და მათი ფეხბურთი'), icon: 'family' as const }] : []),
     ...(showSquadNavigation(capabilities) ? [{ to: '/squads', label: copy('My squads', 'ჩემი გუნდები'), description: copy('Coach updates, families and chat', 'მწვრთნელის სიახლეები, ოჯახები და ჩატი'), icon: 'squads' as const }] : []),
     ...(hasNavigationCapability(capabilities, 'referee.workspace') ? [{ to: '/referees/me', label: copy('Referee workspace', 'მსაჯის სივრცე'), description: copy('Your appointments and availability', 'დანიშვნები და ხელმისაწვდომობა'), icon: 'referee' as const }] : []),
@@ -95,10 +92,7 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
             </span>
           </span>
         </Link>
-        {managedClubs.length > 0 && <Link className="home-club-context" to={`/clubs/${managedClubs[0].clubId}`}>
-          <Shield size={16} aria-hidden="true" /><span>{managedClubs[0].clubName}</span>
-        </Link>}
-        <WorkspaceAccess key={user?.id} userId={user?.id} caps={capabilities} className="feed-side-link home-social-link workspace-shortcut w-full" />
+        <WorkspaceAccess key={user?.id} userId={user?.id} caps={capabilities} />
         </div>
         {/* Someone with no page of their own is offered one; once they have a club or a page, the card goes. */}
         {capabilitiesKnown(capabilities) && !hasOwnPage(capabilities) && <CreateCard from="home" />}

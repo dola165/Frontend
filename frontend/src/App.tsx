@@ -505,7 +505,7 @@ export function MainLayout() {
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
                     {isHomeFeed && <HomeOpportunities className="home-opportunities--feed" />}
                     <div className={isHomeFeed ? 'feed-home-grid home-feed-layout' : 'grid grid-cols-1 gap-6 pb-10 pt-6 mx-auto max-w-[1480px] px-4 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}>
-                            {LeftSidebar && railsFit && <Suspense fallback={null}><LeftSidebar user={user} managedClubs={managedClubs} /></Suspense>}
+                            {LeftSidebar && railsFit && <Suspense fallback={null}><LeftSidebar user={user} /></Suspense>}
 
                         <main className="min-w-0">
                             <RouteViewport><Routes>

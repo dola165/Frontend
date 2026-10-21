@@ -240,7 +240,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    {isAndroidApp ? <div className="lg:hidden"><WorkspaceShortcuts clubs={managedClubs} navigationCapabilities={user?.navigationCapabilities} /></div> :
     <details className="home-mobile-shortcuts">
      <summary><span>{copy('Your football', 'თქვენი ფეხბურთი')}</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || copy('Your shortcuts', 'მალსახმობები')}</span><ChevronDown size={16} aria-hidden="true" /></summary>
-     <LeftSidebar user={user} managedClubs={managedClubs} embedded />
+     <LeftSidebar user={user} embedded />
     </details>}
 
    <FinishSetup />

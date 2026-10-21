@@ -7,6 +7,7 @@ import './auth.mjs';
 import './family.mjs';
 import './newcomer.mjs';
 import './family-squads.mjs';
+import './club-coach-schedule.mjs';
 import './social.mjs';
 import './club.mjs';
 import './football.mjs';

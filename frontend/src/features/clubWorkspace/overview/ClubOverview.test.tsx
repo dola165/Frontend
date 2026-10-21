@@ -14,7 +14,10 @@ vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: null })
 beforeEach(() => {
     localStorage.clear();
     vi.mocked(fetchClubPlayers).mockReset();
-    vi.mocked(fetchClubPlayers).mockResolvedValue({ content: [], pageNumber: 0, pageSize: 50, totalElements: 0 });
+    vi.mocked(fetchClubPlayers).mockImplementation(async (_clubId, status) => {
+        const content: ClubPlayerAffiliation[] = status === 'ACTIVE' ? [{ userId: 25, fullName: 'Confirmed adult', status: 'ACTIVE', primary: true, requiresParentalConsent: false, parentalConsentStatus: 'NOT_REQUIRED' }] : [];
+        return { content, pageNumber: 0, pageSize: 50, totalElements: content.length };
+    });
 });
 
 const overview: ClubManagementOverview = {
@@ -47,6 +50,12 @@ const renderOverview = (overrides: Partial<Parameters<typeof ClubOverview>[0]> =
 };
 
 describe('Club overview', () => {
+    it('does not claim completed parent checks for a club without current players', async () => {
+        renderOverview({ overview: { ...overview, activePlayerCount: 0, trialistCount: 0, overdueTrialistCount: 0 } });
+        await waitFor(() => expect(screen.getByRole('list', { name: 'The club in numbers' })).toBeVisible());
+        expect(fetchClubPlayers).not.toHaveBeenCalled();
+        expect(screen.queryByText(/All current players checked\./)).toBeNull();
+    });
     it('uses truthful staff and schedule empty-state copy', async () => {
         renderOverview();
         expect(screen.getAllByText('Staff')).not.toHaveLength(0);

@@ -9,12 +9,31 @@ export interface RolesWorkspace {leadership:boolean;actorId:number;catalog:Staff
 export const rolesRoot=(club:number)=>`/clubs/${club}/workspace-roles`;
 export function savedRole(club:number,user:number|null) {try{return user?localStorage.getItem(`gk-workspace-role:${club}:${user}`):null;}catch{return null;}}
 export function rememberRole(club:number,user:number|null,role:string) {try{if(user)localStorage.setItem(`gk-workspace-role:${club}:${user}`,role);}catch{/* Preference storage is optional; server access remains authoritative. */}}
-export function useWorkspaceRoles(club:number,view:string|null) {
- const [revision,setRevision]=useState(0),[result,setResult]=useState<{key:string;data:RolesWorkspace|null;error:string}|null>(null);
- const key=`${club}:${view??''}:${revision}`;
- useEffect(()=>{const c=new AbortController();void get<RolesWorkspace>(`${rolesRoot(club)}${view?`?view=${encodeURIComponent(view)}`:''}`,c.signal).then(data=>{if(!data?.current||!Array.isArray(data.views))throw new Error('Could not load your workspace roles.');if(!c.signal.aborted)setResult({key,data,error:''});}).catch(e=>{if(!c.signal.aborted)setResult({key,data:null,error:extractApiErrorMessage(e,'Could not load your workspace roles.')});});return()=>c.abort();},[club,view,key]);
- const refresh=useCallback(()=>setRevision(v=>v+1),[]);
- return {data:result?.key===key?result.data:null,loading:result?.key!==key,error:result?.key===key?result.error:'',refresh};
+export function useWorkspaceRoles(club:number, view:string|null, actorId:number|null=null) {
+ const [revision, setRevision] = useState(0);
+ const [result, setResult] = useState<{key:string;scope:string;data:RolesWorkspace|null;error:string}|null>(null);
+ const scope = `${club}:${view ?? ''}:${actorId ?? ''}`, key = `${scope}:${revision}`;
+ useEffect(() => {
+  const controller = new AbortController();
+  void get<RolesWorkspace>(`${rolesRoot(club)}${view ? `?view=${encodeURIComponent(view)}` : ''}`, controller.signal)
+   .then(data => {
+    if (!data?.current || !Array.isArray(data.views)) throw new Error('Could not load your workspace roles.');
+    if (!controller.signal.aborted) setResult({key, scope, data, error:''});
+   })
+   .catch(error => {
+    if (controller.signal.aborted) return;
+    const status = (error as {response?:{status?:number}}).response?.status;
+    // Keep the last confirmed view through a transient refresh. A changed account,
+    // club or view never inherits it; an authoritative access refusal clears it.
+    setResult(previous => ({
+     key, scope, data: previous?.scope === scope && ![401,403,404].includes(status ?? 0) ? previous.data : null,
+     error: extractApiErrorMessage(error, 'Could not load your workspace roles.'),
+    }));
+   });
+  return () => controller.abort();
+ }, [club, view, scope, key]);
+ const refresh = useCallback(() => setRevision(value => value + 1), []);
+ return {data:result?.scope === scope ? result.data : null, loading:result?.key !== key, error:result?.key === key ? result.error : '', refresh};
 }
 export function focusedBootstrap(boot:Bootstrap,data:RolesWorkspace):Bootstrap {
  const view=data.current;

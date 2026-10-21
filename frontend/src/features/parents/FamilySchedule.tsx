@@ -69,8 +69,8 @@ function FamilyAgenda({ events, loading, error, from, to, squads, squadId, playe
  * `editable` lets people who manage a squad move its sessions with the mouse (with a confirmation that previews who
  * is told); `hideContext` leaves out the page's own heading and back link when another page frames it.
  */
-export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false, combined = false, editable = false, hideContext = false, initialEdit = false }: {
-    squads: CalendarSquad[]; playerId?: number; initialSquadId?: number; initialDate?: Date; initialSessionId?: number; onSquadChange?: (id: number) => void; inSquadPage?: boolean; prioritizeNextAction?: boolean; embedded?: boolean;
+export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, viewedDate, onDateChange, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false, combined = false, editable = false, hideContext = false, initialEdit = false }: {
+    squads: CalendarSquad[]; playerId?: number; initialSquadId?: number; initialDate?: Date; viewedDate?: Date; onDateChange?: (date: Date) => void; initialSessionId?: number; onSquadChange?: (id: number) => void; inSquadPage?: boolean; prioritizeNextAction?: boolean; embedded?: boolean;
     combined?: boolean; editable?: boolean; hideContext?: boolean;
     /** Open the initial calendar entry straight in its editor (My squads' Edit link); otherwise it opens as a summary first (F29). */
     initialEdit?: boolean;
@@ -80,7 +80,9 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
     const mobile = useMobileSchedule();
     const [picked, setPicked] = useState(initialSquadId);
     const squad = squads.find(s => s.id === picked) ?? (initialSquadId ? undefined : squads[0]);
-    const [date, setDate] = useState(() => initialDate && Number.isFinite(initialDate.getTime()) ? initialDate : new Date());
+    const [localDate, setLocalDate] = useState(() => initialDate && Number.isFinite(initialDate.getTime()) ? initialDate : new Date());
+    const date = viewedDate && Number.isFinite(viewedDate.getTime()) ? viewedDate : localDate;
+    const setDate = (next: Date) => { setLocalDate(next); onDateChange?.(next); };
     const [view, setView] = useState<WorkspaceView>('week');
     const [types, setTypes] = useState(EVENT_TYPES);
     const [selectedId, setSelectedId] = useState<string | null>(() => squad && initialSessionId ? `squad:${squad.id}:${initialSessionId}` : null);

@@ -25,10 +25,7 @@ import { ActivitySummary } from './ActivitySummary';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
-const weekOf = (squad: number) => `/my-squads?tab=calendar&squad=${squad}`;
-/** The squad's own page, right here in My squads: its updates and chats, its players and the roster. */
-const pageOf = (squad: number) => `/my-squads?squad=${squad}`;
-const sessionLink = (squad: number, session: { id: number; starts_at: string }) => `${weekOf(squad)}&date=${isoDay(new Date(session.starts_at))}&session=${squad}:${session.id}`;
+const sessionLink = (data: CoachData, squad: number, session: { id: number; starts_at: string }) => data.link('calendar', { squad: String(squad), date: isoDay(new Date(session.starts_at)), session: `${squad}:${session.id}` });
 
 /**
  * My squads: one card per squad I am responsible for (its people, its next session, the one thing waiting on
@@ -49,7 +46,7 @@ export function MySquads({ data }: { data: CoachData }) {
     const activity = activityKey && data.squads ? coachEvents(data).find(event => event.key === activityKey) : undefined;
     const setActivity = (key: string | null) => { const next = new URLSearchParams(params); if (key) next.set('activity', key); else next.delete('activity'); setParams(next, { replace: !key }); };
     const needs =(data.squads ? coachNeeds({ club: data.clubId, squads: data.squads, names: data.names, now: data.now, person: data.person,
-        records: data.records.rows.filter(record => record.squad_id !== null && data.shown.includes(record.squad_id)), mine: data.records.mine }) : []).filter(need => need.kind !== 'reply');
+        records: data.records.rows.filter(record => record.squad_id !== null && data.shown.includes(record.squad_id)), mine: data.records.mine, link: data.link }) : []).filter(need => need.kind !== 'reply');
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('mySquads')} subtitle={formatDate(new Date(data.now), { weekday: 'long', day: 'numeric', month: 'long' })}
             actions={<><Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>
@@ -61,7 +58,7 @@ export function MySquads({ data }: { data: CoachData }) {
         <ResultsToAdd data={data} />
         <Soon data={data} onOpen={setActivity} onCancel={(squad, session) => setCancelling({ squad, session })} />
         {activity && <ActivitySummary event={activity} data={data} onClose={() => setActivity(null)}
-            editTo={activity.session ? `${sessionLink(activity.squadId, activity.session)}&edit=1` : undefined}
+            editTo={activity.session ? `${sessionLink(data, activity.squadId, activity.session)}&edit=1` : undefined}
             onEdit={activity.event ? () => data.openEvent(activity.event!) : undefined}
             onCancel={activity.session ? () => { setActivity(null); setCancelling({ squad: activity.squadId, session: activity.session! }); } : undefined} />}
         {cancelling && <CancelSessionDialog squad={cancelling.squad} squadName={data.names.get(cancelling.squad) ?? ''} session={cancelling.session} now={data.now}
@@ -99,11 +96,11 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
     const next = space ? upcoming(space, data.now)[0] : undefined;
     const kind = next ? sessionKind(next) : null;
     const opponent = next ? opponentOf(next, squad.id, data.events, data.clubName) : null;
-    const week = weekOf(squad.id);
+    const week = data.link('calendar', { squad: String(squad.id) });
     const noPlayers = data.squads && !data.roles.people.some(person => person.squad_id === squad.id);
     return <li><article className="ch-card" aria-label={squad.name}>
         {/* The squad is the thing: its crest and name on a pitch, and the whole band opens its page (updates and chats). */}
-        <Link className="ch-card__band" to={pageOf(squad.id)} style={{ backgroundImage: `url(${kind && kind !== 'TRAINING' ? '/football/touchline.jpg' : '/football/ball-field.jpg'})` }}>
+        <Link className="ch-card__band" to={data.link('overview', { squad: String(squad.id) })} style={{ backgroundImage: `url(${kind && kind !== 'TRAINING' ? '/football/touchline.jpg' : '/football/ball-field.jpg'})` }}>
             <Crest src={data.clubLogo} name={data.clubName} size={52} />
             <span className="ch-card__name"><strong>{squad.name}</strong><span>{[data.roleOf(squad.id), copy('playerCount', { count: squad.player_count })].filter(Boolean).join(' · ')}</span></span>
             <ChevronRight className="ch-card__go" aria-hidden="true" />
@@ -134,7 +131,7 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
         <div className="ch-card__actions">
             <ButtonLink size="sm" variant="primary" to={`/messages?squadId=${squad.id}`}><MessageCircle aria-hidden="true" />{copy('squadChat')}</ButtonLink>
             {/* Already seeded with this squad and the home ground: only the opponent and the day are left to choose. */}
-            <ButtonLink size="sm" variant="secondary" className="ch-card__arrange" to={`/my-squads?tab=matches&squad=${squad.id}&arrange=1`}><Plus aria-hidden="true" />{copy('arrangeMatch')}</ButtonLink>
+            <ButtonLink size="sm" variant="secondary" className="ch-card__arrange" to={data.link('matches', { squad: String(squad.id), arrange: '1' })}><Plus aria-hidden="true" />{copy('arrangeMatch')}</ButtonLink>
         </div>
     </article></li>;
 }

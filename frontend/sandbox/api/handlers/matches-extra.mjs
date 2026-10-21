@@ -13,6 +13,8 @@ import { post, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
 import * as S from '../world-social.mjs';
+import * as V from '../viewer.mjs';
+import { viewed } from '../football-viewer.mjs';
 
 const { iso } = W;
 const when = value => { if (!value) return null; const d = new Date(value); return Number.isNaN(d.getTime()) ? null : d; };
@@ -20,17 +22,18 @@ const bad = message => reply(400, { status: 400, message });
 const seen = new Map(); // requestId -> { listing id, the body it created }
 const TWELVE_HOURS = 12 * 3_600_000;
 
-post('/match-arrangements', ({ body }) => {
+post('/match-arrangements', viewed(({ body, headers }) => {
   const m = body?.match ?? {};
+  const actor = V.viewerId(headers), requestKey = `${actor}:${m.requestId}`;
+  const squad = F.sq(m.squadId);
+  if (!squad || !F.isMineClub(squad.clubId)) return reply(403, { status: 403, message: 'Choose one of your squads.' });
   // As the backend: the same request again returns the match it created; the same request id with other terms is refused.
   const fingerprint = JSON.stringify({ ...body, match: { ...m, requestId: undefined } });
-  if (m.requestId && seen.has(m.requestId)) {
-    const first = seen.get(m.requestId);
+  if (m.requestId && seen.has(requestKey)) {
+    const first = seen.get(requestKey);
     if (first.fingerprint !== fingerprint) return reply(409, { status: 409, message: 'This request already created a different arrangement. Open the original match before making changes.' });
     return F.listingView(F.listingById(first.id), { detail: true });
   }
-  const squad = F.sq(m.squadId);
-  if (!squad || squad.clubId !== F.DINAMO) return bad('Choose one of your squads.');
   const start = when(m.startsAt), end = when(m.endsAt);
   if (!start || !end || end <= start) return bad('Choose kick-off and a match length.');
   if (end - start > TWELVE_HOURS) return bad('A match lasts at most 12 hours.');
@@ -38,7 +41,7 @@ post('/match-arrangements', ({ body }) => {
   if (!String(m.city ?? '').trim()) return bad('Add the city where you plan to play.');
   const target = body.targetClubId ? W.clubById(Number(body.targetClubId)) : null;
   if (body.targetClubId && !target) return reply(404, { status: 404, message: 'That club is no longer on GrassKickZ.' });
-  if (target?.id === F.DINAMO) return bad('Choose another club to play.');
+  if (target?.id === squad.clubId) return bad('Choose another club to play.');
   const targetSquad = body.targetSquadId ? F.sq(body.targetSquadId) : null;
   if (body.targetSquadId && targetSquad?.clubId !== target?.id) return bad('That squad does not belong to the club you invited.');
   if (body.bookingId) return bad('Match arrangements no longer take a pitch reservation.');
@@ -70,10 +73,10 @@ post('/match-arrangements', ({ body }) => {
   }
   F.exchange.push(rec);
   if (body.officialMode === 'OPEN') F.officialRequests.set(rec.id, { volunteer: Boolean(body.volunteer), fee, currency: body.currency || 'GEL', revision: 1, status: 'OPEN', applications: [] });
-  if (m.requestId) seen.set(m.requestId, { id: rec.id, fingerprint });
+  if (m.requestId) seen.set(requestKey, { id: rec.id, fingerprint });
   if (target) requestFor(rec, 'OUTGOING');
   return reply(201, F.listingView(rec, { detail: true }));
-});
+}));
 
 const seed = rec => { rec.end = F.plusMin(rec.start, rec.minutes); delete rec.minutes; rec.history.push({ id: W.newId(), action: 'CHALLENGE_SENT', created_at: iso(rec.created), reason: null }); F.exchange.push(rec); return rec; };
 const base = { proposals: [], bookingId: null, refereeId: null, opponentSquadId: null, status: 'OPEN', score: null, kind: 'FRIENDLY', revision: 1, externalRefereeName: null, history: [] };

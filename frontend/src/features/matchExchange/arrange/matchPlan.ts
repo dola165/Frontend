@@ -1,4 +1,6 @@
 import { ages, formats, type Match, type Squad } from '../api';
+import { mt, matchDateWords } from '../copy';
+import { appLocale } from '../../../utils/formatting';
 import type { PublicSquad } from '../../clubs/publicJourney';
 import type { Arrangement, Ground, MatchTerms, OfficialMode } from './api';
 
@@ -46,8 +48,8 @@ const planFor = (ageGroup: string) => PLAN.find(row => ageNumber(ageGroup) <= ro
 export const ageGroupOf = (category?: string | null) => category && ages.includes(category.toUpperCase()) ? category.toUpperCase() : 'SENIOR';
 export const defaultFormat = (ageGroup: string) => planFor(ageGroup).format;
 export const defaultMinutes = (ageGroup: string) => { const row = planFor(ageGroup); return row.half * 2 + row.rest; };
-export const halvesLabel = (ageGroup: string) => { const row = planFor(ageGroup); return `2 × ${row.half} minutes and a ${row.rest}-minute break`; };
-export const formatLabel = (format: string) => formats[format] ?? format;
+export const halvesLabel = (ageGroup: string) => { const row = planFor(ageGroup); return mt('2 × {half} minutes and a {rest}-minute break', { half: row.half, rest: row.rest }); };
+export const formatLabel = (format: string) => mt(formats[format] ?? format);
 export const LENGTHS = [40, 50, 60, 70, 80, 90, 95, 105, 120];
 /** A match lasts from 20 minutes to 12 hours (a festival day), as the backend allows. */
 export const MIN_LENGTH = 20, MAX_LENGTH = 720;
@@ -79,7 +81,7 @@ export function weekendDays(today: string) {
     }
     return out;
 }
-export const dayLabel = (date: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
+export const dayLabel = (date: string) => matchDateWords(new Intl.DateTimeFormat(appLocale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`)));
 const weekday = (date: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
 
 // ---------------------------------------------------------------- prefill
@@ -165,11 +167,11 @@ export const draftStarted = (draft: Partial<Draft>) => Boolean(draft.date || dra
 
 /** One honest sentence above Send: who gets what, and that nothing is agreed yet. */
 export function whatHappens(mode: Mode, draft: Draft, targetSquadName: string | null) {
-    const referee = draft.referee === 'INVITE' && draft.invited ? ` ${draft.invited.name} is invited to referee.` : draft.referee === 'OPEN' ? ' Referees nearby can apply.' : '';
-    if (mode === 'open') return `Shown in Open matches. Squads offer to play; you choose.${referee}`;
-    if (mode === 'edit') return 'If the change affects an agreed opponent, referee or ground, you see who is affected before anything is saved.';
-    const whom = draft.opponent ? `${draft.opponent.name}${targetSquadName ? ` · ${targetSquadName}` : ''}` : 'the club you choose';
-    return `Invites ${whom}. Nothing is agreed until they accept.${referee}`;
+    const referee = draft.referee === 'INVITE' && draft.invited ? ` ${mt('{name} is invited to referee.', { name: draft.invited.name })}` : draft.referee === 'OPEN' ? ` ${mt('Referees nearby can apply.')}` : '';
+    if (mode === 'open') return `${mt('Shown in Open matches. Squads offer to play; you choose.')}${referee}`;
+    if (mode === 'edit') return mt('If the change affects an agreed opponent, referee or ground, you see who is affected before anything is saved.');
+    const whom = draft.opponent ? `${draft.opponent.name}${targetSquadName ? ` · ${targetSquadName}` : ''}` : mt('the club you choose');
+    return `${mt('Invites {team}. Nothing is agreed until they accept.', { team: whom })}${referee}`;
 }
 
 // ---------------------------------------------------------------- validation

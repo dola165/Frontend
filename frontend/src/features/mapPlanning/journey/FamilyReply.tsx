@@ -15,6 +15,7 @@ export function FamilyReply({ journey: p, busy, act }: { journey: FamilyPlan; bu
     const travelAt = p.travel.passenger?.updated_at || p.travel.updated_at;
     const stale = travelAt && p.travel.status === 'DEPARTED' && now - Date.parse(travelAt) > 3600000;
     const player = p.viewer === 'PLAYER';
+    const permission = p.permission, permissionId = p.permission_id;
     const reply = (response: 'GOING' | 'NOT_GOING') => act(() => player
         ? planPost(`/${p.plan_id}/my-response`, { version: p.version, response })
         : planPost(`/${p.plan_id}/journey-response`, { version: p.version, subjectId: p.child_id, response }));
@@ -38,11 +39,12 @@ export function FamilyReply({ journey: p, busy, act }: { journey: FamilyPlan; bu
                             : <Button disabled={busy} onClick={() => void act(() => planPost(`/${p.plan_id}/acknowledge`, { version: p.version, childId: p.child_id }))}>I have read this itinerary</Button>}
                     </div>
                     <div className="gk-plan-reply">
-                        <p className="gk-plan-reply__title">Travel permission <Badge>{p.permission.status.toLowerCase().replaceAll('_', ' ')}</Badge></p>
-                        {typeof p.permission.data?.wording === 'string' && <p className="gk-muted">{p.permission.data.wording}</p>}
+                        <p className="gk-plan-reply__title">Travel permission <Badge>{permission ? permission.status.toLowerCase().replaceAll('_', ' ') : 'Not recorded'}</Badge></p>
+                        {typeof permission?.data?.wording === 'string' && <p className="gk-muted">{permission.data.wording}</p>}
+                        {!permission && <p className="gk-muted">Ask the club to record the travel permission. Reading or replying to this itinerary does not grant it.</p>}
                         <div className="gk-row gk-plan-wrap">
-                            {p.permission.transitions.filter(step => ['GRANTED', 'DECLINED', 'REVOKED'].includes(step)).map(step => (
-                                <Button key={step} variant={step === 'GRANTED' ? 'primary' : 'secondary'} disabled={busy} onClick={() => void act(() => permissionDecision(p.club_id, p.permission_id, p.permission.revision, step))}>
+                            {permission && permissionId != null && permission.transitions.filter(step => ['GRANTED', 'DECLINED', 'REVOKED'].includes(step)).map(step => (
+                                <Button key={step} variant={step === 'GRANTED' ? 'primary' : 'secondary'} disabled={busy} onClick={() => void act(() => permissionDecision(p.club_id, permissionId, permission.revision, step))}>
                                     {step === 'GRANTED' ? 'Give travel permission' : step === 'REVOKED' ? 'Withdraw permission' : 'Decline permission'}
                                 </Button>
                             ))}

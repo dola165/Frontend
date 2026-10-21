@@ -2,13 +2,11 @@ import type { ReactNode } from 'react';
 import { Button, GkRoot } from '../../../../design/primitives';
 import { useWorldCopy } from '../../copy';
 import { TournamentAction } from './TournamentAction';
-import type { TournamentPaneData } from './tournamentPane';
+import { tournamentChanged, type TournamentPaneData } from './tournamentPane';
 import { useTournamentGate, useTournamentPane } from './useTournamentGate';
 
 function Entry({ data, reload, otherwise }: { data: TournamentPaneData; reload: () => void; otherwise: ReactNode }) {
-    const t = useWorldCopy();
     const entry = useTournamentGate(data);
-    if (entry.gate.kind === 'checking') return <p className="gk-step-line" data-tone="quiet" role="status"><span>{t('Loading…')}</span></p>;
     if (entry.gate.kind === 'none' && entry.player.status !== 'error') return <>{otherwise}</>;
     return <TournamentAction data={data} reload={reload} entry={entry} />;
 }
@@ -21,7 +19,7 @@ function Entry({ data, reload, otherwise }: { data: TournamentPaneData; reload: 
 export function TournamentEntry({ tournamentId, onChanged, otherwise }: { tournamentId: number; /** After a step changed the tournament. */ onChanged: () => void; otherwise: ReactNode }) {
     const t = useWorldCopy();
     const pane = useTournamentPane(tournamentId);
-    const reload = () => { pane.retry(); onChanged(); };
+    const reload = () => { tournamentChanged(tournamentId); pane.retry(); onChanged(); };
     return (
         <GkRoot className="gk-tentry">
             {pane.data ? <Entry data={pane.data} reload={reload} otherwise={otherwise} />

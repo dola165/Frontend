@@ -75,6 +75,6 @@
 .gk .gk-arrange__mode { display: flex; margin-bottom: var(--gk-2); }
 .gk .gk-arrange__mode .gk-segmented__item { flex: 1; }
 @media (max-width: 640px) {
-  .gk .gk-arrange__mode .gk-segmented__item:has(> svg) { padding: 0 var(--gk-2); }
-  .gk .gk-arrange__mode .gk-segmented__item:has(> svg) .gk-segmented__label { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .gk .gk-arrange__mode .gk-segmented__item { min-width: 0; height: auto; min-height: 44px; white-space: normal; padding: var(--gk-2); }
+  .gk .gk-arrange__mode .gk-segmented__item:has(> svg) .gk-segmented__label { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
 }

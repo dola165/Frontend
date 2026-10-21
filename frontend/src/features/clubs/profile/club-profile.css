@@ -124,11 +124,6 @@
 .gk .gk-club-places__group:first-child { margin-top: 0; }
 .gk .gk-club-places__group .gk-num { color: var(--gk-text-3); font-weight: 500; }
 .gk .gk-club-places .club-place-card { border-radius: var(--gk-r); color: var(--gk-text); background: var(--gk-surface); border-color: var(--gk-line); }
-.gk .gk-club-places .club-place-content { padding: var(--gk-3); gap: var(--gk-2); }
-.gk .gk-club-places .club-place-content h3 { font-size: var(--gk-fs-md); }
-.gk .gk-club-places .club-place-content p { line-height: var(--gk-lh-md); }
-.gk .gk-club-places .club-place-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-2); margin-top: auto; }
-.gk .gk-club-places .cp-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-sm); color: var(--gk-text); font-size: var(--gk-fs-sm); }
 @media (max-width: 600px) {
     .gk .gk-staff-person__name { min-height: 44px; }
     .gk .gk-staff-person summary { min-height: 44px; }

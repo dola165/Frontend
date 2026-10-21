@@ -1,5 +1,6 @@
 import type { TabItem } from '../../../design/Tabs';
 import { arrangePath } from '../../world/compose/arrangeSeed';
+import type { BoxKey } from '../../pages/model/kinds';
 
 export type ClubTab = 'posts' | 'media' | 'about' | 'teams' | 'people' | 'facilities' | 'involved' | 'contact';
 /** The three parts of Get involved, each a full page inside the club page. */
@@ -18,6 +19,9 @@ export const clubTabs: TabItem<ClubTab>[] = [
 ];
 
 const ids = new Set<string>(clubTabs.map(tab => tab.id));
+
+/** The side boxes a tab already shows in full: beside that tab they shrink to their name, never the same list twice. */
+export const boxesShownBy: Partial<Record<ClubTab, BoxKey[]>> = { teams: ['squads'], people: ['staff'], facilities: ['grounds'], contact: ['contact'] };
 
 /** Old links keep working: the overview and honours are About; `pictures`/`videos` are the media tab; the store, campaigns and opportunities are Get involved. */
 export function clubTabFrom(value: string | null): ClubTab {

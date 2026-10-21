@@ -26,7 +26,7 @@ import { ClubPeopleTab } from './ClubPeopleTab';
 import { ClubPostsTab } from './ClubPostsTab';
 import { ClubSide } from './ClubSide';
 import { ClubTeamsTab } from './ClubTeamsTab';
-import { clubTabFrom, clubTabs, isWide, tabFilters, type ClubTab } from './clubTabs';
+import { boxesShownBy, clubTabFrom, clubTabs, isWide, tabFilters, type ClubTab } from './clubTabs';
 import { useClubEnquiry } from './useClubEnquiry';
 import { useClubProfile } from './useClubProfile';
 import { clubBoxes } from '../../pages/club/clubBoxes';
@@ -145,8 +145,8 @@ function ClubProfileView({ id }: { id: number }) {
             actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
             tabs={clubTabs.map(item => ({ ...item, label: typeof item.label === 'string' ? pt(item.label) : item.label }))} tab={tab} onTab={setTab} tabsLabel={pt('Club sections')}
-            sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel={pt('Club information')}
-            side={editing ? <PageColumn column="right" renderers={clubBoxes} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel={pt('Get involved')}>
+            sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} tab={tab} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel={pt('Club information')}
+            side={editing ? <PageColumn column="right" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel={pt('Get involved')}>
             {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} can={can} crestUrl={page?.identity.crest.url} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}

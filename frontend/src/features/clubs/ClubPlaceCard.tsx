@@ -33,7 +33,7 @@ export function FacilityCard({ facility, clubId, showVenueLinks = true, detailsO
   const photos=photosFor(facility), photo=photos[0]!==failed?photos[0]:null;
   const address=facility.details.address || (placeType(facility)==='VENUE'?facility.linkedVenue?.address:undefined);
   return <article className="club-place-card" id={`facility-${facility.id}`}>
-    <div className="club-place-photo">{photo?<MediaImage src={resolveMediaUrl(photo)} alt={facility.title} loading="lazy" onError={()=>setFailed(photo)}/>:placeType(facility)==='FACILITY'?<Building2 size={36}/>:<Warehouse size={36}/>}</div>
+    <div className="club-place-photo" data-empty={photo ? undefined : ''} data-kind={placeType(facility)}>{photo?<MediaImage src={resolveMediaUrl(photo)} alt={facility.title} loading="lazy" onError={()=>setFailed(photo)}/>:placeType(facility)==='FACILITY'?<Building2 size={36}/>:<Warehouse size={36}/>}</div>
     <div className="club-place-content"><div className="club-place-tags"><span>{t(typeLabel(facility))}</span>{relationship(facility.details.relationship)&&<span>{t(relationship(facility.details.relationship))}</span>}</div>
       <h3>{facility.title || t('Location name')}</h3><p className="club-place-address"><MapPin size={16}/>{address || t('Address not published')}</p>
       <p className="cp-muted">{facility.squadName || (t(facility.squadId ? 'Assigned squad' : 'Club-wide'))}</p>

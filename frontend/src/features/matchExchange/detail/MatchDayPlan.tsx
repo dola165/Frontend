@@ -6,6 +6,9 @@ import { label, post, type Match } from '../api';
 import { useAction } from '../hooks';
 import { canUseReservation, endTime, groundState, holdsGround, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState } from './matchState';
 
+/** A squad as the line names it: with its club when the other side's squad has the same name. */
+const sideName = (squad: string, club: string | null, same: boolean) => (same && club ? `${squad} (${club})` : squad);
+
 /**
  * Plan your match day: when, where, who referees, the squads and the conversation. Each line says where it stands in
  * words; either club confirms an unlisted ground here once its owner has agreed, or uses a reservation (`onReserve`).
@@ -14,6 +17,8 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
     const ground = groundState(m);
     const referee = refereeState(m);
     const confirm = useAction(reload);
+    // Two squads with one name ("U18 Boys v U18 Boys") are told apart by their clubs.
+    const same = Boolean(m.opponent_squad_name) && m.squad_name === m.opponent_squad_name;
     const named = m.location_name && !/to be (arranged|agreed|confirmed)/i.test(m.location_name);
     // Either club that arranges the match may confirm an unlisted ground, as the backend allows.
     const canConfirmGround = m.can_arrange && active && !m.venue_id && !m.booking_id && named;
@@ -45,7 +50,7 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
                         meta={m.external_referee_name ? 'Arranged outside GrassKickZ by the coaching team' : m.referee_responsibility === 'OPPONENT' ? 'The visiting team arranges the referee' : m.referee_required ? 'The hosting team arranges the referee' : undefined}
                         trail={<><Badge tone={referee.tone}>{referee.label}</Badge>{m.referee_required && <a className="gk-btn gk-btn--ghost gk-btn--sm" href="#officials">See officials</a>}</>} />
                     <ListRow lead={<UsersRound aria-hidden="true" className="gk-match-icon" />}
-                        title={<><Link className="gk-match-link" to={`/clubs/${m.club_id}?tab=teams&squad=${m.squad_id}`}>{m.squad_name}</Link>{m.opponent_squad_name && <> v {m.opponent_club_id ? <Link className="gk-match-link" to={`/clubs/${m.opponent_club_id}?tab=teams`}>{m.opponent_squad_name}</Link> : m.opponent_squad_name}</>}</>}
+                        title={<><Link className="gk-match-link" to={`/clubs/${m.club_id}?tab=teams&squad=${m.squad_id}`}>{sideName(m.squad_name, m.club_name, same)}</Link>{m.opponent_squad_name && <> v {m.opponent_club_id ? <Link className="gk-match-link" to={`/clubs/${m.opponent_club_id}?tab=teams`}>{sideName(m.opponent_squad_name, m.opponent_name, same)}</Link> : sideName(m.opponent_squad_name, m.opponent_name, same)}</>}</>}
                         meta={m.coach_name ? <>Host coach: {m.head_coach_id ? <Link className="gk-match-link" to={`/profile/${m.head_coach_id}`}>{m.coach_name}</Link> : m.coach_name}</> : `${m.club_name} squads`} />
                     {m.can_arrange && m.listing_status === 'ARRANGED' && conversation !== undefined && <ListRow lead={<MessageCircle aria-hidden="true" className="gk-match-icon" />}
                         title="Match conversation" meta={conversation ? 'Both coaching teams' : 'Find it in Messages'}

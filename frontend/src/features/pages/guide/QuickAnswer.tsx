@@ -1,55 +1,49 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState } from 'react';
 import type { PageView } from '../api';
-import { usePagesCopy } from '../copy';
 import { usePageEdit } from '../edit/context';
+import { useGuideTask } from './taskBridge';
+import { useGuideCopy } from './copy';
 import type { QuickStep } from './quick';
 
-/**
- * The answer box under Dola's line, ready to type into: the likely answer is already in it (the account's phone, the
- * fees clubs nearby charge). Enter saves; the step gets done and she walks on.
- */
-export function QuickAnswer({ step, page, onDone }: { step: QuickStep; page: PageView; onDone: () => void }) {
-  const t = usePagesCopy();
+/** Inputs are prefilled, but only Next confirms and saves them. */
+export function QuickAnswer({ step, page }: { step: QuickStep; page: PageView }) {
+  const t = useGuideCopy();
   const { saveIdentity, saveBox } = usePageEdit();
   const suggested = page.suggestions?.fees;
-  const [text, setText] = useState(() => (step === 'name' ? page.identity.name : step === 'about' ? page.identity.about ?? '' : step === 'contact' ? page.identity.contact.phone || page.suggestions?.phone || '' : ''));
+  const [text, setText] = useState(() => step === 'name' ? page.identity.name : step === 'about' ? page.identity.about ?? '' : step === 'contact' ? page.identity.contact.phone || page.suggestions?.phone || '' : '');
   const [min, setMin] = useState(String(page.boxes.fees.band?.min ?? suggested?.min ?? ''));
   const [max, setMax] = useState(String(page.boxes.fees.band?.max ?? suggested?.max ?? ''));
-  const [saving, setSaving] = useState(false);
-
-  const save = async (free = false) => {
-    if (saving) return;
+  const [free, setFree] = useState(page.boxes.fees.band?.free === 'ALL');
+  const id = useId();
+  useGuideTask(`quick:${step}`, { next: async () => {
     const value = text.trim();
-    setSaving(true);
-    try {
-      if (step === 'name' && value.length >= 2) await saveIdentity({ name: value }, { label: t('Name saved') });
-      if (step === 'about' && value) await saveIdentity({ about: value }, { label: t('About saved') });
-      if (step === 'contact' && value) await saveIdentity({ contact: { phone: value, email: page.identity.contact.email } }, { label: t('Contact saved') });
-      if (step === 'fees') {
-        const low = Math.max(0, Number(min) || 0), high = Math.max(low, Number(max) || low);
-        await saveBox('fees', { band: free ? { min: 0, max: 0, currency: 'GEL', period: 'MONTH', free: 'ALL' } : { min: low, max: high, currency: 'GEL', period: 'MONTH', free: 'NONE' } }, { label: t('Fees saved') });
-      }
-      onDone();
-    } finally { setSaving(false); }
-  };
-  const submit = (event: FormEvent) => { event.preventDefault(); void save(); };
-
-  return (
-    <form className="gk-pet__quick" onSubmit={submit}>
-      {step === 'fees'
-        ? <span className="gk-pet__fees">
-            <input className="gk-pet__input" inputMode="numeric" value={min} onChange={event => setMin(event.target.value.replace(/\D/g, ''))} aria-label={t('From')} placeholder={t('From')} autoFocus />
-            <span aria-hidden="true">–</span>
-            <input className="gk-pet__input" inputMode="numeric" value={max} onChange={event => setMax(event.target.value.replace(/\D/g, ''))} aria-label={t('To')} placeholder={t('To')} />
-            <span className="gk-pet__unit">₾</span>
-          </span>
-        : <input className="gk-pet__input" value={text} onChange={event => setText(event.target.value)} autoFocus
-            type={step === 'contact' ? 'tel' : 'text'} autoComplete={step === 'contact' ? 'tel' : 'off'} maxLength={step === 'about' ? 160 : 120}
-            aria-label={t(step === 'contact' ? 'Phone' : step === 'about' ? 'About' : 'Name')} placeholder={t(step === 'contact' ? '+995 5XX XX XX XX' : step === 'about' ? 'Say what you are, in one sentence' : 'Name your page')} />}
-      <span className="gk-pet__actions">
-        <button type="submit" className="gk-pet__action gk-pet__action--main" disabled={saving}>{t('Save')}</button>
-        {step === 'fees' && <button type="button" className="gk-pet__action" disabled={saving} onClick={() => void save(true)}>{t('Free')}</button>}
-      </span>
-    </form>
-  );
+    let saved: unknown;
+    if (step === 'name') {
+      if (value.length < 2) return { status: 'stay', message: t('Enter a name with at least two letters.') };
+      saved = await saveIdentity({ name: value });
+    } else if (step === 'about') {
+      if (!value) return { status: 'stay', message: t('Write one sentence about your club.') };
+      saved = await saveIdentity({ about: value });
+    } else if (step === 'contact') {
+      if (!value || value.replace(/\D/g, '').length < 6) return { status: 'stay', message: t('Enter a phone number.') };
+      saved = await saveIdentity({ contact: { phone: value, email: page.identity.contact.email } });
+    } else {
+      const low = Number(min), high = Number(max || min);
+      if (!free && (!min.trim() || !Number.isFinite(low) || !Number.isFinite(high) || low < 0 || high < low)) return { status: 'stay', message: t('Enter a valid fee range, or choose Free.') };
+      saved = await saveBox('fees', { band: { min: free ? 0 : low, max: free ? 0 : high, currency: page.boxes.fees.band?.currency ?? suggested?.currency ?? 'GEL', period: 'MONTH', free: free ? 'ALL' : 'NONE' } });
+    }
+    return saved === true ? { status: 'complete' } : { status: 'stay', message: t('Not saved. Your answer is still here. Try Next again.') };
+  } });
+  const label = t(step === 'contact' ? 'Phone' : step === 'about' ? 'About' : 'Name');
+  return <div className="gk-guide__quick">
+    {step === 'fees' ? <>
+      <label className="gk-guide__check"><input type="checkbox" checked={free} onChange={event => setFree(event.target.checked)} />{t('Free')}</label>
+      {!free && <div className="gk-guide__fees" role="group" aria-label={t('Monthly fee, GEL')}>
+        <label>{t('From')}<input inputMode="decimal" value={min} onChange={event => setMin(event.target.value)} /></label>
+        <label>{t('To')}<input inputMode="decimal" value={max} onChange={event => setMax(event.target.value)} /></label><span>₾</span>
+      </div>}
+    </> : <><label htmlFor={id}>{label}</label>{step === 'about'
+      ? <textarea id={id} value={text} onChange={event => setText(event.target.value)} maxLength={160} rows={3} />
+      : <input id={id} value={text} onChange={event => setText(event.target.value)} type={step === 'contact' ? 'tel' : 'text'} autoComplete={step === 'contact' ? 'tel' : 'off'} maxLength={120} />}</>}
+  </div>;
 }

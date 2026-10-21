@@ -40,3 +40,7 @@ export function setPetHint(panel: string, hint: PetHint | null) {
 }
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 export const usePetHint = (panel: string | null) => useSyncExternalStore(subscribe, () => (panel ? hints.get(panel) ?? null : null), () => null);
+
+// Page-owned editors register an awaited save. Metadata is reactive; callbacks read the latest form state.
+export type { GuideResult, GuideTaskAdapter } from './types';
+export { useGuideTask, useGuideTaskAdapter, runGuideTask } from './taskBridge';

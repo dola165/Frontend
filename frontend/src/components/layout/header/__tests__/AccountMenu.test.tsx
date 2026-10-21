@@ -71,18 +71,18 @@ describe('account menu', () => {
         expect(screen.getByRole('menuitem', { name: 'Administration' })).toHaveAttribute('href', '/admin');
     });
 
-    it('lists the person’s workspaces, and nothing when they have none', () => {
+    it('keeps workspaces to one line leading to the page that lists them all, not a row each', () => {
         setup({ workspaces: squads });
         fireEvent.click(screen.getByRole('button', { name: /Account menu/ }));
-        const group = screen.getByRole('group', { name: 'Your workspaces' });
-        expect(within(group).getByRole('menuitem', { name: /U16 Boys/ })).toHaveAttribute('href', '/squads/105');
-        expect(within(group).getByRole('menuitem', { name: /Tbilisi Cup/ })).toHaveAttribute('href', '/tournaments/301/workspace');
+        expect(screen.getByRole('menuitem', { name: 'Your workspaces' })).toHaveAttribute('href', '/my-organizations');
+        expect(screen.queryByRole('menuitem', { name: /U16 Boys/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole('menuitem', { name: /Tbilisi Cup/ })).not.toBeInTheDocument();
     });
 
-    it('has no workspace group without workspaces', () => {
+    it('has no workspaces line without workspaces', () => {
         setup();
         fireEvent.click(screen.getByRole('button', { name: /Account menu/ }));
-        expect(screen.queryByRole('group', { name: 'Your workspaces' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('menuitem', { name: 'Your workspaces' })).not.toBeInTheDocument();
     });
 
     it('changes appearance and signs out once, closing the menu', () => {

@@ -19,3 +19,7 @@
 .venue-organization-entry{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;border:1px solid var(--border-subtle);background:var(--bg-elevated);border-radius:16px;padding:24px;margin:24px 0}
 .venue-organization-entry h2{margin:6px 0 0}.venue-organization-entry p{margin:0;color:var(--text-secondary)}
 @media(max-width:600px){.organization-price-list li{flex-direction:column;gap:8px}.organization-venues .venue-owner-card-links .venue-button{flex:1}}
+/* My organizations: every other workspace (squads, tournaments, hubs) as a compact list under the cards. */
+.organization-other-work{margin-top:32px}.organization-other-work h2{margin:0 0 12px;font-size:18px}.organization-other-work ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.organization-other-work a{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border:1px solid var(--border-subtle);border-radius:14px;background:var(--bg-elevated);color:var(--text-primary);text-decoration:none}.organization-other-work a:hover{border-color:var(--venue-accent)}
+.organization-other-work svg{flex:none;width:20px;height:20px;color:var(--venue-accent)}.organization-other-work span{display:flex;flex-direction:column;min-width:0}.organization-other-work small{color:var(--text-secondary)}

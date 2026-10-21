@@ -7,7 +7,7 @@ import { moveMenuFocus, openMenuFromKey, usePopover } from '../usePopover';
 import { readPageTitle, type RouteDescription } from './describeRoute';
 import { pinIcons } from './pinIcons';
 import { PinGlyph, PinsPanel } from './PinsPanel';
-import { fitPins } from './fitPins';
+import { fitPins, SEARCH_TOGGLE } from './fitPins';
 import type { Pin, usePins } from './usePins';
 
 interface PinsBarProps {
@@ -30,6 +30,8 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
     const crowdedRef = useRef(crowded);
     useLayoutEffect(() => { crowdedRef.current = crowded; }, [crowded]);
     const [fit, setFit] = useState(0);
+    const fitRef = useRef(fit);
+    useLayoutEffect(() => { fitRef.current = fit; }, [fit]);
     const [title, setTitle] = useState<string | null>(null);
     // A popover opens rightwards from its button, unless that would run past the window; then it opens leftwards.
     const [alignEnd, setAlignEnd] = useState({ panel: false, overflow: false });
@@ -50,31 +52,43 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
             // desktops. Pins that don't fit wait in "more" rather than covering the brand or account tools.
             const nav = container.parentElement, row = nav?.parentElement;
             const tabsWidth = nav?.querySelector<HTMLElement>('.gk-header__tabs')?.offsetWidth ?? 0;
-            let available = container.clientWidth;
+            let available = container.clientWidth, collapsed = available;
             let searchField = 0;
             if (nav && row) {
                 const rowStyle = getComputedStyle(row);
                 searchField = parseFloat(rowStyle.getPropertyValue('--gk-hsearch')) || 0;
                 const inner = row.clientWidth - (parseFloat(rowStyle.paddingLeft) || 0) - (parseFloat(rowStyle.paddingRight) || 0);
-                const sides = Array.from(row.children, child => child === nav ? 0 : (child as HTMLElement).offsetWidth);
-                const sideSpace = rowStyle.getPropertyValue('--gk-header-balanced').trim() === '1'
-                    ? sides.reduce((sum, width) => sum + width, 0) : 2 * Math.max(0, ...sides);
-                available = inner - sideSpace - 2 * (parseFloat(rowStyle.columnGap) || 0) - tabsWidth;
+                const balanced = rowStyle.getPropertyValue('--gk-header-balanced').trim() === '1';
+                // The start side without its search (field or icon), so the room for either state is measured from
+                // widths that showing a pin or collapsing search never changes.
+                const start = row.querySelector<HTMLElement>(':scope > .gk-header__start');
+                const searchParts = start ? Array.from(start.querySelectorAll<HTMLElement>(':scope > .gk-header__search, :scope > .gk-header__search-toggle')) : [];
+                const search = searchParts.reduce((sum, element) => sum + element.offsetWidth, 0);
+                const roomWith = (searchWidth: number) => {
+                    const sides = Array.from(row.children, child => child === nav ? 0
+                        : child === start && searchParts.length ? start.offsetWidth - search + searchWidth : (child as HTMLElement).offsetWidth);
+                    const sideSpace = balanced ? sides.reduce((sum, width) => sum + width, 0) : 2 * Math.max(0, ...sides);
+                    return inner - sideSpace - 2 * (parseFloat(rowStyle.columnGap) || 0) - tabsWidth;
+                };
+                available = roomWith(searchField || SEARCH_TOGGLE);
+                collapsed = roomWith(SEARCH_TOGGLE);
             }
             const result = fitPins({
                 available: available - dividerSpace,
+                collapsed: collapsed - dividerSpace,
                 pins: Array.from(measure.children, child => (child as HTMLElement).offsetWidth),
                 more: moreMeasureRef.current?.offsetWidth ?? 0,
                 plus: (panelTriggerRef.current?.offsetWidth ?? 44) + 4,
                 gap: 4,
                 searchField,
-            }, crowdedRef.current);
+            }, { fit: fitRef.current, crowded: crowdedRef.current });
             setFit(result.fit);
             onCrowdedChange(result.crowded);
         });
+        // What decides the room, not the pins' own area, which changes with the answer.
         const row = container.parentElement?.parentElement;
-        for (const element of row ? Array.from(row.children) : [container]) observer.observe(element);
-        if (row) observer.observe(row);
+        const watched = row ? [row, ...Array.from(row.children).filter(child => !child.contains(container)), row.querySelector('.gk-header__tabs')] : [container];
+        for (const element of watched) if (element) observer.observe(element);
         observer.observe(measure);
         return () => observer.disconnect();
     }, [pins, onCrowdedChange, panelTriggerRef]);
@@ -93,7 +107,8 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
                 <ul ref={measureRef} className="gk-pins">
                     {pins.map(pin => <li key={pin.path} className="gk-htab gk-htab--pin"><span className="gk-htab__body"><PinGlyph icon={pin.icon} /><span className="gk-htab__label">{pin.label}</span></span></li>)}
                 </ul>
-                <span ref={moreMeasureRef} className="gk-hbtn gk-hbtn--text"><span className="gk-hbtn__label">{moreLabel(pins.length)}</span><ChevronDown /></span>
+                {/* Measured as "N more" whatever shows now: room for "more" only counts while some pins are shown. */}
+                <span ref={moreMeasureRef} className="gk-hbtn gk-hbtn--text"><span className="gk-hbtn__label">{copy(`${pins.length} more`, `კიდევ ${pins.length}`)}</span><ChevronDown /></span>
             </div>
             {visible.length > 0 && (
                 <ul className="gk-pins" aria-label={copy('Your pins', 'თქვენი პინები')}>

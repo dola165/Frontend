@@ -15,6 +15,10 @@ import { OrganizationTeamInvitations } from '../features/organizations/setup/Org
 import '../features/organizations/setup/setup.css';
 import { VenueOwnerCard } from '../features/venues/VenueOwnerCard';
 import { typeLabel } from '../features/organizations/setup/domain';
+import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
+import { connectedWorkspaces } from '../components/layout/connectedWorkspaces';
+import { workspaceDestinations } from '../components/layout/header/pins/pinCatalog';
+import { PinGlyph } from '../components/layout/header/pins/PinsPanel';
 import '../features/organizations/presentation/entity-profile.css';
 import '../features/organizations/presentation/organization-venues.css';
 
@@ -24,6 +28,7 @@ export function MyOrganizationsPage() {
   const { user, sessionId, status } = useAuth();
   const { t } = useTranslation();
   const pc = usePagesCopy();
+  const copy = useJourneyCopy();
   const [search] = useSearchParams();
   const venuesOnly = search.get('kind') === 'VENUE';
   const current = status === 'authenticated' && user?.id != null && isCurrentAuthSession(sessionId);
@@ -46,6 +51,13 @@ export function MyOrganizationsPage() {
   const links = workspaceLinks(capabilities);
   const venues = capabilities?.workspaces.filter(w => w.id === 'venue.workspace') ?? [];
   const venueEntry = venuesOnly;
+  // Every other workspace (squads, tournaments, other clubs, the person's own hubs) once the cards are known, so the
+  // account menu's one "Your workspaces" line reaches everything it used to list.
+  const listed = new Set([
+    ...(organizations ?? []).flatMap(o => o.clubId ? [`/clubs/${o.clubId}`, `/clubs/${o.clubId}/workspace`] : [`/organizations/${o.id}`, `/organizations/${o.id}/workspace`]),
+    ...(venues.length ? connectedWorkspaces(capabilities).filter(item => item.group === 'Venues').map(item => item.path) : []),
+  ]);
+  const others = !venuesOnly && (organizations || error !== null) ? workspaceDestinations(capabilities, null, copy).filter(place => !listed.has(place.path)) : [];
   return <main className="venue-page">
     <header className="venue-workspace-heading">
       <div><h1>{venuesOnly ? t('nav.myVenues', 'My venues') : t('nav.myOrganizations', 'My organizations')}</h1>
@@ -79,5 +91,9 @@ export function MyOrganizationsPage() {
         </article>;
       })}
     </div>
+    {others.length > 0 && <section className="organization-other-work" aria-labelledby="organization-other-work">
+      <h2 id="organization-other-work">{copy('Squads, tournaments and other work', 'გუნდები, ტურნირები და სხვა საქმე')}</h2>
+      <ul>{others.map(place => <li key={place.path}><Link to={place.path}><PinGlyph icon={place.icon} /><span><strong>{place.label}</strong><small>{place.kind}</small></span></Link></li>)}</ul>
+    </section>}
   </main>;
 }

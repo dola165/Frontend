@@ -102,21 +102,34 @@ describe('pin store', () => {
 describe('fitting pins into the header', () => {
     const space = { pins: [110, 110, 130, 120, 90, 100, 90, 90], more: 100, plus: 48, gap: 4, searchField: 300 };
 
+    const room = (available: number, collapsed = available) => ({ ...space, available, collapsed });
+
     it('shows as many pins as fit, keeping room for "more"', () => {
-        expect(fitPins({ ...space, available: 2000 }, false)).toEqual({ fit: VISIBLE_PINS, crowded: false });
-        expect(fitPins({ ...space, available: 500 }, false).fit).toBe(2);
-        expect(fitPins({ ...space, available: 100 }, false).fit).toBe(0);
+        expect(fitPins(room(2000))).toEqual({ fit: VISIBLE_PINS, crowded: false });
+        expect(fitPins(room(500)).fit).toBe(2);
+        expect(fitPins(room(100)).fit).toBe(0);
     });
 
-    it('collapses search only when the pins would not fit beside the field, and does not flip back once it has', () => {
-        const wide = fitPins({ ...space, available: 700 }, false);
-        expect(wide.crowded).toBe(true);
-        // With search collapsed the pins gain the field's width, and the header stays crowded rather than oscillating.
-        expect(fitPins({ ...space, available: 700 + 300 - 44 }, true)).toEqual({ fit: VISIBLE_PINS, crowded: true });
-        expect(fitPins({ ...space, pins: [110, 90], available: 700 }, false)).toEqual({ fit: 2, crowded: false });
+    it('collapses search only when the pins would not fit beside the field, then uses the room it gives', () => {
+        expect(fitPins(room(700, 700 + 300 - 44))).toEqual({ fit: VISIBLE_PINS, crowded: true });
+        expect(fitPins({ ...room(700), pins: [110, 90] })).toEqual({ fit: 2, crowded: false });
+    });
+
+    it('settles in one state whichever state it is in now (the tabs used to shake between a pin and "1 pin")', () => {
+        // Very wide screens count the wider side twice, so collapsing a 400px field gives a single pin far more room.
+        const one = { ...room(250, 250 + 2 * (400 - 44)), pins: [220], searchField: 400 };
+        const settled = fitPins(one);
+        expect(settled).toEqual({ fit: 1, crowded: true });
+        for (const now of [{ fit: 0, crowded: false }, { fit: 1, crowded: false }, { fit: 0, crowded: true }, settled]) expect(fitPins(one, now)).toEqual(settled);
+    });
+
+    it('needs a few pixels to spare before showing more than now, so rounding never flips it back', () => {
+        const edge = { ...room(276, 276), pins: [220], searchField: 0 };
+        expect(fitPins(edge, { fit: 1, crowded: false }).fit).toBe(1);
+        expect(fitPins(edge, { fit: 0, crowded: false }).fit).toBe(0);
     });
 
     it('never asks search to collapse where there is no field to collapse', () => {
-        expect(fitPins({ ...space, searchField: 0, available: 300 }, false).crowded).toBe(false);
+        expect(fitPins({ ...room(300), searchField: 0 }).crowded).toBe(false);
     });
 });

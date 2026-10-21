@@ -1,5 +1,5 @@
 import { useClubProfileSearchParams } from '../clubProfilePreviewContext';
-import { Button, EmptyNote, Panel, Section, Skeleton } from '../../../design/primitives';
+import { Button, EmptyNote, Panel, Skeleton } from '../../../design/primitives';
 import { FacilityCard, type PublicFacility } from '../ClubPlaceCard';
 import { placeType } from '../clubPlaceTypes';
 import type { PublicSquad } from '../publicJourney';
@@ -9,12 +9,12 @@ import { usePageEditIfAny } from '../../pages/edit/context';
 import type { ClubProfile } from './types';
 
 const groups = [
-    { type: 'VENUE', title: 'Grounds', hint: 'Where the club plays and trains' },
-    { type: 'FACILITY', title: 'Facilities', hint: 'Gyms, changing rooms, medical rooms and the clubhouse' },
+    { type: 'VENUE', title: 'Grounds' },
+    { type: 'FACILITY', title: 'Facilities' },
     { type: 'UNCLASSIFIED', title: 'Other locations' },
 ] as const;
 
-/** Reuse the established cards, including the same location details and directions. */
+/** Every place in one grid of equal cards (grounds first), each group under a small label; the cards are the established ones, with details and directions. */
 export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdit: boolean }) {
     const t = usePagesCopy();
     const page = usePageEditIfAny()?.page;
@@ -43,12 +43,11 @@ export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdi
         {places.loading ? <Panel flush><div className="gk-panel--pad"><Skeleton height={160} /></div></Panel>
             : places.failed ? <Panel flush><EmptyNote title={t('The locations couldn’t load')} action={<Button size="sm" onClick={places.retry}>{t('Try again')}</Button>} /></Panel>
             : !filtered.length ? <Panel flush><EmptyNote title={t('No locations published yet')}>{t(squad ? 'No published location is assigned to this squad.' : 'Ask the club where it trains before your first visit.')}</EmptyNote></Panel>
-            : groups.map(group => {
+            : <div className="gk-club-places-wrap"><div className="club-places-grid gk-club-places">{groups.flatMap(group => {
                 const items = filtered.filter(p => placeType(p) === group.type);
-                return items.length ? <Section key={group.type} boxed title={t(group.title)} hint={'hint' in group ? t(group.hint) : undefined}>
-                    <div className="club-places-grid gk-club-places">{items.map(place => <FacilityCard key={place.id} facility={place} clubId={club.id} showVenueLinks={false} detailsOpen={params.get('place') === String(place.id)} onDetailsChange={open => set('place', open ? String(place.id) : '')} />)}</div>
-                </Section> : null;
-            })}
+                return items.length ? [<h2 key={group.type} className="gk-club-places__group">{t(group.title)}<span className="gk-num">{items.length}</span></h2>,
+                    ...items.map(place => <FacilityCard key={place.id} facility={place} clubId={club.id} showVenueLinks={false} detailsOpen={params.get('place') === String(place.id)} onDetailsChange={open => set('place', open ? String(place.id) : '')} />)] : [];
+            })}</div></div>}
         <p className="gk-muted gk-club-note">{t('Use the location confirmed for your session. A club’s postal address may differ from its training ground.')}</p>
     </>;
 }

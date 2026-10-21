@@ -81,3 +81,9 @@
 }
 .gk .gk-profile .gk-spin, .gk.gk-profile .gk-spin { animation: gk-profile-spin 1s linear infinite; }
 @keyframes gk-profile-spin { to { transform: rotate(360deg); } }
+.gk .gk-list-more { color: var(--gk-accent); font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .gk-profile-side .gk-list-more { min-height: 44px; }
+.gk .gk-list-more .gk-list-row__title { color: inherit; }
+.gk .gk-list-more svg { flex: none; transition: transform .15s var(--gk-ease); }
+.gk .gk-list-more svg[data-open] { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .gk .gk-list-more svg { transition: none; } }

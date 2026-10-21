@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { SideBlock } from '../../../design/profile/ProfileLayout';
 import { usePagesCopy } from '../copy';
+import { EditPencil } from './EditPencil';
 import { addableBoxes, BOX_COLUMN, type BoxKey, type Column } from '../model/kinds';
 import { GhostBox, type GhostNeed } from './GhostBox';
 import { SETUP_PANEL, usePageEdit } from './context';
@@ -50,7 +52,9 @@ function useOpenedFlash(panel: string | null) {
  * fills it. Visitors never see an empty box. In Rearrange mode every box gets a handle, Move up / Move down and
  * Hide, with a drop line between boxes; the tray of boxes not on the page yet ends the column in edit mode.
  */
-export function PageColumn({ column, renderers }: { column: Column; renderers: BoxRenderers }) {
+export function PageColumn({ column, renderers, shownInMain = [] }: { column: Column; renderers: BoxRenderers;
+  /** Boxes the main column already shows in full: here only their name and Edit, so the same list never sits twice side by side. */ shownInMain?: BoxKey[] }) {
+  const t = usePagesCopy();
   const { page, editing, rearranging, panel, openPanel, closePanel } = usePageEdit();
   const keys = (page?.layout.columns[column] ?? []).filter(key => renderers[key]);
   const filled: Record<string, boolean> = {};
@@ -67,7 +71,9 @@ export function PageColumn({ column, renderers }: { column: Column; renderers: B
         const isNext = next === target;
         return (
           <div key={key} className="gk-boxframe" data-box={key} data-rearrange={rearranging || undefined} data-flash={flashing.has(key) || undefined}>
-            {(() => { const content = filled[key] || (open && !renderer.panel)
+            {(() => { const content = filled[key] && !open && !rearranging && shownInMain.includes(key)
+              ? <SideBlock title={t(BOX_NAMES[key])} hint={t('Shown in full on this tab')} action={editing ? <EditPencil onClick={() => openPanel(target)} /> : undefined}>{null}</SideBlock>
+              : filled[key] || (open && !renderer.panel)
               ? <renderer.View page={page} editing={editing && !rearranging} open={open} onEdit={() => openPanel(target)} onClose={closePanel} />
               : <GhostBox icon={renderer.icon} {...ghostWords(page.kind, key, renderer)} next={isNext} need={page.status === 'DRAFT' ? needOf(key) : undefined} onOpen={() => openPanel(target)} />;
               return rearranging ? <DraggableBox box={key} column={column} index={index} count={keys.length}>{content}</DraggableBox> : content; })()}

@@ -115,12 +115,19 @@
 .gk .gk-staff-responsibilities { list-style: none; display: grid; gap: var(--gk-2); padding: 0; margin: 0 0 var(--gk-2); }
 .gk .gk-staff-responsibilities li { display: grid; }
 .gk .gk-staff-responsibilities span, .gk .gk-staff-responsibilities small { color: var(--gk-text-3); }
-.gk .gk-club-places { gap: var(--gk-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+/* One grid for every place: three cards a row in a wide column, two in a medium one, one on a phone. */
+.gk .gk-club-places-wrap { container-type: inline-size; }
+.gk .gk-club-places { gap: var(--gk-3); grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 460px) { .gk .gk-club-places { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (min-width: 720px) { .gk .gk-club-places { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.gk .gk-club-places__group { grid-column: 1 / -1; display: flex; align-items: baseline; gap: var(--gk-2); margin: var(--gk-3) 0 0; font-family: var(--gk-font); font-size: var(--gk-fs-sm); font-weight: 650; letter-spacing: 0; color: var(--gk-text); }
+.gk .gk-club-places__group:first-child { margin-top: 0; }
+.gk .gk-club-places__group .gk-num { color: var(--gk-text-3); font-weight: 500; }
 .gk .gk-club-places .club-place-card { border-radius: var(--gk-r); color: var(--gk-text); background: var(--gk-surface); border-color: var(--gk-line); }
 .gk .gk-club-places .club-place-content { padding: var(--gk-3); gap: var(--gk-2); }
-.gk .gk-club-places .club-place-content h3 { font-size: var(--gk-fs-lg); }
+.gk .gk-club-places .club-place-content h3 { font-size: var(--gk-fs-md); }
 .gk .gk-club-places .club-place-content p { line-height: var(--gk-lh-md); }
-.gk .gk-club-places .club-place-actions { margin-top: auto; flex-wrap: wrap; }
+.gk .gk-club-places .club-place-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-2); margin-top: auto; }
 .gk .gk-club-places .cp-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-sm); color: var(--gk-text); font-size: var(--gk-fs-sm); }
 @media (max-width: 600px) {
     .gk .gk-staff-person__name { min-height: 44px; }

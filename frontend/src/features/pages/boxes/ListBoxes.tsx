@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, FileUp, Lock, MapPin, Plus, Trash2, Trophy, UserPlus, Users } from 'lucide-react';
 import { Avatar, Button, List, ListRow } from '../../../design/primitives';
 import { SideBlock } from '../../../design/profile/ProfileLayout';
+import { ShowAllRow } from '../../../design/profile/ShortList';
+import { useShortList, type ShortListMore } from '../../../design/profile/useShortList';
 import { Crest } from '../../world/Crest';
 import { safePublicUrl } from '../../clubs/presentation';
 import type { Honour, Sponsor } from '../api';
@@ -21,12 +23,13 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** Where the page plays: each ground with its address, nearest to the page's town first. */
 export function GroundsBox({ page, editing, onEdit }: BoxProps) {
   const t = usePagesCopy();
-  const grounds = page.boxes.grounds.items;
+  const grounds = useShortList(page.boxes.grounds.items);
   return (
     <SideBlock title={t(page.kind === 'FAN_CLUB' ? 'Meeting place' : 'Grounds')} hint={t(page.kind === 'FAN_CLUB' ? 'Where we meet' : 'Where we play and train')} action={editing ? <EditPencil onClick={onEdit} /> : undefined}>
       <List label={t('Grounds')}>
-        {grounds.slice(0, 4).map(ground => <ListRow key={ground.id} to={page.clubId ? `/clubs/${page.clubId}?tab=facilities&place=${ground.id}${editing ? '&edit=1' : ''}` : undefined}
+        {grounds.shown.map(ground => <ListRow key={ground.id} to={page.clubId ? `/clubs/${page.clubId}?tab=facilities&place=${ground.id}${editing ? '&edit=1' : ''}` : undefined}
           lead={<span className="gk-club-icon"><MapPin aria-hidden="true" /></span>} title={ground.name} meta={[ground.address, ground.indoor ? t('Indoor') : null].filter(Boolean).join(' · ')} />)}
+        <MoreRow more={grounds.more} />
       </List>
     </SideBlock>
   );
@@ -36,13 +39,14 @@ export function GroundsBox({ page, editing, onEdit }: BoxProps) {
 export function SquadsBox({ page, editing, onEdit }: BoxProps) {
   const t = usePagesCopy();
   const { openPanel } = usePageEdit();
-  const squads = page.boxes.squads.items;
+  const squads = page.boxes.squads.items, list = useShortList(squads);
   return (
     <SideBlock title={t('Teams')} hint={t('Age groups and when they train')} action={editing ? <EditPencil onClick={onEdit} /> : undefined}>
       <List label={t('Teams')}>
-        {squads.map(squad => <ListRow key={squad.id} to={page.clubId ? `/clubs/${page.clubId}?tab=teams&squad=${squad.id}${editing ? '&edit=1' : ''}` : undefined}
+        {list.shown.map(squad => <ListRow key={squad.id} to={page.clubId ? `/clubs/${page.clubId}?tab=teams&squad=${squad.id}${editing ? '&edit=1' : ''}` : undefined}
           lead={<span className="gk-club-icon"><Users aria-hidden="true" /></span>} title={squad.name}
           meta={[squad.days.length ? `${squad.days.map(day => t(DAYS[day - 1] ?? '')).join(' · ')}${squad.time ? ` ${squad.time}` : ''}` : t('Training times to come'), squad.players ? t('{n} players', { n: squad.players }) : null].filter(Boolean).join(' · ')} />)}
+        <MoreRow more={list.more} />
       </List>
       {page.viewer.canEdit && squads.length > 0 && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" variant="primary" onClick={() => openPanel('players')}><UserPlus aria-hidden="true" />{t('Invite players')}</Button></div>}
     </SideBlock>
@@ -54,11 +58,14 @@ export function StaffBox({ page, editing, onEdit }: BoxProps) {
   const t = usePagesCopy();
   const { openPanel } = usePageEdit();
   const members = page.boxes.staff.members, invites = page.boxes.staff.invites.filter(invite => invite.status === 'INVITED');
+  const people = useShortList([...members.map(member => ({ member, invite: null })), ...(editing ? invites.map(invite => ({ member: null, invite })) : [])]);
   return (
     <SideBlock title={t(page.kind === 'CLUB' ? 'Coaches and staff' : page.kind === 'FAN_CLUB' ? 'Committee' : 'Team')} hint={t('Who runs it')} action={editing ? <EditPencil onClick={onEdit} /> : undefined}>
       <List label={t('People')}>
-        {members.map(member => <ListRow key={member.userId} to={`/profile/${member.userId}`} lead={<Avatar src={member.avatarUrl} name={member.fullName} size={32} />} title={member.fullName} meta={t(member.title)} />)}
-        {editing && invites.map(invite => <ListRow key={`invite-${invite.id}`} lead={<Avatar name={invite.name} size={32} />} title={invite.name || invite.phone} meta={t('Invited · waiting')} />)}
+        {people.shown.map(({ member, invite }) => member
+          ? <ListRow key={member.userId} to={`/profile/${member.userId}`} lead={<Avatar src={member.avatarUrl} name={member.fullName} size={32} />} title={member.fullName} meta={t(member.title)} />
+          : invite && <ListRow key={`invite-${invite.id}`} lead={<Avatar name={invite.name} size={32} />} title={invite.name || invite.phone} meta={t('Invited · waiting')} />)}
+        <MoreRow more={people.more} />
       </List>
       {page.viewer.canEdit && <div className="gk-boxedit__foot gk-box__doors"><Button size="sm" onClick={() => openPanel('staff')}><UserPlus aria-hidden="true" />{t(page.kind === 'CLUB' ? 'Invite coaches & staff' : 'Invite someone')}</Button></div>}
     </SideBlock>
@@ -69,18 +76,18 @@ export function StaffBox({ page, editing, onEdit }: BoxProps) {
 export function SponsorsBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const t = usePagesCopy();
   const { saveBox } = usePageEdit();
-  const sponsors = page.boxes.sponsors.items;
+  const sponsors = page.boxes.sponsors.items, list = useShortList(sponsors);
   const business = page.kind === 'BUSINESS';
   const persist = (rows: Row[]) => saveBox('sponsors', { items: rows.map(row => ({ id: row.id < 0 ? undefined : row.id, name: row.name, websiteUrl: /^https?:\/\//.test(row.extra) ? row.extra : row.extra ? `https://${row.extra}` : null, logoUrl: sponsors.find(sponsor => sponsor.id === row.id)?.logoUrl ?? null, organizationId: sponsors.find(sponsor => sponsor.id === row.id)?.organizationId ?? null } satisfies Omit<Sponsor, 'id'> & { id?: number })) }, { label: t(business ? 'Clubs saved' : 'Sponsors saved') });
   return (
     <SideBlock title={t(business ? 'Clubs we back' : 'Sponsors')} hint={t(business ? 'Who we support' : 'Backing the club')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <NamesEditor rows={sponsors.map(sponsor => ({ id: sponsor.id, name: sponsor.name, extra: sponsor.websiteUrl ?? '' }))} extraLabel={t('Website')} extraPlaceholder="kartuli-bank.ge" addLabel={t(business ? 'Add a club' : 'Add a sponsor')}
         onSave={async rows => { if (await persist(rows)) onClose?.(); }} onKeep={rows => void persist(rows)} onCancel={onClose} />
-        : <List label={t('Sponsors')}>{sponsors.map(sponsor => {
+        : <List label={t('Sponsors')}>{list.shown.map(sponsor => {
           const website = safePublicUrl(sponsor.websiteUrl);
           const body = <><Crest src={sponsor.logoUrl} name={sponsor.name} size={36} /><span className="gk-list-row__main"><span className="gk-list-row__title">{sponsor.name}</span></span>{website && <ArrowUpRight aria-hidden="true" className="gk-faint" size={16} />}</>;
           return <li key={sponsor.id}>{sponsor.organizationId ? <Link className="gk-list-row" to={`/organizations/${sponsor.organizationId}`}>{body}</Link> : website ? <a className="gk-list-row" href={website} target="_blank" rel="noopener noreferrer">{body}</a> : <div className="gk-list-row">{body}</div>}</li>;
-        })}</List>}
+        })}<MoreRow more={list.more} /></List>}
     </SideBlock>
   );
 }
@@ -89,13 +96,13 @@ export function SponsorsBox({ page, editing, open, onEdit, onClose }: BoxProps) 
 export function HonoursBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const t = usePagesCopy();
   const { saveBox } = usePageEdit();
-  const honours = [...page.boxes.honours.items].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+  const honours = [...page.boxes.honours.items].sort((a, b) => (b.year ?? 0) - (a.year ?? 0)), list = useShortList(honours);
   const persist = (rows: Row[]) => saveBox('honours', { items: rows.map(row => ({ id: row.id < 0 ? undefined : row.id, title: row.name, year: row.extra.trim() ? Number(row.extra) : null } satisfies Omit<Honour, 'id'> & { id?: number })) }, { label: t('Honours saved') });
   return (
     <SideBlock title={t('Honours')} hint={t('What the club has won')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <NamesEditor rows={honours.map(honour => ({ id: honour.id, name: honour.title, extra: honour.year == null ? '' : String(honour.year) }))} extraLabel={t('Year')} extraPlaceholder={String(new Date().getFullYear())} extraType="number" addLabel={t('Add an honour')}
         onSave={async rows => { if (await persist(rows)) onClose?.(); }} onKeep={rows => void persist(rows)} onCancel={onClose} />
-        : <List label={t('Honours')}>{honours.map(honour => <ListRow key={honour.id} lead={<span className="gk-club-icon"><Trophy aria-hidden="true" /></span>} title={honour.title} meta={honour.year == null ? t('Year not recorded') : String(honour.year)} />)}</List>}
+        : <List label={t('Honours')}>{list.shown.map(honour => <ListRow key={honour.id} lead={<span className="gk-club-icon"><Trophy aria-hidden="true" /></span>} title={honour.title} meta={honour.year == null ? t('Year not recorded') : String(honour.year)} />)}<MoreRow more={list.more} /></List>}
     </SideBlock>
   );
 }
@@ -130,6 +137,12 @@ export function InvolvedBox({ page, editing, open, onEdit, onClose }: BoxProps) 
         : <List label={t('Ways to get involved')}>{parts.map(part => <ListRow key={part} to={link[part]} lead={<span className="gk-club-icon" data-kind={part === 'fundraising' ? 'campaigns' : part}><ArrowUpRight aria-hidden="true" /></span>} title={t(words[part][0])} meta={t(words[part][1])} />)}</List>}
     </SideBlock>
   );
+}
+
+/** "Show all 12" under a long side list; the rest opens in place and folds back. */
+function MoreRow({ more }: { more: ShortListMore }) {
+  const t = usePagesCopy();
+  return <ShowAllRow more={more} showAll={t('Show all {n}', { n: more?.count ?? 0 })} showFewer={t('Show fewer')} />;
 }
 
 interface Row { id: number; name: string; extra: string }

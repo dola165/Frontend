@@ -1,0 +1,202 @@
+/* Booking a pitch (VenueCalendar): steps, day strip, start and end times, the reservation summary and its policy. */
+.venue-calendar-section {
+  padding: 30px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.venue-booking-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 315px;
+  gap: 22px;
+  align-items: start;
+}
+.venue-calendar {
+  min-width: 0;
+}
+.venue-day-closed {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 20px 0;
+}
+.venue-calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: var(--text-secondary);
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+.venue-calendar-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.venue-calendar-legend span:last-child {
+  margin-left: auto;
+}
+.venue-calendar-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--venue-accent);
+}
+.venue-calendar-legend i.is-busy {
+  background: var(--text-muted);
+  opacity: 0.4;
+}
+.venue-reservation {
+  position: sticky;
+  top: calc(var(--app-active-header-height, 100px) + 20px);
+}
+.venue-reservation > h3 {
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  line-height: 1.4;
+  margin-bottom: 9px;
+}
+.venue-reservation > p {
+  font-size: 12px;
+}
+.venue-reservation-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 0;
+  margin-bottom: 20px;
+}
+.venue-reservation-summary > span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.venue-reservation-summary > strong {
+  font-size: 23px;
+}
+.venue-reservation-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 12px;
+}
+.venue-reservation-summary > div strong {
+  font-size: 21px;
+  color: var(--venue-accent);
+}
+.venue-booking-policy {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 17px;
+  margin-top: 20px;
+}
+.venue-booking-policy p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.venue-booking-policy svg {
+  flex: 0 0 16px;
+  margin-top: 2px;
+  color: var(--venue-accent);
+}
+@media (max-width: 1100px) {
+  .venue-booking-layout {
+    grid-template-columns: minmax(0, 1fr) 285px;
+  }
+}
+/* The calendar and the reservation are .venue-panel boxes. Their own padding applies down to these widths; below them the
+   panel's narrow-screen padding (venue-responsive.css) applies, whichever stylesheet loads first. */
+@media (width > 1100px) {
+  .venue-reservation {
+    padding: 23px;
+  }
+}
+@media (width > 580px) {
+  .venue-calendar {
+    padding: 20px;
+  }
+}
+@media (580px < width <= 1100px) {
+  .venue-calendar {
+    padding: 14px;
+  }
+}
+@media (max-width: 800px) {
+  .venue-booking-layout {
+    grid-template-columns: 1fr;
+  }
+  .venue-reservation {
+    position: static;
+  }
+}
+@media (max-width: 580px) {
+  .venue-calendar-legend {
+    gap: 10px;
+  }
+  .venue-calendar-legend span:last-child {
+    margin-left: 0;
+    width: 100%;
+  }
+  .venue-calendar-section {
+    padding: 25px 0;
+  }
+}
+.venue-range-booking [hidden] { display: none !important; }
+.venue-range-booking .venue-booking-fields { padding: 0; margin: 0; border: 0; min-width: 0; }
+.venue-booking-steps { display: flex; align-items: center; gap: 22px; margin-bottom: 28px; color: var(--text-muted); }
+.venue-booking-steps button { display: flex; gap: 9px; align-items: center; padding: 0; background: none; border: 0; font-size: 13px; color: var(--text-secondary); }
+.venue-booking-steps button span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--bg-inset); border: 1px solid var(--border-subtle); }
+.venue-booking-steps button[aria-current] { color: var(--venue-accent); font-weight: 700; }
+.venue-booking-steps button[aria-current] span { background: var(--venue-accent-soft); border-color: var(--venue-accent); }
+.venue-range-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 18px; justify-content: space-between; }
+.venue-range-toolbar > label { flex: 1 1 180px; }
+.venue-range-booking .venue-week-controls { flex-wrap: wrap; gap: 3px; }
+.venue-range-booking .venue-week-controls input { max-width: 140px; }
+.venue-date-strip { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 7px; margin: 24px 0; }
+.venue-date-strip button { border: 1px solid var(--border-subtle); border-radius: 10px; background: transparent; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 3px; font-size: 11px; }
+.venue-date-strip button strong { font-size: 22px; color: var(--text-primary); }
+.venue-date-strip button.is-selected { border-color: var(--venue-accent); background: var(--venue-accent-soft); color: var(--venue-accent); }
+.venue-date-strip button.is-selected strong { color: var(--venue-accent); }
+.venue-range-fields { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-inset); border-radius: 12px; }
+.venue-range-fields button { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; border: 1px solid var(--border-subtle); background: var(--bg-elevated); border-radius: 8px; padding: 10px 14px; flex: 1; color: var(--text-primary); text-align: left; }
+.venue-range-fields button span { font-size: 11px; color: var(--text-secondary); }
+.venue-range-fields button strong { font-size: 17px; }
+.venue-range-fields button.is-active { border-color: var(--venue-accent); box-shadow: 0 0 0 1px var(--venue-accent); }
+.venue-range-length { font-size: 13px; color: var(--venue-accent); white-space: nowrap; }
+.venue-range-booking .venue-range-instruction { font-size: 12px; margin: 20px 0 12px; color: var(--text-secondary); }
+.venue-range-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 8px; margin-bottom: 24px; }
+.venue-range-time { border: 1px solid color-mix(in srgb,var(--venue-accent) 35%, transparent); color: var(--venue-accent); background: transparent; border-radius: 8px; padding: 12px 2px; min-height: 44px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.venue-range-time:hover:not(:disabled) { background: var(--venue-accent-soft); border-color: var(--venue-accent); }
+.venue-range-booking .venue-range-time:disabled { color: var(--text-muted); background: var(--bg-inset); border-color: transparent; opacity: .55; }
+.venue-range-booking .venue-range-time.is-in-range { background: var(--venue-accent-soft); border-color: var(--venue-accent-soft); color: var(--venue-accent); opacity: 1; }
+.venue-range-booking .venue-range-time.is-endpoint { background: var(--venue-accent); color: var(--color-cyan); border-color: var(--venue-accent); opacity: 1; font-weight: 700; }
+.venue-range-booking .venue-reservation > .venue-eyebrow { display: block; margin-bottom: 15px; }
+.venue-range-booking .venue-reservation-summary { margin-top: 22px; }
+.venue-contact-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.venue-repeat-summary { margin-top: 18px !important; }
+@media (max-width: 767px) {
+  .venue-booking-steps { gap: 12px; }
+  .venue-range-fields { flex-wrap: wrap; gap: 10px; padding: 12px; }
+  .venue-range-length { width: 100%; text-align: center; }
+  .venue-range-grid { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 6px; }
+  .venue-date-strip { gap: 4px; }
+  .venue-contact-fields { grid-template-columns: 1fr; }
+  .venue-range-booking .venue-reservation { position: static; }
+}
+
+.venue-booking-page .venue-calendar-section { padding: 18px 0; }
+.venue-booking-page .venue-section-heading { margin-bottom: 18px; }
+.venue-booking-page .venue-booking-steps { margin-bottom: 18px; }
+.venue-booking-page .venue-date-strip { margin: 18px 0; }
+.venue-booking-page .venue-date-strip button { padding: 7px 3px; gap: 0; }
+.venue-booking-page .venue-range-fields { padding: 12px; }
+.venue-booking-page .venue-range-instruction { margin: 14px 0 10px; }
+.venue-booking-page .venue-range-grid { margin-bottom: 18px; }
+.venue-booking-page .venue-range-time { padding: 8px 2px; }
+.venue-booking-page .venue-calendar-legend { padding-top: 12px; }

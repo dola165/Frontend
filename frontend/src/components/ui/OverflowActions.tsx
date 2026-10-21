@@ -126,7 +126,7 @@ export const OverflowActions = ({
                                                         type="button"
                                                         onClick={() => handleConfirm(item)}
                                                         disabled={item.disabled}
-                                                        className="rounded-xl bg-[var(--fc-state-warning)] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                        className="rounded-xl bg-[var(--fc-state-warning)] px-2.5 py-1 text-xs font-semibold text-[color:var(--color-text)] hover:opacity-90 disabled:opacity-50 transition-opacity"
                                                     >
                                                         {item.confirm?.confirmLabel || 'Confirm'}
                                                     </button>

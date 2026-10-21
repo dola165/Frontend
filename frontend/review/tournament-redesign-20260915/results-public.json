@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "anonymous-bracket-no-private-requests",
+    "public-bracket-desktop",
+    "public-guest-team-search",
+    "public-about-desktop",
+    "public-standings-desktop",
+    "public-results-desktop",
+    "eliminated-team-remains-visible",
+    "public-bracket-mobile-390",
+    "public-matches-mobile-390",
+    "public-teams-mobile-390",
+    "public-about-mobile-390",
+    "public-bracket-mobile-320",
+    "public-matches-mobile-320",
+    "public-teams-mobile-320",
+    "public-about-mobile-320",
+    "public-georgian-light-mobile",
+    "public-about-georgian-light-mobile"
+  ],
+  "errors": [],
+  "unexpectedNetwork": [],
+  "unexpectedAdapter": []
+}

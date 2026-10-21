@@ -1,0 +1,28 @@
+/* Shared look of the family forms that live outside Parent Hub's own layout: adding a child, family connections,
+   link codes and account activation. */
+@import "./family-theme.css";
+.parent-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--fc-border); border-radius: 10px; font-size: 12px; font-weight: 650; line-height: 1.5; color: var(--fc-text-primary); background: var(--fc-card-bg); transition: background .15s; }
+.parent-button:hover { background: var(--fc-surface-hover); }
+.parent-button:disabled, .parent-icon-button:disabled { cursor: wait; opacity: .55; }
+.parent-button-primary { color: var(--color-on-accent); background: var(--fc-accent); border-color: var(--fc-accent); }
+.parent-button-primary:hover { background: var(--fc-accent); filter: brightness(.95); }
+.parent-button:focus-visible, .parent-icon-button:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.parent-panel { border: 1px solid var(--fc-border); border-radius: 16px; background: var(--fc-card-bg); padding: 24px; }
+.parent-panel h2, .parent-dialog h2 { font-size: 18px; font-weight: 700; line-height: 1.4; letter-spacing: -.02em; }
+.parent-panel h3 { font-size: 14px; font-weight: 650; line-height: 1.5; }
+.parent-muted { color: var(--fc-text-muted); font-size: 12px; line-height: 1.7; }
+.parent-icon { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; background: var(--fc-accent-soft); color: var(--fc-accent); }
+.parent-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.parent-warning { color: var(--fc-state-warning); }
+.parent-dialog-backdrop { position: fixed; inset: 0; z-index: 300; background: color-mix(in srgb, var(--color-overlay) 65%, transparent); display: grid; place-items: center; padding: 20px; overflow-y: auto; }
+.parent-dialog { width: min(100%, 480px); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--fc-card-bg); color: var(--fc-text-primary); border: 1px solid var(--fc-border); border-radius: 18px; padding: 26px; }
+.parent-dialog h2 { margin-top: 18px; }
+.parent-icon-button { display: grid; place-items: center; border-radius: 8px; width: 32px; height: 32px; color: var(--fc-text-secondary); }
+.parent-activation-content { display: flex; flex-direction: column; gap: 18px; margin-top: 16px; }
+.parent-activation-content p { font-size: 13px; line-height: 1.8; color: var(--fc-text-secondary); }
+.parent-activation-content label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; font-weight: 600; }
+.parent-activation-content input { width: 100%; padding: 11px 12px; border: 1px solid var(--fc-border); border-radius: 9px; background: var(--fc-page-bg); color: var(--fc-text-primary); font-size: 14px; outline: none; }
+.parent-activation-content input:focus { border-color: var(--fc-accent); }
+.parent-activation-content .parent-error { color: var(--fc-state-danger); }
+@media (max-width: 560px) { .parent-panel { padding: 18px; } .parent-section-heading { align-items: flex-start; flex-wrap: wrap; gap: 8px; } }
+.parent-link-code summary{cursor:pointer;font-size:14px;font-weight:650;line-height:1.5}.parent-link-code label{display:grid;gap:8px;margin:16px 0;font-size:13px}.parent-link-code input,.parent-link-code select{min-width:0;width:100%;padding:10px;border:1px solid var(--fc-border);border-radius:8px;background:var(--fc-page-bg);color:var(--fc-text-primary)}.parent-link-code small{display:block;margin-top:14px;color:var(--fc-text-secondary);font-size:12px;line-height:1.6}.parent-code-result input{font-family:monospace;font-size:17px}

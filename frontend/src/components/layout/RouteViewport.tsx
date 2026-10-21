@@ -1,0 +1,47 @@
+import { Suspense, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { ErrorBoundary } from '../ErrorBoundary';
+import '../../styles/workspace-design.css';
+import '../../styles/product-design.css';
+import { useProductDesign } from './productDesign';
+import { RouteScrollArrival } from './RouteScrollArrival';
+
+// Public destinations keep their own visual treatment. Private work surfaces
+// share one palette and layout foundation, including their nested editors.
+const workspaceSurface = (pathname: string): string | undefined => {
+    if (/^\/clubs\/\d+\/(workspace|operations|profile-settings|squads)$/.test(pathname)) return 'club';
+    if (/^\/organizations\/\d+\/workspace$/.test(pathname) || pathname === '/organizations/create') return 'organization';
+    if (/^\/stadiums\/\d+\/manage$/.test(pathname)) return 'venue';
+    if (/^\/tournaments\/\d+\/workspace$/.test(pathname)) return 'tournament';
+    if (/^\/squads(?:\/\d+)?$/.test(pathname)) return 'squad';
+    if (pathname === '/referees/me') return 'referee';
+    if (pathname === '/agent' || pathname === '/agent/dashboard') return 'agent';
+    if (pathname === '/parent' || pathname === '/parent/enrollment') return 'family';
+    if (pathname === '/messages') return 'messages';
+    if (pathname === '/admin') return 'admin';
+    if (['/club-operations', '/my-club', '/my-organizations', '/volunteering', '/event-venues'].includes(pathname)) return 'connections';
+    return undefined;
+};
+
+/**
+ * Pages that share one frame keep it while moving between them: World's tabs keep their map, their scroll
+ * position and the World bar. Every other page starts fresh.
+ */
+const routeFamily = (pathname: string) => /^\/world(\/|$)/.test(pathname) && pathname !== '/world/map' ? 'world' : pathname;
+
+/** Keep navigation and the auth provider mounted while the selected page loads. */
+export const RouteViewport = ({ children }: { children: ReactNode }) => {
+    const { pathname } = useLocation();
+    const { t } = useTranslation();
+    const surface = workspaceSurface(pathname);
+    const product = useProductDesign(pathname);
+    const family = routeFamily(pathname);
+    return <ErrorBoundary key={family}>
+        <Suspense fallback={<div role="status" aria-live="polite" className="flex min-h-64 items-center justify-center p-6 text-[color:var(--text-secondary)]">
+            {t('app.loadingPage')}
+        </div>}>
+            <div className={`app-route-arrival${surface ? ' workspace-design-scope' : ''}${product ? ' product-design-scope' : ''}`} data-workspace-surface={surface} data-product-surface={product}>{children}<RouteScrollArrival family={family} /></div>
+        </Suspense>
+    </ErrorBoundary>;
+};

@@ -1,0 +1,18 @@
+{
+  "id": 500,
+  "version": 1,
+  "playerId": 101,
+  "playerName": "Synthetic child",
+  "organizationId": 1,
+  "organizationName": "FC Dinamo Tbilisi Academy",
+  "status": "OPEN",
+  "message": "Which beginner group fits our family?",
+  "caseId": null,
+  "actions": [
+    "MESSAGE",
+    "WITHDRAW"
+  ],
+  "history": [],
+  "createdAt": "2026-10-04T00:00:00Z",
+  "updatedAt": "2026-10-04T00:00:00Z"
+}

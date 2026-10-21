@@ -1,0 +1,40 @@
+/* The older palette, scoped to a LegacyIsland: the public facility card preview inside the record form. */
+.workspace-page-shell.club-workspace-shell.workspace-refresh {
+  --fc-page-bg: var(--color-page);
+  --fc-card-bg: var(--color-surface);
+  --fc-sidebar-bg: var(--color-inset);
+  --fc-surface-hover: var(--color-elevated);
+  --fc-border: var(--color-border);
+  --fc-text-primary: var(--color-text);
+  --fc-text-secondary: var(--color-secondary);
+  --fc-text-muted: var(--color-muted);
+  --fc-accent: var(--color-accent);
+  --fc-accent-soft: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  --fc-accent-border: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  --fc-state-warning: var(--color-warning);
+  --fc-state-warning-soft: color-mix(in srgb, var(--color-warning) 10%, var(--color-inset));
+  --fc-state-danger: var(--color-danger);
+  --fc-state-danger-soft: color-mix(in srgb, var(--color-danger) 10%, var(--color-inset));
+  --fc-state-info: var(--color-info);
+  --fc-state-info-soft: color-mix(in srgb, var(--color-info) 10%, var(--color-inset));
+  --bg-base: var(--color-page);
+  --bg-panel: var(--color-surface);
+  --bg-elevated: var(--color-elevated);
+  --bg-inset: var(--color-inset);
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-secondary);
+  --text-muted: var(--color-muted);
+  --border-subtle: var(--color-border);
+  --accent-primary: var(--color-accent);
+  --accent-primary-soft: var(--fc-accent-soft);
+  --accent-muted: var(--color-muted);
+  --theme-surface-inset: var(--color-inset);
+  --theme-surface-muted: var(--color-elevated);
+  --theme-border: var(--color-border);
+  color: var(--color-text);
+  background: var(--color-page);
+}
+.workspace-refresh :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--fc-accent);
+  outline-offset: 3px;
+}

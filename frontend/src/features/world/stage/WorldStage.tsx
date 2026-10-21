@@ -1,0 +1,167 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { ChevronDown, ChevronUp, Map as MapIcon } from 'lucide-react';
+import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { useWorldCopy } from '../copy';
+import { useMapFold } from '../directory/mapFold';
+import { WorldMap, type WorldMapPoint } from '../map/WorldMap';
+import { useMediaQuery } from '../useMediaQuery';
+import { FollowingProvider } from '../directories/people/FollowingProvider';
+import { PeekPlaceContext } from '../peek/drawerContext';
+import { Drawers } from '../peek/Drawers';
+import { MapBoundary } from './MapBoundary';
+import { keepPane } from '../peek/usePeek';
+import { StageContext, useStage, WIDE, type StageMap } from './stageContext';
+import './stage.css';
+
+/** The width of the panel floating over the map's right side on wide screens (stage.css), plus its margin. */
+const PANEL = 380 + 2 * 16;
+/** The Map tab's column on the map's left (stage.css), plus its margin. */
+const SIDE_PANEL = 400 + 2 * 16;
+const NO_POINTS: WorldMapPoint[] = [];
+
+/**
+ * Where the map starts on the page, written on the lead as `--gk-stage-top` so a map filling the screen (the Map
+ * tab) can end exactly at the screen's bottom (stage.css). Measured again whenever the page above it changes height
+ * (the World bar wrapping) or the window is resized; nothing re-renders for it.
+ */
+function useStageTop(lead: HTMLElement | null, wanted: boolean) {
+    useLayoutEffect(() => {
+        if (!lead || !wanted) return;
+        const measure = () => lead.style.setProperty('--gk-stage-top', `${Math.round(lead.getBoundingClientRect().top + window.scrollY)}px`);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(document.body);
+        window.addEventListener('resize', measure);
+        return () => { observer.disconnect(); window.removeEventListener('resize', measure); lead.style.removeProperty('--gk-stage-top'); };
+    }, [lead, wanted]);
+}
+
+/**
+ * The frame every World page shares: its header row, the map of the area (the overview's, kept alive between tabs
+ * so it never reloads) with a glass panel over its right side, and the page itself below. A page fills the header
+ * and the panel and tells the map what to show; moving between tabs changes only that, so nothing jumps.
+ */
+export function WorldStage({ children }: { children: ReactNode }) {
+    const t = useWorldCopy();
+    const { pathname, state } = useLocation();
+    const [head, setHead] = useState<HTMLElement | null>(null);
+    const [panel, setPanel] = useState<HTMLElement | null>(null);
+    const [dock, setDock] = useState<HTMLElement | null>(null);
+    const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
+    const [top, setTop] = useState<HTMLElement | null>(null);
+    const [map, setMap] = useState<StageMap | null>(null);
+    const [paneHost, setPaneHost] = useState<HTMLElement | null>(null);
+    const fold = useMapFold();
+    const [params, setParams] = useSearchParams();
+    const panelFolded = params.get('panel') === 'folded';
+    const togglePanel = () => setParams(current => {
+        const next = new URLSearchParams(current);
+        if (panelFolded) next.delete('panel'); else next.set('panel', 'folded');
+        return next;
+    }, { replace: true, preventScrollReset: true, state: keepPane(state) });
+    const wide = useMediaQuery(WIDE, true);
+    // The Map tab: a column stands on the left and the map fills the screen; the stage draws no header row.
+    const side = Boolean(map?.side);
+    const floating = wide && Boolean(map?.panel) && !panelFolded;
+    const insetRight = floating ? PANEL : 0;
+    const insetLeft = side && wide ? SIDE_PANEL : 0;
+    const [lead, setLead] = useState<HTMLElement | null>(null);
+    useStageTop(lead, side && wide);
+    // Folding swaps one button for another; focus follows to the one that undoes it.
+    const toggled = useRef(false);
+    const foldRef = useRef<HTMLButtonElement>(null), showRef = useRef<HTMLButtonElement>(null);
+    useEffect(() => { if (toggled.current) { toggled.current = false; (fold.open ? foldRef : showRef).current?.focus(); } }, [fold.open]);
+    // The value pages read stays the same object until something they show changes, so a page telling the map what
+    // to show never re-renders itself through it.
+    const toggles = useRef({ map: fold.toggle, panel: togglePanel });
+    useEffect(() => { toggles.current = { map: fold.toggle, panel: togglePanel }; });
+    const toggleMap = useCallback(() => { toggled.current = true; toggles.current.map(); }, []);
+    const togglePanelStable = useCallback(() => toggles.current.panel(), []);
+    const value = useMemo(() => ({ inStage: true, head, panel, dock, side: sideSlot, top, setMap, mapOpen: fold.open, toggleMap, panelFolded, togglePanel: togglePanelStable, paneHost, setPaneHost }),
+        [head, panel, dock, sideSlot, top, fold.open, toggleMap, panelFolded, togglePanelStable, paneHost]);
+    return (
+        <StageContext.Provider value={value}><FollowingProvider>
+            <div className="gk-world-stage" data-side={side || undefined}>
+                <div className="gk-world-stage__head" ref={setHead} />
+                <div className="gk-world-stage__lead" ref={setLead} data-folded={fold.open ? undefined : true} data-panel={map?.panel ? true : undefined} data-side={side || undefined}>
+                    {fold.open
+                        ? <div className="gk-world-stage__map"><MapBoundary resetKey={pathname} fallback={retry => (
+                            <div className="gk-world-map gk-world-map--hero"><div className="gk-world-map__canvas">
+                                <p className="gk-world-map__note" role="alert">{t('Map unavailable')} <button type="button" className="gk-browse__retry" onClick={retry}>{t('Try again')}</button></p>
+                            </div></div>)}>
+                            <WorldMap variant="hero" label={map?.label ?? t('Map')} points={map?.points ?? NO_POINTS}
+                                selectedId={map?.selectedId} onSelect={map?.onSelect} highlightId={map?.highlightId} onHover={map?.onHover}
+                                onMoveEnd={map?.onMoveEnd} onView={map?.onView} cardActions={map?.cardActions} insetRight={insetRight} insetLeft={insetLeft} insetTop={map?.insetTop} gestures={side ? 'free' : 'cooperative'}
+                                focus={map?.focus} frame={map?.frame} card={map?.card ?? true} context={map?.context} reach={map?.reach} away={map?.away}
+                                overlay={<>{map?.top}<div className="gk-world-map__overlay">
+                                    {map?.pills}
+                                    <button ref={foldRef} type="button" className="gk-world-glass" onClick={toggleMap} aria-expanded><ChevronUp aria-hidden="true" />{t('Fold map')}</button>
+                                </div></>} />
+                        </MapBoundary></div>
+                        : <div className="gk-world-mapstrip">
+                            <MapIcon aria-hidden="true" />
+                            <span className="gk-world-grow">{t('Map')}{map?.summary ? ` · ${map.summary}` : ''}</span>
+                            <button ref={showRef} type="button" className="gk-world-mapstrip__toggle" onClick={toggleMap} aria-expanded={false}><ChevronDown aria-hidden="true" />{t('Show map')}</button>
+                        </div>}
+                    <div className="gk-world-stage__top" ref={setTop} />
+                    <div className="gk-world-stage__dock" ref={setDock} />
+                    <div className="gk-world-stage__side" ref={setSideSlot} />
+                    <div className="gk-world-stage__panel" ref={setPanel} data-folded={panelFolded || undefined} />
+                </div>
+                {/* The page itself: it fades in when the tab changes, while the frame above stays put. A page that
+                    fails shows its error here, and the next page starts clean. */}
+                <div className="gk-world-stage__body" key={pathname}><ErrorBoundary>{children}</ErrorBoundary></div>
+            </div>
+            <Drawers />
+        </FollowingProvider></StageContext.Provider>
+    );
+}
+
+/** The page's header row: title, search, filters and actions, above the map. Outside World it renders in place. */
+export function StageHead({ children }: { children: ReactNode }) {
+    const { inStage, head } = useStage();
+    if (!inStage) return <>{children}</>;
+    return head ? createPortal(children, head) : null;
+}
+
+/**
+ * The glass panel over the map's right side (below the map on narrow screens). Outside World it renders in place.
+ * What it opens comes out as a drawer: the pane beside the list is out of sight from the map.
+ */
+export function StagePanel({ children }: { children: ReactNode }) {
+    const { inStage, panel } = useStage();
+    if (!inStage) return <>{children}</>;
+    return panel ? createPortal(<PeekPlaceContext.Provider value="overlay">{children}</PeekPlaceContext.Provider>, panel) : null;
+}
+
+/**
+ * The column on the map's left (the Map tab's search, kinds and filters), solid, as tall as its content; under the
+ * map on narrow screens. Outside World it renders in place.
+ */
+export function StageSide({ children }: { children: ReactNode }) {
+    const { inStage, side } = useStage();
+    if (!inStage) return <>{children}</>;
+    return side ? createPortal(<PeekPlaceContext.Provider value="overlay">{children}</PeekPlaceContext.Provider>, side) : null;
+}
+
+/**
+ * Where a list is (the day strip), floating at the map's top left while the map is open on a wide screen; folded or
+ * narrow, it stays where it is, under the header.
+ */
+export function StageTop({ children }: { children: ReactNode }) {
+    const { inStage, top, mapOpen } = useStage();
+    const wide = useMediaQuery(WIDE, true);
+    return inStage && mapOpen && wide && top ? createPortal(children, top) : <div className="gk-world-stage__top-inline">{children}</div>;
+}
+
+/**
+ * A strip docked at the map's bottom left while the map is open on a wide screen (the coach's match days needing a
+ * referee); folded or narrow, it stays where it is, above the results.
+ */
+export function StageDock({ children }: { children: ReactNode }) {
+    const { inStage, dock, mapOpen } = useStage();
+    const wide = useMediaQuery(WIDE, true);
+    return inStage && mapOpen && wide && dock ? createPortal(<PeekPlaceContext.Provider value="overlay">{children}</PeekPlaceContext.Provider>, dock) : <>{children}</>;
+}

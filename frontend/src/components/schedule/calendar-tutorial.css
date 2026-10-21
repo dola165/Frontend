@@ -1,0 +1,11 @@
+/* Calendar tutorial spotlight: the ring CalendarTutorial puts on the element it explains.
+   Kept in the utilities layer, where it lived in index.css, so its priority does not change. */
+@layer utilities {
+  .tutorial-highlight {
+    position: relative;
+    z-index: 10001 !important;
+    box-shadow: 0 0 0 4px var(--fc-accent, var(--color-accent)), 0 0 20px color-mix(in srgb, var(--fc-accent, var(--color-accent)) 35%, transparent) !important;
+    border-radius: var(--fc-radius, 6px) !important;
+    transition: box-shadow 300ms ease;
+  }
+}

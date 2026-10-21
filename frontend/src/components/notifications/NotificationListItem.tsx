@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { JourneyReminderActions } from '../../features/mapPlanning/JourneyReminderActions';
 import {
     ArrowRight,
     BellRing,
@@ -32,6 +33,8 @@ const iconByType: Record<string, typeof BellRing> = {
     TRYOUT_APPLICATION_REJECTED: ShieldAlert,
     CLUB_INVITATION_RECEIVED: UserPlus,
     CLUB_ROLE_CHANGED: ShieldCheck,
+    CLUB_PERMISSION_REQUEST: ClipboardCheck,
+    CLUB_STAFF_APPOINTMENT: ShieldCheck,
     SQUAD_ASSIGNMENT: UsersRound
 };
 
@@ -51,7 +54,7 @@ export const NotificationListItem = ({
     ].filter((value): value is string => Boolean(value));
 
     return (
-        <button
+        <><button
             type="button"
             onClick={() => void onOpen(notification)}
             disabled={busy}
@@ -110,6 +113,6 @@ export const NotificationListItem = ({
                     </div>
                 </div>
             </div>
-        </button>
+        </button><JourneyReminderActions notification={notification}/></>
     );
 };

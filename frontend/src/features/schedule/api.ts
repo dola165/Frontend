@@ -1,16 +1,9 @@
 import { apiClient } from '../../api/axiosConfig';
 
-export type ScheduleEventType = 'TRAINING' | 'TRYOUT' | 'MATCH' | 'FRIENDLY' | 'ACTIVITY';
+export type ScheduleEventType = 'TRAINING' | 'TRYOUT' | 'MATCH' | 'FRIENDLY' | 'ACTIVITY' | 'MEETING';
 export type ScheduleVisibility = 'PRIVATE' | 'PUBLIC' | 'SCHEDULED_PUBLICATION';
 export type ScheduleChallengeStatus = 'OPEN' | 'PENDING' | 'ACCEPTED' | 'REJECTED';
-export type DayOfWeek =
-    | 'MONDAY'
-    | 'TUESDAY'
-    | 'WEDNESDAY'
-    | 'THURSDAY'
-    | 'FRIDAY'
-    | 'SATURDAY'
-    | 'SUNDAY';
+export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 
 export interface ScheduleRecurrenceRule {
     frequency: 'WEEKLY';
@@ -48,6 +41,14 @@ export interface ScheduleEventMutationResult {
 }
 
 export interface ScheduleEventOccurrence {
+    homeScore?: number | null;
+    awayScore?: number | null;
+    resultStatus?: import('../matchHistory/api').ResultStatus;
+    matchExchangeId?: number | null;
+    canRecordResult?: boolean;
+    resultClubId?: number | null;
+    origin?: 'CLUB_CALENDAR' | 'PERSONAL_CALENDAR' | 'MATCH_EXCHANGE';
+    originId?: number | null;
     eventId: number;
     occurrenceId: string;
     clubId: number | null;
@@ -91,35 +92,26 @@ export interface PublicScheduleEventsOptions {
     eventType?: ScheduleEventType;
 }
 
-export interface ScheduleChallengeRequest {
-    challengerClubId?: number;
-    targetClubId: number;
-    challengingSquadId?: number | null;
-    targetSquadId?: number | null;
-    venuePreference?: 'HOME' | 'AWAY' | null;
-    note?: string | null;
-}
-
-export interface ScheduleChallengeResponse {
-    respondingClubId: number;
-    decision: 'ACCEPTED' | 'REJECTED';
-    note?: string | null;
-}
-
 const withWindow = (from?: string, to?: string) => ({
     params: {
         ...(from ? { from } : {}),
-        ...(to ? { to } : {})
-    }
+        ...(to ? { to } : {}),
+    },
 });
 
-export const fetchClubSchedule = async (clubId: number, from?: string, to?: string) => {
-    const response = await apiClient.get<ScheduleWindowResponse>(`/schedule/clubs/${clubId}/events`, withWindow(from, to));
+export const fetchClubSchedule = async (clubId: number, from?: string, to?: string, signal?: AbortSignal) => {
+    const response = await apiClient.get<ScheduleWindowResponse>(`/schedule/clubs/${clubId}/events`, {
+        ...withWindow(from, to),
+        signal,
+    });
     return response.data.events ?? [];
 };
 
-export const fetchMySchedule = async (from?: string, to?: string) => {
-    const response = await apiClient.get<ScheduleWindowResponse>('/schedule/me/events', withWindow(from, to));
+export const fetchMySchedule = async (from?: string, to?: string, signal?: AbortSignal) => {
+    const response = await apiClient.get<ScheduleWindowResponse>('/schedule/me/events', {
+        ...withWindow(from, to),
+        signal,
+    });
     return response.data.events ?? [];
 };
 
@@ -131,8 +123,8 @@ export const fetchPublicScheduleEvents = async (options: PublicScheduleEventsOpt
             ...(options.lat != null ? { lat: options.lat } : {}),
             ...(options.lng != null ? { lng: options.lng } : {}),
             ...(options.radiusKm != null ? { radiusKm: options.radiusKm } : {}),
-            ...(options.eventType ? { eventType: options.eventType } : {})
-        }
+            ...(options.eventType ? { eventType: options.eventType } : {}),
+        },
     });
     return response.data.events ?? [];
 };
@@ -160,16 +152,6 @@ export const cancelScheduleEvent = async (clubId: number, eventId: number) => {
     await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/cancel`);
 };
 
-export const createScheduleChallenge = async (eventId: number, payload: ScheduleChallengeRequest) => {
-    const response = await apiClient.post<ScheduleEventOccurrence>(`/schedule/events/${eventId}/challenge`, payload);
-    return response.data;
-};
-
-export const respondToScheduleChallenge = async (eventId: number, payload: ScheduleChallengeResponse) => {
-    const response = await apiClient.post<ScheduleEventOccurrence>(`/schedule/challenges/${eventId}/response`, payload);
-    return response.data;
-};
-
 export const completeClubEvent = async (clubId: number, eventId: number) => {
     await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/complete`);
 };
@@ -177,7 +159,11 @@ export const completeClubEvent = async (clubId: number, eventId: number) => {
 export const completeClubEventWithResult = async (
     clubId: number,
     eventId: number,
-    payload: { homeScore: number; awayScore: number; winnerClubId: number | null }
+    payload: { homeScore: number; awayScore: number; winnerClubId: number | null },
 ) => {
     await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/result`, payload);
+};
+
+export const correctClubEventResult = async (clubId: number, eventId: number, payload: { homeScore: number; awayScore: number; winnerClubId: number | null; reason: string }) => {
+    await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/result/correction`, payload);
 };

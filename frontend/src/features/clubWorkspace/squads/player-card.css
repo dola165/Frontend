@@ -1,0 +1,36 @@
+/* A player as a football card. Scoped under `.gk`; tokens only. A soft club glow behind a large photo,
+   the shirt number and position in the corner like a trading card, and no invented ratings. */
+.gk .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
+/* Taking a player out of the squad, from the card's foot. */
+.gk .pc-card__action { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--gk-r-sm); background: var(--gk-danger-soft); color: var(--gk-danger); cursor: pointer; }
+.gk .pc-card__action:hover { background: color-mix(in srgb, var(--gk-danger) 24%, transparent); }
+.gk .pc-card__action svg { width: 15px; height: 15px; }
+.gk .pc-card { --glow: var(--gk-accent); position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid color-mix(in srgb, var(--glow) 28%, var(--gk-line)); border-radius: 18px;
+  background: radial-gradient(130% 70% at 50% 0%, color-mix(in srgb, var(--glow) 20%, var(--gk-surface)) 0%, var(--gk-surface) 62%); transition: transform .18s var(--gk-ease), box-shadow .18s var(--gk-ease), border-color .18s var(--gk-ease); }
+.gk .pc-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--glow) 55%, var(--gk-line)); box-shadow: 0 10px 28px color-mix(in srgb, var(--glow) 16%, transparent); }
+.gk .pc-card[data-captain] { --glow: var(--gk-warning); }
+.gk .pc-card[data-trial] { --glow: var(--gk-info); }
+.gk .pc-card__face { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; padding: var(--gk-3) var(--gk-3) var(--gk-3); border: 0; background: none; color: var(--gk-text); font: inherit; text-align: center; }
+.gk button.pc-card__face { cursor: pointer; }
+.gk .pc-card__corner { position: absolute; top: 10px; left: 12px; display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.gk .pc-card__number { font-family: var(--gk-font-display); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gk .pc-card__position { margin-top: 3px; color: var(--glow); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+.gk .pc-card__crest { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; object-fit: contain; }
+.gk .pc-card__photo { display: grid; place-items: center; width: 118px; height: 118px; margin: var(--gk-4) 0 var(--gk-3); overflow: hidden; border-radius: 50%;
+  background: color-mix(in srgb, var(--glow) 16%, var(--gk-raised)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--glow) 45%, transparent), 0 12px 24px color-mix(in srgb, var(--gk-shadow) 25%, transparent); }
+.gk .pc-card__photo img { width: 100%; height: 100%; object-fit: cover; }
+.gk .pc-card__initials { color: var(--glow); font-family: var(--gk-font-display); font-size: 40px; font-weight: 700; }
+.gk .pc-card__name { overflow: hidden; max-width: 100%; padding-top: var(--gk-2); border-top: 1px solid color-mix(in srgb, var(--glow) 30%, var(--gk-line)); font-family: var(--gk-font-display); font-size: var(--gk-fs-md); font-weight: 700; letter-spacing: .02em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.gk .pc-card__facts { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .pc-card__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); min-height: 34px; padding: 0 var(--gk-3) var(--gk-3); }
+.gk .pc-card__signs { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.gk .pc-card__actions { display: inline-flex; gap: 2px; opacity: 0; transition: opacity .15s var(--gk-ease); }
+.gk .pc-card:hover .pc-card__actions, .gk .pc-card:focus-within .pc-card__actions { opacity: 1; }
+@media (pointer: coarse) { .gk .pc-card__actions { opacity: 1; } }
+.gk .pc-card__actions .gk-btn--icon { width: 30px; min-height: 30px; }
+.gk .pc-sign { --tone: var(--gk-text-2); display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); font-size: var(--gk-fs-xs); font-weight: 700; }
+.gk .pc-sign svg { width: 13px; height: 13px; }
+.gk .pc-sign--captain { --tone: var(--gk-warning); }
+.gk .pc-sign--trial { --tone: var(--gk-info); }
+.gk .pc-sign--injury { --tone: var(--gk-danger); }
+.gk .pc-sign--consent { --tone: var(--gk-info); }

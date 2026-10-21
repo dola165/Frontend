@@ -1,0 +1,23 @@
+/* The "+" of a World tab: the likely action and a narrow arrow joined as one bright button (or "+ Create" alone), and a
+   small menu under it: drafts to continue first, then what the person can start, grouped. Scoped under .gk; tokens only. */
+.gk .gk-create { position: relative; display: inline-flex; align-items: stretch; }
+/* Both halves are the design system's primary button; only the join between them is the menu's own. */
+.gk .gk-create__more[aria-expanded='true'] { background: var(--gk-accent-strong); }
+.gk .gk-create[data-split] .gk-create__main { border-radius: var(--gk-r) 0 0 var(--gk-r); }
+.gk .gk-create[data-split] .gk-create__more { padding: 0 var(--gk-2); border-left: 1px solid color-mix(in srgb, var(--gk-on-accent) 28%, transparent); border-radius: 0 var(--gk-r) var(--gk-r) 0; }
+.gk .gk-create__main:focus-visible, .gk .gk-create__more:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+
+.gk .gk-create__menu { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; width: 300px; max-height: min(70dvh, 520px); overflow-y: auto; padding: var(--gk-2);
+  border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: var(--gk-elevation); color: var(--gk-text); }
+.gk .gk-create__group + .gk-create__group { margin-top: var(--gk-1); padding-top: var(--gk-1); border-top: 1px solid var(--gk-line); }
+.gk .gk-create__label { margin: 0; padding: var(--gk-2) var(--gk-2) var(--gk-1); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
+.gk .gk-create__item { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 40px; padding: var(--gk-1) var(--gk-2); border: 0; border-radius: var(--gk-r-sm);
+  background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); text-align: left; cursor: pointer; }
+.gk .gk-create__item:hover, .gk .gk-create__item:focus-visible { outline: none; background: var(--gk-hover); }
+.gk .gk-create__item > svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-2); }
+.gk .gk-create__text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-create__text > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.gk .gk-create__text small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-create__dot { flex: none; width: 8px; height: 8px; margin-inline: 4px; border-radius: 50%; background: var(--gk-warning); }
+@media (pointer: coarse) { .gk .gk-create__item { min-height: 44px; } .gk .gk-create[data-split] .gk-create__more { min-width: 44px; } }
+@media (max-width: 640px) { .gk .gk-create__menu { position: fixed; top: auto; bottom: var(--gk-3); left: var(--gk-3); right: var(--gk-3); width: auto; } }

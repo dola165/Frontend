@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><title>Jobs verification</title><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
+<body><div id="root"></div><script type="module">
+import React from 'react'; import {createRoot} from 'react-dom/client';
+import {MemoryRouter, Routes, Route, Link} from 'react-router-dom';
+import {JobsDirectoryPage} from '/src/pages/JobsDirectoryPage.tsx';
+import {JobDetailPage} from '/src/pages/JobDetailPage.tsx';
+import {JobsTab} from '/src/components/workspace/tabs/JobsTab.tsx';
+import {AuthProvider} from '/src/context/AuthContext.tsx';
+import '/src/index.css'; import '/src/i18n.ts';
+const e=React.createElement, params=new URLSearchParams(location.search),club=Number(params.get('club'));
+createRoot(document.getElementById('root')).render(e(AuthProvider,null,e(MemoryRouter,{initialEntries:[params.get('path')||'/jobs']},
+ e(React.Fragment,null,e(Link,{to:'/workspace'},'Manage jobs'),e(Routes,null,
+  e(Route,{path:'/workspace',element:e('main',{className:'mx-auto max-w-5xl p-6'},e(JobsTab,{clubId:club,pendingKey:null,currentUserId:Number(params.get('owner')),canReviewAllApplications:true}))}),
+  e(Route,{path:'/jobs',element:e(JobsDirectoryPage)}),
+  e(Route,{path:'/jobs/:id',element:e(JobDetailPage)}),
+  e(Route,{path:'/clubs/:id',element:e(JobsDirectoryPage,{fixedClubId:club,clubName:'Jobs Demo FC'})})
+ )))));
+</script></body></html>

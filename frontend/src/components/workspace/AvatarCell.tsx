@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useState } from 'react';
 import { avatarLetter } from './helpers';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
@@ -15,14 +16,14 @@ const sizeClasses: Record<string, string> = {
 
 // Google-style avatar colors — vibrant, distinct hues based on character code
 const AVATAR_COLORS = [
-    { bg: '#e3f2fd', text: '#1565c0' }, // blue
-    { bg: '#e8f5e9', text: '#2e7d32' }, // green
-    { bg: '#fff3e0', text: '#e65100' }, // orange
-    { bg: '#fce4ec', text: '#c62828' }, // red
-    { bg: '#f3e5f5', text: '#6a1b9a' }, // purple
-    { bg: '#e0f7fa', text: '#00838f' }, // teal
-    { bg: '#fff8e1', text: '#f9a825' }, // amber
-    { bg: '#e8eaf6', text: '#283593' }, // indigo
+    { bg: 'var(--color-inset)', text: 'var(--color-info)' }, // blue
+    { bg: 'var(--color-inset)', text: 'var(--color-accent)' }, // green
+    { bg: 'var(--color-inset)', text: 'var(--color-orange)' }, // orange
+    { bg: 'var(--color-inset)', text: 'var(--color-danger)' }, // red
+    { bg: 'var(--color-inset)', text: 'var(--color-purple)' }, // purple
+    { bg: 'var(--color-inset)', text: 'var(--color-cyan)' }, // teal
+    { bg: 'var(--color-inset)', text: 'var(--color-orange)' }, // amber
+    { bg: 'var(--color-inset)', text: 'var(--color-info)' }, // indigo
 ];
 
 const colorForName = (name: string) => {
@@ -40,7 +41,7 @@ export const AvatarCell = ({ avatarUrl, fallback, size = 'md' }: AvatarCellProps
 
     if (resolvedAvatarUrl && !imgError) {
         return (
-            <img
+            <MediaImage
                 src={resolvedAvatarUrl}
                 alt=""
                 className={`${sizeClasses[size]} shrink-0 rounded-full object-cover`}

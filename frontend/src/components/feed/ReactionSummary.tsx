@@ -1,0 +1,186 @@
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FocusEvent, type KeyboardEvent, type PointerEvent, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
+import { apiClient } from '../../api/axiosConfig';
+import { getAuthSessionId, getStoredUserId, subscribeAuthSession } from '../../utils/authStorage';
+import { MediaImage } from '../ui/MediaImage';
+import { PostDialog } from './PostDialogs';
+import { ALL_REACTIONS as REACTIONS, reactionDefinition, type Reaction } from './reactions';
+import type { FeedPostDto } from './FeedPost';
+import { postCount, postNumber, usePostCopy } from './postCopy';
+import './reaction-summary.css';
+
+interface Person { userId: number; name: string; avatarUrl: string | null; reaction: Reaction }
+interface ReactionPage {
+    people: Person[]; totalCount: number; reactionCounts: Partial<Record<Reaction, number>>;
+    availableCount: number; nextCursor: number | null; hasMore: boolean;
+}
+type Filter = Reaction | 'ALL';
+const reactionIcon = (type: Reaction, size = 20) => { const definition = reactionDefinition(type); return definition ? <definition.Icon size={size} /> : null; };
+const errorMessage = 'Could not load reactions. Please try again.';
+
+/** Remount private UI on account changes or a new reaction snapshot. No feed-wide prefetch. */
+export function ReactionSummary({ post }: { post: FeedPostDto }) {
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    const revision = JSON.stringify([post.id, post.reactionCount ?? post.likeCount, post.reactionCounts, post.myReaction]);
+    return <Summary key={`${session}:${revision}`} post={post} />;
+}
+
+function Summary({ post }: { post: FeedPostDto }) {
+    const copy = usePostCopy();
+    const [preview, setPreview] = useState<Filter | null>(null), [dialog, setDialog] = useState<Filter | null>(null);
+    const anchor = useRef<HTMLButtonElement>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const id = useId(), count = post.reactionCount ?? post.likeCount;
+    const cancelTimer = () => { if (timer.current) clearTimeout(timer.current); };
+    useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+    const show = (filter: Filter, button: HTMLButtonElement) => {
+        cancelTimer(); anchor.current = button; timer.current = setTimeout(() => setPreview(filter), 220);
+    };
+    const hide = () => { cancelTimer(); timer.current = setTimeout(() => setPreview(null), 120); };
+    const open = (filter: Filter) => { cancelTimer(); setPreview(null); setDialog(filter); };
+    const counts = post.reactionCounts ?? { LIKE: count };
+    const top = REACTIONS.filter(r => (counts[r.type] ?? 0) > 0)
+        .sort((a, b) => (counts[b.type] ?? 0) - (counts[a.type] ?? 0)).slice(0, 3);
+    if (!count) return null;
+    const handlers = (filter: Filter) => ({
+        'aria-haspopup': 'dialog' as const,
+        'aria-describedby': preview === filter && dialog === null ? id : undefined,
+        onPointerEnter: (event: PointerEvent<HTMLButtonElement>) => { if (event.pointerType === 'mouse') show(filter, event.currentTarget); },
+        onFocus: (event: FocusEvent<HTMLButtonElement>) => show(filter, event.currentTarget),
+        onBlur: hide,
+        onClick: () => open(filter),
+    });
+    return <div className="post-liked-by">
+        <div className="reaction-summary-control" onPointerLeave={hide}>
+            <span className="reaction-summary-icons">{top.map(r => <button key={r.type} type="button"
+                className="reaction-summary-icon" aria-label={`${copy(r.label)}, ${postCount(counts[r.type] ?? 0, 'reaction', copy)}`}
+                {...handlers(r.type)}><r.Icon size={14} /></button>)}</span>
+            <button type="button" className="post-liked-by-trigger" {...handlers('ALL')}>
+                <span>{copy('Reacted by', 'რეაქცია:')} <strong>{postNumber(count)}</strong> {copy(count === 1 ? 'person' : 'people', 'ადამიანი')}</span>
+            </button>
+        </div>
+        {preview !== null && dialog === null && <NamesPreview key={preview} postId={post.id} filter={preview} anchor={anchor} id={id}
+            onEnter={cancelTimer} onLeave={hide} onDismiss={() => { cancelTimer(); setPreview(null); }} />}
+        {dialog !== null && <ReactionList post={post} initialFilter={dialog} onClose={() => setDialog(null)} />}
+    </div>;
+}
+
+function NamesPreview({ postId, filter, anchor, id, onEnter, onLeave, onDismiss }: {
+    postId: number; filter: Filter; anchor: RefObject<HTMLButtonElement | null>; id: string; onEnter: () => void; onLeave: () => void; onDismiss: () => void;
+}) {
+    const copy = usePostCopy();
+    const [page, setPage] = useState<ReactionPage | null>(null), [failed, setFailed] = useState(false);
+    const [position, setPosition] = useState({ left: 12, top: 12 });
+    const ref = useRef<HTMLDivElement>(null), session = getAuthSessionId();
+    useEffect(() => {
+        const controller = new AbortController();
+        apiClient.get<ReactionPage>(`/posts/${postId}/reactions`, { params: { limit: 8, ...(filter !== 'ALL' ? { reaction: filter } : {}) }, signal: controller.signal })
+            .then(({ data }) => { if (!controller.signal.aborted && session === getAuthSessionId()) setPage(data); })
+            .catch(() => { if (!controller.signal.aborted && session === getAuthSessionId()) setFailed(true); });
+        return () => controller.abort();
+    }, [postId, filter, session]);
+    useEffect(() => {
+        const place = () => {
+            if (!anchor.current) return;
+            const rect = anchor.current.getBoundingClientRect(), height = ref.current?.offsetHeight ?? 220;
+            const width = Math.min(280, window.innerWidth - 24);
+            setPosition({ left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
+                top: Math.max(12, Math.min(rect.top >= height + 16 ? rect.top - height - 8 : rect.bottom + 8, window.innerHeight - height - 12)) });
+        };
+        place();
+        window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
+        const dismiss = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); onDismiss(); } };
+        document.addEventListener('keydown', dismiss, true);
+        return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); document.removeEventListener('keydown', dismiss, true); };
+    }, [anchor, page, failed, onDismiss]);
+    return createPortal(<div ref={ref} id={id} role="tooltip" className="reaction-names-preview feed-home-shell"
+        style={position} onPointerEnter={onEnter} onPointerLeave={onLeave}>
+        <strong>{filter === 'ALL' ? copy('People who reacted', 'ვინ გამოეხმაურა') : copy(reactionDefinition(filter)?.label ?? '')}</strong>
+        {failed ? <p>{copy(errorMessage, 'რეაქციები ვერ ჩაიტვირთა. სცადეთ ხელახლა.')}</p> : !page ? <p>{copy('Loading names…', 'სახელები იტვირთება…')}</p> : <>
+            {REACTIONS.filter(reaction => (filter === 'ALL' || reaction.type === filter) && (page.reactionCounts[reaction.type] ?? 0) > 0)
+                .sort((a, b) => (page.reactionCounts[b.type] ?? 0) - (page.reactionCounts[a.type] ?? 0)).map(reaction => {
+                    const people = page.people.filter(person => person.reaction === reaction.type);
+                    return <section className="reaction-preview-group" key={reaction.type} aria-label={`${copy(reaction.label)} ${copy('reactions')}`}>
+                        <header><span aria-hidden="true"><reaction.Icon size={16} /></span><strong>{copy(reaction.label)}</strong>
+                            <span>{postNumber(page.reactionCounts[reaction.type] ?? 0)}</span></header>
+                        {people.length > 0 ? <ul>{people.map(person => <li key={person.userId}>{person.name}</li>)}</ul>
+                            : <p>{copy('Open the list to see these profiles.', 'პროფილების სანახავად გახსენით სია.')}</p>}
+                    </section>;
+                })}
+            {page.hasMore && <p>{copy(`and ${postNumber(page.availableCount - page.people.length)} more`, `და კიდევ ${postNumber(page.availableCount - page.people.length)}`)}</p>}
+            {page.availableCount < (filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>{copy('Some profiles are unavailable.', 'ზოგი პროფილი მიუწვდომელია.')}</p>}
+            {!(filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>{copy('No reactions yet.', 'რეაქციები ჯერ არ არის.')}</p>}
+            <small>{copy('Click to see all reactions', 'ყველა რეაქციის სანახავად დააჭირეთ')}</small>
+        </>}
+    </div>, document.body);
+}
+
+function PersonAvatar({ person }: { person: Person }) {
+    const [failed, setFailed] = useState(false);
+    return <span className="reactor-avatar">
+        {person.avatarUrl && !failed ? <MediaImage src={person.avatarUrl} alt="" onError={() => setFailed(true)} /> : <span>{person.name.slice(0, 2).toUpperCase()}</span>}
+        <span className="reactor-badge" aria-hidden="true">{reactionIcon(person.reaction)}</span>
+    </span>;
+}
+
+function ReactionList({ post, initialFilter, onClose }: { post: FeedPostDto; initialFilter: Filter; onClose: () => void }) {
+    const copy = usePostCopy();
+    const [filter, setFilter] = useState<Filter>(initialFilter), [page, setPage] = useState<ReactionPage | null>(null);
+    const [counts, setCounts] = useState(post.reactionCounts ?? { LIKE: post.reactionCount ?? post.likeCount });
+    const [total, setTotal] = useState(post.reactionCount ?? post.likeCount);
+    const [busy, setBusy] = useState(true), [failed, setFailed] = useState(false), [unavailable, setUnavailable] = useState(false);
+    const [request, setRequest] = useState<{ filter: Filter; cursor: number | null; retry: number }>({ filter: initialFilter, cursor: null, retry: 0 });
+    const tabs = useRef<HTMLDivElement>(null), id = useId(), session = getAuthSessionId();
+    const viewer = Number(getStoredUserId());
+    useEffect(() => {
+        const controller = new AbortController();
+        apiClient.get<ReactionPage>(`/posts/${post.id}/reactions`, {
+            params: { limit: 20, ...(request.filter !== 'ALL' ? { reaction: request.filter } : {}), ...(request.cursor ? { cursor: request.cursor } : {}) }, signal: controller.signal,
+        }).then(({ data }) => {
+            if (controller.signal.aborted || session !== getAuthSessionId()) return;
+            setPage(previous => ({ ...data, people: request.cursor && previous
+                ? [...previous.people, ...data.people.filter(person => !previous.people.some(p => p.userId === person.userId))] : data.people }));
+            setCounts(data.reactionCounts); setTotal(data.totalCount); setBusy(false);
+        }).catch(error => {
+            if (controller.signal.aborted || session !== getAuthSessionId()) return;
+            if ([401, 403, 404].includes(error?.response?.status)) { setPage(null); setCounts({}); setUnavailable(true); }
+            setFailed(true); setBusy(false);
+        });
+        return () => controller.abort();
+    }, [post.id, request, session]);
+    const select = (next: Filter) => {
+        if (next === filter) return;
+        setFilter(next); setPage(null); setFailed(false); setBusy(true);
+        setRequest({ filter: next, cursor: null, retry: 0 });
+    };
+    const keys = (event: KeyboardEvent) => {
+        const items = Array.from(tabs.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? []);
+        const index = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next = event.key === 'ArrowRight' ? (index + 1) % items.length : event.key === 'ArrowLeft' ? (index - 1 + items.length) % items.length : event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : null;
+        if (next !== null) { event.preventDefault(); items[next]?.focus(); items[next]?.click(); }
+    };
+    const selectedCount = filter === 'ALL' ? total : counts[filter] ?? 0;
+    return <PostDialog title={copy('Reactions', 'რეაქციები')} onClose={onClose}>
+        <div className="reactors-content">
+            <div ref={tabs} className="reactors-tabs" role="tablist" aria-label={copy('Filter reactions', 'რეაქციების ფილტრი')} onKeyDown={keys}>
+                {(['ALL', ...REACTIONS.filter(r => (counts[r.type] ?? 0) > 0 || r.type === filter)
+                    .sort((a, b) => (counts[b.type] ?? 0) - (counts[a.type] ?? 0)).map(r => r.type)] as Filter[]).map(type => {
+                    const label = copy(type === 'ALL' ? 'All' : REACTIONS.find(r => r.type === type)!.label);
+                    return <button key={type} type="button" role="tab" id={`${id}-${type}`} aria-controls={`${id}-people`}
+                        aria-selected={filter === type} tabIndex={filter === type ? 0 : -1} aria-label={`${label}, ${postCount(type === 'ALL' ? total : counts[type] ?? 0, 'reaction', copy)}`}
+                        onClick={() => select(type)}>{type === 'ALL' ? copy('All') : <span aria-hidden="true">{reactionIcon(type)}</span>}<span>{postNumber(type === 'ALL' ? total : counts[type] ?? 0)}</span></button>;
+                })}
+            </div>
+            <div id={`${id}-people`} role="tabpanel" aria-labelledby={`${id}-${filter}`} aria-busy={busy} tabIndex={0} className="reactors-panel">
+                {page && <ul className="reactors-list">{page.people.map(person => <li key={person.userId}>
+                    <Link to={`/profile/${person.userId}`} onClick={onClose}><PersonAvatar person={person} /><span><strong>{person.name}</strong><small>{person.userId === viewer ? copy('You · ', 'თქვენ · ') : ''}{copy(REACTIONS.find(r => r.type === person.reaction)?.label ?? '')}</small></span><span className="reactor-profile-hint" aria-hidden="true">{copy('View profile', 'პროფილის ნახვა')}</span></Link>
+                </li>)}</ul>}
+                {busy && <p role="status" className="reactors-message">{copy('Loading reactions…', 'რეაქციები იტვირთება…')}</p>}
+                {failed && <div role="alert" className="reactors-message">{unavailable ? copy('This post is no longer available to you.', 'ეს პოსტი თქვენთვის აღარ არის ხელმისაწვდომი.') : copy(errorMessage, 'რეაქციები ვერ ჩაიტვირთა. სცადეთ ხელახლა.')}{!unavailable && <button className="post-secondary" type="button" onClick={() => { setFailed(false); setBusy(true); setRequest(previous => ({ ...previous, retry: previous.retry + 1 })); }}>{copy('Retry', 'ხელახლა ცდა')}</button>}</div>}
+                {!busy && !failed && page && !page.people.length && <p className="reactors-message">{filter === 'ALL' ? copy('No reactions to show.') : copy(`No ${REACTIONS.find(r => r.type === filter)?.label.toLowerCase()} reactions to show.`, `რეაქცია „${copy(REACTIONS.find(r => r.type === filter)?.label ?? '')}“ ჯერ არ არის.`)}</p>}
+                {page && page.availableCount < selectedCount && <p className="reactors-message">{copy('Some profiles are unavailable.', 'ზოგი პროფილი მიუწვდომელია.')}</p>}
+                {page?.hasMore && !busy && !failed && <button type="button" className="post-secondary reactors-more" onClick={() => { setBusy(true); setRequest({ filter, cursor: page.nextCursor, retry: 0 }); }}>{copy('Show more', 'მეტის ჩვენება')}</button>}
+            </div>
+        </div>
+    </PostDialog>;
+}

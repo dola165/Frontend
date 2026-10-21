@@ -1,3 +1,4 @@
+import '../ui/workflow-ui.css';
 import { useEffect, useRef } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -29,10 +30,10 @@ export const EmptyStateCard = ({
     }, [autoFocus]);
 
     return (
-        <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-6 py-16 text-center">
-            <Icon className="mx-auto h-8 w-8 text-[var(--fc-accent)]" />
-            <h3 className="mt-3 text-sm font-semibold text-[var(--fc-text-primary)]">{title}</h3>
-            <p className="mx-auto mt-1.5 max-w-sm text-sm text-[var(--fc-text-secondary)]">
+        <div className="gk-empty">
+            <span className="gk-empty__icon" aria-hidden="true"><Icon size={24} strokeWidth={1.65}/></span><div className="gk-empty__body">
+            <h3 className="gk-empty__title">{title}</h3>
+            <p className="gk-empty__description">
                 {description}
             </p>
             {actionLabel && onAction && (
@@ -40,12 +41,12 @@ export const EmptyStateCard = ({
                     ref={btnRef}
                     type="button"
                     onClick={onAction}
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                    className="gk-state-action"
                 >
                     {ActionIcon && <ActionIcon className="h-4 w-4" />}
                     {actionLabel}
                 </button>
             )}
-        </div>
+        </div></div>
     );
 };

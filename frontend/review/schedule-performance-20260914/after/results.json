@@ -1,0 +1,535 @@
+{
+  "label": "after",
+  "conditions": {
+    "cpuSlowdown": 4,
+    "api": "Local deterministic fixture; no live data",
+    "assets": "Production build",
+    "viewport": "1440×900"
+  },
+  "samples": [
+    {
+      "load": 0,
+      "sample": 0,
+      "initial": {
+        "constructors": 5,
+        "nodes": 456,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 97.80000001192093,
+          "dateConstructors": 0,
+          "mainThreadMs": 102.101
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 112.70000004768372,
+          "dateConstructors": 3,
+          "mainThreadMs": 118.23499999999987
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 89,
+          "dateConstructors": 0,
+          "mainThreadMs": 91.94199999999996
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 66.5,
+          "dateConstructors": 0,
+          "mainThreadMs": 69.1790000000001
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 64,
+          "dateConstructors": 0,
+          "mainThreadMs": 69.82300000000019
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 79.30000001192093,
+          "dateConstructors": 0,
+          "mainThreadMs": 81.28299999999999
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.5
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 189.60000002384186,
+          "ms": 337
+        },
+        {
+          "start": 533.1000000238419,
+          "ms": 67
+        },
+        {
+          "start": 767.1999999880791,
+          "ms": 96
+        },
+        {
+          "start": 1272.5,
+          "ms": 65
+        },
+        {
+          "start": 1586.699999988079,
+          "ms": 56
+        },
+        {
+          "start": 1650.3999999761581,
+          "ms": 101
+        },
+        {
+          "start": 1771,
+          "ms": 59
+        },
+        {
+          "start": 1943.800000011921,
+          "ms": 53
+        },
+        {
+          "start": 2016.8999999761581,
+          "ms": 53
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-DmpNP7-m.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 0,
+      "sample": 1,
+      "initial": {
+        "constructors": 5,
+        "nodes": 456,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 90.30000001192093,
+          "dateConstructors": 0,
+          "mainThreadMs": 94.75800000000012
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 130,
+          "dateConstructors": 3,
+          "mainThreadMs": 134.33700000000016
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 98.40000003576279,
+          "dateConstructors": 0,
+          "mainThreadMs": 102.79700000000003
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 67.80000001192093,
+          "dateConstructors": 0,
+          "mainThreadMs": 73.6969999999999
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 75.40000003576279,
+          "dateConstructors": 0,
+          "mainThreadMs": 80.511
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 75.89999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 83.01599999999998
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.600000023841858
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 142.29999995231628,
+          "ms": 248
+        },
+        {
+          "start": 397.2999999523163,
+          "ms": 63
+        },
+        {
+          "start": 567.6999999880791,
+          "ms": 105
+        },
+        {
+          "start": 1103.3999999761581,
+          "ms": 76
+        },
+        {
+          "start": 1418.8999999761581,
+          "ms": 53
+        },
+        {
+          "start": 1480.2999999523163,
+          "ms": 117
+        },
+        {
+          "start": 1620.5,
+          "ms": 53
+        },
+        {
+          "start": 1804.699999988079,
+          "ms": 59
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-DmpNP7-m.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 0,
+      "initial": {
+        "constructors": 5,
+        "nodes": 3397,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 299.19999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 386.7910000000001
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 444.89999997615814,
+          "dateConstructors": 3,
+          "mainThreadMs": 449.15199999999976
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 522,
+          "dateConstructors": 0,
+          "mainThreadMs": 572.53
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 169.69999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 248.76100000000002
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 285.60000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 314.4939999999998
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 464.9000000357628,
+          "dateConstructors": 0,
+          "mainThreadMs": 516.4549999999997
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 6392,
+        "visibleHeight": 859,
+        "framesOver32ms": 27,
+        "p95FrameMs": 59.59999996423721
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 175.19999998807907,
+          "ms": 244
+        },
+        {
+          "start": 425.39999997615814,
+          "ms": 59
+        },
+        {
+          "start": 608.3999999761581,
+          "ms": 144
+        },
+        {
+          "start": 1278.5,
+          "ms": 564
+        },
+        {
+          "start": 2295.600000023842,
+          "ms": 57
+        },
+        {
+          "start": 2353.100000023842,
+          "ms": 242
+        },
+        {
+          "start": 2596.600000023842,
+          "ms": 83
+        },
+        {
+          "start": 2715.899999976158,
+          "ms": 395
+        },
+        {
+          "start": 3189.199999988079,
+          "ms": 380
+        },
+        {
+          "start": 3570.399999976158,
+          "ms": 136
+        },
+        {
+          "start": 3788.100000023842,
+          "ms": 147
+        },
+        {
+          "start": 3935.800000011921,
+          "ms": 78
+        },
+        {
+          "start": 4044.100000023842,
+          "ms": 225
+        },
+        {
+          "start": 4269.699999988079,
+          "ms": 59
+        },
+        {
+          "start": 4335.800000011921,
+          "ms": 309
+        },
+        {
+          "start": 4645.699999988079,
+          "ms": 149
+        },
+        {
+          "start": 4800.899999976158,
+          "ms": 51
+        },
+        {
+          "start": 4958,
+          "ms": 53
+        },
+        {
+          "start": 5022.699999988079,
+          "ms": 52
+        },
+        {
+          "start": 5082.300000011921,
+          "ms": 50
+        },
+        {
+          "start": 5181.899999976158,
+          "ms": 53
+        },
+        {
+          "start": 5247,
+          "ms": 57
+        },
+        {
+          "start": 5317,
+          "ms": 56
+        },
+        {
+          "start": 5383.600000023842,
+          "ms": 61
+        },
+        {
+          "start": 5497.5,
+          "ms": 60
+        },
+        {
+          "start": 5572.100000023842,
+          "ms": 65
+        },
+        {
+          "start": 5745,
+          "ms": 74
+        },
+        {
+          "start": 6369.300000011921,
+          "ms": 50
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-DmpNP7-m.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 1,
+      "initial": {
+        "constructors": 5,
+        "nodes": 3397,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 188.10000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 255.27100000000002
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 385.4000000357628,
+          "dateConstructors": 3,
+          "mainThreadMs": 416.36700000000013
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 430,
+          "dateConstructors": 0,
+          "mainThreadMs": 482.5759999999999
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 183.39999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 307.22
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 338.69999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 383.3310000000001
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 423.10000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 473.84700000000015
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 6392,
+        "visibleHeight": 859,
+        "framesOver32ms": 25,
+        "p95FrameMs": 60.10000002384186
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 201.69999998807907,
+          "ms": 277
+        },
+        {
+          "start": 485.89999997615814,
+          "ms": 56
+        },
+        {
+          "start": 652.1999999880791,
+          "ms": 108
+        },
+        {
+          "start": 1200.300000011921,
+          "ms": 425
+        },
+        {
+          "start": 2180,
+          "ms": 145
+        },
+        {
+          "start": 2326.5,
+          "ms": 64
+        },
+        {
+          "start": 2424.199999988079,
+          "ms": 343
+        },
+        {
+          "start": 2815.199999988079,
+          "ms": 291
+        },
+        {
+          "start": 3107.099999964237,
+          "ms": 133
+        },
+        {
+          "start": 3246,
+          "ms": 51
+        },
+        {
+          "start": 3327.199999988079,
+          "ms": 159
+        },
+        {
+          "start": 3486.899999976158,
+          "ms": 122
+        },
+        {
+          "start": 3661.800000011921,
+          "ms": 288
+        },
+        {
+          "start": 3950.399999976158,
+          "ms": 50
+        },
+        {
+          "start": 4007.199999988079,
+          "ms": 282
+        },
+        {
+          "start": 4289.300000011921,
+          "ms": 137
+        },
+        {
+          "start": 4588.199999988079,
+          "ms": 51
+        },
+        {
+          "start": 4798.099999964237,
+          "ms": 59
+        },
+        {
+          "start": 4868.099999964237,
+          "ms": 56
+        },
+        {
+          "start": 4938.199999988079,
+          "ms": 55
+        },
+        {
+          "start": 5003.199999988079,
+          "ms": 62
+        },
+        {
+          "start": 5114.599999964237,
+          "ms": 59
+        },
+        {
+          "start": 5188.300000011921,
+          "ms": 63
+        },
+        {
+          "start": 5355.199999988079,
+          "ms": 66
+        },
+        {
+          "start": 5578.5,
+          "ms": 53
+        },
+        {
+          "start": 5884.199999988079,
+          "ms": 60
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-DmpNP7-m.js"
+      ],
+      "errors": []
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "id": 100,
+  "version": 1,
+  "playerId": 101,
+  "playerName": "Synthetic child",
+  "dateOfBirth": "2018-05-01",
+  "organizationId": 1,
+  "organizationName": "FC Dinamo Tbilisi Academy",
+  "clubId": 1,
+  "groupId": 1,
+  "groupName": "Beginner group",
+  "intake": "2026-27",
+  "method": "INTRODUCTION",
+  "stage": "WAITLIST",
+  "responsible": {
+    "id": 10,
+    "name": "Academy coach"
+  },
+  "nextAction": {
+    "code": "WAIT_FOR_PLACE",
+    "owner": "CLUB",
+    "label": "Review request and arrange the next step",
+    "dueAt": null
+  },
+  "requirements": [],
+  "sessions": [],
+  "offer": null,
+  "enrollment": null,
+  "history": [],
+  "actions": [
+    "MESSAGE",
+    "WITHDRAW"
+  ],
+  "primaryAffiliation": null,
+  "previousCaseId": null,
+  "submittedAt": "2026-10-04T00:00:00Z",
+  "updatedAt": "2026-10-04T00:00:00Z",
+  "assessments": [],
+  "siblingConstraint": null
+}

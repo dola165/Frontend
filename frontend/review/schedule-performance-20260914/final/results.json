@@ -1,0 +1,395 @@
+{
+  "label": "final",
+  "conditions": {
+    "cpuSlowdown": 4,
+    "api": "Local deterministic fixture; no live data",
+    "assets": "Production build",
+    "viewport": "1440×900"
+  },
+  "samples": [
+    {
+      "load": 0,
+      "sample": 0,
+      "initial": {
+        "constructors": 5,
+        "nodes": 456,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 107.59999996423721,
+          "dateConstructors": 0,
+          "mainThreadMs": 113.74800000000019
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 201.69999998807907,
+          "dateConstructors": 3,
+          "mainThreadMs": 210.00299999999993
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 66.5,
+          "dateConstructors": 0,
+          "mainThreadMs": 68.08500000000018
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 70.39999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 73.26100000000002
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 59.39999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 65.33899999999981
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 50.19999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 51.9339999999997
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.300000011920929
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 188.80000001192093,
+          "ms": 331
+        },
+        {
+          "start": 527.1999999880791,
+          "ms": 84
+        },
+        {
+          "start": 814.1999999880791,
+          "ms": 132
+        },
+        {
+          "start": 1379.8999999761581,
+          "ms": 68
+        },
+        {
+          "start": 1826.5,
+          "ms": 73
+        },
+        {
+          "start": 1916.300000011921,
+          "ms": 185
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-COkeu9Ob.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 0,
+      "sample": 1,
+      "initial": {
+        "constructors": 5,
+        "nodes": 456,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 110.10000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 114.43399999999993
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 118.89999997615814,
+          "dateConstructors": 3,
+          "mainThreadMs": 123.75500000000005
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 53.60000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 56.77299999999996
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 44.69999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 46.87299999999994
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 64,
+          "dateConstructors": 0,
+          "mainThreadMs": 68.02200000000002
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 45.69999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 48.00899999999997
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.300000011920929
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 169.69999998807907,
+          "ms": 272
+        },
+        {
+          "start": 448.7999999523163,
+          "ms": 55
+        },
+        {
+          "start": 610.1999999880791,
+          "ms": 107
+        },
+        {
+          "start": 1415.0999999642372,
+          "ms": 70
+        },
+        {
+          "start": 1492.0999999642372,
+          "ms": 107
+        },
+        {
+          "start": 1729.699999988079,
+          "ms": 51
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-COkeu9Ob.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 0,
+      "initial": {
+        "constructors": 5,
+        "nodes": 3397,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 311.0999999642372,
+          "dateConstructors": 0,
+          "mainThreadMs": 315.9730000000003
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 306.5,
+          "dateConstructors": 3,
+          "mainThreadMs": 308.78700000000015
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 387.39999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 394.09800000000007
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 310,
+          "dateConstructors": 0,
+          "mainThreadMs": 312.66700000000026
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 280.5999999642372,
+          "dateConstructors": 0,
+          "mainThreadMs": 285.69200000000006
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 398.10000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 401.91500000000025
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 5976,
+        "visibleHeight": 859,
+        "framesOver32ms": 3,
+        "p95FrameMs": 7.399999976158142
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 171,
+          "ms": 309
+        },
+        {
+          "start": 488.60000002384186,
+          "ms": 67
+        },
+        {
+          "start": 808.5,
+          "ms": 127
+        },
+        {
+          "start": 1371.6000000238419,
+          "ms": 197
+        },
+        {
+          "start": 1971.300000011921,
+          "ms": 275
+        },
+        {
+          "start": 2254.899999976158,
+          "ms": 267
+        },
+        {
+          "start": 2567.600000023842,
+          "ms": 152
+        },
+        {
+          "start": 2719.800000011921,
+          "ms": 235
+        },
+        {
+          "start": 2991.699999988079,
+          "ms": 283
+        },
+        {
+          "start": 3281.199999988079,
+          "ms": 237
+        },
+        {
+          "start": 3569.5,
+          "ms": 139
+        },
+        {
+          "start": 3708.600000023842,
+          "ms": 258
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-COkeu9Ob.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 1,
+      "initial": {
+        "constructors": 5,
+        "nodes": 3397,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 294.0999999642372,
+          "dateConstructors": 0,
+          "mainThreadMs": 298.03999999999985
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 345.5,
+          "dateConstructors": 3,
+          "mainThreadMs": 347.93399999999997
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 386.4000000357628,
+          "dateConstructors": 0,
+          "mainThreadMs": 392.0520000000001
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 301.2000000476837,
+          "dateConstructors": 0,
+          "mainThreadMs": 303.94699999999995
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 285.2000000476837,
+          "dateConstructors": 0,
+          "mainThreadMs": 287.89900000000034
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 429.7999999523163,
+          "dateConstructors": 0,
+          "mainThreadMs": 435.6620000000002
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 5976,
+        "visibleHeight": 859,
+        "framesOver32ms": 2,
+        "p95FrameMs": 8
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 166.19999998807907,
+          "ms": 278
+        },
+        {
+          "start": 454.10000002384186,
+          "ms": 95
+        },
+        {
+          "start": 715.1000000238419,
+          "ms": 109
+        },
+        {
+          "start": 1337.9000000357628,
+          "ms": 130
+        },
+        {
+          "start": 1951.9000000357628,
+          "ms": 261
+        },
+        {
+          "start": 2219.5,
+          "ms": 301
+        },
+        {
+          "start": 2570.900000035763,
+          "ms": 157
+        },
+        {
+          "start": 2728.5,
+          "ms": 228
+        },
+        {
+          "start": 2994.5,
+          "ms": 272
+        },
+        {
+          "start": 3273.600000023842,
+          "ms": 236
+        },
+        {
+          "start": 3564.100000023842,
+          "ms": 163
+        },
+        {
+          "start": 3727.199999988079,
+          "ms": 266
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-COkeu9Ob.js"
+      ],
+      "errors": []
+    }
+  ]
+}

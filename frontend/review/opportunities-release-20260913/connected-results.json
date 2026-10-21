@@ -1,0 +1,122 @@
+{
+  "checks": [
+    "store-list-desktop",
+    "store-editor-details-desktop",
+    "save-opens-hidden-invalid-field",
+    "store-editor-stock-desktop",
+    "step-and-fields-retained-after-navigation",
+    "store-editor-review-desktop",
+    "product-create-payload",
+    "product-versioned-status-change",
+    "campaign-list-desktop",
+    "campaign-editor-story-desktop",
+    "campaign-editor-goal-desktop",
+    "campaign-editor-review-desktop",
+    "campaign-title-only-draft-and-versioned-pause",
+    "jobs-list-desktop",
+    "jobs-editor-details-desktop",
+    "jobs-editor-route-desktop",
+    "jobs-editor-review-desktop",
+    "job-create-route-applicants-versioned-close",
+    "store-list-mobile",
+    "store-editor-mobile",
+    "store-review-mobile",
+    "campaigns-list-mobile",
+    "campaigns-editor-mobile",
+    "campaigns-review-mobile",
+    "jobs-list-mobile",
+    "jobs-editor-mobile",
+    "jobs-review-mobile",
+    "store-list-light"
+  ],
+  "errors": [],
+  "unexpected": [],
+  "writes": [
+    {
+      "path": "/api/media/upload",
+      "method": "POST",
+      "body": null
+    },
+    {
+      "path": "/api/clubs/10/store/products",
+      "method": "POST",
+      "body": {
+        "name": "Academy training top",
+        "description": "Lightweight training top for everyday sessions.",
+        "price": 85,
+        "currency": "GEL",
+        "category": "OTHER",
+        "variants": [
+          {
+            "label": "M",
+            "stock": 8
+          },
+          {
+            "label": "L",
+            "stock": 10
+          }
+        ],
+        "images": [
+          "/api/media/test-product.png"
+        ],
+        "active": true
+      }
+    },
+    {
+      "path": "/api/clubs/10/store/products/1",
+      "method": "PATCH",
+      "body": {
+        "active": false,
+        "version": 4
+      }
+    },
+    {
+      "path": "/api/clubs/10/campaigns/2/state",
+      "method": "POST",
+      "body": {
+        "version": 3,
+        "status": "PAUSED"
+      }
+    },
+    {
+      "path": "/api/clubs/10/campaigns",
+      "method": "POST",
+      "body": {
+        "title": "Academy summer fund",
+        "summary": "",
+        "description": "",
+        "beneficiary": "",
+        "useOfFunds": "",
+        "category": "COMMUNITY",
+        "currency": "GEL",
+        "goalAmount": null,
+        "reportedAmount": null,
+        "reportedNote": "",
+        "startsOn": null,
+        "endsOn": null,
+        "images": []
+      }
+    },
+    {
+      "path": "/api/clubs/10/jobs/3",
+      "method": "PATCH",
+      "body": {
+        "status": "CLOSED",
+        "version": 5
+      }
+    },
+    {
+      "path": "/api/clubs/10/jobs",
+      "method": "POST",
+      "body": {
+        "title": "Academy assistant coach",
+        "description": "",
+        "ageGroup": "",
+        "level": "",
+        "requiredRole": "COACH",
+        "category": "OTHER",
+        "engagementType": "UNSPECIFIED"
+      }
+    }
+  ]
+}

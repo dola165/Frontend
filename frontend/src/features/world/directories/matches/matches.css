@@ -1,0 +1,12 @@
+/* Matches: the line of what needs a coach above their fixtures. Scoped under .gk; tokens only. */
+.gk .gk-needs-you { display: flex; flex-wrap: wrap; gap: var(--gk-2) var(--gk-4); margin: 0 0 var(--gk-3); padding: 0; list-style: none; }
+.gk .gk-needs-you .gk-sb__wait { gap: 6px; min-height: 32px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-surface);
+  font: inherit; font-size: var(--gk-fs-sm); text-decoration: none; cursor: pointer; }
+.gk .gk-needs-you .gk-sb__wait > span { color: var(--gk-text); font-weight: 500; }
+.gk .gk-needs-you .gk-sb__wait:hover { background: var(--gk-hover); }
+.gk .gk-needs-you .gk-sb__wait:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+@media (pointer: coarse) { .gk .gk-needs-you .gk-sb__wait { min-height: 44px; } }
+/* A long fact (Georgian runs longer) shortens inside its pill rather than widening the page. */
+.gk .gk-needs-you > li { min-width: 0; max-width: 100%; }
+.gk .gk-needs-you .gk-sb__wait { max-width: 100%; }
+.gk .gk-needs-you .gk-sb__wait > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

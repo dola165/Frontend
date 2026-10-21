@@ -1,0 +1,28 @@
+/* The Map tab's column, on the map's left: the search and the kinds at the top, then the filters as long lines, which
+   scroll when there are many. On narrower screens the column sits under the map. Scoped under .gk; tokens only. */
+.gk .gk-world-side { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-world-side__head { flex: none; display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-world-side__search { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-world-side__search > .gk-world-head__search { flex: 1 1 auto; min-width: 0; }
+.gk .gk-world-side__search .gk-input { min-height: 40px; background: var(--gk-raised); border-color: var(--gk-line); backdrop-filter: none; }
+/* The page's actions ("+ Create a club", "Clubs you follow") on their own line under the search, the main one last. */
+.gk .gk-world-side__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-2); }
+/* The kinds of thing the map can show, each with its pin's colour: one at a time. */
+.gk .gk-world-side__kinds { flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.gk .gk-world-side__kinds::-webkit-scrollbar { display: none; }
+.gk .gk-world-side__kinds .gk-chip { flex: none; gap: 7px; }
+.gk .gk-world-side__kinds .gk-world-pin--key { width: 10px; height: 10px; }
+.gk .gk-world-side__kinds .gk-world-pin--key::after { width: 8px; height: 8px; }
+.gk .gk-world-side__count { margin-left: 2px; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); font-variant-numeric: tabular-nums; }
+.gk .gk-world-side__count[data-tone='warning'] { color: var(--gk-warning); }
+.gk .gk-world-side__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+/* Work that belongs beside the results (what needs a coach, adding a past match), under the filters. */
+.gk .gk-world-side__tools { padding: var(--gk-3); }
+.gk .gk-world-side__tools:empty { display: none; }
+/* The way to the other placement of the filters: a quiet icon beside the search (or the header's actions). */
+.gk .gk-world-placement { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: none; color: var(--gk-text-3); cursor: pointer; }
+.gk .gk-world-placement:hover { color: var(--gk-text); background: var(--gk-hover); }
+.gk .gk-world-placement:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-world-placement svg { width: 16px; height: 16px; }
+@media (pointer: coarse) { .gk .gk-world-placement { width: 44px; height: 44px; } }
+@media (pointer: coarse) { .gk .gk-world-side__search .gk-input { min-height: 44px; } }

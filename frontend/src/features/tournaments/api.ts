@@ -1,4 +1,5 @@
-import { apiClient } from '../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
+import { buildTournamentTieResolution } from './domain';
 import type {
     AddDraftTeamFakeMemberPayload,
     AddDraftTeamMembersPayload,
@@ -21,7 +22,9 @@ import type {
     TournamentDetail,
     TournamentHostClubOption,
     TournamentInvitationDto,
-    TournamentSummary,
+    TournamentTieContest,
+    TournamentTieDecision,
+    TournamentTieState,
     UpdateEntryStatusPayload,
     UpdateDraftTeamPayload,
     UpdateEntrySquadPayload,
@@ -69,8 +72,21 @@ export const fetchPlayerQueue = async (tournamentId: number, status: string = 'A
     return response.data;
 };
 
-export const requestEntry = async (tournamentId: number, payload: RequestTournamentEntryPayload) => {
-    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/entries`, payload);
+/** What answering an invitation needs: whether a squad must be named, and the squads that may be. */
+export interface InvitationReview { requiresSquad: boolean; squads: { id: number; name: string }[]; status?: import('./domain').TournamentInvitationStatus }
+export const reviewInvitation = async (tournamentId: number, invitationId: number, signal?: AbortSignal) =>
+    (await apiClient.get<InvitationReview>(`/tournaments/${tournamentId}/invitations/${invitationId}/review`, { signal })).data;
+/** Accepts for the squad named (none for a club-level answer). The organiser may still approve the entry or put it on the waiting list. */
+export const acceptInvitation = async (tournamentId: number, invitationId: number, squadId?: number | null) =>
+    (await apiClient.post(`/tournaments/${tournamentId}/invitations/${invitationId}/accept`, squadId ? { squadId } : {})).data;
+export const declineInvitation = async (tournamentId: number, invitationId: number) =>
+    (await apiClient.post(`/tournaments/${tournamentId}/invitations/${invitationId}/decline`, {})).data;
+/** Withdraws an entry; the waiting list moves up. No content when the person can no longer see the tournament. */
+export const withdrawEntry = async (tournamentId: number, entryId: number, reason?: string) =>
+    (await apiClient.post<TournamentDetail | ''>(`/tournaments/${tournamentId}/entries/${entryId}/withdraw`, reason ? { reason } : {})).data || null;
+
+export const requestEntry = async (tournamentId: number, payload: RequestTournamentEntryPayload, config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/entries`, payload, config);
     return response.data;
 };
 
@@ -153,11 +169,6 @@ export const reopenFixture = async (tournamentId: number, fixtureId: number) => 
     return response.data;
 };
 
-export const fetchTournaments = async (params?: { page?: number; size?: number; scope?: string; visibility?: string; status?: string }) => {
-    const response = await apiClient.get<PageResult<TournamentSummary>>('/tournaments', { params });
-    return response.data;
-};
-
 export const fetchTournamentInvitations = async (tournamentId: number) => {
     const response = await apiClient.get<TournamentInvitationDto[]>(`/tournaments/${tournamentId}/invitations`);
     return response.data;
@@ -231,4 +242,65 @@ export const moveEntry = async (tournamentId: number, fixtureId: number, payload
 export const replaceEntry = async (tournamentId: number, fixtureId: number, payload: ReplaceEntryPayload) => {
     const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/replace-entry`, payload);
     return response.data;
+};
+
+/** Public tournaments worth showing first (at most three, live and not ended) and the organisers to follow. */
+export const fetchTournamentOverview = async (signal?: AbortSignal) =>
+    (await apiClient.get<import('./domain').TournamentOverview>('/tournaments/overview', { signal })).data;
+
+/** One organiser's tournaments, newest first. */
+export const fetchHostTournaments = async (params: { kind: 'CLUB' | 'ORGANIZATION'; id: number; page: number; size: number }, signal?: AbortSignal) =>
+    (await apiClient.get<PageResult<import('./domain').TournamentSummary>>('/tournaments/host-tournaments', { params, signal })).data;
+
+/** One organiser: a club or an organisation that runs tournaments. */
+export const fetchTournamentHost = async (kind: 'CLUB' | 'ORGANIZATION', id: number, signal?: AbortSignal) =>
+    (await apiClient.get<import('./domain').TournamentHost>('/tournaments/host', { params: { kind, id }, signal })).data;
+
+export const setTournamentHostFollow = async (kind: 'CLUB' | 'ORGANIZATION', id: number, following: boolean) =>
+    (await apiClient.put<{ following: boolean }>(`/tournaments/hosts/${kind}/${id}/follow`, { following })).data;
+
+export const addGuestEntry = async (tournamentId: number, name: string) =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/guest-entries`, { name })).data;
+
+export const placeTournamentEntry = async (tournamentId: number, fixtureId: number, entryId: number, slot: 'HOME' | 'AWAY') =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/place-entry`, { entryId, slot })).data;
+
+export const unplaceTournamentEntry = async (tournamentId: number, fixtureId: number, entryId: number, slot: 'HOME' | 'AWAY') =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/unplace-entry`, { entryId, slot })).data;
+
+export const scheduleTournamentFixture = async (tournamentId: number, fixtureId: number, scheduledAt: string | null, locationId: number | null) =>
+    (await apiClient.patch<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/schedule`, { scheduledAt, locationId })).data;
+
+export const startTournament = async (tournamentId: number) =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/start`)).data;
+
+export const finishTournament = async (tournamentId: number) =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/complete`)).data;
+
+export const fetchMyTournaments = async (params: { page: number; size: number; status?: string }) =>
+    (await apiClient.get<PageResult<import('./domain').TournamentSummary>>('/tournaments/mine', { params })).data;
+
+export const fetchMyTournamentInvitations = async (page: number, size: number) =>
+    (await apiClient.get<PageResult<import('./domain').TournamentInvitationInboxItem>>('/tournaments/invitations/mine', { params: { page, size, status: 'PENDING' } })).data;
+
+export const assignTournamentStaff = async (id: number, userId: number, role: 'ADMIN' | 'STAFF' | 'REFEREE') =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${id}/staff`, { userId, role })).data;
+
+export const removeTournamentStaff = async (id: number, assignmentId: number) =>
+    (await apiClient.delete<TournamentDetail>(`/tournaments/${id}/staff/${assignmentId}`)).data;
+
+export const fetchTournamentTieState = async (tournamentId: number) =>
+    (await apiClient.get<TournamentTieState>(`/tournaments/${tournamentId}/tie-state`)).data;
+
+export const fetchTournamentTieHistory = async (tournamentId: number) =>
+    (await apiClient.get<TournamentTieDecision[]>(`/tournaments/${tournamentId}/tie-resolutions`)).data;
+
+export const resolveTournamentTie = async (
+    tournamentId: number,
+    contest: TournamentTieContest,
+    selectedEntryId: number,
+    note: string,
+) => {
+    const payload = buildTournamentTieResolution(contest, selectedEntryId, note);
+    return (await apiClient.post<TournamentTieState>(`/tournaments/${tournamentId}/tie-resolutions`, payload)).data;
 };

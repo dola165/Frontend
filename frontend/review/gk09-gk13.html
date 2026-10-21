@@ -1,0 +1,9 @@
+<!doctype html><html><head><title>GK-09/GK-13 isolated review</title></head><body><div id="root"></div><script type="module">
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import {MessagingPage} from '/src/pages/MessagingPage.tsx';
+import {RightSidebar} from '/src/components/layout/RightSidebar.tsx';
+const params=new URLSearchParams(location.search);
+createRoot(document.getElementById('root')).render(React.createElement(MemoryRouter,{initialEntries:['/messages?conversationId='+params.get('conversationId')]},React.createElement(params.has('quick')?RightSidebar:MessagingPage)));
+</script></body></html>

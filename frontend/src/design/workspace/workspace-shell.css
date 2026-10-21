@@ -1,0 +1,109 @@
+/* Workspace shell: one rail + content layout shared by every workspace.
+   Scoped under `.gk.gk-ws`; colours come from the `.gk` palette only. */
+/* The shell is its own frame, exactly the height under the app header: the rail fills it top to bottom and never
+   moves, and only the content column scrolls. Inside the app's padded page frame (24px above and below) it is
+   48px shorter; on a canvas page (`data-canvas`, the club workspace) it fills the whole container. */
+.gk.gk-ws { --gk-ws-rail: 256px; display: grid; grid-template-columns: var(--gk-ws-rail) minmax(0, 1fr); height: calc(100dvh - var(--app-active-header-height, 0px) - var(--app-bottom-bar-height, 0px) - 48px); min-height: 0; overflow: hidden; background: var(--gk-bg); }
+.gk.gk-ws[data-canvas] { height: calc(100dvh - var(--app-active-header-height, 0px) - var(--app-bottom-bar-height, 0px)); }
+.gk.gk-ws[data-collapsed] { --gk-ws-rail: 72px; }
+
+/* ---------------------------------------------------------------- rail */
+.gk .gk-ws__rail { display: flex; flex-direction: column; height: 100%; min-width: 0; overflow: hidden; background: var(--gk-surface); border-right: 1px solid var(--gk-line); }
+.gk.gk-ws[data-canvas] .gk-ws__main > .gk-frame { padding-top: 24px; }
+.gk .gk-ws__context { position: relative; display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4) var(--gk-4) var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-ws__back { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 28px; align-self: flex-start; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-3); border-radius: var(--gk-r-sm); }
+.gk .gk-ws__back:hover { color: var(--gk-text); }
+.gk .gk-ws__back svg { width: 16px; height: 16px; flex: none; }
+.gk .gk-ws__identity { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+.gk .gk-ws__identity-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-ws__identity-text strong { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; color: var(--gk-text); }
+.gk .gk-ws__identity-text span { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); }
+.gk .gk-ws__close { display: none; }
+
+.gk .gk-ws__nav { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--gk-3); display: flex; flex-direction: column; gap: var(--gk-2); scrollbar-width: thin; }
+.gk .gk-ws__items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-ws__items[hidden] { display: none; }
+.gk .gk-ws__items--primary { padding-bottom: var(--gk-2); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-ws__items--footer { flex: none; padding: var(--gk-2) var(--gk-3); border-top: 1px solid var(--gk-line); }
+.gk .gk-ws__item { position: relative; display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 44px; padding: 0 var(--gk-3); border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-md); font-weight: 500; text-align: left; cursor: pointer; transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease); }
+.gk .gk-ws__item svg { width: 18px; height: 18px; flex: none; color: var(--gk-text-3); }
+.gk .gk-ws__item:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-ws__item[aria-current='page'] { background: var(--gk-accent-soft); color: var(--gk-text); font-weight: 600; }
+.gk .gk-ws__item[aria-current='page'] svg { color: var(--gk-accent); }
+.gk .gk-ws__item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A tool the person can read but not change: a small eye after its name, hidden when the rail is icons only. */
+.gk .gk-ws__item .gk-ws__view { width: 14px; height: 14px; color: var(--gk-text-3); opacity: .8; }
+.gk.gk-ws[data-collapsed] .gk-ws__view { display: none; }
+.gk .gk-ws__count { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--gk-r-pill); background: var(--gk-raised); color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
+.gk .gk-ws__item[aria-current='page'] .gk-ws__count { background: var(--gk-accent); color: var(--gk-on-accent); }
+
+.gk .gk-ws__group { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-ws__caption { padding: var(--gk-2) var(--gk-3) var(--gk-1); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 600; color: var(--gk-text-3); }
+.gk .gk-ws__group-toggle { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 44px; padding: 0 var(--gk-3); border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-md); font-weight: 600; text-align: left; cursor: pointer; }
+.gk .gk-ws__group-toggle > span { flex: 1; min-width: 0; }
+.gk .gk-ws__group-toggle:hover { color: var(--gk-text); background: var(--gk-hover); }
+.gk .gk-ws__group-icon { width: 18px; height: 18px; flex: none; color: var(--gk-text-3); }
+.gk .gk-ws__chevron { width: 16px; height: 16px; flex: none; color: var(--gk-text-3); transition: transform .2s var(--gk-ease); }
+.gk .gk-ws__group-toggle[aria-expanded='false'] .gk-ws__chevron { transform: rotate(-90deg); }
+/* A long area scrolls inside itself, so the rail's bottom never moves out of reach. */
+.gk .gk-ws__group > .gk-ws__items:not(.gk-ws__items--primary) { max-height: 38vh; padding-left: var(--gk-4); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.gk .gk-ws__group > .gk-ws__items .gk-ws__item { min-height: 40px; }
+.gk .gk-ws__more { display: flex; flex-direction: column; gap: 2px; padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+.gk .gk-ws__more > div { display: flex; flex-direction: column; gap: var(--gk-1); padding-left: var(--gk-2); }
+.gk .gk-ws__more > div[hidden] { display: none; }
+
+.gk .gk-ws__collapse { display: flex; align-items: center; gap: var(--gk-3); min-height: 44px; padding: 0 var(--gk-6); border: 0; border-top: 1px solid var(--gk-line); background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-sm); font-weight: 500; cursor: pointer; }
+.gk .gk-ws__collapse:hover { color: var(--gk-text); background: var(--gk-hover); }
+.gk .gk-ws__collapse svg { width: 18px; height: 18px; flex: none; }
+
+/* Collapsed to icons: labels stay available as accessible names and tooltips. */
+.gk.gk-ws[data-collapsed] :is(.gk-ws__item-label, .gk-ws__identity-text, .gk-ws__back span, .gk-ws__caption, .gk-ws__collapse span) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.gk.gk-ws[data-collapsed] .gk-ws__context { align-items: center; padding-inline: var(--gk-2); }
+.gk.gk-ws[data-collapsed] .gk-ws__back { align-self: center; padding: 0 var(--gk-1); }
+.gk.gk-ws[data-collapsed] .gk-ws__nav { padding-inline: var(--gk-2); }
+.gk.gk-ws[data-collapsed] .gk-ws__item { justify-content: center; padding: 0; }
+.gk.gk-ws[data-collapsed] .gk-ws__count { position: absolute; top: 2px; right: 4px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 11px; }
+.gk.gk-ws[data-collapsed] .gk-ws__group-toggle { display: none; }
+.gk.gk-ws[data-collapsed] .gk-ws__group + .gk-ws__group, .gk.gk-ws[data-collapsed] .gk-ws__items--primary + .gk-ws__group { padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+.gk.gk-ws[data-collapsed] .gk-ws__collapse { justify-content: center; padding: 0; }
+
+/* Tools the person hid or that lie outside their responsibilities: still here under More tools, but quieter than their own. */
+.gk .gk-ws__more .gk-ws__group-toggle, .gk .gk-ws__more .gk-ws__item { color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-ws__more .gk-ws__item svg, .gk .gk-ws__more .gk-ws__group-icon { opacity: .55; }
+.gk .gk-ws__more .gk-ws__item:hover { color: var(--gk-text-2); }
+
+/* ---------------------------------------------------------------- content */
+.gk .gk-ws__main { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
+/* The workspace's own actions, top right of every page, above the page's header. */
+.gk .gk-ws__actions { position: sticky; top: 0; z-index: 25; display: flex; justify-content: flex-end; gap: var(--gk-2); padding: var(--gk-2) var(--gk-gutter) 0; background: var(--gk-bg); }
+.gk .gk-ws__actions + .gk-frame { padding-top: 0 !important; }
+.gk .gk-ws__bar { display: none; }
+
+@media (pointer: coarse) {
+  .gk .gk-ws__item, .gk .gk-ws__group-toggle { min-height: 44px; }
+}
+
+/* ---------------------------------------------------------------- phone and tablet: the rail becomes a drawer */
+@media (max-width: 1023px) {
+  .gk.gk-ws, .gk.gk-ws[data-collapsed] { grid-template-columns: minmax(0, 1fr); --gk-ws-rail: min(86vw, 320px); }
+  /* Closed, the drawer is hidden after it slides away, so its links leave the tab order and the accessibility tree. */
+  .gk .gk-ws__rail { position: fixed; top: var(--app-active-header-height, 0px); bottom: var(--app-bottom-bar-height, 0px); left: 0; z-index: 70; width: var(--gk-ws-rail); height: auto; transform: translateX(-105%); visibility: hidden; transition: transform .2s var(--gk-ease), visibility 0s linear .2s; box-shadow: var(--gk-elevation); }
+  .gk .gk-ws__rail[data-open] { transform: none; visibility: visible; transition: transform .2s var(--gk-ease), visibility 0s; }
+  .gk .gk-ws__backdrop { position: fixed; inset: var(--app-active-header-height, 0px) 0 var(--app-bottom-bar-height, 0px) 0; z-index: 65; background: color-mix(in srgb, var(--gk-shadow) 55%, transparent); cursor: pointer; }
+  .gk .gk-ws__close { display: inline-grid; place-items: center; position: absolute; top: var(--gk-3); right: var(--gk-3); width: 44px; height: 44px; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-2); cursor: pointer; }
+  .gk .gk-ws__close:hover { background: var(--gk-hover); color: var(--gk-text); }
+  .gk .gk-ws__close svg { width: 20px; height: 20px; }
+  .gk .gk-ws__collapse { display: none; }
+  .gk .gk-ws__item, .gk .gk-ws__group-toggle { min-height: 44px; }
+  /* A drawer always shows labels, whatever the desktop preference. */
+  .gk.gk-ws[data-collapsed] :is(.gk-ws__item-label, .gk-ws__identity-text, .gk-ws__back span, .gk-ws__caption) { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .gk.gk-ws[data-collapsed] .gk-ws__item { justify-content: flex-start; padding: 0 var(--gk-3); }
+  .gk.gk-ws[data-collapsed] .gk-ws__context { align-items: stretch; padding-inline: var(--gk-4); }
+  .gk.gk-ws[data-collapsed] .gk-ws__group-toggle { display: flex; }
+  .gk .gk-ws__bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: var(--gk-3); min-height: 60px; padding: var(--gk-2) var(--gk-gutter); background: var(--gk-bg); border-bottom: 1px solid var(--gk-line); }
+  .gk .gk-ws__bar .gk-btn { min-height: 44px; }
+  .gk .gk-ws__bar-title { display: flex; flex-direction: column; min-width: 0; }
+  .gk .gk-ws__bar-title strong { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gk .gk-ws__bar-title span { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) { .gk .gk-ws__rail, .gk .gk-ws__rail[data-open] { transition: none; } }

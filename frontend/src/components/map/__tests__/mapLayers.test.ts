@@ -1,23 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import {
-    MAP_LOCATION_PIN_IMAGE,
-    buildPointsFeatureCollection,
-    withDarkPaints
-} from '../mapLayers';
+import { withDarkPaints, withHeritagePaints } from '../mapLayers';
 
 describe('map layer styling', () => {
-    it('uses the normal football pin for unselected point features', () => {
-        const collection = buildPointsFeatureCollection([{
-            key: 'CLUB:1',
-            entityType: 'CLUB',
-            latitude: 41.7,
-            longitude: 44.8,
-            title: 'Test club'
-        }]);
-
-        expect(collection.features[0].properties.icon).toBe(MAP_LOCATION_PIN_IMAGE);
+    it('can omit decorative terrain while preserving street and label layers and the warm palette', () => {
+        const original = { version: 8, sources: { openmaptiles: { type: 'vector' } }, layers: [
+            { id: 'background', type: 'background', paint: { 'background-color': '#eee' } },
+            { id: 'water', type: 'fill', paint: { 'fill-color': '#aaa' } },
+            { id: 'highway-primary', type: 'line', source: 'openmaptiles', paint: { 'line-color': '#ccc' } },
+            { id: 'place-label', type: 'symbol', source: 'openmaptiles', layout: { 'text-field': ['get', 'name'] },
+                paint: { 'text-color': '#000', 'text-halo-color': '#fff' } },
+        ] };
+        const result = withHeritagePaints(original, { includeTerrain: false });
+        expect(result.layers.map(layer => layer.id)).toEqual(original.layers.map(layer => layer.id));
+        expect(result.sources).toEqual(original.sources);
+        expect(result.sources).not.toHaveProperty('atlas-elevation');
+        expect(result.layers.find(layer => layer.id === 'water')?.paint['fill-color']).toBe('#506a6b');
+        expect(result.layers.find(layer => layer.id === 'place-label')?.layout).toEqual(original.layers[3].layout);
+        expect(result.layers.find(layer => layer.id === 'highway-primary')?.source).toBe('openmaptiles');
+        expect(original.layers[1].paint['fill-color']).toBe('#aaa');
     });
 
+    it('keeps real relief and woods available at world zoom without recoloring water or mutating the source', () => {
+        const original = { version: 8, sources: { openmaptiles: { type: 'vector' } }, layers: [
+            { id: 'background', type: 'background', paint: { 'background-color': '#eee' } },
+            { id: 'water', type: 'fill', paint: { 'fill-color': '#aaa' } },
+            { id: 'landcover_wood', type: 'fill', minzoom: 10, paint: { 'fill-opacity': 0 } },
+            { id: 'landcover_glacier', type: 'fill', paint: { 'fill-color': '#fff' } }
+        ] };
+        const result = withHeritagePaints(original);
+        expect(result.layers.find(l => l.id === 'landcover_wood')?.minzoom).toBe(0);
+        expect(result.layers.find(l => l.id === 'landcover_glacier')?.paint['fill-color']).toBe('#fffef8');
+        expect(result.layers.findIndex(l => l.id === 'atlas-hillshade')).toBeLessThan(result.layers.findIndex(l => l.id === 'water'));
+        expect(result.sources).toHaveProperty('atlas-elevation.encoding', 'terrarium');
+        expect(original.layers[2].minzoom).toBe(10);
+        expect(original.sources).not.toHaveProperty('atlas-elevation');
+    });
     it('creates a true dark style without mutating the light style', () => {
         const light = {
             version: 8,

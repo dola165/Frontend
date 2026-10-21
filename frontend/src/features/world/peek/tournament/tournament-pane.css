@@ -1,0 +1,94 @@
+/* A tournament in World's pane: its format as a badge over the cover, the bracket, full tables, the final, the teams
+   and what the organiser published. Scoped under .gk; tokens only. */
+.gk .gk-tpane-badge { flex: none; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 14px; background: var(--gk-surface); color: var(--gk-accent);
+  box-shadow: 0 0 0 3px var(--gk-surface), inset 0 0 0 1px var(--gk-line); font-size: 34px; }
+.gk .gk-tpane-badge > svg { width: 1em; height: 1em; }
+.gk .gk-tpane-by { display: flex; align-items: baseline; gap: 4px; }
+.gk .gk-tpane-by .gk-pane-more { align-self: baseline; font-size: var(--gk-fs-sm); }
+.gk .gk-tpane-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-sm); }
+
+/* The bracket: one column per round, later rounds sitting between the ties that feed them; it scrolls inside on a phone. */
+.gk .gk-bracket { display: grid; grid-template-columns: repeat(var(--rounds, 3), minmax(180px, 1fr)); gap: var(--gk-3); overflow-x: auto; padding-bottom: var(--gk-1); }
+.gk .gk-bracket__round { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-bracket__round h4 { margin: 0 0 var(--gk-2); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-bracket__round ol { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-tie { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 6px 8px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface);
+  color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); text-align: left; }
+.gk button.gk-tie { cursor: pointer; }
+.gk button.gk-tie:hover { background: var(--gk-hover); }
+.gk button.gk-tie:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-tie[data-state='bye'] { border-style: dashed; }
+.gk .gk-tie__side { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 22px; }
+.gk .gk-tie__side[data-won] { color: var(--gk-text); font-weight: 650; }
+.gk .gk-tie__side[data-tbd] { color: var(--gk-text-3); }
+.gk .gk-tie__side[data-mine] .gk-tie__name { color: var(--gk-text); }
+.gk .gk-tie__name { flex: 1; display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gk .gk-tie__name small { font-size: var(--gk-fs-xs); font-weight: 400; color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; }
+.gk .gk-tie__side b { min-width: 14px; text-align: right; font-variant-numeric: tabular-nums; }
+.gk .gk-tie__mine { flex: none; width: 11px; height: 11px; color: var(--gk-warning); fill: currentColor; }
+.gk .gk-tie__when { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+/* A full table: position, team, played, won, drawn, lost, goal difference, points. */
+.gk .gk-tpane-table { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .gk-tpane-table h4, .gk .gk-tpane-round h4, .gk .gk-tpane-tier h4 { margin: 0; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-ftable { width: 100%; border-collapse: collapse; font-size: var(--gk-fs-sm); font-variant-numeric: tabular-nums; }
+.gk .gk-ftable thead th { padding: 4px 6px; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); text-align: right; }
+.gk .gk-ftable thead th:nth-child(2) { text-align: left; }
+.gk .gk-ftable td, .gk .gk-ftable tbody th { height: 32px; padding: 0 6px; text-align: right; font-weight: 400; color: var(--gk-text-2); border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
+.gk .gk-ftable td:first-child { width: 30px; text-align: center; }
+.gk .gk-ftable tbody th { text-align: left; }
+.gk .gk-ftable td b { color: var(--gk-text); }
+.gk .gk-ftable tr[data-mine] td, .gk .gk-ftable tr[data-mine] th { background: var(--gk-accent-soft); color: var(--gk-text); font-weight: 650; }
+.gk .gk-ftable__team { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 40vw; }
+.gk .gk-ftable__team > span { display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--gk-text); }
+.gk .gk-ftable__team small { font-size: var(--gk-fs-xs); font-weight: 400; color: var(--gk-text-3); }
+.gk .gk-ftable__team > svg { flex: none; width: 11px; height: 11px; color: var(--gk-warning); fill: currentColor; }
+.gk .gk-tpane-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: var(--gk-4) var(--gk-6); }
+.gk .gk-tpane-round, .gk .gk-tpane-tier { display: flex; flex-direction: column; gap: var(--gk-1); }
+
+/* Before the draw: the format's picture large, the places and when its shape is decided. */
+.gk .gk-tpane-planned { display: flex; align-items: center; gap: var(--gk-4); padding: var(--gk-3); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); }
+.gk .gk-tpane-planned__glyph { flex: none; display: grid; place-items: center; width: 72px; height: 72px; border-radius: 16px; background: var(--gk-accent-soft); color: var(--gk-accent); font-size: 44px; }
+.gk .gk-tpane-planned p { margin: 2px 0 0; font-size: var(--gk-fs-sm); }
+
+/* The final when it is next: both sides large, the day and time over them. */
+.gk .gk-tpane-final { display: flex; flex-direction: column; align-items: center; gap: var(--gk-2); width: 100%; padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg);
+  background: linear-gradient(160deg, var(--gk-accent-soft), var(--gk-surface) 60%); color: var(--gk-text); font: inherit; cursor: pointer; }
+.gk .gk-tpane-final:hover { border-color: var(--gk-line-strong); }
+.gk .gk-tpane-final:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-tpane-final > small { font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-accent); }
+.gk .gk-tpane-final__sides { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--gk-3); width: 100%; color: var(--gk-text-3); }
+.gk .gk-tpane-final__side { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; text-align: center; }
+.gk .gk-tpane-final__side b { color: var(--gk-text); }
+.gk .gk-tpane-final__side small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-tpane-final__side[data-tbd] b { color: var(--gk-text-3); font-weight: 500; }
+
+/* Teams: crest, club, squad and how each entry stands. */
+.gk .gk-tpane-teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-2) var(--gk-6); margin: 0; padding: 0; list-style: none; }
+.gk .gk-tpane-teams li { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; padding: 4px 0; }
+.gk .gk-tpane-teams li > .gk-pane-line { flex: 1; }
+.gk .gk-tpane-teams small svg { color: var(--gk-warning); fill: currentColor; }
+.gk .gk-tpane-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); color: var(--gk-text); }
+.gk .gk-tpane-chip[data-mine] { border-color: color-mix(in srgb, var(--gk-accent) 50%, transparent); background: var(--gk-accent-soft); }
+
+/* The one thing to do now, under the head; a line that only says why not has a quiet dot and no arrow. */
+.gk .gk-tpane-action { display: flex; flex-direction: column; }
+.gk .gk-tpane-action .gk-step { margin: 0; }
+.gk p.gk-step-line { margin: 0; color: var(--gk-text-2); }
+.gk p.gk-step-line:hover { background: none; }
+.gk .gk-step-line[data-tone='quiet']::before { background: var(--gk-text-3); }
+
+/* What the organiser published, as label and value. */
+.gk .gk-tpane-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-3) var(--gk-6); margin: 0; }
+.gk .gk-tpane-facts div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-tpane-facts dt { font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
+.gk .gk-tpane-facts dd { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text); }
+@media (pointer: coarse) { .gk .gk-tie__side { min-height: 30px; } }
+
+/* An organiser's tournaments: the first day, the name, one fact; each opens beside the list. */
+.gk .gk-tpane-hosted { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.gk .gk-tpane-hosted a { display: flex; align-items: center; gap: var(--gk-3); padding: 6px 0; border-top: 1px solid var(--gk-line); color: var(--gk-text); text-decoration: none; font-size: var(--gk-fs-sm); }
+.gk .gk-tpane-hosted li:first-child a { border-top: 0; }
+.gk .gk-tpane-hosted__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.gk .gk-tpane-hosted a:hover .gk-tpane-hosted__name { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-tpane-hosted a:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }

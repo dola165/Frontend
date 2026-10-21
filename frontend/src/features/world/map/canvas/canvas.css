@@ -1,0 +1,46 @@
+/* World map canvas, markers and map controls. Scoped under .gk; tokens only. */
+.gk .gk-map-canvas { position: absolute; inset: 0; overflow: hidden; background: var(--gk-sunken); isolation: isolate; }
+.gk .gk-map-canvas__waiting { position: absolute; inset: 0; background: linear-gradient(110deg, var(--gk-sunken) 30%, var(--gk-raised) 50%, var(--gk-sunken) 70%); background-size: 220% 100%; animation: gk-shimmer 1.6s linear infinite; }
+.gk .gk-map-canvas__failed { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 5; display: flex; flex-direction: column; align-items: center; gap: var(--gk-3); max-width: min(90%, 320px); padding: var(--gk-5); border-radius: var(--gk-r-lg); background: var(--gk-surface); border: 1px solid var(--gk-line); text-align: center; color: var(--gk-text-2); box-shadow: var(--gk-elevation); }
+.gk .gk-map-canvas .maplibregl-ctrl-attrib { background: color-mix(in srgb, var(--gk-surface) 86%, transparent); color: var(--gk-text-3); font-size: 11px; }
+.gk .gk-map-canvas .maplibregl-ctrl-attrib a { color: var(--gk-text-2); }
+.gk .gk-map-canvas .maplibregl-ctrl-attrib-button { background-color: var(--gk-raised); }
+.gk .gk-map-canvas .maplibregl-canvas:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
+
+/* Cluster bubbles: a count you can click to zoom in. */
+.gk .gk-map-cluster { display: grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border-radius: var(--gk-r-pill); border: 2px solid var(--gk-surface); background: var(--gk-text); color: var(--gk-bg); font-family: var(--gk-font-display); font-variant-numeric: tabular-nums; font-size: var(--gk-fs-sm); font-weight: 700; box-shadow: 0 0 0 4px color-mix(in srgb, var(--gk-text) 18%, transparent), 0 2px 8px color-mix(in srgb, var(--gk-shadow) 35%, transparent); cursor: pointer; transition: transform .15s var(--gk-ease); }
+.gk .gk-map-cluster[data-size='md'] { min-width: 40px; height: 40px; }
+.gk .gk-map-cluster[data-size='lg'] { min-width: 46px; height: 46px; font-size: var(--gk-fs-md); }
+.gk .gk-map-cluster:hover { transform: scale(1.08); }
+.gk .gk-map-label { display: block; max-width: 220px; padding: 4px 10px; border-radius: var(--gk-r-pill); background: var(--gk-surface); border: 1px solid var(--gk-line-strong); color: var(--gk-text); font-size: var(--gk-fs-xs); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: var(--gk-elevation); }
+
+/* Journey stops: numbered, in the route colour; meeting and return carry the accent. */
+.gk .gk-route-stop { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 7px; border-radius: var(--gk-r-pill); border: 2px solid var(--gk-accent); background: var(--gk-surface); color: var(--gk-text); font-family: var(--gk-font-display); font-variant-numeric: tabular-nums; font-size: var(--gk-fs-sm); font-weight: 700; cursor: pointer; box-shadow: 0 2px 10px color-mix(in srgb, var(--gk-shadow) 40%, transparent); transition: transform .15s var(--gk-ease), background-color .15s var(--gk-ease); }
+.gk .gk-route-stop[data-kind='match'] { border-color: var(--gk-violet); }
+.gk .gk-route-stop[data-kind='meet'], .gk .gk-route-stop[data-kind='return'] { background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-route-stop[aria-current='step'] { transform: scale(1.18); box-shadow: 0 0 0 5px color-mix(in srgb, var(--gk-accent) 30%, transparent), 0 2px 10px color-mix(in srgb, var(--gk-shadow) 40%, transparent); }
+.gk .gk-route-stop:hover { transform: scale(1.1); }
+.gk .gk-route-place { width: 14px; height: 14px; padding: 0; border-radius: var(--gk-r-pill); border: 2px solid var(--gk-surface); background: var(--gk-text-3); cursor: pointer; }
+.gk .gk-map-start { display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--gk-info) 28%, transparent); cursor: grab; }
+.gk .gk-map-start > span { width: 14px; height: 14px; border-radius: var(--gk-r-pill); background: var(--gk-info); border: 2px solid var(--gk-surface); }
+.gk .gk-map-pick { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--gk-r-pill); border: 3px solid var(--gk-accent); background: var(--gk-surface); box-shadow: 0 0 0 6px color-mix(in srgb, var(--gk-accent) 25%, transparent); }
+
+/* Controls */
+.gk .gk-map-controls { display: flex; flex-direction: column; align-items: flex-end; gap: var(--gk-2); pointer-events: none; }
+.gk .gk-map-controls > * { pointer-events: auto; }
+.gk .gk-map-controls .gk-btn--secondary { background: var(--gk-surface); box-shadow: 0 2px 8px color-mix(in srgb, var(--gk-shadow) 22%, transparent); }
+.gk .gk-map-controls__group { display: flex; flex-direction: column; border-radius: var(--gk-r); box-shadow: 0 2px 8px color-mix(in srgb, var(--gk-shadow) 22%, transparent); }
+.gk .gk-map-controls__group .gk-btn { box-shadow: none; }
+.gk .gk-map-controls__group .gk-btn:first-child { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.gk .gk-map-controls__group .gk-btn:last-child { border-top-left-radius: 0; border-top-right-radius: 0; border-top: 0; }
+.gk .gk-map-controls__view { position: relative; }
+.gk .gk-map-popover { position: absolute; right: calc(100% + var(--gk-2)); top: 0; display: flex; flex-direction: column; gap: var(--gk-3); width: 240px; padding: var(--gk-4); border-radius: var(--gk-r-lg); background: var(--gk-surface); border: 1px solid var(--gk-line); box-shadow: var(--gk-elevation); font-size: var(--gk-fs-sm); }
+.gk .gk-map-popover__range { display: flex; flex-direction: column; gap: var(--gk-1); font-weight: 600; }
+.gk .gk-map-popover__range > span { display: flex; justify-content: space-between; }
+.gk .gk-map-popover input[type='range'] { width: 100%; accent-color: var(--gk-accent); }
+.gk .gk-spin { animation: gk-spin 1s linear infinite; }
+@keyframes gk-spin { to { transform: rotate(360deg); } }
+/* An away day's distance, on its line. */
+.gk .gk-map-label.gk-map-label--away { border-color: var(--gk-accent); color: var(--gk-text); font-variant-numeric: tabular-nums; cursor: help; }
+/* A stated reach's label: dashed, like its ring, and never cut short (it says the area is as stated). */
+.gk .gk-map-label.gk-map-label--reach { max-width: none; border-style: dashed; border-color: var(--gk-accent); color: var(--gk-text-2); font-weight: 500; }

@@ -1,0 +1,49 @@
+.admission-dates {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: clamp(18px, 2vw, 24px);
+  border: 1px solid var(--fc-border, var(--color-border));
+  border-radius: 12px;
+  background: var(--fc-card-bg, var(--color-surface));
+  color: var(--fc-text-primary, var(--text-primary));
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.admission-dates h2 { font-size: 18px; line-height: 1.4; font-weight: 650; }
+.admission-dates h3 { font-weight: 650; }
+.admission-dates form, .admission-dates label { display: grid; gap: 8px; min-width: 0; }
+.admission-dates form { gap: 16px; }
+.admission-dates input, .admission-dates select, .admission-dates textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--fc-border, var(--color-border));
+  border-radius: 7px;
+  background: var(--fc-page-bg, var(--color-surface));
+  color: inherit;
+  font: inherit;
+}
+.admission-dates textarea { min-height: 88px; resize: vertical; }
+.admission-dates button {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--fc-border, var(--color-border));
+  border-radius: 7px;
+  background: var(--fc-card-bg, var(--color-surface));
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+}
+.admission-dates :is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--fc-accent, var(--color-accent));
+  outline-offset: 3px;
+}
+.admission-dates button:disabled { opacity: .55; cursor: default; }
+.admission-dates a { color: var(--fc-accent, var(--color-accent)); text-decoration: underline; }

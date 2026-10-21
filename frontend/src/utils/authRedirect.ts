@@ -10,49 +10,65 @@ const AUTH_FLOW_ROUTES = new Set([
     '/onboarding',
     '/dob',
     '/set-password',
+    '/start',
 ]);
+
+export const isAuthFlowRoute = (pathname: string) => AUTH_FLOW_ROUTES.has(pathname.toLowerCase());
 
 export interface AuthFlowState {
     nextPath?: string;
     email?: string;
     newAccount?: boolean;
     awaitingVerification?: boolean;
+    /** The town given at registration; the first run starts from it. */
+    town?: string;
 }
 
 export interface AuthDestinationUser {
-    role?: string;
     profileComplete?: boolean;
     onboardingRequired?: boolean;
     mustChangePassword?: boolean;
 }
 
-const hasSessionStorage = () => typeof window !== 'undefined' && Boolean(window.sessionStorage);
+let memoryFlow: AuthFlowState = {};
+let explicitSignOut = false;
 
 export const sanitizeAuthRedirect = (value?: string | null) => {
-    if (!value) return null;
+    if (typeof value !== 'string' || !value || value.length > 2000) return null;
 
     const trimmed = value.trim();
     if (!trimmed.startsWith('/')
         || trimmed.startsWith('//')
         || trimmed.includes('\\')
+        // Redirects containing control characters must be rejected.
+        // eslint-disable-next-line no-control-regex
         || /[\u0000-\u001f\u007f]/.test(trimmed)) {
         return null;
     }
 
-    const pathname = trimmed.split(/[?#]/, 1)[0].toLowerCase();
-    if (AUTH_FLOW_ROUTES.has(pathname)) return null;
-    return trimmed;
+    try {
+        const url = new URL(trimmed, 'https://grasskickz.invalid');
+        const decoded = decodeURIComponent(url.pathname);
+        // Normalize dot segments before excluding auth loops. Encoded path
+        // separators are ambiguous between the browser, router and server.
+        // eslint-disable-next-line no-control-regex
+        if (url.origin !== 'https://grasskickz.invalid' || decoded.startsWith('//') || /%2f|%5c/i.test(url.pathname) || /[\u0000-\u001f\u007f\\]/.test(decoded)) return null;
+        const pathname = decoded.toLowerCase().replace(/\/+$/, '') || '/';
+        if (AUTH_FLOW_ROUTES.has(pathname)) return null;
+        return `${url.pathname}${url.search}${url.hash}`;
+    } catch { return null; }
 };
 
 export const isSensitiveAuthDestination = (value?: string | null) => {
     const destination = sanitizeAuthRedirect(value);
     if (!destination) return false;
-    const lower = destination.toLowerCase();
-    return lower.startsWith('/consent') || /[?&]token=/.test(lower);
+    const url = new URL(destination, 'https://grasskickz.invalid');
+    const pathname = decodeURIComponent(url.pathname).toLowerCase();
+    return pathname.startsWith('/consent') || pathname.startsWith('/join-squad') || Boolean(url.hash)
+        || [...url.searchParams.keys()].some(key => key.toLowerCase() === 'token');
 };
 
 export const getAuthFlow = (): AuthFlowState => {
-    if (!hasSessionStorage()) return {};
     try {
         const parsed = JSON.parse(window.sessionStorage.getItem(AUTH_FLOW_STORAGE_KEY) ?? '{}') as AuthFlowState;
         return {
@@ -60,9 +76,10 @@ export const getAuthFlow = (): AuthFlowState => {
             email: typeof parsed.email === 'string' ? parsed.email : undefined,
             newAccount: parsed.newAccount === true,
             awaitingVerification: parsed.awaitingVerification === true,
+            town: typeof parsed.town === 'string' && parsed.town.trim() ? parsed.town.trim().slice(0, 80) : undefined,
         };
     } catch {
-        return {};
+        return memoryFlow;
     }
 };
 
@@ -71,14 +88,20 @@ export const rememberAuthFlow = (updates: AuthFlowState) => {
     if (updates.nextPath !== undefined) {
         next.nextPath = sanitizeAuthRedirect(updates.nextPath) ?? undefined;
     }
-    if (!hasSessionStorage()) return next;
-    window.sessionStorage.setItem(AUTH_FLOW_STORAGE_KEY, JSON.stringify(next));
+    memoryFlow = next;
+    try { window.sessionStorage.setItem(AUTH_FLOW_STORAGE_KEY, JSON.stringify(next)); } catch { /* Keep this navigation usable when storage is unavailable. */ }
     return next;
 };
 
 export const clearAuthFlow = () => {
-    if (hasSessionStorage()) window.sessionStorage.removeItem(AUTH_FLOW_STORAGE_KEY);
+    explicitSignOut = false;
+    memoryFlow = {};
+    try { window.sessionStorage.removeItem(AUTH_FLOW_STORAGE_KEY); } catch { /* Storage may be disabled. */ }
 };
+
+/** Protected routes may render once as sign-out retires the session. They must not save the old account's address. */
+export const beginExplicitSignOut = () => { clearAuthFlow(); explicitSignOut = true; };
+export const completeSignOutNavigation = () => { explicitSignOut = false; };
 
 export const rememberAuthDestination = (value?: string | null) => {
     const destination = sanitizeAuthRedirect(value);
@@ -93,7 +116,7 @@ const buildAuthPath = (route: '/login' | '/signup', destination?: string | null)
 };
 
 export const buildLoginRedirectPath = (pathname: string, search = '', hash = '') => (
-    buildAuthPath('/login', `${pathname}${search}${hash}`)
+    explicitSignOut ? '/login' : buildAuthPath('/login', `${pathname}${search}${hash}`)
 );
 
 export const buildLoginPath = (destination?: string | null) => buildAuthPath('/login', destination);
@@ -115,11 +138,12 @@ export const requiredAccountStep = (user?: AuthDestinationUser | null) => {
     return null;
 };
 
-export const firstUseDestination = (role?: string) => role === 'ORGANIZER' ? '/my-club' : '/clubs';
+/** A new account's first run: where they are, what they want to see, a few clubs to follow (`features/start`). */
+export const firstUseDestination = () => '/start';
 
 export const completedAuthDestination = (
-    user: AuthDestinationUser,
+    _user: AuthDestinationUser,
     requestedDestination?: string | null,
     firstUse = false,
 ) => sanitizeAuthRedirect(requestedDestination)
-    ?? (firstUse ? firstUseDestination(user.role) : '/home');
+    ?? (firstUse ? firstUseDestination() : '/home');

@@ -1,0 +1,15 @@
+/* Journeys in schedules and on fixtures. Design system parts are scoped under .gk; tokens only. */
+.gk .gk-journey-event__facts { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--gk-2) var(--gk-4); margin: 0; font-size: var(--gk-fs-sm); }
+.gk .gk-journey-event__facts dt { color: var(--gk-text-3); }
+.gk .gk-journey-event__facts dd { margin: 0; display: flex; align-items: flex-start; gap: 6px; }
+.gk .gk-journey-event__facts svg { width: 15px; height: 15px; margin-top: 2px; flex: none; color: var(--gk-text-3); }
+.gk .gk-journey-event__reply { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-raised); }
+.gk.gk-journey-launch { display: contents; }
+
+/* Challenge progress on the match page. */
+.challenge-journey-progress { display: flex; align-items: center; gap: 18px; padding: 22px 26px; margin: 20px 0 28px; border: 1px solid var(--border-default, var(--color-border)); border-radius: 18px; background: var(--surface-panel, var(--color-inset)); color: var(--text-primary, var(--color-text)); }
+.challenge-journey-progress > svg { flex-shrink: 0; color: var(--color-accent); }
+.challenge-journey-progress > div { flex: 1; min-width: 0; }
+.challenge-journey-progress h2 { margin: 0 0 5px; font-size: 1.15rem; }
+.challenge-journey-progress p { margin: 0; font-size: .9rem; line-height: 1.55; max-width: 850px; }
+@media (max-width: 640px) { .challenge-journey-progress { flex-wrap: wrap; align-items: flex-start; padding: 18px; } .challenge-journey-progress > .gk { margin-left: 40px; } }

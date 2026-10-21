@@ -1,0 +1,57 @@
+/* GrassKickZ design system — scales and base rules for everything under `.gk`.
+   Colours live in styles/theme.css (`.gk` palette); this file only composes them. */
+.gk {
+  /* Type: Inter for reading, Inter Display (optical size) for headings and numbers. */
+  --gk-font: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --gk-font-display: 'Inter Display', Inter, ui-sans-serif, system-ui, sans-serif;
+  --gk-fs-xs: 11px;   --gk-lh-xs: 15px;
+  --gk-fs-sm: 12px;   --gk-lh-sm: 16px;
+  --gk-fs-md: 13px;   --gk-lh-md: 18px;
+  --gk-fs-lg: 14px;   --gk-lh-lg: 20px;
+  --gk-fs-xl: 16px;   --gk-lh-xl: 22px;
+  --gk-fs-2xl: 18px;  --gk-lh-2xl: 24px;
+  --gk-fs-3xl: 22px;  --gk-lh-3xl: 28px;
+  --gk-fs-4xl: 28px;  --gk-lh-4xl: 34px;
+
+  /* Space: a 4px grid. */
+  --gk-1: 4px; --gk-2: 8px; --gk-3: 12px; --gk-4: 16px; --gk-5: 20px; --gk-6: 24px;
+  --gk-8: 32px; --gk-10: 40px; --gk-12: 48px; --gk-16: 64px;
+
+  /* Shape. Controls are tighter than panels so hierarchy reads at a glance. */
+  --gk-r-sm: 6px; --gk-r: 8px; --gk-r-lg: 12px; --gk-r-pill: 999px;
+
+  /* Frame: full width with a modest gutter, framed only on very large screens. */
+  --gk-gutter: clamp(16px, 0.75rem + 1.4vw, 40px);
+  --gk-frame-max: 1920px;
+  --gk-profile-max: 1440px;
+  --gk-header-h: 64px;
+
+  /* Derived colour roles. */
+  --gk-hover: color-mix(in srgb, var(--gk-text) 6%, transparent);
+  --gk-pressed: color-mix(in srgb, var(--gk-text) 10%, transparent);
+  --gk-accent-soft: color-mix(in srgb, var(--gk-accent) 14%, transparent);
+  --gk-warning-soft: color-mix(in srgb, var(--gk-warning) 15%, transparent);
+  --gk-danger-soft: color-mix(in srgb, var(--gk-danger) 15%, transparent);
+  --gk-info-soft: color-mix(in srgb, var(--gk-info) 15%, transparent);
+  --gk-violet-soft: color-mix(in srgb, var(--gk-violet) 15%, transparent);
+  --gk-focus: 0 0 0 2px var(--gk-bg), 0 0 0 4px var(--gk-accent);
+  --gk-elevation: 0 12px 32px color-mix(in srgb, var(--gk-shadow) 28%, transparent);
+  --gk-ease: cubic-bezier(.22, 1, .36, 1);
+
+  font-family: var(--gk-font);
+  font-size: var(--gk-fs-md);
+  line-height: var(--gk-lh-md);
+  color: var(--gk-text);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+.gk-page { background: var(--gk-bg); min-height: calc(100dvh - var(--app-active-header-height, 0px)); }
+.gk :where(h1, h2, h3, h4) { font-family: var(--gk-font-display); color: var(--gk-text); margin: 0; letter-spacing: -0.01em; }
+.gk :where(p) { margin: 0; }
+.gk :where(a) { color: inherit; text-decoration: none; }
+.gk :where(a, button, [role='tab'], input, select, textarea, summary):focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-num { font-family: var(--gk-font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.gk .gk-muted { color: var(--gk-text-2); }
+.gk .gk-faint { color: var(--gk-text-3); }
+.gk .gk-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .gk *, .gk *::before, .gk *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }

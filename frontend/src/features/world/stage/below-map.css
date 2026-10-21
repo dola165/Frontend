@@ -1,0 +1,19 @@
+/* The hand-over from the map to the page under it: room above, the list's name and count, its options at the end,
+   and a line under it all. Scoped under .gk; tokens only. */
+.gk .gk-world-below { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-4); margin: var(--gk-8) 0 var(--gk-4);
+  padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-world-below__title { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+.gk .gk-world-below__icon { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-world-below__icon svg { width: 18px; height: 18px; }
+.gk .gk-world-below h2 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--gk-font); font-size: var(--gk-fs-xl, 20px); font-weight: 650; letter-spacing: -0.015em; color: var(--gk-text); }
+.gk .gk-world-below__hint { white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); font-variant-numeric: tabular-nums; }
+.gk .gk-world-below__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+@media (max-width: 640px) {
+  .gk .gk-world-below { margin-top: var(--gk-5); }
+  .gk .gk-world-below h2 { font-size: var(--gk-fs-lg); }
+  .gk .gk-world-below__title { flex-wrap: wrap; row-gap: 2px; }
+}
+/* A parent's children beside "Training groups for Nino": faces, the chosen one pressed. */
+.gk .gk-world-childswitch { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.gk .gk-world-childswitch .gk-chip { gap: 6px; padding-left: 4px; }
+.gk .gk-world-childswitch__face { display: inline-flex; }

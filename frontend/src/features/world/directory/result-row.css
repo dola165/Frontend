@@ -1,0 +1,90 @@
+/* A search result as LinkedIn lists jobs and companies: crest, name and quiet lines, a status or price, one action and
+   the details button at the end. Each part keeps its own column; one that is absent takes no room. Scoped under .gk;
+   tokens only. */
+.gk .gk-result { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; padding: var(--gk-3) var(--gk-4);
+  transition: background-color .15s var(--gk-ease); }
+.gk .gk-result > .gk-result__lead { grid-column: 1; margin-right: var(--gk-3); }
+.gk .gk-result > .gk-result__main { grid-column: 2; }
+.gk .gk-result > .gk-result__aside { grid-column: 3; margin-left: var(--gk-3); }
+.gk .gk-result > .gk-result__action { grid-column: 4; margin-left: var(--gk-3); }
+.gk .gk-result > .gk-result__more { grid-column: 5; margin-left: var(--gk-2); }
+.gk .gk-result[data-clickable] { cursor: pointer; }
+.gk .gk-result[data-clickable]:hover, .gk .gk-result[data-highlighted] { background: var(--gk-hover); }
+.gk .gk-result[data-open], .gk .gk-result[aria-current] { background: color-mix(in srgb, var(--gk-accent) 9%, var(--gk-surface)); }
+.gk .gk-result__lead { align-self: start; display: grid; place-items: center; }
+.gk .gk-result__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-result__name { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .gk-result__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gk-text); font-size: var(--gk-fs-md); font-weight: 650; text-decoration: none; }
+.gk .gk-result__title:hover { text-decoration: underline; }
+.gk .gk-result__title:focus-visible { outline: none; border-radius: 4px; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-result__line { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-result__line[data-line='0'] { color: var(--gk-text-2); }
+.gk .gk-result__line svg { flex: none; width: 13px; height: 13px; }
+/* Where and how far stays one piece: on a phone it moves to the next line whole. */
+.gk .gk-result__where { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gk .gk-result__line .gk-avatar { flex: none; }
+.gk .gk-result__aside { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; white-space: nowrap; }
+.gk .gk-result__action { display: flex; align-items: center; gap: var(--gk-2); }
+
+/* The mark after a name: a soft tint of its kind; dashed when the person states it themselves. */
+.gk .gk-result__mark { --mark: var(--gk-text-2); flex: none; display: inline-flex; align-items: center; gap: 4px; min-height: 20px; padding: 0 7px; border: 1px solid color-mix(in srgb, var(--mark) 45%, transparent);
+  border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--mark) 10%, transparent); color: var(--mark); font-size: var(--gk-fs-xs); font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+.gk .gk-result__mark[data-stated] { border-style: dashed; }
+.gk .gk-result__mark[data-tone='accent'] { --mark: var(--gk-accent); }
+.gk .gk-result__mark[data-tone='info'] { --mark: var(--gk-info); }
+.gk .gk-result__mark[data-tone='violet'] { --mark: var(--gk-violet); }
+.gk .gk-result__mark[data-tone='warning'] { --mark: var(--gk-warning); }
+.gk .gk-result__mark svg { width: 12px; height: 12px; }
+
+/* A face ringed in green says the person is open to something (LinkedIn's "open to work"). */
+.gk .gk-result-face { position: relative; display: grid; border-radius: 50%; }
+.gk .gk-result-face[data-open] { box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+/* What someone is open to: the bright words of the row. */
+.gk .gk-result-open { display: inline-flex; align-items: center; gap: 4px; color: var(--gk-accent); font-weight: 600; }
+.gk .gk-result-error { color: var(--gk-danger); }
+/* The button that shows a result beside the list: quiet, a panel symbol; lit while the result is shown. */
+.gk .gk-result__more { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: var(--gk-r); background: none;
+  color: var(--gk-text-3); cursor: pointer; }
+.gk .gk-result__more:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-result__more[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); color: var(--gk-accent); }
+.gk .gk-result__more:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-result__more svg { width: 16px; height: 16px; }
+/* A date or a time where a crest would be: the day or hour on top, the month or weekday under it. */
+.gk .gk-result-date { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 44px; max-width: 72px; min-height: 40px; padding: 2px 4px; text-align: center; border: 1px solid var(--gk-line); border-radius: 8px;
+  background: var(--gk-surface); line-height: 1.1; }
+.gk .gk-result-date b { font-size: var(--gk-fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gk-text); }
+.gk .gk-result-date small { font-size: var(--gk-fs-xs); line-height: 1.15; color: var(--gk-text-3); overflow-wrap: anywhere; }
+/* A price: the amount bright, what it is for quiet under it. */
+.gk .gk-result-price { font-weight: 700; color: var(--gk-text); font-variant-numeric: tabular-nums; }
+.gk .gk-result-price + small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+/* A match's two sides where a crest would be: the away crest over the home one's corner; a side still to be found is an
+   empty dashed ring, one the viewer could fill their own crest, faint, in a dashed accent ring. */
+.gk .gk-result-pair { position: relative; display: block; width: 44px; height: 40px; }
+.gk .gk-result-pair > * { position: absolute; top: 0; left: 0; display: grid; place-items: center; }
+.gk .gk-result-pair > :last-child { top: auto; bottom: 0; left: auto; right: 0; }
+.gk .gk-result-pair .gk-avatar { box-shadow: 0 0 0 2px var(--gk-surface); }
+.gk .gk-result-pair__empty { width: 26px; height: 26px; border-radius: 50%; border: 1px dashed var(--gk-line-strong); background: var(--gk-surface); }
+.gk .gk-result-pair__ghost { width: 26px; height: 26px; border-radius: 50%; border: 1px dashed var(--gk-accent); background: var(--gk-surface); }
+.gk .gk-result-pair__ghost > .gk-avatar { opacity: .45; box-shadow: none; }
+/* My team: a small star after the names, as favourites show on score sites. */
+.gk .gk-result__star { flex: none; width: 13px; height: 13px; color: var(--gk-warning); fill: currentColor; }
+/* The score once it counts, at the row's end: the winner's goals bright. */
+.gk .gk-result-score { font-size: var(--gk-fs-lg); font-weight: 650; font-variant-numeric: tabular-nums; color: var(--gk-text-3); }
+.gk .gk-result-score b { font-weight: 650; }
+.gk .gk-result-score b[data-win] { color: var(--gk-text); }
+/* A short code at the row's end (an open match's age group). */
+.gk .gk-result-code { font-size: var(--gk-fs-sm); font-weight: 650; color: var(--gk-text-2); }
+/* An activity's symbol in a soft tint before a line (an event's kind), and the words beside it that shorten first. */
+.gk .gk-result__symbol { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: color-mix(in srgb, var(--symbol) 14%, transparent); color: var(--symbol); }
+.gk .gk-result__symbol svg { width: 13px; height: 13px; }
+.gk .gk-result__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 640px) {
+  .gk .gk-result { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: var(--gk-2); }
+  .gk .gk-result > .gk-result__more { grid-column: 3; grid-row: 1; align-self: start; }
+  .gk .gk-result > .gk-result__aside { grid-column: 2; grid-row: 2; margin-left: 0; align-items: flex-start; text-align: left; }
+  .gk .gk-result > .gk-result__action { grid-column: 2 / -1; grid-row: 3; margin-left: 0; }
+  .gk .gk-result__line { flex-wrap: wrap; row-gap: 0; }
+  .gk .gk-result__title { white-space: normal; overflow-wrap: anywhere; }
+}
+@media (pointer: coarse) { .gk .gk-result__title { display: inline-flex; align-items: center; min-height: 44px; } .gk .gk-result__more { width: 44px; height: 44px; } }

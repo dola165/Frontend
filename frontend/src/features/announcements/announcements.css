@@ -1,0 +1,45 @@
+/* Announcements: the coach's composer, read receipts and pinned state. Scoped under .gk; tokens only. */
+
+/* Composer on the squad page */
+.gk.gk-announce-compose { margin: 0 0 var(--gk-6); }
+.gk .gk-announce-compose__form { display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .gk-announce-compose__head { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-announce-compose__title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; }
+.gk .gk-announce-compose label.gk-field__label { display: block; }
+.gk .gk-announce-compose__date { max-width: 220px; }
+.gk .gk-announce-compose__switch { display: flex; flex-direction: row; align-items: flex-start; gap: var(--gk-3); min-height: 44px; cursor: pointer; font-size: var(--gk-fs-md); font-weight: 400; }
+.gk .gk-announce-compose__switch > span { display: flex; flex-direction: column; gap: 2px; font-size: var(--gk-fs-md); }
+.gk .gk-announce-compose__switch strong { font-weight: 600; }
+.gk .gk-announce-compose__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--gk-2); }
+.gk .gk-announce-compose__posted { margin-bottom: var(--gk-3); }
+/* Closed: one quiet line that opens the form. */
+/* Reads as a button, not a heading: green tint, solid green edge, the symbol on a green tile. */
+.gk .gk-announce-compose__open { display: flex; align-items: center; justify-content: flex-start; gap: var(--gk-3); width: 100%; min-height: 64px; padding: var(--gk-3) var(--gk-4); border: 1px solid color-mix(in srgb, var(--gk-accent) 45%, transparent); border-radius: var(--gk-r-lg); background: var(--gk-accent-soft); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-announce-compose__open:hover { border-color: var(--gk-accent); background: color-mix(in srgb, var(--gk-accent) 18%, var(--gk-surface)); }
+.gk .gk-announce-compose__open > svg { flex: none; width: 36px; height: 36px; padding: 8px; border-radius: 10px; background: var(--gk-accent); color: var(--color-on-accent); }
+.gk .gk-announce-compose__open > span { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-announce-compose__open strong { font-weight: 600; }
+.gk .gk-announce-compose__open span span { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+
+/* Read receipts */
+.gk.gk-receipts { display: flex; flex-direction: column; gap: var(--gk-2); margin-top: var(--gk-3); padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk.gk-receipts--compact { margin-top: 2px; padding-top: 0; border-top: 0; }
+.gk.gk-receipts--compact .gk-receipts__line { justify-content: flex-start; gap: var(--gk-3); }
+.gk.gk-receipts--compact .gk-receipts__bar { flex: 1 1 80px; max-width: 160px; }
+.gk.gk-receipts--compact .gk-receipts__line .gk-btn { margin-left: auto; }
+.gk .gk-receipts__line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .gk-receipts__summary { color: var(--gk-text-2); }
+.gk .gk-receipts__summary strong { color: var(--gk-text); font-weight: 700; }
+.gk .gk-receipts__line .gk-btn { min-height: 36px; }
+.gk .gk-receipts__bar { display: block; height: 4px; overflow: hidden; border-radius: var(--gk-r-pill); background: var(--gk-line); }
+.gk .gk-receipts__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--gk-accent); }
+.gk .gk-receipts__names { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--gk-3) var(--gk-6); padding-top: var(--gk-2); }
+.gk .gk-receipts__group { margin-bottom: var(--gk-1); color: var(--gk-text-3); font-weight: 600; }
+.gk .gk-receipts__names ul { list-style: none; margin: 0; padding: 0; }
+.gk .gk-receipts__names li { display: flex; justify-content: space-between; gap: var(--gk-3); padding: 6px 0; border-bottom: 1px solid var(--gk-line); color: var(--gk-text); }
+
+/* Pinned state on an announcement */
+.gk .gk-pin { display: inline-flex; align-items: center; gap: 6px; font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); font-weight: 500; }
+.gk .gk-pin svg { width: 14px; height: 14px; color: var(--gk-accent); }
+.gk .gk-pin[data-expired] svg { color: var(--gk-text-3); }
+

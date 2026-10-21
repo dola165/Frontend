@@ -1,0 +1,23 @@
+/* A club tool beside a side sheet: it slides in from the left and fills the page up to the sheet. Scoped under .gk; tokens only. */
+.gk .gk-drawer {
+  /* A strip of backdrop stays between the drawer and the sheet, so both read as their own surface and a click there closes. */
+  position: fixed; inset: 0 calc(var(--gk-sheet-width, min(520px, 100vw)) + 20px) 0 0; z-index: 1;
+  display: flex; flex-direction: column; overflow: hidden; outline: none;
+  background: var(--gk-bg); border-right: 1px solid var(--gk-line); box-shadow: var(--gk-elevation);
+  animation: gk-drawer-in .36s cubic-bezier(.32, .72, 0, 1) both;
+}
+.gk .gk-drawer[data-closing] { animation: gk-drawer-out .22s cubic-bezier(.4, 0, 1, 1) both; pointer-events: none; }
+.gk .gk-drawer__bar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); min-height: 52px; padding: var(--gk-1) var(--gk-3) var(--gk-1) var(--gk-gutter); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-drawer__context { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-drawer__context strong { color: var(--gk-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-drawer__body { flex: 1; min-height: 0; overflow-y: auto; padding-block: var(--gk-4) var(--gk-8); animation: gk-drawer-content .26s var(--gk-ease) both; }
+@keyframes gk-drawer-in { from { transform: translateX(-100%); } }
+@keyframes gk-drawer-out { to { transform: translateX(-100%); } }
+/* Another tool opened while the drawer is out: its content settles in from the same side. */
+@keyframes gk-drawer-content { from { opacity: 0; transform: translateX(-12px); } }
+@media (max-width: 640px) {
+  .gk .gk-drawer { right: 0; z-index: 2; border-right: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gk .gk-drawer, .gk .gk-drawer__body { animation-duration: 1ms; }
+}

@@ -1,0 +1,255 @@
+/* Editing a page in place: the edit bar, ghost boxes, inline text, box frames, the tray. Scoped under .gk; tokens only. */
+
+/* The bar under the header: the draft strip, the setup ring, "Saved", Go live, Edit page. One calm line. */
+.gk .gk-editbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); min-height: 44px; margin: var(--gk-2) 0 var(--gk-3); padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-editbar[data-editing] { border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); box-shadow: inset 0 0 0 1px var(--gk-accent-soft); }
+.gk .gk-editbar__draft { display: inline-flex; align-items: center; gap: var(--gk-2); font-weight: 600; }
+.gk .gk-editbar__claim { display: inline-flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-2); }
+.gk .gk-editbar__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); flex-shrink: 0; }
+.gk .gk-editbar__dot--live { background: var(--gk-accent); }
+.gk .gk-editbar__saved { min-width: 48px; color: var(--gk-text-2); }
+.gk .gk-editbar__saved[data-status='failed'] { color: var(--gk-danger); }
+.gk .gk-editbar__actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-2); min-width: 0; max-width: 100%; margin-left: auto; }
+.gk .gk-editbar__missing { min-width: 0; color: var(--gk-text-3); }
+@media (max-width: 640px) { .gk .gk-editbar__missing { flex-basis: 100%; text-align: right; } }
+
+/* The setup ring: a small circle filling up, "4 of 7", and the next thing to do as a button. */
+.gk .gk-ring { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; padding: 0 var(--gk-2) 0 0; border: 0; border-radius: var(--gk-r-pill); background: none; color: inherit; font: inherit; cursor: pointer; }
+.gk .gk-ring:hover .gk-ring__next { text-decoration: underline; }
+.gk .gk-ring svg { width: 28px; height: 28px; transform: rotate(-90deg); }
+.gk .gk-ring__track { fill: none; stroke: var(--gk-line); stroke-width: 3; }
+.gk .gk-ring__fill { fill: none; stroke: var(--gk-accent); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset .4s var(--gk-ease); }
+.gk .gk-ring__count { font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-ring__next { color: var(--gk-text-2); }
+.gk .gk-ring__next::before { content: '·'; margin: 0 var(--gk-1); }
+
+/* A ghost box: a soft dashed outline, a picture and a few words; it is both the explanation and the form. */
+.gk .gk-ghost { border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-surface) 60%, transparent); transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease); }
+.gk .gk-ghost[data-next] { border-color: var(--gk-accent); box-shadow: 0 0 0 2px var(--gk-accent-soft); }
+.gk .gk-ghost__open { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 56px; padding: var(--gk-3); border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-ghost__open:hover { background: var(--gk-hover); }
+.gk .gk-ghost__icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--gk-r); background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-ghost__icon svg { width: 18px; height: 18px; }
+.gk .gk-ghost__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gk .gk-ghost__words { font-weight: 650; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+.gk .gk-ghost__hint { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-ghost__plus { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--gk-line-strong); color: var(--gk-text-2); }
+.gk .gk-ghost__plus svg { width: 14px; height: 14px; }
+
+/* Text edited in place. */
+.gk .gk-inline { display: inline-block; max-width: 100%; min-width: 0; vertical-align: baseline; }
+.gk p.gk-inline { display: block; }
+.gk .gk-inline__open { display: inline-block; max-width: calc(100% + 8px); margin: 0 -4px; padding: 0 4px; border: 0; border-radius: var(--gk-r-sm); background: none; color: inherit; font: inherit; text-align: inherit; cursor: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.gk p.gk-inline .gk-inline__open { white-space: normal; overflow: visible; }
+.gk .gk-inline__open:hover { background: var(--gk-hover); box-shadow: 0 0 0 1px var(--gk-line-strong); }
+.gk .gk-inline--empty .gk-inline__open { color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-inline__field { width: 100%; margin: 0 -4px; padding: 0 4px; border: 0; border-radius: var(--gk-r-sm); background: var(--gk-sunken); color: inherit; font: inherit; box-shadow: 0 0 0 2px var(--gk-accent); outline: none; }
+.gk .gk-inline__field--area { resize: vertical; min-height: 3.2em; line-height: inherit; }
+
+/* A box in edit mode: its edit pencil at the head, Move up / Move down and Hide under Rearrange. */
+.gk .gk-boxframe { position: relative; }
+.gk .gk-boxframe__tools { position: absolute; top: var(--gk-2); right: var(--gk-2); display: inline-flex; gap: 2px; }
+.gk .gk-boxframe[data-rearrange] { outline: 1px dashed var(--gk-line-strong); outline-offset: -1px; border-radius: var(--gk-r-lg); }
+.gk .gk-boxframe[data-dragging] { opacity: .55; }
+.gk .gk-boxframe__handle { cursor: grab; touch-action: none; }
+.gk .gk-boxframe__handle:active { cursor: grabbing; }
+.gk .gk-boxframe__drop { height: 8px; margin: 2px 0; border-radius: var(--gk-r-pill); background: transparent; transition: background-color .15s var(--gk-ease); }
+.gk .gk-boxframe__drop[data-over] { background: var(--gk-accent); }
+
+/* "+ Add a box": a tray of the boxes not on the page yet. */
+.gk .gk-tray { display: flex; flex-wrap: wrap; gap: var(--gk-2); padding: var(--gk-2) 0; }
+.gk .gk-tray__item { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 var(--gk-3) 0 var(--gk-2); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: grab; }
+.gk .gk-tray__item:hover { color: var(--gk-text); border-color: var(--gk-accent); }
+.gk .gk-tray__item svg { width: 14px; height: 14px; }
+.gk .gk-tray__label { width: 100%; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+/* The split panel: the choices on one side, the live result on the other; one column on a phone. */
+.gk .gk-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
+.gk .gk-split__preview { position: sticky; top: var(--gk-2); }
+@media (max-width: 760px) { .gk .gk-split { grid-template-columns: minmax(0, 1fr); } .gk .gk-split__preview { position: static; } }
+.gk .gk-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.gk .gk-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: var(--swatch); cursor: pointer; }
+.gk .gk-swatch[aria-pressed='true'] { border-color: var(--gk-text); box-shadow: 0 0 0 2px var(--gk-bg); }
+.gk .gk-shapes { display: flex; gap: var(--gk-2); }
+.gk .gk-shape { width: 44px; height: 44px; padding: 6px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-sunken); cursor: pointer; }
+.gk .gk-shape[aria-pressed='true'] { border-color: var(--gk-accent); box-shadow: 0 0 0 2px var(--gk-accent-soft); }
+.gk .gk-shape svg { width: 100%; height: 100%; }
+.gk .gk-crest-preview { display: flex; flex-direction: column; align-items: center; gap: var(--gk-3); padding: var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-sunken); }
+.gk .gk-crest-preview img { width: 112px; height: 112px; }
+.gk .gk-crest-preview__name { font-weight: 650; font-size: var(--gk-fs-xl); }
+.gk .gk-covers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gk-2); }
+.gk .gk-cover { aspect-ratio: 3 / 1; padding: 0; border: 2px solid transparent; border-radius: var(--gk-r); background: var(--cover) center / cover no-repeat; cursor: pointer; }
+.gk .gk-cover[aria-pressed='true'] { border-color: var(--gk-accent); }
+
+/* Inline editors inside a box. */
+.gk .gk-boxedit { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-boxedit__row { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-boxedit__row .gk-input { flex: 1; min-width: 0; }
+.gk .gk-boxedit__foot { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-fee { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-fee__values { display: flex; align-items: center; justify-content: space-between; font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-fee input[type='range'] { width: 100%; accent-color: var(--gk-accent); }
+.gk .gk-tap { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 34px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-sunken); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .gk-tap:hover { border-color: var(--gk-accent); }
+.gk .gk-tap svg { width: 14px; height: 14px; color: var(--gk-accent); }
+
+/* The age-group builder: one row per age, Boys / Girls / Mixed as chips; the squads as small cards. */
+.gk .gk-fee__some { gap: var(--gk-2); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-split__choices { min-width: 0; }
+
+/* The teams pop-up: a row per birth year with Boys · Girls · Both; each team a compact identity row. */
+.gk .gk-yearrows { display: grid; gap: 2px; }
+.gk .gk-yearrow { display: grid; grid-template-columns: 64px repeat(3, minmax(0, 1fr)); align-items: center; gap: 6px; }
+.gk .gk-yearrow .gk-chip { min-height: 32px; justify-content: center; }
+.gk .gk-yearrow__year { display: flex; align-items: baseline; gap: 4px; font-weight: 600; }
+.gk .gk-yearrow__year small { font-size: 10px; color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-squadrow { display: grid; gap: 6px; padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+
+/* The grounds pop-up: a wide map across the top, then the list beside another place and the chosen grounds. */
+.gk .gk-dialog--lg:has(.gk-grounds) { max-width: 980px; }
+.gk .gk-grounds { display: grid; gap: var(--gk-4); }
+.gk .gk-grounds .gk-grounds-map { height: clamp(220px, calc(88dvh - 490px), 380px); border: 0; box-shadow: 0 0 0 1px var(--gk-line), var(--gk-elevation); }
+.gk .gk-grounds[data-placing] .gk-grounds-map { box-shadow: 0 0 0 2px var(--gk-accent), 0 0 32px 4px color-mix(in srgb, var(--gk-accent) 30%, transparent), var(--gk-elevation); }
+.gk .gk-grounds[data-placing] .gk-grounds-map canvas { cursor: crosshair; }
+.gk .gk-grounds__cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
+@media (max-width: 760px) { .gk .gk-grounds__cols { grid-template-columns: minmax(0, 1fr); } .gk .gk-grounds .gk-grounds-map { height: 220px; } }
+/* The map in "Where do you play?": pitches as round pins, the chosen ones lit, a dropped pin in amber. */
+.gk .gk-grounds-map { height: 280px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); overflow: hidden; background: var(--gk-sunken); }
+.gk .gk-grounds-pin { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 2px solid var(--gk-accent); border-radius: 50%; background: var(--gk-surface); box-shadow: 0 2px 10px color-mix(in srgb, var(--gk-shadow) 40%, transparent); color: var(--gk-accent); cursor: pointer; box-shadow: 0 2px 6px color-mix(in srgb, var(--gk-shadow) 30%, transparent); }
+.gk .gk-grounds-pin svg { width: 14px; height: 14px; }
+.gk .gk-grounds-pin[data-chosen] { background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-grounds-pin--pending { width: 36px; height: 36px; background: var(--gk-accent); color: var(--gk-on-accent); cursor: grab; box-shadow: 0 0 0 6px color-mix(in srgb, var(--gk-accent) 30%, transparent), 0 4px 14px color-mix(in srgb, var(--gk-shadow) 45%, transparent); }
+.gk .gk-grounds-pin--pending svg { width: 18px; height: 18px; }
+.gk .gk-grounds-pin--dropped { border-color: var(--gk-warning); color: var(--gk-warning); }
+
+/* Rearrange mode: a tools row over each box, the drop line between boxes, the chip that flies. */
+.gk .gk-boxframe[data-rearrange] { padding-top: 34px; margin-bottom: var(--gk-2); }
+.gk .gk-boxframe[data-rearrange] .gk-boxframe__tools { top: 2px; right: 4px; background: var(--gk-surface); border-radius: var(--gk-r-pill); padding: 2px; }
+.gk .gk-boxframe__tools[data-dragging] { opacity: .5; }
+.gk .gk-tray__item[data-dragging] { opacity: .4; }
+.gk .gk-tray__item--flying { background: var(--gk-surface); border-style: solid; border-color: var(--gk-accent); color: var(--gk-text); box-shadow: var(--gk-elevation); cursor: grabbing; }
+
+/* Guidance: what is needed and what can wait, the next thing breathing, and a glow on whatever just changed. */
+.gk .gk-ghost__need { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font-size: var(--gk-fs-xs); line-height: 1.4; font-weight: 600; color: var(--gk-text-3); }
+.gk .gk-ghost__need::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.gk .gk-ghost[data-need='live'] .gk-ghost__need { color: var(--gk-accent); }
+.gk .gk-ghost[data-need='live'] .gk-ghost__need::before { animation: gk-need-dot 1.8s var(--gk-ease) infinite; }
+.gk .gk-ghost[data-next] { animation: gk-breathe 2.6s var(--gk-ease) infinite; }
+.gk .gk-ghost__open:hover .gk-ghost__icon { transform: scale(1.08) rotate(-4deg); }
+.gk .gk-ghost__icon { transition: transform .2s var(--gk-ease); }
+.gk .gk-ghost__open:hover .gk-ghost__plus { border-color: var(--gk-accent); color: var(--gk-accent); transform: rotate(90deg); }
+.gk .gk-ghost__plus { transition: transform .25s var(--gk-ease), color .15s, border-color .15s; }
+.gk .gk-boxframe[data-flash] { animation: gk-flash 1.4s var(--gk-ease); border-radius: var(--gk-r-lg); }
+.gk .gk-ring__count { display: inline-block; animation: gk-bump .45s var(--gk-ease); }
+.gk .gk-editbar [data-coach='live'][data-ready] { animation: gk-breathe 2.6s var(--gk-ease) 2; }
+@keyframes gk-breathe { 0%, 100% { box-shadow: 0 0 0 2px var(--gk-accent-soft); } 50% { box-shadow: 0 0 0 6px var(--gk-accent-soft); } }
+@keyframes gk-need-dot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: .55; } }
+@keyframes gk-flash { 0% { box-shadow: 0 0 0 0 var(--gk-accent); } 30% { box-shadow: 0 0 0 4px var(--gk-accent-soft); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes gk-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); color: var(--gk-accent); } 100% { transform: scale(1); } }
+
+/* The walkthrough bubble: one at a time, under its target, an arrow pointing up at it. */
+@media (prefers-reduced-motion: reduce) { .gk .gk-ghost[data-next], .gk .gk-ring__count, .gk .gk-boxframe[data-flash], .gk .gk-ghost[data-need='live'] .gk-ghost__need::before, .gk .gk-editbar [data-coach='live'][data-ready] { animation: none; } }
+
+/* Three levels on a ghost: needed (green), recommended (quiet), advanced (quieter still). The doors under a box. */
+.gk .gk-ghost[data-need='advanced'] .gk-ghost__need { color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-ghost[data-need='advanced'] { border-style: dotted; }
+.gk .gk-box__doors { padding: var(--gk-2) var(--gk-3) var(--gk-3); }
+
+/* Rearrange: the whole box is the handle; the gap nearest the flying box opens to its height, so the others slide apart. */
+.gk .gk-boxframe__drag { cursor: grab; border-radius: var(--gk-r-lg); transition: opacity .15s var(--gk-ease); }
+.gk .gk-boxframe__drag:active { cursor: grabbing; }
+.gk .gk-boxframe__drag[data-dragging] { opacity: .35; }
+.gk .gk-rearrange .gk-boxframe__drop { transition: height .2s var(--gk-ease), background-color .15s var(--gk-ease), margin .2s var(--gk-ease); }
+.gk .gk-rearrange[data-flying] .gk-boxframe__drop[data-over] { height: var(--gk-drag-h, 72px); margin: var(--gk-2) 0; border: 1px dashed var(--gk-accent); background: var(--gk-accent-soft); }
+@media (prefers-reduced-motion: reduce) { .gk .gk-rearrange .gk-boxframe__drop { transition: none; } }
+
+/* "Say what you are": the empty about line is a call, not a placeholder. */
+.gk .gk-inline--empty .gk-inline__open { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; margin: 2px 0; border: 1px dashed var(--gk-accent); border-radius: var(--gk-r-pill); color: var(--gk-accent); font-weight: 600; white-space: normal; animation: gk-breathe 2.6s var(--gk-ease) infinite; }
+.gk .gk-inline--empty .gk-inline__open::before { content: '+'; font-weight: 700; }
+.gk .gk-inline--empty .gk-inline__open:hover { background: var(--gk-accent-soft); box-shadow: none; }
+
+
+/* The steps behind the ring: a list on hover or press, ticked when done, the next one lit. */
+.gk .gk-steps { position: relative; display: inline-flex; }
+.gk .gk-steps__list { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; min-width: 280px; max-width: 340px; margin: 0; padding: var(--gk-2); list-style: none; border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: var(--gk-elevation); animation: gk-coach-in .18s var(--gk-ease); }
+.gk .gk-steps__item { display: flex; align-items: center; gap: var(--gk-2); width: 100%; min-height: 40px; padding: 6px var(--gk-2); border: 0; border-radius: var(--gk-r); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-steps__item:hover, .gk .gk-steps__item:focus-visible { background: var(--gk-hover); outline: none; }
+.gk .gk-steps__item[data-next] { background: var(--gk-accent-soft); }
+.gk .gk-steps__mark { display: grid; place-items: center; width: 20px; height: 20px; flex-shrink: 0; border: 1px solid var(--gk-line-strong); border-radius: 50%; color: var(--gk-on-accent); }
+.gk .gk-steps__item[data-done] .gk-steps__mark { background: var(--gk-accent); border-color: var(--gk-accent); }
+.gk .gk-steps__mark svg { width: 12px; height: 12px; }
+.gk .gk-steps__text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.gk .gk-steps__words { font-weight: 600; }
+.gk .gk-steps__item[data-done] .gk-steps__words { color: var(--gk-text-2); text-decoration: line-through; text-decoration-color: var(--gk-line-strong); }
+.gk .gk-steps__why { color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: 1.4; }
+.gk .gk-steps__next { padding: 1px 8px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); font-size: var(--gk-fs-xs); font-weight: 650; }
+.gk .gk-steps__foot { padding: 6px var(--gk-2) 2px; color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+@media (max-width: 760px) { .gk .gk-steps__list { position: fixed; left: 12px; right: 12px; top: auto; max-width: none; } }
+
+/* The set-up card: the main thing on a page still being made. */
+.gk .gk-setup { margin: 0 0 var(--gk-4); border: 1px solid color-mix(in srgb, var(--gk-accent) 45%, var(--gk-line)); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: 0 0 0 3px var(--gk-accent-soft); transition: box-shadow .3s var(--gk-ease); }
+.gk .gk-setup[data-glow] { animation: gk-setup-glow 1.8s var(--gk-ease); }
+.gk .gk-setup__head { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-setup__head .gk-ring__svg { transform: rotate(-90deg); flex-shrink: 0; }
+.gk .gk-setup__words { flex: 1; min-width: 0; }
+.gk .gk-setup__title { margin: 0; font-size: var(--gk-fs-xl); line-height: 1.2; font-weight: 750; letter-spacing: -.01em; }
+.gk .gk-setup__count { margin: 2px 0 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-setup__toggle { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--gk-line); border-radius: 50%; background: none; color: var(--gk-text-2); cursor: pointer; }
+.gk .gk-setup__toggle svg { width: 16px; height: 16px; }
+.gk .gk-setup__list { margin: 0; padding: var(--gk-2); list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-setup__step { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 56px; padding: var(--gk-2) var(--gk-3); border: 1px solid transparent; border-radius: var(--gk-r); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .gk-setup__step:hover, .gk .gk-setup__step:focus-visible { background: var(--gk-hover); outline: none; }
+.gk .gk-setup__step[data-next] { background: var(--gk-accent-soft); border-color: var(--gk-accent); animation: gk-breathe 2.6s var(--gk-ease) infinite; }
+.gk .gk-setup__icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--gk-r); background: var(--gk-sunken); color: var(--gk-text-2); }
+.gk .gk-setup__step[data-next] .gk-setup__icon { background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-setup__step[data-done] .gk-setup__icon { color: var(--gk-accent); }
+.gk .gk-setup__icon svg { width: 20px; height: 20px; }
+.gk .gk-setup__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gk .gk-setup__name { font-weight: 700; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+.gk .gk-setup__step[data-done] .gk-setup__name { color: var(--gk-text-2); text-decoration: line-through; text-decoration-color: var(--gk-line-strong); }
+.gk .gk-setup__why { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-setup__state { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk .gk-setup__state svg { width: 16px; height: 16px; }
+.gk .gk-setup__state--done { color: var(--gk-accent); }
+.gk .gk-setup__state--next { padding: 2px 4px 2px 10px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); }
+@keyframes gk-setup-glow { 0% { box-shadow: 0 0 0 3px var(--gk-accent-soft); } 30% { box-shadow: 0 0 0 6px var(--gk-accent), 0 0 32px var(--gk-accent-soft); } 100% { box-shadow: 0 0 0 3px var(--gk-accent-soft); } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-setup[data-glow], .gk .gk-setup__step[data-next] { animation: none; } }
+
+/* Rearrange with the sortable column: the flying box lifts, the others slide. */
+.gk .gk-sortcol { display: flex; flex-direction: column; }
+.gk .gk-boxframe__drag[data-dragging] { position: relative; z-index: 5; opacity: .92; box-shadow: var(--gk-elevation), 0 0 0 2px var(--gk-accent); background: var(--gk-surface); }
+
+/* The example's richer look: a gradient edge, depth, a line that asks. */
+/* In Rearrange mode a box is one thing to grab: its links, buttons and text do not take the pointer (the tools row does). */
+.gk .gk-boxframe__drag > :not(.gk-boxframe__tools) { pointer-events: none; user-select: none; }
+
+/* The steps live in the bar: the list drops down from "Set-up steps", a little transparent; the current step sits in the middle. */
+.gk .gk-editbar { position: relative; }
+.gk .gk-editbar__current { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 10px 0 12px; border: 1px solid var(--gk-accent); border-radius: var(--gk-r-pill); background: var(--gk-accent-soft); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-md); cursor: pointer; animation: gk-breathe 2.6s var(--gk-ease) infinite; }
+.gk .gk-editbar__current:hover { background: color-mix(in srgb, var(--gk-accent) 25%, var(--gk-surface)); }
+.gk .gk-editbar__current svg { width: 16px; height: 16px; color: var(--gk-accent); }
+.gk .gk-editbar__current-label { color: var(--gk-text-2); font-size: var(--gk-fs-xs); text-transform: uppercase; letter-spacing: .04em; }
+.gk .gk-editbar__steps { position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; width: min(380px, calc(100vw - 32px)); }
+.gk .gk-editbar__steps .gk-setup { margin: 0; background: color-mix(in srgb, var(--gk-surface) 94%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--gk-elevation), 0 0 0 3px var(--gk-accent-soft); animation: gk-coach-in .18s var(--gk-ease); }
+.gk .gk-editbar__steps .gk-setup__head { gap: var(--gk-2); padding: var(--gk-3) var(--gk-3) var(--gk-2); }
+.gk .gk-editbar__steps .gk-setup__title { font-size: var(--gk-fs-lg); }
+.gk .gk-editbar__steps .gk-setup__count { flex: 1; margin: 0 0 0 var(--gk-2); }
+.gk .gk-editbar__steps .gk-setup__toggle { width: 30px; height: 30px; }
+.gk .gk-editbar__steps .gk-setup__step { min-height: 50px; }
+.gk .gk-editbar__steps .gk-setup__icon { width: 34px; height: 34px; }
+.gk .gk-editbar__steps .gk-setup__name { font-size: var(--gk-fs-md); }
+@media (max-width: 760px) { .gk .gk-editbar__steps { position: fixed; top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 60vh; overflow: auto; } .gk .gk-editbar__current-label { display: none; } }
+/* While the list is open the bar stacks above the columns and the sticky tab strip. */
+.gk .gk-editbar:has(.gk-editbar__steps) { z-index: 50; }
+.gk .gk-editbar__steps .gk-setup { background: var(--gk-surface); opacity: .96; }
+/* The list drops from the current step, centred under it, more transparent; a box a step opened lights up. */
+.gk .gk-editbar__current-wrap { position: relative; display: inline-flex; }
+.gk .gk-editbar__steps { left: 50%; transform: translateX(-50%); }
+.gk .gk-editbar__steps .gk-setup { background: color-mix(in srgb, var(--gk-surface) 78%, transparent); opacity: 1; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.gk .gk-editbar:has(.gk-editbar__steps) { z-index: 50; }
+.gk .gk-boxframe[data-opened] { animation: gk-flash 1.6s var(--gk-ease); border-radius: var(--gk-r-lg); }
+@media (max-width: 760px) { .gk .gk-editbar__steps { transform: none; left: 12px; } }
+.gk .gk-editbar__delete { color: var(--gk-text-2); }
+.gk .gk-editbar__delete:hover { color: var(--gk-danger); }
+
+.gk .gk-inline__error { display: block; margin-top: 4px; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-danger); font-weight: 400; }

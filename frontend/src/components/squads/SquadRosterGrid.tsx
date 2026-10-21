@@ -1,185 +1,171 @@
-import { Check, GripVertical, Loader2, X } from 'lucide-react';
+import { useState } from 'react';
+import { CreditCard, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { type SquadRosterGroup, type SquadRosterPlayer } from './SquadRosterTable';
-import { TrialistBadge } from '../workspace/TrialistBadge';
-import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
+import {
+    RosterAvatar,
+    RosterProfileLink,
+    RosterManagementBadges,
+    RosterPlayerEditor,
+    type UpdateRosterPlayer,
+} from './squadRosterPresentation';
+import { squadLabel } from './squadLabels';
+import './squad-roster.css';
 
 interface SquadRosterGridProps {
     groups: SquadRosterGroup[];
     editable?: boolean;
+    /** Private account/trial context is shown only in a management view. */
+    showManagementDetails?: boolean;
     onRemovePlayer?: (userId: number, playerName: string) => void;
-    onUpdatePlayer?: (userId: number, jerseyNumber: number | null, squadRole: string | null) => void;
+    onUpdatePlayer?: UpdateRosterPlayer;
     removingPlayerId?: number | null;
-    /** Roster ids (users.id) that have a Player Card — shows the edit-card pencil. */
     cardUserIds?: Set<number> | null;
     onEditCard?: (userId: number) => void;
+    onOpenPlayer?: (player: SquadRosterPlayer) => void;
 }
 
 const PlayerCard = ({
     player,
     editable,
+    showManagementDetails,
     onRemovePlayer,
     onUpdatePlayer,
     isRemoving,
     isCard,
-    onEditCard
+    onEditCard,
+    onOpenPlayer,
 }: {
     player: SquadRosterPlayer;
     editable: boolean;
+    showManagementDetails: boolean;
     onRemovePlayer?: (userId: number, playerName: string) => void;
-    onUpdatePlayer?: (userId: number, jerseyNumber: number | null, squadRole: string | null) => void;
+    onUpdatePlayer?: UpdateRosterPlayer;
     isRemoving: boolean;
     isCard: boolean;
     onEditCard?: (userId: number) => void;
+    onOpenPlayer?: (player: SquadRosterPlayer) => void;
 }) => {
-    const initial = (player.name || '?').charAt(0).toUpperCase();
-
+    const { t } = useTranslation();
+    const [editing, setEditing] = useState(false);
     return (
-        <div className="rounded-[2px] border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] overflow-hidden transition-colors hover:border-[#ffffff1a]">
-            {/* image area */}
-            <div className="relative h-24 w-full bg-[rgba(255,255,255,0.03)]">
-                <div className="flex h-full w-full items-center justify-center overflow-hidden">
-                    {resolveMediaUrl(player.photoUrl) ? (
-                        <img
-                            src={resolveMediaUrl(player.photoUrl)}
-                            alt={player.name}
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        <span className="text-3xl font-semibold text-[var(--fc-text-muted)]">{initial}</span>
-                    )}
-                </div>
-                {/* drag handle */}
-                <span className="absolute top-1 left-1 text-[var(--fc-text-muted)] cursor-grab">
-                    <GripVertical className="h-4 w-4" />
-                </span>
-                {/* jersey number badge */}
-                <span className="absolute top-2 left-7 rounded-[2px] bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-[var(--fc-text-primary)]">
-                    #{player.number ?? '--'}
-                </span>
-                {/* availability */}
-                <span className="absolute top-2 right-2">
-                    {player.id % 3 !== 0 ? (
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400" title="Available">
-                            <Check className="h-3 w-3" />
-                        </span>
-                    ) : (
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500/10 text-red-400" title="Unavailable">
-                            <X className="h-3 w-3" />
-                        </span>
-                    )}
+        <article className="sr-player-card">
+            <div className="sr-card-top">
+                <RosterProfileLink player={player} avatar><RosterAvatar player={player} /></RosterProfileLink>
+                <span
+                    className="sr-shirt"
+                    aria-label={t('squadDesign.roster.shirtNumber', { defaultValue: 'Shirt number' })}
+                >
+                    {player.number ?? '—'}
                 </span>
             </div>
-
-            {/* info area */}
-            <div className="p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-[var(--fc-text-primary)] truncate" title={player.name}>
-                        {player.name}
-                    </p>
-                    {player.isRegistered !== true && (
-                        <span className="inline-flex shrink-0 rounded-full border border-[#a1a1aa]/30 bg-[#a1a1aa]/10 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
-                            Not registered
-                        </span>
-                    )}
-                    {player.status === 'TRIALIST' && (
-                        <TrialistBadge joinedAt={player.joinedAt} className="shrink-0" />
-                    )}
-                </div>
-                <div className="flex flex-wrap gap-1">
-                    {player.position && (
-                        <span className="inline-flex rounded-full border border-[#16a34a]/20 bg-[#16a34a]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#16a34a]">
-                            {player.position}
-                        </span>
-                    )}
-                    {player.squadRole && player.squadRole !== 'PLAYER' && (
-                        <span className="inline-flex rounded-full border border-[#16a34a]/20 bg-[#16a34a]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#16a34a]">
-                            {player.squadRole}
-                        </span>
-                    )}
-                    {player.age != null && (
-                        <span className="inline-flex rounded-full border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--fc-text-muted)]">
-                            Age {player.age}
-                        </span>
-                    )}
-                </div>
-
-                {editable && (
-                    <div className="flex gap-2 pt-1.5 border-t border-[#ffffff0d]">
-                        {onUpdatePlayer && (
-                            <button
-                                type="button"
-                                onClick={() => onUpdatePlayer(player.id, player.number ?? null, player.position ?? null)}
-                                className="flex-1 rounded-[2px] border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
-                            >
-                                Edit
-                            </button>
-                        )}
-                        {isCard && onEditCard && (
-                            <button
-                                type="button"
-                                onClick={() => onEditCard(player.id)}
-                                className="flex-1 rounded-[2px] border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
-                                title={`Edit player card for ${player.name}`}
-                            >
-                                Card
-                            </button>
-                        )}
-                        {onRemovePlayer && (
-                            <button
-                                type="button"
-                                onClick={() => onRemovePlayer(player.id, player.name)}
-                                disabled={isRemoving}
-                                className="flex-1 rounded-[2px] border border-[var(--state-danger)]/20 bg-[var(--state-danger-soft)] py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--state-danger)] hover:bg-[var(--state-danger)] hover:text-white disabled:opacity-50 transition-colors"
-                            >
-                                {isRemoving ? <Loader2 className="mx-auto h-3 w-3 animate-spin" /> : 'Remove'}
-                            </button>
-                        )}
-                    </div>
+            <h4><>{onOpenPlayer ? <button type="button" className="wo-player-name" onClick={() => onOpenPlayer(player)} aria-label={`Open ${player.name} details`}>{player.name}</button> : <RosterProfileLink player={player}>{player.name}</RosterProfileLink>}</></h4>
+            <div className="sr-card-meta">
+                <span>{squadLabel(player.position, t)}</span>
+                {player.age != null && (
+                    <span>{t('squadDesign.roster.ageValue', { defaultValue: 'Age {{age}}', age: player.age })}</span>
                 )}
             </div>
-        </div>
+            {player.squadRole &&
+                player.squadRole !== 'PLAYER' &&
+                player.squadRole !== player.position &&
+                (showManagementDetails || player.squadRole !== 'TRIALIST') && (
+                    <span className="sr-role">{squadLabel(player.squadRole, t)}</span>
+                )}
+            {showManagementDetails && (
+                <div className="sr-management">
+                    <RosterManagementBadges player={player} />
+                </div>
+            )}
+            {editable && (
+                <div className="sr-card-actions">
+                    {onUpdatePlayer && (
+                        <button
+                            type="button"
+                            className="sd-button"
+                            onClick={() => setEditing((value) => !value)}
+                            aria-expanded={editing}
+                        >
+                            <Pencil size={13} />
+                            {t('squadDesign.roster.edit', { defaultValue: 'Edit' })}
+                        </button>
+                    )}
+                    {isCard && onEditCard && (
+                        <button
+                            type="button"
+                            className="sd-icon-button"
+                            onClick={() => onEditCard(player.id)}
+                            aria-label={t('squadDesign.roster.editCard', {
+                                defaultValue: 'Edit player card for {{name}}',
+                                name: player.name,
+                            })}
+                        >
+                            <CreditCard size={15} />
+                        </button>
+                    )}
+                    {onRemovePlayer && (
+                        <button
+                            type="button"
+                            className="sd-icon-button sr-remove"
+                            onClick={() => onRemovePlayer(player.id, player.name)}
+                            disabled={isRemoving}
+                            aria-label={t('squadDesign.roster.removePlayer', {
+                                defaultValue: 'Remove {{name}} from squad',
+                                name: player.name,
+                            })}
+                        >
+                            {isRemoving ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                        </button>
+                    )}
+                </div>
+            )}
+            {editing && editable && onUpdatePlayer && (
+                <RosterPlayerEditor player={player} onSave={onUpdatePlayer} onClose={() => setEditing(false)} />
+            )}
+        </article>
     );
 };
 
 export const SquadRosterGrid = ({
     groups,
     editable = false,
+    showManagementDetails = editable,
     onRemovePlayer,
     onUpdatePlayer,
     removingPlayerId,
     cardUserIds,
-    onEditCard
+    onEditCard,
+    onOpenPlayer,
 }: SquadRosterGridProps) => {
-    if (groups.length === 0) {
+    const { t } = useTranslation();
+    const nonEmptyGroups = groups.filter((group) => group.players.length);
+    if (nonEmptyGroups.length === 0)
         return (
-            <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-10 text-center">
-                <p className="text-sm text-[var(--fc-text-secondary)]">No registered players in this squad yet.</p>
+            <div className="sd-empty">
+                <p>{t('squadDesign.roster.empty', { defaultValue: 'No players to show in this squad yet.' })}</p>
             </div>
         );
-    }
-
     return (
-        <div className="space-y-5">
-            {groups.map((group) => (
+        <div className="sr-roster sr-grid">
+            {nonEmptyGroups.map((group) => (
                 <section key={group.label}>
-                    <div className="flex items-center justify-between gap-4 mb-3">
-                        <h3 className="text-xs font-semibold text-[var(--fc-text-primary)]">{group.label}</h3>
-                        <span className="text-xs font-semibold text-[#16a34a]">
-                            {group.players.length} Player{group.players.length === 1 ? '' : 's'}
-                        </span>
+                    <div className="sr-group-heading">
+                        <h3>{squadLabel(group.label, t)}</h3>
+                        <span>{group.players.length}</span>
                     </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div className="sr-card-grid">
                         {group.players.map((player) => (
                             <PlayerCard
                                 key={player.id}
                                 player={player}
                                 editable={editable}
+                                showManagementDetails={showManagementDetails}
                                 onRemovePlayer={onRemovePlayer}
                                 onUpdatePlayer={onUpdatePlayer}
                                 isRemoving={removingPlayerId === player.id}
                                 isCard={cardUserIds?.has(player.id) ?? false}
                                 onEditCard={onEditCard}
+                                onOpenPlayer={onOpenPlayer}
                             />
                         ))}
                     </div>

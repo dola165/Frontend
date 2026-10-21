@@ -1,0 +1,22 @@
+/* Club players: quiet notes in the table, and what opens under a row (trial date, parent consent, status changes).
+   Scoped under `.gk`; tokens only. */
+.gk .pl-quiet { font-size: var(--gk-fs-sm); color: var(--gk-text-3); white-space: nowrap; }
+.gk .pl-details { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-4); }
+.gk .pl-details .gk-field { width: min(100%, 220px); }
+.gk .pl-consent { display: flex; flex-direction: column; gap: 6px; }
+.gk .pl-consent__form .gk-input { width: min(100%, 240px); }
+.gk .pl-status-actions { flex-wrap: wrap; margin-left: auto; }
+@media (max-width: 760px) { .gk .pl-status-actions { margin-left: 0; } }
+
+/* Player cards */
+.gk .pc-row { align-items: center; }
+.gk .pc-name { padding: 0; border: 0; background: none; color: var(--gk-text); font: inherit; font-weight: 600; text-align: left; cursor: pointer; border-radius: var(--gk-r-sm); }
+.gk .pc-name:hover { color: var(--gk-accent); text-decoration: underline; text-underline-offset: 3px; }
+.gk .pc-trail { flex-wrap: wrap; justify-content: flex-end; max-width: 50%; }
+.gk .pc-trail .gk-btn--icon { width: 44px; min-height: 44px; }
+.gk .pc-danger:hover { color: var(--gk-danger); background: var(--gk-danger-soft); }
+@media (max-width: 760px) {
+  .gk .pc-row { flex-wrap: wrap; }
+  .gk .pc-row .gk-list-row__main { flex-basis: calc(100% - 40px - var(--gk-3)); }
+  .gk .pc-trail { max-width: none; width: 100%; justify-content: flex-start; padding-left: calc(40px + var(--gk-3)); }
+}

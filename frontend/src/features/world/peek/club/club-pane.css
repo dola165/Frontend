@@ -1,0 +1,9 @@
+/* A club beside the list: the academy it belongs to, the one thing to do, a row of links into
+   its page, then a little of each part in two columns when the pane is wide. Scoped under .gk; tokens only. */
+.gk .gk-club-pane__belongs { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-club-pane__belongs:hover { color: var(--gk-text); text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-club-pane__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-sm); }
+.gk .gk-club-pane__about { margin: 0; font-size: var(--gk-fs-sm); line-height: 1.5; color: var(--gk-text-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.gk .gk-club-pane__failed { display: flex; align-items: center; gap: var(--gk-2); margin-bottom: var(--gk-4); font-size: var(--gk-fs-sm); }
+.gk .gk-club-pane__failed .gk-pane-more { border: 0; background: none; padding: 0; font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }

@@ -1,0 +1,38 @@
+/* Filters: one row of pills in the page's header, above the map and the list, each showing its value; choices open in
+   small glass panels over the map instead of pushing it down. The form controls are shared with Journeys' filter panel.
+   Scoped under .gk; tokens only. */
+.gk .gk-world-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-world-filters > .gk-chip, .gk .gk-world-pill > .gk-chip, .gk .gk-world-filters__clear { min-height: 36px; padding: 0 12px; }
+.gk .gk-world-filters > .gk-chip:not([aria-pressed='true']), .gk .gk-world-pill > .gk-chip:not([data-on]) { background: var(--gk-glass); border-color: var(--gk-glass-line); }
+.gk .gk-world-pill > .gk-chip[data-on] { background: var(--gk-accent-soft); border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); color: var(--gk-text); }
+.gk .gk-world-pill > .gk-chip[aria-expanded='true'] { border-color: var(--gk-line-strong); color: var(--gk-text); }
+.gk .gk-world-pill { position: relative; }
+.gk .gk-world-pill__caret { color: var(--gk-text-3); transition: transform .2s var(--gk-ease-out, ease); }
+.gk .gk-world-pill > [aria-expanded='true'] .gk-world-pill__caret { transform: rotate(180deg); }
+.gk .gk-world-filters__clear { border: 0; border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-world-filters__clear:hover { color: var(--gk-text); background: var(--gk-hover); }
+.gk .gk-world-filters__note { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+
+/* The panel under a pill: a short list of choices, or (More filters) a grid of fields. */
+.gk .gk-world-pill__pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 220px; max-height: min(440px, 64dvh); overflow-y: auto; padding: 6px;
+  border: 1px solid var(--gk-glass-line); border-radius: 14px; background: color-mix(in srgb, var(--gk-bg) 88%, transparent); backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: var(--gk-glass-shadow); animation: gk-world-pop .16s var(--gk-ease-out, ease) both; }
+.gk .gk-world-pill__pop[data-wide] { left: auto; right: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-4); align-items: end; width: min(560px, calc(100vw - 2 * var(--gk-4))); padding: var(--gk-4) var(--gk-5); }
+.gk .gk-world-pill__pop[data-wide] > .gk-field:has(.gk-chips) { grid-column: 1 / -1; }
+.gk .gk-world-pill__options { display: flex; flex-direction: column; gap: 1px; }
+.gk .gk-world-pill__option { display: flex; align-items: center; gap: var(--gk-3); min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); text-align: left; white-space: nowrap; cursor: pointer; }
+.gk .gk-world-pill__option:hover, .gk .gk-world-pill__option:focus-visible { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-world-pill__option[aria-pressed='true'] { color: var(--gk-text); font-weight: 600; }
+.gk .gk-world-pill__option svg { width: 15px; height: 15px; margin-left: auto; color: var(--gk-accent); }
+@keyframes gk-world-pop { from { opacity: 0; transform: translateY(-4px); } }
+@media (max-width: 640px) { .gk .gk-world-pill__pop[data-wide] { grid-template-columns: 1fr; } }
+@media (pointer: coarse) { .gk .gk-world-filters > .gk-chip, .gk .gk-world-pill > .gk-chip, .gk .gk-world-filters__clear, .gk .gk-world-pill__option { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-world-pill__pop { animation: none; } }
+
+/* A range: its two ends side by side with a dash between, the unit after. */
+.gk .gk-world-range { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .gk-world-range > .gk-input { flex: 1 1 0; min-width: 0; width: auto; }
+.gk .gk-world-range > span { flex: none; color: var(--gk-text-3); }
+.gk .gk-world-range__unit { font-size: var(--gk-fs-xs); white-space: nowrap; }
+.gk .gk-world-check { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 40px; font-size: var(--gk-fs-sm); font-weight: 500; cursor: pointer; }
+.gk .gk-world-check input { width: 18px; height: 18px; accent-color: var(--gk-accent); }

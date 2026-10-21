@@ -24,13 +24,13 @@ export const AuthSplitShell = ({ heroMicro, heroTitle, heroTagline, chips, cardH
     const { t } = useTranslation();
 
     return (
-        <div className="relative min-h-screen bg-[#0f1117] text-[#f4f4f5]">
+        <div className="relative min-h-screen bg-[var(--color-surface)] text-[var(--color-text)]">
             {/* layered glow backdrop — ClubHero pattern */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,200,83,0.12),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(0,200,83,0.07),transparent_42%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_srgb,_var(--color-accent)_12%,_transparent),transparent_36%),radial-gradient(circle_at_bottom_left,color-mix(in_srgb,_var(--color-accent)_7%,_transparent),transparent_42%)]" />
 
             <Link
                 to="/"
-                className="absolute top-8 left-8 z-10 inline-flex items-center gap-2 text-[11px] font-semibold text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+                className="absolute top-8 left-8 z-10 inline-flex items-center gap-2 text-[11px] font-semibold text-[var(--color-secondary)] hover:text-[var(--color-text)] transition-colors"
             >
                 <ArrowLeft className="w-5 h-5" /> {t('auth.common.backToBase')}
             </Link>
@@ -38,18 +38,18 @@ export const AuthSplitShell = ({ heroMicro, heroTitle, heroTagline, chips, cardH
             <main className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-10 px-6 py-16 sm:px-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,420px)]">
                 {/* brand hero — hidden on mobile */}
                 <section className="hidden flex-col justify-center gap-8 lg:flex">
-                    <GrasskickzLogo />
+                    <GrasskickzLogo wordmark />
                     <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#16a34a]">{heroMicro}</p>
-                        <h1 className="mt-3 text-4xl font-bold tracking-tight text-[#f4f4f5] sm:text-5xl">{heroTitle}</h1>
-                        <p className="mt-4 max-w-xl text-base leading-7 text-[#a1a1aa]">{heroTagline}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)]">{heroMicro}</p>
+                        <h1 className="mt-3 text-4xl font-bold tracking-tight text-[var(--color-text)] sm:text-5xl">{heroTitle}</h1>
+                        <p className="mt-4 max-w-xl text-base leading-7 text-[var(--color-secondary)]">{heroTagline}</p>
                     </div>
                     {chips && chips.length > 0 && (
                         <div className="flex flex-wrap gap-3">
                             {chips.map((chip) => (
                                 <div
                                     key={chip}
-                                    className="rounded-full border border-[#ffffff0d] bg-[#16181d] px-4 py-2 text-sm text-[#f4f4f5]"
+                                    className="rounded-full border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-4 py-2 text-sm text-[var(--color-text)]"
                                 >
                                     {chip}
                                 </div>
@@ -64,7 +64,7 @@ export const AuthSplitShell = ({ heroMicro, heroTitle, heroTagline, chips, cardH
                         {cardHeader}
                         {children}
                     </div>
-                    <div className="mt-8 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                    <div className="mt-8 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)]">
                         {footer}
                     </div>
                 </section>

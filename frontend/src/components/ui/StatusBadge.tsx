@@ -9,7 +9,7 @@ interface StatusBadgeProps {
 }
 
 const toneClassNames: Record<StatusBadgeTone, string> = {
-    neutral: 'border-[#ffffff0d] bg-[#0f1117] text-[#a1a1aa]',
+    neutral: 'border-[color:var(--theme-border)] bg-[color:var(--bg-inset)] text-[color:var(--text-secondary)]',
     success: 'border-[color:var(--state-success)] bg-[color:var(--state-success-soft)] text-[color:var(--state-success)]',
     danger: 'border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] text-[color:var(--state-danger)]',
     warning: 'border-[color:var(--state-warning)] bg-[color:var(--state-warning-soft)] text-[color:var(--state-warning)]',

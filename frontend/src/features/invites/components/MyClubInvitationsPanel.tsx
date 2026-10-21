@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Inbox, Loader2, XCircle } from 'lucide-react';
 import { acceptClubInvitation, declineClubInvitation, fetchMyClubInvitations } from '../../clubs/api';
 import {
@@ -10,6 +10,10 @@ import {
 import { EntitySection } from '../../../components/layout/EntityPageLayout';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
+import { useAuth } from '../../../context/AuthContext';
+import { isCurrentAuthSession } from '../../../utils/authStorage';
+import { emitNotificationsChanged } from '../../../utils/notifications';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
 interface MyClubInvitationsPanelProps {
     onInvitationAccepted?: (invitation: MyClubInvitation) => void;
@@ -42,6 +46,7 @@ const getInviteTone = (status: ClubInviteStatus) => {
             return 'danger';
         case 'CANCELLED':
         case 'EXPIRED':
+        case 'UNAVAILABLE':
             return 'warning';
         case 'PENDING':
         default:
@@ -50,27 +55,46 @@ const getInviteTone = (status: ClubInviteStatus) => {
 };
 
 export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitationsPanelProps) => {
+    const { sessionId } = useAuth();
+    return <ClubInvitations key={sessionId} onInvitationAccepted={onInvitationAccepted} />;
+};
+
+const ClubInvitations = ({ onInvitationAccepted }: MyClubInvitationsPanelProps) => {
+    const { sessionId, refreshNavigationCapabilities } = useAuth();
+    const copy = useJourneyCopy();
+    const statusKa: Record<ClubInviteStatus, string> = { PENDING: 'მოლოდინში', ACCEPTED: 'მიღებულია', DECLINED: 'უარყოფილია', CANCELLED: 'გაუქმებულია', EXPIRED: 'ვადაგასულია', UNAVAILABLE: 'მიუწვდომელია' };
+    const roleKa = { OWNER: 'მფლობელი', CLUB_ADMIN: 'კლუბის ადმინისტრატორი', COACH: 'მწვრთნელი', PLAYER: 'მოთამაშე' };
     const [invitations, setInvitations] = useState<MyClubInvitation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [attempt, setAttempt] = useState(0);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [pendingActionKey, setPendingActionKey] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    const loadInvitations = async () => {
-        setLoading(true);
-        try {
-            const data = await fetchMyClubInvitations();
-            setInvitations(data || []);
-        } catch (error) {
-            setErrorMessage(extractApiErrorMessage(error, 'Failed to load club invitations.'));
-        } finally {
-            setLoading(false);
-        }
-    };
+    const mounted = useRef(false);
+    const submitting = useRef(false);
 
     useEffect(() => {
-        void loadInvitations();
+        mounted.current = true;
+        const refresh = () => setAttempt(value => value + 1);
+        const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
+        window.addEventListener('focus', refresh);
+        window.addEventListener('requests-updated', refresh);
+        return () => { mounted.current = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('requests-updated', refresh); };
     }, []);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        void fetchMyClubInvitations({ signal: controller.signal, _authSessionId: sessionId }).then(data => {
+            if (controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
+            setInvitations(data); setLoadError(null); setLoading(false);
+        }).catch(error => {
+            if (controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
+            setLoadError(extractApiErrorMessage(error, '')); setLoading(false);
+        });
+        return () => controller.abort();
+    }, [attempt, sessionId]);
 
     const orderedInvitations = useMemo(() => [...invitations].sort((left, right) => {
         if (left.status === right.status) {
@@ -86,6 +110,8 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
     }), [invitations]);
 
     const runDecision = async (invitation: MyClubInvitation, decision: 'accept' | 'decline') => {
+        if (submitting.current || !isCurrentAuthSession(sessionId)) return;
+        submitting.current = true;
         const actionKey = `${decision}-${invitation.id}`;
         setPendingActionKey(actionKey);
         setErrorMessage(null);
@@ -93,65 +119,77 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
 
         try {
             const response = decision === 'accept'
-                ? await acceptClubInvitation(invitation.id)
-                : await declineClubInvitation(invitation.id);
+                ? await acceptClubInvitation(invitation.id, { _authSessionId: sessionId })
+                : await declineClubInvitation(invitation.id, { _authSessionId: sessionId });
+            if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
 
             const nextStatus = response.status as ClubInviteStatus;
             setInvitations((current) => current.map((item) => (
                 item.id === invitation.id ? { ...item, status: nextStatus } : item
             )));
 
-            if (decision === 'accept') {
-                setSuccessMessage(`Joined ${invitation.clubName}. Redirecting to the club workspace...`);
+            window.dispatchEvent(new Event('requests-updated'));
+            emitNotificationsChanged();
+            if (decision === 'accept' && nextStatus === 'ACCEPTED') {
+                setSuccessMessage(copy(`Joined ${invitation.clubName}.`, `${invitation.clubName}-ს შეუერთდით.`));
+                await refreshNavigationCapabilities().catch(() => { if (mounted.current && isCurrentAuthSession(sessionId)) setErrorMessage(copy('Invitation accepted. Reload to refresh your navigation.', 'მოწვევა მიღებულია. ნავიგაციის გასაახლებლად ხელახლა ჩატვირთეთ გვერდი.')); });
+                if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
                 onInvitationAccepted?.({ ...invitation, status: nextStatus });
                 return;
             }
 
-            setSuccessMessage(`Invite to ${invitation.clubName} declined.`);
+            if (nextStatus === 'DECLINED') setSuccessMessage(copy(`Invite to ${invitation.clubName} declined.`, `${invitation.clubName}-ის მოწვევა უარყოფილია.`));
         } catch (error) {
-            setErrorMessage(extractApiErrorMessage(error, 'Failed to update invitation.'));
+            if (mounted.current && isCurrentAuthSession(sessionId)) {
+                setErrorMessage(extractApiErrorMessage(error, copy('Failed to update invitation.', 'მოწვევის განახლება ვერ მოხერხდა.')));
+                window.dispatchEvent(new Event('requests-updated'));
+                emitNotificationsChanged();
+            }
         } finally {
-            setPendingActionKey(null);
+            submitting.current = false;
+            if (mounted.current && isCurrentAuthSession(sessionId)) setPendingActionKey(null);
         }
     };
 
     return (
         <EntitySection
-            eyebrow="Invitations"
-            title="Club invitations"
-            description="When a club invites you, you can review and respond here."
-            actions={(
+            eyebrow={copy('Invitations', 'მოწვევები')}
+            title={copy('Club invitations', 'კლუბის მოწვევები')}
+            description={copy('When a club invites you, you can review and respond here.', 'კლუბის მოწვევა აქ შეგიძლიათ განიხილოთ და უპასუხოთ.')}
+            actions={!loading && loadError === null ? (
                 <StatusBadge tone={orderedInvitations.some((invite) => invite.status === 'PENDING') ? 'info' : 'neutral'}>
-                    {orderedInvitations.filter((invite) => invite.status === 'PENDING').length} pending
+                    {copy(`${orderedInvitations.filter((invite) => invite.status === 'PENDING').length} pending`, `${orderedInvitations.filter((invite) => invite.status === 'PENDING').length} მოლოდინში`)}
                 </StatusBadge>
-            )}
-            bodyClassName="divide-y divide-[color:#ffffff0d]"
+            ) : undefined}
+            bodyClassName="divide-y divide-[var(--color-border)]"
         >
             {errorMessage && (
-                <div className="border-b border-[#ffffff0d] px-4 py-4">
-                    <div className="border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
+                <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-4">
+                    <div role="alert" className="border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                         {errorMessage}
                     </div>
                 </div>
             )}
 
+            {loadError !== null && <div role="alert" className="px-4 py-4">{loadError || copy('Failed to load club invitations.', 'კლუბის მოწვევები ვერ ჩაიტვირთა.')} <button type="button" className="min-h-11 px-3" onClick={() => setAttempt(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</button></div>}
+
             {successMessage && (
-                <div className="border-b border-[#ffffff0d] px-4 py-4">
-                    <div className="border border-[color:var(--state-success)] bg-[color:var(--state-success-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-success)]">
+                <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-4">
+                    <div role="status" className="border border-[color:var(--state-success)] bg-[color:var(--state-success-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-success)]">
                         {successMessage}
                     </div>
                 </div>
             )}
 
             {loading ? (
-                <div className="flex justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#16a34a]" />
+                <div role="status" aria-label={copy('Loading invitations', 'მოწვევები იტვირთება')} className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
                 </div>
-            ) : orderedInvitations.length === 0 ? (
+            ) : orderedInvitations.length === 0 && loadError === null ? (
                 <div className="px-4 py-10 text-center">
-                    <Inbox className="mx-auto h-8 w-8 text-[#a1a1aa]" />
-                    <p className="mt-4 text-sm leading-6 text-[#a1a1aa]">
-                        You do not have any club invitations right now.
+                    <Inbox className="mx-auto h-8 w-8 text-[var(--color-secondary)]" />
+                    <p className="mt-4 text-sm leading-6 text-[var(--color-secondary)]">
+                        {copy('You do not have any club invitations right now.', 'ამჟამად კლუბის მოწვევები არ გაქვთ.')}
                     </p>
                 </div>
             ) : (
@@ -165,21 +203,21 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <h4 className="text-base font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">
+                                        <h4 className="text-base font-semibold uppercase tracking-[0.12em] text-[var(--color-text)]">
                                             {invitation.clubName}
                                         </h4>
                                         <StatusBadge tone={getInviteTone(invitation.status)}>
-                                            {clubInviteStatusLabel(invitation.status)}
+                                            {copy(clubInviteStatusLabel(invitation.status), statusKa[invitation.status] ?? invitation.status)}
                                         </StatusBadge>
                                     </div>
 
-                                    <p className="mt-2 text-[11px] font-semibold  text-[#a1a1aa]">
-                                        Role offered: {clubRoleLabel(invitation.role)}
+                                    <p className="mt-2 text-[11px] font-semibold  text-[var(--color-secondary)]">
+                                        {copy('Role offered:', 'შემოთავაზებული როლი:')} {copy(clubRoleLabel(invitation.role), roleKa[invitation.role] ?? invitation.role)}
                                     </p>
 
-                                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-semibold  text-[#a1a1aa]">
-                                        <span>Created: {createdAtLabel || 'Recently'}</span>
-                                        {expiresAtLabel && <span>Expires: {expiresAtLabel}</span>}
+                                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-semibold  text-[var(--color-secondary)]">
+                                        <span>{copy('Created:', 'შექმნილია:')} {createdAtLabel || copy('Recently', 'ახლახან')}</span>
+                                        {expiresAtLabel && <span>{copy('Expires:', 'ვადა:')} {expiresAtLabel}</span>}
                                     </div>
                                 </div>
 
@@ -187,20 +225,20 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                                     <button
                                         type="button"
                                         onClick={() => void runDecision(invitation, 'decline')}
-                                        disabled={!isPending || pendingActionKey === `accept-${invitation.id}` || pendingActionKey === `decline-${invitation.id}`}
-                                        className="inline-flex items-center justify-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-4 py-2.5 text-[11px] font-semibold  text-[#f4f4f5] disabled:cursor-not-allowed disabled:opacity-60"
+                                        disabled={!isPending || loadError !== null || pendingActionKey !== null}
+                                        className="inline-flex items-center justify-center gap-2 border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-4 py-2.5 text-[11px] font-semibold  text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {pendingActionKey === `decline-${invitation.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                                        Decline
+                                        {copy('Decline', 'უარყოფა')}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => void runDecision(invitation, 'accept')}
-                                        disabled={!isPending || pendingActionKey === `accept-${invitation.id}` || pendingActionKey === `decline-${invitation.id}`}
-                                        className="inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a]-soft px-4 py-2.5 text-[11px] font-semibold  text-[#16a34a] disabled:cursor-not-allowed disabled:opacity-60"
+                                        disabled={!isPending || loadError !== null || pendingActionKey !== null}
+                                        className="inline-flex items-center justify-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent)]-soft px-4 py-2.5 text-[11px] font-semibold  text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {pendingActionKey === `accept-${invitation.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                        Accept
+                                        {copy('Accept', 'მიღება')}
                                     </button>
                                 </div>
                             </div>

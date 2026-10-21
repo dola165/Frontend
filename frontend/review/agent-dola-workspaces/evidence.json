@@ -1,0 +1,42 @@
+[
+  {
+    "name": "parent-coach",
+    "correctStarters": true,
+    "noSpendOnOpen": true,
+    "noOverflow": true,
+    "reviewedDecision": false,
+    "errors": []
+  },
+  {
+    "name": "referee",
+    "correctStarters": true,
+    "noSpendOnOpen": true,
+    "noOverflow": true,
+    "reviewedDecision": true,
+    "errors": []
+  },
+  {
+    "name": "organisation",
+    "correctStarters": true,
+    "noSpendOnOpen": true,
+    "noOverflow": true,
+    "reviewedDecision": false,
+    "errors": []
+  },
+  {
+    "name": "agent",
+    "correctStarters": true,
+    "noSpendOnOpen": true,
+    "noOverflow": true,
+    "reviewedDecision": false,
+    "errors": []
+  },
+  {
+    "name": "mobile-referee",
+    "correctStarters": true,
+    "noSpendOnOpen": true,
+    "noOverflow": true,
+    "reviewedDecision": true,
+    "errors": []
+  }
+]

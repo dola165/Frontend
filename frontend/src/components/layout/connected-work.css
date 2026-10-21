@@ -1,0 +1,16 @@
+.connected-work{margin:22px 0;color:var(--text-primary)}
+.connected-work>header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.connected-work h2{font-size:18px;font-weight:650;margin:0 0 12px}
+.connected-work>header h2{margin:0}
+.connected-work a{color:var(--accent-primary);display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.connected-work a:hover{text-decoration:underline}
+.connected-work a:focus-visible{outline:2px solid var(--accent-primary);outline-offset:4px}
+.connected-work-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px}
+.connected-work-grid article{padding:20px;border:1px solid var(--theme-border);border-radius:12px;background:var(--theme-surface);min-width:0}
+.connected-work-grid h3{font-size:16px;font-weight:650;margin:0 0 10px;overflow-wrap:anywhere}
+.connected-work-grid p,.connected-work-note,.work-connections-panel p{color:var(--text-secondary);line-height:1.6;font-size:14px}
+.work-connection-links{display:flex;gap:12px 20px;align-items:center;flex-wrap:wrap;margin-top:14px;font-size:14px}
+.work-connection-links a{min-height:40px}
+.connected-work-note{margin:12px 0 0}
+.work-connections-panel{padding:24px}.work-connections-panel h2{margin:0;font-size:20px}
+@media(max-width:600px){.connected-work-grid article{padding:16px}.work-connection-links a{min-height:44px}}

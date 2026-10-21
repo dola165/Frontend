@@ -1,0 +1,807 @@
+[
+  {
+    "name": "new match identity",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_EXCHANGE_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "match_exchange",
+      "entityId": 41,
+      "linkPath": "/match-exchange/41"
+    },
+    "expected": "/match-exchange/41"
+  },
+  {
+    "name": "new match without path",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_EXCHANGE_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "match_exchange",
+      "entityId": 41
+    },
+    "expected": "/match-exchange/41"
+  },
+  {
+    "name": "legacy match beats schedule",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "schedule_event",
+      "entityId": 41,
+      "linkPath": "/match-exchange/41"
+    },
+    "expected": "/match-exchange/41"
+  },
+  {
+    "name": "legacy exact path without entity",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_UPDATED",
+      "scope": "PERSONAL",
+      "linkPath": "/match-exchange/41"
+    },
+    "expected": "/match-exchange/41"
+  },
+  {
+    "name": "match identity absent",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_EXCHANGE_UPDATED",
+      "scope": "PERSONAL"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "match id mismatch",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "schedule_event",
+      "entityId": 42,
+      "linkPath": "/match-exchange/41"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "match zero",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_EXCHANGE_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "match_exchange",
+      "entityId": 0
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "match missing segment",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_UPDATED",
+      "scope": "PERSONAL",
+      "entityId": 41,
+      "linkPath": "/match-exchange/"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "match invalid target",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_EXCHANGE_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "match_exchange",
+      "entityId": 41,
+      "linkPath": "https://evil.test/match-exchange/41"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "match generic link",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_EXCHANGE_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "match_exchange",
+      "entityId": 41,
+      "linkPath": "/calendar"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "SCHEDULE_EVENT_CREATED",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_CREATED",
+      "scope": "PERSONAL",
+      "entityType": "schedule_event",
+      "entityId": 41,
+      "linkPath": "/clubs/7/schedule"
+    },
+    "expected": "/calendar?eventId=41"
+  },
+  {
+    "name": "SCHEDULE_EVENT_UPDATED",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "schedule_event",
+      "entityId": 41,
+      "linkPath": "/clubs/7/schedule"
+    },
+    "expected": "/calendar?eventId=41"
+  },
+  {
+    "name": "SCHEDULE_EVENT_CANCELLED",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_CANCELLED",
+      "scope": "PERSONAL",
+      "entityType": "schedule_event",
+      "entityId": 41,
+      "linkPath": "/clubs/7/schedule"
+    },
+    "expected": "/calendar?eventId=41"
+  },
+  {
+    "name": "SCHEDULE_CHALLENGE_RECEIVED",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_CHALLENGE_RECEIVED",
+      "scope": "PERSONAL",
+      "entityType": "schedule_event",
+      "entityId": 41,
+      "linkPath": "/clubs/7/schedule"
+    },
+    "expected": "/calendar?eventId=41"
+  },
+  {
+    "name": "SCHEDULE_CHALLENGE_ACCEPTED",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_CHALLENGE_ACCEPTED",
+      "scope": "PERSONAL",
+      "entityType": "schedule_event",
+      "entityId": 41,
+      "linkPath": "/clubs/7/schedule"
+    },
+    "expected": "/calendar?eventId=41"
+  },
+  {
+    "name": "schedule missing identity",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_UPDATED",
+      "scope": "PERSONAL"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "schedule wrong identity",
+    "notification": {
+      "id": 1,
+      "type": "SCHEDULE_EVENT_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "post",
+      "entityId": 41
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "booking /notifications?venueId=7&bookingId=81",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_CREATED",
+      "scope": "PERSONAL",
+      "entityType": "venue_booking",
+      "entityId": 81,
+      "linkPath": "/notifications?venueId=7&bookingId=81"
+    },
+    "expected": "/notifications?venueId=7&bookingId=81"
+  },
+  {
+    "name": "booking /stadiums/7?bookingId=81",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_CREATED",
+      "scope": "PERSONAL",
+      "entityType": "venue_booking",
+      "entityId": 81,
+      "linkPath": "/stadiums/7?bookingId=81"
+    },
+    "expected": "/notifications?venueId=7&bookingId=81"
+  },
+  {
+    "name": "booking /stadiums/7/manage",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_CREATED",
+      "scope": "PERSONAL",
+      "entityType": "venue_booking",
+      "entityId": 81,
+      "linkPath": "/stadiums/7/manage"
+    },
+    "expected": "/notifications?venueId=7&bookingId=81"
+  },
+  {
+    "name": "booking update",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "venue_booking",
+      "entityId": 81,
+      "linkPath": "/notifications?venueId=7&bookingId=81"
+    },
+    "expected": "/notifications?venueId=7&bookingId=81"
+  },
+  {
+    "name": "booking canonical identity without entity",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_UPDATED",
+      "scope": "PERSONAL",
+      "linkPath": "/notifications?venueId=7&bookingId=81"
+    },
+    "expected": "/notifications?venueId=7&bookingId=81"
+  },
+  {
+    "name": "booking without venue",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_CREATED",
+      "scope": "PERSONAL",
+      "entityType": "venue_booking",
+      "entityId": 81
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "booking without id",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_CREATED",
+      "scope": "PERSONAL",
+      "linkPath": "/stadiums/7/manage"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "booking mismatch",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_CREATED",
+      "scope": "PERSONAL",
+      "entityId": 82,
+      "linkPath": "/stadiums/7?bookingId=81"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "booking incomplete canonical",
+    "notification": {
+      "id": 1,
+      "type": "VENUE_BOOKING_CREATED",
+      "scope": "PERSONAL",
+      "entityId": 81,
+      "linkPath": "/notifications?bookingId=81"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "tournament /tournaments/9",
+    "notification": {
+      "id": 1,
+      "type": "TOURNAMENT_ENTRY_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "tournament_entry",
+      "entityId": 51,
+      "linkPath": "/tournaments/9"
+    },
+    "expected": "/tournaments/9"
+  },
+  {
+    "name": "tournament /tournaments/9/workspace",
+    "notification": {
+      "id": 1,
+      "type": "TOURNAMENT_ENTRY_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "tournament_entry",
+      "entityId": 51,
+      "linkPath": "/tournaments/9/workspace"
+    },
+    "expected": "/tournaments/9/workspace"
+  },
+  {
+    "name": "tournament /tournaments/9/admin",
+    "notification": {
+      "id": 1,
+      "type": "TOURNAMENT_ENTRY_UPDATED",
+      "scope": "PERSONAL",
+      "entityType": "tournament_entry",
+      "entityId": 51,
+      "linkPath": "/tournaments/9/admin"
+    },
+    "expected": "/tournaments/9/workspace"
+  },
+  {
+    "name": "squad /squads/5",
+    "notification": {
+      "id": 1,
+      "type": "SQUAD_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "squad",
+      "entityId": 5,
+      "linkPath": "/squads/5"
+    },
+    "expected": "/squads/5"
+  },
+  {
+    "name": "squad /squads/5?tab=chat",
+    "notification": {
+      "id": 1,
+      "type": "SQUAD_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "squad",
+      "entityId": 5,
+      "linkPath": "/squads/5?tab=chat"
+    },
+    "expected": "/notifications?squadId=5&channel=chat"
+  },
+  {
+    "name": "squad /squads/5?thread=12",
+    "notification": {
+      "id": 1,
+      "type": "SQUAD_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "squad",
+      "entityId": 5,
+      "linkPath": "/squads/5?thread=12"
+    },
+    "expected": "/notifications?squadId=5&channel=coach&thread=12"
+  },
+  {
+    "name": "squad /squads/5?tab=sessions",
+    "notification": {
+      "id": 1,
+      "type": "SQUAD_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "squad",
+      "entityId": 5,
+      "linkPath": "/squads/5?tab=sessions"
+    },
+    "expected": "/squads/5?tab=sessions"
+  },
+  {
+    "name": "squad /squads/5#squad-update-72",
+    "notification": {
+      "id": 1,
+      "type": "SQUAD_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "squad",
+      "entityId": 5,
+      "linkPath": "/squads/5#squad-update-72"
+    },
+    "expected": "/squads/5#squad-update-72"
+  },
+  {
+    "name": "CLUB_APPLICATION_RECEIVED",
+    "notification": {
+      "id": 1,
+      "type": "CLUB_APPLICATION_RECEIVED",
+      "scope": "PERSONAL",
+      "entityType": "club_membership_application",
+      "entityId": 81,
+      "clubId": 7,
+      "linkPath": "/account"
+    },
+    "expected": "/clubs/7/workspace?tab=applications&applicationId=81"
+  },
+  {
+    "name": "TRYOUT_APPLICATION_RECEIVED",
+    "notification": {
+      "id": 1,
+      "type": "TRYOUT_APPLICATION_RECEIVED",
+      "scope": "PERSONAL",
+      "entityType": "tryout_application",
+      "entityId": 81,
+      "clubId": 7,
+      "linkPath": "/account"
+    },
+    "expected": "/clubs/7/workspace?tab=tryouts&applicationId=81"
+  },
+  {
+    "name": "TRYOUT_APPLICATION_ACCEPTED",
+    "notification": {
+      "id": 1,
+      "type": "TRYOUT_APPLICATION_ACCEPTED",
+      "scope": "PERSONAL",
+      "linkPath": "/account"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "CLUB_APPLICATION_DECLINED",
+    "notification": {
+      "id": 1,
+      "type": "CLUB_APPLICATION_DECLINED",
+      "scope": "PERSONAL",
+      "linkPath": "/account"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "CLUB_DISSOLVED",
+    "notification": {
+      "id": 1,
+      "type": "CLUB_DISSOLVED",
+      "scope": "PERSONAL",
+      "linkPath": "/account"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "conversation typed",
+    "notification": {
+      "id": 1,
+      "type": "NEW_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "conversation",
+      "entityId": 91,
+      "linkPath": "/messages?conversationId=90"
+    },
+    "expected": "/messages?conversationId=91"
+  },
+  {
+    "name": "conversation missing id",
+    "notification": {
+      "id": 1,
+      "type": "NEW_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "conversation",
+      "linkPath": "/messages"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "conversation invalid id",
+    "notification": {
+      "id": 1,
+      "type": "NEW_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "conversation",
+      "entityId": -1
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "match chat ready",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_CHALLENGE_CHAT_READY",
+      "scope": "PERSONAL",
+      "linkPath": "/messages?conversationId=91"
+    },
+    "expected": "/messages?conversationId=91"
+  },
+  {
+    "name": "legacy management",
+    "notification": {
+      "id": 1,
+      "type": "CLUB_APPLICATION_RECEIVED",
+      "scope": "PERSONAL",
+      "linkPath": "/clubs/7?manageClub=1&managementTab=applications"
+    },
+    "expected": "/clubs/7/workspace?tab=applications"
+  },
+  {
+    "name": "reject https://evil.test/squads/5",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "https://evil.test/squads/5"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject //evil.test/squads/5",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "//evil.test/squads/5"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /\\evil.test",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/\\evil.test"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/../account",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/../account"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/%2e%2e/account",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/%2e%2e/account"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/%252e%252e/account",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/%252e%252e/account"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5%2f6",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5%2f6"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5?thread=0",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5?thread=0"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5?thread=4&thread=5",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5?thread=4&thread=5"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5#squad-update-0",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5#squad-update-0"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /notifications?venueId=7&bookingId=0",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/notifications?venueId=7&bookingId=0"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /notifications?venueId=7&bookingId=81&itemId=1",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/notifications?venueId=7&bookingId=81&itemId=1"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /messages?conversationId=9007199254740992",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/messages?conversationId=9007199254740992"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /match-exchange/9007199254740992",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/match-exchange/9007199254740992"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /tournaments/9/delete",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/tournaments/9/delete"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /event-venues",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/event-venues"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /parent/enrollment",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/parent/enrollment"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5?redirect=https%3A%2F%2Fevil.test",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5?redirect=https%3A%2F%2Fevil.test"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5?tab=%00",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5?tab=%00"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5?tab=%",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5?tab=%"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /squads/5\n",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/squads/5\n"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "legacy match conversation typed",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_CHALLENGE_CHAT_READY",
+      "scope": "PERSONAL",
+      "entityType": "conversation",
+      "entityId": 91,
+      "linkPath": "/messages?chat=91"
+    },
+    "expected": "/messages?conversationId=91"
+  },
+  {
+    "name": "legacy conversation link without entity",
+    "notification": {
+      "id": 1,
+      "type": "MATCH_CHALLENGE_CHAT_READY",
+      "scope": "PERSONAL",
+      "linkPath": "/messages?chat=91"
+    },
+    "expected": "/messages?conversationId=91"
+  },
+  {
+    "name": "squad canonical",
+    "notification": {
+      "id": 1,
+      "type": "SQUAD_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "squad",
+      "entityId": 5,
+      "linkPath": "/notifications?squadId=5&channel=coach&thread=12"
+    },
+    "expected": "/notifications?squadId=5&channel=coach&thread=12"
+  },
+  {
+    "name": "squad mismatch",
+    "notification": {
+      "id": 1,
+      "type": "SQUAD_MESSAGE",
+      "scope": "PERSONAL",
+      "entityType": "squad",
+      "entityId": 6,
+      "linkPath": "/squads/5?thread=12"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /notifications?squadId=5",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/notifications?squadId=5"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /notifications?squadId=5&channel=coach",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/notifications?squadId=5&channel=coach"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /notifications?squadId=5&channel=chat&thread=12",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/notifications?squadId=5&channel=chat&thread=12"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /notifications?squadId=5&channel=chat&bookingId=81&venueId=7",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/notifications?squadId=5&channel=chat&bookingId=81&venueId=7"
+    },
+    "expected": "/notifications?itemId=1"
+  },
+  {
+    "name": "reject /messages?chat=91&conversationId=92",
+    "notification": {
+      "id": 1,
+      "type": "OTHER",
+      "scope": "PERSONAL",
+      "linkPath": "/messages?chat=91&conversationId=92"
+    },
+    "expected": "/notifications?itemId=1"
+  }
+]

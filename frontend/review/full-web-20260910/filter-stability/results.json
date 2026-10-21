@@ -1,0 +1,18 @@
+{
+  "directory": {
+    "repeatedFilterChanges": 31,
+    "requestsForRepeatedChanges": 31,
+    "totalRequestsIncludingTextChecks": 46,
+    "fastTypingPreserved": true,
+    "retainedControls": true,
+    "retainedCardsDuringLoading": true,
+    "recoveredFromEmptyWithoutLosingFocus": true
+  },
+  "feed": {
+    "repeatedSwitches": 21,
+    "requests": 21,
+    "retainedPostsDuringLoading": true
+  },
+  "documentNavigations": 1,
+  "errors": []
+}

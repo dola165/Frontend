@@ -1,0 +1,20 @@
+/* World map panel (wide screens) and bottom sheet (phones). Scoped under .gk; tokens only. */
+.gk .gk-map-panel { position: absolute; z-index: 20; display: flex; flex-direction: column; min-height: 0; background: var(--gk-surface); color: var(--gk-text); }
+.gk .gk-map-panel--floating { top: var(--gk-3); left: var(--gk-3); bottom: var(--gk-3); width: var(--gk-map-panel-w, 400px); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); box-shadow: var(--gk-elevation); }
+.gk .gk-map-panel--floating[data-collapsed] { bottom: auto; }
+.gk .gk-map-panel--docked { top: 0; left: 0; bottom: 0; width: var(--gk-map-panel-w, 480px); border-right: 1px solid var(--gk-line); }
+.gk .gk-map-panel__head { flex: none; display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-map-panel[data-collapsed] .gk-map-panel__head { border-bottom: 0; }
+.gk .gk-map-panel__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.gk .gk-map-panel__foot { flex: none; padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); background: var(--gk-surface); }
+.gk .gk-map-panel--floating .gk-map-panel__foot { border-radius: 0 0 var(--gk-r-lg) var(--gk-r-lg); }
+
+.gk .gk-map-sheet { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; min-height: 0; background: var(--gk-surface); border-top: 1px solid var(--gk-line); border-radius: var(--gk-r-lg) var(--gk-r-lg) 0 0; box-shadow: 0 -8px 28px color-mix(in srgb, var(--gk-shadow) 30%, transparent); transition: top .28s var(--gk-ease); }
+.gk .gk-map-sheet[data-snap='peek'] { top: calc(100% - var(--gk-sheet-peek, 84px)); }
+.gk .gk-map-sheet[data-snap='half'] { top: 48%; }
+.gk .gk-map-sheet[data-snap='full'] { top: var(--gk-sheet-top, 64px); }
+.gk .gk-map-sheet__handle { flex: none; display: grid; place-items: center; width: 100%; height: 28px; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; border-radius: var(--gk-r-lg) var(--gk-r-lg) 0 0; }
+.gk .gk-map-sheet__handle > span { width: 40px; height: 5px; border-radius: var(--gk-r-pill); background: var(--gk-line-strong); }
+.gk .gk-map-sheet__head { flex: none; padding: 0 var(--gk-4) var(--gk-3); }
+.gk .gk-map-sheet__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom); }
+.gk .gk-map-sheet__foot { flex: none; padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); }

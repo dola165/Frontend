@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": { "tsBuildInfoFile": "./node_modules/.tmp/map-demo.tsbuildinfo" },
+  "include": ["src/demo/mapWorkspace"],
+  "exclude": ["src/demo/mapWorkspace/**/*.test.ts"]
+}

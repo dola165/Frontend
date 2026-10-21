@@ -1,0 +1,12 @@
+import {chromium,expect} from '@playwright/test';
+const browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',r=>r.request().url().startsWith('http://127.0.0.1:5300')?r.continue():r.abort());
+await page.goto('http://127.0.0.1:5300/e2e/fixtures/schedule-preview.html?lang=ka&newEvent=1');
+await expect(page.locator('.schedule-compose')).toBeVisible();
+if((await page.locator('.schedule-compose').innerText()).includes('One-time event'))throw Error('English creation mode leaked');
+await page.locator('[data-field="title"]').fill('აკადემიის საღამოს ვარჯიში');
+await page.locator('.schedule-compose-modes button').nth(1).click();await page.locator('.schedule-compose-footer .primary').click();
+await expect(page.locator('.schedule-compose-next li')).toHaveCount(3);await page.screenshot({path:'review/schedule-redesign-20260913/16-georgian-weekly-desktop.png'});
+await page.setViewportSize({width:390,height:844});await page.screenshot({path:'review/schedule-redesign-20260913/17-georgian-weekly-phone.png'});
+await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+await page.locator('.schedule-compose-footer .primary').click();await expect(page.locator('.schedule-compose-footer .primary')).toBeInViewport();await page.locator('.schedule-compose-footer .primary').click();await expect(page.getByRole('dialog')).toHaveCount(0);
+if(errors.length)throw Error(errors.join('\n'));console.log('Georgian desktop/phone editor and save passed.');await browser.close();

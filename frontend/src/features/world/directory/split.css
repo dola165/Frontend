@@ -1,0 +1,48 @@
+/* Under the map: the filters across the page, then the list in one bounded column the width of the Home feed (680px),
+   left of centre from the start, the page's background either side. The thing pressed in it shows in a pane beside
+   it: the list and the pane together sit in the middle of the page, and nothing reflows inside the list. Scoped under
+   .gk; tokens only. */
+.gk .gk-world-split { display: grid; grid-template-columns: minmax(0, 680px); justify-content: center; align-items: start; margin-top: var(--gk-6); }
+.gk .gk-world-list { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; }
+.gk .gk-world-list > .gk-world-below { margin: 0; }
+/* The list's own filters, as pills on a strip over the rows (the column beside the map holds the same ones as lines);
+   their panels open against the strip, under their pill. */
+.gk .gk-world-filterbar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-world-filterbar:empty { display: none; }
+.gk .gk-world-filterbar > .gk-world-filters { flex: 1 1 auto; min-width: 0; }
+/* The page's actions ("+ Arrange a match") at the strip's end, so the obvious thing is beside the list too. */
+.gk .gk-world-filterbar__actions { flex: none; display: flex; align-items: center; gap: var(--gk-2); margin-left: auto; }
+.gk .gk-world-filterbar .gk-world-pill { position: static; }
+.gk .gk-world-filterbar .gk-world-pill__pop { top: 0; left: 0; }
+.gk .gk-world-filterbar .gk-world-pill__pop[data-wide] { right: auto; width: min(560px, 100%); }
+@media (min-width: 1100px) {
+  /* Three tracks: room on the left (a third of what the list leaves, so the list sits left of centre), the list, the
+     pane. With the pane (up to 920px after its gap) the two together sit in the middle: what is left is shared equally. */
+  .gk .gk-world-split { --list: min(680px, 100%); justify-content: start;
+    grid-template-columns: clamp(0px, (100% - var(--list)) / 3, 400px) var(--list) 0px; transition: grid-template-columns .26s var(--gk-ease-out, ease); }
+  /* With the pane the list gives way on smaller laptops (480px at the least) so the pane keeps room to read. */
+  .gk .gk-world-split[data-pane] { --list: clamp(480px, 100% - 520px, 680px); --pane: min(944px, 100% - var(--list));
+    grid-template-columns: max(0px, (100% - var(--list) - var(--pane)) / 2) var(--list) var(--pane); }
+  .gk .gk-world-split > .gk-world-list { grid-column: 2; }
+  .gk .gk-world-split > .gk-world-pane { grid-column: 3; margin-left: var(--gk-6); }
+}
+@media (max-width: 640px) { .gk .gk-world-split { margin-top: var(--gk-5); } }
+
+/* The pane stays in view under the app's header while the list scrolls; its own body scrolls inside it. */
+/* Its height leaves room for the page's own end padding, so at the bottom of the page its header never slides under the app's. */
+.gk .gk-world-pane { --pane-h: calc(100dvh - var(--app-active-header-height, 0px) - 2 * var(--gk-4) - var(--gk-16)); position: sticky; top: calc(var(--app-active-header-height, 0px) + var(--gk-4));
+  display: flex; min-width: 0; border-radius: 12px; outline: none; animation: gk-pane-in .24s .08s var(--gk-ease-out, ease) both; }
+@keyframes gk-pane-in { from { opacity: 0; transform: translateX(12px); } }
+.gk .gk-world-pane:focus-visible { box-shadow: 0 0 0 2px var(--gk-accent); }
+
+/* The feed's sizes in the column: a 14px name, a 12px line and 11px lines under it, quiet greys. */
+.gk .gk-world-list .gk-result { padding: var(--gk-3) var(--gk-4); }
+.gk .gk-world-list .gk-result__title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; }
+.gk .gk-world-list .gk-result__line { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+.gk .gk-world-list .gk-result__line[data-line='0'] { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-world-list .gk-result__line svg { width: 12px; height: 12px; }
+.gk .gk-world-list .gk-list-row { padding: var(--gk-3) var(--gk-4); }
+.gk .gk-world-list .gk-list-row__title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; }
+.gk .gk-world-list .gk-list-row__meta { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+
+@media (prefers-reduced-motion: reduce) { .gk .gk-world-split { transition: none; } .gk .gk-world-pane { animation: none; } }

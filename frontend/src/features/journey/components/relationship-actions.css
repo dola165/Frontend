@@ -1,0 +1,13 @@
+.relationship-panel { margin: 0 0 1rem; padding: 1rem; border: 1px solid var(--fc-border, var(--color-border)); border-radius: 1rem; color: var(--fc-text-primary, var(--color-text)); background: var(--fc-page-bg, var(--color-surface)); }
+.relationship-panel > h2 { margin: 0 0 .85rem; font-size: 1rem; font-weight: 700; line-height: 1.4; }
+.relationship-panel h3 { margin: .4rem 0; font-size: .95rem; font-weight: 650; overflow-wrap: anywhere; }
+.relationship-panel p { margin: .5rem 0; font-size: .85rem; line-height: 1.55; color: var(--fc-text-secondary, var(--color-muted)); }
+.relationship-panel article + article { border-top: 1px solid var(--fc-border, var(--color-border)); margin-top: .85rem; padding-top: .85rem; }
+.relationship-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.relationship-actions button, .relationship-panel > p button { border: 1px solid var(--fc-border, var(--color-border)); border-radius: .6rem; padding: .6rem .75rem; font: inherit; font-size: .8rem; font-weight: 600; line-height: 1.4; background: var(--fc-surface, var(--color-surface)); color: var(--fc-text-primary, var(--color-text)); cursor: pointer; text-align: left; }
+.relationship-actions .relationship-primary { background: var(--accent-primary, var(--color-accent)); color: var(--color-on-accent); border-color: transparent; }
+.relationship-actions button:disabled { cursor: wait; opacity: .6; }
+.relationship-actions button:focus-visible, .relationship-panel a:focus-visible { outline: 2px solid var(--accent-primary, var(--color-accent)); outline-offset: 3px; }
+.relationship-panel a { color: var(--accent-primary, var(--color-accent)); text-decoration: underline; text-underline-offset: 3px; }
+.relationship-confirmation { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--fc-border, var(--color-border)); }
+.relationship-panel:focus { outline: 2px solid var(--accent-primary, var(--color-accent)); outline-offset: 3px; }

@@ -1,0 +1,16 @@
+/* Reuse the application shell's light/dark tokens without changing other pages. */
+.parent-hub, .squad-page, .squad-home, .parent-dialog {
+    --fc-page-bg: var(--app-shell-base);
+    --fc-card-bg: var(--app-shell-surface);
+    --fc-surface-hover: var(--app-shell-inset);
+    --fc-border: var(--app-border-strong);
+    --fc-text-primary: var(--app-text-primary);
+    --fc-text-secondary: var(--app-text-secondary);
+    --fc-text-muted: var(--app-text-secondary);
+    --fc-accent: var(--app-accent-primary);
+    --fc-accent-soft: var(--app-accent-primary-soft);
+    --fc-accent-border: var(--app-border-strong);
+    --fc-state-danger: var(--color-danger);
+    --fc-state-danger-soft: var(--color-danger-soft);
+    --fc-state-warning: var(--color-warning);
+}

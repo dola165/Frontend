@@ -1,0 +1,14 @@
+{
+  "geometry": {
+    "height": 359,
+    "scrollHeight": 3128,
+    "headerHeight": 98,
+    "listOverflow": "visible"
+  },
+  "filterContentHeight": 289,
+  "firstClubTap": true,
+  "lastClubTap": true,
+  "walkingRetryTap": true,
+  "filtersApplyTap": true,
+  "errors": []
+}

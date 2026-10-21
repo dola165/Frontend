@@ -8,7 +8,7 @@ import { tournamentEntryStatusText } from '../../../components/tournaments/tourn
 interface Props {
     tournamentId: number;
     stageId: number;
-    refreshKey: number;
+    refreshKey: number | string;
     entryStatuses: Map<number, TournamentEntryStatus>;
     advanceCount?: number | null;
 }
@@ -16,9 +16,9 @@ interface Props {
 const badgeStatuses = new Set(['ELIMINATED', 'WAITLISTED', 'COMPLETED']);
 
 const badgeTones: Record<string, string> = {
-    ELIMINATED: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
-    WAITLISTED: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
-    COMPLETED: 'border-[#ffffff0d] bg-[#16181d] text-[#a1a1aa]',
+    ELIMINATED: 'border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]',
+    WAITLISTED: 'border-[color:var(--color-warning)]/30 bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]',
+    COMPLETED: 'border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] text-[var(--color-secondary)]',
 };
 
 const sortRows = (rows: GroupStandingsRow[]): GroupStandingsRow[] =>
@@ -32,74 +32,79 @@ const sortRows = (rows: GroupStandingsRow[]): GroupStandingsRow[] =>
 
 export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuses, advanceCount }: Props) => {
     const { t } = useTranslation();
-    const [rows, setRows] = useState<GroupStandingsRow[] | null>(null);
+    const [attempt, setAttempt] = useState(0);
+    const requestKey = `${tournamentId}:${stageId}:${refreshKey}:${attempt}`;
+    const [result, setResult] = useState<{ key: string; rows: GroupStandingsRow[] | null; failed: boolean }>({ key: '', rows: null, failed: false });
+    const rows = result.key === requestKey ? result.rows : null;
+    const failed = result.key === requestKey && result.failed;
 
     useEffect(() => {
         let cancelled = false;
         fetchGroupStandings(tournamentId, stageId)
             .then((data) => {
-                if (!cancelled) setRows(data ?? []);
+                if (!cancelled) setResult({ key: requestKey, rows: data ?? [], failed: false });
             })
             .catch(() => {
-                if (!cancelled) setRows([]);
+                if (!cancelled) setResult({ key: requestKey, rows: null, failed: true });
             });
         return () => {
             cancelled = true;
         };
-    }, [tournamentId, stageId, refreshKey]);
+    }, [tournamentId, stageId, requestKey]);
 
-    if (rows === null) return null;
+    if (failed) return <div className="tw-empty" role="alert"><p>{t('tournaments.public.detailLoadFailed')}</p><button className="tw-button" onClick={() => setAttempt(value => value + 1)}>{t('tournaments.public.tryAgain')}</button></div>;
+    if (rows === null) return <div className="tw-empty" role="status"><p>{t('tournaments.workspace.loading')}</p></div>;
 
     return (
-        <div className="border-t border-white/[0.08] bg-[#0a0e0b]">
+        <div className="border-t border-[color:var(--color-border)]/[0.08] bg-[var(--color-page)]">
             <div className="flex items-center justify-between gap-3 px-5 py-3.5">
                 <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-zinc-500"><BarChart3 className="h-4 w-4" /></span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--color-border)]/[0.08] bg-[color:var(--color-ink)]/[0.03] text-[color:var(--color-muted)]"><BarChart3 className="h-4 w-4" /></span>
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-300">{t('tournaments.standings.title')}</p>
-                        <p className="mt-0.5 text-[11px] text-zinc-600">{t('tournaments.standings.rankingHint')}</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[color:var(--color-secondary)]">{t('tournaments.standings.title')}</p>
+                        <p className="mt-0.5 text-[11px] text-[color:var(--color-muted)]">{t('tournaments.standings.rankingHint')}</p>
                     </div>
                 </div>
                 {advanceCount != null && advanceCount > 0 && (
-                    <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-1 text-[10px] font-bold text-emerald-300">
+                    <span className="rounded-full border border-[color:var(--color-accent)]/15 bg-[color:var(--color-accent)]/[0.06] px-2.5 py-1 text-[10px] font-bold text-[color:var(--color-accent)]">
                         {t('tournaments.standings.advanceCount', { count: advanceCount })}
                     </span>
                 )}
             </div>
             {rows.length === 0 ? (
-                <div className="border-t border-white/[0.06] px-5 py-8 text-center">
-                    <p className="text-sm font-semibold text-zinc-400">{t('tournaments.standings.empty')}</p>
-                    <p className="mt-1 text-xs text-zinc-600">{t('tournaments.standings.emptyHint')}</p>
+                <div className="border-t border-[color:var(--color-border)]/[0.06] px-5 py-8 text-center">
+                    <p className="text-sm font-semibold text-[color:var(--color-muted)]">{t('tournaments.standings.empty')}</p>
+                    <p className="mt-1 text-xs text-[color:var(--color-muted)]">{t('tournaments.standings.emptyHint')}</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto border-t border-white/[0.06]">
+                <div className="overflow-x-auto border-t border-[color:var(--color-border)]/[0.06]">
                     <table className="w-full min-w-[720px] text-sm">
                         <thead>
-                            <tr className="border-b border-[#ffffff0d]">
-                                <th className="w-8 px-3 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]">#</th>
-                                <th className="px-2 py-2 text-left text-[11px] font-semibold text-[#a1a1aa]" />
-                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Played">
+                            <tr className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
+                                <th className="w-8 px-3 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]">#</th>
+                                <th className="px-2 py-2 text-left text-[11px] font-semibold text-[var(--color-secondary)]" />
+                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Played">
                                     {t('tournaments.standings.p')}
                                 </th>
-                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Won">
+                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Won">
                                     {t('tournaments.standings.w')}
                                 </th>
-                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Drawn">
+                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Drawn">
                                     {t('tournaments.standings.d')}
                                 </th>
-                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Lost">
+                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Lost">
                                     {t('tournaments.standings.l')}
                                 </th>
-                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Goals for">
+                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Goals for">
                                     {t('tournaments.standings.gf')}
                                 </th>
-                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Goals against">
+                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Goals against">
                                     {t('tournaments.standings.ga')}
                                 </th>
-                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Goal difference">
+                                <th className="px-2 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Goal difference">
                                     {t('tournaments.standings.gd')}
                                 </th>
-                                <th className="px-3 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]" title="Points">
+                                <th className="px-3 py-2 text-center text-[11px] font-semibold text-[var(--color-secondary)]" title="Points">
                                     {t('tournaments.standings.pts')}
                                 </th>
                             </tr>
@@ -109,11 +114,11 @@ export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuse
                                 const qualifies = advanceCount != null && advanceCount > 0 && index < advanceCount;
                                 return <tr
                                     key={row.entryId}
-                                    className={`border-b border-white/[0.06] transition-colors hover:bg-white/[0.03] ${qualifies ? 'bg-emerald-300/[0.035]' : ''}`}
+                                    className={`border-b border-[color:var(--color-border)]/[0.06] transition-colors hover:bg-[color:var(--color-ink)]/[0.03] ${qualifies ? 'bg-[color:var(--color-accent)]/[0.035]' : ''}`}
                                 >
-                                    <td className={`border-l-2 px-3 py-3 text-center text-xs font-black ${qualifies ? 'border-emerald-300 text-emerald-300' : 'border-transparent text-zinc-500'}`}>{index + 1}</td>
+                                    <td className={`border-l-2 px-3 py-3 text-center text-xs font-black ${qualifies ? 'border-[color:var(--color-accent)] text-[color:var(--color-accent)]' : 'border-transparent text-[color:var(--color-muted)]'}`}>{index + 1}</td>
                                     <td className="px-2 py-2">
-                                        <span className="text-sm font-bold text-zinc-100">{row.entryName}</span>
+                                        <span className="text-sm font-bold text-[color:var(--color-text)]">{row.entryName}</span>
                                         {(() => {
                                             const status = entryStatuses.get(row.entryId);
                                             if (!status || !badgeStatuses.has(status)) return null;
@@ -124,16 +129,16 @@ export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuse
                                             );
                                         })()}
                                     </td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.played}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.won}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.drawn}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.lost}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.goalsFor}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.goalsAgainst}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[color:var(--color-muted)]">{row.played}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[color:var(--color-muted)]">{row.won}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[color:var(--color-muted)]">{row.drawn}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[color:var(--color-muted)]">{row.lost}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[color:var(--color-muted)]">{row.goalsFor}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[color:var(--color-muted)]">{row.goalsAgainst}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[var(--color-secondary)]">
                                         {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
                                     </td>
-                                    <td className="px-3 py-2 text-center text-base font-black tabular-nums text-emerald-300">{row.points}</td>
+                                    <td className="px-3 py-2 text-center text-base font-black tabular-nums text-[color:var(--color-accent)]">{row.points}</td>
                                 </tr>
                             })}
                         </tbody>

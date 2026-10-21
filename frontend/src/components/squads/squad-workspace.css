@@ -1,0 +1,161 @@
+.sw-dialog-backdrop {
+    position: fixed;
+    z-index: 230;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-overlay) 73%, transparent);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+.sw-dialog {
+    width: min(100%, 570px);
+    max-height: min(800px, calc(100dvh - 48px));
+    overflow-y: auto;
+    background: var(--sd-bg);
+    border: 1px solid var(--sd-border);
+    border-radius: 13px;
+    color: var(--sd-text);
+    box-shadow: 0 24px 80px color-mix(in srgb, var(--color-shadow) 45%, transparent);
+    scrollbar-width: thin;
+}
+.sw-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 28px 29px 24px;
+    border-bottom: 1px solid var(--sd-border);
+}
+.sw-dialog-header h2 {
+    font-size: 30px;
+    font-weight: 730;
+    letter-spacing: -0.035em;
+    margin: 7px 0 10px;
+    line-height: 1.1;
+}
+.sw-dialog-header p.sd-muted {
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+}
+.sw-dialog-fields {
+    display: grid;
+    gap: 22px;
+    padding: 27px 29px;
+}
+.sw-dialog-fields label {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.sw-dialog-fields input,
+.sw-dialog-fields select {
+    min-width: 0;
+    width: 100%;
+    border-radius: 6px;
+    padding: 12px;
+    min-height: 46px;
+    border: 1px solid var(--sd-border);
+    background: var(--sd-surface);
+    color: var(--sd-text);
+    outline: none;
+    font-size: 14px;
+    font-weight: 400;
+}
+.sw-dialog-fields input::placeholder {
+    color: var(--sd-muted);
+}
+.sw-dialog-fields input:focus,
+.sw-dialog-fields select:focus {
+    border-color: var(--sd-accent);
+    box-shadow: 0 0 0 1px var(--sd-accent);
+}
+.sw-dialog-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.sw-squad-preview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 21px 0 2px;
+    border-top: 1px solid var(--sd-border);
+}
+.sw-squad-preview > svg {
+    color: var(--sd-accent);
+    flex-shrink: 0;
+}
+.sw-squad-preview strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+.sw-squad-preview span {
+    display: block;
+    margin-top: 5px;
+    color: var(--sd-secondary);
+    font-size: 11px;
+}
+.sw-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    position: sticky;
+    bottom: 0;
+    padding: 18px 29px;
+    background: var(--sd-bg);
+    border-top: 1px solid var(--sd-border);
+}
+.sw-error {
+    color: var(--color-danger);
+    border-left: 3px solid var(--color-danger);
+    padding: 10px 13px;
+    background: color-mix(in srgb, var(--color-danger) 7%, transparent);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+}
+@media (max-width: 600px) {
+    .sw-dialog-backdrop {
+        padding: 12px;
+    }
+    .sw-dialog {
+        max-height: calc(100dvh - 24px);
+        border-radius: 10px;
+    }
+    .sw-dialog-header,
+    .sw-dialog-fields {
+        padding: 22px;
+    }
+    .sw-dialog-fields input,
+    .sw-dialog-fields select {
+        font-size: 16px;
+    }
+    .sw-dialog-header h2 {
+        font-size: 27px;
+    }
+    .sw-dialog-pair {
+        gap: 10px;
+    }
+    .sw-dialog-footer {
+        padding: 17px 22px;
+    }
+}
+.sw-dialog-footer {
+    flex-wrap: wrap;
+    align-items: center;
+}
+.sw-dialog-footer > p {
+    flex: 1 1 100%;
+    margin: 0 0 2px;
+    color: var(--sd-secondary);
+    font-size: 13px;
+}
+.sw-dialog-footer .sw-discard {
+    color: var(--color-danger);
+}

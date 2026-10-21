@@ -1,0 +1,68 @@
+/* What World's pane and drawers show beyond a thing's head: tabs that switch in place (an overview, then each part on
+   its own), and a little of each part under a title with "View …" to its tab, two columns when the pane is wide.
+   Scoped under .gk; tokens only. */
+/* The tabs stay at the top of the pane while a long part scrolls under them (at its very edge, over the body's padding). */
+.gk .gk-pane-parts { display: flex; flex-direction: column; gap: var(--gk-3); }
+/* All of a club's parts show: on a narrower pane the tabs wrap onto a second line rather than hide off the edge. */
+.gk .gk-pane-tabs { position: sticky; top: calc(-1 * var(--body-pad, var(--gk-4))); z-index: 1; flex-wrap: wrap; gap: 0; overflow: visible; background: var(--gk-surface); }
+.gk .gk-pane-tabs .gk-tab { min-height: 36px; padding: 0 10px; font-size: var(--gk-fs-sm); }
+.gk .gk-pane-tabs .gk-tab[aria-selected='true']::after { left: 10px; right: 10px; }
+.gk .gk-pane-tabs:not([role]) { align-items: center; min-height: 36px; }
+.gk .gk-pane-tabs .gk-tab:focus-visible, .gk .gk-pane-more:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
+.gk .gk-pane-panel { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; }
+
+/* A little of each part: two columns when there is room. */
+.gk .gk-pane-sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; gap: var(--gk-4) var(--gk-6); padding-bottom: var(--gk-4); }
+.gk .gk-pane-section { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+/* A part alone in the two columns (only teams, or only results) takes the width. */
+.gk .gk-pane-sections > :only-child { grid-column: 1 / -1; }
+/* In a part's own tab, its things in columns. */
+.gk .gk-pane-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--gk-3) var(--gk-6); }
+.gk .gk-pane-note { margin: 2px 0 0; font-size: var(--gk-fs-xs); line-height: 1.45; color: var(--gk-text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .gk-pane-section > header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gk-2); }
+.gk .gk-pane-section > header .gk-peek-section__title { margin: 0; }
+.gk .gk-pane-more { display: inline-flex; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; align-items: center; gap: 2px; align-self: flex-start; color: var(--gk-accent); font-size: var(--gk-fs-xs); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.gk .gk-pane-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-pane-more svg { width: 13px; height: 13px; }
+.gk .gk-pane-line { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gk .gk-pane-line > a, .gk .gk-pane-line > b { font-weight: 600; color: var(--gk-text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-pane-line > a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-pane-line small { display: flex; align-items: center; gap: 4px; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-pane-line small svg { flex: none; width: 12px; height: 12px; }
+.gk .gk-pane-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: var(--gk-fs-sm); }
+.gk .gk-pane-chips a { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); color: var(--gk-text); text-decoration: none; }
+.gk .gk-pane-chips a:hover { background: var(--gk-hover); }
+.gk .gk-pane-chips svg { width: 13px; height: 13px; color: var(--gk-text-3); }
+.gk .gk-pane-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: var(--gk-2) var(--gk-3); margin: 0; padding: 0; list-style: none; }
+.gk .gk-pane-people li { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .gk-pane-people li > span { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-pane-people a { font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-pane-people a:hover { text-decoration: underline; }
+.gk .gk-pane-people small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-pane-honour { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-pane-honour svg { flex: none; width: 14px; height: 14px; color: var(--gk-warning); }
+.gk .gk-pane-honour span { flex: 1; min-width: 0; }
+@media (pointer: coarse) { .gk .gk-pane-tabs .gk-tab, .gk .gk-pane-chips a, .gk .gk-pane-more { min-height: 44px; } }
+/* A person's career: each kind (experience, qualifications…) under a small heading. */
+.gk .gk-pane-career { display: flex; flex-direction: column; gap: var(--gk-1); }
+.gk .gk-pane-career + .gk-pane-career { margin-top: var(--gk-2); }
+.gk .gk-pane-career h4 { margin: 0; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); }
+/* A small heading inside a part (Next, Results), and a venue with its photo. */
+.gk .gk-pane-sub { margin: var(--gk-1) 0 0; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-pane-venue { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+/* A thing's top in the pane: its cover across the frame, its crest or face over the cover's edge, its name and facts. */
+.gk .gk-pane-top { --bleed: var(--body-pad, var(--gk-4)); display: flex; flex-direction: column; gap: var(--gk-3); margin: calc(-1 * var(--bleed)) calc(-1 * var(--bleed)) 0; }
+.gk .gk-pane-top > :not(.gk-pane-cover) { margin-inline: var(--bleed); }
+.gk .gk-pane-cover { height: 112px; overflow: hidden; background: linear-gradient(135deg, color-mix(in srgb, var(--gk-accent) 22%, var(--gk-surface)), var(--gk-surface)); }
+.gk .gk-pane-cover img { width: 100%; height: 100%; object-fit: cover; }
+/* The crest or face overlaps the cover's edge; the name and facts start just under the cover, never on it. */
+.gk .gk-pane-head { display: flex; align-items: flex-start; gap: var(--gk-3); margin-top: -32px; }
+.gk .gk-pane-head > .gk-avatar { flex: none; box-shadow: 0 0 0 3px var(--gk-surface); border-radius: 12px; }
+.gk .gk-pane-head > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-top: 38px; }
+.gk .gk-pane-head h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
+.gk .gk-pane-head p { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-pane-head--person > .gk-avatar { border-radius: 50%; }
+/* A part shown on its own in a person's drawer keeps the drawer's rhythm. */
+.gk .gk-drawer__body > .gk-pane-section { margin-top: var(--gk-4); }
+/* On a touch screen every link that opens something from the pane is 44px tall to press. */
+@media (pointer: coarse) { .gk .gk-pane-people a, .gk .gk-pane-line > a, .gk .gk-club-pane__belongs { display: inline-flex; align-items: center; min-height: 44px; } }

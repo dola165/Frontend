@@ -1,0 +1,53 @@
+.training-bookings {
+  --training-input: var(--color-inset);
+  --training-text: var(--compose-text, var(--fc-text-primary, var(--color-secondary)));
+  --training-line: var(--compose-line, var(--fc-border, var(--color-border)));
+  border: 1px solid var(--training-line);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  color: var(--training-text);
+}
+.training-bookings h3, .training-bookings p { margin: 0; }
+.training-bookings label { display: grid; gap: 6px; font-weight: 600; }
+.training-bookings input, .training-bookings select, .training-bookings textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--training-line);
+  border-radius: 7px;
+  background: var(--training-input);
+  color: var(--training-text);
+  font: inherit;
+}
+.training-bookings .training-booking-check { display: flex; align-items: center; gap: 10px; }
+.training-booking-check input { width: auto; accent-color: var(--compose-accent, var(--fc-accent, var(--color-accent))); }
+.training-booking-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.training-booking-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.training-bookings button {
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border: 1px solid var(--training-line);
+  border-radius: 7px;
+  background: var(--training-input);
+  color: var(--training-text);
+  font: inherit;
+}
+.training-bookings button:disabled { cursor: default; opacity: .55; }
+.training-booking-review { display: grid; gap: 10px; }
+.training-booking-review ol { display: grid; gap: 10px; padding: 0; list-style: none; max-height: 320px; overflow: auto; margin: 0; }
+.training-booking-review li { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--training-line); border-radius: 8px; font-size: .9rem; }
+.training-booking-conflict { color: var(--state-danger, var(--color-danger)); }
+.training-bookings small { font-weight: 400; }
+.training-bookings :is(input, select, textarea, button):focus-visible { outline: 2px solid var(--compose-accent, var(--fc-accent, var(--color-accent))); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .training-booking-fields { grid-template-columns: 1fr; }
+  .training-bookings { padding: 12px; }
+  .training-booking-actions button { flex: 1 1 140px; }
+}

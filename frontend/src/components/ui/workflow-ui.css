@@ -1,0 +1,35 @@
+.gk-empty {
+  display: flex; align-items: flex-start; gap: 22px; padding: clamp(24px, 4vw, 44px);
+  border: 1px solid var(--theme-border); border-radius: 18px;
+  background: var(--bg-surface); color: var(--text-primary); min-width: 0;
+}
+.gk-empty__icon {
+  display: grid; place-items: center; flex: 0 0 54px; height: 54px; border-radius: 16px;
+  color: var(--accent-primary); background: var(--accent-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+.gk-empty .gk-empty__body { min-width: 0; max-width: 58ch; }
+.gk-empty .gk-empty__body h3 { font-size: 17px; font-weight: 650; letter-spacing: -.02em; line-height: 1.4; color: var(--text-primary); margin: 0 0 7px; }
+.gk-empty .gk-empty__body p { font-size: 14px; line-height: 1.65; color: var(--text-secondary); margin: 0; overflow-wrap: anywhere; }
+.gk-empty.gk-empty--compact { padding: 22px; gap: 16px; border-radius: 12px; background: var(--bg-inset); }
+.gk-empty--compact .gk-empty__icon { flex-basis: 42px; height: 42px; border-radius: 12px; }
+.gk-empty--compact .gk-empty__body h3 { font-size: 15px; }
+.gk-empty--compact .gk-empty__body p { font-size: 13px; }
+.gk-empty .gk-state-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: fit-content;
+  min-height: 44px; margin-top: 20px; padding: 10px 14px; border: 1px solid var(--theme-border-strong);
+  border-radius: 9px; background: var(--bg-elevated); color: var(--text-primary); text-decoration: none;
+  font: inherit; font-size: 13px; font-weight: 650; cursor: pointer;
+}
+.gk-empty .gk-state-action:hover { border-color: var(--accent-primary); background: var(--accent-primary-soft); }
+.gk-empty .gk-state-action:focus-visible { outline: 3px solid var(--accent-primary); outline-offset: 3px; }
+.gk-record-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); gap: 20px; margin: 0; }
+.gk-record-facts > div { min-width: 0; }
+.gk-record-facts dt { display: flex; align-items: center; gap: 7px; margin: 0 0 7px; font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.gk-record-facts dd { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-primary); overflow-wrap: anywhere; }
+@media(max-width: 520px) {
+  .gk-empty { gap: 16px; padding: 22px 18px; }
+  .gk-empty__icon { flex-basis: 44px; height: 44px; border-radius: 12px; }
+  .gk-empty .gk-empty__body h3 { font-size: 16px; }
+  .gk-record-facts { gap: 16px; }
+}

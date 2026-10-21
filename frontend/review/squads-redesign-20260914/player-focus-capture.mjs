@@ -1,0 +1,12 @@
+import {chromium,expect} from '@playwright/test';
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const page=await browser.newPage({viewport:{width:1600,height:1000}});
+await page.route('**/*',r=>r.request().url().startsWith('http://127.0.0.1:5300')?r.continue():r.abort());
+await page.goto('http://127.0.0.1:5300/e2e/fixtures/squads-preview.html?view=squads&lang=en');
+await page.getByRole('button',{name:'Add players',exact:true}).click();
+await expect(page.locator('.prf-player-option').first()).toBeVisible();
+await expect(page.locator('.prf-picker-search input')).toHaveCSS('outline-style','none');
+await page.screenshot({path:'review/squads-redesign-20260914/add-players-desktop.png'});
+await page.setViewportSize({width:390,height:844});
+await page.screenshot({path:'review/squads-redesign-20260914/add-players-mobile.png'});
+await browser.close();

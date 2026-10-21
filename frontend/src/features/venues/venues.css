@@ -1,0 +1,7 @@
+/* Shared venue styles, imported by the venue pages and by every venue component before its own stylesheet.
+   The order is the cascade: frame, building blocks, profile, then the screen-size rules that override them. */
+@import './venue-page.css';
+@import './venue-ui.css';
+@import './venue-profile.css';
+@import './venue-responsive.css';
+@import './venue-booking-page.css';

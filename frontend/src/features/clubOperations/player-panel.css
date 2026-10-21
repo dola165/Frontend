@@ -1,0 +1,14 @@
+/* A squad player's notes and tools, in a design-system sheet. Scoped under `.gk`; tokens only. */
+.gk .wpp-facts { display: flex; flex-wrap: wrap; gap: var(--gk-1); margin-top: var(--gk-1); }
+.gk .wpp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .wpp-actions svg { width: 16px; height: 16px; }
+.gk .wpp-observation { display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
+/* Each group sits in its own box, so the sheet reads like the drawer beside it. */
+.gk .wpp-records .gk-list-row__meta { white-space: normal; }
+.gk .wpp-tool-icon { width: 18px; height: 18px; color: var(--gk-text-3); }
+.gk .wpp-remove { margin-left: auto; color: var(--gk-danger); }
+.gk .wpp-remove:hover { background: var(--gk-danger-soft); color: var(--gk-danger); }
+/* The tool or record open in the drawer beside the sheet. */
+.gk .wpp-records .gk-list-row[aria-current] { background: var(--gk-accent-soft); }
+.gk .wpp-records .gk-list-row[aria-current] .gk-list-row__title { font-weight: 600; }
+.gk .wpp-records .gk-list-row[aria-current] .wpp-tool-icon { color: var(--gk-accent); }

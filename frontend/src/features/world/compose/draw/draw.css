@@ -1,0 +1,58 @@
+/* The Draw room: creating a tournament in World's frame. The tournament as it will be stays at the top, Create and what
+   it does at the bottom, the questions scroll between with hairlines, no boxes inside boxes. Scoped under .gk; tokens only. */
+.gk .gk-draw { --pad: var(--body-pad, var(--gk-5)); display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-draw__preview { position: sticky; top: calc(-1 * var(--pad)); z-index: 2; display: flex; align-items: flex-start; gap: var(--gk-3);
+  margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 0; padding: var(--gk-3) var(--pad); border-bottom: 1px solid var(--gk-line); background: var(--gk-surface); }
+.gk .gk-draw__glyph { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--gk-accent-soft); color: var(--gk-accent); font-size: 32px; }
+.gk .gk-draw__preview > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-draw__preview strong { font-size: var(--gk-fs-md); overflow-wrap: anywhere; }
+.gk .gk-draw__preview p { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-draw__preview p.gk-draw__estimate { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .gk-draw__estimate span { font-style: italic; }
+
+.gk .gk-draw__question { min-width: 0; margin: 0; border: 0; padding: var(--gk-5) 0; display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-draw__question + .gk-draw__question, .gk .gk-draw__question + .gk-draw__more, .gk .gk-draw__more + .gk-draw__question { border-top: 1px solid var(--gk-line); }
+.gk .gk-draw__question > legend { float: left; width: 100%; padding: 0; margin-bottom: var(--gk-1); }
+.gk .gk-draw__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: var(--gk-3) var(--gk-4); }
+.gk .gk-draw__chosen { margin: 0; font-weight: 600; }
+.gk .gk-draw__empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); }
+.gk .gk-draw__empty p { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-draw__narrow { width: 72px; }
+.gk .gk-draw__half { max-width: 320px; }
+/* Five tiles share the drawer's width (the list's own tiles are fixed at 92px). */
+.gk .gk-draw .gk-draw__question .gk-pick-tiles.gk-draw__tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.gk .gk-draw__stepper { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-draw__stepper output { min-width: 32px; text-align: center; font-size: var(--gk-fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.gk .gk-draw__venue { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--gk-2); }
+.gk .gk-draw__check { display: flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .gk-draw__order { display: flex; flex-direction: column; gap: 2px; margin: 0 0 var(--gk-2); padding: 0; list-style: none; counter-reset: order; }
+.gk .gk-draw__order li { display: flex; align-items: center; gap: var(--gk-1); font-size: var(--gk-fs-sm); counter-increment: order; }
+.gk .gk-draw__order li::before { content: counter(order) '.'; min-width: 18px; color: var(--gk-text-3); }
+.gk .gk-draw__order li span { flex: 1; }
+.gk .gk-draw__banner { width: 100%; max-height: 140px; object-fit: cover; border-radius: var(--gk-r); }
+.gk .gk-draw__file { position: relative; overflow: hidden; cursor: pointer; }
+.gk .gk-draw__file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.gk .gk-draw__file:focus-within { box-shadow: 0 0 0 2px var(--gk-accent); }
+
+/* Folded parts: the place for searches, and the rules in detail. */
+.gk .gk-draw__more { padding: var(--gk-4) 0; }
+.gk .gk-draw__more > summary { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 44px; padding-right: var(--gk-6); cursor: pointer; list-style: none; }
+/* A chevron that turns when the fold opens: the part is seen to open. */
+.gk .gk-draw__more > summary::after { content: ''; position: absolute; right: 6px; top: 50%; width: 8px; height: 8px; border-right: 2px solid var(--gk-text-3); border-bottom: 2px solid var(--gk-text-3); transform: translateY(-70%) rotate(45deg); transition: transform .15s var(--gk-ease); }
+.gk .gk-draw__more[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
+.gk .gk-draw__more > summary::-webkit-details-marker { display: none; }
+.gk .gk-draw__more > summary:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); border-radius: 6px; }
+.gk .gk-draw__more-body { display: flex; flex-direction: column; gap: var(--gk-4); padding-top: var(--gk-3); }
+.gk .gk-draw__question .gk-draw__more { padding: 0; }
+
+/* Create, and what it does, stay in view at the bottom. */
+.gk .gk-draw__foot { position: sticky; bottom: calc(-1 * var(--pad)); z-index: 2; display: flex; flex-direction: column; gap: var(--gk-2);
+  margin: 0 calc(-1 * var(--pad)) calc(-1 * var(--pad)); padding: var(--gk-3) var(--pad); border-top: 1px solid var(--gk-line); background: var(--gk-surface); }
+.gk .gk-draw__next { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-draw__problem { display: inline-flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-draw__problem::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); }
+.gk .gk-draw__actions { display: flex; justify-content: space-between; gap: var(--gk-2); }
+@media (max-width: 640px) { .gk .gk-draw .gk-draw__question .gk-pick-tiles.gk-draw__tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .gk .gk-draw__venue { grid-template-columns: 1fr; } }
+@media (pointer: coarse) { .gk .gk-draw__actions .gk-btn { min-height: 44px; } }
+.gk .gk-draw__actions > :last-child { margin-left: auto; }
+.gk .gk-draw__confirm { display: inline-flex; gap: var(--gk-2); }

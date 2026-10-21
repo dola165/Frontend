@@ -1,0 +1,61 @@
+/* Pages: creating one (the start sheet), claiming, the entry points. Scoped under .gk where the design system runs; tokens only. */
+
+/* The four picture tiles. A theme-coloured veil keeps the words readable on any photo, light or dark. */
+.gk .gk-ctiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-ctiles--two { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 560px; }
+.gk .gk-ctile { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; min-height: 116px; padding: var(--gk-3); border-radius: var(--gk-r-lg); border: 1px solid var(--gk-line);
+  background: var(--tile-photo) var(--tile-position, center) / cover no-repeat, var(--gk-sunken); color: var(--gk-text); font: inherit; text-align: left; text-decoration: none; cursor: pointer; overflow: hidden; isolation: isolate;
+  transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease), transform .2s var(--gk-ease); }
+.gk .gk-ctile::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, color-mix(in srgb, var(--gk-bg) 20%, transparent), color-mix(in srgb, var(--gk-bg) 90%, transparent) 72%); }
+.gk .gk-ctile:hover { border-color: var(--gk-line-strong); transform: translateY(-1px); }
+.gk .gk-ctile__icon { width: 28px; height: 28px; margin-bottom: auto; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--tile) 24%, var(--gk-surface)); color: var(--tile); }
+.gk .gk-ctile__icon svg { width: 15px; height: 15px; }
+.gk .gk-ctile__label { font-weight: 650; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+.gk .gk-ctile__hint { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+.gk .gk-ctile[aria-checked='true'] { border-color: var(--gk-accent); box-shadow: 0 0 0 2px var(--gk-accent-soft); }
+.gk .gk-ctile__tick { position: absolute; top: var(--gk-2); right: var(--gk-2); width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--gk-accent); color: var(--gk-on-accent); opacity: 0; transform: scale(.6); transition: opacity .15s var(--gk-ease), transform .2s var(--gk-ease); }
+.gk .gk-ctile__tick svg { width: 13px; height: 13px; }
+.gk .gk-ctile[aria-checked='true'] .gk-ctile__tick { opacity: 1; transform: none; }
+.gk .gk-ctile__lock { position: absolute; top: var(--gk-2); right: var(--gk-2); color: var(--gk-text-2); }
+.gk .gk-ctile__lock svg { width: 14px; height: 14px; }
+.gk .gk-ctile[aria-disabled='true'] { opacity: .62; cursor: not-allowed; }
+@media (max-width: 640px) { .gk .gk-ctiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gk .gk-ctile { min-height: 104px; } }
+
+/* The name with the town beside it, the town list, the known pages it looks like. */
+.gk .gk-cname { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-cname__row { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-cname__row .gk-input { flex: 1; min-width: 0; min-height: 44px; font-size: var(--gk-fs-xl); }
+.gk .gk-cname__town { min-height: 44px; flex-shrink: 0; max-width: 45%; }
+.gk .gk-cname__town span, .gk .gk-cname__town { overflow: hidden; text-overflow: ellipsis; }
+.gk .gk-ctowns { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.gk .gk-ctowns .gk-chip { min-height: 32px; }
+.gk .gk-cmatch { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); }
+.gk .gk-cmatch__title { font-weight: 650; }
+.gk .gk-cmatch ul { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-cmatch li, .gk .gk-cmatch__page { display: flex; align-items: center; gap: var(--gk-3); }
+.gk .gk-cmatch__text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: var(--gk-lh-md); }
+.gk .gk-cmatch__text > span, .gk .gk-cmatch__text > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-cmatch__text small { color: var(--gk-text-2); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); }
+.gk .gk-cmatch__no { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); text-decoration: underline; cursor: pointer; }
+.gk .gk-create-text { color: var(--gk-accent); font-weight: 600; }
+
+/* The Home rail card: a picture, four words, an arrow. Lives outside .gk, so it reads the app's own tokens. */
+.gk-create-card { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; margin-bottom: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--color-border);
+  background: var(--card-photo) center / cover no-repeat, var(--color-surface); color: var(--color-text); text-decoration: none; overflow: hidden; isolation: isolate; }
+.gk-create-card::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, color-mix(in srgb, var(--color-surface) 92%, transparent), color-mix(in srgb, var(--color-surface) 70%, transparent)); }
+.gk-create-card:hover { border-color: var(--color-accent); }
+.gk-create-card:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.gk-create-card__text { display: flex; flex-direction: column; min-width: 0; }
+.gk-create-card__title { font-size: 13px; font-weight: 650; line-height: 18px; }
+.gk-create-card__hint { font-size: 11px; line-height: 15px; color: var(--color-secondary); }
+.gk-create-card svg { flex-shrink: 0; width: 16px; height: 16px; color: var(--color-accent); }
+
+/* My Club without a club: two choices with pictures. */
+.gk .gk-myclub { padding-top: var(--gk-6); padding-bottom: var(--gk-10); }
+.gk .gk-myclub .gk-section + * { margin-top: var(--gk-6); }
+.gk .gk-myclub__loading { display: grid; place-items: center; min-height: 240px; color: var(--gk-text-2); }
+
+/* The first run's offer to a coach: one sentence and a link. */
+.gk .gk-start__offer { margin-top: var(--gk-2); }
+.gk .gk-start__link { padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-weight: 650; cursor: pointer; text-decoration: underline; }
+.gk .gk-start__link:disabled { opacity: .6; cursor: default; }

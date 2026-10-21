@@ -1,0 +1,125 @@
+/* The World stage: every World page's frame. A header row, the area's map with a glass panel over its right side,
+   then the page. The frame stays put between tabs; only what is in it changes. Scoped under .gk; tokens only. */
+.gk .gk-world-stage { --gk-panel-w: 380px; display: flex; flex-direction: column; gap: var(--gk-4); padding-bottom: var(--gk-16); }
+
+/* The header row: title, search, filters and actions on one line, the same height on every tab. */
+/* Above the map, so the filters' panels open over it. */
+.gk .gk-world-stage__head { position: relative; z-index: 10; min-height: 112px; }
+.gk .gk-world-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3) var(--gk-5); min-height: 64px; padding-top: var(--gk-3); animation: gk-world-appear .3s var(--gk-ease-out) both; }
+/* The filters: one long line under the title row, above the map and the list, kept at one height on every tab. */
+.gk .gk-world-head__filters { position: relative; flex: 1 1 100%; display: flex; align-items: center; min-height: 40px; }
+.gk .gk-world-head__filters .gk-world-pill { position: static; }
+.gk .gk-world-head__filters .gk-world-pill__pop { top: 0; left: 0; }
+.gk .gk-world-head__filters .gk-world-pill__pop[data-wide] { right: auto; width: min(560px, 100%); }
+.gk .gk-world-head__titles { flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 320px; }
+.gk .gk-world-head__titles h1 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em;
+  background: linear-gradient(180deg, var(--gk-text) 30%, color-mix(in srgb, var(--gk-text) 58%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.gk .gk-world-head__titles p { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-world-head__search { flex: 0 1 400px; min-width: 220px; }
+.gk .gk-world-head__search .gk-input { min-height: 42px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(12px); transition: border-color .2s, box-shadow .2s; }
+.gk .gk-world-head__search .gk-input:focus { border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); box-shadow: 0 0 0 4px var(--gk-accent-soft); }
+.gk .gk-world-head__tabs { max-width: 100%; }
+.gk .gk-world-head__actions { flex: none; display: flex; align-items: center; gap: var(--gk-2); margin-left: auto; }
+/* Laptops: two fixed lines on every page (title and lists; search and actions), in reading order, so the
+   header is the same height from tab to tab. Full HD keeps one line. */
+@media (min-width: 1100px) and (max-width: 1599px) {
+  .gk .gk-world-head { display: grid; grid-template-columns: minmax(220px, 340px) minmax(0, 1fr) auto; grid-template-areas: 'titles tabs tabs' 'search . actions' 'filters filters filters'; grid-template-rows: 52px 44px auto; align-items: center; }
+  .gk .gk-world-head__filters { grid-area: filters; }
+  .gk .gk-world-head__titles { grid-area: titles; max-width: none; }
+  .gk .gk-world-head__tabs { grid-area: tabs; justify-self: start; }
+  .gk .gk-world-head__search, .gk .gk-world-head > .gk-world-search { grid-area: search; min-width: 0; }
+  .gk .gk-world-head__actions { grid-area: actions; }
+}
+/* Narrow screens: each part on its own line in reading order; the title keeps its whole line. */
+@media (max-width: 1099px) {
+  .gk .gk-world-head__titles { flex: 1 1 100%; max-width: none; }
+  .gk .gk-world-head__search, .gk .gk-world-head > .gk-world-search { flex: 1 1 100%; }
+}
+@media (pointer: coarse) { .gk .gk-world-head__search .gk-input { min-height: 44px; } }
+
+/* The map: as tall as the first screen allows, on every World page, with the overview's glass look (world-map.css). */
+.gk .gk-world-stage__lead { position: relative; isolation: isolate; }
+.gk .gk-world-stage__map { --gk-world-map-h: clamp(440px, calc(100dvh - 236px), 940px); }
+@media (max-width: 760px) { .gk .gk-world-stage__map { --gk-world-map-h: clamp(260px, 52dvh, 460px); } }
+.gk .gk-world-stage__panel:empty, .gk .gk-world-stage__dock:empty, .gk .gk-world-stage__top:empty { display: none; }
+/* Where a list is (the day strip): at the map's top left, clear of the panel and the zoom buttons; the map's legend
+   steps down under it. Folded or narrow, it sits under the header and scrolls sideways. */
+@media (min-width: 1100px) {
+  .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__top { position: absolute; top: var(--gk-4); left: var(--gk-4); z-index: 4; display: flex;
+    max-width: calc(100% - var(--gk-panel-w) - 4 * var(--gk-4) - 40px); animation: gk-world-rise .6s .15s var(--gk-ease-out) both; }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__top:not(:empty)) .gk-world-map--hero .gk-world-map__legend { top: calc(var(--gk-4) + 72px); }
+}
+.gk .gk-world-stage__top-inline { display: flex; max-width: 100%; }
+/* The dock: a glass strip at the map's bottom left, above the pills and clear of the panel. The pin card then
+   opens at the top instead, under the key. */
+@media (min-width: 1100px) {
+  .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__dock { position: absolute; left: var(--gk-4); bottom: calc(var(--gk-4) + 36px + var(--gk-3)); z-index: 4;
+    width: min(560px, calc(100% - var(--gk-panel-w) - 4 * var(--gk-4))); max-height: calc(100% - 2 * var(--gk-4) - 52px - 36px - var(--gk-3)); display: flex; flex-direction: column; animation: gk-world-rise .6s .2s var(--gk-ease-out) both; }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__dock:not(:empty)) .gk-world-map--hero .gk-world-map__card { top: calc(var(--gk-4) + 52px); bottom: auto; }
+  .gk .gk-world-stage__lead:has(.gk-world-map__card) > .gk-world-stage__dock { max-height: calc(100% - 2 * var(--gk-4) - 52px - 36px - var(--gk-3) - 54px - var(--gk-3)); }
+}
+@media (min-width: 1100px) {
+  /* The panel floats over the map's right side in glass, as tall as its content up to the map's height. */
+  .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__panel { position: absolute; top: var(--gk-4); right: var(--gk-4); z-index: 5; display: flex; flex-direction: column;
+    width: var(--gk-panel-w); max-height: calc(100% - 2 * var(--gk-4) - 28px); animation: gk-world-panel .7s .1s var(--gk-ease-out) both; }
+  .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__panel > * { flex: 0 1 auto; min-height: 0; border-radius: 16px; background: var(--gk-glass); border-color: var(--gk-glass-line);
+    backdrop-filter: blur(22px) saturate(160%); box-shadow: var(--gk-glass-shadow); }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__panel:not(:empty)) .maplibregl-ctrl-top-right,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__panel:not(:empty)) .gk-world-map__card { right: calc(var(--gk-panel-w) + 2 * var(--gk-4)); }
+}
+@media (max-width: 1099px) { .gk .gk-world-stage__panel { margin-top: var(--gk-4); } }
+.gk .gk-world-stage__lead[data-folded] > .gk-world-stage__panel { margin-top: var(--gk-4); }
+
+/* The Map tab: the map fills the screen under the World bar; a solid column stands on its left (the search, the kinds
+   and the filters: no glass, which costs frames over a moving map) and the Browse area keeps its glass panel on the
+   right as on every tab. There is no header row; the rows follow below the map, and the wheel zooms the map. The
+   map's own things (its key, the pills, a chosen place) keep clear of the column. */
+.gk .gk-world-stage[data-side] > .gk-world-stage__head { display: none; }
+.gk .gk-world-stage__lead { --gk-side-w: 400px; }
+.gk .gk-world-stage__side:empty { display: none; }
+@media (min-width: 1100px) {
+  .gk .gk-world-stage__lead[data-side] > .gk-world-stage__map { --gk-world-map-h: max(480px, calc(100dvh - var(--gk-stage-top, 180px) - var(--gk-4))); }
+  .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__side { position: absolute; top: var(--gk-4); left: var(--gk-4); z-index: 5; display: flex; flex-direction: column;
+    width: var(--gk-side-w); max-height: calc(100% - 2 * var(--gk-4)); animation: gk-world-panel-left .7s .1s var(--gk-ease-out) both; }
+  .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__side > * { flex: 0 1 auto; min-height: 0; box-shadow: var(--gk-elevation); }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map--hero .gk-world-map__legend,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map__overlay,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map__search,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map__card,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__top,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__dock { left: calc(var(--gk-side-w) + 2 * var(--gk-4)); }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__top { max-width: calc(100% - var(--gk-side-w) - var(--gk-panel-w) - 6 * var(--gk-4) - 40px); }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__dock { width: min(560px, calc(100% - var(--gk-side-w) - var(--gk-panel-w) - 6 * var(--gk-4))); }
+}
+@media (max-width: 1099px) { .gk .gk-world-stage__side { margin-top: var(--gk-4); } }
+.gk .gk-world-stage__lead[data-folded] > .gk-world-stage__side { margin-top: var(--gk-4); }
+@keyframes gk-world-panel-left { from { opacity: 0; transform: translateX(-28px); } }
+
+/* Folded, the map is a slim strip that keeps its count and the way back. */
+.gk .gk-world-mapstrip { display: flex; align-items: center; gap: var(--gk-3); min-height: 44px; padding: 0 var(--gk-2) 0 var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-world-mapstrip > svg { flex: none; width: 16px; height: 16px; color: var(--gk-accent); }
+.gk .gk-world-mapstrip__toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--gk-3); border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-world-mapstrip__toggle:hover { background: var(--gk-hover); }
+.gk .gk-world-mapstrip__toggle svg { width: 16px; height: 16px; }
+/* Touch screens: every control on the map reaches the 44px target. */
+@media (pointer: coarse) { .gk .gk-world-mapstrip, .gk .gk-world-mapstrip__toggle, .gk a.gk-world-glass, .gk button.gk-world-glass { min-height: 44px; } }
+/* On a phone a chosen place's card takes the bottom of the map; the pills step aside until it is closed. */
+@media (max-width: 760px) { .gk .gk-world-map__canvas[data-card] .gk-world-map__overlay { display: none; } .gk .gk-world-map--hero .gk-world-map__card { bottom: var(--gk-4); } }
+
+/* The page below: it fades in when the tab changes, and keeps the page's height while it loads so nothing jumps. */
+.gk .gk-world-stage__body { min-height: 60dvh; animation: gk-world-fade .35s var(--gk-ease-out) both; }
+
+/* Clubs breathe: a ring slowly leaves each club, a little after the one before. */
+.gk .gk-world-stage .maplibregl-marker .gk-world-pin { position: relative; }
+.gk .gk-world-stage .gk-world-pin[data-tone='club']:not([data-count])::before { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--pin);
+  animation: gk-world-pulse 3.2s calc(var(--pin-i, 0) * .45s) infinite var(--gk-ease-out); pointer-events: none; }
+.gk .gk-world-stage .gk-world-map__overlay { animation: gk-world-rise .8s .3s var(--gk-ease-out) both; }
+
+@keyframes gk-world-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes gk-world-appear { from { opacity: 0; } }
+@keyframes gk-world-fade { from { opacity: 0; transform: translateY(6px); } }
+@keyframes gk-world-panel { from { opacity: 0; transform: translateX(28px); } }
+@keyframes gk-world-pulse { 0% { transform: scale(1); opacity: .75; } 70%, 100% { transform: scale(3.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .gk .gk-world-stage *, .gk .gk-world-stage { animation: none !important; transition: none !important; }
+}

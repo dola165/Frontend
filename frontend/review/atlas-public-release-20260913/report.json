@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "root": "https://app.grasskickz.com",
+  "asset": "/assets/index-BT5nxDJB.js",
+  "radiusCount": 14,
+  "areaCount": 1,
+  "cardFocus": true,
+  "scopePreserved": true,
+  "errors": [],
+  "queries": [
+    "https://app.grasskickz.com/api/map/nearby?lat=41.7151&lng=44.8271&west=44.6&south=41.55&east=45.05&north=41.87&radius=50&type=CLUB&page=0&size=100",
+    "https://app.grasskickz.com/api/map/nearby?lat=41.714&lng=44.778&west=44.6&south=41.55&east=45.05&north=41.87&radius=50&type=CLUB&page=0&size=100",
+    "https://app.grasskickz.com/api/map/nearby?lat=41.714&lng=44.778&radius=400&type=CLUB&page=0&size=100",
+    "https://app.grasskickz.com/api/map/nearby?lat=41.714&lng=44.778&west=44.72645894164998&east=44.76594105834886&south=41.71658501111858&north=41.74861099696162&radius=400&type=CLUB&page=0&size=100",
+    "https://app.grasskickz.com/api/map/nearby?lat=41.714&lng=44.778&west=44.72645894164998&east=44.76594105834886&south=41.71658501111858&north=41.74861099696162&radius=400&type=CLUB&page=0&size=100"
+  ]
+}

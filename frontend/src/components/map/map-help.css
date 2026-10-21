@@ -1,0 +1,81 @@
+/* Map help hint (MapHelpHint), in the utilities layer as before. */
+@layer utilities {
+  .map-help {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+  }
+
+  .map-help__trigger {
+    display: inline-flex;
+    height: 28px;
+    width: 28px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--map-panel-border);
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
+    color: var(--text-secondary);
+    transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+  }
+
+  .map-help:hover .map-help__trigger,
+  .map-help:focus-within .map-help__trigger {
+    border-color: var(--accent-primary);
+    background-color: var(--accent-primary-soft);
+    color: var(--accent-primary);
+  }
+
+  .map-help__tooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 1400;
+    width: min(240px, 70vw);
+    border: 1px solid var(--map-panel-border);
+    border-radius: 18px;
+    background-color: var(--map-panel-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--map-shadow-soft);
+    padding: 10px 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  .map-help:hover .map-help__tooltip,
+  .map-help:focus-within .map-help__tooltip {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .map-help__tooltip--right {
+    left: auto;
+    right: 0;
+  }
+
+  .map-help__tooltip--center {
+    left: 50%;
+    transform: translate(-50%, -4px);
+  }
+
+  .map-help:hover .map-help__tooltip--center,
+  .map-help:focus-within .map-help__tooltip--center {
+    transform: translate(-50%, 0);
+  }
+
+  /* ── Dark theme overrides (App.tsx toggles `dark` on <html>) — restores the
+     original dark family on top of the light base above. ── */
+
+  .dark .map-help__trigger {
+    color: var(--color-secondary);
+  }
+}

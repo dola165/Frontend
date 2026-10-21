@@ -1,0 +1,11 @@
+@import '../../../design/design.css';
+.gk.gk-page-review { box-sizing: border-box; display: flex; flex-direction: column; gap: var(--gk-4); width: min(100%, 960px); margin-inline: auto; padding: var(--gk-4); overflow-wrap: anywhere; }
+.gk.gk-page-review .gk-btn { min-height: 44px; min-width: 44px; }
+.gk-page-review .gk-row { flex-wrap: wrap; }
+.gk-page-review .gk-page-review__columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-5); }
+.gk-page-review .gk-page-review__list { max-height: 65vh; overflow-y: auto; }
+.gk-page-review dl > div { margin-block: var(--gk-2); }
+.gk-page-review dt { color: var(--gk-text-2); }
+.gk-page-review dd { margin: 0; }
+.gk-page-review textarea { min-height: 96px; }
+@media (max-width: 600px) { .gk-page-review .gk-page-review__columns { grid-template-columns: minmax(0, 1fr); } }

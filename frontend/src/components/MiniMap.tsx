@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import Map, { Marker, useMap } from 'react-map-gl/maplibre';
+import { maplibreWorkerUrl } from './map/maplibreWorker';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import './mini-map.css';
 import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MapHelpHint } from './map/MapHelpHint';
+import { MAP_STYLE_DARK } from './map/mapLayers';
 
-const MINI_MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
+const MINI_MAP_STYLE = MAP_STYLE_DARK;
 
 type MapPoint = [number, number];
 
@@ -58,7 +61,7 @@ export function MiniMap({
         <div className={mode === 'picker' ? `relative ${className}`.trim() : `sticky top-24 relative z-50 ${className}`.trim()}>
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
                 <div className="flex min-w-0 items-center gap-2">
-                    <h3 className="truncate text-xs font-semibold  text-[#f4f4f5]">{previewTitle}</h3>
+                    <h3 className="truncate text-xs font-semibold  text-[var(--color-text)]">{previewTitle}</h3>
                     {mode === 'picker' ? (
                         <MapHelpHint
                             text={selectedPoint ? 'Click a new spot to move the venue pin.' : 'Click anywhere on the map to place the venue pin.'}
@@ -72,7 +75,7 @@ export function MiniMap({
                         <button
                             type="button"
                             onClick={() => navigate('/map')}
-                            className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-[#ffffff0d] bg-[#16181d] px-2.5 text-[10px] font-semibold  text-[#f4f4f5] transition-colors hover:bg-elevated"
+                            className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-2.5 text-[10px] font-semibold  text-[var(--color-text)] transition-colors hover:bg-elevated"
                         >
                             <MapIcon className="h-3.5 w-3.5" />
                             Full Map
@@ -82,7 +85,7 @@ export function MiniMap({
                     <button
                         type="button"
                         onClick={() => setExpanded((current) => !current)}
-                        className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-[#ffffff0d] bg-[#16181d] px-2.5 text-[10px] font-semibold  text-[#f4f4f5] transition-colors hover:bg-elevated"
+                        className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-2.5 text-[10px] font-semibold  text-[var(--color-text)] transition-colors hover:bg-elevated"
                     >
                         {expanded ? <Shrink className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
                         {expanded ? 'Collapse' : 'Expand'}
@@ -96,6 +99,7 @@ export function MiniMap({
                 }`}
             >
                 <Map
+                    workerUrl={maplibreWorkerUrl}
                     initialViewState={{
                         latitude: center[0],
                         longitude: center[1],

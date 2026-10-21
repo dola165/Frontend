@@ -1,0 +1,24 @@
+/* Design system dialog. Scoped under .gk; tokens only. */
+.gk.gk-dialog-layer { position: fixed; inset: 0; z-index: 4000; display: grid; place-items: center; padding: var(--gk-4); }
+.gk .gk-dialog-backdrop { position: absolute; inset: 0; background: color-mix(in srgb, var(--gk-shadow) 55%, transparent); }
+.gk .gk-dialog { position: relative; display: flex; flex-direction: column; width: 100%; max-height: min(88dvh, 820px); background: var(--gk-surface); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); box-shadow: var(--gk-elevation); color: var(--gk-text); }
+.gk .gk-dialog--sm { max-width: 440px; }
+.gk .gk-dialog--md { max-width: 580px; }
+.gk .gk-dialog--lg { max-width: 760px; }
+.gk .gk-dialog__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gk-3); padding: var(--gk-5) var(--gk-5) var(--gk-3); }
+.gk .gk-dialog__titles { display: flex; flex-direction: column; gap: var(--gk-1); min-width: 0; padding-top: var(--gk-1); }
+.gk .gk-dialog__title { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
+.gk .gk-dialog__description { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
+.gk .gk-dialog__eyebrow { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; color: var(--gk-text-3); }
+.gk .gk-dialog__progress { padding: 0 var(--gk-5) var(--gk-3); }
+.gk .gk-dialog__body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-2) var(--gk-5) var(--gk-5); }
+.gk .gk-dialog__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--gk-2); padding: var(--gk-3) var(--gk-5); border-top: 1px solid var(--gk-line); }
+/* Sheet: docked to the right at full height on wider screens. */
+.gk.gk-dialog-layer--sheet { --gk-sheet-width: min(520px, 100vw); place-items: stretch end; padding: 0; }
+.gk .gk-dialog--sheet { width: var(--gk-sheet-width); max-width: none; height: 100dvh; max-height: none; border-width: 0 0 0 1px; border-radius: 0; }
+@media (max-width: 640px) {
+  .gk.gk-dialog-layer { place-items: end stretch; padding: 0; }
+  .gk .gk-dialog { max-width: none; max-height: 92dvh; border-radius: var(--gk-r-lg) var(--gk-r-lg) 0 0; }
+  .gk .gk-dialog__foot > .gk-btn { flex: 1; }
+  .gk .gk-dialog--sheet { width: 100%; border-width: 1px 0 0; }
+}

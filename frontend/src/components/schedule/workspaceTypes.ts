@@ -1,16 +1,13 @@
 import {
     CalendarDays,
     CalendarRange,
-    Globe2,
     LayoutGrid,
-    MapPinned,
-    Repeat2,
     Rows3,
     ShieldCheck,
-    Swords,
     UserRound
 } from 'lucide-react';
 import type { ScheduleEventType, ScheduleRecurrenceRule } from '../../features/schedule/api';
+import { activityColors, activityIcons } from '../../features/schedule/activityIcons';
 
 export type WorkspaceSurface = 'MY_SCHEDULE' | 'CLUB_SCHEDULE';
 export type WorkspaceView = 'month' | 'week' | 'day';
@@ -40,6 +37,18 @@ export interface ChallengeInfo {
 }
 
 export interface ScheduleWorkspaceEvent {
+    homeScore?: number | null;
+    awayScore?: number | null;
+    resultStatus?: import('../../features/matchHistory/api').ResultStatus;
+    matchExchangeId?: number | null;
+    canRecordResult?: boolean;
+    resultClubId?: number | null;
+    seriesId?: string | null;
+    /** Squad availability in opt-out terms: `going` are expected, `pending` were asked to confirm and have not. */
+    responseSummary?: { total: number; going: number; pending: number; cantCome?: number };
+    journeys?: import('../../features/mapPlanning/journeyScheduleData').JourneyEntry[];
+    origin?: 'CLUB_CALENDAR' | 'PERSONAL_CALENDAR' | 'MATCH_EXCHANGE' | 'SQUAD_SESSION' | 'JOURNEY';
+    originId?: number | null;
     id: string;
     eventId: number;
     title: string;
@@ -62,6 +71,8 @@ export interface ScheduleWorkspaceEvent {
     mapEligible: boolean;
     appearsOnMap: boolean;
     opponentClubId?: number | null;
+    hostSquadId?: number | null;
+    hostSquadName?: string | null;
     conflictingEventIds: number[];
     conflict?: ConflictInfo | null;
     challenge?: ChallengeInfo | null;
@@ -88,12 +99,15 @@ export const viewCopy: Record<WorkspaceView, { label: string; icon: typeof Layou
     day: { label: 'Day', icon: Rows3 }
 };
 
+const activity = (label: string, type: ScheduleEventType) => ({ label, accent: activityColors[type], soft: `color-mix(in srgb, ${activityColors[type]} 14%, transparent)`, icon: activityIcons[type] });
+/** Every match is green (a trophy, or a handshake for a friendly), training blue, a club event violet, a trial pink. */
 export const eventTypeCopy: Record<ScheduleEventType, { label: string; accent: string; soft: string; icon: typeof CalendarDays }> = {
-    TRAINING: { label: 'Training', accent: 'var(--accent-primary)', soft: 'var(--accent-primary-soft)', icon: Repeat2 },
-    TRYOUT: { label: 'Tryout', accent: 'var(--state-info)', soft: 'var(--state-info-soft)', icon: Globe2 },
-    MATCH: { label: 'Match', accent: 'var(--state-warning)', soft: 'var(--state-warning-soft)', icon: Swords },
-    FRIENDLY: { label: 'Friendly', accent: 'var(--accent-muted)', soft: 'var(--accent-muted-soft)', icon: MapPinned },
-    ACTIVITY: { label: 'Activity', accent: 'var(--theme-border-strong)', soft: 'var(--theme-surface-inset)', icon: CalendarDays }
+    TRAINING: activity('Training', 'TRAINING'),
+    TRYOUT: activity('Trial', 'TRYOUT'),
+    MATCH: activity('Match', 'MATCH'),
+    FRIENDLY: activity('Friendly', 'FRIENDLY'),
+    ACTIVITY: activity('Club event', 'ACTIVITY'),
+    MEETING: activity('Meeting', 'MEETING'),
 };
 
 export const visibilityCopy: Record<WorkspaceVisibility, string> = {

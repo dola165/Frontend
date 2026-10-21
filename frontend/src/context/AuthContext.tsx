@@ -1,17 +1,37 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { isAxiosError } from 'axios';
+import { appLanguage } from '../utils/formatting';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { isAndroidApp, nativeCall, nativeSession } from '../android/bridge';
+import { normalizeNavigationCapabilities, type NavigationCapabilities } from './navigationCapabilities';
 import {
     apiClient,
     ensureCsrfToken,
     refreshAccessToken,
-    setAuthFailureHandler
+    setAccountRestrictionHandler,
+    setAuthFailureHandler,
+    setDisplayedAuthSession,
+    type AuthSessionRequestConfig,
 } from '../api/axiosConfig';
 import {
     clearStoredAuth,
+    assertCurrentAuthSession,
+    getAuthSessionId,
     getStoredAccessToken,
+    isCurrentAuthSession,
+    isSignedInSession,
     setStoredAccessToken,
     setStoredUser,
-    setStoredUserId
+    setStoredUserId,
+    subscribeAuthSession,
+    type AuthSessionId,
 } from '../utils/authStorage';
+
+// A connection failure is not evidence of revoked authentication. Keep the
+// exact session and drafts while the account is unresolved; writes stay gated.
+// A refresh conflict (409) only means another request renewed the cookie first.
+const temporarySessionFailure = (error: unknown) => !isAxiosError(error) || !error.response
+    || error.response.status >= 500 || error.response.status === 408 || error.response.status === 429
+    || error.response.status === 409;
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 
@@ -28,14 +48,17 @@ export interface AuthUser {
     onboardingRequired: boolean;
     mustChangePassword: boolean;
     emailVerified: boolean;
+    navigationCapabilities?: NavigationCapabilities;
 }
 
 interface AuthContextValue {
+    sessionId: AuthSessionId;
     status: AuthStatus;
     user: AuthUser | null;
     isAuthenticated: boolean;
     isBootstrapping: boolean;
     bootstrapSession: () => Promise<AuthUser | null>;
+    refreshNavigationCapabilities: () => Promise<void>;
     loginWithAccessToken: (accessToken: string) => Promise<AuthUser>;
     logout: () => Promise<void>;
 }
@@ -55,36 +78,83 @@ const normalizeAuthUser = (payload: Record<string, unknown>) => ({
     onboardingRequired: payload.onboardingRequired === true || payload.profileComplete === false,
     mustChangePassword: payload.mustChangePassword === true,
     emailVerified: payload.emailVerified === true,
+    navigationCapabilities: normalizeNavigationCapabilities(payload.navigationCapabilities, Number(payload.id)),
 } satisfies AuthUser);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const sessionId = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    const [resolvedSessionId, setResolvedSessionId] = useState(getAuthSessionId);
     const [status, setStatus] = useState<AuthStatus>('bootstrapping');
     const [user, setUser] = useState<AuthUser | null>(null);
-    const bootstrapPromiseRef = useRef<Promise<AuthUser | null> | null>(null);
+    const [bootstrapError, setBootstrapError] = useState(false);
+    const bootstrapPromiseRef = useRef<{ sessionId: AuthSessionId; promise: Promise<AuthUser | null> } | null>(null);
+    const currentUserRequestRef = useRef(0);
 
-    const applyAuthenticatedState = useCallback((nextUser: AuthUser) => {
+    const applyAuthenticatedState = useCallback((nextUser: AuthUser, sessionId: AuthSessionId) => {
+        setResolvedSessionId(sessionId);
         setUser(nextUser);
         setStatus('authenticated');
         setStoredUserId(nextUser.id);
-        setStoredUser(nextUser);
+        // Workspace hints are ephemeral and must never be restored from browser storage.
+        setStoredUser({ ...nextUser, navigationCapabilities: undefined });
     }, []);
 
     const clearSession = useCallback(() => {
+        setBootstrapError(false);
         clearStoredAuth();
+        setResolvedSessionId(getAuthSessionId());
         setUser(null);
         setStatus('anonymous');
     }, []);
 
-    const fetchCurrentUser = useCallback(async () => {
-        const response = await apiClient.get<Record<string, unknown>>('/users/me');
+    const fetchCurrentUser = useCallback(async (sessionId: AuthSessionId) => {
+        assertCurrentAuthSession(sessionId);
+        const request = ++currentUserRequestRef.current;
+        // Bootstrap targets the incoming session while the old UI is blocked.
+        const config: AuthSessionRequestConfig = { _authSessionId: sessionId };
+        const response = await apiClient.get<Record<string, unknown>>('/users/me', config);
+        assertCurrentAuthSession(sessionId);
         const normalizedUser = normalizeAuthUser(response.data);
-        applyAuthenticatedState(normalizedUser);
+        if (request === currentUserRequestRef.current) applyAuthenticatedState(normalizedUser, sessionId);
         return normalizedUser;
     }, [applyAuthenticatedState]);
 
+    const refreshNavigationCapabilities = useCallback(async () => {
+        if (status !== 'authenticated' || resolvedSessionId !== getAuthSessionId() || bootstrapPromiseRef.current) return;
+        const session = resolvedSessionId;
+        const request = ++currentUserRequestRef.current;
+        try {
+            const config: AuthSessionRequestConfig = { _authSessionId: session };
+            const response = await apiClient.get<Record<string, unknown>>('/users/me', config);
+            if (!isCurrentAuthSession(session) || request !== currentUserRequestRef.current) return;
+            const next = normalizeAuthUser(response.data);
+            setUser(current => current?.id === next.id ? next
+                : current ? { ...current, navigationCapabilities: { version: 1, workspaces: [] } } : current);
+        } catch {
+            if (!isCurrentAuthSession(session) || request !== currentUserRequestRef.current) return;
+            // Retire stale shortcuts on failure without discarding the authenticated account.
+            setUser(current => current ? { ...current, navigationCapabilities: { version: 1, workspaces: [] } } : current);
+        }
+    }, [status, resolvedSessionId]);
+
+    useEffect(() => {
+        if (status !== 'authenticated') return;
+        const refresh = () => { if (document.visibilityState === 'visible') void refreshNavigationCapabilities(); };
+        window.addEventListener('focus', refresh);
+        document.addEventListener('visibilitychange', refresh);
+        const timer = window.setInterval(refresh, 60_000);
+        return () => {
+            window.removeEventListener('focus', refresh);
+            document.removeEventListener('visibilitychange', refresh);
+            window.clearInterval(timer);
+        };
+    }, [status, refreshNavigationCapabilities]);
+
     const bootstrapSession = useCallback(async () => {
-        if (bootstrapPromiseRef.current) {
-            return bootstrapPromiseRef.current;
+        setBootstrapError(false);
+        const sessionId = getAuthSessionId();
+        if (bootstrapPromiseRef.current?.sessionId === sessionId) {
+            return bootstrapPromiseRef.current.promise;
         }
 
         setStatus((current) => current === 'authenticated' ? current : 'bootstrapping');
@@ -93,18 +163,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const bootstrapTask = (async () => {
             try {
                 await ensureCsrfToken().catch(() => undefined);
+                assertCurrentAuthSession(sessionId);
 
                 if (!storedAccessToken) {
+                    if (isAndroidApp && !(await nativeSession()).active) { clearSession(); return null; }
                     await refreshAccessToken();
                 }
 
-                return await fetchCurrentUser();
+                return await fetchCurrentUser(sessionId);
             } catch (initialError) {
+                if (!isCurrentAuthSession(sessionId)) return null;
+                if (!isAndroidApp && temporarySessionFailure(initialError)) {
+                    setBootstrapError(true); return null;
+                }
+                if (isAndroidApp) {
+                    const session = await nativeSession().catch(() => null);
+                    if (session === null || session.active) { setBootstrapError(true); return null; }
+                    clearSession(); return null;
+                }
                 if (storedAccessToken) {
                     try {
                         await refreshAccessToken();
-                        return await fetchCurrentUser();
+                        return await fetchCurrentUser(sessionId);
                     } catch (refreshError) {
+                        if (!isCurrentAuthSession(sessionId)) return null;
+                        if (temporarySessionFailure(refreshError)) { setBootstrapError(true); return null; }
                         console.error('Failed to restore authenticated session.', refreshError);
                     }
                 } else {
@@ -114,57 +197,100 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 clearSession();
                 return null;
             } finally {
-                bootstrapPromiseRef.current = null;
+                if (bootstrapPromiseRef.current?.sessionId === sessionId) bootstrapPromiseRef.current = null;
             }
         })();
 
-        bootstrapPromiseRef.current = bootstrapTask;
+        bootstrapPromiseRef.current = { sessionId, promise: bootstrapTask };
         return bootstrapTask;
     }, [clearSession, fetchCurrentUser]);
 
     const loginWithAccessToken = useCallback(async (accessToken: string) => {
-        setStoredAccessToken(accessToken);
-        setStatus('bootstrapping');
-
-        try {
-            await ensureCsrfToken().catch(() => undefined);
-            return await fetchCurrentUser();
-        } catch (error) {
-            clearSession();
-            throw error;
+        if (typeof accessToken !== 'string' || !accessToken.trim()) {
+            throw new Error('Sign-in has not completed. Verify your account before continuing.');
         }
-    }, [clearSession, fetchCurrentUser]);
+        if (isAndroidApp) {
+            await nativeCall({ kind: 'signedIn' });
+            accessToken = 'native-session';
+        }
+        clearStoredAuth();
+        setStoredAccessToken(accessToken);
+        const nextUser = await bootstrapSession();
+        if (!nextUser) throw new Error('Unable to establish the signed-in account.');
+        return nextUser;
+    }, [bootstrapSession]);
 
     const logout = useCallback(async () => {
+        assertCurrentAuthSession(resolvedSessionId);
+        if (isAndroidApp) { clearSession(); await nativeCall({ kind: 'logout' }); return; }
+        // Retire local work immediately; a delayed logout must not clear a later login.
+        clearSession();
+        const sessionId = getAuthSessionId();
         try {
-            await ensureCsrfToken().catch(() => undefined);
-            await apiClient.post('/auth/logout');
+            const csrf = await ensureCsrfToken();
+            assertCurrentAuthSession(sessionId);
+            const config: AuthSessionRequestConfig = { ...csrf, _authSessionId: sessionId };
+            await apiClient.post('/auth/logout', {}, config);
         } catch (error) {
-            console.error('Logout failed.', error);
-        } finally {
-            clearSession();
+            if (isCurrentAuthSession(sessionId)) console.error('Logout failed.', error);
         }
-    }, [clearSession]);
+    }, [clearSession, resolvedSessionId]);
 
     useEffect(() => {
         setAuthFailureHandler(() => {
             clearSession();
         });
-
-        void bootstrapSession();
+        setAccountRestrictionHandler((code) => {
+            setUser(current => current ? {
+                ...current,
+                mustChangePassword: code === 'PASSWORD_CHANGE_REQUIRED',
+                ...(code !== 'PASSWORD_CHANGE_REQUIRED' ? { onboardingRequired: true, profileComplete: false } : {}),
+            } : current);
+        });
 
         return () => {
             setAuthFailureHandler(null);
+            setAccountRestrictionHandler(null);
         };
-    }, [bootstrapSession, clearSession]);
+    }, [clearSession]);
+
+    useEffect(() => {
+        // Adopt another tab's logout without rotating the shared marker or
+        // refreshing its cookie, which could resurrect the retired login. A signed-in
+        // session without a token in this tab (a reload, another tab's sign-in) gets
+        // one from the refresh cookie while bootstrapping.
+        if (sessionId !== null && !getStoredAccessToken(sessionId) && !isSignedInSession(sessionId)) {
+            setResolvedSessionId(sessionId);
+            setUser(null);
+            setStatus('anonymous');
+        } else {
+            void bootstrapSession();
+        }
+    }, [sessionId, bootstrapSession]);
+
+    useLayoutEffect(() => {
+        setDisplayedAuthSession(resolvedSessionId);
+        return () => setDisplayedAuthSession(undefined);
+    }, [resolvedSessionId]);
+
+    const visibleStatus = resolvedSessionId === sessionId ? status : 'bootstrapping';
+    const visibleUser = resolvedSessionId === sessionId ? user : null;
+
+    if (bootstrapError && !visibleUser) return <main role="alert" className="p-6 space-y-4">
+        <h1 className="text-xl font-semibold">{appLanguage() === 'ka' ? 'ანგარიში ვერ ჩაიტვირთა' : 'Your account could not be loaded'}</h1>
+        <p>{appLanguage() === 'ka' ? 'შეამოწმეთ კავშირი და სცადეთ ხელახლა. ანგარიშში შესვლა შენარჩუნებულია.' : 'Check your connection and try again. Your sign-in has been kept.'}</p>
+        <button className="rounded-xl bg-[color:var(--color-accent)] px-5 py-3 text-[color:var(--color-on-accent)]" onClick={() => void bootstrapSession()}>{appLanguage() === 'ka' ? 'ხელახლა ცდა' : 'Try again'}</button>
+    </main>;
 
     return (
         <AuthContext.Provider value={{
-            status,
-            user,
-            isAuthenticated: status === 'authenticated',
-            isBootstrapping: status === 'bootstrapping',
+            sessionId,
+            status: visibleStatus,
+            user: visibleUser,
+            isAuthenticated: visibleStatus === 'authenticated',
+            isBootstrapping: visibleStatus === 'bootstrapping',
             bootstrapSession,
+            refreshNavigationCapabilities,
             loginWithAccessToken,
             logout
         }}>

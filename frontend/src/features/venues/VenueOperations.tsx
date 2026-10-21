@@ -1,0 +1,32 @@
+import { useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import type { BookingKind, Venue } from './api';
+import { BookingRows } from './VenueBookings';
+import { useOwnerBookings } from './useOwnerBookings';
+import { bookingsOnDate, currentStatus, matchesBooking, needsDecision } from './ownerWorkflow';
+import { addDays, dayLabel, timeLabel, today } from './utils';
+
+export function VenueOperations({ venue, active, date, setDate, add, revision }: { venue: Venue; active: boolean; date: string; setDate: (date: string) => void; add: (kind: BookingKind) => void; revision: number }) {
+  return <Calendar key={`${venue.id}/${revision}`} venue={venue} active={active} date={date} setDate={setDate} add={add}/>;
+}
+function Calendar({ venue, active, date, setDate, add }: Omit<Parameters<typeof VenueOperations>[0], 'revision'>) {
+  const [view, setView] = useState<'day' | 'week'>('day'), [pitch, setPitch] = useState(0), [query, setQuery] = useState(''), [history, setHistory] = useState(false);
+  const data = useOwnerBookings(venue.id, venue.timezone, date, 7, active);
+  const days = Array.from({ length: view === 'week' ? 7 : 1 }, (_,i) => addDays(date, i));
+  const filtered = data.bookings.filter(b => (!pitch || b.pitchId === pitch) && matchesBooking(b, query) && (history || currentStatus(b, data.now) === 'CONFIRMED' || needsDecision(b, data.now)));
+  const visible = view === 'week' ? filtered : bookingsOnDate(filtered, date, venue.timezone);
+  const intake = venue.capabilities?.enabledActivities.includes('VENUE');
+  return <section className="venue-owner-calendar">
+    <div className="venue-section-heading"><div><p className="venue-eyebrow">One calendar for every commitment</p><h2>Calendar & reservations</h2><p>Phone bookings, online requests, regular teams and closures. All times in {venue.timezone}.</p></div><button className="venue-button venue-button--primary" disabled={!venue.pitches.some(p => p.active)} onClick={() => add(intake ? 'MANUAL' : 'CLOSURE')}><Plus size={17}/>{intake ? 'Add booking or closure' : 'Add closure'}</button></div>
+    <div className="venue-owner-calendar-toolbar"><div className="venue-week-controls"><button className="venue-button venue-icon-button" aria-label={view === 'day' ? 'Previous day' : 'Previous week'} onClick={() => setDate(addDays(date, view === 'day' ? -1 : -7))}><ChevronLeft size={17}/></button><label><span className="sr-only">Reservations date</span><input type="date" value={date} onChange={e => e.target.value && setDate(e.target.value)}/></label><button className="venue-button venue-icon-button" aria-label={view === 'day' ? 'Next day' : 'Next week'} onClick={() => setDate(addDays(date, view === 'day' ? 1 : 7))}><ChevronRight size={17}/></button><button className="venue-link" onClick={() => setDate(today(venue.timezone))}>Today</button></div><div className="venue-owner-toggle" aria-label="Calendar view">{(['day','week'] as const).map(v => <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{v === 'day' ? 'Day' : 'Week'}</button>)}</div><button className="venue-button" disabled={data.loading} onClick={data.refresh}>Refresh calendar</button></div>
+    <div className="venue-owner-calendar-filters"><label className="venue-field"><span>Pitch</span><select aria-label="Filter by pitch" value={pitch} onChange={e => setPitch(Number(e.target.value))}><option value={0}>All pitches</option>{venue.pitches.map(p => <option key={p.id} value={p.id}>{p.name}{!p.active ? ' · inactive' : ''}</option>)}</select></label><label className="venue-field venue-owner-search"><span>Find a booking in this {view}</span><div><Search size={17}/><input type="search" placeholder="Customer, phone, pitch or booking number" value={query} onChange={e => setQuery(e.target.value)}/></div></label><label className="venue-checkbox"><input type="checkbox" checked={history} onChange={e => setHistory(e.target.checked)}/>Include cancelled, declined & expired</label></div>
+    {data.loading ? <p className="venue-empty" role="status">Loading calendar…</p> : data.error ? <p className="venue-error" role="alert">{data.error}</p> : <>
+      <div className={`venue-owner-agenda ${view === 'week' ? 'is-week' : ''}`} aria-label={view === 'week' ? 'Week at a glance' : 'Day at a glance'}>{days.map(day => {
+        const entries = bookingsOnDate(filtered, day, venue.timezone).filter(b => currentStatus(b, data.now) === 'CONFIRMED' || needsDecision(b, data.now));
+        return <section key={day} className="venue-owner-agenda-day"><button className="venue-owner-day-heading" onClick={() => { setDate(day); setView('day'); }}><strong>{dayLabel(day)}</strong><small>{day === today(venue.timezone) ? 'Today · ' : ''}{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</small></button>{entries.slice(0,view === 'week' ? 4 : 12).map(b => <div className={`venue-owner-slot ${b.kind === 'CLOSURE' ? 'is-closed' : ''} ${currentStatus(b,data.now) === 'PENDING' ? 'is-pending' : ''}`} key={b.id}><strong>{timeLabel(b.startsAt, venue.timezone)}–{timeLabel(b.endsAt, venue.timezone)}</strong><span>{b.pitchName}</span><small>{b.kind === 'CLOSURE' ? 'Closed' : b.contactName || 'Reserved'}{currentStatus(b,data.now) === 'PENDING' ? ' · awaiting approval' : ''}</small></div>)}{!entries.length && <p>No entries{query || pitch ? ' match these filters' : ' recorded'}.</p>}{entries.length > (view === 'week' ? 4 : 12) && <p>+{entries.length - (view === 'week' ? 4 : 12)} more below</p>}</section>;
+      })}</div><p className="venue-muted">No entries means nothing is recorded here. Opening hours and shared pitch space also determine bookable availability.</p>
+      <div className="venue-section-heading"><h2>{view === 'week' ? 'This week’s entries' : dayLabel(date, 'long')}</h2><span className="venue-tag">{visible.length} {visible.length === 1 ? 'entry' : 'entries'}</span></div>
+      {!visible.length ? <div className="venue-panel venue-empty"><CalendarDays size={30}/><h3>{query || pitch ? 'No matching bookings' : 'Your calendar is clear here'}</h3><p>{query || pitch ? 'Try another date, pitch or search.' : 'Add commitments already agreed by phone or with regular teams.'}</p>{(query || pitch !== 0) && <button className="venue-button" onClick={() => { setQuery(''); setPitch(0); }}>Clear filters</button>}</div> : <BookingRows owner timezone={venue.timezone} bookings={visible} onChange={data.refresh}/>}
+    </>}
+  </section>;
+}

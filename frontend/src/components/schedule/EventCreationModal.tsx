@@ -1,545 +1,265 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-    Ban,
-    CalendarDays,
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    Clock,
-    Dumbbell,
-    Globe,
-    Handshake,
-    Loader2,
-    Lock,
-    Repeat2,
-    Swords,
-    Target,
-    X,
-    Zap
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { MiniMap } from '../MiniMap';
+import type { CSSProperties } from 'react';
+import { Trans } from 'react-i18next';
+import { Ban, CalendarDays, Check, ChevronLeft, ChevronRight, Loader2, Lock, Repeat2, X } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { cancelScheduleEvent } from '../../features/schedule/api';
-import type { DayOfWeek, ScheduleEventType, ScheduleEventUpsertInput, ScheduleVisibility } from '../../features/schedule/api';
-import { extractApiErrorMessage } from '../../utils/apiError';
+import { isExtensionCapabilityAvailable } from '../../features/capabilities/extensions';
+import type { EventCreationModalProps } from './eventEditor/eventEditorModel';
+import { useEventEditor } from './eventEditor/useEventEditor';
+import { EventPlanStep } from './eventEditor/EventPlanStep';
+import { EventWhenWhereStep } from './eventEditor/EventWhenWhereStep';
+import { EventReviewStep } from './eventEditor/EventReviewStep';
+import { EventPreview } from './eventEditor/EventPreview';
+import './eventEditor/event-dialog.css';
+import './eventEditor/event-fields.css';
+import './eventEditor/event-review.css';
+import './eventEditor/event-preview.css';
+import './eventEditor/event-actions.css';
+import './eventEditor/event-responsive.css';
+import './schedule-editor-identity.css';
 
-export type ModalSurface = 'MY_SCHEDULE' | 'CLUB_SCHEDULE';
-export type ModalMode = 'create' | 'edit';
+export type { EventCreationFormValues, ModalMode, ModalSurface } from './eventEditor/eventEditorModel';
 
-export interface EventCreationFormValues {
-    eventType: ScheduleEventType | null;
-    title: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    isRecurring: boolean;
-    locationName: string;
-    locationLat: string;
-    locationLng: string;
-    visibility: ScheduleVisibility;
-    publishAt: string;
-    description?: string;
-    recurrenceDays?: DayOfWeek[];
-    recurrenceStartDate?: string;
-    recurrenceEndDate?: string;
-    recurrenceStartTime?: string;
-    recurrenceEndTime?: string;
-}
+export const EventCreationModal = (props: EventCreationModalProps) => props.isOpen ? <EventCreationContent {...props} /> : null;
 
-interface EventCreationModalProps {
-    isOpen: boolean;
-    mode: ModalMode;
-    surface: ModalSurface;
-    initialValues: EventCreationFormValues;
-    clubId: number | null;
-    targetEventId?: number;
-    /** Whether the viewer manages the club that owns the event (OWNER/CLUB_ADMIN). */
-    canManageSchedule?: boolean;
-    /** Owning club of the event being edited — null for personal events. */
-    targetEventClubId?: number | null;
-    /** Original start of the event being edited (cancel is future-only). */
-    targetEventStartsAt?: string | null;
-    /** Fired after a successful cancel so the page can refresh its events. */
-    onCancelled?: () => void;
-    subjectLabel: string;
-    onClose: () => void;
-    onSubmit: (payload: ScheduleEventUpsertInput, meta: { eventType: ScheduleEventType; recurring: boolean }) => Promise<void>;
-}
-
-const dayOfWeekValues: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-const DAY_OPTIONS: Array<{ value: DayOfWeek; label: string }> = [
-    { value: 'MONDAY', label: 'Mon' }, { value: 'TUESDAY', label: 'Tue' },
-    { value: 'WEDNESDAY', label: 'Wed' }, { value: 'THURSDAY', label: 'Thu' },
-    { value: 'FRIDAY', label: 'Fri' }, { value: 'SATURDAY', label: 'Sat' },
-    { value: 'SUNDAY', label: 'Sun' }
-];
-
-const eventTypeOptions: Array<{ value: ScheduleEventType; labelKey: string; descriptionKey: string; icon: typeof CalendarDays }> = [
-    { value: 'TRAINING', labelKey: 'schedule.event.training', descriptionKey: 'schedule.event.trainingDescription', icon: Dumbbell },
-    { value: 'MATCH', labelKey: 'schedule.event.match', descriptionKey: 'schedule.event.matchDescription', icon: Swords },
-    { value: 'TRYOUT', labelKey: 'schedule.event.tryout', descriptionKey: 'schedule.event.tryoutDescription', icon: Target },
-    { value: 'FRIENDLY', labelKey: 'schedule.event.friendly', descriptionKey: 'schedule.event.friendlyDescription', icon: Handshake },
-    { value: 'ACTIVITY', labelKey: 'schedule.event.activity', descriptionKey: 'schedule.event.activityDescription', icon: Zap }
-];
-
-const visibilityOptions: Array<{ value: ScheduleVisibility; labelKey: string; descriptionKey: string; icon: typeof Globe }> = [
-    { value: 'PUBLIC', labelKey: 'schedule.event.public', descriptionKey: 'schedule.event.publicDescription', icon: Globe },
-    { value: 'PRIVATE', labelKey: 'schedule.event.private', descriptionKey: 'schedule.event.privateDescription', icon: Lock },
-    { value: 'SCHEDULED_PUBLICATION', labelKey: 'schedule.event.autoPublish', descriptionKey: 'schedule.event.autoPublishDescription', icon: Clock }
-];
-
-const bdt = (date: string, time: string) => `${date}T${time.length === 5 ? time : time.slice(0, 5)}:00`;
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const normDt = (v: string) => (v && v.length === 16 ? `${v}:00` : v);
-const normT = (t: string) => (t.length === 5 ? t : t.slice(0, 5));
-const gDow = (ds: string): DayOfWeek => {
-    const d = new Date(`${ds}T12:00:00`);
-    return Number.isNaN(d.getTime()) ? 'MONDAY' : dayOfWeekValues[d.getDay()];
-};
-
-export const EventCreationModal = ({
-    isOpen, mode, surface, initialValues, targetEventId, canManageSchedule = false,
-    targetEventClubId = null, targetEventStartsAt = null, onCancelled, onClose, onSubmit
-}: EventCreationModalProps) => {
-    const { t } = useTranslation();
-    const [step, setStep] = useState(0);
-    const [form, setForm] = useState<EventCreationFormValues>(initialValues);
-    const [creationMode, setCreationMode] = useState<'single' | 'recurring'>('single');
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-    const [cancelling, setCancelling] = useState(false);
-
-    useEffect(() => {
-        if (!isOpen) return;
-        setForm(initialValues);
-        setCreationMode(initialValues.isRecurring ? 'recurring' : 'single');
-        setStep(0);
-        setErrorMessage(null);
-        setSubmitting(false);
-        setCancelling(false);
-    }, [initialValues, isOpen]);
-
-    const isClub = surface === 'CLUB_SCHEDULE';
-    const isStanding = creationMode === 'recurring';
-    const isTraining = form.eventType === 'TRAINING';
-
-    // Cancel event: edit mode only, club-owned future events, manager viewing.
-    const targetStartMs = targetEventStartsAt ? new Date(targetEventStartsAt).getTime() : NaN;
-    const canCancelEvent = mode === 'edit'
-        && canManageSchedule
-        && targetEventClubId != null
-        && Number.isFinite(targetStartMs)
-        && targetStartMs > Date.now();
-
-    const update = <K extends keyof EventCreationFormValues>(field: K, value: EventCreationFormValues[K]) => {
-        setForm((prev) => ({ ...prev, [field]: value }));
-        if (errorMessage) setErrorMessage(null);
-    };
-
-    const toggleRecDay = (day: DayOfWeek) => {
-        const cur = form.recurrenceDays ?? [];
-        update('recurrenceDays', cur.includes(day) ? cur.filter((d) => d !== day) : [...cur, day]);
-    };
-
-    const canGoNext = useMemo(() => {
-        if (step === 0) {
-            const hasType = isStanding ? true : form.eventType !== null;
-            return hasType && form.title.trim().length > 0;
-        }
-        if (step === 1) {
-            if (isStanding) {
-                const days = form.recurrenceDays ?? [];
-                return Boolean(form.recurrenceStartDate && form.recurrenceStartTime && form.recurrenceEndTime && days.length > 0);
-            }
-            if (form.isRecurring && isTraining) {
-                return Boolean(form.recurrenceStartDate && form.recurrenceStartTime && form.recurrenceEndTime);
-            }
-            if (!form.date || !form.startTime || !form.endTime) return false;
-            try { return bdt(form.date, form.endTime) > bdt(form.date, form.startTime); } catch { return false; }
-        }
-        return true;
-    }, [step, form, isStanding, isTraining]);
-
-    const validate = (): string | null => {
-        if (!form.title.trim()) return t('schedule.event.titleRequired');
-        const recurring = form.isRecurring || isStanding;
-        if (recurring && (isTraining || isStanding)) {
-            if (!form.recurrenceStartDate || !form.recurrenceStartTime || !form.recurrenceEndTime) return t('schedule.event.recurringNeedsTimes');
-            if (form.recurrenceEndDate && form.recurrenceStartDate && form.recurrenceEndDate < form.recurrenceStartDate) return t('schedule.event.recurrenceEndBeforeStart');
-            if (form.recurrenceStartDate && form.recurrenceStartTime && form.recurrenceEndTime) {
-                if (bdt(form.recurrenceStartDate, form.recurrenceEndTime) <= bdt(form.recurrenceStartDate, form.recurrenceStartTime)) return t('schedule.event.endAfterStart');
-            }
-            const days = form.recurrenceDays ?? [];
-            if (days.length === 0) return t('schedule.event.selectWeekday');
-        } else {
-            if (!form.date || !form.startTime || !form.endTime) return t('schedule.event.dateTimesRequired');
-            if (bdt(form.date, form.endTime) <= bdt(form.date, form.startTime)) return t('schedule.event.endAfterStart');
-        }
-        if (isClub && form.visibility === 'SCHEDULED_PUBLICATION' && !form.publishAt) return t('schedule.event.publicationDateRequired');
-        // Past-event guard: the plan window must start in the future.
-        const startIso = recurring
-            ? (form.recurrenceStartDate && form.recurrenceStartTime ? bdt(form.recurrenceStartDate, form.recurrenceStartTime) : null)
-            : (form.date && form.startTime ? bdt(form.date, form.startTime) : null);
-        if (startIso && new Date(startIso) <= new Date()) return t('schedule.event.startInFuture');
-        return null;
-    };
-
-    const handleSave = async () => {
-        const msg = validate();
-        if (msg) { setErrorMessage(msg); return; }
-        const eType = isStanding ? 'TRAINING' : form.eventType!;
-        const recur = form.isRecurring || isStanding;
-        const payload: ScheduleEventUpsertInput = {
-            title: form.title.trim(),
-            description: form.description?.trim() || null,
-            eventType: eType,
-            startsAt: recur ? bdt(form.recurrenceStartDate!, form.recurrenceStartTime!) : bdt(form.date, form.startTime),
-            endsAt: recur ? bdt(form.recurrenceStartDate!, form.recurrenceEndTime!) : bdt(form.date, form.endTime),
-            visibility: isClub ? form.visibility : 'PRIVATE',
-            publishAt: isClub && form.visibility === 'SCHEDULED_PUBLICATION' ? normDt(form.publishAt) : null,
-            locationName: form.locationName.trim() || null,
-            locationLat: form.locationLat.trim() ? Number(form.locationLat) : null,
-            locationLng: form.locationLng.trim() ? Number(form.locationLng) : null,
-            recurrence: recur ? {
-                frequency: 'WEEKLY', intervalValue: 1,
-                daysOfWeek: (form.recurrenceDays && form.recurrenceDays.length > 0) ? form.recurrenceDays : [gDow(form.recurrenceStartDate!)],
-                startDate: form.recurrenceStartDate!,
-                endDate: form.recurrenceEndDate || null,
-                startTime: `${normT(form.recurrenceStartTime!)}:00`,
-                endTime: `${normT(form.recurrenceEndTime!)}:00`,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-            } : null
-        };
-        setSubmitting(true); setErrorMessage(null);
-        try { await onSubmit(payload, { eventType: eType, recurring: recur }); }
-        catch (error) { setErrorMessage(extractApiErrorMessage(error, t('schedule.event.saveFailed'))); setSubmitting(false); }
-    };
-
-    const handleCancelEvent = async () => {
-        if (targetEventClubId == null || !targetEventId) return;
-        setCancelling(true);
-        setErrorMessage(null);
-        try {
-            await cancelScheduleEvent(targetEventClubId, targetEventId);
-            toast.success('Event cancelled');
-            onClose();
-            onCancelled?.();
-        } catch (error) {
-            setErrorMessage(extractApiErrorMessage(error, 'Could not cancel the event.'));
-        } finally {
-            setCancelling(false);
-        }
-    };
-
-    const handleBackdropClick = () => {
-        if ((form.title.trim() || form.eventType)) {
-            setShowDiscardConfirm(true);
-            return;
-        }
-        onClose();
-    };
-
-    if (!isOpen) return null;
-
-    const inputClass = 'w-full rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2.5 text-sm text-[var(--fc-text-primary)] outline-none transition-colors focus:border-[var(--fc-accent)] placeholder:text-[var(--fc-text-muted)]';
-    const selLat = form.locationLat.trim() ? Number(form.locationLat) : null;
-    const selLng = form.locationLng.trim() ? Number(form.locationLng) : null;
-
+const EventCreationContent = (props: EventCreationModalProps) => {
+    const editor = useEventEditor(props);
+    const {
+        STEPS, accent, audience, audienceNotice, busy, canCancel, cancelConfirm, content, descriptionId,
+        dialog, discard, error, handleCancel, handleSave, headline, inFlight, isClub, issue, mode, motion,
+        navigateStep, next, onClose, readOnly, recurring, requestClose, saveLabel, savedSeries,
+        setCancelConfirm, setDiscard, showIssue, startedSeries, step, stepHeading, subjectLabel, submitting,
+        surface, t, targetEventId, targetEventStartsAt, titleId,
+    } = editor;
+    if (!props.isOpen) return null;
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={handleBackdropClick}>
+        <div className="app-motion-portal app-motion-backdrop schedule-compose-backdrop" data-closing={motion.closing} onClick={requestClose}>
             <div
-                className="flex max-h-[90vh] w-full max-w-[600px] flex-col overflow-hidden rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-card-bg)] shadow-2xl"
-                style={{ animation: 'schedule-scale-in 200ms ease-out' }}
-                onClick={(e) => e.stopPropagation()}
+                ref={dialog}
+                className="app-motion-dialog schedule-compose" data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                aria-describedby={descriptionId}
+                aria-busy={busy}
+                style={{ '--event-accent': accent } as CSSProperties}
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                    if (event.key !== 'Enter' || event.nativeEvent.isComposing || readOnly) return;
+                    const target = event.target as HTMLElement;
+                    if (!target.matches('input:not([type="checkbox"]):not([type="radio"])')) return;
+                    event.preventDefault();
+                    if (step < 2) next();
+                    else void handleSave();
+                }}
             >
-                {/* Header */}
-                <div className="flex items-start justify-between gap-4 border-b border-[var(--fc-border)] px-5 py-4">
-                    <div className="min-w-0">
-                        <p className="text-[10px] font-bold  text-[var(--fc-text-muted)]">
-                            {mode === 'create' ? t('schedule.event.newEvent') : t('schedule.event.editEvent')} — {t('schedule.event.stepOf', { current: step + 1, total: 3 })}
+                <header className="schedule-compose-header">
+                    <div>
+                        <div className="schedule-compose-context">
+                            <CalendarDays size={14} />
+                            <span>{isClub ? subjectLabel : t('schedule.editor.mySchedule')}</span>
+                            <ChevronRight size={12} />
+                            <span>{savedSeries ? t('schedule.editor.trainingSeries') : t('schedule.editor.planYourTime')}</span>
+                        </div>
+                        <h2 id={titleId}>{headline}</h2>
+                        <p id={descriptionId}>
+                            {recurring && !audience?.privateInvitations
+                                ? t('schedule.editor.weeklyIntro')
+                                : t('schedule.editor.singleIntro')}
                         </p>
-                        <h2 className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">
-                            {step === 0 ? t('schedule.event.whatKind') : step === 1 ? t('schedule.event.whenIsIt') : t('schedule.event.whoCanSee')}
-                        </h2>
                     </div>
-                    <button type="button" onClick={onClose} disabled={submitting}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--fc-radius)] text-[var(--fc-text-muted)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
-                        <X className="h-4 w-4" />
+                    <button
+                        className="schedule-compose-close"
+                        type="button"
+                        onClick={requestClose}
+                        disabled={busy}
+                        aria-label={t('schedule.editor.closeEditor')}
+                    >
+                        <X size={20} />
                     </button>
-                </div>
-
-                {/* Step dots */}
-                <div className="flex items-center justify-center gap-2 border-b border-[var(--fc-border)] px-5 py-2.5">
-                    {[0, 1, 2].map((s) => (
-                        <div key={s} className={`h-2 w-2 rounded-full transition-colors ${s === step ? 'bg-[var(--fc-accent)]' : s < step ? 'bg-[var(--fc-text-muted)]' : 'bg-[var(--fc-border)]'}`} />
-                    ))}
-                </div>
-
-                {/* Step content */}
-                <div className="flex-1 overflow-y-auto px-5 py-4">
-                    {step === 0 && (
-                        <div className="space-y-4">
-                            {/* Creation mode toggle */}
-                            <div className="flex rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] p-1">
-                                <button type="button"
-                                    onClick={() => {
-                                        setCreationMode('single');
-                                        if (form.eventType === 'TRAINING') update('isRecurring', false);
-                                    }}
-                                    className={`flex-1 rounded-[4px] px-3 py-2 text-xs font-semibold text-center transition-all ${creationMode === 'single' ? 'bg-[var(--fc-accent)] text-white' : 'text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]'}`}>
-                                    {t('schedule.event.oneTimeEvent')}
-                                </button>
-                                <button type="button"
-                                    onClick={() => {
-                                        setCreationMode('recurring');
-                                        update('eventType', 'TRAINING');
-                                        update('isRecurring', true);
-                                        update('recurrenceStartDate', form.date);
-                                        update('recurrenceStartTime', form.startTime);
-                                        update('recurrenceEndTime', form.endTime);
-                                    }}
-                                    className={`flex-1 rounded-[4px] px-3 py-2 text-xs font-semibold text-center transition-all flex items-center justify-center gap-1.5 ${creationMode === 'recurring' ? 'bg-[var(--fc-accent)] text-white' : 'text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]'}`}>
-                                    <Repeat2 className="h-3.5 w-3.5" />
-                                    {t('schedule.event.standingSchedule')}
-                                </button>
-                            </div>
-
-                            {/* Event type grid */}
-                            <div className="grid grid-cols-2 gap-3">
-                                {eventTypeOptions.map((opt) => {
-                                    const Icon = opt.icon;
-                                    const active = form.eventType === opt.value;
-                                    const locked = isStanding && opt.value !== 'TRAINING';
-                                    return (
-                                        <button key={opt.value} type="button"
-                                            onClick={() => { if (!locked) update('eventType', opt.value); }}
-                                            disabled={locked}
-                                            className={`flex flex-col items-start gap-2 rounded-[var(--fc-radius)] border p-4 text-left transition-all ${locked ? 'opacity-30 cursor-not-allowed' : active ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)]' : 'border-[var(--fc-border)] hover:border-[var(--fc-accent-border)] hover:bg-[var(--fc-surface-hover)]'}`}>
-                                            <Icon className={`h-5 w-5 ${active ? 'text-[var(--fc-accent)]' : 'text-[var(--fc-text-muted)]'}`} />
-                                            <div>
-                                                <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{t(opt.labelKey)}</p>
-                                                <p className="mt-0.5 text-xs leading-5 text-[var(--fc-text-secondary)]">{locked ? t('schedule.event.standingNote') : t(opt.descriptionKey)}</p>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.eventName')}</label>
-                                <input type="text" value={form.title} onChange={(e) => update('title', e.target.value)}
-                                    maxLength={140} placeholder={isStanding ? 'e.g. Senior Training' : 'e.g. Senior Training'} className={inputClass} autoFocus
-                                    onKeyDown={(e) => { if (e.key === 'Enter' && canGoNext) setStep(1); }} />
-                            </div>
-                            {errorMessage && <ErrorBanner message={errorMessage} />}
-                        </div>
-                    )}
-
-                    {step === 1 && (
-                        <div className="space-y-4">
-                            {isStanding ? (
-                                /* Standing Schedule fields */
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.startDate')}</label>
-                                            <input type="date" min={todayISO()} value={form.recurrenceStartDate ?? form.date}
-                                                onChange={(e) => update('recurrenceStartDate', e.target.value)} className={inputClass} />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.endDateOptional')}</label>
-                                            <input type="date" min={todayISO()} value={form.recurrenceEndDate ?? ''}
-                                                onChange={(e) => update('recurrenceEndDate', e.target.value)} className={inputClass} />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.daysOfWeek')}</label>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {DAY_OPTIONS.map((opt) => {
-                                                const days = form.recurrenceDays ?? [];
-                                                const on = days.includes(opt.value);
-                                                return (
-                                                    <button key={opt.value} type="button" onClick={() => toggleRecDay(opt.value)}
-                                                        className={`rounded-[var(--fc-radius)] border px-3 py-1.5 text-xs font-semibold transition-all ${on ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]' : 'border-[var(--fc-border)] text-[var(--fc-text-muted)] hover:border-[var(--fc-accent-border)]'}`}>
-                                                        {opt.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.startTime')}</label>
-                                            <input type="time" value={form.recurrenceStartTime ?? form.startTime}
-                                                onChange={(e) => update('recurrenceStartTime', e.target.value)} className={inputClass} />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.endTime')}</label>
-                                            <input type="time" value={form.recurrenceEndTime ?? form.endTime}
-                                                onChange={(e) => update('recurrenceEndTime', e.target.value)} className={inputClass} />
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                /* Single event fields */
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.date')}</label>
-                                            <input type="date" min={todayISO()} value={form.date} onChange={(e) => update('date', e.target.value)} className={inputClass} />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.startTime')}</label>
-                                            <input type="time" value={form.startTime} onChange={(e) => update('startTime', e.target.value)} className={inputClass} />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.endTime')}</label>
-                                            <input type="time" value={form.endTime} onChange={(e) => update('endTime', e.target.value)} className={inputClass} />
-                                        </div>
-                                    </div>
-                                    {isTraining && !isStanding && (
-                                        <button type="button"
-                                            onClick={() => {
-                                                const next = !form.isRecurring;
-                                                update('isRecurring', next);
-                                                if (next) { update('recurrenceStartDate', form.date); update('recurrenceStartTime', form.startTime); update('recurrenceEndTime', form.endTime); }
-                                            }}
-                                            className="flex w-full items-start justify-between gap-3 rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] p-3.5 text-left transition-colors hover:bg-[var(--fc-surface-hover)]">
-                                            <div>
-                                                <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{t('schedule.event.repeatWeekly')}</p>
-                                                <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">{t('schedule.event.repeatWeeklyNote')}</p>
-                                            </div>
-                                            <span className={`mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${form.isRecurring ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] justify-end' : 'border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] justify-start'}`}>
-                                                <span className="mx-1 h-2.5 w-2.5 rounded-full bg-[var(--fc-accent)]" />
-                                            </span>
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.location')}</label>
-                                <input type="text" value={form.locationName} onChange={(e) => update('locationName', e.target.value)}
-                                    maxLength={255} placeholder={t('schedule.event.locationPlaceholder')} className={inputClass} />
-                            </div>
-
-                            {/* Minimap */}
-                            <MiniMap
-                                mode="picker"
-                                title={t('schedule.event.venuePicker')}
-                                selectedLocation={{ lat: selLat, lng: selLng }}
-                                onSelectLocation={({ lat, lng }) => { update('locationLat', String(lat)); update('locationLng', String(lng)); }}
-                            />
-
-                            {errorMessage && <ErrorBanner message={errorMessage} />}
-                        </div>
-                    )}
-
-                    {step === 2 && (
-                        <div className="space-y-4">
-                            {isClub ? (
-                                <div className="space-y-3">
-                                    {visibilityOptions.map((opt) => {
-                                        const Icon = opt.icon;
-                                        const active = form.visibility === opt.value;
-                                        return (
-                                            <button key={opt.value} type="button" onClick={() => update('visibility', opt.value)}
-                                                className={`flex w-full items-start gap-4 rounded-[var(--fc-radius)] border p-4 text-left transition-all ${active ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)]' : 'border-[var(--fc-border)] hover:border-[var(--fc-accent-border)] hover:bg-[var(--fc-surface-hover)]'}`}>
-                                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${active ? 'bg-[var(--fc-accent)] text-white' : 'bg-[var(--fc-sidebar-bg)] text-[var(--fc-text-muted)]'}`}>
-                                                    {active ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{t(opt.labelKey)}</p>
-                                                    <p className="mt-0.5 text-xs text-[var(--fc-text-secondary)]">{t(opt.descriptionKey)}</p>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                    {form.visibility === 'SCHEDULED_PUBLICATION' && (
-                                        <div className="space-y-1.5 pt-2">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.publishOn')}</label>
-                                            <input type="datetime-local" value={form.publishAt} onChange={(e) => update('publishAt', e.target.value)} className={inputClass} />
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] p-5 text-center">
-                                    <Lock className="mx-auto h-8 w-8 text-[var(--fc-text-muted)]" />
-                                    <p className="mt-3 text-sm font-semibold text-[var(--fc-text-primary)]">{t('schedule.event.personalAlwaysPrivate')}</p>
-                                    <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">{t('schedule.event.personalNote')}</p>
-                                </div>
-                            )}
-                            {errorMessage && <ErrorBanner message={errorMessage} />}
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between gap-3 border-t border-[var(--fc-border)] px-5 py-3">
-                    <div className="flex items-center gap-2">
-                        {step > 0 && (
-                            <button type="button" onClick={() => { setStep((s) => s - 1); setErrorMessage(null); }}
-                                className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
-                                <ChevronLeft className="h-4 w-4" /> {t('schedule.event.back')}
-                            </button>
-                        )}
-                        {canCancelEvent && (
-                            <button type="button" onClick={() => setShowCancelConfirm(true)} disabled={submitting || cancelling}
-                                className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] px-3 py-2 text-sm font-semibold text-[var(--fc-state-danger)] transition-colors hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-40 disabled:cursor-not-allowed">
-                                {cancelling && <Loader2 className="h-4 w-4 animate-spin" />} <Ban className="h-4 w-4" /> Cancel event
-                            </button>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button type="button" onClick={onClose} disabled={submitting}
-                            className="rounded-[var(--fc-radius)] px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
-                            {t('schedule.event.cancel')}
+                </header>
+                {audienceNotice && <p className="schedule-compose-steps" role="note">{audienceNotice}</p>}
+                {mode === 'edit' && surface === 'CLUB_SCHEDULE' && targetEventId != null && (isExtensionCapabilityAvailable('eventVenueAttachment') || isExtensionCapabilityAvailable('volunteerShifts')) && <div className="schedule-compose-steps">
+                    {isExtensionCapabilityAvailable('eventVenueAttachment') && <a target="_blank" rel="noopener noreferrer" href={`/event-venues?type=CLUB_EVENT&id=${targetEventId}${targetEventStartsAt?`&occurrenceStart=${encodeURIComponent(targetEventStartsAt)}`:''}`}>Stadium reservation ↗</a>}
+                    {isExtensionCapabilityAvailable('volunteerShifts') && <a target="_blank" rel="noopener noreferrer" href={`/volunteering?eventId=${targetEventId}&view=manage`}>Volunteer shifts ↗</a>}
+                </div>}
+                <nav className="schedule-compose-steps" aria-label={t('schedule.editor.editorSteps')}>
+                    {STEPS.map((label, index) => (
+                        <button
+                            type="button"
+                            key={label}
+                            disabled={busy}
+                            aria-current={step === index ? 'step' : undefined}
+                            className={step === index ? 'active' : step > index ? 'visited' : ''}
+                            onClick={() => {
+                                const problem = index > step ? issue(index - 1) : null;
+                                if (problem) showIssue(problem); else navigateStep(index);
+                            }}
+                        >
+                            <span>{step > index ? <Check size={15} /> : index + 1}</span>
+                            <strong>{label}</strong>
+                            {index < 2 && <ChevronRight size={15} />}
                         </button>
+                    ))}
+                </nav>
+                <div className="schedule-compose-body" ref={content}>
+                    {startedSeries && (
+                        <div className="schedule-compose-notice" role="status">
+                            <Lock size={18} />
+                            <p>
+                                <Trans i18nKey="schedule.editor.startedSeriesNotice" components={{ strong: <strong /> }} />
+                            </p>
+                        </div>
+                    )}
+                    {savedSeries && !startedSeries && (
+                        <div className="schedule-compose-notice">
+                            <Repeat2 size={18} />
+                            <p>
+                                <Trans i18nKey="schedule.editor.wholeSeriesNotice" components={{ strong: <strong /> }} />
+                            </p>
+                        </div>
+                    )}
+                    {error && (
+                        <div className="schedule-compose-error" role="alert">
+                            {error}
+                        </div>
+                    )}
+                    <div className="schedule-compose-columns">
+                        <fieldset disabled={readOnly} className="schedule-compose-fields">
+                            <section className="schedule-compose-card">
+                                <header>
+                                    <span className="schedule-compose-number">0{step + 1}</span>
+                                    <div>
+                                        <h3 ref={stepHeading} tabIndex={-1}>
+                                            {step === 0
+                                                ? t('schedule.editor.whatPlanning')
+                                                : step === 1
+                                                  ? recurring
+                                                      ? t('schedule.editor.weeklyRhythm')
+                                                      : t('schedule.editor.setTimePlace')
+                                                  : t('schedule.editor.readyForCalendar')}
+                                        </h3>
+                                        <p>
+                                            {step === 0
+                                                ? t('schedule.editor.planHint')
+                                                : step === 1
+                                                  ? recurring
+                                                      ? t('schedule.editor.weeklyHint')
+                                                      : t('schedule.editor.singleTimeHint')
+                                                  : t('schedule.editor.reviewHint')}
+                                        </p>
+                                    </div>
+                                </header>
+                                <div className="schedule-compose-card-body">
+                                    {step === 0 && <EventPlanStep editor={editor} />}
+                                    {step === 1 && <EventWhenWhereStep editor={editor} />}
+                                    {step === 2 && <EventReviewStep editor={editor} />}
+                                </div>
+                            </section>
+                        </fieldset>
+                        <EventPreview editor={editor} />
+                    </div>
+                </div>
+                <footer className="schedule-compose-footer">
+                    <p>
+                        {startedSeries
+                            ? t('schedule.editor.seriesReadOnly')
+                            : savedSeries
+                              ? t('schedule.editor.wholeSeries')
+                              : recurring && !audience?.privateInvitations
+                                ? t('schedule.editor.routineFooter')
+                                : isClub
+                                  ? t('schedule.editor.savingTo', { club: subjectLabel })
+                                  : t('schedule.editor.savingPrivate')}
+                    </p>
+                    <div>
+                        {canCancel && (
+                            <button
+                                type="button"
+                                className="schedule-compose-button danger"
+                                disabled={busy}
+                                onClick={() => setCancelConfirm(true)}
+                            >
+                                <Ban size={15} />
+                                {savedSeries ? t('schedule.editor.cancelSeries') : t('schedule.editor.cancelEvent')}
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className="schedule-compose-button"
+                            disabled={busy}
+                            onClick={requestClose}
+                        >
+                            {startedSeries ? t('schedule.editor.close') : t('schedule.event.cancel')}
+                        </button>
+                        {step > 0 && (
+                            <button
+                                type="button"
+                                className="schedule-compose-button"
+                                disabled={busy}
+                                onClick={() => navigateStep(step - 1)}
+                            >
+                                <ChevronLeft size={15} />
+                                {t('schedule.event.back')}
+                            </button>
+                        )}
                         {step < 2 ? (
-                            <button type="button" onClick={() => { setStep((s) => s + 1); setErrorMessage(null); }}
-                                disabled={!canGoNext}
-                                className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] bg-[var(--fc-accent)] px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed">
-                                {t('schedule.event.continue')} <ChevronRight className="h-4 w-4" />
+                            <button
+                                type="button"
+                                className="schedule-compose-button primary"
+                                disabled={busy}
+                                onClick={startedSeries ? () => navigateStep(step + 1) : next}
+                            >
+                                {t('schedule.event.continue')}
+                                <ChevronRight size={16} />
                             </button>
                         ) : (
-                            <button type="button" onClick={handleSave} disabled={submitting}
-                                className="inline-flex items-center gap-2 rounded-[var(--fc-radius)] bg-[var(--fc-accent)] px-5 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed">
-                                {submitting && <Loader2 className="h-4 w-4 animate-spin" />} {t('schedule.event.saveEvent')}
-                            </button>
+                            !startedSeries && (
+                                <button
+                                    type="button"
+                                    className="schedule-compose-button primary"
+                                    disabled={busy || !!audience && !audience.ready}
+                                    onClick={() => void handleSave()}
+                                >
+                                    {busy ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}{' '}
+                                    {submitting ? t('schedule.editor.saving') : saveLabel}
+                                </button>
+                            )
                         )}
                     </div>
-                </div>
+                </footer>
             </div>
             <ConfirmDialog
-                open={showDiscardConfirm}
+                open={discard}
                 title={t('schedule.event.discardEvent')}
                 message={t('schedule.event.discardConfirm')}
                 confirmLabel={t('schedule.event.discard')}
+                cancelLabel={t('schedule.editor.keepEditing')}
                 variant="warning"
-                onConfirm={() => { setShowDiscardConfirm(false); onClose(); }}
-                onCancel={() => setShowDiscardConfirm(false)}
+                onConfirm={() => {
+                    if (!inFlight.current) {
+                        setDiscard(false);
+                        onClose();
+                    }
+                }}
+                onCancel={() => setDiscard(false)}
             />
             <ConfirmDialog
-                open={showCancelConfirm}
-                title="Cancel this event?"
-                message="The opponent club and your followers will be notified."
-                confirmLabel="Cancel event"
-                cancelLabel="Keep event"
+                open={cancelConfirm}
+                title={savedSeries ? t('schedule.editor.cancelSeriesTitle') : t('schedule.editor.cancelEventTitle')}
+                message={
+                    savedSeries
+                        ? t('schedule.editor.cancelSeriesMessage')
+                        : t('schedule.editor.cancelEventMessage')
+                }
+                confirmLabel={savedSeries ? t('schedule.editor.cancelSeries') : t('schedule.editor.cancelEvent')}
+                cancelLabel={t('schedule.editor.keepEvent')}
                 variant="danger"
-                onConfirm={() => { setShowCancelConfirm(false); void handleCancelEvent(); }}
-                onCancel={() => setShowCancelConfirm(false)}
+                onConfirm={() => {
+                    setCancelConfirm(false);
+                    void handleCancel();
+                }}
+                onCancel={() => setCancelConfirm(false)}
             />
         </div>
     );
 };
-
-const ErrorBanner = ({ message }: { message: string }) => (
-    <div className="rounded-[var(--fc-radius)] border px-4 py-3 text-sm"
-        style={{ borderColor: 'var(--fc-state-danger)', backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--fc-state-danger)' }}>
-        {message}
-    </div>
-);

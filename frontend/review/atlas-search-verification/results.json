@@ -1,0 +1,21 @@
+{
+  "realApi": true,
+  "radiusClubs": 14,
+  "areaClubs": 2,
+  "applyPreservesArea": true,
+  "allCountersAgree": true,
+  "listDoesNotChangeSearch": true,
+  "originPreservedAfterPan": true,
+  "germanyClubs": 5,
+  "berlinClubs": 1,
+  "crossCountryOrigin": true,
+  "mapViewControls": true,
+  "mobile": true,
+  "mobileStartReplacement": true,
+  "permittedLocationOnReturn": true,
+  "deniedLocationFallback": true,
+  "wholeCardMapFocus": true,
+  "keyboardCardFocus": true,
+  "viewClubIndependent": true,
+  "errors": []
+}

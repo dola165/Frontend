@@ -1,0 +1,18 @@
+{
+  "conditions": "Production UI, synthetic accounts and API responses; external network blocked; no live mutations",
+  "checks": [
+    "Home 1440: layout, Explore keyboard/focus, feed failure/retry and Following",
+    "Home shortcuts: Following opens in place and restores focus; owner My Schedule opens personal calendar, default calendar retains club scope",
+    "Profile 1440: counts open real API paths, pages/retry, Escape restores focus",
+    "Club tabs 1440: Teams/Honours palette, match-first Schedule, squad-filtered training, distinct Events and scoped jobs link",
+    "Club 1440: Honours/media/calendar; owner-only nested dissolution opens original confirmation, cancellation makes no request",
+    "Home 390: layout, Explore keyboard/focus, feed failure/retry and Following",
+    "Profile 390: counts open real API paths, pages/retry, Escape restores focus",
+    "Club tabs 390: Teams/Honours palette, match-first Schedule, squad-filtered training, distinct Events and scoped jobs link",
+    "Club 390: Honours/media/calendar; owner-only nested dissolution opens original confirmation, cancellation makes no request",
+    "Landing: discovery and list alternative work without signing in; map tiles intentionally blocked",
+    "Visitor dark: no owner controls, private graph unavailable, mobile layout",
+    "Visitor light: no owner controls, private graph unavailable, mobile layout"
+  ],
+  "errors": []
+}

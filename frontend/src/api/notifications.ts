@@ -1,4 +1,4 @@
-import { apiClient } from './axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from './axiosConfig';
 import type {
     NotificationBulkReadResult,
     NotificationQueryOptions,
@@ -20,27 +20,30 @@ const buildNotificationParams = (options: NotificationQueryOptions = {}) => {
     };
 };
 
-export const fetchNotifications = async (options: NotificationQueryOptions = {}): Promise<NotificationPageResult> => {
+export const fetchNotifications = async (options: NotificationQueryOptions = {}, config?: AuthSessionRequestConfig): Promise<NotificationPageResult> => {
     const response = await apiClient.get<NotificationPageResult>('/notifications', {
+        ...config,
         params: buildNotificationParams(options)
     });
     return response.data;
 };
 
-export const fetchUnreadNotificationCount = async (options: NotificationQueryOptions = {}): Promise<NotificationUnreadCount> => {
+export const fetchUnreadNotificationCount = async (options: NotificationQueryOptions = {}, config?: AuthSessionRequestConfig): Promise<NotificationUnreadCount> => {
     const response = await apiClient.get<NotificationUnreadCount>('/notifications/unread-count', {
+        ...config,
         params: buildNotificationParams(options)
     });
     return response.data;
 };
 
-export const markNotificationAsRead = async (notificationId: number): Promise<NotificationReadState> => {
-    const response = await apiClient.patch<NotificationReadState>(`/notifications/${notificationId}/read`);
+export const markNotificationAsRead = async (notificationId: number, config?: AuthSessionRequestConfig): Promise<NotificationReadState> => {
+    const response = await apiClient.patch<NotificationReadState>(`/notifications/${notificationId}/read`, null, config);
     return response.data;
 };
 
-export const markAllNotificationsAsRead = async (options: NotificationQueryOptions = {}): Promise<NotificationBulkReadResult> => {
+export const markAllNotificationsAsRead = async (options: NotificationQueryOptions = {}, config?: AuthSessionRequestConfig): Promise<NotificationBulkReadResult> => {
     const response = await apiClient.patch<NotificationBulkReadResult>('/notifications/read-all', null, {
+        ...config,
         params: buildNotificationParams(options)
     });
     return response.data;

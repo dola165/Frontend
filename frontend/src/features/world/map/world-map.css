@@ -1,0 +1,99 @@
+/* World map block. Scoped to .gk; colours are design tokens only. */
+.gk .gk-world-map { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-world-map__canvas { position: relative; height: var(--gk-world-map-h, 320px); min-height: 200px; background: var(--gk-sunken); isolation: isolate; }
+.gk .gk-world-map__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-4); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+
+.gk .gk-world-map__sketch {
+  position: absolute; inset: 0;
+  background-color: var(--gk-pitch);
+  background-image:
+    linear-gradient(var(--gk-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gk-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: -1px -1px;
+}
+.gk .gk-world-map__sketch::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 40%, color-mix(in srgb, var(--gk-bg) 55%, transparent)); pointer-events: none; }
+.gk .gk-world-map__sketch .gk-world-pin { position: absolute; transform: translate(-50%, -50%); z-index: 1; }
+.gk .gk-world-map__sketch .gk-world-pin[data-selected] { z-index: 2; }
+
+/* A pin is a 28px hit area around a small dot. */
+.gk .gk-world-pin { --pin: var(--gk-accent); display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--gk-r-pill); background: transparent; cursor: pointer; }
+.gk .gk-world-pin::after { content: ''; width: 12px; height: 12px; border-radius: var(--gk-r-pill); background: var(--pin); box-shadow: 0 0 0 2px var(--gk-surface), 0 1px 6px color-mix(in srgb, var(--gk-shadow) 40%, transparent); transition: transform .15s var(--gk-ease); }
+.gk .gk-world-pin:hover::after, .gk .gk-world-pin[data-selected]::after { transform: scale(1.45); }
+.gk .gk-world-pin[data-selected]::after { box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 5px color-mix(in srgb, var(--pin) 45%, transparent); }
+.gk .gk-world-pin[data-tone='venue'] { --pin: var(--gk-info); }
+.gk .gk-world-pin[data-tone='trial'] { --pin: var(--gk-warning); }
+.gk .gk-world-pin[data-tone='event'] { --pin: var(--gk-violet); }
+.gk .gk-world-pin[data-tone='training'] { --pin: var(--gk-info); }
+.gk .gk-world-pin[data-tone='mixed'] { --pin: var(--gk-text); }
+.gk .gk-world-pin[data-tone='person'] { --pin: var(--gk-text-2); }
+.gk .gk-world-pin--key { width: 12px; height: 12px; cursor: default; }
+.gk .gk-world-pin--key::after { width: 8px; height: 8px; box-shadow: none; }
+
+.gk .gk-world-map__legend { position: absolute; top: var(--gk-3); left: var(--gk-3); z-index: 3; display: flex; flex-wrap: wrap; gap: var(--gk-1) var(--gk-3); margin: 0; padding: 6px var(--gk-3); list-style: none; border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-surface) 88%, transparent); border: 1px solid var(--gk-line); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+.gk .gk-world-map__legend li { display: inline-flex; align-items: center; gap: 6px; }
+.gk .gk-world-map__note { position: absolute; left: var(--gk-3); bottom: var(--gk-3); z-index: 3; display: flex; align-items: center; gap: var(--gk-2); max-width: calc(100% - 2 * var(--gk-3)); padding: 2px 2px 2px var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-surface) 88%, transparent); border: 1px solid var(--gk-line); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
+.gk .gk-world-map__card { position: absolute; left: var(--gk-3); right: var(--gk-3); bottom: var(--gk-3); z-index: 4; display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-2) var(--gk-2) var(--gk-2) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-surface); border: 1px solid var(--gk-line-strong); box-shadow: var(--gk-elevation); }
+.gk .gk-world-map__card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gk .gk-world-map__card-text strong, .gk .gk-world-map__card-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-world-map__card-text span { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-world-map .maplibregl-ctrl-group { background: var(--gk-surface); border: 1px solid var(--gk-line); box-shadow: none; }
+
+/* Several results at one place: a bigger pin with the number; placed at its club: a ring, not a dot. */
+.gk .gk-world-pin[data-count]::after { width: 20px; height: 20px; }
+/* A pin's time ("11:00", "FT 4–3") beside it: only while few pins are in view, or on the lit pin. */
+.gk .gk-world-pin__chip { position: absolute; left: calc(100% + 2px); top: 50%; transform: translateY(-50%); display: none; padding: 1px 6px; border: 1px solid var(--gk-glass-line, var(--gk-line));
+  border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text); font-size: 11px; font-weight: 650; line-height: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
+.gk .gk-world-map__canvas[data-chips] .gk-world-pin__chip, .gk .gk-world-pin[data-selected] > .gk-world-pin__chip { display: block; }
+.gk .gk-world-pin__count { position: absolute; z-index: 1; font-size: 10px; font-weight: 750; line-height: 1; color: var(--gk-on-accent); pointer-events: none; }
+.gk .gk-world-pin[data-approx]::after { background: var(--gk-surface); box-shadow: inset 0 0 0 3px var(--pin), 0 1px 6px color-mix(in srgb, var(--gk-shadow) 40%, transparent); }
+.gk .gk-world-pin[data-approx][data-selected]::after { box-shadow: inset 0 0 0 3px var(--pin), 0 0 0 2px var(--gk-surface), 0 0 0 5px color-mix(in srgb, var(--pin) 45%, transparent); }
+.gk .gk-world-pin[data-approx] .gk-world-pin__count { color: var(--gk-text); }
+.gk .gk-world-pin[data-tone='match'] { --pin: var(--gk-accent); }
+/* A tournament: a match-green pin with a trophy in it. */
+.gk .gk-world-pin[data-tone='tournament'] { --pin: var(--gk-accent); }
+.gk .gk-world-pin[data-tone='tournament']:not([data-count])::after { width: 20px; height: 20px; }
+.gk .gk-world-pin__glyph { position: absolute; z-index: 1; width: 12px; height: 12px; color: var(--gk-on-accent); pointer-events: none; }
+.gk .gk-world-pin--key[data-tone='tournament']:not([data-count])::after { width: 8px; height: 8px; }
+
+/* The hero look, for World's overview and every World tab: big and rounded, a vignette darkening its edges,
+   and glass floating on it (the key, the counts, the chosen place, the controls). */
+.gk .gk-world-map--hero { border-radius: 20px; border-color: var(--gk-glass-line);
+  box-shadow: 0 40px 90px -40px color-mix(in srgb, var(--gk-shadow) 90%, transparent), 0 0 0 1px color-mix(in srgb, var(--gk-text) 3%, transparent) inset; }
+.gk .gk-world-map--hero .gk-world-map__canvas::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    radial-gradient(130% 95% at 38% 42%, transparent 52%, color-mix(in srgb, var(--gk-bg) 58%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, var(--gk-bg) 30%, transparent), transparent 16%, transparent 78%, color-mix(in srgb, var(--gk-bg) 50%, transparent)); }
+.gk .gk-world-map--hero .gk-world-map__legend { top: var(--gk-4); left: var(--gk-4); padding: 8px var(--gk-4); border-radius: var(--gk-r-pill); background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(14px) saturate(150%); box-shadow: var(--gk-glass-shadow); }
+.gk .gk-world-map--hero .gk-world-map__card { left: var(--gk-4); bottom: 64px; border-radius: 14px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(18px) saturate(150%); box-shadow: var(--gk-glass-shadow); }
+.gk .gk-world-map--hero .maplibregl-ctrl-group { border-radius: 12px; overflow: hidden; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(14px); }
+.gk .gk-world-map__overlay { position: absolute; left: var(--gk-4); right: var(--gk-4); bottom: var(--gk-4); z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); pointer-events: none; }
+.gk .gk-world-map__overlay > * { pointer-events: auto; }
+.gk .gk-world-glass { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 36px; padding: 0 var(--gk-4); border-radius: var(--gk-r-pill);
+  background: var(--gk-glass); border: 1px solid var(--gk-glass-line); backdrop-filter: blur(14px) saturate(150%); box-shadow: var(--gk-glass-shadow);
+  font: inherit; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk a.gk-world-glass, .gk button.gk-world-glass { color: var(--gk-text); font-weight: 600; cursor: pointer; transition: transform .35s var(--gk-ease-out), border-color .25s; }
+.gk a.gk-world-glass:hover, .gk button.gk-world-glass:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); }
+.gk .gk-world-glass svg { width: 15px; height: 15px; color: var(--gk-accent); }
+.gk .gk-world-glass__live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-accent); animation: gk-world-live 2.4s infinite; }
+@keyframes gk-world-live { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gk-accent) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px transparent; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-world-glass__live { animation: none; } }
+/* In the hero look the bottom-left holds the glass pills, so a "street map unavailable" note sits at the top. */
+.gk .gk-world-map--hero .gk-world-map__note { top: var(--gk-4); bottom: auto; left: 0; right: 0; z-index: 4; width: max-content; margin-inline: auto; }
+
+/* Counted at a city: a wider dashed ring with the number inside. */
+.gk .gk-world-pin[data-approx='area'] { width: 34px; height: 34px; }
+.gk .gk-world-pin[data-approx='area']::after { width: 26px; height: 26px; background: color-mix(in srgb, var(--gk-surface) 85%, transparent); border: 2px dashed var(--pin); box-shadow: 0 1px 6px color-mix(in srgb, var(--gk-shadow) 40%, transparent); }
+/* A club the results are counted at: its crest in a ring, their number at its corner. */
+.gk .gk-world-pin[data-crest] { position: relative; width: 34px; height: 34px; }
+.gk .gk-world-pin[data-crest]::after { display: none; }
+.gk .gk-world-pin[data-crest] > .gk-avatar { background: var(--gk-surface); box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--pin), 0 2px 8px color-mix(in srgb, var(--gk-shadow) 45%, transparent); transition: transform .15s var(--gk-ease); }
+.gk .gk-world-pin[data-crest]:hover > .gk-avatar, .gk .gk-world-pin[data-crest][data-selected] > .gk-avatar { transform: scale(1.22); }
+.gk .gk-world-pin[data-crest][data-selected] { --pin: var(--gk-accent); }
+.gk .gk-world-pin[data-crest] .gk-world-pin__count { top: -5px; right: -7px; display: grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--gk-r-pill); background: var(--pin); color: var(--gk-bg); box-shadow: 0 0 0 2px var(--gk-surface); }
+/* A place that gives the results context (the ground of the match being staffed): bright, named, never chosen. */
+.gk .gk-world-pin--context { position: relative; cursor: default; --pin: var(--gk-accent); }
+.gk .gk-world-pin--context::after, .gk .gk-world-pin--context:hover::after { width: 14px; height: 14px; border-radius: 3px; transform: rotate(45deg); box-shadow: 0 0 0 3px var(--gk-surface), 0 0 0 8px color-mix(in srgb, var(--pin) 30%, transparent); }
+.gk .gk-world-pin__name { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); max-width: 240px; padding: 3px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-radius: var(--gk-r-pill); background: var(--gk-surface); border: 1px solid color-mix(in srgb, var(--pin) 55%, transparent); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text); box-shadow: var(--gk-elevation); }
+.gk .gk-world-map__sketch-context { position: absolute; transform: translate(-50%, -50%); z-index: 1; }

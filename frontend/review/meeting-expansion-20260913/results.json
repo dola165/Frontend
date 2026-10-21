@@ -1,0 +1,53 @@
+{
+  "backend": "Isolated mocked API; actual web app in Chrome",
+  "steps": [
+    {
+      "name": "legacy-payment-bookmark-opens-actual-store",
+      "passed": true
+    },
+    {
+      "name": "parent-mobile",
+      "passed": true
+    },
+    {
+      "name": "parent-desktop",
+      "passed": true
+    },
+    {
+      "name": "store-editor-desktop",
+      "passed": true
+    },
+    {
+      "name": "store-editor-mobile",
+      "passed": true
+    },
+    {
+      "name": "campaigns-editor-desktop",
+      "passed": true
+    },
+    {
+      "name": "campaigns-editor-mobile",
+      "passed": true
+    },
+    {
+      "name": "jobs-editor-desktop",
+      "passed": true
+    },
+    {
+      "name": "jobs-editor-mobile",
+      "passed": true
+    },
+    {
+      "name": "guest-route-protection",
+      "passed": true
+    }
+  ],
+  "pageErrors": [],
+  "unexpectedApi": [],
+  "writes": [
+    {
+      "path": "/api/auth/refresh",
+      "method": "POST"
+    }
+  ]
+}

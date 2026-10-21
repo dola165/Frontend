@@ -1,0 +1,47 @@
+/* A squad's, club's or family's schedule: the page's own way back and heading above the shared schedule board
+   (features/schedule/board), which brings the toolbar, filters, week, calendar and agenda. */
+.schedule-direction { display: flex; flex-direction: column; gap: 16px; min-width: 0; color: var(--fc-text-primary); }
+.schedule-direction-context { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
+.schedule-direction-context > button { display: flex; align-items: center; gap: 8px; min-width: 0; border: 0; background: none; color: var(--fc-text-secondary); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.schedule-direction-context > button:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+
+.schedule-direction-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.schedule-direction-eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fc-text-secondary); font-weight: 650; }
+.schedule-direction-heading h1 { font-size: clamp(28px, 2.6vw, 38px); font-weight: 760; letter-spacing: -0.055em; line-height: 1.05; margin: 10px 0 12px; }
+.schedule-direction-heading h1 > span { color: var(--fc-accent); }
+.schedule-direction-heading p { font-size: 14px; color: var(--fc-text-secondary); line-height: 1.6; margin: 0; }
+
+/* My schedule | Squad schedule. */
+.schedule-direction-segments { display: flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--fc-border); border-radius: 6px; flex-shrink: 0; }
+.schedule-direction-segments button { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 34px; padding: 7px 11px; border: 1px solid transparent; background: none; border-radius: 4px; font: inherit; font-size: 12px; color: var(--fc-text-secondary); font-weight: 550; cursor: pointer; }
+.schedule-direction-segments button[aria-pressed='true'] { background: var(--fc-surface-hover); border-color: var(--fc-border); color: var(--fc-text-primary); }
+.schedule-direction-segments button:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 2px; }
+
+/* Which squad: in the heading, or with the filters. */
+.schedule-direction-squad { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border: 1px solid var(--gk-line, var(--fc-border)); border-radius: var(--gk-r, 8px); background: var(--gk-surface, var(--fc-card-bg)); color: var(--fc-text-secondary); }
+.schedule-direction-squad svg { flex: none; color: var(--fc-accent); }
+.schedule-direction-squad select { min-width: 0; max-width: min(560px, 70vw); padding: 6px 4px; border: 0; background: transparent; color: var(--fc-text-primary); font: inherit; font-size: 13px; }
+.schedule-direction-identity { margin-top: 14px; }
+
+@media (max-width: 767px) {
+    .schedule-direction-context { flex-direction: column; align-items: flex-start; }
+    .schedule-direction-context > .schedule-direction-segments { width: 100%; }
+    .schedule-direction-context > .schedule-direction-segments button { flex: 1; }
+    .schedule-direction-heading h1 { font-size: 32px; }
+    .schedule-direction-heading p { font-size: 13px; }
+    .schedule-direction-squad { width: 100%; }
+    .schedule-direction-squad select { flex: 1; max-width: none; }
+}
+
+/* Training plans under the schedule: each opens its saved session. */
+.gk .gk-plans { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-plans__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .gk-plans__head h3 { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; }
+.gk .gk-plans__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--gk-2); }
+.gk .gk-plans__plan { display: flex; flex-direction: column; gap: 3px; width: 100%; height: 100%; padding: 10px 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-plans__plan:hover { border-color: var(--gk-line-strong); background: var(--gk-hover); }
+.gk .gk-plans__plan:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-plans__plan strong { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-plans__who { font-size: var(--gk-fs-xs); color: var(--gk-text-2); font-weight: 600; }
+.gk .gk-plans__plan small { display: flex; align-items: center; gap: 5px; font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+.gk .gk-plans__plan small svg { flex: none; width: 13px; height: 13px; color: var(--gk-text-3); }

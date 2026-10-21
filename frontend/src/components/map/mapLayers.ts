@@ -1,163 +1,85 @@
-// Pure config for the map point layers (no React).
-// Basemap: OpenFreeMap positron is the shared light foundation. The explicit
-// dark URL below is kept as a resilient fallback when client-side recoloring
-// cannot be fetched (for example while the landing page is offline).
-// TILTED keeps the keyed MapTiler style.
-export const MAP_STYLE_DEFAULT = 'https://tiles.openfreemap.org/styles/positron';
-export const MAP_STYLE_DARK = 'https://tiles.openfreemap.org/styles/dark';
-// Google-Maps-inspired marker set: calm blue cluster/select accent, warm
-// multi-hue data colors that stay distinguishable on the light basemap.
-export const MAP_ENTITY_COLORS: Record<string, string> = {
-  CLUB: '#15803d', TRYOUT: '#d97706', MATCH: '#e11d48', TOURNAMENT: '#4f46e5'
-};
-export const MAP_ACCENT = '#047857';
-export const MAP_LOCATION_PIN_IMAGE = 'grasskickz-football-location-pin';
-export const MAP_SELECTED_PIN_IMAGE = 'grasskickz-football-location-pin-selected';
-export const MAP_CLUSTER_IMAGE = 'grasskickz-football-cluster';
-export const MAP_PIN_ASSETS = [
-  { id: MAP_LOCATION_PIN_IMAGE, url: '/map-pins/football-location-pin.png' },
-  { id: MAP_SELECTED_PIN_IMAGE, url: '/map-pins/football-location-pin-selected.png' },
-  { id: MAP_CLUSTER_IMAGE, url: '/map-pins/football-cluster.png' }
-] as const;
-export interface MapPointInput { key: string; entityType: string; latitude: number; longitude: number; title: string }
-export const buildPointsFeatureCollection = (points: MapPointInput[]) => ({
-  type: 'FeatureCollection' as const,
-  features: points.map((p) => ({
-    type: 'Feature' as const,
-    id: undefined,
-    properties: { key: p.key, entityType: p.entityType, title: p.title, icon: MAP_LOCATION_PIN_IMAGE },
-    geometry: { type: 'Point' as const, coordinates: [p.longitude, p.latitude] }
-  }))
-});
-export const MAP_POINTS_SOURCE_ID = 'map-points';
-export const LAYER_CLUSTERS = 'points-clusters';
-export const LAYER_CLUSTER_COUNT = 'points-cluster-count';
-export const LAYER_POINT_HALO = 'points-halo';
-export const LAYER_POINTS = 'points-circle';
+import { visualColors } from '../../styles/visualColors';
+// Basemap styles (no React). OpenFreeMap positron is the shared foundation; the app
+// recolours it for the light and dark themes. The explicit dark URL is a fallback.
+// A build may point every map at its own style: the offline sandbox serves a local one
+// because tile hosts are unreachable there. Production builds leave it unset.
+const styleOverride = import.meta.env.VITE_MAP_STYLE_URL as string | undefined;
+export const MAP_STYLE_OVERRIDDEN = Boolean(styleOverride);
+const styleUrl = (url: string) => styleOverride ? new URL(styleOverride, typeof window === 'undefined' ? 'http://localhost' : window.location.origin).href : url;
+export const MAP_STYLE_DEFAULT = styleUrl('https://tiles.openfreemap.org/styles/positron');
+export const MAP_STYLE_DARK = styleUrl('https://tiles.openfreemap.org/styles/dark');
+/** Unsaturated Browns inspiration: warm mineral ground, sage vegetation, deep estuary water. */
+export const withHeritagePaints = <T extends MapStyleObject>(style: T, { includeTerrain = true } = {}): T => {
+    const result = structuredClone(style);
+    for (const layer of result.layers ?? []) {
+        const paint = layer.paint ?? (layer.paint = {});
+        const id = layer.id.toLowerCase();
+        if (layer.type === 'background') paint['background-color'] = visualColors.mapLayersPaint107;
+        if (layer.type === 'fill') {
+            paint['fill-color'] = /water/.test(id) ? visualColors.mapLayersPaint108
+                : /building/.test(id) ? visualColors.mapLayersPaint109
+                : /ice|glacier/.test(id) ? visualColors.mapLayersPaint110
+                : /wood|forest/.test(id) ? visualColors.mapLayersPaint111
+                : /park|grass|garden|pitch|landcover/.test(id) ? visualColors.mapLayersPaint112
+                : /sand/.test(id) ? visualColors.mapLayersPaint113
+                : /residential/.test(id) ? visualColors.mapLayersPaint114 : visualColors.mapLayersPaint115;
+            // Positron hides woods below z10, despite generalized woods being available.
+            if (/wood|forest/.test(id)) layer.minzoom = 0;
+            if (/water|park|grass|wood|forest/.test(id)) paint['fill-opacity'] = 1;
+            if (/building/.test(id)) { paint['fill-opacity'] = .65; paint['fill-outline-color'] = visualColors.mapLayersPaint116; }
+        }
+        if (layer.type === 'line') {
+            paint['line-color'] = /water/.test(id) ? visualColors.mapLayersPaint108 : /boundary/.test(id) ? visualColors.mapLayersPaint117
+                : /casing/.test(id) ? visualColors.mapLayersPaint118 : /motorway|trunk/.test(id) ? visualColors.mapLayersPaint119
+                : /path|track/.test(id) ? visualColors.mapLayersPaint120 : /rail/.test(id) ? visualColors.mapLayersPaint121 : visualColors.paper;
+        }
+        if (layer.type === 'symbol') {
+            if (paint['text-color'] !== undefined) paint['text-color'] = /water/.test(id) ? visualColors.mapLayersPaint122 : /park/.test(id) ? visualColors.mapLayersPaint123 : visualColors.mapLayersPaint124;
+            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = /water/.test(id) ? visualColors.mapLayersPaint108 : visualColors.mapLayersPaint125;
+            if (paint['text-halo-width'] !== undefined) paint['text-halo-width'] = 1.3;
+        }
+    }
+    // Phones keep the same streets, labels and palette without fetching and
+    // rendering a second tile set solely for decorative elevation shading.
+    if (!includeTerrain) return result;
 
-// ── Vivid basemap paints (positron restyle) ──────────────────────────
-// Stock positron is lifeless (grey water, white roads). This pure transform
-// deep-clones a fetched positron style and recolors its paints. Matched
-// against the REAL positron layer ids (fetched from
-// tiles.openfreemap.org/styles/positron, source 'openmaptiles'):
-//   water polygons : 'water'            (source-layer 'water')
-//   waterway lines : 'waterway'         (source-layer 'waterway')
-//   buildings      : 'building'         (source-layer 'building')
-//   boundaries     : 'boundary_2' | 'boundary_3' | 'boundary_disputed'
-//                                        (source-layer 'boundary')
-//   motorway fills : 'highway_motorway_inner' | 'highway_motorway_subtle' |
-//                    'tunnel_motorway_inner' | 'highway_motorway_bridge_inner'
-//                    (source-layer 'transportation', class == 'motorway')
-//   major roads    : 'highway_major_inner' | 'highway_major_subtle'
-//                    (source-layer 'transportation'; ONE filter carries all of
-//                    ['primary','secondary','tertiary','trunk'], so per-class
-//                    colors need a match on ['get','class'])
-//   minor roads    : 'highway_minor' (class in ['minor','service','track'])
-//                    and 'highway_path' (class == 'path')
-// Casings ('*_casing'), labels/symbols ('transportation_name', 'place', ...),
-// landuse/park fills and everything else are left untouched.
+    // Real DEM elevation provides continuous regional relief even where vector
+    // landcover is sparse. A shared source keeps the two terrain layers economical.
+    result.sources = { ...(result.sources as Record<string, unknown> ?? {}), 'atlas-elevation': {
+        type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        encoding: 'terrarium', tileSize: 256, maxzoom: 12,
+        attribution: '<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Terrain: Mapzen / USGS / GMTED2010 / SRTM</a>'
+    } };
+    const layers = result.layers ?? [];
+    const terrain: MapStyleLayer[] = [
+        { id: 'atlas-elevation-colors', type: 'color-relief', source: 'atlas-elevation', paint: {
+            'color-relief-color': ['interpolate', ['linear'], ['elevation'],
+                -500, visualColors.mapLayersPaint126, 0, visualColors.mapLayersPaint127, 350, visualColors.mapLayersPaint128, 800, visualColors.mapLayersPaint129,
+                1400, visualColors.mapLayersPaint130, 2200, visualColors.mapLayersPaint131, 3200, visualColors.mapLayersPaint132, 4300, visualColors.mapLayersPaint133, 6500, visualColors.paper],
+            'color-relief-opacity': ['interpolate', ['linear'], ['zoom'], 0, .65, 7, .62, 10, .34, 13, .12, 16, .06]
+        } },
+        { id: 'atlas-hillshade', type: 'hillshade', source: 'atlas-elevation', paint: {
+            'hillshade-shadow-color': visualColors.mapLayersPaint134, 'hillshade-highlight-color': visualColors.paper,
+            'hillshade-accent-color': visualColors.mapLayersPaint135, 'hillshade-illumination-anchor': 'map',
+            'hillshade-exaggeration': ['interpolate', ['linear'], ['zoom'], 0, .5, 6, .7, 10, .55, 14, .24]
+        } }
+    ];
+    // Under water/parks/roads: relief never tints lakes, labels or streets.
+    layers.splice(Math.max(0, layers.findIndex(layer => layer.type !== 'background')), 0, ...terrain);
+    result.layers = layers;
+    return result;
+};
 type MapStyleLayer = {
     id: string;
     type?: string;
+    minzoom?: number;
+    source?: string;
     paint?: Record<string, unknown>;
 };
 type MapStyleObject = {
     layers?: MapStyleLayer[];
+    sources?: Record<string, unknown>;
     [key: string]: unknown;
-};
-
-const VIVID_COLORS = {
-    water: '#b7dce8',
-    waterway: '#8fc5d8',
-    motorway: '#efc36d',
-    primary: '#ffffff',
-    secondary: '#f8fafc',
-    tertiary: '#e5e7eb',
-    minor: '#d7dce1',
-    boundary: '#8b98a7',
-    building: '#dfe5e8'
-} as const;
-
-// Scale a line-width that is either a constant or a zoom interpolate. Only the
-// width outputs (every second entry from index 3) are scaled — zoom inputs stay.
-const scaleLineWidth = (width: unknown, factor: number): unknown => {
-    if (typeof width === 'number') return Math.round(width * factor * 100) / 100;
-    if (Array.isArray(width) && width[0] === 'interpolate') {
-        const next = [...width];
-        for (let i = 3; i < next.length; i += 2) {
-            if (typeof next[i] === 'number') {
-                next[i] = Math.round((next[i] as number) * factor * 100) / 100;
-            }
-        }
-        return next;
-    }
-    return width;
-};
-
-const setLineColor = (layer: MapStyleLayer, color: unknown) => {
-    if (layer.type === 'line' && layer.paint) layer.paint['line-color'] = color;
-};
-
-const widenMainRoad = (layer: MapStyleLayer, factor = 1.3) => {
-    if (layer.type === 'line' && layer.paint && layer.paint['line-width'] !== undefined) {
-        layer.paint['line-width'] = scaleLineWidth(layer.paint['line-width'], factor);
-    }
-};
-
-export const withVividPaints = <T extends MapStyleObject>(style: T): T => {
-    const vivid = JSON.parse(JSON.stringify(style)) as T;
-    if (!Array.isArray(vivid.layers)) return vivid;
-    for (const layer of vivid.layers) {
-        switch (layer.id) {
-            case 'water':
-                if (layer.type === 'fill' && layer.paint) {
-                    layer.paint['fill-color'] = VIVID_COLORS.water;
-                    layer.paint['fill-opacity'] = 1;
-                }
-                break;
-            case 'waterway':
-                setLineColor(layer, VIVID_COLORS.waterway);
-                break;
-            case 'building':
-                if (layer.type === 'fill' && layer.paint) {
-                    layer.paint['fill-color'] = VIVID_COLORS.building;
-                    layer.paint['fill-opacity'] = 0.7;
-                }
-                break;
-            case 'boundary_2':
-            case 'boundary_3':
-            case 'boundary_disputed':
-                setLineColor(layer, VIVID_COLORS.boundary);
-                break;
-            case 'highway_motorway_inner':
-            case 'highway_motorway_subtle':
-            case 'tunnel_motorway_inner':
-            case 'highway_motorway_bridge_inner':
-                setLineColor(layer, VIVID_COLORS.motorway);
-                widenMainRoad(layer);
-                break;
-            case 'highway_major_inner':
-            case 'highway_major_subtle':
-                // One layer carries primary+secondary+tertiary+trunk — color by class.
-                setLineColor(layer, [
-                    'match', ['get', 'class'],
-                    'trunk', VIVID_COLORS.motorway,
-                    'primary', VIVID_COLORS.primary,
-                    'secondary', VIVID_COLORS.secondary,
-                    'tertiary', VIVID_COLORS.tertiary,
-                    VIVID_COLORS.tertiary
-                ]);
-                widenMainRoad(layer);
-                break;
-            case 'highway_minor':
-            case 'highway_path':
-                setLineColor(layer, VIVID_COLORS.minor);
-                break;
-            default:
-                break; // casings, labels/symbols, landuse, ... untouched
-        }
-    }
-    return vivid;
 };
 
 // A real dark basemap, derived from the same reliable OpenFreeMap style.
@@ -173,44 +95,44 @@ export const withDarkPaints = <T extends MapStyleObject>(style: T): T => {
         const id = layer.id.toLocaleLowerCase();
 
         if (layer.type === 'background') {
-            paint['background-color'] = '#11171d';
+            paint['background-color'] = visualColors.mapLayersPaint144;
             continue;
         }
 
         if (layer.type === 'fill') {
             paint['fill-color'] = id.includes('water')
-                ? '#173c4b'
+                ? visualColors.mapLayersPaint145
                 : id.includes('building')
-                    ? '#2b3239'
+                    ? visualColors.mapLayersPaint146
                     : /(park|grass|wood|forest|landcover)/.test(id)
-                        ? '#182a24'
-                        : '#181e24';
-            if (paint['fill-outline-color'] !== undefined) paint['fill-outline-color'] = '#343d46';
+                        ? visualColors.mapLayersPaint147
+                        : visualColors.mapLayersPaint148;
+            if (paint['fill-outline-color'] !== undefined) paint['fill-outline-color'] = visualColors.mapLayersPaint149;
             continue;
         }
 
         if (layer.type === 'line') {
             paint['line-color'] = id.includes('water')
-                ? '#2d6275'
+                ? visualColors.mapLayersPaint150
                 : id.includes('boundary')
-                    ? '#66727f'
+                    ? visualColors.mapLayersPaint151
                     : /(motorway|trunk)/.test(id)
-                        ? '#8d7543'
+                        ? visualColors.mapLayersPaint152
                         : /(highway|road|street|transport)/.test(id)
-                            ? '#48515a'
-                            : '#36414a';
+                            ? visualColors.mapLayersPaint153
+                            : visualColors.mapLayersPaint154;
             continue;
         }
 
         if (layer.type === 'symbol') {
-            if (paint['text-color'] !== undefined) paint['text-color'] = '#dbe2e8';
-            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = '#11171d';
+            if (paint['text-color'] !== undefined) paint['text-color'] = visualColors.mapLayersPaint155;
+            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = visualColors.mapLayersPaint144;
             if (paint['text-halo-width'] !== undefined) paint['text-halo-width'] = 1.25;
             continue;
         }
 
         if (layer.type === 'fill-extrusion') {
-            paint['fill-extrusion-color'] = '#2b3239';
+            paint['fill-extrusion-color'] = visualColors.mapLayersPaint146;
             continue;
         }
 

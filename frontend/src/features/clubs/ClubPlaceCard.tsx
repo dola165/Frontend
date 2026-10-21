@@ -1,0 +1,75 @@
+import { usePagesCopy } from '../pages/copy';
+import { useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Building2, MapPin, Navigation, Warehouse, X } from 'lucide-react';
+import { MediaImage } from '../../components/ui/MediaImage';
+import { useDialogFocus } from '../../components/workspace/useDialogFocus';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
+import { FacilityDirections } from './FacilityDirections';
+import './club-places.css';
+import { placeType } from './clubPlaceTypes';
+import { useClubPanelMotion } from './useClubPanelMotion';
+
+export interface PublicFacility {
+  id:number; title:string; details:Record<string,string>; squadId?:number|null; squadName?:string|null;
+  linkedVenue?:{id:number;name:string;address?:string;city?:string;photo?:string;amenities?:string[];bookingAvailable:boolean}|null;
+}
+const typeLabel = (place:PublicFacility) => placeType(place)==='VENUE' ? 'Playing venue' : placeType(place)==='FACILITY' ? 'Supporting facility' : 'Club location';
+function photosFor(place:PublicFacility) {
+  const photos=(place.details.photos??'').split(/\r?\n/).map(v=>v.trim()).filter(v=>{
+    if(/^\/uploads\/[A-Za-z0-9_-]+\.jpg$/.test(v))return true;
+    try {const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password;}catch{return false;}
+  });
+  return [...new Set(photos.length ? photos : placeType(place)==='VENUE'&&place.linkedVenue?.photo ? [place.linkedVenue.photo] : [])];
+}
+const relationship = (value:string) => ({OWNED:'Club-owned',RENTED:'Rented by the club',SHARED:'Shared use',REGULAR_USE:'Regular use'} as Record<string,string>)[value];
+
+export function FacilityCard({ facility, clubId, showVenueLinks = true, detailsOpen, onDetailsChange }: { facility: PublicFacility; clubId?: number; showVenueLinks?: boolean; detailsOpen?: boolean; onDetailsChange?: (open: boolean) => void }) {
+  const t = usePagesCopy();
+  const [localOpen,setLocalOpen]=useState(false),[directions,setDirections]=useState(false),[failed,setFailed]=useState<string|null>(null);
+  const open = detailsOpen ?? localOpen;
+  const setOpen = (value: boolean) => { if (onDetailsChange) onDetailsChange(value); else setLocalOpen(value); };
+  const photos=photosFor(facility), photo=photos[0]!==failed?photos[0]:null;
+  const address=facility.details.address || (placeType(facility)==='VENUE'?facility.linkedVenue?.address:undefined);
+  // One compact row: a small photo, the name, what it is and for whom, where, one line about it, and the two actions.
+  return <article className="club-place-card club-place-row" id={`facility-${facility.id}`}>
+    <div className="club-place-thumb">{photo?<MediaImage src={resolveMediaUrl(photo)} alt={facility.title} loading="lazy" onError={()=>setFailed(photo)}/>:placeType(facility)==='FACILITY'?<Building2 size={22} aria-hidden="true"/>:<Warehouse size={22} aria-hidden="true"/>}</div>
+    <div className="club-place-text">
+      <h3>{facility.title || t('Location name')}</h3>
+      <p className="club-place-meta"><span>{t(typeLabel(facility))}</span>{relationship(facility.details.relationship)&&<span>{t(relationship(facility.details.relationship))}</span>}<span>{facility.squadName || (t(facility.squadId ? 'Assigned squad' : 'Club-wide'))}</span></p>
+      <p className="club-place-address"><MapPin size={14} aria-hidden="true"/><span>{address || t('Address not published')}</span></p>
+      {facility.details.description&&<p className="club-place-summary">{facility.details.description}</p>}
+    </div>
+    <div className="club-place-row-actions"><button type="button" className="club-place-open" onClick={()=>setOpen(true)}>{t(placeType(facility)==='VENUE'?(showVenueLinks?'View venue':'View ground'):placeType(facility)==='FACILITY'?'View facility':'View location')}<ArrowRight size={15} aria-hidden="true"/></button>
+      {clubId&&facility.id>0&&<button type="button" className="club-place-directions" aria-label={t('Get directions')} title={t('Get directions')} onClick={()=>setDirections(true)}><Navigation size={16} aria-hidden="true"/></button>}</div>
+    {open&&<PlaceDetails place={facility} clubId={clubId} showVenueLinks={showVenueLinks} onClose={()=>setOpen(false)}/>}
+    {directions&&clubId&&<FacilityDirections clubId={clubId} facilityId={facility.id} title={facility.title} address={address} onClose={()=>setDirections(false)}/>}
+  </article>;
+}
+
+function PlaceDetails({place,clubId,onClose,showVenueLinks}:{place:PublicFacility;clubId?:number;onClose:()=>void;showVenueLinks:boolean}) {
+  const t = usePagesCopy();
+  const motion=useClubPanelMotion(onClose);
+  const ref=useRef<HTMLElement>(null),heading=useId();useDialogFocus(true,ref,motion.close);
+  const [directions,setDirections]=useState(false),d=place.details,venue=place.linkedVenue,photos=photosFor(place);
+  const sections=[['About this place',d.description],['Arrival & meeting point',d.arrival],['Parking & transport',d.transport],['Amenities',d.amenities],['Accessibility',d.accessibility],['What to bring',d.whatToBring],['Parents & collection',d.collection],['Club contact at this location',d.contact]].filter(([,text])=>text);
+  return createPortal(<div className="club-place-backdrop club-motion-backdrop" data-closing={motion.closing} onClick={motion.close}><section ref={ref} className="club-public club-place-dialog club-motion-panel" data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd} role="dialog" aria-modal="true" aria-labelledby={heading} onClick={e=>e.stopPropagation()}>
+    <header><div><p className="cp-eyebrow">{t(typeLabel(place))}</p><h2 id={heading}>{place.title}</h2><p>{d.address || (placeType(place)==='VENUE'?venue?.address:'')}</p></div><button className="cp-icon-button" type="button" aria-label={t('Close location details')} onClick={motion.close}><X size={22}/></button></header>
+    <div className="club-place-detail-body">
+      {!!photos.length&&<div className="club-place-gallery">{photos.map((p,i)=><MediaImage key={p} src={resolveMediaUrl(p)} alt={t('{place} · photo {n}', { place: place.title, n: i+1 })} loading="lazy"/>)}</div>}
+      <p className="cp-muted">{[relationship(d.relationship) ? t(relationship(d.relationship)) : null,place.squadName || (t(place.squadId?'Assigned squad':'Club-wide'))].filter(Boolean).join(' · ')}</p>
+      {clubId&&place.id>0&&<button className="cp-button" type="button" onClick={()=>setDirections(true)}><Navigation size={16}/>{t('Get directions')}</button>}
+      <div className="club-place-detail-grid">{sections.map(([title,text])=><section key={title}><h3>{t(title)}</h3><p>{text}</p></section>)}</div>
+      {!d.arrival&&<p className="club-place-notice"><strong>{t('Visiting for the first time?')}</strong> {t('Confirm the entrance and meeting point with the club.')}</p>}
+      {venue&&<section className="club-place-linked"><h3>{t(placeType(place)==='VENUE'?'Ground information':'At this ground')}</h3><p>{venue.name}{venue.city?` · ${venue.city}`:''}</p>
+        {!!venue.amenities?.length&&<p>{venue.amenities.map(a=>a.replaceAll('_',' ').toLowerCase()).join(' · ')}</p>}
+        {showVenueLinks && <><div className="club-place-actions"><Link className="cp-button" to={`/stadiums/${venue.id}`}>{t("View venue page")}<ArrowRight size={16}/></Link>{venue.bookingAvailable&&<Link className="cp-button" to={`/stadiums/${venue.id}?book=1`}>{t("Rental availability")}<ArrowRight size={16}/></Link>}</div>
+        <p className="cp-muted">{t(venue.bookingAvailable?'Rentals are handled by the venue operator. A club session is arranged separately.':'This venue is not accepting online rental bookings.')}</p></>}
+      </section>}
+      {showVenueLinks&&!venue&&placeType(place)==='VENUE'&&<p className="cp-muted">{t("Listed as a place the club plays or trains. No rental booking is offered through this listing.")}</p>}
+      {clubId&&<Link className="cp-button" to={`/clubs/${clubId}?tab=contact`} onClick={onClose}>{t('Contact the club')}<ArrowRight size={16}/></Link>}
+    </div>
+    {directions&&clubId&&<FacilityDirections clubId={clubId} facilityId={place.id} title={place.title} address={d.address} onClose={()=>setDirections(false)}/>}
+  </section></div>,document.body);
+}

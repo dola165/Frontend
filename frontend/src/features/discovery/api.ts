@@ -1,27 +1,13 @@
 import { apiClient } from '../../api/axiosConfig';
 import type { ClubLocationItem } from '../../components/discovery/clubLocationTypes';
+import type { ClubDirectoryPageResult } from '../../components/discovery/clubDirectoryTypes';
 
-interface ClubDirectoryItem {
-    id: number;
-    name: string;
-    cityName?: string | null;
-    countryName?: string | null;
-    addressText?: string | null;
-}
-
-interface PageLike<T> {
-    content: T[];
-}
-
+/** Lightweight, paged location records; do not truncate the choices at the first club page. */
 export const fetchClubLocationOptions = async (): Promise<ClubLocationItem[]> => {
-    const response = await apiClient.get<ClubDirectoryItem[] | PageLike<ClubDirectoryItem>>('/clubs', {
-        params: { page: 0, size: 200 },
-    });
-    const clubs = Array.isArray(response.data) ? response.data : response.data.content;
-    return clubs.map((club) => ({
-        clubId: club.id,
-        clubName: club.name,
-        cityName: club.cityName ?? club.addressText ?? null,
-        countryName: club.countryName ?? null,
-    }));
+    const clubs: ClubLocationItem[] = [];
+    for (let page = 0; ; page++) {
+        const { data } = await apiClient.get<ClubDirectoryPageResult<ClubLocationItem>>('/clubs/locations', { params: { page, size: 100 } });
+        clubs.push(...data.content);
+        if (page + 1 >= data.totalPages) return clubs;
+    }
 };

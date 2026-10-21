@@ -1,0 +1,4 @@
+/* A venue's photo on its row in a list, or a pitch symbol without one. Scoped under .gk; tokens only. */
+.gk .gk-world-venue-thumb { display: grid; place-items: center; width: 56px; height: 40px; overflow: hidden; border-radius: 8px; background: var(--gk-pitch); color: var(--gk-text-3); }
+.gk .gk-world-venue-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gk .gk-world-venue-thumb svg { width: 20px; height: 20px; }

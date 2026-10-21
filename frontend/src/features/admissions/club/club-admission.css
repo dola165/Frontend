@@ -1,0 +1,115 @@
+/* Player admission in the club workspace, on the design system. Scoped under `.gk .club-admission`; `--gk-*` tokens only.
+   The joining screens share these classes (actions, forms, summaries), so the whole flow has one look. */
+.gk .club-admission { padding-bottom: var(--gk-16); }
+
+/* Panels from ui.tsx: a design-system panel with a title, an optional line of context and a padded body. */
+.gk .club-admission .adm-panel__head { align-items: flex-start; }
+.gk .club-admission .adm-panel__titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .club-admission .adm-panel__titles p { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); max-width: 70ch; }
+.gk .club-admission .adm-panel__body { display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-4) var(--gk-5) var(--gk-5); min-width: 0; }
+.gk .club-admission .adm-error { align-items: center; }
+.gk .club-admission .adm-error__text { flex: 1; min-width: 0; }
+
+/* The overview: intake forms, case and visitor rows, groups. */
+.gk .club-admission .adm-intake { display: grid; gap: var(--gk-4); }
+.gk .club-admission .adm-intake .family-club-enrollment { padding: var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .club-admission .adm-intake .family-club-enrollment form { display: flex; flex-wrap: wrap; gap: var(--gk-3); margin-top: var(--gk-4); align-items: end; }
+.gk .club-admission .adm-intake h2 { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 600; }
+.gk .club-admission .adm-case { display: grid; grid-template-columns: minmax(160px, 1.3fr) minmax(140px, 1fr) minmax(180px, 1.3fr) 18px; align-items: center; gap: var(--gk-4); cursor: pointer; }
+.gk .club-admission .adm-case:hover { background: var(--gk-hover); }
+.gk .club-admission .adm-case__stage, .gk .club-admission .adm-case__next { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .club-admission .adm-case small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .club-admission .adm-case__next strong { font-weight: 600; }
+.gk .club-admission .adm-case__go { width: 18px; height: 18px; color: var(--gk-text-3); }
+.gk .club-admission .adm-visitor { align-items: flex-start; }
+.gk .club-admission .adm-visitor .gk-list-row__meta { white-space: normal; }
+.gk .club-admission .adm-visitor__trail { flex-wrap: wrap; justify-content: flex-end; max-width: 45%; }
+.gk .club-admission .adm-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: var(--gk-4); align-items: start; }
+.gk .club-admission .adm-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: var(--gk-3) var(--gk-5); margin: 0; padding: var(--gk-4) var(--gk-5); }
+.gk .club-admission .adm-facts dt { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); }
+.gk .club-admission .adm-facts dd { margin: 2px 0 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); overflow-wrap: anywhere; }
+.gk .club-admission .adm-subhead { padding: var(--gk-3) var(--gk-5) var(--gk-1); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .club-admission .adm-quiet { padding: 0 var(--gk-5) var(--gk-4); color: var(--gk-text-3); }
+.gk .club-admission .adm-group__actions { flex-wrap: wrap; justify-content: space-between; }
+
+/* A request's own page (CaseDetail and the joining editors). */
+.gk .club-admission .admission-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--gk-3) var(--gk-6); padding: var(--gk-4) 0 var(--gk-2); }
+.gk .club-admission .admission-heading h1 { font-size: var(--gk-fs-3xl); line-height: var(--gk-lh-3xl); font-weight: 700; letter-spacing: -0.02em; outline: none; }
+.gk .club-admission .admission-heading p, .gk .club-admission .admission-context { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); color: var(--gk-text-2); max-width: 70ch; }
+.gk .club-admission .admission-context { margin: var(--gk-1) 0 var(--gk-3); }
+.gk .club-admission .admission-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: var(--gk-6); align-items: start; }
+.gk .club-admission .admission-stack { display: flex; flex-direction: column; gap: var(--gk-5); min-width: 0; }
+.gk .club-admission .admission-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-4); }
+.gk .club-admission .admission-field-wide { grid-column: 1 / -1; }
+.gk .club-admission .admission-field input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--gk-accent); }
+.gk .club-admission .admission-check { display: flex; align-items: flex-start; gap: var(--gk-3); min-height: 44px; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
+.gk .club-admission .admission-check input { width: 18px; height: 18px; margin-top: 1px; flex: none; accent-color: var(--gk-accent); }
+.gk .club-admission .admission-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+
+/* Buttons the joining screens use, styled as design-system buttons. */
+.gk .club-admission :is(.admission-button, .admission-secondary, .admission-danger) { display: inline-flex; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 40px; padding: 0 var(--gk-4); border-radius: var(--gk-r); border: 1px solid transparent; font: inherit; font-weight: 600; font-size: var(--gk-fs-md); line-height: 1; cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .club-admission :is(.admission-button, .admission-secondary, .admission-danger) svg { width: 16px; height: 16px; }
+.gk .club-admission .admission-button { background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .club-admission .admission-button:hover { background: var(--gk-accent-strong); }
+.gk .club-admission .admission-secondary { background: var(--gk-raised); color: var(--gk-text); border-color: var(--gk-line); }
+.gk .club-admission .admission-secondary:hover { background: var(--gk-hover); border-color: var(--gk-line-strong); }
+.gk .club-admission .admission-secondary[aria-pressed=true] { background: var(--gk-accent-soft); border-color: var(--gk-accent); }
+.gk .club-admission .admission-danger { background: var(--gk-raised); color: var(--gk-danger); border-color: var(--gk-line); }
+.gk .club-admission .admission-danger:hover { background: var(--gk-danger-soft); }
+.gk .club-admission :is(.admission-button, .admission-secondary, .admission-danger):disabled { opacity: .55; cursor: default; }
+.gk .club-admission .admission-text-button { display: inline-flex; align-items: center; gap: var(--gk-1); min-height: 32px; padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; border-radius: var(--gk-r-sm); }
+.gk .club-admission .admission-text-button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gk .club-admission .admission-text-button svg { width: 16px; height: 16px; }
+
+/* Notes, summaries and timelines inside a request. */
+.gk .club-admission .admission-notice { padding: var(--gk-3) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-info-soft); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .club-admission .admission-success { padding: var(--gk-3) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-accent-soft); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .club-admission .admission-pills { display: flex; flex-wrap: wrap; gap: var(--gk-1); }
+.gk .club-admission .admission-deadline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .club-admission .admission-deadline svg { width: 14px; height: 14px; }
+.gk .club-admission .admission-deadline small { color: var(--gk-text-3); }
+.gk .club-admission .admission-summary { display: grid; gap: var(--gk-3); margin: 0; }
+.gk .club-admission .admission-summary > div { display: grid; grid-template-columns: minmax(100px, .7fr) minmax(0, 1.3fr); gap: var(--gk-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .club-admission .admission-summary dt { color: var(--gk-text-3); }
+.gk .club-admission .admission-summary dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.gk .club-admission .admission-session-heading { display: flex; align-items: flex-start; gap: var(--gk-3); }
+.gk .club-admission .admission-session-heading > svg { width: 18px; height: 18px; flex: none; margin-top: 2px; color: var(--gk-info); }
+.gk .club-admission .admission-session-heading strong { display: block; font-weight: 600; }
+.gk .club-admission .admission-session-heading p { margin-top: 4px; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .club-admission :is(.admission-session-row, .admission-task, .admission-history) { padding: var(--gk-3) 0; border-bottom: 1px solid var(--gk-line); }
+.gk .club-admission :is(.admission-session-row, .admission-task, .admission-history):first-child { padding-top: 0; }
+.gk .club-admission :is(.admission-session-row, .admission-task, .admission-history):last-child { padding-bottom: 0; border-bottom: 0; }
+.gk .club-admission .admission-task > header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-1) var(--gk-2); }
+.gk .club-admission .admission-inquiry > header .admission-inquiry-next { flex-basis: 100%; margin-top: 0; }
+.gk .club-admission .admission-inquiry details > summary { padding: var(--gk-2) 0; cursor: pointer; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .club-admission .admission-inquiry details > summary:hover { color: var(--gk-text); }
+.gk .club-admission :is(.admission-task, .admission-history) strong { font-weight: 600; }
+.gk .club-admission :is(.admission-task, .admission-history) p { margin: 4px 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); white-space: pre-line; overflow-wrap: anywhere; }
+.gk .club-admission .admission-section-label { margin: 0; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .club-admission .admission-group-meta { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
+.gk .club-admission .admission-disclosure { border-top: 1px solid var(--gk-line); padding-top: var(--gk-3); }
+.gk .club-admission .admission-disclosure > summary, .gk .club-admission .admission-inquiry > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; }
+.gk .club-admission .admission-disclosure > form, .gk .club-admission .admission-inquiry > form { margin-top: var(--gk-4); }
+.gk .club-admission .admission-inquiry-next { display: block; margin-top: 4px; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .club-admission .admission-offer-terms { padding: var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
+.gk .club-admission .admission-offer-terms h3 { margin: 0 0 var(--gk-3); font-size: var(--gk-fs-md); font-weight: 600; }
+.gk .club-admission .admission-setup-review { display: grid; gap: var(--gk-3); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r); }
+.gk .club-admission .admission-setup-review legend { padding: 0 var(--gk-2); font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .club-admission .admission-staff, .gk .club-admission .admission-card { display: grid; gap: var(--gk-3); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+
+@media (max-width: 900px) {
+  .gk .club-admission .admission-grid { grid-template-columns: minmax(0, 1fr); }
+  .gk .club-admission .adm-case { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .gk .club-admission .adm-case__go { display: none; }
+}
+@media (max-width: 600px) {
+  .gk .club-admission .admission-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .gk .club-admission .adm-case { grid-template-columns: minmax(0, 1fr); gap: var(--gk-2); }
+  .gk .club-admission .adm-visitor { flex-wrap: wrap; }
+  .gk .club-admission .adm-visitor__trail { max-width: none; justify-content: flex-start; }
+  .gk .club-admission .admission-summary > div { grid-template-columns: minmax(90px, .8fr) minmax(0, 1.2fr); }
+  .gk .club-admission :is(.admission-button, .admission-secondary, .admission-danger) { min-height: 44px; }
+}
+
+/* Date and permission blocks shared with the family side take the workspace palette here. */
+.gk .club-admission .admission-dates { border-color: var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }

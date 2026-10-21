@@ -1,0 +1,20 @@
+/* Opt-out attendance inside the session dialog, on the design-system palette. */
+.gk.gk-availability { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); }
+.gk .gk-availability__family { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-availability__family + .gk-availability__family { padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); }
+.gk .gk-availability__line { display: flex; align-items: flex-start; gap: var(--gk-2); line-height: var(--gk-lh-md); }
+.gk .gk-availability__line svg { flex: none; margin-top: 1px; color: var(--gk-text-2); }
+.gk .gk-availability__actions .gk-btn, .gk .gk-availability__reason .gk-btn, .gk .gk-availability__record .gk-btn, .gk .gk-availability__ask .gk-btn { min-height: 44px; }
+.gk .gk-availability__reason { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-availability__summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .gk-availability__summary strong { font-size: var(--gk-fs-2xl); margin-right: 4px; }
+.gk .gk-availability__people { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gk-1); font-size: var(--gk-fs-sm); }
+.gk .gk-availability__ask { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); }
+.gk .gk-availability__ask p { flex: 1 1 260px; font-size: var(--gk-fs-sm); }
+.gk .gk-availability__more > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-availability__more > summary:hover { color: var(--gk-text); }
+.gk .gk-availability__record { display: flex; flex-direction: column; gap: var(--gk-2); padding-bottom: var(--gk-1); }
+.gk .gk-availability__record .gk-row { flex-wrap: wrap; }
+/* Inside the squad session dialog the block lines up with the dialog's own sections. */
+.squad-schedule-dialog > .gk.gk-availability { margin: var(--gk-4) 28px var(--gk-6); }
+@media (max-width: 600px) { .squad-schedule-dialog > .gk.gk-availability { margin: var(--gk-4) 20px var(--gk-5); } }

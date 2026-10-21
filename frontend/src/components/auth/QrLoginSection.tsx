@@ -1,3 +1,4 @@
+import { visualColors } from '../../styles/visualColors';
 import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
@@ -18,6 +19,7 @@ interface Props {
 export const QrLoginSection = ({ onBack }: Props) => {
   const { loginWithAccessToken } = useAuth();
   const [state, setState] = useState<QrState>({ kind: 'initiating' });
+  const [attempt, setAttempt] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigatingRef = useRef(false);
 
@@ -39,41 +41,50 @@ export const QrLoginSection = ({ onBack }: Props) => {
         setState({ kind: 'error', message: err?.message ?? 'Failed to generate QR code.' });
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [attempt]);
+
+  const activeSession = state.kind === 'active' ? state : null;
 
   // Poll loop
   useEffect(() => {
-    if (state.kind !== 'active') return;
+    if (!activeSession) return;
     let failures = 0;
+    let cancelled = false;
 
-    pollRef.current = setInterval(async () => {
-      const s = state as Extract<QrState, { kind: 'active' }>;
+    const poll = async () => {
+      const s = activeSession;
       try {
         const result = await pollQrStatus(s.sessionCode, s.pollToken);
+        if (cancelled) return;
+        failures = 0;
         if (result.status === 'CONFIRMED' && result.accessToken && !navigatingRef.current) {
           navigatingRef.current = true;
           setState({ kind: 'confirming' });
           await loginWithAccessToken(result.accessToken);
           // AuthContext handles navigation via bootstrapSession
+          return;
         }
       } catch {
+        if (cancelled) return;
         failures++;
         if (failures >= 5) {
-          clearInterval(pollRef.current!);
           setState({ kind: 'error', message: 'Connection lost. Please try again.' });
+          return;
         }
       }
-    }, 2500);
+      if (!cancelled) pollRef.current = setTimeout(() => void poll(), 2500);
+    };
+    pollRef.current = setTimeout(() => void poll(), 2500);
 
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [state.kind === 'active' ? (state as any).sessionCode : null]);
+    return () => { cancelled = true; if (pollRef.current) clearTimeout(pollRef.current); };
+  }, [activeSession, loginWithAccessToken]);
 
   // Countdown
   const [countdown, setCountdown] = useState(0);
   useEffect(() => {
-    if (state.kind !== 'active') return;
+    if (!activeSession) return;
     const tick = () => {
-      const remaining = Math.max(0, Math.ceil(((state as any).expiresAt - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.ceil((activeSession.expiresAt - Date.now()) / 1000));
       setCountdown(remaining);
       if (remaining <= 0) {
         setState({ kind: 'expired' });
@@ -83,12 +94,13 @@ export const QrLoginSection = ({ onBack }: Props) => {
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [state.kind === 'active' ? (state as any).expiresAt : null]);
+  }, [activeSession]);
 
   const handleRetry = () => {
     if (pollRef.current) clearInterval(pollRef.current);
     navigatingRef.current = false;
     setState({ kind: 'initiating' });
+    setAttempt(value => value + 1);
   };
 
   // ── Render ──
@@ -132,12 +144,12 @@ export const QrLoginSection = ({ onBack }: Props) => {
   const secs = countdown % 60;
   return (
     <div className="flex flex-col items-center gap-3 py-4">
-      <div className="rounded-xl bg-white p-3" style={{ width: 220, height: 220 }}>
+      <div className="rounded-xl bg-[color:var(--color-elevated)] p-3" style={{ width: 220, height: 220 }}>
         <QRCodeSVG
           value={`grasskickz://login/${state.sessionCode}`}
           size={196}
-          bgColor="#ffffff"
-          fgColor="#0f1117"
+          bgColor={visualColors.paper}
+          fgColor={visualColors.qrInk}
           level="M"
         />
       </div>
@@ -149,7 +161,7 @@ export const QrLoginSection = ({ onBack }: Props) => {
       </p>
       <div className="flex items-center gap-2 text-xs text-[var(--fc-text-secondary)]">
         <ShieldCheck className="h-3.5 w-3.5 text-[var(--fc-accent)]" />
-        End-to-end encrypted
+        Approve with your signed-in phone
       </div>
       <button onClick={onBack} className="mt-2 text-xs text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)] transition-colors">
         Back to email login

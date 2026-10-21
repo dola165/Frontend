@@ -1,0 +1,27 @@
+{
+  "checks": [
+    "01-week-board",
+    "squad-type-and-reset",
+    "02-hourly-calendar",
+    "03-agenda",
+    "04-create-plan",
+    "05-training-rhythm",
+    "06-review",
+    "weekly-create-shows-three-sessions",
+    "edit-updates-all-occurrences",
+    "dirty-discard-and-focus-return",
+    "all-seven-weekdays-render",
+    "07-390-workspace",
+    "08-390-board",
+    "09-390-editor",
+    "07-320-workspace",
+    "08-320-board",
+    "09-320-editor",
+    "07-768-workspace",
+    "09-768-editor",
+    "07-1024-workspace",
+    "09-1024-editor"
+  ],
+  "errors": [],
+  "applicationRequests": []
+}

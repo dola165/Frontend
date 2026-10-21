@@ -1,0 +1,37 @@
+{
+  "layouts": [
+    {
+      "viewportWidth": 390,
+      "viewportHeight": 550,
+      "height": 341,
+      "bottom": 550,
+      "scrollHeight": 361,
+      "clientHeight": 210,
+      "pageWidth": 390
+    },
+    {
+      "viewportWidth": 360,
+      "viewportHeight": 430,
+      "height": 266.59375,
+      "bottom": 430,
+      "scrollHeight": 361,
+      "clientHeight": 136,
+      "pageWidth": 360
+    },
+    {
+      "viewportWidth": 800,
+      "viewportHeight": 240,
+      "height": 168,
+      "bottom": 240,
+      "scrollHeight": 365,
+      "clientHeight": 61,
+      "pageWidth": 800
+    }
+  ],
+  "realWorker": true,
+  "geolocationToWalkingRoute": true,
+  "sparseStreetSnapping": true,
+  "openClubNavigation": true,
+  "mobileDecorativeAnimationDisabled": true,
+  "errors": []
+}

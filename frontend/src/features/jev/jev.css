@@ -1,0 +1,10 @@
+.jev-advice{margin-block:1rem;padding:1rem;border:1px solid var(--fc-border,var(--color-border));border-radius:12px;background:var(--fc-card-bg,var(--color-surface));color:var(--fc-text-primary,var(--color-text));font-size:.875rem;line-height:1.5;overflow-wrap:anywhere}
+.jev-advice p{margin-block:.5rem;color:var(--fc-text-secondary,var(--color-muted))}
+.jev-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+.jev-actions span{font-size:.75rem;color:var(--fc-text-secondary,var(--color-muted))}
+.jev-advice button,.report-controls button,.report-controls select{min-height:44px;padding:.5rem .85rem;border:1px solid var(--fc-border,var(--color-border));border-radius:8px;background:var(--fc-card-bg,var(--color-surface));color:var(--fc-text-primary,var(--color-text));font:inherit}
+.jev-advice button:focus-visible,.report-controls button:focus-visible,.report-controls select:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}
+.jev-advice button:disabled,.report-controls button:disabled{opacity:.55;cursor:not-allowed}
+.report-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem}
+.report-controls label{display:grid;gap:.35rem;min-width:0}
+.report-controls select{max-width:100%}

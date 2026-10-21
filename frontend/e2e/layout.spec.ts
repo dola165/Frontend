@@ -11,8 +11,8 @@ const mockMode = process.env.E2E_MOCKS === 'true';
 test.beforeEach(async ({ page }) => {
     if (!mockMode) return;
 
-    await page.goto('/clubs');
-    await expect(page.getByRole('heading', { name: /club directory/i })).toBeVisible({ timeout: 15000 });
+    await page.goto('/world/clubs');
+    await expect(page.getByRole('heading', { name: 'Clubs', exact: true })).toBeVisible({ timeout: 15000 });
     await page.evaluate(async () => {
         const response = await fetch('/api/auth/login', {
             method: 'POST',
@@ -31,11 +31,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 const destinationRoutes = [
-    { path: '/clubs', readyText: /club directory/i, bleed: true },
+    { path: '/world/clubs', readyText: /^clubs$/i, bleed: true },
     { path: '/clubs/1', readyText: /creekside fc/i, bleed: true },
     { path: '/account', readyText: /account settings/i, bleed: false },
     { path: '/notifications', readyText: /^notifications$/i, bleed: false },
-    { path: '/tournaments', readyText: /find your next competition/i, bleed: false },
+    { path: '/world/tournaments', readyText: /^tournaments$/i, bleed: true },
     { path: '/tournaments/1', readyText: /summer cup 2026/i, bleed: false }
 ] as const;
 
@@ -179,52 +179,35 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
     });
     await page.getByRole('button', { name: /open menu/i }).click();
     await expect(page.getByRole('menuitem', { name: /account settings/i })).toBeVisible();
+    await page.getByRole('menuitem', { name: /^appearance/i }).click();
     await expect(page.getByRole('menuitemradio', { name: /^light mode/i })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
 });
 
-test('club stores expose scoped filters, collections, and the global Store', async ({ page }) => {
+test('legacy store links explain the supported surface and recover to the club', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/clubs/1/store');
-    await expect(page.getByRole('heading', { name: 'Creekside FC' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /open global store/i })).toBeVisible();
-
-    await page.getByRole('button', { name: /kits & footwear/i }).click();
-    await expect(page.getByText('1 product', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /home kit/i })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /academy scarf/i })).toHaveCount(0);
-
-    await page.getByPlaceholder(/search this club store/i).fill('not-a-real-product');
-    await expect(page.getByText(/no products match these filters/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /club store is outside this demo/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /back to club/i })).toHaveAttribute('href', '/clubs/1');
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/clubs/1/store');
     const mobileMetrics = await page.evaluate(() => ({
         viewportWidth: window.innerWidth,
         documentWidth: document.documentElement.scrollWidth
     }));
     expect(mobileMetrics.documentWidth).toBeLessThanOrEqual(mobileMetrics.viewportWidth + 1);
-    await expect(page.getByRole('button', { name: /open global store/i })).toBeVisible();
-    await page.getByRole('button', { name: /open global store/i }).click();
-    await expect(page).toHaveURL(/\/store$/);
-    await expect(page.getByRole('heading', { name: /^Store$/i })).toBeVisible();
-    await page.getByRole('link', { name: /^Jobs$/i }).click();
-    await expect(page).toHaveURL(/\/jobs$/);
-    await expect(page.getByRole('heading', { name: /jobs & volunteer opportunities/i })).toBeVisible();
 });
 
-test('Jobs uses football filters while Campaigns stays honestly deferred', async ({ page }) => {
+test('Jobs open World opportunities and campaigns recover to supported journeys', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/jobs');
-    await expect(page.getByRole('heading', { name: /jobs & volunteer opportunities/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /location and club/i })).toHaveAttribute('aria-expanded', 'true');
-    await page.getByRole('combobox', { name: 'Country' }).selectOption({ label: 'United Kingdom' });
-    await page.getByRole('combobox', { name: 'City' }).selectOption({ label: 'Bristol' });
-    await page.getByRole('radio', { name: /media & communications/i }).check({ force: true });
-    await page.getByRole('radio', { name: /^volunteering$/i }).check({ force: true });
-    await expect(page.getByRole('button', { name: /volunteer social media coordinator/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /goalkeeper coach/i })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/world\/opportunities\?tab=jobs$/);
+    await expect(page.getByRole('heading', { name: 'Opportunities', exact: true })).toBeVisible();
+    await page.getByRole('group', { name: 'Terms' }).getByRole('button', { name: 'Volunteering', exact: true }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get('engagement')).toBe('VOLUNTEER');
+    await page.getByRole('button', { name: /more filters/i }).click();
+    await page.getByRole('combobox', { name: 'Football role' }).selectOption({ label: 'Media & communications' });
+    await expect.poll(() => new URL(page.url()).searchParams.get('category')).toBe('MEDIA_COMMUNICATIONS');
 
     await page.setViewportSize({ width: 390, height: 844 });
     const mobileMetrics = await page.evaluate(() => ({
@@ -233,27 +216,27 @@ test('Jobs uses football filters while Campaigns stays honestly deferred', async
     }));
     expect(mobileMetrics.documentWidth).toBeLessThanOrEqual(mobileMetrics.viewportWidth + 1);
 
-    await page.getByRole('link', { name: /^Campaigns$/i }).click();
+    await page.goto('/campaigns');
     await expect(page).toHaveURL(/\/campaigns$/);
-    await expect(page.getByRole('heading', { name: /^Campaigns$/i })).toBeVisible();
-    await expect(page.getByText(/fundraiser data remains intentionally disconnected/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /location and club/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /campaigns and fundraising is outside this demo/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /browse clubs/i })).toBeVisible();
 });
 
-test('discovery filters are prominent and the product canvas follows light mode', async ({ page }) => {
+test('World filters sit above the results and the product canvas follows light mode', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/jobs');
+    await page.goto('/world/opportunities');
 
-    const filterRail = page.getByRole('complementary', { name: /job filters/i });
-    await expect(filterRail).toBeVisible();
-    const filterBox = await filterRail.boundingBox();
-    expect(filterBox?.width ?? 0).toBeGreaterThanOrEqual(290);
-    await expect(page.getByText(/narrow the directory by football role/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /location and club/i })).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('searchbox', { name: 'Search jobs and volunteering' })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Terms' })).toBeVisible();
+    const more = page.getByRole('button', { name: /more filters/i });
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    await more.click();
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
 
     await page.evaluate(() => localStorage.setItem('theme', 'dark'));
     await page.reload();
     await page.getByRole('button', { name: /open menu/i }).click();
+    await page.getByRole('menuitem', { name: /^appearance/i }).click();
     await page.getByRole('menuitemradio', { name: /^light mode/i }).click();
     await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(false);
 
@@ -264,39 +247,30 @@ test('discovery filters are prominent and the product canvas follows light mode'
     })).toBe(true);
 });
 
-test('club directory switches views and shares one responsive filter state', async ({ page }) => {
+test('World clubs fold the map and keep filters in the address', async ({ page }) => {
     test.skip(!mockMode, 'requires the deterministic mock session');
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/clubs');
-    await expect(page.getByRole('heading', { name: /club directory/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /grid view/i })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('section[aria-label="Club results"] article')).toHaveCount(4);
-    const firstClubLinks = page.locator('section[aria-label="Club results"] article').first().locator('a[href^="/clubs/"]');
-    await expect(firstClubLinks).toHaveCount(3);
-    const firstClubHref = await firstClubLinks.first().getAttribute('href');
-    expect(firstClubHref).toMatch(/\/clubs\/\d+/);
-    for (let linkIndex = 1; linkIndex < 3; linkIndex += 1) {
-        await expect(firstClubLinks.nth(linkIndex)).toHaveAttribute('href', firstClubHref ?? '');
-    }
+    await page.goto('/world/clubs?map=open');
+    await expect(page.getByRole('heading', { name: 'Clubs', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Clubs on the map' })).toBeVisible();
+    const firstClub = page.locator('.gk-world-cards article').first();
+    await expect(firstClub.locator('a[href^="/clubs/"]').first()).toHaveAttribute('href', /\/clubs\/\d+$/);
 
-    await page.getByRole('button', { name: /list view/i }).click();
-    await expect(page.getByRole('button', { name: /list view/i })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Fold map' }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get('map')).toBe('closed');
     await page.reload();
-    await expect(page.getByRole('button', { name: /list view/i })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Show map' })).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByRole('button', { name: /open filters/i })).toBeVisible();
-    await expect(page.getByRole('complementary', { name: /filters/i })).toHaveCount(0);
-    await page.getByRole('button', { name: /open filters/i }).click();
-    const filterDialog = page.getByRole('dialog', { name: /filters/i });
-    await expect(filterDialog).toBeVisible();
-    await filterDialog.getByRole('button', { name: 'ACADEMY', exact: true }).click();
+    // The kind of club is a pill showing its value; its choices open under it and stay open for more choices.
+    await page.getByRole('button', { name: 'Kind of club' }).click();
+    const academies = page.getByRole('group', { name: 'Kind of club' }).getByRole('button', { name: 'Academies' });
+    await academies.click();
     await expect.poll(() => new URL(page.url()).searchParams.getAll('type')).toEqual(['ACADEMY']);
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('button', { name: /open filters/i })).toBeFocused();
-    await expect(filterDialog).toHaveCount(0);
-    await page.getByRole('button', { name: /remove filter academy/i }).click();
+    await academies.click();
     await expect.poll(() => new URL(page.url()).searchParams.getAll('type')).toEqual([]);
+    const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(documentWidth).toBeLessThanOrEqual(390);
 });
 
 test('landing map keeps filters outside the canvas until requested', async ({ page }) => {
@@ -379,11 +353,11 @@ test('anonymous mobile visitors keep public navigation and search usable', async
         localStorage.removeItem('userId');
     });
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/clubs');
-    await expect(page.getByRole('heading', { name: /club directory/i })).toBeVisible();
+    await page.goto('/world/clubs');
+    await expect(page.getByRole('heading', { name: 'Clubs', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: /open search/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /^clubs$/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /^tournaments$/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^world$/i }).first()).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'GrassKickZ World' }).getByRole('link', { name: /^clubs$/i })).toBeVisible();
     const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(documentWidth).toBeLessThanOrEqual(375);
 });
@@ -406,7 +380,7 @@ test('Recent contacts open a quick chat without leaving Home', async ({ page }) 
 test('immersive workspaces fill their available canvas without document overflow', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const workspaces = [
-        '/map',
+        '/world/map',
         '/calendar',
         '/messages',
         '/clubs/1/workspace',
@@ -460,7 +434,7 @@ test('immersive workspaces fill their available canvas without document overflow
 
 test('immersive navigation remains usable on a narrow phone viewport', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/map');
+    await page.goto('/world/map');
     await page.waitForTimeout(1200);
 
     await expect(page.locator('#app-top-navigation')).toBeVisible();

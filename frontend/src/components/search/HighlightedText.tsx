@@ -21,7 +21,7 @@ export const HighlightedText = ({ text, query }: HighlightedTextProps) => {
   <>
    {parts.map((part, i) =>
     part.toLowerCase() === query.toLowerCase() ? (
-     <mark key={i} className="rounded-sm bg-amber-200 px-0.5 text-inherit">
+     <mark key={i} className="rounded-sm bg-[color:var(--color-warning-soft)] px-0.5 text-inherit">
       {part}
      </mark>
     ) : (

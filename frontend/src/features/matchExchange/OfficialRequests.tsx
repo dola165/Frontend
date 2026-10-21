@@ -1,0 +1,36 @@
+import { useMatchCopy } from './copy';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Compass } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAction } from './hooks';
+import { post, when, type Match } from './api';
+import './arrangement.css';
+import { useRefereeWorkspace } from '../refereeWorkspace/WorkspaceContext';
+import { covers } from '../refereeWorkspace/domain';
+import { useRefereeHistory } from './useRefereeHistory';
+type Request = { event_id: number; title: string; location_name: string; city: string; starts_at_iso: string; ends_at_iso: string; timezone: string; volunteer: boolean; fee: number; currency: string; revision: number; status: string; application_status?: string; offer_id?: number; applications?: { referee_id: number; full_name: string; status: string }[] };
+
+export function OfficialOpportunities({ availability = [], onChanged }: { availability?: { starts_at: string; ends_at: string }[]; onChanged?: () => void }) {
+  const { data, error, reload } = useRefereeHistory<Request[]>('/match-arrangements/official-requests');
+  const workspace = useRefereeWorkspace();
+  const [query,setQuery] = useState(''), [payment,setPayment] = useState('all'), [available,setAvailable] = useState(false);
+  const { run, busy, feedback } = useAction(() => { reload(); onChanged?.(); });
+  const requests = data?.filter(r => `${r.title} ${r.location_name} ${r.city}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()) && (payment === 'all' || (payment === 'volunteer') === r.volunteer) && (!available || covers(availability,r.starts_at_iso,r.ends_at_iso))) ?? [];
+  return <section className="mx-panel" id="open-requests"><h2>Open referee requests</h2><p className="mx-muted">Offer on the listed terms. Selection confirms the appointment; your full availability and other commitments are checked again.</p>{feedback}
+    <div className="rw-request-filters"><label>Search requests<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Match, town or ground"/></label><label>Appointment type<select value={payment} onChange={e=>setPayment(e.target.value)}><option value="all">Paid & volunteer</option><option value="paid">Paid</option><option value="volunteer">Volunteer</option></select></label><label className="mx-check"><input type="checkbox" checked={available} onChange={e=>setAvailable(e.target.checked)}/>Within my available windows</label></div>
+    {error && <p role="alert">{error} <button onClick={reload}>Retry requests</button></p>}
+    {!data && !error && <p role="status">Loading requests…</p>}{data && !requests.length && <EmptyState icon={Compass} title={data.length ? 'No requests match your filters.' : 'No open requests right now'} description={data.length ? 'Try another area or appointment type to broaden your search.' : 'Clubs publish paid and volunteer opportunities here. Direct invitations are available in My assignments.'} action={{label:'View my assignments',to:'#invitations'}}/>}
+    <div className="mx-official-list">{requests.map(r => <article key={r.event_id}>{workspace ? <button className="rw-title-button" onClick={()=>workspace.openMatch(r.event_id)}><strong>{r.title}</strong></button> : <Link to={`/match-exchange/${r.event_id}`}><strong>{r.title}</strong></Link>}<p>{when(r.starts_at_iso)} – {when(r.ends_at_iso)} · {r.timezone}</p><p>{r.location_name} · {r.city}</p><p>{r.volunteer ? 'Volunteer appointment' : `${r.fee} ${r.currency} · payment arranged directly`}</p>{r.application_status === 'PENDING' ? <><strong>Offer submitted</strong><Link className="mx-button" to={r.offer_id ? `/referees/me#offer-${r.offer_id}` : "/referees/me#offers"}>Review your offer</Link></> : <><p className="mx-muted">{covers(availability,r.starts_at_iso,r.ends_at_iso) ? 'Your availability covers this match. Other commitments are checked when you offer.' : <Link to="/referees/me#availability">Add availability covering the whole match →</Link>}</p><button disabled={busy} onClick={() => void run(() => post(`/match-arrangements/${r.event_id}/official-request/apply`, { revision: r.revision }), 'Offer sent to the coaching team')}>Offer to referee on these terms</button></>}</article>)}</div>
+  </section>;
+}
+
+export function OpponentRecovery({ match, reload }: { match: Match; reload: () => void }) {
+    const t = useMatchCopy();
+  const [review, setReview] = useState(false), [reason, setReason] = useState('');
+  const { run, busy, feedback } = useAction(reload);
+  const withdraw = match.can_arrange && !match.can_manage && match.listing_status === 'ARRANGED';
+  const open = match.can_manage && match.requested_club_id && match.listing_status === 'OPEN';
+  if (!withdraw && !open) return null;
+  return <section className="mx-panel"><h2>{withdraw ? t("Unable to play?") : t("Find another opponent")}</h2>{feedback}{!review ? <button onClick={() => setReview(true)}>{withdraw ? t("Withdraw our squad") : t("Open opponent search")}</button> : <><p>{withdraw ? t("Withdrawing ends opponent agreement and referee appointments. The host keeps the fixture and its reservation to arrange a replacement.") : t("This ends the targeted invitation and publishes the squad, time, location and match notes in Match Exchange. Your existing reservation remains linked.")}</p>{withdraw && <label>{t("Reason")}<textarea maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label>}<div className="mx-actions"><button disabled={busy || (withdraw && !reason.trim())} onClick={() => void run(async () => { await post(`/match-arrangements/${match.event_id}/${withdraw ? 'response' : 'open-opponent-search'}`, { action: 'WITHDRAW', reason, revision: match.revision }); setReview(false); }, withdraw ? t("Squad withdrawn") : t("Open opponent search published"))}>{withdraw ? t("Confirm withdrawal") : t("Publish open opponent search")}</button><button disabled={busy} onClick={() => setReview(false)}>{t("Keep current arrangement")}</button></div></>}</section>;
+}

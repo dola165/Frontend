@@ -1,0 +1,40 @@
+{
+  "passed": false,
+  "build": "C:\\Users\\daddo\\IdeaProjects\\GrassKickZ\\outputs\\tournament-release-20260915\\web-r1",
+  "checks": [],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED",
+    "Failed to load resource: net::ERR_FAILED",
+    "TypeError: Cannot read properties of undefined (reading 'response')\n    at mr (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:18:52702)\n    at wn (http://127.0.0.1:5187/assets/tournament-routes-tournament-20260915-web-r1.js:2:94662)\n    at yc (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:48098)\n    at Uc (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:70912)\n    at gp (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:81250)\n    at Gp (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:117024)\n    at T0 (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:116070)\n    at su (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:115902)\n    at Bp (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:112687)\n    at sm (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:124503)",
+    "ErrorBoundary caught an error: TypeError: Cannot read properties of undefined (reading 'response')\n    at mr (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:18:52702)\n    at wn (http://127.0.0.1:5187/assets/tournament-routes-tournament-20260915-web-r1.js:2:94662)\n    at yc (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:48098)\n    at Uc (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:70912)\n    at gp (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:81250)\n    at Gp (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:117024)\n    at T0 (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:116070)\n    at su (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:115902)\n    at Bp (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:112687)\n    at sm (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:9:124503) \n    at wn (http://127.0.0.1:5187/assets/tournament-routes-tournament-20260915-web-r1.js:2:94633)\n    at In (http://127.0.0.1:5187/assets/tournament-routes-tournament-20260915-web-r1.js:2:94541)\n    at ot (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:88080)\n    at rE (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:17:4073)\n    at Ku (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:17:8728)\n    at Suspense (<anonymous>)\n    at Gb (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:41654)\n    at Ju (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:42878)\n    at main (<anonymous>)\n    at div (<anonymous>)\n    at eR (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:89245)\n    at xT (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:35405)\n    at yT (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:25632)\n    at mE (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:17:7803)\n    at BE (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:17:17443)\n    at tR (<anonymous>)\n    at jT (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:44825)\n    at kR (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:130916)\n    at Gb (http://127.0.0.1:5187/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js:25:41654)"
+  ],
+  "unexpectedRequests": [],
+  "assets": [
+    "/assets/index-CPpTKLLW.css",
+    "/assets/tournament-routes.css",
+    "/assets/index-DE6N560I-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/TournamentWorkspacePage-CzNRBAfG-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/api-DJZTC1ES-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/domain-3NXPzA7s-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/user-round-BuLoS4Xm-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/TournamentPresentation-6b6IWJWp-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/chart-column-Cmq-5Z-n-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/ConfirmDialog-Cl9IhaXm-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/plus-Bbovxiso-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/pencil-B3XlhbYl-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/rotate-ccw-CAxGoV1I-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/trash-2-CcvzOt9G-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/chevron-right-DR-TmhEP-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/circle-x-C04Dtc-z-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/clock-DAXVi5Sx-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/globe-6BDYItBE-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/lock-B42k-0rg-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/eye-Dg_Bo7Lo-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/swords-T1tjp-H3-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/mail-J4RsrYSP-map-location-20260914-tournament-20260915-web-r1.js",
+    "/assets/tournament-routes-tournament-20260915-web-r1.js"
+  ],
+  "failure": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: 'Horizon Community Cup', exact: true }) to be visible\u001b[22m\n",
+  "unexpectedAdapter": []
+}

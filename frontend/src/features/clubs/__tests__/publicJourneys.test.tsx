@@ -1,0 +1,112 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiClient } from '../../../api/axiosConfig';
+import { TabTraining } from '../../../components/club/tabs/TabTraining';
+import { ClubFacilitiesTab } from '../profile/ClubFacilitiesTab';
+import { ClubPeopleTab } from '../profile/ClubPeopleTab';
+import type { ClubProfile } from '../profile/types';
+const directions = vi.hoisted(() => ({ received: vi.fn() }));
+vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost:8080' }, apiClient: { get: vi.fn() } }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 7 }, sessionId: 's', status: 'authenticated' }) }));
+vi.mock('../../../components/club/tabs/TabTeams', () => ({ TabTeams: () => <p>Club squads</p> }));
+vi.mock('../SquadTrainingSchedule',()=>({SquadTrainingSchedule:()=> <div>Squad timetable</div>}));
+vi.mock('../FacilityDirectionsPanel', () => ({ FacilityDirectionsPanel: (props: { title: string; clubId: number; facilityId: number; address?: string }) => {
+  directions.received(props);
+  return <div role="dialog" aria-label={`Directions for ${props.title}`}>{props.title}<p>{props.address}</p></div>;
+} }));
+const club = { id: 1, name: 'Demo academy', playerJoinPolicy: 'APPLICATION_REQUIRED', presentation: { profileKind: 'ACADEMY', programmes: [{ id: 22, name: 'U12 training', ageMin: 8, ageMax: 12, sessionsPerWeek: 2, priceType: 'FIXED', amount: '150', currency: 'GEL', billingPeriod: 'MONTH', trialAmount: '0', joiningFee: '0', equipmentFee: null, details: 'Train together.', published: true, squadIds: [9] }], affiliations: [], sponsors: [] } } as unknown as ClubProfile;
+const route = (element: React.ReactNode, url = '/clubs/1?tab=teams') => <MemoryRouter initialEntries={[url]}>{element}</MemoryRouter>;
+beforeEach(() => { vi.resetAllMocks(); vi.mocked(apiClient.get).mockResolvedValue({ data: [{ id: 9, name: 'U12 mixed', category: 'U12' }] }); });
+describe('public club journeys', () => {
+  it('returns from the centred detail with the age and search filters and keyboard focus intact', async () => {
+    vi.spyOn(window,'scrollTo').mockImplementation(() => undefined);
+    render(route(<TabTraining club={club} onContact={vi.fn()} />, '/clubs/1?tab=teams&age=10&q=U12'));
+    const card = await screen.findByRole('link', {name:/U12 training.*Programme details/});
+    fireEvent.click(card);
+    expect(screen.getByRole('heading',{name:'About the training'})).toBeVisible();
+    fireEvent.click(screen.getByRole('link',{name:'All training & teams'}));
+    expect(screen.getByRole('textbox',{name:'Find a squad or programme'})).toHaveValue('U12');
+    expect(screen.getByRole('combobox',{name:/Player.s age/})).toHaveValue('10');
+    expect(screen.getByRole('link', {name:/U12 training.*Programme details/})).toHaveFocus();
+  });
+  it('opens a specific programme and its assigned squad without returning to the feed', async () => {
+    const contact = vi.fn();
+    render(route(<TabTraining club={club} onContact={contact} />, '/clubs/1?tab=teams&programme=22'));
+    expect(screen.getByRole('heading', { name: 'U12 training' })).toBeVisible();
+    expect(await screen.findByRole('link', { name: /U12 mixed/ })).toHaveAttribute('href', '/clubs/1?tab=teams&squad=9');
+    fireEvent.click(screen.getByRole('button', { name: /Ask a question/ }));
+    expect(contact).toHaveBeenCalledWith({ name: 'U12 training', path: '/clubs/1?tab=teams&programme=22', squadIds: [9], intent:'question' });
+  });
+  it('does not turn missing or unpublished programmes into a different offer', () => {
+    render(route(<TabTraining club={club} onContact={vi.fn()} />, '/clubs/1?tab=teams&programme=999'));
+    expect(screen.getByRole('heading', { name: 'Programme unavailable' })).toBeVisible();
+    expect(screen.queryByText('150 GEL / month')).not.toBeInTheDocument();
+  });
+  it('makes a sparse facility useful without inventing amenities', async () => {
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => ({ data: url.includes('/facilities') ? [{ id: 1, title: 'School pitch', details: { address: 'School street 79', relationship: 'SHARED' } }] : [] }));
+    render(route(<ClubFacilitiesTab club={club} canEdit={false} />));
+    const card = within((await screen.findByRole('heading', { name: 'School pitch' })).closest('article')!);
+    expect(card.getByText('School street 79')).toBeVisible();
+    expect(card.getByText('Club location')).toBeVisible();
+    fireEvent.click(card.getByRole('button', { name: 'View location' }));
+    const details = within(screen.getByRole('dialog', { name: 'School pitch' }));
+    expect(details.queryByRole('heading', { name: 'Amenities' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Accessible toilets')).not.toBeInTheDocument();
+    fireEvent.click(details.getByRole('button', { name: 'Get directions' }));
+    expect(await screen.findByRole('dialog', { name: 'Directions for School pitch' })).toHaveTextContent('School street 79');
+    expect(directions.received).toHaveBeenCalledWith(expect.objectContaining({ clubId: 1, facilityId: 1, title: 'School pitch', address: 'School street 79' }));
+    expect(screen.queryByText('Accessible toilets')).not.toBeInTheDocument();
+  });
+  it('keeps several appointments and does not turn account ownership into president', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: [{ userId: 1, fullName: 'Demo coach', role: 'OWNER', responsibilities: [{ title: 'Goalkeeper coach', specialisations: ['GOALKEEPER_COACH'], squadId: 9, squadName: 'U12', startsOn: '2026-01-01', endsOn: null }, { title: 'U16 goalkeeper support', specialisations: ['GOALKEEPER_COACH'], squadId: 1, squadName: 'U16', startsOn: '2026-01-01', endsOn: null }] }] });
+    render(route(<ClubPeopleTab clubId={1} canManageStaff={false} />));
+    await screen.findByRole('link', { name: 'Demo coach' });
+    expect(screen.queryByText(/president/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Coaching' })).toBeVisible();
+    const person = within(within(screen.getByRole('region', { name: 'Coaching' })).getByRole('article'));
+    expect(person.getByText('Goalkeeper coach · U16 goalkeeper support')).toBeVisible();
+    expect(person.getAllByRole('link', { name: 'Demo coach' })).toHaveLength(1);
+    fireEvent.click(person.getByText('Details', { selector: 'summary' }));
+    const appointments = within(person.getByRole('list', { name: 'Published responsibilities' })).getAllByRole('listitem');
+    expect(appointments).toHaveLength(2);
+    expect(within(appointments[0]).getByText('Goalkeeper coach', { selector: 'strong' })).toBeVisible();
+    expect(within(appointments[0]).getByText('U12')).toBeVisible();
+    expect(within(appointments[1]).getByText('U16 goalkeeper support', { selector: 'strong' })).toBeVisible();
+    expect(within(appointments[1]).getByText('U16')).toBeVisible();
+    expect(screen.queryByText(/president/i)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'nutritionist' } });
+    await waitFor(() => expect(screen.getByText('No matching staff')).toBeVisible());
+  });
+  it('offers a public team summary without requiring player-record access', async () => {
+    render(route(<TabTraining club={club} onContact={vi.fn()} />, '/clubs/1?tab=teams&squad=9'));
+    expect(await screen.findByRole('heading', { name: 'U12 mixed' })).toBeVisible();
+    expect(screen.getByRole('link', { name: /People helping U12 mixed/ })).toHaveAttribute('href', '/clubs/1?tab=people&squad=9');
+    expect(screen.getByRole('link', { name: /Find the training ground/ })).toHaveAttribute('href', '/clubs/1?tab=facilities&squad=9');
+    expect(screen.getByRole('link', { name: /Sign in to view player profiles/ })).toBeVisible();
+  });
+  it('filters published age ranges and restores a useful empty state', async () => {
+    render(route(<TabTraining club={club} onContact={vi.fn()} />, '/clubs/1?tab=teams&age=17'));
+    expect(screen.getByRole('heading', { name: 'No matching programmes' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(await screen.findByRole('heading', { name: 'U12 training' })).toBeVisible();
+  });
+  it('does not show another squad’s facility as a location for this group', async () => {
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => ({ data: url.includes('/facilities') ? [{ id: 1, title: 'Shared ground', squadId: null, details: { address: 'One' } }, { id: 2, title: 'Girls training', squadId: 3, squadName: 'U16 Girls', details: { address: 'Two' } }] : [{ id: 9, name: 'U12 mixed', category: 'U12' }, { id: 3, name: 'U16 Girls', category: 'U16' }] }));
+    render(route(<ClubFacilitiesTab club={club} canEdit={false} />, '/clubs/1?tab=facilities&squad=9'));
+    const shared = await screen.findByRole('heading', { name: 'Shared ground' });
+    expect(shared).toBeVisible();
+    expect(within(shared.closest('article')!).getByText('Club-wide')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Girls training' })).not.toBeInTheDocument();
+    const select = screen.getByRole('combobox', { name: 'Locations for a squad' });
+    fireEvent.change(select, { target: { value: '' } });
+    expect(await screen.findByRole('heading', { name: 'Girls training' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Shared ground' })).toBeVisible();
+    fireEvent.change(select, { target: { value: '3' } });
+    expect(screen.getByRole('heading', { name: 'Girls training' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Shared ground' })).toBeVisible();
+    fireEvent.change(select, { target: { value: '9' } });
+    expect(screen.queryByRole('heading', { name: 'Girls training' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Shared ground' })).toBeVisible();
+  });
+});

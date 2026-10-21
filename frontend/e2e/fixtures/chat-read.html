@@ -1,0 +1,14 @@
+<!doctype html>
+<html><head><title>Chat read receipts verification</title><style>html,body,#root{height:100%;margin:0}</style></head>
+<body><div id="root"></div><script type="module">
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import {MessagingPage} from '/src/pages/MessagingPage.tsx';
+import {RightSidebar} from '/src/components/layout/RightSidebar.tsx';
+import '/src/index.css';
+const params = new URLSearchParams(location.search);
+createRoot(document.getElementById('root')).render(React.createElement(MemoryRouter,
+  {initialEntries: ['/messages?conversationId=' + params.get('conversationId')]},
+  React.createElement(params.has('quick') ? RightSidebar : MessagingPage)));
+</script></body></html>

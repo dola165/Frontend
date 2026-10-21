@@ -1,0 +1,32 @@
+{
+  "checks": [
+    "01-calendar-desktop",
+    "02-one-time-plan",
+    "03-one-time-details",
+    "04-one-time-review",
+    "one-time-save",
+    "05-weekly-plan",
+    "06-weekly-days",
+    "07-weekly-review",
+    "weekly-save-appears-on-calendar",
+    "edit-entire-series",
+    "discard-confirmation",
+    "08-light-editor",
+    "09-mobile-390-calendar",
+    "10-mobile-390-plan",
+    "11-mobile-390-days",
+    "12-mobile-390-review",
+    "09-mobile-320-calendar",
+    "10-mobile-320-plan",
+    "11-mobile-320-days",
+    "12-mobile-320-review",
+    "09-mobile-600-calendar",
+    "10-mobile-600-plan",
+    "11-mobile-600-days",
+    "12-mobile-600-review",
+    "13-personal-review",
+    "personal-save"
+  ],
+  "errors": [],
+  "external": []
+}

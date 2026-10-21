@@ -1,0 +1,28 @@
+/* Small visual summaries: faces, split bars and crests. Scoped under `.gk`; tokens only. */
+.gk .gk-faces { display: inline-flex; align-items: center; padding: 2px; }
+.gk .gk-faces__face { --ring: transparent; display: inline-flex; margin-left: calc(var(--face) * -0.3); border-radius: 50%; box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 3.5px var(--ring); }
+.gk .gk-faces__face:first-child { margin-left: 0; }
+.gk .gk-faces__face[data-tone='accent'] { --ring: var(--gk-accent); }
+.gk .gk-faces__face[data-tone='danger'] { --ring: var(--gk-danger); }
+.gk .gk-faces__face[data-tone='warning'] { --ring: var(--gk-warning); }
+.gk .gk-faces__face[data-tone='info'] { --ring: var(--gk-info); }
+.gk .gk-faces__more { margin-left: 6px; color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.gk .gk-split { display: flex; gap: 2px; width: 100%; min-width: 60px; height: 6px; overflow: hidden; border-radius: var(--gk-r-pill); background: var(--gk-raised); }
+.gk .gk-split > span { min-width: 4px; background: var(--gk-line-strong); }
+.gk .gk-split > [data-tone='accent'] { background: var(--gk-accent); }
+.gk .gk-split > [data-tone='danger'] { background: var(--gk-danger); }
+.gk .gk-split > [data-tone='warning'] { background: var(--gk-warning); }
+.gk .gk-split > [data-tone='info'] { background: var(--gk-info); }
+
+.gk .gk-crest { flex: none; object-fit: contain; }
+
+.gk .gk-ring { flex: none; }
+.gk .gk-ring__track, .gk .gk-ring__value { fill: none; stroke-width: 3.5; }
+.gk .gk-ring__track { stroke: var(--gk-raised); }
+.gk .gk-ring__value { stroke: var(--gk-accent); stroke-linecap: round; }
+.gk .gk-ring[data-tone='warning'] .gk-ring__value { stroke: var(--gk-warning); }
+.gk .gk-ring[data-tone='danger'] .gk-ring__value { stroke: var(--gk-danger); }
+.gk .gk-ring[data-tone='info'] .gk-ring__value { stroke: var(--gk-info); }
+.gk .gk-ring[data-tone='neutral'] .gk-ring__value { stroke: var(--gk-line-strong); }
+.gk .gk-ring__text { fill: var(--gk-text); font-size: 11px; font-weight: 600; font-family: inherit; }

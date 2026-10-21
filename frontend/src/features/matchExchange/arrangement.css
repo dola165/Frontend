@@ -1,0 +1,2 @@
+/* Referee request lists (open requests and outcome history). */
+.mx-official-list{display:grid;gap:12px}.mx-official-list article{padding:14px;border:1px solid var(--color-border);border-radius:12px}.mx-official-list p{margin:8px 0}

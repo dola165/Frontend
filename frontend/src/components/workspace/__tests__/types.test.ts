@@ -9,6 +9,7 @@ describe('workspace tab URL parsing', () => {
 
     it('rejects unknown or missing tabs', () => {
         expect(parseWorkspaceTab('settings-and-secrets')).toBeNull();
+        expect(parseWorkspaceTab('store')).toBe('store');
         expect(parseWorkspaceTab(null)).toBeNull();
     });
 });

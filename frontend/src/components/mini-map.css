@@ -1,0 +1,64 @@
+/* MiniMap club markers, in the utilities layer as before. */
+@layer utilities {
+  .talanti-map-marker {
+    position: relative;
+    display: block;
+    cursor: pointer;
+    transform-origin: center bottom;
+    transition: transform 160ms ease, filter 160ms ease;
+  }
+
+  .talanti-map-marker__blip {
+    box-shadow: 0 0 16px var(--blip-glow, transparent), 0 4px 12px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    transition: box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .talanti-map-marker--club {
+    --blip-glow: color-mix(in srgb, var(--color-text) 85%, transparent);
+  }
+
+  .talanti-map-marker--club .talanti-map-marker__blip {
+    width: 3px;
+    height: var(--beam-height, 120px);
+    border: none;
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-surface) 50%, transparent) 25%, color-mix(in srgb, var(--color-inset) 70%, transparent) 55%, color-mix(in srgb, var(--color-danger) 85%, transparent) 78%, var(--color-danger) 92%, var(--color-danger) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-shadow) 90%, transparent), 0 0 40px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+  }
+
+  .talanti-map-marker--club .talanti-map-marker__blip::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%) scale(var(--base-scale, 1));
+    width: 28px;
+    height: 14px;
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-danger) 85%, transparent) 0%, color-mix(in srgb, var(--color-page) 50%, transparent) 55%, transparent 72%);
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--color-border) 45%, transparent);
+  }
+
+  .talanti-map-marker--club.is-selected .talanti-map-marker__blip {
+    box-shadow: 0 0 22px color-mix(in srgb, var(--color-shadow) 95%, transparent), 0 0 56px color-mix(in srgb, var(--color-shadow) 60%, transparent);
+  }
+
+  .talanti-map-marker--club.is-selected .talanti-map-marker__blip::after {
+    width: 40px;
+    height: 20px;
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-danger) 90%, transparent) 0%, color-mix(in srgb, var(--color-page) 60%, transparent) 55%, transparent 72%);
+    border-width: 2px;
+  }
+
+  .talanti-map-marker.is-selected .talanti-map-marker__blip {
+    transform: scale(1.35);
+    box-shadow: 0 0 22px var(--blip-glow, transparent), 0 6px 16px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+  }
+
+  .talanti-map-marker--club.is-selected .talanti-map-marker__blip {
+    transform: none;
+  }
+
+  .talanti-map-marker.is-selected {
+    transform: translateY(-2px);
+  }
+}

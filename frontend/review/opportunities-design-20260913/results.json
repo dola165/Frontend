@@ -1,0 +1,27 @@
+{
+  "checks": [
+    "01-store-workspace",
+    "02-store-editor-empty",
+    "03-store-details",
+    "04-store-stock",
+    "05-store-review",
+    "06-campaigns-workspace",
+    "07-campaign-story",
+    "08-campaign-goal",
+    "09-campaign-review",
+    "10-jobs-workspace",
+    "11-job-details",
+    "12-job-applications",
+    "13-job-review",
+    "filter-save-publish-and-draft-return",
+    "mobile-store-workspace",
+    "mobile-store-editor",
+    "mobile-campaigns-workspace",
+    "mobile-campaigns-editor",
+    "mobile-jobs-workspace",
+    "mobile-jobs-editor"
+  ],
+  "errors": [],
+  "apiRequests": [],
+  "externalRequests": []
+}

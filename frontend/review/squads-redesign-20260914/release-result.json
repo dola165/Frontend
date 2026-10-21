@@ -1,0 +1,47 @@
+{
+  "format": 1,
+  "id": "005aaeb6716b4974abbb440236884a8c",
+  "started_utc": "2026-09-13T23:24:50.562792+00:00",
+  "phase": "succeeded",
+  "step": "persist_web_image",
+  "previous": {
+    "format": 1,
+    "release": "schedule-speed-20260914",
+    "images": {
+      "app": "sha256:6e1ce8eff166eec3ac6e02e822547083a7f3b6d004c26d20cff44dcc7ae93b91",
+      "web": "sha256:c275b1293f5b99d00ed421cc12a2c9d548b34e0f91f786988337c5d1990758eb"
+    },
+    "configuration_sha256": {
+      "compose.pilot.yaml": "4f3f83b29c49591852a9dd6e6f269845479265f6cc32d66b23f25e3b6694d413",
+      "compose.tunnel.yaml": "8e7bc0174d98b4f0dc7437866b13308157d1dd2d68504fbaae3534bc8b21ace1",
+      "nginx.conf": "afdb7034a07eeb658d4d0e2d115cad8c878ebad469ba2316325ced16d9a82934"
+    }
+  },
+  "candidate": {
+    "format": 1,
+    "release": "squads-redesign-20260914",
+    "images": {
+      "app": "sha256:6e1ce8eff166eec3ac6e02e822547083a7f3b6d004c26d20cff44dcc7ae93b91",
+      "web": "sha256:79e72f669921f889e1616ccc0232a88ef726cdd8f50cedba6bb05c154b6b7eff"
+    },
+    "configuration_sha256": {
+      "compose.pilot.yaml": "4f3f83b29c49591852a9dd6e6f269845479265f6cc32d66b23f25e3b6694d413",
+      "compose.tunnel.yaml": "8e7bc0174d98b4f0dc7437866b13308157d1dd2d68504fbaae3534bc8b21ace1",
+      "nginx.conf": "afdb7034a07eeb658d4d0e2d115cad8c878ebad469ba2316325ced16d9a82934"
+    }
+  },
+  "data_restore": false,
+  "scope": "web-only",
+  "validation": {
+    "production_build": "passed",
+    "additional_tests": "not_run_at_user_request",
+    "rehearsal_proof": null,
+    "previous_validation": "24 focused tests and connected desktop/mobile preview checks passed before deployment authorization",
+    "local_index_matches_build": true,
+    "public_app_references_and_assets_match_build": true,
+    "api_database_redis_containers_unchanged": true
+  },
+  "index_sha256": "f7a82153e96915a5bc42a31a4c232949e846f54cad8abe24f783223b47aef6c0",
+  "rollback": "Retained previous immutable web image; API and data are unchanged.",
+  "completed_utc": "2026-09-13T23:24:55.097218+00:00"
+}

@@ -1,8 +1,9 @@
 import { apiClient } from './axiosConfig';
+import type { MapBounds } from '../components/map/areaSearch';
 
 // CLUB_NEED remains in the wire type for older clients; the current map API
 // accepts it for compatibility but intentionally returns no markers.
-export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT' | 'CLUB_NEED';
+export type MapEntityType = 'CLUB' | 'STADIUM' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT' | 'CLUB_NEED';
 
 export interface MapMarkerDto {
     entityId: number;
@@ -32,13 +33,21 @@ export interface MapMarkerDto {
 }
 
 export interface MapPageResult {
+    nextPage?: number;
     content: MapMarkerDto[];
     page: number;
     size: number;
     totalElements: number;
+    resultsLimited?: boolean;
+    perTypeLimit?: number;
 }
 
 export interface NearbyMapParams {
+    trainingMinPrice?: number;
+    trainingMaxPrice?: number;
+    trainingCurrency?: string;
+    trainingPeriod?: string;
+    bounds?: MapBounds;
     lat: number;
     lng: number;
     radius?: number;
@@ -57,11 +66,15 @@ export interface NearbyMapParams {
     size?: number;
 }
 
-export const fetchNearbyMap = async (params: NearbyMapParams): Promise<MapPageResult> => {
+export const fetchNearbyMap = async (params: NearbyMapParams, signal?: AbortSignal): Promise<MapPageResult> => {
     const searchParams = new URLSearchParams();
 
+    for (const key of ['trainingMinPrice', 'trainingMaxPrice', 'trainingCurrency', 'trainingPeriod'] as const) {
+        if (params[key] != null) searchParams.set(key, String(params[key]));
+    }
     searchParams.set('lat', String(params.lat));
     searchParams.set('lng', String(params.lng));
+    if (params.bounds) Object.entries(params.bounds).forEach(([key, value]) => searchParams.set(key, String(value)));
     if (params.radius != null) searchParams.set('radius', String(params.radius));
 
     if (params.type && params.type.length > 0) {
@@ -94,7 +107,7 @@ export const fetchNearbyMap = async (params: NearbyMapParams): Promise<MapPageRe
     if (params.page != null) searchParams.set('page', String(params.page));
     if (params.size != null) searchParams.set('size', String(params.size));
 
-    const response = await apiClient.get<MapPageResult>(`/map/nearby?${searchParams.toString()}`);
+    const response = await apiClient.get<MapPageResult>(`/map/nearby?${searchParams.toString()}`, { signal });
     return response.data;
 };
 
@@ -122,4 +135,20 @@ export const geocodePlace = async (q: string, options: GeocodeOptions = {}): Pro
     if (options.type) searchParams.set('type', options.type);
     const response = await apiClient.get<GeocodeResult[]>(`/map/geocode?${searchParams.toString()}`);
     return response.data;
+};
+
+/** Load the whole bounded pool, so local sorting/filtering never sees only page one. */
+export const fetchMapDiscovery = async (params: NearbyMapParams, signal?: AbortSignal): Promise<MapPageResult> => {
+    const first = await fetchNearbyMap({ ...params, page: 0, size: 100 }, signal);
+    if (params.type?.length === 1 && params.type[0] === 'CLUB') {
+        return { ...first, nextPage: first.totalElements > first.content.length ? 1 : undefined };
+    }
+    const markers = new Map(first.content.map(marker => [`${marker.entityType}:${marker.entityId}`, marker]));
+    let limited = first.resultsLimited ?? false;
+    for (let page = 1; page < Math.min(4, Math.ceil(first.totalElements / 100)); page++) {
+        const next = await fetchNearbyMap({ ...params, page, size: 100 }, signal);
+        next.content.forEach(marker => markers.set(`${marker.entityType}:${marker.entityId}`, marker));
+        limited ||= next.resultsLimited ?? false;
+    }
+    return { ...first, content: [...markers.values()], resultsLimited: limited || first.totalElements > markers.size };
 };

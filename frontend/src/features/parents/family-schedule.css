@@ -1,0 +1,5 @@
+/* The schedule inside Parent Hub: a reply that is due sits above the board. */
+.family-schedule-embedded { min-width: 0; }
+.family-schedule-embedded .session-next-action { margin: 0; padding: 12px; border: 1px solid color-mix(in srgb, var(--color-warning) 35%, var(--color-border)); border-radius: 8px; }
+.family-schedule-embedded .session-next-action h2 { font-size: 14px; margin: 3px 0; }
+.family-schedule-embedded .session-next-action p { margin: 4px 0; }

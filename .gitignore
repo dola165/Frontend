@@ -5,3 +5,18 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Generated review output can contain captured session data. Keep authored
+# review scripts and notes, while storing generated media as local/CI artifacts.
+/frontend/review/**/build/
+/frontend/review/**/*.png
+/frontend/review/**/*.jpg
+/frontend/review/**/*.jpeg
+/frontend/review/**/*.webp
+/frontend/review/**/*.mp4
+/frontend/review/**/*.webm
+/frontend/review/**/*.zip
+/frontend/review/**/*.har
+/frontend/dist-map-workspace-demo/
+.DS_Store
+/frontend/src.zip

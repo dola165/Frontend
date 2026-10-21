@@ -1,0 +1,62 @@
+/* World › People: the Dugout on the map, inviting a referee, and your card. Scoped under .gk; tokens only. */
+
+/* The formats a referee takes, as small tiles: lit where they take it, the chosen match's format ringed. */
+.gk .gk-format-tiles { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: middle; }
+.gk .gk-format-tiles > span { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 3px; border-radius: 4px; background: var(--gk-raised); color: var(--gk-text-3);
+  font-size: 10px; font-weight: 700; }
+.gk .gk-format-tiles > [data-on] { background: color-mix(in srgb, var(--gk-warning) 22%, var(--gk-surface)); color: var(--gk-text); }
+.gk .gk-format-tiles > [data-match] { box-shadow: 0 0 0 1.5px var(--gk-accent); }
+.gk .gk-result__line .gk-format-tiles { margin-left: 0; }
+
+/* The Dugout: a glass strip of the coach's match days, docked on the map (stage.css places it). */
+.gk .gk-dugout { display: flex; flex-direction: column; min-height: 0; max-height: 100%; border: 1px solid var(--gk-glass-line, var(--gk-line)); border-radius: 16px; background: var(--gk-glass, var(--gk-surface)); backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: var(--gk-glass-shadow, none); overflow: hidden; }
+.gk .gk-world-stage__body .gk-dugout { margin-bottom: var(--gk-4); background: var(--gk-surface); }
+.gk .gk-dugout__head { flex: none; display: flex; align-items: center; gap: var(--gk-3); min-height: 40px; padding: 0 6px 0 var(--gk-4); }
+.gk .gk-dugout__title { font-weight: 600; }
+.gk .gk-dugout__count { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-dugout__fold { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-3); cursor: pointer; }
+.gk .gk-dugout__fold:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-dugout__fold svg { width: 16px; height: 16px; transform: rotate(180deg); transition: transform .3s var(--gk-ease-out, ease); }
+.gk .gk-dugout[data-folded] .gk-dugout__fold svg { transform: none; }
+.gk .gk-dugout__rows { min-height: 0; overflow-y: auto; scrollbar-width: thin; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--gk-glass-line, var(--gk-line)); }
+.gk .gk-dugout__row { display: grid; grid-template-columns: 52px 24px minmax(0, 1fr) 36px auto; align-items: center; gap: var(--gk-3); min-height: 52px; padding: 0 var(--gk-3); transition: background-color .2s var(--gk-ease); }
+.gk .gk-dugout__row + .gk-dugout__row { border-top: 1px solid var(--gk-glass-line, var(--gk-line)); }
+.gk .gk-dugout__row[data-chosen] { background: color-mix(in srgb, var(--gk-surface) 92%, transparent); box-shadow: inset 0 0 0 1px var(--gk-line-strong); }
+.gk .gk-dugout__match { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-dugout__match strong, .gk .gk-dugout__match small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-dugout__match small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+/* The referee seat: dashed and empty to fill, a face once someone is invited (amber, waiting) or set. */
+.gk .gk-dugout__seat { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 2px solid transparent; border-radius: 50%; background: none; color: var(--gk-text-2); cursor: pointer; }
+.gk .gk-dugout__seat[data-empty] { border: 2px dashed var(--gk-warning); color: var(--gk-warning); }
+.gk .gk-dugout__seat[data-empty][aria-pressed='true'] { border-style: solid; background: var(--gk-accent); border-color: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-dugout__seat[data-status='INVITED'] { border: 2px dashed var(--gk-warning); }
+.gk .gk-dugout__seat[data-status='REPLACEMENT_NEEDED'] { border-color: var(--gk-danger); }
+.gk .gk-dugout__seat[data-status='ACCEPTED'] { border-color: var(--gk-accent); }
+.gk .gk-dugout__seat[data-locked] { cursor: default; color: var(--gk-text-3); border: 1px solid var(--gk-line); }
+.gk .gk-dugout__seat:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+.gk .gk-dugout__seat svg { width: 16px; height: 16px; }
+.gk .gk-dugout__state { white-space: nowrap; text-decoration: none; }
+.gk .gk-dugout__state[data-tone='quiet'] { color: var(--gk-text-3); }
+.gk .gk-dugout__state[data-tone='quiet']::before { background: var(--gk-accent); }
+.gk .gk-dugout__more { flex: none; display: block; width: 100%; min-height: 36px; border: 0; border-top: 1px solid var(--gk-glass-line, var(--gk-line)); background: none; color: var(--gk-accent);
+  font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-dugout__more:hover { background: var(--gk-hover); }
+.gk .gk-dugout__note { margin: 0; padding: var(--gk-3) var(--gk-4); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+@media (max-width: 640px) {
+  .gk .gk-dugout__row { grid-template-columns: 44px minmax(0, 1fr) 44px; grid-template-rows: auto auto; padding-block: 6px; row-gap: 2px; }
+  .gk .gk-dugout__row > .gk-sb__when { grid-row: 1 / span 2; }
+  .gk .gk-dugout__row > .gk-avatar { display: none; }
+  .gk .gk-dugout__row > .gk-dugout__seat { grid-column: 3; grid-row: 1 / span 2; }
+  .gk .gk-dugout__row > .gk-dugout__state { grid-column: 2; grid-row: 2; justify-self: start; }
+}
+@media (pointer: coarse) {
+  .gk .gk-dugout__seat, .gk .gk-dugout__fold { width: 44px; height: 44px; }
+  .gk .gk-dugout__more { min-height: 44px; }
+  .gk .gk-dugout__state { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+
+/* Your card, in its pill's panel. */
+.gk .gk-your-card { display: flex; flex-direction: column; gap: var(--gk-2); width: 300px; padding: var(--gk-2); }
+.gk .gk-your-card .gk-peek-actions { margin: var(--gk-2) 0 0; }

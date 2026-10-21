@@ -1,0 +1,9 @@
+{
+  "origin": "https://app.grasskickz.com",
+  "checks": [
+    "top-right popup, prominent inline confirmation, working popup cart action",
+    "mobile popup and inline cart action, no horizontal overflow",
+    "save failure shows a distinct error without a success popup"
+  ],
+  "errors": []
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "parent",
+    "parentStarter": true,
+    "dualRoleCorrect": true,
+    "suggestionsVisible": false,
+    "editDoesNotExecute": false,
+    "noOverflow": true,
+    "errors": []
+  },
+  {
+    "name": "parent-coach",
+    "parentStarter": true,
+    "dualRoleCorrect": true,
+    "suggestionsVisible": true,
+    "editDoesNotExecute": true,
+    "noOverflow": true,
+    "errors": []
+  },
+  {
+    "name": "mobile-parent",
+    "parentStarter": true,
+    "dualRoleCorrect": true,
+    "suggestionsVisible": false,
+    "editDoesNotExecute": false,
+    "noOverflow": true,
+    "errors": []
+  }
+]

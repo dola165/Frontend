@@ -1,0 +1,33 @@
+/* The day strip: a glass row of days over the map, the ends of the list at either side; under the header when the map
+   is folded or on a phone. Scoped under .gk; tokens only. */
+.gk .gk-daystrip { display: flex; align-items: stretch; gap: 2px; max-width: 100%; min-width: 0; padding: 3px;
+  border: 1px solid var(--gk-glass-line, var(--gk-line)); border-radius: 14px; background: var(--gk-glass, var(--gk-surface)); backdrop-filter: blur(14px) saturate(150%); box-shadow: var(--gk-glass-shadow, none); }
+/* The days scroll sideways between the two ends, fading out at their edges. */
+.gk .gk-daystrip__days { position: relative; display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; scroll-padding-inline: 16px;
+  mask-image: linear-gradient(90deg, transparent, var(--gk-text) 10px, var(--gk-text) calc(100% - 10px), transparent); }
+.gk .gk-daystrip__days::-webkit-scrollbar { display: none; }
+.gk .gk-daystrip button { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 46px; min-height: 52px; padding: 4px 6px;
+  border: 0; border-radius: 11px; background: none; color: var(--gk-text-2); font: inherit; cursor: pointer; transition: background-color .15s var(--gk-ease); }
+.gk .gk-daystrip button:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-daystrip button[aria-checked='true'] { background: var(--gk-raised); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
+.gk .gk-daystrip button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
+.gk .gk-daystrip__weekday { font-size: var(--gk-fs-xs); line-height: 14px; color: var(--gk-text-3); }
+.gk .gk-daystrip__day > b { font-size: var(--gk-fs-md); line-height: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-daystrip__day[data-past] > b { color: var(--gk-text-2); font-weight: 550; }
+.gk .gk-daystrip__day[data-today] .gk-daystrip__weekday { color: var(--gk-accent); font-weight: 650; }
+.gk .gk-daystrip__count { display: inline-flex; align-items: center; gap: 2px; min-height: 13px; font-size: 11px; line-height: 13px; color: var(--gk-text-3); font-variant-numeric: tabular-nums; }
+.gk .gk-daystrip__mine { width: 10px; height: 10px; color: var(--gk-warning); fill: currentColor; }
+.gk .gk-daystrip[data-loading] .gk-daystrip__count { animation: gk-daystrip-wait 1.2s ease-in-out infinite; }
+.gk .gk-daystrip > .gk-daystrip__end { flex-direction: row; gap: 4px; padding-inline: 10px; font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .gk-daystrip__end svg { width: 15px; height: 15px; }
+@keyframes gk-daystrip-wait { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-daystrip[data-loading] .gk-daystrip__count { animation: none; } }
+@media (pointer: coarse) { .gk .gk-daystrip button { min-height: 52px; min-width: 48px; } }
+
+/* The day before and after, beside the day's heading. */
+.gk .gk-daystep { display: inline-flex; gap: 2px; }
+.gk .gk-daystep button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); cursor: pointer; }
+.gk .gk-daystep button:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-daystep button:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-daystep svg { width: 16px; height: 16px; }
+@media (pointer: coarse) { .gk .gk-daystep button { width: 44px; height: 44px; } }

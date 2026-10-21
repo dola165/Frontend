@@ -1,0 +1,13 @@
+/* World's search, in the page header; its results drop down over the page. Scoped under .gk; tokens only. */
+.gk .gk-world-search { position: relative; flex: 1 1 320px; max-width: 620px; }
+.gk .gk-world-search__input .gk-input { min-height: 42px; padding-left: 40px; border-radius: var(--gk-r-lg); background: var(--gk-surface); border-color: var(--gk-line-strong); }
+.gk .gk-world-search__results { position: absolute; z-index: 30; top: calc(100% + var(--gk-2)); left: 0; width: min(1100px, calc(100vw - 2 * var(--gk-gutter)));
+  max-height: min(70vh, 640px); overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-3); align-items: start;
+  padding: var(--gk-3); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r-lg); background: var(--gk-bg); box-shadow: var(--gk-elevation); }
+.gk .gk-world-search__loading { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4) var(--gk-5); }
+.gk .gk-world-search__note { padding: var(--gk-4) var(--gk-5); font-size: var(--gk-fs-sm); }
+.gk .gk-world-search__results .gk-list-row { min-height: 52px; padding-block: var(--gk-2); }
+.gk .gk-world-search__when { display: flex; flex-direction: column; align-items: flex-start; width: 52px; font-weight: 650; }
+.gk .gk-world-search__when small { font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); font-family: var(--gk-font); }
+.gk .gk-world-search__none { grid-column: 1 / -1; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+@media (max-width: 760px) { .gk .gk-world-search { flex-basis: 100%; max-width: none; } }

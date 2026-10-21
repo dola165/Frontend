@@ -1,0 +1,36 @@
+const en = {
+    title: 'Edit tournament', intro: 'Keep the public details, dates, and registration up to date.',
+    details: 'Tournament details', organizer: 'Organized by', access: 'Visibility and registration',
+    registrationPolicy: 'How can participants join?', approval: 'Apply for approval', open: 'Open registration', invite: 'Invitation only',
+    approvalHint: 'Participants can apply. An organizer reviews each application.',
+    openHint: 'Eligible participants can register without waiting for organizer approval.',
+    inviteHint: 'Participants need an invitation from an organizer.',
+    schedule: 'Dates and registration window', scheduleHint: 'Changing these dates does not reschedule individual matches.',
+    extras: 'Rules, prizes, and cover image', prizes: 'Prizes and rewards', prizesPlaceholder: 'Prizes, trophies, or other rewards for participants.',
+    banner: 'Cover image', bannerHint: 'Use a public image link, or leave blank to remove the cover.',
+    save: 'Save changes', saving: 'Saving…', saved: 'Tournament details saved.',
+    error: 'Could not save tournament details. Your changes have been kept.',
+    unsaved: 'You have unsaved changes.', unchanged: 'All changes saved.',
+    bannerInvalid: 'Enter a valid http or https image URL, or leave it blank.',
+    requiredStart: 'Choose a tournament start date.', requiredEnd: 'Choose a tournament end date.',
+    locked: 'These details are locked once the tournament starts or is cancelled. You can still view all the details here.', readOnly: 'View only',
+};
+const ka: typeof en = {
+    title: 'ტურნირის რედაქტირება', intro: 'განაახლე საჯარო ინფორმაცია, თარიღები და რეგისტრაცია.',
+    details: 'ტურნირის დეტალები', organizer: 'ორგანიზატორი', access: 'ხილვადობა და რეგისტრაცია',
+    registrationPolicy: 'როგორ შეუძლიათ მონაწილეებს შემოერთება?', approval: 'განაცხადი დასადასტურებლად', open: 'ღია რეგისტრაცია', invite: 'მხოლოდ მოწვევით',
+    approvalHint: 'მონაწილეებს შეუძლიათ განაცხადის გაგზავნა. თითოეულ განაცხადს ორგანიზატორი განიხილავს.',
+    openHint: 'შესაბამის მონაწილეებს ორგანიზატორის დასტურის ლოდინის გარეშე შეუძლიათ რეგისტრაცია.',
+    inviteHint: 'მონაწილეებს ორგანიზატორის მოწვევა სჭირდებათ.',
+    schedule: 'თარიღები და რეგისტრაციის პერიოდი', scheduleHint: 'ამ თარიღების შეცვლა ცალკეული მატჩების განრიგს არ ცვლის.',
+    extras: 'წესები, პრიზები და გარეკანი', prizes: 'პრიზები და ჯილდოები', prizesPlaceholder: 'პრიზები, თასები ან სხვა ჯილდოები მონაწილეებისთვის.',
+    banner: 'გარეკანის სურათი', bannerHint: 'მიუთითე საჯარო სურათის ბმული, ან დატოვე ცარიელი გარეკანის წასაშლელად.',
+    save: 'ცვლილებების შენახვა', saving: 'ინახება…', saved: 'ტურნირის დეტალები შენახულია.',
+    error: 'ტურნირის დეტალები ვერ შეინახა. შენი ცვლილებები შენარჩუნებულია.',
+    unsaved: 'გაქვს შეუნახავი ცვლილებები.', unchanged: 'ყველა ცვლილება შენახულია.',
+    bannerInvalid: 'შეიყვანე სწორი http ან https სურათის ბმული, ან დატოვე ცარიელი.',
+    requiredStart: 'აირჩიე ტურნირის დაწყების თარიღი.', requiredEnd: 'აირჩიე ტურნირის დასრულების თარიღი.',
+    locked: 'ტურნირის დაწყების ან გაუქმების შემდეგ ეს დეტალები იკეტება. ყველა დეტალის ნახვა აქ კვლავ შეგიძლია.', readOnly: 'მხოლოდ ნახვა',
+};
+export const tournamentSettingsCopy = (language: string) => language.startsWith('ka') ? ka : en;
+

@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "root": "https://app.grasskickz.com",
+  "hashes": {
+    "index.html": "022e5c852f8590fd1ff6431ebeeecf44d56e368d542912434c061e43ed9c78a0",
+    "landing/after-the-whistle.png": "058cc52514d34336131700bb0587b3eb5d36bcf6a62e25490df58739b7b68a8e",
+    "assets/index-smNZxVlo.js": "b69be256fdcb523041bf030d15c03f793c3e200b4bc88c16a31bfbc5a3a998f4",
+    "assets/index--NusLwd1.css": "9b83f5cf709af352cdcb248c189554c85b35d7e0d8156d6542ea8247ccc335a5",
+    "assets/LandingPage-ZUraO5sQ.js": "865bc58a175582b7767359169f27c50330f340db2a57cc8ec5bbc070f607e6cf",
+    "assets/LandingPage-C-4ZADgo.css": "db385dc1a7463c2670cc68aab1f186912de7bb91546541e465efdb925a3cafb3",
+    "assets/LandingPlayground-DxhmImjB.js": "3a58d37e3ee55884bad5f8a65d070ec36ffbb3bc6743837ae467a392086da044"
+  },
+  "errors": []
+}

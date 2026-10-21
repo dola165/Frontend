@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     buildLoginRedirectPath,
+    beginExplicitSignOut,
+    completeSignOutNavigation,
     buildSignupPath,
     clearAuthFlow,
     completedAuthDestination,
@@ -9,6 +11,7 @@ import {
     requiredAccountStep,
     resolvePostAuthRedirect,
     sanitizeAuthRedirect,
+    rememberAuthFlow,
 } from '../authRedirect';
 
 class MemoryStorage implements Storage {
@@ -37,6 +40,18 @@ describe('registration destination flow', () => {
         expect(resolvePostAuthRedirect(null)).toBe('/tournaments/42?tab=entries');
     });
 
+    it('discards the previous account’s private destination during explicit sign-out, then allows new invitations', () => {
+        rememberAuthFlow({ nextPath: '/messages?conversationId=801', email: 'old@example.test', newAccount: true });
+        beginExplicitSignOut();
+        expect(buildLoginRedirectPath('/messages', '?conversationId=801')).toBe('/login');
+        // Repeated protected-route renders cannot restore the retired account's continuation.
+        expect(buildLoginRedirectPath('/messages', '?conversationId=801')).toBe('/login');
+        expect(getAuthFlow()).toEqual({ nextPath: undefined, email: undefined, newAccount: false, town: undefined, awaitingVerification: false });
+        completeSignOutNavigation();
+        expect(buildLoginRedirectPath('/join-squad', '', '#new-invitation')).toBe('/login');
+        expect(getAuthFlow().nextPath).toBe('/join-squad#new-invitation');
+    });
+
     it('keeps a consent token only in session storage', () => {
         const destination = '/consent?token=secret-parent-token';
         expect(buildSignupPath(destination)).toBe('/signup');
@@ -54,7 +69,32 @@ describe('registration destination flow', () => {
         expect(requiredAccountStep({ mustChangePassword: true, onboardingRequired: true })).toBe('/set-password');
         expect(requiredAccountStep({ mustChangePassword: false, onboardingRequired: true })).toBe('/onboarding');
         expect(requiredAccountStep({ profileComplete: true })).toBeNull();
-        expect(completedAuthDestination({ role: 'ORGANIZER' }, null, true)).toBe('/my-club');
-        expect(completedAuthDestination({ role: 'PLAYER' }, null, true)).toBe('/clubs');
+        // A new account starts its first run whatever it was registered as; an invitation it arrived with still wins.
+        expect(completedAuthDestination({}, null, true)).toBe('/start');
+        expect(completedAuthDestination({ profileComplete: true }, null, false)).toBe('/home');
+        expect(completedAuthDestination({}, '/consent?token=synthetic-consent', true))
+            .toBe('/consent?token=synthetic-consent');
+        expect(sanitizeAuthRedirect('/start')).toBeNull();
+    });
+
+    it.each(['/home/../login', '/%6cogin/', '/onboarding/', '/%2fevil.example', '/%5cevil.example', '/bad%00path', '/%zz', '/home/..//evil.example'])('rejects ambiguous or normalized auth-loop path %s', (path) => {
+        expect(sanitizeAuthRedirect(path)).toBeNull();
+    });
+
+    it('normalizes safe destinations while preserving their query and invitation fragment', () => {
+        expect(sanitizeAuthRedirect('/clubs/../requests?tab=incoming')).toBe('/requests?tab=incoming');
+        expect(sanitizeAuthRedirect('/join-squad#private-invitation')).toBe('/join-squad#private-invitation');
+        expect(publicContinuationPath('/requests?%74oken=secret')).toBeUndefined();
+        expect(publicContinuationPath('/%63onsent?code=secret')).toBeUndefined();
+        expect(publicContinuationPath('/requests#private-invitation')).toBeUndefined();
+    });
+
+    it('keeps sign-in and recovery usable when session storage is blocked', () => {
+        vi.stubGlobal('window', { get sessionStorage() { throw new Error('Storage is blocked'); } });
+        clearAuthFlow();
+        expect(() => rememberAuthFlow({ nextPath: '/join-squad#keep-this-private', email: 'account@example.test' })).not.toThrow();
+        expect(buildSignupPath('/join-squad#keep-this-private')).toBe('/signup');
+        expect(resolvePostAuthRedirect(null)).toBe('/join-squad#keep-this-private');
+        clearAuthFlow(); expect(getAuthFlow()).toEqual({});
     });
 });

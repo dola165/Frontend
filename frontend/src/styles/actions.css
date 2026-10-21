@@ -1,0 +1,27 @@
+/* Shared action hierarchy. Inline prose links keep their own link semantics. */
+:where(button,input,select,textarea){font-family:inherit}
+.app-text-action,.moderation-trigger.moderation-trigger,.club-public .cp-text-button,.club-public .cp-back,.club-public .club-preview-footer>a,.club-public .fj-publication a,.club-public .cp-location-footer>a {
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;
+  padding:6px 10px;border:1px solid transparent;border-radius:8px;
+  font-family:inherit;font-size:13px;font-weight:600;line-height:1.45;letter-spacing:normal;
+  text-decoration:none;color:var(--text-primary,var(--color-text));background:transparent;
+  cursor:pointer;vertical-align:middle;transition:background-color .15s,border-color .15s;
+}
+.app-text-action:hover,.moderation-trigger.moderation-trigger:hover,.club-public .cp-text-button:hover,.club-public .cp-back:hover,.club-public .club-preview-footer>a:hover,.club-public .fj-publication a:hover,.club-public .cp-location-footer>a:hover {
+  background:var(--bg-inset,var(--color-inset));border-color:var(--border-subtle,var(--color-border));text-decoration:none;
+}
+.app-text-action:disabled{opacity:.5;cursor:default}
+.app-text-action:focus-visible,.club-public :is(.cp-text-button,.cp-back,.cp-button,.cp-link-label,.cp-person-name):focus-visible,.cp-view-switch button:focus-visible,.st-calendar button:focus-visible,.cp-schedule-squad:focus-visible {
+  outline:2px solid var(--state-info,var(--color-accent));outline-offset:3px;
+}
+.club-public :is(.cp-button,.cp-icon-button){font-family:inherit;font-weight:600;line-height:1.4;text-decoration:none;letter-spacing:normal}
+.club-public .cp-button{font-size:14px;min-height:42px;gap:9px}
+.club-public .cp-link-label{font-size:13px;font-weight:600;line-height:1.5;color:var(--club-theme-text-primary,var(--text-primary));text-decoration:none}
+.club-public .cp-link-label>svg{color:var(--club-theme-text-secondary,var(--text-secondary))}
+.club-public .cp-link-label:hover{color:var(--state-info,var(--color-info))}
+.club-public .cp-icon-button{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--club-theme-border-subtle,var(--border-subtle));border-radius:8px;background:var(--club-card,var(--bg-surface));color:inherit;cursor:pointer}
+.club-public .cp-icon-button:hover{background:var(--bg-inset)}
+.club-public .cp-icon-button:disabled{opacity:.35;cursor:default}
+.club-public.fj-directions{width:min(820px,calc(100vw - 48px))}.fj-directions .fj-directions-back{margin:0 0 14px -10px}.fj-directions .fj-start-actions{gap:10px;margin:18px 0}.fj-directions .fj-start-actions>.cp-button{min-height:46px;padding:11px 18px;font-size:14px}.fj-directions .fj-start-actions>.cp-button-primary{background:var(--text-primary);border-color:var(--text-primary);color:var(--bg-surface);box-shadow:0 2px 5px color-mix(in srgb, var(--color-shadow) 6.67%, transparent)}.fj-directions .fj-start-actions>.cp-button-primary:hover{opacity:.9}.fj-directions .fj-map{height:350px;min-height:300px;border:1px solid var(--club-theme-border-subtle);border-radius:14px;isolation:isolate}.fj-directions .maplibregl-ctrl-group{border-radius:10px;box-shadow:0 2px 12px color-mix(in srgb, var(--color-shadow) 13.33%, transparent);overflow:hidden}.fj-directions .maplibregl-ctrl-group button{width:36px;height:36px}.fj-directions .fj-location-note{font-size:13px;line-height:1.6;background:var(--bg-inset);border-radius:8px}.fj-directions .fj-route-result>h3{font-size:23px}.fj-directions .fj-route-result li{padding:14px 0;font-size:14px}.fj-directions .fj-route-footnote{font-size:12px;line-height:1.6}.fj-directions .fj-coordinate-start summary{min-height:36px;line-height:36px;font-size:13px;cursor:pointer}
+@media(max-width:650px){.club-public.fj-directions{width:100vw}.fj-directions .fj-map{height:310px}.fj-directions .fj-start-actions>.cp-button{flex:1;min-width:150px}}
+@media(prefers-reduced-motion:reduce){.app-text-action,.club-public .cp-text-button{transition:none}}

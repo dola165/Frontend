@@ -56,20 +56,20 @@ const entrySecondary = (entry: TournamentEntryDto | undefined): string | null =>
 
 const entryTypeTone = (entry: TournamentEntryDto): string => {
     const type = entryTypeLabel(entry);
-    if (type === 'Squad') return 'border-violet-500/30 bg-violet-500/10 text-violet-400';
-    if (type === 'Club') return 'border-sky-500/30 bg-sky-500/10 text-sky-400';
-    return 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+    if (type === 'Squad') return 'border-[color:var(--color-purple)]/30 bg-[color:var(--color-purple)]/10 text-[color:var(--color-purple)]';
+    if (type === 'Club') return 'border-[color:var(--color-info)]/30 bg-[color:var(--color-info)]/10 text-[color:var(--color-info)]';
+    return 'border-[color:var(--color-warning)]/30 bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]';
 };
 
 const statusToneBorder: Record<string, string> = {
-    info: 'bg-sky-500/10 text-sky-400 border-sky-500/40',
-    success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40',
-    danger: 'bg-rose-500/10 text-rose-400 border-rose-500/40',
-    neutral: 'bg-black text-[#a1a1aa] border-white/10',
+    info: 'bg-[color:var(--color-info)]/10 text-[color:var(--color-info)] border-[color:var(--color-info)]/40',
+    success: 'bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)] border-[color:var(--color-accent)]/40',
+    danger: 'bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] border-[color:var(--color-danger)]/40',
+    neutral: 'bg-[color:var(--color-page)] text-[var(--color-secondary)] border-[color:var(--color-border)]/10',
 };
 
-const iconBtn = 'inline-flex items-center justify-center rounded-lg border border-white/10 bg-black p-1.5 text-[#a1a1aa] transition-colors hover:bg-white/5 disabled:opacity-40';
-const iconBtnDestructive = 'inline-flex items-center justify-center rounded-lg border border-rose-500/40 bg-black p-1.5 text-rose-400 transition-colors hover:bg-rose-500/10 disabled:opacity-50';
+const iconBtn = 'inline-flex items-center justify-center rounded-lg border border-[color:var(--color-border)]/10 bg-[color:var(--color-page)] p-1.5 text-[var(--color-secondary)] transition-colors hover:bg-[color:var(--color-ink)]/5 disabled:opacity-40';
+const iconBtnDestructive = 'inline-flex items-center justify-center rounded-lg border border-[color:var(--color-danger)]/40 bg-[color:var(--color-page)] p-1.5 text-[color:var(--color-danger)] transition-colors hover:bg-[color:var(--color-danger)]/10 disabled:opacity-50';
 
 export const BracketTree = ({
     tournamentId,
@@ -459,8 +459,8 @@ export const BracketTree = ({
         return (
             <div
                 className={`grid grid-cols-[28px_minmax(0,1fr)_44px] items-center gap-2 rounded-xl transition-colors ${
-                    entry ? '' : 'rounded-lg border border-dashed border-white/20 bg-black px-1.5 py-1.5'
-                } ${isOver ? 'border-emerald-300/60 bg-emerald-300/10' : ''} ${isWinner ? 'bg-emerald-300/[0.06]' : ''}`}
+                    entry ? '' : 'rounded-lg border border-dashed border-[color:var(--color-border)]/20 bg-[color:var(--color-page)] px-1.5 py-1.5'
+                } ${isOver ? 'border-[color:var(--color-accent)]/60 bg-[color:var(--color-accent)]/10' : ''} ${isWinner ? 'bg-[color:var(--color-accent)]/[0.06]' : ''}`}
                 onDragOver={(e) => {
                     e.preventDefault();
                     setDragOver(dropKey);
@@ -477,7 +477,7 @@ export const BracketTree = ({
                             onClick={() => handleAdvance(fx, slot)}
                             disabled={isBusy || !target || !canManage}
                             title={t('tournaments.diagram.advance')}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-white/15 bg-black text-[#a1a1aa] transition-colors hover:border-[#16a34a] hover:text-[#16a34a] disabled:opacity-30"
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-[color:var(--color-border)]/15 bg-[color:var(--color-page)] text-[var(--color-secondary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-30"
                         >
                             <ChevronRight className="h-3.5 w-3.5" />
                         </button>
@@ -490,22 +490,22 @@ export const BracketTree = ({
                             onDragEnd={onDragEnd}
                             onClick={() => setSelectedEntry(entry)}
                             onPointerDown={(e) => e.stopPropagation()}
-                            className={`flex min-w-0 items-center justify-between gap-1.5 rounded-lg border bg-[#0a0e0b] px-2.5 py-2 transition-colors hover:bg-white/5 ${
-                                isPrediction ? 'border-dashed border-amber-300/40' : isWinner ? 'border-emerald-300/30' : 'border-white/10'
+                            className={`flex min-w-0 items-center justify-between gap-1.5 rounded-lg border bg-[var(--color-page)] px-2.5 py-2 transition-colors hover:bg-[color:var(--color-ink)]/5 ${
+                                isPrediction ? 'border-dashed border-[color:var(--color-warning)]/40' : isWinner ? 'border-[color:var(--color-accent)]/30' : 'border-[color:var(--color-border)]/10'
                             } ${
                                 drag?.kind === 'move' && drag.fixtureId === fx.id && drag.slot === slot ? 'opacity-40' : ''
                             } ${isBusy ? 'cursor-wait' : canManage ? 'cursor-grab' : 'cursor-default'}`}
                             title={isPrediction ? t('tournaments.diagram.predictionHint') : t('tournaments.diagram.profileTitle')}
                         >
                             <div className="min-w-0 flex-1">
-                                <span className={`flex items-center truncate text-sm font-bold ${isWinner ? 'text-emerald-100' : 'text-white'}`}>
+                                <span className={`flex items-center truncate text-sm font-bold ${isWinner ? 'text-[color:var(--color-accent)]' : 'text-[color:var(--color-text)]'}`}>
                                     {entryPrimary(entry)}
                                     {fx.winnerEntryId === entryId && (
-                                        <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 shrink-0 text-amber-300" />
+                                        <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 shrink-0 text-[color:var(--color-warning)]" />
                                     )}
                                 </span>
                                 {entrySecondary(entry) && (
-                                    <p className="truncate text-[11px] font-semibold text-[#a1a1aa]">{entrySecondary(entry)}</p>
+                                    <p className="truncate text-[11px] font-semibold text-[var(--color-secondary)]">{entrySecondary(entry)}</p>
                                 )}
                             </div>
                             {canManage && (
@@ -516,23 +516,23 @@ export const BracketTree = ({
                                     }}
                                     disabled={isBusy}
                                     title={t('tournaments.diagram.removeSlot')}
-                                    className="shrink-0 text-[#a1a1aa] transition-colors hover:text-rose-400 disabled:opacity-40"
+                                    className="shrink-0 text-[var(--color-secondary)] transition-colors hover:text-[color:var(--color-danger)] disabled:opacity-40"
                                 >
                                     <X className="h-3.5 w-3.5" />
                                 </button>
                             )}
                         </div>
-                        <span className={`text-right text-lg font-black tabular-nums ${isWinner ? 'text-emerald-300' : fx.status === 'COMPLETED' ? 'text-white' : 'text-zinc-600'}`}>
+                        <span className={`text-right text-lg font-black tabular-nums ${isWinner ? 'text-[color:var(--color-accent)]' : fx.status === 'COMPLETED' ? 'text-[color:var(--color-text)]' : 'text-[color:var(--color-muted)]'}`}>
                             {score != null ? score : '–'}
                         </span>
                     </>
                 ) : (
                     <>
                         <span />
-                        <span className={`truncate text-xs font-bold ${isLocked ? 'italic text-[#71717a]' : 'text-center text-[#71717a]'}`}>
+                        <span className={`truncate text-xs font-bold ${isLocked ? 'italic text-[var(--color-secondary)]' : 'text-center text-[var(--color-secondary)]'}`}>
                             {slotPlaceholder(fx, slot)}
                         </span>
-                        <span className="text-right text-sm font-bold tabular-nums text-[#3f3f46]">–</span>
+                        <span className="text-right text-sm font-bold tabular-nums text-[var(--color-muted)]">–</span>
                     </>
                 )}
             </div>
@@ -540,27 +540,27 @@ export const BracketTree = ({
     };
 
     return (
-        <div className="border-b border-white/[0.08] bg-[#090d0a]">
+        <div className="border-b border-[color:var(--color-border)]/[0.08] bg-[var(--color-page)]">
             {/* Message toast */}
             {message && (
-                <div className={`border-b border-white/10 px-4 py-2.5 text-sm font-semibold ${
+                <div className={`border-b border-[color:var(--color-border)]/10 px-4 py-2.5 text-sm font-semibold ${
                     messageType === 'success'
-                        ? 'bg-[#16a34a]/10 text-[#16a34a]'
-                        : 'bg-[#ef4444]/10 text-[#ef4444]'
+                        ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                        : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
                 }`}>
                     {message}
                 </div>
             )}
 
             {/* Toolbar: bracket context + creation + viewport controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#111612] px-4 py-3 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--color-border)]/[0.08] bg-[var(--color-surface)] px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300/15 bg-emerald-300/[0.07] text-emerald-300">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[color:var(--color-accent)]/15 bg-[color:var(--color-accent)]/[0.07] text-[color:var(--color-accent)]">
                         <Move className="h-4 w-4" />
                     </span>
                     <span className="hidden sm:block">
-                        <span className="block text-xs font-bold text-zinc-200">{t('tournaments.diagram.canvasTitle')}</span>
-                        <span className="mt-0.5 block text-[11px] text-zinc-500">{t('tournaments.diagram.panHint')}</span>
+                        <span className="block text-xs font-bold text-[color:var(--color-text)]">{t('tournaments.diagram.canvasTitle')}</span>
+                        <span className="mt-0.5 block text-[11px] text-[color:var(--color-muted)]">{t('tournaments.diagram.panHint')}</span>
                     </span>
                     {canManage && (
                         <button
@@ -568,25 +568,25 @@ export const BracketTree = ({
                                 setEditingTeamId(null);
                                 setCreateTeamOpen(true);
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-400 px-3 py-2 text-xs font-bold text-[#07110b] transition-colors hover:bg-emerald-300"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[color:var(--color-accent)] px-3 py-2 text-xs font-bold text-[var(--color-on-accent)] transition-colors hover:bg-[color:var(--color-accent)]"
                         >
                             <Plus className="h-3.5 w-3.5" />
                             {t('tournaments.diagram.createTeam')}
                         </button>
                     )}
                 </div>
-                <div className="flex items-center gap-1 rounded-xl border border-white/[0.08] bg-black/25 p-1">
+                <div className="flex items-center gap-1 rounded-xl border border-[color:var(--color-border)]/[0.08] bg-[color:var(--color-ink)]/25 p-1">
                     <button onClick={fitToBracket} className={iconBtn} title={t('tournaments.diagram.fit')}>
                         <Maximize2 className="h-3.5 w-3.5" />
                     </button>
                     <button onClick={resetView} className={iconBtn} title={t('tournaments.diagram.resetView')}>
                         <RotateCcw className="h-3.5 w-3.5" />
                     </button>
-                    <span className="mx-0.5 h-5 w-px bg-white/10" />
+                    <span className="mx-0.5 h-5 w-px bg-[color:var(--color-ink)]/10" />
                     <button onClick={() => setZoom((z) => clampZoom(z - 0.25))} disabled={zoom <= 0.5} className={iconBtn} title={t('tournaments.diagram.zoomOut')}>
                         <ZoomOut className="h-3.5 w-3.5" />
                     </button>
-                    <span className="w-12 text-center text-xs font-bold tabular-nums text-zinc-200">{Math.round(zoom * 100)}%</span>
+                    <span className="w-12 text-center text-xs font-bold tabular-nums text-[color:var(--color-text)]">{Math.round(zoom * 100)}%</span>
                     <button onClick={() => setZoom((z) => clampZoom(z + 0.25))} disabled={zoom >= 1.75} className={iconBtn} title={t('tournaments.diagram.zoomIn')}>
                         <ZoomIn className="h-3.5 w-3.5" />
                     </button>
@@ -599,8 +599,8 @@ export const BracketTree = ({
                 className="relative min-h-[460px] cursor-grab overflow-hidden active:cursor-grabbing"
                 style={{
                     touchAction: 'none',
-                    backgroundColor: '#080c09',
-                    backgroundImage: 'radial-gradient(circle at 16% 10%, rgba(52, 211, 153, 0.07), transparent 30%), linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+                    backgroundColor: 'var(--color-page)',
+                    backgroundImage: 'radial-gradient(circle at 16% 10%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 30%), linear-gradient(color-mix(in srgb, var(--color-ink) 2.5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 2.5%, transparent) 1px, transparent 1px)',
                     backgroundSize: 'auto, 32px 32px, 32px 32px',
                 }}
                 onPointerDown={onPointerDown}
@@ -626,19 +626,19 @@ export const BracketTree = ({
                             aria-hidden="true"
                         >
                             {geometry.paths.map((d, i) => (
-                                <path key={i} d={d} stroke="#7dd3a24d" strokeWidth={2.5} fill="none" />
+                                <path key={i} d={d} stroke="color-mix(in srgb, var(--color-accent) 30.2%, transparent)" strokeWidth={2.5} fill="none" />
                             ))}
                         </svg>
 
                         {/* Teams-only pool */}
-                        <div className="w-64 shrink-0 rounded-2xl border border-white/[0.08] bg-[#0d120f]/90 p-3 shadow-xl shadow-black/20">
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300">
+                        <div className="w-64 shrink-0 rounded-2xl border border-[color:var(--color-border)]/[0.08] bg-[var(--color-page)]/90 p-3 shadow-xl shadow-[var(--color-shadow)]/20">
+                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[color:var(--color-secondary)]">
                                 {t('tournaments.diagram.unplaced')}
-                                <span className="ml-2 text-[#71717a]">{poolEntries.length}</span>
+                                <span className="ml-2 text-[var(--color-secondary)]">{poolEntries.length}</span>
                             </p>
                             <div className="mt-2 space-y-1.5">
                                 {poolEntries.length === 0 ? (
-                                    <p className="text-xs font-semibold text-[#71717a]">{t('tournaments.diagram.allPlaced')}</p>
+                                    <p className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.diagram.allPlaced')}</p>
                                 ) : (
                                     poolEntries.map((entry) => (
                                         <div
@@ -651,12 +651,12 @@ export const BracketTree = ({
                                             onDragEnd={onDragEnd}
                                             onClick={() => setSelectedEntry(entry)}
                                             onPointerDown={(e) => e.stopPropagation()}
-                                            className={`rounded-xl border border-white/10 bg-[#080c09] px-3 py-2.5 transition-colors hover:border-white/20 hover:bg-white/[0.04] ${
+                                            className={`rounded-xl border border-[color:var(--color-border)]/10 bg-[var(--color-page)] px-3 py-2.5 transition-colors hover:border-[color:var(--color-border)]/20 hover:bg-[color:var(--color-ink)]/[0.04] ${
                                                 drag?.kind === 'entry' && drag.entryId === entry.id ? 'opacity-40' : ''
                                             } ${isBusy ? 'cursor-wait' : canManage ? 'cursor-grab' : 'cursor-default'}`}
                                         >
                                             <div className="flex items-center justify-between gap-2">
-                                                <span className="truncate text-sm font-bold text-white">
+                                                <span className="truncate text-sm font-bold text-[color:var(--color-text)]">
                                                     {entryPrimary(entry)}
                                                 </span>
                                                 <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${entryTypeTone(entry)}`}>
@@ -664,7 +664,7 @@ export const BracketTree = ({
                                                 </span>
                                             </div>
                                             {entrySecondary(entry) && (
-                                                <p className="mt-0.5 truncate text-[11px] font-semibold text-[#a1a1aa]">{entrySecondary(entry)}</p>
+                                                <p className="mt-0.5 truncate text-[11px] font-semibold text-[var(--color-secondary)]">{entrySecondary(entry)}</p>
                                             )}
                                         </div>
                                     ))
@@ -674,19 +674,19 @@ export const BracketTree = ({
                             {/* In preparation — teams being built, not draggable yet */}
                             {canManage && draftTeams.length > 0 && (
                                 <div className="mt-4">
-                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#71717a]">
+                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)]">
                                         {t('tournaments.diagram.preparing')}
                                     </p>
                                     <div className="mt-2 space-y-1.5">
                                         {draftTeams.map((team) => (
                                             <div
                                                 key={team.id}
-                                                className="rounded-xl border border-dashed border-amber-300/20 bg-amber-300/[0.04] px-3 py-2.5"
+                                                className="rounded-xl border border-dashed border-[color:var(--color-warning)]/20 bg-[color:var(--color-warning)]/[0.04] px-3 py-2.5"
                                             >
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="min-w-0">
-                                                        <p className="truncate text-sm font-bold text-zinc-300">{team.name}</p>
-                                                        <p className="text-[11px] font-semibold text-amber-200/70">{t('tournaments.diagram.readiness', { count: team.memberCount })}</p>
+                                                        <p className="truncate text-sm font-bold text-[color:var(--color-secondary)]">{team.name}</p>
+                                                        <p className="text-[11px] font-semibold text-[color:var(--color-warning)]/70">{t('tournaments.diagram.readiness', { count: team.memberCount })}</p>
                                                     </div>
                                                     <button
                                                         onClick={() => {
@@ -694,12 +694,12 @@ export const BracketTree = ({
                                                             setCreateTeamOpen(true);
                                                         }}
                                                         title={t('tournaments.diagram.editDraftTeam')}
-                                                        className="shrink-0 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-emerald-300"
+                                                        className="shrink-0 rounded-lg p-1.5 text-[color:var(--color-muted)] transition-colors hover:bg-[color:var(--color-ink)]/[0.05] hover:text-[color:var(--color-accent)]"
                                                     >
                                                         <Pencil className="h-3.5 w-3.5" />
                                                     </button>
                                                 </div>
-                                                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.06]"><div className="h-full rounded-full bg-amber-300/70" style={{ width: `${Math.min(100, (team.memberCount / 5) * 100)}%` }} /></div>
+                                                <div className="mt-2 h-1 overflow-hidden rounded-full bg-[color:var(--color-ink)]/[0.06]"><div className="h-full rounded-full bg-[color:var(--color-warning)]/70" style={{ width: `${Math.min(100, (team.memberCount / 5) * 100)}%` }} /></div>
                                             </div>
                                         ))}
                                     </div>
@@ -710,8 +710,8 @@ export const BracketTree = ({
                         {/* Round columns */}
                         {rounds.map((round, roundIndex) => (
                             <div key={round} className="shrink-0">
-                                <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300">
-                                    <span className="flex h-6 min-w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-1.5 text-emerald-300">R{round}</span>
+                                <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-[color:var(--color-secondary)]">
+                                    <span className="flex h-6 min-w-6 items-center justify-center rounded-full border border-[color:var(--color-border)]/10 bg-[color:var(--color-ink)]/[0.04] px-1.5 text-[color:var(--color-accent)]">R{round}</span>
                                     {roundIndex === rounds.length - 1 && rounds.length > 1 ? (
                                         <><span>{t('tournaments.bracket.final')}</span><span className="sr-only">{t('tournaments.bracket.round', { number: round })}</span></>
                                     ) : t('tournaments.bracket.round', { number: round })}
@@ -731,15 +731,15 @@ export const BracketTree = ({
                                                     else cardRefs.current.delete(fx.id);
                                                 }}
                                                 onPointerDown={(e) => e.stopPropagation()}
-                                                className={`w-[310px] rounded-2xl border p-3 shadow-xl shadow-black/25 ${
-                                                    isComplete ? 'border-emerald-300/20 bg-[#0c1510]' : isCancelled ? 'border-rose-400/15 bg-[#120d0e] opacity-70' : 'border-white/10 bg-[#0b0f0c]'
+                                                className={`w-[310px] rounded-2xl border p-3 shadow-xl shadow-[var(--color-shadow)]/25 ${
+                                                    isComplete ? 'border-[color:var(--color-accent)]/20 bg-[var(--color-page)]' : isCancelled ? 'border-[color:var(--color-danger)]/15 bg-[var(--color-page)] opacity-70' : 'border-[color:var(--color-border)]/10 bg-[var(--color-page)]'
                                                 }`}
                                                 style={{ transform: `translateY(${offset}px)` }}
                                             >
                                                 {renderSquadRow(fx, 'HOME')}
                                                 <div className="my-1.5 flex items-center justify-between gap-2 px-1">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-black uppercase tracking-wider text-[#71717a]">
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
                                                             #{fx.fixtureOrder}
                                                         </span>
                                                         <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>

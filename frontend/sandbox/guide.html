@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrassKickZ sandbox — test guide</title>
+<style>
+  :root { --bg: #0a0d0f; --surface: #12171c; --line: #222b34; --text: #f2f4f6; --text2: #a9b3bc; --text3: #77838e; --accent: #00e676; --warn: #f0bf5a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 40px clamp(16px, 3vw, 40px) 80px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  p { margin: 0; }
+  .lead { color: var(--text2); max-width: 70ch; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 34px; }
+  .bar a, .links a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); color: var(--text); text-decoration: none; font-weight: 600; background: var(--surface); }
+  .bar a.primary { background: var(--accent); color: #04130b; border-color: transparent; }
+  .bar a:hover, .links a:hover { border-color: #33404b; }
+  section { border-top: 1px solid var(--line); padding: 26px 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px 40px; }
+  @media (max-width: 860px) { section { grid-template-columns: minmax(0, 1fr); } }
+  .what { color: var(--text2); margin-top: 6px; }
+  ol { margin: 0; padding-left: 20px; color: var(--text); }
+  ol li { margin: 4px 0; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .links a { min-height: 36px; font-size: 14px; font-weight: 500; }
+  .note { color: var(--warn); font-size: 14px; margin-top: 10px; }
+  .small { color: var(--text3); font-size: 13px; }
+  code { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 13px; }
+  .howto { margin: -14px 0 30px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text2); max-width: 90ch; }
+  .howto b { color: var(--text); }
+  .review { grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .review-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+  .review-row:first-child { border-top: 0; }
+  .review-row[data-decision="keep"] { background: rgba(0, 230, 118, 0.05); }
+  .review-row[data-decision="revert"] { background: rgba(255, 107, 107, 0.06); }
+  .review-row[data-decision="change"] { background: rgba(240, 191, 90, 0.07); }
+  .review-text { min-width: 0; }
+  .choices { justify-self: start; display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .choices button { min-height: 36px; padding: 0 12px; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--text2); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .choices button:first-child { border-left: 0; }
+  .choices button:hover { color: var(--text); background: #182027; }
+  .choices button[aria-pressed="true"][data-v="keep"] { background: var(--accent); color: #04130b; }
+  .choices button[aria-pressed="true"][data-v="revert"] { background: #ff6b6b; color: #1a0606; }
+  .choices button[aria-pressed="true"][data-v="change"] { background: var(--warn); color: #1a1204; }
+  .review-note { grid-column: 1 / -1; width: 100%; min-height: 38px; resize: vertical; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
+  .review-note[hidden] { display: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .general { width: 100%; min-height: 110px; resize: vertical; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; }
+  .dock { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 calc(-1 * clamp(16px, 3vw, 40px)); padding: 12px clamp(16px, 3vw, 40px); background: rgba(10, 13, 15, 0.94); border-top: 1px solid var(--line); backdrop-filter: blur(6px); }
+  .dock .tally { color: var(--text2); flex: 1 1 260px; }
+  .dock .tally b { color: var(--text); }
+  .dock button { min-height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+  .dock button.primary { background: var(--accent); color: #04130b; border-color: transparent; }
+  .copied { color: var(--accent); font-size: 14px; }
+  .fallback { width: 100%; min-height: 220px; margin-top: 10px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 13px/1.5 ui-monospace, Consolas, monospace; }
+  @media (max-width: 640px) { .review-row { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>GrassKickZ overhaul — test guide</h1>
+  <p class="lead">Everything here runs on invented data in your own browser. You are signed in as coach Luka Gelashvili, Head of Coaching at FC Dinamo Tbilisi Academy (he coaches U14 Boys and U16 Boys). Nothing talks to the mini PC or your real database. Each section below is one sprint: what changed, what to try, and direct links. Links open in this tab; use Back to return here, or bookmark <code>/__guide</code>.</p>
+  <div class="bar">
+    <a class="primary" href="/home">Open the app</a>
+    <a href="/__mode/parent?to=/world/clubs">Switch to parent view</a>
+    <a href="/__mode/analyst?to=/clubs/1/workspace">Workspace as a performance analyst</a>
+    <a href="/__mode/member?to=/clubs/1/workspace">Workspace as a plain member</a>
+    <a href="/__mode/coach?to=/home">Back to coach view</a>
+    <a href="/world?signedout=1">See it signed out</a>
+  </div>
+  <p class="howto"><b>Review as you go.</b> Under each section, mark every change <b>Keep</b>, <b>Revert</b> (put it back the way it was before the overhaul) or <b>Change</b> (write what you want instead). Your marks are saved in this browser. When you're done, press <b>Copy my review</b> at the bottom and paste it into the coding chat.</p>
+
+  <section>
+    <div>
+      <h2>0 · Overall look</h2>
+      <p class="what">Every redesigned page uses one design system: quieter surfaces, sentence case instead of ALL-CAPS labels, Inter type, and the fixture line (a time column in scoreboard numbers, then what, where and status) wherever time matters. The dark theme, green accent, wide layout and Home feed are kept from before.</p>
+    </div>
+    <div>
+      <div class="links"><a href="/home">Home</a><a href="/clubs/1/workspace">Club workspace</a><a href="/clubs/1">Club profile</a></div>
+    </div>
+    <div class="review" data-group="look"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>1 · New header, pins and Inbox</h2>
+      <p class="what">One row instead of two: Home, World, My Club. Your own pinned pages become extra tabs. Requests and notifications are one Inbox. Phones get a bottom tab bar. "My work" is gone.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Open any squad or workspace page, then use <b>Pin</b> in the header to pin it.</li>
+        <li>Open the Inbox (tray icon): "Needs you" vs "Updates".</li>
+        <li>Open the avatar menu: profile, My schedule, theme, language, your workspaces.</li>
+        <li>Make the window narrow (or use your phone's width in dev tools) to see the bottom tab bar.</li>
+      </ol>
+      <div class="links"><a href="/home">Home</a><a href="/squads/105">U16 Boys squad (pin it)</a><a href="/requests">All requests</a></div>
+    </div>
+    <div class="review" data-group="nav"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>2 · GrassKickZ World</h2>
+      <p class="what">World is now the discovery half of the app: a front page plus directories for Clubs, People, Venues, Matches, Competitions and Opportunities. Every page shares one frame: the title, search and filter pills in one row, then the same map (it stays put from tab to tab), with a <b>Browse area</b> panel over it listing what is on the map. The results are its pins, and the map folds to a strip to use the tab as a plain list. The World bar beside the tabs holds who and where World is for (a child, your squads, the area). The old list pages redirect here.</p>
+    </div>
+    <div>
+      <ol>
+        <li>On the front page, search "saburtalo", then try a quick start.</li>
+        <li>In Clubs, hover a line in <b>Browse area</b> to light its pin, click a pin, then <b>Fold map</b>.</li>
+        <li>Scroll down a little and switch tabs: the map and the page stay where they are.</li>
+        <li>In People, filter by Referees or Specialists (professions like sports psychologist).</li>
+        <li>Switch to the parent view (top of this page) and open Clubs: pick a child under <b>For</b> in the World bar.</li>
+      </ol>
+      <div class="links"><a href="/world">World</a><a href="/world/clubs">Clubs</a><a href="/world/clubs?map=closed">Clubs without the map</a><a href="/world/people">People</a><a href="/world/venues">Venues</a><a href="/world/matches">Matches</a><a href="/world/competitions">Competitions</a><a href="/world/opportunities">Opportunities</a></div>
+    </div>
+    <div class="review" data-group="world"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>3 · Map and journey planning</h2>
+      <p class="what">The full map lives at World › Map: one search bar, layer chips, a results list synced with the markers, a place card with actions, and a bottom sheet on phones. Journey planning is a first-class flow: start from a fixture, plan the stops and times, who travels and in which car, what to bring, then publish to families.</p>
+      <p class="note">Map tiles need the internet, so streets may be plain here; markers and routes still show.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Open the map, click a marker, then use "Save to a journey".</li>
+        <li>Open the U16 Boys away trip and walk through Itinerary, Travelling, Kit and notes, Share.</li>
+        <li>Open "the family view" to see what parents get.</li>
+      </ol>
+      <div class="links"><a href="/world/map">Map</a><a href="/world/map?plans=staff">Journeys</a><a href="/world/map?plans=staff&amp;plan=701&amp;club=1&amp;squad=105">U16 trip plan</a><a href="/world/map?plans=staff&amp;plan=701&amp;club=1&amp;squad=105&amp;view=journey">Family view of the trip</a></div>
+    </div>
+    <div class="review" data-group="map"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>4 · Club workspace and Coach Hub</h2>
+      <p class="what">One workspace layout for every workspace (club and tournament so far): a left rail shaped by your responsibilities, a simpler Overview with one "Needs you" list, and Coach Hub — your squads, your week, your players to check, your tasks. Squads, Staff duties (one form instead of a 3-step wizard), Players, Settings and the rest are rebuilt.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Overview → open something from "Needs you".</li>
+        <li>Coach Hub → "Responsibilities": switch a tool off and watch the rail reorganize.</li>
+        <li>Staff duties → "Add staff duty": one short form. Start typing, then click "Club page" in the rail — it asks before discarding.</li>
+        <li>Squads → U14 Boys → "Age eligibility".</li>
+      </ol>
+      <div class="links"><a href="/clubs/1/workspace">Overview</a><a href="/clubs/1/workspace?tab=coach-hub">Coach Hub</a><a href="/clubs/1/workspace?tab=coach-hub&amp;hub=responsibilities">Responsibilities</a><a href="/clubs/1/workspace?tab=squads">Squads</a><a href="/clubs/1/workspace?tab=staff-duties">Staff duties</a><a href="/clubs/1/workspace?tab=players">Players</a><a href="/clubs/1/workspace?tab=settings">Settings</a><a href="/clubs/1/workspace?tab=programmes">Programmes &amp; fees</a><a href="/tournaments/301/workspace">Tournament workspace</a></div>
+    </div>
+    <div class="review" data-group="ws"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>5 · Profiles, schedules and attendance</h2>
+      <p class="what">Club, person and organization profiles share one layout. A club's Overview now leads with its latest posts and a clear Follow / Join. Clubs get a combined Schedule tab; your own profile has your personal schedule (the old calendar). Person profiles separate football roles, work and skills, and what a club has confirmed. Attendance is opt-out: players are expected unless they tap "Can't come"; coaches ask for confirmation only when it matters.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Open another club and use "Propose a match".</li>
+        <li>Open your schedule, click a session: see "11 of 12 expected" and "Ask for confirmation".</li>
+        <li>Open Roles and work: add a profession like "Video analyst".</li>
+      </ol>
+      <div class="links"><a href="/clubs/1">Dinamo profile</a><a href="/clubs/3">Riverside Academy</a><a href="/clubs/1?tab=schedule">Club schedule</a><a href="/profile/1">Your profile</a><a href="/profile/1?tab=schedule">Your schedule</a><a href="/profile/30">A U16 player</a><a href="/account/roles">Roles and work</a></div>
+    </div>
+    <div class="review" data-group="prof"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>6 · Arrange a match</h2>
+      <p class="what">One short form instead of the three-step wizard: search the opponent club, pick squads, kick-off (length comes from the age group), the ground (your venues, theirs, any venue, a pin on the map, or to be arranged), referee optional. Stadium booking is gone. "Post an open match" is the separate Match Exchange listing. The match page is rebuilt.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Arrange a match: type "kut" in the opponent field.</li>
+        <li>Open the invitation you received and accept it.</li>
+        <li>Open an agreed match: plan the match day, request a referee.</li>
+      </ol>
+      <div class="links"><a href="/world/matches/arrange">Arrange a match</a><a href="/world/matches/arrange?mode=open">Post an open match</a><a href="/match-exchange/5844">Invitation received</a><a href="/match-exchange/5846">Invitation sent</a><a href="/match-exchange/5726">Agreed match</a></div>
+    </div>
+    <div class="review" data-group="match"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>7 · Home: This week and announcements</h2>
+      <p class="what">The feed is unchanged. Above it: "This week" (your squads' sessions and matches, plus what's waiting for you) and pinned announcements. On a squad page, coaches post an announcement with "Pinned until" and see who has read it.</p>
+    </div>
+    <div>
+      <ol>
+        <li>On Home, look at This week and the announcement read summary.</li>
+        <li>On U16 Boys → Announcements: post a new one pinned for 3 days, asking families to confirm.</li>
+      </ol>
+      <div class="links"><a href="/home">Home</a><a href="/squads/105">U16 Boys announcements</a></div>
+    </div>
+    <div class="review" data-group="home"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Good to know</h2>
+      <p class="what">To reset all data, stop the server window and start it again. Light theme and Georgian are in the avatar menu. If a page ever looks stuck on "Loading", reload once.</p>
+    </div>
+    <div>
+      <p class="small">What's not real here: map tiles, Google sign-in, photos (generated placeholders), chat live updates. A few features rely on backend endpoints that don't exist yet; they are listed in the overnight report (<code>frontend/docs/claude-sandbox/</code>).</p>
+    </div>
+  </section>
+  <section>
+    <div>
+      <h2>Anything else</h2>
+      <p class="what">Things the checklist doesn't cover: something missing, something from before you want back, ideas for next.</p>
+    </div>
+    <div>
+      <label for="general" class="small">Other notes</label>
+      <textarea id="general" class="general" placeholder="For example: the old club workspace sidebar order was better; I want a Gallery tab on club profiles"></textarea>
+    </div>
+  </section>
+
+  <div class="dock" role="region" aria-label="Your review">
+    <p class="tally" id="tally" aria-live="polite"></p>
+    <span class="copied" id="copied" role="status"></span>
+    <button type="button" id="reset">Clear marks</button>
+    <button type="button" class="primary" id="copy">Copy my review</button>
+  </div>
+  <div id="fallback-wrap" hidden>
+    <p class="small">Copying was blocked by the browser. Select all of this and copy it yourself:</p>
+    <textarea id="fallback" class="fallback" readonly></textarea>
+  </div>
+</main>
+<script>
+(function () {
+  var GROUPS = {
+    look: ['Overall look', [
+      ['look-style', 'Calmer look on redesigned pages: quieter surfaces, sentence case, no ALL-CAPS labels'],
+      ['look-fixture', 'Fixture line (time in scoreboard numbers, then what, where, status) in This week, schedules and World'],
+      ['look-width', 'Wide pages everywhere; profiles use the club-profile width'],
+    ]],
+    nav: ['Header', [
+      ['nav-row', 'One header row: Home, World, My Club'],
+      ['nav-pins', 'Pin any page as an extra header tab'],
+      ['nav-inbox', 'Requests and notifications merged into one Inbox (Needs you / Updates)'],
+      ['nav-avatar', 'Avatar menu holds profile, My schedule, theme, language and workspaces'],
+      ['nav-phone', 'Bottom tab bar on phones'],
+      ['nav-mywork', '"My work" removed'],
+    ]],
+    world: ['World', [
+      ['world-front', 'World front page with search and quick starts'],
+      ['world-dirs', 'Directories for Clubs, People, Venues, Matches, Competitions and Opportunities, all with the same search and filters'],
+      ['world-views', 'The map on top of every tab, linked to the results, folding to a strip'],
+      ['world-people', 'People searchable by role and profession (referees, specialists)'],
+      ['world-parent', 'Parent view: search clubs for a specific child'],
+      ['world-redirect', 'Old list pages redirect into World'],
+    ]],
+    map: ['Map and journeys', [
+      ['map-layout', 'World > Map: one search bar, layer chips, results list synced with the markers'],
+      ['map-card', 'Place card with actions, including Save to a journey'],
+      ['map-phone', 'Bottom sheet on phones'],
+      ['map-journey', 'Journey planner: stops and times, who travels in which car, kit and notes, share'],
+      ['map-family', 'Family view of a published journey'],
+    ]],
+    ws: ['Club workspace', [
+      ['ws-shell', 'One workspace layout for clubs and tournaments, with a left rail shaped by your responsibilities'],
+      ['ws-overview', 'Overview with a single Needs you list'],
+      ['ws-hub', 'Coach Hub: your squads, your week, players to check, tasks'],
+      ['ws-resp', 'Responsibilities: switch tools on and off'],
+      ['ws-duties', 'Staff duties: one short form instead of the 3-step wizard; asks before discarding'],
+      ['ws-squads', 'Squads, with age eligibility'],
+      ['ws-rest', 'Players, Settings, Programmes & fees and the other workspace pages rebuilt'],
+    ]],
+    prof: ['Profiles, schedules and attendance', [
+      ['prof-layout', 'Club, person and organization profiles share one layout'],
+      ['prof-posts', 'Club overview leads with latest posts and a clear Follow / Join'],
+      ['prof-clubsched', 'Combined Schedule tab on club profiles'],
+      ['prof-mysched', 'Your schedule lives on your profile (replaces the old calendar)'],
+      ['prof-person', 'Person profile separates football roles, work and skills, and what a club has confirmed'],
+      ['prof-roles', 'Roles and work: add professions such as Video analyst'],
+      ['prof-attend', 'Opt-out attendance: expected unless "Can\'t come"; ask for confirmation only when it matters'],
+    ]],
+    match: ['Arrange a match', [
+      ['match-form', 'Arrange a match is one short form with opponent club search'],
+      ['match-ground', 'Ground: your venues, theirs, any venue, a map pin or to be arranged; stadium booking removed'],
+      ['match-length', 'Match length comes from the age group; referee optional'],
+      ['match-open', 'Post an open match is a separate Match Exchange listing'],
+      ['match-page', 'Match page rebuilt: invitations, plan the match day, request a referee'],
+    ]],
+    home: ['Home', [
+      ['home-week', 'This week above the feed: your squads\' sessions and matches, plus what\'s waiting for you'],
+      ['home-ann', 'Pinned announcements on Home with a read summary'],
+      ['squad-ann', 'Squad announcements with Pinned until and who has read them'],
+    ]],
+  };
+  var KEY = 'gk-sandbox-review-v1';
+  var LABEL = { keep: 'Keep', revert: 'Revert', change: 'Change' };
+  var state = { d: {}, n: {}, general: '' };
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && saved.d) state = saved; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} tally(); }
+
+  document.querySelectorAll('.review[data-group]').forEach(function (box) {
+    var group = GROUPS[box.getAttribute('data-group')];
+    if (!group) return;
+    group[1].forEach(function (item) {
+      var id = item[0], text = item[1];
+      var row = document.createElement('div');
+      row.className = 'review-row';
+      var label = document.createElement('div');
+      label.className = 'review-text';
+      label.textContent = text;
+      var choices = document.createElement('div');
+      choices.className = 'choices';
+      choices.setAttribute('role', 'group');
+      choices.setAttribute('aria-label', text);
+      var note = document.createElement('textarea');
+      note.className = 'review-note';
+      note.rows = 1;
+      note.setAttribute('aria-label', 'Note: ' + text);
+      note.value = state.n[id] || '';
+      note.addEventListener('input', function () { state.n[id] = note.value; save(); });
+      function paint() {
+        var v = state.d[id] || '';
+        if (v) row.setAttribute('data-decision', v); else row.removeAttribute('data-decision');
+        choices.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-v') === v)); });
+        note.hidden = !v && !note.value;
+        note.placeholder = v === 'change' ? 'What should it be instead?' : v === 'revert' ? 'Anything to keep from the new version? (optional)' : 'Note (optional)';
+      }
+      ['keep', 'revert', 'change'].forEach(function (v) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = LABEL[v];
+        b.setAttribute('data-v', v);
+        b.addEventListener('click', function () {
+          state.d[id] = state.d[id] === v ? '' : v;
+          if (!state.d[id]) delete state.d[id];
+          paint(); save();
+          if (state.d[id] === 'change' && !note.value) note.focus();
+        });
+        choices.appendChild(b);
+      });
+      row.appendChild(label); row.appendChild(choices); row.appendChild(note);
+      box.appendChild(row);
+      paint();
+    });
+  });
+
+  var general = document.getElementById('general');
+  general.value = state.general || '';
+  general.addEventListener('input', function () { state.general = general.value; save(); });
+
+  function all() { var list = []; Object.keys(GROUPS).forEach(function (g) { GROUPS[g][1].forEach(function (it) { list.push({ id: it[0], text: it[1], area: GROUPS[g][0] }); }); }); return list; }
+  function tally() {
+    var items = all(), c = { keep: 0, revert: 0, change: 0 }, done = 0;
+    items.forEach(function (it) { var v = state.d[it.id]; if (v) { c[v]++; done++; } });
+    document.getElementById('tally').innerHTML = '<b>' + done + ' of ' + items.length + '</b> reviewed · ' + c.keep + ' keep · ' + c.revert + ' revert · ' + c.change + ' change';
+  }
+  function report() {
+    var items = all(), lines = ['# My review of the GrassKickZ overhaul sandbox (branch claude/overhaul-sandbox)', '', 'Revert = put it back the way it was before the overhaul (commit 5f78c0d). Change = do what my note says. Keep = leave it as it is.'];
+    function block(title, v) {
+      var list = items.filter(function (it) { return (state.d[it.id] || '') === v; });
+      if (!list.length) return;
+      lines.push('', '## ' + title);
+      list.forEach(function (it) { var n = (state.n[it.id] || '').trim(); lines.push('- [' + it.area + '] ' + it.text + (n ? ' — ' + n.replace(/\s*\n\s*/g, ' ') : '')); });
+    }
+    block('Change', 'change'); block('Revert', 'revert'); block('Keep', 'keep'); block('Not reviewed yet', '');
+    if ((state.general || '').trim()) lines.push('', '## Other notes', state.general.trim());
+    return lines.join('\n') + '\n';
+  }
+  document.getElementById('copy').addEventListener('click', function () {
+    var text = report(), msg = document.getElementById('copied');
+    function fallback() { var w = document.getElementById('fallback-wrap'), t = document.getElementById('fallback'); w.hidden = false; t.value = text; t.focus(); t.select(); msg.textContent = ''; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { msg.textContent = 'Copied. Paste it into the coding chat.'; setTimeout(function () { msg.textContent = ''; }, 4000); }, fallback);
+    } else fallback();
+  });
+  document.getElementById('reset').addEventListener('click', function () {
+    if (!Object.keys(state.d).length && !state.general && !Object.keys(state.n).length) return;
+    var btn = document.getElementById('reset');
+    if (btn.getAttribute('data-armed') !== '1') { btn.setAttribute('data-armed', '1'); btn.textContent = 'Press again to clear everything'; setTimeout(function () { btn.removeAttribute('data-armed'); btn.textContent = 'Clear marks'; }, 3000); return; }
+    state = { d: {}, n: {}, general: '' }; save(); location.reload();
+  });
+  tally();
+})();
+</script>
+</body>
+</html>

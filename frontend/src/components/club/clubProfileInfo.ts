@@ -1,4 +1,5 @@
-import type { ClubProfile } from '../../pages/ClubProfilePage';
+import type { ClubProfile } from '../../features/clubs/profile/types';
+import './club-tones.css';
 
 export interface ClubProfileActionLink {
     href: string;
@@ -46,7 +47,7 @@ export const buildClubProfileLinks = (club: ClubProfile): ClubProfileActionLink[
                 opportunity.type === 'FUNDRAISING'
                     ? 'Fundraising'
                     : opportunity.type === 'JOB'
-                        ? 'Jobs'
+                        ? 'Job'
                         : opportunity.type === 'VOLUNTEER'
                             ? 'Volunteer'
                             : null;

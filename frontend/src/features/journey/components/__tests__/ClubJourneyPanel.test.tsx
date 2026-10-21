@@ -1,11 +1,22 @@
+import { apiClient } from '../../../../api/axiosConfig';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../../../i18n';
 import { ClubJourneyPanel } from '../ClubJourneyPanel';
-
-vi.mock('react-router-dom', () => ({
-    useNavigate: () => vi.fn(),
+const refreshNavigation = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const auth = vi.hoisted(() => ({ sessionId: 'journey-session' }));
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ ...auth, refreshNavigationCapabilities: refreshNavigation }) }));
+vi.mock('../../../../utils/authStorage', async importOriginal => ({
+    ...await importOriginal<typeof import('../../../../utils/authStorage')>(),
+    getAuthSessionId: () => auth.sessionId,
+    isCurrentAuthSession: (id: string) => id === auth.sessionId,
 }));
+vi.mock('../ClubRelationships', () => ({ ClubRelationships: () => null }));
+vi.mock('../../../organizations/setup/OrganizationInvitationInbox', () => ({ OrganizationInvitationInbox: () => null }));
+
+vi.mock('react-router-dom', async importOriginal => ({...await importOriginal<typeof import('react-router-dom')>(),useNavigate:()=>vi.fn()}));
+vi.mock('../../../../api/axiosConfig',()=>({apiClient:{get:vi.fn(),post:vi.fn()}}));
 
 vi.mock('../../../clubs/api', () => ({
     fetchClubJourney: vi.fn(),
@@ -20,7 +31,6 @@ vi.mock('../../../../utils/apiError', () => ({
 
 import {
     acceptClubInvitation,
-    cancelClubApplication,
     fetchClubJourney,
 } from '../../../clubs/api';
 
@@ -46,11 +56,15 @@ const journeyPayload = {
 describe('ClubJourneyPanel — phase A4', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        auth.sessionId = 'journey-session';
         vi.mocked(fetchClubJourney).mockResolvedValue(journeyPayload);
+        const receipts=journeyPayload.applications.map(app=>({...app,id:app.applicationId,applicantName:'Test player',jobId:null,jobTitle:null,message:null,canWithdraw:app.status==='PENDING',canRespond:false,canOffer:false,canCancelOffer:false,unavailableReason:null,offer:null}));
+        vi.mocked(apiClient.get).mockImplementation(async url=>({data:String(url)==='/recruitment/applications'?receipts:String(url).startsWith('/recruitment/applications/')?receipts.find(r=>String(r.id)===String(url).split('/').pop()):[]}));
+        vi.mocked(apiClient.post).mockImplementation(async()=>{receipts[0].status='CANCELLED';receipts[0].canWithdraw=false;return {data:{status:'CANCELLED'}};});
     });
 
     it('renders the status pills with counts', async () => {
-        render(<ClubJourneyPanel />);
+        render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
         await waitFor(() => expect(screen.getByText(/On trial · 1/)).toBeInTheDocument());
         expect(screen.getByText(/Applied · 1/)).toBeInTheDocument();
         expect(screen.getByText(/Invited · 1/)).toBeInTheDocument();
@@ -59,26 +73,29 @@ describe('ClubJourneyPanel — phase A4', () => {
     });
 
     it('renders affiliations, applications, tryouts and decisions', async () => {
-        render(<ClubJourneyPanel />);
+        render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
         await waitFor(() => expect(screen.getAllByText(/Metro United Academy/).length).toBeGreaterThanOrEqual(1));
         expect(screen.getByText('This intake is full — try again at our next tryouts. Keep training!')).toBeInTheDocument();
         expect(screen.getByText(/U15 Open Tryout/)).toBeInTheDocument();
-        expect(screen.getByText(/Lakeside Athletic · DECLINED/)).toBeInTheDocument();
+        expect(screen.getByText(/Lakeside Athletic · Declined/)).toBeInTheDocument();
     });
 
     it('cancels a pending application and refreshes', async () => {
-        render(<ClubJourneyPanel />);
+        render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
         await waitFor(() => expect(screen.getByText(/Applied · 1/)).toBeInTheDocument());
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-        await waitFor(() => expect(cancelClubApplication).toHaveBeenCalledWith(2, 601));
-        expect(fetchClubJourney).toHaveBeenCalledTimes(2); // initial + refresh
+        fireEvent.click(await screen.findByRole('button', { name: 'Withdraw application' }));
+        expect(apiClient.post).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+        await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/clubs/2/applications/601/cancel'));
+        await waitFor(() => expect(fetchClubJourney).toHaveBeenCalledTimes(2)); // initial + refresh
     });
 
     it('accepts an invitation and refreshes', async () => {
-        render(<ClubJourneyPanel />);
+        render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
         await waitFor(() => expect(screen.getByText(/Creekside FC/)).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-        await waitFor(() => expect(acceptClubInvitation).toHaveBeenCalledWith(701));
+        await waitFor(() => expect(acceptClubInvitation).toHaveBeenCalledWith(701, { _authSessionId: 'journey-session' }));
+        await waitFor(() => expect(refreshNavigation).toHaveBeenCalledOnce());
         expect(fetchClubJourney).toHaveBeenCalledTimes(2);
     });
 
@@ -86,7 +103,28 @@ describe('ClubJourneyPanel — phase A4', () => {
         vi.mocked(fetchClubJourney).mockResolvedValue({
             applications: [], invitations: [], tryouts: [], affiliations: [], recentDecisions: [],
         });
-        render(<ClubJourneyPanel />);
+        render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
         await waitFor(() => expect(screen.getByText(/No club activity yet/)).toBeInTheDocument());
+    });
+
+    it('removes an invitation cancelled elsewhere when the account panel regains focus', async () => {
+        render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
+        await screen.findByText('Creekside FC');
+        vi.mocked(fetchClubJourney).mockResolvedValue({ ...journeyPayload, invitations: [] });
+        await act(async () => { window.dispatchEvent(new Event('focus')); });
+        await waitFor(() => expect(screen.queryByText('Creekside FC')).not.toBeInTheDocument());
+        expect(acceptClubInvitation).not.toHaveBeenCalled();
+    });
+
+    it('does not refresh navigation after a response from an old login', async () => {
+        let done!: (value: { status: string }) => void;
+        vi.mocked(acceptClubInvitation).mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
+        const view = () => <MemoryRouter><ClubJourneyPanel /></MemoryRouter>;
+        const rendered = render(view());
+        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }));
+        auth.sessionId = 'other-login'; vi.mocked(fetchClubJourney).mockReturnValue(new Promise(() => {})); rendered.rerender(view());
+        expect(screen.queryByText('Creekside FC')).not.toBeInTheDocument();
+        await act(async () => done({ status: 'ACCEPTED' }));
+        expect(refreshNavigation).not.toHaveBeenCalled();
     });
 });

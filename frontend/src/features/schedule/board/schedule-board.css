@@ -1,0 +1,130 @@
+/* The one schedule look: a week of day columns, a month calendar or a day-by-day agenda. Sized by its own width
+   (a container), so a schedule beside a side panel or inside a hub section lays out like one on a phone. */
+.gk .gk-board { container: gk-board / inline-size; display: flex; flex-direction: column; gap: var(--gk-4); min-width: 0; }
+.gk .gk-board__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+.gk .gk-board__period { display: flex; align-items: center; gap: var(--gk-1); min-width: 0; }
+.gk .gk-board__period .gk-btn--icon { width: 44px; min-height: 44px; }
+.gk .gk-board__period .gk-btn--sm { min-height: 36px; }
+.gk .gk-board__range { margin: 0 0 0 var(--gk-2); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; white-space: nowrap; }
+.gk .gk-board__jump { position: relative; display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; margin-left: var(--gk-1); border-radius: var(--gk-r); color: var(--gk-text-2); cursor: pointer; }
+.gk .gk-board__jump:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-board__jump:focus-within { box-shadow: var(--gk-focus); }
+.gk .gk-board__jump svg { width: 18px; height: 18px; }
+.gk .gk-board__jump input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.gk .gk-board__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-board__tools .gk-btn { min-height: 40px; }
+.gk .gk-board__filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); }
+.gk .gk-board__filters .gk-chip { min-height: 36px; }
+.gk .gk-board__filters select.gk-input { width: auto; min-width: 180px; min-height: 36px; }
+.gk .gk-board__loading { display: grid; gap: var(--gk-3); }
+.gk .gk-board__quiet { margin: 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
+.gk .gk-board__link { padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-weight: 600; cursor: pointer; }
+.gk .gk-board__link:hover { text-decoration: underline; }
+.gk .gk-board__note { margin: 0; font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); }
+
+/* Agenda: the fixture line, day by day. */
+.gk .gk-board__agenda { display: flex; flex-direction: column; gap: var(--gk-5); }
+.gk .gk-board__day { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-board__day-title { margin: 0; font-family: var(--gk-font); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; color: var(--gk-text-2); letter-spacing: 0; }
+.gk .gk-board__day-title[data-today] { color: var(--gk-accent); }
+
+/* Week: seven equal day columns in one bordered grid. Today is a quiet tint, not a line. */
+.gk .gk-board__week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-board__column { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 220px; border-left: 1px solid var(--gk-line); transition: background-color .15s var(--gk-ease); }
+.gk .gk-board__column:first-child { border-left: 0; }
+.gk .gk-board__column[data-past] { background: color-mix(in srgb, var(--gk-sunken) 45%, transparent); }
+.gk .gk-board__column[data-today] { background: color-mix(in srgb, var(--gk-accent) 5%, var(--gk-surface)); }
+.gk :is(.gk-board__column, .gk-board__cell)[data-over] { background: color-mix(in srgb, var(--gk-accent) 10%, var(--gk-surface)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gk-accent) 45%, transparent); }
+.gk .gk-board__column-head { display: flex; align-items: baseline; gap: 6px; min-height: 48px; padding: var(--gk-3) 48px var(--gk-2) var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-board__weekday { font-size: var(--gk-fs-sm); color: var(--gk-text-2); font-weight: 600; }
+.gk .gk-board__date { font-size: var(--gk-fs-lg); line-height: 1; font-weight: 700; }
+.gk .gk-board__column[data-today] :is(.gk-board__weekday, .gk-board__date) { color: var(--gk-accent); }
+.gk .gk-board__items { list-style: none; margin: 0; padding: var(--gk-2); display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-board__free { margin: 0; padding: var(--gk-3); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); }
+
+/* "+" sits in the day's corner; where there is a mouse it shows on hover or focus only, so an empty week stays calm. */
+.gk .gk-board__add { position: absolute; top: 6px; right: 6px; }
+.gk .gk-board__add.gk-btn--icon { width: 36px; min-height: 36px; color: var(--gk-text-2); }
+@media (hover: hover) {
+    .gk .gk-board__add { opacity: 0; transition: opacity .12s var(--gk-ease); }
+    .gk :is(.gk-board__column, .gk-board__cell):is(:hover, :focus-within) .gk-board__add { opacity: 1; }
+}
+
+/* A card: equal padding, the time line with the activity's symbol, up to two lines of title; colour as a soft tint. */
+.gk .gk-board__item { --gk-board-tone: var(--gk-text-3); display: flex; flex-direction: column; gap: 3px; width: 100%; min-height: 44px; padding: 10px; border: 1px solid color-mix(in srgb, var(--gk-board-tone) 24%, var(--gk-line)); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-board-tone) 8%, var(--gk-raised)); color: var(--gk-text); font: inherit; text-align: left; text-decoration: none; }
+.gk :is(a, button).gk-board__item { cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk :is(a, button).gk-board__item:hover { border-color: color-mix(in srgb, var(--gk-board-tone) 48%, var(--gk-line)); background: color-mix(in srgb, var(--gk-board-tone) 13%, var(--gk-raised)); }
+.gk :is(a, button).gk-board__item:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-board__item[data-movable] { cursor: grab; touch-action: manipulation; }
+.gk .gk-board__item[data-dragging] { opacity: .35; }
+.gk .gk-board__item--ghost { width: 220px; box-shadow: var(--gk-elevation); cursor: grabbing; }
+.gk .gk-board__item[data-cancelled] .gk-board__title { text-decoration: line-through; color: var(--gk-text-2); }
+.gk .gk-board__when { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-board__when svg { flex: none; width: 14px; height: 14px; color: var(--gk-board-tone); }
+.gk .gk-board__when .gk-board__repeat { width: 13px; height: 13px; margin-left: auto; color: var(--gk-text-3); }
+.gk .gk-board__title { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.gk .gk-board__meta { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .gk-board__trail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 3px; font-size: var(--gk-fs-xs); }
+.gk .gk-board__trail .gk-badge { height: 20px; }
+
+/* Month: the same cards, smaller, under each day's number. */
+.gk .gk-board__month { border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-board__month-head, .gk .gk-board__month-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.gk .gk-board__month-head { border-bottom: 1px solid var(--gk-line); }
+.gk .gk-board__month-head span { padding: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-board__cell { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; min-height: 124px; padding: 6px; border-left: 1px solid var(--gk-line); border-top: 1px solid var(--gk-line); }
+.gk .gk-board__cell:nth-child(7n + 1) { border-left: 0; }
+.gk .gk-board__cell:nth-child(-n + 7) { border-top: 0; }
+.gk .gk-board__cell[data-out] { background: color-mix(in srgb, var(--gk-sunken) 55%, transparent); }
+.gk .gk-board__cell[data-today] { background: color-mix(in srgb, var(--gk-accent) 5%, var(--gk-surface)); }
+.gk .gk-board__cell-head { display: flex; align-items: center; gap: 4px; min-height: 28px; padding-right: 36px; }
+.gk .gk-board__cell-date { display: inline-grid; place-items: center; min-width: 28px; height: 28px; padding: 0 6px; border: 0; border-radius: 999px; background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk button.gk-board__cell-date { cursor: pointer; }
+.gk button.gk-board__cell-date:hover { background: var(--gk-hover); }
+.gk button.gk-board__cell-date:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-board__cell[data-out] .gk-board__cell-date { color: var(--gk-text-3); }
+.gk .gk-board__cell[data-today] .gk-board__cell-date { color: var(--gk-accent); }
+.gk .gk-board__cell .gk-board__items { padding: 0; gap: 4px; }
+.gk .gk-board__cell .gk-board__item { min-height: 0; padding: 4px 6px; gap: 1px; }
+.gk .gk-board__cell .gk-board__title { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); -webkit-line-clamp: 1; }
+.gk .gk-board__cell :is(.gk-board__meta, .gk-board__trail) { display: none; }
+.gk .gk-board__more { align-self: flex-start; padding: 2px 6px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-xs); font-weight: 600; cursor: pointer; }
+.gk .gk-board__more:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-board__dots { display: none; align-items: center; gap: 3px; padding: 4px; border: 0; border-radius: var(--gk-r-sm); background: none; cursor: pointer; }
+.gk .gk-board__dots i { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Narrow (a phone, or a schedule beside other things): one day per row, nothing scrolls sideways. */
+@container gk-board (max-width: 860px) {
+    .gk .gk-board__week { grid-template-columns: minmax(0, 1fr); }
+    .gk .gk-board__week[data-empty] { display: none; }
+    .gk .gk-board__column { min-height: 0; border-left: 0; border-top: 1px solid var(--gk-line); }
+    .gk .gk-board__column:first-child { border-top: 0; }
+    .gk .gk-board__column-head { min-height: 44px; border-bottom: 0; padding-bottom: 0; }
+    .gk .gk-board__items { padding-top: var(--gk-1); }
+    /* An empty day is one short line. */
+    .gk .gk-board__column:has(> .gk-board__free) { flex-direction: row; align-items: baseline; }
+    .gk .gk-board__column:has(> .gk-board__free) .gk-board__column-head { padding-right: var(--gk-2); }
+    .gk .gk-board__column:has(> .gk-board__free) .gk-board__free { padding: 0; }
+}
+@container gk-board (max-width: 640px) {
+    .gk .gk-board__range { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+    .gk .gk-board__bar { align-items: flex-start; }
+    .gk .gk-board__tools { width: 100%; }
+    .gk .gk-board__tools .gk-segmented__label { display: none; }
+    .gk .gk-board__filters select.gk-input { min-width: 0; flex: 1 1 160px; }
+    /* Filter chips stay on one line and scroll inside their row rather than stacking above the schedule. */
+    .gk .gk-board__filters > .gk-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+    .gk .gk-board__filters > .gk-chips::-webkit-scrollbar { display: none; }
+    .gk .gk-board__filters .gk-chip { flex: none; }
+    .gk .gk-board__month-head span { padding: var(--gk-2) 0; text-align: center; }
+    .gk .gk-board__cell { min-height: 64px; align-items: center; padding: 4px 2px; }
+    .gk .gk-board__cell-head { flex-direction: column; padding-right: 0; }
+    .gk .gk-board__cell :is(.gk-board__items, .gk-board__add), .gk .gk-board__more { display: none; }
+    .gk .gk-board__dots { display: flex; }
+}
+
+/* Read-only event details. */
+.gk .gk-event-details { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-event-details .gk-row { align-items: flex-start; color: var(--gk-text); }
+.gk .gk-event-details .gk-row svg { flex: none; margin-top: 1px; color: var(--gk-text-2); }
+.gk .gk-event-details__notes { white-space: pre-wrap; color: var(--gk-text-2); line-height: var(--gk-lh-md); }

@@ -1,0 +1,26 @@
+/* Profile posts keep the Home feed's card style, painted with the design-system palette. */
+.gk .gk-profile-posts {
+    --feed-card: var(--gk-surface);
+    --feed-surface: var(--gk-surface);
+    --feed-card-border: var(--gk-line);
+    --feed-input-bg: var(--gk-sunken);
+    --feed-layer-bg: var(--gk-raised);
+    --feed-divider: var(--gk-line);
+    --feed-text-primary: var(--gk-text);
+    --feed-text-secondary: var(--gk-text-2);
+    --feed-text-muted: var(--gk-text-3);
+    --feed-text-placeholder: var(--gk-text-3);
+    --feed-accent: var(--gk-accent);
+    --feed-accent-contrast: var(--gk-on-accent);
+    --feed-hover-bg: var(--gk-hover);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gk-4);
+    width: 100%;
+}
+.gk .gk-profile-posts article { border: 1px solid var(--gk-line); }
+.gk .gk-profile-posts__loading { display: grid; gap: var(--gk-3); }
+.gk .gk-profile-posts__empty { border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .gk-profile-posts__all { align-self: flex-start; min-height: 44px; }
+.gk .gk-profile-posts__pages { display: flex; align-items: center; justify-content: center; gap: var(--gk-3); padding-top: var(--gk-2); }
+.gk .gk-profile-posts__pages .gk-btn { min-height: 44px; }

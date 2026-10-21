@@ -1,0 +1,23 @@
+/* Keep Agent Hub surfaces in the app's current theme without changing shared workspaces. */
+.agent-hub {
+    --fc-page-bg: var(--app-shell-base);
+    --fc-card-bg: var(--app-shell-elevated);
+    --fc-sidebar-bg: var(--app-shell-surface);
+    --fc-surface-hover: var(--app-shell-inset);
+    --fc-border: var(--app-border-strong);
+    --fc-text-primary: var(--app-text-primary);
+    --fc-text-secondary: var(--app-text-secondary);
+    --fc-text-muted: var(--app-text-secondary);
+    --fc-accent: var(--app-accent-primary);
+    --fc-accent-soft: var(--app-accent-primary-soft);
+    --fc-accent-border: var(--app-border-strong);
+    --fc-state-success: var(--color-accent);
+    --fc-state-success-soft: var(--color-accent-soft);
+    --fc-state-danger: var(--color-danger);
+    --fc-state-danger-soft: var(--color-danger-soft);
+    --fc-state-warning: var(--color-warning);
+    --fc-state-warning-soft: var(--color-warning-soft);
+    --fc-state-info: var(--color-info);
+    --fc-state-info-soft: var(--color-info-soft);
+}
+.dark .agent-hub .agent-hub-retry { color: var(--app-shell-base); }

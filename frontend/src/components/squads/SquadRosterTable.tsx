@@ -1,7 +1,15 @@
-import { useMemo, useState } from 'react';
-import { Check, GripVertical, Loader2, Pencil, Trash2, X } from 'lucide-react';
-import { TrialistBadge } from '../workspace/TrialistBadge';
-import type { SortState } from '../workspace/helpers';
+import { Fragment, useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown, CreditCard, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import {
+    RosterAvatar,
+    RosterProfileLink,
+    RosterManagementBadges,
+    RosterPlayerEditor,
+    type UpdateRosterPlayer,
+} from './squadRosterPresentation';
+import { squadLabel } from './squadLabels';
+import './squad-roster.css';
 
 export interface SquadRosterPlayer {
     id: number;
@@ -24,251 +32,239 @@ export interface SquadRosterGroup {
 interface SquadRosterTableProps {
     groups: SquadRosterGroup[];
     editable?: boolean;
+    /** Private account/trial context is shown only in a management view. */
+    showManagementDetails?: boolean;
     onRemovePlayer?: (userId: number, playerName: string) => void;
-    onUpdatePlayer?: (userId: number, jerseyNumber: number | null, squadRole: string | null) => void;
+    onUpdatePlayer?: UpdateRosterPlayer;
     removingPlayerId?: number | null;
-    /** Roster ids (users.id) that have a Player Card — shows the edit-card pencil. */
     cardUserIds?: Set<number> | null;
     onEditCard?: (userId: number) => void;
+    onOpenPlayer?: (player: SquadRosterPlayer) => void;
 }
 
-const getSortValue = (p: SquadRosterPlayer, col: number): string | number | null => {
-    switch (col) {
-        case 0: return p.number ?? 999; // jersey number — nulls last
-        case 1: return (p.name || '').toLowerCase();
-        case 2: return p.age ?? -1;
-        case 3: return p.position || '';
-        default: return null;
-    }
-};
+type SortColumn = 'number' | 'name' | 'age' | 'position';
 
 export const SquadRosterTable = ({
     groups,
     editable = false,
+    showManagementDetails = editable,
     onRemovePlayer,
     onUpdatePlayer,
     removingPlayerId,
     cardUserIds,
-    onEditCard
+    onEditCard,
+    onOpenPlayer,
 }: SquadRosterTableProps) => {
-    const [editingCell, setEditingCell] = useState<{ userId: number; field: 'number' | 'role' } | null>(null);
-    const [editValue, setEditValue] = useState('');
-    const [sort, setSort] = useState<SortState | null>(null);
-
-    const handleSort = (col: number) => {
-        setSort(prev =>
-            prev?.column === col
-                ? { column: col, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-                : { column: col, direction: 'asc' }
-        );
-    };
-
-    const sortedGroups = useMemo(() => {
-        if (!sort) return groups;
-        return groups.map(group => ({
-            ...group,
-            players: [...group.players].sort((a, b) => {
-                const aVal = getSortValue(a, sort.column);
-                const bVal = getSortValue(b, sort.column);
-                if (aVal == null && bVal == null) return 0;
-                if (aVal == null) return 1;
-                if (bVal == null) return -1;
-                const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-                return sort.direction === 'desc' ? -cmp : cmp;
-            })
-        }));
-    }, [groups, sort]);
-
-    if (sortedGroups.length === 0) {
+    const { t } = useTranslation();
+    const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
+    const [sort, setSort] = useState<{ column: SortColumn; direction: 'asc' | 'desc' } | null>(null);
+    const sortedGroups = useMemo(
+        () =>
+            groups
+                .filter((group) => group.players.length)
+                .map((group) => ({
+                    ...group,
+                    players: sort
+                        ? [...group.players].sort((a, b) => {
+                              const aValue = a[sort.column];
+                              const bValue = b[sort.column];
+                              if (aValue == null && bValue == null) return 0;
+                              if (aValue == null) return 1;
+                              if (bValue == null) return -1;
+                              const comparison =
+                                  typeof aValue === 'number' && typeof bValue === 'number'
+                                      ? aValue - bValue
+                                      : String(aValue).localeCompare(String(bValue));
+                              return sort.direction === 'asc' ? comparison : -comparison;
+                          })
+                        : group.players,
+                })),
+        [groups, sort],
+    );
+    const columns: { column: SortColumn; label: string }[] = [
+        { column: 'number', label: t('squadDesign.roster.number', { defaultValue: 'No.' }) },
+        { column: 'name', label: t('squadDesign.roster.player', { defaultValue: 'Player' }) },
+        { column: 'position', label: t('squadDesign.roster.position', { defaultValue: 'Position' }) },
+        { column: 'age', label: t('squadDesign.roster.age', { defaultValue: 'Age' }) },
+    ];
+    if (sortedGroups.length === 0)
         return (
-            <div className="bg-[#16181d] border border-[#ffffff0d] px-5 py-10 text-center">
-                <p className="text-sm text-[#a1a1aa]">No registered players in this squad yet.</p>
+            <div className="sd-empty">
+                <p>{t('squadDesign.roster.empty', { defaultValue: 'No players to show in this squad yet.' })}</p>
             </div>
         );
-    }
-
-    const startEdit = (userId: number, field: 'number' | 'role', currentValue: string) => {
-        setEditingCell({ userId, field });
-        setEditValue(currentValue);
-    };
-
-    const commitEdit = (userId: number, field: 'number' | 'role') => {
-        if (!onUpdatePlayer) return;
-        // Only send the field being edited; other field stays undefined so the API preserves its current value
-        const jerseyNumber = field === 'number' ? (editValue ? parseInt(editValue, 10) : null) : undefined;
-        const squadRole = field === 'role' ? (editValue || undefined) : undefined;
-
-        if (editingCell?.userId === userId && editingCell?.field === field) {
-            onUpdatePlayer(userId, jerseyNumber ?? null, squadRole ?? null);
-        }
-        setEditingCell(null);
-    };
-
     return (
-        <div className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
-            {sortedGroups.map((group, index) => (
-                <section key={group.label} className={index === 0 ? '' : 'border-t border-[#ffffff0d]'}>
-                    <div className="flex items-center justify-between gap-4 border-b border-[#ffffff0d] bg-[#16181d] px-4 py-3">
-                        <h3 className="text-xs font-semibold text-[#f4f4f5]">{group.label}</h3>
-                        <span className="text-xs font-semibold text-[#16a34a]">
-                            {group.players.length} Player{group.players.length === 1 ? '' : 's'}
-                        </span>
+        <div className="sr-roster sr-table-groups">
+            {sortedGroups.map((group) => (
+                <section key={group.label} data-position-group={group.label}>
+                    <div className="sr-group-heading">
+                        <h3>{squadLabel(group.label, t)}</h3>
+                        <span>{group.players.length}</span>
                     </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full table-fixed">
+                    <div className="sr-table-scroll">
+                        <table className="sr-table">
                             <thead>
-                                <tr className="border-b border-[#ffffff0d] bg-[#16181d] text-left">
-                                    <th className="w-8 px-1 py-3" />
-                                    {[
-                                        { col: 0, label: 'No.', width: 'w-20' },
-                                        { col: 1, label: 'Player', width: '' },
-                                        { col: 2, label: 'Age', width: 'w-24' },
-                                        { col: 3, label: 'Role', width: 'w-40' },
-                                    ].map(({ col, label, width }) => (
-                                        <th key={col} className={`${width} px-4 py-3`}>
+                                <tr>
+                                    {columns.map(({ column, label }) => (
+                                        <th
+                                            key={column}
+                                            className={`sr-col-${column}`}
+                                            scope="col"
+                                            aria-sort={
+                                                sort?.column === column
+                                                    ? sort.direction === 'asc'
+                                                        ? 'ascending'
+                                                        : 'descending'
+                                                    : 'none'
+                                            }
+                                        >
                                             <button
                                                 type="button"
-                                                onClick={() => handleSort(col)}
-                                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+                                                onClick={() =>
+                                                    setSort((value) => ({
+                                                        column,
+                                                        direction:
+                                                            value?.column === column && value.direction === 'asc'
+                                                                ? 'desc'
+                                                                : 'asc',
+                                                    }))
+                                                }
                                             >
                                                 {label}
-                                                <span className="text-[10px] leading-none">
-                                                    {sort?.column === col ? (sort.direction === 'asc' ? '▲' : '▼') : '⇅'}
-                                                </span>
+                                                {sort?.column === column ? (
+                                                    sort.direction === 'asc' ? (
+                                                        <ArrowUp size={11} />
+                                                    ) : (
+                                                        <ArrowDown size={11} />
+                                                    )
+                                                ) : (
+                                                    <ArrowUpDown size={11} />
+                                                )}
                                             </button>
                                         </th>
                                     ))}
-                                    <th className="w-12 px-2 py-3 text-xs font-semibold text-[#a1a1aa] text-center">Avail</th>
-                                    {editable && <th className="w-12 px-2 py-3" />}
+                                    {editable && (
+                                        <th scope="col" className="sr-col-actions">
+                                            <span className="sr-sr-only">
+                                                {t('squadDesign.roster.actions', { defaultValue: 'Actions' })}
+                                            </span>
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {group.players.map((player) => (
-                                    <tr key={player.id} className="border-b border-[#ffffff0d] transition-colors last:border-b-0 hover:bg-[var(--fc-surface-hover)]">
-                                        {/* Drag handle */}
-                                        <td className="px-1 py-3 text-center">
-                                            <GripVertical className="h-4 w-4 text-[var(--fc-text-muted)] cursor-grab mx-auto" />
-                                        </td>
-
-                                        {/* Jersey Number */}
-                                        <td className="px-4 py-3">
-                                            {editable && editingCell?.userId === player.id && editingCell?.field === 'number' ? (
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    max={99}
-                                                    value={editValue}
-                                                    onChange={(e) => setEditValue(e.target.value)}
-                                                    onBlur={() => commitEdit(player.id, 'number')}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(player.id, 'number'); if (e.key === 'Escape') setEditingCell(null); }}
-                                                    className="rounded-xl w-14 border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-sm font-semibold text-[#f4f4f5] focus:outline-none"
-                                                    autoFocus
-                                                />
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => editable && startEdit(player.id, 'number', String(player.number ?? ''))}
-                                                    className={`text-sm font-semibold ${editable ? 'cursor-pointer hover:text-[#16a34a]' : ''} text-[#f4f4f5]`}
-                                                    tabIndex={editable ? 0 : -1}
-                                                >
-                                                    {player.number ?? '--'}
-                                                </button>
-                                            )}
-                                        </td>
-
-                                        {/* Player Name */}
-                                        <td className="px-4 py-3">
-                                            <span className="inline-flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-[#f4f4f5]">{player.name}</span>
-                                                {player.isRegistered !== true && (
-                                                    <span className="inline-flex rounded-full border border-[#a1a1aa]/30 bg-[#a1a1aa]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
-                                                        Not registered
-                                                    </span>
-                                                )}
-                                                {player.squadRole && player.squadRole !== 'PLAYER' && (
-                                                    <span className="inline-flex rounded-full border border-[#16a34a]/20 bg-[#16a34a]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#16a34a]">
-                                                        {player.squadRole}
-                                                    </span>
-                                                )}
-                                                {player.status === 'TRIALIST' && (
-                                                    <TrialistBadge joinedAt={player.joinedAt} />
-                                                )}
-                                            </span>
-                                        </td>
-
-                                        {/* Age */}
-                                        <td className="px-4 py-3 text-sm text-[#a1a1aa]">{player.age ?? '--'}</td>
-
-                                        {/* Role */}
-                                        <td className="px-4 py-3">
-                                            {editable && editingCell?.userId === player.id && editingCell?.field === 'role' ? (
-                                                <select
-                                                    value={editValue}
-                                                    onChange={(e) => { setEditValue(e.target.value); commitEdit(player.id, 'role'); }}
-                                                    className="w-28 border border-[#ffffff0d] bg-[#16181d] px-2 py-1 text-sm text-[#f4f4f5] focus:outline-none"
-                                                    autoFocus
-                                                >
-                                                    <option value="PLAYER">PLAYER</option>
-                                                    <option value="CAPTAIN">CAPTAIN</option>
-                                                    <option value="TRIALIST">TRIALIST</option>
-                                                </select>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => editable && startEdit(player.id, 'role', player.position || 'PLAYER')}
-                                                    className={`text-sm ${editable ? 'cursor-pointer hover:text-[#16a34a]' : ''} text-[#a1a1aa]`}
-                                                    tabIndex={editable ? 0 : -1}
-                                                >
-                                                    {player.position || 'Player'}
-                                                </button>
-                                            )}
-                                        </td>
-
-                                        {/* Availability */}
-                                        <td className="px-2 py-3 text-center">
-                                            {player.id % 3 !== 0 ? (
-                                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400" title="Available">
-                                                    <Check className="h-3 w-3" />
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500/10 text-red-400" title="Unavailable">
-                                                    <X className="h-3 w-3" />
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        {/* Row actions (editable only) */}
-                                        {editable && (
-                                            <td className="px-2 py-3">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    {cardUserIds?.has(player.id) && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => onEditCard?.(player.id)}
-                                                            className="p-1 text-[#a1a1aa] hover:text-[#16a34a]"
-                                                            title={`Edit player card for ${player.name}`}
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-                                                    )}
+                                    <Fragment key={player.id}>
+                                        <tr>
+                                            <td className="sr-col-number">
+                                                {editable && onUpdatePlayer ? (
                                                     <button
                                                         type="button"
-                                                        onClick={() => onRemovePlayer?.(player.id, player.name)}
-                                                        disabled={removingPlayerId === player.id}
-                                                        className="p-1 text-[#a1a1aa] hover:text-[color:var(--state-danger)] disabled:opacity-50"
-                                                        title={`Remove ${player.name} from squad`}
+                                                        className="sr-number-button"
+                                                        aria-label={t('squadDesign.roster.editNumber', {
+                                                            defaultValue: 'Edit shirt number for {{name}}',
+                                                            name: player.name,
+                                                        })}
+                                                        onClick={() => setEditingPlayerId(player.id)}
                                                     >
-                                                        {removingPlayerId === player.id ? (
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                        ) : (
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        )}
+                                                        {player.number ?? '—'}
                                                     </button>
+                                                ) : (
+                                                    <span className="sr-number">{player.number ?? '—'}</span>
+                                                )}
+                                            </td>
+                                            <td className="sr-col-name">
+                                                <div className="sr-player-name">
+                                                    <RosterProfileLink player={player} avatar><RosterAvatar player={player} /></RosterProfileLink>
+                                                    <div>
+                                                        <strong><>{onOpenPlayer ? <button type="button" className="wo-player-name" onClick={() => onOpenPlayer(player)} aria-label={`Open ${player.name} details`}>{player.name}</button> : <RosterProfileLink player={player}>{player.name}</RosterProfileLink>}</></strong>
+                                                        <div className="sr-name-meta">
+                                                            {player.squadRole &&
+                                                                player.squadRole !== 'PLAYER' &&
+                                                                player.squadRole !== player.position &&
+                                                                (showManagementDetails ||
+                                                                    player.squadRole !== 'TRIALIST') && (
+                                                                    <span className="sr-role">
+                                                                        {squadLabel(player.squadRole, t)}
+                                                                    </span>
+                                                                )}
+                                                            {showManagementDetails && (
+                                                                <RosterManagementBadges player={player} />
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </td>
+                                            <td className="sr-col-position"><span className="sr-position">{squadLabel(player.position, t)}</span></td>
+                                            <td className="sr-col-age">{player.age ?? '—'}</td>
+                                            {editable && (
+                                                <td className="sr-col-actions">
+                                                    <div className="sr-row-actions">
+                                                        {onUpdatePlayer && (
+                                                            <button
+                                                                type="button"
+                                                                className="sd-icon-button"
+                                                                aria-label={t('squadDesign.roster.editPlayer', {
+                                                                    defaultValue: 'Edit {{name}}',
+                                                                    name: player.name,
+                                                                })}
+                                                                aria-expanded={editingPlayerId === player.id}
+                                                                onClick={() =>
+                                                                    setEditingPlayerId((value) =>
+                                                                        value === player.id ? null : player.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Pencil size={15} />
+                                                            </button>
+                                                        )}
+                                                        {cardUserIds?.has(player.id) && onEditCard && (
+                                                            <button
+                                                                type="button"
+                                                                className="sd-icon-button"
+                                                                aria-label={t('squadDesign.roster.editCard', {
+                                                                    defaultValue: 'Edit player card for {{name}}',
+                                                                    name: player.name,
+                                                                })}
+                                                                onClick={() => onEditCard(player.id)}
+                                                            >
+                                                                <CreditCard size={15} />
+                                                            </button>
+                                                        )}
+                                                        {onRemovePlayer && (
+                                                            <button
+                                                                type="button"
+                                                                className="sd-icon-button sr-remove"
+                                                                aria-label={t('squadDesign.roster.removePlayer', {
+                                                                    defaultValue: 'Remove {{name}} from squad',
+                                                                    name: player.name,
+                                                                })}
+                                                                onClick={() => onRemovePlayer(player.id, player.name)}
+                                                                disabled={removingPlayerId === player.id}
+                                                            >
+                                                                {removingPlayerId === player.id ? (
+                                                                    <Loader2 size={15} className="animate-spin" />
+                                                                ) : (
+                                                                    <Trash2 size={15} />
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                        {editable && editingPlayerId === player.id && onUpdatePlayer && (
+                                            <tr className="sr-edit-row">
+                                                <td colSpan={5}>
+                                                    <RosterPlayerEditor
+                                                        player={player}
+                                                        onSave={onUpdatePlayer}
+                                                        onClose={() => setEditingPlayerId(null)}
+                                                    />
+                                                </td>
+                                            </tr>
                                         )}
-                                    </tr>
+                                    </Fragment>
                                 ))}
                             </tbody>
                         </table>

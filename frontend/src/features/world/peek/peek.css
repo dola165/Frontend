@@ -1,0 +1,65 @@
+/* What World's drawers show: a person, a job, a club. Shared by every drawer and the cards that open them.
+   Scoped under .gk; tokens only. */
+
+/* A card's one main action, and the quiet ones beside it. */
+.gk .gk-people-act { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r-pill); background: none;
+  color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.gk .gk-people-act:hover { background: var(--gk-hover); }
+.gk .gk-people-act:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-people-act svg { width: 14px; height: 14px; }
+.gk .gk-people-act[data-primary] { border-color: transparent; background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-people-act[data-primary]:hover { background: var(--gk-accent-strong); }
+.gk .gk-people-act[data-on] { border-color: color-mix(in srgb, var(--gk-accent) 50%, transparent); color: var(--gk-accent); }
+@media (pointer: coarse) { .gk .gk-people-act { min-height: 44px; } }
+
+/* The person peek: face and every role they hold, one row of actions, then what matters for their kind. */
+.gk .gk-peek-person { display: flex; align-items: center; gap: var(--gk-3); }
+.gk .gk-peek-person__name { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gk .gk-peek-person__name h3, .gk .gk-peek-person__name strong { margin: 0; font-size: var(--gk-fs-lg, 18px); font-weight: 650; }
+.gk .gk-peek-roles { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.gk .gk-peek-roles li { display: inline-flex; align-items: center; gap: 6px; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-peek-actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); margin: var(--gk-4) 0; }
+.gk .gk-peek-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-3); margin: var(--gk-3) 0; }
+.gk .gk-peek-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-peek-fact span { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-peek-fact b { font-weight: 600; overflow-wrap: anywhere; }
+.gk .gk-peek-about { margin: var(--gk-3) 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .gk-peek-section { margin-top: var(--gk-4); }
+.gk .gk-peek-section h4, .gk .gk-peek-section__title { margin: 0 0 var(--gk-2); font-size: var(--gk-fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--gk-text-3); }
+.gk .gk-peek-list { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; font-size: var(--gk-fs-sm); }
+.gk .gk-peek-club { display: flex; align-items: center; gap: var(--gk-3); }
+.gk .gk-peek-club > span { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-peek-club small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .gk-peek-check { color: var(--gk-accent); }
+
+/* A job: the club it is at (opens on the left), its title, where and when, and its terms. */
+.gk .gk-peek-job { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-peek-job__club { display: inline-flex; align-items: center; gap: var(--gk-2); align-self: flex-start; min-height: 36px; color: var(--gk-text); font-weight: 600; text-decoration: none; }
+.gk .gk-peek-job__club:hover span { text-decoration: underline; }
+.gk .gk-peek-job h3 { margin: 0; font-size: var(--gk-fs-xl, 22px); line-height: 1.25; font-weight: 700; }
+.gk .gk-peek-job__meta { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .gk-peek-job__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gk .gk-peek-chip { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: var(--gk-r-pill); background: var(--gk-raised); color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; }
+.gk .gk-peek-text { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.gk .gk-peek-list a { color: var(--gk-text); font-weight: 600; text-decoration: none; }
+.gk .gk-peek-list a:hover { text-decoration: underline; }
+.gk .gk-peek-list a[aria-current] { color: var(--gk-accent); }
+
+/* Applying, in the job drawer: the job page's form in World's look. */
+.gk .gk-job-apply { display: flex; flex-direction: column; gap: var(--gk-3); margin: var(--gk-4) 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: 12px; background: var(--gk-raised); font-size: var(--gk-fs-sm); }
+.gk .gk-job-apply h2 { margin: 0; font-size: var(--gk-fs-md); font-weight: 650; }
+.gk .gk-job-apply p { margin: 0; color: var(--gk-text-2); line-height: 1.5; }
+.gk .gk-job-apply .jobs-application-form { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-job-apply .store-field { display: flex; flex-direction: column; gap: 6px; color: var(--gk-text-2); font-weight: 600; }
+.gk .gk-job-apply textarea { min-height: 88px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; resize: vertical; }
+.gk .gk-job-apply textarea:focus-visible { outline: none; border-color: var(--gk-accent); }
+.gk .gk-job-apply .job-action { display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; min-height: 36px; padding: 0 18px; border: 0; border-radius: var(--gk-r-pill);
+  background: var(--gk-accent); color: var(--gk-on-accent); font: inherit; font-weight: 650; text-decoration: none; cursor: pointer; }
+.gk .gk-job-apply .job-action:hover { background: var(--gk-accent-strong); }
+.gk .gk-job-apply .job-action:disabled { opacity: .55; cursor: default; }
+.gk .gk-job-apply .job-action:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+.gk .gk-job-apply .jobs-lifecycle summary { cursor: pointer; color: var(--gk-text-2); }
+.gk .gk-job-apply .jobs-lifecycle ol { margin: var(--gk-2) 0 0; padding-left: 18px; color: var(--gk-text-3); line-height: 1.5; }
+.gk .gk-job-apply .jobs-application-feedback { color: var(--gk-text); }
+.gk .gk-job-apply button:not(.job-action) { padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-weight: 600; cursor: pointer; }
+@media (pointer: coarse) { .gk .gk-job-apply .job-action { min-height: 44px; } }

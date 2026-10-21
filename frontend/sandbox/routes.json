@@ -1,0 +1,486 @@
+[
+ {
+  "name": "home",
+  "path": "/home"
+ },
+ {
+  "name": "map",
+  "path": "/map",
+  "wait": 2500
+ },
+ {
+  "name": "world",
+  "path": "/world",
+  "wait": 2500
+ },
+ {
+  "name": "world-clubs",
+  "path": "/world/clubs",
+  "wait": 1200
+ },
+ {
+  "name": "world-people",
+  "path": "/world/people",
+  "wait": 1200
+ },
+ {
+  "name": "world-venues",
+  "path": "/world/venues",
+  "wait": 1200
+ },
+ {
+  "name": "world-matches",
+  "path": "/world/matches",
+  "wait": 1200
+ },
+ {
+  "name": "world-matches-arrange",
+  "path": "/world/matches/arrange",
+  "wait": 1500
+ },
+ {
+  "name": "world-matches-arrange-open",
+  "path": "/world/matches/arrange?mode=open",
+  "wait": 1500
+ },
+ {
+  "name": "world-matches-arrange-opponent",
+  "path": "/world/matches/arrange?opponent=12",
+  "wait": 1500
+ },
+ {
+  "name": "world-tournaments",
+  "path": "/world/tournaments",
+  "wait": 1200
+ },
+ {
+  "name": "world-opportunities",
+  "path": "/world/opportunities",
+  "wait": 1200
+ },
+ {
+  "name": "world-map",
+  "path": "/world/map",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-all",
+  "path": "/world/map?layers=clubs,venues,matches,trials,competitions",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-venue",
+  "path": "/world/map?venue=212",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-place",
+  "path": "/world/map?place=club:3",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-plans",
+  "path": "/world/map?plans=staff",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-plan",
+  "path": "/world/map?plans=staff&plan=701&club=1&squad=105",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-plan-share",
+  "path": "/world/map?plans=staff&plan=701&club=1&squad=105&step=share",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-journey",
+  "path": "/world/map?plans=staff&plan=701&club=1&squad=105&view=journey",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-family",
+  "path": "/world/map?plans=family",
+  "wait": 2000
+ },
+ {
+  "name": "clubs",
+  "path": "/clubs"
+ },
+ {
+  "name": "clubs-following",
+  "path": "/clubs/following"
+ },
+ {
+  "name": "club-profile",
+  "path": "/clubs/1"
+ },
+ {
+  "name": "club-posts",
+  "path": "/clubs/1?tab=posts"
+ },
+ {
+  "name": "club-other",
+  "path": "/clubs/3"
+ },
+ {
+  "name": "club-schedule",
+  "path": "/clubs/1?tab=schedule"
+ },
+ {
+  "name": "club-other-schedule",
+  "path": "/clubs/3?tab=schedule"
+ },
+ {
+  "name": "people",
+  "path": "/people"
+ },
+ {
+  "name": "profile-me",
+  "path": "/profile/1"
+ },
+ {
+  "name": "profile-player",
+  "path": "/profile/30"
+ },
+ {
+  "name": "profile-schedule",
+  "path": "/profile/1?tab=schedule"
+ },
+ {
+  "name": "profile-player-career",
+  "path": "/profile/30?tab=career"
+ },
+ {
+  "name": "stadiums",
+  "path": "/stadiums"
+ },
+ {
+  "name": "stadium",
+  "path": "/stadiums/202"
+ },
+ {
+  "name": "matches",
+  "path": "/matches"
+ },
+ {
+  "name": "matches-find",
+  "path": "/matches?section=find"
+ },
+ {
+  "name": "matches-competitions",
+  "path": "/matches?section=competitions"
+ },
+ {
+  "name": "matches-fixtures",
+  "path": "/matches?section=fixtures"
+ },
+ {
+  "name": "matches-officials",
+  "path": "/matches?section=officials"
+ },
+ {
+  "name": "tournament",
+  "path": "/tournaments/301"
+ },
+ {
+  "name": "tournament-workspace",
+  "path": "/tournaments/301/workspace"
+ },
+ {
+  "name": "calendar",
+  "path": "/calendar"
+ },
+ {
+  "name": "events",
+  "path": "/events"
+ },
+ {
+  "name": "tryouts",
+  "path": "/tryouts"
+ },
+ {
+  "name": "opportunities",
+  "path": "/admissions/opportunities"
+ },
+ {
+  "name": "jobs",
+  "path": "/jobs"
+ },
+ {
+  "name": "roles",
+  "path": "/roles"
+ },
+ {
+  "name": "store",
+  "path": "/store"
+ },
+ {
+  "name": "campaigns",
+  "path": "/campaigns"
+ },
+ {
+  "name": "messages",
+  "path": "/messages"
+ },
+ {
+  "name": "notifications",
+  "path": "/notifications"
+ },
+ {
+  "name": "requests",
+  "path": "/requests"
+ },
+ {
+  "name": "squads-mine",
+  "path": "/squads"
+ },
+ {
+  "name": "squad",
+  "path": "/squads/105"
+ },
+ {
+  "name": "squad-sessions",
+  "path": "/squads/105?tab=sessions"
+ },
+ {
+  "name": "assistant",
+  "path": "/assistant"
+ },
+ {
+  "name": "account",
+  "path": "/account"
+ },
+ {
+  "name": "account-roles",
+  "path": "/account/roles"
+ },
+ {
+  "name": "my-club",
+  "path": "/my-club"
+ },
+ {
+  "name": "workspaces",
+  "path": "/workspaces"
+ },
+ {
+  "name": "club-operations",
+  "path": "/club-operations"
+ },
+ {
+  "name": "ws-overview",
+  "path": "/clubs/1/workspace?tab=overview"
+ },
+ {
+  "name": "ws-actions",
+  "path": "/clubs/1/workspace?tab=actions"
+ },
+ {
+  "name": "ws-inbox",
+  "path": "/clubs/1/workspace?tab=inbox"
+ },
+ {
+  "name": "ws-my-day",
+  "path": "/clubs/1/workspace?tab=my-day"
+ },
+ {
+  "name": "ws-my-squads",
+  "path": "/clubs/1/workspace?tab=my-squads"
+ },
+ {
+  "name": "ws-my-people",
+  "path": "/clubs/1/workspace?tab=my-people"
+ },
+ {
+  "name": "ws-my-role",
+  "path": "/clubs/1/workspace?tab=my-role"
+ },
+ {
+  "name": "ws-squads",
+  "path": "/clubs/1/workspace?tab=squads"
+ },
+ {
+  "name": "ws-players",
+  "path": "/clubs/1/workspace?tab=players"
+ },
+ {
+  "name": "ws-player-cards",
+  "path": "/clubs/1/workspace?tab=player-cards"
+ },
+ {
+  "name": "ws-admissions",
+  "path": "/clubs/1/workspace?tab=admissions"
+ },
+ {
+  "name": "ws-applications",
+  "path": "/clubs/1/workspace?tab=applications"
+ },
+ {
+  "name": "ws-tryouts",
+  "path": "/clubs/1/workspace?tab=tryouts"
+ },
+ {
+  "name": "ws-invites",
+  "path": "/clubs/1/workspace?tab=invites"
+ },
+ {
+  "name": "ws-personnel",
+  "path": "/clubs/1/workspace?tab=personnel"
+ },
+ {
+  "name": "ws-roles",
+  "path": "/clubs/1/workspace?tab=roles"
+ },
+ {
+  "name": "ws-role-requests",
+  "path": "/clubs/1/workspace?tab=role-requests"
+ },
+ {
+  "name": "ws-jobs",
+  "path": "/clubs/1/workspace?tab=jobs"
+ },
+ {
+  "name": "ws-staff-duties",
+  "path": "/clubs/1/workspace?tab=staff-duties"
+ },
+ {
+  "name": "ws-credentials",
+  "path": "/clubs/1/workspace?tab=credentials"
+ },
+ {
+  "name": "ws-specialists",
+  "path": "/clubs/1/workspace?tab=specialists"
+ },
+ {
+  "name": "ws-guardians",
+  "path": "/clubs/1/workspace?tab=guardians"
+ },
+ {
+  "name": "ws-attendance",
+  "path": "/clubs/1/workspace?tab=attendance"
+ },
+ {
+  "name": "ws-registration",
+  "path": "/clubs/1/workspace?tab=registration"
+ },
+ {
+  "name": "ws-departures",
+  "path": "/clubs/1/workspace?tab=departures"
+ },
+ {
+  "name": "ws-development",
+  "path": "/clubs/1/workspace?tab=development"
+ },
+ {
+  "name": "ws-education",
+  "path": "/clubs/1/workspace?tab=education"
+ },
+ {
+  "name": "ws-facilities",
+  "path": "/clubs/1/workspace?tab=facilities"
+ },
+ {
+  "name": "ws-preparation",
+  "path": "/clubs/1/workspace?tab=preparation"
+ },
+ {
+  "name": "ws-equipment",
+  "path": "/clubs/1/workspace?tab=equipment"
+ },
+ {
+  "name": "ws-finance",
+  "path": "/clubs/1/workspace?tab=finance"
+ },
+ {
+  "name": "ws-travel",
+  "path": "/clubs/1/workspace?tab=travel"
+ },
+ {
+  "name": "ws-restrictions",
+  "path": "/clubs/1/workspace?tab=restrictions"
+ },
+ {
+  "name": "ws-medical",
+  "path": "/clubs/1/workspace?tab=medical"
+ },
+ {
+  "name": "ws-welfare",
+  "path": "/clubs/1/workspace?tab=welfare"
+ },
+ {
+  "name": "ws-workspace-settings",
+  "path": "/clubs/1/workspace?tab=workspace-settings"
+ },
+ {
+  "name": "ws-settings",
+  "path": "/clubs/1/workspace?tab=settings"
+ },
+ {
+  "name": "ws-store",
+  "path": "/clubs/1/workspace?tab=store"
+ },
+ {
+  "name": "ws-campaigns",
+  "path": "/clubs/1/workspace?tab=campaigns"
+ },
+ {
+  "name": "ws-club-approaches",
+  "path": "/clubs/1/workspace?tab=club-approaches"
+ },
+ {
+  "name": "ws-tools",
+  "path": "/clubs/1/workspace?tab=tools"
+ },
+ {
+  "name": "ws-coach-hub",
+  "path": "/clubs/1/workspace?tab=coach-hub"
+ },
+ {
+  "name": "ws-coach-hub-players",
+  "path": "/clubs/1/workspace?tab=coach-hub&hub=players"
+ },
+ {
+  "name": "ws-coach-hub-responsibilities",
+  "path": "/clubs/1/workspace?tab=coach-hub&hub=responsibilities"
+ },
+ {
+  "name": "ws-programmes",
+  "path": "/clubs/1/workspace?tab=programmes"
+ },
+ {
+  "name": "match-detail",
+  "path": "/match-exchange/5781",
+  "wait": 1500
+ },
+ {
+  "name": "match-invitation",
+  "path": "/match-exchange/5844",
+  "wait": 1500
+ },
+ {
+  "name": "match-sent",
+  "path": "/match-exchange/5846?sent=direct",
+  "wait": 1500
+ },
+ {
+  "name": "match-agreed",
+  "path": "/match-exchange/5726",
+  "wait": 1500
+ },
+ {
+  "name": "job-detail",
+  "path": "/jobs/401"
+ },
+ {
+  "name": "tryout-detail",
+  "path": "/tryouts/501"
+ },
+ {
+  "name": "tournament-cup",
+  "path": "/tournaments/302"
+ },
+ {
+  "name": "post-detail",
+  "path": "/posts/900"
+ }
+]

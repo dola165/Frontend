@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { JourneyLauncher } from '../../../mapPlanning/JourneyLauncher';
 import { matchGates, needsReferee } from '../../../matchExchange/detail/matchState';
 import { ProposalList } from '../../../matchExchange/detail/OpponentPanels';
+import { useOfferProjection } from '../../../matchExchange/offerDraft';
 import { MatchParticipants } from '../../../matchExchange/MatchParticipants';
 import { MatchResultSection } from '../../../matchExchange/MatchResultSection';
 import { ScheduleResult } from '../../../matchHistory/ScheduleResult';
@@ -28,7 +29,8 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
     const t = useWorldCopy();
     const now = useNow();
     const { squads, error, retry } = useArrangeableSquadsState();
-    const [notice] = useState(readNotice);
+    useOfferProjection(data.listing, squads ?? []);
+    const [notice] = useState(() => readNotice(`match:${data.listing?.event_id}`));
     useEffect(() => clearNotice(), []);
     const { match: m, listing } = data;
     if (m.fixtureStatus === 'CANCELLED') return null;

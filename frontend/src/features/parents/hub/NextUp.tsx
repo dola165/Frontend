@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Clock3, MapPin } from 'lucide-react';
 import { Crest } from '../../../design/visuals';
 import { Skeleton } from '../../../design/primitives';
-import { formatDate, formatTime } from '../../../utils/formatting';
+import { formatTime } from '../../../utils/formatting';
 import { activityColors, activityIcons } from '../../schedule/activityIcons';
 import { availability } from '../../squadCommunication/attendance';
 import { SessionAvailability } from '../../squadCommunication/SessionAvailability';
@@ -12,6 +12,7 @@ import { useSessionReply } from '../../squadCommunication/useSessionReply';
 import { useSquadSchedule, type SquadCalendarEvent } from '../../squadCommunication/useSquadSchedule';
 import { useNow } from '../../clubWorkspace/useNow';
 import type * as api from '../../squadCommunication/api';
+import { useFamilyDateLabels } from '../useFamilyDateLabels';
 import './next-up.css';
 
 const DAY = 86400000;
@@ -37,13 +38,14 @@ export function NextUp({ squads, playerId, childName, crest }: { squads: api.Squ
 
 function NextCard({ event, playerId, crest, now, later, onSaved }: { event: SquadCalendarEvent; playerId: number; crest?: string | null; now: number; later: number; onSaved: () => void }) {
     const copy = useJourneyCopy();
+    const dateLabels = useFamilyDateLabels();
     const session = event.session!;
     const reply = useSessionReply(event.squadId, session, onSaved);
     const Icon = activityIcons[event.eventType] ?? activityIcons.TRAINING;
     const color = activityColors[event.eventType] ?? activityColors.TRAINING;
     const today = new Date(now).toDateString() === new Date(event.startsAt).toDateString();
     const tomorrow = new Date(now + DAY).toDateString() === new Date(event.startsAt).toDateString();
-    const day = today ? copy('Today', 'დღეს') : tomorrow ? copy('Tomorrow', 'ხვალ') : formatDate(event.startsAt, { weekday: 'long', day: 'numeric', month: 'short' });
+    const day = today ? copy('Today', 'დღეს') : tomorrow ? copy('Tomorrow', 'ხვალ') : dateLabels.nextDate(new Date(event.startsAt));
     const open = `/squads/${event.squadId}?tab=schedule&session=${session.id}&at=${encodeURIComponent(new Date(event.startsAt).toISOString())}&player=${playerId}`;
     return <section className="ph-next" style={{ '--ph-tone': color } as CSSProperties} aria-label={copy('Next up', 'შემდეგი')}>
         <Link className="ph-next__head" to={open}>

@@ -6,7 +6,8 @@ import { Button } from '../../../../design/primitives';
 import type { Match, Squad } from '../../../matchExchange/api';
 import { ageGroupOf } from '../../../matchExchange/arrange/matchPlan';
 import { canUseReservation, holdsGround, isActive, needsReferee } from '../../../matchExchange/detail/matchState';
-import { answerInvitation, offerToPlay } from '../../../matchExchange/detail/opponentActions';
+import { answerInvitation } from '../../../matchExchange/detail/opponentActions';
+import { useOfferDraft } from '../../../matchExchange/offerDraft';
 import { forget } from '../../cache';
 import { useWorldCopy } from '../../copy';
 import { loadMyFit } from '../../directories/matches/openMatches';
@@ -15,6 +16,7 @@ import { fitOf, fitSquads } from '../../scoreboard/squadFit';
 import { useWorldData } from '../../useWorldData';
 import { SendError } from '../SendError';
 import { useSend } from '../useSend';
+import { noteDone, focusNotice } from '../stepNotice';
 import '../step.css';
 
 /**
@@ -32,36 +34,38 @@ export function OfferStep({ listing, squads, reload }: { listing: Match; squads:
     const choices = [...sameAge, ...eligible.filter(squad => !sameAge.includes(squad))];
     // The squads of the listing's age group are the quick choices; any other squad is one list away.
     const quick = sameAge.length ? sameAge : choices, others = choices.filter(squad => !quick.includes(squad));
-    const [picked, setPicked] = useState<number>();
-    const squadId = picked ?? fitOf(listing, fitSquads(squads))?.id ?? (choices.length === 1 ? choices[0].id : undefined);
-    const squad = choices.find(item => item.id === squadId);
-    const [note, setNote] = useState('');
     // An offer changes which listings I have offered on: the open matches' "Your U14 Boys?" asks again.
-    const { busy, error, changed, send } = useSend(() => { forget(`my-fit:${sessionId}`); reload(); });
+    const draft = useOfferDraft(listing, squads, fitOf(listing, fitSquads(squads))?.id ?? (choices.length === 1 ? choices[0].id : undefined),
+        notice => { noteDone(notice, sessionId, `match:${listing.event_id}`); forget(`my-fit:${sessionId}`); reload(); });
+    const { squad, note, busy, error, changed, send, editable } = draft;
+    const squadId = squad?.id;
     const playsThatDay = squad && fit?.busy.get(squad.id)?.has(isoDayOf(listing.starts_at_iso));
     return (
         <section className="gk-step" aria-label={t('Offer to play')}>
             <h4 className="gk-step__title">{t('Offer to play')}</h4>
-            {choices.length > 1 && <div className="gk-step__row" role="group" aria-label={t('Your squad')}>
-                {quick.map(item => <button key={item.id} type="button" className="gk-chip" aria-pressed={item.id === squadId} onClick={() => setPicked(item.id)}>{item.name}</button>)}
-                {others.length > 0 && <select className="gk-input gk-step__other" aria-label={t('Another squad')} value={others.some(item => item.id === squadId) ? squadId : ''}
-                    onChange={event => event.target.value && setPicked(Number(event.target.value))}>
+            {choices.length > 0 && <div className="gk-step__row" role="group" aria-label={t('Your squad')}>
+                {quick.map(item => <button key={item.id} type="button" className="gk-chip" disabled={!editable} aria-pressed={item.id === squadId} onClick={() => draft.change({ squadId: item.id })}>{item.name}</button>)}
+                {others.length > 0 && <select className="gk-input gk-step__other" aria-label={t('Another squad')} disabled={!editable} value={others.some(item => item.id === squadId) ? squadId : ''}
+                    onChange={event => event.target.value && draft.change({ squadId: Number(event.target.value) })}>
                     <option value="">{t('Another squad…')}</option>
                     {others.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>}
             </div>}
             {playsThatDay && <p className="gk-step__warn">{t('{squad} already plays that day', { squad: squad.name })}</p>}
             <label className="gk-visually-hidden" htmlFor={noteId}>{t('A word for their coach')}</label>
-            <textarea id={noteId} className="gk-input" rows={2} maxLength={2000} value={note} placeholder={t('A word for their coach (optional)')} onChange={event => setNote(event.target.value)} />
+            <textarea id={noteId} className="gk-input" rows={2} maxLength={2000} disabled={!editable} value={note} placeholder={t('A word for their coach (optional)')} onChange={event => draft.change({ note: event.target.value })} />
             <p className="gk-step__preview">{squad
                 ? t('Offers {squad} to {club}. They choose one offer; nothing is agreed until they accept.', { squad: squad.name, club: listing.club_name })
                 : t('Choose the squad that would play.')}</p>
             <SendError error={error} changed={changed} reload={reload} />
+            {draft.notice && <p className="gk-step__done" role="status" tabIndex={-1} ref={focusNotice}>{draft.notice}</p>}
+            {draft.edited && <p className="gk-faint">{t('Kept while you browse. Reloading clears this draft.')}</p>}
             <div className="gk-step__actions">
-                <Button variant="primary" disabled={!squad || busy} onClick={() => void send(() => offerToPlay(listing, squad!.id, note.trim()),
+                <Button variant="primary" disabled={!squad || !editable} onClick={() => void send(
                     t('{squad} offered to {club}. They choose one offer; you will see their answer here.', { squad: squad!.name, club: listing.club_name }), t('The offer could not be sent.'))}>
                     {busy ? t('Sending…') : t('Offer to play')}
                 </Button>
+                {draft.edited && <Button variant="ghost" disabled={!editable} onClick={draft.discard}>{t('Discard draft')}</Button>}
             </div>
         </section>
     );

@@ -8,6 +8,7 @@ import { extractApiErrorMessage } from '../../../../utils/apiError';
 import { recordFunnelEvent } from '../../../feed/feedEvents';
 import { decideArrival, fetchArrivals, pastePlayers, type Arrival } from '../../api';
 import { usePagesCopy } from '../../copy';
+import { useGuideTask } from '../../guide/bridge';
 import { usePageEdit } from '../context';
 import { SplitPanel } from '../SplitPanel';
 
@@ -33,12 +34,18 @@ export function PlayersPanel() {
     fetchArrivals(ref, controller.signal).then(list => { if (!controller.signal.aborted) setArrivals(list); }).catch(() => { if (!controller.signal.aborted) setArrivals([]); });
     return () => controller.abort();
   }, [ref]);
+  useGuideTask('players', {
+    disabled: busy || !page?.boxes.squads.items.length,
+    nextLabel: t('I shared the link'),
+    next: async () => ({ status: await shared('guide') ? 'complete' : 'stay' }),
+  });
   if (!page) return null;
   const links = page.boxes.players.links;
   const url = (squadId: number) => `${window.location.origin}/join/${links[squadId] ?? ''}`;
   const shared = async (via: string) => {
-    recordFunnelEvent('PAGE_SHARED', { via, box: 'players', pageRef: `${page.ref.type}-${page.ref.id}` });
-    if (!page.boxes.players.shared) await saveBox('players', { shared: true }, { undoable: false });
+    const ok = page.boxes.players.shared || await saveBox('players', { shared: true }, { undoable: false });
+    if (ok) recordFunnelEvent('PAGE_SHARED', { via, box: 'players', pageRef: `${page.ref.type}-${page.ref.id}` });
+    return ok;
   };
   const copy = async (squadId: number) => {
     try { await navigator.clipboard.writeText(url(squadId)); setCopied(squadId); window.setTimeout(() => setCopied(null), 2000); await shared('copy'); } catch { setCopied(null); }

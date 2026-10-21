@@ -1,3 +1,4 @@
+import { mt, useMatchCopy } from '../copy';
 import './arrange.css';
 import { useRef, useState, type FormEvent } from 'react';
 import { Button, Field } from '../../../design/primitives';
@@ -17,7 +18,7 @@ import { MatchPreview } from './MatchPreview';
 /** The match's referee as things stand, in the preview's words. */
 const refereeWords = (m: Match) => {
     const state = refereeState(m).label;
-    return state === 'Not needed' ? 'No referee' : state === 'Arranged outside GrassKickZ' ? 'Referee arranged' : `Referee ${state.toLowerCase()}`;
+    return state === 'Not needed' ? mt('No referee') : state === 'Arranged outside GrassKickZ' ? mt('Referee arranged') : mt('Referee {status}', { status: mt(state).toLocaleLowerCase() });
 };
 const FIELD_TARGETS: [keyof Problems, string][] = [['date', '#arrange-date'], ['time', '#arrange-time'], ['length', '#arrange-minutes'], ['ground', 'input[name="arrange-ground"]:checked'], ['timezone', '#arrange-timezone']];
 
@@ -26,6 +27,7 @@ const FIELD_TARGETS: [keyof Problems, string][] = [['date', '#arrange-date'], ['
  * opponent, referee or ground is previewed first; it is applied only with the returned confirmation.
  */
 export function EditMatchForm({ match, onClose, onSaved }: { match: Match; onClose: () => void; onSaved: () => void }) {
+    const t = useMatchCopy();
     const form = useRef<HTMLFormElement>(null);
     const [now] = useState(() => new Date());
     const [draft, setDraft] = useState<Draft>(() => draftFromMatch(match));
@@ -62,7 +64,7 @@ export function EditMatchForm({ match, onClose, onSaved }: { match: Match; onClo
         } catch (cause) {
             const next = changeImpactFrom(cause);
             if (next) setReview({ signature, impact: next });
-            else setError(extractApiErrorMessage(cause, 'The changes could not be saved. Your edits are kept; try again.'));
+            else setError(extractApiErrorMessage(cause, t("The changes could not be saved. Your edits are kept; try again.")));
         } finally { sending.current = false; setBusy(false); }
     }
 
@@ -71,38 +73,38 @@ export function EditMatchForm({ match, onClose, onSaved }: { match: Match; onClo
             <MatchPreview mode="edit" draft={effective} squad={squad} ageGroup={ageGroup} targetSquadName={match.opponent_squad_name}
                 refereeWords={draft.referee === (match.referee_required ? 'US' : 'NONE') ? refereeWords(match) : undefined} />
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">Teams</legend>
-                <Field label="Opponent" htmlFor="arrange-opponent-fixed" hint={match.opponent_name ? 'Agreed. To change opponent, use “Find another opponent” on the match page.' : match.requested_club_id ? 'Invitation sent; waiting for their answer.' : 'Squads propose to play on the match page.'}>
-                    <input id="arrange-opponent-fixed" className="gk-input" readOnly value={match.opponent_name ? `${match.opponent_name}${match.opponent_squad_name ? ` · ${match.opponent_squad_name}` : ''}` : 'Not agreed yet'} />
+                <legend className="gk-visually-hidden">{t("Teams")}</legend>
+                <Field label={t('Opponent')} htmlFor="arrange-opponent-fixed" hint={match.opponent_name ? t("Agreed. To change opponent, use “Find another opponent” on the match page.") : match.requested_club_id ? t('Invitation sent; waiting for their answer.') : t('Squads propose to play on the match page.')}>
+                    <input id="arrange-opponent-fixed" className="gk-input" readOnly value={match.opponent_name ? `${match.opponent_name}${match.opponent_squad_name ? ` · ${match.opponent_squad_name}` : ''}` : t("Not agreed yet")} />
                 </Field>
                 <SquadField squads={data.squads.data ?? []} coached={data.coached} value={match.squad_id} onChange={() => undefined} locked />
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">When</legend>
+                <legend className="gk-visually-hidden">{t("When")}</legend>
                 <KickoffField date={draft.date} time={draft.time} minutes={draft.minutes} format={draft.format} ageGroup={ageGroup} squadAge={data.ageGroup} known
                     today={localStamp(now, draft.timezone).slice(0, 10)} onChange={patch} errors={{ date: shown.date, time: shown.time, length: shown.length }} />
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">Where</legend>
+                <legend className="gk-visually-hidden">{t("Where")}</legend>
                 <GroundField mode="edit" value={effective.ground} hosting={draft.hosting} onChange={ground => patch({ ground })} onHosting={hosting => patch({ hosting })} ours={data.ours} theirs={draft.opponent ? data.theirs : null}
                     opponentName={draft.opponent?.name} defaultCity={match.city} error={shown.ground} />
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
-                <legend className="gk-visually-hidden">Referee and notes</legend>
+                <legend className="gk-visually-hidden">{t("Referee and notes")}</legend>
                 <RefereeField mode="edit" draft={draft} squadId={match.squad_id} onChange={patch} />
-                <Field label="Match notes" htmlFor="arrange-note" hint="Visible to both teams. Changing them may ask the opponent to agree again.">
+                <Field label={t("Match notes")} htmlFor="arrange-note" hint={t('Visible to both teams. Changing them may ask the opponent to agree again.')}>
                     <textarea id="arrange-note" className="gk-input" maxLength={2000} rows={3} value={draft.note} onChange={event => patch({ note: event.target.value })} />
                 </Field>
                 <MoreDetails draft={draft} automaticTitle={match.title} onChange={patch} timezoneError={shown.timezone} hideKind />
             </fieldset>
             <footer className="gk-arrange__foot">
                 {impact && <MatchChangeImpact impact={impact} />}
-                {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+                {error && <p className="gk-notice gk-notice--danger" role="alert">{t(error)}</p>}
                 <p className="gk-arrange__next">{whatHappens('edit', effective, match.opponent_squad_name)}</p>
                 <div className="gk-arrange__actions">
-                    <Button variant="ghost" size="sm" onClick={onClose} disabled={busy}>Keep the current details</Button>
+                    <Button variant="ghost" size="sm" onClick={onClose} disabled={busy}>{t("Keep the current details")}</Button>
                     <Button variant="primary" type="submit" disabled={busy} className="gk-arrange__send">
-                        {busy ? 'Saving…' : confirmable ? 'Confirm changes and notify participants' : 'Review and save changes'}
+                        {busy ? t('Saving…') : confirmable ? t("Confirm changes and notify participants") : t("Review and save changes")}
                     </Button>
                 </div>
             </footer>

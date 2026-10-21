@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     buildLoginRedirectPath,
+    beginExplicitSignOut,
+    completeSignOutNavigation,
     buildSignupPath,
     clearAuthFlow,
     completedAuthDestination,
@@ -36,6 +38,18 @@ describe('registration destination flow', () => {
         );
         expect(getAuthFlow().nextPath).toBe('/tournaments/42?tab=entries');
         expect(resolvePostAuthRedirect(null)).toBe('/tournaments/42?tab=entries');
+    });
+
+    it('discards the previous account’s private destination during explicit sign-out, then allows new invitations', () => {
+        rememberAuthFlow({ nextPath: '/messages?conversationId=801', email: 'old@example.test', newAccount: true });
+        beginExplicitSignOut();
+        expect(buildLoginRedirectPath('/messages', '?conversationId=801')).toBe('/login');
+        // Repeated protected-route renders cannot restore the retired account's continuation.
+        expect(buildLoginRedirectPath('/messages', '?conversationId=801')).toBe('/login');
+        expect(getAuthFlow()).toEqual({ nextPath: undefined, email: undefined, newAccount: false, town: undefined, awaitingVerification: false });
+        completeSignOutNavigation();
+        expect(buildLoginRedirectPath('/join-squad', '', '#new-invitation')).toBe('/login');
+        expect(getAuthFlow().nextPath).toBe('/join-squad#new-invitation');
     });
 
     it('keeps a consent token only in session storage', () => {

@@ -36,9 +36,9 @@ export interface PageEdit {
   arrival: 'new' | 'claimed' | null;
   status: SaveStatus;
   pendingCount: number;
-  saveIdentity: (patch: IdentityPatch, options?: SaveOptions) => Promise<void>;
-  saveBox: <K extends SavableBox>(key: K, data: unknown, options?: SaveOptions) => Promise<void>;
-  saveLayout: (layout: PageLayout, options?: SaveOptions) => Promise<void>;
+  saveIdentity: (patch: IdentityPatch, options?: SaveOptions) => Promise<boolean>;
+  saveBox: <K extends SavableBox>(key: K, data: unknown, options?: SaveOptions) => Promise<boolean>;
+  saveLayout: (layout: PageLayout, options?: SaveOptions) => Promise<boolean>;
   hideBox: (key: BoxKey) => Promise<void>;
   showBox: (key: BoxKey, column?: Column, index?: number) => Promise<void>;
   moveBox: (key: BoxKey, delta: 1 | -1) => Promise<void>;

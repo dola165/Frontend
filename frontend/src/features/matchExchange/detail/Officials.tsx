@@ -1,3 +1,4 @@
+import { useMatchCopy } from '../copy';
 import { Link } from 'react-router-dom';
 import { Badge, Button, EmptyNote, List, ListRow, Panel, Section, type BadgeTone } from '../../../design/primitives';
 import { Crest } from '../../world/Crest';
@@ -13,24 +14,25 @@ const APPOINTMENT: Record<string, { label: string; tone: BadgeTone }> = {
 
 /** The match officials: who is invited or appointed, and (for the arranging team) inviting or recruiting one. */
 export function Officials({ match: m, active, reload }: { match: Match; active: boolean; reload: () => void }) {
+    const t = useMatchCopy();
     const { run, busy, feedback } = useAction(reload);
     const others = (m.appointments ?? []).filter(a => !m.own_appointments?.some(own => own.id === a.id));
     const manage = Boolean(m.can_arrange_official && active);
     return (
-        <Section title="Match officials" id="officials">
+        <Section title={t("Match officials")} id="officials">
             <Panel flush>
-                {others.length ? <List label="Match officials">{others.map(a => {
+                {others.length ? <List label={t("Match officials")}>{others.map(a => {
                     const state = APPOINTMENT[a.status] ?? { label: label(a.status), tone: 'neutral' as BadgeTone };
-                    return <ListRow key={a.id} lead={<Crest name={a.full_name ?? 'Referee'} size={40} round />}
+                    return <ListRow key={a.id} lead={<Crest name={a.full_name ?? t("Referee")} size={40} round />}
                         title={<Link className="gk-match-link" to={`/profile/${a.referee_id}`} id={`appointment-${a.id}`}>{a.full_name}</Link>}
-                        meta={[label(a.duty), a.volunteer ? 'Volunteering' : a.fee != null ? `${a.fee} ${a.currency}, agreed directly` : 'Paid appointment', a.attendance_issue ? `Unable to attend: ${a.attendance_issue}` : null].filter(Boolean).join(' · ')}
-                        trail={<><Badge tone={a.attendance_issue ? 'danger' : state.tone}>{a.attendance_issue ? 'Replacement needed' : state.label}</Badge>
-                            {manage && ['INVITED', 'ACCEPTED'].includes(a.status) && <Button size="sm" disabled={busy} onClick={() => void run(() => post(`/match-exchange/${m.event_id}/referees/${a.id}/cancel`), 'Appointment cancelled')}>Cancel invitation</Button>}</>} />;
+                        meta={[t(label(a.duty)), a.volunteer ? t("Volunteering") : a.fee != null ? t('{fee} {currency}, agreed directly', { fee: a.fee, currency: a.currency ?? '' }) : t("Paid appointment"), a.attendance_issue ? t('Unable to attend: {reason}', { reason: a.attendance_issue }) : null].filter(Boolean).join(' · ')}
+                        trail={<><Badge tone={a.attendance_issue ? 'danger' : state.tone}>{a.attendance_issue ? t("Replacement needed") : t(state.label)}</Badge>
+                            {manage && ['INVITED', 'ACCEPTED'].includes(a.status) && <Button size="sm" disabled={busy} onClick={() => void run(() => post(`/match-exchange/${m.event_id}/referees/${a.id}/cancel`), t("Appointment cancelled"))}>{t("Cancel invitation")}</Button>}</>} />;
                 })}</List>
-                    : <EmptyNote title={m.external_referee_name ? `${m.external_referee_name} (arranged outside GrassKickZ)` : m.referee_required ? 'A referee is still needed' : 'No referee is needed for this match'}>
-                        {m.external_referee_name ? 'Reported by the coaching team; not a GrassKickZ appointment.' : m.referee_required ? (manage ? 'Invite one directly or publish a request referees can answer.' : 'The arranging team invites the referee.') : undefined}
+                    : <EmptyNote title={m.external_referee_name ? t('{name} (arranged outside GrassKickZ)', { name: m.external_referee_name }) : m.referee_required ? t("A referee is still needed") : t("No referee is needed for this match")}>
+                        {m.external_referee_name ? t("Reported by the coaching team; not a GrassKickZ appointment.") : m.referee_required ? (manage ? t("Invite one directly or publish a request referees can answer.") : t("The arranging team invites the referee.")) : undefined}
                     </EmptyNote>}
-                {others.some(a => a.report) && <div className="gk-match-reports">{others.filter(a => a.report).map(a => <details key={a.id} className="gk-match-disclosure"><summary>Match report from {a.full_name}</summary><p>{a.report}</p></details>)}</div>}
+                {others.some(a => a.report) && <div className="gk-match-reports">{others.filter(a => a.report).map(a => <details key={a.id} className="gk-match-disclosure"><summary>{t('Match report from {name}', { name: a.full_name ?? t('Referee') })}</summary><p>{a.report}</p></details>)}</div>}
             </Panel>
             <div className="gk-mx gk-match-feedback">{feedback}</div>
             {manage && m.referee_required && <RefereeRequest match={m} reload={reload} />}

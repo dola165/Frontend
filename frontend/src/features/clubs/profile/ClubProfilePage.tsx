@@ -128,14 +128,14 @@ function ClubProfileView({ id }: { id: number }) {
         <RearrangeFrame><ProfileLayout className="gk-club-page"
             identity={{
                 name: page?.identity.name ?? club.name, image: page?.identity.crest.url ?? club.logoUrl, square: true,
-                nameNode: editing ? <InlineText as="span" step="name" value={page?.identity.name ?? club.name} placeholder={pt('Name your page')} label={pt('Name')} maxLength={120} onSave={next => { if (next.length >= 2) void edit.saveIdentity({ name: next }, { label: pt('Name saved') }).then(refresh); }} /> : undefined,
+                nameNode: editing ? <InlineText as="span" step="name" value={page?.identity.name ?? club.name} placeholder={pt('Name your page')} label={pt('Name')} maxLength={120} onSave={async next => { if (next.length < 2) return false; const ok = await edit.saveIdentity({ name: next }, { label: pt('Name saved') }); if (ok) refresh(); return ok; }} /> : undefined,
                 summaryNode: editing ? <AboutLine /> : undefined,
-                badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Verified club</Badge> : page?.status === 'DRAFT' ? <Badge tone="warning">{pt('Draft')}</Badge> : undefined,
-                line: <>{kind}{linked && <> · {club.presentation?.profileKind === 'ACADEMY' ? 'Academy of ' : 'Academy: '}<Link className="gk-profile__link" to={`/clubs/${linked.clubId}`}>{linked.name}</Link></>}{can.role && <> · Your role: {clubRoleLabel(can.role)}</>}</>,
+                badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />{pt('Verified club')}</Badge> : page?.status === 'DRAFT' ? <Badge tone="warning">{pt('Draft')}</Badge> : undefined,
+                line: <>{pt(kind)}{linked && <> · {club.presentation?.profileKind === 'ACADEMY' ? pt('Academy of') + ' ' : pt('Academy:') + ' '}<Link className="gk-profile__link" to={`/clubs/${linked.clubId}`}>{linked.name}</Link></>}{can.role && <> · {pt('Your role:')} {pt(clubRoleLabel(can.role))}</>}</>,
                 facts: [
                     place ? <><MapPin aria-hidden="true" />{place}</> : null,
-                    <><strong>{club.followerCount.toLocaleString()}</strong>{club.followerCount === 1 ? 'follower' : 'followers'}</>,
-                    <><strong>{club.memberCount.toLocaleString()}</strong>{club.memberCount === 1 ? 'member' : 'members'}</>,
+                    <><strong>{club.followerCount.toLocaleString()}</strong>{pt(club.followerCount === 1 ? 'follower' : 'followers')}</>,
+                    <><strong>{club.memberCount.toLocaleString()}</strong>{pt(club.memberCount === 1 ? 'member' : 'members')}</>,
                 ],
                 summary: page?.identity.about || club.description || undefined,
             }}
@@ -144,14 +144,14 @@ function ClubProfileView({ id }: { id: number }) {
             imageAction={editing ? <Button size="sm" iconOnly data-step="crest" aria-label={pt('Change crest')} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
             actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
-            tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
-            sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel="Club information"
-            side={editing ? <PageColumn column="right" renderers={clubBoxes} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel="Get involved">
+            tabs={clubTabs.map(item => ({ ...item, label: typeof item.label === 'string' ? pt(item.label) : item.label }))} tab={tab} onTab={setTab} tabsLabel={pt('Club sections')}
+            sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel={pt('Club information')}
+            side={editing ? <PageColumn column="right" renderers={clubBoxes} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel={pt('Get involved')}>
             {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} can={can} crestUrl={page?.identity.crest.url} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
             {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} canManage={can.canManage} />}
-            {tab === 'people' && <ClubPeopleTab clubId={club.id} canManageStaff={can.canManageStaff} />}
+            {tab === 'people' && <ClubPeopleTab clubId={club.id} clubName={club.name} canManageStaff={can.canManageStaff} />}
             {tab === 'facilities' && <ClubFacilitiesTab club={club} canEdit={can.canEditFacilities} />}
             {tab === 'involved' && <ClubInvolvedTab club={club} canEdit={can.canManage} />}
             {tab === 'contact' && <ClubContactTab club={club} />}

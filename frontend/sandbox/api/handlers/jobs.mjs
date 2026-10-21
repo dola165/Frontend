@@ -8,6 +8,7 @@ import { get, post, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
 import * as V from '../viewer.mjs';
+import * as P from '../pages-data.mjs';
 
 const num = (q, key, fallback) => { const v = q.get(key); return v == null || v === '' || !Number.isFinite(Number(v)) ? fallback : Number(v); };
 const notFound = (message = 'Not found.') => reply(404, { status: 404, message });
@@ -72,11 +73,19 @@ post('/jobs/:id/applications', apply);
 // ============================================================== posting (people and clubs alike)
 post('/jobs', ({ body, headers }) => {
   if (!body?.title?.trim()) return bad('Give the listing a title.');
-  const viewer = V.viewerId(headers), person = W.personById(viewer) ?? W.me, asClub = body.posterKind === 'CLUB' && body.clubId, club = asClub ? W.clubById(body.clubId) : null;
-  const id = W.newId(), city = cityOf(body.city)?.name ?? (club?.city ?? person.city ?? 'Tbilisi');
-  const listing = { version: 1, id, clubId: club?.id ?? null, title: body.title.trim(), description: body.description ?? '', ageGroup: body.ageGroup ?? null, level: null, requiredRole: body.category === 'COACHING' ? 'COACH' : null, status: 'OPEN', createdAt: W.iso(new Date()), createdBy: viewer,
+  if (!['CLUB', 'PERSON'].includes(body.posterKind)) return bad('Choose who is publishing this listing.');
+  const viewer = V.viewerId(headers), person = V.account(viewer) ?? W.personById(viewer);
+  if (!person) return reply(401, { status: 401, message: 'Sign in to publish.' });
+  const asClub = body.posterKind === 'CLUB', club = asClub ? W.clubById(Number(body.clubId)) : null;
+  if (asClub && !club) return notFound('This club is unavailable. Your listing was not published.');
+  const memberPersona = viewer === W.ME_ID && /gk-sandbox-persona=member(?:;|$)/.test(headers?.cookie ?? '');
+  if (asClub && (memberPersona || !['OWNER', 'ADMIN', 'COACH'].includes(P.roleOf(P.clubPage(club.id), viewer)))) return reply(403, { status: 403, message: 'Confirmed staff permission is required to publish for this club.' });
+  if (asClub && body.direction === 'OFFERING') return bad('List yourself as available using your personal identity.');
+  if (body.applyMethod === 'IN_APP' && (!club || body.category !== 'COACHING')) return bad('In-app applications are available for a club coaching job only.');
+  const id = W.newId(), city = cityOf(body.city)?.name ?? club?.city ?? V.preferencesOf(viewer)?.town?.name ?? person.city ?? 'Tbilisi';
+  const listing = { version: 1, id, clubId: club?.id ?? null, title: body.title.trim(), description: body.description ?? '', ageGroup: body.ageGroup ?? null, level: null, requiredRole: club && body.category === 'COACHING' && body.applyMethod === 'IN_APP' ? 'COACH' : null, status: 'OPEN', createdAt: W.iso(new Date()), createdBy: viewer,
     applicationCount: 0, category: body.category ?? 'OTHER', engagementType: body.engagementType ?? 'PAID', clubName: club?.name ?? null, clubLogoUrl: club?.logoUrl ?? null, clubCityName: city, clubCountryName: 'Georgia',
-    direction: body.direction === 'OFFERING' ? 'OFFERING' : 'HIRING', poster: club ? { kind: 'CLUB', id: club.id, name: club.name, avatarUrl: club.logoUrl, city: club.city } : { kind: 'PERSON', id: person.id, name: person.fullName, avatarUrl: person.avatarUrl, city },
+    direction: body.direction === 'OFFERING' ? 'OFFERING' : 'HIRING', poster: club ? { kind: 'CLUB', id: club.id, name: club.name, avatarUrl: club.logoUrl, city: club.city } : { kind: 'PERSON', id: viewer, name: person.fullName, avatarUrl: person.avatarUrl ?? null, city },
     pay: body.pay || null, hours: body.hours ?? null, licence: body.licence || null, applyMethod: body.applyMethod ?? (club ? 'IN_APP' : 'MESSAGE'), applyTarget: body.applyTarget || null };
   F.postedListings.unshift(listing);
   return reply(201, listing);

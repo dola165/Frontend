@@ -40,6 +40,11 @@ describe('Parent Hub', () => {
     it('says fees are not recorded rather than zero', async () => {
         playing(); show(); expect(await screen.findByText('Not recorded')).toBeVisible();
     });
+    it('keeps an unknown amount honest even when a partial fee record exists', async () => {
+        const data = fixture(); data.children[0].clubs = [{ ...dinamo, fees: { status: 'DUE', amount: null, currency: 'GEL', dueDate: null, period: null } }];
+        vi.mocked(fetchJoiningChildren).mockResolvedValue(data); show();
+        expect(await screen.findByText('Not recorded')).toBeVisible(); expect(screen.queryByText('Paid up')).not.toBeInTheDocument();
+    });
     it('immediately selects a newly created child after directory refresh', async () => {
         vi.mocked(fetchJoiningChildren).mockResolvedValueOnce(fixture()).mockResolvedValue({ children: [...fixture().children, child(63, 'New child')] }); show(); await screen.findByRole('button', { name: 'Nika, No club yet' });
         fireEvent.click(screen.getByRole('link', { name: 'Add a child' })); fireEvent.click(screen.getByRole('button', { name: 'Create synthetic child' }));

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CalendarDays, HeartHandshake } from 'lucide-react';
-import { EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
+import { Button, EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
 import { FaceStack } from '../../../design/visuals';
 import { PlayerCard } from '../../clubWorkspace/squads/PlayerCard';
 import { useInquiryCopy } from '../../admissions/inquiryPresentation';
@@ -58,7 +58,7 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
         <AddChild inline onCreated={id => { selectPlayer(id); refresh(); }} /></section>;
     else body = <>
         <ChildSwitcher items={children} selectedId={selected.playerId} onSelect={selectPlayer} addTo={playerPath('/parent?tab=children', selected.playerId)} />
-        <ChildView key={selected.playerId} child={selected} revision={revision} onChanged={refresh} />
+        <ChildView key={`${sessionId}:${selected.playerId}`} child={selected} sessionId={sessionId} revision={revision} onChanged={refresh} />
     </>;
     return <GkRoot className="gk-page ph"><PageFrame>
         <h1 className="sr-only">{copy('Parent Hub', 'მშობლის სივრცე')}</h1>
@@ -66,12 +66,12 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
     </PageFrame></GkRoot>;
 }
 
-function ChildView({ child, revision, onChanged }: { child: JoiningChild; revision: number; onChanged: () => void }) {
+function ChildView({ child, sessionId, revision, onChanged }: { child: JoiningChild; sessionId: AuthSessionId; revision: number; onChanged: () => void }) {
     const copy = useJourneyCopy();
     const { stage, next, owner } = useAdmissionCopy();
     const inquiryCopy = useInquiryCopy();
     const [editing, setEditing] = useState(false);
-    const { squads, loading } = useChildSquads(child, revision);
+    const { squads, loading, error, failedSquads, retry } = useChildSquads(child, revision, sessionId);
     const first = child.identity.fullName.split(' ')[0];
     const playing = child.clubs.filter(club => ['ACTIVE', 'TRIALIST'].includes(club.affiliationStatus ?? ''));
     const crest = useClubCrest(playing[0]?.clubId);
@@ -82,7 +82,16 @@ function ChildView({ child, revision, onChanged }: { child: JoiningChild; revisi
     return <div className="ph-grid">
         <div className="ph-col ph-col--main">
             {consent && <Link className="ph-alert" to={playerPath('/parent?tab=connections', child.playerId)}><span className="ph-dot ph-dot--urgent" aria-hidden="true" /><span>{copy(`${consent.clubName} asks for your consent`, `${consent.clubName} თქვენს თანხმობას ითხოვს`)}</span><ArrowRight aria-hidden="true" /></Link>}
-            {playing.length > 0 && (loading ? <Skeleton height={140} /> : squads.length > 0 && <div className="ph-lead">
+            {playing.length > 0 && <>
+                {loading && <p className="ph-quiet" role="status">{squads.length ? copy('Refreshing squads…', 'გუნდები ახლდება…') : copy('Loading squads…', 'გუნდები იტვირთება…')}</p>}
+                {error && <div className="ph-quiet" role="alert">
+                    <p>{squads.length ? copy('Some squads could not load. Available squads are shown.', 'ზოგი გუნდი ვერ ჩაიტვირთა. ხელმისაწვდომი გუნდები ნაჩვენებია.') : copy('The squads could not load.', 'გუნდები ვერ ჩაიტვირთა.')}</p>
+                    {!!failedSquads.length && <p>{failedSquads.join(' · ')}</p>}
+                    <Button variant="ghost" disabled={loading} onClick={retry}>{copy('Retry squads', 'გუნდების ხელახლა ჩატვირთვა')}</Button>
+                </div>}
+                {!loading && !error && !squads.length && <p className="ph-quiet" role="status">{copy(`No squads are listed for ${first} yet.`, `${first}-სთვის გუნდები ჯერ არ არის ჩამოთვლილი.`)}</p>}
+            </>}
+            {playing.length > 0 && (loading && !squads.length ? <Skeleton height={140} /> : squads.length > 0 && <div className="ph-lead">
                 <NextUp squads={squads} playerId={child.playerId} childName={first} crest={crest} />
                 <LatestUpdate squads={squads} playerId={child.playerId} />
             </div>)}

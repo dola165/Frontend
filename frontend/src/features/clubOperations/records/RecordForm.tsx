@@ -3,13 +3,15 @@ import { ArrowLeft } from 'lucide-react';
 import { Button, PageHeader, Panel } from '../../../design/primitives';
 import { FacilityCard } from '../../clubs/ClubPlaceCard';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { label, post, put, root, type Bootstrap, type Definition, type Field as FieldDefinition, type OperationRecord } from '../api';
+import { label, put, root, type Bootstrap, type Definition, type Field as FieldDefinition, type OperationRecord } from '../api';
 import { editorDescription, fieldGroups } from '../editorPresentation';
 import { FacilityFields } from '../FacilityFields';
 import { useClubEditorClose } from '../useClubEditorClose';
+import { useRecordCreation } from '../useRecordCreation';
 import { LegacyIsland } from './LegacyIsland';
 import { PlainField, RecordField } from './recordFields';
 import './records.css';
+import { appLanguage } from '../../../utils/formatting';
 
 // Records about one person, and records that hang off another record.
 const subjects = new Set(['STAFF_AVAILABILITY', 'CREDENTIAL', 'CONSENT', 'COLLECTION', 'EMERGENCY_CONTACT', 'ATTENDANCE', 'MEDICAL_APPOINTMENT', 'CLINICAL_NOTE', 'RESTRICTION', 'GOAL', 'OBSERVATION', 'REVIEW', 'EDUCATION_ABSENCE', 'EDUCATION_CONTACT', 'REGISTRATION', 'INSTALMENT', 'FINANCIAL_SUPPORT', 'PASSENGER', 'DEPARTURE', 'EQUIPMENT_ISSUE']);
@@ -24,7 +26,7 @@ function Group({ title, description, children }: { title: string; description?: 
  * One page for creating or editing any club record: the details, who is responsible, then save.
  * Unsaved work is kept until the person saves or confirms discarding it.
  */
-export function RecordForm({ boot, definition, record, backLabel, onSaved, onCancel }: { boot: Bootstrap; definition: Definition; record?: OperationRecord; backLabel: string; onSaved: () => Promise<void>; onCancel: () => void }) {
+export function RecordForm({ boot, definition, record, backLabel, onSaved, onCancel }: { boot: Bootstrap; definition: Definition; record?: OperationRecord; backLabel: string; onSaved: (record: OperationRecord) => Promise<void>; onCancel: () => void }) {
     const formId = useId();
     const form = useRef<HTMLFormElement>(null);
     const [title, setTitle] = useState(record?.title ?? '');
@@ -37,10 +39,14 @@ export function RecordForm({ boot, definition, record, backLabel, onSaved, onCan
     const [due, setDue] = useState(record?.due_on?.slice(0, 10) ?? '');
     const [data, setData] = useState<Record<string, string>>(record?.data ?? (boot.settings.currency && definition.fields.some(f => f.key === 'currency') ? { currency: boot.settings.currency } : {}));
     const [busy, setBusy] = useState(false), [uploading, setUploading] = useState(false), [error, setError] = useState('');
+    const [saved, setSaved] = useState<OperationRecord | null>(null);
+    const saving = useRef(false);
+    const ka = appLanguage() === 'ka';
+    const creation = useRecordCreation(boot, definition.kind);
     const facility = definition.kind === 'FACILITY';
     const draft = JSON.stringify({ title, squad, subject, assignee, event, session, related, due, data });
     const initial = useRef(draft);
-    const { requestClose, confirmation } = useClubEditorClose(draft !== initial.current, busy || uploading, onCancel);
+    const { requestClose, confirmation } = useClubEditorClose(!saved && draft !== initial.current, busy || uploading, onCancel);
     const permission = boot.modules.find(m => m.id === definition.module);
     const guardianDecision = ['CONSENT', 'COLLECTION'].includes(definition.kind);
     const playerSubject = subjects.has(definition.kind) && !['STAFF_AVAILABILITY', 'CREDENTIAL'].includes(definition.kind);
@@ -64,15 +70,28 @@ export function RecordForm({ boot, definition, record, backLabel, onSaved, onCan
     };
     const submit = async (e: FormEvent) => {
         e.preventDefault();
-        if (busy || uploading || firstInvalid()) return;
+        if (saving.current || uploading) return;
+        if (saved) { await refreshSaved(); return; }
+        if (!record && creation.blocked) return;
+        if (firstInvalid()) return;
         if (facility && Boolean(data.latitude?.trim()) !== Boolean(data.longitude?.trim())) { setError('Enter both entrance coordinates, or remove the pin in Place & location.'); return; }
-        setBusy(true); setError('');
+        saving.current = true; setBusy(true); setError('');
+        let persisted: OperationRecord | undefined;
         try {
             const body = { kind: definition.kind, title, squadId: numberOrNull(squad), subjectUserId: numberOrNull(subject), assignedUserId: numberOrNull(assignee), eventId: numberOrNull(event), sessionId: numberOrNull(session), relatedRecordId: numberOrNull(related), dueOn: due || null, data, revision: record?.revision ?? null };
-            if (record) await put(`${root(boot.clubId)}/records/${record.id}`, body); else await post(`${root(boot.clubId)}/records`, body);
-            await onSaved();
-        } catch (failure) { setError(extractApiErrorMessage(failure, 'Could not save this record. Your changes are still here.')); }
-        finally { setBusy(false); }
+            persisted = record ? await put<OperationRecord>(`${root(boot.clubId)}/records/${record.id}`, body) : await creation.create(body);
+            setSaved(persisted);
+            initial.current = draft;
+        } catch (failure) { setError(extractApiErrorMessage(failure, 'Could not confirm this save. Your changes are still here.')); }
+        finally { saving.current = false; setBusy(false); }
+        if (persisted) await refreshSaved(persisted);
+    };
+    const refreshSaved = async (persisted = saved) => {
+        if (!persisted || saving.current) return;
+        saving.current = true; setBusy(true); setError('');
+        try { await onSaved(persisted); }
+        catch { setError(ka ? 'ჩანაწერი შენახულია. სიის განახლება ვერ მოხერხდა.' : 'Record saved. The current view could not refresh.'); }
+        finally { saving.current = false; setBusy(false); }
     };
 
     const responsibility = <Group title={facility ? 'Responsibility & scope' : 'Responsibility'} description={facility ? 'Who uses this place and who keeps its information up to date.' : 'Who is involved, and the event or session it belongs to.'}>
@@ -109,8 +128,10 @@ export function RecordForm({ boot, definition, record, backLabel, onSaved, onCan
         <PageHeader title={`${verb} ${definition.label.toLowerCase()}`} subtitle={editorDescription(definition)} />
         <form id={formId} ref={form} noValidate className="rec-form" aria-label={`${verb} ${definition.label.toLowerCase()}`} onSubmit={e => { void submit(e); }}
             onKeyDown={e => { if (e.key === 'Escape' && !busy && !e.defaultPrevented) { e.preventDefault(); requestClose(); } }}>
+            {saved && <div className="gk-notice gk-notice--success" role="status">{ka ? `შენახულია: ${saved.title} · #${saved.id}` : `Saved: ${saved.title} · #${saved.id}`}</div>}
+            {!record && creation.message && <div className="gk-notice gk-notice--warning" role="status">{creation.message}</div>}
             {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
-            <fieldset disabled={busy || uploading}>
+            <fieldset disabled={busy || uploading || Boolean(saved) || !record && (creation.uncertain || creation.blocked)}>
                 <Panel flush>
                     <Group title={facility ? 'Place & location' : definition.label} description={facility ? 'A playing venue or a supporting facility, and how the club uses it.' : undefined}>
                         <div className="rec-fields">
@@ -140,8 +161,8 @@ export function RecordForm({ boot, definition, record, backLabel, onSaved, onCan
             </fieldset>
             {facility && <Panel padded title="Public page preview"><LegacyIsland className="club-public"><FacilityCard clubId={boot.clubId} facility={{ id: record?.id ?? 0, title: title || 'Location name', details: data, squadId: squad ? Number(squad) : null, squadName: boot.squads.find(s => String(s.id) === squad)?.name }} /></LegacyIsland></Panel>}
             <div className="rec-actions">
-                <Button type="submit" variant="primary" disabled={busy || uploading}>{busy ? 'Saving…' : record ? 'Save changes' : `Save ${definition.label.toLowerCase()}`}</Button>
-                <Button variant="ghost" disabled={busy} onClick={requestClose}>Cancel</Button>
+                <Button type="submit" variant="primary" disabled={busy || uploading || !record && creation.blocked}>{saved ? busy ? (ka ? 'ახლდება…' : 'Refreshing…') : (ka ? 'შენახული ჩანაწერის განახლება' : 'Refresh saved record') : busy ? 'Saving…' : !record && creation.uncertain ? (ka ? 'იმავე შენახვის გამეორება' : 'Retry same save') : record ? 'Save changes' : `Save ${definition.label.toLowerCase()}`}</Button>
+                <Button variant="ghost" disabled={busy} onClick={requestClose}>{saved ? (ka ? 'დახურვა' : 'Close') : 'Cancel'}</Button>
                 <p className="rec-actions__note">{facility ? 'New venues and facilities are saved as drafts. Publish from the saved record when the information is ready.'
                     : definition.module === 'FINANCE' ? 'Saving or approving this record does not transfer money.' : 'Documents can be attached after saving.'}</p>
             </div>

@@ -53,7 +53,7 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
     ...(hasNavigationCapability(capabilities, 'agent.hub') ? [{ to: '/agent', label: copy('Agent Hub', 'აგენტის სივრცე'), description: copy('Your players and opportunities', 'თქვენი მოთამაშეები და შესაძლებლობები'), icon: 'agent' as const }] : []),
     { to: '/calendar?scope=personal', label: copy('My schedule', 'ჩემი განრიგი'), description: copy('Your personal calendar', 'თქვენი პირადი კალენდარი'), icon: 'schedule' },
   ];
-  const shortcut = (item: typeof primary[number]) => <Link key={item.to} to={item.to} className="feed-side-link home-social-link">
+  const shortcut = (item: typeof primary[number]) => <Link key={item.to} to={item.to} aria-label={`${item.label}. ${item.description}`} className="feed-side-link home-social-link">
     <HomeIcon kind={item.icon} /><span className="home-shortcut-copy"><span className="feed-side-link__title">{item.label}</span><span className="home-shortcut-description">{item.description}</span></span>
   </Link>;
   const avatarUrl = resolveMediaUrl(user?.avatarUrl);
@@ -69,6 +69,7 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
         <div className="home-rail-card home-context-card">
         <Link
           to={user?.id ? `/profile/${user.id}` : "/login"}
+          aria-label={`${displayName}. ${copy('View your profile', 'პროფილის ნახვა')}`}
           className="feed-side-link home-social-link home-profile-shortcut"
         >
           <span className="flex min-w-0 items-center gap-3">
@@ -107,7 +108,7 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
         {/* Someone nobody has linked to a club, squad or child yet keeps up through follows. */}
         {capabilitiesKnown(capabilities) && !hasConfirmedLinks(capabilities) && <div className="home-shortcut-group home-rail-card" role="group" aria-label={copy('Explore', 'აღმოაჩინეთ')}>
           <h2 className="home-shortcut-heading">{copy('Explore', 'აღმოაჩინეთ')}</h2>
-          <button type="button" onClick={() => setShowFollowing(true)} className="feed-side-link home-social-link w-full text-left">
+          <button type="button" onClick={() => setShowFollowing(true)} aria-label={copy('Following. People you keep up with', 'გამოწერილი. ადამიანები, ვისაც ადევნებთ თვალს')} className="feed-side-link home-social-link w-full text-left">
             <HomeIcon kind="following" /><span className="home-shortcut-copy"><span className="feed-side-link__title">{copy('Following', 'გამოწერილი')}</span><span className="home-shortcut-description">{copy('People you keep up with', 'ადამიანები, ვისაც ადევნებთ თვალს')}</span></span>
           </button>
           {shortcut({ to: '/clubs/following', label: copy('Followed clubs', 'გამოწერილი კლუბები'), description: copy('Clubs you keep up with', 'კლუბები, რომლებსაც ადევნებთ თვალს'), icon: 'clubs' })}

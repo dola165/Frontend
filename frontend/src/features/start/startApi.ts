@@ -43,7 +43,7 @@ export interface NearbyClub {
 
 /** The clubs nearest a town, from the public directory, nearest first. Clubs without coordinates are left out. */
 export async function fetchClubsNear(town: Town, limit = 6, signal?: AbortSignal): Promise<NearbyClub[]> {
-    const response = await apiClient.get<NearbyClub[] | { content: NearbyClub[] }>('/clubs', { params: { page: 0, size: 200 }, signal });
+    const response = await apiClient.get<NearbyClub[] | { content: NearbyClub[] }>('/clubs', { params: { page: 0, size: 100 }, signal });
     const clubs = Array.isArray(response.data) ? response.data : response.data.content ?? [];
     return clubs
         .filter(club => typeof club.latitude === 'number' && typeof club.longitude === 'number')

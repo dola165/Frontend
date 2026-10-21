@@ -18,6 +18,8 @@
 import { post, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
+import { planningScope, viewPlan, rememberPublication } from './map-planning-access.mjs';
+import { planningFixture } from './map-planning-context.mjs';
 
 const { DINAMO, TZ, plusMin, hash } = F;
 const ACADEMY = { name: 'Dinamo Academy Training Centre', address: 'Digomi, Tbilisi', latitude: 41.7631, longitude: 44.7712 };
@@ -66,26 +68,34 @@ const withReplies = (p, seeded = true) => {
   u12.published = itinerary(u12);
   u14.draft.staff = [W.ME_ID, 5002, 5007, 5011];
   u14.draft.vehicles = [{ key: 'vehicle:1', label: 'Coach, 49 seats', driver: 'Kutaisi Tours', seats: 49 }];
-  F.plans.forEach(withReplies);
+  F.plans.forEach(plan => { withReplies(plan); rememberPublication(plan); });
 }
 
 // ---------------------------------------------------------------- drafting a journey from a fixture
-post('/journeys/from-fixture', ({ body }) => {
-  const squad = F.sq(body?.squadId), m = W.matches.find(x => x.id === Number(body?.eventId));
-  if (!squad || squad.clubId !== DINAMO || !m) return reply(404, { status: 404, message: 'This fixture is not one your squads can plan for.' });
+post('/journeys/from-fixture', ({ body, headers }) => {
+  const squad = W.squadById(body?.squadId), scope = planningScope(body?.clubId, headers);
+  if (!squad || squad.clubId !== Number(body?.clubId) || !scope.write(squad.id)) return reply(403, { status: 403, message: 'This fixture is outside your current planning responsibilities.' });
+  const m = planningFixture(scope, body?.eventId, squad.id);
+  if (!m) return reply(404, { status: 404, message: 'This fixture is not assigned to your squad.' });
   if (m.status !== 'SCHEDULED') return reply(409, { status: 409, message: 'Only coming fixtures can be planned.' });
-  const existing = F.plans.find(p => p.squad_id === squad.id && p.draft.activities.some(a => a.eventId === m.id));
-  if (existing) return existing;
-  const prefs = { mode: 'TRAVEL_TOGETHER', meetingPoint: `${ACADEMY.name}, Gate 2`, latitude: null, longitude: null, travelMinutes: null, arrivalMinutes: 45, loadingMinutes: 10, recoveryMinutes: 20, transportMinor: 0, mealPerPlayerMinor: 0, budgetMinor: 0, supervisionContact: '', ...(body?.preferences || {}) };
+  const existing = F.plans.find(p => p.club_id === scope.clubId && p.squad_id === squad.id && p.draft.activities.some(a => a.eventId === m.id));
+  if (existing) return viewPlan(existing, headers);
+  const kickoff = new Date(m.start).getTime();
+  if (!Number.isFinite(kickoff) || kickoff <= Date.now()) return reply(409, { status: 409, message: 'This fixture has already started.' });
+  const ours = W.clubById(scope.clubId), homeVenue = W.venueById(ours.venueId);
+  const base = scope.clubId === DINAMO ? ACADEMY : homeVenue ? { name: homeVenue.name, address: `${homeVenue.district}, ${homeVenue.city}`, latitude: homeVenue.lat, longitude: homeVenue.lng } : null;
+  const prefs = { mode: 'TRAVEL_TOGETHER', meetingPoint: base?.name ?? '', latitude: null, longitude: null, travelMinutes: null, arrivalMinutes: 45, loadingMinutes: 10, recoveryMinutes: 20, transportMinor: 0, mealPerPlayerMinor: 0, budgetMinor: 0, supervisionContact: '', ...(body?.preferences || {}) };
   const together = prefs.mode !== 'MEET_AT_VENUE';
-  const venue = W.venueById(m.venueId), opponent = W.clubById(m.opponentClubId), ours = W.clubById(DINAMO);
-  const meetAt = { name: prefs.meetingPoint || ACADEMY.name, address: ACADEMY.address, latitude: prefs.latitude ?? ACADEMY.latitude, longitude: prefs.longitude ?? ACADEMY.longitude };
+  const venue = W.venueById(m.venueId), opponent = W.clubById(m.opponentClubId);
+  if (!venue) return reply(400, { status: 400, message: 'Agree the match ground before drafting this journey.' });
+  const meetAt = { name: prefs.meetingPoint || base?.name || '', address: base?.address ?? '', latitude: prefs.latitude ?? base?.latitude, longitude: prefs.longitude ?? base?.longitude };
+  if (together && (!meetAt.name || (!Number.isFinite(meetAt.latitude) || !Number.isFinite(meetAt.longitude)) && !Number(prefs.travelMinutes))) return reply(400, { status: 400, message: 'Add a meeting point and travel-time estimate first.' });
   const travel = Math.max(5, Number(prefs.travelMinutes) || Math.round(F.kmBetween(meetAt.latitude, meetAt.longitude, venue.lat, venue.lng) * 1.3 + 15));
   const arrive = plusMin(m.start, -Number(prefs.arrivalMinutes || 0)), depart = plusMin(arrive, -travel), meet = plusMin(depart, -Number(prefs.loadingMinutes || 0));
   const leave = plusMin(m.end, Number(prefs.recoveryMinutes || 0)), home = plusMin(leave, travel);
   const ground = { key: 'plan:destination', name: venue.name, address: `${venue.district}, ${venue.city}`, latitude: venue.lat, longitude: venue.lng, type: 'STADIUM', entityId: venue.id, notes: '', photoUrl: null };
   const meeting = { key: 'plan:meeting', ...meetAt, type: 'MANUAL', entityId: null, notes: '', photoUrl: null };
-  const title = m.home ? `${ours.name} v ${opponent.name}` : `${opponent.name} v ${ours.name}`;
+  const title = m.title ?? (m.home ? `${ours.name} v ${opponent?.name ?? 'Opponent to agree'}` : `${opponent?.name ?? 'Opponent to agree'} v ${ours.name}`);
   const activities = [
     ...(together ? [{ key: 'activity:travel-out', title: `Travel to ${venue.city}`, kind: 'TRAVEL', startsAt: W.iso(depart), endsAt: W.iso(arrive), placeKey: null, eventId: null, sessionId: null, notes: '' }] : []),
     { key: 'activity:warm-up', title: 'Arrive and warm up', kind: 'ACTIVITY', startsAt: W.iso(arrive), endsAt: W.iso(m.start), placeKey: 'plan:destination', eventId: null, sessionId: null, notes: '' },
@@ -94,13 +104,13 @@ post('/journeys/from-fixture', ({ body }) => {
   ];
   const draft = { title: `${squad.name} away at ${venue.city}`, timezone: TZ, currency: 'GEL', budgetMinor: Number(prefs.budgetMinor) || 0,
     startsAt: W.iso(together ? meet : arrive), endsAt: W.iso(together ? home : m.end), destination: venue.name, meetingPoint: together ? meetAt.name : venue.name, collectionPoint: together ? meetAt.name : venue.name,
-    supervisionContact: prefs.supervisionContact || '', familyMessage: '', privateNotes: '', participants: squad.playerIds.slice(0, 18), staff: [W.ME_ID], vehicles: [], bring: [],
+    supervisionContact: prefs.supervisionContact || '', familyMessage: '', privateNotes: '', participants: squad.playerIds.slice(0, 18), staff: [scope.actor], vehicles: [], bring: [],
     places: together ? [meeting, ground, { ...meeting, key: 'plan:collection' }] : [ground],
     activities,
     arrangements: Number(prefs.transportMinor) ? [{ key: 'arr:transport', kind: 'TRANSPORT', title: 'Transport', placeKey: null, amountMinor: Number(prefs.transportMinor), notes: '', financeRecordId: null }] : [] };
-  const p = withReplies({ id: W.newId(), club_id: DINAMO, squad_id: squad.id, title: draft.title, revision: 1, published_version: 0, published_revision: null, updated_at: W.iso(new Date()), starts_at: draft.startsAt, created_by: W.ME_ID, draft,
+  const p = withReplies({ id: W.newId(), club_id: scope.clubId, squad_id: squad.id, title: draft.title, revision: 1, published_version: 0, published_revision: null, updated_at: W.iso(new Date()), starts_at: draft.startsAt, created_by: scope.actor, last_editor: scope.actor, draft,
     suppliers: {}, totalMinor: draft.arrangements.reduce((n, a) => n + a.amountMinor, 0), budgetApproved: false, approvedBy: null, rights: { edit: true, travel: true, finance: true, publish: true, leadership: true }, issues: [], history: [],
     playerResponses: [], trip_id: null, trip: null, passengers: [], linkedSchedule: [] }, false);
   F.plans.push(p);
-  return reply(201, p);
+  return reply(201, viewPlan(p, headers));
 });

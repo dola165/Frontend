@@ -1,9 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { TwoFactorSettings } from './TwoFactorSettings';
 import { apiClient } from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 import { clearStoredAuth, getAuthSessionId, getStoredAccessToken, setStoredAccessToken } from '../../utils/authStorage';
+import i18n from '../../i18n';
+import { confirmSecurityNavigation } from './useSecurityNavigationGuard';
 
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
@@ -31,7 +33,8 @@ const enable = async () => {
 };
 const beforeUnload = () => { const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; };
 
-beforeEach(() => {
+beforeEach(async () => {
+    await i18n.changeLanguage('en');
     vi.resetAllMocks(); localStorage.clear(); clearStoredAuth(); setStoredAccessToken('initial-session-token'); setAccount();
     vi.mocked(apiClient.get).mockResolvedValue({ data: { available: true, enabled: false, recoveryCodesRemaining: 0 } });
     vi.mocked(apiClient.post).mockImplementation(async url => {
@@ -41,7 +44,7 @@ beforeEach(() => {
         return { data: { recoveryCodes: codes } };
     });
 });
-afterEach(() => { clearStoredAuth(); vi.restoreAllMocks(); });
+afterEach(async () => { cleanup(); clearStoredAuth(); vi.restoreAllMocks(); await i18n.changeLanguage('en'); });
 
 it('enrolls with local QR rendering and preserves codes and session identity until explicit save acknowledgement', async () => {
     const session = getAuthSessionId();
@@ -213,4 +216,38 @@ it('rejects a replacement access token for a different account', async () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('could not be confirmed');
     expect(getStoredAccessToken()).toBe(jwt('7'));
     expect(screen.queryByLabelText('Recovery codes')).not.toBeInTheDocument();
+});
+
+it('translates setup and the navigation warning without losing its key, proof or request scope', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { ...setup, expiresIn: 60 } });
+    open(); await beginSetup();
+    expect(screen.getByText('Setup expires in 1 minute.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Six-digit authenticator code'), { target: { value: '123456' } });
+    const reads = vi.mocked(apiClient.get).mock.calls.length, writes = vi.mocked(apiClient.post).mock.calls.length;
+    await act(async () => { await i18n.changeLanguage('ka'); });
+    expect(screen.getByText(setup.secret)).toBeInTheDocument();
+    expect(screen.getByLabelText('მიმდინარე პაროლი')).toHaveValue('SyntheticPassword1');
+    expect(screen.getByLabelText('ავთენტიფიკატორის ექვსნიშნა კოდი')).toHaveValue('123456');
+    expect(screen.getByTitle('ავთენტიფიკატორის გამართვის QR კოდი')).toBeInTheDocument();
+    expect(screen.getByText('გამართვის ვადა 1 წუთში ამოიწურება.')).toBeInTheDocument();
+    expect(confirmSecurityNavigation()).toBe(false);
+    expect(confirm).toHaveBeenCalledWith('ავთენტიფიკატორის გამართვა ან აღდგენის კოდები ჯერ ღიაა. გასვლამდე შეინახეთ აღდგენის კოდები. დატოვებთ ამ ეკრანს?');
+    expect(apiClient.get).toHaveBeenCalledTimes(reads); expect(apiClient.post).toHaveBeenCalledTimes(writes);
+    expect(beforeUnload()).toBe(true);
+});
+
+it('keeps recovery codes and acknowledgement controls across language changes without another security request', async () => {
+    open(); await beginSetup(); await enable();
+    const reads = vi.mocked(apiClient.get).mock.calls.length, writes = vi.mocked(apiClient.post).mock.calls.length;
+    await act(async () => { await i18n.changeLanguage('ka'); });
+    expect(screen.getByLabelText('აღდგენის კოდები')).toHaveTextContent(codes[0]);
+    expect(screen.getByRole('button', { name: 'კოდები შენახულია' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'ეს აღდგენის კოდები უსაფრთხო ადგილას შევინახე.' }));
+    await act(async () => { await i18n.changeLanguage('en'); });
+    expect(screen.getByRole('checkbox', { name: 'I saved these recovery codes in a secure place.' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Done saving codes' })).not.toBeDisabled();
+    expect(screen.getByLabelText('Recovery codes')).toHaveTextContent(codes[9]);
+    expect(apiClient.get).toHaveBeenCalledTimes(reads); expect(apiClient.post).toHaveBeenCalledTimes(writes);
+    expect(JSON.stringify(localStorage)).not.toContain(codes[0]);
 });

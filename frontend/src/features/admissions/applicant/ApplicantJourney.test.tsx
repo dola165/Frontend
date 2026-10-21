@@ -61,11 +61,16 @@ describe('Applicant invariants',()=>{
     });
     it('keeps group guidance separate from consent and links the routed case',async()=>{
         vi.mocked(fetchAdmissionInquiry).mockResolvedValue({...fixture<AdmissionInquiry>('inquiry'),status:'ROUTED',caseId:42,actions:[]});show(<Routes><Route path="/admissions/inquiries/:inquiryId" element={<AdmissionInquiryPage/>}/></Routes>,'/admissions/inquiries/1');
-        expect(await screen.findByRole('link',{name:'Review the proposed group'})).toHaveAttribute('href','/admissions/cases/42');expect(screen.getByText(/Routing this inquiry gives no consent/)).toBeInTheDocument();expect(screen.queryByRole('button',{name:/accept|confirm enrollment/i})).not.toBeInTheDocument();
+        expect(await screen.findByRole('link',{name:'Review the proposed group'})).toHaveAttribute('href','/admissions/cases/42?player=101');expect(screen.getByText(/Routing this inquiry gives no consent/)).toBeInTheDocument();expect(screen.queryByRole('button',{name:/accept|confirm enrollment/i})).not.toBeInTheDocument();
     });
     it('opens the authorized standalone arrangement without inventing dated occurrences',async()=>{
         const o=opportunity();vi.mocked(fetchAdmissionGroupSchedule).mockResolvedValue({groupId:1,playerId:101,groupName:'School training',location:o.location,schedule:'Thursday at 17:00',timezone:'Asia/Tbilisi',terms:o.terms,sessions:[]});show(<Routes><Route path="/admissions/groups/:groupId/schedule" element={<AdmissionGroupSchedulePage/>}/></Routes>,'/admissions/groups/1/schedule?playerId=101');
         expect(await screen.findByText(/Thursday at 17:00/)).toBeInTheDocument();expect(screen.getByText(/No individual occurrences have been recorded/)).toBeInTheDocument();expect(fetchAdmissionGroupSchedule).toHaveBeenCalledWith(1,101,'family-session',expect.any(AbortSignal));
+    });
+    it('keeps the selected child when the enrollment schedule opens a squad session',async()=>{
+        const o=opportunity();vi.mocked(fetchAdmissionGroupSchedule).mockResolvedValue({groupId:1,playerId:102,groupName:'School training',location:o.location,schedule:'Thursday at 17:00',timezone:'Asia/Tbilisi',terms:o.terms,sessions:[{id:81,squadId:11,revision:1,title:'Training',startsAt:'2099-09-21T14:00:00Z',endsAt:'2099-09-21T15:30:00Z',location:'Pitch 1'}]});
+        show(<Routes><Route path="/admissions/groups/:groupId/schedule" element={<AdmissionGroupSchedulePage/>}/></Routes>,'/admissions/groups/1/schedule?playerId=102&tab=sessions');
+        expect(await screen.findByRole('link',{name:'Review this session'})).toHaveAttribute('href','/squads/11?tab=schedule&player=102&session=81&at=2099-09-21T14%3A00%3A00.000Z');
     });
     it('uses declared player gender and year on the map without guessing from names',()=>{
         const filters=toMapFilters({layers:['clubs'],values:{age:['U16']},sort:'best',coverage:{kind:'area',bounds:null}},{birthYear:2014,gender:'FEMALE',minor:true});

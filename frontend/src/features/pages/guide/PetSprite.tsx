@@ -21,7 +21,7 @@ export function PetSprite({ frame: name, className }: { frame: PetFrame; classNa
   return (
     <svg viewBox={BOX.join(' ')} className={className} shapeRendering="crispEdges" aria-hidden="true">
       {rects.map(([x, y, w, h, colour], index) => <rect key={index} x={x} y={y} width={w} height={h} fill={PALETTE[colour]} />)}
-      {words && <text x={words[0] + words[2] / 2} y={words[1] + words[3] / 2} textAnchor="middle" dominantBaseline="central" fontFamily="'IBM Plex Mono', ui-monospace, monospace" fontWeight={700} fontSize={10} letterSpacing={0.6} fill="#FFF0D5">grasskickz</text>}
+      {words && <text x={words[0] + words[2] / 2} y={words[1] + words[3] / 2} textAnchor="middle" dominantBaseline="central" fontFamily="'IBM Plex Mono', ui-monospace, monospace" fontWeight={700} fontSize={10} letterSpacing={0.6} fill={PALETTE[4]}>grasskickz</text>}
     </svg>
   );
 }

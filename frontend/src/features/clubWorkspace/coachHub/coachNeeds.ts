@@ -1,5 +1,5 @@
 import { moduleNames, type OperationRecord } from '../../clubOperations/api';
-import { operationTab } from '../../clubOperations/workspaceNavigation';
+import { coachRecordHref } from '../../clubOperations/coachOrigin';
 import { isFinished } from '../../clubOperations/records/recordStatus';
 import { dayLabel, dueWords, timeLabel } from '../fixtures';
 import { replies, type CoachSquad } from './useCoachData';
@@ -14,16 +14,16 @@ export type NeedKind = 'reply' | 'message' | 'update' | 'restriction' | 'consent
 export interface CoachNeed { key: string; kind: NeedKind; squad: number | null; tone: NeedTone; title: string; meta: string; status: string; to: string; rank: number; date: string }
 
 const DAY = 86_400_000;
-const recordLink = (club: number, record: OperationRecord) => `/clubs/${club}/workspace?tab=${operationTab(record.module)}&record=${record.id}${record.squad_id ? `&squad=${record.squad_id}` : ''}`;
+const recordLink = coachRecordHref;
 
 /**
  * Everything waiting for a coach across their squads, most urgent first: overdue work, then replies and
  * messages to chase and players to plan around, then things to keep an eye on. Nothing is counted that the
  * squad spaces and records did not report.
  */
-export function coachNeeds({ club, squads, names, records, mine, person, now }: {
+export function coachNeeds({ club, squads, names, records, mine, person, now, link }: {
     club: number; squads: CoachSquad[]; names: Map<number, string>; records: OperationRecord[]; mine: OperationRecord[];
-    person: (id: number | null) => string | null; now: number;
+    person: (id: number | null) => string | null; now: number; link?: (tab: string, context: Record<string, string>) => string;
 }): CoachNeed[] {
     const items: CoachNeed[] = [];
     for (const squad of squads) {
@@ -33,7 +33,7 @@ export function coachNeeds({ club, squads, names, records, mine, person, now }: 
             const start = new Date(session.starts_at).getTime(), reply = replies(session);
             if (session.status !== 'SCHEDULED' || start < now || start > now + 7 * DAY || !reply.asked || !reply.none) continue;
             items.push({ key: `reply-${session.id}`, kind: 'reply', squad: squad.id, tone: 'warning', title: session.title, meta: `${name} · ${dayLabel(session.starts_at, now)} ${timeLabel(session.starts_at)} · ${reply.text}`,
-                status: tr('needNoReply', { count: reply.none }), to: `?tab=calendar&session=${squad.id}:${session.id}&date=${session.starts_at.slice(0, 10)}`, rank: 1, date: session.starts_at });
+                status: tr('needNoReply', { count: reply.none }), to: link ? link('calendar', { session: `${squad.id}:${session.id}`, date: session.starts_at.slice(0, 10) }) : `?tab=calendar&session=${squad.id}:${session.id}&date=${session.starts_at.slice(0, 10)}`, rank: 1, date: session.starts_at });
         }
         // Families waiting for an answer in private messages.
         const waiting = squad.overview?.threads.filter(thread => thread.unread_count > 0) ?? [];
@@ -46,7 +46,7 @@ export function coachNeeds({ club, squads, names, records, mine, person, now }: 
             const acknowledged = update.acknowledged_by?.length ?? 0;
             if (!update.important || !families || acknowledged >= families || !update.expires_at || new Date(update.expires_at).getTime() < now) continue;
             items.push({ key: `update-${update.id}`, kind: 'update', squad: squad.id, tone: 'info', title: update.title ?? tr('updateFallback'), meta: `${name} · ${tr('needConfirmed', { count: acknowledged, total: families })}`,
-                status: tr('needNotAck', { count: families - acknowledged }), to: `?tab=updates&squad=${squad.id}`, rank: 2, date: update.created_at });
+                status: tr('needNotAck', { count: families - acknowledged }), to: link ? link('updates', { squad: String(squad.id) }) : `?tab=updates&squad=${squad.id}`, rank: 2, date: update.created_at });
         }
     }
     const seen = new Set<number>();

@@ -108,7 +108,7 @@
 .home-post-audience { display: inline-flex; align-items: center; gap: 4px; }
 .home-feed-post .post-body { padding: 0 16px 14px; }
 .home-feed-canvas .home-post-content { font-size: 14px; line-height: 1.6; }
-.home-feed-canvas article .post-action-row { min-height: 44px; padding: 5px 10px; gap: 6px; background: var(--feed-input-bg); border-top-color: var(--feed-divider); border-radius: 0 0 12px 12px; }
+.home-feed-canvas article .post-action-row { flex-wrap: wrap; min-height: 44px; padding: 5px 10px; gap: 6px; background: var(--feed-input-bg); border-top-color: var(--feed-divider); border-radius: 0 0 12px 12px; }
 .home-feed-canvas article .post-action-row button[aria-controls] { min-width:32px;min-height:36px; }
 .home-feed-post .post-action { min-height: 32px; gap: 6px; padding: 6px; font-size: 12px; font-weight: 500; border-radius: 6px; }
 .home-feed-post .post-action svg { width: 14px; height: 14px; stroke-width: 1.6; }
@@ -144,12 +144,17 @@
     .home-feed-layout { padding: 16px 12px 40px; }
     .home-brand { gap: 6px; }
     .home-post-composer { padding: 12px; }
+    .home-post-composer .home-composer-actions > button { min-height: 44px; }
     .home-refresh-label { display: none; }
     .home-feed-canvas .home-post-content { font-size: 14px; }
 }
 @media (max-width: 380px) {
+    .home-post-composer .home-composer-actions { flex-wrap: wrap; }
     .home-feed-post .post-action-row { gap: 3px; padding-inline: 8px; }
-    .home-feed-post .post-action { font-size: 11px; }
+}
+@container post-actions (max-width: 360px) {
+    .home-feed-post .post-action { min-width: 44px; min-height: 44px; font-size: 11px; }
+    .home-feed-canvas .home-feed-post .post-action-row .post-reaction-expand { min-width: 44px; min-height: 44px; }
     .home-feed-post .post-action:last-child .post-action-label { display: none; }
 }
 /* Existing Dola dock layout decisions keep taking precedence over the wide frame. */

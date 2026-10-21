@@ -1,3 +1,4 @@
+import { ct } from '../store/copy';
 import type { WorldMapPoint } from '../world/map/WorldMap';
 import { posterOf, type Job } from './api';
 import { clubJobsPath, jobsPath, type JobsSearch } from './query';
@@ -37,10 +38,10 @@ export function pinsOf(jobs: Job[], query?: Partial<JobsSearch>): { points: Worl
     const points = [...members.entries()].map(([id, held]): WorldMapPoint => {
         const job = held[0], poster = posterOf(job), n = held.length, town = job.clubCityName ?? poster.city ?? '';
         const base = { id, lat: job.place!.lat, lng: job.place!.lng, count: n };
-        const one = n === 1 ? { to: `/jobs/${job.id}`, action: 'Open the listing' } : null;
+        const one = n === 1 ? { to: `/jobs/${job.id}`, action: ct("Open the listing") } : null;
         return poster.kind === 'CLUB'
-            ? { ...base, label: poster.name, tone: 'club', crest: poster.avatarUrl, meta: n === 1 ? job.title : `${n} open roles`, ...(one ?? { to: clubJobsPath(poster.id, { ...kept, clubId: undefined }), action: 'Open the club’s jobs' }) }
-            : { ...base, label: town || 'Listings', tone: 'person', approximate: 'area', meta: n === 1 ? job.title : `${n} listings by people`, ...(one ?? { to: jobsPath({ ...kept, city: town, poster: 'people' }), action: 'See the listings' }) };
+            ? { ...base, label: poster.name, tone: "club", crest: poster.avatarUrl, meta: n === 1 ? job.title : ct("{v0} open roles", { v0: n }), ...(one ?? { to: clubJobsPath(poster.id, { ...kept, clubId: undefined }), action: ct("Open the club’s jobs") }) }
+            : { ...base, label: town || ct("Listings"), tone: "person", approximate: 'area', meta: n === 1 ? job.title : ct("{v0} listings by people", { v0: n }), ...(one ?? { to: jobsPath({ ...kept, city: town, poster: "people" }), action: ct("See the listings") }) };
     });
     return { points, placed: [...members.values()].reduce((sum, held) => sum + held.length, 0), members };
 }

@@ -29,10 +29,16 @@ const leave=()=>fireEvent.click(screen.getByRole('link',{name:'Leave workspace'}
 const back=()=>fireEvent.click(screen.getByRole('button',{name:'Return to workspace'}));
 const beforeUnload=()=>{const event=new Event('beforeunload',{cancelable:true});window.dispatchEvent(event);return event.defaultPrevented;};
 beforeEach(()=>{
- vi.resetAllMocks();localStorage.clear();window.dispatchEvent(new Event('gk-auth-changed'));localStorage.setItem('userId','55');window.dispatchEvent(new Event('gk-auth-changed'));
+ vi.resetAllMocks();localStorage.clear();sessionStorage.clear();window.dispatchEvent(new Event('gk-auth-changed'));localStorage.setItem('userId','55');window.dispatchEvent(new Event('gk-auth-changed'));
  vi.mocked(store.fetchAllClubStoreProducts).mockResolvedValue([]);vi.mocked(campaigns.fetchManagedCampaigns).mockResolvedValue([]);vi.mocked(jobs.fetchAllClubJobs).mockResolvedValue([]);
 });
-afterEach(()=>{cleanup();localStorage.clear();window.dispatchEvent(new Event('gk-auth-changed'));});
+afterEach(()=>{cleanup();localStorage.clear();sessionStorage.clear();window.dispatchEvent(new Event('gk-auth-changed'));});
+function storeReceipt(id = 2): store.StoreProduct {
+ const request = vi.mocked(store.createStoreProduct).mock.calls[0];
+ if (!request) throw new Error('Expected a Store create dispatch before its acknowledgement.');
+ const [clubId, input] = request;
+ return { ...input, id, clubId, version: 0, sellerKind: 'CLUB', variants: input.variants?.map((variant, index) => ({ ...variant, id: id * 100 + index })) };
+}
 const cases = [
  {feature:'Store',create:'Add product',field:'Product name',save:'Save product',api:store.createStoreProduct,result:{id:2},close:'Close editor'},
  {feature:'Campaigns',create:'Create campaign',field:'Campaign title',save:'Save campaign',api:campaigns.createCampaign,result:{...campaign,id:2},close:'Close editor'},
@@ -50,16 +56,34 @@ for(const c of cases){
   fireEvent.click(screen.getByRole('button',{name:c.close}));fireEvent.click(screen.getByRole('button',{name:'Discard edits'}));expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();expect(beforeUnload()).toBe(false);
   fireEvent.click(screen.getByRole('button',{name:c.create}));expect(screen.getByLabelText(c.field)).toHaveValue('');
  });
- it(`${c.feature} keeps a pending save single-flight through navigation and clears only on success`,async()=>{
+ it(`${c.feature} keeps a pending save single-flight through navigation and ${c.feature === 'Store' ? 'reviews a retired acknowledgement' : 'clears only on success'}`,async()=>{
   let finish!:(value:never)=>void;vi.mocked(c.api).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}) as never);
   setup(c.feature);fireEvent.click(await screen.findByRole('button',{name:c.create}));fireEvent.change(screen.getByLabelText(c.field),{target:{value:'Save me'}});
   if(c.feature==='Store') fireEvent.change(screen.getByLabelText('Price'),{target:{value:'12.34'}});fireEvent.submit(screen.getByLabelText(c.field).closest('form')!);expect(c.api).toHaveBeenCalledTimes(1);leave();back();expect(await screen.findByLabelText(c.field)).toHaveValue('Save me');expect(screen.getByLabelText(c.field)).toBeDisabled();
-  leave();await act(async()=>finish(c.result as never));back();await screen.findByRole('button',{name:c.create});expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();expect(c.api).toHaveBeenCalledTimes(1);expect(beforeUnload()).toBe(false);
+  leave();
+  if(c.feature==='Store') {
+   const request = structuredClone(vi.mocked(store.createStoreProduct).mock.calls[0]), receipt = storeReceipt();
+   expect(request[0]).toBe(10); expect(request[1]).toMatchObject({name:'Save me',price:12.34,active:false}); expect(request[2]).toMatch(/^[\da-f-]{36}$/i);
+   vi.mocked(store.fetchAllClubStoreProducts).mockResolvedValue([receipt]);
+   await act(async()=>finish(receipt as never));back();
+   await screen.findByText('The original product is saved. The answers below are still unsaved and have not been applied.');
+   expect(screen.getByLabelText(c.field)).toHaveValue('Save me');expect(screen.getByRole('button',{name:c.save})).toBeDisabled();expect(beforeUnload()).toBe(true);
+   expect(Object.values(sessionStorage)).toContain(request[2]);expect(screen.queryByText('Product saved.')).not.toBeInTheDocument();
+   fireEvent.click(screen.getByRole('button',{name:'Review saved products'}));await screen.findByRole('button',{name:'Edit Save me'});
+   expect(screen.getByText(/#2/)).toBeVisible();fireEvent.click(screen.getByRole('button',{name:'Finish reviewing this create'}));fireEvent.click(screen.getByRole('button',{name:'Finish review'}));
+   expect(Object.values(sessionStorage)).not.toContain(request[2]);
+  } else { await act(async()=>finish(c.result as never));back(); }
+  await screen.findByRole('button',{name:c.create});expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();expect(c.api).toHaveBeenCalledTimes(1);expect(beforeUnload()).toBe(false);
  });
  it(`${c.feature} retains a failed save after leaving and offers retry without losing fields`,async()=>{
   let fail!:(reason:Error)=>void;vi.mocked(c.api).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}) as never);
   setup(c.feature);fireEvent.click(await screen.findByRole('button',{name:c.create}));fireEvent.change(screen.getByLabelText(c.field),{target:{value:'Retry me'}});if(c.feature==='Store') fireEvent.change(screen.getByLabelText('Price'),{target:{value:'12.34'}});fireEvent.submit(screen.getByLabelText(c.field).closest('form')!);leave();await act(async()=>fail(new Error('Offline')));back();
   expect(await screen.findByLabelText(c.field)).toHaveValue('Retry me');expect(screen.getByLabelText(c.field)).not.toBeDisabled();expect(screen.getByRole('button',{name:c.save})).toBeEnabled();
+  if(c.feature==='Store') {
+   const original = structuredClone(vi.mocked(store.createStoreProduct).mock.calls[0]);
+   vi.mocked(store.createStoreProduct).mockResolvedValueOnce(storeReceipt());fireEvent.click(screen.getByRole('button',{name:c.save}));
+   await screen.findByText('Product saved.');expect(vi.mocked(store.createStoreProduct).mock.calls[1]).toEqual(original);expect(beforeUnload()).toBe(false);
+  }
  });
 }
 it('campaign updates preserve their text and failure across navigation, then clear on confirmed discard',async()=>{
@@ -89,7 +113,8 @@ it('campaign update completion is recorded even when its originating page has cl
 it('a late save from a logged-out account cannot clear or change the next accounts draft',async()=>{
  let finish!:(value:never)=>void;vi.mocked(store.createStoreProduct).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}) as never);
  setup();fireEvent.click(await screen.findByRole('button',{name:'Add product'}));fireEvent.change(screen.getByLabelText('Product name'),{target:{value:'First account'}});fireEvent.change(screen.getByLabelText('Price'),{target:{value:'12.34'}});fireEvent.submit(screen.getByLabelText('Product name').closest('form')!);
- act(()=>{localStorage.removeItem('userId');window.dispatchEvent(new Event('gk-auth-changed'));localStorage.setItem('userId','66');window.dispatchEvent(new Event('gk-auth-changed'));});fireEvent.click(await screen.findByRole('button',{name:'Add product'}));fireEvent.change(screen.getByLabelText('Product name'),{target:{value:'Second account'}});await act(async()=>finish({id:3} as never));expect(screen.getByLabelText('Product name')).toHaveValue('Second account');expect(screen.getByRole('button',{name:'Save product'})).toBeEnabled();expect(beforeUnload()).toBe(true);
+ expect(store.createStoreProduct).toHaveBeenCalledTimes(1);const receipt=storeReceipt(3);expect(receipt).toMatchObject({clubId:10,version:0,name:'First account'});
+ act(()=>{localStorage.removeItem('userId');window.dispatchEvent(new Event('gk-auth-changed'));localStorage.setItem('userId','66');window.dispatchEvent(new Event('gk-auth-changed'));});fireEvent.click(await screen.findByRole('button',{name:'Add product'}));fireEvent.change(screen.getByLabelText('Product name'),{target:{value:'Second account'}});await act(async()=>finish(receipt as never));expect(screen.getByLabelText('Product name')).toHaveValue('Second account');expect(screen.getByRole('button',{name:'Save product'})).toBeEnabled();expect(beforeUnload()).toBe(true);expect(store.createStoreProduct).toHaveBeenCalledTimes(1);
 });
 
 for (const feature of ['Store', 'Campaigns']) {
@@ -115,19 +140,26 @@ for (const feature of ['Store', 'Campaigns']) {
  });
 }
 for(const c of cases.filter(c=>c.feature!=='Jobs')) {
- it(`${c.feature} blocks pending-save discard and permits discard after failure`,async()=>{
+ it(`${c.feature} blocks pending-save ${c.feature==='Store'?'close and retains recovery after an unknown result':'discard and permits discard after failure'}`,async()=>{
   let fail!:(error:Error)=>void;vi.mocked(c.api).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}) as never);
   setup(c.feature);fireEvent.click(await screen.findByRole('button',{name:c.create}));
   fireEvent.change(screen.getByLabelText(c.field),{target:{value:'Keep my work'}});
   fireEvent.click(screen.getByRole('button',{name:'Close editor'}));
   if(c.feature==='Store') fireEvent.change(screen.getByLabelText('Price'),{target:{value:'12.34'}});fireEvent.submit(screen.getByLabelText(c.field).closest('form')!);
-  expect(screen.getByRole('button',{name:'Discard edits'})).toBeDisabled();
-  fireEvent.click(screen.getByRole('button',{name:'Discard edits'}));
+  const closeLabel=c.feature==='Store'?'Close and keep answers':'Discard edits';
+  expect(screen.getByRole('button',{name:closeLabel})).toBeDisabled();
+  fireEvent.click(screen.getByRole('button',{name:closeLabel}));
   expect(screen.getByLabelText(c.field)).toHaveValue('Keep my work');
   await act(async()=>fail(new Error('Save failed')));
-  expect(screen.getByRole('button',{name:'Discard edits'})).toBeEnabled();
-  fireEvent.click(screen.getByRole('button',{name:'Discard edits'}));
+  expect(screen.getByRole('button',{name:closeLabel})).toBeEnabled();
+  fireEvent.click(screen.getByRole('button',{name:closeLabel}));
   expect(screen.queryByLabelText(c.field)).not.toBeInTheDocument();
+  if(c.feature==='Store') {
+   const request=vi.mocked(store.createStoreProduct).mock.calls[0];expect(Object.values(sessionStorage)).toContain(request[2]);
+   fireEvent.click(screen.getByRole('button',{name:c.create}));expect(screen.getByLabelText(c.field)).toHaveValue('Keep my work');
+   expect(screen.getByRole('button',{name:c.save})).toBeEnabled();expect(screen.queryByRole('button',{name:'Start a separate product'})).not.toBeInTheDocument();
+   expect(store.createStoreProduct).toHaveBeenCalledTimes(1);expect(beforeUnload()).toBe(true);
+  }
  });
 }
 it('campaign update discard cannot interrupt a pending publish',async()=>{

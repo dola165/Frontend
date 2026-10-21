@@ -1,8 +1,9 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArrangeMatchForm } from '../ArrangeMatchForm';
 import { createArrangement } from '../api';
+import i18n from '../../../../i18n';
 
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 }, sessionId: 'arrange-test' }) }));
 vi.mock('../api', () => ({
@@ -30,7 +31,13 @@ function open(props: { opponentId?: number; squadId?: number; mode?: 'direct' | 
         storageKey={`gk:arrange:1:arrange-test:${[mode, props.opponentId && `c${props.opponentId}`, props.squadId && `s${props.squadId}`].filter(Boolean).join('.')}`} /></MemoryRouter>);
 }
 async function chooseRiverside() {
-    fireEvent.change(await screen.findByLabelText('Opponent'), { target: { value: 'riv' } });
+    const opponent = await screen.findByLabelText('Opponent');
+    // Complete the search's debounce before asserting results; wall-clock rendering varies on shared workstations.
+    vi.useFakeTimers();
+    try {
+        fireEvent.change(opponent, { target: { value: 'riv' } });
+        await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    } finally { vi.useRealTimers(); }
     const option = await screen.findByRole('option', { name: /Riverside Academy/ });
     expect(screen.queryByRole('option', { name: /^Dinamo/ })).not.toBeInTheDocument(); // never our own club
     fireEvent.click(option);
@@ -97,5 +104,46 @@ describe('arranging a match with a club you know', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Post open match' }));
         await waitFor(() => expect(sent).toHaveBeenCalledWith({ event_id: 78 }));
         expect(createArrangement).toHaveBeenCalledWith(expect.objectContaining({ targetClubId: null, hostingChoice: 'AWAY', match: expect.objectContaining({ squadId: 105, venuePreference: 'AWAY', title: 'U16 Boys looking for a Saturday friendly' }) }));
+    });
+
+    it('shows Georgian validation and focuses the original date and fee controls without sending', async () => {
+        await i18n.changeLanguage('ka');
+        try {
+            open({ mode: 'open', squadId: 103 });
+            await screen.findByLabelText(/Dinamo Academy Training Centre/);
+            fireEvent.click(screen.getByRole('button', { name: 'ღია მატჩის გამოქვეყნება' }));
+            expect(await screen.findByText('აირჩიეთ მატჩის დღე.')).toBeInTheDocument();
+            expect(document.activeElement).toBe(screen.getByLabelText('მატჩის დღე'));
+            fireEvent.change(screen.getByLabelText('მატჩის დღე'), { target: { value: '2099-10-17' } });
+            fireEvent.change(screen.getByLabelText('დაწყების დრო'), { target: { value: '11:00' } });
+            fireEvent.change(screen.getByLabelText('მსაჯი'), { target: { value: 'OPEN' } });
+            fireEvent.click(screen.getByRole('radio', { name: 'ანაზღაურებით' }));
+            fireEvent.change(screen.getByLabelText('შეთავაზებული ანაზღაურება'), { target: { value: '-1' } });
+            fireEvent.click(screen.getByRole('button', { name: 'ღია მატჩის გამოქვეყნება' }));
+            expect(screen.getByText('მიუთითეთ ანაზღაურება 0-დან 1 000 000-მდე.')).toBeInTheDocument();
+            expect(document.activeElement).toBe(screen.getByLabelText('შეთავაზებული ანაზღაურება'));
+            expect(screen.getByRole('radiogroup', { name: 'უახლოესი შაბათ-კვირა' })).not.toHaveTextContent(/Sat|Sun|Oct/);
+            expect(createArrangement).not.toHaveBeenCalled();
+        } finally { await act(async () => { await i18n.changeLanguage('en'); }); }
+    });
+
+    it('keeps Georgian invitation details after failure and retries the same request and squad', async () => {
+        await i18n.changeLanguage('ka');
+        try {
+            vi.mocked(createArrangement).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ event_id: 79 } as never);
+            open({ opponentId: 3, squadId: 103 });
+            await waitFor(() => expect(screen.getByRole('radio', { name: 'U14 Mixed' })).toHaveAttribute('aria-checked', 'true'));
+            fireEvent.change(screen.getByLabelText('მატჩის დღე'), { target: { value: '2099-10-17' } });
+            fireEvent.change(screen.getByLabelText('დაწყების დრო'), { target: { value: '11:00' } });
+            fireEvent.click(screen.getByRole('button', { name: 'მოწვევის გაგზავნა' }));
+            expect(await screen.findByText('მოწვევა ვერ გაიგზავნა. მონაცემები შენარჩუნებულია; სცადეთ ხელახლა.')).toBeInTheDocument();
+            expect(screen.getByLabelText('დაწყების დრო')).toHaveValue('11:00');
+            expect(sent).not.toHaveBeenCalled();
+            fireEvent.click(screen.getByRole('button', { name: 'მოწვევის გაგზავნა' }));
+            await waitFor(() => expect(sent).toHaveBeenCalledWith({ event_id: 79 }));
+            expect(vi.mocked(createArrangement).mock.calls[1][0]).toEqual(vi.mocked(createArrangement).mock.calls[0][0]);
+            expect(createArrangement).toHaveBeenLastCalledWith(expect.objectContaining({ targetClubId: 3, targetSquadId: 112, officialMode: 'LATER',
+                match: expect.objectContaining({ squadId: 103, format: '9_A_SIDE', startsAt: '2099-10-17T11:00', revision: 0 }) }));
+        } finally { await act(async () => { await i18n.changeLanguage('en'); }); }
     });
 });

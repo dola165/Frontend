@@ -1,3 +1,6 @@
+import userEvent from '@testing-library/user-event';
+import { ClubPeopleTab } from '../ClubPeopleTab';
+import { ClubFacilitiesTab } from '../ClubFacilitiesTab';
 import '../../../../i18n';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -100,4 +103,44 @@ describe('club profile', () => {
         expect(screen.getByRole('button', { name: 'Follow' })).not.toHaveClass('gk-btn--primary');
         expect(screen.queryByRole('link', { name: 'Propose a match' })).not.toBeInTheDocument();
     });
+});
+
+
+it('uses the compact department hierarchy as the sole staff view and keeps published scopes', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: [{ userId: 91, fullName: 'Nino Coach', role: 'COACH', responsibilities: [
+        { title: 'Head of coaching', specialisations: ['HEAD_COACH'], squadId: null, squadName: null, clubWide: true, startsOn: '2025-01-01', endsOn: null },
+        { title: 'Physiotherapist', specialisations: ['PHYSIO'], squadId: 8, squadName: 'U12 Girls', startsOn: '2025-01-01', endsOn: '2027-01-01' },
+    ] }] });
+    page(<ClubPeopleTab clubId={10} clubName="Alpha FC" canManageStaff={false} />);
+    expect(await screen.findByRole('region', { name: 'Coaching' })).toBeInTheDocument();
+    const care = within(screen.getByRole('region', { name: 'Medical & player care' }));
+    expect(care.getByText('Physiotherapist', { selector: 'strong' })).toBeInTheDocument();
+    expect(care.getByText('U12 Girls')).toBeInTheDocument();
+    expect(screen.getByText('Across the club')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cards' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'List' })).not.toBeInTheDocument();
+});
+
+it('shows facilities as reusable cards with their own directions action', async () => {
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => ({ data: url.endsWith('/facilities') ? [{ id: 19, title: 'Lions Ground', details: { type: 'VENUE', address: 'Match Street 1', description: 'Use the west gate.' } }] : [] }));
+    page(<ClubFacilitiesTab club={club} canEdit={false} />);
+    const heading = await screen.findByRole('heading', { name: 'Lions Ground' });
+    const card = within(heading.closest('article')!);
+    expect(card.getByText('Match Street 1')).toBeInTheDocument();
+    expect(card.getByRole('button', { name: 'Get directions' })).toBeInTheDocument();
+});
+
+
+it('opens a location from its URL, keeps directions and suppresses rental destinations on the club tab', async () => {
+    const user = userEvent.setup();
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => ({ data: url.endsWith('/facilities') ? [{ id: 19, title: 'Lions Ground', details: { placeType: 'VENUE', address: 'Match Street 1' }, linkedVenue: { id: 9, name: 'Municipal ground', bookingAvailable: true } }] : [] }));
+    render(<MemoryRouter initialEntries={['/clubs/10?tab=facilities&place=19']}><ClubFacilitiesTab club={club} canEdit={false} /></MemoryRouter>);
+    const dialog = within(await screen.findByRole('dialog', { name: 'Lions Ground' }));
+    expect(dialog.getByRole('button', { name: 'Get directions' })).toBeInTheDocument();
+    expect(dialog.queryByRole('link', { name: 'Rental availability' })).not.toBeInTheDocument();
+    expect(dialog.queryByRole('link', { name: 'View venue page' })).not.toBeInTheDocument();
+    await user.click(dialog.getByRole('button', { name: 'Close location details' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'View ground' }));
+    expect(await screen.findByRole('dialog', { name: 'Lions Ground' })).toBeInTheDocument();
 });

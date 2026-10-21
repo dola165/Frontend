@@ -1,16 +1,38 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ReportControl } from './Reporting';
 import { ReportReceipts } from './ReportReceipts';
 import { ModerationPanel } from './ModerationPanel';
 import { safeNotificationLink } from '../../utils/notificationDestinations';
+import i18n from '../../i18n';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: api }));
 beforeEach(() => { vi.clearAllMocks(); HTMLDialogElement.prototype.showModal = function () { this.open = true; }; api.get.mockResolvedValue({ data: { blocked: false } }); });
+afterEach(async () => { await i18n.changeLanguage('en'); });
 const mount = (view: React.ReactNode, url = '/') => render(<MemoryRouter initialEntries={[url]}>{view}</MemoryRouter>);
 const receipt = { id: 12, targetType: 'MESSAGE', reason: 'SAFETY', status: 'OPEN', outcome: null, createdAt: '2026-09-26T10:00:00Z', resolvedAt: null };
 describe('private reporting', () => {
+    it('translates the message report while preserving its draft, reason and safe retry identity', async () => {
+        api.post.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: receipt });
+        mount(<ReportControl targetType="MESSAGE" targetId={44} conversationId={8} personId={9} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Report message' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'What happened? (optional)' }), { target: { value: 'Keep this description' } });
+        fireEvent.change(screen.getByRole('combobox', { name: 'Reason' }), { target: { value: 'HARASSMENT' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Send report' }));
+        await screen.findByRole('button', { name: 'Retry report' });
+        const first = api.post.mock.calls[0][1];
+        await act(async () => { await i18n.changeLanguage('ka'); });
+        expect(screen.getByRole('dialog', { name: 'შეტყობინებაზე ჩივილი' })).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: 'რა მოხდა? (არასავალდებულო)' })).toHaveValue('Keep this description');
+        expect(screen.getByRole('combobox', { name: 'მიზეზი' })).toHaveValue('HARASSMENT');
+        expect(screen.getByRole('alert')).toHaveTextContent('საჩივრის გაგზავნა ვერ დადასტურდა.');
+        expect(api.post).toHaveBeenCalledTimes(1);
+        fireEvent.click(screen.getByRole('button', { name: 'ხელახლა გაგზავნა' }));
+        expect(await screen.findByRole('link', { name: 'პირადი დასტურის გახსნა' })).toHaveAttribute('href', '/reports?itemId=12');
+        expect(api.post.mock.calls[1][1]).toEqual(first);
+        expect(api.put).not.toHaveBeenCalled();
+    });
     it('keeps reporting separate from blocking and opens the existing duplicate receipt', async () => {
         api.post.mockResolvedValue({ data: receipt }); mount(<ReportControl targetType="MESSAGE" targetId={44} conversationId={8} personId={9} />);
         fireEvent.click(screen.getByRole('button', { name: 'Report message' })); fireEvent.click(screen.getByRole('button', { name: 'Send report' }));

@@ -5,8 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Match, Squad } from '../../matchExchange/api';
 import { answerInvitation, offerToPlay } from '../../matchExchange/detail/opponentActions';
 import { AnswerStep, OfferStep, RefereeLine } from '../peek/match/MatchSteps';
+import { getAuthSessionId, setStoredAccessToken, setStoredUserId } from '../../../utils/authStorage';
 
-vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', sessionId: 'steps', user: { id: 1 } }) }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', sessionId: getAuthSessionId(), user: { id: 1 } }) }));
 vi.mock('../../matchExchange/detail/opponentActions', () => ({ offerToPlay: vi.fn(), answerInvitation: vi.fn() }));
 /** Which days each of my squads already plays: U14 Boys on the 17th. */
 vi.mock('../directories/matches/openMatches', () => ({ loadMyFit: async () => ({ squads: [], busy: new Map([[103, new Set(['2099-10-17'])]]), offered: new Set() }) }));
@@ -21,6 +22,7 @@ const listing = (value: Partial<Match> = {}) => ({
     referee_required: true, referee_status: 'NOT_REQUIRED', can_arrange_official: false, external_referee_name: null, ...value,
 } as unknown as Match);
 const show = (node: ReactNode) => render(<MemoryRouter>{node}</MemoryRouter>);
+beforeEach(() => { setStoredUserId(1); setStoredAccessToken('synthetic-match-steps-login'); });
 
 describe('offering to play inside the match drawer', () => {
     beforeEach(() => vi.clearAllMocks());
@@ -36,7 +38,7 @@ describe('offering to play inside the match drawer', () => {
         fireEvent.change(screen.getByLabelText('A word for their coach'), { target: { value: ' Happy to travel ' } });
         fireEvent.click(screen.getByRole('button', { name: 'Offer to play' }));
         await waitFor(() => expect(reload).toHaveBeenCalled());
-        expect(offerToPlay).toHaveBeenCalledWith(expect.objectContaining({ event_id: 58 }), 105, 'Happy to travel');
+        expect(offerToPlay).toHaveBeenCalledWith(expect.objectContaining({ event_id: 58 }), 105, ' Happy to travel ', getAuthSessionId());
     });
 
     it('keeps the choice and says why when the offer could not be sent', async () => {

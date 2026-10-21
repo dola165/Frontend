@@ -49,6 +49,20 @@ post('/organizations/setup', ({ body, headers }) => {
 get('/pages/similar', ({ query, headers }) => P.similarPages(String(query.get('name') ?? '').slice(0, 120), query.get('town'), viewerOf(headers)));
 get('/pages/mine', ({ headers }) => P.ownedPages(viewerOf(headers)).map(page => ({ ref: page.ref, name: page.identity.name, kind: page.kind, status: page.status, role: P.roleOf(page, viewerOf(headers)),
   crestUrl: P.crestUrlOf(page), ...P.result(page) })));
+
+// The existing return directory uses the same confirmed relationships as /pages/mine.
+// Keep Luka's legacy club/venue context; a registered newcomer must not fall through to that fixed seed row.
+get('/organizations/workspaces', ({ headers }) => {
+  const viewer = viewerOf(headers);
+  const legacy = viewer === W.ME_ID ? { id: C.ORG_ID, displayName: C.club.name, clubId: C.CLUB_ID, venueCount: C.organization.venueRelationships.length, organizationType: 'CLUB', kinds: ['CLUB', 'VENUE'] } : null;
+  const rows = P.ownedPages(viewer).map(page => ({
+    ...P.result(page), displayName: page.identity.name, organizationType: page.organizationType, status: page.status,
+    venueCount: legacy?.id === page.organizationId ? legacy.venueCount : 0,
+    kinds: legacy?.id === page.organizationId ? legacy.kinds : [page.organizationType],
+    canOpenWorkspace: page.clubId ? Boolean(P.roleOf(page, viewer)) : P.canEdit(page, viewer),
+  }));
+  return legacy && !rows.some(row => row.id === legacy.id) ? [legacy, ...rows] : rows;
+});
 get('/pages/eligibility', ({ headers }) => { const age = P.viewerAge(viewerOf(headers)); return { age, kinds: ['CLUB', 'FAN_CLUB', 'BUSINESS', 'PAGE'].map(kind => ({ kind, allowed: age != null && age >= minimumAge(kind), minimumAge: minimumAge(kind) })) }; });
 get('/pitches', ({ query }) => {
   const lat = Number(query.get('lat')), lng = Number(query.get('lng')), radius = Math.min(80, Math.max(1, Number(query.get('radiusKm')) || 25));
@@ -275,25 +289,7 @@ get('/clubs/:id/management', ({ params, headers }) => {
     pendingInvitations: [], pendingApplications: [] };
 });
 
-// My squads for a new club's coaches: their squads, nothing invented around them.
-const pageSquad = id => { const squad = W.squadById(id); const page = squad ? P.pages.get(`club:${squad.clubId}`) : null; return page?.managed ? { squad, page } : null; };
-get('/squad-communication', ({ headers }) => {
-  const viewer = viewerOf(headers);
-  if (!V.account(viewer)) return undefined;
-  const mine = P.ownedPages(viewer).flatMap(page => P.squadsOf(page).filter(s => s.headCoachId === viewer || P.canEdit(page, viewer)).map(s => ({ s, page })));
-  return mine.length ? mine.map(({ s, page }) => ({ id: s.id, club_id: page.clubId, academy_name: page.identity.name, name: s.name, category: s.ageGroup, can_manage: true, unread_count: 0 })) : undefined;
-});
-get('/squad-communication/:id', ({ params, headers }) => {
-  const found = pageSquad(params.id); if (!found) return undefined;
-  const { squad, page } = found, viewer = viewerOf(headers);
-  if (!P.roleOf(page, viewer)) return reply(403, { status: 403, message: 'This squad space is not available to you.' });
-  const coaches = [...new Set([squad.headCoachId].filter(Boolean))];
-  return { id: squad.id, club_id: page.clubId, academy_name: page.identity.name, name: squad.name, category: squad.ageGroup, can_manage: true, unread_count: 0, viewer_id: viewer,
-    member_count: squad.playerIds.length + coaches.length, notify_chat: true, head_coach_id: squad.headCoachId, can_assign_coach: P.canEdit(page, viewer),
-    available_coaches: P.staffOf(page).map(s => ({ user_id: s.userId, full_name: s.fullName })), coaches: coaches.map(id => ({ user_id: id, full_name: P.viewerName(id) })),
-    players: squad.playerIds.map(id => ({ id, name: W.personById(id)?.fullName ?? `Player #${id}` })), threads: [], attention: { upcoming_sessions: 0, replies_needed: 0, acknowledgements_needed: 0 } };
-});
-get('/squad-communication/:id/messages', ({ params }) => (pageSquad(params.id) ? [] : undefined));
+// Private squad directory, detail and messages belong to the canonical social/access handlers, including page clubs.
 
 // Search beside the logo: pages that are not clubs are found here (clubs are found through /clubs/search).
 get('/organizations/discovery', ({ query: q, headers }) => {

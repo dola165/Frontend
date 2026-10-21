@@ -1,5 +1,7 @@
 import type { BadgeTone } from '../../../design/primitives';
 import { formats, label, type Match, type Squad } from '../api';
+import { wt } from '../../world/copy';
+import { formatDate } from '../../../utils/formatting';
 
 export interface State { label: string; tone: BadgeTone }
 
@@ -68,15 +70,18 @@ export function refereeState(m: Match): State {
 
 export function hostingText(m: Match) {
     const choice = m.hosting_choice ?? m.venue_preference;
-    return choice === 'NEUTRAL' ? 'Neutral ground' : choice === 'FLEXIBLE' ? 'Hosting to be agreed' : m.venue_preference === 'HOME' ? `${m.club_name} host` : m.venue_preference === 'AWAY' ? `${m.club_name} travel` : 'Home or away';
+    return choice === 'NEUTRAL' ? wt('Neutral ground') : choice === 'FLEXIBLE' ? wt('Hosting to be agreed') : m.venue_preference === 'HOME' ? wt('{club} host', { club: m.club_name }) : m.venue_preference === 'AWAY' ? wt('{club} travel', { club: m.club_name }) : wt('Home or away');
 }
 
 /** "U14 · 9-a-side · Development level". */
 export const matchFacts = (m: Match) => [m.age_group === 'SENIOR' ? 'Senior' : m.age_group, formats[m.format] ?? label(m.format), `${label(m.level)} level`].filter(Boolean).join(' · ');
 
 const timeFormat = (zone: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: zone });
-const dayFormat = (zone: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: zone });
 export const kickoffTime = (m: Match) => timeFormat(m.timezone).format(new Date(m.starts_at_iso));
-export const kickoffDay = (m: Match) => dayFormat(m.timezone).format(new Date(m.starts_at_iso));
+export const kickoffDay = (m: Match) => {
+    const day = formatDate(m.starts_at_iso, { weekday: 'short', day: 'numeric', month: 'short', timeZone: m.timezone });
+    // Keep the app's Georgian date words even when the platform formatter returns English.
+    return day.replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b/g, word => wt(word));
+};
 export const endTime = (m: Match) => timeFormat(m.timezone).format(new Date(m.ends_at_iso));
 export const lengthMinutes = (m: Match) => Math.round((Date.parse(m.ends_at_iso) - Date.parse(m.starts_at_iso)) / 60000);

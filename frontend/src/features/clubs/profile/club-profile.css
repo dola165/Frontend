@@ -77,11 +77,6 @@
 .gk .gk-club-squad__more { display: flex; flex-direction: column; gap: var(--gk-3); }
 
 /* Facilities: a photo as the row's picture, details that open under the row. */
-.gk .gk-club-place-photo { width: 36px; height: 36px; }
-.gk .gk-club-place-chevron { transition: transform .15s var(--gk-ease); }
-.gk .gk-club-place-chevron.is-open { transform: rotate(180deg); }
-.gk .gk-club-place-detail { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); padding: 0 var(--gk-4) var(--gk-4) calc(var(--gk-4) + 36px + var(--gk-3)); color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); border-bottom: 1px solid var(--gk-line); }
-.gk .gk-club-place-detail:last-child { border-bottom: 0; }
 
 /* Get involved: the store, jobs and campaigns pages inside the club page, without their own page chrome. */
 .gk .gk-club-involved { display: flex; flex-direction: column; gap: var(--gk-4); }
@@ -100,3 +95,35 @@
 .gk .gk-profile__main .club-public .cp-heading { margin-bottom: var(--gk-5); }
 .gk .gk-profile__main .club-public .cp-heading-title > .cp-section-icon { display: none; }
 .gk .gk-profile__main .club-public .cp-eyebrow { text-transform: none; letter-spacing: 0; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-3); }
+
+/* The previous compact department structure, sharing the profile's tokens and density. */
+.gk .gk-staff-structure { display: grid; gap: var(--gk-3); }
+.gk .gk-staff-structure__root { display: flex; align-items: center; gap: var(--gk-2); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .gk-staff-departments { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: start; gap: var(--gk-4); }
+.gk .gk-staff-department { min-width: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-staff-department > header { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); padding: var(--gk-3); border-bottom: 1px solid var(--gk-line); background: var(--gk-raised); }
+.gk .gk-staff-department h3 { margin: 0; font-size: var(--gk-fs-md); font-weight: 600; }
+.gk .gk-staff-person { display: flex; align-items: flex-start; gap: var(--gk-2); padding: var(--gk-3); }
+.gk .gk-staff-person + .gk-staff-person { border-top: 1px solid var(--gk-line); }
+.gk .gk-staff-person > div { flex: 1; min-width: 0; }
+.gk .gk-staff-person p { margin: 2px 0; overflow-wrap: anywhere; font-size: var(--gk-fs-sm); }
+.gk .gk-staff-person__name { display: flex; gap: var(--gk-2); align-items: center; justify-content: space-between; min-height: 24px; font-weight: 600; overflow-wrap: anywhere; }
+.gk .gk-staff-person__name svg { flex: none; }
+.gk .gk-staff-person details { font-size: var(--gk-fs-sm); }
+.gk .gk-staff-person summary { min-height: 32px; display: flex; align-items: center; cursor: pointer; color: var(--gk-text-3); }
+.gk .gk-staff-person summary:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+.gk .gk-staff-responsibilities { list-style: none; display: grid; gap: var(--gk-2); padding: 0; margin: 0 0 var(--gk-2); }
+.gk .gk-staff-responsibilities li { display: grid; }
+.gk .gk-staff-responsibilities span, .gk .gk-staff-responsibilities small { color: var(--gk-text-3); }
+.gk .gk-club-places { gap: var(--gk-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.gk .gk-club-places .club-place-card { border-radius: var(--gk-r); color: var(--gk-text); background: var(--gk-surface); border-color: var(--gk-line); }
+.gk .gk-club-places .club-place-content { padding: var(--gk-3); gap: var(--gk-2); }
+.gk .gk-club-places .club-place-content h3 { font-size: var(--gk-fs-lg); }
+.gk .gk-club-places .club-place-content p { line-height: var(--gk-lh-md); }
+.gk .gk-club-places .club-place-actions { margin-top: auto; flex-wrap: wrap; }
+.gk .gk-club-places .cp-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-sm); color: var(--gk-text); font-size: var(--gk-fs-sm); }
+@media (max-width: 600px) {
+    .gk .gk-staff-person__name { min-height: 44px; }
+    .gk .gk-staff-person summary { min-height: 44px; }
+    .gk .gk-staff-departments { grid-template-columns: minmax(0, 1fr); }
+}

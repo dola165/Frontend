@@ -21,6 +21,8 @@
 .gk .sp-head__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 @media (max-width: 640px) { .gk .sp-head__actions { width: 100%; } .gk .sp-head__actions > * { flex: 1; } .gk .sp-head__coaches { order: 3; } }
 .gk .sp-panel { padding-top: var(--gk-4); }
+.gk .sp-training-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-2); margin-bottom: var(--gk-3); }
+.gk .sp-training-bar p { margin-right: auto; }
 
 /* ---------------------------------------------------------------- updates: feed and a side column */
 .gk .sp-updates { display: flex; flex-direction: column; gap: var(--gk-4); }

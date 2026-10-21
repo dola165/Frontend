@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { LeftSidebar } from "../LeftSidebar";
 import { normalizeNavigationCapabilities } from '../../../context/navigationCapabilities';
+import { createInstance } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
 
 vi.mock("../../profile/ConnectionsDialog", () => ({
   ConnectionsDialog: ({ onClose }: { onClose: () => void }) => (
@@ -49,18 +51,23 @@ describe("LeftSidebar", () => {
     // Unknown links are never shown as "no links": Explore waits for the server's answer.
     expect(screen.queryByRole('button', { name: /Following/ })).not.toBeInTheDocument();
   });
-  it("offers Following to someone nobody has linked yet, while other shortcuts remain navigation links", async () => {
+  it.each([
+    { language: 'en', profile: 'Alex Morgan. View your profile', following: 'Following. People you keep up with', clubs: 'Followed clubs. Clubs you keep up with', schedule: 'My schedule. Your personal calendar' },
+    { language: 'ka', profile: 'Alex Morgan. პროფილის ნახვა', following: 'გამოწერილი. ადამიანები, ვისაც ადევნებთ თვალს', clubs: 'გამოწერილი კლუბები. კლუბები, რომლებსაც ადევნებთ თვალს', schedule: 'ჩემი განრიგი. თქვენი პირადი კალენდარი' },
+  ])("offers Following in $language to someone nobody has linked yet, while other shortcuts remain navigation links", async ({ language, profile, following, clubs, schedule }) => {
+    const i18n = createInstance();
+    await i18n.init({ lng: language, resources: { en: { translation: {} }, ka: { translation: {} } } });
     const user = userEvent.setup();
-    render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: "Alex Morgan", navigationCapabilities: { version: 1, workspaces: [] } }} /></MemoryRouter>);
-    expect(screen.getByRole("link", { name: /Alex Morgan.*View your profile/ })).toHaveAttribute("href", "/profile/9");
-    expect(screen.queryByRole("link", { name: /Following.*People you keep up with/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Following.*People you keep up with/ }));
+    render(<I18nextProvider i18n={i18n}><MemoryRouter><LeftSidebar user={{ id: 9, fullName: "Alex Morgan", navigationCapabilities: { version: 1, workspaces: [] } }} /></MemoryRouter></I18nextProvider>);
+    expect(screen.getByRole("link", { name: profile })).toHaveAttribute("href", "/profile/9");
+    expect(screen.queryByRole("link", { name: following })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: following }));
     expect(screen.getByRole("dialog", { name: "Following" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog", { name: "Following" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Followed clubs.*Clubs you keep up with/ })).toHaveAttribute("href", "/clubs/following");
+    expect(screen.getByRole("link", { name: clubs })).toHaveAttribute("href", "/clubs/following");
     expect(screen.queryByRole("link", { name: /Map.*Find football near you/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /My Schedule.*Your personal calendar/ })).toHaveAttribute("href", "/calendar?scope=personal");
+    expect(screen.getByRole("link", { name: schedule })).toHaveAttribute("href", "/calendar?scope=personal");
     expect(screen.queryByRole("link", { name: /Match Exchange/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /My club|Club workspace|Find clubs|Find people/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Events/ })).not.toBeInTheDocument();

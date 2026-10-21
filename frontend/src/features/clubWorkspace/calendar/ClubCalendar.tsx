@@ -14,6 +14,7 @@ import { toWorkspaceEvent } from '../../schedule/board/scheduleEvents';
 import { scheduleDestination } from '../../schedule/origin';
 import { useClubSchedule, type ClubTraining } from '../../clubs/profile/useClubSchedule';
 import { formatDate } from '../../../utils/formatting';
+import { useCalendarDay } from './useCalendarDay';
 import '../../squadCommunication/squad-schedule.css';
 import '../../parents/family-schedule.css';
 
@@ -31,7 +32,7 @@ const trainingEvent = (session: ClubTraining): ScheduleWorkspaceEvent => ({
 export function ClubCalendar({ clubId, clubName, canManage }: { clubId: number; clubName: string; canManage: boolean }) {
     const navigate = useNavigate();
     const mobile = useMobileSchedule();
-    const [date, setDate] = useState(() => new Date());
+    const [date, setDate] = useCalendarDay();
     const [view, setView] = useState<WorkspaceView>('week');
     const [types, setTypes] = useState(EVENT_TYPES);
     const [details, setDetails] = useState<ScheduleWorkspaceEvent | null>(null);

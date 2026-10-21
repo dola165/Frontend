@@ -132,7 +132,9 @@
 @media (max-width: 760px) {
   .gk.gk-match .gk-list-row { flex-wrap: wrap; row-gap: var(--gk-2); }
   .gk.gk-match .gk-list-row__main { flex: 1 1 calc(100% - 48px); }
-  .gk.gk-match .gk-list-row__trail { flex-wrap: wrap; margin-left: calc(20px + var(--gk-3)); }
+  .gk.gk-match .gk-list-row__trail { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; margin-left: calc(20px + var(--gk-3)); }
+  .gk.gk-match #plan :is(.gk-list-row__title, .gk-list-row__meta) { white-space: normal; overflow-wrap: anywhere; }
+  .gk.gk-match #plan .gk-list-row__trail .gk-btn { max-width: 100%; height: auto; min-height: 44px; white-space: normal; text-align: center; }
 }
 
 /* An open referee request and its offers */

@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ConnectionsDialog } from '../ConnectionsDialog';
 import { apiClient } from '../../../api/axiosConfig';
+import { createInstance } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
 
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn() } }));
 vi.mock('../../ui/MediaImage', () => ({ MediaImage: () => null }));
@@ -71,4 +73,22 @@ it('filters the visible list and presents Instagram-style following status', asy
     await user.clear(screen.getByRole('searchbox', { name: 'Search connections' }));
     await user.type(screen.getByRole('searchbox', { name: 'Search connections' }), 'missing');
     expect(screen.getByRole('status')).toHaveTextContent('No connections match “missing”.');
+});
+
+it.each([
+    { language: 'en', title: 'Following', search: 'Search connections', retry: 'Retry connections', failure: 'Connections could not load. Please try again.', close: 'Close connections' },
+    { language: 'ka', title: 'გამოწერილი', search: 'კავშირების ძიება', retry: 'ხელახლა ცდა', failure: 'კავშირები ვერ ჩაიტვირთა. სცადეთ ხელახლა.', close: 'კავშირების დახურვა' },
+])('keeps the real Following dialog searchable and recoverable in $language', async ({ language, title, search, retry, failure, close }) => {
+    const i18n = createInstance();
+    await i18n.init({ lng: language, resources: { en: { translation: {} }, ka: { translation: {} } } });
+    get.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: { content: [{ ...person(1), username: null }], pageNumber: 0, pageSize: 20, totalElements: 1 } });
+    const user = userEvent.setup();
+    render(<I18nextProvider i18n={i18n}><MemoryRouter><ConnectionsDialog userId={9} kind="following" showFollowingStatus onClose={vi.fn()} /></MemoryRouter></I18nextProvider>);
+    expect(screen.getByRole('dialog', { name: title })).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(failure);
+    await user.click(screen.getByRole('button', { name: retry }));
+    expect(await screen.findByRole('link', { name: /Player 1/ })).toHaveAttribute('href', '/profile/1');
+    await user.type(screen.getByRole('searchbox', { name: search }), 'Player 1');
+    expect(screen.getByRole('link', { name: /Player 1/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: close })).toBeInTheDocument();
 });

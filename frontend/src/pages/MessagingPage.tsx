@@ -1,4 +1,6 @@
-import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
+import { conversationName, useMessageCopy } from '../components/chat/messageCopy';
+import { useChatPeopleSearch } from '../components/chat/useChatPeopleSearch';
+import { PeopleSearchStatus } from '../components/chat/PeopleSearchStatus';
 import '../features/squadCommunication/squad-life.css';
 import { MessageActions } from '../components/chat/MessageActions';
 import { ConversationIntakeContext } from '../components/chat/ConversationIntakeContext';
@@ -13,10 +15,10 @@ import { useChatWebSocket, mergeMessages } from '../hooks/useChatWebSocket';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
 import { useChatScroll } from '../hooks/useChatScroll';
 import { OlderMessages } from '../components/chat/OlderMessages';
-import { subscribeNotificationsChanged } from '../utils/notifications';
+import { useConversations } from '../components/chat/useConversations';
 import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { SkeletonMessageRow } from '../components/ui/SkeletonCard';
-import { getStoredUserId } from '../utils/authStorage';
+import { getStoredUserId, isCurrentAuthSession } from '../utils/authStorage';
 import { chatApi, type ConversationDto, type ChatMessageResponse, type InviteSuggestion, type UserSearchResult } from '../api/chat';
 import { NewChatModal } from '../components/chat/NewChatModal';
 
@@ -32,52 +34,39 @@ function formatTime(iso: string | null): string {
     return formatDate(d, { month: 'short', day: 'numeric' });
 }
 
-function getDisplayName(conv: ConversationDto, currentUserId: number): string {
-    if (conv.contextType !== 'DIRECT') {
-        if (/^Joining enquiry #\d+$/.test(conv.name ?? '')) {
-            const contacts=conv.participants.filter(person=>person.userId!==currentUserId).map(person=>person.displayName).filter(Boolean);
-            return contacts.length?`${contacts.join(', ')} · Club enquiry`:'Club enquiry';
-        }
-        return conv.name || (conv.contextType === 'MATCH_CHALLENGE' ? 'Match Chat' : 'Group');
-    }
-    const other = conv.participants.find((p) => p.userId !== currentUserId);
-    return other?.displayName || 'Unknown';
-}
-
 function isSharedConversation(conv: ConversationDto): boolean {
     return conv.contextType !== 'DIRECT';
-}
-
-function getAvatarLetter(conv: ConversationDto, currentUserId: number): string {
-    const name = getDisplayName(conv, currentUserId);
-    return name.charAt(0).toUpperCase();
 }
 
 // ── Component ──────────────────────────────────────────────────────
 
 export const MessagingPage = () => {
-    const copy = useJourneyCopy();
+    const { sessionId } = useAuth();
+    return <Messages key={sessionId} />;
+};
+
+function Messages() {
+    const copy = useMessageCopy();
     const {sessionId} = useAuth();
     const currentUserId = Number(getStoredUserId() || 0);
     const [searchParams, setSearchParams] = useSearchParams();
 
     const squadParam = Number(searchParams.get('squadId'));
     const squadId = Number.isSafeInteger(squadParam) && squadParam > 0 ? squadParam : null;
-    const [conversations, setConversations] = useState<ConversationDto[]>([]);
+    const activeConvRef = useRef<number | null>(null);
+    const { conversations, setConversations, conversationsRef, sidebarLoading, listFailed, loadConversations } = useConversations(activeConvRef);
     const [activeConvId, setActiveConvId] = useState<number | null>(null);
     const [messages, setMessages] = useState<Record<number, ChatMessageResponse[]>>({});
     const [input, setInput] = useState('');
     const [showNewChat, setShowNewChat] = useState(false);
     const [showInfo, setShowInfo] = useState(false);
-    const [sidebarLoading, setSidebarLoading] = useState(true);
-
-    const conversationsRef = useRef(conversations);
-    conversationsRef.current = conversations;
+    const [profileAttempt, setProfileAttempt] = useState(0);
 
     // Resolve profile links even for an empty inbox or a changed URL on this page.
     useEffect(() => {
         const targetId = Number(searchParams.get('chatWith'));
-        if (!Number.isSafeInteger(targetId) || targetId <= 0 || !currentUserId || sidebarLoading) return;
+        if (!Number.isSafeInteger(targetId) || targetId <= 0 || !currentUserId || sidebarLoading || listFailed) return;
+        setManagementError(null);
         let current = true;
         const existing = conversationsRef.current.find(
             conversation => conversation.contextType === 'DIRECT' && conversation.participants.some(person => person.userId === targetId),
@@ -98,46 +87,24 @@ export const MessagingPage = () => {
                 .catch(() => { if (current) setManagementError('Could not open this conversation. Please try again.'); });
         }
         return () => { current = false; };
-    }, [searchParams, currentUserId, sidebarLoading, setSearchParams]);
+    }, [searchParams, currentUserId, sidebarLoading, listFailed, setSearchParams, profileAttempt, conversationsRef, setConversations]);
 
     // Group management state
     const [suggestions, setSuggestions] = useState<InviteSuggestion[]>([]);
     const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+    const [suggestionsFailed, setSuggestionsFailed] = useState(false);
     const [showAddPeople, setShowAddPeople] = useState(false);
     const [showSuggestUser, setShowSuggestUser] = useState(false);
     const [peopleSearchQuery, setPeopleSearchQuery] = useState('');
-    const [peopleSearchResults, setPeopleSearchResults] = useState<UserSearchResult[]>([]);
-    const [peopleSearchLoading, setPeopleSearchLoading] = useState(false);
     const [managementError, setManagementError] = useState<string | null>(null);
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-    const peopleSearchRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+    const [leaving, setLeaving] = useState(false);
+    const leavePending = useRef(false);
 
     const messageViewportRef = useRef<HTMLDivElement>(null);
-    const activeConvRef = useRef<number | null>(null);
 
     // keep activeConvRef in sync
     activeConvRef.current = activeConvId;
-
-    // ── Load conversations ──────────────────────────────────────────
-
-    const loadConversations = useCallback(async () => {
-        try {
-            const res = await chatApi.getConversations();
-            setConversations(previous => {
-                const selected = previous.find(item => item.id === activeConvRef.current);
-                return selected && !res.data.content.some(item => item.id === selected.id)
-                    ? [selected, ...res.data.content] : res.data.content;
-            });
-        } catch (e) {
-            console.error('Failed to load conversations', e);
-        } finally {
-            setSidebarLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        void loadConversations();
-    }, [loadConversations]);
 
     // ── WebSocket (skipped in mock mode) ────────────────────────────
 
@@ -151,7 +118,7 @@ export const MessagingPage = () => {
             return { ...conversation, lastMessage: message.content, lastMessageSenderId: message.senderId,
                 lastMessageSenderName: message.senderName, lastMessageAt: message.createdAt };
         }).sort((a, b) => new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime()));
-    }, []);
+    }, [setConversations]);
     const handleUnavailable = useCallback((id: number) => {
         setMessages(previous => ({ ...previous, [id]: [] }));
     }, []);
@@ -168,10 +135,9 @@ export const MessagingPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeConvId, setActiveConversation]);
 
-    useEffect(() => subscribeNotificationsChanged(() => { void loadConversations(); }), [loadConversations]);
-
     useEffect(() => {
         const id = Number(searchParams.get('conversationId'));
+        setManagementError(null);
         if (squadId || !Number.isSafeInteger(id) || id <= 0) { setActiveConvId(null); setShowInfo(false); return; }
         if (conversationsRef.current.some(conversation => conversation.id === id)) { setActiveConvId(id); return; }
         let current = true;
@@ -179,9 +145,9 @@ export const MessagingPage = () => {
             if (!current) return;
             setConversations(previous => [response.data, ...previous.filter(item => item.id !== id)]);
             setActiveConvId(id);
-        }).catch(() => { if (current) setManagementError('This conversation is no longer available.'); });
+        }).catch(() => { if (current) setManagementError('This conversation couldn’t load. Try again, or open another chat.'); });
         return () => { current = false; };
-    }, [searchParams, squadId]);
+    }, [searchParams, squadId, conversationsRef, setConversations, profileAttempt]);
 
     const selectConversation = useCallback((id: number) => {
         setActiveConvId(id);
@@ -204,14 +170,18 @@ export const MessagingPage = () => {
     const handleConversationCreated = useCallback(
         async (convId: number) => {
             await loadConversations();
+            if (!isCurrentAuthSession(sessionId)) return;
             selectConversation(convId);
         },
-        [loadConversations, selectConversation],
+        [loadConversations, selectConversation, sessionId],
     );
 
     // ── Derived ─────────────────────────────────────────────────────
 
     const activeConv = squadId ? null : conversations.find((c) => c.id === activeConvId) || null;
+    const peopleSearch = useChatPeopleSearch(showAddPeople || showSuggestUser ? peopleSearchQuery : '',
+        [currentUserId, ...(activeConv?.participants.map(person => person.userId) ?? [])]);
+    const peopleSearchResults = peopleSearch.results;
     const activeMessages = activeConvId ? messages[activeConvId] || [] : [];
     useChatScroll(messageViewportRef, activeConvId, !!activeConv && !loadingMessages);
     useChatReadReceipts(activeConvId, !!activeConv && !loadingMessages && !showNewChat, activeMessages, messageViewportRef);
@@ -252,15 +222,16 @@ export const MessagingPage = () => {
     const loadSuggestions = useCallback(async () => {
         if (!activeConvId || activeConv?.contextType !== 'GROUP') return;
         setSuggestionsLoading(true);
+        setSuggestionsFailed(false);
         try {
             const res = await chatApi.getPendingSuggestions(activeConvId);
-            setSuggestions(res.data);
+            if (activeConvRef.current === activeConvId && isCurrentAuthSession(sessionId)) setSuggestions(res.data);
         } catch {
-            // silently fail
+            if (activeConvRef.current === activeConvId && isCurrentAuthSession(sessionId)) setSuggestionsFailed(true);
         } finally {
-            setSuggestionsLoading(false);
+            if (activeConvRef.current === activeConvId && isCurrentAuthSession(sessionId)) setSuggestionsLoading(false);
         }
-    }, [activeConvId, activeConv?.contextType]);
+    }, [activeConvId, activeConv?.contextType, sessionId]);
 
     useEffect(() => {
         if (showInfo && activeConvId) {
@@ -281,7 +252,7 @@ export const MessagingPage = () => {
                 ),
             );
         } catch {
-            setManagementError(`Failed to remove ${displayName}.`);
+            setManagementError(copy(`Failed to remove ${displayName}.`, `ვერ ამოიშალა: ${displayName}.`));
         }
     };
 
@@ -298,7 +269,7 @@ export const MessagingPage = () => {
                 ),
             );
         } catch {
-            setManagementError(`Failed to block ${displayName}.`);
+            setManagementError(copy(`Failed to block ${displayName}.`, `ვერ დაიბლოკა: ${displayName}.`));
         }
     };
 
@@ -331,7 +302,6 @@ export const MessagingPage = () => {
         try {
             await chatApi.addParticipants(activeConvId, [userId]);
             setPeopleSearchQuery('');
-            setPeopleSearchResults([]);
             await loadConversations();
         } catch {
             setManagementError('Failed to add participant.');
@@ -344,36 +314,29 @@ export const MessagingPage = () => {
         try {
             await chatApi.suggestInvite(activeConvId, userId);
             setPeopleSearchQuery('');
-            setPeopleSearchResults([]);
             setShowSuggestUser(false);
         } catch {
             setManagementError('This user may already be suggested or blocked.');
         }
     };
 
-    const searchPeople = useCallback((q: string) => {
-        if (peopleSearchRef.current) clearTimeout(peopleSearchRef.current);
-        if (q.trim().length < 2) {
-            setPeopleSearchResults([]);
-            return;
-        }
-        peopleSearchRef.current = setTimeout(async () => {
-            setPeopleSearchLoading(true);
-            try {
-                const res = await chatApi.searchUsers(q.trim());
-                setPeopleSearchResults(
-                    res.data.content.filter(
-                        (u) => u.id !== currentUserId
-                            && !activeConv?.participants.some((p) => p.userId === u.id),
-                    ),
-                );
-            } catch {
-                // silently fail
-            } finally {
-                setPeopleSearchLoading(false);
+    const leaveConversation = async () => {
+        if (!activeConv || leavePending.current) return;
+        leavePending.current = true; setLeaving(true); setManagementError(null);
+        try {
+            await chatApi.leaveConversation(activeConv.id);
+            if (!isCurrentAuthSession(sessionId)) return;
+            if (activeConvRef.current === activeConv.id) {
+                activeConvRef.current = null;
+                setActiveConvId(null); setShowInfo(false); setShowAddPeople(false); setShowSuggestUser(false);
+                setSearchParams({});
             }
-        }, 300);
-    }, [currentUserId, activeConv]);
+            setConversations(previous => previous.filter(conversation => conversation.id !== activeConv.id));
+            await loadConversations();
+        } catch {
+            if (isCurrentAuthSession(sessionId)) setManagementError('Could not leave this conversation. Try again.');
+        } finally { leavePending.current = false; setLeaving(false); }
+    };
 
     const toggleSection = (key: string) => {
         setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -415,6 +378,8 @@ export const MessagingPage = () => {
                 <div className="flex-1 overflow-y-auto">
                     <SquadInboxList key={sessionId} selected={squadId} />
                     <h3 className="messages-other-heading">{copy('Other conversations', 'სხვა საუბრები')}</h3>
+                    {listFailed && <div className="px-4 py-3"><p role="alert">{copy('Conversations couldn’t load.', 'საუბრები ვერ ჩაიტვირთა.')}</p><button className="gk-btn gk-btn--sm" onClick={() => void loadConversations()}>{copy('Try again', 'ხელახლა ცდა')}</button></div>}
+                    {managementError && (searchParams.has('chatWith') || (searchParams.has('conversationId') && !activeConv)) && <div className="px-4 py-3"><p role="alert">{copy(managementError)}</p><button className="gk-btn gk-btn--sm" onClick={() => setProfileAttempt(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</button></div>}
                     {sidebarLoading ? (
                         <div className="flex flex-col gap-2 px-3 py-2">
                             <SkeletonMessageRow />
@@ -422,7 +387,7 @@ export const MessagingPage = () => {
                             <SkeletonMessageRow />
                             <SkeletonMessageRow />
                         </div>
-                    ) : conversations.length === 0 ? (
+                    ) : conversations.length === 0 ? (listFailed ? null :
                         <div className="px-4 py-12 text-center">
                             <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[var(--chat-text-muted)]" />
                             <p className="text-sm text-[var(--chat-text-secondary)] font-medium">
@@ -459,11 +424,11 @@ export const MessagingPage = () => {
                                                 className="w-full h-full rounded-full object-cover"
                                             />
                                         ) : (
-                                            getAvatarLetter(conv, currentUserId)
+                                            conversationName(conv, currentUserId, copy).charAt(0).toUpperCase()
                                         )}
                                         {/* Online dot: only when the server says the other person is online, never assumed. */}
                                         {conv.contextType === 'DIRECT' && conv.participants.some(p => p.userId !== currentUserId && p.online === true) && (
-                                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--chat-sidebar-bg)] bg-[var(--chat-online)]" title="Online" aria-label="Online" />
+                                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--chat-sidebar-bg)] bg-[var(--chat-online)]" title={copy('Online')} aria-label={copy('Online')} />
                                         )}
                                     </div>
 
@@ -471,7 +436,7 @@ export const MessagingPage = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-baseline gap-2">
                                             <h3 className="font-semibold text-[var(--chat-text-primary)] text-sm truncate">
-                                                {getDisplayName(conv, currentUserId)}
+                                                {conversationName(conv, currentUserId, copy)}
                                             </h3>
                                             <span className="text-[10px] text-[var(--chat-text-muted)] shrink-0">
                                                 {formatTime(conv.lastMessageAt)}
@@ -481,7 +446,7 @@ export const MessagingPage = () => {
                                             {/* Delivery status tick */}
                                             {fromMe && conv.lastMessage && (
                                                 <span className="shrink-0">
-                                                    <span title="Saved" aria-label="Saved"><Check className="w-3.5 h-3.5 text-[var(--chat-text-muted)]" /></span>
+                                                    <span title={copy('Saved')} aria-label={copy('Saved')}><Check className="w-3.5 h-3.5 text-[var(--chat-text-muted)]" /></span>
                                                 </span>
                                             )}
 
@@ -527,16 +492,16 @@ export const MessagingPage = () => {
                                     {isSharedConversation(activeConv) ? (
                                         <Users className="w-4 h-4" />
                                     ) : (
-                                        getAvatarLetter(activeConv, currentUserId)
+                                        conversationName(activeConv, currentUserId, copy).charAt(0).toUpperCase()
                                     )}
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className="font-semibold text-[var(--chat-text-primary)] text-sm truncate">
-                                        {getDisplayName(activeConv, currentUserId)}
+                                        {conversationName(activeConv, currentUserId, copy)}
                                     </h3>
                                     <p className="text-[11px] text-[var(--chat-text-muted)]">
                                         {isSharedConversation(activeConv)
-                                            ? `${activeConv.participantCount} members`
+                                            ? copy(`${activeConv.participantCount} ${activeConv.participantCount === 1 ? 'member' : 'members'}`, `${activeConv.participantCount} მონაწილე`)
                                             : activeConv.participants[0]?.displayName || ''}
                                     </p>
                                 </div>
@@ -604,10 +569,11 @@ export const MessagingPage = () => {
 
                         {/* Input */}
                         <div className="px-4 py-3 bg-[var(--chat-card)] border-t border-[var(--chat-card-border)] shrink-0">
-                            {deliveryError && <p role="alert" className="mb-2 text-sm text-[color:var(--color-warning)]">{deliveryError}</p>}
+                            {deliveryError && <p role="alert" className="mb-2 text-sm text-[color:var(--color-warning)]">{copy(deliveryError)}</p>}
                             <form onSubmit={sendMessage} className="flex items-center gap-2">
                                 <input
                                     type="text"
+                                    aria-label={copy('Write a message')}
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     disabled={sending}
@@ -687,8 +653,8 @@ export const MessagingPage = () => {
                     <div className="flex-1 overflow-y-auto">
                         {/* Error */}
                         {managementError && (
-                            <div className="mx-4 mt-3 px-3 py-2 rounded-lg border border-[color:var(--color-danger)]/20 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] text-xs">
-                                {managementError}
+                            <div role="alert" className="mx-4 mt-3 px-3 py-2 rounded-lg border border-[color:var(--color-danger)]/20 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] text-xs">
+                                {copy(managementError)}
                                 <button onClick={() => setManagementError(null)} className="ml-2 app-text-action">{copy('Dismiss', 'დახურვა')}</button>
                             </div>
                         )}
@@ -700,7 +666,7 @@ export const MessagingPage = () => {
                                 className="w-full flex items-center justify-between mb-3"
                             >
                                 <h3 className="text-xs font-semibold uppercase text-[var(--chat-text-muted)] tracking-wide">
-                                    Participants · {activeConv.participantCount}
+                                    {copy('Participants')} · {activeConv.participantCount}
                                 </h3>
                                 {expandedSections['participants'] ? (
                                     <ChevronUp className="w-4 h-4 text-[var(--chat-text-muted)]" />
@@ -784,7 +750,6 @@ export const MessagingPage = () => {
                                                 setShowAddPeople(!showAddPeople);
                                                 setShowSuggestUser(false);
                                                 setPeopleSearchQuery('');
-                                                setPeopleSearchResults([]);
                                             }}
                                             className="w-full flex items-center justify-center gap-2 py-2 rounded-full border border-[var(--chat-card-border)] text-[var(--chat-text-secondary)] text-xs font-semibold hover:bg-[var(--chat-card-hover)] transition-colors"
                                         >
@@ -798,19 +763,13 @@ export const MessagingPage = () => {
                                                     <input
                                                         type="text"
                                                         value={peopleSearchQuery}
-                                                        onChange={(e) => {
-                                                            setPeopleSearchQuery(e.target.value);
-                                                            searchPeople(e.target.value);
-                                                        }}
+                                                        onChange={(e) => setPeopleSearchQuery(e.target.value)}
+                                                        aria-label={copy('Search people')}
                                                         placeholder={copy('Search people…', 'მოძებნეთ ადამიანები…')}
                                                         className="w-full pl-8 pr-3 py-1.5 rounded-full border border-[var(--chat-card-border)] bg-[var(--chat-input-bg)] text-[var(--chat-text-primary)] text-xs placeholder:text-[var(--chat-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--chat-accent)]/40"
                                                     />
                                                 </div>
-                                                {peopleSearchLoading && (
-                                                    <div className="flex justify-center py-2">
-                                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--chat-text-muted)]" />
-                                                    </div>
-                                                )}
+                                                <PeopleSearchStatus loading={peopleSearch.loading} failed={peopleSearch.failed} onRetry={peopleSearch.retry} />
                                                 <div className="max-h-32 overflow-y-auto mt-1">
                                                     {peopleSearchResults.map((u) => (
                                                         <button
@@ -840,7 +799,6 @@ export const MessagingPage = () => {
                                             setShowSuggestUser(!showSuggestUser);
                                             setShowAddPeople(false);
                                             setPeopleSearchQuery('');
-                                            setPeopleSearchResults([]);
                                         }}
                                         className="w-full flex items-center justify-center gap-2 py-2 rounded-full border border-[var(--chat-card-border)] text-[var(--chat-text-secondary)] text-xs font-semibold hover:bg-[var(--chat-card-hover)] transition-colors"
                                     >
@@ -857,19 +815,13 @@ export const MessagingPage = () => {
                                             <input
                                                 type="text"
                                                 value={peopleSearchQuery}
-                                                onChange={(e) => {
-                                                    setPeopleSearchQuery(e.target.value);
-                                                    searchPeople(e.target.value);
-                                                }}
+                                                onChange={(e) => setPeopleSearchQuery(e.target.value)}
+                                                aria-label={copy('Search people')}
                                                 placeholder={copy('Search people…', 'მოძებნეთ ადამიანები…')}
                                                 className="w-full pl-8 pr-3 py-1.5 rounded-full border border-[var(--chat-card-border)] bg-[var(--chat-input-bg)] text-[var(--chat-text-primary)] text-xs placeholder:text-[var(--chat-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--chat-accent)]/40"
                                             />
                                         </div>
-                                        {peopleSearchLoading && (
-                                            <div className="flex justify-center py-2">
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--chat-text-muted)]" />
-                                            </div>
-                                        )}
+                                        <PeopleSearchStatus loading={peopleSearch.loading} failed={peopleSearch.failed} onRetry={peopleSearch.retry} />
                                         <div className="max-h-32 overflow-y-auto mt-1">
                                             {peopleSearchResults.map((u) => (
                                                 <button
@@ -923,6 +875,8 @@ export const MessagingPage = () => {
                                             <div className="flex justify-center py-4">
                                                 <Loader2 className="w-4 h-4 animate-spin text-[var(--chat-text-muted)]" />
                                             </div>
+                                        ) : suggestionsFailed ? (
+                                            <p role="alert" className="text-xs mt-2">{copy('Invite suggestions couldn’t load.', 'მოწვევის შეთავაზებები ვერ ჩაიტვირთა.')} <button className="app-text-action" onClick={() => void loadSuggestions()}>{copy('Try again')}</button></p>
                                         ) : suggestions.length === 0 ? (
                                             <p className="text-xs text-[var(--chat-text-muted)] mt-2 py-2 text-center">
                                                 {copy('No suggestions waiting.', 'შეთავაზებები არ არის.')}
@@ -942,7 +896,7 @@ export const MessagingPage = () => {
                                                                 {s.suggestedUserDisplayName}
                                                             </p>
                                                             <p className="text-[10px] text-[var(--chat-text-muted)]">
-                                                                Suggested by {s.suggestedByDisplayName}
+                                                                {copy(`Suggested by ${s.suggestedByDisplayName}`, `შემოთავაზებულია: ${s.suggestedByDisplayName}`)}
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-1 shrink-0">
@@ -974,17 +928,12 @@ export const MessagingPage = () => {
                     {/* Leave button */}
                     <div className="p-4 border-t border-[var(--chat-card-border)]">
                         <button
-                            onClick={async () => {
-                                await chatApi.leaveConversation(activeConv.id);
-                                setActiveConvId(null);
-                                setShowInfo(false);
-                                setShowAddPeople(false);
-                                setShowSuggestUser(false);
-                                await loadConversations();
-                            }}
+                            onClick={() => void leaveConversation()}
+                            disabled={leaving}
+                            aria-busy={leaving}
                             className="w-full py-2 px-4 rounded-full border border-[color:var(--color-danger)]/30 text-[color:var(--color-danger)] text-sm font-semibold hover:bg-[color:var(--color-danger)]/10 transition-colors"
                         >
-                            {activeConv.contextType === 'GROUP'
+                            {leaving ? copy('Leaving…') : activeConv.contextType === 'GROUP'
                                 ? copy('Leave group', 'ჯგუფის დატოვება')
                                 : activeConv.contextType === 'MATCH_CHALLENGE'
                                     ? copy('Leave match chat', 'მატჩის ჩატის დატოვება')

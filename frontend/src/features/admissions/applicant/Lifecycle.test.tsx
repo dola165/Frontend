@@ -12,6 +12,7 @@ import { AdmissionHomePage } from './AdmissionHomePage';
 import { fetchPlayerIdentity, savePlayerIdentity } from '../../joining-contract/api';
 import { OpportunityDetailPage } from './OpportunityDetailPage';
 import { useApplicant } from '../../world/map/explore/useApplicant';
+import { rememberSelectedPlayer } from '../../parents/playerSelection';
 vi.mock('../../joining-contract/api',()=>({fetchPlayerIdentity:vi.fn(),savePlayerIdentity:vi.fn(),uploadPlayerPhoto:vi.fn()}));
 const auth=vi.hoisted(()=>({user:{id:77},sessionId:'lifecycle-session',isAuthenticated:true}));
 vi.mock('../../../context/AuthContext',()=>({useAuth:()=>auth}));
@@ -77,14 +78,18 @@ describe('Admission lifecycle receipts',()=>{
     it('keeps an ended enrollment receipt without an active schedule promise',async()=>{
         const c=offerCase();c.stage='CLOSED';c.actions=[];c.previousCaseId=7;
         c.enrollment={id:33,groupId:c.groupId,groupName:c.groupName,startDate:'2026-10-04',endDate:null,status:'CANCELLED',matchEligibility:'NOT_GRANTED',squadId:1,scheduleDestination:'/squads/1?tab=sessions'};
+        rememberSelectedPlayer(auth.user.id,auth.sessionId,102);
         vi.mocked(fetchAdmissionCase).mockResolvedValue(c);
-        render(<MemoryRouter initialEntries={[`/admissions/cases/${c.id}`]}><Routes><Route path="/admissions/cases/:caseId" element={<AdmissionCasePage/>}/></Routes></MemoryRouter>);
+        render(<MemoryRouter initialEntries={[`/admissions/cases/${c.id}?player=102`]}><Routes><Route path="/admissions/cases/:caseId" element={<AdmissionCasePage/>}/></Routes></MemoryRouter>);
         expect(await screen.findByText('This enrollment is no longer active. Its earlier agreement and the recorded reason remain in this case.')).toBeVisible();
         expect(screen.queryByRole('link',{name:'Open group schedule'})).not.toBeInTheDocument();
+        expect(screen.getByRole('link',{name:'Family connections'})).toHaveAttribute('href',`/parent?tab=connections&player=${c.playerId}`);
         fireEvent.click(screen.getByRole('link',{name:'History'}));
-        expect(screen.getByRole('link',{name:'Earlier linked attempt'})).toHaveAttribute('href','/admissions/cases/7');
+        expect(screen.getByRole('link',{name:'Earlier linked attempt'})).toHaveAttribute('href',`/admissions/cases/${c.previousCaseId}?player=${c.playerId}`);
+        expect(screen.getByRole('link',{name:'Conversation'})).toHaveAttribute('href',`/admissions/cases/${c.id}?player=${c.playerId}&tab=conversation`);
         fireEvent.click(screen.getByRole('link',{name:'Conversation'}));
         expect(screen.getByRole('link',{name:'Review a new linked request'})).toHaveAttribute('href',`/admissions/opportunities/${c.groupId}?player=${c.playerId}`);
+        expect(commandAdmission).not.toHaveBeenCalled();
     });
     it('labels a withdrawn offer without offering acceptance',()=>{
         const c=offerCase();c.offer!.status='WITHDRAWN';c.actions=[];

@@ -1,3 +1,4 @@
+import { ct } from './copy';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useWorldArea } from '../world/useWorldArea';
@@ -20,7 +21,7 @@ export function useCatalogue(fixedClubId?: number, revision = 0) {
         page: query.page, size: PAGE_SIZE, clubId: query.clubId, seller: query.seller || undefined, query: query.query || undefined, category: query.category || undefined,
         collection: query.collection || undefined, currency: query.currency, country: query.country || undefined, city: query.city || undefined, variant: query.variant || undefined,
         minPrice: query.minPrice ? Number(query.minPrice) : undefined, maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined, sort: query.sort, near,
-    }, signal), 'The store could not load. Please try again.', { keep: true });
+    }, signal), ct("The store could not load. Please try again."), { keep: true });
     const update = (next: CatalogueQuery, replace = false) => setParams(current => {
         const copy = new URLSearchParams(current);
         for (const name of CATALOGUE_KEYS) copy.delete(name);

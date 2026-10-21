@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
+import { getAuthSessionId, setStoredAccessToken } from '../../utils/authStorage';
 import { ClubSettingsPage } from './settings/ClubSettingsPages';
 import { ResponsibilityRequests } from './coachHub/ResponsibilityRequests';
 import { WorkspaceOperations } from '../clubOperations/WorkspaceOperations';
@@ -87,6 +88,9 @@ describe('records', () => {
     });
 
     it('styles actions by what they do and confirms one that stops the record', async () => {
+        setStoredAccessToken('workspace-guards-test-token');
+        const sessionId = getAuthSessionId();
+        expect(sessionId).not.toBeNull();
         const changed = vi.fn().mockResolvedValue(undefined);
         render(<MemoryRouter><RecordDetail club={1} boot={boot} record={record({ status: 'PENDING', transitions: ['REVOKED', 'GRANTED'] })} definition={definition} backLabel="Back" onEdit={vi.fn()} onChanged={changed} onClose={vi.fn()} /></MemoryRouter>);
         expect(screen.getByRole('button', { name: 'Give permission' })).toHaveClass('gk-btn--primary');
@@ -95,7 +99,11 @@ describe('records', () => {
         const confirm = screen.getByRole('alertdialog');
         expect(apiClient.post).not.toHaveBeenCalled();
         fireEvent.click(within(confirm).getByRole('button', { name: 'Withdraw permission' }));
-        await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/clubs/1/operations/records/5/transition', { status: 'REVOKED', revision: 2, note: null }));
+        await waitFor(() => expect(vi.mocked(apiClient.post).mock.calls).toStrictEqual([[
+            '/clubs/1/operations/records/5/transition',
+            { status: 'REVOKED', revision: 2, note: null },
+            { headers: undefined, _authSessionId: sessionId },
+        ]]));
     });
 });
 

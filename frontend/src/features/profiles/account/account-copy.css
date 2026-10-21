@@ -1,0 +1,6 @@
+.account-quick-actions--copy { container: account-actions-copy / inline-size; }
+
+/* Keep whole translated words and the existing button padding in narrow account cards. */
+@container account-actions-copy (max-width: 400px) {
+    .account-page .account-quick-actions--copy > .grid { grid-template-columns: minmax(0, 1fr); }
+}

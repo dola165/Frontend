@@ -4,7 +4,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Earth, Heart, House, MessageSquare, Shield, Sparkles, Users } from 'lucide-react';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
-import { accessibleClubs } from '../clubAccess';
 import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
 import { DolaLink } from '../../../features/dola/DolaProvider';
@@ -70,10 +69,10 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         { id: 'world', to: '/world', label: copy('World', 'მსოფლიო'), icon: Earth, current: section === 'world' },
         // Role tabs come from relationships: coaching a squad gives My squads (first: the coach's own work comes before
         // the club), a linked child gives Parent Hub. Later hubs (referee, organiser) are one more line here.
-        ...(accessibleClubs(capabilities).some(c => c.canOpenWorkspace) ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
+        ...(hasNavigationCapability(capabilities, 'squad.workspace') ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
         // Without a club the tab stays: it offers Find your club · Start your club instead of disappearing.
         ...(club.path || capabilities !== undefined ? [{ id: 'my-club' as const, to: club.path ?? '/my-club', label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
-        ...(hasNavigationCapability(capabilities, 'parent.hub') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
+        ...(hasNavigationCapability(capabilities, 'parent.hub') || hasNavigationCapability(capabilities, 'club.family') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
     ];
     // Phones (owner, 16 October): Home, World, the role tabs, then My Club only for someone who has a club; without one,
     // finding or starting a club lives in You. Messages and You (the profile picture) are in the top bar.

@@ -6,7 +6,7 @@ export const responsibilityAreas = (codes: string[]) => {
   if (/COACH|STRENGTH/.test(roles)) result.push('coaching');
   if (/ANALYST|ANALYSIS|SCOUT/.test(roles)) result.push('analysis');
   if (/SPORTS_SCIEN|STRENGTH|NUTRITION|PERFORMANCE_DIRECTOR/.test(roles)) result.push('performance');
-  if (/PHYSIO|MEDICAL|THERAP|REHABILITATION|NUTRITION|WELFARE/.test(roles)) result.push('care');
+  if (/PHYSIO|MEDICAL|THERAP|REHABILITATION|NUTRITION|WELFARE|PSYCHOLOGIST/.test(roles)) result.push('care');
   if (/REFEREE/.test(roles)) result.push('officials');
   if (/MANAGER|SECRETARY|FINANCE|EQUIPMENT|EDUCATION|TEAM_SUPPORT/.test(roles) || !result.length) result.push('operations');
   return result;

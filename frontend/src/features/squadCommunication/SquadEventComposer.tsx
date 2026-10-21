@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { EventCreationModal } from '../../components/schedule/EventCreationModal';
 import { createClubEvent, type ScheduleEventType } from '../schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import { formatDateTime } from '../../utils/formatting';
+import { formatDateTime, formatTime } from '../../utils/formatting';
 import type { CalendarSquad } from './useSquadSchedule';
 import { asksForConfirmationByDefault } from './attendance';
 import { useJourneyCopy } from './journeyCopy';
@@ -14,7 +14,7 @@ import { newSquadEvent, squadEventPlan, formPayload } from './squadEventForms';
 import { TrainingVenuePicker, type BookingReview } from './trainingBookings/TrainingVenuePicker';
 import { createTraining, selectionSignature, type TrainingSelection } from './trainingBookings/api';
 
-function PlanReview({ squadId, plan, onReviewed }: { squadId: number; plan: api.SquadEventPlan; onReviewed: (signature: string | null) => void }) {
+export function PlanReview({ squadId, plan, onReviewed }: { squadId: number; plan: api.SquadEventPlan; onReviewed: (signature: string | null) => void }) {
     const copy = useJourneyCopy();
     const signature = JSON.stringify(plan);
     const [result, setResult] = useState<{ signature: string; value?: api.SquadEventPreview; error?: string } | null>(null);
@@ -23,9 +23,9 @@ function PlanReview({ squadId, plan, onReviewed }: { squadId: number; plan: api.
         const abort = new AbortController(); onReviewed(null);
         void api.previewSquadEvent(squadId, JSON.parse(signature), abort.signal).then(value => {
             if (!abort.signal.aborted) { setResult({ signature, value }); onReviewed(signature); }
-        }).catch(error => { if (!abort.signal.aborted) setResult({ signature, error: extractApiErrorMessage(error, 'The invitation preview could not load. Try again.') }); });
+        }).catch(error => { if (!abort.signal.aborted) setResult({ signature, error: extractApiErrorMessage(error, copy('The invitation preview could not load. Try again.', 'მოწვევების მიმოხილვა ვერ ჩაიტვირთა. სცადეთ ხელახლა.')) }); });
         return () => abort.abort();
-    }, [signature, squadId, attempt, onReviewed]);
+    }, [signature, squadId, attempt, onReviewed, copy]);
     const current = result?.signature === signature ? result : null;
     if (current?.error) return <div role="alert" className="squad-plan-error">{current.error}<button type="button" onClick={() => setAttempt(n => n+1)}><RefreshCw size={15}/>{copy('Try again', 'ხელახლა ცდა')}</button></div>;
     if (!current?.value) return <p role="status">{copy('Checking dates and invitation recipients…', 'თარიღებისა და მიმღებების შემოწმება…')}</p>;
@@ -35,7 +35,7 @@ function PlanReview({ squadId, plan, onReviewed }: { squadId: number; plan: api.
         <p>{copy('Only invited players, their currently authorized guardians and squad staff can access these events. One notification announces the plan.', 'ღონისძიებები ხელმისაწვდომია მხოლოდ მოწვეული მოთამაშეებისთვის, მათი უფლებამოსილი მეურვეებისა და გუნდის პერსონალისთვის. გეგმის შესახებ გაიგზავნება ერთი შეტყობინება.')}</p>
         <p>{plan.requestResponses ? copy('Families are asked to confirm each date.', 'ოჯახებს სთხოვენ თითოეული თარიღის დადასტურებას.') : copy('Everyone invited is expected. Families tell you only if they can’t come.', 'ყველა მოწვეული მოსალოდნელია. ოჯახები მხოლოდ მაშინ გაცნობებენ, თუ ვერ მოვლენ.')}</p>
         {value.conflictingOccurrences > 0 && <p className="squad-plan-warning">{value.conflictingOccurrences} {copy('dates overlap existing squad invitations. Review the times before sending.', 'თარიღი ემთხვევა გუნდის არსებულ მოწვევებს. გაგზავნამდე გადაამოწმეთ დრო.')}</p>}
-        <details><summary>{copy('Review all dates', 'ყველა თარიღის ნახვა')}</summary><ol>{value.occurrences.map(item => <li key={item.startsAt}>{formatDateTime(item.startsAt)} – {new Date(item.endsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</li>)}</ol></details>
+        <details><summary>{copy('Review all dates', 'ყველა თარიღის ნახვა')}</summary><ol>{value.occurrences.map(item => <li key={item.startsAt}>{formatDateTime(item.startsAt)} – {formatTime(item.endsAt)}</li>)}</ol></details>
         <small>{copy('The invitation list is fixed when saved. New roster members are not added automatically.', 'შენახვისას მოწვევის სია ფიქსირდება. ახალი მოთამაშეები ავტომატურად არ ემატებიან.')}</small>
     </div>;
 }

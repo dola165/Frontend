@@ -1,3 +1,4 @@
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MapPin, ShieldCheck } from 'lucide-react';
@@ -7,7 +8,7 @@ import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ConnectionsDialog } from '../../../components/profile/ConnectionsDialog';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { isProfessionalRole, roleLabel } from '../../roles/domain';
+import { isProfessionalRole, roleCopy } from '../../roles/domain';
 import { ProfileCareer } from '../../roles/ProfileCareer';
 import { PersonalSchedule } from '../../schedule/personal/PersonalSchedule';
 import { ProfileMediaTab } from '../ProfileMediaTab';
@@ -44,11 +45,12 @@ function PersonProfileView({ id }: { id: number }) {
     const { status } = useAuth();
     const [params, setParams] = useSearchParams();
     const view = usePersonProfile(id);
+    const copy = useJourneyCopy();
     const { profile, own, roles, hidden } = view;
     const [notice, setNotice] = useState<{ tone: 'info' | 'danger'; text: string } | null>(null);
     const images = useProfileImageControls({ enabled: own, scope: `user:${id}`, imageKind: 'avatar', hasCover: Boolean(profile?.bannerUrl), onSave: view.updateImage });
     const career = Boolean(profile && !hidden && (roles.some(isProfessionalRole) || (own && (profile.footballProfile?.entries.length ?? 0) > 0)));
-    const tabs = personTabs({ own, hidden, career });
+    const tabs = personTabs({ own, hidden, career }, copy);
     const tab = personTabFrom(params.get('tab'), tabs);
     const connections = params.get('connections');
 
@@ -72,14 +74,14 @@ function PersonProfileView({ id }: { id: number }) {
     const follow = async () => {
         if (status !== 'authenticated') return navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
         setNotice(null);
-        try { await view.toggleFollow(); } catch (error) { setNotice({ tone: 'danger', text: extractApiErrorMessage(error, 'Following could not be saved. Please try again.') }); }
+        try { await view.toggleFollow(); } catch (error) { setNotice({ tone: 'danger', text: extractApiErrorMessage(error, copy('Following could not be saved. Please try again.', 'გამოწერა ვერ შეინახა. სცადეთ ხელახლა.')) }); }
     };
     const share = async () => {
         if (!profile) return;
         const url = `${window.location.origin}/profile/${profile.id}`;
         if (navigator.share) { await navigator.share({ title: `${profile.fullName || profile.username} on GrassKickZ`, url }).catch(() => undefined); return; }
-        try { await navigator.clipboard.writeText(url); setNotice({ tone: 'info', text: 'Profile link copied.' }); }
-        catch { setNotice({ tone: 'danger', text: 'The link couldn’t be copied. Copy it from the address bar instead.' }); }
+        try { await navigator.clipboard.writeText(url); setNotice({ tone: 'info', text: copy('Profile link copied.', 'პროფილის ბმული დაკოპირდა.') }); }
+        catch { setNotice({ tone: 'danger', text: copy('The link couldn’t be copied. Copy it from the address bar instead.', 'ბმული ვერ დაკოპირდა. დააკოპირეთ მისამართის ზოლიდან.') }); }
     };
     const openRepresentation = () => {
         const query = new URLSearchParams(params);
@@ -96,17 +98,17 @@ function PersonProfileView({ id }: { id: number }) {
     const appointments = profile.footballProfile?.appointments ?? [];
     // Where someone works is public for adults; a possible minor's town stays off their header.
     const place = hidden || view.possibleMinor ? null : primary?.serviceArea || [...details.values()].find(item => item.serviceArea)?.serviceArea;
-    const counts = (kind: 'followers' | 'following', value: number) => <button type="button" disabled={hidden} title={hidden ? 'Connections are private' : undefined}
-        onClick={() => setConnections(kind)}><strong>{value.toLocaleString()}</strong>{kind === 'followers' ? (value === 1 ? 'follower' : 'followers') : 'following'}</button>;
+    const counts = (kind: 'followers' | 'following', value: number) => <button type="button" disabled={hidden} title={hidden ? copy('Connections are private', 'კავშირები დამალულია') : undefined}
+        onClick={() => setConnections(kind)}><strong>{value.toLocaleString()}</strong>{kind === 'followers' ? copy(value === 1 ? 'follower' : 'followers', 'გამომწერი') : copy('following', 'გამოწერილი')}</button>;
     return <>
         <ProfileLayout
             identity={{
                 name, image: hidden ? null : profile.avatarUrl,
-                badge: !hidden && appointments.length > 0 ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Confirmed by {appointments.length === 1 ? appointments[0].clubName : `${appointments.length} clubs`}</Badge> : undefined,
-                line: !hidden && primary?.headline ? primary.headline : roles.map(roleLabel).join(' · '),
+                badge: !hidden && appointments.length > 0 ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />{copy('Confirmed by', 'დაადასტურა:')} {appointments.length === 1 ? appointments[0].clubName : copy(`${appointments.length} clubs`, `${appointments.length} კლუბმა`)}</Badge> : undefined,
+                line: !hidden && primary?.headline ? primary.headline : roles.map(role => roleCopy(role, copy).label).join(' · '),
                 facts: [
                     <>@{profile.username}</>,
-                    !hidden && primary?.headline ? <>{roles.map(roleLabel).join(' · ')}</> : null,
+                    !hidden && primary?.headline ? <>{roles.map(role => roleCopy(role, copy).label).join(' · ')}</> : null,
                     place ? <><MapPin aria-hidden="true" />{place}</> : null,
                     counts('followers', profile.followerCount),
                     counts('following', profile.followingCount),
@@ -115,8 +117,8 @@ function PersonProfileView({ id }: { id: number }) {
             banner={hidden ? null : profile.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
             actions={<PersonActions profile={profile} own={own} onFollow={() => void follow()} onShare={() => void share()} onRepresentation={openRepresentation} />}
             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}
-            tabs={tabs} tab={tab} onTab={setTab} tabsLabel="Profile sections"
-            side={tab === 'schedule' ? undefined : <PersonSide view={view} />} sideLabel={`About ${name}`}>
+            tabs={tabs} tab={tab} onTab={setTab} tabsLabel={copy('Profile sections', 'პროფილის სექციები')}
+            side={tab === 'schedule' ? undefined : <PersonSide view={view} />} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>
             {tab === 'overview' && <PersonOverviewTab view={view} />}
             {tab === 'posts' && <PersonPostsTab view={view} />}
             {tab === 'career' && <ProfileCareer key={`career-${profile.id}`} profile={profile} isMyProfile={own}
@@ -130,15 +132,17 @@ function PersonProfileView({ id }: { id: number }) {
 }
 
 function PersonLoading() {
+    const copy = useJourneyCopy();
     return <GkRoot className="gk-page gk-profile"><PageFrame width="profile">
-        <div className="gk-person-loading" role="status" aria-label="Loading profile"><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={44} /><Skeleton height={220} /></div>
+        <div className="gk-person-loading" role="status" aria-label={copy('Loading profile', 'პროფილი იტვირთება')}><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={44} /><Skeleton height={220} /></div>
     </PageFrame></GkRoot>;
 }
 
 function PersonUnavailable({ failed = false, onRetry }: { failed?: boolean; onRetry?: () => void }) {
+    const copy = useJourneyCopy();
     return <GkRoot className="gk-page gk-profile"><PageFrame width="profile"><div className="gk-person-loading">
         <Panel>{failed
-            ? <EmptyNote title="This profile couldn’t load" action={<Button onClick={onRetry}>Try again</Button>}>Check your connection and try again.</EmptyNote>
-            : <EmptyNote title="Profile not found" action={<ButtonLink to="/world/people">Find people</ButtonLink>}>The account may have been closed, or the link is wrong.</EmptyNote>}</Panel>
+            ? <EmptyNote title={copy('This profile couldn’t load', 'პროფილი ვერ ჩაიტვირთა')} action={<Button onClick={onRetry}>{copy('Try again', 'ხელახლა ცდა')}</Button>}>{copy('Check your connection and try again.', 'შეამოწმეთ კავშირი და სცადეთ ხელახლა.')}</EmptyNote>
+            : <EmptyNote title={copy('Profile not found', 'პროფილი ვერ მოიძებნა')} action={<ButtonLink to="/world/people">{copy('Find people', 'ადამიანების მოძებნა')}</ButtonLink>}>{copy('The account may have been closed, or the link is wrong.', 'ანგარიში შეიძლება დახურულია, ან ბმული არასწორია.')}</EmptyNote>}</Panel>
     </div></PageFrame></GkRoot>;
 }

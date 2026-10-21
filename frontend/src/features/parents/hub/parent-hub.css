@@ -120,7 +120,6 @@
 .gk .ph-start > svg { width: 32px; height: 32px; color: var(--gk-accent); }
 .gk .ph-start h2 { font-size: var(--gk-fs-xl); font-weight: 650; }
 .gk .ph-start > p { color: var(--gk-text-2); }
-.gk .ph-week .family-agenda { padding: 0; border: 0; background: none; }
 .gk .ph-groups__link { display: flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
 .gk .ph-groups__link svg { flex: none; width: 16px; height: 16px; }
 .gk .ph-groups__all { align-self: flex-start; }

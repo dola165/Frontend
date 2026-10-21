@@ -21,6 +21,7 @@ import { kindOf, matchesType, typeFilterFrom, typeFilters } from '../board/sched
 import { useScheduleRange } from '../board/scheduleRange';
 import { editPersonalEvent, newPersonalEvent } from './personalEventForm';
 import { usePersonalSchedule } from './usePersonalSchedule';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
 /** Read when an event is opened, so a page left open still treats it correctly. */
 const hasStarted = (iso: string) => Date.parse(iso) < Date.now();
@@ -34,6 +35,7 @@ type Editor = { mode: 'create' | 'edit'; values: EventCreationFormValues; eventI
  */
 export function PersonalSchedule() {
     const navigate = useNavigate();
+    const copy = useJourneyCopy();
     const range = useScheduleRange();
     const [params, setParams] = useSearchParams();
     const data = usePersonalSchedule(range.from, range.to);
@@ -83,9 +85,11 @@ export function PersonalSchedule() {
         .map(event => {
             const kind = event.journeys?.length ? { tone: 'event' as const, badge: 'violet' as const, label: 'Trip' } : kindOf(event);
             const cancelled = event.status.toUpperCase() === 'CANCELLED';
+            // The card's symbol and tint say what it is, so the trail is only for what needs attention.
             return { key: event.id, startsAt: event.startsAt, endsAt: event.endsAt, title: event.title, tone: kind.tone, cancelled,
+                activity: event.journeys?.length ? 'OUTING' as const : event.eventType, recurring: event.recurring,
                 meta: [event.hostSquadName ?? event.ownerLabel, event.locationText].filter(Boolean).join(' · '),
-                trail: cancelled ? <Badge tone="danger">Cancelled</Badge> : trailFor(event, managed) ?? <Badge tone={kind.badge}>{kind.label}</Badge>,
+                trail: cancelled ? <Badge tone="danger">{copy('Cancelled', 'გაუქმებულია')}</Badge> : trailFor(event, managed) ?? undefined,
                 onOpen: () => openEvent(event), label: `${event.title}, ${kind.label.toLowerCase()}` };
         });
 
@@ -96,7 +100,7 @@ export function PersonalSchedule() {
                 <Button size="sm" variant="primary" onClick={() => create()}><Plus aria-hidden="true" />New event</Button>
             </>}
             filters={<>
-                <div className="gk-chips" role="group" aria-label="Show">{typeFilters.map(filter => <Chip key={filter.id} pressed={type === filter.id} onClick={() => setFilter('type', filter.id)}>{filter.label}</Chip>)}</div>
+                <div className="gk-chips" role="group" aria-label={copy('Show', 'ჩვენება')}>{typeFilters.map(filter => <Chip key={filter.id} pressed={type === filter.id} onClick={() => setFilter('type', filter.id)}>{copy(filter.label, filter.ka)}</Chip>)}</div>
                 {data.squads.length > 0 && <select className="gk-input" aria-label="Whose schedule" value={whose} onChange={event => setFilter('squad', event.target.value)}>
                     <option value="all">Everything for me</option>
                     <option value="me">Only my own plans</option>
@@ -104,7 +108,7 @@ export function PersonalSchedule() {
                 </select>}
             </>}
             notices={notice ? <p className="gk-notice" role="status">{notice}</p> : undefined}
-            empty={{ title: 'Nothing planned in this period', body: data.squads.length ? 'Your squads’ sessions and matches appear here, with anything you add yourself.' : 'Add your own plans, or join a squad to see its sessions here.', action: <Button size="sm" onClick={() => create()}>Add an event</Button> }} />
+            empty={{ title: copy('Nothing planned in this period.', 'ამ პერიოდში არაფერია დაგეგმილი.'), body: data.squads.length ? copy('Your squads’ sessions and matches appear here, with anything you add yourself.', 'აქ გამოჩნდება თქვენი გუნდების ვარჯიშები და მატჩები და ის, რასაც თავად დაამატებთ.') : copy('Add your own plans, or join a squad to see its sessions here.', 'დაამატეთ საკუთარი გეგმები ან შეუერთდით გუნდს, რომ მისი ვარჯიშები აქ ნახოთ.') }} />
 
         {editor && <EventCreationModal isOpen mode={editor.mode} surface="MY_SCHEDULE" initialValues={editor.values} clubId={data.context?.clubId ?? null}
             targetEventId={editor.eventId} canManageSchedule={Boolean(data.context?.clubId) && isLeadershipRole(role)} targetEventClubId={editor.clubId ?? null}

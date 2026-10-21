@@ -15,12 +15,9 @@ const props = {
     date: days[0],
     days,
     view: 'week' as const,
-    rangeLabel: 'September 2026',
     events: [],
     squadNamesById: {},
     eventTypes: EVENT_TYPES,
-    publicOnly: false,
-    calendarContent: () => null,
     notices: <button type="button">Standard notice action</button>,
     onSurface: noop,
     onView: noop,
@@ -34,7 +31,6 @@ const props = {
     onCreateTraining: noop,
     onSelect: noop,
     onTypes: noop,
-    onPublicOnly: noop,
 };
 
 it('places optional priority content before schedule controls in DOM order', () => {

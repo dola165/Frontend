@@ -216,7 +216,15 @@
       </svg>
     </figure>
 
-    <a class="open-app" id="team" href="https://app.grasskickz.com/home">Open Grasskickz<span class="open-app-arrow" aria-hidden="true">→</span></a>
+    <div class="corner">
+      <a class="open-app" id="team" href="https://app.grasskickz.com/home">Open Grasskickz<span class="open-app-arrow" aria-hidden="true">→</span></a>
+      <form class="pass" method="post" action="https://app.grasskickz.com/__preview/unlock">
+        <label class="pass-label" for="pass">Password</label>
+        <input type="hidden" name="next" value="/home">
+        <input class="pass-field" id="pass" name="password" type="password" placeholder="Password" autocomplete="current-password" autocapitalize="off" spellcheck="false" enterkeyhint="go" maxlength="64" required>
+        <button class="pass-go" type="submit" aria-label="Enter"><span aria-hidden="true">→</span></button>
+      </form>
+    </div>
   </main>
 </body>
 </html>

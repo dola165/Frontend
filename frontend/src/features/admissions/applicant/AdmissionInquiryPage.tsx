@@ -13,6 +13,7 @@ import { useAdmissionCopy } from './copy';
 import { useAdmissionData } from './useAdmissionData';
 import { useAdmissionMutation } from './useAdmissionMutation';
 import { useInquiryCopy } from '../inquiryPresentation';
+import { formatDateTime } from '../../../utils/formatting';
 
 export function GeneralAdmissionInquiryPage() {
     const {organizationId}=useParams();const {user,sessionId}=useAuth();
@@ -70,7 +71,7 @@ function InquiryContent({id}:{id:number}) {
             {inquiry.caseId&&<><p>{copy('Review the proposed group and its next steps. Routing this inquiry gives no consent to attendance or enrollment.','იხილეთ შემოთავაზებული ჯგუფი და შემდეგი ნაბიჯები. ამ კითხვის საქმეში გადატანა დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p><Link className="admission-button admission-primary" to={`/admissions/cases/${inquiry.caseId}`}>{copy('Review the proposed group','შემოთავაზებული ჯგუფის განხილვა')}</Link></>}
         </section><Link className="admission-button" to={playerPath('/admissions/inquiries/'+id+'?details=1&tab=conversation',inquiry.playerId)}>{copy('Send more information','დამატებითი ინფორმაციის გაგზავნა')}</Link></AdmissionSection><AdmissionSection active={tab==='conversation'}>{inquiry.actions.includes('ASSOCIATE_PLAYER')&&<AssociateInquiryPlayer inquiry={inquiry} onChanged={data.setData} refresh={data.refresh}/>}
         {(['MESSAGE','RESOLVE','REOPEN','WITHDRAW'] as const).filter(action=>inquiry.actions.includes(action)).map(action=><InquiryResponse key={`${action}:${id}`} inquiry={inquiry} action={action} onChanged={data.setData} refresh={data.refresh}/>)}
-        </AdmissionSection><AdmissionSection active={tab==='history'}><section className="admission-panel"><h2>{copy('Inquiry history','კითხვის ისტორია')}</h2><ol className="admission-timeline">{inquiry.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{new Date(e.createdAt).toLocaleString()}</time><strong>{e.actorName}</strong>{e.message&&<p>{e.message}</p>}</li>)}</ol></section></AdmissionSection></div>}
+        </AdmissionSection><AdmissionSection active={tab==='history'}><section className="admission-panel"><h2>{copy('Inquiry history','კითხვის ისტორია')}</h2><ol className="admission-timeline">{inquiry.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{formatDateTime(e.createdAt)}</time><strong>{e.actorName}</strong>{e.message&&<p>{e.message}</p>}</li>)}</ol></section></AdmissionSection></div>}
     </AdmissionFrame>;
 }
 function InquiryResponse({inquiry:i,action,onChanged,refresh}:{inquiry:AdmissionInquiry;action:Extract<InquiryAction,'MESSAGE'|'WITHDRAW'|'RESOLVE'|'REOPEN'>;onChanged:(i:AdmissionInquiry)=>void;refresh:()=>void}) {

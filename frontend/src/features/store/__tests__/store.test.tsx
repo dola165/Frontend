@@ -80,8 +80,8 @@ describe('Storefront and catalogue', () => {
         await waitFor(() => expect(api.fetchStoreCatalog).toHaveBeenLastCalledWith(expect.objectContaining({ clubId: 10, query: 'shirt', page: 1 }), expect.any(AbortSignal)));
         expect(screen.queryByRole('button', { name: 'Add a product' })).not.toBeInTheDocument();
     });
-    it('offers Add a product to the club’s staff', async () => {
-        vi.mocked(api.fetchStoreClub).mockResolvedValue({ id: 10, name: 'Alpha FC', myRole: 'COACH' });
+    it('offers Add a product to the club administrator', async () => {
+        vi.mocked(api.fetchStoreClub).mockResolvedValue({ id: 10, name: 'Alpha FC', myRole: 'CLUB_ADMIN' });
         render(<MemoryRouter initialEntries={['/clubs/10/store']}><Routes><Route path="/clubs/:id/store" element={<ClubStorePage />} /></Routes></MemoryRouter>);
         fireEvent.click(await screen.findByRole('button', { name: 'Add a product' }));
         expect(await screen.findByLabelText('Product name')).toBeInTheDocument();

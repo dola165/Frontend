@@ -9,6 +9,7 @@ import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
 import * as F from '../world-football.mjs';
 import { pageFilterFacts } from '../pages-data.mjs';
+import { allocateStoreVariantId, storeArchive, storeCreate, storeManagerProducts, storeUpdate } from './store-create.mjs';
 
 const { personById, clubById, squadById } = W;
 const CLUB = C.CLUB_ID;
@@ -704,43 +705,19 @@ get('/club-approaches/:aid/messages', ({ params, query }) => { const list = C.ap
 post('/club-approaches/:aid/messages', ({ params, body }) => { const list = C.approachMessages.get(Number(params.aid)); if (!list) return undefined; const m = { id: C.nextId(), authorId: C.ME, authorName: C.name(C.ME), kind: 'MESSAGE', body: String(body?.body ?? ''), createdAt: C.nowIso() }; list.push(m); return created(m); });
 
 // ================================================================ store & campaigns (club management)
-get('/clubs/:id/store/products/all', ({ params }) => isOwnClub(params.id) ? C.clubProducts().sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []);
+get('/clubs/:id/store/products/all', storeManagerProducts);
 get('/clubs/:id/store/products', ({ params }) => C.products.filter(p => p.clubId === Number(params.id) && p.active));
-const variantsFrom = (list, base) => (list ?? []).map((v, i) => ({ id: v.id ?? base * 10 + i, label: v.label, stock: Number(v.stock ?? 0) }));
-post('/clubs/:id/store/products', ({ params, body }) => {
+const variantsFrom = list => (list ?? []).map(v => ({ id: allocateStoreVariantId(), label: v.label, stock: Number(v.stock ?? 0) }));
+post('/clubs/:id/store/products', request => storeCreate(request, () => {
+  const { params, body } = request;
   if (!isOwnClub(params.id)) return reply(403, { status: 403, message: 'Only club leadership can manage the store.' });
   if (!body?.name?.trim()) return bad('Name the product.');
-  const id = C.nextId(), variants = variantsFrom(body.variants, id);
+  const id = C.nextId(), variants = variantsFrom(body.variants);
   const p = { id, currency: body.currency ?? 'GEL', version: 1, clubId: CLUB, clubName: C.club.name, clubLogoUrl: C.club.logoUrl, clubWhatsappNumber: '+995 32 224 11 25', clubEmail: 'shop@dta.ge', sellerKind: 'CLUB', collection: null, name: body.name.trim(), description: body.description ?? null, price: body.price ?? null, sizes: variants.map(v => v.label), images: body.images?.length ? body.images : F.picturesFor(id, body.name, body.category ?? 'OTHER'), active: body.active ?? true, createdAt: C.nowIso(), category: body.category ?? 'OTHER', clubCityName: 'Tbilisi', clubCountryName: 'Georgia', variants };
   C.products.push(p); return created(p);
-});
-patch('/clubs/:id/store/products/:pid', ({ params, body }) => {
-  const p = C.clubProducts().find(x => x.id === Number(params.pid)); if (!p) return notFound('Product not found.');
-  if (body?.version != null && body.version !== p.version) return conflict();
-  for (const k of ['name', 'description', 'price', 'currency', 'category', 'images', 'active']) if (body?.[k] !== undefined) p[k] = body[k];
-  if (body?.variants) { p.variants = variantsFrom(body.variants, p.id); p.sizes = p.variants.map(v => v.label); }
-  p.version++; return p;
-});
-del('/clubs/:id/store/products/:pid', ({ params }) => { const i = C.products.findIndex(x => x.id === Number(params.pid) && x.clubId === CLUB); if (i >= 0) C.products.splice(i, 1); return ok(); });
-get('/clubs/:id/campaigns', ({ params }) => isOwnClub(params.id) ? C.clubCampaigns() : []);
-get('/clubs/:id/campaigns/:cid', ({ params }) => C.clubCampaigns().find(c => c.id === Number(params.cid)) ?? notFound());
-post('/clubs/:id/campaigns', ({ body }) => {
-  if (!body?.title?.trim()) return bad('Give the campaign a title.');
-  const c = { clubId: CLUB, clubName: C.club.name, clubLogoUrl: C.club.logoUrl, country: 'Georgia', city: 'Tbilisi', images: [], reportedAmount: null, reportedNote: '', donateUrl: null, donations: 0, ...body, id: C.nextId(), status: 'DRAFT', phase: 'DRAFT', version: 1, updatedAt: C.nowIso(), publishedAt: null, updates: [], reportedAt: null };
-  C.campaigns.push(c); return created(c);
-});
-put('/clubs/:id/campaigns/:cid', ({ params, body }) => {
-  const c = C.clubCampaigns().find(x => x.id === Number(params.cid)); if (!c) return notFound();
-  if (body?.version != null && body.version !== c.version) return conflict();
-  const { version, ...rest } = body ?? {}; void version; Object.assign(c, rest, { version: c.version + 1, updatedAt: C.nowIso() }); return c;
-});
-post('/clubs/:id/campaigns/:cid/state', ({ params, body }) => {
-  const c = C.clubCampaigns().find(x => x.id === Number(params.cid)); if (!c) return notFound();
-  if (body?.version != null && body.version !== c.version) return conflict();
-  c.status = body.status; c.phase = body.status === 'PUBLISHED' ? 'ACTIVE' : body.status === 'CLOSED' ? 'ENDED' : body.status; if (body.status === 'PUBLISHED' && !c.publishedAt) c.publishedAt = C.nowIso();
-  c.version++; c.updatedAt = C.nowIso(); return c;
-});
-post('/clubs/:id/campaigns/:cid/updates', ({ params, body }) => { const c = C.clubCampaigns().find(x => x.id === Number(params.cid)); if (!c) return notFound(); c.updates.unshift({ id: C.nextId(), title: body?.title ?? 'Update', body: body?.body ?? '', createdAt: C.nowIso() }); c.version++; return c; });
+}));
+patch('/clubs/:id/store/products/:pid', storeUpdate);
+del('/clubs/:id/store/products/:pid', storeArchive);
 
 // ================================================================ club organization (settings: activities, venues, imports)
 const ORG = () => C.organization;

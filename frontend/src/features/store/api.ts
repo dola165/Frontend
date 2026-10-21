@@ -1,5 +1,7 @@
+import { ct } from './copy';
 import { formatMoney } from '../../utils/formatting';
 import { apiClient } from '../../api/axiosConfig';
+import type { AuthSessionId } from '../../utils/authStorage';
 
 // ── Store: GrassKickZ's own equipment and the clubs' stores ──
 // One catalogue (`/store/products`) with two kinds of seller. Checkout waits for a payment provider.
@@ -54,12 +56,12 @@ export interface StoreProductPayload {
 export const GRASSKICKZ = 'GrassKickZ';
 /** Who sells it; products the backend serves today carry no `sellerKind`, and every one of those is a club's. */
 export const sellerOf = (product: Pick<StoreProduct, 'sellerKind' | 'clubId'>): StoreSellerKind => product.sellerKind ?? (product.clubId ? 'CLUB' : 'GRASSKICKZ');
-export const sellerName = (product: StoreProduct) => sellerOf(product) === 'GRASSKICKZ' ? GRASSKICKZ : product.clubName ?? 'Club';
+export const sellerName = (product: StoreProduct) => sellerOf(product) === 'GRASSKICKZ' ? GRASSKICKZ : product.clubName ?? ct("Club");
 export const totalStock = (product: StoreProduct) => product.variants?.reduce((sum, variant) => sum + Math.max(0, variant.stock), 0) ?? 0;
 /** Honest availability from the variants' stock: in stock, running low, or gone. */
 export const availability = (product: StoreProduct): { tone: 'in' | 'low' | 'out'; label: string } => {
     const stock = totalStock(product);
-    return stock === 0 ? { tone: 'out', label: 'Out of stock' } : stock <= 5 ? { tone: 'low', label: `Only ${stock} left` } : { tone: 'in', label: 'In stock' };
+    return stock === 0 ? { tone: 'out', label: ct("Out of stock") } : stock <= 5 ? { tone: 'low', label: ct("Only {v0} left", { v0: stock }) } : { tone: 'in', label: ct("In stock") };
 };
 
 export interface StoreCatalogParams {
@@ -107,6 +109,7 @@ export const fetchStoreClub = async (clubId: number, signal?: AbortSignal) => (a
 
 // ── A club's own products (the workspace and "Add a product" on its store) ──
 export const fetchAllClubStoreProducts = async (clubId: number) => (await apiClient.get<StoreProduct[]>(`/clubs/${clubId}/store/products/all`)).data;
-export const createStoreProduct = async (clubId: number, payload: StoreProductPayload) => (await apiClient.post<StoreProduct>(`/clubs/${clubId}/store/products`, payload)).data;
+export const createStoreProduct = async (clubId: number, payload: StoreProductPayload, key?: string, sessionId?: AuthSessionId) =>
+    (await apiClient.post<StoreProduct>(`/clubs/${clubId}/store/products`, payload, key ? { headers: { 'Idempotency-Key': key }, ...(sessionId !== undefined ? { _authSessionId: sessionId } : {}) } : undefined)).data;
 export const updateStoreProduct = async (clubId: number, productId: number, payload: StoreProductPayload) => (await apiClient.patch<StoreProduct>(`/clubs/${clubId}/store/products/${productId}`, payload)).data;
 export const deleteStoreProduct = async (clubId: number, productId: number, version: number | undefined) => { await apiClient.delete(`/clubs/${clubId}/store/products/${productId}`, { params: { version } }); };

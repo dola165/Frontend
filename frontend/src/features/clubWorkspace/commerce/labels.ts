@@ -1,3 +1,4 @@
+import { ct } from '../../store/copy';
 import type { ClubJobCategory, ClubJobEngagementType } from '../../clubs/api';
 import { CAMPAIGN_CATEGORIES } from '../../campaigns/api';
 
@@ -12,9 +13,9 @@ export const ENGAGEMENT_TYPES: Array<{ value: ClubJobEngagementType; label: stri
     { value: 'PAID', label: 'Paid role' }, { value: 'VOLUNTEER', label: 'Ongoing volunteer role' },
     { value: 'FLEXIBLE', label: 'Flexible: paid or volunteer' }, { value: 'UNSPECIFIED', label: 'Engagement not specified' },
 ];
-export const categoryName = (value?: string | null) => JOB_CATEGORIES.find(item => item.value === value)?.label;
-export const engagementName = (value?: string | null) => ENGAGEMENT_TYPES.find(item => item.value === value)?.label;
+export const categoryName = (value?: string | null) => ct(JOB_CATEGORIES.find(item => item.value === value)?.label);
+export const engagementName = (value?: string | null) => ct(ENGAGEMENT_TYPES.find(item => item.value === value)?.label);
 export const levelName = (value?: string | null) => value ? value.charAt(0) + value.slice(1).toLowerCase() : '';
 export const appliesInApp = (requiredRole?: string | null) => requiredRole === 'PLAYER' || requiredRole === 'COACH';
-export const campaignCategory = (value?: string | null) => CAMPAIGN_CATEGORIES.find(category => category.value === value)?.label;
+export const campaignCategory = (value?: string | null) => ct(CAMPAIGN_CATEGORIES.find(category => category.value === value)?.label);
 export const categoryLabel = (value?: string | null) => { const text = (value ?? 'OTHER').toLowerCase().replaceAll('_', ' '); return text.charAt(0).toUpperCase() + text.slice(1); };

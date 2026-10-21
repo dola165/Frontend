@@ -1,3 +1,4 @@
+import { ct } from './copy';
 import { Backpack, CalendarDays, CreditCard, Dumbbell, Footprints, Package, Shirt, Ticket, Volleyball, type LucideIcon } from 'lucide-react';
 import type { StoreCollection, StoreProductCategory, StoreSort } from './api';
 
@@ -13,7 +14,7 @@ export const CATEGORIES: Array<{ id: StoreProductCategory; label: string; icon: 
     { id: 'EVENT', label: 'Events', icon: CalendarDays },
     { id: 'OTHER', label: 'Other', icon: Package },
 ];
-export const categoryLabel = (value?: string | null) => CATEGORIES.find(category => category.id === value)?.label ?? 'Other';
+export const categoryLabel = (value?: string | null) => ct(CATEGORIES.find(category => category.id === value)?.label) ?? ct("Other");
 
 /** GrassKickZ's own equipment, as the storefront groups it. */
 export const COLLECTIONS: Array<{ id: StoreCollection; label: string; line: string }> = [
@@ -26,7 +27,7 @@ export const COLLECTIONS: Array<{ id: StoreCollection; label: string; line: stri
     { id: 'TRAINING_WEAR', label: 'Training wear', line: 'Tops and shorts' },
     { id: 'ACCESSORIES', label: 'Accessories', line: 'Pumps, bottles, armbands, first aid' },
 ];
-export const collectionLabel = (value?: string | null) => COLLECTIONS.find(collection => collection.id === value)?.label ?? null;
+export const collectionLabel = (value?: string | null) => ct(COLLECTIONS.find(collection => collection.id === value)?.label) ?? null;
 
 export const SORTS: Array<{ value: StoreSort; label: string }> = [
     { value: 'RELEVANCE', label: 'Relevance' }, { value: 'NEWEST', label: 'Newest' }, { value: 'PRICE_LOW', label: 'Price: low to high' }, { value: 'PRICE_HIGH', label: 'Price: high to low' },

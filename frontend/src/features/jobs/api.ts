@@ -1,3 +1,4 @@
+import { ct } from '../store/copy';
 import { Activity, TrendingUp, Briefcase, Camera, ClipboardList, Flag, Hand, HeartHandshake, HeartPulse, Megaphone, Search, Shirt, Stethoscope, Trophy, UserRound, Users, Wallet, Wrench, type LucideIcon } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
 import type { ClubJob, ClubJobCategory, ClubJobEngagementType } from '../clubs/api';
@@ -61,15 +62,15 @@ export const LINES: Array<{ id: string; label: string; icon: LucideIcon; categor
     { id: 'finance', label: 'Finance', icon: Wallet, category: 'ADMINISTRATION', query: 'finance' },
     { id: 'volunteer', label: 'Volunteering', icon: HeartHandshake, category: 'OTHER' },
 ];
-export const categoryLabel = (value?: string | null) => CATEGORIES.find(c => c.value === value)?.label ?? 'Other';
+export const categoryLabel = (value?: string | null) => ct(CATEGORIES.find(c => c.value === value)?.label) ?? ct("Other");
 export const TERMS: Array<{ value: ClubJobEngagementType; label: string }> = [{ value: 'PAID', label: 'Paid' }, { value: 'VOLUNTEER', label: 'Volunteer' }, { value: 'FLEXIBLE', label: 'Paid or volunteer' }];
-export const termsLabel = (value?: string | null) => TERMS.find(t => t.value === value)?.label ?? null;
+export const termsLabel = (value?: string | null) => ct(TERMS.find(t => t.value === value)?.label) ?? null;
 export const HOURS: Array<{ value: JobHours; label: string }> = [{ value: 'FULL_TIME', label: 'Full time' }, { value: 'PART_TIME', label: 'Part time' }, { value: 'SESSIONS', label: 'Sessions' }, { value: 'MATCHDAYS', label: 'Match days' }, { value: 'VOLUNTEER', label: 'Volunteer hours' }];
-export const hoursLabel = (value?: string | null) => HOURS.find(h => h.value === value)?.label ?? null;
+export const hoursLabel = (value?: string | null) => ct(HOURS.find(h => h.value === value)?.label) ?? null;
 export const DIRECTIONS: Array<{ value: JobDirection; label: string; line: string }> = [{ value: 'HIRING', label: 'Jobs', line: 'Someone is wanted' }, { value: 'OFFERING', label: 'People available', line: 'Someone is available' }];
 
 export const directionOf = (job: Job): JobDirection => job.direction ?? 'HIRING';
-export const posterOf = (job: Job): JobPoster => job.poster ?? { kind: 'CLUB', id: job.clubId ?? 0, name: job.clubName ?? 'Club', avatarUrl: job.clubLogoUrl ?? null, city: job.clubCityName ?? null };
+export const posterOf = (job: Job): JobPoster => job.poster ?? { kind: 'CLUB', id: job.clubId ?? 0, name: job.clubName ?? ct("Club"), avatarUrl: job.clubLogoUrl ?? null, city: job.clubCityName ?? null };
 export const applyMethodOf = (job: Job): JobApplyMethod => job.applyMethod ?? (job.requiredRole === 'COACH' || job.requiredRole === 'PLAYER' ? 'IN_APP' : posterOf(job).kind === 'PERSON' ? 'MESSAGE' : 'EMAIL');
 export const placeOf = (job: Job) => job.clubCityName ?? posterOf(job).city ?? null;
 /** "3 days ago", "today", "2 weeks ago". */
@@ -77,9 +78,9 @@ export const postedLabel = (value?: string | null) => {
     const time = value ? Date.parse(value) : NaN;
     if (!Number.isFinite(time)) return null;
     const days = Math.floor((Date.now() - time) / 86_400_000);
-    return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days < 7 ? `${days} days ago` : days < 30 ? `${Math.floor(days / 7)} ${Math.floor(days / 7) === 1 ? 'week' : 'weeks'} ago` : `${Math.floor(days / 30)} ${Math.floor(days / 30) === 1 ? 'month' : 'months'} ago`;
+    return days <= 0 ? ct("Today") : days === 1 ? ct("Yesterday") : days < 7 ? ct("{v0} days ago", { v0: days }) : days < 30 ? ct("{v0} {v1} ago", { v0: Math.floor(days / 7), v1: ct(Math.floor(days / 7) === 1 ? 'week' : 'weeks') }) : ct("{v0} {v1} ago", { v0: Math.floor(days / 30), v1: ct(Math.floor(days / 30) === 1 ? 'month' : 'months') });
 };
-export const distanceLabel = (km: number) => km < 1 ? 'under 1 km' : `${Math.round(km)} km`;
+export const distanceLabel = (km: number) => km < 1 ? ct("under 1 km") : ct("{v0} km", { v0: Math.round(km) });
 
 export interface JobsQuery { page?: number; size?: number; query?: string; direction?: JobDirection | 'ALL'; category?: string; terms?: string; hours?: string; poster?: 'clubs' | 'people'; country?: string; city?: string; posted?: string; clubId?: number; sort?: JobSort; near?: string }
 export interface JobPage { content: Job[]; totalElements: number }

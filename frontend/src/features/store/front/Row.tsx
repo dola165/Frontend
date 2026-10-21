@@ -1,3 +1,4 @@
+import { ct, useCommerceCopy } from '../copy';
 import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMediaQuery } from '../../world/useMediaQuery';
@@ -8,6 +9,7 @@ import { useMediaQuery } from '../../world/useMediaQuery';
  */
 export function Row({ children, label, wide, busy, drift, fundraisers }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean; /** Four to a screen, for fundraisers. */ fundraisers?: boolean;
     /** The row idles sideways on its own, this way, very slowly; the arrows still drive it. Only with a mouse. */ drift?: 'left' | 'right' }) {
+    useCommerceCopy();
     const coarse = useMediaQuery('(pointer: coarse)');
     const still = useMediaQuery('(prefers-reduced-motion: reduce)');
     if (drift && !coarse && !still) return <DriftRow label={label} wide={wide} busy={busy} direction={drift}>{children}</DriftRow>;
@@ -15,6 +17,7 @@ export function Row({ children, label, wide, busy, drift, fundraisers }: { child
 }
 
 function ScrollRow({ children, label, wide, busy, fundraisers }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean; fundraisers?: boolean }) {
+    useCommerceCopy();
     const list = useRef<HTMLUListElement>(null);
     const [ends, setEnds] = useState({ start: true, end: true });
     useEffect(() => {
@@ -31,8 +34,8 @@ function ScrollRow({ children, label, wide, busy, fundraisers }: { children: Rea
     return (
         <div className="gk-store-rail" data-start={ends.start || undefined} data-end={ends.end || undefined}>
             <ul ref={list} className={`gk-store-row${wide ? ' gk-store-row--wide' : ''}${fundraisers ? ' gk-store-row--four' : ''}`} aria-label={label} aria-busy={busy || undefined}>{children}</ul>
-            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--prev" aria-label={`${label}: previous`} disabled={ends.start} onClick={() => glide(-1)}><ChevronLeft aria-hidden="true" /></button>
-            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--next" aria-label={`${label}: next`} disabled={ends.end} onClick={() => glide(1)}><ChevronRight aria-hidden="true" /></button>
+            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--prev" aria-label={ct("{v0}: previous", { v0: label })} disabled={ends.start} onClick={() => glide(-1)}><ChevronLeft aria-hidden="true" /></button>
+            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--next" aria-label={ct("{v0}: next", { v0: label })} disabled={ends.end} onClick={() => glide(1)}><ChevronRight aria-hidden="true" /></button>
         </div>
     );
 }
@@ -44,6 +47,7 @@ function ScrollRow({ children, label, wide, busy, fundraisers }: { children: Rea
  * inside the row pauses it and brings the focused item into view.
  */
 function DriftRow({ children, label, wide, busy, direction }: { children: ReactNode; label: string; wide?: boolean; busy?: boolean; direction: 'left' | 'right' }) {
+    useCommerceCopy();
     const track = useRef<HTMLUListElement>(null);
     const items = Children.toArray(children);
     const copies = Math.max(1, Math.ceil(7 / Math.max(1, items.length)));
@@ -85,8 +89,8 @@ function DriftRow({ children, label, wide, busy, direction }: { children: ReactN
             <ul ref={track} className={`gk-store-row gk-store-row--drift${wide ? ' gk-store-row--wide' : ''}`} aria-label={label} aria-busy={busy || undefined} style={{ animationDuration: `${seconds}s`, animationDirection: direction === 'right' ? 'reverse' : 'normal' }}>
                 {half}{again}
             </ul>
-            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--prev" aria-label={`${label}: previous`} onClick={() => nudge(-1)}><ChevronLeft aria-hidden="true" /></button>
-            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--next" aria-label={`${label}: next`} onClick={() => nudge(1)}><ChevronRight aria-hidden="true" /></button>
+            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--prev" aria-label={ct("{v0}: previous", { v0: label })} onClick={() => nudge(-1)}><ChevronLeft aria-hidden="true" /></button>
+            <button type="button" className="gk-store-rail__arrow gk-store-rail__arrow--next" aria-label={ct("{v0}: next", { v0: label })} onClick={() => nudge(1)}><ChevronRight aria-hidden="true" /></button>
         </div>
     );
 }

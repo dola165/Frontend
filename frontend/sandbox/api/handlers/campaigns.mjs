@@ -52,4 +52,4 @@ get('/campaigns', ({ query: q, headers }) => {
     .sort(sorter(sort, context)).map(c => view(c, area));
   return F.springPage(list, pageOf(q), sizeOf(q));
 });
-get('/campaigns/:id', ({ params }) => F.campaignById(params.id) || notFound('This fundraiser is unavailable.'));
+get('/campaigns/:id', ({ params }) => published().find(campaign => campaign.id === Number(params.id)) || notFound('This fundraiser is unavailable.'));

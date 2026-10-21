@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Plus } from 'lucide-react';
 import { Button, Field, Skeleton } from '../../../design/primitives';
 import { PersonProfilePreview } from '../../profiles/person/PersonProfilePreview';
@@ -6,6 +6,7 @@ import { isProfessionalRole, type FootballRole } from '../../roles/domain';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { SETUP_CHOICES, useChoiceName } from '../setupWords';
 import type { WelcomeFacts } from '../useWelcomeFacts';
+import { useFitWidth } from '../useFitWidth';
 import { previewOf, type HistoryInput, type SetupDraft, type SetupProfile } from '../useSetupProfile';
 import { ADULT_ROLES } from '../welcomeSteps';
 import { PhotoField, TownLine } from './AboutStep';
@@ -13,20 +14,6 @@ import { SkillPicker } from './SkillPicker';
 
 /** The width the profile page is drawn at in the preview, then scaled to the pane. */
 const PAGE_WIDTH = 1100;
-
-/** Scales the preview to its pane on a wide screen; a phone shows the page at its own size. */
-function usePreviewScale(ready: boolean) {
-    const pane = useRef<HTMLDivElement>(null);
-    const [scale, setScale] = useState(1);
-    useEffect(() => {
-        const element = pane.current;
-        if (!element || typeof ResizeObserver === 'undefined') return;
-        const observer = new ResizeObserver(([entry]) => setScale(window.innerWidth <= 640 ? 1 : Math.min(1, entry.contentRect.width / PAGE_WIDTH)));
-        observer.observe(element);
-        return () => observer.disconnect();
-    }, [ready]);
-    return { pane, scale };
-}
 
 /** Adds one football history line to the draft: what, where, since when. Saved with the profile. */
 function HistoryForm({ roles, onAdd, onCancel }: { roles: string[]; onAdd: (entry: HistoryInput) => void; onCancel: () => void }) {
@@ -74,7 +61,7 @@ export function ProfileStep({ setup, draft, onChange, facts, main, suggestion, u
     const id = useId();
     const [pane, setPane] = useState<'edit' | 'preview'>('edit');
     const [adding, setAdding] = useState(false);
-    const { pane: previewPane, scale } = usePreviewScale(Boolean(draft && setup.loaded));
+    const { pane: previewPane, style: previewStyle } = useFitWidth(Boolean(draft && setup.loaded), PAGE_WIDTH);
     if (!draft || !setup.loaded) return <div role="status" aria-label={copy('Loading your profile', 'პროფილი იტვირთება')} className="gk-setup__loading"><Skeleton height={72} /><Skeleton height={48} /><Skeleton height={48} /></div>;
     const loaded = setup.loaded;
     const preview = previewOf(loaded, draft, suggestion, userId);
@@ -118,7 +105,7 @@ export function ProfileStep({ setup, draft, onChange, facts, main, suggestion, u
             <TownLine facts={facts} />
         </div>
         <div className="gk-setup-editor__preview" ref={previewPane} aria-label={copy('Preview of your profile', 'თქვენი პროფილის გადახედვა')}>
-            <div className="gk-setup-editor__page" style={scale < 1 ? { width: PAGE_WIDTH, zoom: scale } : undefined}>
+            <div className="gk-setup-editor__page" style={previewStyle}>
                 <PersonProfilePreview profile={preview.person} professions={preview.professions} />
             </div>
         </div>

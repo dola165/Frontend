@@ -37,9 +37,15 @@ function mount(entry: string) {
         </Routes>
     </MemoryRouter>);
 }
-const dialog = () => screen.findByRole('dialog', { name: /./ });
+// The dialog loads lazily: the first test pays for the import.
+const dialog = () => screen.findByRole('dialog', { name: /./ }, { timeout: 10000 });
 const next = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: 'Next' }));
-const tileNames = (group: HTMLElement) => within(group).getAllByRole('radio').map(input => input.closest('label')?.querySelector('strong')?.textContent);
+const tileNames = (list: HTMLElement) => within(list).getAllByRole('button').map(button => button.querySelector('strong')?.textContent);
+const choosePage = async (user: ReturnType<typeof userEvent.setup>) => {
+    expect(await screen.findByRole('heading', { name: 'Do you want to create a page?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Create a page' }));
+    return screen.findByRole('list', { name: 'Create a page' });
+};
 
 beforeEach(async () => {
     await i18n.changeLanguage('en');
@@ -134,13 +140,20 @@ describe('set up your profile', () => {
         expect(server.roles[0]).toMatchObject({ role: 'COACH', headline: 'Coach · Rustavi', specialties: 'Head coach, Futsal' });
         expect(server.professions.items.map(item => item.title)).toEqual(['Sponsorship']);
 
-        const popular = await screen.findByRole('group', { name: 'Popular in Georgia' });
-        expect(within(popular).getAllByRole('checkbox').some(input => (input as HTMLInputElement).checked)).toBe(false);
+        const popular = await screen.findByRole('list', { name: 'Popular in Georgia' });
+        expect(within(popular).queryAllByRole('checkbox')).toEqual([]);
+        expect(within(popular).getAllByRole('button').every(button => button.getAttribute('aria-pressed') === 'false')).toBe(true);
         // "Near Rustavi" leaves out what Popular already shows.
-        const near = screen.getByRole('group', { name: 'Near Rustavi' });
-        expect(within(near).getAllByRole('checkbox').map(input => input.closest('label')?.querySelector('strong')?.textContent)).toEqual(['Rustavi Steel']);
-        await user.click(within(popular).getByRole('checkbox', { name: /^Rustavi Lions/ }));
+        const near = screen.getByRole('list', { name: 'Near Rustavi' });
+        expect(within(near).getAllByRole('listitem').map(item => item.querySelector('strong')?.textContent)).toEqual(['Rustavi Steel']);
+        // Follow follows at once and says Following; the rest of the tile does nothing.
+        const lions = within(popular).getByText('Rustavi Lions').closest('li') as HTMLElement;
+        await user.click(within(lions).getByText('Rustavi Lions'));
         expect([...server.followed]).toEqual([]);
+        await user.click(within(lions).getByRole('button', { name: 'Follow Rustavi Lions' }));
+        expect(await within(lions).findByRole('button', { name: 'Following Rustavi Lions' })).toHaveAttribute('aria-pressed', 'true');
+        expect([...server.followed]).toEqual([5]);
+        expect(within(lions).getByText('Rustavi · 41 followers')).toBeInTheDocument();
         await next(user);
         await waitFor(() => expect(address()).toBe('/home?welcome=profile'));
         expect([...server.followed]).toEqual([5]);
@@ -154,12 +167,18 @@ describe('set up your profile', () => {
         await waitFor(() => expect(address()).toBe('/home?welcome=page'));
         expect(server.me.bio).toBe('Twenty years on the touchline.');
 
-        const pages = await screen.findByRole('radiogroup', { name: 'Create a page' });
+        // First the question, with how a page looks (an example, no counts); the kinds come after "Create a page".
+        expect(await screen.findByText('Riverside FC')).toBeInTheDocument();
+        expect(screen.getByText('Example')).toBeInTheDocument();
+        let pages = await choosePage(user);
         expect(tileNames(pages)).toEqual(['Sponsor or business', 'Club', 'Fan club', 'Other']);
-        expect(within(pages).getByText('If your club isn’t on GrassKickZ yet.')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Create page' })).toBeDisabled();
-        await user.click(within(pages).getByRole('radio', { name: /^Club/ }));
-        await user.click(screen.getByRole('button', { name: 'Create page' }));
+        expect(within(pages).queryAllByRole('radio')).toEqual([]);
+        const club = within(pages).getByRole('button', { name: 'Club If your club isn’t on GrassKickZ yet.' });
+        expect(club).toHaveAccessibleDescription('Squads, players, staff, fees, grounds, events, honours and posts.');
+        // Back returns to the question.
+        await user.click(screen.getByRole('button', { name: 'Back' }));
+        pages = await choosePage(user);
+        await user.click(within(pages).getByRole('button', { name: /^Club/ }));
         await waitFor(() => expect(address()).toBe('/home?create=club&from=start'));
         await waitFor(() => expect(welcome()).toMatchObject({ state: 'DONE', at: null }));
     });
@@ -168,11 +187,11 @@ describe('set up your profile', () => {
         const user = userEvent.setup();
         server.roles = [{ role: 'PLAYER', primary: true, published: true }];
         mount('/home?welcome=page');
-        expect(tileNames(await screen.findByRole('radiogroup', { name: 'Create a page' }))).toEqual(['Club', 'Fan club', 'Sponsor or business', 'Other']);
+        expect(tileNames(await choosePage(user))).toEqual(['Club', 'Fan club', 'Sponsor or business', 'Other']);
         cleanup();
         server.roles = [{ role: 'FAN', primary: true, published: false }];
         mount('/home?welcome=page');
-        expect(tileNames(await screen.findByRole('radiogroup', { name: 'Create a page' }))).toEqual(['Fan club', 'Club', 'Sponsor or business', 'Other']);
+        expect(tileNames(await choosePage(user))).toEqual(['Fan club', 'Club', 'Sponsor or business', 'Other']);
         await user.click(screen.getByRole('button', { name: 'Not now' }));
         await waitFor(() => expect(address()).toBe('/home'));
     });
@@ -186,17 +205,21 @@ describe('set up your profile', () => {
         expect(within(tiles).getAllByRole('checkbox').every(input => !(input as HTMLInputElement).checked)).toBe(true);
     });
 
-    it('clubs already followed start picked; un-picking one unfollows it on Next', async () => {
+    it('clubs already followed say Following; a tap unfollows at once, and a follow that fails goes back and says so', async () => {
         const user = userEvent.setup();
         server.followed = new Set([6]);
         mount('/home?welcome=clubs');
-        const popular = await screen.findByRole('group', { name: 'Popular in Georgia' });
-        const juniors = within(popular).getByRole('checkbox', { name: /^Tbilisi Juniors/ });
-        expect(juniors).toBeChecked();
-        await user.click(juniors);
+        const popular = await screen.findByRole('list', { name: 'Popular in Georgia' });
+        await user.click(within(popular).getByRole('button', { name: 'Following Tbilisi Juniors' }));
+        await waitFor(() => expect([...server.followed]).toEqual([]));
+        expect(within(popular).getByRole('button', { name: 'Follow Tbilisi Juniors' })).toHaveAttribute('aria-pressed', 'false');
+        vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('offline'));
+        await user.click(within(popular).getByRole('button', { name: 'Follow Rustavi Lions' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('That follow did not go through. Try again.');
+        expect(within(popular).getByRole('button', { name: 'Follow Rustavi Lions' })).toHaveAttribute('aria-pressed', 'false');
+        expect([...server.followed]).toEqual([]);
         await next(user);
         await waitFor(() => expect(address()).toBe('/home?welcome=profile'));
-        expect([...server.followed]).toEqual([]);
     });
 
     it('skipped from the start, it comes back as a card on Home that opens the step again', async () => {

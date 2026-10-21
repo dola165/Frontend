@@ -44,8 +44,16 @@ export function useChoiceName() {
     };
 }
 
+/** Georgian names of the countries near home and the most common others: Chrome has no Georgian region names. */
+const GEORGIAN_COUNTRIES: Record<string, string> = {
+    GE: 'საქართველო', AM: 'სომხეთი', AZ: 'აზერბაიჯანი', TR: 'თურქეთი', UA: 'უკრაინა', RU: 'რუსეთი', KZ: 'ყაზახეთი',
+    DE: 'გერმანია', GB: 'გაერთიანებული სამეფო', FR: 'საფრანგეთი', IT: 'იტალია', ES: 'ესპანეთი', GR: 'საბერძნეთი', PL: 'პოლონეთი',
+};
+
 /** The country in the app's language ("Armenia", "სომხეთი"), else as the server names it. */
 export function countryOf(place: Place) {
+    const georgian = appLanguage() === 'ka' && place.countryCode ? GEORGIAN_COUNTRIES[place.countryCode] : undefined;
+    if (georgian) return georgian;
     try {
         if (place.countryCode) return new Intl.DisplayNames([appLanguage()], { type: 'region' }).of(place.countryCode) ?? place.countryName ?? place.name;
     } catch { /* an engine without region names keeps the server's */ }

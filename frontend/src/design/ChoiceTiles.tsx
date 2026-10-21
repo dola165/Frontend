@@ -31,3 +31,33 @@ export function ChoiceTiles({ items, chosen, onToggle, label, single = false, co
         })}
     </div>;
 }
+
+export interface ActionTile extends ChoiceTile {
+    /** The tile's own small action, such as a Follow button; the rest of the tile does nothing. */
+    action?: ReactNode;
+    /** A longer explanation: shown on hover or focus where there is a mouse, as the grey line where there is not. */
+    more?: ReactNode;
+}
+
+/**
+ * Tiles that act instead of being picked: each is a button (`onPick`), or carries its own small action. Same look as
+ * ChoiceTiles, without a check.
+ */
+export function ActionTiles({ items, label, onPick }: { items: ActionTile[]; label: string; onPick?: (id: string) => void }) {
+    const base = useId();
+    return <ul className="gk-tiles gk-tiles--compact gk-tiles--act" aria-label={label}>
+        {items.map(item => {
+            const id = `${base}-${item.id}`;
+            const more = item.more ? `${id}-more` : undefined;
+            const body = <>
+                {item.icon}
+                <span className="gk-tile__text"><strong id={`${id}-name`}>{item.label}</strong>{item.hint && <small id={`${id}-hint`}>{item.hint}</small>}{item.more && <small id={more} className="gk-tile__more" role="tooltip">{item.more}</small>}</span>
+                {item.action}
+            </>;
+            // The button's name is its label and grey line; the explanation is its description, not part of the name.
+            return <li key={item.id}>{onPick
+                ? <button type="button" className="gk-tile gk-tile--pick" aria-labelledby={`${id}-name${item.hint ? ` ${id}-hint` : ''}`} aria-describedby={more} onClick={() => onPick(item.id)}>{body}</button>
+                : <div className="gk-tile gk-tile--action">{body}</div>}</li>;
+        })}
+    </ul>;
+}

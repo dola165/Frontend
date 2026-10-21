@@ -20,7 +20,7 @@ export function ContactBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const { saveIdentity } = usePageEdit();
   const { phone, email } = page.identity.contact, { website, instagram } = page.identity.social;
   const persist = (next: Draft) => saveIdentity({ contact: { phone: next.phone.trim(), email: next.email.trim() }, social: { ...page.identity.social, website: next.website.trim(), instagram: handle(next.instagram.trim()) } }, { label: t('Contact saved') });
-  const save = async (next: Draft) => { await persist(next); onClose(); };
+  const save = async (next: Draft) => { if (await persist(next)) onClose(); };
   const web = site(website);
   return (
     <SideBlock title={t('Contact')} hint={t('Phone and email')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>

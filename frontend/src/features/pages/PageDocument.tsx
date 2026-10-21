@@ -35,7 +35,7 @@ export function PageDocument<T extends string>({ renderers, tabs, tab, onTab, ta
     <RearrangeFrame><ProfileLayout className="gk-page-doc"
       identity={{
         name: identity.name, image: identity.crest.url, square: true,
-        nameNode: editing ? <InlineText as="span" step="name" value={identity.name} placeholder={t('Name your page')} label={t('Name')} maxLength={120} onSave={next => { if (next.length >= 2) void saveIdentity({ name: next }, { label: t('Name saved') }); }} /> : undefined,
+        nameNode: editing ? <InlineText as="span" step="name" value={identity.name} placeholder={t('Name your page')} label={t('Name')} maxLength={120} onSave={next => next.length >= 2 ? saveIdentity({ name: next }, { label: t('Name saved') }) : false} /> : undefined,
         badge: page.status === 'DRAFT' ? <Badge tone="warning">{t('Draft')}</Badge> : page.verification === 'VERIFIED' ? <Badge tone="accent">{t('Verified')}</Badge> : undefined,
         line: <>{t(kind)}{page.viewer.role === 'OWNER' && <> · {t('Your role: Owner')}</>}</>,
         facts: [<><MapPin aria-hidden="true" />{identity.town.name}</>],

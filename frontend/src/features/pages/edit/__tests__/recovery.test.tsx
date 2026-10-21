@@ -32,7 +32,7 @@ const named = (page: PageView, name: string, version: number): PageView => ({ ..
 const offline = () => Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' });
 
 describe('recovering edits the network dropped (F01)', () => {
-  beforeEach(() => { toasts.calls.length = 0; vi.clearAllMocks(); sessionStorage.clear(); });
+  beforeEach(() => { toasts.calls.length = 0; vi.clearAllMocks(); sessionStorage.clear(); localStorage.setItem('gk-session-id', 's1'); });
 
   it('retires a failed edit once its retry succeeds, so a newer edit is never overwritten on return', async () => {
     const user = userEvent.setup();

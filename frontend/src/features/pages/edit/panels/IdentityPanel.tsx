@@ -20,8 +20,8 @@ export function IdentityPanel() {
   const id = useId();
   if (!page) return null;
   const save = async () => {
-    await saveIdentity({ name: name.trim(), town: { name: town }, ...(businessKind ? { businessKind } : {}), ...(clubCategory ? { clubCategory } : {}) }, { label: t('Saved') });
-    closePanel();
+    const ok = await saveIdentity({ name: name.trim(), town: { name: town }, ...(businessKind ? { businessKind } : {}), ...(clubCategory ? { clubCategory } : {}) }, { label: t('Saved') });
+    if (ok) closePanel();
   };
   return (
     <SplitPanel title={t('Name and town')} onClose={closePanel} footer={<><Button variant="ghost" onClick={closePanel}>{t('Cancel')}</Button><Button variant="primary" disabled={name.trim().length < 2} onClick={() => void save()}>{t('Done')}</Button></>}>

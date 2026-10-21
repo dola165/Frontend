@@ -220,3 +220,6 @@ export const crestPalette = {
   ink: "#111111",
   paper: "#ffffff",
 } as const;
+
+/** Dola's fixed Figma identity art. Order matches the generated sprite rectangle indices. */
+export const dolaPalette = ["#292B30", "#C77453", "#343842", "#D6C4AA", "#FFF0D5", "#4C515B", "#1F9D55", "#3DBB72", "#E49A72", "#A7563E"] as const;

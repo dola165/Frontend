@@ -29,8 +29,8 @@ export function StaffPanel() {
     if (draft.name.trim().length < 2) return;
     setBusy(true);
     try {
-      await saveBox('staff', { invites: [...invites.map(invite => ({ id: invite.id, name: invite.name, role: invite.role, squadId: invite.squadId })), { name: draft.name.trim(), phone: draft.phone, role: draft.role, squadId: draft.squadId }] }, { label: t('Invitation ready: send the link'), undoable: false });
-      setDraft({ name: '', phone: '', role: draft.role, squadId: draft.squadId });
+      const ok = await saveBox('staff', { invites: [...invites.map(invite => ({ id: invite.id, name: invite.name, role: invite.role, squadId: invite.squadId })), { name: draft.name.trim(), phone: draft.phone, role: draft.role, squadId: draft.squadId }] }, { label: t('Invitation ready: send the link'), undoable: false });
+      if (ok) setDraft({ name: '', phone: '', role: draft.role, squadId: draft.squadId });
     } finally { setBusy(false); }
   };
   const copy = async (invite: { id: number; code: string }) => { try { await navigator.clipboard.writeText(url(invite.code)); setCopied(invite.id); window.setTimeout(() => setCopied(null), 2000); } catch { setCopied(null); } };

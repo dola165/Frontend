@@ -5,6 +5,7 @@ import { useIdentityImageEditor } from '../../../../hooks/useIdentityImageEditor
 import { CROP_IMAGE_ACCEPT } from '../../../../utils/cropImageHelper';
 import { usePagesCopy } from '../../copy';
 import { cleanInitials, CREST_COLOURS, CREST_SHAPES, crestDataUrl, defaultCrest, paint, type CrestColour, type CrestDesign, type CrestShape } from '../../model/crest';
+import { useGuideTask } from '../../guide/bridge';
 import { usePageEdit } from '../context';
 import { SplitPanel } from '../SplitPanel';
 
@@ -24,9 +25,10 @@ export function CrestPanel() {
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const id = useId();
-  const editor = useIdentityImageEditor(async (_kind, url) => { await saveIdentity({ crest: { kind: 'image', url } }, { label: t('Crest saved') }); closePanel(); }, `crest:${page?.ref.type}:${page?.ref.id}`);
+  const editor = useIdentityImageEditor(async (_kind, url) => { if (!await saveIdentity({ crest: { kind: 'image', url } }, { label: t('Crest saved') })) throw new Error(t('Not saved. Check your connection and try again.')); closePanel(); }, `crest:${page?.ref.type}:${page?.ref.id}`);
+  const keep = async () => { if (busy) return false; setBusy(true); try { const ok = await saveIdentity({ crest: { kind: 'generated', design, kept: true } }, { label: t('Crest saved') }); if (ok) closePanel(); return ok; } finally { setBusy(false); } };
+  useGuideTask('crest', { disabled: !page || busy || Boolean(editor.uploading), nextLabel: t('Keep this crest'), next: async () => ({ status: await keep() ? 'complete' : 'stay' }) });
   if (!page) return null;
-  const keep = async () => { setBusy(true); try { await saveIdentity({ crest: { kind: 'generated', design, kept: true } }, { label: t('Crest saved') }); closePanel(); } finally { setBusy(false); } };
   const pick = (event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; event.target.value = ''; void editor.select(file, 'logo'); };
   const swatches = (field: 'primary' | 'secondary', label: string) => (
     <div>

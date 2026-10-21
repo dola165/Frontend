@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { isCurrentAuthSession } from '../../../utils/authStorage';
 import { recordFunnelEvent } from '../../feed/feedEvents';
 import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } from '../../organizations/setup/setupRecovery';
 import { PageConflict, fetchPage, isPageView, goLive as goLiveCall, saveBox as saveBoxCall, saveIdentity as saveIdentityCall, saveLayout as saveLayoutCall, type PageIdentity, type PageRef, type PageView, type SavableBox } from '../api';
@@ -13,6 +14,7 @@ import { boxData } from './boxData';
 
 /** An edit that could not be sent: kept in the tab and sent again when the page opens next. The id ties it to its retries. */
 type PendingEdit = ({ kind: 'identity'; patch: IdentityPatch } | { kind: 'box'; key: SavableBox; data: unknown } | { kind: 'layout'; layout: PageLayout }) & { id?: string };
+type RunOptions = SaveOptions & { undo?: (current: PageView) => Promise<PageView>; remember?: PendingEdit; replay?: boolean; retry?: () => void };
 /** A saved edit makes a remembered one stale when it is the same edit (its retry) or covers everything the remembered one changed. */
 const supersedes = (saved: PendingEdit, kept: PendingEdit) => (saved.id != null && saved.id === kept.id)
   || (saved.kind === 'identity' && kept.kind === 'identity' ? Object.keys(kept.patch).every(field => field in saved.patch)
@@ -35,14 +37,34 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   const [attempt, setAttempt] = useState(0);
   // A page claimed from the sheet over it is read again on arrival: the claim made this person its owner.
   const justClaimed = new URLSearchParams(location.search).get('claimed') === '1';
-  const key = `${pageRef.type}:${pageRef.id}:${sessionId}:${attempt}:${justClaimed ? 'claimed' : ''}`;
-  const [loaded, setLoaded] = useState<{ key: string; page: PageView | null; failed: boolean; notFound: boolean } | null>(null);
-  const [status, setStatus] = useState<SaveStatus>('idle');
   const userId = user?.id;
-  const [pending, setPending] = useState<PendingEdit[]>(() => readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? []);
+  const accountPage = `${pageRef.type}:${pageRef.id}:${userId}:${sessionId}`;
+  const key = `${accountPage}:${attempt}:${justClaimed ? 'claimed' : ''}`;
+  const scope = useMemo(() => ({ key, auth }), [key, auth]);
+  // Only receipts present on entry belong to recovery. A consumer can save as soon as the page appears,
+  // before the passive replay effect runs; that new receipt must not become a second automatic request.
+  const recovery = useMemo(() => ({ scope, edits: readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? [] }), [scope, pageRef, userId]);
+  const [loaded, setLoaded] = useState<{ key: string; page: PageView | null; failed: boolean; notFound: boolean } | null>(null);
+  const [saveState, setSaveState] = useState<{ scope: object | null; value: SaveStatus }>({ scope: null, value: 'idle' });
+  const status = saveState.scope === scope ? saveState.value : 'idle';
+  const [, setPendingRevision] = useState(0);
+  const pending = readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? [];
   const pageState = useRef<PageView | null>(null);
   const idleTimer = useRef<number | null>(null);
-  const replayed = useRef('');
+  const replayed = useRef<object | null>(null);
+  const lease = useRef<{ scope: object } | null>(null);
+  const publication = useRef<{ scope: object; requestId: string; promise: Promise<boolean> | null } | null>(null);
+  // Old callbacks cannot regain a lease after unmount, account/session/page changes, or an explicit reload.
+  useLayoutEffect(() => {
+    const origin = { scope };
+    lease.current = origin;
+    return () => {
+      if (lease.current === origin) lease.current = null;
+      if (idleTimer.current) window.clearTimeout(idleTimer.current);
+    };
+  }, [scope]);
+  const isActive = useCallback((origin = lease.current) => origin != null && lease.current === origin
+    && origin.scope === scope && auth === 'authenticated' && isCurrentAuthSession(sessionId), [auth, scope, sessionId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,11 +75,11 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     return () => controller.abort();
   }, [key, pageRef]);
 
-  const page = loaded?.key.startsWith(`${pageRef.type}:${pageRef.id}:${sessionId}:`) ? loaded.page : null;
+  const page = loaded?.key.startsWith(`${accountPage}:`) ? loaded.page : null;
   // Saves read the page as it is when they run, not as it was when their callback was made.
-  useEffect(() => { pageState.current = page; }, [page]);
+  useLayoutEffect(() => { pageState.current = page; }, [page]);
   const loading = loaded?.key !== key;
-  const replace = useCallback((next: PageView) => { pageState.current = next; setLoaded(current => (current ? { ...current, page: next } : current)); }, []);
+  const replace = useCallback((next: PageView) => { if (!isActive()) return; pageState.current = next; setLoaded(current => (current ? { ...current, page: next } : current)); }, [isActive]);
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const canEdit = auth === 'authenticated' && Boolean(page?.viewer.canEdit);
@@ -88,70 +110,92 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   }, [go, openPanel]);
 
   const settle = useCallback((next: SaveStatus) => {
-    setStatus(next);
+    if (!isActive()) return;
+    setSaveState({ scope, value: next });
     if (idleTimer.current) window.clearTimeout(idleTimer.current);
-    if (next === 'saved') idleTimer.current = window.setTimeout(() => setStatus('idle'), 2500);
-  }, []);
-  const store = useCallback((next: PendingEdit[]) => { if (next.length) writeSetupRecovery(userId, pendingKey(pageRef), next); else clearSetupRecovery(userId, pendingKey(pageRef)); }, [pageRef, userId]);
-  const keep = useCallback((edit: PendingEdit) => setPending(current => { const next = [...current.filter(item => item.id == null || item.id !== edit.id), edit]; store(next); return next; }), [store]);
-  // Once an edit is saved, the remembered edits it makes stale are retired, so recovery never replays an older value over it.
-  const retire = useCallback((saved: PendingEdit) => {
+    if (next === 'saved') idleTimer.current = window.setTimeout(() => { if (isActive()) setSaveState({ scope, value: 'idle' }); }, 2500);
+  }, [isActive, scope]);
+  const store = useCallback((next: PendingEdit[]) => {
+    if (!isActive()) return;
+    if (next.length) writeSetupRecovery(userId, pendingKey(pageRef), next); else clearSetupRecovery(userId, pendingKey(pageRef));
+    setPendingRevision(value => value + 1);
+  }, [isActive, pageRef, userId]);
+  const keep = useCallback((edit: PendingEdit) => {
     const kept = readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? [];
-    const next = kept.filter(item => !supersedes(saved, item));
-    if (next.length !== kept.length) store(next);
-    setPending(current => { const left = current.filter(item => !supersedes(saved, item)); return left.length === current.length ? current : left; });
+    const index = edit.id ? kept.findIndex(item => item.id === edit.id) : -1;
+    store(index < 0 ? [...kept, edit] : kept.map((item, i) => i === index ? edit : item));
+  }, [pageRef, store, userId]);
+  // Replay retires only its receipt. Newer manual saves may cover older edits, never a newer unsent tail.
+  const retire = useCallback((saved: PendingEdit, replay = false) => {
+    const kept = readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? [];
+    const index = kept.findIndex(item => item.id === saved.id);
+    if (index < 0) return;
+    store(kept.filter((item, i) => i !== index && (replay || i > index || !supersedes(saved, item))));
   }, [pageRef, store, userId]);
 
   /** Runs one save: optimistic first, then the server's answer; a lost race shows theirs; a failure offers to try again. */
-  const runRef = useRef<(op: (current: PageView) => Promise<PageView>, options?: SaveOptions & { undo?: (current: PageView) => Promise<PageView>; remember?: PendingEdit }) => Promise<boolean>>(async () => false);
-  const run = useCallback(async (op: (current: PageView) => Promise<PageView>, options: SaveOptions & { undo?: (current: PageView) => Promise<PageView>; remember?: PendingEdit } = {}): Promise<boolean> => {
+  const runRef = useRef<(op: (current: PageView) => Promise<PageView>, options?: RunOptions) => Promise<boolean>>(async () => false);
+  const run = useCallback(async (op: (current: PageView) => Promise<PageView>, options: RunOptions = {}): Promise<boolean> => {
+    const origin = lease.current;
+    const current = () => isActive(origin);
     const before = pageState.current;
-    if (!before) return false;
+    if (!current() || !before?.viewer.canEdit) return false;
+    // Keep the receipt before sending: unmounting or losing the reply must not discard this account's answer.
+    if (options.remember) keep(options.remember);
     if (options.optimistic) replace(options.optimistic(before));
     settle('saving');
+    const retry = () => {
+      if (!current()) return;
+      if (options.remember && !(readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? []).some(item => item.id === options.remember?.id)) return;
+      if (options.retry) { options.retry(); return; }
+      void runRef.current(op, options);
+    };
     try {
+      if (!current()) return false;
       const next = await op(before);
+      if (!current()) return false;
       replace(next);
       settle('saved');
-      if (options.remember) retire(options.remember);
+      if (options.remember) retire(options.remember, options.replay);
       const undo = options.undo;
-      if (options.label) toast(options.label, undo && options.undoable !== false ? { action: { label: pt('Undo'), onClick: () => { void runRef.current(undo, { label: pt('Undone') }); } } } : undefined);
+      if (options.label) toast(options.label, undo && options.undoable !== false ? { action: { label: pt('Undo'), onClick: () => { if (current()) void runRef.current(undo, { label: pt('Undone') }); } } } : undefined);
       return true;
     } catch (error) {
+      if (!current()) return false;
       if (error instanceof PageConflict) {
         replace(error.current);
         settle('idle');
-        toast.warning(pt('Someone just changed this.'), { description: pt('Theirs is shown. Keep yours instead?'), action: { label: pt('Keep mine'), onClick: () => { void runRef.current(op, options); } } });
+        toast.warning(pt('Someone just changed this.'), { description: pt('Your draft is kept. Keep yours instead?'), action: { label: pt('Keep mine'), onClick: retry } });
         return false;
       }
       if (options.optimistic) replace(before);
       settle('failed');
-      if (options.remember) keep(options.remember);
-      toast.error(extractApiErrorMessage(error, pt('Not saved. Check your connection and try again.')), { action: { label: pt('Try again'), onClick: () => { void runRef.current(op, options); } } });
+      toast.error(extractApiErrorMessage(error, pt('Not saved. Check your connection and try again.')), { action: { label: pt('Try again'), onClick: retry } });
       return false;
     }
-  }, [keep, replace, retire, settle]);
-  useEffect(() => { runRef.current = run; }, [run]);
+  }, [isActive, keep, pageRef, replace, retire, settle, userId]);
+  useLayoutEffect(() => { runRef.current = run; }, [run]);
 
   const saveIdentity = useCallback(async (patch: IdentityPatch, options: SaveOptions = {}) => {
-    const before = pageState.current; if (!before) return;
+    const before = pageState.current; if (!before) return false;
     const previous = Object.fromEntries(Object.keys(patch).map(field => [field, before.identity[field as keyof PageIdentity]])) as IdentityPatch;
-    await run(current => saveIdentityCall(pageRef, current.identity.version, patch), { ...options, undo: current => saveIdentityCall(pageRef, current.identity.version, previous), remember: { kind: 'identity', patch, id: crypto.randomUUID() } });
+    return run(current => saveIdentityCall(pageRef, current.identity.version, patch), { ...options, undo: current => saveIdentityCall(pageRef, current.identity.version, previous), remember: { kind: 'identity', patch, id: crypto.randomUUID() } });
   }, [pageRef, run]);
 
   const saveBox = useCallback(async <K extends SavableBox>(boxKey: K, data: unknown, options: SaveOptions = {}) => {
-    const before = pageState.current; if (!before) return;
+    const before = pageState.current; if (!before) return false;
     const previous = boxData(boxKey, before.boxes[boxKey]);
     const wasDone = before.setup.items.find(item => item.key === (boxKey as string))?.done;
     const ok = await run(current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, data), { ...options, undo: current => saveBoxCall(pageRef, boxKey, current.boxes[boxKey].version, previous), remember: { kind: 'box', key: boxKey, data, id: crypto.randomUUID() } });
     const after = pageState.current;
-    if (ok && after && !wasDone && after.setup.items.find(item => item.key === (boxKey as string))?.done) recordFunnelEvent('PAGE_BOX_FILLED', { box: boxKey, pageRef: `${pageRef.type}-${pageRef.id}` });
-  }, [pageRef, run]);
+    if (ok && isActive() && after && !wasDone && after.setup.items.find(item => item.key === (boxKey as string))?.done) recordFunnelEvent('PAGE_BOX_FILLED', { box: boxKey, pageRef: `${pageRef.type}-${pageRef.id}` });
+    return ok && isActive();
+  }, [isActive, pageRef, run]);
 
   const saveLayout = useCallback(async (layout: PageLayout, options: SaveOptions = {}) => {
-    const before = pageState.current; if (!before) return;
+    const before = pageState.current; if (!before) return false;
     const previous: PageLayout = { columns: before.layout.columns, hidden: before.layout.hidden };
-    await run(current => saveLayoutCall(pageRef, current.layout.version, layout), {
+    return run(current => saveLayoutCall(pageRef, current.layout.version, layout), {
       optimistic: current => ({ ...current, layout: { ...current.layout, ...layout } }), ...options,
       undo: current => saveLayoutCall(pageRef, current.layout.version, previous), remember: { kind: 'layout', layout, id: crypto.randomUUID() },
     });
@@ -190,29 +234,67 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     await reorder(column, from, from + delta);
   }, [reorder]);
 
-  const goLive = useCallback(async () => {
-    const ok = await run(() => goLiveCall(pageRef, crypto.randomUUID()), { label: pt('Your page is live') });
-    if (ok) { recordFunnelEvent('PAGE_LIVE', { pageRef: `${pageRef.type}-${pageRef.id}` }); openPanel('live'); }
-    return ok;
-  }, [openPanel, pageRef, run]);
+  const goLive = useCallback(async function publish(): Promise<boolean> {
+    const origin = lease.current;
+    if (!isActive(origin) || !pageState.current?.viewer.canEdit) return false;
+    let receipt = publication.current?.scope === scope ? publication.current : null;
+    if (receipt?.promise) return receipt.promise;
+    if (pageState.current.status === 'LIVE') { openPanel('live'); return true; }
+    // One publish intent keeps its id after an unknown reply, for both the button and toast retry.
+    if (!receipt) { receipt = { scope, requestId: crypto.randomUUID(), promise: null }; publication.current = receipt; }
+    const requestId = receipt.requestId;
+    const promise = (async () => {
+      const ok = await run(() => goLiveCall(pageRef, requestId), { label: pt('Your page is live'), retry: () => { void publish(); } });
+      if (!ok || !isActive(origin)) return false;
+      recordFunnelEvent('PAGE_LIVE', { pageRef: `${pageRef.type}-${pageRef.id}` });
+      openPanel('live');
+      return true;
+    })();
+    receipt.promise = promise;
+    try { return await promise; }
+    finally { if (receipt.promise === promise) receipt.promise = null; }
+  }, [isActive, openPanel, pageRef, run, scope]);
 
-  // Edits the network dropped last time are sent now, once, in order.
+  // Keep the queue durable and ordered. A failed/conflicted receipt and its tail wait for retry or another visit.
   useEffect(() => {
-    if (!page || !canEdit || replayed.current === key) return;
-    replayed.current = key;
+    if (!page || !canEdit || replayed.current === scope || !isActive()) return;
+    replayed.current = scope;
+    const origin = lease.current;
     const kept = readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? [];
     if (!kept.length) return;
-    clearSetupRecovery(userId, pendingKey(pageRef));
+    const receipts = recovery.edits.flatMap(edit => {
+      const index = kept.findIndex(item => edit.id ? item.id === edit.id : JSON.stringify(item) === JSON.stringify(edit));
+      if (index < 0) return [];
+      const receipt = kept[index].id ? kept[index] : { ...kept[index], id: crypto.randomUUID() };
+      kept[index] = receipt;
+      return [receipt];
+    });
+    if (!receipts.length) return;
+    // Preserve edits made during this visit while assigning ids to older, legacy receipts.
+    store(kept);
     void (async () => {
       await Promise.resolve();
-      setPending([]);
-      for (const edit of kept) {
-        if (edit.kind === 'identity') await saveIdentity(edit.patch, { label: pt('Saved what you changed last time') });
-        else if (edit.kind === 'box') await saveBox(edit.key, edit.data, { label: pt('Saved what you changed last time') });
-        else await saveLayout(edit.layout);
+      for (const edit of receipts) {
+        if (!isActive(origin)) break;
+        if (!(readSetupRecovery(userId, pendingKey(pageRef), validPending) ?? []).some(item => item.id === edit.id)) continue;
+        const before = pageState.current;
+        if (!before) break;
+        const options = { label: pt('Saved what you changed last time'), remember: edit, replay: true };
+        const undo = edit.kind === 'identity'
+          ? (current: PageView) => saveIdentityCall(pageRef, current.identity.version, Object.fromEntries(Object.keys(edit.patch).map(field => [field, before.identity[field as keyof PageIdentity]])) as IdentityPatch)
+          : edit.kind === 'box'
+            ? (current: PageView) => saveBoxCall(pageRef, edit.key, current.boxes[edit.key].version, boxData(edit.key, before.boxes[edit.key]))
+            : (current: PageView) => saveLayoutCall(pageRef, current.layout.version, { columns: before.layout.columns, hidden: before.layout.hidden });
+        const withUndo = { ...options, undo };
+        const ok = edit.kind === 'identity'
+          ? await run(current => saveIdentityCall(pageRef, current.identity.version, edit.patch), withUndo)
+          : edit.kind === 'box'
+            ? await run(current => saveBoxCall(pageRef, edit.key, current.boxes[edit.key].version, edit.data), withUndo)
+            : await run(current => saveLayoutCall(pageRef, current.layout.version, edit.layout), withUndo);
+        if (!ok || !isActive(origin)) break;
       }
     })();
-  }, [canEdit, key, page, pageRef, saveBox, saveIdentity, saveLayout, userId]);
+  }, [canEdit, isActive, page, pageRef, recovery, run, scope, store, userId]);
 
   const failed = Boolean(loaded?.key === key && loaded.failed), notFound = Boolean(loaded?.key === key && loaded.notFound);
   const value = useMemo<PageEdit>(() => ({

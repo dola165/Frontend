@@ -10,24 +10,33 @@ export function InlineText({ value, placeholder, label, multiline = false, maxLe
   value: string; placeholder: string; label: string; multiline?: boolean; maxLength?: number; className?: string; as?: 'span' | 'h1' | 'p'; autoFocus?: boolean;
   /** The set-up step this text is (`about`): the steps list opens it here. */
   step?: string;
-  onSave: (next: string) => void | Promise<void>;
+  onSave: (next: string) => void | boolean | Promise<void | boolean>;
 }) {
   const t = usePagesCopy();
   const [draft, setDraft] = useState(value);
   const [open, setOpen] = useState(autoFocus);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const saving = useRef(false);
   const field = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const id = useId();
-  useEffect(() => { if (!open) setDraft(value); }, [open, value]); // eslint-disable-line react-hooks/set-state-in-effect -- the text follows the page while it is not being edited
+  useEffect(() => { if (!open) setDraft(value); }, [open, value]);
   useEffect(() => { if (open) { field.current?.focus(); field.current?.select(); } }, [open]);
-  const commit = () => {
-    setOpen(false);
+  const commit = async () => {
+    if (saving.current) return;
     const next = draft.trim().replace(/\s+/g, multiline ? '\n' : ' ');
-    if (next !== value) void onSave(next);
+    if (next === value) { setOpen(false); return; }
+    saving.current = true;
+    setBusy(true);
+    setFailed(false);
+    try { if (await onSave(next) !== false) setOpen(false); else setFailed(true); }
+    catch { setFailed(true); }
+    finally { saving.current = false; setBusy(false); }
   };
-  const cancel = () => { setDraft(value); setOpen(false); };
+  const cancel = () => { if (!saving.current) { setDraft(value); setOpen(false); } };
   const onKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape') { event.preventDefault(); cancel(); }
-    if (event.key === 'Enter' && (!multiline || event.ctrlKey || event.metaKey)) { event.preventDefault(); commit(); }
+    if (event.key === 'Enter' && (!multiline || event.ctrlKey || event.metaKey)) { event.preventDefault(); void commit(); }
   };
   if (!open) {
     return (
@@ -36,8 +45,9 @@ export function InlineText({ value, placeholder, label, multiline = false, maxLe
       </Tag>
     );
   }
-  const common = { id, ref: field, value: draft, maxLength, placeholder, 'aria-label': label, className: `gk-inline__field${multiline ? ' gk-inline__field--area' : ''}`, onBlur: commit, onKeyDown: onKey };
+  const common = { id, ref: field, value: draft, maxLength, placeholder, readOnly: busy, 'aria-busy': busy, 'aria-label': label, className: `gk-inline__field${multiline ? ' gk-inline__field--area' : ''}`, onBlur: () => void commit(), onKeyDown: onKey };
   return <Tag className={['gk-inline', 'gk-inline--open', className].filter(Boolean).join(' ')} data-step={step}>
     {multiline ? <textarea {...common} rows={3} onChange={event => setDraft(event.target.value)} /> : <input {...common} type="text" onChange={event => setDraft(event.target.value)} />}
+    {failed && <span className="gk-inline__error" role="alert">{t('Not saved. Check your connection and try again.')}</span>}
   </Tag>;
 }

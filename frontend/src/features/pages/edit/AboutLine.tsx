@@ -11,5 +11,5 @@ export function AboutLine() {
   const { page, saveIdentity } = usePageEdit();
   if (!page) return null;
   return <InlineText as="p" step="about" value={page.identity.about} placeholder={t('Say what you are, in one sentence')} label={t('About')} maxLength={160} className="gk-profile__summary"
-    onSave={next => void saveIdentity({ about: next, aboutAuto: false }, { label: t('About saved') })} />;
+    onSave={next => saveIdentity({ about: next, aboutAuto: false }, { label: t('About saved') })} />;
 }

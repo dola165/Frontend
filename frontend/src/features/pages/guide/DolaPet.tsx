@@ -1,318 +1,114 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
+import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useMediaQuery } from '../../world/useMediaQuery';
+import { useAuth } from '../../../context/AuthContext';
+import { usePageEdit, SETUP_PANEL } from '../edit/context';
 import { usePagesCopy } from '../copy';
-import type { SetupKey } from '../model/kinds';
-import { SETUP_PANEL, usePageEdit } from '../edit/context';
-import { usePhoneSteps } from '../edit/usePhoneSteps';
 import { stepWords } from '../edit/words';
-import { askPet, type PetAnswer } from './api';
-import { PetSprite, WALK_STEPS, type PetFrame } from './PetSprite';
-import { answerPanel, panelListens, usePetHint } from './bridge';
+import type { SetupKey } from '../model/kinds';
+import { GuidedFlow, type GuideTask } from './GuidedFlow';
 import { QuickAnswer } from './QuickAnswer';
 import { isQuick } from './quick';
-import { BOX } from './petFrames';
-import './pet.css';
+import { answerPanel, panelListens, usePetHint } from './bridge';
+import { runGuideTask, useGuideTask, useGuideTaskAdapter } from './taskBridge';
+import { useGuideCopy } from './copy';
+import { AskGuide } from './AskGuide';
 
-/** What each step means for the club, in Dola's words: no model. */
-const LINES: Record<string, string> = {
-  name: 'How people find you, so it comes first.',
-  crest: 'Your badge. It shows on your page, in search and beside every post. Upload yours or pick two colours.',
-  about: 'The one line visitors read first, like “Academy in Rustavi for U8–U14”.',
-  grounds: 'Where you train and play. It puts your club on the map for parents nearby.',
-  squads: 'Your teams by birth year. Each gets its own calendar and join link.',
-  contact: 'How parents reach you. Your phone becomes a WhatsApp button.',
-  fees: 'What a month costs, or Free. Parents filter by it when they search.',
-  players: 'One join link per team. Parents add their own child and you approve.',
-  ready: 'That’s everything. Go live when you like; anything can change later.',
-  waiting: 'To go live, name your page.',
+const WORDS: Record<string, [string, string]> = {
+  crest: ['Choose your crest', 'Pick your colours, or upload your badge.'],
+  about: ['Tell parents about your club', 'Keep this suggestion or write your own.'],
+  grounds: ['Where do you play?', 'Choose a ground on the map, or type its name.'],
+  squads: ['Which teams do you have?', 'Choose birth years and boys or girls. Training comes later on each team’s page.'],
+  contact: ['How can parents reach you?', 'Confirm the phone number for your page.'],
+  fees: ['What does a month cost?', 'Confirm the range, or choose Free.'],
+  players: ['Invite your players', 'Share a team’s join link when you are ready.'],
 };
-/** What to do inside the pop-up a step opens; she follows the person into it. */
-const PANEL_LINES: Record<string, string> = {
-  crest: 'Upload your badge, or pick two colours and a shape. The page shows it at once.',
-  grounds: 'Tap your pitch on the map or in the list. Not there? Type it under Another place.',
-  squads: 'Tap boys, girls or both beside each birth year you have. Each tap is a team.',
-  players: 'Share a team’s link in your parents’ WhatsApp group. They add their own child.',
-  staff: 'Invite a coach by phone, or share the invite link.',
-};
-/** What to type to Dola inside a pop-up that takes answers. */
-const PANEL_ASK: Record<string, string> = { grounds: 'Your ground’s name', squads: 'Birth years, like 2015, 2016 boys' };
-const TITLES: Record<string, string> = { ready: 'Ready to go live', waiting: 'Almost ready' };
-/** Where each step is done on the page. */
-const TARGETS: Record<string, string> = {
-  name: '[data-step="name"]', crest: '[data-step="crest"]', about: '[data-step="about"]', grounds: '[data-box="grounds"]', squads: '[data-box="squads"]',
-  contact: '[data-box="contact"]', fees: '[data-box="fees"]', players: '[data-box="squads"]', ready: '[data-coach="live"]', waiting: '[data-coach="live"]',
-};
-const EXAMPLES = ['Where do I add my ground?', 'What’s a birth year?'];
-/** How far she leans over a pop-up's edge. */
-const PEEK = 14;
-const W = 84, H = Math.round(W * BOX[3] / BOX[2]), EDGE = 8, BUBBLE = 280;
-const HIDDEN = 'gk-pet-hidden';
-const stored = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
-const store = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* a private window: for this visit only */ } };
 
-type Aim = 'down' | 'up' | 'left' | 'right';
-interface Spot { x: number; y: number; aim: Aim; rect: { top: number; left: number; width: number; height: number } }
-/**
- * She sits on top of the step and points down at it. A small target (a button) gets her beside it instead, and one at
- * the top of the window gets her under it; on the phone's step cards she stands under the card's content.
- */
-function spotFor(rect: DOMRect, under: boolean): Spot {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const clampX = (x: number) => Math.min(Math.max(x, EDGE), vw - W - EDGE);
-  const clampY = (y: number) => Math.min(Math.max(y, EDGE), vh - H - EDGE);
-  const box = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
-  if (!under && rect.width < W) {
-    const y = clampY(rect.top + rect.height / 2 - H / 2);
-    if (rect.left >= W + EDGE * 2) return { x: rect.left - W - 4, y, aim: 'right', rect: box };
-    if (rect.right + W + EDGE * 2 <= vw) return { x: rect.right + 4, y, aim: 'left', rect: box };
-  }
-  if (!under && rect.top - H >= EDGE) return { x: clampX(rect.left + 16), y: rect.top - H + 6, aim: 'down', rect: box };
-  return { x: clampX(rect.left + 16), y: clampY(rect.bottom + 6), aim: 'up', rect: box };
-}
-/**
- * In a pop-up she peeks over its left edge near the top, her bubble right under her, so she and the pop-up are seen
- * together; without room there, over its right edge, else on its top edge, else inside it under its title.
- */
-function panelSpot(rect: DOMRect): Spot {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const box = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
-  const y = Math.min(Math.max(rect.top + 24, EDGE), vh - H - EDGE);
-  if (rect.left >= W + EDGE) return { x: rect.left - W + PEEK, y, aim: 'right', rect: box };
-  if (rect.right + W + EDGE <= vw) return { x: rect.right - PEEK, y, aim: 'left', rect: box };
-  if (rect.top - H >= EDGE) return { x: rect.left + 16, y: rect.top - H + 6, aim: 'down', rect: box };
-  return { x: Math.max(rect.right - W - 56, EDGE), y: Math.min(rect.top + 64, vh - H - EDGE), aim: 'left', rect: box };
-}
-
-/**
- * Agent Dola as a pet on a club's draft (a prototype beside the set-up steps). From the moment the page is made she sits
- * on the next step, points at it and says what it means, with the step lit and the rest of the page dimmed. Skip moves
- * her on (only the name is needed). A tap asks her a question: the sandbox's pet guide (Jev picks the step, DeepSeek
- * words the answer) and she walks to that step. Short answers are typed in her bubble, and she follows the person into a
- * step's pop-up, where words typed to her are put in through the pop-up's own controls; she then says she understood.
- * She never decides anything for the person.
- */
+/** Club adapter for the shared runner. Page owners retain forms, version checks and mutations. */
 export function DolaPet() {
-  const t = usePagesCopy();
-  const { pathname, search } = useLocation();
-  const navigate = useNavigate();
-  const { page, panel, openStep } = usePageEdit();
-  const phone = usePhoneSteps();
-  const still = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const reachedKey = `gk-pet-reached:${pathname}`;
-  const [hidden, setHidden] = useState(() => stored(HIDDEN) === '1');
-  // How far the person has come: she only ever moves forward from here (an earlier step left undone never pulls them
-  // back; the ‹ arrow and the steps list reach it). Past the last step she points at Go live and stays.
-  const [reached, setReached] = useState(() => Number(stored(reachedKey)) || 0);
-  // A step chosen with her arrows, done or not, to change it; answering or skipping it hands back to the next step to do.
-  const [picked, setPicked] = useState<string | null>(null);
-  const wasPanel = useRef<string | null>(null);
-  const [asking, setAsking] = useState(false);
-  const [thinking, setThinking] = useState(false);
-  const [question, setQuestion] = useState('');
-  const [asked, setAsked] = useState<(PetAnswer & { forStep: string | null; forCard: string | null }) | null>(null);
-  const [spot, setSpot] = useState<Spot | null>(null);
-  const [walking, setWalking] = useState<'left' | 'right' | null>(null);
-  const [pose, setPose] = useState<'Wave' | 'Celebrate' | null>('Wave');
-  const [tick, setTick] = useState(0);
-  const [said, setSaid] = useState<string | null>(null);
-  const [reply, setReply] = useState('');
-  // Inside a pop-up she lives in it: a pop-up shuts the page off from the keyboard and the pointer.
-  const [host, setHost] = useState<HTMLElement | null>(null);
-  const last = useRef<Spot | null>(null);
-  const doneBefore = useRef(page?.setup.done ?? 0);
-
-  const items = page?.setup.items ?? [];
-  const pending = items.find((item, index) => index >= reached && !item.done)?.key ?? null;
-  const reach = (index: number) => { if (index > reached) { setReached(index); store(reachedKey, String(index)); } };
-  const cardStep = phone.open && phone.open !== 'end' ? phone.open : null;
-  // An answer counts until the step it was asked at is done or skipped; then she moves on.
-  const fresh = asked && asked.forStep === pending && asked.forCard === phone.open ? asked : null;
-  const step = cardStep ?? fresh?.step ?? picked ?? pending ?? (page?.goLive.ready ? 'ready' : 'waiting');
-  // In a step's pop-up she sits on its top edge and says what to do there; other pop-ups she leaves alone.
-  const inPanel = panel && PANEL_LINES[panel] ? panel : null;
-  // The pop-up can send her to a part of it (the map, to place a named ground) and tell her what to say.
-  const hint = usePetHint(inPanel);
-  const aim = inPanel && hint?.selector ? hint.selector : null;
-  const under = Boolean(phone.open) && !inPanel;
-  const selector = inPanel ? '.gk-dialog' : under ? '.gk-phonesteps__body' : TARGETS[step];
-  const away = hidden || Boolean(panel && !inPanel) || !page || page.status !== 'DRAFT';
-
-  // She waves hello first, and cheers each time a step gets done.
-  const done = page?.setup.done ?? 0;
-  useEffect(() => {
-    const cheer = done > doneBefore.current;
-    doneBefore.current = done;
-    const on = cheer ? window.setTimeout(() => setPose('Celebrate'), 0) : 0;
-    const off = window.setTimeout(() => setPose(null), cheer ? 1300 : 1600);
-    return () => { clearTimeout(on); clearTimeout(off); };
-  }, [done]);
-
-  useEffect(() => {
-    if (away) return;
-    let scrolled = false, switched = false, stop = 0;
-    const measure = () => {
-      const dialog = inPanel ? document.querySelector<HTMLElement>('.gk-dialog') : null;
-      const target = aim ? dialog?.querySelector<HTMLElement>(aim) ?? null : document.querySelector<HTMLElement>(selector);
-      if (!target) {
-        // The step's box is on the page's first tab: she switches to it rather than leave the person hunting.
-        const query = new URLSearchParams(search);
-        if (!inPanel && !under && !switched && query.has('tab')) { switched = true; query.delete('tab'); navigate({ pathname, search: `?${query}` }, { replace: true }); }
-        return;
-      }
-      const rect = target.getBoundingClientRect();
-      // She brings the whole step into view herself (room for her above it), once per step.
-      if (!scrolled && !inPanel && !under && (rect.top < H + EDGE || rect.bottom > window.innerHeight - EDGE)) {
-        scrolled = true;
-        target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
-        return;
-      }
-      setHost(dialog);
-      const to = inPanel ? panelSpot(rect) : spotFor(rect, under), from = last.current;
-      if (from && Math.abs(from.x - to.x) < 2 && Math.abs(from.y - to.y) < 2 && Math.abs(from.rect.height - to.rect.height) < 2) return;
-      last.current = to;
-      // Following the page as it scrolls is gliding; a jump to another step is a walk.
-      if (from && Math.hypot(to.x - from.x, to.y - from.y) > 80 && !still && (!inPanel || aim)) {
-        setWalking(to.x < from.x ? 'left' : 'right');
-        window.clearTimeout(stop);
-        stop = window.setTimeout(() => setWalking(null), 1000);
-      }
-      setSpot(to);
+  const { user, sessionId } = useAuth();
+  const edit = usePageEdit();
+  if (!edit.page || !edit.editing || edit.page.status !== 'DRAFT' || !user) return null;
+  return <ClubGuide key={`${user.id}:${sessionId}:${edit.page.ref.type}:${edit.page.ref.id}`} />;
+}
+function ClubGuide() {
+  const t = useGuideCopy(), pageCopy = usePagesCopy();
+  const { page, panel, goLive } = usePageEdit();
+  const { user } = useAuth();
+  const location = useLocation(), navigate = useNavigate();
+  const [selected, setSelected] = useState<string | null>(null);
+  const registered = useGuideTaskAdapter(selected && isQuick(selected) ? `quick:${selected}` : `input:${selected ?? ''}`);
+  if (!page || !user) return null;
+  const flowId = `club:${user.id}:${page.ref.type}:${page.ref.id}`;
+  const enter = (key: SetupKey | 'ready') => {
+    const query = new URLSearchParams(location.search);
+    ['steps', 'new', 'claimed', 'tab', 'rearrange'].forEach(item => query.delete(item));
+    if (key !== 'ready' && !isQuick(key)) query.set('panel', SETUP_PANEL[key]); else query.delete('panel');
+    navigate({ pathname: location.pathname, search: `?${query}`, hash: location.hash }, { replace: true });
+  };
+  const tasks: GuideTask[] = page.setup.items.map(item => {
+    const key = item.key;
+    const words = WORDS[key];
+    const quick = isQuick(key);
+    return {
+      id: key,
+      title: words ? t(words[0]) : pageCopy(stepWords(page.kind, key)),
+      description: words ? t(words[1]) : undefined,
+      target: !quick && panel === SETUP_PANEL[key] ? '.gk-dialog' : undefined,
+      enter: () => enter(key),
+      content: <>{quick ? <QuickAnswer step={key} page={page} /> : <PanelAnswer panelKey={SETUP_PANEL[key]} open={panel === SETUP_PANEL[key]} reopen={() => enter(key)} />}<AskGuide onStep={step => enter(step)} /></>,
+      nextLabel: selected === key ? registered?.nextLabel : undefined,
+      disabled: selected === key && registered?.disabled,
+      next: async () => {
+        if (!quick && panel !== SETUP_PANEL[key]) { enter(key); return { status: 'stay' }; }
+        return runGuideTask(quick ? `quick:${key}` : `input:${SETUP_PANEL[key]}`);
+      },
     };
-    const frame = window.requestAnimationFrame(measure), timer = window.setInterval(measure, 300);
-    window.addEventListener('scroll', measure, true);
-    window.addEventListener('resize', measure);
-    return () => { window.cancelAnimationFrame(frame); window.clearInterval(timer); window.clearTimeout(stop); window.removeEventListener('scroll', measure, true); window.removeEventListener('resize', measure); };
-  }, [aim, away, inPanel, navigate, pathname, search, selector, still, under]);
-
-  // When a step's pop-up closes, she goes on from the step after it.
-  const order = useRef({ items, reached, reachedKey });
-  useEffect(() => { order.current = { items, reached, reachedKey }; });
-  useEffect(() => {
-    const closed = wasPanel.current && !inPanel ? wasPanel.current : null;
-    wasPanel.current = inPanel;
-    if (!closed) return;
-    const { items: list, reached: far, reachedKey: key } = order.current;
-    const after = list.findIndex(item => SETUP_PANEL[item.key] === closed) + 1;
-    const timer = window.setTimeout(() => { setPicked(null); if (after > far) { setReached(after); store(key, String(after)); } }, 0);
-    return () => clearTimeout(timer);
-  }, [inPanel]);
-
-  // "Understood" stays a few seconds, then her usual line comes back.
-  useEffect(() => {
-    if (!said) return;
-    const timer = window.setTimeout(() => setSaid(null), 9000);
-    return () => clearTimeout(timer);
-  }, [said]);
-
-  useEffect(() => {
-    if (!walking) return;
-    const timer = window.setInterval(() => setTick(value => (value + 1) % WALK_STEPS.length), 130);
-    return () => clearInterval(timer);
-  }, [walking]);
-
-  if (!page) return null;
-  if (hidden) {
-    return createPortal(
-      <div className="gk gk-pet">
-        <button type="button" className="gk-pet__peek" aria-label={t('Show Dola')} onClick={() => { store(HIDDEN, '0'); setHidden(false); }}><PetSprite frame="Idle · front" className="gk-pet__peek-sprite" /></button>
-      </div>, document.body);
-  }
-  if (away || !spot) return null;
-
-  const ask = async (text: string) => {
-    const words = text.trim();
-    if (words.length < 2 || thinking) return;
-    setThinking(true);
-    const answer = await askPet(words);
-    setThinking(false);
-    setAsking(false);
-    setQuestion('');
-    setAsked({ forStep: pending, forCard: phone.open, step: answer.step, answer: answer.answer ?? (answer.step ? null : t('I help with setting up your page. Tap a box to fill it.')) });
-  };
-  const submit = (event: FormEvent) => { event.preventDefault(); void ask(question); };
-  const skip = () => {
-    if (cardStep) { const at = items.findIndex(item => item.key === cardStep); phone.show(items[at + 1]?.key ?? 'end'); return; }
-    reach(items.findIndex(item => item.key === step) + 1);
-    setPicked(null);
-  };
-
-  const frame: PetFrame = walking ? `Walk ${walking} · ${WALK_STEPS[tick]}` : thinking ? 'Thinking' : pose ?? `Point · ${spot.aim}`;
-  const shown = inPanel ?? step;
-  const isStep = items.some(item => item.key === shown);
-  const title = isStep ? stepWords(page.kind, shown as SetupKey) : TITLES[shown];
-  const line = inPanel ? hint?.line ?? t(PANEL_LINES[inPanel]) : fresh?.answer ?? t(LINES[step]);
-  // Short answers are typed right here; the phone's step cards have their own boxes for them.
-  const quick = !inPanel && !cardStep && isQuick(step) ? step : null;
-  // Where she is among the steps (past the last one when all are done or skipped), and whether this one is done.
-  const at = isStep && !inPanel ? items.findIndex(item => item.key === step) : items.length;
-  const stepDone = !inPanel && Boolean(items.find(item => item.key === step)?.done);
-  // Steps done in a pop-up (crest, grounds, teams, join links, staff) offer Open; on the phone's cards the card's own button does.
-  const opens = !inPanel && !cardStep && isStep && Boolean(PANEL_LINES[SETUP_PANEL[step as SetupKey]]);
-  // Words typed to her inside a pop-up go in through the pop-up's own controls; she says what she did.
-  const listens = inPanel && panelListens(inPanel) && !hint?.quiet ? inPanel : null;
-  const saying = said ?? hint?.said ?? null;
-  const answer = (event: FormEvent) => {
-    event.preventDefault();
-    if (!listens || !reply.trim()) return;
-    const did = answerPanel(listens, reply);
-    setSaid(did ? `${t('Understood.')} ${did}` : t('I didn’t catch that. Try the name as it is written.'));
-    if (did) setReply('');
-  };
-  const vw = window.innerWidth;
-  const fitsRight = spot.x + W + 8 + BUBBLE <= vw, fitsLeft = spot.x - 8 - BUBBLE >= 0;
-  // The bubble never covers what she points at: pointing right, it goes to her left.
-  const side = under ? 'below' : inPanel && spot.aim === 'right' ? 'below-end' : inPanel && spot.aim === 'left' ? 'below'
-    : spot.aim === 'right' ? (fitsLeft ? 'left' : 'below')
-    : fitsRight ? 'right' : fitsLeft ? 'left' : spot.y > 220 ? 'above' : 'below';
-
-  return createPortal(
-    <div className="gk gk-pet" data-still={still || undefined} data-panel={inPanel || undefined}>
-      {!under && !inPanel && <div className="gk-pet__spot" style={{ top: spot.rect.top - 6, left: spot.rect.left - 6, width: spot.rect.width + 12, height: spot.rect.height + 12 }} />}
-      <div className="gk-pet__body" style={{ transform: `translate(${spot.x}px, ${spot.y}px)` }}>
-        {!walking && (
-          <div className="gk-pet__bubble" data-side={side} role="status" aria-live="polite">
-            <button type="button" className="gk-pet__hide" aria-label={t('Hide Dola')} onClick={() => { store(HIDDEN, '1'); setHidden(true); }}><X aria-hidden="true" /></button>
-            {asking
-              ? <form className="gk-pet__ask" onSubmit={submit}>
-                  <input className="gk-pet__input" value={question} onChange={event => setQuestion(event.target.value)} maxLength={200} placeholder={t('Ask about setting up your page')} aria-label={t('Ask Dola')} autoComplete="off" autoFocus disabled={thinking} />
-                  <span className="gk-pet__examples">{EXAMPLES.map(example => <button key={example} type="button" className="gk-pet__example" disabled={thinking} onClick={() => void ask(t(example))}>{t(example)}</button>)}</span>
-                  {thinking && <span className="gk-pet__thinking">{t('Thinking…')}</span>}
-                </form>
-              : <>
-                  {saying && !inPanel && <p className="gk-pet__said">{saying}</p>}
-                  {title && <strong className="gk-pet__title">{t(title)}{stepDone && <span className="gk-pet__done"><Check aria-hidden="true" />{t('Done')}</span>}</strong>}
-                  {saying && inPanel && <p className="gk-pet__said">{saying}</p>}
-                  {!(saying && inPanel && !aim) && <p className="gk-pet__line">{line}</p>}
-                  {quick && <QuickAnswer key={quick} step={quick} page={page} onDone={() => { setSaid(t('Understood.')); reach(items.findIndex(item => item.key === quick) + 1); setPicked(null); }} />}
-                  {hint?.action && !listens && <span className="gk-pet__actions"><button type="button" className="gk-pet__action gk-pet__action--main" onClick={hint.action.run}>{hint.action.label}</button></span>}
-                  {listens && <form className="gk-pet__quick" onSubmit={answer}>
-                    <input className="gk-pet__input" value={reply} onChange={event => setReply(event.target.value)} maxLength={120} autoComplete="off" autoFocus aria-label={t(PANEL_ASK[listens])} placeholder={t(PANEL_ASK[listens])} />
-                    <span className="gk-pet__actions"><button type="submit" className="gk-pet__action gk-pet__action--main">{t('Add')}</button>{hint?.action && <button type="button" className="gk-pet__action" onClick={hint.action.run}>{hint.action.label}</button>}</span>
-                  </form>}
-                  {!inPanel && <span className="gk-pet__actions">
-                    {isStep && <button type="button" className="gk-pet__action" onClick={skip}>{t('Skip')}</button>}
-                    {/* A step done in a pop-up: Skip or Open it (she is still asked with a tap on her); otherwise Ask me. */}
-                    {opens
-                      ? <button type="button" className="gk-pet__action gk-pet__action--main" onClick={() => openStep(step as SetupKey)}>{t('Open')}</button>
-                      : <button type="button" className="gk-pet__action gk-pet__action--quiet" onClick={() => setAsking(true)}>{t('Ask me')}</button>}
-                  </span>}
-                  {/* Back and forth through every step, done or not, to change one and try her again. */}
-                  {!inPanel && !cardStep && <span className="gk-pet__nav">
-                    <button type="button" className="gk-pet__navbtn" aria-label={t('Previous step')} disabled={at <= 0} onClick={() => setPicked(items[at - 1].key)}><ChevronLeft aria-hidden="true" /></button>
-                    <span className="gk-pet__navcount">{t('Step {n} of {total}', { n: Math.min(at + 1, items.length), total: items.length })}</span>
-                    <button type="button" className="gk-pet__navbtn" aria-label={t('Next step')} disabled={at >= items.length - 1} onClick={() => setPicked(items[at + 1].key)}><ChevronRight aria-hidden="true" /></button>
-                  </span>}
-                </>}
-          </div>
-        )}
-        <button type="button" className="gk-pet__pet" aria-label={t('Ask Dola')} aria-expanded={asking} onClick={() => setAsking(value => !value)}>
-          <PetSprite frame={frame} className="gk-pet__sprite" />
-        </button>
-      </div>
-    </div>,
-    inPanel && host ? host : document.body,
-  );
+  });
+  tasks.push({
+    id: 'ready', title: t(page.goLive.ready ? 'Ready to go live' : 'Name your club'),
+    description: t('Only the name is required. You can add the rest later.'),
+    enter: () => enter('ready'), nextLabel: t('Go live'), canSkip: false,
+    content: !page.goLive.ready ? <QuickAnswer step="name" page={page} /> : undefined,
+    next: async () => {
+      if (!page.goLive.ready && (await runGuideTask('quick:name')).status !== 'complete') return { status: 'stay' };
+      return await goLive() ? { status: 'complete' } : { status: 'stay', message: t('Not saved. Your answer is still here. Try Next again.') };
+    },
+  });
+  // A different ordinary editor stays usable. Merely closing it never advances the guide.
+  const expected = selected && selected !== 'ready' ? SETUP_PANEL[selected as SetupKey] : null;
+  const suspended = Boolean(selected && panel && panel !== expected);
+  return <GuidedFlow flowId={flowId} title={t('Set up your club')} tasks={tasks} initialTaskId={page.setup.next ?? 'ready'} onTaskChange={setSelected} suspended={suspended} />;
+}
+function PanelAnswer({ panelKey, open, reopen }: { panelKey: string; open: boolean; reopen: () => void }) {
+  const t = useGuideCopy();
+  const hint = usePetHint(panelKey);
+  const editor = useGuideTaskAdapter(panelKey);
+  const [reply, setReply] = useState('');
+  useGuideTask(`input:${panelKey}`, {
+    disabled: !reply.trim() && editor?.disabled,
+    nextLabel: reply.trim() ? t('Next') : editor?.nextLabel,
+    next: async () => {
+      if (reply.trim()) {
+        let understood: string | null = null;
+        // Commit the editor's own state before its save callback reads it. No DOM clicks or timing guesses.
+        flushSync(() => { understood = answerPanel(panelKey, reply); });
+        if (!understood) return { status: 'stay', message: t('Choose a matching option in the editor.') };
+        setReply('');
+      }
+      const result = await runGuideTask(panelKey);
+      return result.status === 'stay' && !result.message
+        ? { status: 'stay', message: hint?.quiet && hint.line ? hint.line : t('Not saved. Your answer is still here. Try Next again.') }
+        : result;
+    },
+  });
+  if (!open) return <button type="button" onClick={reopen}>{t('Reopen this step')}</button>;
+  return <div className="gk-guide__reply">
+    {(hint?.line || hint?.said) && <p aria-live="polite">{hint?.line || hint?.said}</p>}
+    {panelListens(panelKey) && !hint?.quiet && <>
+      <label>{t(panelKey === 'grounds' ? 'Your ground’s name' : 'Birth years, like 2015, 2016 boys')}
+        <input value={reply} onChange={event => setReply(event.target.value)} maxLength={120} />
+      </label>
+    </>}
+  </div>;
 }

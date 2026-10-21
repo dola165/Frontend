@@ -19,7 +19,7 @@ export function FeesBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const band = page.boxes.fees.band;
   const text = feeBandText(band, { free: t('Free training'), month: t('month'), someFree: t('Some groups train free') });
   const persist = (next: FeeBand | null) => saveBox('fees', { band: next }, { label: t('Fees saved') });
-  const save = async (next: FeeBand | null) => { await persist(next); onClose(); };
+  const save = async (next: FeeBand | null) => { if (await persist(next)) onClose(); };
   return (
     <SideBlock title={t(page.kind === 'FAN_CLUB' ? 'Membership' : 'Training fees')} hint={t(page.kind === 'FAN_CLUB' ? 'What members pay' : 'Lowest to highest group')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <FeeEditor initial={band} suggestion={page.suggestions?.fees ?? null} onSave={save} onKeep={next => void persist(next)} onCancel={onClose} />

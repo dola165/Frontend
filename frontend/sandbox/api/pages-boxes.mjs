@@ -39,7 +39,7 @@ const savers = {
     return {};
   },
 
-  squads(page, data, viewer) {
+  squads(page, data) {
     if (!page.clubId) return fail(400, 'Only a club has squads.');
     const items = Array.isArray(data?.items) ? data.items.slice(0, 30) : null;
     if (!items) return fail(400, 'Send the squads as a list.');
@@ -54,7 +54,8 @@ const savers = {
       if (seen.has(`${age}:${gender}`) && !squad) continue;
       seen.add(`${age}:${gender}`);
       if (!squad) {
-        squad = { id: W.newId(), clubId: page.clubId, name: '', ageGroup: age, gender, headCoachId: page.ownerId === viewer ? viewer : null, playerIds: [], format: formatFor(age), trainingDays: [], trainingTime: null, groundId: null };
+        // Identifying a team is not a coaching appointment; staff invitations/assignments set its coach explicitly.
+        squad = { id: W.newId(), clubId: page.clubId, name: '', ageGroup: age, gender, headCoachId: null, playerIds: [], format: formatFor(age), trainingDays: [], trainingTime: null, groundId: null };
         W.squads.push(squad);
       }
       Object.assign(squad, { name: text(item?.name, 60) || squad.name || squadName(age, gender), ageGroup: age, gender, format: formatFor(age), trainingDays: days, trainingTime: time, groundId });
@@ -211,6 +212,6 @@ export function acceptInvite(page, invite, viewer) {
   page.staff.set(viewer, invite.role === 'ADMIN' ? 'ADMIN' : 'COACH');
   Object.assign(invite, { status: 'JOINED', userId: viewer, name: invite.name || viewerName(viewer) });
   const squad = invite.squadId ? W.squadById(invite.squadId) : null;
-  if (squad && invite.role === 'COACH' && (!squad.headCoachId || squad.headCoachId === page.ownerId)) squad.headCoachId = viewer;
+  if (squad && invite.role === 'COACH' && !squad.headCoachId) squad.headCoachId = viewer;
   return {};
 }

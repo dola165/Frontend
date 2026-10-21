@@ -1,5 +1,5 @@
 /* The founders' six sections, each the brand's G with its section symbol, from the brand book
-   (recoloured: Workspace violet, Store green, Fundraising orange, Ask George lime). Still: nothing here is a link or a button. */
+   (the book's own section colours). Still: nothing here is a link or a button. */
 
 .sections {
   display: grid;
@@ -34,7 +34,7 @@
 
 /* "AI" in the speech bubble, set in the display face and centred in the bubble. */
 .section-ai {
-  fill: var(--navy);
+  fill: #FFFFFF;
   font: 800 15px var(--display);
 }
 

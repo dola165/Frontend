@@ -28,8 +28,8 @@ export function toWorkspaceEvent(event: ScheduleEventOccurrence, ownerLabel: str
 
 /** The type filters people use: matches, training and everything else the club runs. */
 export type TypeFilter = 'all' | 'matches' | 'training' | 'events';
-export const typeFilters: Array<{ id: TypeFilter; label: string }> = [
-    { id: 'all', label: 'Everything' }, { id: 'matches', label: 'Matches' }, { id: 'training', label: 'Training' }, { id: 'events', label: 'Club events' },
+export const typeFilters: Array<{ id: TypeFilter; label: string; ka: string }> = [
+    { id: 'all', label: 'Everything', ka: 'ყველაფერი' }, { id: 'matches', label: 'Matches', ka: 'მატჩები' }, { id: 'training', label: 'Training', ka: 'ვარჯიში' }, { id: 'events', label: 'Club events', ka: 'კლუბის ღონისძიებები' },
 ];
 export const typeFilterFrom = (value: string | null): TypeFilter => typeFilters.some(filter => filter.id === value) ? value as TypeFilter : 'all';
 export function matchesType(type: ScheduleEventType, filter: TypeFilter) {

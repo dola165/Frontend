@@ -31,7 +31,6 @@
 .family-schedule-agenda{display:flex;flex-direction:column;margin-top:16px}
 .family-schedule-agenda>button{justify-content:flex-start;align-items:flex-start;gap:14px;text-align:left;padding:16px 0;border:0;border-top:1px solid var(--fc-border);border-radius:0;width:100%}
 .family-schedule-agenda>button[aria-pressed=true]{color:var(--fc-accent)}
-.family-agenda-date{font-size:28px;font-weight:750;line-height:1.1;color:var(--fc-accent);min-width:35px}
 .family-schedule-agenda small{display:block;font-size:11px;font-weight:400;color:var(--fc-text-secondary);margin-top:5px}
 .family-schedule-agenda strong{display:block;font-size:13px;line-height:1.5}
 .family-schedule-compact .family-event-detail{padding:12px}
@@ -71,8 +70,6 @@
 .family-schedule-compact .family-schedule-heading{margin-bottom:8px}
 .family-schedule-compact .family-schedule-agenda{margin-top:4px}
 .family-schedule-compact .family-schedule-agenda>button{display:flex;border:0;border-radius:0;border-bottom:1px solid var(--fc-border);padding:20px 0;gap:16px;justify-content:flex-start;align-items:flex-start}
-.family-schedule-compact .family-agenda-date{min-width:45px;font-size:34px;text-align:center;padding-top:2px}
-.family-schedule-compact .family-agenda-date small{text-transform:uppercase;font-size:11px}
 .family-schedule-compact .family-schedule-agenda strong{font-size:16px}
 .family-schedule-compact .family-schedule-agenda small{font-size:12px;line-height:1.5}
 .family-schedule-compact .family-schedule-agenda .family-next-label{color:var(--fc-accent);font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.06em;margin:0 0 5px}

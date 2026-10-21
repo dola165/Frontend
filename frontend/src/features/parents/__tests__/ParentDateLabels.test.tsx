@@ -39,7 +39,9 @@ function ParentSurfaces({ playerId, from }: { playerId: number; from: Date }) {
 }
 const show = (playerId = 61, from = NOW) => render(<MemoryRouter initialEntries={[`/parent?player=${playerId}`]}><ParentSurfaces playerId={playerId} from={from} /></MemoryRouter>);
 const nextLink = () => screen.getByRole('link', { name: /Fixture training stays English/ });
-const rangeHeading = () => document.querySelector('.family-agenda-heading') as HTMLElement;
+const rangeHeading = () => document.querySelector('.gk-board__range') as HTMLElement;
+// The day's column on the week board carries its weekday.
+const dayOf = (element: HTMLElement) => element.closest('section') as HTMLElement;
 const eventButton = () => screen.getByRole('button', { name: /Fixture training stays English/ });
 const expectedHref = (playerId: number, at = session.starts_at) => `/squads/10?tab=schedule&session=9&at=${encodeURIComponent(at)}&player=${playerId}`;
 
@@ -56,27 +58,27 @@ afterEach(async () => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi
 it('updates Next and embedded Upcoming on EN→KA without changing child/session/time, reads or commands', async () => {
     const original = JSON.stringify(session); show();
     await screen.findByRole('button', { name: /Fixture training stays English/ });
-    expect(nextLink()).toHaveTextContent('Monday'); expect(rangeHeading()).toHaveTextContent('17 Oct – 23 Oct');
+    expect(nextLink()).toHaveTextContent('Monday'); expect(rangeHeading()).toHaveTextContent('17–23 October 2026');
     const reads = vi.mocked(api.sessions).mock.calls.length;
     await act(async () => { await i18n.changeLanguage('ka'); });
     expect(nextLink()).toHaveTextContent('ორშაბათი 19 ოქტ');
     expect(nextLink()).toHaveTextContent('16:00–17:30'); expect(nextLink()).toHaveAttribute('href', expectedHref(61));
-    expect(rangeHeading()).toHaveTextContent('17 ოქტ – 23 ოქტ');
-    expect(within(eventButton()).getByText('ორშ')).toBeInTheDocument();
-    expect(eventButton()).toHaveTextContent('16:00 – 17:30'); expect(eventButton().querySelector('time')).toHaveAttribute('dateTime', session.starts_at);
+    expect(rangeHeading()).toHaveTextContent('17–23 ოქტ 2026');
+    expect(within(dayOf(eventButton())).getByText('ორშ')).toBeInTheDocument();
+    expect(eventButton()).toHaveTextContent('16:00–17:30'); expect(eventButton().querySelector('time')).toHaveAttribute('dateTime', session.starts_at);
     expect(screen.getByTestId('route')).toHaveTextContent('/parent?player=61');
     expect(api.sessions).toHaveBeenCalledTimes(reads);
     for (const call of vi.mocked(api.sessions).mock.calls) expect(call[2]).toMatchObject({ playerId: 61 });
     expect(JSON.stringify(session)).toBe(original); for (const method of mutationMethods()) expect(method).not.toHaveBeenCalled();
     await act(async () => { await i18n.changeLanguage('en'); });
-    expect(nextLink()).toHaveTextContent('Monday'); expect(rangeHeading()).toHaveTextContent('17 Oct – 23 Oct');
+    expect(nextLink()).toHaveTextContent('Monday'); expect(rangeHeading()).toHaveTextContent('17–23 October 2026');
 });
 
 it('freshly mounts Georgian for the selected sibling and opens the same read-only session context', async () => {
     await i18n.changeLanguage('ka'); show(62);
     await screen.findByRole('button', { name: /Fixture training stays English/ });
     expect(nextLink()).toHaveTextContent('ორშაბათი 19 ოქტ'); expect(nextLink()).toHaveAttribute('href', expectedHref(62));
-    expect(rangeHeading()).toHaveTextContent('17 ოქტ – 23 ოქტ');
+    expect(rangeHeading()).toHaveTextContent('17–23 ოქტ 2026');
     fireEvent.click(eventButton());
     const dialog = within(screen.getByRole('dialog', { name: session.title }));
     expect(dialog.getByRole('region', { name: /Saba/ })).toBeInTheDocument();
@@ -97,8 +99,8 @@ it('retains the local date across a year boundary and midnight while linking the
     expect(nextLink()).toHaveTextContent('სამშაბათი 5 იან'); expect(nextLink()).toHaveTextContent('00:30–02:00');
     expect(nextLink()).toHaveAttribute('href', expectedHref(62, shifted.starts_at));
     expect(rangeHeading()).toHaveTextContent('30 დეკ – 5 იან');
-    expect(within(eventButton()).getByText('სამ')).toBeInTheDocument();
+    expect(within(dayOf(eventButton())).getByText('სამ')).toBeInTheDocument();
     expect(eventButton().querySelector('time')).toHaveAttribute('dateTime', shifted.starts_at);
-    expect(eventButton()).toHaveTextContent('00:30 – 02:00');
+    expect(eventButton()).toHaveTextContent('00:30–02:00');
     for (const method of mutationMethods()) expect(method).not.toHaveBeenCalled();
 });

@@ -1,6 +1,6 @@
 /* Use the canonical schedule layout without the old miniature-calendar overrides. */
 .squad-schedule-workspace { min-width: 0; width: 100%; color: var(--fc-text-primary); }
-.squad-schedule-workspace > .schedule-direction { overflow: visible; padding: 20px 0 12px; }
+.squad-schedule-workspace > .schedule-direction { padding: 20px 0 12px; }
 .squad-schedule-workspace .schedule-direction-context > button {
     min-height: 40px; padding: 8px 0; border-radius: 6px;
     background: transparent; color: var(--fc-text-secondary); font-weight: 550;

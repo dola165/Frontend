@@ -57,7 +57,7 @@ describe('Family schedule', () => {
         render(<MemoryRouter><FamilySchedule squads={[{ id: 10, name: 'U12' }, { id: 11, name: 'U16' }]} /></MemoryRouter>);
         await screen.findByText('Passing practice');
         expect(screen.getByRole('heading', { name: 'Squad schedule.' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Week board' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Week' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Calendar' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Agenda' })).toBeInTheDocument();
         fireEvent.click(screen.getByText('Passing practice'));

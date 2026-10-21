@@ -2,18 +2,15 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageFrame } from '../../../design/primitives';
 import { ScheduleDirectionWorkspace } from '../../../components/schedule/ScheduleDirectionWorkspace';
-import { ScheduleGrid } from '../../../components/schedule/ScheduleGrid';
-import { ScheduleToolbar } from '../../../components/schedule/ScheduleToolbar';
 import { CalendarTutorial } from '../../../components/schedule/CalendarTutorial';
 import { useMobileSchedule } from '../../../components/schedule/useMobileSchedule';
-import { scheduleMonthEntries } from '../../../components/schedule/segments';
 import { EVENT_TYPES, type ScheduleWorkspaceEvent, type WorkspaceView } from '../../../components/schedule/workspaceTypes';
 import { MatchHistoryLink } from '../../matchHistory/MatchHistoryLink';
 import { EventDetailsDialog } from '../../schedule/board/EventDetailsDialog';
 import { toWorkspaceEvent } from '../../schedule/board/scheduleEvents';
 import { scheduleDestination } from '../../schedule/origin';
 import { useClubSchedule, type ClubTraining } from '../../clubs/profile/useClubSchedule';
-import { formatDate } from '../../../utils/formatting';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { useCalendarDay } from './useCalendarDay';
 import '../../squadCommunication/squad-schedule.css';
 import '../../parents/family-schedule.css';
@@ -27,10 +24,11 @@ const trainingEvent = (session: ClubTraining): ScheduleWorkspaceEvent => ({
 
 /**
  * The club's calendar in the workspace: every squad's training, matches and club events together, on the same
- * calendar coaches and families use. Squads are planned in My squads, where coaches drag sessions to move them.
+ * schedule coaches and families use. Squads are planned in My squads, where coaches drag sessions to move them.
  */
 export function ClubCalendar({ clubId, clubName, canManage }: { clubId: number; clubName: string; canManage: boolean }) {
     const navigate = useNavigate();
+    const copy = useJourneyCopy();
     const mobile = useMobileSchedule();
     const [date, setDate] = useCalendarDay();
     const [view, setView] = useState<WorkspaceView>('week');
@@ -56,23 +54,17 @@ export function ClubCalendar({ clubId, clubName, canManage }: { clubId: number; 
         else if (training && data.mySquads.includes(Number(training[1]))) navigate(`/my-squads?tab=calendar&squad=${training[1]}`);
         else setDetails(events.find(item => item.id === event.id) ?? null);
     };
-    const rangeLabel = formatDate(date, { month: 'long', year: 'numeric' });
 
     return <PageFrame className="cw-page">
         <section className="squad-schedule-workspace" aria-label={`${clubName} calendar`}>
-            <ScheduleDirectionWorkspace surface="CLUB_SCHEDULE" squadSchedule hideContext showHeading={false} title="Club calendar" clubName={clubName} canOpenClub
-                canCreate={canManage && data.mySquads.length > 0} createLabel="Plan training" mobile={mobile} busy={data.loading} date={date} days={days} view={view} rangeLabel={rangeLabel}
-                events={events} squadNamesById={Object.fromEntries(data.squads.map(squad => [squad.id, squad.name]))} eventTypes={types} publicOnly={false}
-                extraActions={<MatchHistoryLink clubId={clubId} className="schedule-direction-help" />}
-                notices={<>{data.error && <p role="alert" className="squad-schedule-notice">{data.error} <button type="button" onClick={data.retry}>Try again</button></p>}
-                    {data.privateSquads.length > 0 && <p className="squad-schedule-notice">Training times for {data.privateSquads.join(', ')} are shared with squad members only.</p>}</>}
-                onTypes={setTypes} onPublicOnly={() => {}} onSurface={() => {}} onView={setView} onDate={setDate} onPrevious={() => shift(-1)} onNext={() => shift(1)} onToday={() => setDate(new Date())}
-                onBack={() => {}} onHelp={() => setHelp(true)} onCreate={() => navigate('/my-squads?tab=calendar')} onCreateTraining={() => navigate('/my-squads?tab=calendar')} onSelect={select}
-                calendarContent={items => <div className="schedule-direction-calendar">
-                    <ScheduleToolbar workspaceLabel="Club calendar" rangeLabel={rangeLabel} viewMode={view} stats={[]} scheduleBusy={data.loading} onViewModeChange={setView} editMode={false} onToggleEditMode={() => {}} canEdit={false} />
-                    <div className="schedule-direction-calendar-grid"><ScheduleGrid viewMode={view} cursorDate={date} days={days} events={items} monthEvents={scheduleMonthEntries(items)}
-                        onSelectDate={setDate} onEditEvent={select} onOpenPastEvent={select} canCreate={false} onCreateAt={() => {}} editMode={false} onEventDragEnd={() => {}} /></div>
-                </div>} />
+            <ScheduleDirectionWorkspace surface="CLUB_SCHEDULE" squadSchedule hideContext showHeading={false} title={copy('Club calendar', 'კლუბის კალენდარი')} clubName={clubName} canOpenClub
+                canCreate={canManage && data.mySquads.length > 0} createLabel={copy('Plan training', 'ვარჯიშის დაგეგმვა')} mobile={mobile} busy={data.loading} date={date} days={days} view={view}
+                events={events} squadNamesById={Object.fromEntries(data.squads.map(squad => [squad.id, squad.name]))} eventTypes={types}
+                extraActions={<MatchHistoryLink clubId={clubId} className="gk-btn gk-btn--ghost gk-btn--sm" />}
+                notices={<>{data.error && <p role="alert" className="squad-schedule-notice">{data.error} <button type="button" onClick={data.retry}>{copy('Try again', 'ხელახლა ცდა')}</button></p>}
+                    {data.privateSquads.length > 0 && <p className="squad-schedule-notice">{copy(`Training times for ${data.privateSquads.join(', ')} are shared with squad members only.`, `${data.privateSquads.join(', ')} — ვარჯიშის დრო მხოლოდ გუნდის წევრებს უჩანთ.`)}</p>}</>}
+                onTypes={setTypes} onSurface={() => {}} onView={setView} onDate={setDate} onPrevious={() => shift(-1)} onNext={() => shift(1)} onToday={() => setDate(new Date())}
+                onBack={() => {}} onHelp={() => setHelp(true)} onCreate={() => navigate('/my-squads?tab=calendar')} onCreateTraining={() => navigate('/my-squads?tab=calendar')} onSelect={select} />
         </section>
         {details && <EventDetailsDialog event={details} onClose={() => setDetails(null)} />}
         {help && <CalendarTutorial canCreate={false} onComplete={() => setHelp(false)} />}

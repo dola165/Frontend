@@ -28,5 +28,5 @@ under `/__preview/` (so they never collide with the app's paths), which is why e
 The lockup (`assets/grasskickz-lockup.svg`) is the master artwork from the Grasskickz brand book
 (Concept F v2, primary dark lockup), taken from the book's vector paths, not redrawn. Replace it if
 the founders supply master SVG files. Colours and type follow the same book. The six section
-icons are the book's section marks (page 13), taken from its vector paths; Store is violet
-instead of red, and the "AI" in Ask George is set in Unbounded.
+icons are the book's section marks (page 13), taken from its vector paths; recoloured
+(Workspace violet, Store green, Fundraising orange, Ask George lime with "AI" set in Unbounded).

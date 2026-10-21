@@ -1,6 +1,6 @@
 import { CreateLink } from '../features/pages/create/CreateLink';
 import { pt } from '../features/pages/copy';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Briefcase, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ import '../features/store/store.css';
 import '../features/campaigns/campaigns.css';
 import '../features/jobs/jobs.css';
 
-interface Draft { posterKind: 'CLUB' | 'PERSON'; direction: JobDirection; category: string; terms: string; hours: JobHours | ''; title: string; description: string; pay: string; city: string; licence: string; applyMethod: JobApplyMethod | ''; applyTarget: string; /** The club the person was in while writing it. */ clubId: number | null }
+interface Draft { posterKind: 'CLUB' | 'PERSON'; direction: JobDirection; category: string; terms: string; hours: JobHours | ''; title: string; description: string; pay: string; city: string; licence: string; applyMethod: JobApplyMethod | ''; applyTarget: string; /** The club explicitly selected while writing it. */ clubId: number | null; clubName?: string }
 const empty: Draft = { posterKind: 'PERSON', direction: 'HIRING', category: '', terms: 'PAID', hours: '', title: '', description: '', pay: '', city: '', licence: '', applyMethod: '', applyTarget: '', clubId: null };
 /**
  * The ways to answer that work for this poster and line of work: the in-app application exists for coaching roles
@@ -37,22 +37,23 @@ const methods = (kind: 'CLUB' | 'PERSON', direction: JobDirection, category: str
 export const PostJobPage = () => {
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
-    const { status } = useAuth();
+    const { status, user } = useAuth();
     const { area } = useWorldArea();
     const step = Math.min(3, Math.max(1, Number(params.get('step')) || 1));
     const side = params.get('as') === 'hire' ? 'hire' : params.get('as') === 'work' ? 'work' : null;
     // The draft is the signed-in person's; a club draft is for the club they were in when they wrote it.
-    const owned = useOwnedDraft<Draft>('job', empty, { ...(params.get('club') ? { posterKind: 'CLUB' as const } : {}), ...(side ? { direction: side === 'hire' ? 'HIRING' as const : 'OFFERING' as const } : {}) });
+    const requestedClub = Number(params.get('club')) || null;
+    const owned = useOwnedDraft<Draft>('job', empty, { ...(requestedClub ? { posterKind: 'CLUB' as const, clubId: requestedClub } : {}), ...(side ? { direction: side === 'hire' ? 'HIRING' as const : 'OFFERING' as const } : {}) });
     const draft = owned.draft;
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
-    const membership = useWorldData(status === 'authenticated' ? 'my-club' : null, () => fetchMyClubMembershipContext());
+    const membership = useWorldData(status === 'authenticated' ? `my-club:${user?.id ?? ''}` : null, () => fetchMyClubMembershipContext());
     const club = membership.data;
     const clubAllowed = !!club?.clubId && canManageClubOperations(club.myRole);
-    const posterKind = draft.posterKind === 'CLUB' && clubAllowed ? 'CLUB' : 'PERSON';
-    const change = (patch: Partial<Draft>) => owned.change({ ...patch, clubId: club?.clubId ?? null });
-    const otherClub = draft.posterKind === 'CLUB' && draft.clubId != null && !!club && draft.clubId !== club.clubId;
-    useEffect(() => { if (otherClub) owned.reset(); }, [otherClub]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Permission checks may block this actor, but never silently choose another one.
+    const posterKind = draft.posterKind;
+    const actorAllowed = posterKind === 'PERSON' || (!membership.loading && !membership.error && clubAllowed && (draft.clubId == null || draft.clubId === club?.clubId));
+    const change = (patch: Partial<Draft>) => owned.change({ ...patch, ...(patch.posterKind === 'CLUB' && clubAllowed ? { clubId: club!.clubId, clubName: club!.clubName ?? undefined } : {}) });
     const go = (next: number) => setParams(current => { const copy = new URLSearchParams(current); if (next > 1) copy.set('step', String(next)); else copy.delete('step'); return copy; });
     const offering = draft.direction === 'OFFERING';
     const city = draft.city || (posterKind === 'CLUB' ? club?.clubName && area.city : area.city) || area.city;
@@ -63,7 +64,7 @@ export const PostJobPage = () => {
     const needsTarget = applyMethod === 'EMAIL' || applyMethod === 'LINK';
     const targetOk = !needsTarget || (applyMethod === 'EMAIL' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.applyTarget.trim()) : /^https?:\/\/\S+$/.test(draft.applyTarget.trim()));
     const publish = async () => {
-        if (saving || !applyMethod) return;
+        if (saving || !applyMethod || !actorAllowed || !stepOneDone || !stepTwoDone || !targetOk) return;
         setSaving(true); setError('');
         try {
             const job = await postJob({ posterKind, clubId: posterKind === 'CLUB' ? club?.clubId : null, direction: draft.direction, title: draft.title.trim(), description: draft.description.trim(), category: draft.category as never, engagementType: draft.terms as never, hours: draft.hours || null, pay: draft.pay.trim(), city, licence: draft.licence.trim() || undefined, applyMethod, applyTarget: needsTarget ? draft.applyTarget.trim() : undefined, requiredRole: applyMethod === 'IN_APP' ? 'COACH' : null });
@@ -76,7 +77,13 @@ export const PostJobPage = () => {
     const steps = <div className="gk-fund-start__steps" aria-label={`Step ${step} of 3`}>{[1, 2, 3].map(n => <span key={n} data-done={n <= step || undefined} />)}</div>;
     const body = status === 'bootstrapping' || membership.loading ? <><Skeleton height={34} width={320} /><Skeleton height={120} /></>
         : status !== 'authenticated' ? <EmptyNote title="Sign in to post" action={<ButtonLink variant="primary" to={`/login?next=${encodeURIComponent(`/jobs/new${params.toString() ? `?${params}` : ''}`)}`}>Sign in</ButtonLink>}>Anyone with an account can post: a club, a parent, a coach, a referee.</EmptyNote>
-        : step === 1 ? <>
+        : <>
+        {posterKind === 'CLUB' && <div className="gk-notice" role={actorAllowed ? 'status' : 'alert'}>
+            <strong>Posting as {draft.clubName || (draft.clubId === club?.clubId || draft.clubId == null ? club?.clubName : '') || 'your club'}</strong>
+            {!actorAllowed && <><p>{membership.error ? 'Your club could not be checked. Your draft is still for the club.' : 'This club draft needs confirmed staff permission. Your answers are still here.'}</p><Button size="sm" onClick={membership.retry}>Retry club check</Button><Button size="sm" variant="ghost" onClick={() => change({ posterKind: 'PERSON', applyMethod: '' })}>Post as myself instead</Button></>}
+        </div>}
+        {posterKind === 'PERSON' && membership.error && <p className="gk-notice">Your club could not be checked. You are posting as yourself. <Button size="sm" onClick={membership.retry}>Retry club check</Button></p>}
+        {step === 1 ? <>
             {steps}
             <div><h1>{offering ? 'What do you offer?' : 'What do you need?'}</h1><p className="gk-fund-start__lead">{side ? offering ? 'Your line of work. Clubs and families looking to hire find you by it.' : 'The line of work. People find your job by it.' : 'Pick the line of work. People find listings by it.'}</p></div>
             {!side && <div className="gk-fund-start__tiles" role="group" aria-label="Which way round" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
@@ -88,11 +95,11 @@ export const PostJobPage = () => {
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'CLUB'} onClick={() => change({ posterKind: 'CLUB' })}>As {club?.clubName}</button>
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'PERSON'} onClick={() => change({ posterKind: 'PERSON' })}>As myself</button>
             </div>}
-            {!offering && !clubAllowed && <p className="gk-muted">{pt('Posting for a club?')} <CreateLink kind="CLUB" from="jobs" variant="text">{pt('Start your club')}</CreateLink></p>}
+            {!offering && !membership.error && !club?.hasClubMembership && <p className="gk-muted">{pt('Posting for a club?')} <CreateLink kind="CLUB" from="jobs" variant="text">{pt('Start your club')}</CreateLink></p>}
             <div className="gk-fund-start__tiles" role="group" aria-label="Line of work">
                 {CATEGORIES.map(category => <button key={category.value} type="button" className="gk-fund-start__tile" aria-pressed={draft.category === category.value} onClick={() => change({ category: category.value })}><category.icon aria-hidden="true" /><strong>{category.label}</strong><small>{category.line}</small></button>)}
             </div>
-            <div className="gk-fund-start__foot"><ButtonLink variant="ghost" to="/jobs"><ArrowLeft aria-hidden="true" />Jobs</ButtonLink><Button variant="primary" disabled={!stepOneDone} onClick={() => go(2)}>Continue</Button></div>
+            <div className="gk-fund-start__foot"><ButtonLink variant="ghost" to="/jobs"><ArrowLeft aria-hidden="true" />Jobs</ButtonLink><Button variant="primary" disabled={!stepOneDone || !actorAllowed} onClick={() => go(2)}>Continue</Button></div>
         </>
         : step === 2 ? <>
             {steps}
@@ -108,7 +115,7 @@ export const PostJobPage = () => {
                 <Field label="Where" htmlFor="job-city" hint="The town; the exact place comes later"><input id="job-city" className="gk-input" maxLength={60} value={draft.city} placeholder={city} onChange={event => change({ city: event.target.value })} /></Field>
             </div>
             {draft.category === 'COACHING' && !offering && <Field label="Licence needed" htmlFor="job-licence" hint="Optional"><input id="job-licence" className="gk-input" maxLength={60} placeholder="For example: UEFA C" value={draft.licence} onChange={event => change({ licence: event.target.value })} /></Field>}
-            <div className="gk-fund-start__foot"><Button variant="ghost" onClick={() => go(1)}><ArrowLeft aria-hidden="true" />Back</Button><Button variant="primary" disabled={!stepTwoDone} onClick={() => go(3)}>Continue</Button></div>
+            <div className="gk-fund-start__foot"><Button variant="ghost" onClick={() => go(1)}><ArrowLeft aria-hidden="true" />Back</Button><Button variant="primary" disabled={!stepTwoDone || !actorAllowed} onClick={() => go(3)}>Continue</Button></div>
         </>
         : <>
             {steps}
@@ -119,7 +126,8 @@ export const PostJobPage = () => {
             {needsTarget && <Field label={applyMethod === 'EMAIL' ? 'Email address' : 'Link'} htmlFor="job-target" hint={draft.applyTarget && !targetOk ? (applyMethod === 'EMAIL' ? 'That is not an email address.' : 'The link must start with https://') : undefined}><input id="job-target" className="gk-input" type={applyMethod === 'EMAIL' ? 'email' : 'url'} placeholder={applyMethod === 'EMAIL' ? 'jobs@yourclub.ge' : 'https://…'} value={draft.applyTarget} onChange={event => change({ applyTarget: event.target.value })} /></Field>}
             <div className="gk-fund-start__club"><Briefcase aria-hidden="true" style={{ color: 'var(--gk-accent)' }} /><div><strong>{draft.title.trim()}</strong><small>{[CATEGORIES.find(c => c.value === draft.category)?.label, draft.pay.trim() || TERMS.find(t => t.value === draft.terms)?.label, city, posterKind === 'CLUB' ? `as ${club?.clubName}` : 'as yourself'].filter(Boolean).join(' · ')}</small></div></div>
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
-            <div className="gk-fund-start__foot"><Button variant="ghost" disabled={saving} onClick={() => go(2)}><ArrowLeft aria-hidden="true" />Back</Button><Button variant="primary" disabled={saving || !stepOneDone || !stepTwoDone || !targetOk} onClick={() => void publish()}>{saving ? 'Publishing…' : offering ? 'List myself' : 'Publish'}</Button></div>
+            <div className="gk-fund-start__foot"><Button variant="ghost" disabled={saving} onClick={() => go(2)}><ArrowLeft aria-hidden="true" />Back</Button><Button variant="primary" disabled={saving || !actorAllowed || !stepOneDone || !stepTwoDone || !targetOk} onClick={() => void publish()}>{saving ? 'Publishing…' : offering ? 'List myself' : 'Publish'}</Button></div>
+        </>}
         </>;
     return (
         <GkRoot className="gk-store gk-page" data-market="jobs">

@@ -1,36 +1,33 @@
 # GrassKickZ frontend — project instructions
 
-## Read the shared project context
+For every coding assistant on the team (Claude, Codex).
 
-The complete, maintained project guide is `AGENTS.md` at the root of the **paired backend repository**, `dola165/GrassKickZ`. Read it before architecture, mobile, cross-repository or deployment work, together with its `docs/TEAM_CURRENT_STATE.md`, `docs/TEAM_WORKFLOW.md` and relevant feature note. It explains the major product areas, actual Android/iOS boundaries, device roles, verification and production safeguards.
+## Shared context lives in the backend
 
-Locate the backend checkout on this machine; do not assume the founder's filesystem paths apply. The backend is private and this frontend repository is public. Do not copy private operational records, secrets, production exports or personal chat history into this repository. If the backend guide is inaccessible, state the missing context and proceed only where the available evidence supports the work.
+The complete, maintained project guide is `AGENTS.md` at the root of the paired private backend repository, `dola165/GrassKickZ`. Read it before architecture, mobile, cross-repository or deployment work, together with its `docs/TEAM_CURRENT_STATE.md` (current branches and live release). Locate the backend checkout on this machine; do not assume another person's paths. If it is unavailable, say which context is missing and proceed only where the evidence supports the work.
 
-The current accepted web/workflow starting branch is `codex/football-experience-20261009` in both repositories; resolve its freshly fetched heads using the backend current-state note. The older transition baseline and default branches may omit the latest accepted work. Check actual host, branch, commit, local changes and fetched upstream before relying on old chat context. The default branches may still be older. Preserve local work; do not blindly reset, stash or pull a dirty checkout.
+This repository is public. Never copy private operational records, secrets, production exports or personal chat history into it.
+
+Before starting, check the actual branch, commit, uncommitted changes and fetched upstream. Preserve local work; never blindly reset, stash or pull a dirty checkout.
 
 ## Application map
 
-- The web application lives in `frontend/`; entry points are `src/App.tsx`, `pages/`, `features/`, `api/`, `context/` and `components/` under that directory. React, TypeScript and Vite versions come from the package/lockfiles; Node 24 is the current working baseline.
-- Product areas include identity/accounts, clubs and organizations, squads and joining, family/guardian workflows, schedules/training, match exchange/referees/results, tournaments, maps/venues, posts/media, chat/notifications, jobs/store/campaigns and in-product Agent Dola. Verify each relevant route and API before claiming completeness.
-- Some web product screens are also packaged into the Android app. Inspect `src/android/` and the backend's Android source before changing native bridge behavior. Updating web source does not automatically update an installed APK.
-- Android's use of web surfaces does not decide the iOS architecture. Read the canonical guide's iOS inventory before proposing an app or claiming an existing Xcode target. Preserve user requirements instead of inventing missing features or silently reducing scope.
-- From `frontend/`, `npm ci` installs locked dependencies; `npm run check` runs lint, tests and build. Use focused tests where appropriate and report skipped/unverified coverage. Read `frontend/AGENTS.md` for the application's additional instructions.
+- The web app lives in `frontend/`. Entry points: `src/App.tsx`, `pages/`, `features/`, `api/`, `context/`, `components/`. Versions come from the package and lockfiles; Node 24 is the baseline.
+- Product areas: identity/accounts, clubs and organizations, squads and joining, family/guardian workflows, schedules/training, match exchange/referees/results, tournaments, maps/venues, posts/media, chat/notifications, jobs/store/campaigns and in-product Agent Dola. Verify each route and API before claiming it is complete.
+- Some screens are also packaged into the Android app (`src/android/`). Web edits do not update an installed APK. Android's use of web screens does not decide the iOS architecture.
+- From `frontend/`: `npm ci`, then `npm run check` (lint, tests, build) or `npm test -- <paths>` for focused tests. UI and code-shape rules are in `frontend/AGENTS.md`.
 
 ## Product standard
 
-- Primary review context: `coach@talanti.ge` and **FC Dinamo Tbilisi Academy**. Use other accounts/clubs for additional permission coverage, not as a replacement for the everyday review context.
-- Simplify everyday work without removing useful capability. Keep a stable workspace across approved responsibilities; use squad/task context rather than artificial role modes. Access/role requests require the appropriate leadership approval.
-- Build for the quality expected by UEFA: credible football data, coherent workflows, accessibility, privacy, polished responsive design and clear language. This is an ambition, not a claim of approval or affiliation.
-- Public football identity is separate from account permissions and organization ownership. Support multiple roles. Professional profiles need relevant experience/qualifications; simpler personas remain simple unless they also hold professional roles. Never invent careers, accreditation or verification.
-- Preserve backend authorization, account/session isolation, drafts, uploads, cancellation, mutation conflicts and honest loading/error feedback. In-product Agent Dola can help complicated workflows; keep useful functionality discoverable.
+- Primary review context: `coach@talanti.ge` and **FC Dinamo Tbilisi Academy**. Other accounts and clubs add permission coverage; they do not replace it.
+- Build for the quality expected by UEFA: credible football data, coherent workflows, accessibility, privacy, polished responsive design and clear language. An ambition, not a claim of affiliation.
+- Simplify everyday work without removing useful capability. Keep one stable workspace across a person's approved responsibilities; use squad and task context rather than role modes.
+- Public football identity is separate from account permissions. Support multiple roles. Never invent careers, accreditation, verification, counts or successful actions.
+- Preserve backend authorization, account/session isolation, drafts, uploads, cancellation, mutation conflicts and honest loading/error states.
 
-## Work, publication and deployment
+## Work and publication
 
-- Close tasks with relevant local verification, reviewed diffs, useful context updates, commits/pushes and clear handoff. Record paired revisions for cross-repository work. Distinguish local, pushed, merged and deployed; a GitHub commit does not identify the running deployment.
-- GitHub Actions is off at the user's request (8 October 2026). Do not add or re-enable hosted test/build/CodeQL workflows without a new request. Keep appropriate local checks and deployment safeguards.
-- The mini PC is the authoritative live host and serialized build/release hub after the completed 9 October cutover. The desktop and other team machines develop locally in isolated checkouts. Publish accepted source through Git, then have the mini build/rehearse/promote the exact approved revision with backup, health and rollback safeguards. The old desktop live stack stays retired. An authorized deployment request from the development chat carries through its named scope without a second approval on the mini. Read the private backend workflow and web-only runbook; documentation-only changes do not trigger deployment.
-- Work directly in the current task with the user's selected Codex model and reasoning effort. Do not introduce model-selection machinery or force different settings.
-- Work without subagents unless explicitly asked to delegate. Create separate user-visible tasks only when explicitly requested.
-- Do not call Jev or another external service to choose development models, allocate work or advise orchestration. In-product Jev/Dola has separate credentials and spending controls.
-- Use ChatGPT subscription authentication for OpenAI development models. Do not add a separately billed generative API fallback or silently change models/billing.
-- Preserve existing work and use focused verification. Keep necessary correctness, security, migration, backup and deployment checks; avoid repeated investigation without a concrete reason.
+- Finish a task with relevant checks, a reviewed diff and a short context update. Commit and push only after the owner accepts the change. Record paired revisions for cross-repository work and keep local, pushed, merged and deployed separate.
+- Deploy only when the owner asks for it in the current task, through the guarded release path described in the backend guide. Documentation-only changes never trigger a deployment.
+- GitHub Actions is off at the owner's request (8 October 2026). Do not add hosted CI unless asked.
+- Each assistant uses the model, settings and subscription the owner chose for it. Do not switch tools, models or billing. Do not run parallel writing agents unless asked; never let two assistants write to the same branch at once.

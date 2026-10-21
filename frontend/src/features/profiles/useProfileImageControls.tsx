@@ -4,6 +4,7 @@ import { Button } from '../../design/primitives';
 import { useIdentityImageEditor } from '../../hooks/useIdentityImageEditor';
 import { ImageCropperModal } from '../../ui/ImageCropperModal';
 import { CROP_IMAGE_ACCEPT } from '../../utils/cropImageHelper';
+import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 
 type ImageKind = 'logo' | 'avatar';
 
@@ -15,6 +16,7 @@ export function useProfileImageControls<K extends ImageKind>({ enabled, scope, i
     enabled: boolean; scope: string; imageKind: K; hasCover: boolean;
     onSave: (field: 'banner' | K, url: string) => Promise<void>;
 }) {
+    const copy = useJourneyCopy();
     const editor = useIdentityImageEditor(async (kind, url) => {
         if (!enabled) throw new Error('You do not have permission to change these photos.');
         await onSave(kind === 'banner' ? 'banner' : imageKind, url);
@@ -30,19 +32,19 @@ export function useProfileImageControls<K extends ImageKind>({ enabled, scope, i
     const coverAction = enabled ? <>
         <input ref={coverInput} type="file" hidden accept={CROP_IMAGE_ACCEPT} onChange={event => pick(event, 'banner')} />
         <Button size="sm" disabled={!!busy} onClick={() => coverInput.current?.click()}>
-            {busy === 'banner' ? <Loader2 className="gk-spin" aria-hidden="true" /> : <Camera aria-hidden="true" />}{hasCover ? 'Change cover' : 'Add cover'}
+            {busy === 'banner' ? <Loader2 className="gk-spin" aria-hidden="true" /> : <Camera aria-hidden="true" />}{hasCover ? copy('Change cover', 'გარეკანის შეცვლა') : copy('Add cover', 'გარეკანის დამატება')}
         </Button>
     </> : null;
     const imageAction = enabled ? <>
         <input ref={imageInput} type="file" hidden accept={CROP_IMAGE_ACCEPT} onChange={event => pick(event, imageKind)} />
-        <Button size="sm" iconOnly disabled={!!busy} aria-label={busy === imageKind ? `Uploading ${imageName}` : `Change ${imageName}`} onClick={() => imageInput.current?.click()}>
+        <Button size="sm" iconOnly disabled={!!busy} aria-label={busy === imageKind ? copy(`Uploading ${imageName}`, 'ფოტო იტვირთება') : imageKind === 'logo' ? copy('Change club crest', 'კლუბის ემბლემის შეცვლა') : copy('Change profile photo', 'პროფილის ფოტოს შეცვლა')} onClick={() => imageInput.current?.click()}>
             {busy === imageKind ? <Loader2 className="gk-spin" aria-hidden="true" /> : <Camera aria-hidden="true" />}
         </Button>
     </> : null;
     const dialogs = <>
         {editor.error && !editor.source && <p role="alert" className="gk-notice gk-notice--danger">{editor.error}</p>}
         {editor.source && <ImageCropperModal isOpen imageUrl={editor.source.imageUrl}
-            title={editor.source.type === 'banner' ? 'Adjust cover photo' : imageKind === 'logo' ? 'Adjust club crest' : 'Adjust profile photo'}
+            title={editor.source.type === 'banner' ? copy('Adjust cover photo', 'გარეკანის მორგება') : imageKind === 'logo' ? copy('Adjust club crest', 'კლუბის ემბლემის მორგება') : copy('Adjust profile photo', 'პროფილის ფოტოს მორგება')}
             aspectRatio={editor.source.type === 'banner' ? 3 : 1} roundPreview={editor.source.type === 'avatar'}
             onClose={editor.close} onCropComplete={editor.save} isProcessing={!!busy} error={editor.error} />}
     </>;

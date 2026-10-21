@@ -27,12 +27,17 @@ export interface AccountProps {
 const languageNames: Record<string, string> = { en: 'English', ka: 'ქართული' };
 const languageName = (code: string) => languageNames[code] ?? code.toUpperCase();
 
+export function AccountSettingsLink({ menu = false }: { menu?: boolean }) {
+    const copy = useJourneyCopy();
+    return <Link role={menu ? 'menuitem' : undefined} to="/account" className="gk-menu__item"><Settings aria-hidden="true" />{copy('Account & settings', 'ანგარიში და პარამეტრები')}</Link>;
+}
+
 /**
  * Profile, schedule, settings, workspaces, appearance, language and signing out: the desktop account menu (as menu
  * items) and the phone's "You" sheet (as plain links and toggles) list the same things.
  */
-export function AccountItems({ user, workspaces, themePreference, setThemePreference, onLogout, close, menu, profile = true, createPage = true }: AccountProps & {
-    close: (returnFocus?: boolean) => void; menu: boolean; profile?: boolean; createPage?: boolean;
+export function AccountItems({ user, workspaces, themePreference, setThemePreference, onLogout, close, menu, profile = true, createPage = true, accountSettings = true }: AccountProps & {
+    close: (returnFocus?: boolean) => void; menu: boolean; profile?: boolean; createPage?: boolean; accountSettings?: boolean;
 }) {
     const copy = useJourneyCopy();
     const { i18n } = useTranslation();
@@ -52,7 +57,7 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
                 <span className="gk-menu__profile-text"><strong>{name}</strong><span>{copy('View your profile', 'პროფილის ნახვა')}</span></span>
             </Link>}
             <Link role={item} to={`/profile/${user.id}?tab=schedule`} className="gk-menu__item"><CalendarDays aria-hidden="true" />{copy('My schedule', 'ჩემი განრიგი')}</Link>
-            <Link role={item} to="/account" className="gk-menu__item"><Settings aria-hidden="true" />{copy('Account & settings', 'ანგარიში და პარამეტრები')}</Link>
+            {accountSettings && <AccountSettingsLink menu={menu} />}
             {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                 <Link role={item} to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>
             )}

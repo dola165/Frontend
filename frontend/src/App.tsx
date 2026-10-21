@@ -12,7 +12,7 @@ import { AppPageFrame } from './components/layout/AppPageShell';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { isSystemAdmin } from './context/navigationCapabilities';
 import { AuthSessionBoundary } from './context/AuthSessionBoundary';
-import { buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
+import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, completeSignOutNavigation, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
 import { applyDocumentTheme, readThemePreference, themeForRoute, isThemePreference, type ThemePreference } from './theme';
 import { AppSettingsPage } from './android/AppSettingsPage';
@@ -185,6 +185,7 @@ export function MainLayout() {
     // Re-render presentation on language changes without remounting page state.
     useTranslation();
     const location = useLocation();
+    useEffect(() => { if (location.pathname === '/login') completeSignOutNavigation(); }, [location.pathname]);
     const navigate = useNavigate();
     useEffect(() => {
         if (isAndroidApp) void nativeCall({ kind: 'destination', path: location.pathname });
@@ -285,8 +286,11 @@ export function MainLayout() {
 
     const handleLogout = async () => {
         setMyClubId(null);
-        await logout();
+        beginExplicitSignOut();
+        const endingSession = logout();
+        // Leave private routes now: a delayed response must not capture their address or redirect a later account.
         navigate('/login', { replace: true });
+        await endingSession;
     };
 
     const isLandingPage = location.pathname === '/';

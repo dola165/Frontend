@@ -31,6 +31,7 @@ export interface AuthDestinationUser {
 }
 
 let memoryFlow: AuthFlowState = {};
+let explicitSignOut = false;
 
 export const sanitizeAuthRedirect = (value?: string | null) => {
     if (typeof value !== 'string' || !value || value.length > 2000) return null;
@@ -93,9 +94,14 @@ export const rememberAuthFlow = (updates: AuthFlowState) => {
 };
 
 export const clearAuthFlow = () => {
+    explicitSignOut = false;
     memoryFlow = {};
     try { window.sessionStorage.removeItem(AUTH_FLOW_STORAGE_KEY); } catch { /* Storage may be disabled. */ }
 };
+
+/** Protected routes may render once as sign-out retires the session. They must not save the old account's address. */
+export const beginExplicitSignOut = () => { clearAuthFlow(); explicitSignOut = true; };
+export const completeSignOutNavigation = () => { explicitSignOut = false; };
 
 export const rememberAuthDestination = (value?: string | null) => {
     const destination = sanitizeAuthRedirect(value);
@@ -110,7 +116,7 @@ const buildAuthPath = (route: '/login' | '/signup', destination?: string | null)
 };
 
 export const buildLoginRedirectPath = (pathname: string, search = '', hash = '') => (
-    buildAuthPath('/login', `${pathname}${search}${hash}`)
+    explicitSignOut ? '/login' : buildAuthPath('/login', `${pathname}${search}${hash}`)
 );
 
 export const buildLoginPath = (destination?: string | null) => buildAuthPath('/login', destination);

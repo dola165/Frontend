@@ -7,7 +7,7 @@ import { MediaImage } from '../ui/MediaImage';
 import { PostDialog } from './PostDialogs';
 import { ALL_REACTIONS as REACTIONS, reactionDefinition, type Reaction } from './reactions';
 import type { FeedPostDto } from './FeedPost';
-import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
+import { postCount, postNumber, usePostCopy } from './postCopy';
 import './reaction-summary.css';
 
 interface Person { userId: number; name: string; avatarUrl: string | null; reaction: Reaction }
@@ -27,7 +27,7 @@ export function ReactionSummary({ post }: { post: FeedPostDto }) {
 }
 
 function Summary({ post }: { post: FeedPostDto }) {
-    const copy = useJourneyCopy();
+    const copy = usePostCopy();
     const [preview, setPreview] = useState<Filter | null>(null), [dialog, setDialog] = useState<Filter | null>(null);
     const anchor = useRef<HTMLButtonElement>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const id = useId(), count = post.reactionCount ?? post.likeCount;
@@ -53,10 +53,10 @@ function Summary({ post }: { post: FeedPostDto }) {
     return <div className="post-liked-by">
         <div className="reaction-summary-control" onPointerLeave={hide}>
             <span className="reaction-summary-icons">{top.map(r => <button key={r.type} type="button"
-                className="reaction-summary-icon" aria-label={`${r.label}, ${counts[r.type]?.toLocaleString()} reactions`}
+                className="reaction-summary-icon" aria-label={`${copy(r.label)}, ${postCount(counts[r.type] ?? 0, 'reaction', copy)}`}
                 {...handlers(r.type)}><r.Icon size={14} /></button>)}</span>
             <button type="button" className="post-liked-by-trigger" {...handlers('ALL')}>
-                <span>{copy('Reacted by', 'რეაქცია:')} <strong>{count.toLocaleString()}</strong> {copy(count === 1 ? 'person' : 'people', 'ადამიანი')}</span>
+                <span>{copy('Reacted by', 'რეაქცია:')} <strong>{postNumber(count)}</strong> {copy(count === 1 ? 'person' : 'people', 'ადამიანი')}</span>
             </button>
         </div>
         {preview !== null && dialog === null && <NamesPreview key={preview} postId={post.id} filter={preview} anchor={anchor} id={id}
@@ -68,7 +68,7 @@ function Summary({ post }: { post: FeedPostDto }) {
 function NamesPreview({ postId, filter, anchor, id, onEnter, onLeave, onDismiss }: {
     postId: number; filter: Filter; anchor: RefObject<HTMLButtonElement | null>; id: string; onEnter: () => void; onLeave: () => void; onDismiss: () => void;
 }) {
-    const copy = useJourneyCopy();
+    const copy = usePostCopy();
     const [page, setPage] = useState<ReactionPage | null>(null), [failed, setFailed] = useState(false);
     const [position, setPosition] = useState({ left: 12, top: 12 });
     const ref = useRef<HTMLDivElement>(null), session = getAuthSessionId();
@@ -95,19 +95,19 @@ function NamesPreview({ postId, filter, anchor, id, onEnter, onLeave, onDismiss 
     }, [anchor, page, failed, onDismiss]);
     return createPortal(<div ref={ref} id={id} role="tooltip" className="reaction-names-preview feed-home-shell"
         style={position} onPointerEnter={onEnter} onPointerLeave={onLeave}>
-        <strong>{filter === 'ALL' ? copy('People who reacted', 'ვინ გამოეხმაურა') : reactionDefinition(filter)?.label}</strong>
+        <strong>{filter === 'ALL' ? copy('People who reacted', 'ვინ გამოეხმაურა') : copy(reactionDefinition(filter)?.label ?? '')}</strong>
         {failed ? <p>{copy(errorMessage, 'რეაქციები ვერ ჩაიტვირთა. სცადეთ ხელახლა.')}</p> : !page ? <p>{copy('Loading names…', 'სახელები იტვირთება…')}</p> : <>
             {REACTIONS.filter(reaction => (filter === 'ALL' || reaction.type === filter) && (page.reactionCounts[reaction.type] ?? 0) > 0)
                 .sort((a, b) => (page.reactionCounts[b.type] ?? 0) - (page.reactionCounts[a.type] ?? 0)).map(reaction => {
                     const people = page.people.filter(person => person.reaction === reaction.type);
-                    return <section className="reaction-preview-group" key={reaction.type} aria-label={`${reaction.label} reactions`}>
-                        <header><span aria-hidden="true"><reaction.Icon size={16} /></span><strong>{reaction.label}</strong>
-                            <span>{page.reactionCounts[reaction.type]?.toLocaleString()}</span></header>
+                    return <section className="reaction-preview-group" key={reaction.type} aria-label={`${copy(reaction.label)} ${copy('reactions')}`}>
+                        <header><span aria-hidden="true"><reaction.Icon size={16} /></span><strong>{copy(reaction.label)}</strong>
+                            <span>{postNumber(page.reactionCounts[reaction.type] ?? 0)}</span></header>
                         {people.length > 0 ? <ul>{people.map(person => <li key={person.userId}>{person.name}</li>)}</ul>
                             : <p>{copy('Open the list to see these profiles.', 'პროფილების სანახავად გახსენით სია.')}</p>}
                     </section>;
                 })}
-            {page.hasMore && <p>and {(page.availableCount - page.people.length).toLocaleString()} more</p>}
+            {page.hasMore && <p>{copy(`and ${postNumber(page.availableCount - page.people.length)} more`, `და კიდევ ${postNumber(page.availableCount - page.people.length)}`)}</p>}
             {page.availableCount < (filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>{copy('Some profiles are unavailable.', 'ზოგი პროფილი მიუწვდომელია.')}</p>}
             {!(filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>{copy('No reactions yet.', 'რეაქციები ჯერ არ არის.')}</p>}
             <small>{copy('Click to see all reactions', 'ყველა რეაქციის სანახავად დააჭირეთ')}</small>
@@ -124,7 +124,7 @@ function PersonAvatar({ person }: { person: Person }) {
 }
 
 function ReactionList({ post, initialFilter, onClose }: { post: FeedPostDto; initialFilter: Filter; onClose: () => void }) {
-    const copy = useJourneyCopy();
+    const copy = usePostCopy();
     const [filter, setFilter] = useState<Filter>(initialFilter), [page, setPage] = useState<ReactionPage | null>(null);
     const [counts, setCounts] = useState(post.reactionCounts ?? { LIKE: post.reactionCount ?? post.likeCount });
     const [total, setTotal] = useState(post.reactionCount ?? post.likeCount);
@@ -165,19 +165,19 @@ function ReactionList({ post, initialFilter, onClose }: { post: FeedPostDto; ini
             <div ref={tabs} className="reactors-tabs" role="tablist" aria-label={copy('Filter reactions', 'რეაქციების ფილტრი')} onKeyDown={keys}>
                 {(['ALL', ...REACTIONS.filter(r => (counts[r.type] ?? 0) > 0 || r.type === filter)
                     .sort((a, b) => (counts[b.type] ?? 0) - (counts[a.type] ?? 0)).map(r => r.type)] as Filter[]).map(type => {
-                    const label = type === 'ALL' ? 'All' : REACTIONS.find(r => r.type === type)!.label;
+                    const label = copy(type === 'ALL' ? 'All' : REACTIONS.find(r => r.type === type)!.label);
                     return <button key={type} type="button" role="tab" id={`${id}-${type}`} aria-controls={`${id}-people`}
-                        aria-selected={filter === type} tabIndex={filter === type ? 0 : -1} aria-label={`${label}, ${type === 'ALL' ? total : counts[type] ?? 0} reactions`}
-                        onClick={() => select(type)}>{type === 'ALL' ? 'All' : <span aria-hidden="true">{reactionIcon(type)}</span>}<span>{type === 'ALL' ? total : counts[type] ?? 0}</span></button>;
+                        aria-selected={filter === type} tabIndex={filter === type ? 0 : -1} aria-label={`${label}, ${postCount(type === 'ALL' ? total : counts[type] ?? 0, 'reaction', copy)}`}
+                        onClick={() => select(type)}>{type === 'ALL' ? copy('All') : <span aria-hidden="true">{reactionIcon(type)}</span>}<span>{postNumber(type === 'ALL' ? total : counts[type] ?? 0)}</span></button>;
                 })}
             </div>
             <div id={`${id}-people`} role="tabpanel" aria-labelledby={`${id}-${filter}`} aria-busy={busy} tabIndex={0} className="reactors-panel">
                 {page && <ul className="reactors-list">{page.people.map(person => <li key={person.userId}>
-                    <Link to={`/profile/${person.userId}`} onClick={onClose}><PersonAvatar person={person} /><span><strong>{person.name}</strong><small>{person.userId === viewer ? copy('You · ', 'თქვენ · ') : ''}{REACTIONS.find(r => r.type === person.reaction)?.label}</small></span><span className="reactor-profile-hint" aria-hidden="true">{copy('View profile', 'პროფილის ნახვა')}</span></Link>
+                    <Link to={`/profile/${person.userId}`} onClick={onClose}><PersonAvatar person={person} /><span><strong>{person.name}</strong><small>{person.userId === viewer ? copy('You · ', 'თქვენ · ') : ''}{copy(REACTIONS.find(r => r.type === person.reaction)?.label ?? '')}</small></span><span className="reactor-profile-hint" aria-hidden="true">{copy('View profile', 'პროფილის ნახვა')}</span></Link>
                 </li>)}</ul>}
                 {busy && <p role="status" className="reactors-message">{copy('Loading reactions…', 'რეაქციები იტვირთება…')}</p>}
                 {failed && <div role="alert" className="reactors-message">{unavailable ? copy('This post is no longer available to you.', 'ეს პოსტი თქვენთვის აღარ არის ხელმისაწვდომი.') : copy(errorMessage, 'რეაქციები ვერ ჩაიტვირთა. სცადეთ ხელახლა.')}{!unavailable && <button className="post-secondary" type="button" onClick={() => { setFailed(false); setBusy(true); setRequest(previous => ({ ...previous, retry: previous.retry + 1 })); }}>{copy('Retry', 'ხელახლა ცდა')}</button>}</div>}
-                {!busy && !failed && page && !page.people.length && <p className="reactors-message">No {filter === 'ALL' ? '' : `${REACTIONS.find(r => r.type === filter)?.label.toLowerCase()} `}reactions to show.</p>}
+                {!busy && !failed && page && !page.people.length && <p className="reactors-message">{filter === 'ALL' ? copy('No reactions to show.') : copy(`No ${REACTIONS.find(r => r.type === filter)?.label.toLowerCase()} reactions to show.`, `რეაქცია „${copy(REACTIONS.find(r => r.type === filter)?.label ?? '')}“ ჯერ არ არის.`)}</p>}
                 {page && page.availableCount < selectedCount && <p className="reactors-message">{copy('Some profiles are unavailable.', 'ზოგი პროფილი მიუწვდომელია.')}</p>}
                 {page?.hasMore && !busy && !failed && <button type="button" className="post-secondary reactors-more" onClick={() => { setBusy(true); setRequest({ filter, cursor: page.nextCursor, retry: 0 }); }}>{copy('Show more', 'მეტის ჩვენება')}</button>}
             </div>

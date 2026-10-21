@@ -12,6 +12,8 @@ const PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 const USER_TYPES = new Set(['FAN', 'PLAYER', 'AGENT', 'CLUB_ADMIN', 'SYSTEM_ADMIN', 'ORGANIZER', 'PARENT', 'COACH', 'REFEREE', 'VENUE_MANAGER']);
 const ageOn = (dob, now = new Date()) => { const d = new Date(`${dob}T00:00:00`); let age = now.getFullYear() - d.getFullYear(); if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) age--; return age; };
 const sessionReply = (id, headers = {}) => reply(200, { accessToken: V.accessToken(id), expiresIn: 86400 }, headers);
+// Demo personas belong to the account being reviewed; they must never follow a sign-in/account change.
+const sessionCookies = cookie => [cookie, 'gk-sandbox-family=; Path=/; Max-Age=0', 'gk-sandbox-persona=; Path=/; Max-Age=0'];
 
 get('/auth/csrf', () => reply(200, { headerName: 'X-XSRF-TOKEN', token: 'sandbox-csrf', parameterName: '_csrf' }, { 'set-cookie': 'XSRF-TOKEN=sandbox-csrf; Path=/' }));
 // A page opened with `signedout` in its address stays a guest (the screenshot harness skips its sign-in for these too).
@@ -36,7 +38,7 @@ post('/auth/register', ({ body }) => {
   if (ageOn(dob) < 13) return bad('You must be at least 13 years old to register.');
   if ((email && (V.accountByLogin(email) || email === me.email)) || (phone && V.accountByLogin(phone))) return reply(409, { status: 409, message: 'Email already registered.' });
   const account = V.createAccount({ fullName, email, phone, password: body.password, dateOfBirth: dob, town: body?.town });
-  return reply(201, { message: 'Registration successful. You can sign in now.', emailVerificationRequired: false }, { 'set-cookie': V.sessionCookie(account.id) });
+  return reply(201, { message: 'Registration successful. You can sign in now.', emailVerificationRequired: false }, { 'set-cookie': sessionCookies(V.sessionCookie(account.id)) });
 });
 
 // A registered account signs in with its own password; any other email is the demo coach.
@@ -44,11 +46,11 @@ post('/auth/login', ({ body }) => {
   const account = V.accountByLogin(body?.email ?? body?.phone);
   if (account) {
     if (account.password !== body?.password) return reply(401, { status: 401, message: 'Invalid email or password.' });
-    return sessionReply(account.id, { 'set-cookie': V.sessionCookie(account.id) });
+    return sessionReply(account.id, { 'set-cookie': sessionCookies(V.sessionCookie(account.id)) });
   }
-  return sessionReply(me.id, { 'set-cookie': V.clearedCookie });
+  return sessionReply(me.id, { 'set-cookie': sessionCookies(V.clearedCookie) });
 });
-post('/auth/logout', () => reply(204, undefined, { 'set-cookie': V.clearedCookie }));
+post('/auth/logout', () => reply(204, undefined, { 'set-cookie': sessionCookies(V.clearedCookie) }));
 
 // The parent view (family cookie) also makes Luka a parent, so Parent Hub joins his tabs.
 export const meProjection = ({ headers } = {}) => ({
@@ -65,7 +67,7 @@ export const meProjection = ({ headers } = {}) => ({
     ...(familyRequest(headers) ? [{ id: 'parent.hub', context: { type: 'user', id: me.id, label: me.fullName } }] : []),
   ] },
 });
-// A registered account with the family cookie has a child linked, so Parent Hub and the automatic "parent" can be judged.
+// Project the family domain's confirmed access alongside the person's navigation capabilities.
 get('/users/me', ({ headers }) => {
   const account = V.account(V.viewerId(headers));
   if (!account) return meProjection({ headers });

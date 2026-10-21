@@ -9,8 +9,9 @@ import { useDialogFocus } from '../workspace/useDialogFocus';
 import { usePanelMotion } from '../ui/usePanelMotion';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 
-interface Connection { id: number; username: string; fullName: string | null; avatarUrl: string | null }
+interface Connection { id: number; username: string | null; fullName: string | null; avatarUrl: string | null }
 interface Props {
     userId: number;
     kind: 'followers' | 'following';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function ConnectionsDialog({ userId, kind, onClose: finishClose, showFollowingStatus = false }: Props) {
+    const copy = useJourneyCopy();
     const motion = usePanelMotion(finishClose);
     const onClose = motion.close;
     const dialogRef = useRef<HTMLDivElement>(null);
@@ -61,7 +63,7 @@ export function ConnectionsDialog({ userId, kind, onClose: finishClose, showFoll
         const normalizedQuery = query.trim().toLocaleLowerCase();
         if (!normalizedQuery) return people;
         return people.filter(person =>
-            person.username.toLocaleLowerCase().includes(normalizedQuery)
+            person.username?.toLocaleLowerCase().includes(normalizedQuery)
             || person.fullName?.toLocaleLowerCase().includes(normalizedQuery),
         );
     }, [people, query]);
@@ -73,18 +75,18 @@ export function ConnectionsDialog({ userId, kind, onClose: finishClose, showFoll
                 className="app-motion-dialog flex min-h-[min(360px,80dvh)] max-h-[min(560px,80dvh)] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-2xl" data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd}>
                 <div className="grid min-h-[54px] grid-cols-[44px_1fr_44px] items-center border-b border-[var(--border-subtle)] px-3">
                     <span aria-hidden="true" />
-                    <h2 id="connections-title" className="text-center text-base font-semibold">{kind === 'followers' ? 'Followers' : 'Following'}</h2>
-                    <button type="button" aria-label="Close connections" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-[color:var(--color-ink)]/10"><X className="h-6 w-6" /></button>
+                    <h2 id="connections-title" className="text-center text-base font-semibold">{kind === 'followers' ? copy('Followers', 'გამომწერები') : copy('Following', 'გამოწერილი')}</h2>
+                    <button type="button" aria-label={copy('Close connections', 'კავშირების დახურვა')} onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-[color:var(--color-ink)]/10"><X className="h-6 w-6" /></button>
                 </div>
                 <div className="px-4 pb-2 pt-3">
                     <label className="flex h-10 items-center gap-2 rounded-xl bg-[color:var(--color-ink)]/[0.08] px-3 text-[var(--text-secondary)] focus-within:ring-2 focus-within:ring-[color:var(--color-accent)]/70">
                         <Search className="h-4 w-4 shrink-0" />
-                        <span className="sr-only">Search connections</span>
+                        <span className="sr-only">{copy('Search connections', 'კავშირების ძიება')}</span>
                         <input
                             type="search"
                             value={query}
                             onChange={event => setQuery(event.target.value)}
-                            placeholder="Search"
+                            placeholder={copy('Search', 'ძიება')}
                             className="h-full min-w-0 flex-1 bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                         />
                     </label>
@@ -93,21 +95,21 @@ export function ConnectionsDialog({ userId, kind, onClose: finishClose, showFoll
                     <ul>
                         {visiblePeople.map(person => <li key={person.id}>
                             <div className="flex min-h-[68px] items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-[color:var(--color-ink)]/[0.04]">
-                                <Link to={`/profile/${person.id}`} onClick={onClose} aria-label={`View ${person.fullName || person.username}'s profile`} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-[color:var(--color-accent)]">
+                                <Link to={`/profile/${person.id}`} onClick={onClose} aria-label={copy(`View ${person.fullName || person.username}'s profile`, `პროფილის ნახვა: ${person.fullName || person.username}`)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-[color:var(--color-accent)]">
                                 <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)] ring-1 ring-[color:var(--color-border)]/10">
                                     {person.avatarUrl ? <MediaImage src={resolveMediaUrl(person.avatarUrl)} alt="" className="h-full w-full object-cover" /> : <Users className="h-5 w-5" />}
                                 </span>
                                 <span className="min-w-0"><span className="block truncate text-sm font-semibold">{person.username}</span><span className="block truncate text-sm text-[var(--text-secondary)]">{person.fullName || `@${person.username}`}</span></span>
                                 </Link>
-                                {showFollowingStatus && kind === 'following' && <span className="shrink-0 rounded-lg bg-[color:var(--color-ink)]/[0.07] px-4 py-2 text-sm font-semibold">Following</span>}
+                                {showFollowingStatus && kind === 'following' && <span className="shrink-0 rounded-lg bg-[color:var(--color-ink)]/[0.07] px-4 py-2 text-sm font-semibold">{copy('Following', 'გამოწერილი')}</span>}
                             </div>
                         </li>)}
                     </ul>
-                    {!loading && !error && people.length === 0 && <p role="status" className="px-2 py-12 text-center text-sm text-[var(--text-secondary)]">{kind === 'following' ? 'No followed people to show yet.' : 'No followers to show yet.'}</p>}
-                    {!loading && !error && people.length > 0 && visiblePeople.length === 0 && <p role="status" className="px-2 py-12 text-center text-sm text-[var(--text-secondary)]">No connections match “{query.trim()}”.</p>}
-                    {loading && <p role="status" className="flex items-center justify-center gap-2 py-5 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading connections…</p>}
-                    {error && <div role="alert" className="px-2 py-4 text-sm"><p>{error}</p><button type="button" onClick={() => void load(people.length ? page + 1 : 0)} className="mt-3 rounded-full border px-4 py-2">Retry connections</button></div>}
-                    {!loading && !error && more && <button type="button" onClick={() => void load(page + 1)} className="my-3 w-full rounded-full border border-[var(--border-subtle)] py-2.5 text-sm font-semibold">Load more people</button>}
+                    {!loading && !error && people.length === 0 && <p role="status" className="px-2 py-12 text-center text-sm text-[var(--text-secondary)]">{kind === 'following' ? copy('No followed people to show yet.', 'გამოწერილი ადამიანები ჯერ არ არიან.') : copy('No followers to show yet.', 'გამომწერები ჯერ არ არიან.')}</p>}
+                    {!loading && !error && people.length > 0 && visiblePeople.length === 0 && <p role="status" className="px-2 py-12 text-center text-sm text-[var(--text-secondary)]">{copy(`No connections match “${query.trim()}”.`, `კავშირი ვერ მოიძებნა: „${query.trim()}“.`)}</p>}
+                    {loading && <p role="status" className="flex items-center justify-center gap-2 py-5 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{copy('Loading connections…', 'კავშირები იტვირთება…')}</p>}
+                    {error && <div role="alert" className="px-2 py-4 text-sm"><p>{error === 'Connections could not load. Please try again.' ? copy(error, 'კავშირები ვერ ჩაიტვირთა. სცადეთ ხელახლა.') : error}</p><button type="button" onClick={() => void load(people.length ? page + 1 : 0)} className="mt-3 rounded-full border px-4 py-2">{copy('Retry connections', 'ხელახლა ცდა')}</button></div>}
+                    {!loading && !error && more && <button type="button" onClick={() => void load(page + 1)} className="my-3 w-full rounded-full border border-[var(--border-subtle)] py-2.5 text-sm font-semibold">{copy('Load more people', 'მეტი ადამიანის ჩატვირთვა')}</button>}
                 </div>
             </div>
         </div>, document.body,

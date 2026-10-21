@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useGoogleOAuth } from '@react-oauth/google';
 import { apiClient } from '../../api/axiosConfig';
@@ -6,6 +6,7 @@ import { nativeCall, nativeSession } from '../../android/bridge';
 import { useAuth } from '../../context/AuthContext';
 import { clearStoredAuth, getAuthSessionId, getStoredAccessToken, setStoredAccessToken } from '../../utils/authStorage';
 import { GoogleProviderSettings } from './GoogleProviderSettings';
+import i18n from '../../i18n';
 
 const mode = vi.hoisted(() => ({ native: false }));
 const popups = vi.hoisted(() => [] as Array<{ nonce: string; onSuccess: (value: { credential: string }) => void }>);
@@ -30,15 +31,16 @@ const beginLink = async () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Link Google' }));
     fireEvent.change(screen.getByLabelText('Current account password'), { target: { value: 'SyntheticPassword1' } });
 };
-beforeEach(() => {
+beforeEach(async () => {
     vi.resetAllMocks(); mode.native = false; popups.length = 0;
+    await i18n.changeLanguage('en');
     vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'configured.apps.googleusercontent.com');
     clearStoredAuth(); setStoredAccessToken(jwt()); setAccount();
     vi.mocked(useGoogleOAuth).mockReturnValue({ scriptLoadedSuccessfully: true, clientId: 'configured' });
     vi.mocked(apiClient.get).mockResolvedValue({ data: status });
     vi.mocked(apiClient.post).mockImplementation(async path => ({ data: { provider: 'google', linked: path.endsWith('/link'), accessToken: jwt(), linkedAccounts: path.endsWith('/link') ? links : [] } }));
 });
-afterEach(() => { clearStoredAuth(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+afterEach(async () => { cleanup(); clearStoredAuth(); vi.unstubAllEnvs(); vi.restoreAllMocks(); await i18n.changeLanguage('en'); });
 
 it('links Google with fresh browser proof, refreshes account metadata and preserves the logical session', async () => {
     const changed = vi.fn(); const session = getAuthSessionId();
@@ -162,4 +164,70 @@ it('shows a loading explanation when the browser Google script has not loaded', 
     expect(screen.getByRole('status')).toHaveTextContent('Loading Google account selection');
     expect(apiClient.post).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel Google linking' })).toBeEnabled());
+});
+
+it('keeps the link nonce and password across language changes, clears rejected codes and rejects cancelled proof', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { ...status, twoFactorEnabled: true } });
+    vi.mocked(apiClient.post).mockRejectedValue({ response: { status: 400, data: { code: 'second_factor_invalid' } } });
+    open(); await beginLink();
+    fireEvent.change(screen.getByLabelText('Authenticator or unused recovery code'), { target: { value: '000000' } });
+    const proof = popups[popups.length - 1];
+    fireEvent.click(screen.getByRole('button', { name: 'Select test Google account' }));
+    await screen.findByRole('alert');
+    const reads = vi.mocked(apiClient.get).mock.calls.length;
+    await act(async () => { await i18n.changeLanguage('ka'); });
+    expect(screen.getByRole('alert')).toHaveTextContent('გამოიყენეთ ავთენტიფიკატორის ახალი კოდი');
+    expect(screen.getByLabelText('ამ ანგარიშის მიმდინარე პაროლი')).toHaveValue('SyntheticPassword1');
+    expect(screen.getByLabelText('ავთენტიფიკატორის ან გამოუყენებელი აღდგენის კოდი')).toHaveValue('');
+    fireEvent.change(screen.getByLabelText('ავთენტიფიკატორის ან გამოუყენებელი აღდგენის კოდი'), { target: { value: 'unused-recovery' } });
+    expect(popups[popups.length - 1].nonce).toBe(proof.nonce);
+    expect(apiClient.get).toHaveBeenCalledTimes(reads); expect(apiClient.post).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(localStorage)).not.toContain('SyntheticPassword1');
+    expect(JSON.stringify(localStorage)).not.toContain('unused-recovery');
+    fireEvent.click(screen.getByRole('button', { name: 'Google-ის დაკავშირების გაუქმება' }));
+    act(() => proof.onSuccess({ credential: `header.${btoa(JSON.stringify({ nonce: proof.nonce }))}.signature` }));
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Google-ის დაკავშირება' }));
+    expect(screen.getByLabelText('ამ ანგარიშის მიმდინარე პაროლი')).toHaveValue('');
+    expect(screen.getByLabelText('ავთენტიფიკატორის ან გამოუყენებელი აღდგენის კოდი')).toHaveValue('');
+});
+
+it('retains explicit unlink confirmation and pending proof across languages, then discards cancelled late success', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { ...status, twoFactorEnabled: true, linkedAccounts: links, googleUnlinkAllowed: true } });
+    const response = latch<{ data: { provider: string; linked: boolean; accessToken: string; linkedAccounts: typeof links } }>();
+    vi.mocked(apiClient.post).mockReturnValue(response.promise);
+    const changed = vi.fn(); open(changed);
+    fireEvent.click(await screen.findByRole('button', { name: 'Unlink Google' }));
+    fireEvent.change(screen.getByLabelText('Current account password'), { target: { value: 'SyntheticPassword1' } });
+    await act(async () => { await i18n.changeLanguage('ka'); });
+    expect(screen.getByRole('button', { name: 'Google-ის კავშირის გაუქმების დადასტურება' })).toBeDisabled();
+    expect(screen.getByLabelText('ამ ანგარიშის მიმდინარე პაროლი')).toHaveValue('SyntheticPassword1');
+    fireEvent.change(screen.getByLabelText('ავთენტიფიკატორის ან გამოუყენებელი აღდგენის კოდი'), { target: { value: '123456' } });
+    expect(apiClient.post).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Google-ის კავშირის გაუქმების დადასტურება' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Google-თან კავშირი უქმდება…');
+    await act(async () => { await i18n.changeLanguage('en'); });
+    expect(screen.getByLabelText('Current account password')).toBeDisabled();
+    expect(screen.getByLabelText('Authenticator or unused recovery code')).toHaveValue('123456');
+    expect(apiClient.get).toHaveBeenCalledTimes(1); expect(apiClient.post).toHaveBeenCalledTimes(1);
+    expect(apiClient.post).toHaveBeenCalledWith('/users/me/providers/google/unlink', { currentPassword: 'SyntheticPassword1', oneTimeCode: '123456' }, expect.anything());
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel Google unlink' }));
+    await act(async () => response.resolve({ data: { provider: 'google', linked: false, accessToken: jwt(), linkedAccounts: [] } }));
+    await act(async () => { await i18n.changeLanguage('ka'); });
+    expect(screen.getByRole('status')).toHaveTextContent('ცვლილების შედეგის შესამოწმებლად');
+    expect(screen.queryByRole('heading', { name: 'Google არ არის დაკავშირებული' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('ამ ანგარიშის მიმდინარე პაროლი')).not.toBeInTheDocument();
+    expect(changed).not.toHaveBeenCalled();
+});
+
+it('translates failed provider reads and the last-sign-in-method gate without language-triggered requests', async () => {
+    vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('Offline')).mockResolvedValue({ data: { ...status, passwordLoginEnabled: false, linkedAccounts: links } });
+    open(); await screen.findByRole('alert');
+    await act(async () => { await i18n.changeLanguage('ka'); });
+    expect(screen.getByRole('alert')).toHaveTextContent('დაკავშირებული სერვისები ვერ ჩაიტვირთა.');
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'სერვისების პარამეტრების განახლება' }));
+    expect(await screen.findByRole('button', { name: 'Google-ის კავშირის გაუქმება' })).toBeDisabled();
+    expect(screen.getByRole('link', { name: 'პაროლის დაყენება ანგარიშის აღდგენით' })).toHaveAttribute('href', '/forgot-password');
+    expect(apiClient.get).toHaveBeenCalledTimes(2); expect(apiClient.post).not.toHaveBeenCalled();
 });

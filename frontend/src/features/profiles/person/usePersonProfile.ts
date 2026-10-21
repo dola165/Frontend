@@ -14,7 +14,8 @@ export function usePersonProfile(id: number) {
     // Answers are kept with the person they belong to; a reload keeps the profile on screen until the new answer arrives.
     const key = `${id}:${sessionId}:${revision}`;
     const [result, setResult] = useState<{ key: string; id: number; profile: PersonProfile | null; status: 'ready' | 'missing' | 'failed' } | null>(null);
-    const [professions, setProfessions] = useState<{ id: number; items: Profession[] | null; failed: boolean }>({ id, items: null, failed: false });
+    const [professions, setProfessions] = useState<{ key: string; items: Profession[] | null; failed: boolean } | null>(null);
+    const currentProfessions = professions?.key === key ? professions : null;
 
     useEffect(() => {
         const controller = new AbortController();
@@ -31,10 +32,10 @@ export function usePersonProfile(id: number) {
     useEffect(() => {
         const controller = new AbortController();
         void fetchProfessions(id, controller.signal)
-            .then(items => { if (!controller.signal.aborted) setProfessions({ id, items, failed: false }); })
-            .catch(error => { if (!controller.signal.aborted) setProfessions({ id, items: error?.response?.status === 404 ? [] : null, failed: error?.response?.status !== 404 }); });
+            .then(items => { if (!controller.signal.aborted) setProfessions({ key, items, failed: false }); })
+            .catch(error => { if (!controller.signal.aborted) setProfessions({ key, items: error?.response?.status === 404 ? [] : null, failed: error?.response?.status !== 404 }); });
         return () => controller.abort();
-    }, [id, sessionId, revision]);
+    }, [id, key]);
 
     const own = Boolean(user && profile && Number(user.id) === profile.id);
     const roles = profile ? profileRoles(profile) : [];
@@ -57,8 +58,8 @@ export function usePersonProfile(id: number) {
 
     return {
         profile, status, own, roles, hidden, possibleMinor, setProfile,
-        professions: professions.id === id ? professions.items : null,
-        professionsFailed: professions.id === id && professions.failed,
+        professions: currentProfessions?.items ?? null,
+        professionsFailed: currentProfessions?.failed ?? false,
         reload: () => setRevision(value => value + 1), toggleFollow, updateImage,
     };
 }

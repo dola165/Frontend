@@ -4,7 +4,7 @@ import { Shield } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
-import { AccountItems, type AccountProps } from './AccountMenu';
+import { AccountItems, AccountSettingsLink, type AccountProps } from './AccountMenu';
 import { personName, useInOwnPlace } from './account';
 import { readPageTitle, type RouteDescription } from './pins/describeRoute';
 import { PinsPanel } from './pins/PinsPanel';
@@ -31,6 +31,8 @@ export function YouSheet({ pins, page, work, hasClub, onPinnedPage, ...account }
     const id = useId();
     const name = personName(account.user, copy);
     const inOwnPlace = useInOwnPlace(account.user.id);
+    const represented = new Set([...pins.pins, ...pins.suggestions, ...work].map(place => place.path));
+    const extraWorkspaces = account.workspaces.filter(place => !represented.has(place.path));
     return (
         <div className="gk-header__you" onKeyDown={onKeyDown}>
             <button ref={triggerRef} type="button" className="gk-hbtn gk-hbtn--avatar" data-current={inOwnPlace || onPinnedPage || undefined} aria-haspopup="dialog"
@@ -47,11 +49,12 @@ export function YouSheet({ pins, page, work, hasClub, onPinnedPage, ...account }
                                 <Avatar src={resolveMediaUrl(account.user.avatarUrl)} name={name} size={40} />
                                 <span className="gk-menu__profile-text"><strong>{name}</strong><span>{copy('View your profile', 'პროფილის ნახვა')}</span></span>
                             </Link>
+                            <AccountSettingsLink />
                             {!hasClub && <Link to="/my-club" className="gk-menu__item gk-menu__item--accent"><Shield aria-hidden="true" />{copy('Find or start your club', 'იპოვეთ ან შექმენით კლუბი')}</Link>}
                         </div>
                         <PinsPanel state={pins} page={{ ...page, title }} work={work} titleId={`${id}-pins`} hint={copy('Pages you open often, one tap away.', 'ხშირად გამოყენებული გვერდები, ერთი შეხებით.')} onNavigate={() => close(false)} />
                         <div className="gk-you__account gk-you__account--settings">
-                            <AccountItems {...account} close={close} menu={false} profile={false} createPage={false} />
+                            <AccountItems {...account} workspaces={extraWorkspaces} close={close} menu={false} profile={false} createPage={false} accountSettings={false} />
                         </div>
                     </div>
                 </>

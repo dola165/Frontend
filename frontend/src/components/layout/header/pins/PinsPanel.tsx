@@ -50,8 +50,8 @@ export function PinsPanel({ state, page, work, titleId, onNavigate, hint }: Pins
     const rows = (items: Pin[], emphasis: 'secondary' | 'ghost') => (
         <ul className="gk-list">{items.map(item => <li key={item.path} className="gk-prow"><PinLink pin={item} onNavigate={onNavigate} />{pinButton(item, emphasis)}</li>)}</ul>
     );
-    // Work already suggested above is not listed twice.
-    const ownWork = work.filter(item => !suggestions.some(suggestion => suggestion.path === item.path));
+    // Saved pins and suggestions already provide these destinations.
+    const ownWork = work.filter(item => !pins.some(pin => pin.path === item.path) && !suggestions.some(suggestion => suggestion.path === item.path));
 
     return (
         <>

@@ -1,19 +1,21 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MessagingPage } from './MessagingPage';
 import { chatApi, type ConversationDto } from '../api/chat';
+import i18n from '../i18n';
 
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'session-A' }) }));
+const auth = vi.hoisted(() => ({ sessionId: 'session-A', userId: '1' }));
+vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../features/squadCommunication/api', () => ({ spaces: vi.fn().mockResolvedValue([]) }));
 
 vi.mock('@stomp/stompjs', () => ({ Client: class { activate() {} deactivate() {} connected = false; } }));
 vi.mock('../api/axiosConfig', () => ({ buildWebSocketUrl: () => 'ws://localhost/ws-chat' }));
-vi.mock('../utils/authStorage', () => ({ getStoredAccessToken: () => 'token', getStoredUserId: () => '1', getAuthSessionId: () => 'session-A', isCurrentAuthSession: (id: string) => id === 'session-A' }));
+vi.mock('../utils/authStorage', () => ({ getStoredAccessToken: () => 'token', getStoredUserId: () => auth.userId, getAuthSessionId: () => auth.sessionId, isCurrentAuthSession: (id: string) => id === auth.sessionId }));
 vi.mock('../components/chat/NewChatModal', () => ({ NewChatModal: () => null }));
 vi.mock('../api/chat', () => ({ chatApi: {
-    getConversations: vi.fn(), getConversation: vi.fn(), getMessages: vi.fn(), getMessagesAfter: vi.fn(), markAsRead: vi.fn(), sendMessage: vi.fn(), createConversation: vi.fn(),
+    getConversations: vi.fn(), getConversation: vi.fn(), getMessages: vi.fn(), getMessagesAfter: vi.fn(), markAsRead: vi.fn(), sendMessage: vi.fn(), createConversation: vi.fn(), leaveConversation: vi.fn(), getPendingSuggestions: vi.fn(),
 } }));
 const conversation: ConversationDto = {
     id: 7, name: null, contextType: 'DIRECT', contextId: null,
@@ -23,13 +25,17 @@ const conversation: ConversationDto = {
 };
 beforeEach(() => {
     vi.clearAllMocks();
+    auth.sessionId = 'session-A';
+    auth.userId = '1';
     Element.prototype.scrollIntoView = vi.fn();
     vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [conversation] } } as never);
     vi.mocked(chatApi.getConversation).mockResolvedValue({ data: conversation } as never);
     vi.mocked(chatApi.getMessages).mockResolvedValue({ data: { content: [] } } as never);
     vi.mocked(chatApi.getMessagesAfter).mockResolvedValue({ data: [] } as never);
     vi.mocked(chatApi.markAsRead).mockResolvedValue({} as never);
+    vi.mocked(chatApi.getPendingSuggestions).mockResolvedValue({ data: [] } as never);
 });
+afterEach(async () => { await i18n.changeLanguage('en'); });
 it('keeps the draft after a lost acknowledgement and shows it once after retry, even without live connection', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
@@ -68,4 +74,106 @@ it('opens a profile chat link when the inbox is empty', async () => {
     await screen.findByPlaceholderText('Write a message…');
     expect(chatApi.createConversation).toHaveBeenCalledWith({ contextType: 'DIRECT', participantIds: [2] });
     await waitFor(() => expect(chatApi.getMessages).toHaveBeenCalledWith(7));
+});
+
+it('shows an inbox read failure and recovers without claiming there are no conversations', async () => {
+    vi.mocked(chatApi.getConversations).mockRejectedValueOnce(new Error('offline'));
+    render(<MemoryRouter><MessagingPage /></MemoryRouter>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Conversations couldn’t load.');
+    expect(screen.queryByText('No other conversations yet')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('Peer')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it('lets a failed profile conversation creation retry from the visible inbox', async () => {
+    vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [] } } as never);
+    vi.mocked(chatApi.createConversation).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: conversation } as never);
+    render(<MemoryRouter initialEntries={['/messages?chatWith=2']}><MessagingPage /></MemoryRouter>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not open this conversation. Please try again.');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByPlaceholderText('Write a message…')).toBeInTheDocument();
+    expect(chatApi.createConversation).toHaveBeenCalledTimes(2);
+});
+
+it('does not carry a private message draft to another account sharing the same conversation', async () => {
+    const { rerender } = render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
+    fireEvent.change(await screen.findByPlaceholderText('Write a message…'), { target: { value: 'Only my draft' } });
+    auth.sessionId = 'session-B';
+    auth.userId = '2';
+    rerender(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
+    expect(await screen.findByPlaceholderText('Write a message…')).toHaveValue('');
+});
+
+it('shows a failed conversation deep link beside the inbox and lets it retry', async () => {
+    vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [] } } as never);
+    vi.mocked(chatApi.getConversation).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: conversation } as never);
+    render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('This conversation couldn’t load. Try again, or open another chat.');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByPlaceholderText('Write a message…')).toBeInTheDocument();
+});
+
+it('renders a failed delivery in Georgian and keeps the draft across language changes', async () => {
+    await i18n.changeLanguage('ka');
+    vi.mocked(chatApi.sendMessage).mockRejectedValue(new Error('response lost'));
+    render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
+    const input = await screen.findByRole('textbox', { name: 'დაწერეთ შეტყობინება' });
+    fireEvent.change(input, { target: { value: 'Keep my words' } });
+    fireEvent.click(screen.getByRole('button', { name: 'გაგზავნა' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('გაგზავნა ვერ დადასტურდა. მონახაზი შენახულია;');
+    expect(input).toHaveValue('Keep my words');
+    await act(async () => { await i18n.changeLanguage('en'); });
+    expect(screen.getByRole('textbox', { name: 'Write a message' })).toHaveValue('Keep my words');
+    expect(screen.getByRole('alert')).toHaveTextContent('Message was not confirmed. Your draft is kept;');
+    expect(chatApi.sendMessage).toHaveBeenCalledTimes(1);
+});
+
+it('reports a failed leave, preserves the conversation and prevents duplicate presses while retrying', async () => {
+    const group = { ...conversation, contextType: 'GROUP' as const, name: 'Friends', participants: [{ ...conversation.participants[0], role: 'CREATOR' as const }, conversation.participants[1]] };
+    vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [group] } } as never);
+    vi.mocked(chatApi.getConversation).mockResolvedValue({ data: group } as never);
+    vi.mocked(chatApi.leaveConversation).mockRejectedValueOnce(new Error('offline'));
+    render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
+    await screen.findByPlaceholderText('Write a message…');
+    fireEvent.click(screen.getByRole('button', { name: /Friends.*2 members/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Leave group' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not leave this conversation. Try again.');
+    expect(screen.getByPlaceholderText('Write a message…')).toBeInTheDocument();
+    let done = () => {};
+    vi.mocked(chatApi.leaveConversation).mockReturnValueOnce(new Promise(resolve => { done = () => resolve({} as never); }));
+    const leave = screen.getByRole('button', { name: 'Leave group' });
+    fireEvent.click(leave); fireEvent.click(leave);
+    expect(leave).toBeDisabled();
+    expect(chatApi.leaveConversation).toHaveBeenCalledTimes(2);
+    vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [] } } as never);
+    await act(async () => done());
+    await waitFor(() => expect(screen.queryByPlaceholderText('Write a message…')).not.toBeInTheDocument());
+    expect(screen.queryByText('Friends')).not.toBeInTheDocument();
+});
+
+it('retries unavailable invite suggestions instead of claiming none are waiting', async () => {
+    const group = { ...conversation, contextType: 'GROUP' as const, name: 'Friends', participants: [{ ...conversation.participants[0], role: 'CREATOR' as const }, conversation.participants[1]] };
+    vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [group] } } as never);
+    vi.mocked(chatApi.getConversation).mockResolvedValue({ data: group } as never);
+    vi.mocked(chatApi.getPendingSuggestions).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: [] } as never);
+    render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
+    await screen.findByPlaceholderText('Write a message…');
+    fireEvent.click(screen.getByRole('button', { name: /Friends.*2 members/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invite suggestions couldn’t load.');
+    expect(screen.queryByText('No suggestions waiting.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('No suggestions waiting.')).toBeInTheDocument();
+    expect(chatApi.getPendingSuggestions).toHaveBeenCalledTimes(2);
+});
+
+it('translates a failed profile chat without automatically retrying creation on language change', async () => {
+    vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [] } } as never);
+    vi.mocked(chatApi.createConversation).mockRejectedValue(new Error('offline'));
+    render(<MemoryRouter initialEntries={['/messages?chatWith=2']}><MessagingPage /></MemoryRouter>);
+    await screen.findByRole('alert');
+    await act(async () => { await i18n.changeLanguage('ka'); });
+    expect(screen.getByRole('alert')).toHaveTextContent('საუბარი ვერ გაიხსნა. სცადეთ ხელახლა.');
+    expect(screen.getByRole('button', { name: 'ხელახლა ცდა' })).toBeInTheDocument();
+    expect(chatApi.createConversation).toHaveBeenCalledTimes(1);
 });

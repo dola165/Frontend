@@ -119,7 +119,7 @@ it('ignores a late result from a previous filter', async () => {
     get.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     await user.click(screen.getByRole('tab', { name: 'On fire, 2 reactions' }));
     get.mockResolvedValueOnce({ data: { ...page, people: [people[1]], hasMore: false } });
-    await user.click(screen.getByRole('tab', { name: 'Safe hands, 1 reactions' }));
+    await user.click(screen.getByRole('tab', { name: 'Safe hands, 1 reaction' }));
     await screen.findByText('Alex Green');
     await act(async () => finish({ data: page }));
     expect(screen.queryByText('Jordan Lee')).not.toBeInTheDocument();

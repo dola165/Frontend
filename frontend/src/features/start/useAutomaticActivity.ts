@@ -1,13 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { apiClient } from '../../api/axiosConfig';
-import type { AuthUser } from '../../context/AuthContext';
+import { useAuth, type AuthUser } from '../../context/AuthContext';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { RoleProfile } from '../roles/domain';
 import { activityFromLinks, applyActivity } from './applyActivity';
 import { fetchFeedPreferences } from './startApi';
-
-/** Looked at once per account per visit; a person who skipped the question is not asked again by the app. */
-const decided = new Set<number>();
 
 /**
  * Someone who skipped "What do you do in football?" still gets the right start the day a club, a squad or a child is
@@ -16,21 +13,31 @@ const decided = new Set<number>();
  */
 export function useAutomaticActivity(user: AuthUser | null) {
     const copy = useJourneyCopy();
+    const { sessionId } = useAuth();
+    const decided = useRef(new Set<string>());
     const userId = user?.id;
     const implied = activityFromLinks(user?.navigationCapabilities);
     useEffect(() => {
-        if (!userId || !implied || decided.has(userId)) return;
-        decided.add(userId);
-        // Safe to finish after the effect is gone: it writes once, and only what the links say.
+        const key = `${userId}:${sessionId}`;
+        const decisions = decided.current;
+        if (!userId || !implied || decisions.has(key)) return;
+        decisions.add(key);
+        const controller = new AbortController();
+        let finished = false;
         void (async () => {
             try {
-                const [preferences, roles] = await Promise.all([fetchFeedPreferences(), apiClient.get<RoleProfile[]>('/users/me/roles').then(r => r.data).catch(() => [] as RoleProfile[])]);
-                if (preferences.activity || roles.length) return;
-                await applyActivity(userId, implied, copy);
+                const [preferences, roles] = await Promise.all([fetchFeedPreferences(controller.signal), apiClient.get<RoleProfile[]>('/users/me/roles', { signal: controller.signal }).then(r => r.data)]);
+                if (controller.signal.aborted) return;
+                // A failed role read is unknown, never permission to replace someone's existing public roles.
+                if (!preferences.activity && !roles.length) await applyActivity(userId, implied, copy);
+                finished = true;
             } catch {
-                // An older server has no preferences; the links already decide the tabs and World's page.
-                decided.delete(userId);
+                if (!controller.signal.aborted) decisions.delete(key);
             }
         })();
-    }, [userId, implied, copy]);
+        return () => {
+            controller.abort();
+            if (!finished) decisions.delete(key);
+        };
+    }, [userId, sessionId, implied, copy]);
 }

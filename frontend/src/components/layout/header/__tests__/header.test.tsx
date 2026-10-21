@@ -10,6 +10,7 @@ import type { AuthUser } from '../../../../context/AuthContext';
 import { PinsBar } from '../pins/PinsBar';
 import type { Pin, usePins } from '../pins/usePins';
 import type { PrimaryTab } from '../sections';
+import { normalizeNavigationCapabilities } from '../../../../context/navigationCapabilities';
 
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: null, sessionId: 'guest', status: 'anonymous' }) }));
 
@@ -118,6 +119,31 @@ describe('phone navigation', () => {
     const you = (hasClub: boolean) => render(<MemoryRouter><button type="button">Behind</button><PhoneTabBar tabs={tabs} />
         <YouSheet user={user} workspaces={[]} themePreference="map-light" setThemePreference={vi.fn()} onLogout={vi.fn()}
             pins={state(pins.slice(0, 2))} page={page} work={[]} hasClub={hasClub} onPinnedPage={false} /></MemoryRouter>);
+
+    it.each([
+        { name: 'a new person who calls themselves a coach', role: 'COACH', links: [], paths: ['/home', '/world'] },
+        { name: 'a confirmed squad coach without club-wide access', role: 'FAN', links: ['squad.workspace'], paths: ['/home', '/world', '/my-squads'] },
+        { name: 'confirmed family access without personal club membership', role: 'FAN', links: ['club.family'], paths: ['/home', '/world', '/parent'] },
+        { name: 'a club administrator with no coached squad', role: 'COACH', links: ['club.workspace'], paths: ['/home', '/world', '/clubs/21'] },
+        { name: 'a coach and parent with one club', role: 'FAN', links: ['club.workspace', 'squad.workspace', 'parent.hub'], paths: ['/home', '/world', '/my-squads', '/parent', '/clubs/21'] },
+        { name: 'an agent serving a club', role: 'AGENT', links: ['club.agent'], paths: ['/home', '/world'] },
+    ])('gives $name the phone destinations their links confirm', ({ role, links, paths }) => {
+        const capabilities = normalizeNavigationCapabilities({ version: 1, workspaces: links.map(id => ({ id, context: { type: id.startsWith('club.') ? 'club' : id.startsWith('squad.') ? 'squad' : 'user', id: id.startsWith('club.') || id.startsWith('squad.') ? 21 : 1, label: 'Football' } })) }, 1);
+        const { container } = render(<MemoryRouter><AppHeader user={{ ...user, role, navigationCapabilities: capabilities } as AuthUser} myClubId={null}
+            themePreference="map-light" setThemePreference={vi.fn()} onLogout={vi.fn()} /></MemoryRouter>);
+        const bar = container.querySelector('nav.gk-tabbar')!;
+        expect(Array.from(bar.querySelectorAll('a')).map(link => link.getAttribute('href'))).toEqual(paths);
+    });
+
+    it('removes a role tab immediately when the confirmed link is revoked', () => {
+        const confirmed = normalizeNavigationCapabilities({ version: 1, workspaces: [{ id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16' } }] }, 1);
+        const header = (navigationCapabilities: AuthUser['navigationCapabilities']) => <MemoryRouter><AppHeader user={{ ...user, navigationCapabilities }} myClubId={null}
+            themePreference="map-light" setThemePreference={vi.fn()} onLogout={vi.fn()} /></MemoryRouter>;
+        const { container, rerender } = render(header(confirmed));
+        expect(container.querySelector('nav.gk-tabbar a[href="/my-squads"]')).toBeInTheDocument();
+        rerender(header({ version: 1, workspaces: [] }));
+        expect(container.querySelector('nav.gk-tabbar a[href="/my-squads"]')).not.toBeInTheDocument();
+    });
 
     it('keeps only the places in the bottom bar; Messages and pins are not tabs', () => {
         const { container } = you(true);

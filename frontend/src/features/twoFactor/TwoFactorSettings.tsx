@@ -9,6 +9,7 @@ import { secondFactorError } from '../../components/auth/useSecondFactorLogin';
 import { disableTwoFactor, fetchTwoFactorStatus, saveTwoFactor, setupTwoFactor, type TwoFactorStatus } from './api';
 import { useTwoFactorSensitiveState } from './sensitiveState';
 import { useSecurityNavigationGuard } from './useSecurityNavigationGuard';
+import { useAccountCopy } from '../profiles/account/accountCopy';
 
 const button = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--fc-border)] px-4 py-2 text-sm font-semibold disabled:opacity-50';
 const input = 'w-full min-h-11 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-surface)] px-3 py-2 text-sm';
@@ -21,6 +22,7 @@ export function TwoFactorSettings({ accountId, passwordLoginEnabled, onCredentia
 }
 
 function ScopedTwoFactorSettings({ accountId, passwordLoginEnabled, onCredentialsChanged }: Props) {
+    const text = useAccountCopy();
     const [sensitive, setSensitive] = useTwoFactorSensitiveState(accountId);
     const [status, setStatus] = useState<TwoFactorStatus | null>(null);
     const [loading, setLoading] = useState(false);
@@ -124,41 +126,42 @@ function ScopedTwoFactorSettings({ accountId, passwordLoginEnabled, onCredential
     };
 
     const expired = Boolean(sensitive.setup && now >= sensitive.setup.expiresAt);
+    const setupMinutes = sensitive.setup ? Math.max(1, Math.ceil((sensitive.setup.expiresAt - now) / 60000)) : 0;
     return <div className="space-y-4 text-[var(--fc-text-primary)]">
-        <p className="text-sm text-[var(--fc-text-secondary)]">Add an authenticator code to password and Google sign-in. Recovery codes let you sign in if you lose access to your authenticator.</p>
-        {error && <p role="alert" className="text-sm text-[var(--fc-state-danger)]">{error}</p>}
-        {notice && <p role="status" className="text-sm text-[var(--fc-accent)]">{notice}</p>}
-        {hasCodes ? <section aria-label="Save recovery codes" className="space-y-4">
-            <h3 className="font-semibold">Save your recovery codes</h3>
-            <p role="status" className="text-sm">Authenticator enabled. These ten codes are shown only here. Each code works once; replacing them invalidates all older recovery codes.</p>
-            <pre tabIndex={0} aria-label="Recovery codes" className="overflow-x-auto rounded-xl bg-[var(--fc-surface)] p-3 text-sm select-text">{sensitive.recoveryCodes?.join('\n')}</pre>
-            <div className="flex flex-wrap gap-2"><button type="button" className={button} onClick={() => void copy(codesText())}>Copy recovery codes</button><button type="button" className={button} onClick={() => void download()}>{isAndroidApp ? 'Save or share codes' : 'Download recovery codes'}</button></div>
-            <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={saved} onChange={event => setSaved(event.target.checked)} />I saved these recovery codes in a secure place.</label>
-            <button type="button" disabled={!saved} className={button} onClick={finish}>Done saving codes</button>
-        </section> : loading ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading authenticator settings…</p>
-            : !status ? <button type="button" className={button} onClick={() => setRevision(value => value + 1)}>Retry authenticator settings</button>
+        <p className="text-sm text-[var(--fc-text-secondary)]">{text("Add an authenticator code to password and Google sign-in. Recovery codes let you sign in if you lose access to your authenticator.")}</p>
+        {error && <p role="alert" className="text-sm text-[var(--fc-state-danger)]">{text(error)}</p>}
+        {notice && <p role="status" className="text-sm text-[var(--fc-accent)]">{text(notice)}</p>}
+        {hasCodes ? <section aria-label={text("Save recovery codes")} className="space-y-4">
+            <h3 className="font-semibold">{text("Save your recovery codes")}</h3>
+            <p role="status" className="text-sm">{text("Authenticator enabled. These ten codes are shown only here. Each code works once; replacing them invalidates all older recovery codes.")}</p>
+            <pre tabIndex={0} aria-label={text("Recovery codes")} className="overflow-x-auto rounded-xl bg-[var(--fc-surface)] p-3 text-sm select-text">{sensitive.recoveryCodes?.join('\n')}</pre>
+            <div className="flex flex-wrap gap-2"><button type="button" className={button} onClick={() => void copy(codesText())}>{text("Copy recovery codes")}</button><button type="button" className={button} onClick={() => void download()}>{isAndroidApp ? text("Save or share codes") : text("Download recovery codes")}</button></div>
+            <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={saved} onChange={event => setSaved(event.target.checked)} />{text("I saved these recovery codes in a secure place.")}</label>
+            <button type="button" disabled={!saved} className={button} onClick={finish}>{text("Done saving codes")}</button>
+        </section> : loading ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{text("Loading authenticator settings…")}</p>
+            : !status ? <button type="button" className={button} onClick={() => setRevision(value => value + 1)}>{text("Retry authenticator settings")}</button>
                 : <>
-                    <p className="font-semibold">Authenticator {status.enabled ? 'enabled' : 'not enabled'}</p>
-                    <button type="button" className={button} disabled={action !== null} onClick={() => setRevision(value => value + 1)}>Refresh authenticator status</button>
-                    {!status.available ? <div className="space-y-3"><p role="status" className="text-sm">Authenticator verification is temporarily unavailable on this server. Your recorded setting is shown above.</p><button className={button} onClick={() => setRevision(value => value + 1)}>Refresh availability</button></div>
-                        : !passwordLoginEnabled ? <p className="text-sm">Set a password before managing an authenticator. <Link className="app-text-action" to="/forgot-password">Set a password through account recovery</Link>.</p>
+                    <p className="font-semibold">{text(status.enabled ? 'Authenticator enabled' : 'Authenticator not enabled')}</p>
+                    <button type="button" className={button} disabled={action !== null} onClick={() => setRevision(value => value + 1)}>{text("Refresh authenticator status")}</button>
+                    {!status.available ? <div className="space-y-3"><p role="status" className="text-sm">{text("Authenticator verification is temporarily unavailable on this server. Your recorded setting is shown above.")}</p><button className={button} onClick={() => setRevision(value => value + 1)}>{text("Refresh availability")}</button></div>
+                        : !passwordLoginEnabled ? <p className="text-sm">{text("Set a password before managing an authenticator.")} <Link className="app-text-action" to="/forgot-password">{text("Set a password through account recovery")}</Link>.</p>
                             : <>
-                                {status.enabled && <p className="text-sm">{status.recoveryCodesRemaining} unused recovery codes remain.</p>}
+                                {status.enabled && <p className="text-sm">{text(`${status.recoveryCodesRemaining} unused recovery codes remain.`, `${status.recoveryCodesRemaining} გამოუყენებელი აღდგენის კოდი დარჩა.`)}</p>}
                                 {sensitive.setup && <div className="space-y-3">
-                                    <p className="text-sm">Scan this code with your authenticator app, or enter the setup key manually. Then enter its current six-digit code below.</p>
-                                    <div className="w-fit max-w-full rounded-xl bg-[color:var(--color-elevated)] p-3"><QRCodeSVG value={sensitive.setup.authenticatorUri} size={200} marginSize={2} title="Authenticator setup QR code" /></div>
+                                    <p className="text-sm">{text("Scan this code with your authenticator app, or enter the setup key manually. Then enter its current six-digit code below.")}</p>
+                                    <div className="w-fit max-w-full rounded-xl bg-[color:var(--color-elevated)] p-3"><QRCodeSVG value={sensitive.setup.authenticatorUri} size={200} marginSize={2} title={text("Authenticator setup QR code")} /></div>
                                     <code className="block break-all rounded-xl bg-[var(--fc-surface)] p-3 text-sm select-text">{sensitive.setup.secret}</code>
-                                    <button type="button" className={button} onClick={() => void copy(sensitive.setup?.secret ?? '')}>Copy setup key</button>
-                                    <p role={expired ? 'alert' : undefined} className="text-sm">{expired ? 'Setup expired. Start again for a new key.' : `Setup expires in ${Math.max(1, Math.ceil((sensitive.setup.expiresAt - now) / 60000))} minutes.`}</p>
+                                    <button type="button" className={button} onClick={() => void copy(sensitive.setup?.secret ?? '')}>{text("Copy setup key")}</button>
+                                    <p role={expired ? 'alert' : undefined} className="text-sm">{expired ? text("Setup expired. Start again for a new key.") : text(`Setup expires in ${setupMinutes} ${setupMinutes === 1 ? 'minute' : 'minutes'}.`, `გამართვის ვადა ${setupMinutes} წუთში ამოიწურება.`)}</p>
                                 </div>}
                                 <form className="space-y-4" onSubmit={event => { event.preventDefault(); if (!status.enabled) void mutate(sensitive.setup && !expired ? 'enable' : 'setup'); }}>
-                                    <label className="block space-y-2 text-sm">Current password<input type="password" autoComplete="current-password" maxLength={256} required value={password} onChange={event => setPassword(event.target.value)} className={input} disabled={action !== null} /></label>
-                                    {(status.enabled || (sensitive.setup && !expired)) && <label className="block space-y-2 text-sm">{status.enabled ? 'Authenticator or unused recovery code' : 'Six-digit authenticator code'}<input type="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={40} required value={code} onChange={event => setCode(event.target.value)} className={input} disabled={action !== null} /></label>}
-                                    {action && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Saving security change…</p>}
-                                    {!status.enabled ? <div className="flex flex-wrap gap-2"><button type="submit" className={button} disabled={action !== null || !password || Boolean(sensitive.setup && !expired && !code.trim())}>{sensitive.setup && !expired ? 'Enable authenticator' : sensitive.setup ? 'Start setup again' : 'Set up authenticator'}</button>
-                                        {sensitive.setup && <button type="button" className={button} disabled={action !== null} onClick={() => { setSensitive({ setup: null, recoveryCodes: null }); setPassword(''); setCode(''); setError(null); }}>Cancel setup</button>}</div>
-                                        : <div className="space-y-3"><div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={action !== null} onClick={() => setConfirmation('recovery-codes')}>Replace recovery codes</button><button type="button" className={button} disabled={action !== null} onClick={() => setConfirmation('disable')}>Disable authenticator</button></div>
-                                            {confirmation && <div className="space-y-3 rounded-xl border border-[var(--fc-border)] p-3"><p className="text-sm">{confirmation === 'disable' ? 'Disable authenticator protection? Other remembered sessions will be signed out.' : 'Replace your recovery codes? Every old recovery code will stop working. Save the new set before leaving.'}</p><div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={action !== null || !password || !code.trim()} onClick={() => void mutate(confirmation)}>Confirm {confirmation === 'disable' ? 'disable' : 'replacement'}</button><button type="button" className={button} disabled={action !== null} onClick={() => setConfirmation(null)}>Cancel</button></div></div>}</div>}
+                                    <label className="block space-y-2 text-sm">{text("Current password")}<input type="password" autoComplete="current-password" maxLength={256} required value={password} onChange={event => setPassword(event.target.value)} className={input} disabled={action !== null} /></label>
+                                    {(status.enabled || (sensitive.setup && !expired)) && <label className="block space-y-2 text-sm">{status.enabled ? text("Authenticator or unused recovery code") : text("Six-digit authenticator code")}<input type="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={40} required value={code} onChange={event => setCode(event.target.value)} className={input} disabled={action !== null} /></label>}
+                                    {action && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />{text("Saving security change…")}</p>}
+                                    {!status.enabled ? <div className="flex flex-wrap gap-2"><button type="submit" className={button} disabled={action !== null || !password || Boolean(sensitive.setup && !expired && !code.trim())}>{sensitive.setup && !expired ? text("Enable authenticator") : sensitive.setup ? text("Start setup again") : text("Set up authenticator")}</button>
+                                        {sensitive.setup && <button type="button" className={button} disabled={action !== null} onClick={() => { setSensitive({ setup: null, recoveryCodes: null }); setPassword(''); setCode(''); setError(null); }}>{text("Cancel setup")}</button>}</div>
+                                        : <div className="space-y-3"><div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={action !== null} onClick={() => setConfirmation('recovery-codes')}>{text("Replace recovery codes")}</button><button type="button" className={button} disabled={action !== null} onClick={() => setConfirmation('disable')}>{text("Disable authenticator")}</button></div>
+                                            {confirmation && <div className="space-y-3 rounded-xl border border-[var(--fc-border)] p-3"><p className="text-sm">{confirmation === 'disable' ? text("Disable authenticator protection? Other remembered sessions will be signed out.") : text("Replace your recovery codes? Every old recovery code will stop working. Save the new set before leaving.")}</p><div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={action !== null || !password || !code.trim()} onClick={() => void mutate(confirmation)}>{text(confirmation === 'disable' ? 'Confirm disable' : 'Confirm replacement')}</button><button type="button" className={button} disabled={action !== null} onClick={() => setConfirmation(null)}>{text("Cancel")}</button></div></div>}</div>}
                                 </form>
                             </>}
                 </>}

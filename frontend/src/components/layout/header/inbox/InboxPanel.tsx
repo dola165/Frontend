@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BellRing, CheckCheck, type LucideIcon } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, List, ListRow, Skeleton } from '../../../../design/primitives';
@@ -10,6 +10,8 @@ import { requestIcon } from '../../../../features/requests/requestIcon';
 import type { NotificationItem } from '../../../../types/notifications';
 import { buildNotificationDestination, formatNotificationTime } from '../../../../utils/notifications';
 import { useInboxPreview, type InboxCounts } from './useInbox';
+import { useAuth } from '../../../../context/AuthContext';
+import { isCurrentAuthSession } from '../../../../utils/authStorage';
 
 type InboxTab = 'needs-you' | 'updates';
 
@@ -17,7 +19,16 @@ const Glyph = ({ icon: Icon }: { icon: LucideIcon }) => <span className="gk-inbo
 
 /** One Inbox: decisions waiting for the person, then the latest updates, each linking to its full page. */
 export function InboxPanel({ counts, titleId, onNavigate }: { counts: InboxCounts; titleId: string; onNavigate: () => void }) {
+    const { sessionId } = useAuth();
+    return <InboxContent key={sessionId} counts={counts} titleId={titleId} onNavigate={onNavigate} />;
+}
+
+function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; titleId: string; onNavigate: () => void }) {
     const copy = useJourneyCopy();
+    const { sessionId } = useAuth();
+    const mounted = useRef(true);
+    const pending = useRef(false);
+    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
     const navigate = useNavigate();
     const preview = useInboxPreview();
     const [tab, setTab] = useState<InboxTab>(counts.needsYou === 0 && (counts.updates ?? 0) > 0 ? 'updates' : 'needs-you');
@@ -27,9 +38,11 @@ export function InboxPanel({ counts, titleId, onNavigate }: { counts: InboxCount
 
     const openUpdate = async (notification: NotificationItem) => {
         // One press opens it once, even if the first mark-read is still on its way.
-        if (opening !== null) return;
+        if (pending.current) return;
+        pending.current = true;
         setOpening(notification.id);
-        try { await preview.markRead(notification); } finally { setOpening(null); }
+        try { await preview.markRead(notification); } finally { pending.current = false; if (mounted.current) setOpening(null); }
+        if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
         onNavigate();
         navigate(buildNotificationDestination(notification));
     };
@@ -37,7 +50,7 @@ export function InboxPanel({ counts, titleId, onNavigate }: { counts: InboxCount
     const failed = (
         <div className="gk-notice gk-notice--danger" role="alert">
             <span>{copy('This part of your inbox could not load.', 'ეს ნაწილი ვერ ჩაიტვირთა.')}</span>
-            <Button size="sm" variant="ghost" onClick={preview.retry}>{copy('Try again', 'ხელახლა')}</Button>
+            <Button size="sm" variant="ghost" onClick={preview.retry}>{copy('Try again', 'ხელახლა ცდა')}</Button>
         </div>
     );
     const needsYouCount = counts.needsYou === null ? undefined : partial ? undefined : counts.needsYou;
@@ -114,7 +127,7 @@ export function InboxPanel({ counts, titleId, onNavigate }: { counts: InboxCount
                     <div className="gk-pop__foot">
                         <Link to="/notifications" onClick={onNavigate}>{copy('All updates', 'ყველა სიახლე')}</Link>
                         <Button size="sm" variant="ghost" disabled={!counts.updates || preview.busy || preview.updates.status !== 'ready'} aria-busy={preview.busy} onClick={() => void preview.markAllRead()}>
-                            <CheckCheck aria-hidden="true" />{copy('Mark all as read', 'ყველა წაკითხულია')}
+                            <CheckCheck aria-hidden="true" />{copy('Mark all as read', 'ყველას წაკითხულად მონიშვნა')}
                         </Button>
                     </div>
                 </div>

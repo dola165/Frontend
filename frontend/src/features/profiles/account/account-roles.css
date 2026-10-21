@@ -33,5 +33,6 @@
 .gk .gk-profession-add .gk-chip { min-height: 36px; }
 .gk .gk-roles__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); }
 .gk .gk-roles__foot > p { flex: 1 1 320px; max-width: 64ch; font-size: var(--gk-fs-sm); }
+.gk-account-roles .gk-roles__foot > .gk-row { flex-wrap: wrap; max-width: 100%; }
 .gk .gk-roles__foot .gk-btn { min-height: 44px; }
 .gk .gk-roles__saved { font-size: var(--gk-fs-sm); color: var(--gk-accent); font-weight: 600; }

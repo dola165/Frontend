@@ -6,6 +6,7 @@ import type { NotificationItem } from '../../../../types/notifications';
 import { InboxButton } from '../inbox/InboxButton';
 import { InboxPanel } from '../inbox/InboxPanel';
 import { inboxBadge, inboxLabel, type InboxCounts } from '../inbox/useInbox';
+import i18n from '../../../../i18n';
 
 const api = vi.hoisted(() => ({
     requests: vi.fn(),
@@ -14,7 +15,9 @@ const api = vi.hoisted(() => ({
     markNotificationAsRead: vi.fn(),
     markAllNotificationsAsRead: vi.fn(),
 }));
-vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'session-1' }) }));
+const auth = vi.hoisted(() => ({ sessionId: 'session-1' }));
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => auth }));
+vi.mock('../../../../utils/authStorage', () => ({ isCurrentAuthSession: (id: string) => id === auth.sessionId }));
 vi.mock('../../../../features/requests/api', () => ({ requests: api.requests, requestDestination: (value: string) => value.startsWith('/') ? value : null }));
 vi.mock('../../../../api/notifications', () => ({
     fetchNotifications: api.fetchNotifications,
@@ -48,13 +51,14 @@ function panel(value: InboxCounts, onNavigate = vi.fn()) {
 }
 
 beforeEach(() => {
+    auth.sessionId = 'session-1';
     api.requests.mockResolvedValue(page([], 0));
     api.fetchNotifications.mockResolvedValue({ content: [] });
     api.fetchUnreadNotificationCount.mockResolvedValue({ unreadCount: 0 });
     api.markNotificationAsRead.mockResolvedValue({});
     api.markAllNotificationsAsRead.mockResolvedValue({});
 });
-afterEach(() => vi.clearAllMocks());
+afterEach(async () => { vi.clearAllMocks(); await i18n.changeLanguage('en'); });
 
 describe('inbox badge and name', () => {
     it('counts decisions only, and shows unread updates as a dot', () => {
@@ -156,5 +160,47 @@ describe('Inbox panel', () => {
         const tab = screen.getByRole('tab', { name: /Needs you/ });
         expect(tab).toHaveAttribute('aria-controls', 'inbox-tab-needs-you-panel');
         expect(screen.getByRole('tabpanel', { name: /Needs you/ })).toHaveAttribute('id', 'inbox-tab-needs-you-panel');
+    });
+
+    it('does not open an old notification after the account changes while marking it read', async () => {
+        let done = () => {};
+        api.fetchNotifications.mockResolvedValue({ content: [update(7)] });
+        api.markNotificationAsRead.mockReturnValue(new Promise<void>(resolve => { done = resolve; }));
+        const onNavigate = vi.fn();
+        const view = () => <MemoryRouter><InboxPanel counts={counts({ updates: 1 })} titleId="inbox" onNavigate={onNavigate} /></MemoryRouter>;
+        const { rerender } = render(view());
+        fireEvent.click(await screen.findByRole('button', { name: 'Unread: Training moved 7' }));
+        api.fetchNotifications.mockResolvedValue({ content: [] });
+        auth.sessionId = 'session-2';
+        rerender(view());
+        await screen.findByText('No updates yet');
+        await act(async () => done());
+        expect(onNavigate).not.toHaveBeenCalled();
+        expect(screen.queryByText('Opened elsewhere')).not.toBeInTheDocument();
+        expect(api.fetchNotifications).toHaveBeenCalledTimes(2);
+    });
+
+    it('drops old account counts immediately, while the next account is still loading', async () => {
+        api.requests.mockResolvedValue(page([], 4));
+        api.fetchUnreadNotificationCount.mockResolvedValue({ unreadCount: 8 });
+        const { rerender } = render(<MemoryRouter><InboxButton /></MemoryRouter>);
+        await screen.findByRole('button', { name: 'Inbox: 4 need you, 8 unread updates' });
+        api.requests.mockReturnValue(new Promise(() => {}));
+        api.fetchUnreadNotificationCount.mockReturnValue(new Promise(() => {}));
+        auth.sessionId = 'session-2';
+        rerender(<MemoryRouter><InboxButton /></MemoryRouter>);
+        expect(screen.getByRole('button', { name: 'Inbox' })).toBeInTheDocument();
+        expect(screen.queryByText('4')).not.toBeInTheDocument();
+    });
+
+    it('translates the unknown state, retry and mark-read action without claiming success', async () => {
+        await i18n.changeLanguage('ka');
+        api.fetchNotifications.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ content: [update(1)] });
+        panel(counts({ updates: 1 }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('ეს ნაწილი ვერ ჩაიტვირთა.');
+        expect(screen.queryByText('სიახლეები ჯერ არ არის')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'ხელახლა ცდა' }));
+        await screen.findByRole('button', { name: 'წაუკითხავი: Training moved 1' });
+        expect(screen.getByRole('button', { name: 'ყველას წაკითხულად მონიშვნა' })).not.toBeDisabled();
     });
 });

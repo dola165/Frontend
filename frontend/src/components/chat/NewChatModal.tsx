@@ -4,8 +4,11 @@ import { Search, X, Loader2, Users, Check, ArrowLeft, UserPlus, MessageCircle } 
 import { chatApi, type UserSearchResult } from '../../api/chat';
 import { useDialogFocus } from '../workspace/useDialogFocus';
 import { usePanelMotion } from '../ui/usePanelMotion';
-import { getStoredUserId } from '../../utils/authStorage';
-import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
+import { getStoredUserId, isCurrentAuthSession } from '../../utils/authStorage';
+import { useAuth } from '../../context/AuthContext';
+import { useMessageCopy } from './messageCopy';
+import { useChatPeopleSearch } from './useChatPeopleSearch';
+import { PeopleSearchStatus } from './PeopleSearchStatus';
 
 interface NewChatModalProps {
     open: boolean;
@@ -18,29 +21,33 @@ type ChatMode = 'DIRECT' | 'GROUP';
 type GroupStep = 'select' | 'name';
 
 export function NewChatModal(props: NewChatModalProps) {
-    return props.open ? <NewChatContent {...props} /> : null;
+    const { sessionId } = useAuth();
+    return props.open ? <NewChatContent key={sessionId} {...props} /> : null;
 }
 function NewChatContent({ open, onClose: finishClose, onConversationCreated, recentContacts }: NewChatModalProps) {
-    const copy = useJourneyCopy();
+    const copy = useMessageCopy();
+    const { sessionId } = useAuth();
+    const mounted = useRef(true);
+    const createPending = useRef(false);
+    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
     const motion = usePanelMotion(finishClose);
     const onClose = motion.close;
     const [mode, setMode] = useState<ChatMode>('DIRECT');
     const [groupStep, setGroupStep] = useState<GroupStep>('select');
     const [groupName, setGroupName] = useState('');
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState<UserSearchResult[]>([]);
     const [selectedUsers, setSelectedUsers] = useState<UserSearchResult[]>([]);
-    const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const dialogRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const nameInputRef = useRef<HTMLInputElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useDialogFocus(open, dialogRef, onClose, inputRef);
 
     const currentUserId = Number(getStoredUserId() || 0);
+    const peopleSearch = useChatPeopleSearch(query, [currentUserId, ...selectedUsers.map(person => person.id)]);
+    const { results, loading } = peopleSearch;
 
     // Deduplicate recent contacts against selected users; hide minors
     // (belt-and-braces — the server already filters the allowlist).
@@ -57,40 +64,10 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
             setGroupStep('select');
             setGroupName('');
             setQuery('');
-            setResults([]);
             setSelectedUsers([]);
             setError(null);
         }
     }, [open]);
-
-    useEffect(() => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-
-        if (query.trim().length < 2) {
-            setResults([]);
-            return;
-        }
-
-        debounceRef.current = setTimeout(async () => {
-            setLoading(true);
-            try {
-                const res = await chatApi.searchUsers(query.trim());
-                setResults(
-                    res.data.content.filter(
-                        (u) => u.id !== currentUserId && !u.isMinor && !selectedUsers.some((s) => s.id === u.id),
-                    ),
-                );
-            } catch {
-                setError(copy('Search failed. Try again.', 'ძიება ვერ მოხერხდა. სცადეთ ხელახლა.'));
-            } finally {
-                setLoading(false);
-            }
-        }, 300);
-
-        return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
-        };
-    }, [query, currentUserId, selectedUsers, copy]);
 
     const handleSelectUser = (user: UserSearchResult) => {
         if (mode === 'DIRECT') {
@@ -99,7 +76,6 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
         }
         setSelectedUsers((prev) => [...prev, user]);
         setQuery('');
-        setResults([]);
     };
 
     const handleRemoveSelected = (userId: number) => {
@@ -113,6 +89,8 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
     };
 
     const createDirectChat = async (user: UserSearchResult) => {
+        if (createPending.current) return;
+        createPending.current = true;
         setCreating(true);
         setError(null);
         try {
@@ -120,25 +98,29 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                 contextType: 'DIRECT',
                 participantIds: [user.id],
             });
+            if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
             onConversationCreated(res.data.id);
             onClose();
         } catch {
-            setError(copy('Could not start the conversation.', 'საუბარი ვერ დაიწყო.'));
+            if (mounted.current && isCurrentAuthSession(sessionId)) setError('Could not start the conversation.');
         } finally {
-            setCreating(false);
+            createPending.current = false;
+            if (mounted.current) setCreating(false);
         }
     };
 
     const handleCreateGroup = async () => {
+        if (createPending.current) return;
         if (!groupName.trim()) {
-            setError(copy('Give the group a name.', 'დაარქვით ჯგუფს სახელი.'));
+            setError('Give the group a name.');
             return;
         }
         if (selectedUsers.length === 0) {
-            setError(copy('Choose at least one person.', 'აირჩიეთ ერთი ადამიანი მაინც.'));
+            setError('Choose at least one person.');
             return;
         }
 
+        createPending.current = true;
         setCreating(true);
         setError(null);
         try {
@@ -147,12 +129,14 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                 name: groupName.trim(),
                 participantIds: selectedUsers.map((u) => u.id),
             });
+            if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
             onConversationCreated(res.data.id);
             onClose();
         } catch {
-            setError(copy('Could not create the group.', 'ჯგუფი ვერ შეიქმნა.'));
+            if (mounted.current && isCurrentAuthSession(sessionId)) setError('Could not create the group.');
         } finally {
-            setCreating(false);
+            createPending.current = false;
+            if (mounted.current) setCreating(false);
         }
     };
 
@@ -163,7 +147,6 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
         setGroupName('');
         setError(null);
         setQuery('');
-        setResults([]);
     };
 
     if (!open) return null;
@@ -180,27 +163,29 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                 onClick={onClose}
             />
 
-            <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="New Chat" className="app-motion-dialog theme-surface theme-border relative z-10 w-full max-w-[420px] overflow-hidden rounded-xl border shadow-2xl" data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd}>
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={copy('New Chat')} className="app-motion-dialog theme-surface theme-border relative z-10 w-full max-w-[420px] overflow-hidden rounded-xl border shadow-2xl" data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd}>
 
                 {/* ── Header ──────────────────────────────────────── */}
                 <div className="flex items-center gap-3 bg-[var(--color-accent)] px-5 h-14">
                     {isNameStep ? (
                         <button
                             onClick={() => setGroupStep('select')}
-                            className="p-1 -ml-1 rounded-full text-[color:var(--color-text)]/80 hover:text-[color:var(--color-text)] hover:bg-[color:var(--color-ink)]/10 transition-colors"
+                            aria-label={copy('Back')}
+                            className="p-1 -ml-1 rounded-full text-[color:var(--color-on-accent)]/80 hover:text-[color:var(--color-on-accent)] hover:bg-[color:var(--color-ink)]/10 transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                     ) : (
                         <button
                             onClick={onClose}
-                            className="p-1 -ml-1 rounded-full text-[color:var(--color-text)]/80 hover:text-[color:var(--color-text)] hover:bg-[color:var(--color-ink)]/10 transition-colors"
+                            aria-label={copy('Close new chat')}
+                            className="p-1 -ml-1 rounded-full text-[color:var(--color-on-accent)]/80 hover:text-[color:var(--color-on-accent)] hover:bg-[color:var(--color-ink)]/10 transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
                     )}
 
-                    <h2 className="font-semibold text-[color:var(--color-text)] text-base flex-1">
+                    <h2 className="font-semibold text-[color:var(--color-on-accent)] text-base flex-1">
                         {isNameStep ? copy('New group', 'ახალი ჯგუფი') : copy('New chat', 'ახალი ჩატი')}
                     </h2>
 
@@ -208,7 +193,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                     {isGroup && !isNameStep && selectedUsers.length > 0 && (
                         <button
                             onClick={goToNameStep}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[color:var(--color-ink)]/20 text-[color:var(--color-text)] text-sm font-semibold hover:bg-[color:var(--color-ink)]/30 transition-colors"
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[color:var(--color-ink)]/20 text-[color:var(--color-on-accent)] text-sm font-semibold hover:bg-[color:var(--color-ink)]/30 transition-colors"
                         >
                             {copy('Next', 'შემდეგი')}
                             <ArrowLeft className="w-4 h-4 rotate-180" />
@@ -231,6 +216,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                             value={groupName}
                             onChange={(e) => setGroupName(e.target.value)}
                             placeholder={copy('Group name', 'ჯგუფის სახელი')}
+                            aria-label={copy('Group name')}
                             maxLength={100}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateGroup(); }}
                             className="w-full py-3 text-base font-semibold text-center bg-transparent text-[var(--color-text)] border-b-2 outline-none transition-colors focus:border-[var(--color-accent)]"
@@ -251,6 +237,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                                         {(user.fullName || user.username)}
                                         <button
                                             onClick={() => handleRemoveSelected(user.id)}
+                                            aria-label={copy(`Remove ${user.fullName || user.username}`, `ამოშლა: ${user.fullName || user.username}`)}
                                             className="p-0.5 rounded-full hover:bg-[color:var(--color-elevated)]/50 transition-colors"
                                         >
                                             <X className="w-3.5 h-3.5" />
@@ -261,7 +248,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                         )}
 
                         {error && (
-                            <p className="text-sm font-semibold text-[color:var(--state-danger)] text-center mt-4">{error}</p>
+                            <p role="alert" className="text-sm font-semibold text-[color:var(--state-danger)] text-center mt-4">{copy(error)}</p>
                         )}
 
                         <button
@@ -321,6 +308,7 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                                         {(user.fullName || user.username)}
                                         <button
                                             onClick={() => handleRemoveSelected(user.id)}
+                                            aria-label={copy(`Remove ${user.fullName || user.username}`, `ამოშლა: ${user.fullName || user.username}`)}
                                             className="p-0.5 rounded-full hover:bg-[color:var(--color-elevated)]/50 transition-colors"
                                         >
                                             <X className="w-3.5 h-3.5" />
@@ -338,7 +326,8 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                                     ref={inputRef}
                                     type="text"
                                     value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
+                                    onChange={(e) => { setQuery(e.target.value); setError(null); }}
+                                    aria-label={copy('Search people')}
                                     placeholder={
                                         isGroup
                                             ? copy('Search people to add…', 'მოძებნეთ დასამატებელი ადამიანები…')
@@ -353,18 +342,13 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
                         <div className="max-h-72 overflow-y-auto border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
 
                             {error && (
-                                <p className="px-5 py-6 text-sm font-semibold text-[color:var(--state-danger)] text-center">{error}</p>
+                                <p role="alert" className="px-5 py-6 text-sm font-semibold text-[color:var(--state-danger)] text-center">{copy(error)}</p>
                             )}
 
-                            {loading && (
-                                <div className="flex items-center justify-center py-10 gap-2 text-muted">
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span className="text-sm">Searching...</span>
-                                </div>
-                            )}
+                            <PeopleSearchStatus loading={loading} failed={peopleSearch.failed} onRetry={peopleSearch.retry} />
 
                             {/* Search results */}
-                            {showSearchResults && !loading && results.length === 0 && !error && (
+                            {showSearchResults && !loading && results.length === 0 && !error && !peopleSearch.failed && (
                                 <p className="px-5 py-10 text-sm text-muted text-center">
                                     {copy('Nobody found.', 'ვერავინ მოიძებნა.')}
                                 </p>

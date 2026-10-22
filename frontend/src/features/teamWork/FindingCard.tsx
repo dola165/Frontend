@@ -25,6 +25,32 @@ function Face({ detail }: { detail: Detail | undefined }) {
     </span>;
 }
 
+/** Beside the files when a finding is open: its name and what it is for, which anyone on the team can write or change. */
+function About({ detail, onPut }: { detail: Detail; onPut: (detail: Detail) => void }) {
+    const copy = useJourneyCopy();
+    const id = useId();
+    const [draft, setDraft] = useState<string | null>(null);
+    const [error, setError] = useState('');
+    const save = async () => {
+        if (draft === null) return;
+        setError('');
+        try { onPut(await changeWork(detail.item.id, { version: detail.item.version, description: draft.trim() })); setDraft(null); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be saved.', 'ვერ შეინახა.'))); }
+    };
+    return <div className="tw-finding__about">
+        <h3 className="tw-finding__title">{detail.item.title}</h3>
+        {draft === null ? <>
+            {detail.item.description ? <p className="tw-finding__purpose">{detail.item.description}</p> : <p className="gk-faint tw-finding__purpose">{copy('Nobody has written what it’s for yet.', 'რისთვისაა, ჯერ არავის დაუწერია.')}</p>}
+            <span><button type="button" className="tw-link-button" onClick={() => setDraft(detail.item.description ?? '')}>{detail.item.description ? copy('Edit', 'რედაქტირება') : copy('Write what it’s for', 'დაწერეთ რისთვისაა')}</button></span>
+        </> : <form className="tw-field" onSubmit={event => { event.preventDefault(); void save(); }}>
+            <label htmlFor={id}>{copy('What it’s for', 'რისთვისაა')}</label>
+            <textarea id={id} className="gk-input" rows={3} maxLength={400} autoFocus value={draft} onChange={event => setDraft(event.target.value)} />
+            <span className="tw-row-actions"><Button size="sm" variant="primary" type="submit">{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setDraft(null)}>{copy('Cancel', 'გაუქმება')}</Button></span>
+        </form>}
+        {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+    </div>;
+}
+
 /** A short menu behind one button: "Make it a task" on its own or in a project. */
 export function PickMenu({ label, icon, options, disabled, onPick }: { label: string; icon: ReactNode; options: { key: string; label: string }[]; disabled?: boolean; onPick: (key: string) => void }) {
     const [open, setOpen] = useState(false);
@@ -74,7 +100,8 @@ export function FindingCard({ item, detail, team, me, open, line, next, onOpen, 
             <span className="tw-finding__text">
                 <span className="tw-finding__name">{item.title}</span>
                 <span className="tw-finding__who">{[by?.name, ago(copy, item.createdAt)].filter(Boolean).join(' · ')}</span>
-                {detail?.comments[0] && <span className="tw-finding__comment"><MentionText text={detail.comments[0].body} team={team} me={me} /></span>}
+                {(detail?.item.description ?? item.description) ? <span className="tw-finding__comment">{detail?.item.description ?? item.description}</span>
+                    : detail?.comments[0] && <span className="tw-finding__comment"><MentionText text={detail.comments[0].body} team={team} me={me} /></span>}
             </span>
         </button>
         <div className="tw-finding__state">
@@ -93,7 +120,7 @@ export function FindingCard({ item, detail, team, me, open, line, next, onOpen, 
         </div>
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {open && detail && <div className="tw-finding__open">
-            <WorkMediaList itemId={item.id} media={detail.media} onChanged={onPut} />
+            <div className="tw-finding__top"><WorkMediaList itemId={item.id} media={detail.media} onChanged={onPut} /><About detail={detail} onPut={onPut} /></div>
             <WorkComments itemId={item.id} comments={detail.comments} team={team} me={me} onChanged={comments => onPut({ ...detail, comments })} />
         </div>}
     </li>;

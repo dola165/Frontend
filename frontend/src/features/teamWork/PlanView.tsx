@@ -2,11 +2,11 @@ import { useState, type ReactNode } from 'react';
 import { ArrowLeft, ChevronDown, ChevronRight, ClipboardPaste, Plus } from 'lucide-react';
 import { Badge, Button, EmptyNote, Panel } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import type { PlanStatus, RoadmapView, WorkItem, WorkNode } from './api';
+import type { PlanStatus, RoadmapView, WorkItem, WorkNode, WorkStatus } from './api';
 import { WorkPiece } from './WorkDetails';
 import { PlanMenu, StepStrip } from './PlanBits';
 import { nodeMatches, peopleLine, type Who } from './planPeople';
-import { ColourKey, SmallChip, StatusDot } from './WorkBits';
+import { SmallChip, StatusDot, StatusFilter } from './WorkBits';
 
 const PLAN_STATUS: Record<PlanStatus, [string, string]> = { NOW: ['Now', 'ახლა'], LATER: ['Later', 'მოგვიანებით'], FINISHED: ['Finished', 'დასრულებული'] };
 export type PlanDialog = 'paste' | 'ai' | 'history' | 'copy' | 'rename';
@@ -30,15 +30,15 @@ function WorkRow({ item, parts, open, folded, onOpen, onFold }: { item: WorkItem
  * A project opened: its tasks as a list with their stages (a task opens in place under its row), then the same
  * tasks step by step. Paste from AI and Add task up front; the rest behind "…".
  */
-export function PlanView({ view, who, open, me, filter, onBack, onOpen, onChangePlan, onAdd, onDialog, onRefresh }: {
-    view: RoadmapView; who: Who; open: number | null; me: number | null; filter: ReactNode; onBack: () => void; onOpen: (id: number | null) => void;
+export function PlanView({ view, who, open, me, filter, statuses, onStatuses, onBack, onOpen, onChangePlan, onAdd, onDialog, onRefresh }: {
+    view: RoadmapView; who: Who; open: number | null; me: number | null; filter: ReactNode; statuses: WorkStatus[]; onStatuses: (statuses: WorkStatus[]) => void; onBack: () => void; onOpen: (id: number | null) => void;
     onChangePlan: (change: { order?: number[]; status?: PlanStatus }) => void; onAdd: (parent?: WorkItem) => void; onDialog: (dialog: PlanDialog) => void; onRefresh: () => void;
 }) {
     const copy = useJourneyCopy();
     const [folded, setFolded] = useState<number[]>([]);
     const ids = view.pieces.map(node => node.item.id);
     const numbers = new Map(ids.map((id, index) => [id, index + 1]));
-    const shown = view.pieces.filter(node => nodeMatches(node, who, view.team));
+    const shown = view.pieces.filter(node => nodeMatches(node, who, view.team) && (!statuses.length || statuses.includes(node.item.status)));
     const piece = (item: WorkItem, node?: WorkNode) => open === item.id && <WorkPiece key={`piece-${item.id}`} id={item.id} team={view.team} me={me}
         place={node && { first: ids[0] === item.id, last: ids[ids.length - 1] === item.id,
             onMove: by => { const at = ids.indexOf(item.id), next = [...ids]; next.splice(at, 1); next.splice(at + by, 0, item.id); onChangePlan({ order: next }); },
@@ -48,7 +48,7 @@ export function PlanView({ view, who, open, me, filter, onBack, onOpen, onChange
 
     return <>
         <div className="tw-plan-head">
-            <button type="button" className="tw-back" onClick={onBack}><ArrowLeft aria-hidden="true" />{copy('Back to overview', 'მიმოხილვაზე დაბრუნება')}</button>
+            <button type="button" className="tw-back" onClick={onBack}><ArrowLeft aria-hidden="true" />{copy('Back to progress', 'პროგრესზე დაბრუნება')}</button>
             <div className="tw-plan-head__row">
                 <div className="tw-plan-head__title">
                     <h1>{view.roadmap.name}{view.roadmap.status !== 'NOW' && <Badge tone={view.roadmap.status === 'FINISHED' ? 'accent' : 'neutral'}>{copy(...PLAN_STATUS[view.roadmap.status])}</Badge>}</h1>
@@ -61,7 +61,7 @@ export function PlanView({ view, who, open, me, filter, onBack, onOpen, onChange
                 </span>
             </div>
         </div>
-        <div className="tw-bar-line">{filter}<ColourKey /></div>
+        <div className="tw-bar-line">{filter}<StatusFilter chosen={statuses} onChange={onStatuses} /></div>
         {view.pieces.length === 0
             ? <Panel flush><EmptyNote title={copy('Nothing in this project yet', 'ამ პროექტში ჯერ არაფერია')}
                 action={<div className="tw-empty-actions"><Button variant="primary" size="sm" onClick={() => onAdd()}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button>

@@ -1,5 +1,5 @@
 /* Team work's frame: a small side bar of places, then the place itself. */
-.gk .tw-shell { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: var(--gk-6); align-items: start; }
+.gk .tw-shell { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: var(--gk-6); align-items: start; max-width: 1600px; }
 .gk .tw-main { display: flex; flex-direction: column; gap: var(--gk-5); min-width: 0; }
 .gk .tw-side { position: sticky; top: calc(var(--app-header-height, 64px) + var(--gk-4)); }
 .gk .tw-side ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -118,6 +118,9 @@
 .gk .tw-tag { color: var(--gk-info); font-weight: 600; }
 .gk .tw-tag[data-me] { padding: 0 3px; border-radius: 4px; background: color-mix(in srgb, var(--gk-info) 16%, transparent); }
 
+/* On desktop the side bar starts at the logo's edge: the app's page frame adds 32px before this page's own gutter. */
+@media (min-width: 901px) { .gk .tw-page { padding-inline-start: max(0px, calc(var(--gk-gutter) - 32px)); } }
+
 /* Narrow screens: the side bar becomes one row of tabs above the page. */
 @media (max-width: 900px) {
     .gk .tw-shell { grid-template-columns: minmax(0, 1fr); gap: var(--gk-3); }
@@ -132,4 +135,34 @@
     .gk .tw-drop__form { grid-template-columns: minmax(0, 1fr); }
     .gk .tw-drop__files li { width: calc(33.3% - var(--gk-2)); }
     .gk .tw-task__stage { padding-left: var(--gk-2); }
+}
+
+/* The status key doubles as the filter. */
+.gk .tw-key button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease), color .15s var(--gk-ease); }
+.gk .tw-key button:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .tw-key button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--tw-tone, var(--gk-accent)) 55%, var(--gk-line)); background: color-mix(in srgb, var(--tw-tone, var(--gk-accent)) 12%, var(--gk-surface)); color: var(--gk-text); font-weight: 600; }
+.gk .tw-group__go { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); transition: transform .15s var(--gk-ease), color .15s var(--gk-ease); }
+.gk .tw-group:hover .tw-group__go { transform: translateX(2px); color: var(--gk-text); }
+.gk .tw-plan-head__icon { width: 22px; height: 22px; color: var(--gk-text-3); }
+
+/* An open finding: the files on the left, its name and what it is for beside them, the thread below. */
+.gk .tw-finding__top { display: grid; grid-template-columns: fit-content(440px) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
+.gk .tw-finding__about { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-width: 72ch; }
+.gk .tw-finding__title { margin: 0; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 650; overflow-wrap: anywhere; }
+.gk .tw-finding__purpose { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--gk-text); }
+@media (max-width: 640px) { .gk .tw-finding__top { grid-template-columns: minmax(0, 1fr); } }
+
+/* Motion: soft hovers, panels that open by rising in, bars that grow; nothing moves for people who ask for less. */
+@keyframes tw-rise { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes tw-fade { from { opacity: 0; } }
+.gk .tw-main { animation: tw-fade .22s var(--gk-ease) both; }
+.gk .tw-task__body, .gk .tw-task__stage, .gk .tw-finding__open, .gk .tw-tree .tw-piece { animation: tw-rise .2s var(--gk-ease) both; }
+.gk .tw-menu__list, .gk .tw-mention__list { animation: tw-rise .14s var(--gk-ease) both; transform-origin: top; }
+.gk .tw-side button, .gk .tw-names button, .gk .tw-link-button, .gk .tw-back, .gk .tw-row__main, .gk .tw-parts button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .tw-task, .gk .tw-finding, .gk .tw-group { transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease), transform .15s var(--gk-ease); }
+.gk .tw-task:not([data-open]):hover, .gk .tw-finding:not([data-open]):hover, .gk .tw-group:hover { box-shadow: var(--gk-elevation); transform: translateY(-1px); }
+.gk .tw-task__bar > span, .gk .tw-steps__bar > span { transition: width .35s var(--gk-ease); }
+.gk .tw-task__top > svg { transition: transform .2s var(--gk-ease); }
+@media (prefers-reduced-motion: reduce) {
+    .gk .tw-shell *, .gk .tw-main { animation: none !important; transition: none !important; transform: none !important; }
 }

@@ -2,11 +2,11 @@ import type { LucideIcon } from 'lucide-react';
 import { Hourglass, Inbox, LayoutGrid, RefreshCw, Users } from 'lucide-react';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 
-/** The page's places: the overview, findings to add to plans, pending, staying up to date, and the team last. */
+/** The page's places: progress, findings to add to plans, pending, staying up to date, and the team last. */
 export type TeamWorkPlace = 'overview' | 'add' | 'pending' | 'updates' | 'team';
 
 const PLACES: [TeamWorkPlace, LucideIcon, string, string][] = [
-    ['overview', LayoutGrid, 'Overview', 'მიმოხილვა'],
+    ['overview', LayoutGrid, 'Progress', 'პროგრესი'],
     ['add', Inbox, 'Add to plans', 'გეგმებში დამატება'],
     ['pending', Hourglass, 'Pending', 'მოლოდინში'],
     ['updates', RefreshCw, 'Stay up to date', 'განახლებები'],

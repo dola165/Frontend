@@ -89,13 +89,16 @@ it('opens on groups: the weeks with tasks added, done and open, then the project
     expect(within(groups).getAllByRole('button').map(box => box.querySelector('.tw-group__name')?.textContent).filter(Boolean)).toEqual(['This week', 'Last week', 'Registration and roles']);
     await userEvent.click(within(names).getByRole('button', { name: 'Everyone' }));
 
-    // A week narrows the tasks below; a project opens its own page.
+    // A week and a project each open their own page.
     await userEvent.click(within(groups).getByRole('button', { name: /^This week\s*5 added/ }));
     expect(screen.getByTestId('where')).toHaveTextContent('when=week');
+    expect(screen.getByRole('heading', { name: 'This week', level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('5 added · 1 done · 4 open')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /^Added this week 5/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Show all' }));
+    expect(screen.queryByRole('heading', { name: 'Groups' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Back to progress' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('when=');
-    await userEvent.click(within(groups).getByRole('button', { name: /^Registration and roles/ }));
+    await userEvent.click(within(await screen.findByRole('heading', { name: 'Groups' }).then(heading => heading.closest('section')!)).getByRole('button', { name: /^Registration and roles/ }));
     expect(screen.getByRole('heading', { name: 'Registration and roles', level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId('where')).toHaveTextContent('roadmap=6');
 });
@@ -114,8 +117,19 @@ it('lists every task as a card with its project and stages, finished ones folded
     expect(screen.getByTestId('where')).toHaveTextContent('finished=show');
     expect(within(tasks).getByText('Schedules')).toBeInTheDocument();
 
+    // The colour key filters by status, through the URL.
+    const statuses = within(tasks).getByRole('group', { name: 'Show by status' });
+    await userEvent.click(within(statuses).getByRole('button', { name: 'Planned' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('status=PLANNED');
+    expect(within(tasks).getAllByRole('button', { name: /%/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Save button on phones', 'Checkout']);
+    await userEvent.click(within(statuses).getByRole('button', { name: 'Finished' }));
+    expect(within(tasks).getAllByRole('button', { name: /%/ })).toHaveLength(3);
+    await userEvent.click(within(statuses).getByRole('button', { name: 'Planned' }));
+    await userEvent.click(within(statuses).getByRole('button', { name: 'Finished' }));
+    expect(screen.getByTestId('where')).not.toHaveTextContent('status=');
+
     // A big task shows its stages as plain rows; a stage opens below it.
-    await userEvent.click(cards[0]);
+    await userEvent.click(within(tasks).getByRole('button', { name: /Branding and landing/ }));
     expect(screen.getByTestId('where')).toHaveTextContent('task=1');
     const piece = await within(tasks).findByRole('region', { name: 'Branding and landing' });
     expect(within(piece).getByRole('heading', { name: 'Stages' })).toBeInTheDocument();
@@ -181,6 +195,7 @@ it('takes findings with a name and a tagged comment; anyone marks them seen or a
     const file = new File(['png'], 'checkout-screen.png', { type: 'image/png' });
     await userEvent.upload(screen.getByLabelText('Choose pictures and videos'), file);
     expect(screen.getByLabelText('Name')).toHaveValue('checkout screen');
+    await userEvent.type(screen.getByLabelText('What it’s for (optional)'), 'People cannot see the total on phones');
     const box = screen.getByLabelText('Comment (optional)');
     await userEvent.type(box, 'The total is cut off @Gi');
     expect(screen.getByRole('option', { name: '@Gio Beridze' })).toBeInTheDocument();
@@ -188,7 +203,7 @@ it('takes findings with a name and a tagged comment; anyone marks them seen or a
     expect(box).toHaveValue('The total is cut off @Gio Beridze ');
     await userEvent.click(screen.getByRole('button', { name: 'Drop it' }));
     await waitFor(() => expect(api.addPicture).toHaveBeenCalledWith(60, file));
-    expect(api.createWork).toHaveBeenCalledWith({ title: 'checkout screen', status: 'PLANNED', roadmapId: 8 });
+    expect(api.createWork).toHaveBeenCalledWith({ title: 'checkout screen', status: 'PLANNED', roadmapId: 8, description: 'People cannot see the total on phones' });
     expect(api.addComment).toHaveBeenCalledWith(60, 'The total is cut off @Gio Beridze');
 });
 
@@ -250,7 +265,7 @@ it('shows a plan as a list with names and small fixes, then step by step, and ke
     await userEvent.click(screen.getByRole('menuitem', { name: 'Project history' }));
     expect(within(screen.getByRole('dialog', { name: 'Project history' })).getByText('Added Branding and landing')).toBeInTheDocument();
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Project history' })).getAllByRole('button', { name: 'Close' })[0]);
-    await userEvent.click(screen.getByRole('button', { name: 'Back to overview' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Back to progress' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('roadmap=');
 });
 
@@ -391,7 +406,7 @@ it('stays up to date: shows the latest backend, remembers my version, lists only
     expect(message.value).toContain('whether this computer was already up to date');
     await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
-    await userEvent.click(screen.getByRole('button', { name: 'Overview' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Progress' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');
 });
 

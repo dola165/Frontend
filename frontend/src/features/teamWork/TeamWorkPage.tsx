@@ -7,11 +7,11 @@ import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changeRoadmap, createRoadmap, createWork, fetchBoard, fetchRoadmap, fetchRoadmaps, STARTER_WORK, STATUSES, type Person, type PlanStatus, type Roadmap, type RoadmapView, type WorkItem, type WorkNode } from './api';
+import { changeRoadmap, createRoadmap, createWork, fetchBoard, fetchRoadmap, fetchRoadmaps, STARTER_WORK, STATUSES, type Person, type WorkStatus, type PlanStatus, type Roadmap, type RoadmapView, type WorkItem, type WorkNode } from './api';
 import { AddWorkDialog } from './WorkDetails';
 import { AddToPlans } from './AddToPlans';
 import { INTAKE, isHidden, isNewFor, isReservedName, PENDING, useFindingDetails } from './findings';
-import { Overview, type Period } from './Overview';
+import { Overview, WeekPage, type Period, type TaskListProps } from './Overview';
 import { PasteDialog } from './PasteDialog';
 import { PendingPage } from './PendingPage';
 import { PlanView, type PlanDialog } from './PlanView';
@@ -134,24 +134,31 @@ export function TeamWorkPage() {
         catch (failure) { setError(extractApiErrorMessage(failure, copy('Some work could not be added.', 'ზოგიერთი საქმე ვერ დაემატა.'))); }
         finally { setStarting(false); reload(); }
     };
-    const openProject = (id: number) => set({ view: null, roadmap: String(id), open: null, task: null });
+    const openProject = (id: number) => set({ view: null, roadmap: String(id), open: null, task: null, when: null });
     const setOpen = (id: number | null) => set({ open: id == null ? null : String(id) });
-    const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, roadmap: null, open: null, task: null });
+    const statuses = (params.get('status') ?? '').split(',').filter((value): value is WorkStatus => (STATUSES as readonly string[]).includes(value));
+    const setStatuses = (next: WorkStatus[]) => set({ status: next.length ? next.join(',') : null, task: null, open: null });
+    const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, roadmap: null, open: null, task: null, when: null });
 
     if (missing) return <RouteRecoveryPage />;
     const filter = (allLabel: string) => <NameFilter team={team} who={who} allLabel={allLabel} onChange={next => set({ who: next === null ? null : String(next), open: null, task: null })} />;
     const loading = <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>;
     const findingProps = { details, team, me, open, onOpen: setOpen, onPut: put, onChanged: reload };
+    const week = periodOf(params.get('when'));
+    const taskList: TaskListProps = { tasks, projectOf, task, statuses, showFinished: params.get('finished') === 'show', onStatuses: setStatuses, onAddTask: () => startAdding(),
+        onShowFinished: showFinished => set({ finished: showFinished ? 'show' : null }),
+        actions: { open, team, me, onOpen: setOpen, onSaved: reload, onAddStage: parent => startAdding(undefined, parent), onToggle: id => set({ task: task === id ? null : String(id), open: null }) } };
     let main: ReactNode;
     if (!plans) main = !error && loading;
     else if (place === 'updates') main = <UpdatesView />;
     else if (place === 'team') main = <TeamPanel canManage={canManageTeam} />;
     else if (place === 'add') main = <AddToPlans intake={intake} pending={pending} {...findingProps} />;
     else if (place === 'pending') main = <PendingPage pending={pending} projects={projects} views={views} {...findingProps} />;
-    else if (view) main = <PlanView view={view} who={who} open={open} me={me} filter={filter(copy('Everything', 'ყველაფერი'))} onBack={() => set({ roadmap: null, open: null })} onOpen={setOpen}
+    else if (view) main = <PlanView view={view} who={who} open={open} me={me} filter={filter(copy('Everything', 'ყველაფერი'))} statuses={statuses} onStatuses={setStatuses} onBack={() => set({ roadmap: null, open: null })} onOpen={setOpen}
         onChangePlan={change => void changePlan(view, change)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} onRefresh={() => void refresh(view.roadmap.id)} />;
+    else if (week) main = <WeekPage period={week} filter={filter(copy('Everyone', 'ყველა'))} onBack={() => set({ when: null, task: null, open: null })} {...taskList} />;
     else main = <>
-        <PageHeader title={copy('Team work', 'გუნდის სამუშაო')} subtitle={copy('What we’re building and fixing', 'რას ვაშენებთ და ვასწორებთ')} />
+        <PageHeader title={copy('Progress', 'პროგრესი')} subtitle={copy('What we’re building and fixing', 'რას ვაშენებთ და ვასწორებთ')} />
         {projects.length === 0 && allTasks.length === 0 ? <Panel flush><EmptyNote title={copy('Nothing here yet', 'აქ ჯერ არაფერია')}
             action={<div className="tw-empty-actions">
                 <Button variant="primary" size="sm" onClick={() => startAdding()}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button>
@@ -162,10 +169,7 @@ export function TeamWorkPage() {
         </EmptyNote></Panel>
             : <>
                 {filter(copy('Everyone', 'ყველა'))}
-                <Overview tasks={tasks} projects={projects} views={views} projectOf={projectOf} who={who} when={periodOf(params.get('when'))} task={task} showFinished={params.get('finished') === 'show'}
-                    onWhen={when => set({ when, task: null, open: null })} onOpenProject={openProject} onNewProject={() => setDialog('new')} onAddTask={() => startAdding()}
-                    onShowFinished={showFinished => set({ finished: showFinished ? 'show' : null })}
-                    actions={{ open, team, me, onOpen: setOpen, onSaved: reload, onAddStage: parent => startAdding(undefined, parent), onToggle: id => set({ task: task === id ? null : String(id), open: null }) }} />
+                <Overview projects={projects} views={views} who={who} onWeek={period => set({ when: period, task: null, open: null })} onOpenProject={openProject} onNewProject={() => setDialog('new')} {...taskList} />
             </>}
     </>;
 
@@ -173,7 +177,7 @@ export function TeamWorkPage() {
         <div className="tw-shell">
             <TeamWorkNav current={place} fresh={intake?.pieces.filter(node => { const detail = details.get(node.item.id); return detail != null && isNewFor(detail, me); }).length ?? 0}
                 waiting={pending?.pieces.length ?? 0} onGo={go} />
-            <div className="tw-main">
+            <div className="tw-main" key={`${place}-${wanted ?? ''}-${week ?? ''}`}>
                 {error && <div className="gk-notice gk-notice--danger" role="alert"><span>{error}</span><Button size="sm" onClick={reload}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
                 {main}
             </div>

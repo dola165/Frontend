@@ -36,9 +36,10 @@ function FilePreview({ file }: { file: File }) {
 function DropZone({ team, ensureIntake, onDropped }: { team: Person[]; ensureIntake: () => Promise<number>; onDropped: () => void }) {
     const copy = useJourneyCopy();
     const input = useRef<HTMLInputElement>(null);
-    const nameId = useId(), commentId = useId();
+    const nameId = useId(), purposeId = useId(), commentId = useId();
     const [files, setFiles] = useState<File[]>([]);
     const [name, setName] = useState('');
+    const [purpose, setPurpose] = useState('');
     const [comment, setComment] = useState('');
     const [over, setOver] = useState(false);
     const [progress, setProgress] = useState<string | null>(null);
@@ -51,13 +52,13 @@ function DropZone({ team, ensureIntake, onDropped }: { team: Person[]; ensureInt
         setFiles(current => [...current, ...good]);
         setName(current => current || nameOf(good[0]));
     };
-    const reset = () => { setFiles([]); setName(''); setComment(''); setError(''); };
+    const reset = () => { setFiles([]); setName(''); setPurpose(''); setComment(''); setError(''); };
     const send = async () => {
         if (!name.trim() || files.length === 0 || progress !== null) return;
         setError(''); setProgress(copy('Sending…', 'იგზავნება…'));
         try {
             const roadmapId = await ensureIntake();
-            const made = await createWork({ title: name.trim(), status: 'PLANNED', roadmapId });
+            const made = await createWork({ title: name.trim(), status: 'PLANNED', roadmapId, ...(purpose.trim() ? { description: purpose.trim() } : {}) });
             if (comment.trim()) await addComment(made.item.id, comment.trim());
             for (const [index, file] of files.entries()) {
                 const label = files.length > 1 ? copy(`Uploading ${index + 1} of ${files.length}…`, `იტვირთება ${index + 1} / ${files.length}…`) : copy('Uploading…', 'იტვირთება…');
@@ -88,6 +89,8 @@ function DropZone({ team, ensureIntake, onDropped }: { team: Person[]; ensureInt
                 <div className="tw-drop__fields">
                     <div className="tw-field"><label htmlFor={nameId}>{copy('Name', 'სახელი')}</label>
                         <input id={nameId} className="gk-input" autoFocus maxLength={120} value={name} onChange={event => setName(event.target.value)} /></div>
+                    <div className="tw-field"><label htmlFor={purposeId}>{copy('What it’s for (optional)', 'რისთვისაა (არასავალდებულო)')}</label>
+                        <textarea id={purposeId} className="gk-input" rows={2} maxLength={400} value={purpose} placeholder={copy('The problem or the idea, in a sentence or two', 'პრობლემა ან იდეა, ერთი-ორი წინადადებით')} onChange={event => setPurpose(event.target.value)} /></div>
                     <div className="tw-field"><label htmlFor={commentId}>{copy('Comment (optional)', 'კომენტარი (არასავალდებულო)')}</label>
                         <MentionInput id={commentId} value={comment} team={team} placeholder={copy('What should the team look at? @ tags someone', 'რას უნდა შეხედოს გუნდმა? @ ვინმეს მონიშნავს')} onChange={setComment} /></div>
                     <div className="tw-drop__send">

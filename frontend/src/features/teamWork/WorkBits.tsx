@@ -9,6 +9,18 @@ export function StatusDot({ status }: { status: WorkStatus }) {
     return <span className="tw-dot" data-status={status} role="img" aria-label={statusName(copy, status)} title={statusName(copy, status)} />;
 }
 
+/** A quiet tag for a small fix (a button, a complaint), so it doesn't look like a project. */
+export function SmallChip() {
+    const copy = useJourneyCopy();
+    return <span className="tw-chip">{copy('small', 'პატარა')}</span>;
+}
+
+/** Big work or a small fix. */
+export function SmallPick({ small, onChange }: { small: boolean; onChange: (small: boolean) => void }) {
+    const copy = useJourneyCopy();
+    return <label className="tw-check"><input type="checkbox" checked={small} onChange={event => onChange(event.target.checked)} />{copy('Small fix (a button, a complaint)', 'პატარა შესწორება (ღილაკი, საჩივარი)')}</label>;
+}
+
 /** The one-line key for the dots. */
 export function ColourKey() {
     const copy = useJourneyCopy();

@@ -1,69 +1,72 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronDown, ChevronRight, ClipboardPaste, Plus } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, ClipboardPaste, Plus } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button, EmptyNote, GkRoot, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changeRoadmap, createRoadmap, createWork, fetchBoard, fetchRoadmap, fetchRoadmaps, STARTER_WORK, type Roadmap, type RoadmapView, type WorkItem, type WorkNode } from './api';
+import { changeRoadmap, createRoadmap, createWork, fetchBoard, fetchRoadmap, fetchRoadmaps, STARTER_WORK, type PlanStatus, type Roadmap, type RoadmapView, type WorkItem, type WorkNode } from './api';
 import { AddWorkDialog, WorkPiece } from './WorkDetails';
 import { PasteDialog } from './PasteDialog';
 import { TeamPanel } from './TeamPanel';
 import { TimeAxis, TimeBar, TimeWords } from './TimeStrip';
-import { ColourKey, StatusDot } from './WorkBits';
+import { ColourKey, SmallChip, StatusDot } from './WorkBits';
 import { ago, spanOf, type Span } from './teamWorkWords';
 import './team-work.css';
 
+type Copy = ReturnType<typeof useJourneyCopy>;
 const statusOf = (error: unknown) => (error as { response?: { status?: number } })?.response?.status;
+const PLAN_STATUSES: [PlanStatus, string, string][] = [['NOW', 'Now', 'ახლა'], ['LATER', 'Later', 'მოგვიანებით'], ['FINISHED', 'Finished', 'დასრულებული']];
 
-/** Who changed a roadmap last and when: "changed by Beqa · 2 h ago". */
-function changedLine(copy: ReturnType<typeof useJourneyCopy>, roadmap: Roadmap) {
-    return roadmap.updatedBy?.name ? copy(`changed by ${roadmap.updatedBy.name} · ${ago(copy, roadmap.updatedAt)}`, `შეცვალა ${roadmap.updatedBy.name} · ${ago(copy, roadmap.updatedAt)}`) : ago(copy, roadmap.updatedAt);
+/** Who changed a plan last and when: "changed by Beqa · 2 h ago". */
+function changedLine(copy: Copy, plan: Roadmap) {
+    return plan.updatedBy?.name ? copy(`changed by ${plan.updatedBy.name} · ${ago(copy, plan.updatedAt)}`, `შეცვალა ${plan.updatedBy.name} · ${ago(copy, plan.updatedAt)}`) : ago(copy, plan.updatedAt);
 }
+const counts = (copy: Copy, plan: Roadmap) => [
+    plan.inProgress > 0 && copy(`${plan.inProgress} in progress`, `${plan.inProgress} მიმდინარე`),
+    plan.toDo > 0 && copy(`${plan.toDo} to do`, `${plan.toDo} გასაკეთებელი`),
+    plan.finished > 0 && copy(`${plan.finished} done`, `${plan.finished} დასრულდა`),
+].filter(Boolean).join(' · ') || copy('Nothing in it yet', 'ჯერ ცარიელია');
 
-/** The roadmap switcher: every roadmap, newest change first, and the ways to start another. */
-function RoadmapSwitcher({ roadmaps, current, onPick, onName }: { roadmaps: Roadmap[]; current: Roadmap; onPick: (id: number) => void; onName: (mode: 'new' | 'copy' | 'rename') => void }) {
+/** A plan being worked on now: its name, overall progress, what is moving and what comes next. */
+function PlanBox({ plan, onOpen }: { plan: Roadmap; onOpen: () => void }) {
     const copy = useJourneyCopy();
-    const [open, setOpen] = useState(false);
-    const box = useRef<HTMLDivElement>(null);
-    const listId = useId();
-    useEffect(() => {
-        if (!open) return;
-        const close = (event: MouseEvent | KeyboardEvent) => { if (event instanceof KeyboardEvent ? event.key === 'Escape' : !box.current?.contains(event.target as Node)) setOpen(false); };
-        document.addEventListener('mousedown', close); document.addEventListener('keydown', close);
-        return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
-    }, [open]);
-    const choose = (action: () => void) => { setOpen(false); action(); };
-    return <div className="tw-switcher" ref={box}>
-        <button type="button" className="tw-switcher__button" aria-expanded={open} aria-controls={listId} onClick={() => setOpen(value => !value)}>
-            <span className="gk-faint">{copy('Roadmap', 'გეგმა')}</span><strong>{current.name}</strong><ChevronDown aria-hidden="true" />
-        </button>
-        <span className="tw-switcher__changed">{changedLine(copy, current)}{current.copiedFromName && <> · {copy(`copied from ${current.copiedFromName}`, `ასლი: ${current.copiedFromName}`)}</>}</span>
-        {open && <div className="tw-switcher__menu" id={listId}>
-            <ul aria-label={copy('Roadmaps', 'გეგმები')}>{roadmaps.map(roadmap => <li key={roadmap.id}>
-                <button type="button" aria-current={roadmap.id === current.id || undefined} onClick={() => choose(() => onPick(roadmap.id))}>
-                    <strong>{roadmap.name}</strong>
-                    <span className="gk-faint">{copy(`${roadmap.pieceCount} pieces`, `${roadmap.pieceCount} საქმე`)} · {changedLine(copy, roadmap)}{roadmap.copiedFromName && ` · ${copy(`from ${roadmap.copiedFromName}`, `ასლი: ${roadmap.copiedFromName}`)}`}</span>
-                </button>
-            </li>)}</ul>
-            <div className="tw-switcher__actions">
-                <button type="button" onClick={() => choose(() => onName('copy'))}>{copy('Copy as new version', 'ასლი ახალ ვერსიად')}</button>
-                <button type="button" onClick={() => choose(() => onName('rename'))}>{copy('Rename', 'სახელის შეცვლა')}</button>
-                <button type="button" onClick={() => choose(() => onName('new'))}>{copy('New roadmap', 'ახალი გეგმა')}</button>
-            </div>
-        </div>}
-    </div>;
+    return <li><button type="button" className="tw-plan-box" onClick={onOpen}>
+        <span className="tw-plan-box__name">{plan.name}</span>
+        <span className="tw-plan-box__progress">
+            <span className="tw-plan-box__bar" role="progressbar" aria-label={copy('Done', 'შესრულებულია')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={plan.percent}><span style={{ width: `${plan.percent}%` }} /></span>
+            <span className="gk-num">{plan.percent}%</span>
+        </span>
+        <span className="tw-plan-box__counts">{counts(copy, plan)}</span>
+        <span className="tw-plan-box__next">{plan.nextPiece ? <><span className="gk-faint">{copy('Next', 'შემდეგი')}: </span>{plan.nextPiece}</> : plan.pieceCount > 0 ? copy('Everything is done', 'ყველაფერი დასრულდა') : ''}</span>
+        <span className="tw-plan-box__changed">{changedLine(copy, plan)}</span>
+    </button></li>;
 }
 
-/** Name a new roadmap, a copy of this one, or this one again. */
+/** Plans for later or already finished, as quiet rows. */
+function PlanRows({ title, plans, onOpen }: { title: string; plans: Roadmap[]; onOpen: (id: number) => void }) {
+    const copy = useJourneyCopy();
+    const id = useId();
+    if (plans.length === 0) return null;
+    return <section className="tw-plan-rows" aria-labelledby={id}>
+        <h2 id={id} className="tw-section__title">{title} <span className="gk-faint gk-num">{plans.length}</span></h2>
+        <ul>{plans.map(plan => <li key={plan.id}><button type="button" onClick={() => onOpen(plan.id)}>
+            <span className="tw-plan-rows__name">{plan.name}</span>
+            <span className="gk-faint gk-num">{plan.percent}% · {counts(copy, plan)}</span>
+            <span className="gk-faint tw-plan-rows__changed">{changedLine(copy, plan)}</span>
+        </button></li>)}</ul>
+    </section>;
+}
+
+/** Name a new plan, a copy of this one, or this one again. */
 function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' | 'rename'; current: Roadmap | null; onClose: () => void; onDone: (view: RoadmapView) => void }) {
     const copy = useJourneyCopy();
     const id = useId();
     const [name, setName] = useState(mode === 'rename' ? current?.name ?? '' : mode === 'copy' ? `${current?.name ?? ''} v2` : '');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
-    const title = mode === 'copy' ? copy('Copy as new version', 'ასლი ახალ ვერსიად') : mode === 'rename' ? copy('Rename the roadmap', 'გეგმის სახელის შეცვლა') : copy('New roadmap', 'ახალი გეგმა');
+    const title = mode === 'copy' ? copy('Copy as new version', 'ასლი ახალ ვერსიად') : mode === 'rename' ? copy('Rename the plan', 'გეგმის სახელის შეცვლა') : copy('New plan', 'ახალი გეგმა');
     const save = async () => {
         if (!name.trim()) return;
         setBusy(true); setError('');
@@ -72,11 +75,11 @@ function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' |
         finally { setBusy(false); }
     };
     return <Dialog open size="sm" className="tw-dialog" title={title} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        description={mode === 'copy' ? copy('The same pieces in the same order. This version stays as it is, and you can switch back to it.', 'იგივე საქმეები იგივე რიგით. ეს ვერსია უცვლელი რჩება და შეგიძლიათ დაუბრუნდეთ.') : undefined}
+        description={mode === 'copy' ? copy('The same pieces in the same order. This version stays as it is, and you can go back to it.', 'იგივე საქმეები იგივე რიგით. ეს ვერსია უცვლელი რჩება და შეგიძლიათ დაუბრუნდეთ.') : undefined}
         footer={<><Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="primary" disabled={busy || !name.trim()} onClick={() => void save()}>{copy('Save', 'შენახვა')}</Button></>}>
         <form className="tw-field" onSubmit={event => { event.preventDefault(); void save(); }}>
             <label htmlFor={id}>{copy('Name', 'სახელი')}</label>
-            <input id={id} className="gk-input" autoFocus maxLength={80} value={name} placeholder={copy('October work', 'ოქტომბრის საქმეები')} onChange={event => setName(event.target.value)} />
+            <input id={id} className="gk-input" autoFocus maxLength={80} value={name} placeholder={copy('Registration and roles', 'რეგისტრაცია და როლები')} onChange={event => setName(event.target.value)} />
         </form>
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </Dialog>;
@@ -91,21 +94,23 @@ function WorkRow({ item, parts, span, open, folded, onOpen, onFold }: { item: Wo
             onClick={onFold}>{folded ? <ChevronRight aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</button>}</span>
         <button type="button" className="tw-row__main" aria-expanded={open} onClick={onOpen}>
             <StatusDot status={item.status} />
-            <span className="tw-row__text"><span className="tw-row__name">{item.title}</span><span className="tw-row__meta gk-num">{meta}</span><TimeWords item={item} /></span>
+            <span className="tw-row__text"><span className="tw-row__name">{item.title}</span>{item.small && <SmallChip />}<span className="tw-row__meta gk-num">{meta}</span><TimeWords item={item} /></span>
         </button>
         <TimeBar item={item} span={span} />
     </div>;
 }
 
 /**
- * Team work: what the team is building, as roadmaps that share their pieces. Each piece sits on a tree with its
- * parts and a time strip, and opens in place. Team accounts only; for anyone else the page does not exist.
+ * Team work: what the team is building and fixing, as plans. The page opens on the plans being worked on now,
+ * as boxes, with the plans for later and the finished ones below; a box opens its plan as a tree of pieces and
+ * parts with a time strip, and each piece opens in place. Team accounts only; for anyone else the page does not exist.
  */
 export function TeamWorkPage() {
     const copy = useJourneyCopy();
     const [params, setParams] = useSearchParams();
-    const [roadmaps, setRoadmaps] = useState<Roadmap[] | null>(null);
+    const [plans, setPlans] = useState<Roadmap[] | null>(null);
     const [view, setView] = useState<RoadmapView | null>(null);
+    const [canManageTeam, setCanManageTeam] = useState(false);
     const [error, setError] = useState('');
     const [missing, setMissing] = useState(false);
     const [revision, setRevision] = useState(0);
@@ -127,26 +132,29 @@ export function TeamWorkPage() {
         const controller = new AbortController();
         const fail = (failure: unknown) => {
             if (controller.signal.aborted) return;
-            if (statusOf(failure) === 404 && !roadmaps) setMissing(true);
-            else setError(extractApiErrorMessage(failure, copy('The roadmap could not load.', 'გეგმა ვერ ჩაიტვირთა.')));
+            if (statusOf(failure) === 404 && !plans) setMissing(true);
+            else setError(extractApiErrorMessage(failure, copy('The plans could not load.', 'გეგმები ვერ ჩაიტვირთა.')));
         };
         fetchRoadmaps(controller.signal).then(list => {
             if (controller.signal.aborted) return;
-            setRoadmaps(list); setError('');
-            const pick = list.find(roadmap => roadmap.id === wanted) ?? list[0];
-            if (!pick) { setView(null); return; }
-            return fetchRoadmap(pick.id, controller.signal).then(next => { if (!controller.signal.aborted) setView(next); });
+            setPlans(list); setError('');
+            const pick = list.find(plan => plan.id === wanted);
+            if (!pick) {
+                setView(null);
+                return fetchBoard(controller.signal).then(board => { if (!controller.signal.aborted) setCanManageTeam(board.canManageTeam); });
+            }
+            return fetchRoadmap(pick.id, controller.signal).then(next => { if (!controller.signal.aborted) { setView(next); setCanManageTeam(next.canManageTeam); } });
         }).catch(fail);
         return () => controller.abort();
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `roadmaps` only tells a first 404 from a later one
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `plans` only tells a first 404 from a later one
     }, [wanted, revision, copy]);
 
-    const show = (next: RoadmapView) => { setView(next); set({ roadmap: String(next.roadmap.id) }); setRoadmaps(current => current && [next.roadmap, ...current.filter(roadmap => roadmap.id !== next.roadmap.id)]); };
-    const order = async (ids: number[]) => {
+    const show = (next: RoadmapView) => { setView(next); set({ roadmap: String(next.roadmap.id) }); setPlans(current => current && [next.roadmap, ...current.filter(plan => plan.id !== next.roadmap.id)]); };
+    const changePlan = async (change: { order?: number[]; status?: PlanStatus }) => {
         if (!view) return;
         setError('');
-        try { show(await changeRoadmap(view.roadmap.id, { version: view.roadmap.version, order: ids })); }
-        catch (failure) { setError(extractApiErrorMessage(failure, copy('The roadmap couldn’t be changed.', 'გეგმა ვერ შეიცვალა.'))); if (statusOf(failure) === 409) reload(); }
+        try { show(await changeRoadmap(view.roadmap.id, { version: view.roadmap.version, ...change })); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('The plan couldn’t be changed.', 'გეგმა ვერ შეიცვალა.'))); if (statusOf(failure) === 409) reload(); }
     };
     const startAdding = (parent?: WorkItem) => {
         setAdding({ parent, others: [] });
@@ -167,30 +175,61 @@ export function TeamWorkPage() {
     const span = spanOf(view?.pieces.flatMap(node => [node.item, ...node.parts]) ?? []);
     const piece = (item: WorkItem, node?: WorkNode) => open === item.id && view && <WorkPiece key={`piece-${item.id}`} id={item.id} team={view.team}
         place={node && { first: ids[0] === item.id, last: ids[ids.length - 1] === item.id,
-            onMove: by => { const at = ids.indexOf(item.id), next = [...ids]; next.splice(at, 1); next.splice(at + by, 0, item.id); void order(next); },
-            onRemove: () => { set({ open: null }); void order(ids.filter(id => id !== item.id)); } }}
+            onMove: by => { const at = ids.indexOf(item.id), next = [...ids]; next.splice(at, 1); next.splice(at + by, 0, item.id); void changePlan({ order: next }); },
+            onRemove: () => { set({ open: null }); void changePlan({ order: ids.filter(id => id !== item.id) }); } }}
         onAddPart={node ? () => startAdding(item) : undefined} onOpen={id => set({ open: String(id) })} onClose={() => set({ open: null })} onSaved={() => { if (view) fetchRoadmap(view.roadmap.id).then(setView).catch(() => undefined); }} />;
+    const now = plans?.filter(plan => plan.status === 'NOW') ?? [];
+    const openPlan = (id: number) => set({ roadmap: String(id), open: null });
+    const loading = <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>;
 
     return <GkRoot className="gk-page"><PageFrame className="tw-page">
-        <PageHeader title={copy('Team work', 'გუნდის სამუშაო')} subtitle={copy('What we’re building, where it stands', 'რას ვაშენებთ და სად ვართ')}
-            actions={view && <span className="tw-actions">
-                <Button size="sm" onClick={() => setPasting(true)}><ClipboardPaste aria-hidden="true" />{copy('Paste from AI', 'ჩასმა AI-დან')}</Button>
-                <Button variant="primary" size="sm" onClick={() => startAdding()}><Plus aria-hidden="true" />{copy('Add work', 'საქმის დამატება')}</Button>
-            </span>} />
-        {error && <div className="gk-notice gk-notice--danger" role="alert"><span>{error}</span><Button size="sm" onClick={reload}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
-        {!roadmaps ? !error && <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>
-            : !view ? <Panel flush><EmptyNote title={copy('No roadmap yet', 'გეგმა ჯერ არ არის')}
-                action={<div className="tw-empty-actions">
-                    <Button variant="primary" size="sm" disabled={starting} onClick={() => void loadStarter()}>{starting ? copy('Loading…', 'იტვირთება…') : copy('Load this week’s work', 'ამ კვირის საქმეების ჩატვირთვა')}</Button>
-                    <Button size="sm" onClick={() => setNaming('new')}><Plus aria-hidden="true" />{copy('New roadmap', 'ახალი გეგმა')}</Button>
-                </div>}>
-                {copy('A roadmap holds what the team is working on: where each piece stands, how far it is and when it should end.', 'გეგმაში ჩანს, რაზე მუშაობს გუნდი: სად არის თითო საქმე, რამდენი გაკეთდა და როდის დასრულდება.')}
-            </EmptyNote></Panel>
-                : <>
-                    <div className="tw-bar-line">
-                        <RoadmapSwitcher roadmaps={roadmaps} current={view.roadmap} onPick={id => set({ roadmap: String(id), open: null })} onName={setNaming} />
-                        <ColourKey />
+        {!view ? <PageHeader title={copy('Team work', 'გუნდის სამუშაო')} subtitle={copy('What we’re building and fixing, plan by plan', 'რას ვაშენებთ და ვასწორებთ, გეგმა-გეგმა')}
+            actions={plans && plans.length > 0 && <Button variant="primary" size="sm" onClick={() => setNaming('new')}><Plus aria-hidden="true" />{copy('New plan', 'ახალი გეგმა')}</Button>} />
+            : <div className="tw-plan-head">
+                <button type="button" className="tw-back" onClick={() => set({ roadmap: null, open: null })}><ArrowLeft aria-hidden="true" />{copy('All plans', 'ყველა გეგმა')}</button>
+                <div className="tw-plan-head__row">
+                    <div className="tw-plan-head__title">
+                        <h1>{view.roadmap.name}</h1>
+                        <span className="tw-switcher__changed">{changedLine(copy, view.roadmap)}{view.roadmap.copiedFromName && <> · {copy(`copied from ${view.roadmap.copiedFromName}`, `ასლი: ${view.roadmap.copiedFromName}`)}</>}</span>
                     </div>
+                    <span className="tw-actions">
+                        <Button size="sm" onClick={() => setPasting(true)}><ClipboardPaste aria-hidden="true" />{copy('Paste from AI', 'ჩასმა AI-დან')}</Button>
+                        <Button variant="primary" size="sm" onClick={() => startAdding()}><Plus aria-hidden="true" />{copy('Add work', 'საქმის დამატება')}</Button>
+                    </span>
+                </div>
+                <div className="tw-bar-line">
+                    <span className="tw-plan-head__tools">
+                        <span className="tw-plan-status" role="radiogroup" aria-label={copy('This plan is', 'ეს გეგმა')}>
+                            {PLAN_STATUSES.map(([status, en, ka]) => <button key={status} type="button" role="radio" aria-checked={view.roadmap.status === status} onClick={() => { if (view.roadmap.status !== status) void changePlan({ status }); }}>{copy(en, ka)}</button>)}
+                        </span>
+                        <button type="button" className="tw-link-button" onClick={() => setNaming('copy')}>{copy('Copy as new version', 'ასლი ახალ ვერსიად')}</button>
+                        <button type="button" className="tw-link-button" onClick={() => setNaming('rename')}>{copy('Rename', 'სახელის შეცვლა')}</button>
+                    </span>
+                    <ColourKey />
+                </div>
+            </div>}
+        {error && <div className="gk-notice gk-notice--danger" role="alert"><span>{error}</span><Button size="sm" onClick={reload}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
+        {!plans ? !error && loading
+            : !view ? wanted && plans.some(plan => plan.id === wanted) ? loading : <>
+                {plans.length === 0 ? <Panel flush><EmptyNote title={copy('No plan yet', 'გეგმა ჯერ არ არის')}
+                    action={<div className="tw-empty-actions">
+                        <Button variant="primary" size="sm" onClick={() => setNaming('new')}><Plus aria-hidden="true" />{copy('New plan', 'ახალი გეგმა')}</Button>
+                        <Button size="sm" disabled={starting} onClick={() => void loadStarter()}>{starting ? copy('Loading…', 'იტვირთება…') : copy('Load this week’s work', 'ამ კვირის საქმეების ჩატვირთვა')}</Button>
+                    </div>}>
+                    {copy('A plan is a list of what we have to do: small fixes and complaints next to bigger work like a flow or business logic.', 'გეგმა არის სია, რაც უნდა გავაკეთოთ: პატარა შესწორებები და საჩივრები დიდ საქმეებთან ერთად, როგორიცაა ნაკადი ან ბიზნეს-ლოგიკა.')}
+                </EmptyNote></Panel>
+                    : <>
+                        <section aria-labelledby="tw-now">
+                            <h2 id="tw-now" className="tw-section__title">{copy('Working on now', 'ახლა ვმუშაობთ')}</h2>
+                            {now.length ? <ul className="tw-plan-boxes">{now.map(plan => <PlanBox key={plan.id} plan={plan} onOpen={() => openPlan(plan.id)} />)}</ul>
+                                : <p className="gk-muted tw-quiet">{copy('Nothing right now. Open a plan below and mark it “Now”.', 'ახლა არაფერი. გახსენით გეგმა ქვემოთ და მონიშნეთ „ახლა“.')}</p>}
+                        </section>
+                        <PlanRows title={copy('Later', 'მოგვიანებით')} plans={plans.filter(plan => plan.status === 'LATER')} onOpen={openPlan} />
+                        <PlanRows title={copy('Finished', 'დასრულებული')} plans={plans.filter(plan => plan.status === 'FINISHED')} onOpen={openPlan} />
+                    </>}
+                <TeamPanel canManage={canManageTeam} />
+            </>
+                : <>
                     {view.trail.length > 0 && <p className="tw-trail" aria-label={copy('Latest switches', 'ბოლო გადართვები')}>
                         {view.trail.map((step, index) => <span key={`${step.itemId}:${step.at}`} className="tw-trail__step">
                             {index > 0 && <span className="tw-trail__arrow" aria-hidden="true">→</span>}
@@ -198,10 +237,10 @@ export function TeamWorkPage() {
                         </span>)}
                     </p>}
                     {view.pieces.length === 0
-                        ? <Panel flush><EmptyNote title={copy('Nothing on this roadmap yet', 'ამ გეგმაზე ჯერ არაფერია')}
+                        ? <Panel flush><EmptyNote title={copy('Nothing in this plan yet', 'ამ გეგმაში ჯერ არაფერია')}
                             action={<div className="tw-empty-actions"><Button variant="primary" size="sm" onClick={() => startAdding()}><Plus aria-hidden="true" />{copy('Add work', 'საქმის დამატება')}</Button>
                                 <Button size="sm" onClick={() => setPasting(true)}><ClipboardPaste aria-hidden="true" />{copy('Paste from AI', 'ჩასმა AI-დან')}</Button></div>}>
-                            {copy('Add pieces one by one, or paste a list.', 'დაამატეთ სათითაოდ ან ჩასვით სია.')}
+                            {copy('Add pieces one by one, big or small, or paste a list.', 'დაამატეთ სათითაოდ, დიდი თუ პატარა, ან ჩასვით სია.')}
                         </EmptyNote></Panel>
                         : <Panel flush className="tw-tree-panel">
                             <div className="tw-tree__head" aria-hidden="true"><span>{copy('Work', 'საქმე')}</span><TimeAxis span={span} /></div>
@@ -220,7 +259,7 @@ export function TeamWorkPage() {
                             })}</ul>
                         </Panel>}
                     {view.changes.length > 0 && <details className="tw-roadmap-history">
-                        <summary>{copy('Roadmap history', 'გეგმის ისტორია')} <span className="gk-faint gk-num">{view.changes.length}</span></summary>
+                        <summary>{copy('Plan history', 'გეგმის ისტორია')} <span className="gk-faint gk-num">{view.changes.length}</span></summary>
                         <ol className="tw-history">{view.changes.map(change => <li key={change.id} className="tw-history__line">
                             <span className="tw-history__who">{change.author?.name ?? copy('Someone', 'ვიღაც')} · {ago(copy, change.at)}</span>
                             <span className="tw-history__message">{change.message}</span>
@@ -230,7 +269,7 @@ export function TeamWorkPage() {
                 </>}
         {adding && view && <AddWorkDialog roadmapId={view.roadmap.id} parent={adding.parent} team={view.team} others={adding.others} onClose={() => setAdding(null)}
             onCreated={detail => { setAdding(null); set({ open: String(detail.item.id) }); reload(); }}
-            onPlace={itemId => { setAdding(null); void order([...ids, itemId]); }} />}
+            onPlace={itemId => { setAdding(null); void changePlan({ order: [...ids, itemId] }); }} />}
         {pasting && view && <PasteDialog roadmapId={view.roadmap.id} onClose={() => setPasting(false)} onApplied={next => { setPasting(false); show(next); }} />}
         {naming && <NameDialog mode={naming} current={view?.roadmap ?? null} onClose={() => setNaming(null)} onDone={next => { setNaming(null); show(next); }} />}
     </PageFrame></GkRoot>;

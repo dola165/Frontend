@@ -9,7 +9,7 @@ const ACTIONS: Record<PasteLine['action'], [string, string]> = { NEW: ['New', '�
 
 /**
  * Plain text from an AI (or anyone) turned into pieces of work: a preview of what it would do first, then apply.
- * Pieces match by name on this roadmap; nothing is ever deleted.
+ * Pieces match by name in this plan; nothing is ever deleted.
  */
 export function PasteDialog({ roadmapId, onClose, onApplied }: { roadmapId: number; onClose: () => void; onApplied: (view: RoadmapView) => void }) {
     const copy = useJourneyCopy();
@@ -53,8 +53,8 @@ export function PasteDialog({ roadmapId, onClose, onApplied }: { roadmapId: numb
         </div> : <div className="tw-details">
             <label htmlFor={id} className="gk-visually-hidden">{copy('The work, as text', 'საქმეები ტექსტად')}</label>
             <textarea id={id} className="gk-input tw-paste__text" rows={10} maxLength={20000} value={text} placeholder={PASTE_EXAMPLE} onChange={event => setText(event.target.value)} />
-            <p className="gk-faint tw-paste__help">{copy('Status: in progress, on hold, planned, finished. Ends: a date, ~N days/weeks/months, possibly November, don’t know. A first line “roadmap: Name” is optional.',
-                'სტატუსი: in progress, on hold, planned, finished. დასრულება: თარიღი, ~N days/weeks/months, possibly November, don’t know. პირველი ხაზი „roadmap: სახელი“ არასავალდებულოა.')}
+            <p className="gk-faint tw-paste__help">{copy('Status: in progress, on hold, planned, finished; add “small” for a small fix: [planned, small]. Ends: a date, ~N days/weeks/months, possibly November, don’t know. A first line “plan: Name” is optional.',
+                'სტატუსი: in progress, on hold, planned, finished; პატარა შესწორებისთვის დაამატეთ „small“: [planned, small]. დასრულება: თარიღი, ~N days/weeks/months, possibly November, don’t know. პირველი ხაზი „plan: სახელი“ არასავალდებულოა.')}
                 {' '}<button type="button" className="tw-link-button" onClick={() => setText(PASTE_EXAMPLE)}>{copy('Use the example', 'მაგალითის ჩასმა')}</button></p>
         </div>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

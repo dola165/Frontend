@@ -29,7 +29,15 @@ export function planPeople(view: RoadmapView): Person[] {
     return known;
 }
 
-export const nodeMatches = (node: WorkNode, who: Who, team: Person[]) =>
+/** "Started by Beqa · Beqa, Ilo": who started a plan and who is on it, in plain words. */
+export function peopleLine(copy: (en: string, ka: string) => string, view: RoadmapView | undefined) {
+    if (!view) return '';
+    const creator = planCreator(view)?.name;
+    const names = planPeople(view).map(person => person.name).filter(Boolean).join(', ');
+    return [creator && copy(`Started by ${creator}`, `დაიწყო ${creator}`), names].filter(Boolean).join(' · ');
+}
+
+export const nodeMatches =(node: WorkNode, who: Who, team: Person[]) =>
     who === null || (who === 'team' ? forWholeTeam(nodePeople(node), team) : nodePeople(node).has(who));
 
 export function planMatches(view: RoadmapView, who: Who) {

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { ArrowLeft, Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { Button, Skeleton } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { fetchVersions } from './api';
@@ -53,7 +53,7 @@ function MyVersion({ name, repo, value, onChange }: { name: RepoKey; repo: Repo 
  * changes this computer is missing, and a ready-made message that has Claude or Codex bring the computer up to date
  * safely and say whether it already was. Never calls GitHub.
  */
-export function UpdatesView({ onBack }: { onBack: () => void }) {
+export function UpdatesView() {
     const copy = useJourneyCopy();
     const [backend, setBackend] = useState<Repo | null>(null);
     const [mine, setMine] = useState<Mine>(readMine);
@@ -75,7 +75,6 @@ export function UpdatesView({ onBack }: { onBack: () => void }) {
 
     return <div className="tw-updates">
         <div className="tw-plan-head">
-            <button type="button" className="tw-back" onClick={onBack}><ArrowLeft aria-hidden="true" />{copy('All plans', 'ყველა გეგმა')}</button>
             <div className="tw-plan-head__title">
                 <h1>{copy('Stay up to date', 'განახლებები')}</h1>
                 <span className="tw-plan-head__people">{copy(`Both projects live on the branch ${BRANCH}. Pick the version your computer is on to see what you are missing, then copy the message below to Claude or Codex.`,

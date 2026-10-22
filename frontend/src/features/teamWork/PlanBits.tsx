@@ -53,7 +53,7 @@ export function StepStrip({ nodes, numbers, onOpen }: { nodes: WorkNode[]; numbe
 
 const STATUSES: [PlanStatus, string, string][] = [['NOW', 'Working on it now', 'ახლა ვმუშაობთ'], ['LATER', 'Later', 'მოგვიანებით'], ['FINISHED', 'Finished', 'დასრულებული']];
 
-/** The plan's extras behind "…": where it stands, Copy for AI, a new version, a new name, its history. */
+/** The project's extras behind "…": where it stands, Copy for AI, a new version, a new name, its history. */
 export function PlanMenu({ status, onStatus, onCopyForAi, onCopy, onRename, onHistory }: {
     status: PlanStatus; onStatus: (status: PlanStatus) => void; onCopyForAi: () => void; onCopy: () => void; onRename: () => void; onHistory: () => void;
 }) {
@@ -69,7 +69,7 @@ export function PlanMenu({ status, onStatus, onCopyForAi, onCopy, onRename, onHi
     }, [open]);
     const choose = (action: () => void) => () => { setOpen(false); action(); };
     return <div className="tw-menu" ref={box}>
-        <Button size="sm" iconOnly variant="ghost" aria-label={copy('More for this plan', 'მეტი ამ გეგმისთვის')} aria-expanded={open} aria-controls={menuId} onClick={() => setOpen(value => !value)}><MoreHorizontal aria-hidden="true" /></Button>
+        <Button size="sm" iconOnly variant="ghost" aria-label={copy('More for this project', 'მეტი ამ პროექტისთვის')} aria-expanded={open} aria-controls={menuId} onClick={() => setOpen(value => !value)}><MoreHorizontal aria-hidden="true" /></Button>
         {open && <div className="tw-menu__list" id={menuId} role="menu">
             {STATUSES.map(([value, en, ka]) => <button key={value} type="button" role="menuitemradio" aria-checked={status === value} onClick={choose(() => { if (status !== value) onStatus(value); })}>
                 <span className="tw-menu__check">{status === value && <Check aria-hidden="true" />}</span>{copy(en, ka)}
@@ -78,7 +78,7 @@ export function PlanMenu({ status, onStatus, onCopyForAi, onCopy, onRename, onHi
             <button type="button" role="menuitem" onClick={choose(onCopyForAi)}><span className="tw-menu__check" />{copy('Copy for AI', 'კოპირება AI-სთვის')}</button>
             <button type="button" role="menuitem" onClick={choose(onCopy)}><span className="tw-menu__check" />{copy('Copy as new version', 'ასლი ახალ ვერსიად')}</button>
             <button type="button" role="menuitem" onClick={choose(onRename)}><span className="tw-menu__check" />{copy('Rename', 'სახელის შეცვლა')}</button>
-            <button type="button" role="menuitem" onClick={choose(onHistory)}><span className="tw-menu__check" />{copy('Plan history', 'გეგმის ისტორია')}</button>
+            <button type="button" role="menuitem" onClick={choose(onHistory)}><span className="tw-menu__check" />{copy('Project history', 'პროექტის ისტორია')}</button>
         </div>}
     </div>;
 }
@@ -111,10 +111,10 @@ export function CopyForAiDialog({ view, onClose }: { view: RoadmapView; onClose:
     </Dialog>;
 }
 
-/** Everything that happened to the plan: added, removed, reordered, renamed, pasted, moved between now and later. */
+/** Everything that happened to the project: added, removed, reordered, renamed, pasted, moved between now and later. */
 export function PlanHistoryDialog({ view, onClose }: { view: RoadmapView; onClose: () => void }) {
     const copy = useJourneyCopy();
-    return <Dialog open size="md" className="tw-dialog" title={copy('Plan history', 'გეგმის ისტორია')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}>
+    return <Dialog open size="md" className="tw-dialog" title={copy('Project history', 'პროექტის ისტორია')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}>
         <ol className="tw-history">{view.changes.map(change => <li key={change.id} className="tw-history__line">
             <span className="tw-history__who">{change.author?.name ?? copy('Someone', 'ვიღაც')} · {ago(copy, change.at)}</span>
             <span className="tw-history__message">{change.message}</span>

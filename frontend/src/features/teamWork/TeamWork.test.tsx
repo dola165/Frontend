@@ -203,19 +203,33 @@ it('previews a paste before applying it, and never offers to delete', async () =
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Paste from AI' })).not.toBeInTheDocument());
 });
 
-it('adds a colleague without an account and shows the one-time sign-up link, with a new link for pending colleagues', async () => {
-    const invite = { userId: 7, email: 'admin.gio@talanti.ge', token: 'tok-1', expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString() };
-    const gio = { userId: 7, name: null, email: invite.email, admin: false, addedAt: now, pending: true };
-    vi.mocked(api.addMember).mockResolvedValue({ members: [gio], invite });
-    vi.mocked(api.newInvite).mockResolvedValue({ ...invite, token: 'tok-2' });
+it('lists the team’s accounts without remove buttons, makes the account and one-time link for a team email, and a new link for an invited one', async () => {
+    const team: api.Member[] = [{ userId: 1, name: 'Dola', email: 'admin.dola@talanti.ge', admin: true, addedAt: null, pending: false },
+        { userId: 7, name: 'Gio', email: 'admin.gio@talanti.ge', admin: false, addedAt: now, pending: true }];
+    const invite = { userId: 8, email: 'admin.otto@talanti.ge', token: 'tok-1', expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString() };
+    vi.mocked(api.fetchTeam).mockResolvedValue(team);
+    vi.mocked(api.addMember).mockResolvedValue({ members: [...team, { userId: 8, name: 'Otto', email: invite.email, admin: false, addedAt: now, pending: true }], invite });
+    vi.mocked(api.newInvite).mockResolvedValue({ ...invite, userId: 7, email: 'admin.gio@talanti.ge', token: 'tok-2' });
     mount();
-    await userEvent.type(await screen.findByPlaceholderText('Colleague’s email'), invite.email);
-    await userEvent.click(screen.getByRole('button', { name: 'Add colleague' }));
+    const panel = (await screen.findByRole('heading', { name: 'Team' })).closest('section')!;
+    expect(await within(panel).findByText('admin.gio@talanti.ge')).toBeInTheDocument();
+    expect(within(panel).queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+    expect(within(panel).queryByText('System admin')).not.toBeInTheDocument();
+    expect(within(panel).getByText(/APP_TEAM_WORK_EMAILS/)).toBeInTheDocument();
+
+    await userEvent.type(within(panel).getByPlaceholderText('admin.name@talanti.ge'), invite.email);
+    await userEvent.click(within(panel).getByRole('button', { name: 'Make account and link' }));
     expect(api.addMember).toHaveBeenCalledWith(invite.email);
-    expect(await screen.findByLabelText(`Sign-up link for ${invite.email}`)).toHaveValue(`${window.location.origin}/reset-password?token=tok-1`);
-    expect(screen.getByText('Invited')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'New link' }));
-    expect(await screen.findByDisplayValue(`${window.location.origin}/reset-password?token=tok-2`)).toBeInTheDocument();
+    expect(await within(panel).findByLabelText(`Sign-up link for ${invite.email}`)).toHaveValue(`${window.location.origin}/reset-password?token=tok-1`);
+    await userEvent.click(within(panel).getAllByRole('button', { name: 'New link' })[0]);
+    expect(api.newInvite).toHaveBeenCalledWith(7);
+    expect(await within(panel).findByDisplayValue(`${window.location.origin}/reset-password?token=tok-2`)).toBeInTheDocument();
+
+    // Any other email is refused by the server; its words show as they are.
+    vi.mocked(api.addMember).mockRejectedValueOnce({ response: { status: 400, data: { detail: 'Team work is only for the team’s own accounts; that email is not on the team list.' } } });
+    await userEvent.type(within(panel).getByPlaceholderText('admin.name@talanti.ge'), 'someone@example.com');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Make account and link' }));
+    expect(await within(panel).findByRole('alert')).toHaveTextContent('not on the team list');
 });
 
 it('does not exist for accounts off the team, and Home shows no row without the capability', async () => {

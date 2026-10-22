@@ -13,7 +13,7 @@ export interface WorkItem {
     id: number; title: string; area: string | null; status: WorkStatus; percent: number; step: string | null; notes: string | null;
     branch: string | null; prUrl: string | null; version: number; updatedBy: Person | null; updatedAt: string; createdAt: string;
     parentId: number | null; description: string | null; startedOn: string | null; end: WorkEnd; percentFromParts: boolean;
-    people: Person[]; mediaCount: number; commentCount: number;
+    people: Person[]; mediaCount: number; commentCount: number; small: boolean;
 }
 export interface WorkUpdate {
     id: number; author: Person | null; at: string; previousStatus: WorkStatus | null; status: WorkStatus | null;
@@ -24,7 +24,13 @@ export interface WorkComment { id: number; author: Person | null; body: string; 
 export interface WorkSwitch { itemId: number; title: string; at: string }
 export interface Board { items: WorkItem[]; trail: WorkSwitch[]; canManageTeam: boolean }
 export interface Detail { item: WorkItem; updates: WorkUpdate[]; parts: WorkItem[]; media: WorkMedia[]; comments: WorkComment[] }
-export interface Roadmap { id: number; name: string; copiedFrom: number | null; copiedFromName: string | null; version: number; pieceCount: number; updatedBy: Person | null; updatedAt: string; createdAt: string }
+/** Whether a plan is being worked on now, comes later, or is finished. */
+export type PlanStatus = 'NOW' | 'LATER' | 'FINISHED';
+/** A plan (code name roadmap), with what its box shows. */
+export interface Roadmap {
+    id: number; name: string; copiedFrom: number | null; copiedFromName: string | null; version: number; pieceCount: number; updatedBy: Person | null; updatedAt: string; createdAt: string;
+    status: PlanStatus; percent: number; inProgress: number; toDo: number; finished: number; nextPiece: string | null;
+}
 export interface RoadmapChange { id: number; author: Person | null; at: string; message: string }
 export interface WorkNode { item: WorkItem; parts: WorkItem[] }
 export interface RoadmapView { roadmap: Roadmap; pieces: WorkNode[]; changes: RoadmapChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
@@ -33,7 +39,7 @@ export interface Invite { userId: number; email: string; token: string; expiresA
 export interface PasteLine { line: number; action: 'NEW' | 'UPDATED' | 'MOVED' | 'UNCHANGED'; title: string; parent: string | null; detail: string | null }
 export interface PasteResult { created: number; updated: number; moved: number; unchanged: number; lines: PasteLine[]; problems: string[]; applied: boolean; view: RoadmapView | null }
 
-export interface NewWork { title: string; area?: string; status: WorkStatus; percent?: number; step?: string; notes?: string; branch?: string; prUrl?: string; roadmapId?: number; parentId?: number; description?: string; startedOn?: string; end?: WorkEnd; people?: number[] }
+export interface NewWork { title: string; area?: string; status: WorkStatus; percent?: number; step?: string; notes?: string; branch?: string; prUrl?: string; roadmapId?: number; parentId?: number; description?: string; startedOn?: string; end?: WorkEnd; people?: number[]; small?: boolean }
 /** Fields left out stay as they are; an empty text clears one. `version` is the one on screen. */
 export interface WorkChange extends Partial<Omit<NewWork, 'status' | 'roadmapId' | 'parentId'>> { version: number; status?: WorkStatus; update?: string; percentFromParts?: boolean }
 
@@ -46,7 +52,7 @@ export const changeWork = (id: number, change: WorkChange) => data(apiClient.pat
 export const fetchRoadmaps = (signal?: AbortSignal) => data(apiClient.get<Roadmap[]>(`${base}/roadmaps`, { signal }));
 export const fetchRoadmap = (id: number, signal?: AbortSignal) => data(apiClient.get<RoadmapView>(`${base}/roadmaps/${id}`, { signal }));
 export const createRoadmap = (name: string, copyFrom?: number) => data(apiClient.post<RoadmapView>(`${base}/roadmaps`, { name, copyFrom }));
-export const changeRoadmap = (id: number, change: { version: number; name?: string; order?: number[] }) => data(apiClient.patch<RoadmapView>(`${base}/roadmaps/${id}`, change));
+export const changeRoadmap = (id: number, change: { version: number; name?: string; order?: number[]; status?: PlanStatus }) => data(apiClient.patch<RoadmapView>(`${base}/roadmaps/${id}`, change));
 export const pasteIntoRoadmap = (id: number, text: string, apply: boolean) => data(apiClient.post<PasteResult>(`${base}/roadmaps/${id}/paste`, { text, apply }));
 export const addComment = (itemId: number, body: string) => data(apiClient.post<WorkComment[]>(`${base}/items/${itemId}/comments`, { body }));
 export const editComment = (id: number, body: string) => data(apiClient.patch<WorkComment[]>(`${base}/comments/${id}`, { body }));
@@ -68,12 +74,13 @@ export const VIDEO_LIMIT_MB = 90;
 export const VIDEO_TYPES = ['video/mp4', 'video/webm'];
 
 /** What the paste box accepts, shown as its example. */
-export const PASTE_EXAMPLE = `roadmap: October work
-- [in progress] Branding and landing | started 20 Oct | ends ~1 week | Beqa, Gio | 70%
-  - [finished] Founders' design
-  - [planned] Hero copy | ends possibly November
-- [on hold] Page creation | 45% | desc: Waiting for the founders
-- [planned] Agent Dola on live | ends don't know`;
+export const PASTE_EXAMPLE = `plan: Registration and roles
+- [in progress] User registration | started 20 Oct | ends ~2 weeks | Beqa, Gio | 60%
+  - [finished] Email codes
+  - [in progress] Ages 13–15 with a parent | ends possibly November
+- [planned] Define roles and what each can do | desc: Player, parent, coach, club admin
+- [planned] The flow after sign-up | ends don't know
+- [planned, small] Fix the Save button on phones`;
 
 /** The pieces of work of the week the board opened with, approximate; a system admin loads them once. */
 export const STARTER_WORK: NewWork[] = [

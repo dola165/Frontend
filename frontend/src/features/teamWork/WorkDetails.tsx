@@ -5,7 +5,7 @@ import { Button, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { changeWork, createWork, fetchDetail, type Detail, type NewWork, type Person, type WorkChange, type WorkEnd, type WorkItem, type WorkStatus, type WorkUpdate } from './api';
-import { EndPick, Field, PeoplePick, QuickEdit, StatusDot } from './WorkBits';
+import { EndPick, Field, PeoplePick, QuickEdit, SmallChip, SmallPick, StatusDot } from './WorkBits';
 import { WorkComments } from './WorkComments';
 import { WorkMediaList } from './WorkMedia';
 import { ago, day, endWords, shortDate, statusName } from './teamWorkWords';
@@ -14,11 +14,11 @@ const isConflict = (error: unknown) => (error as { response?: { status?: number 
 
 interface Draft {
     title: string; area: string; status: WorkStatus; percent: number; step: string; notes: string; branch: string; prUrl: string; update: string;
-    description: string; startedOn: string; end: WorkEnd; people: number[]; percentFromParts: boolean;
+    description: string; startedOn: string; end: WorkEnd; people: number[]; percentFromParts: boolean; small: boolean;
 }
 const draftOf = (item: WorkItem): Draft => ({
     title: item.title, area: item.area ?? '', status: item.status, percent: item.percent, step: item.step ?? '', notes: item.notes ?? '', branch: item.branch ?? '', prUrl: item.prUrl ?? '', update: '',
-    description: item.description ?? '', startedOn: item.startedOn ?? '', end: item.end, people: item.people.flatMap(person => person.id == null ? [] : [person.id]), percentFromParts: item.percentFromParts,
+    description: item.description ?? '', startedOn: item.startedOn ?? '', end: item.end, people: item.people.flatMap(person => person.id == null ? [] : [person.id]), percentFromParts: item.percentFromParts, small: item.small,
 });
 const sameEnd = (a: WorkEnd, b: WorkEnd) => a.kind === b.kind && (a.date ?? null) === (b.date ?? null) && (a.amount ?? null) === (b.amount ?? null) && (a.unit ?? null) === (b.unit ?? null);
 
@@ -72,7 +72,7 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
         const before = draftOf(item), result: WorkChange = { version: item.version };
         const out = result as unknown as Record<string, unknown>;
         let any = false;
-        for (const key of ['title', 'area', 'status', 'step', 'notes', 'branch', 'prUrl', 'description', 'startedOn', 'percentFromParts'] as const) if (draft[key] !== before[key]) { out[key] = draft[key]; any = true; }
+        for (const key of ['title', 'area', 'status', 'step', 'notes', 'branch', 'prUrl', 'description', 'startedOn', 'percentFromParts', 'small'] as const) if (draft[key] !== before[key]) { out[key] = draft[key]; any = true; }
         if (!draft.percentFromParts && draft.percent !== before.percent) { result.percent = draft.percent; any = true; }
         if (!sameEnd(draft.end, before.end)) { result.end = draft.end; any = true; }
         if ([...draft.people].sort().join() !== [...before.people].sort().join()) { result.people = draft.people; any = true; }
@@ -105,11 +105,12 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
                 {place && <>
                     <Button size="sm" iconOnly variant="ghost" disabled={place.first} aria-label={copy('Move up', 'ზემოთ')} onClick={() => place.onMove(-1)}><ArrowUp aria-hidden="true" /></Button>
                     <Button size="sm" iconOnly variant="ghost" disabled={place.last} aria-label={copy('Move down', 'ქვემოთ')} onClick={() => place.onMove(1)}><ArrowDown aria-hidden="true" /></Button>
-                    <Button size="sm" variant="ghost" onClick={place.onRemove}>{copy('Take off this roadmap', 'ამ გეგმიდან მოხსნა')}</Button>
+                    <Button size="sm" variant="ghost" onClick={place.onRemove}>{copy('Take off this plan', 'ამ გეგმიდან მოხსნა')}</Button>
                 </>}
                 <Button size="sm" iconOnly variant="ghost" aria-label={copy('Close', 'დახურვა')} onClick={onClose}><X aria-hidden="true" /></Button>
             </span>
         </div>
+        {item.small && <span><SmallChip /></span>}
         {item.description && <p className="tw-piece__description">{item.description}</p>}
         {item.step && <p className="tw-piece__step"><span className="gk-faint">{copy('Current step', 'მიმდინარე ნაბიჯი')}: </span>{item.step}</p>}
         {(item.branch || item.prUrl) && <p className="tw-links">
@@ -128,6 +129,7 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
         <section className="tw-section tw-edit" aria-label={copy('Update', 'განახლება')}>
             <QuickEdit status={draft.status} percent={draft.percent} fromParts={draft.percentFromParts && hasParts} onChange={change} />
             {hasParts && <label className="tw-check"><input type="checkbox" checked={draft.percentFromParts} onChange={event => change({ percentFromParts: event.target.checked })} />{copy('Percent follows its parts', 'პროცენტი ნაწილებიდან')}</label>}
+            {editing && <SmallPick small={draft.small} onChange={small => change({ small })} />}
             {editing && <div className="tw-grid">
                 <Field label={copy('Name', 'სახელი')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={120} value={draft.title} onChange={event => change({ title: event.target.value })} />}</Field>
                 <Field label={copy('Where', 'სად')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={160} value={draft.area} placeholder={copy('Landing · founders’ request', 'ლენდინგი · დამფუძნებლების თხოვნა')} onChange={event => change({ area: event.target.value })} />}</Field>
@@ -164,12 +166,12 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
     </div>;
 }
 
-/** A new piece on this roadmap or a part of one, or a piece from another roadmap put on this one. */
+/** A new piece in this plan or a part of one, big or small, or a piece from another plan put in this one. */
 export function AddWorkDialog({ roadmapId, parent, team, others, onClose, onCreated, onPlace }: {
     roadmapId: number; parent?: WorkItem; team: Person[]; others: WorkItem[]; onClose: () => void; onCreated: (detail: Detail) => void; onPlace: (itemId: number) => void;
 }) {
     const copy = useJourneyCopy();
-    const [work, setWork] = useState<NewWork & { percent: number; end: WorkEnd; people: number[] }>({ title: '', area: '', status: 'IN_PROGRESS', percent: 0, step: '', end: { kind: 'UNKNOWN' }, people: [] });
+    const [work, setWork] = useState<NewWork & { percent: number; end: WorkEnd; people: number[]; small: boolean }>({ title: '', area: '', status: 'IN_PROGRESS', percent: 0, step: '', end: { kind: 'UNKNOWN' }, people: [], small: false });
     const [existing, setExisting] = useState('');
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
@@ -185,7 +187,7 @@ export function AddWorkDialog({ roadmapId, parent, team, others, onClose, onCrea
     return <Dialog open size="md" className="tw-dialog" title={title} description={copy('What is being built, and where it stands.', 'რა კეთდება და სად არის.')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
         footer={<><Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="primary" disabled={saving} onClick={() => void create()}>{saving ? copy('Adding…', 'ემატება…') : copy('Add work', 'საქმის დამატება')}</Button></>}>
         <div className="tw-details">
-            {!parent && others.length > 0 && <Field label={copy('From another roadmap', 'სხვა გეგმიდან')} wide>{fieldId => <select id={fieldId} className="gk-input" value={existing} onChange={event => setExisting(event.target.value)}>
+            {!parent && others.length > 0 && <Field label={copy('From another plan', 'სხვა გეგმიდან')} wide>{fieldId => <select id={fieldId} className="gk-input" value={existing} onChange={event => setExisting(event.target.value)}>
                 <option value="">{copy('No, something new', 'არა, ახალი')}</option>
                 {others.map(other => <option key={other.id} value={other.id}>{other.title}</option>)}
             </select>}</Field>}
@@ -197,6 +199,7 @@ export function AddWorkDialog({ roadmapId, parent, team, others, onClose, onCrea
                     <EndPick end={work.end} onChange={end => setWork({ ...work, end })} />
                     <PeoplePick team={team} chosen={work.people} onChange={people => setWork({ ...work, people })} />
                 </div>
+                <SmallPick small={work.small} onChange={small => setWork({ ...work, small })} />
                 <QuickEdit status={work.status} percent={work.percent} onChange={part => setWork(current => ({ ...current, ...part }))} />
             </>}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

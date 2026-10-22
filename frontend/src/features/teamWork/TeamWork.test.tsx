@@ -18,9 +18,10 @@ const twoDaysAgo = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString();
 const beqa = { id: 1, name: 'Beqa' };
 const item = (id: number, title: string, status: api.WorkStatus, percent: number, extra: Partial<api.WorkItem> = {}): api.WorkItem => ({
     id, title, area: null, status, percent, step: null, notes: null, branch: null, prUrl: null, version: 0, updatedBy: beqa, updatedAt: now, createdAt: now,
-    parentId: null, description: null, startedOn: null, end: { kind: 'UNKNOWN' }, percentFromParts: false, people: [], mediaCount: 0, commentCount: 0, ...extra,
+    parentId: null, description: null, startedOn: null, end: { kind: 'UNKNOWN' }, percentFromParts: false, people: [], mediaCount: 0, commentCount: 0, small: false, ...extra,
 });
-const roadmap = (id: number, name: string, extra: Partial<api.Roadmap> = {}): api.Roadmap => ({ id, name, copiedFrom: null, copiedFromName: null, version: 3, pieceCount: 2, updatedBy: beqa, updatedAt: now, createdAt: now, ...extra });
+const roadmap = (id: number, name: string, extra: Partial<api.Roadmap> = {}): api.Roadmap => ({ id, name, copiedFrom: null, copiedFromName: null, version: 3, pieceCount: 2, updatedBy: beqa, updatedAt: now, createdAt: now,
+    status: 'NOW', percent: 55, inProgress: 3, toDo: 2, finished: 1, nextPiece: 'Branding and landing', ...extra });
 const branding = item(1, 'Branding and landing', 'IN_PROGRESS', 70, { startedOn: '2026-10-20', end: { kind: 'ABOUT', amount: 1, unit: 'WEEKS' } });
 const parts = [item(11, 'Founders’ design', 'FINISHED', 100, { parentId: 1 }), item(12, 'Hero copy', 'PLANNED', 0, { parentId: 1 }), item(13, 'Cloudflare lock', 'IN_PROGRESS', 50, { parentId: 1 })];
 const view = (pieces: api.WorkNode[], extra: Partial<api.RoadmapView> = {}): api.RoadmapView => ({
@@ -34,7 +35,9 @@ const mount = (path = '/team-work') => render(<MemoryRouter initialEntries={[pat
 beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(api.fetchTeam).mockResolvedValue([{ userId: 1, name: 'Nino', email: 'nino@example.com', admin: true, addedAt: null, pending: false }]);
-    vi.mocked(api.fetchRoadmaps).mockResolvedValue([roadmap(5, 'October work'), roadmap(4, 'This week’s work', { updatedAt: twoDaysAgo })]);
+    vi.mocked(api.fetchRoadmaps).mockResolvedValue([roadmap(5, 'October work'), roadmap(6, 'Registration and roles', { percent: 20, inProgress: 1, toDo: 4, finished: 0, nextPiece: 'User registration' }),
+        roadmap(4, 'This week’s work', { updatedAt: twoDaysAgo, status: 'FINISHED', percent: 100 }), roadmap(7, 'Store', { status: 'LATER', percent: 0 })]);
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [], trail: [], canManageTeam: true });
     vi.mocked(api.fetchRoadmap).mockResolvedValue(view([{ item: branding, parts }, { item: item(2, 'Registration', 'ON_HOLD', 30, { step: 'Waiting for email provider' }), parts: [] }]));
 });
 
@@ -49,28 +52,47 @@ it('starts with this week’s work on its own roadmap when there is none, create
     expect(api.createWork).toHaveBeenCalledWith(expect.objectContaining({ title: 'Registration', roadmapId: 9 }));
 });
 
-it('shows the roadmap as a tree with dots, parts and a time strip, and switches roadmaps through the URL', async () => {
+it('opens on the plans being worked on now as boxes, with later and finished plans below', async () => {
     mount();
+    const boxes = await screen.findByRole('heading', { name: 'Working on now' });
+    const now = boxes.parentElement!;
+    const box = within(now).getByRole('button', { name: /^October work/ });
+    expect(box).toHaveTextContent('55%');
+    expect(box).toHaveTextContent('3 in progress · 2 to do · 1 done');
+    expect(box).toHaveTextContent('Next: Branding and landing');
+    expect(within(now).getAllByRole('button')).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Later 1' }).parentElement).toHaveTextContent('Store');
+    expect(screen.getByRole('heading', { name: 'Finished 1' }).parentElement).toHaveTextContent('This week’s work');
+    expect(screen.queryByText(/roadmap/i)).not.toBeInTheDocument();
+    await userEvent.click(within(now).getByRole('button', { name: /^Registration and roles/ }));
+    await waitFor(() => expect(api.fetchRoadmap).toHaveBeenLastCalledWith(6, expect.anything()));
+    expect(screen.getByTestId('where')).toHaveTextContent('roadmap=6');
+});
+
+it('shows a plan as a tree with dots, parts, small fixes and a time strip, moves it to later, and goes back to all plans', async () => {
+    vi.mocked(api.fetchRoadmap).mockResolvedValue(view([{ item: branding, parts }, { item: item(2, 'Registration', 'ON_HOLD', 30, { step: 'Waiting for email provider' }), parts: [] },
+        { item: item(3, 'Save button on phones', 'PLANNED', 0, { small: true }), parts: [] }]));
+    vi.mocked(api.changeRoadmap).mockResolvedValue(view([], { roadmap: roadmap(5, 'October work', { status: 'LATER', version: 4 }) }));
+    mount('/team-work?roadmap=5');
     const tree = await screen.findByRole('list', { name: 'October work' });
+    expect(screen.getByRole('heading', { name: 'October work', level: 1 })).toBeInTheDocument();
     expect(within(tree).getByRole('button', { name: /^In progress Branding and landing/ })).toHaveTextContent('3 parts · 70%');
     expect(within(tree).getByRole('button', { name: /Registration/ })).toHaveTextContent('30% · Waiting for email provider');
-    expect(within(tree).getAllByRole('img', { name: 'In progress' }).length).toBeGreaterThan(0);
+    expect(within(tree).getByRole('button', { name: /Save button on phones/ })).toHaveTextContent('small');
     expect(within(tree).getByRole('img', { name: /Started 20 Oct · ends: about 1 week · 70%/ })).toBeInTheDocument();
     expect(screen.getByText('Planned', { selector: '.tw-key span' })).toBeInTheDocument();
+    expect(screen.getByText(/changed by Beqa · now/)).toBeInTheDocument();
     expect(screen.getByLabelText('Latest switches')).toHaveTextContent('Registration · 2 days ago→Branding · now');
-
     await userEvent.click(within(tree).getByRole('button', { name: 'Hide the parts of Branding and landing' }));
     expect(within(tree).queryByText('Hero copy')).not.toBeInTheDocument();
 
-    const switcher = screen.getByRole('button', { name: /October work/ });
-    expect(screen.getByText(/changed by Beqa · now/)).toBeInTheDocument();
-    await userEvent.click(switcher);
-    const menu = screen.getByRole('list', { name: 'Roadmaps' });
-    expect(within(menu).getAllByRole('button')).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Copy as new version' })).toBeInTheDocument();
-    await userEvent.click(within(menu).getByRole('button', { name: /This week’s work/ }));
-    await waitFor(() => expect(api.fetchRoadmap).toHaveBeenLastCalledWith(4, expect.anything()));
-    expect(screen.getByTestId('where')).toHaveTextContent('roadmap=4');
+    expect(screen.getByRole('radio', { name: 'Now' })).toBeChecked();
+    await userEvent.click(screen.getByRole('radio', { name: 'Later' }));
+    expect(api.changeRoadmap).toHaveBeenCalledWith(5, { version: 3, status: 'LATER' });
+    expect(await screen.findByRole('radio', { name: 'Later' })).toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'All plans' }));
+    expect(screen.getByTestId('where')).not.toHaveTextContent('roadmap=');
+    expect(await screen.findByRole('heading', { name: 'Working on now' })).toBeInTheDocument();
 });
 
 it('opens a piece in place with its parts, comments and quick update, and keeps the words when a colleague saved first', async () => {
@@ -79,7 +101,7 @@ it('opens a piece in place with its parts, comments and quick update, and keeps 
         updates: [{ id: 9, author: { id: 1, name: 'Nino' }, at: twoDaysAgo, previousStatus: null, status: 'IN_PROGRESS', previousPercent: null, percent: 70, message: 'Added' }],
     }));
     vi.mocked(api.changeWork).mockRejectedValueOnce({ response: { status: 409, data: { detail: 'Someone else changed this work after you opened it.' } } });
-    mount('/team-work?open=1');
+    mount('/team-work?roadmap=5&open=1');
     const piece = await screen.findByRole('region', { name: 'Branding and landing' });
     expect(within(piece).getByText('about 1 week')).toBeInTheDocument();
     expect(within(piece).getByText('Looks good on the phone')).toBeInTheDocument();
@@ -100,7 +122,7 @@ it('previews a paste before applying it, and never offers to delete', async () =
     vi.mocked(api.pasteIntoRoadmap).mockResolvedValueOnce({ created: 1, updated: 1, moved: 1, unchanged: 0, applied: false, view: null, problems: [],
         lines: [{ line: 1, action: 'NEW', title: 'Agent Dola on live', parent: null, detail: null }, { line: 2, action: 'UPDATED', title: 'Registration', parent: null, detail: '30% → 45%' }, { line: 3, action: 'MOVED', title: 'Hero copy', parent: 'Registration', detail: null }] })
         .mockResolvedValueOnce({ created: 1, updated: 1, moved: 1, unchanged: 0, applied: true, view: view([{ item: branding, parts: [] }]), problems: [], lines: [] });
-    mount();
+    mount('/team-work?roadmap=5');
     await userEvent.click(await screen.findByRole('button', { name: 'Paste from AI' }));
     const dialog = screen.getByRole('dialog', { name: 'Paste from AI' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Use the example' }));

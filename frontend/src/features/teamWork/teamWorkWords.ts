@@ -1,5 +1,5 @@
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import type { WorkEnd, WorkItem, WorkStatus } from './api';
+import type { WorkEnd, WorkStatus } from './api';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
 
@@ -50,39 +50,3 @@ export function endWords(copy: Copy, end: WorkEnd) {
     if (end.kind === 'POSSIBLY' && end.date) return copy(`possibly ${monthName(copy, day(end.date).getMonth())}`, `შესაძლოა ${monthName(copy, day(end.date).getMonth())}`);
     return copy('don’t know', 'არ ვიცით');
 }
-
-/**
- * Where the expected end falls, for the time strip: a date, about N units after the start, the end of a
- * possible month; `vague` when it is not a firm date. Unknown gives no end.
- */
-export function expectedEnd(started: string | null, end: WorkEnd): { at: Date; vague: boolean } | null {
-    if (end.kind === 'DATE' && end.date) return { at: day(end.date), vague: false };
-    if (end.kind === 'POSSIBLY' && end.date) { const first = day(end.date); return { at: new Date(first.getFullYear(), first.getMonth() + 1, 0, 12), vague: true }; }
-    if (end.kind === 'ABOUT' && end.amount && end.unit) {
-        const from = started ? day(started) : new Date();
-        const at = new Date(from);
-        if (end.unit === 'DAYS') at.setDate(at.getDate() + end.amount);
-        else if (end.unit === 'WEEKS') at.setDate(at.getDate() + end.amount * 7);
-        else at.setMonth(at.getMonth() + end.amount);
-        return { at, vague: true };
-    }
-    return null;
-}
-
-export interface Span { from: Date; to: Date }
-
-/** The roadmap's span: whole months from the earliest start to the latest expected end, today included. */
-export function spanOf(items: WorkItem[]): Span {
-    const now = new Date();
-    let from = now, to = now;
-    for (const item of items) {
-        if (item.startedOn) { const start = day(item.startedOn); if (start < from) from = start; if (start > to) to = start; }
-        const end = expectedEnd(item.startedOn, item.end);
-        if (end && end.at > to) to = end.at;
-        if (end && end.at < from) from = end.at;
-    }
-    return { from: new Date(from.getFullYear(), from.getMonth(), 1), to: new Date(to.getFullYear(), to.getMonth() + 1, 0, 23, 59) };
-}
-
-/** Up to two initials for a name, for the comment avatars. */
-export const initials = (name: string | null | undefined) => (name ?? '?').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]!.toUpperCase()).join('');

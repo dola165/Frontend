@@ -3,7 +3,7 @@ import { Button } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addComment, deleteComment, editComment, type WorkComment } from './api';
-import { ago, initials } from './teamWorkWords';
+import { ago } from './teamWorkWords';
 
 /** A flat thread under a piece. Authors edit or delete their own; system admins any. */
 export function WorkComments({ itemId, comments, onChanged }: { itemId: number; comments: WorkComment[]; onChanged: (comments: WorkComment[]) => void }) {
@@ -21,7 +21,6 @@ export function WorkComments({ itemId, comments, onChanged }: { itemId: number; 
     };
     return <div className="tw-comments">
         {comments.length > 0 && <ol className="tw-comments__list">{comments.map(comment => <li key={comment.id}>
-            <span className="tw-avatar" aria-hidden="true">{initials(comment.author?.name)}</span>
             <div className="tw-comments__body">
                 <span className="tw-comments__who"><strong>{comment.author?.name ?? copy('Someone', 'ვიღაც')}</strong> · {ago(copy, comment.createdAt)}{comment.editedAt && ` · ${copy('edited', 'შეცვლილი')}`}</span>
                 {editing?.id === comment.id

@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useBrandStyle } from '../../branding/BrandStyleContext';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
@@ -41,6 +42,7 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
     const name = personName(user, copy);
     const language = (i18n.resolvedLanguage ?? i18n.language ?? 'en').split('-')[0];
     const languages = Object.keys(i18n.options?.resources ?? { en: {}, ka: {} });
+    const { style: brandStyle, setStyle: setBrandStyle } = useBrandStyle();
     const dark = themePreference !== 'light';
     const select = (action: () => void) => () => { action(); close(); };
     const item = menu ? 'menuitem' : undefined;
@@ -75,6 +77,11 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
             <div className="gk-segment" role="group" aria-labelledby={`${id}-theme`}>
                 <button type="button" {...choice(dark)} className="gk-menu__item" onClick={select(() => setThemePreference('map-light'))}><Moon aria-hidden="true" />{copy('Dark', 'მუქი')}</button>
                 <button type="button" {...choice(!dark)} className="gk-menu__item" onClick={select(() => setThemePreference('light'))}><Sun aria-hidden="true" />{copy('Light', 'ღია')}</button>
+            </div>
+            <p className="gk-menu__label" id={`${id}-brand`}>{copy('Brand style', 'ბრენდის სტილი')}</p>
+            <div className="gk-segment" role="group" aria-labelledby={`${id}-brand`}>
+                <button type="button" {...choice(brandStyle === 'pitch')} className="gk-menu__item" onClick={select(() => setBrandStyle('pitch'))}>Pitch</button>
+                <button type="button" {...choice(brandStyle === 'g')} className="gk-menu__item" onClick={select(() => setBrandStyle('g'))}>G Mark</button>
             </div>
             <p className="gk-menu__label" id={`${id}-language`}>{copy('Language', 'ენა')}</p>
             <div className="gk-segment" role="group" aria-labelledby={`${id}-language`}>

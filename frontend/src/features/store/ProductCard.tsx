@@ -8,11 +8,12 @@ import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { Crest } from '../world/Crest';
 import { availability, formatStorePrice, sellerName, sellerOf, type StoreProduct } from './api';
 import { Row } from './front/Row';
+import { BrandMark } from '../../components/layout/BrandMark';
 
 /** Who sells a product, as a small crest (a club) or the GrassKickZ mark, with the name. */
 export function SellerMark({ product, size = 16 }: { product: StoreProduct; size?: number }) {
     return sellerOf(product) === 'GRASSKICKZ'
-        ? <img src="/brand/grasskickz-mark.svg" alt="" width={size} height={size} />
+        ? <BrandMark variant="pitch" size={size} />
         : <Crest src={product.clubLogoUrl} name={product.clubName ?? 'Club'} size={size} round />;
 }
 

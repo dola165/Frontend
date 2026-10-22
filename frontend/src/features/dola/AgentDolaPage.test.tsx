@@ -7,7 +7,7 @@ import { AgentDolaPage, DolaDock } from './AgentDolaPage';
 import { dolaNavigationState } from './navigation';
 import { streamDola, latestDola, clearDola, dolaStatus, dolaWelcome, safeDolaDestination, resolveDolaAction, type DolaAction, type DolaAnswer } from './api';
 
-let session = 'session-a';
+let session: string | null = 'session-a';
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: session, user: { id: 7 } }) }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ i18n: { language: 'en' } }) }));
 vi.mock('./api', async importOriginal => {
@@ -26,11 +26,42 @@ beforeEach(() => {
 afterEach(cleanup);
 const page = () => render(<MemoryRouter initialEntries={['/assistant']}><DolaProvider><AgentDolaPage /></DolaProvider></MemoryRouter>);
 async function send(text = 'Show Parent Hub') {
-    fireEvent.change(screen.getByLabelText('Message Agent Dola'), { target: { value: text } });
+    fireEvent.change(screen.getByLabelText('Message Agent George'), { target: { value: text } });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Send message' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
 }
 describe('Agent Dola', () => {
+    it('opens the sidebar and full page without a service session, keeping drafts local and sending disabled', async () => {
+        session = null; localStorage.removeItem('gk-session-id');
+        render(<MemoryRouter initialEntries={['/home']}><DolaProvider><DolaLink>Open George</DolaLink><DolaDock /></DolaProvider></MemoryRouter>);
+        fireEvent.click(screen.getByRole('link', { name: 'Open George' }));
+        expect(screen.getByRole('dialog', { name: 'Agent George sidebar' })).toBeInTheDocument();
+        expect(screen.getByText(/George is unavailable in this session/)).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Message Agent George'), { target: { value: 'A question for later' } });
+        expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
+        fireEvent.submit(screen.getByLabelText('Message Agent George').closest('form')!);
+        fireEvent.click(screen.getByRole('button', { name: 'Close chat' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Open George' })).toHaveFocus();
+        fireEvent.click(screen.getByRole('link', { name: 'Open George' }));
+        expect(screen.getByLabelText('Message Agent George')).toHaveValue('A question for later');
+        expect(dolaStatus).not.toHaveBeenCalled(); expect(dolaWelcome).not.toHaveBeenCalled();
+        expect(latestDola).not.toHaveBeenCalled(); expect(streamDola).not.toHaveBeenCalled();
+        cleanup(); page();
+        expect(screen.getByRole('region', { name: 'Agent George conversation' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
+    });
+    it('opens an unavailable service in the sidebar without sending a request', async () => {
+        vi.mocked(dolaStatus).mockResolvedValue({ name: 'Agent Dola', available: false, mode: 'READ_ONLY_PILOT', maxMessageLength: 2000, capabilities: [] });
+        render(<MemoryRouter initialEntries={['/home']}><DolaProvider><DolaLink>Open George</DolaLink><DolaDock /></DolaProvider></MemoryRouter>);
+        fireEvent.click(screen.getByRole('link', { name: 'Open George' }));
+        expect(screen.getByRole('dialog', { name: 'Agent George sidebar' })).toBeInTheDocument();
+        await screen.findByText(/not available on this server/);
+        expect(screen.getByLabelText('Message Agent George')).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled();
+        expect(streamDola).not.toHaveBeenCalled();
+    });
+
     it('passes the selected venue page as a preference without inferring access', async () => {
         vi.mocked(dolaWelcome).mockResolvedValue({ contexts: ['venue', 'organization', 'discover'] });
         render(<MemoryRouter initialEntries={['/stadiums/133/manage']}><DolaProvider><DolaLink>Open Dola</DolaLink><DolaDock /></DolaProvider></MemoryRouter>);
@@ -65,12 +96,12 @@ describe('Agent Dola', () => {
         vi.mocked(dolaStatus).mockResolvedValue({ name: 'Agent Dola', available: false, mode: 'READ_ONLY_PILOT', maxMessageLength: 2000, capabilities: [] });
         render(<MemoryRouter initialEntries={[{ pathname: '/assistant', state: dolaNavigationState('How do I join?', session) }]}><DolaProvider><AgentDolaPage /></DolaProvider></MemoryRouter>);
         await screen.findByText(/not available on this server/);
-        expect(screen.getByLabelText('Message Agent Dola')).toHaveValue('How do I join?');
+        expect(screen.getByLabelText('Message Agent George')).toHaveValue('How do I join?');
         expect(streamDola).not.toHaveBeenCalled();
     });
     it('does not spend on load or when selecting a suggestion', async () => {
         page(); fireEvent.click(await screen.findByRole('button', { name: 'When is my next squad match?' }));
-        expect(screen.getByLabelText('Message Agent Dola')).toHaveValue('When is my next squad match?');
+        expect(screen.getByLabelText('Message Agent George')).toHaveValue('When is my next squad match?');
         expect(streamDola).not.toHaveBeenCalled();
     });
     it('keeps personal context off by default and shows verified destination cards', async () => {
@@ -87,7 +118,7 @@ describe('Agent Dola', () => {
     it('disables sending if the backend is unavailable', async () => {
         vi.mocked(dolaStatus).mockResolvedValue({ name: 'Agent Dola', available: false, mode: 'READ_ONLY_PILOT', maxMessageLength: 2000, capabilities: [] });
         page(); await screen.findByText(/not available on this server/);
-        fireEvent.change(screen.getByLabelText('Message Agent Dola'), { target: { value: 'Hello' } });
+        fireEvent.change(screen.getByLabelText('Message Agent George'), { target: { value: 'Hello' } });
         expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled(); expect(streamDola).not.toHaveBeenCalled();
     });
     it('clears server context and resets personal opt-in on a new conversation', async () => {
@@ -105,12 +136,12 @@ describe('Agent Dola', () => {
         rendered.rerender(<MemoryRouter initialEntries={['/assistant']}><DolaProvider><AgentDolaPage /></DolaProvider></MemoryRouter>);
         await act(async () => { resolve(answer); });
         expect(screen.queryByText(answer.answer)).not.toBeInTheDocument();
-        expect(screen.getByLabelText('Message Agent Dola')).toHaveValue('');
+        expect(screen.getByLabelText('Message Agent George')).toHaveValue('');
     });
     it('keeps a failed question editable without automatically retrying', async () => {
         vi.mocked(streamDola).mockRejectedValue({ response: { data: { code: 'DOLA_DAILY_LIMIT', error: 'Daily allowance reached.' }, status: 429 } });
         page(); await send('Explain bookings'); await screen.findByRole('alert');
-        expect(screen.getByLabelText('Message Agent Dola')).toHaveValue('Explain bookings'); expect(streamDola).toHaveBeenCalledTimes(1);
+        expect(screen.getByLabelText('Message Agent George')).toHaveValue('Explain bookings'); expect(streamDola).toHaveBeenCalledTimes(1);
     });
     it('never turns arbitrary provider output into clickable links or HTML', async () => {
         vi.mocked(streamDola).mockResolvedValue({ ...answer, answer: '<img src=x onerror=alert(1)>', destinations: [{ id: 'parent_hub', title: 'Unsafe', path: 'https://attacker.test' }] });
@@ -179,7 +210,7 @@ describe('workspace welcome', () => {
         vi.mocked(dolaWelcome).mockResolvedValue({ contexts: ['referee', 'family', 'discover'] });
         page(); await screen.findByRole('button', { name: 'What needs my attention for my children?' });
         expect(screen.queryByRole('button', { name: 'Help me write a coach update.' })).not.toBeInTheDocument();
-        fireEvent.change(screen.getByRole('combobox', { name: 'Dola context' }), { target: { value: 'referee' } });
+        fireEvent.change(screen.getByRole('combobox', { name: 'George context' }), { target: { value: 'referee' } });
         fireEvent.click(screen.getByRole('button', { name: 'What are my next accepted referee appointments?' }));
         expect(streamDola).not.toHaveBeenCalled();
         await send('Show my referee appointments'); await screen.findByText(answer.answer);

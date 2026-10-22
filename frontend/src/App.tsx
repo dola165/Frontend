@@ -7,6 +7,8 @@ import { AppHeader } from './components/layout/header/AppHeader';
 import { HomeOpportunities } from './components/layout/HomeOpportunities';
 import './components/layout/home-rails.css';
 import './components/layout/home-feed.css';
+import './components/layout/branding.css';
+import { BrandStyleProvider } from './components/branding/BrandStyleProvider';
 import './components/club/club-design-theme.css';
 import { AppPageFrame } from './components/layout/AppPageShell';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -443,7 +445,7 @@ export function MainLayout() {
 
     return (
         <div
-            className={`${hasProductNavigation ? 'product-app-shell' : ''} min-h-screen bg-[color:var(--theme-page)] text-[color:var(--text-primary)] transition-colors duration-200`}
+            className={`${hasProductNavigation ? 'product-app-shell brand-app' : ''} min-h-screen bg-[color:var(--theme-page)] text-[color:var(--text-primary)] transition-colors duration-200`}
             data-tabbar={showsHeader && !!user}
             style={{ '--app-active-header-height': activeHeaderHeight } as CSSProperties}
         >
@@ -510,10 +512,10 @@ export function MainLayout() {
 
 export default function App() {
     return (
-        <Router>
+        <BrandStyleProvider><Router>
             <AuthProvider>
                 <AuthSessionBoundary><DolaProvider><MainLayout /><DolaDock /></DolaProvider></AuthSessionBoundary>
             </AuthProvider>
-        </Router>
+        </Router></BrandStyleProvider>
     );
 }

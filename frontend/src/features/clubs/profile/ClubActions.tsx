@@ -4,6 +4,7 @@ import { arrangeOwnMatchPath, openChallengePath, proposeMatchPath } from './club
 import type { ClubPermissions } from './useClubProfile';
 import type { ClubProfile } from './types';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+import { BrandNavigationIcon } from '../../../components/branding/BrandNavigationIcon';
 
 /**
  * The header actions, chosen from the viewer's verified relationship: staff open the workspace and start matches
@@ -20,7 +21,7 @@ export function ClubActions({ club, can, onFollow, onJoin, onMessage }: {
             <ButtonLink to={openChallengePath()}><Megaphone aria-hidden="true" />Open challenge</ButtonLink>
             <ButtonLink to={arrangeOwnMatchPath()}><Swords aria-hidden="true" />Arrange a match</ButtonLink>
         </>}
-        <ButtonLink variant="primary" to={`/clubs/${club.id}/workspace`}><LayoutGrid aria-hidden="true" />{can.invitationOnly ? 'Review invitation' : 'Open workspace'}</ButtonLink>
+        <ButtonLink variant="primary" to={`/clubs/${club.id}/workspace`}><BrandNavigationIcon icon={LayoutGrid} variant="workspace" section />{can.invitationOnly ? 'Review invitation' : 'Open workspace'}</ButtonLink>
     </>;
     const primary: 'match' | 'join' | 'follow' | null = can.canChallenge ? 'match' : can.canJoin ? 'join' : can.canFollow && !following ? 'follow' : null;
     return <>

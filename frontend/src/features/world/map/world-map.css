@@ -39,9 +39,12 @@
 .gk .gk-world-map__card-text span { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .gk-world-map .maplibregl-ctrl-group { background: var(--gk-surface); border: 1px solid var(--gk-line); box-shadow: none; }
 
+.gk .gk-world-map .maplibregl-ctrl-attrib { background: var(--gk-surface); color: var(--gk-text-2); }
+.gk .gk-world-map .maplibregl-ctrl-attrib a { color: inherit; }
+
 /* Several results at one place: a bigger pin with the number; placed at its club: a ring, not a dot. */
 .gk .gk-world-pin[data-count]::after { width: 20px; height: 20px; }
-/* A pin's time ("11:00", "FT 4–3") beside it: only while few pins are in view, or on the lit pin. */
+/* A pin's time ("11:00", "FT 4â€“3") beside it: only while few pins are in view, or on the lit pin. */
 .gk .gk-world-pin__chip { position: absolute; left: calc(100% + 2px); top: 50%; transform: translateY(-50%); display: none; padding: 1px 6px; border: 1px solid var(--gk-glass-line, var(--gk-line));
   border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text); font-size: 11px; font-weight: 650; line-height: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
 .gk .gk-world-map__canvas[data-chips] .gk-world-pin__chip, .gk .gk-world-pin[data-selected] > .gk-world-pin__chip { display: block; }

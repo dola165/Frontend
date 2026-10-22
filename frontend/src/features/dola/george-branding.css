@@ -1,0 +1,11 @@
+.george-mark { flex: none; color: var(--color-text); }
+.dola-page { font-family: var(--brand-font); }
+.gk .gk-hbtn--dola .george-mark { width: 28px; height: 28px; color: var(--gk-text); }
+.gk .gk-hbtn--dola { background: color-mix(in srgb, var(--george-maroon) 18%, var(--gk-surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--george-maroon) 65%, var(--gk-line)); border-radius: 12px; }
+.gk .gk-hbtn--dola:hover { background: color-mix(in srgb, var(--george-maroon) 30%, var(--gk-surface)); }
+.dola-page .george-mark { color: var(--color-text); }
+.dola-page .dola-mark,
+.dola-page .dola-orbit { background: color-mix(in srgb, var(--george-maroon) 16%, var(--dola-surface)); }
+.dola-page .dola-heading { border-bottom-color: color-mix(in srgb, var(--george-maroon) 50%, var(--dola-border)); }
+.dola-page .dola-input-wrap > button { background: var(--george-maroon); color: var(--george-on-maroon); }
+.dola-page .dola-about h1 span { color: var(--george-label); }

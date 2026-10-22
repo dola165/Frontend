@@ -2,12 +2,13 @@ import './header.css';
 import { useContext, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Earth, Heart, House, MessageSquare, Shield, Sparkles, Users } from 'lucide-react';
+import { Earth, Heart, House, MessageSquare, Shield, Users } from 'lucide-react';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import { accessibleClubs } from '../clubAccess';
 import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
 import { DolaLink } from '../../../features/dola/DolaProvider';
+import { GeorgeMark } from '../../../features/dola/GeorgeMark';
 import { DolaContext } from '../../../features/dola/DolaContext';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { themeForRoute, type ThemePreference } from '../../../theme';
@@ -98,9 +99,9 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
                         <PinsBar state={pins} page={page} work={work} activePath={pinned?.path ?? null} crowded={crowded} onCrowdedChange={setCrowded} />
                     </nav>
                     <div className="gk-header__actions">
-                        <DolaLink className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola" title={copy('Ask Agent Dola', 'ჰკითხეთ Agent Dola-ს')}
+                        <DolaLink className="gk-hbtn gk-hbtn--dola" aria-label="Agent George" title={copy('Ask Agent George', 'ჰკითხეთ Agent George-ს')}
                             aria-current={pathname === '/assistant' ? 'page' : undefined} data-open={dolaOpen || undefined}>
-                            <Sparkles aria-hidden="true" /><span className="gk-hbtn__label">Agent Dola</span>
+                            <GeorgeMark /><span className="gk-hbtn__label">Agent George</span>
                         </DolaLink>
                         <InboxButton />
                         <Link to="/messages" className="gk-hbtn gk-header__messages" aria-current={pathname === '/messages' ? 'page' : undefined} title={copy('Messages', 'მიმოწერა')}

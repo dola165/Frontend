@@ -6,7 +6,7 @@ export function DolaResizeHandle() {
     const drag = useRef<{ x: number; width: number; pointer: number } | null>(null);
     if (!panelSize.resizable) return null;
     return <div className="dola-resize-handle" role="separator" tabIndex={0}
-        aria-label="Resize Agent Dola" aria-orientation="vertical"
+        aria-label="Resize Agent George" aria-orientation="vertical"
         aria-valuemin={panelSize.min} aria-valuemax={panelSize.max} aria-valuenow={panelSize.width}
         aria-valuetext={`${panelSize.width} pixels wide`}
         title="Drag to resize. Arrow keys adjust width; double-click or Enter resets."

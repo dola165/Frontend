@@ -19,7 +19,8 @@ function useDolaController() {
     const panelSize = useDolaPanelSize(user?.id);
     const fullPage = location.pathname === '/assistant';
     const [panel, setPanel] = useState(false);
-    const [available, setAvailable] = useState<boolean | null>(null);
+    const sessionReady = !!user && !!sessionId;
+    const [available, setAvailable] = useState<boolean | null>(sessionReady ? null : false);
     const [contexts, setContexts] = useState<DolaWorkspace[]>(['discover']);
     const [preferredContext, setPreferredContext] = useState<DolaWorkspace>();
     const [welcomeLoading, setWelcomeLoading] = useState(false);
@@ -37,7 +38,8 @@ function useDolaController() {
     const initialized = useRef(false); const consumed = useRef<string | null>(null);
     const previousPath = useRef(location.pathname); const returnPath = useRef('/home');
     const launcher = useRef<HTMLElement | null>(null);
-    const visible = !!user && !!sessionId && (panel || fullPage);
+    // Opening the interface does not grant access to the assistant service.
+    const visible = !!user && (panel || fullPage);
     // The record on screen goes with each question unless the person takes it off; its name is read from the page.
     // On the full page it is the page the person came from.
     const [subjectPath, subjectSearch = ''] = fullPage ? returnPath.current.split('?') : [location.pathname, location.search.slice(1)];
@@ -56,7 +58,7 @@ function useDolaController() {
     const workspace = chooseDolaContext(contexts, subjectPath, preferredContext);
 
     useEffect(() => {
-        if (!visible) return;
+        if (!visible || !sessionReady) return;
         const controller = new AbortController(); setWelcomeLoading(true);
         const refresh = () => {
             void dolaWelcome(sessionId, controller.signal).then(result => {
@@ -67,7 +69,7 @@ function useDolaController() {
         };
         refresh(); window.addEventListener('focus', refresh);
         return () => { controller.abort(); window.removeEventListener('focus', refresh); };
-    }, [visible, sessionId, location.pathname, user?.navigationCapabilities]);
+    }, [visible, sessionReady, sessionId, location.pathname, user?.navigationCapabilities]);
 
     useEffect(() => { active.current = true; return () => { active.current = false; request.current?.abort(); }; }, [sessionId]);
     useEffect(() => {
@@ -83,7 +85,7 @@ function useDolaController() {
     }, [location.pathname, location.state, navigate, sessionId]);
 
     useEffect(() => {
-        if (!visible || initialized.current) return;
+        if (!visible || !sessionReady || initialized.current) return;
         const controller = new AbortController(); setLoading(true);
         void Promise.allSettled([dolaStatus(sessionId, controller.signal), latestDola(sessionId, controller.signal)]).then(([status, history]) => {
             if (!active.current || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
@@ -96,10 +98,10 @@ function useDolaController() {
             } else if (history.status === 'rejected') setError('Could not check your recent chat. You can still start a new conversation.');
         });
         return () => controller.abort();
-    }, [visible, sessionId]);
+    }, [visible, sessionReady, sessionId]);
 
     const checkStatus = useCallback(() => {
-        if (statusRequest.current || !isCurrentAuthSession(sessionId)) return;
+        if (!sessionReady || statusRequest.current || !isCurrentAuthSession(sessionId)) return;
         const controller = new AbortController(); statusRequest.current = controller; setAvailable(null);
         void dolaStatus(sessionId, controller.signal).then(status => {
             if (!active.current || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
@@ -108,7 +110,7 @@ function useDolaController() {
             if (!active.current || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
             setAvailable(false); setStatusFailed(true);
         }).finally(() => { if (statusRequest.current === controller) statusRequest.current = null; });
-    }, [sessionId]);
+    }, [sessionId, sessionReady]);
     useEffect(() => {
         if (!visible || !statusFailed) return;
         window.addEventListener('focus', checkStatus);
@@ -163,8 +165,8 @@ function useDolaController() {
         } catch (cause) {
             if (!active.current || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
             const code = extractApiErrorCode(cause);
-            setError(code === 'DOLA_DAILY_LIMIT' ? 'Agent Dola’s daily testing allowance has been reached. Try again tomorrow.'
-                : extractApiErrorMessage(cause, cause instanceof Error ? cause.message : 'Dola could not finish this answer. Please try again later.'));
+            setError(code === 'DOLA_DAILY_LIMIT' ? 'Agent George’s daily testing allowance has been reached. Try again tomorrow.'
+                : extractApiErrorMessage(cause, cause instanceof Error ? cause.message : 'George could not finish this answer. Please try again later.'));
             setExpired(code === 'DOLA_CONVERSATION_UNAVAILABLE'); setDraft(message);
             // Partial provider output is not a completed answer or a saved conversation turn.
             if (code === 'DOLA_CONVERSATION_UNAVAILABLE') {
@@ -229,7 +231,7 @@ function useDolaController() {
     }
     function dock() { setPanel(true); if (fullPage) navigate(returnPath.current); }
     function expand() { setPreferredContext(workspace); setPanel(false); navigate('/assistant'); }
-    return { panelSize, fullPage, panel, visible, available, turns, draft, setDraft, personal, setPersonal, busy, error, expired, resume, loading,
+    return { panelSize, fullPage, panel, visible, sessionReady, available, turns, draft, setDraft, personal, setPersonal, busy, error, expired, resume, loading,
         contexts, workspace, setWorkspace: setPreferredContext, welcomeLoading, statusFailed, checkStatus,
         subject, leaveOutSubject: () => setSubjectOff(subjectKey),
         submit, resolveAction, newConversation, continueConversation, openPanel, closePanel, dock, expand, keepOpen: () => setPanel(true) };

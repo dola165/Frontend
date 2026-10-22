@@ -1,5 +1,5 @@
-/* Route-owned presentation. Home and public club/organization profiles never
-   enable this scope; the palette is defined exclusively in theme.css. */
+/* Route-owned layout and interaction treatment. Home and public profiles keep
+   their layouts; every route consumes the shared brand palette in theme.css. */
 html.product-design-active {
   background: var(--color-page);
   color: var(--color-text);

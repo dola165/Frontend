@@ -22,11 +22,11 @@ it.each(['confirm', 'discard'] as const)('clears private action details after un
     render(<MemoryRouter initialEntries={['/assistant']}><DolaProvider><AgentDolaPage /></DolaProvider></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: 'Continue last chat' }));
     await screen.findByText(action.body);
-    fireEvent.change(screen.getByLabelText('Message Agent Dola'), { target: { value: 'My unsent follow-up' } });
+    fireEvent.change(screen.getByLabelText('Message Agent George'), { target: { value: 'My unsent follow-up' } });
     fireEvent.click(screen.getByRole('button', { name: decision === 'confirm' ? 'Publish coach update' : 'Discard' }));
     await waitFor(() => expect(screen.queryByText(action.body)).not.toBeInTheDocument());
     expect(screen.queryByText(privateAnswer.answer)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Message Agent Dola')).toHaveValue('My unsent follow-up');
+    expect(screen.getByLabelText('Message Agent George')).toHaveValue('My unsent follow-up');
     expect(resolveDolaAction).toHaveBeenCalledExactlyOnceWith(privateAnswer.conversationId, action.id, decision, 'wave2-session', expect.any(AbortSignal));
     expect(streamDola).not.toHaveBeenCalled();
 });
@@ -48,11 +48,11 @@ it('clears recovered private history after the server rejects its authority and 
     render(<MemoryRouter initialEntries={['/assistant']}><DolaProvider><AgentDolaPage /></DolaProvider></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: 'Continue last chat' }));
     await screen.findByText(privateAnswer.answer);
-    fireEvent.change(screen.getByLabelText('Message Agent Dola'), { target: { value: 'Check training again' } });
+    fireEvent.change(screen.getByLabelText('Message Agent George'), { target: { value: 'Check training again' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
     await waitFor(() => expect(screen.queryByText(privateAnswer.answer)).not.toBeInTheDocument());
     expect(screen.queryByText('Private family question')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Message Agent Dola')).toHaveValue('Check training again');
+    expect(screen.getByLabelText('Message Agent George')).toHaveValue('Check training again');
     expect(streamDola).toHaveBeenCalledTimes(1);
     expect(resolveDolaAction).not.toHaveBeenCalled();
 });

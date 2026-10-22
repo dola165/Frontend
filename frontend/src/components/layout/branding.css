@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,900&family=DM+Mono:wght@400;500&display=swap');
+
+/* Shared brand presentation. Feature layout and account appearance stay intact. */
+.brand-app, .feed-home-shell { font-family: var(--brand-font); }
+.brand-app { background: var(--color-page); color: var(--color-text); }
+.brand-app .gk-page-header__crumbs { font-family: var(--brand-mono); }
+.brand-app .gk.gk-header { --gk-bg: var(--brand-header); }
+.brand-app .gk-header__brand { gap: 8px; }
+.brand-app .gk-header__brand .home-brand-mark { width: 27px; height: auto; color: var(--brand-logo-mark); }
+.brand-app .gk-header__brand .home-brand-wordmark { width: 164px; height: auto; }
+.brand-app .gk-header__start { gap: 12px; min-width: 0; max-width: 100%; }
+.brand-app .gk-header__search { flex: 0 1 var(--gk-hsearch); min-width: 0; }
+@container gk-header (max-width: 1239px) {
+    .brand-app .gk-header__brand-name { display: none; }
+    .brand-app .gk-header__row--centred { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .brand-app .gk-htab { font-size: 14px; }
+    .brand-app .gk-htab__body { padding-inline: 10px; gap: 8px; }
+    .brand-app .gk-header__actions { gap: 6px; }
+}
+.brand-app .gk-htab[aria-current='page'] { color: var(--brand-link); }
+.brand-app .gk-htab[aria-current='page'] svg { color: var(--brand-link); }
+.brand-app .gk-htab[aria-current='page']::after { background: var(--brand-link); }
+.brand-app .gk-header__search .global-search-field__icon { width: 18px; height: 18px; }
+.brand-app .gk-header__inbox svg,
+.brand-app .gk-header__messages svg { width: 20px; height: 20px; }
+.feed-home-shell .home-shortcut-heading,
+.feed-home-shell .home-contacts-card h2 {
+    font-family: var(--brand-mono);
+    font-weight: 400;
+    letter-spacing: .035em;
+    color: var(--feed-text-primary);
+}
+.feed-home-shell .home-nav-icon {
+    --home-icon-color: var(--brand-icon);
+    background: var(--color-inset);
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border: 1px solid var(--feed-card-border);
+    border-radius: 9px;
+}
+.feed-home-shell .home-nav-icon svg { width: 25px; height: 18px; stroke-width: 8; }
+.feed-home-shell .home-shortcut-group .home-social-link { min-height: 56px; gap: 10px; }
+.feed-home-shell .home-shortcut-group .home-social-link:focus-visible { outline: 2px solid var(--brand-link); outline-offset: 2px; }
+.feed-home-shell .home-profile-shortcut .text-\[10px\],
+.feed-home-shell .workspace-shortcut,
+.feed-home-shell .home-contacts-all {
+    color: var(--brand-link);
+}
+.feed-home-shell .home-opportunities-card > div:first-child { padding: 15px; }
+.feed-home-shell .home-opportunity-link.opportunity-link--store {
+    --opportunity-color: var(--brand-store);
+    --brand-section-surface: var(--brand-store-surface);
+}
+.feed-home-shell .home-opportunity-link.opportunity-link--jobs {
+    --opportunity-color: var(--brand-jobs);
+    --brand-section-surface: var(--brand-jobs-surface);
+}
+.feed-home-shell .home-opportunity-link.opportunity-link--campaigns {
+    --opportunity-color: var(--brand-fundraising);
+    --brand-section-surface: var(--brand-fundraising-surface);
+}
+.feed-home-shell .home-opportunities-card .home-opportunity-link {
+    background: var(--brand-section-surface);
+    border-color: var(--feed-card-border);
+}
+.feed-home-shell .home-opportunity-link > .home-opportunity-icon {
+    background: var(--opportunity-color);
+    color: var(--brand-on-section);
+    border-radius: 7px;
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+}
+.feed-home-shell .home-opportunity-icon svg { width: 26px; height: auto; color: inherit; }
+.feed-home-shell .home-opportunity-chevron { color: var(--feed-text-secondary); }
+.brand-app .home-opportunity-shortcut { min-height: 44px; }
+.brand-app .home-opportunity-shortcut svg { width: 24px; height: 18px; flex-shrink: 0; color: var(--brand-link); }
+.feed-home-shell .home-composer-actions .home-compose-start {
+    background: var(--brand-volt);
+    color: var(--brand-on-volt);
+}
+.feed-home-shell .home-compose-start:hover { filter: brightness(.96); }
+.feed-home-shell .home-composer-actions svg { color: var(--brand-icon); }
+.feed-home-shell .home-feed-post .post-author-meta > span:first-child { font-family: var(--brand-mono); font-size: 10px; }
+.feed-home-shell .home-feed-post .post-action-row { background: var(--feed-card); }
+.feed-home-shell .home-contacts-all { display: inline-flex; align-items: center; min-height: 44px; }
+.feed-home-shell .home-contacts-card > div:first-child { padding-bottom: 4px; }
+@media (min-width: 900px) {
+    .brand-app .gk-header__row { padding-inline: 40px; }
+}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrandMark } from '../../../components/layout/BrandMark';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, FileUp, Lock, MapPin, Plus, Trash2, Trophy, UserPlus, Users } from 'lucide-react';
 import { Avatar, Button, List, ListRow } from '../../../design/primitives';
@@ -127,7 +128,7 @@ export function InvolvedBox({ page, editing, open, onEdit, onClose }: BoxProps) 
         {(['store', 'fundraising'] as const).some(part => isLocked(locks[part]!, page.verification)) && <span className="gk-field__hint">{t('Money comes after a check, so nobody can take it in your name. Jobs are open now.')}</span>}
         <div className="gk-boxedit__foot"><Button size="sm" variant="primary" onClick={() => void saveBox('involved', { parts: draft }, { label: t('Saved') }).then(onClose)}>{t('Done')}</Button><Button size="sm" variant="ghost" onClick={onClose}>{t('Cancel')}</Button></div>
       </div>
-        : <List label={t('Ways to get involved')}>{parts.map(part => <ListRow key={part} to={link[part]} lead={<span className="gk-club-icon" data-kind={part === 'fundraising' ? 'campaigns' : part}><ArrowUpRight aria-hidden="true" /></span>} title={t(words[part][0])} meta={t(words[part][1])} />)}</List>}
+        : <List label={t('Ways to get involved')}>{parts.map(part => <ListRow key={part} to={link[part]} lead={<span className="gk-club-icon" data-kind={part === 'fundraising' ? 'campaigns' : part}><BrandMark variant={part === 'fundraising' ? 'campaigns' : part} /></span>} title={t(words[part][0])} meta={t(words[part][1])} />)}</List>}
     </SideBlock>
   );
 }

@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
+import { BrandMark } from '../../../components/layout/BrandMark';
+import './club-profile.css';
 import { ButtonLink, List, ListRow } from '../../../design/primitives';
 import { SideBlock } from '../../../design/profile/ProfileLayout';
 import { Crest } from '../../world/Crest';
@@ -21,7 +23,7 @@ export function ClubSide({ club, canEdit = false }: { club: ClubProfile; canEdit
     return <>
         {opportunities.length > 0 && <SideBlock title="Get involved" hint="Shop, work or give" action={canEdit ? <EditLink to={`/clubs/${club.id}?edit=1&panel=involved`} /> : undefined}>
             <List label="Ways to get involved">{opportunities.map(item => <ListRow key={item.key} to={item.to} current={open === (item.key === 'campaigns' ? 'fundraising' : item.key)}
-                lead={<span className="gk-club-icon" data-kind={item.key}><item.icon aria-hidden="true" /></span>} title={item.title}
+                lead={<span className="gk-club-icon" data-kind={item.key}><BrandMark variant={item.key} /></span>} title={item.title}
                 meta={item.source.loading ? 'Loading…' : item.source.failed ? 'Currently unavailable' : item.count ? `${item.count} ${item.count === 1 ? item.unit.replace(/s$/, '') : item.unit}` : item.empty} />)}</List>
         </SideBlock>}
         {/* The academy link itself sits under the club name; only managing it stays here. */}

@@ -1,17 +1,47 @@
-/* The only application UI palette. Components consume semantic roles, never palette shades.
-   Forced scopes show one part of a page in the other theme without changing the account preference. */
-:root, .theme-force-light {
+/* GrassKickZ Brand Book edition 01: one shared palette for product pages,
+   workspaces and portalled dialogs. Forced map/editor appearances remain explicit. */
+:root {
+  --brand-font: 'Archivo', Inter, ui-sans-serif, system-ui, sans-serif;
+  --brand-mono: 'DM Mono', ui-monospace, monospace;
+  --brand-grass: #2f8a4f;
+  --brand-pitch: #0e3b26;
+  --brand-chalk: #f6f7f1;
+  --brand-floodlight: #07160f;
+  --brand-volt: #c6f24e;
+  --brand-on-volt: #07160f;
+  --brand-store: #fe8f5a;
+  --brand-jobs: #9fa4ff;
+  --brand-fundraising: #ff8693;
+  --brand-workspace: #e8b643;
+  --brand-map: #1acfe0;
+  --brand-george: #dd84e2;
+  --brand-george-ink: #7d2584;
+  --brand-on-section: #07160f;
+  --brand-g-map: #3db5e6;
+  --brand-g-store: #e5383b;
+  --brand-g-fundraising: #2dbe7e;
+  --brand-g-jobs: #3b6fe0;
+  --brand-g-workspace: #f5b820;
+  --brand-g-george: #9b2c4a;
+  --brand-g-on-symbol: #ffffff;
+  --george-maroon: #9b2c4a;
+  --george-lime: #c8f135;
+  --george-on-maroon: #ffffff;
+  --george-label: #9b2c4a;
+}
+:root, .theme-force-light, .map-force-light, .workspace-light, .gk.gk-light {
   color-scheme: light;
-  --color-page: #f4f5f3;
-  --color-surface: #fafbf9;
-  --color-elevated: #ffffff;
-  --color-inset: #eaf0eb;
-  --color-border: #bdc9c0;
-  --color-text: #21352b;
-  --color-secondary: #4c6255;
-  --color-muted: #54695d;
-  --color-ink: #21352b;
-  --color-accent: #246844;
+  --color-page: #f1f3ee;
+  --color-surface: var(--brand-chalk);
+  --color-elevated: var(--brand-chalk);
+  --color-inset: #e3ebdf;
+  --color-border: #bac9be;
+  --color-text: var(--brand-floodlight);
+  --color-secondary: #52685b;
+  --color-muted: #52685b;
+  --color-ink: var(--brand-floodlight);
+  --color-accent: var(--brand-pitch);
+  --color-on-accent: var(--brand-chalk);
   --color-danger: #b62e43;
   --color-warning: #815609;
   --color-orange: #994417;
@@ -19,127 +49,80 @@
   --color-cyan: #076a79;
   --color-purple: #7044a1;
   --color-pink: #a43670;
-  --color-on-accent: #ffffff;
   --color-on-media: #ffffff;
-  --color-overlay: #0c1510;
-  --color-shadow: #0a1610;
-  --color-media-surface: #0c1510;
+  --color-overlay: var(--brand-floodlight);
+  --color-shadow: var(--brand-floodlight);
+  --color-media-surface: var(--brand-floodlight);
+  --brand-link: var(--brand-pitch);
+  --brand-icon: var(--brand-grass);
+  --brand-header: var(--brand-chalk);
+  --brand-logo-mark: var(--brand-pitch);
+  --brand-logo-z: var(--brand-grass);
+  --brand-store-surface: #f7efe5;
+  --brand-jobs-surface: #edf0f7;
+  --brand-fundraising-surface: #f7ebee;
+  --market-store-action: #91440b;
+  --market-jobs-action: #31559b;
+  --market-fundraising-action: #9b3150;
+  --market-on-action: var(--brand-chalk);
   --map-control-icon-filter: none;
+  --world-panel-surface: color-mix(in srgb, var(--color-page) 88%, transparent);
+  --world-panel-border: color-mix(in srgb, var(--color-text) 11%, transparent);
 }
-:root.dark, .theme-force-dark {
+:root.dark, .theme-force-dark,
+.dark :is(.theme-force-dark, .workspace-design-scope):not(.theme-force-light) {
   color-scheme: dark;
-  --color-page: #09090b;
-  --color-surface: #18181b;
-  --color-elevated: #27272a;
-  --color-inset: #18181b;
-  --color-border: #3f3f46;
-  --color-text: #f4f4f5;
-  --color-secondary: #a1a1aa;
-  --color-muted: #a1a1aa;
-  --color-ink: #f4f4f5;
-  --color-accent: #00c853;
+  /* Neutral green-charcoal surfaces separate content; Pitch anchors the header, Volt signals action. */
+  --color-page: #111613;
+  --color-surface: #202823;
+  --color-elevated: #2d3930;
+  --color-inset: #171e19;
+  --color-border: #455349;
+  --color-text: var(--brand-chalk);
+  --color-secondary: #c1cac2;
+  --color-muted: #a8b5aa;
+  --color-ink: var(--brand-chalk);
+  --color-accent: var(--brand-volt);
+  --color-on-accent: var(--brand-floodlight);
   --color-danger: #ec8daf;
   --color-warning: #d0a85a;
-  --color-orange: #ff9e58;
-  --color-info: #7db7e6;
+  --color-orange: var(--brand-store);
+  --color-info: var(--brand-jobs);
   --color-cyan: #64c6ff;
-  --color-purple: #9076ff;
-  --color-pink: #e07da7;
-  --color-on-accent: #000000;
-  --color-overlay: #060608;
-  --color-shadow: #000000;
-  --color-media-surface: #060608;
-  --map-control-icon-filter: invert(1);
-}
-/* Retain the existing slate palette of the feed and professional profiles. */
-.dark .feed-home-shell,
-.dark .club-page-shell:not(.map-force-light) {
-  --color-page: #0e1318;
-  --color-surface: #10151b;
-  --color-elevated: #1c252e;
-  --color-inset: #202d38;
-  --color-border: #33414d;
-  --color-text: #f2f6fa;
-  --color-secondary: #aab8c5;
-  --color-muted: #aab8c5;
-  --color-ink: #f2f6fa;
-  --color-accent: #00e676;
-}
-/* Approved Home and public club surfaces. Home's primary accent is updated below. */
-.dark .feed-home-shell,
-.dark .club-design-scope,
-.dark .club-design-scope.club-page-shell:not(.map-force-light) {
-  --color-page: #090d12;
-  --color-surface: #131821;
-  --color-elevated: #1c222d;
-  --color-inset: #0e131b;
-  --color-border: #28313f;
-  --color-text: #eef3f7;
-  --color-secondary: #adb7c4;
-  --color-muted: #adb7c4;
-  --color-ink: #eef3f7;
-  --color-accent: #39bf9b;
-  --color-on-accent: #102b23;
-  --color-cyan: #72c6db;
-  --color-orange: #e8b56c;
-  --color-purple: #af96ed;
-  --color-info: #8cb9e8;
-}
-/* Home keeps its approved layout and surfaces, with the product's green actions. */
-.feed-home-shell {
-  --color-accent: #146b3c;
-  --color-on-accent: #ffffff;
-}
-.dark .feed-home-shell {
-  --color-accent: #00e676;
-  --color-on-accent: #06110b;
-}
-/* The refreshed product uses the private-work palette. Local map geography and
-   the excluded Home/public identity surfaces retain their own palettes. */
-html.product-design-active:not(.dark),
-.club-design-scope {
-  --color-page: #f3f5f4;
-  --color-surface: #ffffff;
-  --color-elevated: #e9eeec;
-  --color-inset: #f7f9f8;
-  --color-border: #c7d1cd;
-  --color-text: #17251e;
-  --color-secondary: #4b5f54;
-  --color-muted: #4b5f54;
-  --color-ink: #17251e;
-  --color-accent: #146b3c;
-  --color-on-accent: #ffffff;
-}
-/* Home and private work share the same calm canvas and semantic accents. */
-html.dark.product-design-active,
-.dark .feed-home-shell,
-html.dark.product-design-active :is(.club-page-shell, .club-design-scope, .venue-page, .theme-force-dark),
-.dark .club-design-scope,
-.dark .club-design-scope.club-page-shell:not(.map-force-light),
-.dark .workspace-design-scope,
-.workspace-page-shell.club-workspace-shell.workspace-refresh:not(.workspace-light) {
-  --color-page: #0a0d0f;
-  --color-surface: #13181d;
-  --color-elevated: #1c232a;
-  --color-inset: #0e1216;
-  --color-border: #222b35;
-  --color-text: #f2f4f6;
-  --color-secondary: #a5afb8;
-  --color-muted: #a5afb8;
-  --color-ink: #f2f4f6;
-  --color-accent: #00e676;
-  --color-on-accent: #06110b;
-  --color-warning: #e8ba62;
-  --color-orange: #e8ba62;
-  --color-info: #83b9ef;
-  --color-cyan: #83b9ef;
   --color-purple: #bf9bf5;
+  --color-pink: var(--brand-fundraising);
+  --brand-link: #c3dca8;
+  --brand-icon: var(--brand-chalk);
+  --brand-header: var(--brand-pitch);
+  --brand-logo-mark: var(--brand-volt);
+  --brand-logo-z: var(--brand-volt);
+  --brand-store-surface: color-mix(in srgb, var(--brand-store) 7%, var(--color-surface));
+  --brand-jobs-surface: color-mix(in srgb, var(--brand-jobs) 7%, var(--color-surface));
+  --brand-fundraising-surface: color-mix(in srgb, var(--brand-fundraising) 7%, var(--color-surface));
+  --market-store-action: var(--brand-store);
+  --market-jobs-action: var(--brand-jobs);
+  --market-fundraising-action: var(--brand-fundraising);
+  --market-on-action: var(--brand-floodlight);
+  --map-control-icon-filter: invert(1);
+  --world-panel-surface: var(--color-surface);
+  --world-panel-border: var(--color-border);
 }
-.dark .club-page-shell:not(.map-force-light) {
-  --color-cyan: #22d3ee;
-  --color-info: #60a5fa;
-  --color-purple: #c084fc;
-  --color-orange: #ffc857;
+/* Optional Kick-off G family. Appearance still owns the page and surface palette. */
+:root[data-brand-style='g'] {
+  --brand-store: var(--brand-g-store);
+  --brand-jobs: var(--brand-g-jobs);
+  --brand-fundraising: var(--brand-g-fundraising);
+  --brand-store-surface: color-mix(in srgb, var(--brand-store) 7%, var(--color-surface));
+  --brand-jobs-surface: color-mix(in srgb, var(--brand-jobs) 7%, var(--color-surface));
+  --brand-fundraising-surface: color-mix(in srgb, var(--brand-fundraising) 7%, var(--color-surface));
+  --market-store-action: #ac2024;
+  --market-jobs-action: #2450ae;
+  --market-fundraising-action: #13754b;
+}
+:root.dark[data-brand-style='g'] {
+  --market-store-action: #ff8587;
+  --market-jobs-action: #9ab5ff;
+  --market-fundraising-action: #61d9a1;
 }
 :root, .theme-force-light, .theme-force-dark {
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
@@ -205,99 +188,65 @@ html.dark.product-design-active :is(.club-page-shell, .club-design-scope, .venue
   border-left-color: var(--color-elevated);
 }
 
-/* GrassKickZ design system (src/design). One deterministic palette for every
-   redesigned surface, independent of the legacy scope cascade above. */
+/* Shared components use the same semantic roles as legacy workspaces. */
 .gk {
-  --gk-bg: #0a0d0f;
-  --gk-surface: #12171c;
-  --gk-raised: #1a2128;
-  --gk-sunken: #0d1114;
-  --gk-line: #222b34;
-  --gk-line-strong: #33404b;
-  --gk-text: #f2f4f6;
-  --gk-text-2: #a9b3bc;
-  --gk-text-3: #77838e;
-  --gk-accent: #00e676;
-  --gk-accent-strong: #3dfa98;
-  --gk-on-accent: #04130b;
-  --gk-warning: #f0bf5a;
-  --gk-danger: #ff7a85;
-  --gk-info: #7fb6f0;
-  --gk-violet: #b99cf6;
-  /* The three marketplaces, each in its colour: the store the grass green, jobs a bold purple, fundraising a warm dark orange. */
-  --gk-market-store: #00e676;
-  --gk-market-jobs: #8a5cf6;
-  --gk-market-jobs-strong: #a383ff;
-  --gk-on-market-jobs: #ffffff;
-  --gk-market-fundraising: #e06a1c;
-  --gk-market-fundraising-strong: #f5853a;
-  --gk-on-market-fundraising: #1c0d03;
-  --gk-pitch: #0f2a1d;
-  --gk-shadow: #000000;
-  color-scheme: dark;
+  --gk-bg: var(--color-page);
+  --gk-surface: var(--color-surface);
+  --gk-raised: var(--color-elevated);
+  --gk-sunken: var(--color-inset);
+  --gk-line: var(--color-border);
+  --gk-line-strong: var(--color-border);
+  --gk-text: var(--color-text);
+  --gk-text-2: var(--color-secondary);
+  --gk-text-3: var(--color-muted);
+  --gk-accent: var(--color-accent);
+  --gk-accent-strong: var(--brand-link);
+  --gk-on-accent: var(--color-on-accent);
+  --gk-warning: var(--color-warning);
+  --gk-danger: var(--color-danger);
+  --gk-info: var(--color-info);
+  --gk-violet: var(--color-purple);
+  --gk-market-store: var(--market-store-action);
+  --gk-market-store-strong: var(--market-store-action);
+  --gk-on-market-store: var(--market-on-action);
+  --gk-market-jobs: var(--market-jobs-action);
+  --gk-market-jobs-strong: var(--market-jobs-action);
+  --gk-on-market-jobs: var(--market-on-action);
+  --gk-market-fundraising: var(--market-fundraising-action);
+  --gk-market-fundraising-strong: var(--market-fundraising-action);
+  --gk-on-market-fundraising: var(--market-on-action);
+  --gk-pitch: var(--color-inset);
+  --gk-shadow: var(--color-shadow);
 }
-html:not(.dark) .gk,
-.gk.gk-light {
-  --gk-bg: #f2f4f3;
-  --gk-surface: #ffffff;
-  --gk-raised: #f7f9f8;
-  --gk-sunken: #e9eeeb;
-  --gk-line: #d9e0dc;
-  --gk-line-strong: #b9c5bf;
-  --gk-text: #14211a;
-  --gk-text-2: #4a5d53;
-  --gk-text-3: #6d7d74;
-  --gk-accent: #0f7a42;
-  --gk-accent-strong: #0a6334;
-  --gk-on-accent: #ffffff;
-  --gk-warning: #94600a;
-  --gk-danger: #c22f45;
-  --gk-info: #2563a8;
-  --gk-violet: #6d48b0;
-  --gk-market-store: #0f7a42;
-  --gk-market-jobs: #6338d1;
-  --gk-market-jobs-strong: #512bb3;
-  --gk-on-market-jobs: #ffffff;
-  --gk-market-fundraising: #b64c0c;
-  --gk-market-fundraising-strong: #9a3f08;
-  --gk-on-market-fundraising: #ffffff;
-  --gk-pitch: #e3f1e8;
-  --gk-shadow: #0b1a12;
-  color-scheme: light;
-}
-
-/* The schedule's own dark paint, restored on 11 October 2026 from 82d6c8c: near-black neutral surfaces, a
-   lighter board with visible hairlines, a three-step text hierarchy and its neon accents. The October colour
-   rewrite had mapped these to roles that read flat and grey. Declared on the engine's own roots (the calendar
-   and its event editor), because the workspace scopes above them redefine the --fc-* tokens. */
-.dark :is(.schedule-direction, .schedule-compose-backdrop) {
-  --fc-page-bg: #070809;
-  --fc-sidebar-bg: #101113;
-  --fc-card-bg: #191b1f;
-  --fc-surface-hover: #1a1c22;
-  --fc-border: #26282d;
-  --fc-text-primary: #f4f5f7;
-  --fc-text-secondary: #bdc1cb;
-  --fc-text-muted: #979eab;
-  --schedule-board-head: #27272a;
-  --schedule-board-cell: #18181b;
-  --schedule-board-muted: #18181b;
-  --schedule-chip: #1e293b;
-  --schedule-chip-border: #ffffff14;
-  --schedule-zone-highlight: #ffffff0a;
-  --schedule-accent-green: #00c853;
-  --schedule-accent-green-soft: #00c8531a;
-  --schedule-accent-green-border: #00c8533d;
-  --schedule-accent-pink: #ff4b86;
-  --schedule-accent-pink-soft: #ff4b861f;
-  --schedule-accent-pink-border: #ff4b8642;
-  --schedule-accent-blue: #5478cf;
-  --schedule-accent-blue-soft: #5478cf1f;
-  --schedule-accent-blue-border: #5478cf42;
-  --schedule-accent-purple: #9076ff;
-  --schedule-accent-purple-soft: #9076ff1f;
-  --schedule-accent-purple-border: #9076ff42;
-  --schedule-shell-glow: #00c8530a;
-  --schedule-shadow-panel: 0 10px 26px #00000066;
-  --schedule-shadow-float: 0 18px 38px #00000080;
+/* Schedule geometry and event categories stay intact; its surfaces match the app. */
+:is(.schedule-direction, .schedule-compose-backdrop) {
+  --fc-page-bg: var(--color-page);
+  --fc-sidebar-bg: var(--color-inset);
+  --fc-card-bg: var(--color-surface);
+  --fc-surface-hover: var(--color-elevated);
+  --fc-border: var(--color-border);
+  --fc-text-primary: var(--color-text);
+  --fc-text-secondary: var(--color-secondary);
+  --fc-text-muted: var(--color-muted);
+  --schedule-board-head: var(--color-elevated);
+  --schedule-board-cell: var(--color-surface);
+  --schedule-board-muted: var(--color-inset);
+  --schedule-chip: var(--color-elevated);
+  --schedule-chip-border: var(--color-border);
+  --schedule-zone-highlight: var(--color-hover);
+  --schedule-accent-green: var(--color-accent);
+  --schedule-accent-green-soft: var(--color-accent-soft);
+  --schedule-accent-green-border: color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+  --schedule-accent-pink: var(--color-pink);
+  --schedule-accent-pink-soft: var(--color-pink-soft);
+  --schedule-accent-pink-border: color-mix(in srgb, var(--color-pink) 30%, var(--color-border));
+  --schedule-accent-blue: var(--color-info);
+  --schedule-accent-blue-soft: var(--color-info-soft);
+  --schedule-accent-blue-border: color-mix(in srgb, var(--color-info) 30%, var(--color-border));
+  --schedule-accent-purple: var(--color-purple);
+  --schedule-accent-purple-soft: var(--color-purple-soft);
+  --schedule-accent-purple-border: color-mix(in srgb, var(--color-purple) 30%, var(--color-border));
+  --schedule-shell-glow: var(--color-accent-soft);
+  --schedule-shadow-panel: 0 10px 26px var(--color-shadow-soft);
+  --schedule-shadow-float: 0 18px 38px var(--color-shadow-strong);
 }

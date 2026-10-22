@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, HeartHandshake, ShoppingBag } from 'lucide-react';
+import { BrandMark } from '../../../components/layout/BrandMark';
+import './market-branding.css';
 import { Section } from '../../../design/primitives';
 
 const PLACES = [
-    { id: 'store', label: 'Store', to: '/store', icon: ShoppingBag },
-    { id: 'jobs', label: 'Jobs & volunteering', to: '/jobs', icon: Briefcase },
-    { id: 'fundraising', label: 'Fundraising', to: '/campaigns', icon: HeartHandshake },
+    { id: 'store', label: 'Store', to: '/store', mark: 'store' },
+    { id: 'jobs', label: 'Jobs & volunteering', to: '/jobs', mark: 'jobs' },
+    { id: 'fundraising', label: 'Fundraising', to: '/campaigns', mark: 'campaigns' },
 ] as const;
 export type MarketPlace = typeof PLACES[number]['id'];
 
@@ -14,7 +15,7 @@ export type MarketPlace = typeof PLACES[number]['id'];
 export function MarketTabs({ current }: { current: MarketPlace }) {
     return (
         <nav className="gk-market-tabs gk-segmented" aria-label="Store, fundraising and jobs">
-            {PLACES.map(place => <Link key={place.id} viewTransition className="gk-segmented__item" data-market={place.id} to={place.to} aria-current={place.id === current ? 'page' : undefined}><place.icon aria-hidden="true" />{place.label}</Link>)}
+            {PLACES.map(place => <Link key={place.id} viewTransition className="gk-segmented__item" data-market={place.id} to={place.to} aria-current={place.id === current ? 'page' : undefined}><span className="gk-market-mark"><BrandMark variant={place.mark} /></span>{place.label}</Link>)}
         </nav>
     );
 }

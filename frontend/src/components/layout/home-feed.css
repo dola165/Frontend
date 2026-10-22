@@ -62,7 +62,6 @@
 .home-opportunities-card { padding: 0; overflow: hidden; }
 .home-opportunities-card > div:first-child { padding: 14px 14px 10px; border: 0; }
 .home-opportunities-card h2 { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
-.home-opportunities-card > div:first-child svg { color: var(--feed-accent); }
 .feed-home-shell .opportunity-link { padding: 12px; background: color-mix(in srgb, var(--opportunity-color) 3%, var(--feed-input-bg)); border-color: color-mix(in srgb, var(--opportunity-color) 40%, var(--feed-card-border)); border-radius: 11px; }
 .feed-home-shell .opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 8%, var(--feed-input-bg)); border-color: var(--opportunity-color); }
 .feed-home-shell .opportunity-link > span:first-child { font-size: 12px; gap: 8px; }
@@ -91,13 +90,13 @@
 .home-post-composer > fieldset > div:first-of-type > div:first-child { width: 36px; height: 36px; border-radius: 8px; }
 .home-composer-actions { display: flex; align-items: center; gap: 6px; }
 .home-composer-actions > button { padding-inline: 12px; }
-.home-composer-actions > button { min-height: 32px; border-radius: 7px; font-weight: 500; }
+.home-composer-actions > button { min-height: 44px; border-radius: 8px; font-weight: 500; }
 .home-composer-actions { border-top: 1px solid var(--feed-divider); margin-top: 12px; padding-top: 10px; }
-.home-composer-actions .home-compose-start { margin-left: auto; min-height: 32px; border-radius: 7px; background: var(--feed-accent); color: var(--feed-accent-contrast); font-size: 12px; font-weight: 650; }
+.home-composer-actions .home-compose-start { margin-left: auto; min-height: 44px; border-radius: 8px; background: var(--feed-accent); color: var(--feed-accent-contrast); font-size: 12px; font-weight: 700; }
 .home-refresh-label { font-size: 12px; white-space: nowrap; }
 .home-feed-canvas .feed-selection-rail { grid-template-columns: auto auto 1fr; border-bottom: 0; padding-inline: 0; gap: 4px; }
-.home-feed-canvas .feed-selection-rail > a { justify-content: flex-start; min-height: 34px; padding: 0 10px; font-size: 12px; }
-.home-feed-canvas .home-refresh { justify-self: end; height: 32px; margin: 0; }
+.home-feed-canvas .feed-selection-rail > a { justify-content: flex-start; min-height: 44px; padding: 0 10px; font-size: 12px; }
+.home-feed-canvas .home-refresh { justify-self: end; min-height: 44px; margin: 0; }
 .home-feed-canvas article { border-radius: 12px; background: var(--feed-card); box-shadow: none; }
 .home-feed-post .post-header { padding: 16px 16px 12px; }
 .home-feed-post .post-author { gap: 10px; }
@@ -109,12 +108,12 @@
 .home-feed-post .post-body { padding: 0 16px 14px; }
 .home-feed-canvas .home-post-content { font-size: 14px; line-height: 1.6; }
 .home-feed-canvas article .post-action-row { min-height: 44px; padding: 5px 10px; gap: 6px; background: var(--feed-input-bg); border-top-color: var(--feed-divider); border-radius: 0 0 12px 12px; }
-.home-feed-canvas article .post-action-row button[aria-controls] { min-width:32px;min-height:36px; }
-.home-feed-post .post-action { min-height: 32px; gap: 6px; padding: 6px; font-size: 12px; font-weight: 500; border-radius: 6px; }
+.home-feed-canvas article .post-action-row button[aria-controls] { min-width:44px;min-height:44px; }
+.home-feed-post .post-action { min-height: 44px; gap: 6px; padding: 6px; font-size: 12px; font-weight: 500; border-radius: 6px; }
 .home-feed-post .post-action svg { width: 14px; height: 14px; stroke-width: 1.6; }
 .home-feed-post .post-reaction-primary { padding-right: 2px; }
 .home-feed-post .post-reaction-emoji { font-size: 15px; }
-.home-feed-post .post-reaction-expand { min-height: 32px; width: 22px; }
+.home-feed-post .post-reaction-expand { min-height: 44px; width: 44px; }
 .home-feed-post .feed-comments-reveal[data-open="true"] { border-radius: 0 0 12px 12px; }
 .home-mobile-shortcuts { border: 1px solid var(--feed-card-border); border-radius: 12px; background: var(--feed-card); }
 .home-mobile-shortcuts > summary { display: flex; min-height: 48px; align-items: center; gap: 8px; padding: 10px 12px; font-size: 13px; font-weight: 650; cursor: pointer; list-style: none; }

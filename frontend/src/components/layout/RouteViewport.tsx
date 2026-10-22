@@ -6,8 +6,8 @@ import '../../styles/workspace-design.css';
 import '../../styles/product-design.css';
 import { useProductDesign } from './productDesign';
 
-// Public destinations keep their own visual treatment. Private work surfaces
-// share one palette and layout foundation, including their nested editors.
+// Public destinations keep their own layouts. Private work surfaces share a
+// layout foundation, while theme.css supplies the brand palette to every route.
 const workspaceSurface = (pathname: string): string | undefined => {
     if (/^\/clubs\/\d+\/(workspace|operations|profile-settings|squads)$/.test(pathname)) return 'club';
     if (/^\/organizations\/\d+\/workspace$/.test(pathname) || pathname === '/organizations/create') return 'organization';

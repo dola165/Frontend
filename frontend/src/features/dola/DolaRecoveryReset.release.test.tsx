@@ -26,20 +26,20 @@ it.each(['send', 'confirm', 'discard'] as const)('starts a clean usable conversa
     render(<MemoryRouter initialEntries={['/assistant']}><DolaProvider><AgentDolaPage /></DolaProvider></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: 'Continue last chat' }));
     await screen.findByText(old.answer);
-    fireEvent.change(screen.getByLabelText('Message Agent Dola'), { target: { value: 'My editable follow-up' } });
+    fireEvent.change(screen.getByLabelText('Message Agent George'), { target: { value: 'My editable follow-up' } });
     if (trigger === 'send') {
         vi.mocked(streamDola).mockRejectedValueOnce(unavailable);
         fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
     } else fireEvent.click(screen.getByRole('button', { name: trigger === 'confirm' ? action.confirmLabel : 'Discard' }));
     await waitFor(() => expect(screen.queryByText(old.answer)).not.toBeInTheDocument());
     expect(screen.queryByText(action.body)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Message Agent Dola')).toHaveValue('My editable follow-up');
+    expect(screen.getByLabelText('Message Agent George')).toHaveValue('My editable follow-up');
     const previousCalls = vi.mocked(streamDola).mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'New conversation' }));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     expect(clearDola).not.toHaveBeenCalled();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
-    fireEvent.change(screen.getByLabelText('Message Agent Dola'), { target: { value: 'Fresh question' } });
+    fireEvent.change(screen.getByLabelText('Message Agent George'), { target: { value: 'Fresh question' } });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Send message' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
     await screen.findByText(fresh.answer);

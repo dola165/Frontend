@@ -1,0 +1,15 @@
+/* Only the optional G family changes; Pitch keeps the approved presentation. */
+.g-brand-mark { flex: none; }
+.brand-app .gk-header__brand .g-brand-wordmark { font-family: var(--brand-font); font-weight: 800; font-size: 22px; letter-spacing: -.055em; line-height: 1; }
+[data-brand-style='g'] .brand-app .gk-header__brand .home-brand-mark { width: 29px; height: 29px; color: var(--color-text); }
+[data-brand-style='g'] .brand-app .gk-htab .g-brand-mark { width: 24px; height: 24px; color: var(--gk-text); }
+[data-brand-style='g'] .feed-home-shell .home-nav-icon svg { width: 26px; height: 26px; }
+[data-brand-style='g'] .feed-home-shell .home-opportunity-icon svg { width: 28px; height: 28px; }
+[data-brand-style='g'] .gk .gk-world-nav .gk-world-map-mark { width: 24px; height: 24px; }
+[data-brand-style='g'] .gk .gk-market-tabs .gk-market-mark svg { width: 26px; height: 26px; color: var(--color-text); }
+[data-brand-style='g'] .gk .gk-club-icon .g-brand-mark { width: 28px; height: 28px; }
+[data-brand-style='g'] .feed-home-shell .home-opportunity-link > .home-opportunity-icon,
+[data-brand-style='g'] .gk .gk-market-mark,
+[data-brand-style='g'] .gk .gk-club-icon:has(.g-brand-mark) { background: var(--color-inset); color: var(--color-text); }
+[data-brand-style='g'] .home-opportunity-shortcut .g-brand-mark { width: 24px; height: 24px; color: var(--color-text); }
+@media (max-width: 480px) { [data-brand-style='g'] .gk .gk-market-tabs .gk-market-mark svg { width: 24px; height: 24px; } }

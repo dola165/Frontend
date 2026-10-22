@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Briefcase, HeartHandshake, Plus, ShoppingBag } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { BrandMark } from './BrandMark';
 import { useAuth } from '../../context/AuthContext';
 import { capabilitiesKnown } from '../../context/navigationCapabilities';
 import { usePagesCopy } from '../../features/pages/copy';
@@ -17,12 +18,12 @@ export function HomeOpportunities({ className = '', onNavigate }: { className?: 
     const capabilities = useAuth().user?.navigationCapabilities;
     const start = capabilitiesKnown(capabilities) && !hasOwnPage(capabilities);
     const items = [
-        { to: '/store', label: copy('Store', 'მაღაზია'), Icon: ShoppingBag, kind: 'store' },
-        { to: '/jobs', label: copy('Jobs & volunteering', 'სამუშაო და მოხალისეობა'), Icon: Briefcase, kind: 'jobs' },
-        { to: '/campaigns', label: copy('Fundraising', 'ფონდების მოზიდვა'), Icon: HeartHandshake, kind: 'fundraising' },
-        ...(start ? [{ to: createHref(location, 'CLUB', 'home'), label: t('Start your club'), Icon: Plus, kind: 'start' }] : []),
+        { to: '/store', label: copy('Store', 'მაღაზია'), kind: 'store' },
+        { to: '/jobs', label: copy('Jobs & volunteering', 'სამუშაო და მოხალისეობა'), kind: 'jobs' },
+        { to: '/campaigns', label: copy('Fundraising', 'ფონდების მოზიდვა'), kind: 'fundraising' },
+        ...(start ? [{ to: createHref(location, 'CLUB', 'home'), label: t('Start your club'), kind: 'start' }] : []),
     ];
     return <nav className={`home-commercial-nav ${className}`} aria-label={copy('Store, jobs and fundraising', 'მაღაზია, სამუშაო და ფონდების მოზიდვა')}>
-        {items.map(({ to, label, Icon, kind }) => <Link key={kind} to={to} onClick={onNavigate} className={`home-opportunity-shortcut home-opportunity-shortcut--${kind}`}><Icon size={16} aria-hidden /><span>{label}</span></Link>)}
+        {items.map(({ to, label, kind }) => <Link key={kind} to={to} onClick={onNavigate} className={`home-opportunity-shortcut home-opportunity-shortcut--${kind}`}>{kind === 'start' ? <Plus size={16} aria-hidden /> : <BrandMark variant={kind === 'fundraising' ? 'campaigns' : kind === 'jobs' ? 'jobs' : 'store'} />}<span>{label}</span></Link>)}
     </nav>;
 }

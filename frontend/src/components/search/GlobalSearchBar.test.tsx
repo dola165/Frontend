@@ -59,7 +59,7 @@ describe('Search and Dola handoff', () => {
     });
     it('offers an explicit Dola choice for an ambiguous search', () => {
         page(); fireEvent.change(screen.getByRole('combobox', { name: 'search.ariaLabel' }), { target: { value: 'training advice' } });
-        fireEvent.click(screen.getByRole('option', { name: /Ask Agent Dola/ }));
+        fireEvent.click(screen.getByRole('option', { name: /Ask Agent George/ }));
         expect(screen.getByTestId('destination')).toHaveTextContent('/assistant');
     });
     it('ignores Enter while an input method is composing', () => {

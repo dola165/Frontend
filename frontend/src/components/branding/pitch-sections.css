@@ -1,0 +1,30 @@
+/* Warm-up reference: compact section tiles, with dark ink in either appearance. */
+:root[data-brand-style='pitch'] {
+  --george-maroon: var(--brand-george);
+  --george-on-maroon: var(--brand-on-section);
+  --george-label: var(--brand-george-ink);
+}
+:root.dark[data-brand-style='pitch'] { --george-label: var(--brand-george); }
+.pitch-brand-mark[data-brand-mark='workspace'] { --pitch-section: var(--brand-workspace); }
+.pitch-brand-mark[data-brand-mark='map'] { --pitch-section: var(--brand-map); }
+.pitch-brand-mark[data-brand-mark='jobs'] { --pitch-section: var(--brand-jobs); }
+.pitch-brand-mark[data-brand-mark='george'] { --pitch-section: var(--brand-george); }
+.pitch-brand-mark[data-brand-mark='store'] { --pitch-section: var(--brand-store); }
+.pitch-brand-mark[data-brand-mark='campaigns'] { --pitch-section: var(--brand-fundraising); }
+[data-brand-style='pitch'] .brand-app .pitch-section-icon { width: 24px; height: 24px; }
+[data-brand-style='pitch'] .brand-app .pitch-section-icon,
+[data-brand-style='pitch'] .brand-app .pitch-brand-mark[data-brand-mark='map'],
+[data-brand-style='pitch'] .brand-app .george-mark {
+  box-sizing: border-box; padding: 3px; border-radius: 5px;
+  background: var(--pitch-section); color: var(--brand-on-section); flex: none;
+}
+[data-brand-style='pitch'] .dola-page .george-mark { padding: 4px; border-radius: 7px; background: var(--brand-george); color: var(--brand-on-section); }
+[data-brand-style='pitch'] .gk .gk-hbtn--dola { background: var(--brand-george); color: var(--brand-on-section); }
+[data-brand-style='pitch'] .gk .gk-hbtn--dola:hover { background: color-mix(in srgb, var(--brand-george) 84%, var(--color-surface)); }
+[data-brand-style='pitch'] .brand-app .gk-hbtn--dola .george-mark { width: 28px; height: 24px; }
+/* Active navigation must retain dark ink on the section's coloured tile. */
+[data-brand-style='pitch'] .brand-app .gk-htab[aria-current='page'] .pitch-brand-mark[data-brand-mark='map'] { color: var(--brand-on-section); }
+[data-brand-style='pitch'] .brand-app .home-opportunity-shortcut .pitch-brand-mark {
+  box-sizing: border-box; width: 28px; height: 24px; padding: 3px;
+  border-radius: 5px; background: var(--pitch-section); color: var(--brand-on-section);
+}

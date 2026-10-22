@@ -3,7 +3,8 @@ import { MediaImage } from "../ui/MediaImage";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import type { ShortcutKind } from './ShortcutEmblem';
-import { BriefcaseBusiness, CalendarDays, Flag, Heart, MapPinned, Shield, UserCheck, Users } from 'lucide-react';
+import { Shield } from 'lucide-react';
+import { BrandMark, type BrandVariant } from './BrandMark';
 import { resolveMediaUrl } from "../../utils/resolveMediaUrl";
 import { capabilitiesKnown, hasConfirmedLinks, hasNavigationCapability, type NavigationCapabilities } from '../../context/navigationCapabilities';
 import { ConnectionsDialog } from "../profile/ConnectionsDialog";
@@ -35,11 +36,13 @@ const initialsFrom = (value: string) =>
     .join("")
     .toUpperCase() || "GK";
 
-const shortcutIcons = { family: Heart, squads: Users, schedule: CalendarDays, map: MapPinned, following: UserCheck, clubs: Shield, referee: Flag, agent: BriefcaseBusiness };
-const HomeIcon = ({ kind }: { kind: ShortcutKind }) => {
-  const Icon = shortcutIcons[kind as keyof typeof shortcutIcons] ?? Shield;
-  return <span className={`home-nav-icon home-nav-icon--${kind}`}><Icon size={19} aria-hidden="true" /></span>;
+const shortcutMarks: Partial<Record<ShortcutKind, BrandVariant>> = {
+  clubs: 'joining', family: 'family', squads: 'squads', schedule: 'schedule',
+  map: 'map', following: 'following', referee: 'referee', agent: 'jobs',
 };
+const HomeIcon = ({ kind }: { kind: ShortcutKind }) => (
+  <span className={`home-nav-icon home-nav-icon--${kind}`}><BrandMark variant={shortcutMarks[kind] ?? 'pitch'} /></span>
+);
 
 export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftSidebarProps) => {
   const copy = useJourneyCopy();

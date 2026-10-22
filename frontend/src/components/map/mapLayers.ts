@@ -8,7 +8,7 @@ export const MAP_STYLE_OVERRIDDEN = Boolean(styleOverride);
 const styleUrl = (url: string) => styleOverride ? new URL(styleOverride, typeof window === 'undefined' ? 'http://localhost' : window.location.origin).href : url;
 export const MAP_STYLE_DEFAULT = styleUrl('https://tiles.openfreemap.org/styles/positron');
 export const MAP_STYLE_DARK = styleUrl('https://tiles.openfreemap.org/styles/dark');
-/** Unsaturated Browns inspiration: warm mineral ground, sage vegetation, deep estuary water. */
+/** Brand Book: Chalk ground, muted Turf vegetation and teal water; roads remain distinct. */
 export const withHeritagePaints = <T extends MapStyleObject>(style: T, { includeTerrain = true } = {}): T => {
     const result = structuredClone(style);
     for (const layer of result.layers ?? []) {

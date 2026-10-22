@@ -1,14 +1,15 @@
 /* GrassKickZ World shell. Scoped under .gk-world / .world-mapview; tokens only. */
 /* Glass, for anything floating over a World map (the overview's panel, the map pills on every tab). */
 .gk.gk-world {
-  --gk-glass: color-mix(in srgb, var(--gk-bg) 64%, transparent);
-  --gk-glass-line: color-mix(in srgb, var(--gk-text) 11%, transparent);
+  --gk-glass: var(--world-panel-surface);
+  --gk-glass-line: var(--world-panel-border);
   --gk-glass-shadow: 0 24px 60px -24px color-mix(in srgb, var(--gk-shadow) 85%, transparent);
   --gk-ease-out: cubic-bezier(.16, 1, .3, 1);
   /* The Home feed's letterforms (no alternate glyphs), so World's lists read like its posts. */
   font-feature-settings: normal;
 }
 .gk .gk-world-nav { margin-top: var(--gk-3); }
+.gk .gk-world-nav .gk-world-map-mark { width: 24px; height: 18px; }
 /* The World bar: the tabs, and who and where World is for at the right end; on a phone the pickers wrap under. */
 /* The tabs sit on the bar's line (their underline on it); the pickers keep one height so the bar never jumps between tabs. */
 .gk .gk-world-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-2) var(--gk-4); margin-top: var(--gk-3); border-bottom: 1px solid var(--gk-line); }

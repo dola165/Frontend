@@ -3,6 +3,9 @@ import { BriefcaseBusiness, CalendarDays, Map as MapIcon, Shield, Trophy, UsersR
 import { RouteTabs } from '../../design/Tabs';
 import { useWorldCopy } from './copy';
 import { CARRIED } from './directory/useDirectoryState';
+import { BrandMark } from '../../components/layout/BrandMark';
+import './world.css';
+import { BrandNavigationIcon } from '../../components/branding/BrandNavigationIcon';
 
 /**
  * World's places, in the order people want them: the map first, then clubs, jobs and volunteering, matches,
@@ -27,6 +30,6 @@ export function WorldNav({ className }: { className?: string }) {
     const suffix = carried.size ? `?${carried}` : '';
     return (
         <RouteTabs label={t('GrassKickZ World')} className={`gk-world-nav${className ? ` ${className}` : ''}`}
-            items={DESTINATIONS.map(({ path, label, Icon, end }) => ({ to: `${path}${suffix}`, label: t(label), end, icon: <Icon aria-hidden="true" /> }))} />
+            items={DESTINATIONS.map(({ path, label, Icon, end }) => ({ to: `${path}${suffix}`, label: t(label), end, icon: path === '/world' ? <BrandMark variant="map" className="gk-world-map-mark" /> : <BrandNavigationIcon section={path === '/world/opportunities'} icon={Icon} variant={path === '/world/opportunities' ? 'jobs' : path === '/world/matches' ? 'schedule' : path === '/world/people' ? 'following' : 'workspace'} /> }))} />
     );
 }

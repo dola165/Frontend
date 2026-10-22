@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, ShoppingBag, Store } from 'lucide-react';
+import { Plus, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { ButtonLink, Count, SearchInput } from '../../../design/primitives';
 import { fetchMyClubMembershipContext } from '../../clubs/api';
@@ -10,6 +10,7 @@ import { cataloguePath } from '../query';
 import { useCartCount } from '../useCartCount';
 import { CATEGORIES, COLLECTIONS } from '../labels';
 import { CircleStrip } from './MarketTabs';
+import { BrandMark } from '../../../components/layout/BrandMark';
 
 /**
  * The storefront's first row: the title, one wide search, Browse all and the cart; for someone who runs a club's store,
@@ -42,13 +43,13 @@ export function StoreDoors({ own, sellers }: { own?: number; sellers?: number })
     return (
         <div className="gk-store-doors">
             <article className="gk-store-door"><img className="gk-store-door__pic" src="/football/ball-field.jpg" alt="" />
-                <span className="gk-store-door__eyebrow"><img src="/brand/grasskickz-mark.svg" alt="" />Sold by GrassKickZ</span>
+                <span className="gk-store-door__eyebrow"><BrandMark variant="pitch" size={24} />Sold by GrassKickZ</span>
                 <Link className="gk-store-door__title" to={cataloguePath({ seller: 'grasskickz' })}>Shop GrassKickZ equipment</Link>
                 <p className="gk-store-door__line">Balls, cones, bibs, shin guards and training gear{own ? ` · ${own} products` : ''}</p>
                 <div className="gk-store-door__chips">{COLLECTIONS.slice(0, 5).map(collection => <Link key={collection.id} className="gk-store-door__chip" to={cataloguePath({ seller: 'grasskickz', collection: collection.id })}>{collection.label}</Link>)}</div>
             </article>
             <article className="gk-store-door"><img className="gk-store-door__pic" src="/football/touchline.jpg" alt="" />
-                <span className="gk-store-door__eyebrow"><Store aria-hidden="true" size={16} />Club stores</span>
+                <span className="gk-store-door__eyebrow"><BrandMark variant="store" size={24} />Club stores</span>
                 <Link className="gk-store-door__title" to={cataloguePath({ seller: 'clubs' })}>Explore club stores</Link>
                 <p className="gk-store-door__line">Kit, tickets and membership from {sellers ? `${sellers} clubs` : 'clubs'} on GrassKickZ</p>
                 <div className="gk-store-door__chips">

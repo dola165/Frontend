@@ -1,10 +1,11 @@
+import { GeorgeMark } from '../../features/dola/GeorgeMark';
 import { CreateLink } from '../../features/pages/create/CreateLink';
 import { pt } from '../../features/pages/copy';
 import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useRef, useState, useId } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Search, User, Building2, Trophy, X, Sparkles, Warehouse, MapPinned, ArrowUpRight } from 'lucide-react';
+import { Loader2, Search, User, Building2, Trophy, X, Warehouse, MapPinned, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dolaNavigationState, isDolaQuestion } from '../../features/dola/navigation';
 import { searchDirectory, resultLink, resultName, type SearchResult, type SearchKind, type SearchActivity, type SearchResponse } from './discoverySearch';
@@ -63,7 +64,7 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
     : error ? t('search.loadFailed')
     : current ? (currentResults.length
       ? (ka ? `${currentResults.length} შედეგი. ისრებით აირჩიეთ.` : `${currentResults.length} ${currentResults.length === 1 ? 'result' : 'results'}. Use the arrow keys to choose.`)
-      : canAsk ? (ka ? 'შედეგი არ არის. შეგიძლიათ ჰკითხოთ Agent Dola-ს.' : 'No results. You can ask Agent Dola.') : t('search.noResults', { query: debouncedQuery }))
+      : canAsk ? (ka ? 'შედეგი არ არის. შეგიძლიათ ჰკითხოთ Agent George-ს.' : 'No results. You can ask Agent George.') : t('search.noResults', { query: debouncedQuery }))
     : '';
 
   function openDola() {
@@ -234,7 +235,7 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
               <Link to="/clubs" onClick={() => setIsOpen(false)}><Building2 aria-hidden="true" />{ka ? 'კლუბები' : 'Browse clubs'}<ArrowUpRight aria-hidden="true" /></Link>
               <Link to="/map" onClick={() => setIsOpen(false)}><MapPinned aria-hidden="true" />{ka ? 'რუკა' : 'Explore the map'}<ArrowUpRight aria-hidden="true" /></Link>
             </div>
-            {user && <p className="global-search-start__dola"><Sparkles aria-hidden="true" />{ka ? 'ან ჩაწერეთ კითხვა Agent Dola-სთვის.' : 'Or type a question to ask Agent Dola.'}</p>}
+            {user && <p className="global-search-start__dola"><GeorgeMark size={24} />{ka ? 'ან ჩაწერეთ კითხვა Agent George-სთვის.' : 'Or type a question to ask Agent George.'}</p>}
           </div>}
           {query.trim().length >= MIN_QUERY_LENGTH && <>
           {user && <div className="discovery-filters">
@@ -336,7 +337,7 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
     return <li role="presentation"><button type="button" role="option" id={optionId(askIndex)} tabIndex={-1} aria-selected={selectedIndex === askIndex}
       onClick={openDola} onMouseMove={() => { if (selectedIndex !== askIndex) setSelectedIndex(askIndex); }} data-search-selected={selectedIndex === askIndex}
       className={`flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors ${light ? 'border-[color:var(--color-border)] text-[color:var(--color-accent)]' : 'border-[color:var(--color-border)]/5 text-[color:var(--color-accent)]'} ${selectedIndex === askIndex ? light ? 'bg-[color:var(--color-accent-soft)]' : 'bg-[color:var(--color-accent)]/10' : ''}`}>
-      <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{ka ? 'ჰკითხეთ Agent Dola-ს' : 'Ask Agent Dola'}</span><span className="block truncate text-xs opacity-75">{query.trim()}</span></span>
+      <GeorgeMark size={24} /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{ka ? 'ჰკითხეთ Agent George-ს' : 'Ask Agent George'}</span><span className="block truncate text-xs opacity-75">{query.trim()}</span></span>
       {questionIntent && <span aria-hidden="true" className="text-xs opacity-60">↵</span>}
     </button></li>;
   }

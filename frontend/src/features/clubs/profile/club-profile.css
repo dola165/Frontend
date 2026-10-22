@@ -32,8 +32,9 @@
 .gk.gk-club-page .gk-profile-side .gk-list-row { padding-inline: var(--gk-4); min-height: 48px; }
 .gk.gk-club-page .gk-profile-side .gk-list > li + li > .gk-list-row { border-top: 1px solid var(--gk-line); }
 /* The established colours: store green, jobs purple, fundraising orange. */
-.gk .gk-club-icon[data-kind='jobs'] { background: var(--gk-violet-soft); color: var(--gk-violet); }
-.gk .gk-club-icon[data-kind='campaigns'], .gk .gk-club-icon[data-kind='fundraising'] { background: color-mix(in srgb, var(--color-orange) 16%, transparent); color: var(--color-orange); }
+.gk .gk-club-icon[data-kind='store'] { background: var(--brand-store); color: var(--brand-on-section); }
+.gk .gk-club-icon[data-kind='jobs'] { background: var(--brand-jobs); color: var(--brand-on-section); }
+.gk .gk-club-icon[data-kind='campaigns'], .gk .gk-club-icon[data-kind='fundraising'] { background: var(--brand-fundraising); color: var(--brand-on-section); }
 
 /* Edit sits before a block's other link, quieter than it. */
 .gk .gk-club-edit { gap: 4px; color: var(--gk-text-3); }
@@ -100,3 +101,5 @@
 .gk .gk-profile__main .club-public .cp-heading { margin-bottom: var(--gk-5); }
 .gk .gk-profile__main .club-public .cp-heading-title > .cp-section-icon { display: none; }
 .gk .gk-profile__main .club-public .cp-eyebrow { text-transform: none; letter-spacing: 0; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-3); }
+
+.gk .gk-club-icon[data-kind] svg { width: 26px; height: 20px; }

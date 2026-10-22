@@ -1,6 +1,6 @@
 /* App header: one row with the three places, personal pins and the person's own tools.
    Colours come from the `.gk` palette, so the header follows the light and dark themes. */
-:root { --app-header-height: 72px; --app-bottom-bar-height: 0px; }
+:root { --app-header-height: 64px; --app-bottom-bar-height: 0px; }
 @media (max-width: 899px) {
   :root { --app-header-height: 56px; }
   .product-app-shell[data-tabbar='true'] { --app-bottom-bar-height: calc(56px + env(safe-area-inset-bottom)); padding-bottom: var(--app-bottom-bar-height); }
@@ -18,17 +18,17 @@
 .gk .gk-header__tabs, .gk .gk-pins { display: flex; align-items: stretch; gap: var(--gk-1); margin: 0; padding: 0; list-style: none; }
 .gk .gk-header__tabs { flex: none; }
 .gk .gk-header__tabs > li, .gk .gk-pins > li { display: flex; }
-/* Tab labels sit between the body (14) and title (16) sizes: larger than before for readability, quieter than a heading. */
-.gk .gk-htab { position: relative; display: flex; align-items: center; height: 100%; color: var(--gk-text-2); font-size: 16px; font-weight: 600; white-space: nowrap; }
-.gk .gk-htab__body { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding-inline: 18px; border-radius: var(--gk-r); transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease); }
+/* Compact navigation keeps labels at body size and controls at least 44px tall. */
+.gk .gk-htab { position: relative; display: flex; align-items: center; height: 100%; color: var(--gk-text-2); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.gk .gk-htab__body { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding-inline: 14px; border-radius: var(--gk-r); transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease); }
 .gk .gk-htab svg { width: 24px; height: 24px; flex: none; }
 .gk .gk-htab:hover .gk-htab__body { background: var(--gk-hover); color: var(--gk-text); }
 .gk .gk-htab:focus-visible { box-shadow: none; }
 .gk .gk-htab:focus-visible .gk-htab__body { box-shadow: var(--gk-focus); }
 .gk .gk-htab[aria-current='page'] { color: var(--gk-text); }
 .gk .gk-htab[aria-current='page'] svg { color: var(--gk-accent); }
-.gk .gk-htab[aria-current='page']::after { content: ''; position: absolute; left: 18px; right: 18px; bottom: -1px; height: 3px; border-radius: 2px 2px 0 0; background: var(--gk-accent); }
-.gk .gk-htab--pin { font-size: 15px; font-weight: 600; }
+.gk .gk-htab[aria-current='page']::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 3px; border-radius: 2px 2px 0 0; background: var(--gk-accent); }
+.gk .gk-htab--pin { font-size: 14px; font-weight: 600; }
 .gk .gk-htab--pin svg { width: 20px; height: 20px; }
 .gk .gk-htab__label { overflow: hidden; text-overflow: ellipsis; }
 .gk .gk-htab--pin .gk-htab__label { max-width: 150px; }
@@ -71,7 +71,7 @@
 .gk .gk-header__search { flex: none; width: var(--gk-hsearch); }
 .gk .gk-header__search-toggle { display: none; }
 /* Some full-screen pages restyle every input on the page; the header field keeps its own geometry. */
-.gk.gk-header .global-search-field__input { height: 44px; margin: 0; padding: 0 40px 0 48px; border: 1px solid var(--gk-line-strong); border-radius: 12px; background: var(--gk-raised); color: var(--gk-text); box-shadow: none; font-size: 15px; line-height: var(--gk-lh-md); }
+.gk.gk-header .global-search-field__input { height: 44px; margin: 0; padding: 0 40px 0 48px; border: 1px solid var(--gk-line-strong); border-radius: 12px; background: var(--gk-raised); color: var(--gk-text); box-shadow: none; font-size: 14px; line-height: var(--gk-lh-md); }
 .gk-header .global-search-field__input::placeholder { color: var(--gk-text-2); opacity: 1; }
 .gk-header .global-search-field__input:hover { border-color: var(--gk-line-strong); }
 .gk-header .global-search-field__input:focus { border-color: var(--gk-accent); box-shadow: 0 0 0 3px var(--gk-accent-soft); }

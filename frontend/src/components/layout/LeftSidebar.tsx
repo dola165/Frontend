@@ -11,6 +11,7 @@ import { WorkspaceAccess } from './WorkspaceAccess';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { CreateCard } from '../../features/pages/create/CreateLink';
 import { hasOwnPage } from '../../features/pages/create/entry';
+import { TeamWorkHomeRow } from '../../features/teamWork/TeamWorkHomeRow';
 import './side-links.css';
 
 interface LeftSidebarProps {
@@ -93,6 +94,7 @@ export const LeftSidebar = ({ user, embedded = false }: LeftSidebarProps) => {
           </span>
         </Link>
         <WorkspaceAccess key={user?.id} userId={user?.id} caps={capabilities} />
+        <TeamWorkHomeRow caps={capabilities} />
         </div>
         {/* Someone with no page of their own is offered one; once they have a club or a page, the card goes. */}
         {capabilitiesKnown(capabilities) && !hasOwnPage(capabilities) && <CreateCard from="home" />}

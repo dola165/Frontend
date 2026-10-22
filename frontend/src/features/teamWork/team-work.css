@@ -1,0 +1,86 @@
+/* Team work: the team's board. One bright thing per row (in progress), quiet greys elsewhere, no side lines. */
+.gk .tw-page { display: flex; flex-direction: column; gap: var(--gk-4); padding-block: var(--gk-6) var(--gk-12); }
+.gk .tw-page .gk-page-header { margin: 0; }
+.gk .tw-quiet { margin: 0; font-size: var(--gk-fs-md); }
+.gk .tw-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gk-2); }
+
+/* The trail of the latest switches: Registration · 2 days ago → Page creation · yesterday → Branding · now. */
+.gk .tw-trail { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); color: var(--gk-text-2); }
+.gk .tw-trail__step { display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.gk .tw-trail__arrow { margin-inline: 4px; color: var(--gk-text-3); }
+.gk .tw-trail button { padding: 0; border: 0; background: none; color: var(--gk-text); font: inherit; font-weight: 600; cursor: pointer; }
+.gk .tw-trail button:hover { text-decoration: underline; }
+.gk .tw-trail__step:last-child button { color: var(--gk-accent); }
+
+/* Status dots: in progress is the accent, on hold a warning, planned muted, finished a calm green. */
+.gk .tw-status { --tw-tone: var(--gk-text-3); }
+.gk [data-status='IN_PROGRESS'] { --tw-tone: var(--gk-accent); }
+.gk [data-status='ON_HOLD'] { --tw-tone: var(--gk-warning); }
+.gk [data-status='PLANNED'] { --tw-tone: var(--gk-text-3); }
+.gk [data-status='FINISHED'] { --tw-tone: color-mix(in srgb, var(--gk-accent) 45%, var(--gk-text-3)); }
+.gk .tw-status .gk-status__dot, .gk .tw-status-pick .gk-status__dot { background: var(--tw-tone); }
+.gk .tw-status[data-status='FINISHED'], .gk .tw-status[data-status='PLANNED'] { color: var(--gk-text-2); }
+
+/* Where it stands: the step, the percent, a thin bar. */
+.gk .tw-progress { display: flex; flex-direction: column; gap: 5px; min-width: 0; width: 100%; }
+.gk .tw-progress__line { display: flex; align-items: baseline; gap: var(--gk-2); min-width: 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .tw-progress__step { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gk-text-2); }
+.gk .tw-progress__percent { flex: none; font-weight: 650; color: var(--gk-text); }
+.gk .tw-progress__bar { display: block; height: 4px; border-radius: 999px; background: var(--gk-raised); overflow: hidden; }
+.gk .tw-progress__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); transition: width .2s var(--gk-ease); }
+.gk .tw-progress:not([data-status='IN_PROGRESS']) .tw-progress__bar > span { opacity: .75; }
+.gk .tw-who { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
+
+/* Details and editing. */
+.gk .tw-dialog .gk-dialog__body { padding-top: var(--gk-2); }
+.gk .tw-details { display: flex; flex-direction: column; gap: var(--gk-5); font-size: var(--gk-fs-md); }
+.gk .tw-details__now { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--gk-4); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .tw-section { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .tw-section__title { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; color: var(--gk-text-2); }
+.gk .tw-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-3); }
+.gk .tw-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gk .tw-field--wide { grid-column: 1 / -1; }
+.gk .tw-field > label { font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .tw-field textarea { resize: vertical; min-height: 72px; }
+.gk .tw-quick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3) var(--gk-5); }
+.gk .tw-status-pick { display: flex; flex-wrap: wrap; gap: 4px; }
+.gk .tw-status-pick button { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .tw-status-pick button .gk-status__dot { width: 7px; height: 7px; border-radius: 50%; }
+.gk .tw-status-pick button:hover { border-color: var(--gk-line-strong); color: var(--gk-text); }
+.gk .tw-status-pick button[aria-checked='true'] { border-color: color-mix(in srgb, var(--tw-tone) 55%, var(--gk-line)); background: color-mix(in srgb, var(--tw-tone) 12%, var(--gk-surface)); color: var(--gk-text); font-weight: 600; }
+.gk .tw-slider { display: flex; align-items: center; gap: var(--gk-2); flex: 1 1 220px; min-width: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .tw-slider input { flex: 1; min-width: 0; accent-color: var(--gk-accent); }
+.gk .tw-slider output { min-width: 40px; text-align: right; font-weight: 650; color: var(--gk-text); }
+.gk .tw-links { display: flex; flex-wrap: wrap; gap: var(--gk-2) var(--gk-4); margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .tw-links > * { display: inline-flex; align-items: center; gap: 5px; }
+.gk .tw-links svg { width: 14px; height: 14px; }
+.gk .tw-links a { color: var(--gk-accent); font-weight: 600; }
+.gk .tw-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gk .tw-history__line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-3); padding: var(--gk-2) 0; border-top: 1px solid var(--gk-line); }
+.gk .tw-history__line:first-child { border-top: 0; }
+.gk .tw-history__who { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .tw-history__moves { font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .tw-history__message { flex-basis: 100%; color: var(--gk-text); }
+
+/* The team. */
+.gk .tw-team__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gk .tw-team__list li { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); min-height: 44px; padding: 4px 0; border-top: 1px solid var(--gk-line); }
+.gk .tw-team__list li:first-child { border-top: 0; }
+.gk .tw-team__who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-2); min-width: 0; font-size: var(--gk-fs-md); }
+.gk .tw-team__who .gk-muted { font-size: var(--gk-fs-sm); }
+.gk .tw-team__add { display: flex; gap: var(--gk-2); margin-top: var(--gk-3); }
+.gk .tw-team__add .gk-input { flex: 1; min-width: 0; max-width: 360px; }
+
+@media (max-width: 640px) {
+    .gk .tw-grid { grid-template-columns: minmax(0, 1fr); }
+    .gk .tw-details__now { grid-template-columns: minmax(0, 1fr); gap: var(--gk-2); }
+    .gk .tw-trail { font-size: var(--gk-fs-sm); }
+}
+
+/* Rows stacked on a narrow screen: the progress takes the whole line under the name and status. */
+@container gk-dt (max-width: 720px) {
+    .gk .gk-dt__cell:has(> .tw-progress) { flex: 1 1 100%; order: 3; }
+    .gk .gk-dt__cell:has(> .tw-who) { order: 4; }
+}
+.gk .tw-team__list li { flex-wrap: wrap; }
+.gk .tw-team__who { flex: 1 1 200px; }

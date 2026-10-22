@@ -99,6 +99,7 @@ const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({de
 const RequestsCentre = lazy(() => import('./features/requests/RequestsCentre').then(module => ({default: module.RequestsCentre})));
 const WorldRoutes = lazy(() => import('./features/world/WorldRoutes'));
 const TryoutDetailPage = lazy(() => import('./features/tryouts/TryoutDetailPage'));
+const TeamWorkPage = lazy(() => import('./features/teamWork/TeamWorkPage').then(module => ({default: module.TeamWorkPage})));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({default: module.AdminPage})));
 const PageReviewQueue = lazy(() => import('./features/pages/verify/PageReviewQueue').then(module => ({ default: module.PageReviewQueue })));
 const PageReviewReceipt = lazy(() => import('./features/pages/verify/PageReviewReceipt').then(module => ({ default: module.PageReviewReceipt })));
@@ -331,7 +332,7 @@ export function MainLayout() {
         location.pathname === '/assistant' ||
         location.pathname === '/account/roles' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/team-work', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
         location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
         location.pathname.startsWith('/tournament-series/') ||
@@ -410,6 +411,7 @@ export function MainLayout() {
             <Route path="/organizations/:organizationId/workspace" element={<ProtectedRoute><OrganizationWorkspacePage /></ProtectedRoute>} />
             <Route path="/organizations/:organizationId" element={<ProtectedRoute><OrganizationProfilePage /></ProtectedRoute>} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
+            <Route path="/team-work" element={<ProtectedRoute><TeamWorkPage /></ProtectedRoute>} />
             <Route path="/admin/page-reviews" element={<SystemAdminRoute><PageReviewQueue /></SystemAdminRoute>} />
             <Route path="/pages/requests/:reviewId" element={<ProtectedRoute><PageReviewReceipt /></ProtectedRoute>} />
             <Route path="/profile/me" element={<ProtectedRoute><MyProfileRedirect /></ProtectedRoute>} />

@@ -35,6 +35,7 @@ const destinations: Record<string, { type: string; title: string; path: (id: num
     'venue.workspace': { type: 'organization', title: 'Stadium workspace', path: id => `/stadiums/${id}/manage` },
     'squad.workspace': { type: 'squad', title: 'Squad', path: id => `/squads/${id}` },
     'admin.console': { type: 'user', title: 'Admin', path: () => '/admin' },
+    'team.work': { type: 'user', title: 'Team work', path: () => '/team-work' },
 };
 
 const record = (value: unknown): value is Record<string, unknown> =>

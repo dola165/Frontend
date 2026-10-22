@@ -75,7 +75,8 @@ const assertRefreshAccount = (token: string, expectedSubject: string | undefined
 };
 
 const requestFreshAccessToken = async (sessionId: AuthSessionId, signal: AbortSignal, expectedSubject: string | undefined, previousToken: string | null) => {
-    const csrf = await ensureCsrfToken(signal);
+    let csrf = await ensureCsrfToken(signal);
+    let freshCsrf = false;
     for (let attempt = 0; ; attempt++) {
         assertCurrentAuthSession(sessionId);
         try {
@@ -99,6 +100,13 @@ const requestFreshAccessToken = async (sessionId: AuthSessionId, signal: AbortSi
             if (publishedToken && publishedToken !== previousToken) {
                 assertRefreshAccount(publishedToken, expectedSubject);
                 return publishedToken;
+            }
+            // A refused CSRF check is not a sign-out: the XSRF cookie changed between our token
+            // fetch and the renewal (another tab, a browser restart). Fetch it again, retry once.
+            if (axios.isAxiosError(error) && error.response?.status === 403 && !freshCsrf) {
+                freshCsrf = true;
+                csrf = await ensureCsrfToken(signal);
+                continue;
             }
             // A simultaneous request won rotation. Give its Set-Cookie time to arrive,
             // then retry using the shared HttpOnly cookie; never reuse a token body.

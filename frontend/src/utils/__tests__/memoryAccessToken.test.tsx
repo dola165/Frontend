@@ -87,3 +87,14 @@ it('keeps the sign-in when a reload meets a refresh conflict instead of signing 
     expect(localStorage.getItem('gk-signed-in-session')).toBe('session-4');
     expect(localStorage.getItem('gk-session-id')).toBe('session-4');
 });
+
+it('keeps the sign-in when a reload meets a refused CSRF check twice instead of signing every tab out', async () => {
+    localStorage.setItem('gk-session-id', 'session-5');
+    localStorage.setItem('gk-signed-in-session', 'session-5');
+    server.use(http.post('*/auth/refresh', () => new HttpResponse(null, { status: 403 })));
+    const { AuthProvider } = await import('../../context/AuthContext');
+    render(<AuthProvider><output>signed-in shell</output></AuthProvider>);
+    await screen.findByRole('alert', {}, { timeout: 5000 });
+    expect(localStorage.getItem('gk-signed-in-session')).toBe('session-5');
+    expect(localStorage.getItem('gk-session-id')).toBe('session-5');
+});

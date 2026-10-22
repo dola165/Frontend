@@ -80,6 +80,39 @@ describe('refresh coordination', () => {
         expect(overlapped).toBe(false);
     });
 
+    it('fetches a fresh CSRF token and retries once when the renewal is refused with 403', async () => {
+        // The XSRF cookie can change between the token fetch and the renewal (another tab, a
+        // browser restart). That is never a sign-out.
+        let csrfReads = 0, refreshes = 0;
+        server.use(
+            http.get('*/auth/csrf', () => HttpResponse.json({ headerName: 'X-XSRF-TOKEN', token: `masked-${++csrfReads}` })),
+            http.post('*/auth/refresh', ({ request }) => {
+                refreshes++;
+                return request.headers.get('X-XSRF-TOKEN') === 'masked-2'
+                    ? HttpResponse.json({ accessToken: 'renewed' })
+                    : HttpResponse.json({ code: 'FORBIDDEN' }, { status: 403 });
+            }),
+        );
+        const { refreshAccessToken } = await import('../axiosConfig');
+        expect(await refreshAccessToken()).toBe('renewed');
+        expect(refreshes).toBe(2);
+        expect(csrfReads).toBe(2);
+    });
+
+    it('gives up after one CSRF retry without clearing the session', async () => {
+        const auth = await import('../../utils/authStorage');
+        auth.setStoredAccessToken('kept');
+        let refreshes = 0;
+        server.use(http.post('*/auth/refresh', () => { refreshes++; return new HttpResponse(null, { status: 403 }); }));
+        const { refreshAccessToken, setAuthFailureHandler } = await import('../axiosConfig');
+        const onFailure = vi.fn(); setAuthFailureHandler(onFailure);
+        await expect(refreshAccessToken()).rejects.toMatchObject({ response: { status: 403 } });
+        expect(refreshes).toBe(2);
+        expect(onFailure).not.toHaveBeenCalled();
+        expect(auth.getStoredAccessToken()).toBe('kept');
+        expect(auth.isSignedInSession(auth.getAuthSessionId())).toBe(true);
+    });
+
     it('retries the explicit duplicate response when browser locks are unavailable', async () => {
         let refreshes = 0;
         server.use(http.post('*/auth/refresh', () => ++refreshes === 1

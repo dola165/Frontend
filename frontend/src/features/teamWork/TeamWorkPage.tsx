@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, ChevronRight, ClipboardPaste, Plus } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, ClipboardPaste, Plus, RefreshCw } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Badge, Button, EmptyNote, GkRoot, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -10,6 +10,7 @@ import { changeRoadmap, createRoadmap, createWork, fetchBoard, fetchRoadmap, fet
 import { AddWorkDialog, WorkPiece } from './WorkDetails';
 import { PasteDialog } from './PasteDialog';
 import { TeamPanel } from './TeamPanel';
+import { UpdatesView } from './UpdatesView';
 import { CopyForAiDialog, NameFilter, PlanHistoryDialog, PlanMenu, StepStrip } from './PlanBits';
 import { nodeMatches, planCreator, planMatches, planPeople, whoOf } from './planPeople';
 import { ColourKey, SmallChip, StatusDot } from './WorkBits';
@@ -184,6 +185,7 @@ export function TeamWorkPage() {
     };
 
     if (missing) return <RouteRecoveryPage />;
+    if (params.get('view') === 'updates' && plans) return <GkRoot className="gk-page"><PageFrame className="tw-page"><UpdatesView onBack={() => set({ view: null })} /></PageFrame></GkRoot>;
     const ids = view?.pieces.map(node => node.item.id) ?? [];
     const numbers = new Map(ids.map((id, index) => [id, index + 1]));
     const team = view?.team ?? [...views.values()][0]?.team ?? [];
@@ -202,7 +204,10 @@ export function TeamWorkPage() {
 
     return <GkRoot className="gk-page"><PageFrame className="tw-page">
         {!view ? <PageHeader title={copy('Team work', 'გუნდის სამუშაო')} subtitle={copy('What we’re building and fixing, plan by plan', 'რას ვაშენებთ და ვასწორებთ, გეგმა-გეგმა')}
-            actions={plans && plans.length > 0 && <Button variant="primary" size="sm" onClick={() => setDialog('new')}><Plus aria-hidden="true" />{copy('New plan', 'ახალი გეგმა')}</Button>} />
+            actions={plans && <span className="tw-actions">
+                <Button size="sm" onClick={() => set({ view: 'updates' })}><RefreshCw aria-hidden="true" />{copy('Stay up to date', 'განახლებები')}</Button>
+                {plans.length > 0 && <Button variant="primary" size="sm" onClick={() => setDialog('new')}><Plus aria-hidden="true" />{copy('New plan', 'ახალი გეგმა')}</Button>}
+            </span>} />
             : <div className="tw-plan-head">
                 <button type="button" className="tw-back" onClick={() => set({ roadmap: null, open: null })}><ArrowLeft aria-hidden="true" />{copy('All plans', 'ყველა გეგმა')}</button>
                 <div className="tw-plan-head__row">

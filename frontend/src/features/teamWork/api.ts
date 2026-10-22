@@ -1,4 +1,5 @@
 import { apiClient } from '../../api/axiosConfig';
+import type { Repo } from './upToDate';
 
 /** Where a piece of work stands, in the order the page lists them. */
 export const STATUSES = ['IN_PROGRESS', 'ON_HOLD', 'PLANNED', 'FINISHED'] as const;
@@ -65,6 +66,8 @@ export const addVideo = (itemId: number, file: File, onProgress?: (share: number
 export const deleteMedia = (itemId: number, mediaId: number) => data(apiClient.delete<Detail>(`${base}/items/${itemId}/media/${mediaId}`));
 /** A ten-minute link a video element can stream from. */
 export const playLink = (itemId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/items/${itemId}/media/${mediaId}/play`));
+/** The commits baked into the running backend (the web app carries its own, see upToDate.ts). */
+export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<{ backend: Repo }>(`${base}/versions`, { signal }));
 export const fetchTeam = (signal?: AbortSignal) => data(apiClient.get<Member[]>(`${base}/team`, { signal }));
 export const addMember = (email: string) => data(apiClient.post<{ members: Member[]; invite: Invite | null }>(`${base}/team`, { email }));
 export const newInvite = (userId: number) => data(apiClient.post<Invite>(`${base}/team/${userId}/invite`));

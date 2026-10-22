@@ -10,7 +10,7 @@ import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchRoadmaps: vi.fn(), fetchRoadmap: vi.fn(),
-    createRoadmap: vi.fn(), changeRoadmap: vi.fn(), pasteIntoRoadmap: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(),
+    createRoadmap: vi.fn(), changeRoadmap: vi.fn(), pasteIntoRoadmap: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
 }));
 vi.mock('../../pages/RouteRecoveryPage', () => ({ RouteRecoveryPage: () => <p>Page not found</p> }));
 
@@ -230,6 +230,45 @@ it('lists the team’s accounts without remove buttons, makes the account and on
     await userEvent.type(within(panel).getByPlaceholderText('admin.name@talanti.ge'), 'someone@example.com');
     await userEvent.click(within(panel).getByRole('button', { name: 'Make account and link' }));
     expect(await within(panel).findByRole('alert')).toHaveTextContent('not on the team list');
+});
+
+it('stays up to date: shows the latest backend, remembers my version, lists only what I am missing and copies the update message', async () => {
+    const commit = (id: string, title: string, date: string, merge = false) => ({ id: id.padEnd(40, '0'), date, author: 'Dola', title, merge });
+    vi.mocked(api.fetchVersions).mockResolvedValue({ backend: { known: true, branch: 'codex/real-backend-integration-20261017', commits: [
+        commit('148b8c6d', 'Format the media files', '2026-10-22T19:38:58+04:00'),
+        commit('02896b0e', 'Merge branch \'refs/heads/golive/teamwork-5\' into codex/real-backend-integration-20261017', '2026-10-22T19:30:00+04:00', true),
+        commit('9f8c21b8', 'Only the team’s own six accounts', '2026-10-21T19:15:26+04:00'),
+        commit('715d88c1', 'Plans with a status', '2026-10-20T10:00:00+04:00'),
+    ] } });
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    localStorage.removeItem('gk.teamWork.myVersion');
+    mount('/team-work');
+    await userEvent.click(await screen.findByRole('button', { name: 'Stay up to date' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('view=updates');
+    expect(await screen.findByRole('heading', { name: 'Stay up to date', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByText('Format the media files', { selector: '.tw-latest__commit' })).toBeInTheDocument();
+    expect(screen.getByText('Not known: this build was made without its git history.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Recent changes' })).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText('My backend version'), '9f8c21b8'.padEnd(40, '0'));
+    expect(screen.getByRole('heading', { name: 'Changes you’re missing (1)' })).toBeInTheDocument();
+    const missingList = screen.getByRole('heading', { name: 'Changes you’re missing (1)' }).parentElement!;
+    expect(within(missingList).getByText('Format the media files')).toBeInTheDocument();
+    expect(within(missingList).getByText('merged: golive/teamwork-5')).toBeInTheDocument();
+    expect(within(missingList).queryByText('Plans with a status')).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('gk.teamWork.myVersion')!)).toEqual({ backend: '9f8c21b8'.padEnd(40, '0') });
+
+    await userEvent.clear(screen.getByLabelText('Or paste the backend commit id'));
+    await userEvent.type(screen.getByLabelText('Or paste the backend commit id'), '148b8c6');
+    expect(screen.getByRole('heading', { name: 'You are up to date' })).toBeInTheDocument();
+
+    const message = screen.getByLabelText('The message for Claude or Codex') as HTMLTextAreaElement;
+    expect(message.value).toContain('github.com/dola165/GrassKickZ — reach at least commit 148b8c6');
+    expect(message.value).toContain('whether this computer was already up to date');
+    await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
+    await userEvent.click(screen.getByRole('button', { name: 'All plans' }));
+    expect(screen.getByTestId('where')).not.toHaveTextContent('view=');
 });
 
 it('does not exist for accounts off the team, and Home shows no row without the capability', async () => {

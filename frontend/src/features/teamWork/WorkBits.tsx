@@ -21,10 +21,13 @@ export function SmallPick({ small, onChange }: { small: boolean; onChange: (smal
     return <label className="tw-check"><input type="checkbox" checked={small} onChange={event => onChange(event.target.checked)} />{copy('Small fix (a button, a complaint)', 'პატარა შესწორება (ღილაკი, საჩივარი)')}</label>;
 }
 
-/** The one-line key for the dots. */
-export function ColourKey() {
+/** The colours explained and, pressed, a filter: one or more statuses, none for all. */
+export function StatusFilter({ chosen, onChange }: { chosen: WorkStatus[]; onChange: (chosen: WorkStatus[]) => void }) {
     const copy = useJourneyCopy();
-    return <p className="tw-key">{STATUSES.map(status => <span key={status}><span className="tw-dot" data-status={status} aria-hidden="true" />{statusName(copy, status)}</span>)}</p>;
+    return <div className="tw-key" role="group" aria-label={copy('Show by status', 'სტატუსით ჩვენება')}>{STATUSES.map(status => <button key={status} type="button" data-status={status} aria-pressed={chosen.includes(status)}
+        onClick={() => onChange(chosen.includes(status) ? chosen.filter(other => other !== status) : [...chosen, status])}>
+        <span className="tw-dot" data-status={status} aria-hidden="true" />{statusName(copy, status)}
+    </button>)}</div>;
 }
 
 export function Field({ label, children, wide = false }: { label: string; children: (id: string) => ReactNode; wide?: boolean }) {

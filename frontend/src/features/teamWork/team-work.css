@@ -223,10 +223,31 @@
 .gk .tw-menu__check { display: inline-grid; place-items: center; width: 16px; color: var(--gk-accent); }
 .gk .tw-menu__check svg { width: 15px; height: 15px; }
 
+/* Stay up to date: the latest version, your version, what you are missing, and the message to update. */
+.gk .tw-updates { display: flex; flex-direction: column; gap: var(--gk-5); }
+.gk .tw-latest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--gk-3); }
+.gk .tw-latest { display: flex; flex-direction: column; gap: 4px; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); min-width: 0; }
+.gk .tw-latest__name { font-size: var(--gk-fs-md); font-weight: 650; }
+.gk .tw-latest__commit { font-size: var(--gk-fs-md); color: var(--gk-text); overflow-wrap: anywhere; }
+.gk .tw-latest code, .gk .tw-changes code { font-size: var(--gk-fs-sm); }
+.gk .tw-version-pick { display: flex; gap: var(--gk-2); }
+.gk .tw-version-pick select { flex: 1; min-width: 0; }
+.gk .tw-version-pick input { flex: 0 0 130px; }
+.gk .tw-day { display: flex; flex-direction: column; gap: 4px; }
+.gk .tw-day__title { margin: var(--gk-2) 0 0; font-size: var(--gk-fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--gk-text-3); }
+.gk .tw-changes { list-style: none; margin: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .tw-changes li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--gk-3); padding: 8px var(--gk-3); font-size: var(--gk-fs-sm); }
+.gk .tw-changes li + li { border-top: 1px solid var(--gk-line); }
+.gk .tw-changes__title { flex: 1 1 320px; min-width: 0; color: var(--gk-text); overflow-wrap: anywhere; }
+.gk .tw-changes li[data-merge] .tw-changes__title { color: var(--gk-text-3); }
+.gk .tw-prompt-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+
 /* On a phone the step cards take most of the width and swipe. */
 @media (max-width: 640px) {
     .gk .tw-row { grid-template-columns: 24px minmax(0, 1fr); padding-inline: 4px var(--gk-3); }
     .gk .tw-steps__track > li { flex-basis: 78%; }
+    .gk .tw-version-pick { flex-direction: column; }
+    .gk .tw-version-pick input { flex-basis: auto; }
     .gk .tw-row__meta { white-space: normal; }
     .gk .tw-piece { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
     .gk .tw-piece__head { flex-direction: column-reverse; }

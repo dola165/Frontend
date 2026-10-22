@@ -1,4 +1,4 @@
-// Builds landing/dist: the page from src/ plus the two self-hosted font files
+// Builds landing/dist: the page from src/ plus the self-hosted font files
 // (and their licences) from the pinned @fontsource packages. Upload dist/ as is.
 import { copyFile, cp, mkdir, rm } from 'node:fs/promises';
 
@@ -6,8 +6,9 @@ const root = new URL('../', import.meta.url);
 const dist = new URL('dist/', root);
 
 const FONTS = [
-  ['@fontsource/unbounded', 'unbounded-latin-800-normal.woff2', 'Unbounded-OFL.txt'],
-  ['@fontsource/bricolage-grotesque', 'bricolage-grotesque-latin-500-normal.woff2', 'BricolageGrotesque-OFL.txt'],
+  ['@fontsource-variable/archivo', 'archivo-latin-wdth-italic.woff2', 'Archivo-OFL.txt'],
+  ['@fontsource-variable/archivo', 'archivo-latin-wdth-normal.woff2', 'Archivo-OFL.txt'],
+  ['@fontsource/jetbrains-mono', 'jetbrains-mono-latin-500-normal.woff2', 'JetBrainsMono-OFL.txt'],
 ];
 
 await rm(dist, { recursive: true, force: true });

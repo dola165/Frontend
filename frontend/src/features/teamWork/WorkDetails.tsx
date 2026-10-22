@@ -29,7 +29,7 @@ function HistoryLine({ update }: { update: WorkUpdate }) {
         update.status && (update.previousStatus ? `${statusName(copy, update.previousStatus)} → ${statusName(copy, update.status)}` : statusName(copy, update.status)),
         update.percent != null && (update.previousPercent != null ? `${update.previousPercent}% → ${update.percent}%` : `${update.percent}%`),
     ].filter(Boolean).join(' · ');
-    const known: Record<string, [string, string]> = { 'Added': ['Added', 'დაემატა'], 'Edited the details': ['Edited the details', 'დეტალები შეიცვალა'], 'Added a picture': ['Added a picture', 'დაემატა სურათი'], 'Added a video': ['Added a video', 'დაემატა ვიდეო'] };
+    const known: Record<string, [string, string]> = { 'Added': ['Added', 'დაემატა'], 'Edited the details': ['Edited the details', 'დეტალები შეიცვალა'], 'Added a picture': ['Added a picture', 'დაემატა სურათი'], 'Added a video': ['Added a video', 'დაემატა ვიდეო'], 'Seen': ['Seen', 'ნანახია'], 'Acknowledged': ['Acknowledged', 'გაითვალისწინა'], 'Pushed to pending': ['Pushed to pending', 'გადავიდა მოლოდინში'], 'Made a task': ['Made a task', 'გახდა საქმე'] };
     const message = update.message && known[update.message] ? copy(...known[update.message]) : update.message;
     return <li className="tw-history__line">
         <span className="tw-history__who">{update.author?.name ?? copy('Someone', 'ვიღაც')} · {ago(copy, update.at)}</span>
@@ -41,12 +41,12 @@ function HistoryLine({ update }: { update: WorkUpdate }) {
 export interface PlaceOnRoadmap { first: boolean; last: boolean; onMove: (by: -1 | 1) => void; onRemove: () => void }
 
 /**
- * A piece of work opened in place: what it is, when it started and should end, who is on it, its parts, videos,
+ * A piece of work opened in place: what it is, when it started and should end, who is on it, its stages, videos,
  * pictures and comments, and the edit. A save made after a colleague's is refused, and the person reloads with
  * their words kept.
  */
-export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved }: {
-    id: number; team: Person[]; place?: PlaceOnRoadmap; onOpen: (id: number) => void; onAddPart?: () => void; onClose: () => void; onSaved: () => void;
+export function WorkPiece({ id, team, me, place, onOpen, onAddPart, onClose, onSaved }: {
+    id: number; team: Person[]; me?: number | null; place?: PlaceOnRoadmap; onOpen: (id: number) => void; onAddPart?: () => void; onClose: () => void; onSaved: () => void;
 }) {
     const copy = useJourneyCopy();
     const [detail, setDetail] = useState<Detail | null>(null);
@@ -114,17 +114,17 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
         {item.description && <p className="tw-piece__description">{item.description}</p>}
         {item.step && <p className="tw-piece__step"><span className="gk-faint">{copy('Current step', 'მიმდინარე ნაბიჯი')}: </span>{item.step}</p>}
 
-        {!isPart && <section className="tw-section" aria-label={copy('Parts', 'ნაწილები')}>
-            <h3 className="tw-section__title">{copy('Parts', 'ნაწილები')}</h3>
+        {!isPart && (hasParts || (onAddPart && !item.small)) && <section className="tw-section" aria-label={copy('Stages', 'ეტაპები')}>
+            <h3 className="tw-section__title">{copy('Stages', 'ეტაპები')}</h3>
             {hasParts && <ul className="tw-parts">{detail.parts.map(part => <li key={part.id}>
                 <button type="button" onClick={() => onOpen(part.id)}><StatusDot status={part.status} /><span className="tw-parts__name">{part.title}</span><span className="gk-num gk-faint">{part.percent}%</span></button>
             </li>)}</ul>}
-            {onAddPart && <span><Button size="sm" variant="ghost" onClick={onAddPart}><Plus aria-hidden="true" />{copy('Add a part', 'ნაწილის დამატება')}</Button></span>}
+            {onAddPart && !item.small && <span><Button size="sm" variant="ghost" onClick={onAddPart}><Plus aria-hidden="true" />{copy('Add a stage', 'ეტაპის დამატება')}</Button></span>}
         </section>}
 
         <section className="tw-section tw-edit" aria-label={copy('Update', 'განახლება')}>
             <QuickEdit status={draft.status} percent={draft.percent} fromParts={draft.percentFromParts && hasParts} onChange={change} />
-            {hasParts && <label className="tw-check"><input type="checkbox" checked={draft.percentFromParts} onChange={event => change({ percentFromParts: event.target.checked })} />{copy('Percent follows its parts', 'პროცენტი ნაწილებიდან')}</label>}
+            {hasParts && <label className="tw-check"><input type="checkbox" checked={draft.percentFromParts} onChange={event => change({ percentFromParts: event.target.checked })} />{copy('Percent follows its stages', 'პროცენტი ეტაპებიდან')}</label>}
             {editing && <SmallPick small={draft.small} onChange={small => change({ small })} />}
             {editing && <div className="tw-grid">
                 <Field label={copy('Name', 'სახელი')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={120} value={draft.title} onChange={event => change({ title: event.target.value })} />}</Field>
@@ -157,7 +157,7 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
         </section>
         <section className="tw-section" aria-label={copy('Comments', 'კომენტარები')}>
             <h3 className="tw-section__title">{copy('Comments', 'კომენტარები')}</h3>
-            <WorkComments itemId={id} comments={detail.comments} onChanged={comments => { setDetail({ ...detail, comments }); onSaved(); }} />
+            <WorkComments itemId={id} comments={detail.comments} team={team} me={me} onChanged={comments => { setDetail({ ...detail, comments }); onSaved(); }} />
         </section>
         <details className="tw-section tw-history-box">
             <summary className="tw-section__title">{copy('History', 'ისტორია')} <span className="gk-faint gk-num">{detail.updates.length}</span></summary>
@@ -166,9 +166,9 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
     </div>;
 }
 
-/** A new piece in this plan or a part of one, big or small, or a piece from another plan put in this one. */
+/** A new task, on its own or in a project, a stage of a big task, or a task already on another list put in this project. */
 export function AddWorkDialog({ roadmapId, parent, team, others, onClose, onCreated, onPlace }: {
-    roadmapId: number; parent?: WorkItem; team: Person[]; others: WorkItem[]; onClose: () => void; onCreated: (detail: Detail) => void; onPlace: (itemId: number) => void;
+    roadmapId?: number; parent?: WorkItem; team: Person[]; others: WorkItem[]; onClose: () => void; onCreated: (detail: Detail) => void; onPlace: (itemId: number) => void;
 }) {
     const copy = useJourneyCopy();
     const [work, setWork] = useState<NewWork & { percent: number; end: WorkEnd; people: number[]; small: boolean }>({ title: '', area: '', status: 'IN_PROGRESS', percent: 0, step: '', end: { kind: 'UNKNOWN' }, people: [], small: false });
@@ -179,15 +179,15 @@ export function AddWorkDialog({ roadmapId, parent, team, others, onClose, onCrea
         if (existing) { onPlace(Number(existing)); return; }
         if (!work.title.trim()) { setError(copy('Give the work a name.', 'მიეცით საქმეს სახელი.')); return; }
         setSaving(true); setError('');
-        try { onCreated(await createWork({ ...work, title: work.title.trim(), ...(parent ? { parentId: parent.id } : { roadmapId }) })); }
+        try { onCreated(await createWork({ ...work, title: work.title.trim(), ...(parent ? { parentId: parent.id } : roadmapId != null ? { roadmapId } : {}) })); }
         catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be added.', 'ვერ დაემატა.'))); }
         finally { setSaving(false); }
     };
-    const title = parent ? copy(`Add a part to ${parent.title}`, `ნაწილის დამატება: ${parent.title}`) : copy('Add work', 'საქმის დამატება');
+    const title = parent ? copy(`Add a stage to ${parent.title}`, `ეტაპის დამატება: ${parent.title}`) : copy('Add task', 'საქმის დამატება');
     return <Dialog open size="md" className="tw-dialog" title={title} description={copy('What is being built, and where it stands.', 'რა კეთდება და სად არის.')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        footer={<><Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="primary" disabled={saving} onClick={() => void create()}>{saving ? copy('Adding…', 'ემატება…') : copy('Add work', 'საქმის დამატება')}</Button></>}>
+        footer={<><Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="primary" disabled={saving} onClick={() => void create()}>{saving ? copy('Adding…', 'ემატება…') : parent ? copy('Add stage', 'ეტაპის დამატება') : copy('Add task', 'საქმის დამატება')}</Button></>}>
         <div className="tw-details">
-            {!parent && others.length > 0 && <Field label={copy('From another plan', 'სხვა გეგმიდან')} wide>{fieldId => <select id={fieldId} className="gk-input" value={existing} onChange={event => setExisting(event.target.value)}>
+            {!parent && others.length > 0 && <Field label={copy('A task already on the list', 'უკვე არსებული საქმე')} wide>{fieldId => <select id={fieldId} className="gk-input" value={existing} onChange={event => setExisting(event.target.value)}>
                 <option value="">{copy('No, something new', 'არა, ახალი')}</option>
                 {others.map(other => <option key={other.id} value={other.id}>{other.title}</option>)}
             </select>}</Field>}

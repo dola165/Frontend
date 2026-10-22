@@ -1,0 +1,135 @@
+/* Team work's frame: a small side bar of places, then the place itself. */
+.gk .tw-shell { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: var(--gk-6); align-items: start; }
+.gk .tw-main { display: flex; flex-direction: column; gap: var(--gk-5); min-width: 0; }
+.gk .tw-side { position: sticky; top: calc(var(--app-header-height, 64px) + var(--gk-4)); }
+.gk .tw-side ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.gk .tw-side li[data-place='updates'] { margin-top: var(--gk-2); padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+.gk .tw-side button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-md); font-weight: 600; text-align: left; cursor: pointer; }
+.gk .tw-side button:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .tw-side button[aria-current='page'] { background: var(--gk-accent-soft); color: var(--gk-text); }
+.gk .tw-side button[aria-current='page'] svg { color: var(--gk-accent); }
+.gk .tw-side svg { flex: none; width: 17px; height: 17px; }
+.gk .tw-side__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .tw-side__quiet { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+
+/* Section headings with a quiet symbol. */
+.gk .tw-block { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .tw-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; color: var(--gk-text); }
+.gk .tw-heading svg { width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .tw-heading .gk-faint { font-weight: 500; }
+.gk .tw-heading .tw-link-button { margin-left: var(--gk-2); font-weight: 600; }
+
+/* Groups: weeks (made from when tasks were added) and projects, as small boxes with counts only. */
+.gk .tw-groups { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: var(--gk-2); }
+.gk .tw-group { display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; min-height: 64px; padding: 10px 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s var(--gk-ease); }
+.gk .tw-group:hover { border-color: var(--gk-line-strong); }
+.gk .tw-group[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); background: var(--gk-accent-soft); }
+.gk .tw-group__top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.gk .tw-group__top > svg { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); }
+.gk .tw-group[data-kind='project'] .tw-group__top > svg { color: var(--gk-info); }
+.gk .tw-group__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-md); font-weight: 650; }
+.gk .tw-group__counts { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .tw-group__counts strong { font-weight: 600; color: var(--gk-text-2); }
+.gk .tw-group__counts strong[data-done] { color: var(--gk-accent); }
+.gk .tw-group--new { flex-direction: row; align-items: center; justify-content: center; gap: 6px; border-style: dashed; background: none; color: var(--gk-text-2); font-weight: 600; }
+.gk .tw-group--new:hover { color: var(--gk-text); }
+.gk .tw-group--new svg { width: 16px; height: 16px; }
+
+/* A task is a single card; pressed, it spans the row and shows its details, with stages only on big tasks. */
+.gk .tw-tasks { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: row dense; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: var(--gk-2); }
+.gk .tw-task { min-width: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .tw-task:hover, .gk .tw-task[data-open] { border-color: var(--gk-line-strong); }
+.gk .tw-task[data-open] { grid-column: 1 / -1; }
+.gk .tw-task__box { display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 10px 12px; border: 0; border-radius: inherit; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .tw-task[data-open] .tw-task__box { height: auto; }
+.gk .tw-task__top { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.gk .tw-task__top > svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--gk-text-3); }
+.gk .tw-task__top > .tw-dot { margin-top: 6px; }
+.gk .tw-task__name { flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; overflow-wrap: anywhere; }
+.gk .tw-task[data-open] .tw-task__name { -webkit-line-clamp: unset; }
+.gk .tw-task[data-status='FINISHED']:not([data-open]) .tw-task__name { color: var(--gk-text-2); font-weight: 500; }
+.gk .tw-task__percent { font-size: var(--gk-fs-sm); font-weight: 650; color: var(--gk-text-2); }
+.gk .tw-task__bar { display: block; height: 3px; margin-top: auto; border-radius: 999px; background: var(--gk-raised); overflow: hidden; }
+.gk .tw-task[data-open] .tw-task__bar { width: min(100%, 360px); }
+.gk .tw-task__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); }
+.gk .tw-task__meta { font-size: var(--gk-fs-xs); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .tw-task__body { display: flex; flex-direction: column; gap: var(--gk-2); padding: 0 12px 12px; }
+.gk .tw-task .tw-piece { margin: 0; }
+.gk .tw-task__stage { display: flex; flex-direction: column; gap: 6px; padding-left: var(--gk-4); border-left: 2px solid var(--gk-line); }
+.gk .tw-task__stage-title { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 600; }
+
+/* Add to plans: one big dashed place to drop into. */
+.gk .tw-drop { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .tw-drop__zone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 190px; padding: var(--gk-6); border: 2px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-raised) 35%, var(--gk-surface)); color: var(--gk-text-2); font: inherit; cursor: pointer; transition: border-color .15s var(--gk-ease), background .15s var(--gk-ease); }
+.gk .tw-drop__zone:hover, .gk .tw-drop[data-over] .tw-drop__zone { border-color: var(--gk-accent); background: var(--gk-accent-soft); color: var(--gk-text); }
+.gk .tw-drop__zone > svg { width: 40px; height: 40px; color: var(--gk-accent); }
+.gk .tw-drop__title { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 700; color: var(--gk-text); }
+.gk .tw-drop__hint { font-size: var(--gk-fs-sm); }
+.gk .tw-drop__form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-4); padding: var(--gk-4); border: 2px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .tw-drop[data-over] .tw-drop__form { border-color: var(--gk-accent); }
+.gk .tw-drop__files { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: var(--gk-2); }
+.gk .tw-drop__files li { position: relative; width: 120px; aspect-ratio: 4 / 3; }
+.gk .tw-drop__preview, .gk .tw-drop__more { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 100%; overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text-2); font-size: var(--gk-fs-xs); }
+.gk .tw-drop__preview img { width: 100%; height: 100%; object-fit: cover; }
+.gk .tw-drop__preview span { max-width: 100%; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .tw-drop__preview svg, .gk .tw-drop__more svg { width: 22px; height: 22px; }
+.gk .tw-drop__more { border-style: dashed; background: none; font: inherit; cursor: pointer; }
+.gk .tw-drop__more:hover { border-color: var(--gk-accent); color: var(--gk-text); }
+.gk .tw-drop__remove { position: absolute; top: 4px; right: 4px; background: color-mix(in srgb, var(--gk-bg) 75%, transparent); color: var(--gk-text); }
+.gk .tw-drop__fields { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .tw-drop__send { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .tw-drop__send > span { margin-right: auto; }
+
+/* Findings: the picture, the name and first comment, where it stands, then seen · acknowledge · comment · next. */
+.gk .tw-findings { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: row dense; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: var(--gk-3); }
+.gk .tw-finding { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .tw-finding[data-open] { grid-column: 1 / -1; border-color: var(--gk-line-strong); }
+.gk .tw-finding__main { display: flex; gap: var(--gk-3); width: 100%; padding: 10px; border: 0; border-radius: var(--gk-r-lg) var(--gk-r-lg) 0 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .tw-finding__main:hover .tw-finding__name { text-decoration: underline; }
+.gk .tw-finding__face { position: relative; flex: none; display: grid; place-items: center; width: 96px; height: 72px; overflow: hidden; border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text-2); }
+.gk .tw-finding__face img { width: 100%; height: 100%; object-fit: cover; }
+.gk .tw-finding__face svg { width: 22px; height: 22px; }
+.gk .tw-finding__more { position: absolute; right: 4px; bottom: 4px; padding: 0 5px; border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--gk-bg) 80%, transparent); font-size: var(--gk-fs-xs); font-weight: 700; color: var(--gk-text); }
+.gk .tw-finding__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .tw-finding__name { font-size: var(--gk-fs-md); font-weight: 600; overflow-wrap: anywhere; }
+.gk .tw-finding[data-new] .tw-finding__name::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--gk-accent); vertical-align: 1px; }
+.gk .tw-finding__who { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .tw-finding__comment { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .tw-finding__state { display: flex; flex-direction: column; gap: 2px; padding: 0 10px 8px; font-size: var(--gk-fs-sm); }
+.gk .tw-finding__state > span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.gk .tw-finding__state svg { flex: none; width: 14px; height: 14px; }
+.gk .tw-finding__ok { color: var(--gk-text); }
+.gk .tw-finding__ok svg { color: var(--gk-accent); }
+.gk .tw-finding__wait { color: var(--gk-text-2); }
+.gk .tw-finding__wait .tw-dot { background: var(--gk-warning); }
+.gk .tw-finding__wait[data-me] { color: var(--gk-text); font-weight: 650; }
+.gk .tw-finding__seen { color: var(--gk-text-3); }
+.gk .tw-finding__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-top: auto; padding: 6px 8px; border-top: 1px solid var(--gk-line); }
+.gk .tw-finding__next { margin-left: auto; }
+.gk .tw-finding > .gk-notice { margin: 0 10px 10px; }
+.gk .tw-finding__open { display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-3) var(--gk-4) var(--gk-4); border-top: 1px solid var(--gk-line); }
+
+/* Tags: "@" offers the team; a tag stands out, more when it is you. */
+.gk .tw-mention { position: relative; flex: 1; min-width: 0; display: flex; }
+.gk .tw-mention textarea { flex: 1; min-width: 0; resize: vertical; }
+.gk .tw-mention__list { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; min-width: 200px; margin: 0; padding: 4px; list-style: none; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); box-shadow: var(--gk-elevation); }
+.gk .tw-mention__list li { padding: 6px 10px; border-radius: var(--gk-r-sm); font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .tw-mention__list li[aria-selected='true'], .gk .tw-mention__list li:hover { background: var(--gk-hover); }
+.gk .tw-tag { color: var(--gk-info); font-weight: 600; }
+.gk .tw-tag[data-me] { padding: 0 3px; border-radius: 4px; background: color-mix(in srgb, var(--gk-info) 16%, transparent); }
+
+/* Narrow screens: the side bar becomes one row of tabs above the page. */
+@media (max-width: 900px) {
+    .gk .tw-shell { grid-template-columns: minmax(0, 1fr); gap: var(--gk-3); }
+    .gk .tw-side { position: static; overflow-x: auto; scrollbar-width: none; }
+    .gk .tw-side ul { flex-direction: row; gap: 4px; }
+    .gk .tw-side li[data-place='updates'] { margin: 0; padding: 0; border: 0; }
+    .gk .tw-side button { width: auto; min-height: 44px; white-space: nowrap; }
+    .gk .tw-side__label { overflow: visible; }
+}
+@media (max-width: 640px) {
+    .gk .tw-drop__zone { min-height: 150px; }
+    .gk .tw-drop__form { grid-template-columns: minmax(0, 1fr); }
+    .gk .tw-drop__files li { width: calc(33.3% - var(--gk-2)); }
+    .gk .tw-task__stage { padding-left: var(--gk-2); }
+}

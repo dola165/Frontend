@@ -11,11 +11,15 @@ import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchRoadmaps: vi.fn(), fetchRoadmap: vi.fn(),
     createRoadmap: vi.fn(), changeRoadmap: vi.fn(), pasteIntoRoadmap: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
+    addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(),
 }));
 vi.mock('../../pages/RouteRecoveryPage', () => ({ RouteRecoveryPage: () => <p>Page not found</p> }));
+// The reader is Beqa.
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
 
 const now = new Date().toISOString();
 const twoDaysAgo = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString();
+const monthAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
 const beqa = { id: 1, name: 'Beqa' }, gio = { id: 2, name: 'Gio Beridze' }, ilo = { id: 3, name: 'Ilo' };
 const team = [beqa, gio, ilo];
 const item = (id: number, title: string, status: api.WorkStatus, percent: number, extra: Partial<api.WorkItem> = {}): api.WorkItem => ({
@@ -37,60 +41,178 @@ const plans: Record<number, api.RoadmapView> = {
     5: october,
     6: view([{ item: item(21, 'User registration', 'IN_PROGRESS', 20, { people: [ilo] }), parts: [] }], { roadmap: roadmap(6, 'Registration and roles', { percent: 20, inProgress: 1, toDo: 4, finished: 0, nextPiece: 'User registration' }), changes: [started(ilo)] }),
     4: view([{ item: item(31, 'Schedules', 'FINISHED', 100), parts: [] }], { roadmap: roadmap(4, 'This week’s work', { updatedAt: twoDaysAgo, status: 'FINISHED', percent: 100 }), changes: [] }),
-    7: view([{ item: item(41, 'Checkout', 'PLANNED', 0), parts: [] }], { roadmap: roadmap(7, 'Store', { status: 'LATER', percent: 0 }), changes: [] }),
+    7: view([{ item: item(41, 'Checkout', 'PLANNED', 0, { createdAt: monthAgo }), parts: [] }], { roadmap: roadmap(7, 'Store', { status: 'LATER', percent: 0 }), changes: [] }),
 };
+/** Every item on these plans, parts included, once each: what the board returns. */
+const boardOf = (views: api.RoadmapView[]) => [...new Map(views.flatMap(found => found.pieces.flatMap(node => [node.item, ...node.parts])).map(work => [work.id, work])).values()];
 const detail = (work: api.WorkItem, extra: Partial<api.Detail> = {}): api.Detail => ({ item: work, updates: [], parts: [], media: [], comments: [], ...extra });
+const note = (id: number, author: api.Person, message: string) => ({ id, author, at: now, previousStatus: null, status: null, previousPercent: null, percent: null, message });
 function Where() { const location = useLocation(); return <output data-testid="where">{location.search}</output>; }
 const mount = (path = '/team-work') => render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/team-work" element={<><TeamWorkPage /><Where /></>} /></Routes></MemoryRouter>);
+const useLists = (...extra: api.RoadmapView[]) => {
+    vi.mocked(api.fetchRoadmaps).mockResolvedValue([...[5, 6, 4, 7].map(id => plans[id].roadmap), ...extra.map(found => found.roadmap)]);
+    vi.mocked(api.fetchRoadmap).mockImplementation(async id => extra.find(found => found.roadmap.id === id) ?? plans[id]);
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: boardOf([...Object.values(plans), ...extra]), trail: [], canManageTeam: true });
+};
 
 beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(api.fetchTeam).mockResolvedValue([{ userId: 1, name: 'Nino', email: 'nino@example.com', admin: true, addedAt: null, pending: false }]);
-    vi.mocked(api.fetchRoadmaps).mockResolvedValue([5, 6, 4, 7].map(id => plans[id].roadmap));
-    vi.mocked(api.fetchRoadmap).mockImplementation(async id => plans[id]);
-    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [], trail: [], canManageTeam: true });
+    useLists();
 });
 
-it('starts with this week’s work on its own plan when there is none, created through the normal API', async () => {
+it('starts with this week’s work as tasks on their own when there is nothing yet', async () => {
     vi.mocked(api.fetchRoadmaps).mockResolvedValueOnce([]);
-    vi.mocked(api.createRoadmap).mockResolvedValue(view([], { roadmap: roadmap(9, 'This week’s work') }));
+    vi.mocked(api.fetchBoard).mockResolvedValueOnce({ items: [], trail: [], canManageTeam: true });
     vi.mocked(api.createWork).mockResolvedValue(detail(branding));
     mount();
     await userEvent.click(await screen.findByRole('button', { name: 'Load this week’s work' }));
     await waitFor(() => expect(api.createWork).toHaveBeenCalledTimes(api.STARTER_WORK.length));
-    expect(api.createRoadmap).toHaveBeenCalledWith('This week’s work');
-    expect(api.createWork).toHaveBeenCalledWith(expect.objectContaining({ title: 'Registration', roadmapId: 9 }));
+    expect(api.createWork).toHaveBeenCalledWith(api.STARTER_WORK[0]);
+    expect(api.createRoadmap).not.toHaveBeenCalled();
 });
 
-it('opens on plan boxes with who started them and who is on them, filtered by name through the URL', async () => {
+it('opens on groups: the weeks with tasks added, done and open, then the projects, filtered by name, with no progress bars', async () => {
     mount();
-    const now = (await screen.findByRole('heading', { name: 'Working on now' })).parentElement!;
-    const box = await within(now).findByRole('button', { name: /^October work/ });
-    await waitFor(() => expect(box).toHaveTextContent('Started by Beqa · Beqa, Gio Beridze'));
-    expect(box).toHaveTextContent('55%');
-    expect(box).toHaveTextContent('3 in progress · 2 to do · 1 done');
-    expect(box).toHaveTextContent('Next: Branding and landing');
-    expect(screen.getByRole('heading', { name: 'Later 1' }).parentElement).toHaveTextContent('Store');
-    expect(screen.getByRole('heading', { name: 'Finished 1' }).parentElement).toHaveTextContent('This week’s work');
+    const groups = (await screen.findByRole('heading', { name: 'Groups' })).closest('section')!;
+    expect(within(groups).getAllByRole('button').map(box => box.textContent)).toEqual([
+        'This week5 added · 1 done · 4 open', 'Last weekNothing yet', 'Earlier1 added · 0 done · 1 open',
+        'October work3 tasks · 0 done · 3 open', 'Registration and roles1 task · 0 done · 1 open', 'StoreLater1 task · 0 done · 1 open', 'This week’s workFinished1 task · 1 done · 0 open',
+        'New project']);
+    expect(within(groups).queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.queryByText(/roadmap/i)).not.toBeInTheDocument();
 
     const names = screen.getByRole('group', { name: 'Show work for' });
-    expect(within(names).getByRole('button', { name: 'All plans' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(names).getByRole('button', { name: 'Everyone' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.click(within(names).getByRole('button', { name: 'Ilo' }));
     expect(screen.getByTestId('where')).toHaveTextContent('who=3');
-    expect(within(now).getAllByRole('button')).toHaveLength(1);
-    expect(within(now).getByRole('button')).toHaveTextContent('Registration and roles');
-    expect(screen.queryByRole('heading', { name: /^Later/ })).not.toBeInTheDocument();
-    await userEvent.click(within(names).getByRole('button', { name: 'Whole team' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('who=team');
-    expect(screen.getByText('No plan for this right now.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Later 1' })).toBeInTheDocument();
+    expect(within(groups).getAllByRole('button').map(box => box.querySelector('.tw-group__name')?.textContent).filter(Boolean)).toEqual(['This week', 'Last week', 'Registration and roles']);
+    await userEvent.click(within(names).getByRole('button', { name: 'Everyone' }));
 
-    await userEvent.click(within(names).getByRole('button', { name: 'All plans' }));
-    expect(screen.getByTestId('where')).not.toHaveTextContent('who=');
-    await userEvent.click(within(now).getByRole('button', { name: /^Registration and roles/ }));
-    await waitFor(() => expect(api.fetchRoadmap).toHaveBeenLastCalledWith(6, expect.anything()));
+    // A week narrows the tasks below; a project opens its own page.
+    await userEvent.click(within(groups).getByRole('button', { name: /^This week\s*5 added/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('when=week');
+    expect(screen.getByRole('heading', { name: /^Added this week 5/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Show all' }));
+    expect(screen.getByTestId('where')).not.toHaveTextContent('when=');
+    await userEvent.click(within(groups).getByRole('button', { name: /^Registration and roles/ }));
+    expect(screen.getByRole('heading', { name: 'Registration and roles', level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId('where')).toHaveTextContent('roadmap=6');
+});
+
+it('lists every task as a card with its project and stages, finished ones folded away, and opens a card to its details in place', async () => {
+    const all = boardOf(Object.values(plans));
+    vi.mocked(api.fetchDetail).mockImplementation(async id => detail(all.find(work => work.id === id)!, id === 1 ? { parts } : {}));
+    mount();
+    const tasks = (await screen.findByRole('heading', { name: 'All tasks 6' })).closest('section')!;
+    const cards = within(tasks).getAllByRole('button', { name: /%/ });
+    expect(cards.map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Branding and landing', 'User registration', 'Registration', 'Save button on phones', 'Checkout']);
+    expect(cards[0]).toHaveTextContent('70%');
+    expect(cards[0]).toHaveTextContent('October work · 3 stages · Beqa');
+    expect(within(tasks).queryByText('Schedules')).not.toBeInTheDocument();
+    await userEvent.click(within(tasks).getByRole('button', { name: 'Show finished (1)' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('finished=show');
+    expect(within(tasks).getByText('Schedules')).toBeInTheDocument();
+
+    // A big task shows its stages as plain rows; a stage opens below it.
+    await userEvent.click(cards[0]);
+    expect(screen.getByTestId('where')).toHaveTextContent('task=1');
+    const piece = await within(tasks).findByRole('region', { name: 'Branding and landing' });
+    expect(within(piece).getByRole('heading', { name: 'Stages' })).toBeInTheDocument();
+    expect(within(piece).getByRole('button', { name: 'Add a stage' })).toBeInTheDocument();
+    await userEvent.click(within(piece).getByRole('button', { name: /Hero copy/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('open=12');
+    expect(await within(tasks).findByRole('region', { name: 'Hero copy' })).toBeInTheDocument();
+
+    // A small fix has no stages to add.
+    await userEvent.click(within(tasks).getByRole('button', { name: /Save button on phones/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('task=3');
+    const small = await within(tasks).findByRole('region', { name: 'Save button on phones' });
+    expect(within(small).queryByRole('button', { name: 'Add a stage' })).not.toBeInTheDocument();
+});
+
+it('takes findings with a name and a tagged comment; anyone marks them seen or acknowledges them and pushes one to Pending, never straight onto a project', async () => {
+    const login = item(51, 'Login button overlaps', 'PLANNED', 0), old = item(52, 'Old idea', 'PLANNED', 0, { createdAt: twoDaysAgo });
+    const intake = view([{ item: login, parts: [] }, { item: old, parts: [] }], { roadmap: roadmap(8, 'Add to plans'), changes: [] });
+    const comment = { id: 5, author: gio, body: 'It covers the logo on phones, @Beqa can you look?', createdAt: now, editedAt: null, canEdit: false };
+    useLists(intake);
+    vi.mocked(api.fetchDetail).mockImplementation(async id => id === 51 ? detail(login, { updates: [note(1, gio, 'Added')], comments: [comment] })
+        : detail(old, { updates: [note(3, beqa, 'Seen'), note(2, ilo, 'Added')] }));
+    vi.mocked(api.changeWork).mockImplementation(async (id, change) => id === 51 ? detail(login, { updates: [note(4, beqa, change.update!), note(1, gio, 'Added')], comments: [comment] })
+        : detail(old, { updates: [note(6, beqa, change.update!), note(3, beqa, 'Seen'), note(2, ilo, 'Added')] }));
+    vi.mocked(api.createRoadmap).mockResolvedValue(view([], { roadmap: roadmap(9, 'Pending'), changes: [] }));
+    vi.mocked(api.changeRoadmap).mockResolvedValue(october);
+    vi.mocked(api.createWork).mockResolvedValue(detail(item(60, 'checkout screen', 'PLANNED', 0)));
+    vi.mocked(api.addComment).mockResolvedValue([]);
+    vi.mocked(api.addPicture).mockResolvedValue(detail(item(60, 'checkout screen', 'PLANNED', 0)));
+    mount();
+
+    // Findings are neither a project nor tasks.
+    const groups = (await screen.findByRole('heading', { name: 'Groups' })).closest('section')!;
+    expect(within(groups).queryByText('Add to plans')).not.toBeInTheDocument();
+    expect(screen.queryByText('Login button overlaps')).not.toBeInTheDocument();
+    const side = screen.getByRole('navigation', { name: 'Team work' });
+    await waitFor(() => expect(within(side).getByRole('button', { name: /^Add to plans/ })).toHaveTextContent('Add to plans1'));
+    await userEvent.click(within(side).getByRole('button', { name: /^Add to plans/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('view=add');
+
+    const list = (await screen.findByRole('heading', { name: 'Findings 2' })).closest('section')!;
+    const cards = within(list).getAllByRole('listitem');
+    expect(cards[0]).toHaveTextContent('Login button overlaps');
+    expect(cards[0]).toHaveTextContent('Gio Beridze · now');
+    expect(within(cards[0]).getByText('@Beqa')).toHaveAttribute('data-me', 'true');
+    expect(cards[0]).toHaveTextContent('Waiting for you');
+    expect(within(list).queryByRole('button', { name: /add to plan/i })).not.toBeInTheDocument();
+    expect(cards[1]).toHaveTextContent('Not acknowledged yet');
+    expect(within(cards[1]).queryByRole('button', { name: 'Seen' })).not.toBeInTheDocument();
+
+    await userEvent.click(within(cards[0]).getByRole('button', { name: 'Acknowledge' }));
+    expect(api.changeWork).toHaveBeenCalledWith(51, { version: 0, update: 'Acknowledged' });
+    expect(await within(cards[0]).findByText('Acknowledged by you')).toBeInTheDocument();
+    expect(within(cards[0]).queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument();
+
+    await userEvent.click(within(cards[1]).getByRole('button', { name: 'Push to pending' }));
+    await waitFor(() => expect(api.changeRoadmap).toHaveBeenCalledWith(8, { version: 3, order: [51] }));
+    expect(api.changeWork).toHaveBeenCalledWith(52, { version: 0, update: 'Pushed to pending' });
+    expect(api.createRoadmap).toHaveBeenCalledWith('Pending');
+    expect(api.changeRoadmap).toHaveBeenCalledWith(9, { version: 3, order: [52] });
+
+    // A new finding: the name comes from the file; "@" offers the team.
+    const file = new File(['png'], 'checkout-screen.png', { type: 'image/png' });
+    await userEvent.upload(screen.getByLabelText('Choose pictures and videos'), file);
+    expect(screen.getByLabelText('Name')).toHaveValue('checkout screen');
+    const box = screen.getByLabelText('Comment (optional)');
+    await userEvent.type(box, 'The total is cut off @Gi');
+    expect(screen.getByRole('option', { name: '@Gio Beridze' })).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+    expect(box).toHaveValue('The total is cut off @Gio Beridze ');
+    await userEvent.click(screen.getByRole('button', { name: 'Drop it' }));
+    await waitFor(() => expect(api.addPicture).toHaveBeenCalledWith(60, file));
+    expect(api.createWork).toHaveBeenCalledWith({ title: 'checkout screen', status: 'PLANNED', roadmapId: 8 });
+    expect(api.addComment).toHaveBeenCalledWith(60, 'The total is cut off @Gio Beridze');
+});
+
+it('lists pending findings with who pushed them, and makes one a task on its own or in a project', async () => {
+    const search = item(61, 'Club search misses Georgian names', 'PLANNED', 0);
+    const pending = view([{ item: search, parts: [] }], { roadmap: roadmap(9, 'Pending'), changes: [] });
+    useLists(pending);
+    vi.mocked(api.fetchDetail).mockResolvedValue(detail(search, { updates: [note(2, beqa, 'Pushed to pending'), note(1, ilo, 'Added')] }));
+    vi.mocked(api.changeWork).mockResolvedValue(detail(search, { updates: [note(3, beqa, 'Made a task'), note(2, beqa, 'Pushed to pending'), note(1, ilo, 'Added')] }));
+    vi.mocked(api.changeRoadmap).mockResolvedValue(october);
+    mount('/team-work?view=pending');
+
+    const side = await screen.findByRole('navigation', { name: 'Team work' });
+    expect(await within(side).findByRole('button', { name: /^Pending/ })).toHaveTextContent('Pending1');
+    const card = (await screen.findByText('Club search misses Georgian names')).closest('li')!;
+    await waitFor(() => expect(card).toHaveTextContent('Pushed by Beqa · now'));
+    expect(card).toHaveTextContent('Acknowledged by you');
+    expect(within(card).queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument();
+    await userEvent.click(within(card).getByRole('button', { name: 'Make it a task' }));
+    expect(within(card).getAllByRole('menuitem').map(option => option.textContent)).toEqual(['On its own', 'In October work', 'In Registration and roles', 'In Store']);
+    await userEvent.click(within(card).getByRole('menuitem', { name: 'In October work' }));
+    await waitFor(() => expect(api.changeRoadmap).toHaveBeenCalledWith(9, { version: 3, order: [] }));
+    expect(api.changeWork).toHaveBeenCalledWith(61, { version: 0, update: 'Made a task' });
+    expect(api.changeRoadmap).toHaveBeenCalledWith(5, { version: 3, order: [1, 2, 3, 61] });
 });
 
 it('shows a plan as a list with names and small fixes, then step by step, and keeps the extras behind “…”', async () => {
@@ -100,7 +222,7 @@ it('shows a plan as a list with names and small fixes, then step by step, and ke
     const list = await screen.findByRole('list', { name: 'October work' });
     expect(screen.getByRole('heading', { name: 'October work', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Started by Beqa · Beqa, Gio Beridze')).toBeInTheDocument();
-    expect(within(list).getByRole('button', { name: /^In progress Branding and landing/ })).toHaveTextContent('3 parts · 70% · Beqa');
+    expect(within(list).getByRole('button', { name: /^In progress Branding and landing/ })).toHaveTextContent('3 stages · 70% · Beqa');
     expect(within(list).getByRole('button', { name: /Registration/ })).toHaveTextContent('30% · Gio Beridze');
     expect(within(list).getByRole('button', { name: /Save button on phones/ })).toHaveTextContent('small');
     expect(screen.queryByText(/Copy as new version|Plan history/)).not.toBeInTheDocument();
@@ -119,16 +241,16 @@ it('shows a plan as a list with names and small fixes, then step by step, and ke
     expect(within(screen.getByRole('list', { name: 'October work' })).queryByText('Branding and landing')).not.toBeInTheDocument();
     expect(within(screen.getByRole('heading', { name: 'Step by step' }).parentElement!).getByRole('button')).toHaveTextContent(/^2/);
 
-    await userEvent.click(screen.getByRole('button', { name: 'More for this plan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'More for this project' }));
     expect(screen.getByRole('menuitemradio', { name: 'Working on it now' })).toHaveAttribute('aria-checked', 'true');
     await userEvent.click(screen.getByRole('menuitemradio', { name: 'Later' }));
     expect(api.changeRoadmap).toHaveBeenCalledWith(5, { version: 3, status: 'LATER' });
     expect(await screen.findByText('Later', { selector: '.gk-badge, .gk-badge *' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'More for this plan' }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Plan history' }));
-    expect(within(screen.getByRole('dialog', { name: 'Plan history' })).getByText('Added Branding and landing')).toBeInTheDocument();
-    await userEvent.click(within(screen.getByRole('dialog', { name: 'Plan history' })).getAllByRole('button', { name: 'Close' })[0]);
-    await userEvent.click(screen.getByRole('button', { name: 'All plans' }));
+    await userEvent.click(screen.getByRole('button', { name: 'More for this project' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Project history' }));
+    expect(within(screen.getByRole('dialog', { name: 'Project history' })).getByText('Added Branding and landing')).toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Project history' })).getAllByRole('button', { name: 'Close' })[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Back to overview' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('roadmap=');
 });
 
@@ -155,7 +277,7 @@ it('copies a plan for AI in the paste format with comments and file names as not
 
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
     mount('/team-work?roadmap=5');
-    await userEvent.click(await screen.findByRole('button', { name: 'More for this plan' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'More for this project' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Copy for AI' }));
     const dialog = screen.getByRole('dialog', { name: 'Copy for AI' });
     await waitFor(() => expect((within(dialog).getByLabelText('The plan as text') as HTMLTextAreaElement).value).toContain('# files: video abc.webm'));
@@ -211,6 +333,8 @@ it('lists the team’s accounts without remove buttons, makes the account and on
     vi.mocked(api.addMember).mockResolvedValue({ members: [...team, { userId: 8, name: 'Otto', email: invite.email, admin: false, addedAt: now, pending: true }], invite });
     vi.mocked(api.newInvite).mockResolvedValue({ ...invite, userId: 7, email: 'admin.gio@talanti.ge', token: 'tok-2' });
     mount();
+    await userEvent.click(within(await screen.findByRole('navigation', { name: 'Team work' })).getByRole('button', { name: 'Team' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('view=team');
     const panel = (await screen.findByRole('heading', { name: 'Team' })).closest('section')!;
     expect(await within(panel).findByText('admin.gio@talanti.ge')).toBeInTheDocument();
     expect(within(panel).queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
@@ -267,7 +391,7 @@ it('stays up to date: shows the latest backend, remembers my version, lists only
     expect(message.value).toContain('whether this computer was already up to date');
     await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
-    await userEvent.click(screen.getByRole('button', { name: 'All plans' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Overview' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');
 });
 

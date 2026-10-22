@@ -52,6 +52,7 @@ export function workDestinations(capabilities: NavigationCapabilities | undefine
     }
     if (capabilities === undefined || hasNavigationCapability(capabilities, 'squad.workspace')) work.push({ path: '/squads', label: copy('My squads', 'ჩემი გუნდები'), icon: 'squad' });
     work.push({ path: '/calendar', label: copy('My schedule', 'ჩემი განრიგი'), icon: 'calendar' });
+    if (hasNavigationCapability(capabilities, 'team.work')) work.push({ path: '/team-work', label: copy('Team work', 'გუნდის სამუშაო'), icon: 'clipboard' });
     return work.filter((item, index, all) => all.findIndex(other => other.path === item.path) === index);
 }
 

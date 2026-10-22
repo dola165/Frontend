@@ -134,6 +134,7 @@ export function describeRoute(pathname: string, search: string, context: RouteCo
         return known(world.label, world.icon);
     }
     if (bare === '/my-organizations' && params.get('kind') === 'VENUE') return known(copy('My venues', 'ჩემი მოედნები'), 'venue');
+    if (bare === '/team-work') return known(copy('Team work', 'გუნდის სამუშაო'), 'clipboard');
     const match = fixed.find(([pattern]) => pattern.test(bare));
     if (match) {
         // A section of a known page ("Account & settings · Security"); other parameters fall back to the page title.

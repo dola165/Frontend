@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import path from 'path'
+import { execFileSync } from 'child_process'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
@@ -17,12 +18,32 @@ const buildId = (): Plugin => ({
   generateBundle() { this.emitFile({ type: 'asset', fileName: 'build.json', source: JSON.stringify({ id: BUILD_ID }) }) },
 })
 
+// The branch and last 40 commits of this repository, in the bundle (__GIT_HISTORY__) for Team work's "Stay up to
+// date" page. Without .git or git (a Docker build) it says {known:false}; nothing calls GitHub at runtime.
+const gitHistory = (): Plugin => {
+  const git = (...args: string[]) => {
+    try { return execFileSync('git', args, { cwd: __dirname, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }) } catch { return null }
+  }
+  const log = git('log', '-40', '--format=%H%x1f%cI%x1f%an%x1f%P%x1f%s%x1e')
+  const branch = git('rev-parse', '--abbrev-ref', 'HEAD')?.trim()
+  const history = log == null || !branch ? { known: false } : {
+    known: true,
+    branch,
+    commits: log.split('\u001e').map(line => line.trim()).filter(Boolean).map(line => {
+      const [id, date, author, parents, title] = line.split('\u001f')
+      return { id, date, author, title, merge: parents.trim().includes(' ') }
+    }),
+  }
+  return { name: 'gk-git-history', config: () => ({ define: { __GIT_HISTORY__: JSON.stringify(history) } }) }
+}
+
 export default defineConfig({
   root: path.resolve(__dirname),
   plugins: [
     react(),
     tailwindcss(),
     buildId(),
+    gitHistory(),
   ],
   build: {
     manifest: true,

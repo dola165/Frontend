@@ -113,10 +113,6 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
         {item.small && <span><SmallChip /></span>}
         {item.description && <p className="tw-piece__description">{item.description}</p>}
         {item.step && <p className="tw-piece__step"><span className="gk-faint">{copy('Current step', 'მიმდინარე ნაბიჯი')}: </span>{item.step}</p>}
-        {(item.branch || item.prUrl) && <p className="tw-links">
-            {item.branch && <span><GitBranch aria-hidden="true" /><code>{item.branch}</code></span>}
-            {item.prUrl && <a href={item.prUrl} target="_blank" rel="noreferrer noopener"><ExternalLink aria-hidden="true" />{copy('Open the pull request', 'Pull request-ის გახსნა')}</a>}
-        </p>}
 
         {!isPart && <section className="tw-section" aria-label={copy('Parts', 'ნაწილები')}>
             <h3 className="tw-section__title">{copy('Parts', 'ნაწილები')}</h3>
@@ -141,6 +137,10 @@ export function WorkPiece({ id, team, place, onOpen, onAddPart, onClose, onSaved
                 <Field label={copy('Notes', 'შენიშვნები')} wide>{fieldId => <textarea id={fieldId} className="gk-input" rows={2} maxLength={5000} value={draft.notes} onChange={event => change({ notes: event.target.value })} />}</Field>
                 <Field label={copy('Branch', 'ბრენჩი')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={200} value={draft.branch} placeholder="golive/…" onChange={event => change({ branch: event.target.value })} />}</Field>
                 <Field label={copy('Pull request', 'Pull request')}>{fieldId => <input id={fieldId} className="gk-input" type="url" maxLength={500} value={draft.prUrl} placeholder="https://github.com/…" onChange={event => change({ prUrl: event.target.value })} />}</Field>
+                {(item.branch || item.prUrl) && <p className="tw-links tw-field--wide">
+                    {item.branch && <span><GitBranch aria-hidden="true" /><code>{item.branch}</code></span>}
+                    {item.prUrl && <a href={item.prUrl} target="_blank" rel="noreferrer noopener"><ExternalLink aria-hidden="true" />{copy('Open the pull request', 'Pull request-ის გახსნა')}</a>}
+                </p>}
             </div>}
             <div className="tw-save">
                 <Field label={copy('What changed', 'რა შეიცვალა')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={240} value={draft.update} placeholder={copy('One line, for example “Waiting for the email provider”', 'ერთი ხაზი, მაგალითად „ველოდებით ელფოსტის პროვაიდერს“')}

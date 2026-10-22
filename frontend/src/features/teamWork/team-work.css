@@ -18,39 +18,14 @@
 .gk .tw-key { display: flex; flex-wrap: wrap; gap: 2px var(--gk-4); margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .tw-key > span { display: inline-flex; align-items: center; gap: 6px; }
 
-/* The roadmap switcher and its line: "Roadmap October work ▾  changed by Beqa · 2 h ago". */
 .gk .tw-bar-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-5); }
-.gk .tw-switcher { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-3); min-width: 0; }
-.gk .tw-switcher__button { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px 0 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-md); cursor: pointer; }
-.gk .tw-switcher__button:hover { border-color: var(--gk-line-strong); }
-.gk .tw-switcher__button .gk-faint { font-size: var(--gk-fs-sm); }
-.gk .tw-switcher__button svg { width: 16px; height: 16px; color: var(--gk-text-3); }
-.gk .tw-switcher__changed { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .tw-switcher__menu { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(380px, calc(100vw - 32px)); padding: 6px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: var(--gk-elevation); }
-.gk .tw-switcher__menu ul { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
-.gk .tw-switcher__menu li button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; padding: 8px 10px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-md); text-align: left; cursor: pointer; }
-.gk .tw-switcher__menu li button .gk-faint { font-size: var(--gk-fs-sm); }
-.gk .tw-switcher__menu li button:hover { background: var(--gk-hover); }
-.gk .tw-switcher__menu li button[aria-current] { background: var(--gk-accent-soft); }
-.gk .tw-switcher__actions { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--gk-line); }
-.gk .tw-switcher__actions button { padding: 6px 10px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
-.gk .tw-switcher__actions button:hover { background: var(--gk-hover); color: var(--gk-text); }
 
-/* The trail of the latest switches: Registration · 2 days ago → Page creation · yesterday → Branding · now. */
-.gk .tw-trail { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; margin: 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
-.gk .tw-trail__step { display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap; }
-.gk .tw-trail__arrow { margin-inline: 4px; color: var(--gk-text-3); }
-.gk .tw-trail button { padding: 0; border: 0; background: none; color: var(--gk-text); font: inherit; font-weight: 600; cursor: pointer; }
-.gk .tw-trail button:hover { text-decoration: underline; }
 
 /* The tree: fold, name and meta, then the time strip on the right. */
 .gk .tw-tree-panel { overflow: visible; }
-.gk .tw-tree__head, .gk .tw-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(220px, 42%); align-items: center; column-gap: var(--gk-3); padding-inline: var(--gk-2) var(--gk-4); }
-.gk .tw-tree__head { min-height: 36px; border-bottom: 1px solid var(--gk-line); font-size: var(--gk-fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--gk-text-3); }
-.gk .tw-tree__head > span:first-child { grid-column: 1 / 3; padding-left: 4px; }
 .gk .tw-tree, .gk .tw-tree__parts { list-style: none; margin: 0; padding: 0; }
 .gk .tw-tree > li + li { border-top: 1px solid var(--gk-line); }
-.gk .tw-row { min-height: 52px; }
+.gk .tw-row { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: var(--gk-3); padding-inline: var(--gk-2) var(--gk-4); min-height: 52px; }
 .gk .tw-row[data-depth='1'] { min-height: 42px; }
 .gk .tw-row[data-depth='1'] .tw-row__main { padding-left: 22px; }
 .gk .tw-row[data-open] { background: var(--gk-hover); }
@@ -61,20 +36,7 @@
 .gk .tw-row__name { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; overflow-wrap: anywhere; }
 .gk .tw-row[data-depth='1'] .tw-row__name { font-weight: 500; }
 .gk .tw-row__meta { font-size: var(--gk-fs-sm); color: var(--gk-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.gk .tw-time-words { display: none; flex-basis: 100%; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
 
-/* The time strip: labels at start, middle and end; a light bar per piece, its strong part the share done. */
-.gk .tw-axis { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); text-transform: none; letter-spacing: 0; font-weight: 500; }
-.gk .tw-axis > span:nth-child(2) { text-align: center; }
-.gk .tw-axis > span:nth-child(3) { text-align: right; }
-.gk .tw-axis__today { position: absolute; top: 0; bottom: 0; width: 1px; background: color-mix(in srgb, var(--gk-accent) 55%, transparent); }
-.gk .tw-bar { position: relative; display: block; height: 24px; }
-.gk .tw-bar--none { display: flex; align-items: center; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
-.gk .tw-bar__track { position: absolute; top: 9px; height: 6px; min-width: 6px; border-radius: 999px;
-    background: linear-gradient(to right, var(--tw-tone) var(--tw-done), color-mix(in srgb, var(--tw-tone) 24%, transparent) var(--tw-done)); }
-.gk .tw-bar__track[data-end='vague'] { -webkit-mask-image: linear-gradient(to right, var(--gk-text) 65%, transparent); mask-image: linear-gradient(to right, var(--gk-text) 65%, transparent); border-radius: 999px 0 0 999px; }
-.gk .tw-bar__track[data-end='unknown'] { -webkit-mask-image: linear-gradient(to right, var(--gk-text) 20%, transparent); mask-image: linear-gradient(to right, var(--gk-text) 20%, transparent); }
-.gk .tw-bar__track[data-end='unknown']::before { content: ''; position: absolute; left: 0; top: -3px; width: 2px; height: 12px; border-radius: 1px; background: var(--tw-tone); }
 
 /* A piece opened in place, under its row. */
 .gk .tw-piece { display: flex; flex-direction: column; gap: var(--gk-4); margin: 0 var(--gk-4) var(--gk-3) 38px; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-md); }
@@ -144,7 +106,6 @@
 .gk .tw-comments { display: flex; flex-direction: column; gap: var(--gk-3); }
 .gk .tw-comments__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-3); }
 .gk .tw-comments__list > li { display: flex; gap: var(--gk-3); }
-.gk .tw-avatar { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gk-raised); color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 700; }
 .gk .tw-comments__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .gk .tw-comments__body p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .gk .tw-comments__who { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
@@ -223,12 +184,49 @@
 .gk .tw-chip { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
 .gk .tw-row__text .tw-chip { align-self: center; }
 
-/* On a phone the time strip becomes words under the name. */
+/* Names to filter by: all, the whole team, or one person. */
+.gk .tw-names { display: flex; flex-wrap: wrap; gap: 6px; }
+.gk .tw-names button { min-height: 32px; padding: 0 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .tw-names button:hover { border-color: var(--gk-line-strong); color: var(--gk-text); }
+.gk .tw-names button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); background: var(--gk-accent-soft); color: var(--gk-text); }
+.gk .tw-plan-box__people, .gk .tw-plan-head__people { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .tw-plan-head__title h1 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+
+/* Step by step: the plan's pieces in order, joined by a line, scrolled or swiped sideways. */
+.gk .tw-steps { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .tw-steps__track { --tw-gap: 28px; list-style: none; margin: 0; padding: 4px 2px 12px; display: flex; gap: var(--tw-gap); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.gk .tw-steps__track > li { position: relative; flex: 0 0 232px; scroll-snap-align: start; }
+.gk .tw-steps__track > li + li::before { content: ''; position: absolute; top: 27px; right: 100%; width: var(--tw-gap); height: 2px; background: var(--gk-line-strong); }
+.gk .tw-steps__track > li[data-state='done'] + li::before { background: var(--gk-accent); }
+.gk .tw-steps__track button { display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 12px 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .tw-steps__track button:hover { border-color: var(--gk-line-strong); }
+.gk .tw-steps__top { display: flex; align-items: center; gap: 8px; }
+.gk .tw-steps__number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gk-line-strong); background: var(--gk-surface); font-size: var(--gk-fs-sm); font-weight: 700; color: var(--gk-text-2); }
+.gk .tw-steps__number svg { width: 15px; height: 15px; }
+.gk .tw-steps__percent { margin-left: auto; font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk .tw-steps__name { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .tw-steps__bar { display: block; height: 4px; border-radius: 999px; background: var(--gk-raised); overflow: hidden; }
+.gk .tw-steps__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); }
+.gk .tw-steps__when { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .tw-steps__track > li[data-state='done'] .tw-steps__number { border-color: var(--gk-accent); background: var(--gk-accent); color: var(--gk-surface); }
+.gk .tw-steps__track > li[data-state='current'] button { padding: 11px 13px; border: 2px solid color-mix(in srgb, var(--gk-info) 70%, var(--gk-line)); background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
+.gk .tw-steps__track > li[data-state='current'] .tw-steps__number { border-color: var(--gk-info); color: var(--gk-info); }
+.gk .tw-steps__track > li[data-state='later'] button { background: transparent; border-style: dashed; }
+.gk .tw-steps__track > li[data-state='later'] .tw-steps__name { color: var(--gk-text-2); font-weight: 500; }
+
+/* The plan's "…" menu. */
+.gk .tw-menu { position: relative; }
+.gk .tw-menu__list { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; display: flex; flex-direction: column; min-width: 230px; padding: 6px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: var(--gk-elevation); }
+.gk .tw-menu__list button { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); text-align: left; cursor: pointer; }
+.gk .tw-menu__list button:hover { background: var(--gk-hover); }
+.gk .tw-menu__list hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--gk-line); }
+.gk .tw-menu__check { display: inline-grid; place-items: center; width: 16px; color: var(--gk-accent); }
+.gk .tw-menu__check svg { width: 15px; height: 15px; }
+
+/* On a phone the step cards take most of the width and swipe. */
 @media (max-width: 640px) {
-    .gk .tw-tree__head { display: none; }
     .gk .tw-row { grid-template-columns: 24px minmax(0, 1fr); padding-inline: 4px var(--gk-3); }
-    .gk .tw-row .tw-bar { display: none; }
-    .gk .tw-time-words { display: block; }
+    .gk .tw-steps__track > li { flex-basis: 78%; }
     .gk .tw-row__meta { white-space: normal; }
     .gk .tw-piece { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
     .gk .tw-piece__head { flex-direction: column-reverse; }

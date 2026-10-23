@@ -1,16 +1,21 @@
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import type { WorkEnd, WorkStatus } from './api';
+import type { Priority, WorkEnd, WorkStatus } from './api';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
 
 /** Each status as people say it. On the page it is only a coloured dot before the name. */
 export const statusWords: Record<WorkStatus, [en: string, ka: string]> = {
-    IN_PROGRESS: ['In progress', 'მიმდინარე'],
-    ON_HOLD: ['On hold', 'შეჩერებული'],
     PLANNED: ['Planned', 'დაგეგმილი'],
-    FINISHED: ['Finished', 'დასრულებული'],
+    IN_PROGRESS: ['In progress', 'მიმდინარე'],
+    NEEDS_LOOK: ['Needs your look', 'სანახავია'],
+    ACCEPTED: ['Accepted', 'მიღებულია'],
+    LIVE: ['Live', 'ლაივზეა'],
+    BLOCKED: ['Blocked', 'დაბლოკილია'],
 };
 export const statusName = (copy: Copy, status: WorkStatus) => copy(...statusWords[status]);
+
+export const priorityWords: Record<Priority, [en: string, ka: string]> = { NOW: ['Now', 'ახლა'], NEXT: ['Next', 'შემდეგ'], LATER: ['Later', 'მოგვიანებით'] };
+export const priorityName = (copy: Copy, priority: Priority) => copy(...priorityWords[priority]);
 
 const DAY = 24 * 3600 * 1000;
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -55,5 +60,9 @@ export function endWords(copy: Copy, end: WorkEnd) {
 export const ESTIMATES: [percent: number, en: string, ka: string][] = [
     [0, 'Not started', 'არ დაწყებულა'], [25, 'Started', 'დაწყებულია'], [50, 'Halfway', 'ნახევარზე'], [75, 'Nearly done', 'თითქმის მზადაა'], [100, 'Done', 'მზადაა'],
 ];
-/** "Halfway" for an estimate, "60%" for an exact percent. */
-export const progressWords = (copy: Copy, percent: number) => { const found = ESTIMATES.find(([value]) => value === percent); return found ? copy(found[1], found[2]) : `${percent}%`; };
+/** "Halfway" for an estimate, "60%" for an exact percent, nothing when there is none. */
+export const progressWords = (copy: Copy, percent: number | null) => {
+    if (percent == null) return '';
+    const found = ESTIMATES.find(([value]) => value === percent);
+    return found ? copy(found[1], found[2]) : `${percent}%`;
+};

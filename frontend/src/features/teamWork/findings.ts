@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchDetail, type Detail, type Person, type Roadmap, type RoadmapView } from './api';
+import { fetchDetail, type Detail, type Person, type Plan, type PlanView } from './api';
 import { mentioned } from './mentionWords';
 
 /**
- * Findings live on two plans with these exact names, never shown as projects: "Add to plans" holds what was just
- * dropped, "Pending" what someone pushed on for a decision. A finding made a task leaves both. No migration needed.
+ * Ideas live on two plans with these exact names, never shown as plans: "Ideas" holds what was just
+ * dropped, "Waiting" what someone pushed on for a decision (V201 renamed the old "Add to plans" and "Pending"). An idea made a task leaves both.
  */
-export const INTAKE = 'Add to plans';
-export const PENDING = 'Pending';
-export const isHidden = (plan: Roadmap) => plan.name === INTAKE || plan.name === PENDING;
-export const isReservedName = (name: string) => [INTAKE, PENDING].some(reserved => reserved.toLowerCase() === name.trim().toLowerCase());
+export const IDEAS = 'Ideas';
+export const WAITING = 'Waiting';
+export const isHidden = (plan: Plan) => plan.name === IDEAS || plan.name === WAITING;
+export const isReservedName = (name: string) => [IDEAS, WAITING].some(reserved => reserved.toLowerCase() === name.trim().toLowerCase());
 
-/** The history notes a finding collects, each with who and when. Pushing to pending counts as acknowledging. */
+/** The history notes an idea collects, each with who and when (stored words; the screen says "waiting" for the old "pending"). Pushing to Waiting counts as acknowledging. */
 export const NOTE = { seen: 'Seen', acknowledged: 'Acknowledged', pushed: 'Pushed to pending', madeTask: 'Made a task' } as const;
 
 const authorsOf = (detail: Detail, messages: string[]) => {
@@ -34,9 +34,9 @@ export const isNewFor = (detail: Detail, me: number | null) => me != null && dro
     && !has(acknowledgedBy(detail), me) && !has(seenOnlyBy(detail), me);
 
 /** Each finding's files, comments and history, fetched side by side (a handful at a time). */
-export function useFindingDetails(views: (RoadmapView | undefined)[]) {
+export function useFindingDetails(views: (PlanView | undefined)[]) {
     const [details, setDetails] = useState<Map<number, Detail>>(new Map());
-    const key = views.flatMap(view => view?.pieces ?? []).map(node => `${node.item.id}:${node.item.version}`).join();
+    const key = views.flatMap(view => view?.tasks ?? []).map(node => `${node.item.id}:${node.item.version}`).join();
     useEffect(() => {
         const ids = [...new Set(key.split(',').filter(Boolean).map(entry => Number(entry.split(':')[0])))].slice(0, 80);
         const controller = new AbortController();

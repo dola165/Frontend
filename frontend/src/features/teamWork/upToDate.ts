@@ -61,7 +61,7 @@ export function updatePrompt(repos: Record<RepoKey, Repo>) {
         return newest ? `at least commit ${short(newest.id)} (“${title}”)` : 'the newest commit on the branch (the page could not tell which)';
     };
     return [
-        'Please bring this computer up to date with the GrassKickZ project. Work carefully: never lose anyone’s work.',
+        'Please bring this computer up to date with the GrassKickZ plan. Work carefully: never lose anyone’s work.',
         '',
         `Both repositories are on the branch ${BRANCH}:`,
         `- Backend: github.com/${REPOS.backend.slug} — reach ${target('backend')}.`,

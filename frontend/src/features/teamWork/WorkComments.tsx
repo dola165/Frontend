@@ -6,7 +6,7 @@ import { addComment, deleteComment, editComment, type Person, type WorkComment }
 import { MentionInput, MentionText } from './MentionInput';
 import { ago } from './teamWorkWords';
 
-/** A flat thread under a piece; "@" tags a colleague. Authors edit or delete their own; system admins any. */
+/** A flat thread under a task; "@" tags a colleague. Authors edit or delete their own; system admins any. */
 export function WorkComments({ itemId, comments, team, me, onChanged }: { itemId: number; comments: WorkComment[]; team: Person[]; me?: number | null; onChanged: (comments: WorkComment[]) => void }) {
     const copy = useJourneyCopy();
     const [text, setText] = useState('');

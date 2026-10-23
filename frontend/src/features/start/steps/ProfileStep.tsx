@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { Plus } from 'lucide-react';
 import { Button, Field, Skeleton } from '../../../design/primitives';
 import { PersonProfilePreview } from '../../profiles/person/PersonProfilePreview';
-import { isProfessionalRole, type FootballRole } from '../../roles/domain';
+import { isOffered, isProfessionalRole, type FootballRole } from '../../roles/domain';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { SETUP_CHOICES, useChoiceName } from '../setupWords';
 import type { WelcomeFacts } from '../useWelcomeFacts';
@@ -65,7 +65,7 @@ export function ProfileStep({ setup, draft, onChange, facts, main, suggestion, u
     if (!draft || !setup.loaded) return <div role="status" aria-label={copy('Loading your profile', 'პროფილი იტვირთება')} className="gk-setup__loading"><Skeleton height={72} /><Skeleton height={48} /><Skeleton height={48} /></div>;
     const loaded = setup.loaded;
     const preview = previewOf(loaded, draft, suggestion, userId);
-    const offered = SETUP_CHOICES.filter(item => item.id !== 'BUSINESS' && (facts.adult || !(ADULT_ROLES as readonly string[]).includes(item.id)));
+    const offered = SETUP_CHOICES.filter(item => item.id !== 'BUSINESS' && isOffered(item.id, draft.roles) && (facts.adult || !(ADULT_ROLES as readonly string[]).includes(item.id)));
     const toggleRole = (role: FootballRole) => onChange({ ...draft, roles: draft.roles.includes(role) ? draft.roles.filter(item => item !== role) : [...draft.roles, role] });
     const historyRoles = draft.roles.filter(isProfessionalRole);
     const history = [...loaded.history.map(entry => ({ key: `saved-${entry.id}`, title: entry.title, organization: entry.organization, startsOn: entry.startsOn })),

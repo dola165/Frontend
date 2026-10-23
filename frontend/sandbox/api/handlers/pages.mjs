@@ -5,9 +5,9 @@
 //
 // BACKEND NEEDED (docs/claude-sandbox/PAGE_CREATION.md section 6 and ROUND_2.md "Before release"):
 //   POST /organizations/setup gains `pageKind`; any adult creates (the verified-account gate moves to the unlock list).
-//   GET  /clubs/:id/page | /organizations/:id/page → identity, layout, boxes with versions, status, claim, verification, setup.
+//   GET  /clubs/:id/page | /organizations/:id/page → identity, layout, boxes with versions, status, verification, setup.
 //   PUT  …/page/identity | …/page/boxes/:key | …/page/layout with { version } → 409 VERSION_CONFLICT with the current page.
-//   DELETE …/page (the owner cancels a draft; it and its club and teams are gone) · POST …/page/live { requestId } · …/page/claim { requestId, role, phone } · …/page/verification { action }.
+//   DELETE …/page (the owner cancels a draft; it and its club and teams are gone) · POST …/page/live { requestId } · …/page/verification { action }.
 //   GET  /pages/similar?name=&town= (transliteration-aware) · /pages/mine · /pitches?lat=&lng= (OpenStreetMap via Overpass:
 //        leisure=pitch + sport=soccer) · /map/reverse?lat=&lng= (reverse geocoding).
 //   Join links per squad (GET/POST /join/:code, arrivals the coach approves) and staff invite links (GET /invite/:code, accept).
@@ -74,7 +74,7 @@ get('/map/reverse', ({ query }) => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? reverseGeocode(lat, lng) : bad('Say where: lat and lng.');
 });
 
-// ================================================================ one page: read, edit, go live, claim
+// ================================================================ one page: read, edit, go live
 for (const [type, base] of [['club', '/clubs/:id/page'], ['organization', '/organizations/:id/page']]) {
   const load = params => P.pageOf({ type, id: Number(params.id) });
   get(base, ({ params, headers }) => { const page = load(params), viewer = viewerOf(headers); return visible(page, viewer) ? P.viewOf(page, viewer) : notFound('Page not found.'); });
@@ -122,25 +122,6 @@ for (const [type, base] of [['club', '/clubs/:id/page'], ['organization', '/orga
     if (!check.ready) return bad('Not ready to go live yet.', { code: 'NOT_READY', missing: check.missing });
     page.status = 'LIVE'; page.liveAt = new Date().toISOString(); page.liveRequest = body?.requestId ?? null;
     if (page.clubId) W.clubById(page.clubId).draft = false;
-    return P.viewOf(page, viewer);
-  });
-  post(`${base}/claim`, ({ params, body, headers }) => {
-    const page = load(params), viewer = viewerOf(headers);
-    if (!visible(page, viewer)) return notFound('Page not found.');
-    if (page.claim?.state === 'PENDING' && page.claim.by === viewer) return P.viewOf(page, viewer);
-    if (page.claim?.state !== 'UNCLAIMED') return reply(409, { status: 409, code: 'NOT_CLAIMABLE', message: 'Someone already runs this page. Ask them to add you.' });
-    const current = page.kind === 'CLUB' ? P.clubOf(viewer) : null;
-    if (current) { const refusal = P.oneClubRefusal(current); return reply(refusal.status, refusal.body); }
-    const age = P.viewerAge(viewer);
-    if (age == null || age < minimumAge(page.kind)) return reply(403, { status: 403, code: 'AGE', minimumAge: minimumAge(page.kind), message: 'Claiming a club needs an adult account.' });
-    const role = ['CHAIR', 'COACH', 'ADMIN', 'OTHER'].includes(body?.role) ? body.role : null, phone = String(body?.phone ?? '').replace(/[^\d+]/g, '');
-    if (!role) return bad('Say what you do at the club.');
-    if (phone.replace(/\D/g, '').length < 9) return bad('Add a phone number we can call to confirm.');
-    // The sandbox accepts at once; the real check (a call, a document) is the backend's. Until then it reads "claim pending verification".
-    page.claim = { state: 'PENDING', role, phone, by: viewer, at: new Date().toISOString() };
-    page.ownerId = viewer; page.staff.set(viewer, 'OWNER');
-    if (!page.identity.contact.phone) page.identity.contact.phone = phone;
-    P.syncClub(page);
     return P.viewOf(page, viewer);
   });
   post(`${base}/verification`, ({ params, body, headers }) => {

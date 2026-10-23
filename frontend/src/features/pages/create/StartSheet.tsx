@@ -8,7 +8,7 @@ import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } f
 import { fetchSavedTown } from '../../start/startApi';
 import { DEFAULT_TOWN, TOWNS, townByName, type Town } from '../../start/towns';
 import { Crest } from '../../world/Crest';
-import { fetchSimilar, type PageRef, type SimilarPage } from '../api';
+import { fetchSimilar, type SimilarPage } from '../api';
 import { usePagesCopy } from '../copy';
 import { CREATABLE_KINDS, minimumAge, type BusinessKind, type PageKind } from '../model/kinds';
 import { nameKey } from '../model/nameMatch';
@@ -24,10 +24,10 @@ const KIND_WORD: Record<PageKind, string> = { CLUB: 'Club', FAN_CLUB: 'Fan club'
 
 /**
  * The start sheet, about ten seconds: what it is (four picture tiles), its name with the town already filled in, and
- * Create. While the name is typed, known pages that look like it are shown with "Claim it", so a copy of a known club
- * goes to that club and never becomes a second page. Nothing else is asked here.
+ * Create. While the name is typed, known pages that look like it are shown with Open, so someone looking for a known club
+ * finds it; a listing stays a listing and the person can still start their own page. Nothing else is asked here.
  */
-export function StartSheet({ kind, business = null, from, draw, onClose, onClaim }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void; onClaim: (ref: PageRef) => void }) {
+export function StartSheet({ kind, business = null, from, draw, onClose }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void }) {
   const t = usePagesCopy();
   const { user } = useAuth();
   const { create, busy, error, clearError, unanswered, age } = useCreatePage();
@@ -90,9 +90,9 @@ export function StartSheet({ kind, business = null, from, draw, onClose, onClaim
     setNote(''); clearError(); setChosen(next);
   };
   const exact = matches.find(match => match.exact) ?? null;
-  const shown = dismissed === nameKey(name) && !exact ? [] : matches.slice(0, 3);
+  const shown = dismissed === nameKey(name) ? [] : matches.slice(0, 3);
   const oneClub = chosen === 'CLUB' && club != null;
-  const ready = Boolean(chosen) && !oneClub && name.trim().length >= 2 && !busy && !exact;
+  const ready = Boolean(chosen) && !oneClub && name.trim().length >= 2 && !busy;
   const submit = async () => {
     if (!chosen || !ready) return;
     const outcome = await create({ kind: chosen, name, town, draw, business: chosen === 'BUSINESS' ? business : null });
@@ -101,17 +101,14 @@ export function StartSheet({ kind, business = null, from, draw, onClose, onClaim
   };
   const onKey = (event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter') { event.preventDefault(); void submit(); } };
   const tile = chosen ? KIND_TILES[chosen as Exclude<PageKind, 'VENUE'>] : null;
-  const matchAction = (match: SimilarPage) => match.mine
-    ? <ButtonLink size="sm" to={pagePath(match.ref)} onClick={onClose}>{t('Open yours')}</ButtonLink>
-    : match.claim === 'UNCLAIMED' ? <Button size="sm" variant="primary" onClick={() => onClaim(match.ref)}>{t('Claim it')}</Button>
-    : <ButtonLink size="sm" to={pagePath(match.ref)} onClick={onClose}>{t('Open')}</ButtonLink>;
+  const matchAction = (match: SimilarPage) => <ButtonLink size="sm" to={pagePath(match.ref)} onClick={onClose}>{t(match.mine ? 'Open yours' : 'Open')}</ButtonLink>;
 
   return (
     <Dialog open size="md" title={tile ? t(tile.title) : t('What are you creating?')} onClose={onClose} closeLabel={t('Not now')}
       footer={<>
         <Button variant="ghost" onClick={onClose}>{t('Not now')}</Button>
         {oneClub && club ? <ButtonLink variant="primary" to={`/clubs/${club.id}`} onClick={onClose}>{t('Open {name}', { name: club.name })}</ButtonLink>
-          : exact ? matchAction(exact) : <Button variant="primary" disabled={!ready} onClick={() => void submit()}>
+          : <Button variant="primary" disabled={!ready} onClick={() => void submit()}>
           {busy ? <><Loader2 className="gk-spin" aria-hidden="true" />{t('Creating…')}</> : t(tile?.create ?? 'Create page')}
         </Button>}
       </>}>
@@ -154,15 +151,15 @@ export function StartSheet({ kind, business = null, from, draw, onClose, onClaim
           )}
           {shown.length > 0 && (
             <div className="gk-cmatch" id={`${nameId}-match`} role="status">
-              <p className="gk-cmatch__title">{exact ? t('This is already on GrassKickZ') : t(chosen === 'CLUB' ? 'Is this your club?' : 'Is this your page?')}</p>
+              <p className="gk-cmatch__title">{exact ? t('This is already on GrassKickZ') : t('Looking for one of these?')}</p>
               <ul>{shown.map(match => (
                 <li key={`${match.ref.type}-${match.ref.id}`}>
                   <Crest src={match.crestUrl} name={match.name} size={36} />
-                  <span className="gk-cmatch__text"><span>{match.name}</span><small>{[match.town, t(KIND_WORD[match.kind]), match.claim === 'UNCLAIMED' ? t('Unclaimed') : null].filter(Boolean).join(' · ')}</small></span>
+                  <span className="gk-cmatch__text"><span>{match.name}</span><small>{[match.town, t(KIND_WORD[match.kind])].filter(Boolean).join(' · ')}</small></span>
                   {matchAction(match)}
                 </li>
               ))}</ul>
-              {!exact && <button type="button" className="gk-cmatch__no" onClick={() => setDismissed(nameKey(name))}>{t('No, mine is different')}</button>}
+              <button type="button" className="gk-cmatch__no" onClick={() => setDismissed(nameKey(name))}>{t('No, mine is different')}</button>
             </div>
           )}
           {(error || unanswered) && <p className={`gk-notice${error ? ' gk-notice--warning' : ''}`} role="alert">{error || t('The last try was not answered. Try again with the same name; it never makes two pages.')}</p>}

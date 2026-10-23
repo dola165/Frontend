@@ -521,7 +521,7 @@ export function MainLayout() {
                     </div>
                 </div>
             )}
-            {/* The start sheet and the claim sheet open over whatever page says `?create=` or `?claim=`. */}
+            {/* The start sheet opens over whatever page says `?create=`. */}
             <CreatePageHost />
         </div>
     );

@@ -5,8 +5,8 @@ import { defaultLayout, goLiveCheck, setupState, type PageFacts, type PageKind }
 export function makePage(over: Partial<PageView> & { kind?: PageKind } = {}): PageView {
   const kind = over.kind ?? 'FAN_CLUB';
   const base: PageView = {
-    ref: { type: 'organization', id: 7002 }, organizationId: 7002, clubId: null, kind, status: 'DRAFT', claim: null, verification: 'NONE',
-    viewer: { role: 'OWNER', canEdit: true, editable: 'ALL', canClaim: false },
+    ref: { type: 'organization', id: 7002 }, organizationId: 7002, clubId: null, kind, status: 'DRAFT', verification: 'NONE',
+    viewer: { role: 'OWNER', canEdit: true, editable: 'ALL' },
     identity: { version: 1, name: 'Rustavi Ultras', tagline: '', about: '', aboutAuto: true, town: { name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 },
       crest: { kind: 'generated', design: { shape: 'shield', primary: 'red', secondary: 'white', initials: 'RU' }, kept: false, url: '/sandbox-media/crest/org-7002.svg' },
       cover: { kind: 'photo', photo: 'pitch-sun', url: '/venue-demo/pitch-sun.jpg' }, contact: { phone: '', email: '' }, social: { website: '', instagram: '', facebook: '' }, businessKind: null, clubCategory: null },

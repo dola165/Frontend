@@ -12,20 +12,20 @@ vi.mock('../../../start/startApi', () => ({ fetchSavedTown: vi.fn().mockResolved
 
 import { StartSheet } from '../StartSheet';
 
-const dinamo: SimilarPage = { ref: { type: 'club', id: 2 }, name: 'FC Dinamo Tbilisi', town: 'Tbilisi', kind: 'CLUB', crestUrl: null, status: 'LIVE', claim: null, mine: false, exact: false };
-const unclaimed: SimilarPage = { ref: { type: 'club', id: 307 }, name: 'Rustavi Metallurgi Kids', town: 'Rustavi', kind: 'CLUB', crestUrl: null, status: 'LIVE', claim: 'UNCLAIMED', mine: false, exact: false };
+const dinamo: SimilarPage = { ref: { type: 'club', id: 2 }, name: 'FC Dinamo Tbilisi', town: 'Tbilisi', kind: 'CLUB', crestUrl: null, status: 'LIVE', mine: false, exact: false };
+const listing: SimilarPage = { ref: { type: 'club', id: 307 }, name: 'Rustavi Metallurgi Kids', town: 'Rustavi', kind: 'CLUB', crestUrl: null, status: 'LIVE', mine: false, exact: false };
 
 function mount(props: Partial<Parameters<typeof StartSheet>[0]> = {}) {
-  const onClose = vi.fn(), onClaim = vi.fn();
+  const onClose = vi.fn();
   render(
     <MemoryRouter initialEntries={['/home?create=any&from=home']}>
       <Routes>
-        <Route path="/home" element={<StartSheet kind={null} from="home" draw={false} onClose={onClose} onClaim={onClaim} {...props} />} />
+        <Route path="/home" element={<StartSheet kind={null} from="home" draw={false} onClose={onClose} {...props} />} />
         <Route path="/clubs/:id" element={<p>The club page</p>} />
       </Routes>
     </MemoryRouter>,
   );
-  return { onClose, onClaim };
+  return { onClose };
 }
 
 describe('the start sheet', () => {
@@ -48,27 +48,28 @@ describe('the start sheet', () => {
     expect(screen.getByLabelText('Club name')).toBeInTheDocument();
   });
 
-  it('shows a known club that looks like the name, with Claim it for an unclaimed one', async () => {
+  it('shows known pages that look like the name as listings to open', async () => {
     const user = userEvent.setup();
-    api.fetchSimilar.mockResolvedValue([unclaimed, dinamo]);
-    const { onClaim } = mount({ kind: 'CLUB' });
+    api.fetchSimilar.mockResolvedValue([listing, dinamo]);
+    mount({ kind: 'CLUB' });
     await user.type(screen.getByLabelText('Club name'), 'Metalurgi');
-    expect(await screen.findByText('Is this your club?')).toBeInTheDocument();
+    expect(await screen.findByText('Looking for one of these?')).toBeInTheDocument();
     expect(api.fetchSimilar).toHaveBeenCalledWith('Metalurgi', expect.any(String), expect.anything());
-    await user.click(screen.getByRole('button', { name: 'Claim it' }));
-    expect(onClaim).toHaveBeenCalledWith({ type: 'club', id: 307 });
-    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/clubs/2');
+    expect(screen.queryByRole('button', { name: 'Claim it' })).toBeNull();
+    expect(screen.getAllByRole('link', { name: 'Open' }).map(link => link.getAttribute('href'))).toEqual(['/clubs/307', '/clubs/2']);
+    expect(screen.getByRole('button', { name: 'Create club' })).toBeEnabled();
   });
 
-  it('never creates a copy of a known name: the button becomes Open it', async () => {
+  it('says an exact name is already on GrassKickZ and still lets the person start their own', async () => {
     const user = userEvent.setup();
     api.fetchSimilar.mockResolvedValue([{ ...dinamo, exact: true }]);
+    api.createPage.mockResolvedValue({ id: 7002, clubId: 401, profilePath: '/clubs/401', workspacePath: '/clubs/401/workspace' });
     mount({ kind: 'CLUB' });
     await user.type(screen.getByLabelText('Club name'), 'Dinamo Tbilisi');
     expect(await screen.findByText('This is already on GrassKickZ')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Create club' })).toBeNull();
-    expect(screen.getAllByRole('link', { name: 'Open' }).length).toBeGreaterThan(0);
-    expect(api.createPage).not.toHaveBeenCalled();
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/clubs/2');
+    await user.click(screen.getByRole('button', { name: 'Create club' }));
+    await waitFor(() => expect(api.createPage).toHaveBeenCalledTimes(1));
   });
 
   it('creates the club with the name and town and lands on the page', async () => {

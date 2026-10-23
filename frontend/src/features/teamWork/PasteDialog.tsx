@@ -37,8 +37,8 @@ export function PasteDialog({ planId, elsewhere, onClose, onApplied }: { planId:
     const changes = preview ? preview.created + preview.updated + preview.moved + (preview.deleted ?? 0) : 0;
     const doubled = preview?.lines.filter(line => line.action === 'NEW' && !line.parent && elsewhere.has(line.title.trim().toLowerCase())) ?? [];
     return <Dialog open size="lg" className="tw-dialog" title={copy('Paste from AI', 'ჩასმა AI-დან')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        description={copy('One task per line: - [status] Name | started 20 Oct | ends ~2 weeks | Beqa | 70%. Two spaces before the dash make it a step. [delete] removes a task.',
-            'თითო საქმე თითო ხაზზე: - [სტატუსი] სახელი | started 20 Oct | ends ~2 weeks | ბექა | 70%. ტირემდე ორი გამოტოვება ნაბიჯს ნიშნავს. [delete] საქმეს წაშლის.')}
+        description={copy('One task per line: - [status, priority] GK-12 Name | started 20 Oct | ends ~2 weeks | Beqa | 70%. The key is optional and matches the task even after a rename. Two spaces before the dash make it a step. [delete] removes a task.',
+            'თითო საქმე თითო ხაზზე: - [სტატუსი, პრიორიტეტი] GK-12 სახელი | started 20 Oct | ends ~2 weeks | ბექა | 70%. გასაღები არასავალდებულოა და საქმეს სახელის შეცვლის შემდეგაც პოულობს. ტირემდე ორი გამოტოვება ნაბიჯს ნიშნავს. [delete] საქმეს წაშლის.')}
         footer={<>
             <Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button>
             {preview ? <><Button onClick={() => setPreview(null)}>{copy('Back to the text', 'ტექსტზე დაბრუნება')}</Button>
@@ -58,8 +58,8 @@ export function PasteDialog({ planId, elsewhere, onClose, onApplied }: { planId:
         </div> : <div className="tw-details">
             <label htmlFor={id} className="gk-visually-hidden">{copy('The work, as text', 'საქმეები ტექსტად')}</label>
             <textarea id={id} className="gk-input tw-paste__text" rows={10} maxLength={20000} value={text} placeholder={PASTE_EXAMPLE} onChange={event => setText(event.target.value)} />
-            <p className="gk-faint tw-paste__help">{copy('Status: in progress, on hold, planned, finished; add “small” for a small fix: [planned, small]. Ends: a date, ~N days/weeks/months, possibly November, don’t know. A first line “plan: Name” is optional.',
-                'სტატუსი: in progress, on hold, planned, finished; პატარა შესწორებისთვის დაამატეთ „small“: [planned, small]. დასრულება: თარიღი, ~N days/weeks/months, possibly November, don’t know. პირველი ხაზი „plan: სახელი“ არასავალდებულოა.')}
+            <p className="gk-faint tw-paste__help">{copy('Status: planned, in progress, needs your look, accepted, live, blocked (the old “on hold” and “finished” still read). Priority: now, next, later. Add “small” for a small fix: [planned, small]. Fields after the name: started DATE, ends ~N days/weeks/months, possibly November, don’t know, N%, desc:, done: what done means, requested by NAME, blocked by GK-1, GK-2, related GK-3, and people’s names. A first line “plan: Name” is optional.',
+                'სტატუსი: planned, in progress, needs your look, accepted, live, blocked (ძველი „on hold“ და „finished“ კვლავ იკითხება). პრიორიტეტი: now, next, later. პატარა შესწორებისთვის დაამატეთ „small“: [planned, small]. ველები სახელის შემდეგ: started DATE, ends ~N days/weeks/months, possibly November, don’t know, N%, desc:, done: რას ნიშნავს მზადაა, requested by სახელი, blocked by GK-1, GK-2, related GK-3 და ხალხის სახელები. პირველი ხაზი „plan: სახელი“ არასავალდებულოა.')}
                 {' '}<button type="button" className="tw-link-button" onClick={() => setText(PASTE_EXAMPLE)}>{copy('Use the example', 'მაგალითის ჩასმა')}</button></p>
         </div>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

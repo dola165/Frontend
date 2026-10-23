@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Folder, Layers, ListChecks, Plus } from 'lucide-react';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import type { Person, Plan, PlanView, WorkItem, WorkNode, WorkStatus } from './api';
+import { isDone, type Person, type Plan, type PlanView, type WorkItem, type WorkNode, type WorkStatus } from './api';
 import { TaskView, type PlaceOnPlan } from './TaskView';
-import { progressWords } from './teamWorkWords';
+import { progressWords, statusName } from './teamWorkWords';
 import { planMatches, type Who } from './planPeople';
-import { SmallChip, StatusDot, StatusFilter } from './WorkBits';
+import { KeyChip, SmallChip, StatusDot, StatusFilter } from './WorkBits';
 
 export type Period = 'week' | 'last' | 'earlier';
 const DAY = 24 * 3600 * 1000;
@@ -19,7 +19,7 @@ const weekStart = () => { const today = new Date(); today.setHours(0, 0, 0, 0); 
 const periodOf = (item: WorkItem, start: number): Period => { const at = Date.parse(item.createdAt); return at >= start ? 'week' : at >= start - 7 * DAY ? 'last' : 'earlier'; };
 const inPeriod = (tasks: WorkNode[], period: Period) => { const start = weekStart(); return tasks.filter(node => periodOf(node.item, start) === period); };
 const names = (people: Person[]) => people.map(person => person.name).filter(Boolean).join(', ');
-const tally = (items: WorkItem[]) => ({ total: items.length, done: items.filter(item => item.status === 'FINISHED').length });
+const tally = (items: WorkItem[]) => ({ total: items.length, done: items.filter(item => isDone(item.status)).length });
 
 /** A group as a small box that opens its own page: a week or a plan, and how many tasks are done and open. */
 function GroupBox({ kind, name, tag, total, done, onClick }: { kind: 'period' | 'plan'; name: string; tag?: string; total: number; done: number; onClick: () => void }) {
@@ -35,6 +35,8 @@ function GroupBox({ kind, name, tag, total, done, onClick }: { kind: 'period' | 
 export interface TaskActions {
     open: number | null; team: Person[]; me: number | null;
     onToggle: (id: number) => void; onOpen: (id: number | null) => void; onAddStep: (parent: WorkItem) => void; onSaved: () => void; onDeleted: () => void;
+    /** Every top-level task, for links from one to another. */
+    candidates: WorkItem[];
     /** On a plan page: move the task up or down, or take it off the plan. */
     placeOf?: (item: WorkItem) => PlaceOnPlan;
     /** The plan page the cards are on, for Copy for AI; the cards themselves do not repeat it. */
@@ -42,27 +44,32 @@ export interface TaskActions {
 }
 
 /**
- * A task as one card: its dot, name, percent and bar, its plan, steps and people. Pressed, it opens across the
+ * A task as one card: its dot, key and name, percent and bar (or its status when nobody estimates a percent), how
+ * many questions wait on Beqa, what it waits on, its plan, steps and people. Pressed, it opens across the
  * row to its details; a big task lists its steps there, and a step opens below it.
  */
 export function TaskBox({ node, plan, expanded, actions }: { node: WorkNode; plan?: Plan; expanded: boolean; actions: TaskActions }) {
     const copy = useJourneyCopy();
     const { item, steps } = node;
-    const { open, team, me, onToggle, onOpen, onAddStep, onSaved, onDeleted, placeOf, planName } = actions;
+    const { open, team, me, onToggle, onOpen, onAddStep, onSaved, onDeleted, placeOf, planName, candidates } = actions;
     const step = steps.find(step => step.id === open);
-    const meta = [plan?.name, steps.length > 0 && copy(steps.length === 1 ? '1 step' : `${steps.length} steps`, `${steps.length} ნაბიჯი`), names(item.people)].filter(Boolean).join(' · ');
-    return <li className="tw-task" data-status={item.status} data-open={expanded || undefined} data-task={item.id}>
+    const meta = [
+        item.waitingOn.length > 0 && copy(`waits on ${item.waitingOn.map(ref => ref.key).join(', ')}`, `ელოდება: ${item.waitingOn.map(ref => ref.key).join(', ')}`),
+        plan?.name, steps.length > 0 && copy(steps.length === 1 ? '1 step' : `${steps.length} steps`, `${steps.length} ნაბიჯი`), names(item.people),
+    ].filter(Boolean).join(' · ');
+    return <li className="tw-task" data-status={item.status} data-open={expanded || undefined} data-task={item.id} data-waiting={item.waitingOn.length > 0 || undefined}>
         <button type="button" className="tw-task__box" aria-expanded={expanded} onClick={() => onToggle(item.id)}>
-            <span className="tw-task__top"><StatusDot status={item.status} /><span className="tw-task__name">{item.title}</span>{item.small && <SmallChip />}
-                <span className="gk-num tw-task__percent">{progressWords(copy, item.percent)}</span>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
-            <span className="tw-task__bar"><span style={{ width: `${item.percent}%` }} /></span>
+            <span className="tw-task__top"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-task__name">{item.title}</span>{item.small && <SmallChip />}
+                {item.openQuestions > 0 && <span className="tw-task__ask gk-num" title={copy('Questions for Beqa', 'კითხვები ბექასთვის')}>?{item.openQuestions}</span>}
+                <span className="gk-num tw-task__percent">{item.percent != null ? progressWords(copy, item.percent) : statusName(copy, item.status)}</span>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
+            <span className="tw-task__bar"><span style={{ width: `${item.percent ?? (isDone(item.status) ? 100 : 0)}%` }} /></span>
             <span className="tw-task__meta">{meta}</span>
         </button>
         {expanded && <div className="tw-task__body">
-            <TaskView id={item.id} team={team} me={me} plan={plan?.name ?? planName} place={placeOf?.(item)} onOpen={id => onOpen(open === id ? null : id)} onAddStep={() => onAddStep(item)} onClose={() => onToggle(item.id)} onSaved={onSaved} onDeleted={onDeleted} />
+            <TaskView id={item.id} team={team} me={me} plan={plan?.name ?? planName} place={placeOf?.(item)} candidates={candidates} onOpen={id => onOpen(open === id ? null : id)} onAddStep={() => onAddStep(item)} onClose={() => onToggle(item.id)} onSaved={onSaved} onDeleted={onDeleted} />
             {step && <div className="tw-task__step">
-                <p className="tw-task__step-title"><StatusDot status={step.status} /><span className="gk-faint">{copy('Step', 'ნაბიჯი')}:</span> {step.title}</p>
-                <TaskView key={step.id} id={step.id} team={team} me={me} plan={plan?.name ?? planName} onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} onDeleted={() => { onOpen(null); onSaved(); }} />
+                <p className="tw-task__step-title"><StatusDot status={step.status} /><KeyChip value={step.key} /><span className="gk-faint">{copy('Step', 'ნაბიჯი')}:</span> {step.title}</p>
+                <TaskView key={step.id} id={step.id} team={team} me={me} plan={plan?.name ?? planName} candidates={candidates} onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} onDeleted={() => { onOpen(null); onSaved(); }} />
             </div>}
         </div>}
     </li>;
@@ -76,13 +83,13 @@ export interface TaskListProps {
     onStatuses: (statuses: WorkStatus[]) => void; onShowFinished: (show: boolean) => void; onAddTask: () => void; onPlanFilter: (plan: PlanFilter) => void;
 }
 
-/** Tasks as cards with the status filter; finished ones wait behind "Show finished" unless Finished is chosen. */
+/** Tasks as cards with the status filter; done ones (accepted or live) wait behind "Show done" unless their status is chosen. */
 function TaskList({ title, tasks, planOf, task, statuses, showFinished, actions, plans, planItems, plan, onStatuses, onShowFinished, onAddTask, onPlanFilter }: TaskListProps & { title: string }) {
     const copy = useJourneyCopy();
     const inProject = plan === null ? tasks : plan === 'none' ? tasks.filter(node => !planOf.has(node.item.id)) : tasks.filter(node => planItems.get(plan)?.has(node.item.id));
     const filtered = statuses.length ? inProject.filter(node => statuses.includes(node.item.status)) : inProject;
-    const finished = statuses.length ? [] : filtered.filter(node => node.item.status === 'FINISHED');
-    const shown = statuses.length || showFinished ? filtered : filtered.filter(node => node.item.status !== 'FINISHED' || node.item.id === task);
+    const finished = statuses.length ? [] : filtered.filter(node => isDone(node.item.status));
+    const shown = statuses.length || showFinished ? filtered : filtered.filter(node => !isDone(node.item.status) || node.item.id === task);
     return <section className="tw-block" aria-labelledby="tw-tasks">
         <div className="tw-bar-line">
             <h2 id="tw-tasks" className="tw-heading"><ListChecks aria-hidden="true" />{title} <span className="gk-faint gk-num">{filtered.length}</span></h2>
@@ -95,9 +102,9 @@ function TaskList({ title, tasks, planOf, task, statuses, showFinished, actions,
                 <StatusFilter chosen={statuses} onChange={onStatuses} /><Button size="sm" variant="ghost" onClick={onAddTask}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button></span>
         </div>
         {shown.length ? <ul className="tw-tasks">{shown.map(node => <TaskBox key={node.item.id} node={node} plan={planOf.get(node.item.id)} expanded={task === node.item.id} actions={actions} />)}</ul>
-            : <p className="gk-muted tw-quiet">{filtered.length ? copy('Everything here is finished.', 'აქ ყველაფერი დასრულებულია.') : copy('No tasks here.', 'აქ საქმეები არ არის.')}</p>}
+            : <p className="gk-muted tw-quiet">{filtered.length ? copy('Everything here is done.', 'აქ ყველაფერი მზადაა.') : copy('No tasks here.', 'აქ საქმეები არ არის.')}</p>}
         {finished.length > 0 && <span><button type="button" className="tw-link-button" aria-pressed={showFinished} onClick={() => onShowFinished(!showFinished)}>
-            {showFinished ? copy('Hide finished', 'დასრულებულის დამალვა') : copy(`Show finished (${finished.length})`, `დასრულებულის ჩვენება (${finished.length})`)}</button></span>}
+            {showFinished ? copy('Hide done', 'მზა საქმეების დამალვა') : copy(`Show done (${finished.length})`, `მზა საქმეების ჩვენება (${finished.length})`)}</button></span>}
     </section>;
 }
 

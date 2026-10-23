@@ -3,11 +3,11 @@ import { fetchDetail, type Detail, type Person, type Plan, type PlanView } from 
 import { mentioned } from './mentionWords';
 
 /**
- * Findings live on two plans with these exact names, never shown as plans: "Add to plans" holds what was just
- * dropped, "Pending" what someone pushed on for a decision. A finding made a task leaves both. No migration needed.
+ * Ideas live on two plans with these exact names, never shown as plans: "Ideas" holds what was just
+ * dropped, "Waiting" what someone pushed on for a decision (V201 renamed the old "Add to plans" and "Pending"). An idea made a task leaves both.
  */
-export const IDEAS = 'Add to plans';
-export const WAITING = 'Pending';
+export const IDEAS = 'Ideas';
+export const WAITING = 'Waiting';
 export const isHidden = (plan: Plan) => plan.name === IDEAS || plan.name === WAITING;
 export const isReservedName = (name: string) => [IDEAS, WAITING].some(reserved => reserved.toLowerCase() === name.trim().toLowerCase());
 

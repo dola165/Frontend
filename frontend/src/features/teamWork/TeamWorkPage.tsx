@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, STARTER_WORK, STATUSES, type Person, type WorkStatus, type PlanStatus, type Plan, type PlanView, type WorkItem, type WorkNode } from './api';
+import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, LIST_ORDER, STARTER_WORK, STATUSES, type Person, type WorkStatus, type PlanStatus, type Plan, type PlanView, type WorkItem, type WorkNode } from './api';
 import { AddTaskDialog } from './TaskView';
 import { IdeasPage } from './IdeasPage';
 import { IDEAS, isHidden, isNewFor, isReservedName, WAITING, useFindingDetails } from './findings';
@@ -20,6 +20,7 @@ import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
 import { CopyForAiDialog, NameFilter, PlanHistoryDialog } from './PlanBits';
 import { nodeMatches, whoOf } from './planPeople';
+import { needsYouCount } from './needsYou';
 import './team-work.css';
 import './team-work-layout.css';
 
@@ -115,7 +116,7 @@ export function TeamWorkPage() {
     const steps = new Map<number, WorkItem[]>();
     items.filter(item => item.parentId != null).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).forEach(item => steps.set(item.parentId!, [...steps.get(item.parentId!) ?? [], item]));
     const allTasks = items.filter(item => item.parentId == null && !findings.has(item.id))
-        .sort((a, b) => STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status) || b.updatedAt.localeCompare(a.updatedAt));
+        .sort((a, b) => LIST_ORDER.indexOf(a.status) - LIST_ORDER.indexOf(b.status) || b.updatedAt.localeCompare(a.updatedAt));
     const tasks: WorkNode[] = allTasks.map(item => ({ item, steps: steps.get(item.id) ?? [] })).filter(node => nodeMatches(node, who, team));
     const planOf = new Map<number, Plan>();
     [...plans].sort((a, b) => PLAN_ORDER[a.status] - PLAN_ORDER[b.status]).forEach(plan => views.get(plan.id)?.tasks.forEach(node => { if (!planOf.has(node.item.id)) planOf.set(node.item.id, plan); }));
@@ -152,7 +153,7 @@ export function TeamWorkPage() {
     const findingProps = { details, team, me, open, onOpen: setOpen, onPut: put, onChanged: reload };
     const week = periodOf(params.get('when'));
     const inParam = params.get('in') ?? params.get('project');
-    const actions = { open, team, me, onOpen: setOpen, onSaved: reload, onDeleted: () => { set({ task: null, step: null }); reload(); },
+    const actions = { open, team, me, candidates: allTasks, onOpen: setOpen, onSaved: reload, onDeleted: () => { set({ task: null, step: null }); reload(); },
         onAddStep: (parent: WorkItem) => startAdding(undefined, parent), onToggle: (id: number) => set({ task: task === id ? null : String(id), step: null }) };
     const taskList: TaskListProps = { tasks, planOf, task, statuses, showFinished: params.get('finished') === 'show', onStatuses: setStatuses, onAddTask: () => startAdding(),
         plans, planItems, plan: inParam === 'none' ? 'none' : Number(inParam) || null, onPlanFilter: next => set({ in: next === null ? null : String(next), task: null, step: null }),
@@ -184,7 +185,7 @@ export function TeamWorkPage() {
 
     return <GkRoot className="gk-page"><PageFrame className="tw-page">
         <div className="tw-shell">
-            <TeamWorkNav current={place} fresh={ideas?.tasks.filter(node => { const detail = details.get(node.item.id); return detail != null && isNewFor(detail, me); }).length ?? 0}
+            <TeamWorkNav current={place} needsYou={needsYouCount(items.filter(item => !findings.has(item.id)))} fresh={ideas?.tasks.filter(node => { const detail = details.get(node.item.id); return detail != null && isNewFor(detail, me); }).length ?? 0}
                 waiting={waiting?.tasks.length ?? 0} onGo={go} />
             <div className="tw-main" key={`${place}-${wanted ?? ''}-${week ?? ''}`}>
                 {error && <div className="gk-notice gk-notice--danger" role="alert"><span>{error}</span><Button size="sm" onClick={reload}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}

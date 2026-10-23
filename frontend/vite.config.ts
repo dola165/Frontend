@@ -18,13 +18,13 @@ const buildId = (): Plugin => ({
   generateBundle() { this.emitFile({ type: 'asset', fileName: 'build.json', source: JSON.stringify({ id: BUILD_ID }) }) },
 })
 
-// The branch and last 40 commits of this repository, in the bundle (__GIT_HISTORY__) for Team work's "Stay up to
-// date" page. Without .git or git (a Docker build) it says {known:false}; nothing calls GitHub at runtime.
+// The branch and last 150 commits of this repository, in the bundle (__GIT_HISTORY__) for Team work's "What changed"
+// page and the commits a task key links to. Without .git or git (a Docker build) it says {known:false}; nothing calls GitHub at runtime.
 const gitHistory = (): Plugin => {
   const git = (...args: string[]) => {
     try { return execFileSync('git', args, { cwd: __dirname, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }) } catch { return null }
   }
-  const log = git('log', '-40', '--format=%H%x1f%cI%x1f%an%x1f%P%x1f%s%x1e')
+  const log = git('log', '-150', '--format=%H%x1f%cI%x1f%an%x1f%P%x1f%s%x1e')
   const branch = git('rev-parse', '--abbrev-ref', 'HEAD')?.trim()
   const history = log == null || !branch ? { known: false } : {
     known: true,

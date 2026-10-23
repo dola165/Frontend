@@ -3,7 +3,7 @@ import { Check, MoreHorizontal } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { fetchDetail, type Detail, type Person, type PlanStatus, type PlanView, type WorkNode } from './api';
+import { fetchDetail, isDone, type Detail, type Person, type PlanStatus, type PlanView, type WorkNode } from './api';
 import { planAsText } from './planAsText';
 import type { Who } from './planPeople';
 import { StatusDot } from './WorkBits';
@@ -28,7 +28,7 @@ export function NameFilter({ team, who, allLabel, onChange }: { team: Person[]; 
 export function OrderStrip({ nodes, numbers, onOpen }: { nodes: WorkNode[]; numbers: Map<number, number>; onOpen: (id: number) => void }) {
     const copy = useJourneyCopy();
     const track = useRef<HTMLOListElement>(null);
-    const current = nodes.find(node => node.item.status === 'IN_PROGRESS') ?? nodes.find(node => node.item.status !== 'FINISHED');
+    const current = nodes.find(node => node.item.status === 'IN_PROGRESS') ?? nodes.find(node => !isDone(node.item.status));
     useEffect(() => {
         const card = track.current?.querySelector<HTMLElement>('[data-state="current"]');
         if (track.current && card) track.current.scrollLeft = Math.max(0, card.offsetLeft - 16);
@@ -38,12 +38,12 @@ export function OrderStrip({ nodes, numbers, onOpen }: { nodes: WorkNode[]; numb
         <h2 id="tw-order-title" className="tw-section__title">{copy('In order', 'რიგითობით')}</h2>
         <ol ref={track} className="tw-order__track">{nodes.map(node => {
             const item = node.item;
-            const state = item.status === 'FINISHED' ? 'done' : node === current ? 'current' : 'later';
+            const state = isDone(item.status) ? 'done' : node === current ? 'current' : 'later';
             return <li key={item.id} data-state={state} data-status={item.status}>
                 <button type="button" onClick={() => onOpen(item.id)} aria-current={state === 'current' ? 'step' : undefined}>
-                    <span className="tw-order__top"><span className="tw-order__number gk-num">{state === 'done' ? <Check aria-hidden="true" /> : numbers.get(item.id)}</span><StatusDot status={item.status} /><span className="gk-num tw-order__percent">{item.percent}%</span></span>
+                    <span className="tw-order__top"><span className="tw-order__number gk-num">{state === 'done' ? <Check aria-hidden="true" /> : numbers.get(item.id)}</span><StatusDot status={item.status} /><span className="gk-num tw-order__percent">{item.percent != null ? `${item.percent}%` : ''}</span></span>
                     <span className="tw-order__name">{item.title}</span>
-                    <span className="tw-order__bar"><span style={{ width: `${item.percent}%` }} /></span>
+                    <span className="tw-order__bar"><span style={{ width: `${item.percent ?? (isDone(item.status) ? 100 : 0)}%` }} /></span>
                     <span className="tw-order__when">{state === 'done' ? copy('done', 'დასრულდა') : item.end.kind === 'UNKNOWN' ? copy('end not set', 'ვადა არ არის') : `${copy('ends', 'დასრულება')} ${endWords(copy, item.end)}`}</span>
                 </button>
             </li>;
@@ -102,8 +102,8 @@ export function CopyForAiDialog({ view, onClose }: { view: PlanView; onClose: ()
         return () => { live = false; };
     }, [view]);
     return <Dialog open size="lg" className="tw-dialog" title={copy('Copy for AI', 'კოპირება AI-სთვის')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        description={copy('The plan in the Paste from AI format, with percents, dates, people, the last comments and file names. Give it to Claude or Codex, then paste their answer back: tasks match by name, so nothing doubles.',
-            'გეგმა „ჩასმა AI-დან“ ფორმატში: პროცენტები, თარიღები, ხალხი, ბოლო კომენტარები და ფაილების სახელები. მიეცით Claude-ს ან Codex-ს და მათი პასუხი ისევ ჩასვით: საქმეები სახელით ემთხვევა, ასე რომ არაფერი გაორმაგდება.')}
+        description={copy('The plan in the Paste from AI format, with keys, percents, dates, people, what done means, links, the last comments and file names. Give it to Claude or Codex, then paste their answer back: tasks match by key or name, so nothing doubles.',
+            'გეგმა „ჩასმა AI-დან“ ფორმატში: გასაღებები, პროცენტები, თარიღები, ხალხი, რას ნიშნავს მზადაა, ბმულები, ბოლო კომენტარები და ფაილების სახელები. მიეცით Claude-ს ან Codex-ს და მათი პასუხი ისევ ჩასვით: საქმეები გასაღებით ან სახელით ემთხვევა, ასე რომ არაფერი გაორმაგდება.')}
         footer={<><Button variant="ghost" onClick={onClose}>{copy('Close', 'დახურვა')}</Button>
             <Button variant="primary" disabled={!text} onClick={() => { if (text) void navigator.clipboard?.writeText(text).then(() => setCopied(true)); }}>{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy', 'კოპირება')}</Button></>}>
         <label htmlFor={id} className="gk-visually-hidden">{copy('The plan as text', 'გეგმა ტექსტად')}</label>

@@ -500,7 +500,7 @@ it('shows the brief first: key, done means, questions for Beqa with quick answer
     await waitFor(() => expect(within(side).getByRole('button', { name: /^Overview/ })).toHaveTextContent('Overview2'));
     const card = (await screen.findByRole('list', { name: 'Team work upgrade' })).querySelector('[data-task="81"]')!;
     expect(card).toHaveTextContent('GK-81');
-    expect(card).toHaveTextContent('?1');
+    expect(card.querySelector('.tw-task__ask')).toHaveTextContent('1');
     expect(card).toHaveTextContent('Needs your look');
     expect(card).toHaveTextContent('waits on GK-80');
 

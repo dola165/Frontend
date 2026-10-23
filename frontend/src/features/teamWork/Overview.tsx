@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Folder, Layers, ListChecks, Plus } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ChevronUp, CircleHelp, Folder, Layers, ListChecks, Plus } from 'lucide-react';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { isDone, type Person, type Plan, type PlanView, type WorkItem, type WorkNode, type WorkStatus } from './api';
@@ -60,7 +60,7 @@ export function TaskBox({ node, plan, expanded, actions }: { node: WorkNode; pla
     return <li className="tw-task" data-status={item.status} data-open={expanded || undefined} data-task={item.id} data-waiting={item.waitingOn.length > 0 || undefined}>
         <button type="button" className="tw-task__box" aria-expanded={expanded} onClick={() => onToggle(item.id)}>
             <span className="tw-task__top"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-task__name">{item.title}</span>{item.small && <SmallChip />}
-                {item.openQuestions > 0 && <span className="tw-task__ask gk-num" title={copy('Questions for Beqa', 'კითხვები ბექასთვის')}>?{item.openQuestions}</span>}
+                {item.openQuestions > 0 && <span className="tw-task__ask gk-num" title={copy('Questions for Beqa', 'კითხვები ბექასთვის')}><CircleHelp aria-hidden="true" />{item.openQuestions}</span>}
                 <span className="gk-num tw-task__percent">{item.percent != null ? progressWords(copy, item.percent) : statusName(copy, item.status)}</span>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
             <span className="tw-task__bar"><span style={{ width: `${item.percent ?? (isDone(item.status) ? 100 : 0)}%` }} /></span>
             <span className="tw-task__meta">{meta}</span>

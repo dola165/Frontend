@@ -9,7 +9,7 @@ import { EndPick, Field, KeyChip, PeoplePick, PersonPick, PriorityPick, QuickEdi
 import { WorkComments } from './WorkComments';
 import { WorkMediaList } from './WorkMedia';
 import { ReportDialog } from './ReportDialog';
-import { ago, day, endWords, priorityName, shortDate, statusName } from './teamWorkWords';
+import { ago, day, endWords, madeBy, priorityName, shortDate, statusName } from './teamWorkWords';
 import { taskAsText } from './planAsText';
 import { short } from './upToDate';
 
@@ -42,7 +42,7 @@ function HistoryLine({ update }: { update: WorkUpdate }) {
     ].filter(Boolean).join(' · ');
     const message = update.message && KNOWN[update.message] ? copy(...KNOWN[update.message]) : update.message;
     return <li className="tw-history__line">
-        <span className="tw-history__who">{update.author?.name ?? copy('Someone', 'ვიღაც')} · {ago(copy, update.at)}</span>
+        <span className="tw-history__who">{madeBy(copy, update.author?.name, update.byDola)} · {ago(copy, update.at)}</span>
         {moves && <span className="tw-history__moves gk-num">{moves}</span>}
         {message && <span className="tw-history__message">{message}</span>}
     </li>;

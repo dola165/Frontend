@@ -7,7 +7,7 @@ import { fetchDetail, isDone, type Detail, type Person, type PlanStatus, type Pl
 import { planAsText } from './planAsText';
 import type { Who } from './planPeople';
 import { StatusDot } from './WorkBits';
-import { ago, endWords } from './teamWorkWords';
+import { ago, endWords, madeBy } from './teamWorkWords';
 
 /** All, the whole team, or one person: names only, one choice at a time. */
 export function NameFilter({ team, who, allLabel, onChange }: { team: Person[]; who: Who; allLabel: string; onChange: (who: Who) => void }) {
@@ -116,7 +116,7 @@ export function PlanHistoryDialog({ view, onClose }: { view: PlanView; onClose: 
     const copy = useJourneyCopy();
     return <Dialog open size="md" className="tw-dialog" title={copy('Plan history', 'გეგმის ისტორია')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}>
         <ol className="tw-history">{view.changes.map(change => <li key={change.id} className="tw-history__line">
-            <span className="tw-history__who">{change.author?.name ?? copy('Someone', 'ვიღაც')} · {ago(copy, change.at)}</span>
+            <span className="tw-history__who">{madeBy(copy, change.author?.name, change.byDola)} · {ago(copy, change.at)}</span>
             <span className="tw-history__message">{change.message}</span>
         </li>)}</ol>
     </Dialog>;

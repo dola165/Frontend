@@ -4,7 +4,7 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addComment, deleteComment, editComment, type Person, type WorkComment } from './api';
 import { MentionInput, MentionText } from './MentionInput';
-import { ago } from './teamWorkWords';
+import { ago, madeBy } from './teamWorkWords';
 
 /** A flat thread under a task; "@" tags a colleague. Authors edit or delete their own; system admins any. */
 export function WorkComments({ itemId, comments, team, me, onChanged }: { itemId: number; comments: WorkComment[]; team: Person[]; me?: number | null; onChanged: (comments: WorkComment[]) => void }) {
@@ -22,7 +22,7 @@ export function WorkComments({ itemId, comments, team, me, onChanged }: { itemId
     return <div className="tw-comments">
         {comments.length > 0 && <ol className="tw-comments__list">{comments.map(comment => <li key={comment.id}>
             <div className="tw-comments__body">
-                <span className="tw-comments__who"><strong>{comment.author?.name ?? copy('Someone', 'ვიღაც')}</strong> · {ago(copy, comment.createdAt)}{comment.editedAt && ` · ${copy('edited', 'შეცვლილი')}`}</span>
+                <span className="tw-comments__who"><strong>{madeBy(copy, comment.author?.name, comment.byDola)}</strong> · {ago(copy, comment.createdAt)}{comment.editedAt && ` · ${copy('edited', 'შეცვლილი')}`}</span>
                 {editing?.id === comment.id
                     ? <form className="tw-comments__edit" onSubmit={event => { event.preventDefault(); if (editing.body.trim()) void run(() => editComment(comment.id, editing.body.trim()), () => setEditing(null)); }}>
                         <MentionInput value={editing.body} team={team} label={copy('Edit the comment', 'კომენტარის რედაქტირება')} onChange={body => setEditing({ id: comment.id, body })} />

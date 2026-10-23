@@ -16,6 +16,7 @@ import { PasteDialog } from './PasteDialog';
 import { WaitingPage } from './WaitingPage';
 import { PlanPage, type PlanDialog } from './PlanPage';
 import { TeamPanel } from './TeamPanel';
+import { TeamWorkDola } from './TeamWorkDola';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
 import { CopyForAiDialog, NameFilter, PlanHistoryDialog } from './PlanBits';
@@ -198,6 +199,7 @@ export function TeamWorkPage() {
         {dialog === 'paste' && view && <PasteDialog planId={view.plan.id} elsewhere={elsewhere} onClose={() => setDialog(null)} onApplied={next => { setDialog(null); show(next); reload(); }} />}
         {dialog === 'ai' && view && <CopyForAiDialog view={view} onClose={() => setDialog(null)} />}
         {dialog === 'history' && view && <PlanHistoryDialog view={view} onClose={() => setDialog(null)} />}
+        <TeamWorkDola onChanged={reload} />
         {(dialog === 'new' || dialog === 'copy' || dialog === 'rename') && <NameDialog mode={dialog} current={view?.plan ?? null} onClose={() => setDialog(null)} onDone={next => { setDialog(null); show(next); }} />}
     </PageFrame></GkRoot>;
 }

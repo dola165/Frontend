@@ -1,0 +1,92 @@
+import { apiClient } from '../../api/axiosConfig';
+
+/**
+ * Agent Dola (`/api/agent-dola/*`), for now inside Team work only: anyone off the team gets a 404 and sees no Dola.
+ * Every change Dola proposes comes back with an `actionId` and a `proposal` card; nothing changes until the person
+ * confirms it. Replies are coerced into the shape the UI renders: malformed parts are dropped, never interpreted.
+ */
+export type AgentDolaStatusCode =
+    | 'NEEDS_CLARIFICATION' | 'NOT_ALLOWED' | 'ASSISTANT_UNAVAILABLE' | 'HELP' | 'INFO' | 'ACTION_CONFIRMATION_REQUIRED'
+    | 'ACTION_COMPLETED' | 'ACTION_DECLINED' | 'ACTION_FAILED' | 'CHAT' | 'RATE_LIMITED' | (string & {});
+export interface AgentDolaLink { label: string; webPath: string | null }
+export interface AgentDolaCard { title: string; subtitle: string | null; link: AgentDolaLink | null }
+export interface AgentDolaProposal { title: string; details: { label: string; value: string }[]; confirmLabel: string; expiresAt: string }
+export interface AgentDolaReply {
+    status: AgentDolaStatusCode; reply: string; tool: string | null; actionId: string | null; proposal: AgentDolaProposal | null;
+    cards: AgentDolaCard[]; navigation: AgentDolaLink | null; quickReplies: string[]; language: 'en' | 'ka' | null;
+}
+export interface AgentDolaTurn { at: string; message: string; answer: AgentDolaReply | null }
+export interface AgentDolaStatus { available: boolean; maxMessageLength: number; writer: boolean }
+
+const ACTION_ID = /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i;
+const text = (value: unknown, max = 20000): string => typeof value === 'string' ? value.slice(0, max) : '';
+const optionalText = (value: unknown, max = 2000): string | null => typeof value === 'string' && value.trim() ? value.slice(0, max) : null;
+const record = (value: unknown): Record<string, unknown> | null =>
+    value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+const records = (value: unknown): Record<string, unknown>[] =>
+    (Array.isArray(value) ? value.slice(0, 50) : []).map(record).filter((item): item is Record<string, unknown> => item !== null);
+/** Only app paths become links; anything else (another site, a script URL) is dropped. */
+const appPath = (value: unknown): string | null => {
+    const path = optionalText(value, 2048);
+    return path && path.startsWith('/') && !path.startsWith('//') ? path : null;
+};
+
+function link(value: unknown): AgentDolaLink | null {
+    const item = record(value);
+    if (!item) return null;
+    return { label: text(item.label, 200), webPath: appPath(item.webPath) };
+}
+
+export function normalizeAgentDolaReply(value: unknown): AgentDolaReply {
+    const item = record(value) ?? {};
+    const actionId = typeof item.actionId === 'string' && ACTION_ID.test(item.actionId) ? item.actionId : null;
+    const proposal = actionId ? record(item.proposal) : null;
+    return {
+        status: text(item.status, 64) || 'INFO',
+        reply: text(item.reply),
+        tool: optionalText(item.tool, 100),
+        actionId,
+        proposal: proposal ? {
+            title: text(proposal.title, 300), confirmLabel: text(proposal.confirmLabel, 100), expiresAt: text(proposal.expiresAt, 64),
+            details: records(proposal.details).map(detail => ({ label: text(detail.label, 200), value: text(detail.value, 2000) })),
+        } : null,
+        cards: records(item.cards).slice(0, 12).map(card => ({ title: text(card.title, 300), subtitle: optionalText(card.subtitle, 500), link: link(card.link) })),
+        navigation: link(item.navigation),
+        quickReplies: (Array.isArray(item.quickReplies) ? item.quickReplies : []).filter((reply): reply is string => typeof reply === 'string' && !!reply.trim())
+            .map(reply => reply.slice(0, 300)).slice(0, 6),
+        language: item.language === 'ka' ? 'ka' : item.language === 'en' ? 'en' : null,
+    };
+}
+
+/** HTTP 429 carries a normal RATE_LIMITED reply that the person should see, not an error. */
+async function reply(call: () => Promise<{ data: unknown }>): Promise<AgentDolaReply> {
+    try { return normalizeAgentDolaReply((await call()).data); }
+    catch (cause) {
+        const response = (cause as { response?: { status?: number; data?: unknown } } | null)?.response;
+        if (response?.status === 429 && record(response.data)?.status === 'RATE_LIMITED') return normalizeAgentDolaReply(response.data);
+        throw cause;
+    }
+}
+
+const base = '/agent-dola';
+
+export const agentDolaStatus = async (signal?: AbortSignal): Promise<AgentDolaStatus> => {
+    const data = record((await apiClient.get(`${base}/status`, { signal })).data) ?? {};
+    return { available: data.available === true, maxMessageLength: typeof data.maxMessageLength === 'number' ? data.maxMessageLength : 2000, writer: data.writer === true };
+};
+
+export const agentDolaConversation = async (signal?: AbortSignal): Promise<AgentDolaTurn[]> =>
+    records((await apiClient.get(`${base}/conversation`, { signal })).data).map(turn => ({
+        at: text(turn.at, 64), message: text(turn.message, 8000), answer: turn.answer ? normalizeAgentDolaReply(turn.answer) : null,
+    }));
+
+export const sendAgentDola = (message: string, pagePath?: string) => {
+    let timeZone: string | undefined;
+    try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined; } catch { timeZone = undefined; }
+    return reply(() => apiClient.post(`${base}/messages`, { message, timeZone, pagePath: pagePath && pagePath.length <= 300 ? pagePath : undefined }));
+};
+
+export const decideAgentDola = (actionId: string, decision: 'confirm' | 'reject') =>
+    reply(() => apiClient.post(`${base}/actions/${encodeURIComponent(actionId)}/${decision}`, {}));
+
+export const forgetAgentDola = () => apiClient.delete(`${base}/conversation`).then(() => undefined);

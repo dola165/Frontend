@@ -14,6 +14,8 @@ vi.mock('./api', async importOriginal => ({
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
 }));
 vi.mock('../../pages/RouteRecoveryPage', () => ({ RouteRecoveryPage: () => <p>Page not found</p> }));
+// Agent Dola is not part of these tests: off for this account.
+vi.mock('../dola/agentDola', () => ({ agentDolaStatus: () => Promise.reject({ response: { status: 404 } }) }));
 // The reader is Beqa.
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
 

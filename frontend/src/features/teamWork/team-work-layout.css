@@ -156,9 +156,9 @@
 @keyframes tw-rise { from { opacity: 0; transform: translateY(-4px); } }
 @keyframes tw-fade { from { opacity: 0; } }
 .gk .tw-main { animation: tw-fade .22s var(--gk-ease) both; }
-.gk .tw-task__body, .gk .tw-task__stage, .gk .tw-finding__open, .gk .tw-tree .tw-piece { animation: tw-rise .2s var(--gk-ease) both; }
+.gk .tw-task__body, .gk .tw-task__stage, .gk .tw-finding__open { animation: tw-rise .2s var(--gk-ease) both; }
 .gk .tw-menu__list, .gk .tw-mention__list { animation: tw-rise .14s var(--gk-ease) both; transform-origin: top; }
-.gk .tw-side button, .gk .tw-names button, .gk .tw-link-button, .gk .tw-back, .gk .tw-row__main, .gk .tw-parts button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .tw-side button, .gk .tw-names button, .gk .tw-link-button, .gk .tw-back, .gk .tw-parts button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
 .gk .tw-task, .gk .tw-finding, .gk .tw-group { transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease), transform .15s var(--gk-ease); }
 .gk .tw-task:not([data-open]):hover, .gk .tw-finding:not([data-open]):hover, .gk .tw-group:hover { box-shadow: var(--gk-elevation); transform: translateY(-1px); }
 .gk .tw-task__bar > span, .gk .tw-steps__bar > span { transition: width .35s var(--gk-ease); }
@@ -166,3 +166,19 @@
 @media (prefers-reduced-motion: reduce) {
     .gk .tw-shell *, .gk .tw-main { animation: none !important; transition: none !important; transform: none !important; }
 }
+
+/* Progress as an estimate: five words, the exact slider behind "Exact". */
+.gk .tw-progress-pick { display: flex; flex-direction: column; gap: var(--gk-2); flex: 1 1 320px; min-width: 0; }
+.gk .tw-estimate { display: flex; flex-wrap: wrap; gap: 4px; }
+.gk .tw-estimate button { min-height: 32px; padding: 0 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease), color .15s var(--gk-ease); }
+.gk .tw-estimate button:hover { border-color: var(--gk-line-strong); color: var(--gk-text); }
+.gk .tw-estimate button[aria-checked='true'], .gk .tw-estimate button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); background: var(--gk-accent-soft); color: var(--gk-text); font-weight: 600; }
+.gk .tw-estimate__exact { border-style: dashed !important; }
+.gk .tw-quick__parts { margin: 0; font-size: var(--gk-fs-sm); }
+.gk .tw-project-filter { width: auto; min-height: 30px; max-width: 200px; font-size: var(--gk-fs-sm); }
+.gk .tw-paste__doubled { color: var(--gk-warning); font-weight: 600; }
+.gk .tw-link-button svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+.gk .tw-quick { flex-direction: column; align-items: stretch; gap: var(--gk-3); }
+.gk .tw-progress-pick { flex: none; }
+.gk .tw-progress-pick .tw-slider { flex: none; max-width: 520px; }
+.gk .tw-estimate { justify-content: flex-start; }

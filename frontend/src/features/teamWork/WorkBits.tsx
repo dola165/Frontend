@@ -1,7 +1,7 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { STATUSES, type EndKind, type EndUnit, type Person, type WorkEnd, type WorkStatus } from './api';
-import { statusName } from './teamWorkWords';
+import { ESTIMATES, statusName } from './teamWorkWords';
 
 /** A status as a coloured dot; its name is there for screen readers and on hover. */
 export function StatusDot({ status }: { status: WorkStatus }) {
@@ -35,21 +35,32 @@ export function Field({ label, children, wide = false }: { label: string; childr
     return <div className={`tw-field${wide ? ' tw-field--wide' : ''}`}><label htmlFor={id}>{label}</label>{children(id)}</div>;
 }
 
-/** Status and a percent slider in steps of 5: the quick part of every edit. Finished means 100%. */
+/**
+ * Status and progress: the quick part of every edit. Progress is estimated in five words (not started, started,
+ * halfway, nearly done, done); "Exact" opens a slider in steps of 5. Finished means done.
+ */
 export function QuickEdit({ status, percent, fromParts = false, onChange }: { status: WorkStatus; percent: number; fromParts?: boolean; onChange: (change: { status?: WorkStatus; percent?: number }) => void }) {
     const copy = useJourneyCopy();
     const id = useId();
+    const estimated = ESTIMATES.some(([value]) => value === percent);
+    const [exact, setExact] = useState(!estimated);
     return <div className="tw-quick">
-        <div className="tw-status-pick" role="radiogroup" aria-label={copy('Status', 'სტატუსი')}>
+        <div className="tw-status-pick" role="radiogroup" aria-label={copy("Status", "სტატუსი")}>
             {STATUSES.map(value => <button key={value} type="button" role="radio" aria-checked={status === value} data-status={value}
-                onClick={() => onChange(value === 'FINISHED' && status !== 'FINISHED' && !fromParts ? { status: value, percent: 100 } : { status: value })}>
+                onClick={() => onChange(value === "FINISHED" && status !== "FINISHED" && !fromParts ? { status: value, percent: 100 } : { status: value })}>
                 <span className="tw-dot" aria-hidden="true" />{statusName(copy, value)}
             </button>)}
         </div>
-        <div className="tw-slider"><label htmlFor={id}>{copy('Done', 'შესრულებულია')}</label>
-            <input id={id} type="range" min={0} max={100} step={5} value={percent} disabled={fromParts} onChange={event => onChange({ percent: Number(event.target.value) })} />
-            <output htmlFor={id} className="gk-num">{percent}%</output>
-        </div>
+        {fromParts ? <p className="gk-faint tw-quick__parts gk-num">{copy(`${percent}%, from its stages`, `${percent}%, ეტაპებიდან`)}</p> : <div className="tw-progress-pick">
+            <div className="tw-estimate" role="radiogroup" aria-label={copy("Progress", "პროგრესი")}>
+                {ESTIMATES.map(([value, en, ka]) => <button key={value} type="button" role="radio" aria-checked={!exact && percent === value} onClick={() => { setExact(false); onChange({ percent: value }); }}>{copy(en, ka)}</button>)}
+                <button type="button" className="tw-estimate__exact" aria-pressed={exact} onClick={() => setExact(value => !value)}>{copy("Exact", "ზუსტად")}</button>
+            </div>
+            {exact && <div className="tw-slider"><label htmlFor={id}>{copy("Exact progress", "ზუსტი პროგრესი")}</label>
+                <input id={id} type="range" min={0} max={100} step={5} value={percent} onChange={event => onChange({ percent: Number(event.target.value) })} />
+                <output htmlFor={id} className="gk-num">{percent}%</output>
+            </div>}
+        </div>}
     </div>;
 }
 

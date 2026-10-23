@@ -35,7 +35,7 @@ export function StepStrip({ nodes, numbers, onOpen }: { nodes: WorkNode[]; numbe
     }, [current?.item.id]);
     if (nodes.length === 0) return null;
     return <section className="tw-steps" aria-labelledby="tw-steps-title">
-        <h2 id="tw-steps-title" className="tw-section__title">{copy('Step by step', 'ნაბიჯ-ნაბიჯ')}</h2>
+        <h2 id="tw-steps-title" className="tw-section__title">{copy('In order', 'რიგითობით')}</h2>
         <ol ref={track} className="tw-steps__track">{nodes.map(node => {
             const item = node.item;
             const state = item.status === 'FINISHED' ? 'done' : node === current ? 'current' : 'later';

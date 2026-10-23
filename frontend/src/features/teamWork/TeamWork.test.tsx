@@ -11,7 +11,7 @@ import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchRoadmaps: vi.fn(), fetchRoadmap: vi.fn(),
     createRoadmap: vi.fn(), changeRoadmap: vi.fn(), pasteIntoRoadmap: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
-    addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(),
+    addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(),
 }));
 vi.mock('../../pages/RouteRecoveryPage', () => ({ RouteRecoveryPage: () => <p>Page not found</p> }));
 // The reader is Beqa.
@@ -108,7 +108,7 @@ it('lists every task as a card with its project and stages, finished ones folded
     vi.mocked(api.fetchDetail).mockImplementation(async id => detail(all.find(work => work.id === id)!, id === 1 ? { parts } : {}));
     mount();
     const tasks = (await screen.findByRole('heading', { name: 'All tasks 6' })).closest('section')!;
-    const cards = within(tasks).getAllByRole('button', { name: /%/ });
+    const cards = within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ });
     expect(cards.map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Branding and landing', 'User registration', 'Registration', 'Save button on phones', 'Checkout']);
     expect(cards[0]).toHaveTextContent('70%');
     expect(cards[0]).toHaveTextContent('October work · 3 stages · Beqa');
@@ -121,9 +121,9 @@ it('lists every task as a card with its project and stages, finished ones folded
     const statuses = within(tasks).getByRole('group', { name: 'Show by status' });
     await userEvent.click(within(statuses).getByRole('button', { name: 'Planned' }));
     expect(screen.getByTestId('where')).toHaveTextContent('status=PLANNED');
-    expect(within(tasks).getAllByRole('button', { name: /%/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Save button on phones', 'Checkout']);
+    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Save button on phones', 'Checkout']);
     await userEvent.click(within(statuses).getByRole('button', { name: 'Finished' }));
-    expect(within(tasks).getAllByRole('button', { name: /%/ })).toHaveLength(3);
+    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ })).toHaveLength(3);
     await userEvent.click(within(statuses).getByRole('button', { name: 'Planned' }));
     await userEvent.click(within(statuses).getByRole('button', { name: 'Finished' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('status=');
@@ -230,31 +230,36 @@ it('lists pending findings with who pushed them, and makes one a task on its own
     expect(api.changeRoadmap).toHaveBeenCalledWith(5, { version: 3, order: [1, 2, 3, 61] });
 });
 
-it('shows a plan as a list with names and small fixes, then step by step, and keeps the extras behind “…”', async () => {
+it('shows a project’s tasks as cards in its order, then in order, and keeps the extras behind “…”', async () => {
     vi.mocked(api.changeRoadmap).mockResolvedValue(view(october.pieces, { roadmap: roadmap(5, 'October work', { status: 'LATER', version: 4 }) }));
     vi.mocked(api.fetchDetail).mockResolvedValue(detail(october.pieces[1].item));
     mount('/team-work?roadmap=5');
     const list = await screen.findByRole('list', { name: 'October work' });
     expect(screen.getByRole('heading', { name: 'October work', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Started by Beqa · Beqa, Gio Beridze')).toBeInTheDocument();
-    expect(within(list).getByRole('button', { name: /^In progress Branding and landing/ })).toHaveTextContent('3 stages · 70% · Beqa');
-    expect(within(list).getByRole('button', { name: /Registration/ })).toHaveTextContent('30% · Gio Beridze');
-    expect(within(list).getByRole('button', { name: /Save button on phones/ })).toHaveTextContent('small');
-    expect(screen.queryByText(/Copy as new version|Plan history/)).not.toBeInTheDocument();
+    const cards = within(list).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ });
+    expect(cards.map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Branding and landing', 'Registration', 'Save button on phones']);
+    expect(cards[0]).toHaveTextContent('70%');
+    expect(cards[0]).toHaveTextContent('3 stages · Beqa');
+    expect(cards[0]).not.toHaveTextContent('October work');
+    expect(cards[2]).toHaveTextContent('small');
+    expect(cards[2]).toHaveTextContent('Not started');
+    expect(screen.queryByText(/Copy as new version|Project history/)).not.toBeInTheDocument();
 
-    const steps = screen.getByRole('heading', { name: 'Step by step' }).parentElement!;
-    const cards = within(steps).getAllByRole('button');
-    expect(cards).toHaveLength(3);
-    expect(cards[0]).toHaveAttribute('aria-current', 'step');
-    expect(cards[0]).toHaveTextContent('170%Branding and landingends about 1 week');
-    expect(cards[2]).toHaveTextContent('3');
-    await userEvent.click(cards[1]);
-    expect(screen.getByTestId('where')).toHaveTextContent('open=2');
+    const steps = screen.getByRole('heading', { name: 'In order' }).parentElement!;
+    const strip = within(steps).getAllByRole('button');
+    expect(strip).toHaveLength(3);
+    expect(strip[0]).toHaveAttribute('aria-current', 'step');
+    expect(strip[0]).toHaveTextContent('170%Branding and landingends about 1 week');
+    await userEvent.click(strip[1]);
+    expect(screen.getByTestId('where')).toHaveTextContent('task=2');
+    expect(await within(list).findByRole('region', { name: 'Registration' })).toBeInTheDocument();
+    expect(within(list).getByRole('button', { name: 'Take off this project' })).toBeInTheDocument();
 
-    // Gio's pieces only: the list and the steps follow the name, numbered as in the whole plan.
+    // Gio's tasks only: the cards and the order follow the name, numbered as in the whole project.
     await userEvent.click(within(screen.getByRole('group', { name: 'Show work for' })).getByRole('button', { name: 'Gio Beridze' }));
     expect(within(screen.getByRole('list', { name: 'October work' })).queryByText('Branding and landing')).not.toBeInTheDocument();
-    expect(within(screen.getByRole('heading', { name: 'Step by step' }).parentElement!).getByRole('button')).toHaveTextContent(/^2/);
+    expect(within(screen.getByRole('heading', { name: 'In order' }).parentElement!).getByRole('button')).toHaveTextContent(/^2/);
 
     await userEvent.click(screen.getByRole('button', { name: 'More for this project' }));
     expect(screen.getByRole('menuitemradio', { name: 'Working on it now' })).toHaveAttribute('aria-checked', 'true');
@@ -300,13 +305,13 @@ it('copies a plan for AI in the paste format with comments and file names as not
     expect(await within(dialog).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
 });
 
-it('opens a piece in place with its parts, comments and quick update, and keeps the words when a colleague saved first', async () => {
+it('opens a task in place with its stages, comments and quick update, and keeps the words when a colleague saved first', async () => {
     vi.mocked(api.fetchDetail).mockResolvedValue(detail(branding, {
         parts, comments: [{ id: 3, author: { id: 2, name: 'Gio Beridze' }, body: 'Looks good on the phone', createdAt: now, editedAt: null, canEdit: false }],
         updates: [{ id: 9, author: { id: 1, name: 'Nino' }, at: twoDaysAgo, previousStatus: null, status: 'IN_PROGRESS', previousPercent: null, percent: 70, message: 'Added' }],
     }));
     vi.mocked(api.changeWork).mockRejectedValueOnce({ response: { status: 409, data: { detail: 'Someone else changed this work after you opened it.' } } });
-    mount('/team-work?roadmap=5&open=1');
+    mount('/team-work?roadmap=5&task=1');
     const piece = await screen.findByRole('region', { name: 'Branding and landing' });
     expect(within(piece).getByText('about 1 week')).toBeInTheDocument();
     expect(within(piece).getByText('Looks good on the phone')).toBeInTheDocument();
@@ -323,18 +328,64 @@ it('opens a piece in place with its parts, comments and quick update, and keeps 
     expect(screen.getByTestId('where')).toHaveTextContent('open=12');
 });
 
-it('previews a paste before applying it, and never offers to delete', async () => {
-    vi.mocked(api.pasteIntoRoadmap).mockResolvedValueOnce({ created: 1, updated: 1, moved: 1, unchanged: 0, applied: false, view: null, problems: [],
-        lines: [{ line: 1, action: 'NEW', title: 'Agent Dola on live', parent: null, detail: null }, { line: 2, action: 'UPDATED', title: 'Registration', parent: null, detail: '30% → 45%' }, { line: 3, action: 'MOVED', title: 'Hero copy', parent: 'Registration', detail: null }] })
-        .mockResolvedValueOnce({ created: 1, updated: 1, moved: 1, unchanged: 0, applied: true, view: view([{ item: branding, parts: [] }]), problems: [], lines: [] });
+it('estimates progress in words, copies a task for AI with a way to answer, and deletes a task only after asking', async () => {
+    vi.mocked(api.fetchDetail).mockResolvedValue(detail(branding, { parts, comments: [{ id: 3, author: gio, body: 'Hero copy is too long', createdAt: now, editedAt: null, canEdit: false }] }));
+    vi.mocked(api.changeWork).mockResolvedValue(detail({ ...branding, percent: 50 }, { parts, comments: [{ id: 3, author: gio, body: 'Hero copy is too long', createdAt: now, editedAt: null, canEdit: false }] }));
+    vi.mocked(api.deleteWork).mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    mount('/team-work?roadmap=5&task=1');
+    const piece = await screen.findByRole('region', { name: 'Branding and landing' });
+    // 70% is exact, so the slider is open; a word sets an estimate.
+    expect(within(piece).getByLabelText('Exact progress')).toHaveValue('70');
+    await userEvent.click(within(piece).getByRole('radio', { name: 'Halfway' }));
+    expect(within(piece).queryByLabelText('Exact progress')).not.toBeInTheDocument();
+    await userEvent.click(within(piece).getByRole('button', { name: 'Save update' }));
+    expect(api.changeWork).toHaveBeenCalledWith(1, { version: 0, percent: 50 });
+
+    await userEvent.click(within(piece).getByRole('button', { name: 'Copy for AI' }));
+    const brief = vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
+    expect(brief).toContain('Team work task: Branding and landing');
+    expect(brief).toContain('in the project "October work"');
+    expect(brief).toContain('team-work?task=1');
+    expect(brief).toContain('Gio Beridze');
+    expect(brief).toContain('plan: October work');
+    expect(await within(piece).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+
+    await userEvent.click(within(piece).getByRole('button', { name: 'Delete' }));
+    const confirm = screen.getByRole('dialog', { name: 'Delete this task?' });
+    expect(confirm).toHaveTextContent('“Branding and landing” and its 3 stages');
+    expect(api.deleteWork).not.toHaveBeenCalled();
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Delete' }));
+    expect(api.deleteWork).toHaveBeenCalledWith(1);
+    await waitFor(() => expect(screen.getByTestId('where')).not.toHaveTextContent('task='));
+});
+
+it('filters tasks by project, or those on none', async () => {
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [...boardOf(Object.values(plans)), item(70, 'Loose fix', 'PLANNED', 0)], trail: [], canManageTeam: true });
+    mount();
+    const tasks = (await screen.findByRole('heading', { name: 'All tasks 7' })).closest('section')!;
+    await userEvent.selectOptions(within(tasks).getByLabelText('Project'), 'Registration and roles');
+    expect(screen.getByTestId('where')).toHaveTextContent('project=6');
+    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['User registration']);
+    await userEvent.selectOptions(within(tasks).getByLabelText('Project'), 'No project');
+    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Loose fix']);
+});
+
+it('previews a paste before applying it, shows deletes, and flags a new task whose name is already in another project', async () => {
+    vi.mocked(api.pasteIntoRoadmap).mockResolvedValueOnce({ created: 2, updated: 1, moved: 1, unchanged: 0, deleted: 1, applied: false, view: null, problems: [],
+        lines: [{ line: 1, action: 'NEW', title: 'Agent Dola on live', parent: null, detail: null }, { line: 2, action: 'UPDATED', title: 'Registration', parent: null, detail: '30% → 45%' }, { line: 3, action: 'MOVED', title: 'Hero copy', parent: 'Registration', detail: null },
+            { line: 4, action: 'NEW', title: 'User registration', parent: null, detail: null }, { line: 5, action: 'DELETED', title: 'Save button on phones', parent: null, detail: null }] })
+        .mockResolvedValueOnce({ created: 2, updated: 1, moved: 1, unchanged: 0, deleted: 1, applied: true, view: view([{ item: branding, parts: [] }]), problems: [], lines: [] });
     mount('/team-work?roadmap=5');
     await userEvent.click(await screen.findByRole('button', { name: 'Paste from AI' }));
     const dialog = screen.getByRole('dialog', { name: 'Paste from AI' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Use the example' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Preview' }));
-    expect(await within(dialog).findByText('1 new, 1 updated, 1 part moved')).toBeInTheDocument();
+    expect(await within(dialog).findByText('2 new, 1 updated, 1 stage moved, 1 deleted')).toBeInTheDocument();
     expect(api.pasteIntoRoadmap).toHaveBeenCalledWith(5, api.PASTE_EXAMPLE, false);
-    expect(within(dialog).queryByRole('button', { name: /delete|remove/i })).not.toBeInTheDocument();
+    expect(within(dialog).getByText('Deleted')).toBeInTheDocument();
+    expect(within(dialog).getByText('Already in Registration and roles')).toBeInTheDocument();
+    expect(within(dialog).getByRole('status')).toHaveTextContent('1 new task has the name of a task in another project');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }));
     expect(api.pasteIntoRoadmap).toHaveBeenLastCalledWith(5, api.PASTE_EXAMPLE, true);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Paste from AI' })).not.toBeInTheDocument());

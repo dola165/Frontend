@@ -115,10 +115,12 @@ export function TeamWorkPage() {
     const tasks: WorkNode[] = allTasks.map(item => ({ item, parts: stages.get(item.id) ?? [] })).filter(node => nodeMatches(node, who, team));
     const projectOf = new Map<number, Roadmap>();
     [...projects].sort((a, b) => PROJECT_ORDER[a.status] - PROJECT_ORDER[b.status]).forEach(project => views.get(project.id)?.pieces.forEach(node => { if (!projectOf.has(node.item.id)) projectOf.set(node.item.id, project); }));
+    const projectItems = new Map(projects.map(project => [project.id, new Set(views.get(project.id)?.pieces.map(node => node.item.id) ?? [])]));
+    // Task names in other projects, so Paste from AI can flag a plan pasted twice.
+    const elsewhere = new Map(allTasks.filter(item => !view?.pieces.some(node => node.item.id === item.id)).map(item => [item.title.trim().toLowerCase(), projectOf.get(item.id)?.name ?? copy('no project', 'პროექტის გარეშე')]));
 
     const keep = (next: RoadmapView) => { setViews(current => new Map(current).set(next.roadmap.id, next)); setPlans(current => current && [next.roadmap, ...current.filter(plan => plan.id !== next.roadmap.id)]); };
     const show = (next: RoadmapView) => { keep(next); set({ view: null, roadmap: String(next.roadmap.id), task: null }); };
-    const refresh = (id: number) => fetchRoadmap(id).then(next => setViews(current => new Map(current).set(id, next))).catch(() => undefined);
     const changePlan = async (target: RoadmapView, change: { order?: number[]; status?: PlanStatus }) => {
         setError('');
         try { keep(await changeRoadmap(target.roadmap.id, { version: target.roadmap.version, ...change })); }
@@ -145,17 +147,20 @@ export function TeamWorkPage() {
     const loading = <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>;
     const findingProps = { details, team, me, open, onOpen: setOpen, onPut: put, onChanged: reload };
     const week = periodOf(params.get('when'));
+    const projectParam = params.get('project');
+    const actions = { open, team, me, onOpen: setOpen, onSaved: reload, onDeleted: () => { set({ task: null, open: null }); reload(); },
+        onAddStage: (parent: WorkItem) => startAdding(undefined, parent), onToggle: (id: number) => set({ task: task === id ? null : String(id), open: null }) };
     const taskList: TaskListProps = { tasks, projectOf, task, statuses, showFinished: params.get('finished') === 'show', onStatuses: setStatuses, onAddTask: () => startAdding(),
-        onShowFinished: showFinished => set({ finished: showFinished ? 'show' : null }),
-        actions: { open, team, me, onOpen: setOpen, onSaved: reload, onAddStage: parent => startAdding(undefined, parent), onToggle: id => set({ task: task === id ? null : String(id), open: null }) } };
+        projects, projectItems, project: projectParam === 'none' ? 'none' : Number(projectParam) || null, onProject: next => set({ project: next === null ? null : String(next), task: null, open: null }),
+        onShowFinished: showFinished => set({ finished: showFinished ? 'show' : null }), actions };
     let main: ReactNode;
     if (!plans) main = !error && loading;
     else if (place === 'updates') main = <UpdatesView />;
     else if (place === 'team') main = <TeamPanel canManage={canManageTeam} />;
     else if (place === 'add') main = <AddToPlans intake={intake} pending={pending} {...findingProps} />;
     else if (place === 'pending') main = <PendingPage pending={pending} projects={projects} views={views} {...findingProps} />;
-    else if (view) main = <PlanView view={view} who={who} open={open} me={me} filter={filter(copy('Everything', 'ყველაფერი'))} statuses={statuses} onStatuses={setStatuses} onBack={() => set({ roadmap: null, open: null })} onOpen={setOpen}
-        onChangePlan={change => void changePlan(view, change)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} onRefresh={() => void refresh(view.roadmap.id)} />;
+    else if (view) main = <PlanView view={view} who={who} task={task} filter={filter(copy('Everything', 'ყველაფერი'))} statuses={statuses} actions={actions} onStatuses={setStatuses} onBack={() => set({ roadmap: null, open: null, task: null })}
+        onChangePlan={change => void changePlan(view, change)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} />;
     else if (week) main = <WeekPage period={week} filter={filter(copy('Everyone', 'ყველა'))} onBack={() => set({ when: null, task: null, open: null })} {...taskList} />;
     else main = <>
         <PageHeader title={copy('Progress', 'პროგრესი')} subtitle={copy('What we’re building and fixing', 'რას ვაშენებთ და ვასწორებთ')} />
@@ -169,7 +174,7 @@ export function TeamWorkPage() {
         </EmptyNote></Panel>
             : <>
                 {filter(copy('Everyone', 'ყველა'))}
-                <Overview projects={projects} views={views} who={who} onWeek={period => set({ when: period, task: null, open: null })} onOpenProject={openProject} onNewProject={() => setDialog('new')} {...taskList} />
+                <Overview views={views} who={who} onWeek={period => set({ when: period, task: null, open: null })} onOpenProject={openProject} onNewProject={() => setDialog('new')} {...taskList} />
             </>}
     </>;
 
@@ -183,9 +188,9 @@ export function TeamWorkPage() {
             </div>
         </div>
         {adding && <AddWorkDialog roadmapId={adding.view?.roadmap.id} parent={adding.parent} team={adding.view?.team ?? team} others={adding.others} onClose={() => setAdding(null)}
-            onCreated={detail => { const parent = adding.parent; setAdding(null); set(view || parent ? { open: String(detail.item.id) } : { task: String(detail.item.id), open: null }); reload(); }}
+            onCreated={detail => { const parent = adding.parent; setAdding(null); set(parent ? { open: String(detail.item.id) } : { task: String(detail.item.id), open: null }); reload(); }}
             onPlace={itemId => { const target = adding.view; setAdding(null); if (target) void changePlan(target, { order: [...target.pieces.map(node => node.item.id), itemId] }); }} />}
-        {dialog === 'paste' && view && <PasteDialog roadmapId={view.roadmap.id} onClose={() => setDialog(null)} onApplied={next => { setDialog(null); show(next); reload(); }} />}
+        {dialog === 'paste' && view && <PasteDialog roadmapId={view.roadmap.id} elsewhere={elsewhere} onClose={() => setDialog(null)} onApplied={next => { setDialog(null); show(next); reload(); }} />}
         {dialog === 'ai' && view && <CopyForAiDialog view={view} onClose={() => setDialog(null)} />}
         {dialog === 'history' && view && <PlanHistoryDialog view={view} onClose={() => setDialog(null)} />}
         {(dialog === 'new' || dialog === 'copy' || dialog === 'rename') && <NameDialog mode={dialog} current={view?.roadmap ?? null} onClose={() => setDialog(null)} onDone={next => { setDialog(null); show(next); }} />}

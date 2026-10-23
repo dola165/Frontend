@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown, Eye, Inbox, MessageSquare, Play } from 'lucide-react';
+import { Bot, Check, ChevronDown, Eye, Inbox, MessageSquare, Play } from 'lucide-react';
 import { Button } from '../../design/primitives';
 import { useMediaSource } from '../../hooks/useMediaSource';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -10,6 +10,7 @@ import { MentionText } from './MentionInput';
 import { WorkComments } from './WorkComments';
 import { WorkMediaList } from './WorkMedia';
 import { ago } from './teamWorkWords';
+import { taskAsText } from './planAsText';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
 const namesOf = (copy: Copy, people: Person[], me: number | null) => people.map(person => person.id === me ? copy('you', 'თქვენ') : person.name ?? '—').join(', ');
@@ -31,6 +32,7 @@ function About({ detail, onPut }: { detail: Detail; onPut: (detail: Detail) => v
     const id = useId();
     const [draft, setDraft] = useState<string | null>(null);
     const [error, setError] = useState('');
+    const [copied, setCopied] = useState(false);
     const save = async () => {
         if (draft === null) return;
         setError('');
@@ -41,7 +43,8 @@ function About({ detail, onPut }: { detail: Detail; onPut: (detail: Detail) => v
         <h3 className="tw-finding__title">{detail.item.title}</h3>
         {draft === null ? <>
             {detail.item.description ? <p className="tw-finding__purpose">{detail.item.description}</p> : <p className="gk-faint tw-finding__purpose">{copy('Nobody has written what it’s for yet.', 'რისთვისაა, ჯერ არავის დაუწერია.')}</p>}
-            <span><button type="button" className="tw-link-button" onClick={() => setDraft(detail.item.description ?? '')}>{detail.item.description ? copy('Edit', 'რედაქტირება') : copy('Write what it’s for', 'დაწერეთ რისთვისაა')}</button></span>
+            <span className="tw-row-actions"><button type="button" className="tw-link-button" onClick={() => setDraft(detail.item.description ?? '')}>{detail.item.description ? copy('Edit', 'რედაქტირება') : copy('Write what it’s for', 'დაწერეთ რისთვისაა')}</button>
+                <button type="button" className="tw-link-button" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, window.location.href)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</button></span>
         </> : <form className="tw-field" onSubmit={event => { event.preventDefault(); void save(); }}>
             <label htmlFor={id}>{copy('What it’s for', 'რისთვისაა')}</label>
             <textarea id={id} className="gk-input" rows={3} maxLength={400} autoFocus value={draft} onChange={event => setDraft(event.target.value)} />

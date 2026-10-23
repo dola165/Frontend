@@ -5,13 +5,14 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { PASTE_EXAMPLE, pasteIntoRoadmap, type PasteLine, type PasteResult, type RoadmapView } from './api';
 
-const ACTIONS: Record<PasteLine['action'], [string, string]> = { NEW: ['New', 'ახალი'], UPDATED: ['Updated', 'განახლდა'], MOVED: ['Moved', 'გადავიდა'], UNCHANGED: ['Same', 'იგივე'] };
+const ACTIONS: Record<PasteLine['action'], [string, string]> = { NEW: ['New', 'ახალი'], UPDATED: ['Updated', 'განახლდა'], MOVED: ['Moved', 'გადავიდა'], UNCHANGED: ['Same', 'იგივე'], DELETED: ['Deleted', 'წაიშლება'] };
 
 /**
  * Plain text from an AI (or anyone) turned into pieces of work: a preview of what it would do first, then apply.
- * Pieces match by name in this plan; nothing is ever deleted.
+ * Tasks match by name in this project; only lines marked [delete] delete. A new task whose name is already in another
+ * project is flagged, so a plan pasted twice does not quietly double.
  */
-export function PasteDialog({ roadmapId, onClose, onApplied }: { roadmapId: number; onClose: () => void; onApplied: (view: RoadmapView) => void }) {
+export function PasteDialog({ roadmapId, elsewhere, onClose, onApplied }: { roadmapId: number; elsewhere: Map<string, string>; onClose: () => void; onApplied: (view: RoadmapView) => void }) {
     const copy = useJourneyCopy();
     const id = useId();
     const [text, setText] = useState('');
@@ -29,13 +30,15 @@ export function PasteDialog({ roadmapId, onClose, onApplied }: { roadmapId: numb
     const summary = preview && [
         preview.created && copy(`${preview.created} new`, `${preview.created} ახალი`),
         preview.updated && copy(`${preview.updated} updated`, `${preview.updated} განახლდება`),
-        preview.moved && copy(preview.moved === 1 ? '1 part moved' : `${preview.moved} parts moved`, `${preview.moved} ნაწილი გადავა`),
+        preview.moved && copy(preview.moved === 1 ? '1 stage moved' : `${preview.moved} stages moved`, `${preview.moved} ეტაპი გადავა`),
+        preview.deleted && copy(`${preview.deleted} deleted`, `${preview.deleted} წაიშლება`),
         preview.unchanged && copy(`${preview.unchanged} the same`, `${preview.unchanged} იგივე`),
     ].filter(Boolean).join(', ');
-    const changes = preview ? preview.created + preview.updated + preview.moved : 0;
+    const changes = preview ? preview.created + preview.updated + preview.moved + (preview.deleted ?? 0) : 0;
+    const doubled = preview?.lines.filter(line => line.action === 'NEW' && !line.parent && elsewhere.has(line.title.trim().toLowerCase())) ?? [];
     return <Dialog open size="lg" className="tw-dialog" title={copy('Paste from AI', 'ჩასმა AI-დან')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        description={copy('One piece per line: - [status] Name | started 20 Oct | ends ~2 weeks | Beqa | 70%. Two spaces before the dash make it a part. Nothing is deleted.',
-            'თითო საქმე თითო ხაზზე: - [სტატუსი] სახელი | started 20 Oct | ends ~2 weeks | ბექა | 70%. ტირემდე ორი გამოტოვება ნაწილს ნიშნავს. არაფერი იშლება.')}
+        description={copy('One piece per line: - [status] Name | started 20 Oct | ends ~2 weeks | Beqa | 70%. Two spaces before the dash make it a stage. [delete] removes a task.',
+            'თითო საქმე თითო ხაზზე: - [სტატუსი] სახელი | started 20 Oct | ends ~2 weeks | ბექა | 70%. ტირემდე ორი გამოტოვება ეტაპს ნიშნავს. [delete] საქმეს წაშლის.')}
         footer={<>
             <Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button>
             {preview ? <><Button onClick={() => setPreview(null)}>{copy('Back to the text', 'ტექსტზე დაბრუნება')}</Button>
@@ -48,7 +51,9 @@ export function PasteDialog({ roadmapId, onClose, onApplied }: { roadmapId: numb
                 <span className="tw-paste__action">{copy(...ACTIONS[line.action])}</span>
                 <span className="tw-paste__title">{line.parent && <span className="gk-faint">{line.parent} › </span>}{line.title}</span>
                 {line.detail && <span className="gk-faint">{line.detail}</span>}
+                {line.action === 'NEW' && !line.parent && elsewhere.has(line.title.trim().toLowerCase()) && <span className="tw-paste__doubled">{copy(`Already in ${elsewhere.get(line.title.trim().toLowerCase())}`, `უკვე არის: ${elsewhere.get(line.title.trim().toLowerCase())}`)}</span>}
             </li>)}</ol>
+            {doubled.length > 0 && <p className="gk-notice gk-notice--warning" role="status">{copy(`${doubled.length === 1 ? '1 new task has' : `${doubled.length} new tasks have`} the name of a task in another project. Applying makes a second copy; to update the existing one, paste into its project instead.`, `${doubled.length} ახალ საქმეს სხვა პროექტის საქმის სახელი აქვს. გამოყენება მეორე ასლს შექმნის; არსებულის განსაახლებლად ჩასვით მის პროექტში.`)}</p>}
             {preview.problems.length > 0 && <ul className="gk-notice gk-notice--warning tw-paste__problems">{preview.problems.map(problem => <li key={problem}>{problem}</li>)}</ul>}
         </div> : <div className="tw-details">
             <label htmlFor={id} className="gk-visually-hidden">{copy('The work, as text', 'საქმეები ტექსტად')}</label>

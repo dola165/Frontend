@@ -42,3 +42,29 @@ export function planAsText(view: RoadmapView, details: Map<number, Detail>) {
     }
     return lines.join('\n');
 }
+
+/**
+ * One task (or finding) as a brief for Claude or Codex: what it is, where it stands, its stages, the last comments
+ * and its files, a link back, and how to answer so the reply pastes straight into Paste from AI.
+ */
+export function taskAsText(detail: Detail, link: string, project?: string) {
+    const item = detail.item;
+    const lines = [
+        `Team work ${item.parentId != null ? 'stage' : 'task'}: ${item.title}`,
+        `Where it stands: ${STATUS[item.status]}, ${item.percent}%${item.small ? ', a small fix' : ''}${project ? `, in the project "${project}"` : ''}`,
+        `Link: ${link}`,
+    ];
+    if (item.description) lines.push(`What it is for: ${oneLine(item.description)}`);
+    if (item.step) lines.push(`Current step: ${oneLine(item.step)}`);
+    if (detail.parts.length) lines.push('Stages:', ...detail.parts.map(part => `- [${STATUS[part.status]}] ${part.title} (${part.percent}%)`));
+    if (detail.comments.length) lines.push('Comments:', ...detail.comments.slice(-10).map(comment => `- ${comment.author?.name ?? 'Someone'}, ${comment.createdAt.slice(0, 10)}: ${oneLine(comment.body)}`));
+    if (detail.media.length) lines.push(`Files (open the link to see them): ${detail.media.map(media => `${media.kind === 'VIDEO' ? 'video' : 'picture'} ${media.url.split('/').pop()}`).join(', ')}`);
+    lines.push('',
+        'Please look into this in the GrassKickZ repositories (frontend github.com/dola165/Frontend, backend github.com/dola165/GrassKickZ, live line codex/real-backend-integration-20261017): fix it or say what is needed, on a branch of its own, without deploying.',
+        'When you are done, end your answer with a block I can paste into Team work\'s Paste from AI to update this task, for example:',
+        ...(project ? [`plan: ${project}`] : []),
+        `- [in progress] ${item.title} | 60% | desc: what was done and what is left`,
+        '  - [finished] A stage you completed',
+        'Mark a task or stage [delete] only if it should go.');
+    return lines.join('\n');
+}

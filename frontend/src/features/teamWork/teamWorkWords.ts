@@ -50,3 +50,10 @@ export function endWords(copy: Copy, end: WorkEnd) {
     if (end.kind === 'POSSIBLY' && end.date) return copy(`possibly ${monthName(copy, day(end.date).getMonth())}`, `შესაძლოა ${monthName(copy, day(end.date).getMonth())}`);
     return copy('don’t know', 'არ ვიცით');
 }
+
+/** Progress as people estimate it; the percent behind each word is what the bar shows. */
+export const ESTIMATES: [percent: number, en: string, ka: string][] = [
+    [0, 'Not started', 'არ დაწყებულა'], [25, 'Started', 'დაწყებულია'], [50, 'Halfway', 'ნახევარზე'], [75, 'Nearly done', 'თითქმის მზადაა'], [100, 'Done', 'მზადაა'],
+];
+/** "Halfway" for an estimate, "60%" for an exact percent. */
+export const progressWords = (copy: Copy, percent: number) => { const found = ESTIMATES.find(([value]) => value === percent); return found ? copy(found[1], found[2]) : `${percent}%`; };

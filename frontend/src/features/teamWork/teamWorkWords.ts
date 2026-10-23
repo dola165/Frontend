@@ -31,6 +31,12 @@ export const isoDay = (date: Date) => `${date.getFullYear()}-${String(date.getMo
 export const shortDate = (copy: Copy, date: Date) => `${date.getDate()} ${copy(MONTHS_EN[date.getMonth()], MONTHS_KA[date.getMonth()])}`;
 export const monthName = (copy: Copy, month: number) => copy(MONTHS_EN_LONG[month], MONTHS_KA_LONG[month]);
 
+/** Who made a change: the person, or "Dola for Luka" when Agent Dola made it for them after they approved its preview. */
+export const madeBy = (copy: Copy, name: string | null | undefined, byDola?: boolean) => {
+    const who = name ?? copy('Someone', 'ვიღაც');
+    return byDola ? copy(`Dola for ${who}`, `დოლა — ${who}`) : who;
+};
+
 /** "now", "today", "yesterday", "3 days ago", then the date: how long ago something was touched. */
 export function ago(copy: Copy, value: string, now = new Date()) {
     const at = new Date(value);

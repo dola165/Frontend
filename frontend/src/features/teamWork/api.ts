@@ -37,9 +37,11 @@ export interface WorkItem {
 export interface WorkUpdate {
     id: number; author: Person | null; at: string; previousStatus: WorkStatus | null; status: WorkStatus | null;
     previousPercent: number | null; percent: number | null; message: string | null;
+    /** Done by Agent Dola for the author, after they approved its preview. */
+    byDola?: boolean;
 }
 export interface WorkMedia { id: number; kind: 'IMAGE' | 'VIDEO'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean }
-export interface WorkComment { id: number; author: Person | null; body: string; createdAt: string; editedAt: string | null; canEdit: boolean }
+export interface WorkComment { id: number; author: Person | null; body: string; createdAt: string; editedAt: string | null; canEdit: boolean; byDola?: boolean }
 export interface WorkSwitch { itemId: number; title: string; at: string }
 export interface Board { items: WorkItem[]; trail: WorkSwitch[]; canManageTeam: boolean }
 /** A task opened: its history, steps, questions, the live commits naming its key, files and comments. */
@@ -51,7 +53,7 @@ export interface Plan {
     id: number; name: string; copiedFrom: number | null; copiedFromName: string | null; version: number; taskCount: number; updatedBy: Person | null; updatedAt: string; createdAt: string;
     status: PlanStatus; percent: number; inProgress: number; toDo: number; done: number; needsYou: number; nextTask: string | null;
 }
-export interface PlanChange { id: number; author: Person | null; at: string; message: string }
+export interface PlanChange { id: number; author: Person | null; at: string; message: string; byDola?: boolean }
 export interface WorkNode { item: WorkItem; steps: WorkItem[] }
 export interface PlanView { plan: Plan; tasks: WorkNode[]; changes: PlanChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
 export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean }

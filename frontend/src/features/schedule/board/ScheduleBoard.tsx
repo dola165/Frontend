@@ -2,12 +2,13 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 import { CalendarDays, ChevronLeft, ChevronRight, Columns3, List as ListIcon, Plus, Repeat2, type LucideIcon } from 'lucide-react';
-import { Button, FixtureRow, List, Panel, Skeleton, type FixtureTone } from '../../../design/primitives';
+import { Button, FixtureRow, Skeleton, type FixtureTone } from '../../../design/primitives';
 import { Segmented } from '../../../design/Tabs';
 import { formatTime } from '../../../utils/formatting';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { activityColors, activityIcons, outing } from '../activityIcons';
 import type { ScheduleEventType } from '../api';
+import { AgendaDays } from './AgendaDays';
 import { addDays, dayKey, startOfWeek, type BoardPeriod, type BoardView } from './scheduleRange';
 import { useScheduleDates } from './useScheduleDates';
 import './schedule-board.css';
@@ -187,15 +188,13 @@ function MonthDay({ day, inMonth, goTo, byDay, today, dates, copy, onCreateAt, o
 function Agenda({ days, byDay, today, dates, copy }: Shared & { days: Date[] }) {
     const shown = days.filter(day => byDay.has(dayKey(day)));
     if (!shown.length) return <p className="gk-board__quiet" role="status">{copy('Nothing more planned in this period.', 'ამ პერიოდში მეტი არაფერია დაგეგმილი.')}</p>;
-    return <div className="gk-board__agenda">{shown.map(day => {
+    return <AgendaDays days={shown.map(day => {
         const title = dayTitle(day, { today, dates, copy });
-        return <section key={dayKey(day)} className="gk-board__day" aria-label={title}>
-            <h4 className="gk-board__day-title" data-today={dayKey(day) === today || undefined}>{title}</h4>
-            <Panel flush><List label={title}>{byDay.get(dayKey(day))!.map(entry => <FixtureRow key={entry.key} tone={entry.cancelled ? 'neutral' : entry.tone}
+        return { key: dayKey(day), title, label: title, today: dayKey(day) === today,
+            rows: byDay.get(dayKey(day))!.map(entry => <FixtureRow key={entry.key} tone={entry.cancelled ? 'neutral' : entry.tone}
                 icon={symbolOf(entry)} iconColor={colourOf(entry)} time={formatTime(entry.startsAt)} day={sameDay(entry) ? copy(`to ${formatTime(entry.endsAt!)}`, `${formatTime(entry.endsAt!)}-მდე`) : undefined}
-                title={entry.title} meta={entry.meta} trail={entry.trail} to={entry.to} onClick={entry.to ? undefined : entry.onOpen} label={entry.label} />)}</List></Panel>
-        </section>;
-    })}</div>;
+                title={entry.title} meta={entry.meta} trail={entry.trail} to={entry.to} onClick={entry.to ? undefined : entry.onOpen} label={entry.label} />) };
+    })} />;
 }
 
 /** What a card says: the time line with the activity's symbol, a title of up to two lines, where and its state. */

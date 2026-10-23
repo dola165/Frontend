@@ -3,7 +3,7 @@
 .gk .tw-main { display: flex; flex-direction: column; gap: var(--gk-5); min-width: 0; }
 .gk .tw-side { position: sticky; top: calc(var(--app-header-height, 64px) + var(--gk-4)); }
 .gk .tw-side ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.gk .tw-side li[data-place='updates'] { margin-top: var(--gk-2); padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+.gk .tw-side li[data-place='changes'] { margin-top: var(--gk-2); padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
 .gk .tw-side button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-md); font-weight: 600; text-align: left; cursor: pointer; }
 .gk .tw-side button:hover { background: var(--gk-hover); color: var(--gk-text); }
 .gk .tw-side button[aria-current='page'] { background: var(--gk-accent-soft); color: var(--gk-text); }
@@ -19,14 +19,14 @@
 .gk .tw-heading .gk-faint { font-weight: 500; }
 .gk .tw-heading .tw-link-button { margin-left: var(--gk-2); font-weight: 600; }
 
-/* Groups: weeks (made from when tasks were added) and projects, as small boxes with counts only. */
+/* Groups: weeks (made from when tasks were added) and plans, as small boxes with counts only. */
 .gk .tw-groups { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: var(--gk-2); }
 .gk .tw-group { display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; min-height: 64px; padding: 10px 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s var(--gk-ease); }
 .gk .tw-group:hover { border-color: var(--gk-line-strong); }
 .gk .tw-group[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); background: var(--gk-accent-soft); }
 .gk .tw-group__top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .gk .tw-group__top > svg { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); }
-.gk .tw-group[data-kind='project'] .tw-group__top > svg { color: var(--gk-info); }
+.gk .tw-group[data-kind='plan'] .tw-group__top > svg { color: var(--gk-info); }
 .gk .tw-group__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-md); font-weight: 650; }
 .gk .tw-group__counts { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .tw-group__counts strong { font-weight: 600; color: var(--gk-text-2); }
@@ -35,7 +35,7 @@
 .gk .tw-group--new:hover { color: var(--gk-text); }
 .gk .tw-group--new svg { width: 16px; height: 16px; }
 
-/* A task is a single card; pressed, it spans the row and shows its details, with stages only on big tasks. */
+/* A task is a single card; pressed, it spans the row and shows its details, with steps only on big tasks. */
 .gk .tw-tasks { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: row dense; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: var(--gk-2); }
 .gk .tw-task { min-width: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
 .gk .tw-task:hover, .gk .tw-task[data-open] { border-color: var(--gk-line-strong); }
@@ -54,9 +54,9 @@
 .gk .tw-task__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); }
 .gk .tw-task__meta { font-size: var(--gk-fs-xs); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gk .tw-task__body { display: flex; flex-direction: column; gap: var(--gk-2); padding: 0 12px 12px; }
-.gk .tw-task .tw-piece { margin: 0; }
-.gk .tw-task__stage { display: flex; flex-direction: column; gap: 6px; padding-left: var(--gk-4); border-left: 2px solid var(--gk-line); }
-.gk .tw-task__stage-title { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 600; }
+.gk .tw-task .tw-task { margin: 0; }
+.gk .tw-task__step { display: flex; flex-direction: column; gap: 6px; padding-left: var(--gk-4); border-left: 2px solid var(--gk-line); }
+.gk .tw-task__step-title { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 600; }
 
 /* Add to plans: one big dashed place to drop into. */
 .gk .tw-drop { display: flex; flex-direction: column; gap: var(--gk-2); }
@@ -126,7 +126,7 @@
     .gk .tw-shell { grid-template-columns: minmax(0, 1fr); gap: var(--gk-3); }
     .gk .tw-side { position: static; overflow-x: auto; scrollbar-width: none; }
     .gk .tw-side ul { flex-direction: row; gap: 4px; }
-    .gk .tw-side li[data-place='updates'] { margin: 0; padding: 0; border: 0; }
+    .gk .tw-side li[data-place='changes'] { margin: 0; padding: 0; border: 0; }
     .gk .tw-side button { width: auto; min-height: 44px; white-space: nowrap; }
     .gk .tw-side__label { overflow: visible; }
 }
@@ -134,7 +134,7 @@
     .gk .tw-drop__zone { min-height: 150px; }
     .gk .tw-drop__form { grid-template-columns: minmax(0, 1fr); }
     .gk .tw-drop__files li { width: calc(33.3% - var(--gk-2)); }
-    .gk .tw-task__stage { padding-left: var(--gk-2); }
+    .gk .tw-task__step { padding-left: var(--gk-2); }
 }
 
 /* The status key doubles as the filter. */
@@ -156,12 +156,12 @@
 @keyframes tw-rise { from { opacity: 0; transform: translateY(-4px); } }
 @keyframes tw-fade { from { opacity: 0; } }
 .gk .tw-main { animation: tw-fade .22s var(--gk-ease) both; }
-.gk .tw-task__body, .gk .tw-task__stage, .gk .tw-finding__open { animation: tw-rise .2s var(--gk-ease) both; }
+.gk .tw-task__body, .gk .tw-task__step, .gk .tw-finding__open { animation: tw-rise .2s var(--gk-ease) both; }
 .gk .tw-menu__list, .gk .tw-mention__list { animation: tw-rise .14s var(--gk-ease) both; transform-origin: top; }
-.gk .tw-side button, .gk .tw-names button, .gk .tw-link-button, .gk .tw-back, .gk .tw-parts button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .tw-side button, .gk .tw-names button, .gk .tw-link-button, .gk .tw-back, .gk .tw-steps button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
 .gk .tw-task, .gk .tw-finding, .gk .tw-group { transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease), transform .15s var(--gk-ease); }
 .gk .tw-task:not([data-open]):hover, .gk .tw-finding:not([data-open]):hover, .gk .tw-group:hover { box-shadow: var(--gk-elevation); transform: translateY(-1px); }
-.gk .tw-task__bar > span, .gk .tw-steps__bar > span { transition: width .35s var(--gk-ease); }
+.gk .tw-task__bar > span, .gk .tw-order__bar > span { transition: width .35s var(--gk-ease); }
 .gk .tw-task__top > svg { transition: transform .2s var(--gk-ease); }
 @media (prefers-reduced-motion: reduce) {
     .gk .tw-shell *, .gk .tw-main { animation: none !important; transition: none !important; transform: none !important; }
@@ -175,7 +175,7 @@
 .gk .tw-estimate button[aria-checked='true'], .gk .tw-estimate button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); background: var(--gk-accent-soft); color: var(--gk-text); font-weight: 600; }
 .gk .tw-estimate__exact { border-style: dashed !important; }
 .gk .tw-quick__parts { margin: 0; font-size: var(--gk-fs-sm); }
-.gk .tw-project-filter { width: auto; min-height: 30px; max-width: 200px; font-size: var(--gk-fs-sm); }
+.gk .tw-plan-filter { width: auto; min-height: 30px; max-width: 200px; font-size: var(--gk-fs-sm); }
 .gk .tw-paste__doubled { color: var(--gk-warning); font-weight: 600; }
 .gk .tw-link-button svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
 .gk .tw-quick { flex-direction: column; align-items: stretch; gap: var(--gk-3); }

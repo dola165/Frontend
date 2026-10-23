@@ -54,7 +54,7 @@ function About({ detail, onPut }: { detail: Detail; onPut: (detail: Detail) => v
     </div>;
 }
 
-/** A short menu behind one button: "Make it a task" on its own or in a project. */
+/** A short menu behind one button: "Make it a task" on its own or in a plan. */
 export function PickMenu({ label, icon, options, disabled, onPick }: { label: string; icon: ReactNode; options: { key: string; label: string }[]; disabled?: boolean; onPick: (key: string) => void }) {
     const [open, setOpen] = useState(false);
     const box = useRef<HTMLDivElement>(null);

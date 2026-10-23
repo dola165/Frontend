@@ -3,9 +3,9 @@ import { Hourglass, Inbox, Plus, UploadCloud, Video, X } from 'lucide-react';
 import { Button, PageHeader } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { addComment, addPicture, addVideo, changeRoadmap, changeWork, createRoadmap, createWork, VIDEO_LIMIT_MB, VIDEO_TYPES, type Detail, type Person, type RoadmapView, type WorkItem } from './api';
+import { addComment, addPicture, addVideo, changePlan, changeWork, createPlan, createWork, VIDEO_LIMIT_MB, VIDEO_TYPES, type Detail, type Person, type PlanView, type WorkItem } from './api';
 import { FindingCard } from './FindingCard';
-import { INTAKE, NOTE, PENDING } from './findings';
+import { IDEAS, NOTE, WAITING } from './findings';
 import { MentionInput } from './MentionInput';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
@@ -33,7 +33,7 @@ function FilePreview({ file }: { file: File }) {
  * The big "Drop it here": drag pictures and videos in, or choose them; then a name (taken from the first file)
  * and an optional comment where "@" tags who should look, and they arrive as one finding.
  */
-function DropZone({ team, ensureIntake, onDropped }: { team: Person[]; ensureIntake: () => Promise<number>; onDropped: () => void }) {
+function DropZone({ team, ensureIdeas, onDropped }: { team: Person[]; ensureIdeas: () => Promise<number>; onDropped: () => void }) {
     const copy = useJourneyCopy();
     const input = useRef<HTMLInputElement>(null);
     const nameId = useId(), purposeId = useId(), commentId = useId();
@@ -57,8 +57,8 @@ function DropZone({ team, ensureIntake, onDropped }: { team: Person[]; ensureInt
         if (!name.trim() || files.length === 0 || progress !== null) return;
         setError(''); setProgress(copy('Sending…', 'იგზავნება…'));
         try {
-            const roadmapId = await ensureIntake();
-            const made = await createWork({ title: name.trim(), status: 'PLANNED', roadmapId, ...(purpose.trim() ? { description: purpose.trim() } : {}) });
+            const planId = await ensureIdeas();
+            const made = await createWork({ title: name.trim(), status: 'PLANNED', planId, ...(purpose.trim() ? { description: purpose.trim() } : {}) });
             if (comment.trim()) await addComment(made.item.id, comment.trim());
             for (const [index, file] of files.entries()) {
                 const label = files.length > 1 ? copy(`Uploading ${index + 1} of ${files.length}…`, `იტვირთება ${index + 1} / ${files.length}…`) : copy('Uploading…', 'იტვირთება…');
@@ -109,36 +109,36 @@ function DropZone({ team, ensureIntake, onDropped }: { team: Person[]; ensureInt
 /**
  * Add to plans: anyone on the team drops what they found, a picture or a video with a name and a comment. Others
  * mark it seen, acknowledge it (they keep it in mind; otherwise the colleague calls them) or comment, and push what
- * matters to Pending, which counts as acknowledging it. Nothing here goes straight onto a project. Newest first.
+ * matters to Waiting, which counts as acknowledging it. Nothing here goes straight onto a plan. Newest first.
  */
-export function AddToPlans({ intake, pending, details, team, me, open, onOpen, onPut, onChanged }: {
-    intake: RoadmapView | undefined; pending: RoadmapView | undefined; details: Map<number, Detail>; team: Person[]; me: number | null; open: number | null;
+export function IdeasPage({ ideas, waiting, details, team, me, open, onOpen, onPut, onChanged }: {
+    ideas: PlanView | undefined; waiting: PlanView | undefined; details: Map<number, Detail>; team: Person[]; me: number | null; open: number | null;
     onOpen: (id: number | null) => void; onPut: (detail: Detail) => void; onChanged: () => void;
 }) {
     const copy = useJourneyCopy();
     const [busy, setBusy] = useState<number | null>(null);
     const [error, setError] = useState('');
-    const items = (intake?.pieces ?? []).map(node => node.item).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const ensureIntake = async () => intake ? intake.roadmap.id : (await createRoadmap(INTAKE)).roadmap.id;
+    const items = (ideas?.tasks ?? []).map(node => node.item).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const ensureIdeas = async () => ideas ? ideas.plan.id : (await createPlan(IDEAS)).plan.id;
     const push = async (item: WorkItem) => {
-        if (!intake) return;
+        if (!ideas) return;
         setBusy(item.id); setError('');
         try {
             onPut(await changeWork(item.id, { version: details.get(item.id)?.item.version ?? item.version, update: NOTE.pushed }));
-            const target = pending ?? await createRoadmap(PENDING);
-            await changeRoadmap(target.roadmap.id, { version: target.roadmap.version, order: [...target.pieces.map(node => node.item.id), item.id] });
-            await changeRoadmap(intake.roadmap.id, { version: intake.roadmap.version, order: intake.pieces.map(node => node.item.id).filter(id => id !== item.id) });
-        } catch (failure) { setError(extractApiErrorMessage(failure, copy('It couldn’t be moved to Pending.', 'მოლოდინში ვერ გადავიდა.'))); }
+            const target = waiting ?? await createPlan(WAITING);
+            await changePlan(target.plan.id, { version: target.plan.version, order: [...target.tasks.map(node => node.item.id), item.id] });
+            await changePlan(ideas.plan.id, { version: ideas.plan.version, order: ideas.tasks.map(node => node.item.id).filter(id => id !== item.id) });
+        } catch (failure) { setError(extractApiErrorMessage(failure, copy('It couldn’t be moved to Waiting.', 'მოლოდინში ვერ გადავიდა.'))); }
         finally { setBusy(null); onChanged(); }
     };
     return <>
-        <PageHeader title={copy('Add to plans', 'გეგმებში დამატება')} subtitle={copy('What the team found: a bug, an idea, a screen to change', 'რაც გუნდმა იპოვა: ხარვეზი, იდეა, შესაცვლელი ეკრანი')} />
-        <DropZone team={team} ensureIntake={ensureIntake} onDropped={onChanged} />
+        <PageHeader title={copy('Ideas', 'იდეები')} subtitle={copy('What the team found: a bug, an idea, a screen to change', 'რაც გუნდმა იპოვა: ხარვეზი, იდეა, შესაცვლელი ეკრანი')} />
+        <DropZone team={team} ensureIdeas={ensureIdeas} onDropped={onChanged} />
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         <section className="tw-block" aria-labelledby="tw-findings">
             <h2 id="tw-findings" className="tw-heading"><Inbox aria-hidden="true" />{copy('Findings', 'მიგნებები')} <span className="gk-faint gk-num">{items.length}</span></h2>
             {items.length ? <ul className="tw-findings">{items.map(item => <FindingCard key={item.id} item={item} detail={details.get(item.id)} team={team} me={me} open={open === item.id} onOpen={onOpen} onPut={onPut}
-                next={<Button size="sm" disabled={busy !== null} onClick={() => void push(item)}><Hourglass aria-hidden="true" />{copy('Push to pending', 'მოლოდინში გადატანა')}</Button>} />)}</ul>
+                next={<Button size="sm" disabled={busy !== null} onClick={() => void push(item)}><Hourglass aria-hidden="true" />{copy('Push to waiting', 'მოლოდინში გადატანა')}</Button>} />)}</ul>
                 : <p className="gk-muted tw-quiet">{copy('Nothing here yet.', 'აქ ჯერ არაფერია.')}</p>}
         </section>
     </>;

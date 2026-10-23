@@ -53,7 +53,7 @@ function MyVersion({ name, repo, value, onChange }: { name: RepoKey; repo: Repo 
  * changes this computer is missing, and a ready-made message that has Claude or Codex bring the computer up to date
  * safely and say whether it already was. Never calls GitHub.
  */
-export function UpdatesView() {
+export function WhatChangedPage() {
     const copy = useJourneyCopy();
     const [backend, setBackend] = useState<Repo | null>(null);
     const [mine, setMine] = useState<Mine>(readMine);
@@ -76,9 +76,9 @@ export function UpdatesView() {
     return <div className="tw-updates">
         <div className="tw-plan-head">
             <div className="tw-plan-head__title">
-                <h1>{copy('Stay up to date', 'განახლებები')}</h1>
-                <span className="tw-plan-head__people">{copy(`Both projects live on the branch ${BRANCH}. Pick the version your computer is on to see what you are missing, then copy the message below to Claude or Codex.`,
-                    `ორივე პროექტი ცხოვრობს ბრენჩზე ${BRANCH}. აირჩიეთ თქვენი კომპიუტერის ვერსია, ნახეთ რა გაკლიათ და ქვემოთ მოცემული ტექსტი გადაეცით Claude-ს ან Codex-ს.`)}</span>
+                <h1>{copy('What changed', 'რა შეიცვალა')}</h1>
+                <span className="tw-plan-head__people">{copy(`Both plans live on the branch ${BRANCH}. Pick the version your computer is on to see what you are missing, then copy the message below to Claude or Codex.`,
+                    `ორივე გეგმა ცხოვრობს ბრენჩზე ${BRANCH}. აირჩიეთ თქვენი კომპიუტერის ვერსია, ნახეთ რა გაკლიათ და ქვემოთ მოცემული ტექსტი გადაეცით Claude-ს ან Codex-ს.`)}</span>
             </div>
         </div>
 
@@ -97,7 +97,7 @@ export function UpdatesView() {
                 <MyVersion name="backend" repo={backend} value={mine.backend ?? ''} onChange={value => choose('backend', value)} />
                 <MyVersion name="web" repo={web} value={mine.web ?? ''} onChange={value => choose('web', value)} />
             </div>
-            <p className="gk-faint tw-paste__help">{copy('Not sure? Run `git log -1 --oneline` in each project, or just send the message below: it checks for you.', 'არ იცით? გაუშვით `git log -1 --oneline` თითოეულ პროექტში, ან უბრალოდ გაგზავნეთ ქვემოთ მოცემული ტექსტი: ის თავად შეამოწმებს.')}</p>
+            <p className="gk-faint tw-paste__help">{copy('Not sure? Run `git log -1 --oneline` in each plan, or just send the message below: it checks for you.', 'არ იცით? გაუშვით `git log -1 --oneline` თითოეულ გეგმაში, ან უბრალოდ გაგზავნეთ ქვემოთ მოცემული ტექსტი: ის თავად შეამოწმებს.')}</p>
         </section>
 
         <section className="tw-section" aria-labelledby="tw-missing">

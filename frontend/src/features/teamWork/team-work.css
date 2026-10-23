@@ -1,4 +1,4 @@
-/* Team work: roadmaps as a tree with a time strip. Status is only a dot; one key line explains the colours. */
+/* Team work: plans as a tree with a time strip. Status is only a dot; one key line explains the colours. */
 .gk .tw-page { display: flex; flex-direction: column; gap: var(--gk-4); padding-block: var(--gk-6) var(--gk-12); }
 .gk .tw-page .gk-page-header { margin: 0; }
 .gk .tw-actions, .gk .tw-empty-actions, .gk .tw-row-actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
@@ -23,20 +23,20 @@
 
 
 
-/* A piece opened in place, under its row. */
-.gk .tw-piece { display: flex; flex-direction: column; gap: var(--gk-4); margin: 0 var(--gk-4) var(--gk-3) 38px; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-md); }
-.gk .tw-piece__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gk-3); }
-.gk .tw-piece__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
+/* A task opened in place, under its row. */
+.gk .tw-task { display: flex; flex-direction: column; gap: var(--gk-4); margin: 0 var(--gk-4) var(--gk-3) 38px; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-md); }
+.gk .tw-detail__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gk-3); }
+.gk .tw-detail__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
 .gk .tw-facts { display: flex; flex-wrap: wrap; gap: var(--gk-2) var(--gk-6); margin: 0; }
 .gk .tw-facts dt { font-size: var(--gk-fs-xs); font-weight: 650; color: var(--gk-text-3); }
 .gk .tw-facts dd { margin: 0; color: var(--gk-text); }
-.gk .tw-piece__description, .gk .tw-piece__step { margin: 0; max-width: 72ch; color: var(--gk-text); white-space: pre-wrap; }
+.gk .tw-detail__description, .gk .tw-detail__step { margin: 0; max-width: 72ch; color: var(--gk-text); white-space: pre-wrap; }
 .gk .tw-section { display: flex; flex-direction: column; gap: var(--gk-2); }
 .gk .tw-section__title { margin: 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 650; color: var(--gk-text-2); }
-.gk .tw-parts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.gk .tw-parts button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 4px 6px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
-.gk .tw-parts button:hover { background: var(--gk-hover); }
-.gk .tw-parts__name { flex: 1; min-width: 0; }
+.gk .tw-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gk .tw-steps button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 4px 6px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .tw-steps button:hover { background: var(--gk-hover); }
+.gk .tw-steps__name { flex: 1; min-width: 0; }
 .gk .tw-edit { padding: var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-raised) 55%, var(--gk-surface)); }
 .gk .tw-save { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-2); }
 .gk .tw-save > .tw-field { flex: 1 1 260px; }
@@ -153,27 +153,27 @@
 .gk .tw-plan-head__people { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .tw-plan-head__title h1 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 
-/* Step by step: the plan's pieces in order, joined by a line, scrolled or swiped sideways. */
-.gk .tw-steps { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
-.gk .tw-steps__track { --tw-gap: 28px; list-style: none; margin: 0; padding: 4px 2px 12px; display: flex; gap: var(--tw-gap); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
-.gk .tw-steps__track > li { position: relative; flex: 0 0 232px; scroll-snap-align: start; }
-.gk .tw-steps__track > li + li::before { content: ''; position: absolute; top: 27px; right: 100%; width: var(--tw-gap); height: 2px; background: var(--gk-line-strong); }
-.gk .tw-steps__track > li[data-state='done'] + li::before { background: var(--gk-accent); }
-.gk .tw-steps__track button { display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 12px 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
-.gk .tw-steps__track button:hover { border-color: var(--gk-line-strong); }
-.gk .tw-steps__top { display: flex; align-items: center; gap: 8px; }
-.gk .tw-steps__number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gk-line-strong); background: var(--gk-surface); font-size: var(--gk-fs-sm); font-weight: 700; color: var(--gk-text-2); }
-.gk .tw-steps__number svg { width: 15px; height: 15px; }
-.gk .tw-steps__percent { margin-left: auto; font-size: var(--gk-fs-sm); font-weight: 650; }
-.gk .tw-steps__name { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.gk .tw-steps__bar { display: block; height: 4px; border-radius: 999px; background: var(--gk-raised); overflow: hidden; }
-.gk .tw-steps__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); }
-.gk .tw-steps__when { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
-.gk .tw-steps__track > li[data-state='done'] .tw-steps__number { border-color: var(--gk-accent); background: var(--gk-accent); color: var(--gk-surface); }
-.gk .tw-steps__track > li[data-state='current'] button { padding: 11px 13px; border: 2px solid color-mix(in srgb, var(--gk-info) 70%, var(--gk-line)); background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
-.gk .tw-steps__track > li[data-state='current'] .tw-steps__number { border-color: var(--gk-info); color: var(--gk-info); }
-.gk .tw-steps__track > li[data-state='later'] button { background: transparent; border-style: dashed; }
-.gk .tw-steps__track > li[data-state='later'] .tw-steps__name { color: var(--gk-text-2); font-weight: 500; }
+/* Step by step: the plan's tasks in order, joined by a line, scrolled or swiped sideways. */
+.gk .tw-order { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .tw-order__track { --tw-gap: 28px; list-style: none; margin: 0; padding: 4px 2px 12px; display: flex; gap: var(--tw-gap); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.gk .tw-order__track > li { position: relative; flex: 0 0 232px; scroll-snap-align: start; }
+.gk .tw-order__track > li + li::before { content: ''; position: absolute; top: 27px; right: 100%; width: var(--tw-gap); height: 2px; background: var(--gk-line-strong); }
+.gk .tw-order__track > li[data-state='done'] + li::before { background: var(--gk-accent); }
+.gk .tw-order__track button { display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 12px 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .tw-order__track button:hover { border-color: var(--gk-line-strong); }
+.gk .tw-order__top { display: flex; align-items: center; gap: 8px; }
+.gk .tw-order__number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gk-line-strong); background: var(--gk-surface); font-size: var(--gk-fs-sm); font-weight: 700; color: var(--gk-text-2); }
+.gk .tw-order__number svg { width: 15px; height: 15px; }
+.gk .tw-order__percent { margin-left: auto; font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk .tw-order__name { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .tw-order__bar { display: block; height: 4px; border-radius: 999px; background: var(--gk-raised); overflow: hidden; }
+.gk .tw-order__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); }
+.gk .tw-order__when { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .tw-order__track > li[data-state='done'] .tw-order__number { border-color: var(--gk-accent); background: var(--gk-accent); color: var(--gk-surface); }
+.gk .tw-order__track > li[data-state='current'] button { padding: 11px 13px; border: 2px solid color-mix(in srgb, var(--gk-info) 70%, var(--gk-line)); background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
+.gk .tw-order__track > li[data-state='current'] .tw-order__number { border-color: var(--gk-info); color: var(--gk-info); }
+.gk .tw-order__track > li[data-state='later'] button { background: transparent; border-style: dashed; }
+.gk .tw-order__track > li[data-state='later'] .tw-order__name { color: var(--gk-text-2); font-weight: 500; }
 
 /* The plan's "…" menu. */
 .gk .tw-menu { position: relative; }
@@ -205,12 +205,12 @@
 
 /* On a phone the step cards take most of the width and swipe. */
 @media (max-width: 640px) {
-    .gk .tw-steps__track > li { flex-basis: 78%; }
+    .gk .tw-order__track > li { flex-basis: 78%; }
     .gk .tw-version-pick { flex-direction: column; }
     .gk .tw-version-pick input { flex-basis: auto; }
-    .gk .tw-piece { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
-    .gk .tw-piece__head { flex-direction: column-reverse; }
-    .gk .tw-piece__tools { align-self: stretch; }
+    .gk .tw-task { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
+    .gk .tw-detail__head { flex-direction: column-reverse; }
+    .gk .tw-detail__tools { align-self: stretch; }
     .gk .tw-grid { grid-template-columns: minmax(0, 1fr); }
     .gk .tw-media__list li { width: calc(50% - var(--gk-3) / 2); }
     .gk .tw-media__list li.tw-media__video { width: 100%; }

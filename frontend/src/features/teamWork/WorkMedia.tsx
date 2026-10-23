@@ -38,7 +38,7 @@ function Player({ itemId, media }: { itemId: number; media: Media }) {
     </button>;
 }
 
-/** Videos and pictures under a piece: add, watch, open larger, remove (the uploader or a system admin). */
+/** Videos and pictures under a task: add, watch, open larger, remove (the uploader or a system admin). */
 export function WorkMediaList({ itemId, media, onChanged }: { itemId: number; media: Media[]; onChanged: (detail: Detail) => void }) {
     const copy = useJourneyCopy();
     const pictureInput = useRef<HTMLInputElement>(null);

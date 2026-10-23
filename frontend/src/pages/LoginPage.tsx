@@ -184,6 +184,7 @@ export const LoginPage = () => {
             }
         >
             {new URLSearchParams(location.search).get('passwordChanged') === '1' && <p role="status" className="mb-4 text-sm text-[var(--color-secondary)]">Sign in with your new password to continue.</p>}
+            {(location.state as { accountExists?: boolean } | null)?.accountExists && <p role="status" className="mb-4 text-sm font-semibold text-[var(--color-text)]">{t('auth.login.accountExists')}</p>}
             {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); }} /> : showQr ? (
                 <Suspense fallback={<div className="flex flex-col items-center gap-4 py-6"><Loader2 className="h-8 w-8 animate-spin text-[var(--fc-accent)]" /><p className="text-sm text-[var(--fc-text-secondary)]">Generating QR code…</p></div>}>
                     <QrLoginSection onBack={() => setShowQr(false)} />

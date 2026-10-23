@@ -36,6 +36,12 @@ import {
 
 type RegisterField = 'name' | 'email' | 'password' | 'dob';
 
+/** The backend's answer to an email that already has an account: a code, never who owns it. */
+const accountExists = (error: unknown) => {
+    const response = (error as { response?: { status?: number; data?: { code?: string } } } | null)?.response;
+    return response?.status === 409 && response.data?.code === 'ACCOUNT_EXISTS';
+};
+
 /**
  * One screen: name, email, password, date of birth and town. No role: what a person does in football is
  * chosen later and never decides access. A new account then goes to its first run (`/start`).
@@ -146,6 +152,15 @@ export const RegisterPage = () => {
             navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, true), { replace: true });
         } catch (requestError) {
             if (!installingSession && (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current))) return;
+            // A known email signs in instead of making a second account. Nothing about that account is shown.
+            if (!installingSession && accountExists(requestError)) {
+                if (ageFromDob(dob) < 18) { setFieldErrors({ email: t('auth.register.emailUsedMinor') }); return; }
+                setPassword('');
+                rememberAuthFlow({ email: normalizedEmail, nextPath, town, newAccount: false });
+                navigate(buildLoginPath(nextPath), { replace: true, state: { accountExists: true } });
+                return;
+            }
+
             const message = extractApiErrorMessage(requestError, t('auth.register.errSubmitFallback'));
             setError(message === 'Transactional email sender is not configured.' ? t('auth.register.emailUnavailable') : message);
         } finally {

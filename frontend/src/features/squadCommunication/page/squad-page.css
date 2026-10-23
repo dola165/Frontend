@@ -61,8 +61,6 @@
 @media (max-width: 420px) { .gk .sp-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .gk .sp-yours { background: var(--gk-accent-soft); color: var(--gk-accent); }
 .gk .sp-invite { display: flex; flex-direction: column; gap: var(--gk-3); }
-.gk .sp-invite__link { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
-.gk .sp-invite__link input { flex: 1 1 220px; min-width: 0; }
 .gk .sp-invite__manage { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 .gk .sp-invite__manage small { flex: 1 1 200px; }
 .gk .sp-invite__head { margin-top: var(--gk-2); font-size: var(--gk-fs-md); font-weight: 650; }
@@ -72,6 +70,16 @@
 .gk .sp-requests__text strong { font-weight: 650; }
 .gk .sp-requests__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
 .gk .sp-requests__group { margin-top: 4px; max-width: 240px; font-size: var(--gk-fs-sm); }
+/* The link to share: QR code beside Copy, WhatsApp and Print; Approve all beside the waiting list and in the notice. */
+.gk .sp-share { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); }
+.gk .sp-share__qr { flex: none; line-height: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); overflow: hidden; }
+.gk .sp-share__actions { display: flex; flex: 1 1 240px; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .sp-share__buttons { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .sp-invite__waiting { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .sp-approve-all { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .sp-approve-all__group { max-width: 220px; font-size: var(--gk-fs-sm); }
+.gk.sp-notice-actions, .gk .sp-notice-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); padding: var(--gk-2) var(--gk-4) var(--gk-3); }
+.gk .sp-done { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
 
 /* ---------------------------------------------------------------- grounds */
 .gk .sp-grounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }

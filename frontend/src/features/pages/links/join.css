@@ -1,0 +1,18 @@
+/* The squad join link (JoinPage): its own layout, so it never depends on the page editor's stylesheet. */
+.gk-join .gk-boxedit { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk-join .gk-boxedit__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk-join .gk-ghost__icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: var(--gk-r); background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk-join .gk-ghost__icon svg { width: 18px; height: 18px; }
+.gk-join .gk-join__question { margin: var(--gk-4) 0 var(--gk-3); font-size: var(--gk-fs-lg); font-weight: 700; }
+.gk-join .gk-join__lead { margin: var(--gk-3) 0; max-width: 60ch; }
+.gk-join .gk-join__note { margin-top: var(--gk-3); }
+.gk-join .gk-join__form { margin-top: var(--gk-4); }
+.gk-join .gk-join__date { display: block; max-width: 220px; }
+.gk-join .gk-join__consent { gap: var(--gk-2); align-items: flex-start; }
+.gk-join .gk-join__consent input { margin-top: 3px; }
+.gk-join .gk-join__squad { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); margin: var(--gk-4) 0 var(--gk-2); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); }
+.gk-join .gk-join__squad > .gk-cmatch__text { flex: 1 1 160px; min-width: 0; }
+.gk-join .gk-join__training { display: flex; align-items: flex-start; gap: var(--gk-2); flex: 1 1 200px; }
+.gk-join .gk-join__training > svg { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; color: var(--gk-accent); }
+.gk-join .gk-join__training > span { display: flex; flex-direction: column; min-width: 0; }
+.gk-join .gk-join__training small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }

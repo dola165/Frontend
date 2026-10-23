@@ -35,15 +35,23 @@
 .gk .tw-detail__id .tw-key-chip { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .tw-done__text { margin: 0; max-width: 72ch; white-space: pre-wrap; font-size: var(--gk-fs-md); }
 .gk .tw-questions__list, .gk .tw-linked__list, .gk .tw-commits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-2); }
-.gk .tw-question { display: flex; flex-direction: column; gap: 6px; padding: var(--gk-3); border: 1px solid color-mix(in srgb, var(--gk-warning) 45%, var(--gk-line)); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-warning) 7%, var(--gk-surface)); }
-.gk .tw-question[data-answered] { border-color: var(--gk-line); background: var(--gk-surface); }
-.gk .tw-question__text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-3); font-weight: 600; overflow-wrap: anywhere; }
-.gk .tw-question__who { font-weight: 500; font-size: var(--gk-fs-xs); }
-.gk .tw-question__answers { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
-.gk .tw-question__free { display: flex; flex: 1 1 240px; gap: var(--gk-2); }
-.gk .tw-question__free .gk-input { flex: 1; min-width: 0; }
+/* A question for Beqa, the same row on the task and in Needs you: the symbol hangs before the words, answers follow. */
+.gk .tw-question { display: flex; flex-direction: column; gap: 6px; }
+.gk .tw-question__text { margin: 0; padding-left: 21px; text-indent: -21px; font-weight: 600; overflow-wrap: anywhere; }
+.gk .tw-question__text svg { display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px; color: var(--gk-warning); }
+.gk .tw-question[data-answered] .tw-question__text svg { color: var(--gk-text-3); }
+.gk .tw-question__who { margin-left: var(--gk-2); font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); white-space: nowrap; }
+.gk .tw-question__answers, .gk .tw-question__answer { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-left: 21px; }
+.gk .tw-question__answer { align-items: baseline; gap: 2px var(--gk-2); }
+.gk .tw-question__free { display: flex; flex: 1 1 240px; gap: 6px; }
+.gk .tw-question__free .gk-input { flex: 1; min-width: 0; min-height: 32px; }
 .gk .tw-question__delete { margin-left: auto; }
-.gk .tw-question__answer { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--gk-2); }
+.gk .tw-question > .gk-notice { margin: 0 0 0 21px; }
+@media (min-width: 641px) {
+    .gk .tw-question { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px var(--gk-3); }
+    .gk .tw-question__answers, .gk .tw-question__answer { flex: 1 1 auto; padding-left: 0; }
+    .gk .tw-question > .gk-notice { flex-basis: 100%; }
+}
 .gk .tw-questions__ask { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--gk-3); align-items: end; }
 .gk .tw-questions__ask .tw-row-actions { grid-column: 1 / -1; }
 .gk .tw-linked__list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); min-height: 32px; }
@@ -68,6 +76,8 @@
 .gk .tw-paste__detail { flex-basis: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 640px) { .gk .tw-questions__ask { grid-template-columns: minmax(0, 1fr); } }
 .gk .tw-detail { display: flex; flex-direction: column; gap: var(--gk-4); margin: 0 var(--gk-4) var(--gk-3) 38px; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-md); }
+/* In the task dialog the dialog is the frame: no box inside the box. */
+.gk .tw-detail[data-framed] { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
 .gk .tw-detail__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gk-3); }
 .gk .tw-detail__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
 .gk .tw-facts { display: flex; flex-wrap: wrap; gap: var(--gk-2) var(--gk-6); margin: 0; }
@@ -154,6 +164,7 @@
 /* Paste from AI. */
 .gk .tw-paste__text { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: var(--gk-fs-sm); resize: vertical; }
 .gk .tw-paste__help { margin: 0; font-size: var(--gk-fs-sm); }
+.gk .tw-paste__tools { margin: 0; }
 .gk .tw-paste__summary { margin: 0; }
 .gk .tw-paste__lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .gk .tw-paste__lines li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-3); padding: 6px 0; border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
@@ -168,7 +179,8 @@
 .gk .tw-team__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .gk .tw-team__list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); min-height: 44px; padding: 4px 0; border-top: 1px solid var(--gk-line); }
 .gk .tw-team__list li:first-child { border-top: 0; }
-.gk .tw-team__who { flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-2); min-width: 0; font-size: var(--gk-fs-md); }
+.gk .tw-team { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .tw-team__who { flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--gk-2); min-width: 0; font-size: var(--gk-fs-md); }
 .gk .tw-team__who .gk-muted { font-size: var(--gk-fs-sm); }
 .gk .tw-team__add { display: flex; gap: var(--gk-2); margin-top: var(--gk-3); }
 .gk .tw-team__add .gk-input { flex: 1; min-width: 0; max-width: 360px; }
@@ -188,11 +200,6 @@
 .gk .tw-plan-head__title h1 { margin: 0; font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 700; overflow-wrap: anywhere; }
 .gk .tw-chip { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
 
-/* Names to filter by: all, the whole team, or one person. */
-.gk .tw-names { display: flex; flex-wrap: wrap; gap: 6px; }
-.gk .tw-names button { min-height: 32px; padding: 0 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
-.gk .tw-names button:hover { border-color: var(--gk-line-strong); color: var(--gk-text); }
-.gk .tw-names button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); background: var(--gk-accent-soft); color: var(--gk-text); }
 .gk .tw-plan-head__people { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .tw-plan-head__title h1 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 
@@ -230,28 +237,21 @@
 /* Stay up to date: the latest version, your version, what you are missing, and the message to update. */
 .gk .tw-updates { display: flex; flex-direction: column; gap: var(--gk-5); }
 .gk .tw-latest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--gk-3); }
-.gk .tw-latest { display: flex; flex-direction: column; gap: 4px; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); min-width: 0; }
+.gk .tw-latest { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); min-width: 0; }
 .gk .tw-latest__name { font-size: var(--gk-fs-md); font-weight: 650; }
 .gk .tw-latest__commit { font-size: var(--gk-fs-md); color: var(--gk-text); overflow-wrap: anywhere; }
-.gk .tw-latest code, .gk .tw-changes code { font-size: var(--gk-fs-sm); }
+.gk .tw-latest code { font-size: var(--gk-fs-sm); }
 .gk .tw-version-pick { display: flex; gap: var(--gk-2); }
 .gk .tw-version-pick select { flex: 1; min-width: 0; }
 .gk .tw-version-pick input { flex: 0 0 130px; }
-.gk .tw-day { display: flex; flex-direction: column; gap: 4px; }
-.gk .tw-day__title { margin: var(--gk-2) 0 0; font-size: var(--gk-fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--gk-text-3); }
-.gk .tw-changes { list-style: none; margin: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
-.gk .tw-changes li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--gk-3); padding: 8px var(--gk-3); font-size: var(--gk-fs-sm); }
-.gk .tw-changes li + li { border-top: 1px solid var(--gk-line); }
-.gk .tw-changes__title { flex: 1 1 320px; min-width: 0; color: var(--gk-text); overflow-wrap: anywhere; }
-.gk .tw-changes li[data-merge] .tw-changes__title { color: var(--gk-text-3); }
-.gk .tw-prompt-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+.gk .tw-changes__merge { color: var(--gk-text-3); }
 
 /* On a phone the step cards take most of the width and swipe. */
 @media (max-width: 640px) {
     .gk .tw-order__track > li { flex-basis: 78%; }
     .gk .tw-version-pick { flex-direction: column; }
     .gk .tw-version-pick input { flex-basis: auto; }
-    .gk .tw-detail { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
+    .gk .tw-detail:not([data-framed]) { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
     .gk .tw-detail__head { flex-direction: column-reverse; }
     .gk .tw-detail__tools { align-self: stretch; }
     .gk .tw-grid { grid-template-columns: minmax(0, 1fr); }

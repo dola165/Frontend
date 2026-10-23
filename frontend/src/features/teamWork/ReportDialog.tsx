@@ -6,7 +6,7 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { pasteReport, REPORT_EXAMPLE, type Detail, type ReportLine, type ReportResult } from './api';
 
 const FIELDS: Record<ReportLine['field'], [string, string]> = {
-    status: ['Status', 'სტატუსი'], branch: ['Branch', 'ბრენჩი'], pr: ['Pull request', 'Pull request'], commits: ['Commits', 'კომიტები'], percent: ['Percent', 'პროცენტი'],
+    status: ['Status', 'სტატუსი'], branch: ['Branch', 'ბრენჩი'], pr: ['Pull request', 'შერწყმის მოთხოვნა (PR)'], commits: ['Commits', 'კომიტები'], percent: ['Percent', 'პროცენტი'],
     tested: ['Tested', 'შემოწმდა'], question: ['Question', 'კითხვა'], summary: ['History line', 'ისტორიის ხაზი'],
 };
 const ACTIONS: Record<ReportLine['action'], [string, string]> = { SET: ['Sets', 'დაყენდება'], SAME: ['Same', 'იგივე'], ADDED: ['Adds', 'დაემატება'] };
@@ -32,8 +32,7 @@ export function ReportDialog({ item, onClose, onApplied }: { item: { id: number;
     };
     const changes = preview?.lines.filter(line => line.action !== 'SAME').length ?? 0;
     return <Dialog open size="lg" className="tw-dialog" title={copy(`Paste report · ${item.key}`, `ანგარიშის ჩასმა · ${item.key}`)} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        description={copy(`The worker’s report for “${item.title}”: one marker per line (status:, branch:, pr:, commits:, percent:, summary:, tested:, question:). A line without a marker continues the one above.`,
-            `მუშაკის ანგარიში „${item.title}“-ზე: თითო მარკერი თითო ხაზზე (status:, branch:, pr:, commits:, percent:, summary:, tested:, question:). უმარკერო ხაზი ზემოთას აგრძელებს.`)}
+        description={copy(`The worker’s report for “${item.title}”. You see what changes before anything is saved.`, `მუშაკის ანგარიში „${item.title}“-ზე. შენახვამდე ნახავთ, რა შეიცვლება.`)}
         footer={<>
             <Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button>
             {preview ? <><Button onClick={() => setPreview(null)}>{copy('Back to the text', 'ტექსტზე დაბრუნება')}</Button>
@@ -51,9 +50,12 @@ export function ReportDialog({ item, onClose, onApplied }: { item: { id: number;
         </div> : <div className="tw-details">
             <label htmlFor={id} className="gk-visually-hidden">{copy('The report, as text', 'ანგარიში ტექსტად')}</label>
             <textarea id={id} className="gk-input tw-paste__text" rows={12} maxLength={20000} value={text} placeholder={REPORT_EXAMPLE} onChange={event => setText(event.target.value)} />
-            <p className="gk-faint tw-paste__help">{copy('Status: planned, in progress, needs your look, accepted, live, blocked. A question’s quick answers come after “|”; none means yes/no. “summary:” becomes the history line.',
-                'სტატუსი: planned, in progress, needs your look, accepted, live, blocked. კითხვის სწრაფი პასუხები „|“-ის შემდეგ; თუ არ არის, კი/არა. „summary:“ ისტორიის ხაზი ხდება.')}
-                {' '}<button type="button" className="tw-link-button" onClick={() => setText(REPORT_EXAMPLE.replace('GK-12', item.key))}>{copy('Use the example', 'მაგალითის ჩასმა')}</button></p>
+            <p className="tw-paste__tools"><button type="button" className="tw-link-button" onClick={() => setText(REPORT_EXAMPLE.replace('GK-12', item.key))}>{copy('Use the example', 'მაგალითის ჩასმა')}</button></p>
+            <details className="tw-fold tw-paste__format">
+                <summary className="tw-section__title">{copy('Format', 'ფორმატი')}</summary>
+                <p className="gk-faint tw-paste__help">{copy('One marker per line: status:, branch:, pr:, commits:, percent:, summary:, tested:, question:. A line without one continues the line above. Status: planned, in progress, needs your look, accepted, live, blocked. A question’s quick answers come after “|”; none means yes or no. “summary:” becomes the history line.',
+                    'თითო მარკერი თითო ხაზზე: status:, branch:, pr:, commits:, percent:, summary:, tested:, question:. უმარკერო ხაზი ზემოთას აგრძელებს. სტატუსი: planned, in progress, needs your look, accepted, live, blocked. კითხვის სწრაფი პასუხები „|“-ის შემდეგ; თუ არ არის, კი ან არა. „summary:“ ისტორიის ხაზი ხდება.')}</p>
+            </details>
         </div>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </Dialog>;

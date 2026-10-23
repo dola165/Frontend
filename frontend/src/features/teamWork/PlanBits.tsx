@@ -3,23 +3,11 @@ import { Check, MoreHorizontal } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { fetchDetail, isDone, type Detail, type Person, type PlanStatus, type PlanView, type WorkNode } from './api';
+import { fetchDetail, isDone, type Detail, type PlanStatus, type PlanView, type WorkNode } from './api';
 import { planAsText } from './planAsText';
-import type { Who } from './planPeople';
 import { StatusDot } from './WorkBits';
 import { ago, endWords, madeBy } from './teamWorkWords';
 
-/** All, the whole team, or one person: names only, one choice at a time. */
-export function NameFilter({ team, who, allLabel, onChange }: { team: Person[]; who: Who; allLabel: string; onChange: (who: Who) => void }) {
-    const copy = useJourneyCopy();
-    if (team.length === 0) return null;
-    const option = (value: Who, label: string) => <button key={String(value)} type="button" aria-pressed={who === value} onClick={() => onChange(value)}>{label}</button>;
-    return <div className="tw-names" role="group" aria-label={copy('Show work for', 'ვისი საქმეები')}>
-        {option(null, allLabel)}
-        {option('team', copy('Whole team', 'მთელი გუნდი'))}
-        {team.flatMap(person => person.id == null ? [] : [option(person.id, person.name ?? '—')])}
-    </div>;
-}
 
 /**
  * The plan step by step: its top-level tasks in order as cards joined by a line, swiped or scrolled sideways.
@@ -102,8 +90,10 @@ export function CopyForAiDialog({ view, onClose }: { view: PlanView; onClose: ()
         return () => { live = false; };
     }, [view]);
     return <Dialog open size="lg" className="tw-dialog" title={copy('Copy for AI', 'კოპირება AI-სთვის')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        description={copy('The plan in the Paste from AI format, with keys, percents, dates, people, what done means, links, the last comments and file names. Give it to Claude or Codex, then paste their answer back: tasks match by key or name, so nothing doubles.',
-            'გეგმა „ჩასმა AI-დან“ ფორმატში: გასაღებები, პროცენტები, თარიღები, ხალხი, რას ნიშნავს მზადაა, ბმულები, ბოლო კომენტარები და ფაილების სახელები. მიეცით Claude-ს ან Codex-ს და მათი პასუხი ისევ ჩასვით: საქმეები გასაღებით ან სახელით ემთხვევა, ასე რომ არაფერი გაორმაგდება.')}
+        description={copied ? copy('Copied. Give it to Claude or Codex, then paste their answer back with Paste from AI: tasks match by key, so nothing doubles.',
+            'დაკოპირდა. მიეცით Claude-ს ან Codex-ს და პასუხი ჩასვით „ჩასმა AI-დან“-ით: საქმეები გასაღებით ემთხვევა, ასე რომ არაფერი გაორმაგდება.')
+            : copy('Give it to Claude or Codex, then paste their answer back with Paste from AI: tasks match by key, so nothing doubles.',
+            'მიეცით Claude-ს ან Codex-ს და პასუხი ჩასვით „ჩასმა AI-დან“-ით: საქმეები გასაღებით ემთხვევა, ასე რომ არაფერი გაორმაგდება.')}
         footer={<><Button variant="ghost" onClick={onClose}>{copy('Close', 'დახურვა')}</Button>
             <Button variant="primary" disabled={!text} onClick={() => { if (text) void navigator.clipboard?.writeText(text).then(() => setCopied(true)); }}>{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy', 'კოპირება')}</Button></>}>
         <label htmlFor={id} className="gk-visually-hidden">{copy('The plan as text', 'გეგმა ტექსტად')}</label>

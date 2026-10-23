@@ -1,12 +1,18 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react';
-import { Hourglass, Inbox, Plus, UploadCloud, Video, X } from 'lucide-react';
+import { Hourglass, Plus, UploadCloud, Video, X } from 'lucide-react';
 import { Button, PageHeader } from '../../design/primitives';
+import { formatTime } from '../../utils/formatting';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { AgendaDays } from '../schedule/board/AgendaDays';
+import { dayKey } from '../schedule/board/scheduleRange';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addComment, addPicture, addVideo, changePlan, changeWork, createPlan, createWork, VIDEO_LIMIT_MB, VIDEO_TYPES, type Detail, type Person, type PlanView, type WorkItem } from './api';
-import { FindingCard } from './FindingCard';
+import { useDayTitle } from './useDayTitle';
+import { FindingRow } from './FindingRow';
 import { IDEAS, NOTE, WAITING } from './findings';
 import { MentionInput } from './MentionInput';
+import { useFresh } from './useFresh';
+import './team-work-agenda.css';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
 const isVideo = (file: File) => file.type.startsWith('video/');
@@ -76,8 +82,7 @@ function DropZone({ team, ensureIdeas, onDropped }: { team: Person[]; ensureIdea
         {files.length === 0 ? <button type="button" className="tw-drop__zone" onClick={() => input.current?.click()}>
             <UploadCloud aria-hidden="true" />
             <span className="tw-drop__title">{copy('Drop it here', 'ჩააგდეთ აქ')}</span>
-            <span className="tw-drop__hint">{copy('or click to choose pictures and videos', 'ან დააჭირეთ და აირჩიეთ სურათები და ვიდეოები')}</span>
-            <span className="gk-faint tw-drop__hint">{copy(`Videos: MP4 or WebM, up to ${VIDEO_LIMIT_MB} MB`, `ვიდეო: MP4 ან WebM, მაქს. ${VIDEO_LIMIT_MB} MB`)}</span>
+            <span className="tw-drop__hint">{copy(`or choose pictures and videos (MP4 or WebM, up to ${VIDEO_LIMIT_MB} MB)`, `ან აირჩიეთ სურათები და ვიდეოები (MP4 ან WebM, მაქს. ${VIDEO_LIMIT_MB} MB)`)}</span>
         </button>
             : <form className="tw-drop__form" onSubmit={event => { event.preventDefault(); void send(); }}>
                 <ul className="tw-drop__files">
@@ -107,9 +112,9 @@ function DropZone({ team, ensureIdeas, onDropped }: { team: Person[]; ensureIdea
 }
 
 /**
- * Add to plans: anyone on the team drops what they found, a picture or a video with a name and a comment. Others
- * mark it seen, acknowledge it (they keep it in mind; otherwise the colleague calls them) or comment, and push what
- * matters to Waiting, which counts as acknowledging it. Nothing here goes straight onto a plan. Newest first.
+ * Ideas: anyone on the team drops what they found, a picture or a video with a name and a comment. Below, the ideas
+ * day by day, newest first, in the agenda's look. Others mark one seen, acknowledge it (they keep it in mind) or
+ * comment, and push what matters to Waiting, which counts as acknowledging it. Nothing here goes straight onto a plan.
  */
 export function IdeasPage({ ideas, waiting, details, team, me, open, onOpen, onPut, onChanged }: {
     ideas: PlanView | undefined; waiting: PlanView | undefined; details: Map<number, Detail>; team: Person[]; me: number | null; open: number | null;
@@ -118,7 +123,11 @@ export function IdeasPage({ ideas, waiting, details, team, me, open, onOpen, onP
     const copy = useJourneyCopy();
     const [busy, setBusy] = useState<number | null>(null);
     const [error, setError] = useState('');
+    const dayTitle = useDayTitle();
     const items = (ideas?.tasks ?? []).map(node => node.item).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const fresh = useFresh(ideas ? items.map(item => String(item.id)) : null);
+    const days = new Map<string, WorkItem[]>();
+    items.forEach(item => { const key = dayKey(new Date(item.createdAt)); days.set(key, [...days.get(key) ?? [], item]); });
     const ensureIdeas = async () => ideas ? ideas.plan.id : (await createPlan(IDEAS)).plan.id;
     const push = async (item: WorkItem) => {
         if (!ideas) return;
@@ -132,14 +141,17 @@ export function IdeasPage({ ideas, waiting, details, team, me, open, onOpen, onP
         finally { setBusy(null); onChanged(); }
     };
     return <>
-        <PageHeader title={copy('Ideas', 'იდეები')} subtitle={copy('What the team found: a bug, an idea, a screen to change', 'რაც გუნდმა იპოვა: ხარვეზი, იდეა, შესაცვლელი ეკრანი')} />
+        <PageHeader title={copy('Ideas', 'იდეები')} subtitle={copy('A bug, an idea, a screen to change', 'ხარვეზი, იდეა, შესაცვლელი ეკრანი')} />
         <DropZone team={team} ensureIdeas={ensureIdeas} onDropped={onChanged} />
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
-        <section className="tw-block" aria-labelledby="tw-findings">
-            <h2 id="tw-findings" className="tw-heading"><Inbox aria-hidden="true" />{copy('Findings', 'მიგნებები')} <span className="gk-faint gk-num">{items.length}</span></h2>
-            {items.length ? <ul className="tw-findings">{items.map(item => <FindingCard key={item.id} item={item} detail={details.get(item.id)} team={team} me={me} open={open === item.id} onOpen={onOpen} onPut={onPut}
-                next={<Button size="sm" disabled={busy !== null} onClick={() => void push(item)}><Hourglass aria-hidden="true" />{copy('Push to waiting', 'მოლოდინში გადატანა')}</Button>} />)}</ul>
-                : <p className="gk-muted tw-quiet">{copy('Nothing here yet.', 'აქ ჯერ არაფერია.')}</p>}
+        <section className="tw-block tw-agenda tw-fresh-rows" aria-label={copy(`Ideas: ${items.length}`, `იდეები: ${items.length}`)}>
+            {items.length ? <AgendaDays className="tw-agenda__days" days={[...days].map(([key, list]) => {
+                const { label, title, today } = dayTitle(key);
+                return { key, title, label, today, rows: list.map(item => <FindingRow key={item.id} item={item} detail={details.get(item.id)} team={team} me={me} open={open === item.id}
+                    time={formatTime(item.createdAt)} fresh={fresh.has(String(item.id))} onOpen={onOpen} onPut={onPut}
+                    next={<Button size="sm" variant="ghost" disabled={busy !== null} onClick={() => void push(item)}><Hourglass aria-hidden="true" />{copy('Push to Waiting', 'მოლოდინში გადატანა')}</Button>} />) };
+            })} />
+                : <div className="tw-quiet-row" role="status"><span className="gk-muted">{copy('No ideas yet. Drop the first one above.', 'იდეები ჯერ არ არის. ჩააგდეთ პირველი ზემოთ.')}</span></div>}
         </section>
     </>;
 }

@@ -1,20 +1,19 @@
-import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ClipboardPaste, LayoutGrid, List as ListIcon, Plus } from 'lucide-react';
 import { Badge, Button, EmptyNote, Panel } from '../../design/primitives';
 import { Segmented } from '../../design/Tabs';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import type { Plan, PlanStatus, PlanView, WorkItem, WorkStatus } from './api';
+import type { Plan, PlanStatus, PlanView, WorkItem } from './api';
 import { Agenda, AgendaToolbar } from './Agenda';
 import { useAgendaFilter } from './useAgendaFilter';
 import { nodesOf } from './agendaRows';
 import { PinButton } from './pins';
 import { usePins } from './usePins';
 import { PlanMenu, OrderStrip } from './PlanBits';
-import { nodeMatches, peopleLine, type Who } from './planPeople';
+import { nodeMatches, peopleLine } from './planPeople';
 import { TaskBox, type TaskActions } from './TaskBox';
 import { TaskDialog } from './TaskDialog';
-import { StatusFilter } from './WorkBits';
+import { useFresh } from './useFresh';
 import './team-work-agenda.css';
 
 const PLAN_STATUS: Record<PlanStatus, [string, string]> = { NOW: ['Now', 'ახლა'], LATER: ['Later', 'მოგვიანებით'], FINISHED: ['Finished', 'დასრულებული'] };
@@ -25,11 +24,11 @@ const NO_FINDINGS = new Set<number>();
 /**
  * A plan opened. First what happened in it, day by day (the agenda); "Cards" shows its tasks as cards in the
  * plan's order (a task opens to its details, its steps as lines), then the same tasks in order. The view is
- * `?show=cards` in the link. Paste from AI and Add task up front; the rest behind "…".
+ * `?show=cards` in the link. Both views share one toolbar (person and status, `?who=` and `?status=`). Paste from AI
+ * and Add task up front; the rest behind "…". A card that was just added or moved is marked for a moment.
  */
-export function PlanPage({ view, items, planOf, revision, who, task, filter, statuses, actions, onStatuses, onBack, onChangePlan, onAdd, onDialog }: {
-    view: PlanView; items: WorkItem[]; planOf: Map<number, Plan>; revision: number;
-    who: Who; task: number | null; filter: ReactNode; statuses: WorkStatus[]; actions: Omit<TaskActions, 'placeOf'>; onStatuses: (statuses: WorkStatus[]) => void;
+export function PlanPage({ view, items, planOf, revision, task, actions, onBack, onChangePlan, onAdd, onDialog }: {
+    view: PlanView; items: WorkItem[]; planOf: Map<number, Plan>; revision: number; task: number | null; actions: Omit<TaskActions, 'placeOf'>;
     onBack: () => void; onChangePlan: (change: { order?: number[]; status?: PlanStatus }) => void; onAdd: (parent?: WorkItem) => void; onDialog: (dialog: PlanDialog) => void;
 }) {
     const copy = useJourneyCopy();
@@ -39,7 +38,10 @@ export function PlanPage({ view, items, planOf, revision, who, task, filter, sta
     const pins = usePins(revision);
     const ids = view.tasks.map(node => node.item.id);
     const numbers = new Map(ids.map((id, index) => [id, index + 1]));
+    const { who, statuses } = agenda.filter;
     const shown = view.tasks.filter(node => nodeMatches(node, who, view.team) && (!statuses.length || statuses.includes(node.item.status)));
+    const fresh = useFresh(view.tasks.map(node => `${node.item.id}:${node.item.status}`));
+    const clear = () => agenda.change({ who: null, statuses: [] });
     const placed: TaskActions = {
         ...actions, planName: view.plan.name, onAddStep: parent => onAdd(parent),
         placeOf: item => ({ first: ids[0] === item.id, last: ids[ids.length - 1] === item.id,
@@ -69,24 +71,22 @@ export function PlanPage({ view, items, planOf, revision, who, task, filter, sta
         </div>
         {pins.error && <p className="gk-notice gk-notice--danger" role="alert">{pins.error}</p>}
         {view.tasks.length === 0
-            ? <Panel flush><EmptyNote title={copy('Nothing in this plan yet', 'ამ გეგმაში ჯერ არაფერია')}
-                action={<div className="tw-empty-actions"><Button variant="primary" size="sm" onClick={() => onAdd()}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button>
-                    <Button size="sm" onClick={() => onDialog('paste')}><ClipboardPaste aria-hidden="true" />{copy('Paste from AI', 'ჩასმა AI-დან')}</Button></div>}>
-                {copy('Add tasks one by one, big or small, or paste a list.', 'დაამატეთ საქმეები სათითაოდ, დიდი თუ პატარა, ან ჩასვით სია.')}
-            </EmptyNote></Panel>
+            ? <Panel flush><EmptyNote title={copy('No tasks in this plan yet', 'ამ გეგმაში საქმეები ჯერ არ არის')}
+                action={<div className="tw-empty-actions"><Button variant="primary" size="sm" onClick={() => onAdd()}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button></div>} /></Panel>
             : <>
                 <div className="tw-bar-line">
                     <Segmented label={copy('Plan view', 'გეგმის ხედი')} value={show} onChange={setShow} items={[
                         { id: 'agenda', label: copy('Agenda', 'დღის წესრიგი'), icon: <ListIcon aria-hidden="true" /> },
                         { id: 'cards', label: copy('Cards', 'ბარათები'), icon: <LayoutGrid aria-hidden="true" /> }]} />
-                    {show === 'agenda' ? <AgendaToolbar team={view.team} filter={agenda.filter} onChange={agenda.change} /> : <>{filter}<StatusFilter chosen={statuses} onChange={onStatuses} /></>}
+                    <AgendaToolbar team={view.team} filter={agenda.filter} onChange={agenda.change} />
                 </div>
                 {show === 'agenda'
                     ? <Agenda revision={revision} filter={{ ...agenda.filter, plan: null }} context={{ nodes, planOf, planItems: new Map(), team: view.team }} exclude={NO_FINDINGS} scope={new Set(ids)} showPlan={false}
-                        pinned={id => pins.pinned({ itemId: id })} onOpen={agenda.open} />
+                        pinned={id => pins.pinned({ itemId: id })} onOpen={agenda.open} onClear={clear} />
                     : <>
-                        {shown.length === 0 ? <p className="gk-muted tw-quiet">{copy('Nothing in this plan for this filter.', 'ამ ფილტრით ამ გეგმაში არაფერია.')}</p>
-                            : <ul className="tw-tasks" aria-label={view.plan.name}>{shown.map(node => <TaskBox key={node.item.id} node={node} expanded={task === node.item.id} actions={placed} />)}</ul>}
+                        {shown.length === 0 ? <div className="tw-quiet-row" role="status"><span className="gk-muted">{copy('Nothing in this plan for this filter.', 'ამ ფილტრით ამ გეგმაში არაფერია.')}</span>
+                            <Button size="sm" onClick={clear}>{copy('Clear filters', 'ფილტრების გასუფთავება')}</Button></div>
+                            : <ul className="tw-tasks" aria-label={view.plan.name}>{shown.map(node => <TaskBox key={node.item.id} node={node} expanded={task === node.item.id} fresh={fresh.has(`${node.item.id}:${node.item.status}`)} actions={placed} />)}</ul>}
                         <OrderStrip nodes={shown} numbers={numbers} onOpen={openTask} />
                     </>}
             </>}

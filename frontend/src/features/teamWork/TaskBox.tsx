@@ -19,13 +19,13 @@ export interface TaskActions {
 }
 
 /** A task opened: its details, and the step chosen from them below. Inside a card and in the task dialog. */
-export function TaskBody({ node, plan, actions, onClose }: { node: WorkNode; plan?: Plan; actions: TaskActions; onClose: () => void }) {
+export function TaskBody({ node, plan, actions, framed = false, onClose }: { node: WorkNode; plan?: Plan; actions: TaskActions; framed?: boolean; onClose: () => void }) {
     const copy = useJourneyCopy();
     const { item, steps } = node;
     const { open, team, me, onOpen, onAddStep, onSaved, onDeleted, placeOf, planName, candidates } = actions;
     const step = steps.find(candidate => candidate.id === open);
     return <>
-        <TaskView id={item.id} team={team} me={me} plan={plan?.name ?? planName} place={placeOf?.(item)} candidates={candidates} onOpen={id => onOpen(open === id ? null : id)} onAddStep={() => onAddStep(item)} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />
+        <TaskView id={item.id} team={team} me={me} plan={plan?.name ?? planName} place={placeOf?.(item)} candidates={candidates} framed={framed} onOpen={id => onOpen(open === id ? null : id)} onAddStep={() => onAddStep(item)} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />
         {step && <div className="tw-task__step">
             <p className="tw-task__step-title"><StatusDot status={step.status} /><KeyChip value={step.key} /><span className="gk-faint">{copy('Step', 'ნაბიჯი')}:</span> {step.title}</p>
             <TaskView key={step.id} id={step.id} team={team} me={me} plan={plan?.name ?? planName} candidates={candidates} onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} onDeleted={() => { onOpen(null); onSaved(); }} />
@@ -34,24 +34,28 @@ export function TaskBody({ node, plan, actions, onClose }: { node: WorkNode; pla
 }
 
 /**
- * A task as one card: its dot, key and name, percent and bar (or its status when nobody estimates a percent), how
- * many questions wait on Beqa, what it waits on, its plan, steps and people. Pressed, it opens across the
- * row to its details; a big task lists its steps there, and a step opens below it.
+ * A task as one card: its dot, key and name (up to two lines, the whole name on hover), the bar, then one quiet line:
+ * where it stands in words (or its progress), how many questions wait on Beqa, what it waits on, its plan, steps and
+ * people. Pressed, it opens across the row to its details; a big task lists its steps there, and a step opens below.
  */
-export function TaskBox({ node, plan, expanded, actions }: { node: WorkNode; plan?: Plan; expanded: boolean; actions: TaskActions }) {
+export function TaskBox({ node, plan, expanded, fresh = false, actions }: { node: WorkNode; plan?: Plan; expanded: boolean; fresh?: boolean; actions: TaskActions }) {
     const copy = useJourneyCopy();
     const { item, steps } = node;
     const meta = [
         item.waitingOn.length > 0 && copy(`waits on ${item.waitingOn.map(ref => ref.key).join(', ')}`, `ელოდება: ${item.waitingOn.map(ref => ref.key).join(', ')}`),
         plan?.name, steps.length > 0 && copy(steps.length === 1 ? '1 step' : `${steps.length} steps`, `${steps.length} ნაბიჯი`), names(item.people),
     ].filter(Boolean).join(' · ');
-    return <li className="tw-task" data-status={item.status} data-open={expanded || undefined} data-task={item.id} data-waiting={item.waitingOn.length > 0 || undefined}>
+    return <li className="tw-task" data-status={item.status} data-open={expanded || undefined} data-task={item.id} data-waiting={item.waitingOn.length > 0 || undefined} data-fresh={fresh || undefined}>
         <button type="button" className="tw-task__box" aria-expanded={expanded} onClick={() => actions.onToggle(item.id)}>
-            <span className="tw-task__top"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-task__name">{item.title}</span>{item.small && <SmallChip />}
-                {item.openQuestions > 0 && <span className="tw-task__ask gk-num" title={copy('Questions for Beqa', 'კითხვები ბექასთვის')}><CircleHelp aria-hidden="true" />{item.openQuestions}</span>}
-                <span className="gk-num tw-task__percent">{item.percent != null ? progressWords(copy, item.percent) : statusName(copy, item.status)}</span>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
+            <span className="tw-task__top"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-task__name" title={item.title}>{item.title}</span>
+                {expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
             <span className="tw-task__bar"><span style={{ width: `${item.percent ?? (isDone(item.status) ? 100 : 0)}%` }} /></span>
-            <span className="tw-task__meta">{meta}</span>
+            <span className="tw-task__line">
+                <span className="gk-num tw-task__percent">{item.percent != null && !isDone(item.status) ? progressWords(copy, item.percent) : statusName(copy, item.status)}</span>
+                {item.small && <SmallChip />}
+                {item.openQuestions > 0 && <span className="tw-task__ask gk-num" title={copy('Questions for Beqa', 'კითხვები ბექასთვის')}><CircleHelp aria-hidden="true" />{item.openQuestions}</span>}
+                {meta && <span className="tw-task__meta">{meta}</span>}
+            </span>
         </button>
         {expanded && <div className="tw-task__body"><TaskBody node={node} plan={plan} actions={actions} onClose={() => actions.onToggle(item.id)} /></div>}
     </li>;

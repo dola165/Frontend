@@ -6,17 +6,18 @@ import { formatTime } from '../../utils/formatting';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { AgendaDays } from '../schedule/board/AgendaDays';
 import { dayKey } from '../schedule/board/scheduleRange';
-import { useScheduleDates } from '../schedule/board/useScheduleDates';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { Person, Plan, WorkNode } from './api';
 import { byDay, eventIcon, eventMatches, eventWords, rowsOf, statusTone, taskIdOf, wholeDays, type AgendaFilter } from './agendaRows';
 import { fetchTimeline, type WorkEvent } from './overviewApi';
 import type { Who } from './planPeople';
+import { useDayTitle } from './useDayTitle';
+import { useFresh } from './useFresh';
 import { KeyChip, StatusFilter } from './WorkBits';
 
-const DAY = 24 * 3600 * 1000;
 /** How many older pages a link to an old day may load to reach it. */
 const REACH_PAGES = 6;
+
 
 /** The agenda's events, page by page; a refresh keeps the older pages already loaded. */
 function useTimeline(revision: number) {
@@ -58,15 +59,18 @@ export interface AgendaContext { nodes: Map<number, WorkNode>; planOf: Map<numbe
  * colour, the task's key and name, what changed, who and the plan. Tasks one person added at once fold into one row.
  * The day at the top of the screen goes into `?day=`, so a reload or a shared link comes back to it.
  */
-export function Agenda({ revision, filter, context, exclude, scope, showPlan = true, pinned, onOpen }: {
+export function Agenda({ revision, filter, context, exclude, scope, showPlan = true, pinned, onOpen, onClear }: {
     revision: number; filter: AgendaFilter; context: AgendaContext;
     /** Tasks that are findings (Ideas, Waiting), never shown. */ exclude: Set<number>;
     /** Only these tasks (a plan's). */ scope?: Set<number>;
     showPlan?: boolean; pinned: (taskId: number) => boolean; onOpen: (taskId: number, stepId: number | null) => void;
+    /** Clears the toolbar's filters, offered when they leave nothing. */ onClear?: () => void;
 }) {
     const copy = useJourneyCopy();
-    const dates = useScheduleDates();
+    const dayTitle = useDayTitle();
     const timeline = useTimeline(revision);
+    // Events that arrived with a refresh (a move, an answer, a new task) are marked for a moment.
+    const fresh = useFresh(timeline.events?.map(event => event.id) ?? null);
     const [open, setOpen] = useState<Set<string>>(new Set());
     const root = useRef<HTMLDivElement>(null);
     const [params, setParams] = useSearchParams();
@@ -117,34 +121,28 @@ export function Agenda({ revision, filter, context, exclude, scope, showPlan = t
         ? <div className="gk-notice gk-notice--danger" role="alert"><span>{timeline.error}</span><Button size="sm" onClick={timeline.retry}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>
         : <div className="tw-agenda__loading" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={48} /><Skeleton height={48} /><Skeleton height={48} /></div>;
 
-    const today = new Date(); today.setHours(12, 0, 0, 0);
-    const title = (key: string) => {
-        const date = new Date(`${key}T12:00:00`);
-        const ago = Math.round((today.getTime() - date.getTime()) / DAY);
-        const long = `${dates.dayLong(date)}${date.getFullYear() !== today.getFullYear() ? ` ${date.getFullYear()}` : ''}`;
-        const near = ago === 0 ? copy('Today', 'დღეს') : ago === 1 ? copy('Yesterday', 'გუშინ') : null;
-        return { label: near ? `${near}, ${long}` : long, node: near ? <><span>{near}</span><span className="tw-agenda__date">{long}</span></> : <span>{long}</span> };
-    };
     const eventRow = (event: WorkEvent) => {
         const { what, detail } = eventWords(copy, event);
         const parent = event.parentId != null ? context.nodes.get(event.parentId)?.item : undefined;
         const trail = [event.by?.name, parent && copy(`step of ${parent.key}`, `${parent.key}-ის ნაბიჯი`), showPlan && planName(event)].filter(Boolean).join(' · ');
-        return <FixtureRow key={event.id} tone="neutral" time={formatTime(event.at)} icon={eventIcon(event)} iconColor={statusTone[event.status]}
-            title={<><KeyChip value={event.task.key} /> {event.task.title}</>} meta={detail ? `${what} — ${detail}` : what}
+        return <FixtureRow key={event.id} tone="neutral" time={formatTime(event.at)} icon={eventIcon(event)} iconColor={statusTone[event.status]} highlighted={fresh.has(event.id)}
+            title={<span title={`${event.task.key} ${event.task.title}`}><KeyChip value={event.task.key} /> {event.task.title}</span>} meta={detail ? `${what} — ${detail}` : what}
             trail={<span className="tw-agenda__trail">{pinned(taskIdOf(event)) && <Pin className="tw-agenda__pinned" aria-label={copy('Pinned', 'მიმაგრებულია')} />}{trail}</span>}
             onClick={() => onOpen(taskIdOf(event), event.parentId != null ? event.task.id : null)} label={`${event.task.key} ${event.task.title}. ${what}`} />;
     };
 
-    return <div className="tw-agenda" ref={root}>
-        {days.length === 0 ? <p className="gk-muted tw-quiet" role="status">{timeline.events.length === 0 ? copy('Nothing has happened here yet.', 'აქ ჯერ არაფერი მომხდარა.') : timeline.next
-            ? copy('Nothing in these days for this filter.', 'ამ ფილტრით ამ დღეებში არაფერია.') : copy('Nothing for this filter.', 'ამ ფილტრით არაფერია.')}</p>
+    const filtered = filter.plan != null || filter.who != null || filter.statuses.length > 0;
+    return <div className="tw-agenda tw-fresh-rows" ref={root}>
+        {days.length === 0 ? <div className="tw-quiet-row" role="status"><span className="gk-muted">{timeline.events.length === 0 ? copy('Nothing has happened here yet.', 'აქ ჯერ არაფერი მომხდარა.') : timeline.next
+            ? copy('Nothing in these days for this filter.', 'ამ ფილტრით ამ დღეებში არაფერია.') : copy('Nothing for this filter.', 'ამ ფილტრით არაფერია.')}</span>
+            {filtered && onClear && timeline.events.length > 0 && <Button size="sm" onClick={onClear}>{copy('Clear filters', 'ფილტრების გასუფთავება')}</Button>}</div>
             : <AgendaDays className="tw-agenda__days" days={days.map(([key, events]) => {
-                const { label, node } = title(key);
-                return { key, title: node, label, today: key === dayKey(today), rows: rowsOf(events, planName).flatMap(row => {
+                const { label, title, today } = dayTitle(key);
+                return { key, title, label, today, rows: rowsOf(events, planName).flatMap(row => {
                     if (row.kind === 'event') return [eventRow(row.event)];
                     const expanded = open.has(row.key), first = row.events[0], names = row.events.map(event => event.task.title);
                     const trail = [first.by?.name, showPlan && planName(first)].filter(Boolean).join(' · ');
-                    return [<FixtureRow key={row.key} tone="neutral" time={formatTime(first.at)} icon={Plus} iconColor="var(--gk-text-3)"
+                    return [<FixtureRow key={row.key} tone="neutral" time={formatTime(first.at)} icon={Plus} iconColor="var(--gk-text-3)" highlighted={row.events.some(event => fresh.has(event.id))}
                         title={copy(`Added ${row.events.length} tasks`, `დაემატა ${row.events.length} საქმე`)} meta={names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '')}
                         trail={<span className="tw-agenda__trail">{trail}<span className="tw-agenda__fold">{expanded ? copy('Fold', 'აკეცვა') : copy('Show all', 'ყველას ნახვა')}</span></span>}
                         onClick={() => setOpen(current => { const changed = new Set(current); if (changed.has(row.key)) changed.delete(row.key); else changed.add(row.key); return changed; })}

@@ -80,13 +80,13 @@ it('starts with this week’s work as tasks on their own when there is nothing y
     vi.mocked(api.fetchBoard).mockResolvedValueOnce({ items: [], trail: [], canManageTeam: true });
     vi.mocked(api.createWork).mockResolvedValue(detail(branding));
     mount();
-    await userEvent.click(await screen.findByRole('button', { name: 'Load this week’s work' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'or load this week’s work' }));
     await waitFor(() => expect(api.createWork).toHaveBeenCalledTimes(api.STARTER_WORK.length));
     expect(api.createWork).toHaveBeenCalledWith(api.STARTER_WORK[0]);
     expect(api.createPlan).not.toHaveBeenCalled();
     // The page loads again by itself: the overview and its agenda replace the empty note, no reload needed.
     expect(await screen.findByRole('heading', { name: 'What happened' })).toBeInTheDocument();
-    expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+    expect(screen.queryByText('No tasks yet')).not.toBeInTheDocument();
     expect(vi.mocked(overview.fetchTimeline).mock.calls.length).toBeGreaterThan(0);
 });
 
@@ -232,10 +232,12 @@ it('takes findings with a name and a tagged comment; anyone marks them seen or a
     await userEvent.click(within(side).getByRole('button', { name: /^Ideas/ }));
     expect(screen.getByTestId('where')).toHaveTextContent('view=ideas');
 
-    const list = (await screen.findByRole('heading', { name: 'Findings 2' })).closest('section')!;
+    // The ideas are the agenda's rows, day by day: today's first, then two days ago.
+    const list = await screen.findByRole('region', { name: 'Ideas: 2' });
+    expect(within(list).getAllByRole('heading').map(heading => heading.textContent)).toEqual([expect.stringMatching(/^Today/), expect.not.stringMatching(/^Today|^Yesterday/)]);
     const cards = within(list).getAllByRole('listitem');
     expect(cards[0]).toHaveTextContent('Login button overlaps');
-    expect(cards[0]).toHaveTextContent('Gio Beridze · now');
+    expect(cards[0]).toHaveTextContent('Gio Beridze');
     expect(within(cards[0]).getByText('@Beqa')).toHaveAttribute('data-me', 'true');
     expect(cards[0]).toHaveTextContent('Waiting for you');
     expect(within(list).queryByRole('button', { name: /add to plan/i })).not.toBeInTheDocument();
@@ -247,7 +249,7 @@ it('takes findings with a name and a tagged comment; anyone marks them seen or a
     expect(await within(cards[0]).findByText('Acknowledged by you')).toBeInTheDocument();
     expect(within(cards[0]).queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument();
 
-    await userEvent.click(within(cards[1]).getByRole('button', { name: 'Push to waiting' }));
+    await userEvent.click(within(cards[1]).getByRole('button', { name: 'Push to Waiting' }));
     await waitFor(() => expect(api.changePlan).toHaveBeenCalledWith(8, { version: 3, order: [51] }));
     expect(api.changeWork).toHaveBeenCalledWith(52, { version: 0, update: 'Pushed to pending' });
     expect(api.createPlan).toHaveBeenCalledWith('Waiting');
@@ -280,10 +282,15 @@ it('lists pending findings with who pushed them, and makes one a task on its own
 
     const side = await screen.findByRole('navigation', { name: 'Team work' });
     expect(await within(side).findByRole('button', { name: /^Waiting/ })).toHaveTextContent('Waiting1');
+    // Nobody is tagged, so it waits for a decision; who pushed it shows when it is opened.
+    expect(await screen.findByRole('heading', { name: /^Needs a decision/ })).toBeInTheDocument();
     const card = (await screen.findByText('Club search misses Georgian names')).closest('li')!;
-    await waitFor(() => expect(card).toHaveTextContent('Pushed by Beqa · now'));
-    expect(card).toHaveTextContent('Acknowledged by you');
+    await waitFor(() => expect(card).toHaveTextContent('Waiting for a decision'));
     expect(within(card).queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument();
+    await userEvent.click(within(card).getByRole('button', { name: /^Club search misses Georgian names/ }));
+    const opened = screen.getByRole('listitem', { name: 'Club search misses Georgian names' });
+    expect(opened).toHaveTextContent('Pushed by Beqa · now');
+    expect(opened).toHaveTextContent('Acknowledged by you');
     await userEvent.click(within(card).getByRole('button', { name: 'Make it a task' }));
     expect(within(card).getAllByRole('menuitem').map(option => option.textContent)).toEqual(['On its own', 'In October work', 'In Registration and roles', 'In Store']);
     await userEvent.click(within(card).getByRole('menuitem', { name: 'In October work' }));
@@ -318,8 +325,9 @@ it('shows a plan’s tasks as cards in its order, then in order, and keeps the e
     expect(await within(list).findByRole('region', { name: 'GK-2 Registration' })).toBeInTheDocument();
     expect(within(list).getByRole('button', { name: 'Take off this plan' })).toBeInTheDocument();
 
-    // Gio's tasks only: the cards and the order follow the name, numbered as in the whole plan.
-    await userEvent.click(within(screen.getByRole('group', { name: 'Show work for' })).getByRole('button', { name: 'Gio Beridze' }));
+    // Gio's tasks only, with the same toolbar as the agenda: the cards and the order follow, numbered as in the whole plan.
+    await userEvent.selectOptions(screen.getByLabelText('Person'), String(gio.id));
+    expect(screen.getByTestId('where')).toHaveTextContent('who=2');
     expect(within(screen.getByRole('list', { name: 'October work' })).queryByText('Branding and landing')).not.toBeInTheDocument();
     expect(within(screen.getByRole('heading', { name: 'In order' }).parentElement!).getByRole('button')).toHaveTextContent(/^2/);
 
@@ -455,7 +463,7 @@ it('lists the team’s accounts without remove buttons, makes the account and on
     mount();
     await userEvent.click(within(await screen.findByRole('navigation', { name: 'Team work' })).getByRole('button', { name: 'Team' }));
     expect(screen.getByTestId('where')).toHaveTextContent('view=team');
-    const panel = (await screen.findByRole('heading', { name: 'Team' })).closest('section')!;
+    const panel = (await screen.findByRole('heading', { name: 'Team' })).closest<HTMLElement>('.tw-team')!;
     expect(await within(panel).findByText('admin.gio@talanti.ge')).toBeInTheDocument();
     expect(within(panel).queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
     expect(within(panel).queryByText('System admin')).not.toBeInTheDocument();
@@ -491,12 +499,12 @@ it('stays up to date: shows the latest backend, remembers my version, lists only
     expect(screen.getByTestId('where')).toHaveTextContent('view=changes');
     expect(await screen.findByRole('heading', { name: 'What changed', level: 1 })).toBeInTheDocument();
     expect(await screen.findByText('Format the media files', { selector: '.tw-latest__commit' })).toBeInTheDocument();
-    expect(screen.getByText('Not known: this build was made without its git history.')).toBeInTheDocument();
+    expect(screen.getByText('Not known for this build')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Recent changes' })).toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByLabelText('My backend version'), '9f8c21b8'.padEnd(40, '0'));
-    expect(screen.getByRole('heading', { name: 'Changes you’re missing (1)' })).toBeInTheDocument();
-    const missingList = screen.getByRole('heading', { name: 'Changes you’re missing (1)' }).parentElement!;
+    expect(screen.getByRole('heading', { name: 'You’re missing 1' })).toBeInTheDocument();
+    const missingList = screen.getByRole('heading', { name: 'You’re missing 1' }).parentElement!;
     expect(within(missingList).getByText('Format the media files')).toBeInTheDocument();
     expect(within(missingList).getByText('merged: golive/teamwork-5')).toBeInTheDocument();
     expect(within(missingList).queryByText('Plans with a status')).not.toBeInTheDocument();
@@ -509,7 +517,7 @@ it('stays up to date: shows the latest backend, remembers my version, lists only
     const message = screen.getByLabelText('The message for Claude or Codex') as HTMLTextAreaElement;
     expect(message.value).toContain('github.com/dola165/GrassKickZ — reach at least commit 148b8c6');
     expect(message.value).toContain('whether this computer was already up to date');
-    await userEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Copy update message' }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
     await userEvent.click(screen.getByRole('button', { name: 'Overview' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');
@@ -526,7 +534,7 @@ it('does not exist for accounts off the team, and Home shows no row without the 
 it('shows team accounts a quiet Home row with how much is in progress', async () => {
     vi.mocked(api.fetchBoard).mockResolvedValue({ items: [item(1, 'Registration', 'IN_PROGRESS', 30), item(2, 'Branding', 'NEEDS_LOOK', 70, { openQuestions: 2 }), item(3, 'Schedule', 'LIVE', 100)], trail: [], canManageTeam: false });
     render(<MemoryRouter><TeamWorkHomeRow caps={{ version: 1, workspaces: [{ id: 'team.work', context: { type: 'user', id: 1, label: 'Team work' } }] }} /></MemoryRouter>);
-    expect(await screen.findByRole('link', { name: 'Team work. 1 in progress · 3 waiting on you' })).toHaveAttribute('href', '/team-work');
+    expect(await screen.findByRole('link', { name: 'Team work. 1 in progress · 3 need you' })).toHaveAttribute('href', '/team-work');
 });
 
 it('shows the brief first: key, done means, questions for Beqa with quick answers, links and what it waits on; the tabs count what waits on you; a report pastes in', async () => {

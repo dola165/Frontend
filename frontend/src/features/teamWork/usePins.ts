@@ -14,9 +14,10 @@ export function usePins(revision: number) {
     const [error, setError] = useState('');
     useEffect(() => {
         const controller = new AbortController();
-        fetchPins(controller.signal).then(next => { if (!controller.signal.aborted) setPins(next); }).catch(() => undefined);
+        fetchPins(controller.signal).then(next => { if (!controller.signal.aborted) { setPins(next); setError(''); } })
+            .catch(failure => { if (!controller.signal.aborted) setError(extractApiErrorMessage(failure, copy('Your pins could not load.', 'მიმაგრებები ვერ ჩაიტვირთა.'))); });
         return () => controller.abort();
-    }, [revision]);
+    }, [revision, copy]);
     const pinned = useCallback((target: PinTarget) => pins.some(pin => same(pin, target)), [pins]);
     const toggle = useCallback(async (target: PinTarget) => {
         setError('');

@@ -1,13 +1,21 @@
 import { useEffect, useId, useState } from 'react';
-import { Copy } from 'lucide-react';
-import { Button, Skeleton } from '../../design/primitives';
+import { Copy, GitCommitHorizontal, GitMerge } from 'lucide-react';
+import { Button, FixtureRow, PageHeader, Skeleton } from '../../design/primitives';
+import { formatTime } from '../../utils/formatting';
+import { AgendaDays } from '../schedule/board/AgendaDays';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { fetchVersions } from './api';
-import { BRANCH, byDay, commitId, mergedBranch, missing, REPOS, short, updatePrompt, webHistory, type Commit, type Repo, type RepoKey } from './upToDate';
-import { ago, day, shortDate } from './teamWorkWords';
+import { useDayTitle } from './useDayTitle';
+import { byDay, commitId, mergedBranch, missing, REPOS, short, updatePrompt, webHistory, type Commit, type Repo, type RepoKey } from './upToDate';
+import { ago } from './teamWorkWords';
+import './team-work-agenda.css';
 
 const STORAGE = 'gk.teamWork.myVersion';
 const NAMES: Record<RepoKey, [string, string]> = { backend: ['Backend', 'ბექენდი'], web: ['Web app', 'ვებ-აპი'] };
+/** Each repository's symbol colour, so a row shows at a glance which one changed. */
+const TONES: Record<RepoKey, string> = { backend: 'var(--gk-violet)', web: 'var(--gk-info)' };
+/** About how many changes the list shows at first, and adds with each "Show earlier days"; always whole days. */
+const ROWS = 30;
 type Mine = Partial<Record<RepoKey, string>>;
 
 /** A commit's title in plain words: a merge says which branch came in. */
@@ -17,15 +25,13 @@ const readMine = (): Mine => { try { return JSON.parse(localStorage.getItem(STOR
 const saveMine = (mine: Mine) => { try { localStorage.setItem(STORAGE, JSON.stringify(mine)); } catch { /* the choice just isn't remembered */ } };
 
 /** One repository's newest commit, which is also what is live: the server and this page were built from it. */
-function Latest({ name, repo, live }: { name: RepoKey; repo: Repo | null; live: string }) {
+function Latest({ name, repo }: { name: RepoKey; repo: Repo | null }) {
     const copy = useJourneyCopy();
     const newest = repo?.known ? repo.commits?.[0] : undefined;
     return <div className="tw-latest">
         <span className="tw-latest__name">{copy(...NAMES[name])} <span className="gk-faint">· {REPOS[name].slug}</span></span>
-        {!repo ? <Skeleton height={40} /> : newest ? <>
-            <span className="tw-latest__commit"><code className="gk-num">{short(newest.id)}</code> {titleOf(copy, newest)}</span>
-            <span className="gk-faint">{shortDate(copy, new Date(newest.date))} · {ago(copy, newest.date)} · {newest.author} · {live}</span>
-        </> : <span className="gk-muted">{copy('Not known: this build was made without its git history.', 'უცნობია: ეს ვერსია git-ის ისტორიის გარეშე აიწყო.')}</span>}
+        {!repo ? <Skeleton height={20} /> : newest ? <span className="tw-latest__commit"><code className="gk-num">{short(newest.id)}</code> {titleOf(copy, newest)} <span className="gk-faint">· {ago(copy, newest.date)}</span></span>
+            : <span className="gk-muted">{copy('Not known for this build', 'ამ ვერსიისთვის უცნობია')}</span>}
     </div>;
 }
 
@@ -49,15 +55,18 @@ function MyVersion({ name, repo, value, onChange }: { name: RepoKey; repo: Repo 
 }
 
 /**
- * Stay up to date: what the newest version of both repositories is (as baked into what is live), which of those
- * changes this computer is missing, and a ready-made message that has Claude or Codex bring the computer up to date
- * safely and say whether it already was. Never calls GitHub.
+ * What changed: what is live now in both repositories, then every change day by day in the agenda's look (a symbol
+ * per repository, the title, the id and who), the newest days first. Picking the version a computer is on narrows
+ * the list to what it is missing; "Copy update message" gives Claude or Codex a safe way to bring it up to date.
+ * Never calls GitHub: the history is baked into what is live.
  */
 export function WhatChangedPage() {
     const copy = useJourneyCopy();
+    const dayTitle = useDayTitle();
     const [backend, setBackend] = useState<Repo | null>(null);
     const [mine, setMine] = useState<Mine>(readMine);
     const [copied, setCopied] = useState(false);
+    const [rows, setRows] = useState(ROWS);
     const web = webHistory();
     useEffect(() => {
         const controller = new AbortController();
@@ -72,23 +81,18 @@ export function WhatChangedPage() {
     const count = shown.filter(commit => !mergedBranch(commit)).length;
     const prompt = updatePrompt(repos);
     const lost = picked.filter(key => !gaps[key].found);
+    const days = byDay(shown);
+    // Whole days until about `rows` changes are shown, at least one day.
+    let shownDays = 0, total = 0;
+    for (; shownDays < days.length && (shownDays === 0 || total + days[shownDays][1].length <= rows); shownDays += 1) total += days[shownDays][1].length;
+    const copyPrompt = () => void navigator.clipboard?.writeText(prompt).then(() => setCopied(true));
 
     return <div className="tw-updates">
-        <div className="tw-plan-head">
-            <div className="tw-plan-head__title">
-                <h1>{copy('What changed', 'რა შეიცვალა')}</h1>
-                <span className="tw-plan-head__people">{copy(`Both plans live on the branch ${BRANCH}. Pick the version your computer is on to see what you are missing, then copy the message below to Claude or Codex.`,
-                    `ორივე გეგმა ცხოვრობს ბრენჩზე ${BRANCH}. აირჩიეთ თქვენი კომპიუტერის ვერსია, ნახეთ რა გაკლიათ და ქვემოთ მოცემული ტექსტი გადაეცით Claude-ს ან Codex-ს.`)}</span>
-            </div>
-        </div>
+        <PageHeader title={copy('What changed', 'რა შეიცვალა')} subtitle={copy('What is live, and what your computer is missing', 'რა მუშაობს და რა აკლია თქვენს კომპიუტერს')}
+            actions={<Button size="sm" variant="primary" onClick={copyPrompt}><Copy aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy update message', 'განახლების ტექსტის კოპირება')}</Button>} />
 
-        <section className="tw-section" aria-labelledby="tw-latest">
-            <h2 id="tw-latest" className="tw-section__title">{copy('The latest version (what is live now)', 'უახლესი ვერსია (რაც ახლა მუშაობს)')}</h2>
-            <div className="tw-latest-grid">
-                <Latest name="backend" repo={backend} live={copy('the server runs this', 'სერვერი ამას იყენებს')} />
-                <Latest name="web" repo={web} live={copy('this page was built from it', 'ეს გვერდი ამისგან აიწყო')} />
-            </div>
-            <p className="gk-faint tw-paste__help">{copy('Something pushed but not yet released shows here after the next release.', 'რაც ატვირთულია, მაგრამ ჯერ არ გამოსულა, აქ შემდეგი გამოშვების შემდეგ გამოჩნდება.')}</p>
+        <section className="tw-section" aria-label={copy('Live now', 'ახლა მუშაობს')}>
+            <div className="tw-latest-grid"><Latest name="backend" repo={backend} /><Latest name="web" repo={web} /></div>
         </section>
 
         <section className="tw-section" aria-labelledby="tw-mine">
@@ -97,37 +101,29 @@ export function WhatChangedPage() {
                 <MyVersion name="backend" repo={backend} value={mine.backend ?? ''} onChange={value => choose('backend', value)} />
                 <MyVersion name="web" repo={web} value={mine.web ?? ''} onChange={value => choose('web', value)} />
             </div>
-            <p className="gk-faint tw-paste__help">{copy('Not sure? Run `git log -1 --oneline` in each plan, or just send the message below: it checks for you.', 'არ იცით? გაუშვით `git log -1 --oneline` თითოეულ გეგმაში, ან უბრალოდ გაგზავნეთ ქვემოთ მოცემული ტექსტი: ის თავად შეამოწმებს.')}</p>
         </section>
 
-        <section className="tw-section" aria-labelledby="tw-missing">
-            <h2 id="tw-missing" className="tw-section__title">{picked.length
-                ? count === 0 && lost.length === 0 ? copy('You are up to date', 'განახლებული ხართ') : copy(`Changes you’re missing (${count})`, `რაც გაკლიათ (${count})`)
+        <section className="tw-block tw-agenda" aria-labelledby="tw-missing">
+            <h2 id="tw-missing" className="tw-heading">{picked.length
+                ? count === 0 && lost.length === 0 ? copy('You are up to date', 'განახლებული ხართ') : copy(`You’re missing ${count}`, `გაკლიათ ${count}`)
                 : copy('Recent changes', 'ბოლო ცვლილებები')}</h2>
-            {lost.length > 0 && <p className="gk-notice gk-notice--warning">{copy('That version is older than the changes listed here, or not on this branch: you are missing at least these. Send the message below.',
-                'ეს ვერსია აქ ჩამოთვლილზე ძველია ან სხვა ბრენჩზეა: გაკლიათ მინიმუმ ეს ცვლილებები. გაგზავნეთ ქვემოთ მოცემული ტექსტი.')}</p>}
-            {!picked.length && <p className="gk-faint tw-paste__help">{copy('Pick your version above to see only what you are missing.', 'აირჩიეთ ვერსია ზემოთ, რომ მხოლოდ ის ნახოთ, რაც გაკლიათ.')}</p>}
-            {byDay(shown).map(([key, commits]) => <div key={key} className="tw-day">
-                <h3 className="tw-day__title">{shortDate(copy, day(key))}</h3>
-                <ul className="tw-changes">{commits.map((commit: Commit & { repo: RepoKey }) => {
-                    const merged = mergedBranch(commit);
-                    return <li key={`${commit.repo}:${commit.id}`} data-merge={merged !== null || undefined}>
-                        <span className="tw-chip">{copy(...NAMES[commit.repo])}</span>
-                        <span className="tw-changes__title">{titleOf(copy, commit)}</span>
-                        <span className="gk-faint gk-num">{short(commit.id)} · {commit.author}</span>
-                    </li>;
-                })}</ul>
-            </div>)}
+            {lost.length > 0 && <div className="gk-notice gk-notice--warning"><span>{copy('That version is older than this list, or on another branch: you are missing at least these.', 'ეს ვერსია ამ სიაზე ძველია ან სხვა ბრენჩზეა: გაკლიათ მინიმუმ ეს.')}</span>
+                <Button size="sm" onClick={copyPrompt}>{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy update message', 'განახლების ტექსტის კოპირება')}</Button></div>}
+            {days.length > 0 && <AgendaDays className="tw-agenda__days" days={days.slice(0, shownDays).map(([key, commits]) => {
+                const { label, title, today } = dayTitle(key);
+                return { key, title, label, today, rows: commits.map(commit => {
+                    const merged = mergedBranch(commit) !== null;
+                    return <FixtureRow key={`${commit.repo}:${commit.id}`} tone="neutral" time={formatTime(commit.date)} icon={merged ? GitMerge : GitCommitHorizontal} iconColor={merged ? 'var(--gk-text-3)' : TONES[commit.repo]}
+                        title={<span className={merged ? 'tw-changes__merge' : undefined} title={commit.title}>{titleOf(copy, commit)}</span>}
+                        meta={<span className="gk-num">{copy(...NAMES[commit.repo])} · {short(commit.id)}</span>} trail={<span className="tw-agenda__trail">{commit.author}</span>} />;
+                }) };
+            })} />}
+            {days.length > shownDays && <div className="tw-agenda__more"><Button size="sm" onClick={() => setRows(Math.max(total + ROWS, total + (days[shownDays]?.[1].length ?? 0)))}>{copy('Show earlier days', 'წინა დღეების ჩვენება')}</Button></div>}
         </section>
 
-        <section className="tw-section" aria-labelledby="tw-prompt">
-            <div className="tw-prompt-head">
-                <h2 id="tw-prompt" className="tw-section__title">{copy('Update my computer', 'ჩემი კომპიუტერის განახლება')}</h2>
-                <Button size="sm" variant="primary" onClick={() => void navigator.clipboard?.writeText(prompt).then(() => setCopied(true))}><Copy aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy', 'კოპირება')}</Button>
-            </div>
-            <p className="gk-faint tw-paste__help">{copy('Paste it into Claude or Codex on your computer. It keeps your own work safe, never forces anything, and tells you whether you were already up to date.',
-                'ჩასვით Claude-ში ან Codex-ში თქვენს კომპიუტერზე. ის თქვენს სამუშაოს შეინახავს, არაფერს აიძულებს და გეტყვით, უკვე განახლებული იყავით თუ არა.')}</p>
+        <details className="tw-section tw-fold">
+            <summary className="tw-section__title">{copy('The update message', 'განახლების ტექსტი')}</summary>
             <textarea className="gk-input tw-paste__text" readOnly rows={12} value={prompt} aria-label={copy('The message for Claude or Codex', 'ტექსტი Claude-სთვის ან Codex-ისთვის')} onFocus={event => event.target.select()} />
-        </section>
+        </details>
     </div>;
 }

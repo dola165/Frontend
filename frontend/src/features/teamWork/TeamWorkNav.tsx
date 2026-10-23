@@ -14,16 +14,17 @@ const PLACES: [TeamWorkPlace, LucideIcon, string, string][] = [
 ];
 
 /**
- * The small side bar; on a phone it becomes one row of tabs. Overview shows how much waits on the owner (tasks that
- * need his look, plus open questions; bright), Ideas how many are new to you (bright), Waiting how many wait (quiet).
+ * The small side bar; on a phone it becomes one row of tabs where only the open place keeps its name (the others are
+ * their symbols, named for screen readers and on hover). Overview shows what needs you (tasks that need your look,
+ * plus open questions; bright), Ideas how many are new to you (bright), Waiting how many wait (quiet).
  */
 export function TeamWorkNav({ current, needsYou, fresh, waiting, onGo }: { current: TeamWorkPlace; needsYou: number; fresh: number; waiting: number; onGo: (place: TeamWorkPlace) => void }) {
     const copy = useJourneyCopy();
     return <nav className="tw-side" aria-label={copy('Team work', 'გუნდის სამუშაო')}>
         <ul>{PLACES.map(([place, Icon, en, ka]) => <li key={place} data-place={place}>
-            <button type="button" aria-current={current === place ? 'page' : undefined} onClick={() => onGo(place)}>
+            <button type="button" aria-current={current === place ? 'page' : undefined} title={copy(en, ka)} onClick={() => onGo(place)}>
                 <Icon aria-hidden="true" /><span className="tw-side__label">{copy(en, ka)}</span>
-                {place === 'overview' && needsYou > 0 && <span className="gk-count" title={copy('Waiting on you: tasks to look at and open questions', 'გელოდებათ: სანახავი საქმეები და ღია კითხვები')}>{needsYou}</span>}
+                {place === 'overview' && needsYou > 0 && <span className="gk-count" title={copy('Needs you', 'გელოდებათ')}>{needsYou}</span>}
                 {place === 'ideas' && fresh > 0 && <span className="gk-count" title={copy('New to you', 'თქვენთვის ახალი')}>{fresh}</span>}
                 {place === 'waiting' && waiting > 0 && <span className="tw-side__quiet gk-num">{waiting}</span>}
             </button>

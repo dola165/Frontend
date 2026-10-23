@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Folder, Pin, Plus } from 'lucide-react';
 import { Button, EmptyNote, PageHeader, Panel } from '../../design/primitives';
+import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { Person, Plan, PlanView, WorkItem, WorkNode } from './api';
 import { Agenda, AgendaToolbar } from './Agenda';
@@ -77,11 +78,14 @@ export function Overview({ items, findings, plans, views, planOf, team, revision
     const { filter, change, open } = useAgendaFilter();
     const pins = usePins(revision);
     const [questions, setQuestions] = useState<OpenQuestion[]>([]);
+    const [questionsError, setQuestionsError] = useState('');
+    const [retry, setRetry] = useState(0);
     useEffect(() => {
         const controller = new AbortController();
-        fetchOpenQuestions(controller.signal).then(next => { if (!controller.signal.aborted) setQuestions(next); }).catch(() => undefined);
+        fetchOpenQuestions(controller.signal).then(next => { if (!controller.signal.aborted) { setQuestions(next); setQuestionsError(''); } })
+            .catch(failure => { if (!controller.signal.aborted) setQuestionsError(extractApiErrorMessage(failure, copy('The open questions could not load.', 'ღია კითხვები ვერ ჩაიტვირთა.'))); });
         return () => controller.abort();
-    }, [revision]);
+    }, [revision, retry, copy]);
 
     const work = items.filter(item => !findings.has(item.id) && !(item.parentId != null && findings.has(item.parentId)));
     const nodes = nodesOf(work);
@@ -90,17 +94,16 @@ export function Overview({ items, findings, plans, views, planOf, team, revision
     const header = <PageHeader title={copy('Overview', 'მიმოხილვა')} subtitle={copy('What we’re building and fixing', 'რას ვაშენებთ და ვასწორებთ')}
         actions={<><Button size="sm" onClick={onNewPlan}>{copy('New plan', 'ახალი გეგმა')}</Button><Button variant="primary" size="sm" onClick={onAddTask}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button></>} />;
 
-    if (plans.length === 0 && nodes.size === 0) return <>{header}<Panel flush><EmptyNote title={copy('Nothing here yet', 'აქ ჯერ არაფერია')}
+    if (plans.length === 0 && nodes.size === 0) return <>{header}<Panel flush><EmptyNote title={copy('No tasks yet', 'საქმეები ჯერ არ არის')}
         action={<div className="tw-empty-actions">
             <Button variant="primary" size="sm" onClick={onAddTask}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button>
-            <Button size="sm" onClick={onNewPlan}>{copy('New plan', 'ახალი გეგმა')}</Button>
-            <Button size="sm" disabled={starting} onClick={onLoadStarter}>{starting ? copy('Loading…', 'იტვირთება…') : copy('Load this week’s work', 'ამ კვირის საქმეების ჩატვირთვა')}</Button>
-        </div>}>
-        {copy('Tasks are what we have to do, small fixes next to big work with steps. A plan keeps related tasks together.', 'საქმეები არის ის, რაც უნდა გავაკეთოთ: პატარა შესწორებები და ნაბიჯებიანი დიდი საქმეები. გეგმა დაკავშირებულ საქმეებს აერთიანებს.')}
-    </EmptyNote></Panel></>;
+            <button type="button" className="tw-link-button" disabled={starting} onClick={onLoadStarter}>{starting ? copy('Loading…', 'იტვირთება…') : copy('or load this week’s work', 'ან ამ კვირის საქმეების ჩატვირთვა')}</button>
+        </div>} />
+    </Panel></>;
 
     return <div className="tw-overview">
         {header}
+        {questionsError && <div className="gk-notice gk-notice--danger" role="alert"><span>{questionsError}</span><Button size="sm" onClick={() => setRetry(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
         <NeedsYou items={work} questions={questions} planOf={planOf} onOpen={open} onAnswered={onChanged} />
         {pins.error && <p className="gk-notice gk-notice--danger" role="alert">{pins.error}</p>}
         <Pinned pins={pins} plans={plans} nodes={nodes} planOf={planOf} onOpenPlan={onOpenPlan} onOpen={open} />
@@ -110,7 +113,8 @@ export function Overview({ items, findings, plans, views, planOf, team, revision
                 <h2 id="tw-happened" className="tw-heading">{copy('What happened', 'რა მოხდა')}</h2>
                 <AgendaToolbar plans={plans} team={team} filter={filter} onChange={change} />
             </div>
-            <Agenda revision={revision} filter={filter} context={{ nodes, planOf, planItems, team }} exclude={findings} pinned={id => pins.pinned({ itemId: id })} onOpen={open} />
+            <Agenda revision={revision} filter={filter} context={{ nodes, planOf, planItems, team }} exclude={findings} pinned={id => pins.pinned({ itemId: id })} onOpen={open}
+                onClear={() => change({ plan: null, who: null, statuses: [] })} />
         </section>
         {opened && <TaskDialog node={opened} plan={planOf.get(opened.item.id)} actions={actions} pins={pins} onOpenPlan={onOpenPlan} />}
     </div>;

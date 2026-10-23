@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowUp, ExternalLink, GitBranch, Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Bot, ExternalLink, GitBranch, Plus, Trash2, X } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changeWork, createWork, fetchDetail, type Detail, type NewWork, type Person, type WorkChange, type WorkEnd, type WorkItem, type WorkStatus, type WorkUpdate } from './api';
+import { changeWork, createWork, deleteWork, fetchDetail, type Detail, type NewWork, type Person, type WorkChange, type WorkEnd, type WorkItem, type WorkStatus, type WorkUpdate } from './api';
 import { EndPick, Field, PeoplePick, QuickEdit, SmallChip, SmallPick, StatusDot } from './WorkBits';
 import { WorkComments } from './WorkComments';
 import { WorkMediaList } from './WorkMedia';
 import { ago, day, endWords, shortDate, statusName } from './teamWorkWords';
+import { taskAsText } from './planAsText';
 
 const isConflict = (error: unknown) => (error as { response?: { status?: number } })?.response?.status === 409;
 
@@ -45,8 +46,8 @@ export interface PlaceOnRoadmap { first: boolean; last: boolean; onMove: (by: -1
  * pictures and comments, and the edit. A save made after a colleague's is refused, and the person reloads with
  * their words kept.
  */
-export function WorkPiece({ id, team, me, place, onOpen, onAddPart, onClose, onSaved }: {
-    id: number; team: Person[]; me?: number | null; place?: PlaceOnRoadmap; onOpen: (id: number) => void; onAddPart?: () => void; onClose: () => void; onSaved: () => void;
+export function WorkPiece({ id, team, me, place, project, onOpen, onAddPart, onClose, onSaved, onDeleted }: {
+    id: number; team: Person[]; me?: number | null; place?: PlaceOnRoadmap; project?: string; onOpen: (id: number) => void; onAddPart?: () => void; onClose: () => void; onSaved: () => void; onDeleted?: () => void;
 }) {
     const copy = useJourneyCopy();
     const [detail, setDetail] = useState<Detail | null>(null);
@@ -56,6 +57,8 @@ export function WorkPiece({ id, team, me, place, onOpen, onAddPart, onClose, onS
     const [conflict, setConflict] = useState(false);
     const [saving, setSaving] = useState(false);
     const [revision, setRevision] = useState(0);
+    const [deleting, setDeleting] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -105,8 +108,10 @@ export function WorkPiece({ id, team, me, place, onOpen, onAddPart, onClose, onS
                 {place && <>
                     <Button size="sm" iconOnly variant="ghost" disabled={place.first} aria-label={copy('Move up', 'ზემოთ')} onClick={() => place.onMove(-1)}><ArrowUp aria-hidden="true" /></Button>
                     <Button size="sm" iconOnly variant="ghost" disabled={place.last} aria-label={copy('Move down', 'ქვემოთ')} onClick={() => place.onMove(1)}><ArrowDown aria-hidden="true" /></Button>
-                    <Button size="sm" variant="ghost" onClick={place.onRemove}>{copy('Take off this plan', 'ამ გეგმიდან მოხსნა')}</Button>
+                    <Button size="sm" variant="ghost" onClick={place.onRemove}>{copy('Take off this project', 'ამ პროექტიდან მოხსნა')}</Button>
                 </>}
+                <Button size="sm" variant="ghost" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, `${window.location.origin}/team-work?task=${item.parentId ?? item.id}${item.parentId != null ? `&open=${item.id}` : ''}`, project)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</Button>
+                {onDeleted && <Button size="sm" iconOnly variant="ghost" aria-label={copy('Delete', 'წაშლა')} onClick={() => setDeleting(true)}><Trash2 aria-hidden="true" /></Button>}
                 <Button size="sm" iconOnly variant="ghost" aria-label={copy('Close', 'დახურვა')} onClick={onClose}><X aria-hidden="true" /></Button>
             </span>
         </div>
@@ -163,7 +168,27 @@ export function WorkPiece({ id, team, me, place, onOpen, onAddPart, onClose, onS
             <summary className="tw-section__title">{copy('History', 'ისტორია')} <span className="gk-faint gk-num">{detail.updates.length}</span></summary>
             <ol className="tw-history">{detail.updates.map(update => <HistoryLine key={update.id} update={update} />)}</ol>
         </details>
+        {deleting && onDeleted && <DeleteDialog item={item} stages={detail.parts.length} onClose={() => setDeleting(false)} onDeleted={onDeleted} />}
     </div>;
+}
+
+/** "Delete this task?": says what goes with it, and that the projects keep a line saying who deleted it. */
+function DeleteDialog({ item, stages, onClose, onDeleted }: { item: WorkItem; stages: number; onClose: () => void; onDeleted: () => void }) {
+    const copy = useJourneyCopy();
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const isStage = item.parentId != null;
+    const remove = async () => {
+        setBusy(true); setError('');
+        try { await deleteWork(item.id); onDeleted(); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('It couldn’t be deleted.', 'ვერ წაიშალა.'))); setBusy(false); }
+    };
+    return <Dialog open size="sm" className="tw-dialog" title={isStage ? copy('Delete this stage?', 'წავშალოთ ეს ეტაპი?') : copy('Delete this task?', 'წავშალოთ ეს საქმე?')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
+        description={copy(`“${item.title}”${stages ? ` and its ${stages === 1 ? 'stage' : `${stages} stages`}` : ''}, with its comments, files and history. Its projects keep a line saying who deleted it. This can’t be undone.`,
+            `„${item.title}“${stages ? ` და მისი ${stages} ეტაპი` : ''}, კომენტარებით, ფაილებით და ისტორიით. პროექტებში დარჩება ჩანაწერი, ვინ წაშალა. ამის დაბრუნება შეუძლებელია.`)}
+        footer={<><Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="danger" disabled={busy} onClick={() => void remove()}>{busy ? copy('Deleting…', 'იშლება…') : copy('Delete', 'წაშლა')}</Button></>}>
+        {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+    </Dialog>;
 }
 
 /** A new task, on its own or in a project, a stage of a big task, or a task already on another list put in this project. */

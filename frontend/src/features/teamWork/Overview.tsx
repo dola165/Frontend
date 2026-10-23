@@ -3,7 +3,8 @@ import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Folder, 
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { Person, Roadmap, RoadmapView, WorkItem, WorkNode, WorkStatus } from './api';
-import { WorkPiece } from './WorkDetails';
+import { WorkPiece, type PlaceOnRoadmap } from './WorkDetails';
+import { progressWords } from './teamWorkWords';
 import { planMatches, type Who } from './planPeople';
 import { SmallChip, StatusDot, StatusFilter } from './WorkBits';
 
@@ -33,51 +34,65 @@ function GroupBox({ kind, name, tag, total, done, onClick }: { kind: 'period' | 
 
 export interface TaskActions {
     open: number | null; team: Person[]; me: number | null;
-    onToggle: (id: number) => void; onOpen: (id: number | null) => void; onAddStage: (parent: WorkItem) => void; onSaved: () => void;
+    onToggle: (id: number) => void; onOpen: (id: number | null) => void; onAddStage: (parent: WorkItem) => void; onSaved: () => void; onDeleted: () => void;
+    /** On a project page: move the task up or down, or take it off the project. */
+    placeOf?: (item: WorkItem) => PlaceOnRoadmap;
+    /** The project page the cards are on, for Copy for AI; the cards themselves do not repeat it. */
+    projectName?: string;
 }
 
 /**
  * A task as one card: its dot, name, percent and bar, its project, stages and people. Pressed, it opens across the
  * row to its details; a big task lists its stages there, and a stage opens below it.
  */
-function TaskBox({ node, project, expanded, actions }: { node: WorkNode; project?: Roadmap; expanded: boolean; actions: TaskActions }) {
+export function TaskBox({ node, project, expanded, actions }: { node: WorkNode; project?: Roadmap; expanded: boolean; actions: TaskActions }) {
     const copy = useJourneyCopy();
     const { item, parts } = node;
-    const { open, team, me, onToggle, onOpen, onAddStage, onSaved } = actions;
+    const { open, team, me, onToggle, onOpen, onAddStage, onSaved, onDeleted, placeOf, projectName } = actions;
     const stage = parts.find(part => part.id === open);
     const meta = [project?.name, parts.length > 0 && copy(parts.length === 1 ? '1 stage' : `${parts.length} stages`, `${parts.length} ეტაპი`), names(item.people)].filter(Boolean).join(' · ');
     return <li className="tw-task" data-status={item.status} data-open={expanded || undefined} data-task={item.id}>
         <button type="button" className="tw-task__box" aria-expanded={expanded} onClick={() => onToggle(item.id)}>
             <span className="tw-task__top"><StatusDot status={item.status} /><span className="tw-task__name">{item.title}</span>{item.small && <SmallChip />}
-                <span className="gk-num tw-task__percent">{item.percent}%</span>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
+                <span className="gk-num tw-task__percent">{progressWords(copy, item.percent)}</span>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</span>
             <span className="tw-task__bar"><span style={{ width: `${item.percent}%` }} /></span>
             <span className="tw-task__meta">{meta}</span>
         </button>
         {expanded && <div className="tw-task__body">
-            <WorkPiece id={item.id} team={team} me={me} onOpen={id => onOpen(open === id ? null : id)} onAddPart={() => onAddStage(item)} onClose={() => onToggle(item.id)} onSaved={onSaved} />
+            <WorkPiece id={item.id} team={team} me={me} project={project?.name ?? projectName} place={placeOf?.(item)} onOpen={id => onOpen(open === id ? null : id)} onAddPart={() => onAddStage(item)} onClose={() => onToggle(item.id)} onSaved={onSaved} onDeleted={onDeleted} />
             {stage && <div className="tw-task__stage">
                 <p className="tw-task__stage-title"><StatusDot status={stage.status} /><span className="gk-faint">{copy('Stage', 'ეტაპი')}:</span> {stage.title}</p>
-                <WorkPiece key={stage.id} id={stage.id} team={team} me={me} onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} />
+                <WorkPiece key={stage.id} id={stage.id} team={team} me={me} project={project?.name ?? projectName} onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} onDeleted={() => { onOpen(null); onSaved(); }} />
             </div>}
         </div>}
     </li>;
 }
 
+export type ProjectFilter = number | 'none' | null;
 export interface TaskListProps {
     tasks: WorkNode[]; projectOf: Map<number, Roadmap>; task: number | null; statuses: WorkStatus[]; showFinished: boolean; actions: TaskActions;
-    onStatuses: (statuses: WorkStatus[]) => void; onShowFinished: (show: boolean) => void; onAddTask: () => void;
+    /** The projects to filter by, with the tasks on each. */
+    projects: Roadmap[]; projectItems: Map<number, Set<number>>; project: ProjectFilter;
+    onStatuses: (statuses: WorkStatus[]) => void; onShowFinished: (show: boolean) => void; onAddTask: () => void; onProject: (project: ProjectFilter) => void;
 }
 
 /** Tasks as cards with the status filter; finished ones wait behind "Show finished" unless Finished is chosen. */
-function TaskList({ title, tasks, projectOf, task, statuses, showFinished, actions, onStatuses, onShowFinished, onAddTask }: TaskListProps & { title: string }) {
+function TaskList({ title, tasks, projectOf, task, statuses, showFinished, actions, projects, projectItems, project, onStatuses, onShowFinished, onAddTask, onProject }: TaskListProps & { title: string }) {
     const copy = useJourneyCopy();
-    const filtered = statuses.length ? tasks.filter(node => statuses.includes(node.item.status)) : tasks;
+    const inProject = project === null ? tasks : project === 'none' ? tasks.filter(node => !projectOf.has(node.item.id)) : tasks.filter(node => projectItems.get(project)?.has(node.item.id));
+    const filtered = statuses.length ? inProject.filter(node => statuses.includes(node.item.status)) : inProject;
     const finished = statuses.length ? [] : filtered.filter(node => node.item.status === 'FINISHED');
     const shown = statuses.length || showFinished ? filtered : filtered.filter(node => node.item.status !== 'FINISHED' || node.item.id === task);
     return <section className="tw-block" aria-labelledby="tw-tasks">
         <div className="tw-bar-line">
             <h2 id="tw-tasks" className="tw-heading"><ListChecks aria-hidden="true" />{title} <span className="gk-faint gk-num">{filtered.length}</span></h2>
-            <span className="tw-actions"><StatusFilter chosen={statuses} onChange={onStatuses} /><Button size="sm" variant="ghost" onClick={onAddTask}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button></span>
+            <span className="tw-actions"><label className="gk-visually-hidden" htmlFor="tw-project-filter">{copy('Project', 'პროექტი')}</label>
+                <select id="tw-project-filter" className="gk-input tw-project-filter" value={project ?? ''} onChange={event => onProject(event.target.value === '' ? null : event.target.value === 'none' ? 'none' : Number(event.target.value))}>
+                    <option value="">{copy('All projects', 'ყველა პროექტი')}</option>
+                    {projects.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+                    <option value="none">{copy('No project', 'პროექტის გარეშე')}</option>
+                </select>
+                <StatusFilter chosen={statuses} onChange={onStatuses} /><Button size="sm" variant="ghost" onClick={onAddTask}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button></span>
         </div>
         {shown.length ? <ul className="tw-tasks">{shown.map(node => <TaskBox key={node.item.id} node={node} project={projectOf.get(node.item.id)} expanded={task === node.item.id} actions={actions} />)}</ul>
             : <p className="gk-muted tw-quiet">{filtered.length ? copy('Everything here is finished.', 'აქ ყველაფერი დასრულებულია.') : copy('No tasks here.', 'აქ საქმეები არ არის.')}</p>}
@@ -90,11 +105,11 @@ function TaskList({ title, tasks, projectOf, task, statuses, showFinished, actio
  * Progress. On top the groups: the weeks, made from when tasks were added, and the projects people made, each
  * opening its own page. Below, every task as a card.
  */
-export function Overview({ projects, views, who, onWeek, onOpenProject, onNewProject, ...list }: TaskListProps & {
-    projects: Roadmap[]; views: Map<number, RoadmapView>; who: Who; onWeek: (period: Period) => void; onOpenProject: (id: number) => void; onNewProject: () => void;
+export function Overview({ views, who, onWeek, onOpenProject, onNewProject, ...list }: TaskListProps & {
+    views: Map<number, RoadmapView>; who: Who; onWeek: (period: Period) => void; onOpenProject: (id: number) => void; onNewProject: () => void;
 }) {
     const copy = useJourneyCopy();
-    const listed = projects.filter(project => { const view = views.get(project.id); return !view || planMatches(view, who); })
+    const listed = list.projects.filter(project => { const view = views.get(project.id); return !view || planMatches(view, who); })
         .sort((a, b) => PROJECT_ORDER[a.status] - PROJECT_ORDER[b.status]);
     const periods = PERIODS.filter(([period]) => period !== 'earlier' || inPeriod(list.tasks, period).length > 0);
     return <>

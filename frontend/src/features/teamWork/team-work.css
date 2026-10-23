@@ -21,21 +21,6 @@
 .gk .tw-bar-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-5); }
 
 
-/* The tree: fold, name and meta, then the time strip on the right. */
-.gk .tw-tree-panel { overflow: visible; }
-.gk .tw-tree, .gk .tw-tree__parts { list-style: none; margin: 0; padding: 0; }
-.gk .tw-tree > li + li { border-top: 1px solid var(--gk-line); }
-.gk .tw-row { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; column-gap: var(--gk-3); padding-inline: var(--gk-2) var(--gk-4); min-height: 52px; }
-.gk .tw-row[data-depth='1'] { min-height: 42px; }
-.gk .tw-row[data-depth='1'] .tw-row__main { padding-left: 22px; }
-.gk .tw-row[data-open] { background: var(--gk-hover); }
-.gk .tw-row__fold { display: flex; justify-content: center; }
-.gk .tw-row__main { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 0; border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
-.gk .tw-row__main:hover .tw-row__name { text-decoration: underline; }
-.gk .tw-row__text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--gk-3); min-width: 0; }
-.gk .tw-row__name { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; overflow-wrap: anywhere; }
-.gk .tw-row[data-depth='1'] .tw-row__name { font-weight: 500; }
-.gk .tw-row__meta { font-size: var(--gk-fs-sm); color: var(--gk-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 
 /* A piece opened in place, under its row. */
@@ -159,7 +144,6 @@
 .gk .tw-plan-head__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gk .tw-plan-head__title h1 { margin: 0; font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 700; overflow-wrap: anywhere; }
 .gk .tw-chip { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
-.gk .tw-row__text .tw-chip { align-self: center; }
 
 /* Names to filter by: all, the whole team, or one person. */
 .gk .tw-names { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -221,11 +205,9 @@
 
 /* On a phone the step cards take most of the width and swipe. */
 @media (max-width: 640px) {
-    .gk .tw-row { grid-template-columns: 24px minmax(0, 1fr); padding-inline: 4px var(--gk-3); }
     .gk .tw-steps__track > li { flex-basis: 78%; }
     .gk .tw-version-pick { flex-direction: column; }
     .gk .tw-version-pick input { flex-basis: auto; }
-    .gk .tw-row__meta { white-space: normal; }
     .gk .tw-piece { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
     .gk .tw-piece__head { flex-direction: column-reverse; }
     .gk .tw-piece__tools { align-self: stretch; }

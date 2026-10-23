@@ -37,8 +37,8 @@ export interface WorkNode { item: WorkItem; parts: WorkItem[] }
 export interface RoadmapView { roadmap: Roadmap; pieces: WorkNode[]; changes: RoadmapChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
 export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean }
 export interface Invite { userId: number; email: string; token: string; expiresAt: string }
-export interface PasteLine { line: number; action: 'NEW' | 'UPDATED' | 'MOVED' | 'UNCHANGED'; title: string; parent: string | null; detail: string | null }
-export interface PasteResult { created: number; updated: number; moved: number; unchanged: number; lines: PasteLine[]; problems: string[]; applied: boolean; view: RoadmapView | null }
+export interface PasteLine { line: number; action: 'NEW' | 'UPDATED' | 'MOVED' | 'UNCHANGED' | 'DELETED'; title: string; parent: string | null; detail: string | null }
+export interface PasteResult { created: number; updated: number; moved: number; unchanged: number; deleted: number; lines: PasteLine[]; problems: string[]; applied: boolean; view: RoadmapView | null }
 
 export interface NewWork { title: string; area?: string; status: WorkStatus; percent?: number; step?: string; notes?: string; branch?: string; prUrl?: string; roadmapId?: number; parentId?: number; description?: string; startedOn?: string; end?: WorkEnd; people?: number[]; small?: boolean }
 /** Fields left out stay as they are; an empty text clears one. `version` is the one on screen. */
@@ -50,6 +50,8 @@ export const fetchBoard = (signal?: AbortSignal) => data(apiClient.get<Board>(ba
 export const fetchDetail = (id: number, signal?: AbortSignal) => data(apiClient.get<Detail>(`${base}/items/${id}`, { signal }));
 export const createWork = (work: NewWork) => data(apiClient.post<Detail>(`${base}/items`, work));
 export const changeWork = (id: number, change: WorkChange) => data(apiClient.patch<Detail>(`${base}/items/${id}`, change));
+/** Deletes a task with its stages, history, comments and files; the projects that held it keep a line saying so. */
+export const deleteWork = (id: number) => apiClient.delete(`${base}/items/${id}`).then(() => undefined);
 export const fetchRoadmaps = (signal?: AbortSignal) => data(apiClient.get<Roadmap[]>(`${base}/roadmaps`, { signal }));
 export const fetchRoadmap = (id: number, signal?: AbortSignal) => data(apiClient.get<RoadmapView>(`${base}/roadmaps/${id}`, { signal }));
 export const createRoadmap = (name: string, copyFrom?: number) => data(apiClient.post<RoadmapView>(`${base}/roadmaps`, { name, copyFrom }));

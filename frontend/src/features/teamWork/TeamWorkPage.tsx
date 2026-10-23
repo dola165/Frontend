@@ -58,9 +58,9 @@ function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' |
 }
 
 /**
- * Team work: what the team is building and fixing. A small side bar holds the places: the overview (weeks and
- * plans, then every task), Add to listed (what people found), Waiting (findings waiting for a decision), staying
- * up to date, and the team. Team accounts only; for anyone else the page does not exist.
+ * Team work: what the team is building and fixing. A small side bar holds the places: the Overview (what needs you,
+ * pins, plans, then what happened day by day), Ideas (what people found), Waiting (what needs whom), What changed
+ * and the Team. Team accounts only; for anyone else the page does not exist.
  */
 export function TeamWorkPage() {
     const copy = useJourneyCopy();

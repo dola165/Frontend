@@ -8,6 +8,7 @@ import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
 import { DolaLink } from '../../../features/dola/DolaProvider';
 import { DolaContext } from '../../../features/dola/DolaContext';
+import { TEAM_WORK_DOLA_PATH, useDolaEntry } from '../../../features/dola/dolaEntry';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { themeForRoute, type ThemePreference } from '../../../theme';
 import { AccountMenu } from './AccountMenu';
@@ -81,6 +82,8 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);
     const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);
+    // Agent Dola in Team work for team members, the old assistant only while it is on, otherwise no link at all.
+    const dolaEntry = useDolaEntry(user.id);
 
     return (
         <>
@@ -97,10 +100,14 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
                         <PinsBar state={pins} page={page} work={work} activePath={pinned?.path ?? null} crowded={crowded} onCrowdedChange={setCrowded} />
                     </nav>
                     <div className="gk-header__actions">
-                        <DolaLink className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola" title={copy('Ask Agent Dola', 'ჰკითხეთ Agent Dola-ს')}
+                        {dolaEntry === 'team-work' && <Link to={TEAM_WORK_DOLA_PATH} className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola"
+                            title={copy('Ask Agent Dola in Team work', 'ჰკითხეთ Agent Dola-ს Team work-ში')}>
+                            <Sparkles aria-hidden="true" /><span className="gk-hbtn__label">Agent Dola</span>
+                        </Link>}
+                        {dolaEntry === 'assistant' && <DolaLink className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola" title={copy('Ask Agent Dola', 'ჰკითხეთ Agent Dola-ს')}
                             aria-current={pathname === '/assistant' ? 'page' : undefined} data-open={dolaOpen || undefined}>
                             <Sparkles aria-hidden="true" /><span className="gk-hbtn__label">Agent Dola</span>
-                        </DolaLink>
+                        </DolaLink>}
                         <InboxButton />
                         <Link to="/messages" className="gk-hbtn gk-header__messages" aria-current={pathname === '/messages' ? 'page' : undefined} title={copy('Messages', 'მიმოწერა')}
                             aria-label={unread ? copy(`Messages, ${unread} unread conversations`, `მიმოწერა, ${unread} წაუკითხავი`) : copy('Messages', 'მიმოწერა')}>

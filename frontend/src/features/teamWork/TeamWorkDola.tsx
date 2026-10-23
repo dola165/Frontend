@@ -1,10 +1,12 @@
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Check, Plus, Send, Sparkles, X } from 'lucide-react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Check, Plus, ScanSearch, Send, Sparkles, X } from 'lucide-react';
 import { Button } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { agentDolaConversation, agentDolaStatus, decideAgentDola, forgetAgentDola, sendAgentDola, type AgentDolaReply, type AgentDolaStatus } from '../dola/agentDola';
+import { DolaTrace } from './TeamWorkDolaTrace';
+import { useDolaTraceSetting } from './TeamWorkDolaTraceSetting';
 import './team-work-dola.css';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
@@ -13,6 +15,22 @@ interface Turn { id: number; message: string | null; answer: AgentDolaReply | nu
 const statusOf = (error: unknown) => (error as { response?: { status?: number } })?.response?.status;
 /** Replies that changed something on the board, so the page reloads what it shows. */
 const CHANGED = new Set(['ACTION_COMPLETED']);
+/** `?dola=open` (the header's Agent Dola link) opens the panel on arrival. */
+const OPEN_PARAM = 'dola';
+
+/** Why Dola can't answer, in the status's own terms, so a developer knows what to fix. */
+function unavailableText(status: AgentDolaStatus, copy: Copy) {
+    switch (status.reason) {
+        case 'SWITCHED_OFF': return copy('Dola is switched off on this server (DOLA_ENABLED). The board works as usual.',
+            'დოლა ამ სერვერზე გამორთულია (DOLA_ENABLED). დაფა ჩვეულებრივ მუშაობს.');
+        case 'NO_LANGUAGE_KEY': return copy('Dola can’t understand messages: TYPESAFE_API_KEY isn’t set on this server. The board works as usual.',
+            'დოლა შეტყობინებებს ვერ იგებს: ამ სერვერზე TYPESAFE_API_KEY არ არის. დაფა ჩვეულებრივ მუშაობს.');
+        case 'LANGUAGE_KEY_REJECTED': return copy('Dola can’t understand messages: the language service rejected this server’s key. The board works as usual.',
+            'დოლა შეტყობინებებს ვერ იგებს: ენის სერვისმა ამ სერვერის გასაღები არ მიიღო. დაფა ჩვეულებრივ მუშაობს.');
+        default: return copy('Dola is switched off or can’t understand messages right now. The board works as usual.',
+            'დოლა გამორთულია ან ახლა შეტყობინებებს ვერ იგებს. დაფა ჩვეულებრივ მუშაობს.');
+    }
+}
 
 /** `**bold**` and line breaks, nothing else: Dola's replies are plain text with a little emphasis. */
 function Words({ text }: { text: string }) {
@@ -58,19 +76,23 @@ function Answer({ turn, now, busy, copy, onDecide, onQuick }: {
         </li>)}</ul>}
         {answer.quickReplies.length > 0 && !pending && <div className="tw-dola__chips">{answer.quickReplies.map(chip =>
             <button key={chip} type="button" className="tw-dola__chip" disabled={busy} onClick={() => onQuick(chip)}>{chip}</button>)}</div>}
+        {answer.trace && <DolaTrace trace={answer.trace} copy={copy} />}
     </div>;
 }
 
 /**
  * Agent Dola inside Team work: the team's project manager. It turns words into tasks, moves them along, answers
  * workers' questions and fills a task from a pasted report, always through a preview the person approves. It
- * exists only for team members with Dola switched on; for anyone else nothing is shown.
+ * exists only for team members with Dola switched on; for anyone else nothing is shown. Team members testing Dola can
+ * turn on "How Dola understood this" (off by default) to see the route, details, calls and reasons under each reply.
  */
 export function TeamWorkDola({ onChanged }: { onChanged: () => void }) {
     const copy = useJourneyCopy();
     const location = useLocation();
+    const [params, setParams] = useSearchParams();
     const [status, setStatus] = useState<AgentDolaStatus | null>(null);
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(() => params.get(OPEN_PARAM) === 'open');
+    const [tracing, setTracing] = useDolaTraceSetting();
     const [turns, setTurns] = useState<Turn[]>([]);
     const [draft, setDraft] = useState('');
     // One clock for every proposal's countdown, ticking only while the panel is open.
@@ -97,6 +119,14 @@ export function TeamWorkDola({ onChanged }: { onChanged: () => void }) {
         input.current?.focus();
         return () => controller.abort();
     }, [open, status?.available]);
+    // The header link lands here with ?dola=open (also when Team work is already on screen); the flag is then dropped so
+    // closing the panel and moving around the board does not open it again.
+    const openRequested = params.get(OPEN_PARAM) === 'open';
+    useEffect(() => {
+        if (!openRequested) return;
+        setOpen(true);
+        setParams(current => { const next = new URLSearchParams(current); next.delete(OPEN_PARAM); return next; }, { replace: true });
+    }, [openRequested, setParams]);
     useEffect(() => { end.current?.scrollIntoView?.({ block: 'nearest' }); }, [turns, busy]);
     useEffect(() => {
         if (!open) return;
@@ -117,7 +147,7 @@ export function TeamWorkDola({ onChanged }: { onChanged: () => void }) {
         const id = nextId.current++;
         setTurns(current => [...current, { id, message, answer: null }]);
         try {
-            const answer = await sendAgentDola(message, location.pathname + location.search);
+            const answer = await sendAgentDola(message, location.pathname + location.search, { trace: tracing });
             setTurns(current => current.map(turn => turn.id === id ? { ...turn, answer } : turn));
             settle(answer);
         } catch (failure) { failed(failure); setDraft(message); setTurns(current => current.filter(turn => turn.id !== id)); }
@@ -127,7 +157,7 @@ export function TeamWorkDola({ onChanged }: { onChanged: () => void }) {
         if (!turn.answer?.actionId || busy) return;
         setBusy(true); setError('');
         try {
-            const answer = await decideAgentDola(turn.answer.actionId, decision);
+            const answer = await decideAgentDola(turn.answer.actionId, decision, { trace: tracing });
             setTurns(current => [...current.map(item => item.id === turn.id ? { ...item, decided: decision } : item), { id: nextId.current++, message: null, answer }]);
             settle(answer);
         } catch (failure) { failed(failure); }
@@ -163,12 +193,15 @@ export function TeamWorkDola({ onChanged }: { onChanged: () => void }) {
         {open && <aside className="tw-dola" role="dialog" aria-label="Agent Dola" onKeyDown={event => { if (event.key === 'Escape') setOpen(false); }}>
             <header className="tw-dola__head">
                 <span className="tw-dola__title"><Sparkles aria-hidden="true" />Agent Dola</span>
+                <Button size="sm" variant="ghost" iconOnly className="tw-dola__trace-toggle" aria-pressed={tracing} onClick={() => setTracing(!tracing)}
+                    aria-label={copy('Show how Dola understood each reply', 'მაჩვენე, როგორ გაიგო დოლამ თითოეული პასუხი')}
+                    title={tracing ? copy('How Dola understood this: on', 'როგორ გაიგო დოლამ: ჩართულია') : copy('How Dola understood this: off', 'როგორ გაიგო დოლამ: გამორთულია')}>
+                    <ScanSearch aria-hidden="true" /></Button>
                 <Button size="sm" variant="ghost" iconOnly disabled={busy || turns.length === 0} onClick={() => void restart()} aria-label={copy('New conversation', 'ახალი საუბარი')} title={copy('New conversation', 'ახალი საუბარი')}><Plus aria-hidden="true" /></Button>
                 <Button size="sm" variant="ghost" iconOnly onClick={() => setOpen(false)} aria-label={copy('Close', 'დახურვა')} title={copy('Close', 'დახურვა')}><X aria-hidden="true" /></Button>
             </header>
             <div className="tw-dola__body" aria-live="polite">
-                {!status.available && <p className="gk-notice">{copy('Dola is switched off or can’t understand messages right now. The board works as usual.',
-                    'დოლა გამორთულია ან ახლა შეტყობინებებს ვერ იგებს. დაფა ჩვეულებრივ მუშაობს.')}</p>}
+                {!status.available && <p className="gk-notice">{unavailableText(status, copy)}</p>}
                 {turns.length === 0 && welcome}
                 {shown.map(turn => <div key={turn.id} className="tw-dola__turn">
                     {turn.message && <p className="tw-dola__mine">{turn.message}</p>}

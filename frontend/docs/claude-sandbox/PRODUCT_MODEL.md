@@ -84,6 +84,8 @@ Permissions inside a club are a fourth thing, granted by club leadership, never 
 
 ## 7. Club workspace, responsibilities and Coach Hub
 
+Section 14 maps the jobs and their pages that will replace most of the workspace (23 October 2026).
+
 The workspace is the strongest part of the product today. Keep its structure and fix its finish.
 
 - **Everyone on the staff is a coach** in the broad sense: head coach, nutritionist, fitness coach, analyst, goalkeeper coach. Each specialty has its own tools.
@@ -249,3 +251,31 @@ These replace the older lines above and in sections 3, 7 and 12 where they disag
 - **Guard rails for confused people:** an adult joining a kids' squad is asked "Joining for your child?"; the same child added twice is offered as a merge; a known email signs in instead of making a second account; a child using a parent's email is sent to the parent; an invite accepted under a different name shows to the admin with Undo; every "no" carries the button that fixes it; everything is undoable for 30 days with history; nobody types a club name to join; approvals happen in the notification.
 - **Thrown away:** profile types that grant things (Organiser to receive a club; Club admin and Organiser as profile types), claiming clubs, a second admin login or Manage mode, a suggest-and-wait queue, self-changed jobs within limits, three separate lists of club roles in the backend (they become one list of jobs).
 - **Order:** (1) remove claiming and stop profile types granting; (2) jobs on the surface and a People screen (person → jobs → where); (3) the Team work invite for jobs; (4) squad QR join, batch approval and the first guard rails; (5) teens' parent approval and "his own account"; (6) Owner hand-over, leaving and one club for staff, with today's multi-club staff sorted first; (7) page staff links merged into the same jobs; later, Google and email codes.
+
+## 14. Jobs and their pages (map, 23 October 2026)
+
+The owner, after showing Team work to the founders: each job gets its own page, the way coaches have My squads, so the club workspace can shrink to a small club office. This is a map, not a design: a page is designed in detail only when it is next, from a real person in that job.
+
+**Rules**
+- **Pages own nothing.** They arrange the same records with the same permissions; a note opened from Care is the record a coach sees.
+- **Your job gives you the pin** (links decide, section 13, 23 October): Fees gives Money, Head coach gives My squads. Several jobs give several pins, about five at most.
+- **Three shapes, one template each:** *by time* (today, this week, the calendar), *by work* (plans, tasks, progress, what waits on you; Team work's code), *by people* (a watchlist and where things stand).
+- **Actions are Dola's toolbox.** Each page offers a few named actions. Screens and Agent Dola call the same action, inside the person's permissions, with a preview first and Dola's name in the history. Where an endpoint already exists, the action wraps it. Dola reading the screen or moving the mouse is the fallback, never the main path.
+
+| Job | Page | Shape | Main actions | Status |
+|---|---|---|---|---|
+| Owner, Admin | **Club office** (today's workspace, slimmed and renamed) | by work | `invite_to_job`, `change_job`, `end_job`, `request_verification`, `edit_club_settings` | next (People screen built 23 Oct) |
+| Head coach, Assistant coach | **My squads** | by time | `plan_session`, `mark_attendance`, `message_families`, `approve_join_requests`, `add_helper` | exists |
+| Parent | **Parent Hub** | by time | `report_absence`, `answer_request`, `pay_fee`, `join_squad_for_child`, `add_other_parent` | exists |
+| Team manager, office | **Club plans** (Team work for a club) | by work | `add_plan`, `add_task`, `update_progress`, `paste_plan`, `assign_person` | next |
+| Fees | **Money** | by work | `record_payment`, `remind_who_owes`, `set_fee`, `start_fundraiser`, `export_money_report` | later |
+| Analyst | **Analysis** | by work | `tag_match_video`, `cut_clip`, `share_clip`, `write_player_report` | later; ask whether academies have one |
+| Physio, welfare officer | **Care** | by time | `log_injury`, `set_availability`, `clear_to_play`, `add_private_note` | later |
+| Player | **My football** | by time | `confirm_attendance`, `report_absence`, `share_highlight` | later (players use the squad page today) |
+| Referee | **My matches** | by time | `set_availability`, `accept_appointment`, `submit_match_report`, `claim_fee` | exists in part (referee workspace) |
+| Agent, scout | **Watchlist** | by people | `follow_player`, `approach_club`, `propose_representation`, `add_note` | exists in part (agent features) |
+| Organiser | **My competitions** | by work | `create_competition`, `invite_teams`, `schedule_fixtures`, `confirm_result` | exists (tournament workspace) |
+
+**Where today's workspace tools go** (its permission modules): Attendance, Availability, Development, Readiness and Matches → My squads; Finance and Registration → Money; Travel, Equipment, Facilities, Staff, Credentials and Departures → Club plans; Medical, Welfare and Guardians → Care; Specialists → Analysis and Care. **Club office keeps** people and jobs, settings, verification and the club in numbers.
+
+**Order:** finish the roles batch (jobs are the foundation) → Club plans (Team work already exists) → Club office → the "later" pages one at a time, each after talking to someone who does that job.

@@ -1,17 +1,16 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
-import { Button, EmptyNote, GkRoot, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
+import { Button, GkRoot, PageFrame, Panel, Skeleton } from '../../design/primitives';
 import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, LIST_ORDER, STARTER_WORK, STATUSES, type Person, type WorkStatus, type PlanStatus, type Plan, type PlanView, type WorkItem, type WorkNode } from './api';
+import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, LIST_ORDER, STARTER_WORK, STATUSES, type Person, type WorkStatus, type PlanStatus, type Plan, type PlanView, type WorkItem } from './api';
 import { AddTaskDialog } from './TaskView';
 import { IdeasPage } from './IdeasPage';
 import { IDEAS, isHidden, isNewFor, isReservedName, WAITING, useFindingDetails } from './findings';
-import { Overview, WeekPage, type Period, type TaskListProps } from './Overview';
+import { Overview } from './Overview';
 import { PasteDialog } from './PasteDialog';
 import { WaitingPage } from './WaitingPage';
 import { PlanPage, type PlanDialog } from './PlanPage';
@@ -19,7 +18,7 @@ import { TeamPanel } from './TeamPanel';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
 import { CopyForAiDialog, NameFilter, PlanHistoryDialog } from './PlanBits';
-import { nodeMatches, whoOf } from './planPeople';
+import { whoOf } from './planPeople';
 import { needsYouCount } from './needsYou';
 import './team-work.css';
 import './team-work-layout.css';
@@ -30,7 +29,6 @@ const PLACES: TeamWorkPlace[] = ['ideas', 'waiting', 'changes', 'team'];
 const OLD_PLACES: Record<string, TeamWorkPlace> = { add: 'ideas', pending: 'waiting', updates: 'changes' };
 const OLD_KEYS: Record<string, string> = { roadmap: 'plan', open: 'step', project: 'in' };
 const placeOf = (value: string | null): TeamWorkPlace => PLACES.find(place => place === value) ?? (value ? OLD_PLACES[value] : undefined) ?? 'overview';
-const periodOf = (value: string | null): Period | null => value === 'week' || value === 'last' || value === 'earlier' ? value : null;
 const PLAN_ORDER = { NOW: 0, LATER: 1, FINISHED: 2 } as const;
 
 function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' | 'rename'; current: Plan | null; onClose: () => void; onDone: (view: PlanView) => void }) {
@@ -113,14 +111,10 @@ export function TeamWorkPage() {
     const view = wanted ? views.get(wanted) ?? null : null;
     const team: Person[] = view?.team ?? [...views.values()][0]?.team ?? [];
     const findings = new Set([ideas, waiting].flatMap(found => found?.tasks.map(node => node.item.id) ?? []));
-    const steps = new Map<number, WorkItem[]>();
-    items.filter(item => item.parentId != null).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).forEach(item => steps.set(item.parentId!, [...steps.get(item.parentId!) ?? [], item]));
     const allTasks = items.filter(item => item.parentId == null && !findings.has(item.id))
         .sort((a, b) => LIST_ORDER.indexOf(a.status) - LIST_ORDER.indexOf(b.status) || b.updatedAt.localeCompare(a.updatedAt));
-    const tasks: WorkNode[] = allTasks.map(item => ({ item, steps: steps.get(item.id) ?? [] })).filter(node => nodeMatches(node, who, team));
     const planOf = new Map<number, Plan>();
     [...plans].sort((a, b) => PLAN_ORDER[a.status] - PLAN_ORDER[b.status]).forEach(plan => views.get(plan.id)?.tasks.forEach(node => { if (!planOf.has(node.item.id)) planOf.set(node.item.id, plan); }));
-    const planItems = new Map(plans.map(plan => [plan.id, new Set(views.get(plan.id)?.tasks.map(node => node.item.id) ?? [])]));
     // Task names in other plans, so Paste from AI can flag a plan pasted twice.
     const elsewhere = new Map(allTasks.filter(item => !view?.tasks.some(node => node.item.id === item.id)).map(item => [item.title.trim().toLowerCase(), planOf.get(item.id)?.name ?? copy('no plan', 'გეგმის გარეშე')]));
 
@@ -141,53 +135,34 @@ export function TeamWorkPage() {
         catch (failure) { setError(extractApiErrorMessage(failure, copy('Some work could not be added.', 'ზოგიერთი საქმე ვერ დაემატა.'))); }
         finally { setStarting(false); reload(); }
     };
-    const openPlan = (id: number) => set({ view: null, plan: String(id), step: null, task: null, when: null });
+    const openPlan = (id: number) => set({ view: null, plan: String(id), step: null, task: null, day: null, show: null });
     const setOpen = (id: number | null) => set({ step: id == null ? null : String(id) });
     const statuses = (params.get('status') ?? '').split(',').filter((value): value is WorkStatus => (STATUSES as readonly string[]).includes(value));
     const setStatuses = (next: WorkStatus[]) => set({ status: next.length ? next.join(',') : null, task: null, step: null });
-    const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, plan: null, step: null, task: null, when: null });
+    const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, plan: null, step: null, task: null, day: null, show: null });
 
     if (missing) return <RouteRecoveryPage />;
     const filter = (allLabel: string) => <NameFilter team={team} who={who} allLabel={allLabel} onChange={next => set({ who: next === null ? null : String(next), step: null, task: null })} />;
     const loading = <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>;
     const findingProps = { details, team, me, open, onOpen: setOpen, onPut: put, onChanged: reload };
-    const week = periodOf(params.get('when'));
-    const inParam = params.get('in') ?? params.get('project');
     const actions = { open, team, me, candidates: allTasks, onOpen: setOpen, onSaved: reload, onDeleted: () => { set({ task: null, step: null }); reload(); },
         onAddStep: (parent: WorkItem) => startAdding(undefined, parent), onToggle: (id: number) => set({ task: task === id ? null : String(id), step: null }) };
-    const taskList: TaskListProps = { tasks, planOf, task, statuses, showFinished: params.get('finished') === 'show', onStatuses: setStatuses, onAddTask: () => startAdding(),
-        plans, planItems, plan: inParam === 'none' ? 'none' : Number(inParam) || null, onPlanFilter: next => set({ in: next === null ? null : String(next), task: null, step: null }),
-        onShowFinished: showFinished => set({ finished: showFinished ? 'show' : null }), actions };
     let main: ReactNode;
     if (!listed) main = !error && loading;
     else if (place === 'changes') main = <WhatChangedPage />;
     else if (place === 'team') main = <TeamPanel canManage={canManageTeam} />;
     else if (place === 'ideas') main = <IdeasPage ideas={ideas} waiting={waiting} {...findingProps} />;
     else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} />;
-    else if (view) main = <PlanPage view={view} who={who} task={task} filter={filter(copy('Everything', 'ყველაფერი'))} statuses={statuses} actions={actions} onStatuses={setStatuses} onBack={() => set({ plan: null, step: null, task: null })}
+    else if (view) main = <PlanPage view={view} items={items} planOf={planOf} revision={revision} who={who} task={task} filter={filter(copy('Everything', 'ყველაფერი'))} statuses={statuses} actions={actions} onStatuses={setStatuses} onBack={() => set({ plan: null, step: null, task: null })}
         onChangePlan={change => void savePlan(view, change)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} />;
-    else if (week) main = <WeekPage period={week} filter={filter(copy('Everyone', 'ყველა'))} onBack={() => set({ when: null, task: null, step: null })} {...taskList} />;
-    else main = <>
-        <PageHeader title={copy('Overview', 'მიმოხილვა')} subtitle={copy('What we’re building and fixing', 'რას ვაშენებთ და ვასწორებთ')} />
-        {plans.length === 0 && allTasks.length === 0 ? <Panel flush><EmptyNote title={copy('Nothing here yet', 'აქ ჯერ არაფერია')}
-            action={<div className="tw-empty-actions">
-                <Button variant="primary" size="sm" onClick={() => startAdding()}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button>
-                <Button size="sm" onClick={() => setDialog('new')}>{copy('New plan', 'ახალი გეგმა')}</Button>
-                <Button size="sm" disabled={starting} onClick={() => void loadStarter()}>{starting ? copy('Loading…', 'იტვირთება…') : copy('Load this week’s work', 'ამ კვირის საქმეების ჩატვირთვა')}</Button>
-            </div>}>
-            {copy('Tasks are what we have to do, small fixes next to big work with steps. A plan keeps related tasks together.', 'საქმეები არის ის, რაც უნდა გავაკეთოთ: პატარა შესწორებები და ნაბიჯებიანი დიდი საქმეები. გეგმა დაკავშირებულ საქმეებს აერთიანებს.')}
-        </EmptyNote></Panel>
-            : <>
-                {filter(copy('Everyone', 'ყველა'))}
-                <Overview views={views} who={who} onWeek={period => set({ when: period, task: null, step: null })} onOpenPlan={openPlan} onNewPlan={() => setDialog('new')} {...taskList} />
-            </>}
-    </>;
+    else main = <Overview items={items} findings={findings} plans={plans} views={views} planOf={planOf} team={team} revision={revision} task={task} actions={actions} starting={starting}
+        onAddTask={() => startAdding()} onNewPlan={() => setDialog('new')} onOpenPlan={openPlan} onLoadStarter={() => void loadStarter()} onChanged={reload} />;
 
     return <GkRoot className="gk-page"><PageFrame className="tw-page">
         <div className="tw-shell">
             <TeamWorkNav current={place} needsYou={needsYouCount(items.filter(item => !findings.has(item.id)))} fresh={ideas?.tasks.filter(node => { const detail = details.get(node.item.id); return detail != null && isNewFor(detail, me); }).length ?? 0}
                 waiting={waiting?.tasks.length ?? 0} onGo={go} />
-            <div className="tw-main" key={`${place}-${wanted ?? ''}-${week ?? ''}`}>
+            <div className="tw-main" key={`${place}-${wanted ?? ''}`}>
                 {error && <div className="gk-notice gk-notice--danger" role="alert"><span>{error}</span><Button size="sm" onClick={reload}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
                 {main}
             </div>

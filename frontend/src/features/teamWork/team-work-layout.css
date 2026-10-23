@@ -19,21 +19,6 @@
 .gk .tw-heading .gk-faint { font-weight: 500; }
 .gk .tw-heading .tw-link-button { margin-left: var(--gk-2); font-weight: 600; }
 
-/* Groups: weeks (made from when tasks were added) and plans, as small boxes with counts only. */
-.gk .tw-groups { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: var(--gk-2); }
-.gk .tw-group { display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; min-height: 64px; padding: 10px 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s var(--gk-ease); }
-.gk .tw-group:hover { border-color: var(--gk-line-strong); }
-.gk .tw-group[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); background: var(--gk-accent-soft); }
-.gk .tw-group__top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.gk .tw-group__top > svg { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); }
-.gk .tw-group[data-kind='plan'] .tw-group__top > svg { color: var(--gk-info); }
-.gk .tw-group__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-md); font-weight: 650; }
-.gk .tw-group__counts { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .tw-group__counts strong { font-weight: 600; color: var(--gk-text-2); }
-.gk .tw-group__counts strong[data-done] { color: var(--gk-accent); }
-.gk .tw-group--new { flex-direction: row; align-items: center; justify-content: center; gap: 6px; border-style: dashed; background: none; color: var(--gk-text-2); font-weight: 600; }
-.gk .tw-group--new:hover { color: var(--gk-text); }
-.gk .tw-group--new svg { width: 16px; height: 16px; }
 
 /* A task is a single card; pressed, it spans the row and shows its details, with steps only on big tasks. */
 .gk .tw-tasks { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: row dense; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: var(--gk-2); }
@@ -141,9 +126,6 @@
 .gk .tw-key button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease), color .15s var(--gk-ease); }
 .gk .tw-key button:hover { background: var(--gk-hover); color: var(--gk-text); }
 .gk .tw-key button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--tw-tone, var(--gk-accent)) 55%, var(--gk-line)); background: color-mix(in srgb, var(--tw-tone, var(--gk-accent)) 12%, var(--gk-surface)); color: var(--gk-text); font-weight: 600; }
-.gk .tw-group__go { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); transition: transform .15s var(--gk-ease), color .15s var(--gk-ease); }
-.gk .tw-group:hover .tw-group__go { transform: translateX(2px); color: var(--gk-text); }
-.gk .tw-plan-head__icon { width: 22px; height: 22px; color: var(--gk-text-3); }
 
 /* An open finding: the files on the left, its name and what it is for beside them, the thread below. */
 .gk .tw-finding__top { display: grid; grid-template-columns: fit-content(440px) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
@@ -159,8 +141,8 @@
 .gk .tw-task__body, .gk .tw-task__step, .gk .tw-finding__open { animation: tw-rise .2s var(--gk-ease) both; }
 .gk .tw-menu__list, .gk .tw-mention__list { animation: tw-rise .14s var(--gk-ease) both; transform-origin: top; }
 .gk .tw-side button, .gk .tw-names button, .gk .tw-link-button, .gk .tw-back, .gk .tw-steps button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
-.gk .tw-task, .gk .tw-finding, .gk .tw-group { transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease), transform .15s var(--gk-ease); }
-.gk .tw-task:not([data-open]):hover, .gk .tw-finding:not([data-open]):hover, .gk .tw-group:hover { box-shadow: var(--gk-elevation); transform: translateY(-1px); }
+.gk .tw-task, .gk .tw-finding { transition: border-color .15s var(--gk-ease), box-shadow .15s var(--gk-ease), transform .15s var(--gk-ease); }
+.gk .tw-task:not([data-open]):hover, .gk .tw-finding:not([data-open]):hover { box-shadow: var(--gk-elevation); transform: translateY(-1px); }
 .gk .tw-task__bar > span, .gk .tw-order__bar > span { transition: width .35s var(--gk-ease); }
 .gk .tw-task__top > svg { transition: transform .2s var(--gk-ease); }
 @media (prefers-reduced-motion: reduce) {

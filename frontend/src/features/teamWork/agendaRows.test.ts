@@ -37,11 +37,15 @@ it('folds three or more tasks one person added to one plan at once, and nothing 
     expect(mixed.every(row => row.kind === 'event')).toBe(true);
 });
 
-it('filters by status, plan and person: their own events and their tasks', () => {
+it('filters by status now, plan and person: their own events and their tasks', () => {
     const task = { item: { id: 1, people: [{ id: 3, name: 'Ilo' }] }, steps: [] } as never;
     const context = { nodes: new Map([[1, task]]), planOf: new Map(), planItems: new Map([[5, new Set([1])]]), team: [] };
     const started = event('1', at(23, 9), { by: { id: 2, name: 'Gio' } });
     expect(eventMatches(started, { plan: null, who: null, statuses: ['LIVE'] }, context)).toBe(false);
+    // A status is where the task is now: a move to Needs your look no longer matches once the task is live.
+    const looked = event('2', at(22, 9), { status: 'NEEDS_LOOK', task: { id: 1, key: 'GK-1', title: 'Agenda', status: 'LIVE' } });
+    expect(eventMatches(looked, { plan: null, who: null, statuses: ['NEEDS_LOOK'] }, context)).toBe(false);
+    expect(eventMatches(looked, { plan: null, who: null, statuses: ['LIVE'] }, context)).toBe(true);
     expect(eventMatches(started, { plan: 5, who: null, statuses: [] }, context)).toBe(true);
     expect(eventMatches(started, { plan: 6, who: null, statuses: [] }, context)).toBe(false);
     expect(eventMatches(started, { plan: null, who: 2, statuses: [] }, context)).toBe(true);

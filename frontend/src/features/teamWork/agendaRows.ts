@@ -90,12 +90,13 @@ export interface AgendaFilter { plan: number | 'none' | null; who: Who; statuses
 export const taskIdOf = (event: WorkEvent) => event.parentId ?? event.task.id;
 
 /**
- * Whether an event passes the filter. A person matches events they made and events on tasks they are on;
- * "whole team" matches tasks nobody in particular (or everybody) is on.
+ * Whether an event passes the filter. A status matches tasks (or steps) in that status now, not ones that passed
+ * through it. A person matches events they made and events on tasks they are on; "whole team" matches tasks
+ * nobody in particular (or everybody) is on.
  */
 export function eventMatches(event: WorkEvent, filter: AgendaFilter, context: { nodes: Map<number, WorkNode>; planOf: Map<number, Plan>; planItems: Map<number, Set<number>>; team: Person[] }) {
     const taskId = taskIdOf(event);
-    if (filter.statuses.length && !filter.statuses.includes(event.status)) return false;
+    if (filter.statuses.length && !filter.statuses.includes(event.task.status)) return false;
     if (filter.plan === 'none' && context.planOf.has(taskId)) return false;
     if (typeof filter.plan === 'number' && !context.planItems.get(filter.plan)?.has(taskId)) return false;
     if (filter.who === null) return true;

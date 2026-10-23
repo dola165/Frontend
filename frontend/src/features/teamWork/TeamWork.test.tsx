@@ -82,6 +82,10 @@ it('starts with this week’s work as tasks on their own when there is nothing y
     await waitFor(() => expect(api.createWork).toHaveBeenCalledTimes(api.STARTER_WORK.length));
     expect(api.createWork).toHaveBeenCalledWith(api.STARTER_WORK[0]);
     expect(api.createPlan).not.toHaveBeenCalled();
+    // The page loads again by itself: the overview and its agenda replace the empty note, no reload needed.
+    expect(await screen.findByRole('heading', { name: 'What happened' })).toBeInTheDocument();
+    expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+    expect(vi.mocked(overview.fetchTimeline).mock.calls.length).toBeGreaterThan(0);
 });
 
 it('opens on what waits on you, your pins and the plans, then what happened day by day with empty days left out', async () => {

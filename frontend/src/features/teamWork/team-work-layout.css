@@ -136,9 +136,9 @@
 /* Motion: soft hovers, panels that open by rising in, bars that grow; nothing moves for people who ask for less. */
 @keyframes tw-rise { from { opacity: 0; transform: translateY(-4px); } }
 @keyframes tw-fade { from { opacity: 0; } }
-/* A row that was just added or moved: a soft green wash that fades out (the agenda marks it through the row's highlight). */
+/* A row that was just added or moved: a soft green wash that fades out (an agenda row is marked through its title). */
 @keyframes tw-fresh { from { background-color: color-mix(in srgb, var(--gk-accent) 18%, transparent); } to { background-color: transparent; } }
-.gk [data-fresh], .gk .tw-fresh-rows .gk-fixture[data-highlighted] { animation: tw-fresh 2.6s var(--gk-ease); }
+.gk li[data-fresh], .gk .tw-fresh-rows .gk-fixture:has([data-fresh]) { animation: tw-fresh 2.6s var(--gk-ease); }
 .gk .tw-main { animation: tw-fade .22s var(--gk-ease) both; }
 .gk .tw-task__body, .gk .tw-task__step, .gk .tw-finding__open { animation: tw-rise .2s var(--gk-ease) both; }
 .gk .tw-menu__list, .gk .tw-mention__list { animation: tw-rise .14s var(--gk-ease) both; transform-origin: top; }

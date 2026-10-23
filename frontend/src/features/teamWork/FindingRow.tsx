@@ -99,8 +99,8 @@ export function FindingRow({ item, detail, team, me, open, time, day, state, lin
         finally { setBusy(false); }
     };
     return <>
-        <FixtureRow tone="neutral" time={time} day={day} icon={icon} iconColor={tone} highlighted={fresh}
-            title={<span className="tw-finding__name" title={item.title}>{item.title}</span>}
+        <FixtureRow tone="neutral" time={time} day={day} icon={icon} iconColor={tone}
+            title={<span className="tw-finding__name" title={item.title} data-fresh={fresh || undefined}>{item.title}</span>}
             meta={about ? about : detail?.comments[0] ? <MentionText text={detail.comments[0].body} team={team} me={me} /> : undefined}
             trail={<span className="tw-finding__trail">
                 <span className="tw-finding__state">{by?.name && <span className="tw-finding__by">{by.name} · </span>}<span className="tw-finding__words" data-me={mine(waiting) || undefined}>{words}</span></span>

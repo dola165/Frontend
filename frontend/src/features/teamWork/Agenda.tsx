@@ -125,8 +125,8 @@ export function Agenda({ revision, filter, context, exclude, scope, showPlan = t
         const { what, detail } = eventWords(copy, event);
         const parent = event.parentId != null ? context.nodes.get(event.parentId)?.item : undefined;
         const trail = [event.by?.name, parent && copy(`step of ${parent.key}`, `${parent.key}-ის ნაბიჯი`), showPlan && planName(event)].filter(Boolean).join(' · ');
-        return <FixtureRow key={event.id} tone="neutral" time={formatTime(event.at)} icon={eventIcon(event)} iconColor={statusTone[event.status]} highlighted={fresh.has(event.id)}
-            title={<span title={`${event.task.key} ${event.task.title}`}><KeyChip value={event.task.key} /> {event.task.title}</span>} meta={detail ? `${what} — ${detail}` : what}
+        return <FixtureRow key={event.id} tone="neutral" time={formatTime(event.at)} icon={eventIcon(event)} iconColor={statusTone[event.status]}
+            title={<span title={`${event.task.key} ${event.task.title}`} data-fresh={fresh.has(event.id) || undefined}><KeyChip value={event.task.key} /> {event.task.title}</span>} meta={detail ? `${what} — ${detail}` : what}
             trail={<span className="tw-agenda__trail">{pinned(taskIdOf(event)) && <Pin className="tw-agenda__pinned" aria-label={copy('Pinned', 'მიმაგრებულია')} />}{trail}</span>}
             onClick={() => onOpen(taskIdOf(event), event.parentId != null ? event.task.id : null)} label={`${event.task.key} ${event.task.title}. ${what}`} />;
     };
@@ -142,8 +142,8 @@ export function Agenda({ revision, filter, context, exclude, scope, showPlan = t
                     if (row.kind === 'event') return [eventRow(row.event)];
                     const expanded = open.has(row.key), first = row.events[0], names = row.events.map(event => event.task.title);
                     const trail = [first.by?.name, showPlan && planName(first)].filter(Boolean).join(' · ');
-                    return [<FixtureRow key={row.key} tone="neutral" time={formatTime(first.at)} icon={Plus} iconColor="var(--gk-text-3)" highlighted={row.events.some(event => fresh.has(event.id))}
-                        title={copy(`Added ${row.events.length} tasks`, `დაემატა ${row.events.length} საქმე`)} meta={names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '')}
+                    return [<FixtureRow key={row.key} tone="neutral" time={formatTime(first.at)} icon={Plus} iconColor="var(--gk-text-3)"
+                        title={<span data-fresh={row.events.some(event => fresh.has(event.id)) || undefined}>{copy(`Added ${row.events.length} tasks`, `დაემატა ${row.events.length} საქმე`)}</span>} meta={names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '')}
                         trail={<span className="tw-agenda__trail">{trail}<span className="tw-agenda__fold">{expanded ? copy('Fold', 'აკეცვა') : copy('Show all', 'ყველას ნახვა')}</span></span>}
                         onClick={() => setOpen(current => { const changed = new Set(current); if (changed.has(row.key)) changed.delete(row.key); else changed.add(row.key); return changed; })}
                         label={copy(`Added ${row.events.length} tasks. ${expanded ? 'Fold' : 'Show all'}`, `დაემატა ${row.events.length} საქმე. ${expanded ? 'აკეცვა' : 'ყველას ნახვა'}`)} />,

@@ -1,0 +1,92 @@
+/* Overview and the agenda: compact like Home. 13px rows, quiet greys, one coloured thing per row. */
+.gk .tw-overview { display: flex; flex-direction: column; gap: var(--gk-5); max-width: 1080px; min-width: 0; }
+
+/* The agenda: the schedule's day sections, with day headings big enough not to miss and kept in view. */
+.gk .tw-agenda { display: flex; flex-direction: column; gap: var(--gk-4); min-width: 0; }
+.gk .tw-agenda .gk-board__agenda { gap: var(--gk-4); }
+.gk .tw-agenda .gk-board__day { scroll-margin-top: calc(var(--app-header-height, 64px) + var(--gk-2)); }
+.gk .tw-agenda .gk-board__day-title { position: sticky; top: var(--app-header-height, 64px); z-index: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-3); padding: var(--gk-2) 0 6px; background: var(--gk-bg); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 700; color: var(--gk-text); }
+.gk .tw-agenda .gk-board__day-title[data-today] { color: var(--gk-text); }
+.gk .tw-agenda .gk-board__day-title[data-today] > span:first-child { color: var(--gk-accent); }
+.gk .tw-agenda__date { font-size: var(--gk-fs-md); font-weight: 500; color: var(--gk-text-3); }
+.gk .tw-agenda .gk-fixture { min-height: 44px; padding-block: 6px; }
+.gk .tw-agenda .gk-fixture__kind { width: 26px; height: 26px; border-radius: 7px; }
+.gk .tw-agenda .gk-fixture__kind svg { width: 14px; height: 14px; }
+.gk .tw-agenda .gk-fixture__time { font-size: var(--gk-fs-sm); font-weight: 500; color: var(--gk-text-3); }
+.gk .tw-agenda .gk-fixture__title { font-size: var(--gk-fs-md); }
+.gk .tw-agenda .gk-fixture__title .tw-key-chip { margin-right: 4px; }
+.gk .tw-agenda .gk-fixture__meta { color: var(--gk-text-2); }
+.gk .tw-agenda__trail { display: inline-flex; align-items: center; gap: 6px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .tw-agenda__pinned { flex: none; width: 13px; height: 13px; color: var(--gk-text-2); }
+.gk .tw-agenda__fold { color: var(--gk-text-2); font-weight: 600; }
+.gk .tw-agenda__more { display: flex; justify-content: center; }
+.gk .tw-agenda__loading { display: flex; flex-direction: column; gap: var(--gk-2); }
+
+/* One row of filters: plan, person, status. */
+.gk .tw-agenda-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .tw-agenda-bar .tw-plan-filter { min-height: 32px; }
+
+/* Needs you: a compact list; each question answers in place. */
+.gk .tw-needs { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .tw-needs__list { list-style: none; margin: 0; padding: 0; }
+.gk .tw-needs__item { display: flex; flex-direction: column; gap: 4px; padding: 4px var(--gk-3) 8px; }
+.gk .tw-needs__item + .tw-needs__item { border-top: 1px solid var(--gk-line); }
+.gk .tw-needs__task { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 4px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .tw-needs__task:hover { background: var(--gk-hover); }
+.gk .tw-needs__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.gk .tw-needs__meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .tw-needs__look { display: inline-flex; flex: none; align-items: center; gap: 4px; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .tw-needs__look svg { width: 14px; height: 14px; }
+.gk .tw-needs__question { display: flex; flex-direction: column; gap: 6px; padding-left: 21px; }
+.gk .tw-needs__ask { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-2); margin: 0; overflow-wrap: anywhere; }
+.gk .tw-needs__ask svg { flex: none; align-self: center; width: 14px; height: 14px; color: var(--gk-warning); }
+.gk .tw-needs__ask .gk-faint { font-size: var(--gk-fs-xs); }
+.gk .tw-needs__answers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gk .tw-needs__free { display: flex; flex: 1 1 240px; gap: 6px; }
+.gk .tw-needs__free .gk-input { flex: 1; min-width: 0; min-height: 32px; }
+@media (min-width: 641px) {
+    .gk .tw-needs__question { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px var(--gk-3); }
+    .gk .tw-needs__ask { flex: 0 1 auto; }
+}
+
+/* Pinned: plans and tasks, each a row that opens it, with a quiet unpin. */
+.gk .tw-pinned { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .tw-pinned__list { list-style: none; margin: 0; padding: 0; }
+.gk .tw-pinned__row { display: flex; align-items: center; gap: 4px; padding: 2px 6px 2px 0; }
+.gk .tw-pinned__row + .tw-pinned__row { border-top: 1px solid var(--gk-line); }
+.gk .tw-pinned__open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 var(--gk-3); border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; border-radius: var(--gk-r-sm); }
+.gk .tw-pinned__open:hover { background: var(--gk-hover); }
+.gk .tw-pinned__plan { flex: none; width: 15px; height: 15px; color: var(--gk-info); }
+.gk .tw-pinned__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.gk .tw-pinned__meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+
+/* The plans as one row of quiet links. */
+.gk .tw-plan-links ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.gk .tw-plan-links button { display: inline-flex; align-items: center; gap: 6px; max-width: 320px; min-height: 36px; padding: 0 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-md); font-weight: 600; cursor: pointer; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }
+.gk .tw-plan-links button:hover { border-color: var(--gk-line-strong); background: var(--gk-hover); }
+.gk .tw-plan-links button svg { flex: none; width: 14px; height: 14px; color: var(--gk-text-3); }
+.gk .tw-plan-links__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .tw-plan-links__open { flex: none; font-size: var(--gk-fs-sm); font-weight: 500; color: var(--gk-text-3); }
+.gk .tw-plan-links button[data-status='FINISHED'] { color: var(--gk-text-2); font-weight: 500; }
+.gk .tw-plan-links .tw-plan-links__new { border-style: dashed; background: none; color: var(--gk-text-2); }
+
+/* A task opened over the agenda. */
+.gk .tw-task-dialog__title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.gk .tw-task-dialog__title .tw-key-chip { font-size: var(--gk-fs-sm); }
+.gk .tw-task-dialog__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); margin-bottom: var(--gk-3); }
+.gk .tw-task-dialog .tw-detail { margin: 0; }
+.gk .tw-task-dialog__bar .tw-link-button { display: inline-flex; align-items: center; gap: 2px; min-height: 32px; }
+
+@media (max-width: 640px) {
+    .gk .tw-overview { gap: var(--gk-4); }
+    .gk .tw-agenda .gk-board__day-title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+    .gk .tw-agenda__trail { max-width: 100%; }
+    .gk .tw-needs__meta { display: none; }
+    .gk .tw-pinned__meta { display: none; }
+    .gk .tw-plan-links ul { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .gk .tw-plan-links li { flex: none; }
+    .gk .tw-plan-links button { min-height: 44px; }
+    .gk .tw-agenda-bar .tw-key { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+    .gk .tw-agenda-bar .tw-key button { flex: none; }
+}
+@media (prefers-reduced-motion: reduce) { .gk .tw-plan-links button { transition: none; } }

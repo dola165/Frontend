@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import * as api from './api';
+import * as overview from './overviewApi';
+import { dayKey } from '../schedule/board/scheduleRange';
 import { planAsText } from './planAsText';
 import { TeamWorkPage } from './TeamWorkPage';
 import { TeamWorkHomeRow } from './TeamWorkHomeRow';
@@ -13,6 +15,7 @@ vi.mock('./api', async importOriginal => ({
     createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
 }));
+vi.mock('./overviewApi', () => ({ fetchTimeline: vi.fn(), fetchOpenQuestions: vi.fn(), fetchPins: vi.fn(), addPin: vi.fn(), removePin: vi.fn() }));
 vi.mock('../../pages/RouteRecoveryPage', () => ({ RouteRecoveryPage: () => <p>Page not found</p> }));
 // Agent Dola is not part of these tests: off for this account.
 vi.mock('../dola/agentDola', () => ({ agentDolaStatus: () => Promise.reject({ response: { status: 404 } }) }));
@@ -50,6 +53,11 @@ const plans: Record<number, api.PlanView> = {
 const boardOf = (views: api.PlanView[]) => [...new Map(views.flatMap(found => found.tasks.flatMap(node => [node.item, ...node.steps])).map(work => [work.id, work])).values()];
 const detail = (work: api.WorkItem, extra: Partial<api.Detail> = {}): api.Detail => ({ item: work, updates: [], steps: [], questions: [], foundCommits: [], media: [], comments: [], ...extra });
 const note = (id: number, author: api.Person, message: string) => ({ id, author, at: now, previousStatus: null, status: null, previousPercent: null, percent: null, message });
+const refOf = (work: api.WorkItem): api.WorkRef => ({ id: work.id, key: work.key, title: work.title, status: work.status });
+/** A time `daysAgo` days back at h:m, local. */
+const at = (daysAgo: number, hours: number, minutes: number) => { const date = new Date(); date.setDate(date.getDate() - daysAgo); date.setHours(hours, minutes, 0, 0); return date.toISOString(); };
+const event = (id: string, kind: overview.EventKind, when: string, work: api.WorkItem, extra: Partial<overview.WorkEvent> = {}): overview.WorkEvent => ({
+    id, kind, at: when, task: refOf(work), parentId: work.parentId, status: work.status, previousStatus: null, by: beqa, text: null, question: null, ...extra });
 function Where() { const location = useLocation(); return <output data-testid="where">{location.search}</output>; }
 const mount = (path = '/team-work') => render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/team-work" element={<><TeamWorkPage /><Where /></>} /></Routes></MemoryRouter>);
 const useLists = (...extra: api.PlanView[]) => {
@@ -62,6 +70,9 @@ beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(api.fetchTeam).mockResolvedValue([{ userId: 1, name: 'Nino', email: 'nino@example.com', admin: true, addedAt: null, pending: false }]);
     useLists();
+    vi.mocked(overview.fetchTimeline).mockResolvedValue({ events: [], more: false });
+    vi.mocked(overview.fetchOpenQuestions).mockResolvedValue([]);
+    vi.mocked(overview.fetchPins).mockResolvedValue([]);
 });
 
 it('starts with this week’s work as tasks on their own when there is nothing yet', async () => {
@@ -73,80 +84,127 @@ it('starts with this week’s work as tasks on their own when there is nothing y
     await waitFor(() => expect(api.createWork).toHaveBeenCalledTimes(api.STARTER_WORK.length));
     expect(api.createWork).toHaveBeenCalledWith(api.STARTER_WORK[0]);
     expect(api.createPlan).not.toHaveBeenCalled();
+    // The page loads again by itself: the overview and its agenda replace the empty note, no reload needed.
+    expect(await screen.findByRole('heading', { name: 'What happened' })).toBeInTheDocument();
+    expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
+    expect(vi.mocked(overview.fetchTimeline).mock.calls.length).toBeGreaterThan(0);
 });
 
-it('opens on groups: the weeks with tasks added, done and open, then the plans, filtered by name, with no progress bars', async () => {
+it('opens on what waits on you, your pins and the plans, then what happened day by day with empty days left out', async () => {
+    const look = item(90, 'Sign-up screen', 'NEEDS_LOOK', null, { people: [ilo] });
+    const asking = item(91, 'Email provider', 'BLOCKED', null, { openQuestions: 1, people: [gio] });
+    const extra = view([{ item: look, steps: [] }, { item: asking, steps: [] }], { plan: plan(11, 'Launch'), changes: [] });
+    useLists(extra);
+    vi.mocked(overview.fetchOpenQuestions).mockResolvedValue([{ task: refOf(asking), parentId: null, question: { id: 5, text: 'Which provider?', options: ['Mailgun', 'Postmark'], askedBy: gio, at: now, answer: null, answeredBy: null, answeredAt: null } }]);
+    vi.mocked(overview.fetchPins).mockResolvedValue([{ id: 1, planId: 6, itemId: null, at: now }, { id: 2, planId: null, itemId: 1, at: now }]);
+    vi.mocked(overview.removePin).mockResolvedValue([{ id: 2, planId: null, itemId: 1, at: now }]);
+    vi.mocked(overview.fetchTimeline).mockResolvedValue({ more: false, events: [
+        event('s-1', 'STATUS', at(0, 10, 5), plans[6].tasks[0].item, { by: ilo, status: 'IN_PROGRESS', previousStatus: 'PLANNED', text: 'Sign-up form' }),
+        event('q-1', 'ASKED', at(0, 9, 0), asking, { by: gio, text: 'Which provider?' }),
+        event('a-3', 'ADDED', at(3, 16, 0), october.tasks[2].item, { status: 'PLANNED' }),
+        event('s-2', 'STATUS', at(4, 11, 0), steps[0], { status: 'LIVE', previousStatus: 'IN_PROGRESS' }),
+    ] });
+    vi.mocked(api.answerQuestion).mockResolvedValue(detail({ ...asking, openQuestions: 0 }));
+    vi.mocked(api.fetchDetail).mockImplementation(async id => detail(id === 21 ? plans[6].tasks[0].item : branding));
     mount();
-    const groups = (await screen.findByRole('heading', { name: 'Groups' })).closest('section')!;
-    expect(within(groups).getAllByRole('button').map(box => box.textContent)).toEqual([
-        'This week5 added · 1 done · 4 open', 'Last weekNothing yet', 'Earlier1 added · 0 done · 1 open',
-        'October work3 tasks · 0 done · 3 open', 'Registration and roles1 task · 0 done · 1 open', 'StoreLater1 task · 0 done · 1 open', 'This week’s workFinished1 task · 1 done · 0 open',
-        'New plan']);
-    expect(within(groups).queryByRole('progressbar')).not.toBeInTheDocument();
-    expect(screen.queryByText(/roadmap/i)).not.toBeInTheDocument();
 
-    const names = screen.getByRole('group', { name: 'Show work for' });
-    expect(within(names).getByRole('button', { name: 'Everyone' })).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(within(names).getByRole('button', { name: 'Ilo' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('who=3');
-    expect(within(groups).getAllByRole('button').map(box => box.querySelector('.tw-group__name')?.textContent).filter(Boolean)).toEqual(['This week', 'Last week', 'Registration and roles']);
-    await userEvent.click(within(names).getByRole('button', { name: 'Everyone' }));
+    // Pins: a plan and a task, each opening its own; unpin is quiet.
+    const pinned = (await screen.findByRole('heading', { name: 'Pinned' })).closest('section')!;
+    expect(within(pinned).getAllByRole('listitem').map(row => row.querySelector('.tw-pinned__name')?.textContent)).toEqual(['Registration and roles', 'Branding and landing']);
+    await userEvent.click(within(pinned).getByRole('button', { name: 'Unpin Registration and roles' }));
+    expect(overview.removePin).toHaveBeenCalledWith(1);
+    expect(await within(pinned).findAllByRole('listitem')).toHaveLength(1);
 
-    // A week and a plan each open their own page.
-    await userEvent.click(within(groups).getByRole('button', { name: /^This week\s*5 added/ }));
-    expect(screen.getByTestId('where')).toHaveTextContent('when=week');
-    expect(screen.getByRole('heading', { name: 'This week', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText('5 added · 1 done · 4 open')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /^Added this week 5/ })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Groups' })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Back to overview' }));
-    expect(screen.getByTestId('where')).not.toHaveTextContent('when=');
-    await userEvent.click(within(await screen.findByRole('heading', { name: 'Groups' }).then(heading => heading.closest('section')!)).getByRole('button', { name: /^Registration and roles/ }));
-    expect(screen.getByRole('heading', { name: 'Registration and roles', level: 1 })).toBeInTheDocument();
-    expect(screen.getByTestId('where')).toHaveTextContent('plan=6');
+    // Needs you: the task to look at and the question, answered in place; the board loads again after.
+    const needs = (await screen.findByRole('heading', { name: 'Needs you 2' })).closest('section')!;
+    expect(within(needs).getByRole('button', { name: /GK-91\s*Email provider/ })).toBeInTheDocument();
+    expect(within(needs).getByRole('button', { name: /GK-90\s*Sign-up screen.*Needs your look/ })).toBeInTheDocument();
+    const board = vi.mocked(api.fetchBoard).mock.calls.length;
+    await userEvent.click(within(await within(needs).findByRole('group', { name: 'Answer: Which provider?' })).getByRole('button', { name: 'Mailgun' }));
+    expect(api.answerQuestion).toHaveBeenCalledWith(5, 'Mailgun');
+    await waitFor(() => expect(vi.mocked(api.fetchBoard).mock.calls.length).toBeGreaterThan(board));
+
+    // What happened: days with something, newest first; nothing for yesterday or the day before.
+    const happened = screen.getByRole('heading', { name: 'What happened' }).closest('section')!;
+    const days = within(happened).getAllByRole('heading', { level: 4 }).map(heading => heading.textContent);
+    expect(days).toHaveLength(3);
+    expect(days[0]).toMatch(/^Today/);
+    expect(days.some(day => day?.startsWith('Yesterday'))).toBe(false);
+    const started = within(happened).getByRole('button', { name: 'GK-21 User registration. Started' });
+    expect(started.closest('li')).toHaveTextContent('Started — Sign-up form');
+    expect(started.closest('li')).toHaveTextContent('Ilo · Registration and roles');
+    expect(within(happened).getByRole('button', { name: 'GK-11 Founders’ design. Went live' }).closest('li')).toHaveTextContent('step of GK-1 · October work');
+
+    // One toolbar: person and status filter the rows, through the link.
+    await userEvent.selectOptions(within(happened).getByLabelText('Person'), 'Gio Beridze');
+    expect(screen.getByTestId('where')).toHaveTextContent('who=2');
+    expect(within(happened).getAllByRole('button', { name: /\. / }).map(row => row.getAttribute('aria-label'))).toEqual(['GK-91 Email provider. Asked']);
+    await userEvent.selectOptions(within(happened).getByLabelText('Person'), 'Everyone');
+    await userEvent.click(within(within(happened).getByRole('group', { name: 'Show by status' })).getByRole('button', { name: 'Live' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('status=LIVE');
+    expect(within(happened).getAllByRole('heading', { level: 4 })).toHaveLength(1);
+    await userEvent.click(within(within(happened).getByRole('group', { name: 'Show by status' })).getByRole('button', { name: 'Live' }));
+
+    // A row opens its task over the agenda; closing it leaves the link clean.
+    await userEvent.click(within(happened).getByRole('button', { name: 'GK-21 User registration. Started' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('task=21');
+    const dialog = await screen.findByRole('dialog', { name: /GK-21\s*User registration/ });
+    expect(await within(dialog).findByRole('region', { name: 'GK-21 User registration' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Pin User registration' })).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Close' })[0]);
+    expect(screen.getByTestId('where')).not.toHaveTextContent('task=');
+
+    // The plans are one row of links.
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Plans' })).getByRole('button', { name: /^Store/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('plan=7');
 });
 
-it('lists every task as a card with its key, plan and steps, done ones folded away, and opens a card to its details in place', async () => {
-    const all = boardOf(Object.values(plans));
-    vi.mocked(api.fetchDetail).mockImplementation(async id => detail(all.find(work => work.id === id)!, id === 1 ? { steps } : {}));
-    mount();
-    const tasks = (await screen.findByRole('heading', { name: 'All tasks 6' })).closest('section')!;
-    const cards = within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ });
-    expect(cards.map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Branding and landing', 'User registration', 'Registration', 'Save button on phones', 'Checkout']);
-    expect(cards[0]).toHaveTextContent('GK-1');
-    expect(cards[0]).toHaveTextContent('70%');
-    expect(cards[0]).toHaveTextContent('October work · 3 steps · Beqa');
-    expect(within(tasks).queryByText('Schedules')).not.toBeInTheDocument();
-    await userEvent.click(within(tasks).getByRole('button', { name: 'Show done (1)' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('finished=show');
-    expect(within(tasks).getByText('Schedules')).toBeInTheDocument();
+it('folds tasks added at once, loads earlier days whole, and a link to an old day scrolls back to it', async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    const added = ['Hero copy', 'Footer', 'Logo', 'Colours'].map((title, index) => event(`a-${index}`, 'ADDED', at(1, 12, 10 - index), item(100 + index, title, 'PLANNED', null)));
+    vi.mocked(overview.fetchTimeline)
+        .mockResolvedValueOnce({ more: true, events: [...added, event('s-9', 'STATUS', at(6, 9, 0), branding, { status: 'IN_PROGRESS' })] })
+        .mockResolvedValueOnce({ more: false, events: [event('s-9', 'STATUS', at(6, 9, 0), branding, { status: 'IN_PROGRESS' }), event('a-9', 'ADDED', at(8, 9, 0), branding, { status: 'PLANNED' })] });
+    mount(`/team-work?day=${dayKey(new Date(at(8, 9, 0)))}`);
 
-    // The colour key filters by status, through the URL.
-    const statuses = within(tasks).getByRole('group', { name: 'Show by status' });
-    await userEvent.click(within(statuses).getByRole('button', { name: 'Planned' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('status=PLANNED');
-    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Save button on phones', 'Checkout']);
-    await userEvent.click(within(statuses).getByRole('button', { name: 'Live' }));
-    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ })).toHaveLength(3);
-    await userEvent.click(within(statuses).getByRole('button', { name: 'Planned' }));
-    await userEvent.click(within(statuses).getByRole('button', { name: 'Live' }));
-    expect(screen.getByTestId('where')).not.toHaveTextContent('status=');
+    // The link names a day the first page doesn't have: the next page loads, from the start of the last whole day.
+    await waitFor(() => expect(overview.fetchTimeline).toHaveBeenCalledTimes(2));
+    const start = new Date(at(1, 0, 0)); start.setHours(0, 0, 0, 0);
+    expect(vi.mocked(overview.fetchTimeline).mock.calls[1][0]).toBe(start.toISOString());
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
+    const happened = screen.getByRole('heading', { name: 'What happened' }).closest('section')!;
+    expect(within(happened).getAllByRole('heading', { level: 4 })).toHaveLength(3);
+    expect(within(happened).queryByRole('button', { name: 'Show earlier days' })).not.toBeInTheDocument();
 
-    // A big task shows its steps as plain rows; a step opens below it.
-    await userEvent.click(within(tasks).getByRole('button', { name: /Branding and landing/ }));
-    expect(screen.getByTestId('where')).toHaveTextContent('task=1');
-    const task = await within(tasks).findByRole('region', { name: 'GK-1 Branding and landing' });
-    expect(within(task).getByText(/^Steps/, { selector: 'summary' })).toBeInTheDocument();
-    expect(within(task).getByRole('button', { name: 'Add a step' })).toBeInTheDocument();
-    await userEvent.click(within(task).getByRole('button', { name: /Hero copy/ }));
-    expect(screen.getByTestId('where')).toHaveTextContent('step=12');
-    expect(await within(tasks).findByRole('region', { name: 'GK-12 Hero copy' })).toBeInTheDocument();
+    const run = within(happened).getByRole('button', { name: 'Added 4 tasks. Show all' });
+    expect(run.closest('li')).toHaveTextContent('Hero copy, Footer, Logo…');
+    expect(within(happened).queryByRole('button', { name: 'GK-101 Footer. Added' })).not.toBeInTheDocument();
+    await userEvent.click(run);
+    expect(within(happened).getByRole('button', { name: 'GK-101 Footer. Added' })).toBeInTheDocument();
+});
 
-    // A small fix has no steps to add.
-    await userEvent.click(within(tasks).getByRole('button', { name: /Save button on phones/ }));
-    expect(screen.getByTestId('where')).toHaveTextContent('task=3');
-    const small = await within(tasks).findByRole('region', { name: 'GK-3 Save button on phones' });
-    expect(within(small).queryByRole('button', { name: 'Add a step' })).not.toBeInTheDocument();
+it('opens a plan on its agenda, pins it, and shows its cards as a second view', async () => {
+    vi.mocked(overview.addPin).mockResolvedValue([{ id: 4, planId: 5, itemId: null, at: now }]);
+    vi.mocked(overview.fetchTimeline).mockResolvedValue({ more: false, events: [
+        event('s-1', 'STATUS', at(0, 10, 0), branding, { status: 'IN_PROGRESS', text: 'Hero is in' }),
+        event('s-2', 'STATUS', at(0, 9, 0), plans[6].tasks[0].item, { status: 'IN_PROGRESS' }),
+    ] });
+    mount('/team-work?plan=5');
+    const views = await screen.findByRole('group', { name: 'Plan view' });
+    expect(within(views).getByRole('button', { name: 'Agenda' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('button', { name: 'GK-1 Branding and landing. Started' })).toBeInTheDocument();
+    // Only this plan's tasks, and no plan name repeated on every row.
+    expect(screen.queryByRole('button', { name: 'GK-21 User registration. Started' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'GK-1 Branding and landing. Started' }).closest('li')).not.toHaveTextContent('October work');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Pin October work' }));
+    expect(overview.addPin).toHaveBeenCalledWith({ planId: 5 });
+    expect(await screen.findByRole('button', { name: 'Pin October work' })).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(within(views).getByRole('button', { name: 'Cards' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('show=cards');
+    expect(within(screen.getByRole('list', { name: 'October work' })).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ })).toHaveLength(3);
 });
 
 it('takes findings with a name and a tagged comment; anyone marks them seen or acknowledges them and pushes one to Pending, never straight onto a plan', async () => {
@@ -166,7 +224,7 @@ it('takes findings with a name and a tagged comment; anyone marks them seen or a
     mount();
 
     // Findings are neither a plan nor tasks.
-    const groups = (await screen.findByRole('heading', { name: 'Groups' })).closest('section')!;
+    const groups = await screen.findByRole('navigation', { name: 'Plans' });
     expect(within(groups).queryByText('Ideas')).not.toBeInTheDocument();
     expect(screen.queryByText('Login button overlaps')).not.toBeInTheDocument();
     const side = screen.getByRole('navigation', { name: 'Team work' });
@@ -237,7 +295,7 @@ it('lists pending findings with who pushed them, and makes one a task on its own
 it('shows a plan’s tasks as cards in its order, then in order, and keeps the extras behind “…”', async () => {
     vi.mocked(api.changePlan).mockResolvedValue(view(october.tasks, { plan: plan(5, 'October work', { status: 'LATER', version: 4 }) }));
     vi.mocked(api.fetchDetail).mockResolvedValue(detail(october.tasks[1].item));
-    mount('/team-work?plan=5');
+    mount('/team-work?plan=5&show=cards');
     const list = await screen.findByRole('list', { name: 'October work' });
     expect(screen.getByRole('heading', { name: 'October work', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Started by Beqa · Beqa, Gio Beridze')).toBeInTheDocument();
@@ -367,17 +425,6 @@ it('estimates progress in words, copies a task for AI with a way to answer, and 
     await waitFor(() => expect(screen.getByTestId('where')).not.toHaveTextContent('task='));
 });
 
-it('filters tasks by plan, or those on none', async () => {
-    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [...boardOf(Object.values(plans)), item(70, 'Loose fix', 'PLANNED', 0)], trail: [], canManageTeam: true });
-    mount();
-    const tasks = (await screen.findByRole('heading', { name: 'All tasks 7' })).closest('section')!;
-    await userEvent.selectOptions(within(tasks).getByLabelText('Plan'), 'Registration and roles');
-    expect(screen.getByTestId('where')).toHaveTextContent('in=6');
-    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['User registration']);
-    await userEvent.selectOptions(within(tasks).getByLabelText('Plan'), 'No plan');
-    expect(within(tasks).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ }).map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Loose fix']);
-});
-
 it('previews a paste before applying it, shows deletes, and flags a new task whose name is already in another plan', async () => {
     vi.mocked(api.pasteIntoPlan).mockResolvedValueOnce({ created: 2, updated: 1, moved: 1, unchanged: 0, deleted: 1, applied: false, view: null, problems: [],
         lines: [{ line: 1, action: 'NEW', title: 'Agent Dola on live', parent: null, detail: null }, { line: 2, action: 'UPDATED', title: 'Registration', parent: null, detail: '30% → 45%' }, { line: 3, action: 'MOVED', title: 'Hero copy', parent: 'Registration', detail: null },
@@ -496,7 +543,7 @@ it('shows the brief first: key, done means, questions for Beqa with quick answer
     vi.mocked(api.pasteReport).mockResolvedValueOnce({ applied: false, detail: null, problems: [], lines: [
         { field: 'status', action: 'SAME', detail: 'needs look → needs look' }, { field: 'branch', action: 'SET', detail: 'golive/registration-f' }, { field: 'question', action: 'ADDED', detail: 'Is the parent step needed for 16–17 too?' }] })
         .mockResolvedValueOnce({ applied: true, problems: [], lines: [], detail: detail({ ...page, branch: 'golive/registration-f', openQuestions: 2 }, { questions: [question], foundCommits: [found] }) });
-    mount('/team-work?plan=10&task=81');
+    mount('/team-work?plan=10&task=81&show=cards');
 
     const side = await screen.findByRole('navigation', { name: 'Team work' });
     await waitFor(() => expect(within(side).getByRole('button', { name: /^Overview/ })).toHaveTextContent('Overview2'));

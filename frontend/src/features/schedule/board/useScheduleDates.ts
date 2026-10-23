@@ -20,6 +20,8 @@ export function useScheduleDates() {
         dayMonth,
         /** "Wednesday 21 Oct". */
         day: (date: Date) => `${weekday(date, 'long')} ${dayMonth(date)}`,
+        /** "Wednesday 21 October". */
+        dayLong: (date: Date) => `${weekday(date, 'long')} ${missing ? `${date.getDate()} ${month(date)}` : formatDate(date, { day: 'numeric', month: 'long' })}`,
         monthYear: (date: Date) => missing ? `${month(date)} ${date.getFullYear()}` : formatDate(date, { month: 'long', year: 'numeric' }),
         /** "19–25 October 2026", or "28 Sep – 4 Oct 2026" across two months. */
         range: (from: Date, days: number) => {

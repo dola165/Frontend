@@ -3,7 +3,13 @@ import { STATUSES, type WorkStatus } from './api';
 import type { AgendaFilter } from './agendaRows';
 import { whoOf } from './planPeople';
 
-/** The agenda's filter as the link keeps it: `?in=` plan (or none), `?who=` person, `?status=` statuses. */
+/** Day cards, or one line per task. */
+export type AgendaLayout = 'day' | 'list';
+
+/**
+ * The agenda's filter as the link keeps it: `?in=` plan (or none), `?who=` person, `?status=` statuses; and how it
+ * shows, by day or as a list (`?show=list`).
+ */
 export function useAgendaFilter() {
     const [params, setParams] = useSearchParams();
     const inParam = params.get('in') ?? params.get('project');
@@ -27,5 +33,12 @@ export function useAgendaFilter() {
         if (stepId == null) changed.delete('step'); else changed.set('step', String(stepId));
         return changed;
     }, { replace: true });
-    return { filter, change, open };
+    const layout: AgendaLayout = params.get('show') === 'list' ? 'list' : 'day';
+    const setLayout = (next: AgendaLayout) => setParams(previous => {
+        const changed = new URLSearchParams(previous);
+        if (next === 'list') changed.set('show', 'list'); else changed.delete('show');
+        changed.delete('day');
+        return changed;
+    }, { replace: true });
+    return { filter, change, open, layout, setLayout };
 }

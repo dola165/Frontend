@@ -4,10 +4,10 @@ import { Dialog } from '../../design/Dialog';
 import { Button, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { askQuestion, changeWork, createWork, deleteWork, fetchDetail, type Detail, type LinkKind, type NewWork, type Person, type Priority, type WorkChange, type WorkEnd, type WorkItem, type WorkQuestion, type WorkStatus, type WorkUpdate } from './api';
+import { askQuestion, changeWork, createWork, deleteWork, fetchDetail, itemComments, type Detail, type LinkKind, type NewWork, type Person, type Priority, type WorkChange, type WorkEnd, type WorkItem, type WorkQuestion, type WorkStatus, type WorkUpdate } from './api';
 import { PurposeChanged, PurposeLine } from './PurposeBits';
 import { QuestionRow } from './QuestionRow';
-import { EndPick, Field, KeyChip, PeoplePick, PersonPick, PriorityPick, ProgressPick, QuickEdit, SmallChip, SmallPick, StatusDot, StatusMenu } from './WorkBits';
+import { EndPick, Field, KeyChip, NameField, PeoplePick, PersonPick, PriorityPick, ProgressPick, QuickEdit, SmallChip, SmallPick, StatusDot, StatusMenu } from './WorkBits';
 import { WorkComments } from './WorkComments';
 import { AttachButton, WorkMediaList } from './WorkMedia';
 import { useUploads } from './useUploads';
@@ -231,7 +231,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
         <div className="tw-detail__grid">
             <section className="tw-purpose" aria-label={copy('What it’s for', 'რისთვისაა')}>
                 {!framed && <div className="tw-detail__id"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-detail__name">{item.title}</span></div>}
-                <PurposeLine as="h2" purpose={item.description} label={copy('What it’s for', 'რისთვისაა')} prompt={isStep ? copy('Write what this step is for', 'დაწერეთ, რისთვისაა ეს ნაბიჯი') : copy('Write what this task is for', 'დაწერეთ, რისთვისაა ეს საქმე')}
+                <PurposeLine as="p" purpose={item.description} label={copy('What it’s for', 'რისთვისაა')} prompt={isStep ? copy('Write what this step is for', 'დაწერეთ, რისთვისაა ეს ნაბიჯი') : copy('Write what this task is for', 'დაწერეთ, რისთვისაა ეს საქმე')}
                     busy={saving} onSave={purpose => saveNow({ description: purpose })} />
                 <PurposeChanged changes={detail.purposeChanges} what="task" />
             </section>
@@ -326,7 +326,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
             </details>
             <details className="tw-section tw-fold" open={detail.comments.length > 0}>
                 <summary className="tw-section__title">{copy('Comments', 'კომენტარები')} <span className="gk-faint gk-num">{detail.comments.length || ''}</span></summary>
-                <WorkComments itemId={id} comments={detail.comments} team={team} me={me} onChanged={comments => { setDetail({ ...detail, comments }); onSaved(); }} />
+                <WorkComments actions={itemComments(id)} comments={detail.comments} team={team} me={me} onChanged={comments => { setDetail({ ...detail, comments }); onSaved(); }} />
             </details>
             <details className="tw-section tw-fold tw-history-box">
                 <summary className="tw-section__title">{copy('History', 'ისტორია')} <span className="gk-faint gk-num">{detail.updates.length}</span></summary>
@@ -336,7 +336,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
                 <summary className="tw-section__title">{copy('Edit details', 'დეტალების შეცვლა')} <span className="gk-faint">{copy('name, dates, people, priority, branch…', 'სახელი, თარიღები, ხალხი, პრიორიტეტი, ბრენჩი…')}</span></summary>
                 <SmallPick small={draft.small} onChange={small => patch({ small })} />
                 <div className="tw-grid">
-                    <Field label={copy('Name', 'სახელი')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={120} value={draft.title} onChange={event => patch({ title: event.target.value })} />}</Field>
+                    <NameField value={draft.title} onChange={title => patch({ title })} />
                     <Field label={copy('Where', 'სად')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={160} value={draft.area} placeholder={copy('Landing · founders’ request', 'ლენდინგი · დამფუძნებლების თხოვნა')} onChange={event => patch({ area: event.target.value })} />}</Field>
                     <PriorityPick priority={draft.priority} onChange={priority => patch({ priority })} />
                     <PersonPick label={copy('Requested by', 'ვინ ითხოვა')} team={team} chosen={draft.requestedBy} onChange={requestedBy => patch({ requestedBy })} />
@@ -404,7 +404,7 @@ export function AddTaskDialog({ planId, parent, team, others, onClose, onCreated
             {!existing && <>
                 <div className="tw-grid">
                     <Field label={copy('What it’s for', 'რისთვისაა')} wide>{fieldId => <textarea id={fieldId} className="gk-input" autoFocus rows={2} maxLength={400} value={work.description ?? ''} placeholder={copy('Why this task exists, in one or two lines', 'რატომ არსებობს ეს საქმე, ერთ-ორ ხაზად')} onChange={event => setWork({ ...work, description: event.target.value })} />}</Field>
-                    <Field label={copy('Name', 'სახელი')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={120} value={work.title} onChange={event => setWork({ ...work, title: event.target.value })} />}</Field>
+                    <NameField value={work.title} onChange={title => setWork({ ...work, title })} />
                     <Field label={copy('Where', 'სად')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={160} value={work.area} placeholder={copy('Landing · founders’ request', 'ლენდინგი · დამფუძნებლების თხოვნა')} onChange={event => setWork({ ...work, area: event.target.value })} />}</Field>
                     <Field label={copy('Done means', 'მზადაა, როცა')} wide>{fieldId => <textarea id={fieldId} className="gk-input" rows={2} maxLength={2000} value={work.doneMeans} placeholder={copy('What has to be true for this to be done', 'რა უნდა იყოს ასე, რომ ეს მზად იყოს')} onChange={event => setWork({ ...work, doneMeans: event.target.value })} />}</Field>
                     <PriorityPick priority={work.priority} onChange={priority => setWork({ ...work, priority })} />

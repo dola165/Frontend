@@ -20,6 +20,7 @@ import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
 import { AddPlanStepDialog, CopyForAiDialog, PlanHistoryDialog } from './PlanBits';
 import { needsYouCount } from './needsYou';
+import { NameField } from './WorkBits';
 import './team-work.css';
 import './team-work-layout.css';
 
@@ -34,7 +35,7 @@ const PLAN_ORDER = { NOW: 0, LATER: 1, FINISHED: 2 } as const;
 /** A new plan (what it is for first, then its name), a copy under a new name, or a new name. */
 function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' | 'rename'; current: Plan | null; onClose: () => void; onDone: (view: PlanView) => void }) {
     const copy = useJourneyCopy();
-    const id = useId(), purposeId = useId();
+    const purposeId = useId();
     const [name, setName] = useState(mode === 'rename' ? current?.name ?? '' : mode === 'copy' ? `${current?.name ?? ''} v2` : '');
     const [purpose, setPurpose] = useState('');
     const [error, setError] = useState('');
@@ -56,10 +57,7 @@ function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' |
                 <label htmlFor={purposeId}>{copy('What this plan is for', 'რისთვისაა ეს გეგმა')}</label>
                 <textarea id={purposeId} className="gk-input" autoFocus rows={2} maxLength={400} value={purpose} placeholder={copy('Parents and clubs find a pitch in one tap', 'მშობლები და კლუბები მოედანს ერთი შეხებით პოულობენ')} onChange={event => setPurpose(event.target.value)} />
             </div>}
-            <div className="tw-field">
-                <label htmlFor={id}>{copy('Name', 'სახელი')}</label>
-                <input id={id} className="gk-input" autoFocus={mode !== 'new'} maxLength={80} value={name} placeholder={copy('Map v2', 'რუკა v2')} onChange={event => setName(event.target.value)} />
-            </div>
+            <NameField value={name} max={80} autoFocus={mode !== 'new'} placeholder={copy('Short name, e.g. Map v2', 'მოკლე სახელი, მაგ. რუკა v2')} onChange={setName} />
         </form>
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </Dialog>;
@@ -152,9 +150,10 @@ export function TeamWorkPage() {
         catch (failure) { setError(extractApiErrorMessage(failure, copy('Some work could not be added.', 'ზოგიერთი საქმე ვერ დაემატა.'))); }
         finally { setStarting(false); reload(); }
     };
-    const openPlan = (id: number) => set({ view: null, plan: String(id), step: null, task: null, day: null, show: null });
+    // By day or List (`?show=`) stays as the person chose it, from page to page.
+    const openPlan = (id: number) => set({ view: null, plan: String(id), step: null, task: null, day: null });
     const setOpen = (id: number | null) => set({ step: id == null ? null : String(id) });
-    const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, plan: null, step: null, task: null, day: null, show: null });
+    const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, plan: null, step: null, task: null, day: null });
 
     if (missing) return <RouteRecoveryPage />;
     const loading = <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>;
@@ -169,7 +168,7 @@ export function TeamWorkPage() {
     else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} onIdeas={() => go('ideas')} />;
     else if (view) main = <PlanPage view={view} items={items} views={views} planOf={planOf} lines={lines} revision={revision} task={task} actions={actions} onBack={() => set({ plan: null, step: null, task: null })}
         onChangePlan={change => void savePlan(view, change)} onDetach={child => void detach(view, child)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} onOpenPlan={openPlan} />;
-    else main = <Overview items={items} findings={findings} plans={plans} views={views} planOf={planOf} team={team} lines={lines} revision={revision} task={task} actions={actions} starting={starting}
+    else main = <Overview items={items} findings={findings} plans={plans} views={views} planOf={planOf} team={team} lines={lines} me={me} revision={revision} task={task} actions={actions} starting={starting}
         onAddTask={() => startAdding()} onNewPlan={() => setDialog('new')} onOpenPlan={openPlan} onLoadStarter={() => void loadStarter()} onChanged={reload} />;
 
     return <GkRoot className="gk-page"><PageFrame className="tw-page">

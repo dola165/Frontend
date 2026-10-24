@@ -3,6 +3,7 @@ import { Badge, Button, EmptyNote, Panel } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { Plan, PlanStatus, PlanView, WorkItem } from './api';
 import { Agenda, AgendaToolbar } from './Agenda';
+import { LayoutSwitch, TaskList } from './NowLists';
 import { useAgendaFilter } from './useAgendaFilter';
 import { nodesOf } from './agendaRows';
 import { PinButton } from './pins';
@@ -18,10 +19,11 @@ export type PlanDialog = 'paste' | 'ai' | 'history' | 'copy' | 'rename' | 'addSt
 const NO_FINDINGS = new Set<number>();
 
 /**
- * A plan opened: what it is for first and big (or a prompt to write it), its name smaller, "Was: … → now: …" when the
- * point of it changed, and the plan it is part of. Then one view: the plan step by step (the plans that are its
- * steps, then its tasks in order) and, day by day, cards for what happened in it. One toolbar filters by person and
- * status (`?who=`, `?status=`). Paste from AI and Add task up front; the rest behind "…".
+ * A plan opened: its name, big and bold, what it is for under it (or a prompt to write it), "Was: … → now: …" when
+ * the point of it changed, and the plan it is part of. Then the plan step by step (the plans that are its steps, then
+ * its tasks in order) and, day by day, cards for what happened in it, or its tasks one per line ("List", `?show=`).
+ * One toolbar filters by person and status (`?who=`, `?status=`). Paste from AI and Add task up front; the rest
+ * behind "…".
  */
 export function PlanPage({ view, items, views, planOf, lines, revision, task, actions, onBack, onChangePlan, onDetach, onAdd, onDialog, onOpenPlan }: {
     view: PlanView; items: WorkItem[]; views: Map<number, PlanView>; planOf: Map<number, Plan>; lines: Map<number, string>; revision: number; task: number | null; actions: Omit<TaskActions, 'placeOf'>;
@@ -47,8 +49,7 @@ export function PlanPage({ view, items, views, planOf, lines, revision, task, ac
     const opened = task != null && scope.has(task) ? nodes.get(task) : undefined;
     const empty = view.tasks.length === 0 && view.steps.length === 0;
     const partOf = view.plan.partOf;
-    // Without a purpose the name is the page's heading, next to the prompt to write one.
-    const Name = view.plan.purpose ? 'p' : 'h1';
+    const listed = [...scope].flatMap(id => { const node = nodes.get(id); return node && nodeMatches(node, who, view.team) && (!statuses.length || statuses.includes(node.item.status)) ? [node.item] : []; });
 
     return <>
         <div className="tw-plan-head">
@@ -58,9 +59,9 @@ export function PlanPage({ view, items, views, planOf, lines, revision, task, ac
             </div>
             <div className="tw-plan-head__row">
                 <div className="tw-plan-head__title">
-                    <PurposeLine purpose={view.plan.purpose} label={copy('What this plan is for', 'რისთვისაა ეს გეგმა')} prompt={copy('Write what this plan is for', 'დაწერეთ, რისთვისაა ეს გეგმა')} onSave={purpose => onChangePlan({ purpose })} />
-                    <Name className="tw-plan-head__name"><Folder aria-hidden="true" /><span>{view.plan.name}</span>{view.plan.status !== 'NOW' && <Badge tone={view.plan.status === 'FINISHED' ? 'accent' : 'neutral'}>{copy(...PLAN_STATUS[view.plan.status])}</Badge>}
-                        <span className="tw-plan-head__people">{peopleLine(copy, view)}</span></Name>
+                    <h1 className="tw-plan-head__name"><Folder aria-hidden="true" /><span>{view.plan.name}</span>{view.plan.status !== 'NOW' && <Badge tone={view.plan.status === 'FINISHED' ? 'accent' : 'neutral'}>{copy(...PLAN_STATUS[view.plan.status])}</Badge>}
+                        <span className="tw-plan-head__people">{peopleLine(copy, view)}</span></h1>
+                    <PurposeLine as="p" purpose={view.plan.purpose} label={copy('What this plan is for', 'რისთვისაა ეს გეგმა')} prompt={copy('Write what this plan is for', 'დაწერეთ, რისთვისაა ეს გეგმა')} onSave={purpose => onChangePlan({ purpose })} />
                     <PurposeChanged changes={view.purposeChanges} what="plan" />
                 </div>
                 <span className="tw-actions">
@@ -79,11 +80,15 @@ export function PlanPage({ view, items, views, planOf, lines, revision, task, ac
             : <>
                 <OrderStrip nodes={shown} steps={who == null && !statuses.length ? view.steps : []} numbers={numbers} onOpen={id => { if (task !== id) actions.onToggle(id); }} onOpenPlan={onOpenPlan} onDetach={onDetach} />
                 <div className="tw-bar-line">
-                    <h2 className="tw-heading">{copy('What happened', 'რა მოხდა')}</h2>
-                    <AgendaToolbar team={view.team} lines={lines} filter={agenda.filter} onChange={agenda.change} />
+                    <h2 className="tw-heading">{agenda.layout === 'list' ? copy('Tasks', 'საქმეები') : copy('What happened', 'რა მოხდა')}</h2>
+                    <div className="tw-work-bar">
+                        <LayoutSwitch layout={agenda.layout} onChange={agenda.setLayout} />
+                        <AgendaToolbar team={view.team} lines={lines} filter={agenda.filter} onChange={agenda.change} />
+                    </div>
                 </div>
-                <Agenda revision={revision} filter={{ ...agenda.filter, plan: null }} context={{ nodes, planOf, planItems: new Map(), team: view.team }} exclude={NO_FINDINGS} scope={scope} showPlan={view.steps.length > 0}
-                    pinned={id => pins.pinned({ itemId: id })} onOpen={agenda.open} onClear={clear} />
+                {agenda.layout === 'list' ? <TaskList tasks={listed} planOf={planOf} onOpen={agenda.open} />
+                    : <Agenda revision={revision} filter={{ ...agenda.filter, plan: null }} context={{ nodes, planOf, planItems: new Map(), team: view.team }} exclude={NO_FINDINGS} scope={scope} showPlan={view.steps.length > 0}
+                        pinned={id => pins.pinned({ itemId: id })} onOpen={agenda.open} onClear={clear} />}
             </>}
         {opened && <TaskDialog node={opened} plan={planOf.get(opened.item.id)} actions={placed} pins={pins} onOpenPlan={onOpenPlan} />}
     </>;

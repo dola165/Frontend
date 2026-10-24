@@ -3,7 +3,7 @@ import { Bot, Check, ChevronDown, ChevronRight, Eye, Image as Picture, Inbox, Vi
 import { Button, FixtureRow } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changeWork, type Detail, type Person, type WorkItem } from './api';
+import { changeWork, itemComments, type Detail, type Person, type WorkItem } from './api';
 import { acknowledgedBy, droppedBy, isNewFor, namesOf, NOTE, seenOnlyBy, waitingOn } from './findings';
 import { MentionText } from './MentionInput';
 import { WorkComments } from './WorkComments';
@@ -122,7 +122,7 @@ export function FindingRow({ item, detail, team, me, open, time, day, state, lin
                     </span>
                 </div>
                 <div className="tw-finding__top"><WorkMediaList itemId={item.id} media={detail.media} onChanged={onPut} /><About detail={detail} onPut={onPut} /></div>
-                <WorkComments itemId={item.id} comments={detail.comments} team={team} me={me} onChanged={comments => onPut({ ...detail, comments })} />
+                <WorkComments actions={itemComments(item.id)} comments={detail.comments} team={team} me={me} onChanged={comments => onPut({ ...detail, comments })} />
             </>}
         </li>}
     </>;

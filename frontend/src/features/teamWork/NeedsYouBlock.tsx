@@ -37,7 +37,7 @@ export function NeedsYou({ items, questions, planOf, onOpen, onAnswered }: {
                 open > 0 && copy(open === 1 ? '1 question' : `${open} questions`, `${open} კითხვა`)].filter(Boolean).join(' · ');
             return <li key={item.id} className="tw-needs__item" data-status={item.status} data-fresh={fresh.has(`${item.id}:${item.status}:${item.openQuestions}`) || undefined}>
                 <button type="button" className="tw-needs__task" onClick={() => onOpen(parent?.id ?? item.id, parent ? item.id : null)}>
-                    <StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-needs__name" title={item.title}>{item.title}</span>
+                    <StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-needs__name" title={item.description ?? item.title}>{item.title}</span>
                     <span className="tw-needs__meta">{meta}</span>
                     <span className="tw-needs__state">{state}</span>
                     <ChevronRight className="tw-needs__arrow" aria-hidden="true" />

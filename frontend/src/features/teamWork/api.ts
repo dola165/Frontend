@@ -1,13 +1,17 @@
 import { apiClient } from '../../api/axiosConfig';
 import type { Commit, Repo } from './upToDate';
 
-/** The pipeline: planned → in progress → needs your look → accepted → live; blocked sits beside it. */
-export const STATUSES = ['PLANNED', 'IN_PROGRESS', 'NEEDS_LOOK', 'ACCEPTED', 'LIVE', 'BLOCKED'] as const;
+/** The pipeline: planned → in progress → needs your look → accepted → live; blocked sits beside it, cancelled after its end. */
+export const STATUSES = ['PLANNED', 'IN_PROGRESS', 'NEEDS_LOOK', 'ACCEPTED', 'LIVE', 'BLOCKED', 'CANCELLED'] as const;
 export type WorkStatus = typeof STATUSES[number];
 /** What moves first, for lists. */
-export const LIST_ORDER: WorkStatus[] = ['IN_PROGRESS', 'NEEDS_LOOK', 'BLOCKED', 'PLANNED', 'ACCEPTED', 'LIVE'];
+export const LIST_ORDER: WorkStatus[] = ['IN_PROGRESS', 'NEEDS_LOOK', 'BLOCKED', 'PLANNED', 'ACCEPTED', 'LIVE', 'CANCELLED'];
 /** Accepted or live: nothing left to do on it. */
 export const isDone = (status: WorkStatus) => status === 'ACCEPTED' || status === 'LIVE';
+/** Work nobody does any more: live, or cancelled (decided not to do, kept instead of deleted). These sink to the quiet grey rows at the bottom. */
+export const isGone = (status: WorkStatus) => status === 'LIVE' || status === 'CANCELLED';
+/** A short name reads at a glance; longer words belong in “What it’s for”. Only a hint: longer names still save. */
+export const NAME_LIMIT = 30;
 export const PRIORITIES = ['NOW', 'NEXT', 'LATER'] as const;
 export type Priority = typeof PRIORITIES[number];
 export type LinkKind = 'BLOCKED_BY' | 'BLOCKS' | 'RELATED';
@@ -56,18 +60,23 @@ export type PlanStatus = 'NOW' | 'LATER' | 'FINISHED';
 export interface PlanRef { id: number; name: string; purpose: string | null }
 /**
  * A plan, with what its box shows: what it is for, its progress (tasks and the plans that are its steps), the plan it
- * is part of, and `live` when it is finished or every task is live (as a step of another plan it is then complete).
+ * is part of, and `live` when it is finished or every task that is not cancelled is live (as a step of another plan
+ * it is then complete). A cancelled task counts in no percent.
  */
 export interface Plan {
     id: number; name: string; purpose: string | null; copiedFrom: number | null; copiedFromName: string | null; version: number; taskCount: number; updatedBy: Person | null; updatedAt: string; createdAt: string;
-    status: PlanStatus; percent: number; inProgress: number; toDo: number; done: number; needsYou: number; nextTask: string | null; partOf: PlanRef | null; live: boolean;
+    status: PlanStatus; percent: number; inProgress: number; toDo: number; done: number; cancelled?: number; needsYou: number; nextTask: string | null; partOf: PlanRef | null; live: boolean;
 }
+/** How many of a plan's tasks are still open: not done and not cancelled. */
+export const openCount = (plan: Plan) => plan.taskCount - plan.done - (plan.cancelled ?? 0);
 export interface PlanChange { id: number; author: Person | null; at: string; message: string; byDola?: boolean }
 export interface WorkNode { item: WorkItem; steps: WorkItem[] }
 /** A plan opened: its tasks, the plans that are its steps (in order), its history and how its purpose changed. */
 export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
-/** Someone on the team, with their one-line responsibility ("Agent Dola"). */
-export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean; responsibility?: string | null }
+/** Someone on the team, with their one-line responsibility ("Agent Dola") and their Now note, with when they changed it. */
+export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean; responsibility?: string | null; now?: string | null; nowAt?: string | null }
+/** What a person is doing, in their own words (only they change it), with teammates' comments under it, oldest first. */
+export interface NowNote { person: Person; body: string | null; updatedAt: string | null; canEdit: boolean; comments: WorkComment[] }
 export interface Invite { userId: number; email: string; token: string; expiresAt: string }
 export interface PasteLine { line: number; action: 'NEW' | 'UPDATED' | 'MOVED' | 'UNCHANGED' | 'DELETED'; title: string; parent: string | null; detail: string | null }
 export interface PasteResult { created: number; updated: number; moved: number; unchanged: number; deleted: number; lines: PasteLine[]; problems: string[]; applied: boolean; view: PlanView | null }
@@ -114,6 +123,10 @@ export const deleteQuestion = (questionId: number) => data(apiClient.delete<Deta
 export const addComment = (itemId: number, body: string) => data(apiClient.post<WorkComment[]>(`${base}/items/${itemId}/comments`, { body }));
 export const editComment = (id: number, body: string) => data(apiClient.patch<WorkComment[]>(`${base}/comments/${id}`, { body }));
 export const deleteComment = (id: number) => data(apiClient.delete<WorkComment[]>(`${base}/comments/${id}`));
+/** Where a thread of comments saves (a task's, a Now note's); each call answers with the whole thread. */
+export interface CommentActions { add: (body: string) => Promise<WorkComment[]>; edit: (id: number, body: string) => Promise<WorkComment[]>; remove: (id: number) => Promise<WorkComment[]> }
+/** The thread under a task. */
+export const itemComments = (itemId: number): CommentActions => ({ add: body => addComment(itemId, body), edit: editComment, remove: deleteComment });
 export const addPicture = (itemId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<Detail>(`${base}/items/${itemId}/pictures`, form)); };
 /** The video is the request body, streamed to storage; MP4 or WebM up to 90 MB. */
 export const addVideo = (itemId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<Detail>(`${base}/items/${itemId}/videos`, file, {
@@ -132,6 +145,13 @@ export const newInvite = (userId: number) => data(apiClient.post<Invite>(`${base
 export const removeMember = (userId: number) => data(apiClient.delete<Member[]>(`${base}/team/${userId}`));
 /** One line of responsibility for a team member; '' takes it off. Anyone on the team writes anyone's. */
 export const setResponsibility = (userId: number, line: string) => data(apiClient.put<Member[]>(`${base}/team/${userId}/responsibility`, { line }));
+export const fetchNow = (userId: number, signal?: AbortSignal) => data(apiClient.get<NowNote>(`${base}/team/${userId}/now`, { signal }));
+/** Your own Now note; '' clears it and the comments stay. */
+export const writeNow = (userId: number, body: string) => data(apiClient.put<NowNote>(`${base}/team/${userId}/now`, { body }));
+/** A teammate's comment tells the note's person; their own reply tells everyone who commented. */
+export const addNowComment = (userId: number, body: string) => data(apiClient.post<NowNote>(`${base}/team/${userId}/now/comments`, { body }));
+export const editNowComment = (id: number, body: string) => data(apiClient.patch<NowNote>(`${base}/now-comments/${id}`, { body }));
+export const deleteNowComment = (id: number) => data(apiClient.delete<NowNote>(`${base}/now-comments/${id}`));
 
 export const VIDEO_LIMIT_MB = 90;
 export const VIDEO_TYPES = ['video/mp4', 'video/webm'];

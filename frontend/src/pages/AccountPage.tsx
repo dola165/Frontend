@@ -15,6 +15,7 @@ import { AccountTryoutApplications } from '../features/profiles/account/AccountT
 import { AccountProfileTab } from '../features/profiles/account/AccountProfileTab';
 import { AccountSecurityTab } from '../features/profiles/account/AccountSecurityTab';
 import { AccountSessionsTab } from '../features/profiles/account/AccountSessionsTab';
+import { AccountNotificationsTab } from '../features/notifications/AccountNotificationsTab';
 import { AccountLinkedAccountsTab } from '../features/profiles/account/AccountLinkedAccountsTab';
 import { AccountDangerTab } from '../features/profiles/account/AccountDangerTab';
 import '../components/workspace/workspace-shell.css';
@@ -104,6 +105,7 @@ export const AccountPage = () => {
                         initials={initials} profileHref={profileHref} />
                 )}
                 {activeTab === 'security' && <AccountSecurityTab {...center} account={account} securityExtensions={securityExtensions} />}
+                {activeTab === 'notifications' && <AccountNotificationsTab />}
                 {activeTab === 'sessions' && <AccountSessionsTab {...center} account={account} />}
                 {activeTab === 'accounts' && <AccountLinkedAccountsTab account={account} securityExtensions={securityExtensions} refreshOverview={center.refreshOverview} />}
                 {activeTab === 'danger' && <AccountDangerTab />}

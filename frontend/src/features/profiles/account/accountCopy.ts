@@ -8,7 +8,7 @@ const ACCOUNT_KA: Record<string, string> = {
     'Check profession names, experience and years.': 'შეამოწმეთ პროფესიების სახელები, გამოცდილება და წლები.',
     'Check the price and currency for one session.': 'შეამოწმეთ ერთი სესიის ფასი და ვალუტა.',
 
-    'Profile': 'პროფილი', 'Security': 'უსაფრთხოება', 'Sessions': 'სესიები', 'Linked Accounts': 'დაკავშირებული ანგარიშები', 'Danger': 'საყურადღებო',
+    'Profile': 'პროფილი', 'Security': 'უსაფრთხოება', 'Notifications': 'შეტყობინებები', 'Sessions': 'სესიები', 'Linked Accounts': 'დაკავშირებული ანგარიშები', 'Danger': 'საყურადღებო',
     'Loading your account…': 'ანგარიში იტვირთება…', 'Account Center Offline': 'ანგარიშის მონაცემები ვერ ჩაიტვირთა',
     'Your account settings could not be loaded right now.': 'ანგარიშის პარამეტრები ახლა ვერ ჩაიტვირთა.', 'Retry': 'ხელახლა ცდა', 'Back': 'უკან',
     'Account Center': 'ანგარიში', 'Account Settings': 'ანგარიშის პარამეტრები',

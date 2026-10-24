@@ -33,7 +33,7 @@ export function OrderStrip({ nodes, steps = [], numbers, onOpen, onOpenPlan, onD
             {steps.map((plan, index) => {
                 const state = plan.live ? 'done' : plan.percent > 0 || plan.inProgress > 0 ? 'current-plan' : 'later';
                 return <li key={`p${plan.id}`} data-state={state} data-plan="" data-status={plan.live ? 'LIVE' : plan.inProgress > 0 ? 'IN_PROGRESS' : 'PLANNED'}>
-                    <button type="button" onClick={() => onOpenPlan?.(plan.id)} aria-label={copy(`Plan ${plan.name}`, `გეგმა ${plan.name}`)}>
+                    <button type="button" className="tw-order__open" onClick={() => onOpenPlan?.(plan.id)} aria-label={copy(`Plan ${plan.name}`, `გეგმა ${plan.name}`)}>
                         <span className="tw-order__top"><span className="tw-order__number gk-num">{state === 'done' ? <Check aria-hidden="true" /> : index + 1}</span><Folder className="tw-order__folder" aria-hidden="true" /><span className="gk-num tw-order__percent">{plan.percent}%</span></span>
                         <span className="tw-order__name">{plan.purpose ?? plan.name}</span>
                         {plan.purpose && <span className="tw-order__plan-name">{plan.name}</span>}
@@ -47,7 +47,7 @@ export function OrderStrip({ nodes, steps = [], numbers, onOpen, onOpenPlan, onD
                 const item = node.item;
                 const state = isDone(item.status) ? 'done' : node === current ? 'current' : 'later';
                 return <li key={item.id} data-state={state} data-status={item.status}>
-                    <button type="button" onClick={() => onOpen(item.id)} aria-current={state === 'current' ? 'step' : undefined}>
+                    <button type="button" className="tw-order__open" onClick={() => onOpen(item.id)} aria-current={state === 'current' ? 'step' : undefined}>
                         <span className="tw-order__top"><span className="tw-order__number gk-num">{state === 'done' ? <Check aria-hidden="true" /> : (numbers.get(item.id) ?? 0) + steps.length}</span><StatusDot status={item.status} /><span className="gk-num tw-order__percent">{item.percent != null ? `${item.percent}%` : ''}</span></span>
                         <span className="tw-order__name">{item.description ?? item.title}</span>
                         {item.description && <span className="tw-order__plan-name">{item.title}</span>}

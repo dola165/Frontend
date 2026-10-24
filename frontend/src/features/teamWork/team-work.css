@@ -272,8 +272,8 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-order__track > li { position: relative; flex: 0 0 232px; scroll-snap-align: start; }
 .gk .tw-order__track > li + li::before { content: ''; position: absolute; top: 27px; right: 100%; width: var(--tw-gap); height: 2px; background: var(--gk-line-strong); }
 .gk .tw-order__track > li[data-state='done'] + li::before { background: var(--gk-accent); }
-.gk .tw-order__track button { display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 12px 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
-.gk .tw-order__track button:hover { border-color: var(--gk-line-strong); }
+.gk .tw-order__open { display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; padding: 12px 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .tw-order__open:hover { border-color: var(--gk-line-strong); }
 .gk .tw-order__top { display: flex; align-items: center; gap: 8px; }
 .gk .tw-order__number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gk-line-strong); background: var(--gk-surface); font-size: var(--gk-fs-sm); font-weight: 700; color: var(--gk-text-2); }
 .gk .tw-order__number svg { width: 15px; height: 15px; }
@@ -282,18 +282,19 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-order__plan-name { font-size: var(--gk-fs-xs); color: var(--gk-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* A plan as a step: a folder in place of the dot, a solid border in the plan colour; a quiet way to take it out. */
 .gk .tw-order__folder { flex: none; width: 15px; height: 15px; color: var(--gk-info); }
-.gk .tw-order__track > li[data-plan] button { border-color: color-mix(in srgb, var(--gk-info) 45%, var(--gk-line)); }
-.gk .tw-order__track > li[data-state='current-plan'] button { background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
+.gk .tw-order__track > li[data-plan] .tw-order__open { border-color: color-mix(in srgb, var(--gk-info) 45%, var(--gk-line)); }
+.gk .tw-order__track > li[data-state='current-plan'] .tw-order__open { background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
 .gk .tw-order__track > li[data-state='current-plan'] .tw-order__number { border-color: var(--gk-info); color: var(--gk-info); }
-.gk .tw-order__detach { position: absolute; top: 6px; right: 6px; opacity: 0; }
+.gk .tw-order__track > li[data-plan] .tw-order__top { padding-right: 30px; }
+.gk .tw-order__detach { position: absolute; top: 6px; right: 6px; background: var(--gk-surface); opacity: 0; }
 .gk .tw-order__track > li[data-plan]:hover .tw-order__detach, .gk .tw-order__detach:focus-visible { opacity: 1; }
 .gk .tw-order__bar { display: block; height: 4px; border-radius: 999px; background: var(--gk-raised); overflow: hidden; }
 .gk .tw-order__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); }
 .gk .tw-order__when { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
 .gk .tw-order__track > li[data-state='done'] .tw-order__number { border-color: var(--gk-accent); background: var(--gk-accent); color: var(--gk-surface); }
-.gk .tw-order__track > li[data-state='current'] button { padding: 11px 13px; border: 2px solid color-mix(in srgb, var(--gk-info) 70%, var(--gk-line)); background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
+.gk .tw-order__track > li[data-state='current'] .tw-order__open { padding: 11px 13px; border: 2px solid color-mix(in srgb, var(--gk-info) 70%, var(--gk-line)); background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
 .gk .tw-order__track > li[data-state='current'] .tw-order__number { border-color: var(--gk-info); color: var(--gk-info); }
-.gk .tw-order__track > li[data-state='later'] button { background: transparent; border-style: dashed; }
+.gk .tw-order__track > li[data-state='later'] .tw-order__open { background: transparent; border-style: dashed; }
 .gk .tw-order__track > li[data-state='later'] .tw-order__name { color: var(--gk-text-2); font-weight: 500; }
 
 /* The plan's "…" menu. */

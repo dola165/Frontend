@@ -58,7 +58,7 @@ function PlanLinks({ plans, onOpenPlan, onNewPlan }: { plans: Plan[]; onOpenPlan
             {sortPlans(plans).map(plan => <li key={plan.id} data-child={plan.partOf && ids.has(plan.partOf.id) ? '' : undefined}><button type="button" data-status={plan.status} onClick={() => onOpenPlan(plan.id)}>
                 <span className="tw-plan-links__purpose">{plan.partOf && ids.has(plan.partOf.id) && <CornerDownRight aria-hidden="true" />}{plan.purpose ?? plan.name}</span>
                 <span className="tw-plan-links__line"><Folder aria-hidden="true" /><span className="tw-plan-links__name">{plan.purpose ? plan.name : copy('Write what this plan is for', 'დაწერეთ, რისთვისაა ეს გეგმა')}</span>
-                    <span className="tw-plan-links__open gk-num">{plan.status === 'FINISHED' ? copy('finished', 'დასრულდა') : plan.live ? copy('live', 'ლაივზეა') : copy(`${plan.taskCount - plan.done} open`, `${plan.taskCount - plan.done} ღია`)}</span></span>
+                    <span className="tw-plan-links__open gk-num">{plan.status === 'FINISHED' ? copy('finished', 'დასრულდა') : plan.live ? copy('live', 'ლაივზეა') : plan.taskCount === 0 ? `${plan.percent}%` : copy(`${plan.taskCount - plan.done} open`, `${plan.taskCount - plan.done} ღია`)}</span></span>
             </button></li>)}
             <li><button type="button" className="tw-plan-links__new" onClick={onNewPlan}><Plus aria-hidden="true" />{copy('New plan', 'ახალი გეგმა')}</button></li>
         </ul>

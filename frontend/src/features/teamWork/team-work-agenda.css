@@ -1,5 +1,5 @@
 /* Overview and the agenda: compact like Home. 13px rows, quiet greys, one coloured thing per row. */
-.gk .tw-overview { display: flex; flex-direction: column; gap: var(--gk-5); max-width: 1080px; min-width: 0; }
+.gk .tw-overview { display: flex; flex-direction: column; gap: var(--gk-5); min-width: 0; }
 
 /* The agenda: the schedule's day sections, with day headings big enough not to miss and kept in view. */
 .gk .tw-agenda { display: flex; flex-direction: column; gap: var(--gk-4); min-width: 0; }
@@ -20,6 +20,8 @@
 .gk .tw-agenda__pinned { flex: none; width: 13px; height: 13px; color: var(--gk-text-2); }
 .gk .tw-agenda__fold { color: var(--gk-text-2); font-weight: 600; }
 .gk .tw-agenda__more { display: flex; justify-content: center; }
+/* An empty list says so in one line, with its one next action beside it. */
+.gk .tw-quiet-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); min-height: 44px; padding: var(--gk-2) var(--gk-4); border: 1px dashed var(--gk-line); border-radius: var(--gk-r-lg); font-size: var(--gk-fs-md); }
 .gk .tw-agenda__loading { display: flex; flex-direction: column; gap: var(--gk-2); }
 
 /* One row of filters: plan, person, status. */
@@ -35,19 +37,10 @@
 .gk .tw-needs__task:hover { background: var(--gk-hover); }
 .gk .tw-needs__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .gk .tw-needs__meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
-.gk .tw-needs__look { display: inline-flex; flex: none; align-items: center; gap: 4px; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
-.gk .tw-needs__look svg { width: 14px; height: 14px; }
-.gk .tw-needs__question { display: flex; flex-direction: column; gap: 6px; padding-left: 21px; }
-.gk .tw-needs__ask { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-2); margin: 0; overflow-wrap: anywhere; }
-.gk .tw-needs__ask svg { flex: none; align-self: center; width: 14px; height: 14px; color: var(--gk-warning); }
-.gk .tw-needs__ask .gk-faint { font-size: var(--gk-fs-xs); }
-.gk .tw-needs__answers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.gk .tw-needs__free { display: flex; flex: 1 1 240px; gap: 6px; }
-.gk .tw-needs__free .gk-input { flex: 1; min-width: 0; min-height: 32px; }
-@media (min-width: 641px) {
-    .gk .tw-needs__question { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px var(--gk-3); }
-    .gk .tw-needs__ask { flex: 0 1 auto; }
-}
+/* What it waits for, in words, then the arrow: the waiting-row look. */
+.gk .tw-needs__state { flex: none; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .tw-needs__arrow { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .tw-needs__questions { padding: 0 0 2px 21px; }
 
 /* Pinned: plans and tasks, each a row that opens it, with a quiet unpin. */
 .gk .tw-pinned { display: flex; flex-direction: column; gap: var(--gk-2); }
@@ -79,9 +72,16 @@
 
 @media (max-width: 640px) {
     .gk .tw-overview { gap: var(--gk-4); }
+    /* On a phone a long name wraps instead of being cut; what changed keeps two lines. */
+    .gk .tw-agenda .gk-fixture__title { white-space: normal; overflow-wrap: anywhere; }
+    .gk .tw-agenda .gk-fixture__meta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow-wrap: anywhere; }
     .gk .tw-agenda .gk-board__day-title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
     .gk .tw-agenda__trail { max-width: 100%; }
+    .gk .tw-needs__task { flex-wrap: wrap; row-gap: 0; padding-block: 6px; }
+    .gk .tw-needs__name { flex: 1 1 calc(100% - 80px); }
     .gk .tw-needs__meta { display: none; }
+    .gk .tw-needs__state { flex: 1; padding-left: 17px; font-weight: 500; }
+    .gk .tw-needs__questions { padding-left: 0; }
     .gk .tw-pinned__meta { display: none; }
     .gk .tw-plan-links ul { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
     .gk .tw-plan-links li { flex: none; }

@@ -4,7 +4,8 @@ import { Dialog } from '../../design/Dialog';
 import { Button, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { answerQuestion, askQuestion, changeWork, createWork, deleteQuestion, deleteWork, fetchDetail, type Detail, type LinkKind, type NewWork, type Person, type Priority, type WorkChange, type WorkEnd, type WorkItem, type WorkQuestion, type WorkStatus, type WorkUpdate } from './api';
+import { askQuestion, changeWork, createWork, deleteWork, fetchDetail, type Detail, type LinkKind, type NewWork, type Person, type Priority, type WorkChange, type WorkEnd, type WorkItem, type WorkQuestion, type WorkStatus, type WorkUpdate } from './api';
+import { QuestionRow } from './QuestionRow';
 import { EndPick, Field, KeyChip, PeoplePick, PersonPick, PriorityPick, QuickEdit, SmallChip, SmallPick, StatusDot } from './WorkBits';
 import { WorkComments } from './WorkComments';
 import { WorkMediaList } from './WorkMedia';
@@ -13,7 +14,6 @@ import { ago, day, endWords, madeBy, priorityName, shortDate, statusName } from 
 import { taskAsText } from './planAsText';
 import { short } from './upToDate';
 
-type Copy = ReturnType<typeof useJourneyCopy>;
 const isConflict = (error: unknown) => (error as { response?: { status?: number } })?.response?.status === 409;
 
 interface Draft {
@@ -29,7 +29,7 @@ const draftOf = (item: WorkItem): Draft => ({
 const sameEnd = (a: WorkEnd, b: WorkEnd) => a.kind === b.kind && (a.date ?? null) === (b.date ?? null) && (a.amount ?? null) === (b.amount ?? null) && (a.unit ?? null) === (b.unit ?? null);
 const KNOWN: Record<string, [string, string]> = {
     'Added': ['Added', 'დაემატა'], 'Edited the details': ['Edited the details', 'დეტალები შეიცვალა'], 'Added a picture': ['Added a picture', 'დაემატა სურათი'], 'Added a video': ['Added a video', 'დაემატა ვიდეო'],
-    'Seen': ['Seen', 'ნანახია'], 'Acknowledged': ['Acknowledged', 'გაითვალისწინა'], 'Pushed to pending': ['Pushed to waiting', 'გადავიდა მოლოდინში'], 'Made a task': ['Made a task', 'გახდა საქმე'],
+    'Seen': ['Seen', 'ნანახია'], 'Acknowledged': ['Acknowledged', 'გაითვალისწინა'], 'Pushed to pending': ['Pushed to Waiting', 'გადავიდა მოლოდინში'], 'Made a task': ['Made a task', 'გახდა საქმე'],
     'Report pasted': ['Report pasted', 'ანგარიში ჩაისვა'], 'Updated from a paste': ['Updated from a paste', 'განახლდა ჩასმით'],
 };
 
@@ -48,34 +48,7 @@ function HistoryLine({ update }: { update: WorkUpdate }) {
     </li>;
 }
 
-const YES_NO = (copy: Copy): [string, string][] => [['Yes', copy('Yes', 'კი')], ['No', copy('No', 'არა')]];
-
-/** One question for the owner: quick answers or free words; answered, it shows the answer and who gave it. */
-function QuestionRow({ question, busy, onAnswer, onDelete }: { question: WorkQuestion; busy: boolean; onAnswer: (answer: string) => void; onDelete: () => void }) {
-    const copy = useJourneyCopy();
-    const id = useId();
-    const [free, setFree] = useState<string | null>(null);
-    const options: [string, string][] = question.options.length ? question.options.map(option => [option, option]) : YES_NO(copy);
-    return <li className="tw-question" data-answered={question.answer != null || undefined}>
-        <div className="tw-question__text"><span>{question.text}</span>
-            <span className="tw-question__who gk-faint">{[question.askedBy?.name, ago(copy, question.at)].filter(Boolean).join(' · ')}</span></div>
-        {question.answer != null ? <div className="tw-question__answer">
-            <strong>{question.answer}</strong><span className="gk-faint"> · {[question.answeredBy?.name, question.answeredAt && ago(copy, question.answeredAt)].filter(Boolean).join(' · ')}</span>
-            <button type="button" className="tw-link-button" disabled={busy} onClick={() => onAnswer('')}>{copy('Take back', 'უკან წაღება')}</button>
-        </div> : <div className="tw-question__answers" role="group" aria-label={copy('Answer', 'პასუხი')}>
-            {options.map(([value, label]) => <Button key={value} size="sm" disabled={busy} onClick={() => onAnswer(value)}>{label}</Button>)}
-            {free === null ? <Button size="sm" variant="ghost" disabled={busy} onClick={() => setFree('')}>{copy('Other…', 'სხვა…')}</Button>
-                : <form className="tw-question__free" onSubmit={event => { event.preventDefault(); if (free.trim()) onAnswer(free.trim()); }}>
-                    <label htmlFor={id} className="gk-visually-hidden">{copy('Your answer', 'თქვენი პასუხი')}</label>
-                    <input id={id} className="gk-input" autoFocus maxLength={2000} value={free} onChange={event => setFree(event.target.value)} />
-                    <Button size="sm" variant="primary" type="submit" disabled={busy || !free.trim()}>{copy('Answer', 'პასუხი')}</Button>
-                </form>}
-            <button type="button" className="tw-icon-button tw-question__delete" aria-label={copy('Remove the question', 'კითხვის წაშლა')} disabled={busy} onClick={onDelete}><X aria-hidden="true" /></button>
-        </div>}
-    </li>;
-}
-
-/** Questions for Beqa under a task: each with quick answers, and a small form to ask one. */
+/** Questions for Beqa under a task: each with quick answers (the same row as Needs you), and a small form to ask one. */
 function Questions({ questions, itemId, onPut }: { questions: WorkQuestion[]; itemId: number; onPut: (detail: Detail) => void }) {
     const copy = useJourneyCopy();
     const textId = useId(), optionsId = useId();
@@ -93,8 +66,7 @@ function Questions({ questions, itemId, onPut }: { questions: WorkQuestion[]; it
     const open = questions.filter(question => question.answer == null), answered = questions.filter(question => question.answer != null);
     return <section className="tw-section tw-questions" aria-label={copy('Questions for Beqa', 'კითხვები ბექასთვის')}>
         <h3 className="tw-section__title">{copy('Questions for Beqa', 'კითხვები ბექასთვის')} {open.length > 0 && <span className="gk-count">{open.length}</span>}</h3>
-        {questions.length > 0 && <ul className="tw-questions__list">{[...open, ...answered].map(question => <QuestionRow key={question.id} question={question} busy={busy}
-            onAnswer={answer => void run(() => answerQuestion(question.id, answer))} onDelete={() => void run(() => deleteQuestion(question.id))} />)}</ul>}
+        {questions.length > 0 && <ul className="tw-questions__list">{[...open, ...answered].map(question => <QuestionRow key={question.id} question={question} removable onDone={onPut} />)}</ul>}
         {asking ? <form className="tw-questions__ask" onSubmit={event => { event.preventDefault(); if (text.trim()) void run(() => askQuestion(itemId, text.trim(), options.split('|').map(option => option.trim()).filter(Boolean)), () => { setText(''); setOptions(''); setAsking(false); }); }}>
             <div className="tw-field"><label htmlFor={textId}>{copy('The question', 'კითხვა')}</label>
                 <input id={textId} className="gk-input" autoFocus maxLength={1000} value={text} onChange={event => setText(event.target.value)} /></div>
@@ -168,10 +140,11 @@ export interface PlaceOnPlan { first: boolean; last: boolean; onMove: (by: -1 | 
 /**
  * A task opened in place. First what an agent or the owner needs: the key, what done means, where it stands, the
  * questions for Beqa and the links. Then, folded, the report (tested, branch, commits), the steps, files, comments
- * and history. A save made after a colleague's is refused, and the person reloads with their words kept.
+ * and history. A save made after a colleague's is refused, and the person reloads with their words kept. In the task
+ * dialog (`framed`) the dialog already shows the key and the close button, so the view leaves them out.
  */
-export function TaskView({ id, team, me, place, plan, candidates = [], onOpen, onAddStep, onClose, onSaved, onDeleted }: {
-    id: number; team: Person[]; me?: number | null; place?: PlaceOnPlan; plan?: string; candidates?: WorkItem[]; onOpen: (id: number) => void; onAddStep?: () => void; onClose: () => void; onSaved: () => void; onDeleted?: () => void;
+export function TaskView({ id, team, me, place, plan, candidates = [], framed = false, onOpen, onAddStep, onClose, onSaved, onDeleted }: {
+    id: number; team: Person[]; me?: number | null; place?: PlaceOnPlan; plan?: string; candidates?: WorkItem[]; framed?: boolean; onOpen: (id: number) => void; onAddStep?: () => void; onClose: () => void; onSaved: () => void; onDeleted?: () => void;
 }) {
     const copy = useJourneyCopy();
     const [detail, setDetail] = useState<Detail | null>(null);
@@ -219,18 +192,18 @@ export function TaskView({ id, team, me, place, plan, candidates = [], onOpen, o
         finally { setSaving(false); }
     };
 
-    if (!item || !draft || !detail) return <div className="tw-detail" role="region" aria-label={copy('Task', 'საქმე')}>
+    if (!item || !draft || !detail) return <div className="tw-detail" data-framed={framed || undefined} role="region" aria-label={copy('Task', 'საქმე')}>
         {error ? <p className="gk-notice gk-notice--danger" role="alert">{error}</p> : <div role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={96} /></div>}
     </div>;
     const isStep = item.parentId != null;
     const hasSteps = detail.steps.length > 0;
     const hasReport = Boolean(item.tested || item.commits || item.branch || item.prUrl || detail.foundCommits.length);
     const link = `${window.location.origin}/team-work?task=${item.parentId ?? item.id}${isStep ? `&step=${item.id}` : ''}`;
-    return <div className="tw-detail" role="region" aria-label={`${item.key} ${item.title}`}>
+    return <div className="tw-detail" data-framed={framed || undefined} role="region" aria-label={`${item.key} ${item.title}`}>
         <div className="tw-detail__head">
             <div className="tw-detail__about">
                 <div className="tw-detail__id">
-                    <KeyChip value={item.key} />
+                    {!framed && <KeyChip value={item.key} />}
                     {item.priority && <span className="tw-chip" data-priority={item.priority}>{priorityName(copy, item.priority)}</span>}
                     {item.small && <SmallChip />}
                     {item.requestedBy?.name && <span className="gk-faint">{copy(`Requested by ${item.requestedBy.name}`, `ითხოვა ${item.requestedBy.name}`)}</span>}
@@ -251,7 +224,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], onOpen, o
                 <Button size="sm" variant="ghost" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, link, plan)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</Button>
                 <Button size="sm" variant="ghost" onClick={() => setReporting(true)}><ClipboardPaste aria-hidden="true" />{copy('Paste report', 'ანგარიშის ჩასმა')}</Button>
                 {onDeleted && <Button size="sm" iconOnly variant="ghost" aria-label={copy('Delete', 'წაშლა')} onClick={() => setDeleting(true)}><Trash2 aria-hidden="true" /></Button>}
-                <Button size="sm" iconOnly variant="ghost" aria-label={copy('Close', 'დახურვა')} onClick={onClose}><X aria-hidden="true" /></Button>
+                {!framed && <Button size="sm" iconOnly variant="ghost" aria-label={copy('Close', 'დახურვა')} onClick={onClose}><X aria-hidden="true" /></Button>}
             </span>
         </div>
 
@@ -280,7 +253,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], onOpen, o
                 <Field label={copy('Current step', 'მიმდინარე ნაბიჯი')} wide>{fieldId => <input id={fieldId} className="gk-input" maxLength={240} value={draft.step} onChange={event => patch({ step: event.target.value })} />}</Field>
                 <Field label={copy('Tested', 'შემოწმდა')} wide>{fieldId => <textarea id={fieldId} className="gk-input" rows={2} maxLength={5000} value={draft.tested} placeholder={copy('What passed, and what was not run and why', 'რა გაიარა და რა არ გაშვებულა, რატომ')} onChange={event => patch({ tested: event.target.value })} />}</Field>
                 <Field label={copy('Branch', 'ბრენჩი')}>{fieldId => <input id={fieldId} className="gk-input" maxLength={200} value={draft.branch} placeholder="golive/…" onChange={event => patch({ branch: event.target.value })} />}</Field>
-                <Field label={copy('Pull request', 'Pull request')}>{fieldId => <input id={fieldId} className="gk-input" type="url" maxLength={500} value={draft.prUrl} placeholder="https://github.com/…" onChange={event => patch({ prUrl: event.target.value })} />}</Field>
+                <Field label={copy('Pull request', 'შერწყმის მოთხოვნა (PR)')}>{fieldId => <input id={fieldId} className="gk-input" type="url" maxLength={500} value={draft.prUrl} placeholder="https://github.com/…" onChange={event => patch({ prUrl: event.target.value })} />}</Field>
                 <Field label={copy('Commits', 'კომიტები')} wide>{fieldId => <input id={fieldId} className="gk-input" maxLength={2000} value={draft.commits} placeholder={copy('ids and titles, as the report named them', 'id-ები და სათაურები, როგორც ანგარიშმა დაასახელა')} onChange={event => patch({ commits: event.target.value })} />}</Field>
                 <Field label={copy('Notes', 'შენიშვნები')} wide>{fieldId => <textarea id={fieldId} className="gk-input" rows={2} maxLength={5000} value={draft.notes} onChange={event => patch({ notes: event.target.value })} />}</Field>
             </div>}
@@ -302,7 +275,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], onOpen, o
                 <div><span className="tw-report__label">{copy('Tested', 'შემოწმდა')}</span>{item.tested ? <p className="tw-report__text">{item.tested}</p> : <p className="gk-faint tw-report__text">{copy('Nothing tested yet.', 'ჯერ არაფერი შემოწმებულა.')}</p>}</div>
                 {(item.branch || item.prUrl) && <p className="tw-links">
                     {item.branch && <span><GitBranch aria-hidden="true" /><code>{item.branch}</code></span>}
-                    {item.prUrl && <a href={item.prUrl} target="_blank" rel="noreferrer noopener"><ExternalLink aria-hidden="true" />{copy('Open the pull request', 'Pull request-ის გახსნა')}</a>}
+                    {item.prUrl && <a href={item.prUrl} target="_blank" rel="noreferrer noopener"><ExternalLink aria-hidden="true" />{copy('Open the pull request', 'PR-ის გახსნა')}</a>}
                 </p>}
                 {item.commits && <div><span className="tw-report__label">{copy('Commits, as reported', 'კომიტები, ანგარიშის მიხედვით')}</span><p className="tw-report__text gk-num">{item.commits}</p></div>}
                 {detail.foundCommits.length > 0 && <div><span className="tw-report__label">{copy(`In the live history (${detail.foundCommits.length})`, `ლაივ ისტორიაში (${detail.foundCommits.length})`)}</span>
@@ -372,7 +345,7 @@ export function AddTaskDialog({ planId, parent, team, others, onClose, onCreated
         finally { setSaving(false); }
     };
     const title = parent ? copy(`Add a step to ${parent.title}`, `ნაბიჯის დამატება: ${parent.title}`) : copy('Add task', 'საქმის დამატება');
-    return <Dialog open size="md" className="tw-dialog" title={title} description={copy('What is being built, what done means, and where it stands.', 'რა კეთდება, რას ნიშნავს მზადაა და სად არის.')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
+    return <Dialog open size="md" className="tw-dialog" title={title} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
         footer={<><Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="primary" disabled={saving} onClick={() => void create()}>{saving ? copy('Adding…', 'ემატება…') : parent ? copy('Add step', 'ნაბიჯის დამატება') : copy('Add task', 'საქმის დამატება')}</Button></>}>
         <div className="tw-details">
             {!parent && others.length > 0 && <Field label={copy('A task already on the list', 'უკვე არსებული საქმე')} wide>{fieldId => <select id={fieldId} className="gk-input" value={existing} onChange={event => setExisting(event.target.value)}>

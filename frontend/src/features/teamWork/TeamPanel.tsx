@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { Copy, X } from 'lucide-react';
-import { Badge, Button, Section } from '../../design/primitives';
+import { Avatar, Badge, Button, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addMember, fetchTeam, newInvite, type Invite, type Member } from './api';
@@ -29,30 +29,37 @@ function InviteLink({ invite, onDone }: { invite: Invite; onDone: () => void }) 
 /**
  * Who sees Team work: exactly the team's own accounts, by email (the server setting APP_TEAM_WORK_EMAILS), whatever
  * their role. A team email without an account gets one with no password and a one-time sign-up link to pass on;
- * anyone else is refused. Nobody is added or removed by hand here.
+ * anyone else is refused. Nobody is added or removed by hand here. Loading and a failed load say so, with Try again.
  */
 export function TeamPanel({ canManage }: { canManage: boolean }) {
     const copy = useJourneyCopy();
     const id = useId();
     const [members, setMembers] = useState<Member[] | null>(null);
+    const [loadError, setLoadError] = useState('');
+    const [retry, setRetry] = useState(0);
     const [invite, setInvite] = useState<Invite | null>(null);
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
     useEffect(() => {
         const controller = new AbortController();
-        fetchTeam(controller.signal).then(list => { if (!controller.signal.aborted) setMembers(list); }).catch(() => undefined);
+        fetchTeam(controller.signal).then(list => { if (!controller.signal.aborted) { setMembers(list); setLoadError(''); } })
+            .catch(failure => { if (!controller.signal.aborted) setLoadError(extractApiErrorMessage(failure, copy('The team could not load.', 'გუნდი ვერ ჩაიტვირთა.'))); });
         return () => controller.abort();
-    }, []);
+    }, [retry, copy]);
     const run = async (action: () => Promise<void>) => {
         setBusy(true); setError('');
         try { await action(); }
         catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be done.', 'ვერ მოხერხდა.'))); }
         finally { setBusy(false); }
     };
-    return <Section boxed title={copy('Team', 'გუნდი')} hint={copy('Only the team’s own accounts see this page', 'ამ გვერდს მხოლოდ გუნდის ანგარიშები ხედავს')} className="tw-team">
+    return <div className="tw-team">
+        <PageHeader title={copy('Team', 'გუნდი')} subtitle={copy('Only these accounts see Team work', 'გუნდის სამუშაოს მხოლოდ ეს ანგარიშები ხედავს')} />
+        {loadError && <div className="gk-notice gk-notice--danger" role="alert"><span>{loadError}</span><Button size="sm" onClick={() => setRetry(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
+        <Panel>
+        {members == null && !loadError && <div role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /></div>}
         <ul className="tw-team__list">{(members ?? []).map(member => <li key={member.userId}>
-            <span className="tw-team__who"><strong>{member.name ?? member.email}</strong><span className="gk-muted">{member.email}</span>
+            <span className="tw-team__who"><Avatar name={member.name ?? member.email} size={28} /><strong>{member.name ?? member.email}</strong><span className="gk-muted">{member.email}</span>
                 {member.pending && <Badge tone="warning">{copy('Invited', 'მოწვეული')}</Badge>}</span>
             {canManage && member.pending && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(async () => setInvite(await newInvite(member.userId)))}>{copy('New link', 'ახალი ბმული')}</Button>}
         </li>)}</ul>
@@ -65,8 +72,9 @@ export function TeamPanel({ canManage }: { canManage: boolean }) {
             <input id={id} className="gk-input" type="email" value={email} placeholder="admin.name@talanti.ge" onChange={event => setEmail(event.target.value)} />
             <Button size="sm" type="submit" disabled={busy || !email.trim()}>{copy('Make account and link', 'ანგარიში და ბმული')}</Button>
         </form>}
-        <p className="gk-faint tw-team__hint">{copy('Only the team’s own emails work here (the server setting APP_TEAM_WORK_EMAILS); being an admin adds no one. One without an account gets it, with a one-time sign-up link.',
-            'აქ მხოლოდ გუნდის ელფოსტები მუშაობს (სერვერის პარამეტრი APP_TEAM_WORK_EMAILS); ადმინის როლი არავის ამატებს. ანგარიშის არმქონეს შეექმნება ანგარიში და ერთჯერადი ბმული.')}</p>
+        {canManage && <p className="gk-faint tw-team__hint">{copy('Only the team’s own emails (APP_TEAM_WORK_EMAILS) can be added; each gets a one-time sign-up link.',
+            'დამატება მხოლოდ გუნდის ელფოსტებს შეუძლია (APP_TEAM_WORK_EMAILS); თითოეული ერთჯერად ბმულს იღებს.')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
-    </Section>;
+        </Panel>
+    </div>;
 }

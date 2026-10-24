@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, LIST_ORDER, STARTER_WORK, STATUSES, type Person, type WorkStatus, type PlanStatus, type Plan, type PlanView, type WorkItem } from './api';
+import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, LIST_ORDER, STARTER_WORK, type Person, type PlanStatus, type Plan, type PlanView, type WorkItem } from './api';
 import { AddTaskDialog } from './TaskView';
 import { IdeasPage } from './IdeasPage';
 import { IDEAS, isHidden, isNewFor, isReservedName, WAITING, useFindingDetails } from './findings';
@@ -18,8 +18,7 @@ import { TeamPanel } from './TeamPanel';
 import { TeamWorkDola } from './TeamWorkDola';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
-import { CopyForAiDialog, NameFilter, PlanHistoryDialog } from './PlanBits';
-import { whoOf } from './planPeople';
+import { CopyForAiDialog, PlanHistoryDialog } from './PlanBits';
 import { needsYouCount } from './needsYou';
 import './team-work.css';
 import './team-work-layout.css';
@@ -59,9 +58,9 @@ function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' |
 }
 
 /**
- * Team work: what the team is building and fixing. A small side bar holds the places: the overview (weeks and
- * plans, then every task), Add to listed (what people found), Waiting (findings waiting for a decision), staying
- * up to date, and the team. Team accounts only; for anyone else the page does not exist.
+ * Team work: what the team is building and fixing. A small side bar holds the places: the Overview (what needs you,
+ * pins, plans, then what happened day by day), Ideas (what people found), Waiting (what needs whom), What changed
+ * and the Team. Team accounts only; for anyone else the page does not exist.
  */
 export function TeamWorkPage() {
     const copy = useJourneyCopy();
@@ -81,7 +80,6 @@ export function TeamWorkPage() {
     const wanted = Number(params.get('plan') ?? params.get('roadmap')) || null;
     const open = Number(params.get('step') ?? params.get('open')) || null;
     const task = Number(params.get('task')) || null;
-    const who = whoOf(params.get('who'));
     const reload = () => setRevision(value => value + 1);
     const set = (changes: Record<string, string | null>) => {
         const next = new URLSearchParams(params);
@@ -100,7 +98,8 @@ export function TeamWorkPage() {
         })).catch(failure => {
             if (!live()) return;
             if (statusOf(failure) === 404) setMissing(true);
-            else setError(extractApiErrorMessage(failure, copy('Team work could not load.', 'გუნდის სამუშაო ვერ ჩაიტვირთა.')));
+            // A server failure says so in our words; a refusal keeps the server's own.
+            else setError((statusOf(failure) ?? 500) >= 500 ? copy('Team work could not load.', 'გუნდის სამუშაო ვერ ჩაიტვირთა.') : extractApiErrorMessage(failure, copy('Team work could not load.', 'გუნდის სამუშაო ვერ ჩაიტვირთა.')));
         });
         return () => controller.abort();
     }, [revision, copy]);
@@ -138,12 +137,9 @@ export function TeamWorkPage() {
     };
     const openPlan = (id: number) => set({ view: null, plan: String(id), step: null, task: null, day: null, show: null });
     const setOpen = (id: number | null) => set({ step: id == null ? null : String(id) });
-    const statuses = (params.get('status') ?? '').split(',').filter((value): value is WorkStatus => (STATUSES as readonly string[]).includes(value));
-    const setStatuses = (next: WorkStatus[]) => set({ status: next.length ? next.join(',') : null, task: null, step: null });
     const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, plan: null, step: null, task: null, day: null, show: null });
 
     if (missing) return <RouteRecoveryPage />;
-    const filter = (allLabel: string) => <NameFilter team={team} who={who} allLabel={allLabel} onChange={next => set({ who: next === null ? null : String(next), step: null, task: null })} />;
     const loading = <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>;
     const findingProps = { details, team, me, open, onOpen: setOpen, onPut: put, onChanged: reload };
     const actions = { open, team, me, candidates: allTasks, onOpen: setOpen, onSaved: reload, onDeleted: () => { set({ task: null, step: null }); reload(); },
@@ -153,8 +149,8 @@ export function TeamWorkPage() {
     else if (place === 'changes') main = <WhatChangedPage />;
     else if (place === 'team') main = <TeamPanel canManage={canManageTeam} />;
     else if (place === 'ideas') main = <IdeasPage ideas={ideas} waiting={waiting} {...findingProps} />;
-    else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} />;
-    else if (view) main = <PlanPage view={view} items={items} planOf={planOf} revision={revision} who={who} task={task} filter={filter(copy('Everything', 'ყველაფერი'))} statuses={statuses} actions={actions} onStatuses={setStatuses} onBack={() => set({ plan: null, step: null, task: null })}
+    else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} onIdeas={() => go('ideas')} />;
+    else if (view) main = <PlanPage view={view} items={items} planOf={planOf} revision={revision} task={task} actions={actions} onBack={() => set({ plan: null, step: null, task: null })}
         onChangePlan={change => void savePlan(view, change)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} />;
     else main = <Overview items={items} findings={findings} plans={plans} views={views} planOf={planOf} team={team} revision={revision} task={task} actions={actions} starting={starting}
         onAddTask={() => startAdding()} onNewPlan={() => setDialog('new')} onOpenPlan={openPlan} onLoadStarter={() => void loadStarter()} onChanged={reload} />;

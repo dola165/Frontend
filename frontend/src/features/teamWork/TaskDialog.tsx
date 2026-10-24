@@ -22,6 +22,6 @@ export function TaskDialog({ node, plan, actions, pins, onOpenPlan }: { node: Wo
             {plan && onOpenPlan && <button type="button" className="tw-link-button" onClick={() => onOpenPlan(plan.id)}><Folder aria-hidden="true" />{plan.name}</button>}
         </div>
         {pins.error && <p className="gk-notice gk-notice--danger" role="alert">{pins.error}</p>}
-        <TaskBody node={node} plan={plan} actions={actions} onClose={close} />
+        <TaskBody node={node} plan={plan} actions={actions} framed onClose={close} />
     </Dialog>;
 }

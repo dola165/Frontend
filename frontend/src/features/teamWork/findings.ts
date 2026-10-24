@@ -28,6 +28,14 @@ export const seenOnlyBy = (detail: Detail) => { const acknowledged = acknowledge
 export const droppedBy = (detail: Detail): Person | null => detail.updates.at(-1)?.author ?? detail.media.at(-1)?.uploadedBy ?? null;
 export const pushedBy = (detail: Detail) => detail.updates.find(update => update.message === NOTE.pushed) ?? null;
 export const taggedIn = (detail: Detail, team: Person[]) => mentioned(detail.comments.map(comment => comment.body), team);
+/** Who a finding still waits on: the people tagged in its comments who have not acknowledged it. */
+export const waitingOn = (detail: Detail | undefined, team: Person[]) => {
+    if (!detail) return [];
+    const acknowledged = acknowledgedBy(detail);
+    return taggedIn(detail, team).filter(person => !acknowledged.some(other => other.id === person.id));
+};
+/** "you, Gio": names in a line, you as "you". */
+export const namesOf = (copy: (en: string, ka: string) => string, people: Person[], me: number | null) => people.map(person => person.id === me ? copy('you', 'თქვენ') : person.name ?? '—').join(', ');
 const has = (people: Person[], me: number) => people.some(person => person.id === me);
 /** Something I have not looked at yet that someone else dropped. */
 export const isNewFor = (detail: Detail, me: number | null) => me != null && droppedBy(detail)?.id !== me

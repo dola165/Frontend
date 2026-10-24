@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, LIST_ORDER, STARTER_WORK, type Person, type PlanStatus, type Plan, type PlanView, type WorkItem } from './api';
+import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, removePlanStep, LIST_ORDER, STARTER_WORK, type Member, type Person, type PlanStatus, type Plan, type PlanView, type WorkItem } from './api';
 import { AddTaskDialog } from './TaskView';
 import { IdeasPage } from './IdeasPage';
 import { IDEAS, isHidden, isNewFor, isReservedName, WAITING, useFindingDetails } from './findings';
@@ -18,7 +18,7 @@ import { TeamPanel } from './TeamPanel';
 import { TeamWorkDola } from './TeamWorkDola';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
-import { CopyForAiDialog, PlanHistoryDialog } from './PlanBits';
+import { AddPlanStepDialog, CopyForAiDialog, PlanHistoryDialog } from './PlanBits';
 import { needsYouCount } from './needsYou';
 import './team-work.css';
 import './team-work-layout.css';
@@ -31,10 +31,12 @@ const OLD_KEYS: Record<string, string> = { roadmap: 'plan', open: 'step', projec
 const placeOf = (value: string | null): TeamWorkPlace => PLACES.find(place => place === value) ?? (value ? OLD_PLACES[value] : undefined) ?? 'overview';
 const PLAN_ORDER = { NOW: 0, LATER: 1, FINISHED: 2 } as const;
 
+/** A new plan (what it is for first, then its name), a copy under a new name, or a new name. */
 function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' | 'rename'; current: Plan | null; onClose: () => void; onDone: (view: PlanView) => void }) {
     const copy = useJourneyCopy();
-    const id = useId();
+    const id = useId(), purposeId = useId();
     const [name, setName] = useState(mode === 'rename' ? current?.name ?? '' : mode === 'copy' ? `${current?.name ?? ''} v2` : '');
+    const [purpose, setPurpose] = useState('');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
     const title = mode === 'copy' ? copy('Copy as new version', 'ასლი ახალ ვერსიად') : mode === 'rename' ? copy('Rename the plan', 'გეგმის სახელის შეცვლა') : copy('New plan', 'ახალი გეგმა');
@@ -42,16 +44,22 @@ function NameDialog({ mode, current, onClose, onDone }: { mode: 'new' | 'copy' |
         if (!name.trim()) return;
         if (isReservedName(name)) { setError(copy('That name is kept for the team’s own lists.', 'ეს სახელი გუნდის სიებისთვისაა დაცული.')); return; }
         setBusy(true); setError('');
-        try { onDone(mode === 'rename' && current ? await changePlan(current.id, { version: current.version, name: name.trim() }) : await createPlan(name.trim(), mode === 'copy' ? current?.id : undefined)); }
+        try { onDone(mode === 'rename' && current ? await changePlan(current.id, { version: current.version, name: name.trim() }) : await createPlan(name.trim(), mode === 'copy' ? current?.id : undefined, mode === 'new' ? purpose.trim() || undefined : undefined)); }
         catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be saved.', 'ვერ შეინახა.'))); }
         finally { setBusy(false); }
     };
     return <Dialog open size="sm" className="tw-dialog" title={title} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
         description={mode === 'copy' ? copy('The same tasks in the same order. This version stays as it is, and you can go back to it.', 'იგივე საქმეები იგივე რიგით. ეს ვერსია უცვლელი რჩება და შეგიძლიათ დაუბრუნდეთ.') : undefined}
         footer={<><Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="primary" disabled={busy || !name.trim()} onClick={() => void save()}>{copy('Save', 'შენახვა')}</Button></>}>
-        <form className="tw-field" onSubmit={event => { event.preventDefault(); void save(); }}>
-            <label htmlFor={id}>{copy('Name', 'სახელი')}</label>
-            <input id={id} className="gk-input" autoFocus maxLength={80} value={name} placeholder={copy('Registration', 'რეგისტრაცია')} onChange={event => setName(event.target.value)} />
+        <form className="tw-details" onSubmit={event => { event.preventDefault(); void save(); }}>
+            {mode === 'new' && <div className="tw-field">
+                <label htmlFor={purposeId}>{copy('What this plan is for', 'რისთვისაა ეს გეგმა')}</label>
+                <textarea id={purposeId} className="gk-input" autoFocus rows={2} maxLength={400} value={purpose} placeholder={copy('Parents and clubs find a pitch in one tap', 'მშობლები და კლუბები მოედანს ერთი შეხებით პოულობენ')} onChange={event => setPurpose(event.target.value)} />
+            </div>}
+            <div className="tw-field">
+                <label htmlFor={id}>{copy('Name', 'სახელი')}</label>
+                <input id={id} className="gk-input" autoFocus={mode !== 'new'} maxLength={80} value={name} placeholder={copy('Map v2', 'რუკა v2')} onChange={event => setName(event.target.value)} />
+            </div>
         </form>
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </Dialog>;
@@ -69,6 +77,7 @@ export function TeamWorkPage() {
     const [listed, setListed] = useState<Plan[] | null>(null);
     const [views, setViews] = useState<Map<number, PlanView>>(new Map());
     const [items, setItems] = useState<WorkItem[]>([]);
+    const [members, setMembers] = useState<Member[]>([]);
     const [canManageTeam, setCanManageTeam] = useState(false);
     const [error, setError] = useState('');
     const [missing, setMissing] = useState(false);
@@ -91,10 +100,10 @@ export function TeamWorkPage() {
     useEffect(() => {
         const controller = new AbortController();
         const live = () => !controller.signal.aborted;
-        // Every task comes with the board; the plans say which plan each task is in and hold the ideas.
+        // Every task and the team come with the board; the plans say which plan each task is in and hold the ideas.
         Promise.all([fetchPlans(controller.signal), fetchBoard(controller.signal)]).then(([list, board]) => Promise.all(list.map(plan => fetchPlan(plan.id, controller.signal))).then(all => {
             if (!live()) return;
-            setListed(list); setViews(new Map(all.map(next => [next.plan.id, next]))); setItems(board.items); setCanManageTeam(board.canManageTeam); setError('');
+            setListed(list); setViews(new Map(all.map(next => [next.plan.id, next]))); setItems(board.items); setMembers(board.team ?? []); setCanManageTeam(board.canManageTeam); setError('');
         })).catch(failure => {
             if (!live()) return;
             if (statusOf(failure) === 404) setMissing(true);
@@ -109,7 +118,9 @@ export function TeamWorkPage() {
     const { details, put } = useFindingDetails([ideas, waiting]);
     const plans = (listed ?? []).filter(plan => !isHidden(plan));
     const view = wanted ? views.get(wanted) ?? null : null;
-    const team: Person[] = view?.team ?? [...views.values()][0]?.team ?? [];
+    // The team as the board gives it (everyone, with their responsibility); the plans' team is the fallback.
+    const team: Person[] = members.length ? members.map(member => ({ id: member.userId, name: member.name ?? member.email })) : view?.team ?? [...views.values()][0]?.team ?? [];
+    const lines = new Map(members.flatMap(member => member.responsibility ? [[member.userId, member.responsibility] as const] : []));
     const findings = new Set([ideas, waiting].flatMap(found => found?.tasks.map(node => node.item.id) ?? []));
     const allTasks = items.filter(item => item.parentId == null && !findings.has(item.id))
         .sort((a, b) => LIST_ORDER.indexOf(a.status) - LIST_ORDER.indexOf(b.status) || b.updatedAt.localeCompare(a.updatedAt));
@@ -120,10 +131,16 @@ export function TeamWorkPage() {
 
     const keep = (next: PlanView) => { setViews(current => new Map(current).set(next.plan.id, next)); setListed(current => current && [next.plan, ...current.filter(plan => plan.id !== next.plan.id)]); };
     const show = (next: PlanView) => { keep(next); set({ view: null, plan: String(next.plan.id), task: null }); };
-    const savePlan = async (target: PlanView, change: { order?: number[]; status?: PlanStatus }) => {
+    const savePlan = async (target: PlanView, change: { order?: number[]; status?: PlanStatus; purpose?: string }) => {
         setError('');
         try { keep(await changePlan(target.plan.id, { version: target.plan.version, ...change })); }
         catch (failure) { setError(extractApiErrorMessage(failure, copy('The plan couldn’t be changed.', 'გეგმა ვერ შეიცვალა.'))); if (statusOf(failure) === 409) reload(); }
+    };
+    // A plan taken out of another: both plans change, so everything loads again.
+    const detach = async (target: PlanView, child: Plan) => {
+        setError('');
+        try { keep(await removePlanStep(target.plan.id, child.id)); reload(); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('The plan couldn’t be taken out.', 'გეგმა ვერ ამოიღო.'))); }
     };
     const startAdding = (target?: PlanView, parent?: WorkItem) => {
         const here = new Set(target?.tasks.map(node => node.item.id) ?? []);
@@ -150,9 +167,9 @@ export function TeamWorkPage() {
     else if (place === 'team') main = <TeamPanel canManage={canManageTeam} />;
     else if (place === 'ideas') main = <IdeasPage ideas={ideas} waiting={waiting} {...findingProps} />;
     else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} onIdeas={() => go('ideas')} />;
-    else if (view) main = <PlanPage view={view} items={items} planOf={planOf} revision={revision} task={task} actions={actions} onBack={() => set({ plan: null, step: null, task: null })}
-        onChangePlan={change => void savePlan(view, change)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} />;
-    else main = <Overview items={items} findings={findings} plans={plans} views={views} planOf={planOf} team={team} revision={revision} task={task} actions={actions} starting={starting}
+    else if (view) main = <PlanPage view={view} items={items} views={views} planOf={planOf} lines={lines} revision={revision} task={task} actions={actions} onBack={() => set({ plan: null, step: null, task: null })}
+        onChangePlan={change => void savePlan(view, change)} onDetach={child => void detach(view, child)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} onOpenPlan={openPlan} />;
+    else main = <Overview items={items} findings={findings} plans={plans} views={views} planOf={planOf} team={team} lines={lines} revision={revision} task={task} actions={actions} starting={starting}
         onAddTask={() => startAdding()} onNewPlan={() => setDialog('new')} onOpenPlan={openPlan} onLoadStarter={() => void loadStarter()} onChanged={reload} />;
 
     return <GkRoot className="gk-page"><PageFrame className="tw-page">
@@ -164,12 +181,13 @@ export function TeamWorkPage() {
                 {main}
             </div>
         </div>
-        {adding && <AddTaskDialog planId={adding.view?.plan.id} parent={adding.parent} team={adding.view?.team ?? team} others={adding.others} onClose={() => setAdding(null)}
+        {adding && <AddTaskDialog planId={adding.view?.plan.id} parent={adding.parent} team={team} others={adding.others} onClose={() => setAdding(null)}
             onCreated={detail => { const parent = adding.parent; setAdding(null); set(parent ? { step: String(detail.item.id) } : { task: String(detail.item.id), step: null }); reload(); }}
             onPlace={itemId => { const target = adding.view; setAdding(null); if (target) void savePlan(target, { order: [...target.tasks.map(node => node.item.id), itemId] }); }} />}
         {dialog === 'paste' && view && <PasteDialog planId={view.plan.id} elsewhere={elsewhere} onClose={() => setDialog(null)} onApplied={next => { setDialog(null); show(next); reload(); }} />}
         {dialog === 'ai' && view && <CopyForAiDialog view={view} onClose={() => setDialog(null)} />}
         {dialog === 'history' && view && <PlanHistoryDialog view={view} onClose={() => setDialog(null)} />}
+        {dialog === 'addStep' && view && <AddPlanStepDialog view={view} plans={plans} onClose={() => setDialog(null)} onDone={next => { setDialog(null); keep(next); reload(); }} />}
         <TeamWorkDola onChanged={reload} />
         {(dialog === 'new' || dialog === 'copy' || dialog === 'rename') && <NameDialog mode={dialog} current={view?.plan ?? null} onClose={() => setDialog(null)} onDone={next => { setDialog(null); show(next); }} />}
     </PageFrame></GkRoot>;

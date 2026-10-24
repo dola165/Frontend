@@ -83,6 +83,25 @@ export function rowsOf(events: WorkEvent[], planName: (event: WorkEvent) => stri
     return rows;
 }
 
+/**
+ * A day's cards: one per task that something happened to that day (its events of the day, newest first; a step's
+ * events count for its task), and a run of tasks one person added at once as one "Added N tasks" card.
+ */
+export type DayCard = { kind: 'task'; key: string; taskId: number; events: WorkEvent[] } | { kind: 'added'; key: string; events: WorkEvent[] };
+
+export function cardsOf(events: WorkEvent[], planName: (event: WorkEvent) => string | undefined): DayCard[] {
+    const cards: DayCard[] = [];
+    const byTask = new Map<number, DayCard & { kind: 'task' }>();
+    for (const row of rowsOf(events, planName)) {
+        if (row.kind === 'added') { cards.push({ kind: 'added', key: row.key, events: row.events }); continue; }
+        const taskId = taskIdOf(row.event);
+        const card = byTask.get(taskId);
+        if (card) card.events.push(row.event);
+        else { const made = { kind: 'task' as const, key: `t-${taskId}-${row.event.id}`, taskId, events: [row.event] }; byTask.set(taskId, made); cards.push(made); }
+    }
+    return cards;
+}
+
 /** Plan, person and status, as the toolbar sets them. A plan of `'none'` means tasks on no plan. */
 export interface AgendaFilter { plan: number | 'none' | null; who: Who; statuses: WorkStatus[] }
 

@@ -13,6 +13,7 @@ import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
     createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
+    addPlanStep: vi.fn(), removePlanStep: vi.fn(), setResponsibility: vi.fn(),
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
 }));
 vi.mock('./overviewApi', () => ({ fetchTimeline: vi.fn(), fetchOpenQuestions: vi.fn(), fetchPins: vi.fn(), addPin: vi.fn(), removePin: vi.fn() }));
@@ -32,13 +33,13 @@ const item = (id: number, title: string, status: api.WorkStatus, percent: number
     parentId: null, description: null, startedOn: null, end: { kind: 'UNKNOWN' }, percentFromSteps: false, people: [], mediaCount: 0, commentCount: 0, small: false,
     doneMeans: null, tested: null, commits: null, priority: null, requestedBy: null, links: [], waitingOn: [], openQuestions: 0, ...extra,
 });
-const plan = (id: number, name: string, extra: Partial<api.Plan> = {}): api.Plan => ({ id, name, copiedFrom: null, copiedFromName: null, version: 3, taskCount: 2, updatedBy: beqa, updatedAt: now, createdAt: now,
-    status: 'NOW', percent: 55, inProgress: 3, toDo: 2, done: 1, needsYou: 0, nextTask: 'Branding and landing', ...extra });
+const plan = (id: number, name: string, extra: Partial<api.Plan> = {}): api.Plan => ({ id, name, purpose: null, copiedFrom: null, copiedFromName: null, version: 3, taskCount: 2, updatedBy: beqa, updatedAt: now, createdAt: now,
+    status: 'NOW', percent: 55, inProgress: 3, toDo: 2, done: 1, needsYou: 0, nextTask: 'Branding and landing', partOf: null, live: false, ...extra });
 const branding = item(1, 'Branding and landing', 'IN_PROGRESS', 70, { startedOn: '2026-10-20', end: { kind: 'ABOUT', amount: 1, unit: 'WEEKS' }, people: [beqa] });
 const steps = [item(11, 'Founders’ design', 'LIVE', 100, { parentId: 1 }), item(12, 'Hero copy', 'PLANNED', 0, { parentId: 1 }), item(13, 'Cloudflare lock', 'IN_PROGRESS', 50, { parentId: 1 })];
 const started = (author: api.Person) => ({ id: 99, author, at: twoDaysAgo, message: 'Started' });
 const view = (tasks: api.WorkNode[], extra: Partial<api.PlanView> = {}): api.PlanView => ({
-    plan: plan(5, 'October work'), tasks, changes: [{ id: 1, author: beqa, at: now, message: 'Added Branding and landing' }, started(beqa)],
+    plan: plan(5, 'October work'), tasks, steps: [], changes: [{ id: 1, author: beqa, at: now, message: 'Added Branding and landing' }, started(beqa)], purposeChanges: [],
     trail: [], team, canManageTeam: true, ...extra,
 });
 const october = view([{ item: branding, steps }, { item: item(2, 'Registration', 'BLOCKED', 30, { step: 'Waiting for email provider', people: [gio] }), steps: [] },
@@ -51,7 +52,7 @@ const plans: Record<number, api.PlanView> = {
 };
 /** Every item on these plans, steps included, once each: what the board returns. */
 const boardOf = (views: api.PlanView[]) => [...new Map(views.flatMap(found => found.tasks.flatMap(node => [node.item, ...node.steps])).map(work => [work.id, work])).values()];
-const detail = (work: api.WorkItem, extra: Partial<api.Detail> = {}): api.Detail => ({ item: work, updates: [], steps: [], questions: [], foundCommits: [], media: [], comments: [], ...extra });
+const detail = (work: api.WorkItem, extra: Partial<api.Detail> = {}): api.Detail => ({ item: work, updates: [], steps: [], questions: [], foundCommits: [], media: [], comments: [], purposeChanges: [], ...extra });
 const note = (id: number, author: api.Person, message: string) => ({ id, author, at: now, previousStatus: null, status: null, previousPercent: null, percent: null, message });
 const refOf = (work: api.WorkItem): api.WorkRef => ({ id: work.id, key: work.key, title: work.title, status: work.status });
 /** A time `daysAgo` days back at h:m, local. */
@@ -63,7 +64,7 @@ const mount = (path = '/team-work') => render(<MemoryRouter initialEntries={[pat
 const useLists = (...extra: api.PlanView[]) => {
     vi.mocked(api.fetchPlans).mockResolvedValue([...[5, 6, 4, 7].map(id => plans[id].plan), ...extra.map(found => found.plan)]);
     vi.mocked(api.fetchPlan).mockImplementation(async id => extra.find(found => found.plan.id === id) ?? plans[id]);
-    vi.mocked(api.fetchBoard).mockResolvedValue({ items: boardOf([...Object.values(plans), ...extra]), trail: [], canManageTeam: true });
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: boardOf([...Object.values(plans), ...extra]), trail: [], canManageTeam: true, team: [] });
 };
 
 beforeEach(() => {
@@ -77,7 +78,7 @@ beforeEach(() => {
 
 it('starts with this week’s work as tasks on their own when there is nothing yet', async () => {
     vi.mocked(api.fetchPlans).mockResolvedValueOnce([]);
-    vi.mocked(api.fetchBoard).mockResolvedValueOnce({ items: [], trail: [], canManageTeam: true });
+    vi.mocked(api.fetchBoard).mockResolvedValueOnce({ items: [], trail: [], canManageTeam: true, team: [] });
     vi.mocked(api.createWork).mockResolvedValue(detail(branding));
     mount();
     await userEvent.click(await screen.findByRole('button', { name: 'or load this week’s work' }));
@@ -124,7 +125,7 @@ it('opens on what waits on you, your pins and the plans, then what happened day 
     expect(api.answerQuestion).toHaveBeenCalledWith(5, 'Mailgun');
     await waitFor(() => expect(vi.mocked(api.fetchBoard).mock.calls.length).toBeGreaterThan(board));
 
-    // What happened: days with something, newest first; nothing for yesterday or the day before.
+    // What happened: days with something, newest first, as cards; nothing for yesterday or the day before.
     const happened = screen.getByRole('heading', { name: 'What happened' }).closest('section')!;
     const days = within(happened).getAllByRole('heading', { level: 4 }).map(heading => heading.textContent);
     expect(days).toHaveLength(3);
@@ -133,7 +134,11 @@ it('opens on what waits on you, your pins and the plans, then what happened day 
     const started = within(happened).getByRole('button', { name: 'GK-21 User registration. Started' });
     expect(started.closest('li')).toHaveTextContent('Started — Sign-up form');
     expect(started.closest('li')).toHaveTextContent('Ilo · Registration and roles');
-    expect(within(happened).getByRole('button', { name: 'GK-11 Founders’ design. Went live' }).closest('li')).toHaveTextContent('step of GK-1 · October work');
+    expect(started.closest('li')).toHaveTextContent('In progress');
+    // A step's event is a card of its task, naming the step.
+    const live = within(happened).getByRole('button', { name: 'GK-1 Branding and landing. Went live' }).closest('li')!;
+    expect(live).toHaveTextContent('step GK-11: Went live');
+    expect(live).toHaveTextContent('October work');
 
     // One toolbar: person and status filter the rows, through the link.
     await userEvent.selectOptions(within(happened).getByLabelText('Person'), 'Gio Beridze');
@@ -184,27 +189,27 @@ it('folds tasks added at once, loads earlier days whole, and a link to an old da
     expect(within(happened).getByRole('button', { name: 'GK-101 Footer. Added' })).toBeInTheDocument();
 });
 
-it('opens a plan on its agenda, pins it, and shows its cards as a second view', async () => {
+it('opens a plan on one view: the plan step by step, then day-grouped cards for what happened in it; pins it', async () => {
     vi.mocked(overview.addPin).mockResolvedValue([{ id: 4, planId: 5, itemId: null, at: now }]);
     vi.mocked(overview.fetchTimeline).mockResolvedValue({ more: false, events: [
         event('s-1', 'STATUS', at(0, 10, 0), branding, { status: 'IN_PROGRESS', text: 'Hero is in' }),
         event('s-2', 'STATUS', at(0, 9, 0), plans[6].tasks[0].item, { status: 'IN_PROGRESS' }),
     ] });
     mount('/team-work?plan=5');
-    const views = await screen.findByRole('group', { name: 'Plan view' });
-    expect(within(views).getByRole('button', { name: 'Agenda' })).toHaveAttribute('aria-pressed', 'true');
-    expect(await screen.findByRole('button', { name: 'GK-1 Branding and landing. Started' })).toBeInTheDocument();
-    // Only this plan's tasks, and no plan name repeated on every row.
+    const card = await screen.findByRole('button', { name: 'GK-1 Branding and landing. Started' });
+    expect(screen.queryByRole('group', { name: 'Plan view' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'In order' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 4 })[0]).toHaveTextContent(/^Today/);
+    // Only this plan's tasks, and no plan name repeated on every card; the card says what happened, who and how far.
     expect(screen.queryByRole('button', { name: 'GK-21 User registration. Started' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'GK-1 Branding and landing. Started' }).closest('li')).not.toHaveTextContent('October work');
+    expect(card.closest('li')).not.toHaveTextContent('October work');
+    expect(card.closest('li')).toHaveTextContent('Started — Hero is in');
+    expect(card.closest('li')).toHaveTextContent('70%');
+    expect(card.closest('li')).toHaveTextContent('Beqa');
 
     await userEvent.click(screen.getByRole('button', { name: 'Pin October work' }));
     expect(overview.addPin).toHaveBeenCalledWith({ planId: 5 });
     expect(await screen.findByRole('button', { name: 'Pin October work' })).toHaveAttribute('aria-pressed', 'true');
-
-    await userEvent.click(within(views).getByRole('button', { name: 'Cards' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('show=cards');
-    expect(within(screen.getByRole('list', { name: 'October work' })).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ })).toHaveLength(3);
 });
 
 it('takes findings with a name and a tagged comment; anyone marks them seen or acknowledges them and pushes one to Pending, never straight onto a plan', async () => {
@@ -299,20 +304,19 @@ it('lists pending findings with who pushed them, and makes one a task on its own
     expect(api.changePlan).toHaveBeenCalledWith(5, { version: 3, order: [1, 2, 3, 61] });
 });
 
-it('shows a plan’s tasks as cards in its order, then in order, and keeps the extras behind “…”', async () => {
-    vi.mocked(api.changePlan).mockResolvedValue(view(october.tasks, { plan: plan(5, 'October work', { status: 'LATER', version: 4 }) }));
+it('shows what a plan is for first (or asks for it), its tasks in order, and keeps the extras behind “…”', async () => {
+    vi.mocked(api.changePlan).mockImplementation(async (id, change) => view(october.tasks, { plan: plan(id, 'October work', { version: 4, purpose: change.purpose ?? 'Pitches for everyone', status: change.status ?? 'NOW' }) }));
     vi.mocked(api.fetchDetail).mockResolvedValue(detail(october.tasks[1].item));
-    mount('/team-work?plan=5&show=cards');
-    const list = await screen.findByRole('list', { name: 'October work' });
-    expect(screen.getByRole('heading', { name: 'October work', level: 1 })).toBeInTheDocument();
+    mount('/team-work?plan=5');
+    // No purpose yet: the name is the heading and a clear prompt asks for the purpose; written, it becomes the heading.
+    expect(await screen.findByRole('heading', { name: /^October work/, level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Started by Beqa · Beqa, Gio Beridze')).toBeInTheDocument();
-    const cards = within(list).getAllByRole('button', { name: /%|Not started|Started|Halfway|Nearly done|Done/ });
-    expect(cards.map(card => card.querySelector('.tw-task__name')?.textContent)).toEqual(['Branding and landing', 'Registration', 'Save button on phones']);
-    expect(cards[0]).toHaveTextContent('70%');
-    expect(cards[0]).toHaveTextContent('3 steps · Beqa');
-    expect(cards[0]).not.toHaveTextContent('October work');
-    expect(cards[2]).toHaveTextContent('small');
-    expect(cards[2]).toHaveTextContent('Not started');
+    await userEvent.click(screen.getByRole('button', { name: 'Write what this plan is for' }));
+    await userEvent.type(screen.getByLabelText('What this plan is for'), 'Pitches for everyone{Enter}');
+    expect(api.changePlan).toHaveBeenCalledWith(5, { version: 3, purpose: 'Pitches for everyone' });
+    expect(await screen.findByRole('heading', { name: 'Pitches for everyone', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^October work/, level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByText('October work')).toBeInTheDocument();
     expect(screen.queryByText(/Copy as new version|Plan history/)).not.toBeInTheDocument();
 
     const steps = screen.getByRole('heading', { name: 'In order' }).parentElement!;
@@ -322,19 +326,20 @@ it('shows a plan’s tasks as cards in its order, then in order, and keeps the e
     expect(strip[0]).toHaveTextContent('170%Branding and landingends about 1 week');
     await userEvent.click(strip[1]);
     expect(screen.getByTestId('where')).toHaveTextContent('task=2');
-    expect(await within(list).findByRole('region', { name: 'GK-2 Registration' })).toBeInTheDocument();
-    expect(within(list).getByRole('button', { name: 'Take off this plan' })).toBeInTheDocument();
+    const opened = await screen.findByRole('dialog', { name: /GK-2\s*Registration/ });
+    expect(await within(opened).findByRole('region', { name: 'GK-2 Registration' })).toBeInTheDocument();
+    expect(within(opened).getByRole('button', { name: 'Take off this plan' })).toBeInTheDocument();
+    await userEvent.click(within(opened).getAllByRole('button', { name: 'Close' })[0]);
 
-    // Gio's tasks only, with the same toolbar as the agenda: the cards and the order follow, numbered as in the whole plan.
+    // Gio's tasks only, with the one toolbar: the order follows, numbered as in the whole plan.
     await userEvent.selectOptions(screen.getByLabelText('Person'), String(gio.id));
     expect(screen.getByTestId('where')).toHaveTextContent('who=2');
-    expect(within(screen.getByRole('list', { name: 'October work' })).queryByText('Branding and landing')).not.toBeInTheDocument();
     expect(within(screen.getByRole('heading', { name: 'In order' }).parentElement!).getByRole('button')).toHaveTextContent(/^2/);
 
     await userEvent.click(screen.getByRole('button', { name: 'More for this plan' }));
     expect(screen.getByRole('menuitemradio', { name: 'Working on it now' })).toHaveAttribute('aria-checked', 'true');
     await userEvent.click(screen.getByRole('menuitemradio', { name: 'Later' }));
-    expect(api.changePlan).toHaveBeenCalledWith(5, { version: 3, status: 'LATER' });
+    expect(api.changePlan).toHaveBeenCalledWith(5, { version: 4, status: 'LATER' });
     expect(await screen.findByText('Later', { selector: '.gk-badge, .gk-badge *' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'More for this plan' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Plan history' }));
@@ -385,9 +390,13 @@ it('opens a task in place with its steps, comments and quick update, and keeps t
     const task = await screen.findByRole('region', { name: 'GK-1 Branding and landing' });
     expect(within(task).getByText('about 1 week')).toBeInTheDocument();
     expect(within(task).getByText('Looks good on the phone')).toBeInTheDocument();
-    expect(within(task).getByText('Gio Beridze')).toBeInTheDocument();
+    expect(within(task).getAllByText('Gio Beridze').length).toBeGreaterThan(0);
     expect(within(task).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
-    await userEvent.click(within(task).getByRole('radio', { name: 'Live' }));
+    // The status is one compact control; "What changed" appears with the change.
+    expect(within(task).queryByLabelText('What changed')).not.toBeInTheDocument();
+    await userEvent.click(within(task).getByRole('button', { name: 'Status: In progress' }));
+    await userEvent.click(within(task).getByRole('menuitemradio', { name: 'Live' }));
+    expect(within(task).getByRole('button', { name: 'Status: Live' })).toBeInTheDocument();
     await userEvent.type(within(task).getByLabelText('What changed'), 'Shipped');
     await userEvent.click(within(task).getByRole('button', { name: 'Save update' }));
     expect(api.changeWork).toHaveBeenCalledWith(1, { version: 0, status: 'LIVE', percent: 100, update: 'Shipped' });
@@ -405,7 +414,9 @@ it('estimates progress in words, copies a task for AI with a way to answer, and 
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
     mount('/team-work?plan=5&task=1');
     const task = await screen.findByRole('region', { name: 'GK-1 Branding and landing' });
-    // 70% is exact, so the slider is open; a word sets an estimate.
+    // Progress is a small value; its words and slider sit behind it. 70% is exact, so the slider is open; a word sets an estimate.
+    expect(within(task).queryByLabelText('Exact progress')).not.toBeInTheDocument();
+    await userEvent.click(within(task).getByRole('button', { name: 'Progress: 70%' }));
     expect(within(task).getByLabelText('Exact progress')).toHaveValue('70');
     await userEvent.click(within(task).getByRole('radio', { name: 'Halfway' }));
     expect(within(task).queryByLabelText('Exact progress')).not.toBeInTheDocument();
@@ -523,6 +534,77 @@ it('stays up to date: shows the latest backend, remembers my version, lists only
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');
 });
 
+it('shows how the point of a plan changed, a plan as a step of another, and “Part of” on the child', async () => {
+    const store = plan(7, 'Store', { purpose: 'Pay for kit with a card', percent: 40, taskCount: 3, done: 1, inProgress: 1, partOf: { id: 6, name: 'Registration and roles', purpose: 'Parents find a pitch' } });
+    const launch = view(plans[6].tasks, { plan: plan(6, 'Registration and roles', { purpose: 'Parents find a pitch' }), steps: [store],
+        purposeChanges: [{ id: 1, author: beqa, at: now, previous: 'Every club pin on one map', purpose: 'Parents find a pitch' }], changes: [started(ilo)] });
+    const storeView = view(plans[7].tasks, { plan: store, changes: [] });
+    const without = view(plans[6].tasks, { plan: launch.plan, steps: [], purposeChanges: launch.purposeChanges, changes: [] });
+    let detached = false;
+    useLists(launch, storeView);
+    vi.mocked(api.fetchPlan).mockImplementation(async id => id === 6 ? (detached ? without : launch) : id === 7 ? storeView : plans[id]);
+    vi.mocked(api.removePlanStep).mockImplementation(async () => { detached = true; return without; });
+    vi.mocked(api.addPlanStep).mockResolvedValue(launch);
+    mount('/team-work?plan=6');
+    expect(await screen.findByRole('heading', { name: 'Parents find a pitch', level: 1 })).toBeInTheDocument();
+    const was = screen.getByText('Was:').closest('p')!;
+    expect(was).toHaveTextContent('Was: Every club pin on one map → now: Parents find a pitch');
+    expect(was).toHaveTextContent('by Beqa');
+
+    // The step: the child plan with its purpose and progress; a quiet way to take it out.
+    const strip = screen.getByRole('heading', { name: 'In order' }).parentElement!;
+    const step = within(strip).getByRole('button', { name: 'Plan Store' });
+    expect(step).toHaveTextContent('Pay for kit with a card');
+    expect(step).toHaveTextContent('40%');
+    expect(step).toHaveTextContent('plan · 2 open');
+    await userEvent.click(within(strip).getByRole('button', { name: 'Take the plan Store out' }));
+    expect(api.removePlanStep).toHaveBeenCalledWith(6, 7);
+    await waitFor(() => expect(within(screen.getByRole('heading', { name: 'In order' }).parentElement!).queryByRole('button', { name: 'Plan Store' })).not.toBeInTheDocument());
+
+    // Adding one back goes through the menu; the plan itself and the plans above are never offered.
+    await userEvent.click(screen.getByRole('button', { name: 'More for this plan' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Add a plan as a step' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add a plan as a step' });
+    const options = within(dialog).getAllByRole('option').map(option => option.textContent);
+    expect(options).not.toContain('Parents find a pitch · Registration and roles');
+    await userEvent.selectOptions(within(dialog).getByLabelText('Which plan'), '5');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add as a step' }));
+    expect(api.addPlanStep).toHaveBeenCalledWith(6, 5);
+
+    // The child says what it is part of, and opens the parent from there.
+    await userEvent.click(screen.getByRole('button', { name: 'Back to overview' }));
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Plans' })).getByRole('button', { name: /Pay for kit with a card/ }));
+    expect(await screen.findByRole('button', { name: 'Part of Registration and roles' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Part of Registration and roles' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('plan=6');
+});
+
+it('shows what one person is doing, with their responsibility, and the Team page writes it', async () => {
+    const members: api.Member[] = [{ userId: 3, name: 'Ilo', email: 'admin.ilo@talanti.ge', admin: true, addedAt: null, pending: false, responsibility: 'Registration' },
+        { userId: 2, name: 'Gio Beridze', email: 'admin.gio@talanti.ge', admin: true, addedAt: null, pending: false }];
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: boardOf(Object.values(plans)), trail: [], canManageTeam: true, team: members });
+    vi.mocked(api.fetchTeam).mockResolvedValue(members);
+    vi.mocked(api.setResponsibility).mockResolvedValue([{ ...members[0], responsibility: 'Registration and sign-in' }, members[1]]);
+    mount('/team-work?who=3');
+    const doing = (await screen.findByRole('heading', { name: /What Ilo is doing/ })).closest('section')!;
+    expect(doing).toHaveTextContent('Registration');
+    expect(within(doing).getByRole('button', { name: /User registration/ })).toBeInTheDocument();
+    expect(within(doing).getByRole('heading', { name: /In progress/ })).toBeInTheDocument();
+    expect(within(doing).getByText('Nothing blocked.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Recent activity' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Plans' })).not.toBeInTheDocument();
+    // The person filter names the responsibility too.
+    expect(screen.getByRole('option', { name: 'Ilo · Registration' })).toBeInTheDocument();
+
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Team work' })).getByRole('button', { name: 'Team' }));
+    const line = await screen.findByLabelText('What Ilo looks after');
+    expect(line).toHaveValue('Registration');
+    await userEvent.type(line, ' and sign-in{Enter}');
+    expect(api.setResponsibility).toHaveBeenCalledWith(3, 'Registration and sign-in');
+    expect(await screen.findByDisplayValue('Registration and sign-in')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'What Ilo is doing' })).toHaveAttribute('href', '/team-work?who=3');
+});
+
 it('does not exist for accounts off the team, and Home shows no row without the capability', async () => {
     vi.mocked(api.fetchPlans).mockRejectedValue({ response: { status: 404 } });
     mount();
@@ -532,7 +614,7 @@ it('does not exist for accounts off the team, and Home shows no row without the 
 });
 
 it('shows team accounts a quiet Home row with how much is in progress', async () => {
-    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [item(1, 'Registration', 'IN_PROGRESS', 30), item(2, 'Branding', 'NEEDS_LOOK', 70, { openQuestions: 2 }), item(3, 'Schedule', 'LIVE', 100)], trail: [], canManageTeam: false });
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [item(1, 'Registration', 'IN_PROGRESS', 30), item(2, 'Branding', 'NEEDS_LOOK', 70, { openQuestions: 2 }), item(3, 'Schedule', 'LIVE', 100)], trail: [], canManageTeam: false, team: [] });
     render(<MemoryRouter><TeamWorkHomeRow caps={{ version: 1, workspaces: [{ id: 'team.work', context: { type: 'user', id: 1, label: 'Team work' } }] }} /></MemoryRouter>);
     expect(await screen.findByRole('link', { name: 'Team work. 1 in progress · 3 need you' })).toHaveAttribute('href', '/team-work');
 });
@@ -551,26 +633,26 @@ it('shows the brief first: key, done means, questions for Beqa with quick answer
     vi.mocked(api.pasteReport).mockResolvedValueOnce({ applied: false, detail: null, problems: [], lines: [
         { field: 'status', action: 'SAME', detail: 'needs look → needs look' }, { field: 'branch', action: 'SET', detail: 'golive/registration-f' }, { field: 'question', action: 'ADDED', detail: 'Is the parent step needed for 16–17 too?' }] })
         .mockResolvedValueOnce({ applied: true, problems: [], lines: [], detail: detail({ ...page, branch: 'golive/registration-f', openQuestions: 2 }, { questions: [question], foundCommits: [found] }) });
-    mount('/team-work?plan=10&task=81&show=cards');
+    mount('/team-work?plan=10&task=81');
 
     const side = await screen.findByRole('navigation', { name: 'Team work' });
     await waitFor(() => expect(within(side).getByRole('button', { name: /^Overview/ })).toHaveTextContent('Overview2'));
-    const card = (await screen.findByRole('list', { name: 'Team work upgrade' })).querySelector('[data-task="81"]')!;
-    expect(card).toHaveTextContent('GK-81');
-    expect(card.querySelector('.tw-task__ask')).toHaveTextContent('1');
-    expect(card).toHaveTextContent('Needs your look');
-    expect(card).toHaveTextContent('waits on GK-80');
 
+    // The task page: what it is for (a prompt, here), then done means; who, when and Copy for AI in view; status compact.
     const task = await screen.findByRole('region', { name: 'GK-81 The task page' });
-    expect([...task.querySelectorAll('.tw-section__title')].slice(0, 4).map(title => title.textContent?.replace(/\s*\d*\s*$/, ''))).toEqual(['Done means', 'Questions for Beqa', 'Links', 'Report']);
+    expect(within(task).getByRole('button', { name: 'Write what this task is for' })).toBeInTheDocument();
+    expect(within(task).getByRole('heading', { name: 'Done means' })).toBeInTheDocument();
     expect(within(task).getByText('A task shows its key, done means, questions and links first')).toBeInTheDocument();
     expect(within(task).getByText('Requested by Beqa')).toBeInTheDocument();
-    expect(within(task).getByText('Now')).toBeInTheDocument();
+    expect(within(task).getByText('Now', { selector: '.tw-chip' })).toBeInTheDocument();
+    expect(within(task).getByRole('button', { name: 'Copy for AI' })).toBeInTheDocument();
+    expect(within(task).getByRole('button', { name: 'Add file, picture or video' })).toBeInTheDocument();
     expect(within(task).getByText('Waiting on GK-80 The schema')).toBeInTheDocument();
     expect(within(task).getByText('Blocked by')).toBeInTheDocument();
     expect(within(task).getByText('GK-81 the task page')).toBeInTheDocument();
-    expect(within(task).getByRole('radio', { name: 'Needs your look' })).toHaveAttribute('aria-checked', 'true');
-    expect(within(task).getByRole('radio', { name: 'No percent' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(task).getByRole('button', { name: 'Status: Needs your look' })).toBeInTheDocument();
+    expect(within(task).getByRole('button', { name: 'Progress: no percent' })).toBeInTheDocument();
+    expect(within(task).queryByRole('radio', { name: 'No percent' })).not.toBeInTheDocument();
 
     // A quick answer is kept with the question, and the count on the tab drops.
     const asked = within(task).getByText('Should finished become live?').closest('li')!;

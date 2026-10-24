@@ -1,7 +1,9 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { PRIORITIES, STATUSES, isDone, type EndKind, type EndUnit, type Person, type Priority, type WorkEnd, type WorkStatus } from './api';
 import { ESTIMATES, priorityName, statusName } from './teamWorkWords';
+import { useClickAway } from './useClickAway';
 
 /** A status as a coloured dot; its name is there for screen readers and on hover. */
 export function StatusDot({ status }: { status: WorkStatus }) {
@@ -24,6 +26,29 @@ export function SmallPick({ small, onChange }: { small: boolean; onChange: (smal
     return <label className="tw-check"><input type="checkbox" checked={small} onChange={event => onChange(event.target.checked)} />{copy('Small fix (a button, a complaint)', 'პატარა შესწორება (ღილაკი, საჩივარი)')}</label>;
 }
 
+/**
+ * The status as one compact control: the current status (its dot and name), and the other five one tap away.
+ * Accepted or live fills a percent to 100 unless the task follows its steps.
+ */
+export function StatusMenu({ status, percent = null, fromSteps = false, onChange }: { status: WorkStatus; percent?: number | null; fromSteps?: boolean; onChange: (change: { status: WorkStatus; percent?: number }) => void }) {
+    const copy = useJourneyCopy();
+    const [open, setOpen] = useState(false);
+    const box = useRef<HTMLDivElement>(null);
+    const menuId = useId();
+    useClickAway(open, box, () => setOpen(false));
+    return <div className="tw-menu tw-status-menu" ref={box} data-status={status}>
+        <button type="button" className="tw-status-menu__button" aria-haspopup="menu" aria-expanded={open} aria-controls={menuId} aria-label={copy(`Status: ${statusName(copy, status)}`, `სტატუსი: ${statusName(copy, status)}`)} onClick={() => setOpen(value => !value)}>
+            <span className="tw-dot" aria-hidden="true" /><span>{statusName(copy, status)}</span><ChevronDown aria-hidden="true" />
+        </button>
+        {open && <div className="tw-menu__list" id={menuId} role="menu">
+            {STATUSES.map(value => <button key={value} type="button" role="menuitemradio" aria-checked={status === value} data-status={value}
+                onClick={() => { setOpen(false); if (value !== status) onChange(isDone(value) && !isDone(status) && !fromSteps && percent != null ? { status: value, percent: 100 } : { status: value }); }}>
+                <span className="tw-menu__check">{status === value && <Check aria-hidden="true" />}</span><span className="tw-dot" aria-hidden="true" />{statusName(copy, value)}
+            </button>)}
+        </div>}
+    </div>;
+}
+
 /** The colours explained and, pressed, a filter: one or more statuses, none for all. */
 export function StatusFilter({ chosen, onChange }: { chosen: WorkStatus[]; onChange: (chosen: WorkStatus[]) => void }) {
     const copy = useJourneyCopy();
@@ -39,33 +64,38 @@ export function Field({ label, children, wide = false }: { label: string; childr
 }
 
 /**
- * Status and progress: the quick part of every edit. Progress is optional and estimated in five words (not started,
- * started, halfway, nearly done, done); "Exact" opens a slider in steps of 5; "No percent" takes it off. Accepted or
- * live fills a percent to 100.
+ * Progress, estimated in five words (not started, started, halfway, nearly done, done); "Exact" opens a slider in
+ * steps of 5; "No percent" takes it off. Shown only when someone opens the Progress fold.
  */
-export function QuickEdit({ status, percent, fromSteps = false, onChange }: { status: WorkStatus; percent: number | null; fromSteps?: boolean; onChange: (change: { status?: WorkStatus; percent?: number | null }) => void }) {
+export function ProgressPick({ percent, onChange }: { percent: number | null; onChange: (percent: number | null) => void }) {
     const copy = useJourneyCopy();
     const id = useId();
     const estimated = percent == null || ESTIMATES.some(([value]) => value === percent);
     const [exact, setExact] = useState(!estimated);
+    return <div className="tw-progress-pick">
+        <div className="tw-estimate" role="radiogroup" aria-label={copy('Progress', 'პროგრესი')}>
+            <button type="button" role="radio" aria-checked={percent == null} onClick={() => { setExact(false); onChange(null); }}>{copy('No percent', 'უპროცენტოდ')}</button>
+            {ESTIMATES.map(([value, en, ka]) => <button key={value} type="button" role="radio" aria-checked={!exact && percent === value} onClick={() => { setExact(false); onChange(value); }}>{copy(en, ka)}</button>)}
+            <button type="button" className="tw-estimate__exact" aria-pressed={exact} onClick={() => setExact(value => !value)}>{copy('Exact', 'ზუსტად')}</button>
+        </div>
+        {exact && <div className="tw-slider"><label htmlFor={id}>{copy('Exact progress', 'ზუსტი პროგრესი')}</label>
+            <input id={id} type="range" min={0} max={100} step={5} value={percent ?? 0} onChange={event => onChange(Number(event.target.value))} />
+            <output htmlFor={id} className="gk-num">{percent ?? 0}%</output>
+        </div>}
+    </div>;
+}
+
+/** Status and progress together, for a new task: the six statuses as radios, then the progress words. */
+export function QuickEdit({ status, percent, onChange }: { status: WorkStatus; percent: number | null; onChange: (change: { status?: WorkStatus; percent?: number | null }) => void }) {
+    const copy = useJourneyCopy();
     return <div className="tw-quick">
         <div className="tw-status-pick" role="radiogroup" aria-label={copy('Status', 'სტატუსი')}>
             {STATUSES.map(value => <button key={value} type="button" role="radio" aria-checked={status === value} data-status={value}
-                onClick={() => onChange(isDone(value) && !isDone(status) && !fromSteps && percent != null ? { status: value, percent: 100 } : { status: value })}>
+                onClick={() => onChange(isDone(value) && !isDone(status) && percent != null ? { status: value, percent: 100 } : { status: value })}>
                 <span className="tw-dot" aria-hidden="true" />{statusName(copy, value)}
             </button>)}
         </div>
-        {fromSteps ? <p className="gk-faint tw-quick__parts gk-num">{percent == null ? copy('No percent, from its steps', 'პროცენტი არ არის, ნაბიჯებიდან') : copy(`${percent}%, from its steps`, `${percent}%, ნაბიჯებიდან`)}</p> : <div className="tw-progress-pick">
-            <div className="tw-estimate" role="radiogroup" aria-label={copy('Progress', 'პროგრესი')}>
-                <button type="button" role="radio" aria-checked={percent == null} onClick={() => { setExact(false); onChange({ percent: null }); }}>{copy('No percent', 'უპროცენტოდ')}</button>
-                {ESTIMATES.map(([value, en, ka]) => <button key={value} type="button" role="radio" aria-checked={!exact && percent === value} onClick={() => { setExact(false); onChange({ percent: value }); }}>{copy(en, ka)}</button>)}
-                <button type="button" className="tw-estimate__exact" aria-pressed={exact} onClick={() => setExact(value => !value)}>{copy('Exact', 'ზუსტად')}</button>
-            </div>
-            {exact && <div className="tw-slider"><label htmlFor={id}>{copy('Exact progress', 'ზუსტი პროგრესი')}</label>
-                <input id={id} type="range" min={0} max={100} step={5} value={percent ?? 0} onChange={event => onChange({ percent: Number(event.target.value) })} />
-                <output htmlFor={id} className="gk-num">{percent ?? 0}%</output>
-            </div>}
-        </div>}
+        <ProgressPick percent={percent} onChange={next => onChange({ percent: next })} />
     </div>;
 }
 

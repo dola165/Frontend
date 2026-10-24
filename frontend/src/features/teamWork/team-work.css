@@ -29,11 +29,66 @@
 
 
 
-/* A task opened in place, under its row: the brief first (key, done means, status, questions, links), the rest folded. */
-.gk .tw-detail__about { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+/* A task opened: what it is for first and big, then what done means; who, when and the tools beside them on a wide
+   screen (under them on a phone); then the compact status row, questions, files and the folds. */
+.gk .tw-detail__grid { display: flex; flex-direction: column; gap: var(--gk-4); }
 .gk .tw-detail__id { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
 .gk .tw-detail__id .tw-key-chip { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .tw-done__text { margin: 0; max-width: 72ch; white-space: pre-wrap; font-size: var(--gk-fs-md); }
+.gk .tw-detail__name { font-weight: 600; }
+.gk .tw-detail__side { display: flex; flex-direction: column; gap: var(--gk-4); min-width: 0; }
+@media (min-width: 901px) {
+    .gk .tw-detail__grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: var(--gk-8); }
+    .gk .tw-detail__grid > * { grid-column: 1; }
+    .gk .tw-detail__grid > .tw-detail__side { grid-column: 2; grid-row: 1 / span 30; align-self: start; position: sticky; top: 0; }
+}
+/* What it is for: the first and biggest line (an h1 on a plan, an h2 on a task), with a pencil beside it; empty, a clear prompt. */
+.gk .tw-purpose { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .tw-purpose__line { display: flex; align-items: flex-start; gap: var(--gk-2); min-width: 0; }
+.gk .tw-purpose__text { margin: 0; font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; }
+h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); max-width: 60ch; }
+.gk .tw-purpose__pencil { flex: none; margin-top: 4px; opacity: .6; }
+.gk .tw-purpose__line:hover .tw-purpose__pencil, .gk .tw-purpose__pencil:focus-visible { opacity: 1; }
+.gk .tw-purpose__prompt { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 var(--gk-4); border: 2px dashed color-mix(in srgb, var(--gk-warning) 60%, var(--gk-line)); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-warning) 8%, var(--gk-surface)); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-lg); font-weight: 650; cursor: pointer; }
+.gk .tw-purpose__prompt:hover { border-color: var(--gk-warning); }
+.gk .tw-purpose__prompt svg { width: 16px; height: 16px; color: var(--gk-warning); }
+.gk .tw-purpose__prompt--small { min-height: 36px; font-size: var(--gk-fs-md); }
+.gk .tw-purpose__edit { display: flex; flex-direction: column; gap: var(--gk-2); max-width: 72ch; }
+.gk .tw-purpose__edit textarea { font-size: var(--gk-fs-lg); resize: vertical; }
+/* "Was: … → now: …": the old purpose crossed out beside the new one, one line. */
+.gk .tw-purpose__was { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); overflow-wrap: anywhere; }
+.gk .tw-purpose__was-label { font-weight: 650; color: var(--gk-text-3); }
+.gk .tw-purpose__old { text-decoration: line-through; color: var(--gk-text-3); }
+.gk .tw-purpose__arrow { color: var(--gk-text-3); }
+.gk .tw-done { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .tw-done .tw-section__title { display: flex; align-items: center; gap: 4px; }
+.gk .tw-done__text { margin: 0; max-width: 72ch; white-space: pre-wrap; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+/* Status as one compact control, progress as a small value; the words and slider behind it; "What changed" appears with a change. */
+.gk .tw-state { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .tw-state__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); }
+.gk .tw-status-menu__button { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px 0 10px; border: 1px solid color-mix(in srgb, var(--tw-tone) 55%, var(--gk-line)); border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--tw-tone) 12%, var(--gk-surface)); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-md); font-weight: 650; cursor: pointer; }
+.gk .tw-status-menu__button:hover { border-color: var(--tw-tone); }
+.gk .tw-status-menu__button svg { width: 14px; height: 14px; color: var(--gk-text-3); }
+.gk .tw-status-menu .tw-menu__list { left: 0; right: auto; }
+.gk .tw-status-menu .tw-menu__list .tw-dot { width: 8px; height: 8px; }
+.gk .tw-state__progress { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--gk-r-pill); background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .tw-state__progress:hover, .gk .tw-state__progress[aria-expanded='true'] { border-color: var(--gk-line); background: var(--gk-hover); }
+.gk .tw-state__progress .tw-card__bar { width: 72px; height: 4px; margin: 0; }
+.gk .tw-state__progress .gk-faint { font-weight: 500; }
+.gk .tw-state__fold { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-raised) 55%, var(--gk-surface)); }
+.gk .tw-questions--empty { display: flex; }
+.gk .tw-ask { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; }
+.gk .tw-ask svg { margin: 0; }
+/* Files: one obvious button, the list under it; a drop anywhere on the page shows where it lands. */
+.gk .tw-files { gap: var(--gk-3); }
+.gk .tw-attach { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .tw-file { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text); text-decoration: none; }
+.gk .tw-file:hover { border-color: var(--gk-line-strong); }
+.gk .tw-file[aria-disabled] { opacity: .6; pointer-events: none; }
+.gk .tw-file svg { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); }
+.gk .tw-file__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.gk .tw-detail[data-dragging] { outline: 2px dashed var(--gk-accent); outline-offset: 6px; }
+.gk .tw-drop-overlay { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-accent) 10%, var(--gk-surface)); font-size: var(--gk-fs-lg); font-weight: 650; color: var(--gk-text); pointer-events: none; }
+.gk .tw-drop-overlay svg { width: 22px; height: 22px; color: var(--gk-accent); }
 .gk .tw-questions__list, .gk .tw-linked__list, .gk .tw-commits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-2); }
 /* A question for Beqa, the same row on the task and in Needs you: the symbol hangs before the words, answers follow. */
 .gk .tw-question { display: flex; flex-direction: column; gap: 6px; }
@@ -72,26 +127,23 @@
 .gk .tw-commits svg { width: 14px; height: 14px; color: var(--gk-text-3); }
 .gk .tw-task__ask { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 0 6px; border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--gk-warning) 18%, var(--gk-surface)); font-size: var(--gk-fs-xs); font-weight: 700; color: var(--gk-text); }
 .gk .tw-task__ask svg { width: 12px; height: 12px; }
-.gk .tw-task[data-waiting] .tw-task__meta { color: var(--gk-danger); }
 .gk .tw-paste__detail { flex-basis: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 640px) { .gk .tw-questions__ask { grid-template-columns: minmax(0, 1fr); } }
-.gk .tw-detail { display: flex; flex-direction: column; gap: var(--gk-4); margin: 0 var(--gk-4) var(--gk-3) 38px; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-md); }
+.gk .tw-detail { position: relative; display: flex; flex-direction: column; gap: var(--gk-4); margin: 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-md); }
 /* In the task dialog the dialog is the frame: no box inside the box. */
 .gk .tw-detail[data-framed] { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
-.gk .tw-detail__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gk-3); }
-.gk .tw-detail__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
-.gk .tw-facts { display: flex; flex-wrap: wrap; gap: var(--gk-2) var(--gk-6); margin: 0; }
+.gk .tw-detail__tools { display: flex; flex-wrap: wrap; gap: 4px; }
+.gk .tw-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--gk-3) var(--gk-5); margin: 0; padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-raised) 45%, var(--gk-surface)); }
 .gk .tw-facts dt { font-size: var(--gk-fs-xs); font-weight: 650; color: var(--gk-text-3); }
-.gk .tw-facts dd { margin: 0; color: var(--gk-text); }
-.gk .tw-detail__description, .gk .tw-detail__step { margin: 0; max-width: 72ch; color: var(--gk-text); white-space: pre-wrap; }
+.gk .tw-facts dd { margin: 2px 0 0; color: var(--gk-text); font-size: var(--gk-fs-md); font-weight: 600; overflow-wrap: anywhere; }
+.gk .tw-detail__step { margin: 0; max-width: 72ch; color: var(--gk-text); white-space: pre-wrap; }
 .gk .tw-section { display: flex; flex-direction: column; gap: var(--gk-2); }
 .gk .tw-section__title { margin: 0; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 650; color: var(--gk-text-2); }
 .gk .tw-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .gk .tw-steps button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 4px 6px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
 .gk .tw-steps button:hover { background: var(--gk-hover); }
 .gk .tw-steps__name { flex: 1; min-width: 0; }
-.gk .tw-edit { padding: var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-raised) 55%, var(--gk-surface)); }
-.gk .tw-save { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-2); }
+.gk .tw-save { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-2); padding: var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-accent) 7%, var(--gk-surface)); animation: tw-rise .2s var(--gk-ease) both; }
 .gk .tw-save > .tw-field { flex: 1 1 260px; }
 .gk .tw-check { display: inline-flex; align-items: center; gap: 8px; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .tw-check input { accent-color: var(--gk-accent); }
@@ -175,12 +227,18 @@
 .gk .tw-paste__title { color: var(--gk-text); }
 .gk .tw-paste__problems { margin: 0; padding-left: var(--gk-6); font-size: var(--gk-fs-sm); }
 
-/* The team. */
+/* The team: each person, what they look after (written in place), and a way to see what they are doing. */
 .gk .tw-team__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.gk .tw-team__list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); min-height: 44px; padding: 4px 0; border-top: 1px solid var(--gk-line); }
+.gk .tw-team__list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); min-height: 52px; padding: 6px 0; border-top: 1px solid var(--gk-line); }
 .gk .tw-team__list li:first-child { border-top: 0; }
 .gk .tw-team { display: flex; flex-direction: column; gap: var(--gk-4); }
-.gk .tw-team__who { flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--gk-2); min-width: 0; font-size: var(--gk-fs-md); }
+.gk .tw-team__who { flex: 1 1 220px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--gk-2); min-width: 0; font-size: var(--gk-fs-md); }
+.gk .tw-team__line { flex: 1 1 260px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gk .tw-team__line .gk-input { min-height: 34px; font-size: var(--gk-fs-sm); }
+.gk .tw-team__line .gk-notice { margin: 0; }
+.gk .tw-team__doing { flex: none; display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 6px; border-radius: var(--gk-r-sm); color: var(--gk-text-2); font-size: var(--gk-fs-sm); font-weight: 600; text-decoration: none; }
+.gk .tw-team__doing:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .tw-team__doing svg { width: 15px; height: 15px; }
 .gk .tw-team__who .gk-muted { font-size: var(--gk-fs-sm); }
 .gk .tw-team__add { display: flex; gap: var(--gk-2); margin-top: var(--gk-3); }
 .gk .tw-team__add .gk-input { flex: 1; min-width: 0; max-width: 360px; }
@@ -191,17 +249,22 @@
 .gk .tw-invite__row .gk-input { flex: 1; min-width: 0; font-size: var(--gk-fs-sm); }
 .gk .tw-invite p { margin: 0; font-size: var(--gk-fs-sm); }
 
+/* The plan's head: back and "Part of …", then what the plan is for (big), its name (small) and how its purpose changed. */
 .gk .tw-plan-head { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .tw-plan-head__crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-5); }
 .gk .tw-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
 .gk .tw-back:hover { color: var(--gk-text); }
 .gk .tw-back svg { width: 16px; height: 16px; }
+.gk .tw-part-of { padding: 4px 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); color: var(--gk-text); }
+.gk .tw-part-of svg { color: var(--gk-info); }
 .gk .tw-plan-head__row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--gk-3); }
-.gk .tw-plan-head__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gk .tw-plan-head__title h1 { margin: 0; font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 700; overflow-wrap: anywhere; }
+.gk .tw-plan-head__title { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 480px; }
+.gk .tw-plan-head__title .tw-purpose__text { max-width: 40ch; }
+.gk .tw-plan-head__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; color: var(--gk-text-2); }
+.gk .tw-plan-head__name > svg { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); }
 .gk .tw-chip { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
-
-.gk .tw-plan-head__people { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .tw-plan-head__title h1 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .tw-plan-head__people { font-size: var(--gk-fs-sm); font-weight: 500; color: var(--gk-text-3); }
+.gk .tw-plan-head__people:not(:empty)::before { content: '·'; margin-right: var(--gk-2); }
 
 /* Step by step: the plan's tasks in order, joined by a line, scrolled or swiped sideways. */
 .gk .tw-order { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
@@ -216,6 +279,14 @@
 .gk .tw-order__number svg { width: 15px; height: 15px; }
 .gk .tw-order__percent { margin-left: auto; font-size: var(--gk-fs-sm); font-weight: 650; }
 .gk .tw-order__name { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .tw-order__plan-name { font-size: var(--gk-fs-xs); color: var(--gk-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A plan as a step: a folder in place of the dot, a solid border in the plan colour; a quiet way to take it out. */
+.gk .tw-order__folder { flex: none; width: 15px; height: 15px; color: var(--gk-info); }
+.gk .tw-order__track > li[data-plan] button { border-color: color-mix(in srgb, var(--gk-info) 45%, var(--gk-line)); }
+.gk .tw-order__track > li[data-state='current-plan'] button { background: color-mix(in srgb, var(--gk-info) 7%, var(--gk-surface)); }
+.gk .tw-order__track > li[data-state='current-plan'] .tw-order__number { border-color: var(--gk-info); color: var(--gk-info); }
+.gk .tw-order__detach { position: absolute; top: 6px; right: 6px; opacity: 0; }
+.gk .tw-order__track > li[data-plan]:hover .tw-order__detach, .gk .tw-order__detach:focus-visible { opacity: 1; }
 .gk .tw-order__bar { display: block; height: 4px; border-radius: 999px; background: var(--gk-raised); overflow: hidden; }
 .gk .tw-order__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--tw-tone, var(--gk-text-3)); }
 .gk .tw-order__when { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
@@ -251,14 +322,15 @@
     .gk .tw-order__track > li { flex-basis: 78%; }
     .gk .tw-version-pick { flex-direction: column; }
     .gk .tw-version-pick input { flex-basis: auto; }
-    .gk .tw-detail:not([data-framed]) { margin: 0 var(--gk-2) var(--gk-3); padding: var(--gk-3); }
-    .gk .tw-detail__head { flex-direction: column-reverse; }
-    .gk .tw-detail__tools { align-self: stretch; }
+    .gk .tw-detail:not([data-framed]) { padding: var(--gk-3); }
     .gk .tw-grid { grid-template-columns: minmax(0, 1fr); }
+    .gk .tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); }
+    .gk .tw-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--gk-3); }
+    .gk .tw-order__detach { opacity: 1; }
     .gk .tw-media__list li { width: calc(50% - var(--gk-3) / 2); }
     .gk .tw-media__list li.tw-media__video { width: 100%; }
     .gk .tw-comments__add { flex-direction: column; align-items: stretch; }
     .gk .tw-invite__row { flex-wrap: wrap; }
     .gk .tw-invite__row .gk-input { flex-basis: 100%; }
-    .gk .tw-plan-head__title h1 { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); }
+    .gk .tw-team__doing { flex: 1 1 100%; }
 }

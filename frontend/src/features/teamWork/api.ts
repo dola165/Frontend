@@ -40,23 +40,34 @@ export interface WorkUpdate {
     /** Done by Agent Dola for the author, after they approved its preview. */
     byDola?: boolean;
 }
-export interface WorkMedia { id: number; kind: 'IMAGE' | 'VIDEO'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean }
+/** A picture, a video or any other file; `name` is the file's own name (files only). */
+export interface WorkMedia { id: number; kind: 'IMAGE' | 'VIDEO' | 'FILE'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean; name?: string | null }
 export interface WorkComment { id: number; author: Person | null; body: string; createdAt: string; editedAt: string | null; canEdit: boolean; byDola?: boolean }
 export interface WorkSwitch { itemId: number; title: string; at: string }
-export interface Board { items: WorkItem[]; trail: WorkSwitch[]; canManageTeam: boolean }
-/** A task opened: its history, steps, questions, the live commits naming its key, files and comments. */
-export interface Detail { item: WorkItem; updates: WorkUpdate[]; steps: WorkItem[]; questions: WorkQuestion[]; foundCommits: Commit[]; media: WorkMedia[]; comments: WorkComment[] }
+/** Every task, the trail, and the team with each person's responsibility. */
+export interface Board { items: WorkItem[]; trail: WorkSwitch[]; canManageTeam: boolean; team: Member[] }
+/** What a plan or a task is for, changed: the old purpose stays beside the new one. */
+export interface PurposeChange { id: number; author: Person | null; at: string; previous: string | null; purpose: string | null; byDola?: boolean }
+/** A task opened: its history, steps, questions, the live commits naming its key, files, comments and how its purpose changed. */
+export interface Detail { item: WorkItem; updates: WorkUpdate[]; steps: WorkItem[]; questions: WorkQuestion[]; foundCommits: Commit[]; media: WorkMedia[]; comments: WorkComment[]; purposeChanges: PurposeChange[] }
 /** Whether a plan is being worked on now, comes later, or is finished. */
 export type PlanStatus = 'NOW' | 'LATER' | 'FINISHED';
-/** A plan, with what its box shows. */
+/** The plan another plan is part of. */
+export interface PlanRef { id: number; name: string; purpose: string | null }
+/**
+ * A plan, with what its box shows: what it is for, its progress (tasks and the plans that are its steps), the plan it
+ * is part of, and `live` when it is finished or every task is live (as a step of another plan it is then complete).
+ */
 export interface Plan {
-    id: number; name: string; copiedFrom: number | null; copiedFromName: string | null; version: number; taskCount: number; updatedBy: Person | null; updatedAt: string; createdAt: string;
-    status: PlanStatus; percent: number; inProgress: number; toDo: number; done: number; needsYou: number; nextTask: string | null;
+    id: number; name: string; purpose: string | null; copiedFrom: number | null; copiedFromName: string | null; version: number; taskCount: number; updatedBy: Person | null; updatedAt: string; createdAt: string;
+    status: PlanStatus; percent: number; inProgress: number; toDo: number; done: number; needsYou: number; nextTask: string | null; partOf: PlanRef | null; live: boolean;
 }
 export interface PlanChange { id: number; author: Person | null; at: string; message: string; byDola?: boolean }
 export interface WorkNode { item: WorkItem; steps: WorkItem[] }
-export interface PlanView { plan: Plan; tasks: WorkNode[]; changes: PlanChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
-export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean }
+/** A plan opened: its tasks, the plans that are its steps (in order), its history and how its purpose changed. */
+export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
+/** Someone on the team, with their one-line responsibility ("Agent Dola"). */
+export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean; responsibility?: string | null }
 export interface Invite { userId: number; email: string; token: string; expiresAt: string }
 export interface PasteLine { line: number; action: 'NEW' | 'UPDATED' | 'MOVED' | 'UNCHANGED' | 'DELETED'; title: string; parent: string | null; detail: string | null }
 export interface PasteResult { created: number; updated: number; moved: number; unchanged: number; deleted: number; lines: PasteLine[]; problems: string[]; applied: boolean; view: PlanView | null }
@@ -87,8 +98,12 @@ export const changeWork = (id: number, change: WorkChange) => data(apiClient.pat
 export const deleteWork = (id: number) => apiClient.delete(`${base}/items/${id}`).then(() => undefined);
 export const fetchPlans = (signal?: AbortSignal) => data(apiClient.get<Plan[]>(`${base}/plans`, { signal }));
 export const fetchPlan = (id: number, signal?: AbortSignal) => data(apiClient.get<PlanView>(`${base}/plans/${id}`, { signal }));
-export const createPlan = (name: string, copyFrom?: number) => data(apiClient.post<PlanView>(`${base}/plans`, { name, copyFrom }));
-export const changePlan = (id: number, change: { version: number; name?: string; order?: number[]; status?: PlanStatus }) => data(apiClient.patch<PlanView>(`${base}/plans/${id}`, change));
+export const createPlan = (name: string, copyFrom?: number, purpose?: string) => data(apiClient.post<PlanView>(`${base}/plans`, { name, copyFrom, purpose }));
+/** `purpose` '' clears what the plan is for; the old purpose stays in its history. */
+export const changePlan = (id: number, change: { version: number; name?: string; order?: number[]; status?: PlanStatus; purpose?: string }) => data(apiClient.patch<PlanView>(`${base}/plans/${id}`, change));
+/** A plan as a step of another: one parent at most, never a cycle. */
+export const addPlanStep = (id: number, planId: number) => data(apiClient.post<PlanView>(`${base}/plans/${id}/steps`, { planId }));
+export const removePlanStep = (id: number, childId: number) => data(apiClient.delete<PlanView>(`${base}/plans/${id}/steps/${childId}`));
 export const pasteIntoPlan = (id: number, text: string, apply: boolean) => data(apiClient.post<PasteResult>(`${base}/plans/${id}/paste`, { text, apply }));
 /** A worker's report onto a task: a preview first, then apply. */
 export const pasteReport = (itemId: number, text: string, apply: boolean) => data(apiClient.post<ReportResult>(`${base}/items/${itemId}/report`, { text, apply }));
@@ -104,6 +119,8 @@ export const addPicture = (itemId: number, file: File) => { const form = new For
 export const addVideo = (itemId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<Detail>(`${base}/items/${itemId}/videos`, file, {
     headers: { 'Content-Type': file.type }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
 }));
+/** Any other file (PDF, text, spreadsheet…) up to 25 MB, kept under its own name. */
+export const addFile = (itemId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<Detail>(`${base}/items/${itemId}/files`, form)); };
 export const deleteMedia = (itemId: number, mediaId: number) => data(apiClient.delete<Detail>(`${base}/items/${itemId}/media/${mediaId}`));
 /** A ten-minute link a video element can stream from. */
 export const playLink = (itemId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/items/${itemId}/media/${mediaId}/play`));
@@ -113,9 +130,14 @@ export const fetchTeam = (signal?: AbortSignal) => data(apiClient.get<Member[]>(
 export const addMember = (email: string) => data(apiClient.post<{ members: Member[]; invite: Invite | null }>(`${base}/team`, { email }));
 export const newInvite = (userId: number) => data(apiClient.post<Invite>(`${base}/team/${userId}/invite`));
 export const removeMember = (userId: number) => data(apiClient.delete<Member[]>(`${base}/team/${userId}`));
+/** One line of responsibility for a team member; '' takes it off. Anyone on the team writes anyone's. */
+export const setResponsibility = (userId: number, line: string) => data(apiClient.put<Member[]>(`${base}/team/${userId}/responsibility`, { line }));
 
 export const VIDEO_LIMIT_MB = 90;
 export const VIDEO_TYPES = ['video/mp4', 'video/webm'];
+export const FILE_LIMIT_MB = 25;
+/** What "Add file" takes besides pictures and videos, by extension. */
+export const FILE_EXTENSIONS = ['pdf', 'txt', 'md', 'csv', 'log', 'json', 'zip', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 
 /** What the paste box accepts, shown as its example. */
 export const PASTE_EXAMPLE = `plan: Registration and roles

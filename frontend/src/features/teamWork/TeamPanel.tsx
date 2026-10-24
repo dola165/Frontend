@@ -1,9 +1,10 @@
 import { useEffect, useId, useState } from 'react';
-import { Copy, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronRight, Copy, X } from 'lucide-react';
 import { Avatar, Badge, Button, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { addMember, fetchTeam, newInvite, type Invite, type Member } from './api';
+import { addMember, fetchTeam, newInvite, setResponsibility, type Invite, type Member } from './api';
 import { shortDate } from './teamWorkWords';
 
 const linkOf = (invite: Invite) => `${window.location.origin}/reset-password?token=${encodeURIComponent(invite.token)}`;
@@ -26,10 +27,30 @@ function InviteLink({ invite, onDone }: { invite: Invite; onDone: () => void }) 
     </div>;
 }
 
+/** One line of responsibility, written in place and saved when the person leaves the box or presses Enter. */
+function ResponsibilityLine({ member, onSaved }: { member: Member; onSaved: (members: Member[]) => void }) {
+    const copy = useJourneyCopy();
+    const id = useId();
+    const [line, setLine] = useState(member.responsibility ?? '');
+    const [error, setError] = useState('');
+    const save = async () => {
+        if (line.trim() === (member.responsibility ?? '')) return;
+        setError('');
+        try { onSaved(await setResponsibility(member.userId, line.trim())); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be saved.', 'ვერ შეინახა.'))); }
+    };
+    return <span className="tw-team__line">
+        <label htmlFor={id} className="gk-visually-hidden">{copy(`What ${member.name ?? member.email} looks after`, `რას უძღვება ${member.name ?? member.email}`)}</label>
+        <input id={id} className="gk-input" maxLength={120} value={line} placeholder={copy('What they look after, e.g. Agent Dola', 'რას უძღვება, მაგ. Agent Dola')} onChange={event => setLine(event.target.value)} onBlur={() => void save()}
+            onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); (event.target as HTMLInputElement).blur(); } }} />
+        {error && <span className="gk-notice gk-notice--danger" role="alert">{error}</span>}
+    </span>;
+}
+
 /**
  * Who sees Team work: exactly the team's own accounts, by email (the server setting APP_TEAM_WORK_EMAILS), whatever
- * their role. A team email without an account gets one with no password and a one-time sign-up link to pass on;
- * anyone else is refused. Nobody is added or removed by hand here. Loading and a failed load say so, with Try again.
+ * their role, each with one line saying what they look after and a way to see what they are doing. A team email
+ * without an account gets one with no password and a one-time sign-up link to pass on; anyone else is refused.
  */
 export function TeamPanel({ canManage }: { canManage: boolean }) {
     const copy = useJourneyCopy();
@@ -54,13 +75,15 @@ export function TeamPanel({ canManage }: { canManage: boolean }) {
         finally { setBusy(false); }
     };
     return <div className="tw-team">
-        <PageHeader title={copy('Team', 'გუნდი')} subtitle={copy('Only these accounts see Team work', 'გუნდის სამუშაოს მხოლოდ ეს ანგარიშები ხედავს')} />
+        <PageHeader title={copy('Team', 'გუნდი')} subtitle={copy('Who looks after what; only these accounts see Team work', 'ვინ რას უძღვება; გუნდის სამუშაოს მხოლოდ ეს ანგარიშები ხედავს')} />
         {loadError && <div className="gk-notice gk-notice--danger" role="alert"><span>{loadError}</span><Button size="sm" onClick={() => setRetry(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
         <Panel>
         {members == null && !loadError && <div role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /></div>}
         <ul className="tw-team__list">{(members ?? []).map(member => <li key={member.userId}>
             <span className="tw-team__who"><Avatar name={member.name ?? member.email} size={28} /><strong>{member.name ?? member.email}</strong><span className="gk-muted">{member.email}</span>
                 {member.pending && <Badge tone="warning">{copy('Invited', 'მოწვეული')}</Badge>}</span>
+            <ResponsibilityLine key={member.responsibility ?? ''} member={member} onSaved={setMembers} />
+            <Link className="tw-team__doing" to={`/team-work?who=${member.userId}`}>{copy(`What ${(member.name ?? member.email).split(' ')[0]} is doing`, `რას აკეთებს ${(member.name ?? member.email).split(' ')[0]}`)}<ChevronRight aria-hidden="true" /></Link>
             {canManage && member.pending && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(async () => setInvite(await newInvite(member.userId)))}>{copy('New link', 'ახალი ბმული')}</Button>}
         </li>)}</ul>
         {invite && <InviteLink invite={invite} onDone={() => setInvite(null)} />}

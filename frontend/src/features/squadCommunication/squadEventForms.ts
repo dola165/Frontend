@@ -9,7 +9,8 @@ export function newSquadEvent(date: Date, squadId: number, weekly: boolean): Eve
     const start = new Date(date); start.setHours(18, 0, 0, 0);
     if (localDateISO(start) === localDateISO() && start <= new Date()) {
         start.setTime(Math.ceil((Date.now() + 3600000) / 1800000) * 1800000);
-        if (start.getHours() > 22) { start.setDate(start.getDate()+1); start.setHours(18,0,0,0); }
+        // The 90-minute default must end on the day it starts (a 22:30 start would end at 00:00).
+        if (localDateISO(new Date(start.getTime() + 90 * 60000)) !== localDateISO(start)) { start.setDate(start.getDate()+1); start.setHours(18,0,0,0); }
     }
     const end = new Date(start.getTime() + 90 * 60000);
     const until = new Date(start); until.setDate(until.getDate() + 42);

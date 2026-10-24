@@ -35,7 +35,10 @@ function ScheduleRoute() {
     return <><SquadScheduleTab space={space} /><output data-testid="calendar-route">{location.pathname}{location.search}</output></>;
 }
 const currentRoute = () => new URL(screen.getByTestId('calendar-route').textContent!, 'https://grasskickz.test');
+// A fixed local "today" keeps the default start time (and so every step) independent of the run's clock.
+const today = new Date(2026, 9, 21, 10, 0);
 beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today);
     vi.clearAllMocks(); sessionStorage.clear(); localStorage.clear(); auth.sessionId = 'training-session';
     vi.mocked(api.sessions).mockResolvedValue([]);
     vi.mocked(fetchPage).mockResolvedValue(savedPage());
@@ -45,7 +48,7 @@ beforeEach(() => {
     vi.mocked(bookings.previewTraining).mockImplementation(async (_id, plan) => ({ quoteToken: 'reviewed-fixture', canCommit: true, paymentPolicy: 'No automatic payment.', occurrences: [{ startsAt: plan.startsAt, endsAt: plan.endsAt, quote: { venueId: 71, pitchId: 1, venueName: 'Fixture stadium', pitchName: 'Fixture pitch', timezone: 'Asia/Tbilisi', currency: 'GEL', totalPrice: 0, status: 'PENDING', cancellationHours: 24, available: true } }] }));
     vi.mocked(bookings.createTraining).mockResolvedValue({ planId: 'booked-training', sessionIds: [91] });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 const next = async () => { await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Next' })); }); };
 async function review(firstWeek = '2099-09-21') {
     await next();
@@ -63,6 +66,13 @@ it('serves days, time and ground, then creates only a reviewed private training 
     await waitFor(() => expect(view.onSaved).toHaveBeenCalledTimes(1));
     expect(api.createSquadEvent).toHaveBeenCalledWith(11, expect.objectContaining({ title: 'Training', eventType: 'TRAINING', location: 'School ground, Tbilisi', playerIds: [41, 42], requestResponses: false, repeat: expect.objectContaining({ endDate: '2099-10-31', intervalWeeks: 1 }) }), 'training-session');
     expect(Object.keys(sessionStorage).filter(key => key.includes('squad-training'))).toHaveLength(0);
+});
+it('moves a default that would end past midnight to the next evening', async () => {
+    vi.setSystemTime(new Date(2026, 9, 21, 21, 10)); // next free half hour + 1h = 22:30, ending 00:00
+    show(); await review();
+    const plan = vi.mocked(api.previewSquadEvent).mock.lastCall![1];
+    expect(new Date(plan.endsAt).getTime() - new Date(plan.startsAt).getTime()).toBe(90 * 60000);
+    expect(new Date(plan.startsAt).getHours()).toBe(18);
 });
 it('keeps an uncertain save across reload and retries the exact request and original audience', async () => {
     vi.mocked(api.createSquadEvent).mockRejectedValueOnce(new Error('Connection interrupted'));

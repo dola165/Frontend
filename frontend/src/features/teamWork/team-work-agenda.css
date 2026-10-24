@@ -74,32 +74,9 @@
 .gk .tw-needs__questions { padding: 0 0 2px 21px; }
 
 
-/* Pinned: plans and tasks, each a row that opens it, its name in bold and what it is for beside it, with a quiet unpin. */
-.gk .tw-pinned { display: flex; flex-direction: column; gap: var(--gk-2); }
-.gk .tw-pinned__list { list-style: none; margin: 0; padding: 0; }
-.gk .tw-pinned__row { display: flex; align-items: center; gap: 4px; padding: 2px 6px 2px 0; }
-.gk .tw-pinned__row + .tw-pinned__row { border-top: 1px solid var(--gk-line); }
-.gk .tw-pinned__open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 var(--gk-3); border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; border-radius: var(--gk-r-sm); }
-.gk .tw-pinned__open:hover { background: var(--gk-hover); }
-.gk .tw-pinned__plan { flex: none; width: 15px; height: 15px; color: var(--gk-info); }
-.gk .tw-pinned__name { flex: none; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-lg); font-weight: 700; }
-.gk .tw-pinned__sub { flex: 0 1 auto; min-width: 0; max-width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
-.gk .tw-pinned__meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
 
-/* The plans: small cards, each its name in bold, then what it is for in one grey line and what is open; a plan inside a plan is indented. */
-.gk .tw-plan-links ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--gk-2); }
-.gk .tw-plan-links li[data-child] { margin-left: var(--gk-5); }
-.gk .tw-plan-links button { display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }
-.gk .tw-plan-links button:hover { border-color: var(--gk-line-strong); background: var(--gk-hover); }
-.gk .tw-plan-links__title { display: flex; align-items: flex-start; gap: 6px; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 700; overflow-wrap: anywhere; }
-.gk .tw-plan-links__title svg { flex: none; width: 14px; height: 14px; margin-top: 3px; color: var(--gk-text-3); }
-.gk .tw-plan-links__line { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
-.gk .tw-plan-links__purpose { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gk .tw-plan-links__purpose[data-missing] { color: var(--gk-warning); font-weight: 600; }
-.gk .tw-plan-links__open { flex: none; margin-left: auto; font-weight: 500; color: var(--gk-text-3); }
-.gk .tw-plan-links button[data-status='FINISHED'] .tw-plan-links__title { color: var(--gk-text-2); font-weight: 600; }
-.gk .tw-plan-links .tw-plan-links__new { flex-direction: row; align-items: center; gap: 6px; border-style: dashed; background: none; color: var(--gk-text-2); font-weight: 600; }
-.gk .tw-plan-links .tw-plan-links__new svg { width: 14px; height: 14px; }
+
+
 
 /* A task opened over the page: a big panel, the whole screen but a margin on a desktop. Its own head is quiet. */
 .gk .tw-task-dialog.gk-dialog { max-width: min(1360px, calc(100vw - 48px)); max-height: min(94dvh, 1100px); }
@@ -130,11 +107,9 @@
     .gk .tw-needs__meta { display: none; }
     .gk .tw-needs__state { flex: 1; padding-left: 17px; font-weight: 500; }
     .gk .tw-needs__questions { padding-left: 0; }
-    .gk .tw-pinned__meta, .gk .tw-pinned__sub { display: none; }
-    .gk .tw-plan-links li[data-child] { margin-left: var(--gk-3); }
-    .gk .tw-plan-links button { min-height: 44px; }
+
 
     .gk .tw-agenda-bar .tw-key { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
     .gk .tw-agenda-bar .tw-key button { flex: none; }
 }
-@media (prefers-reduced-motion: reduce) { .gk .tw-plan-links button, .gk .tw-card { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gk .tw-card { transition: none; } }

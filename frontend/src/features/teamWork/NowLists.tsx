@@ -28,14 +28,14 @@ export function TaskGroups({ groups, planOf, parentOf, onOpen }: {
 }
 
 /**
- * Now: every open task, however old, under Needs your look, In progress and Blocked, so nothing slips under the days.
- * Planned work waits in the days and the plans; accepted, live and cancelled are not open.
+ * Now: every task in progress or blocked, however old, so nothing slips under the days. What needs your look is in
+ * Needs you above; planned work waits in the days and the plans; accepted, live and cancelled are not open.
  */
 export function NowSection({ tasks, planOf, onOpen }: { tasks: WorkItem[]; planOf: Map<number, Plan>; onOpen: Open }) {
     const copy = useJourneyCopy();
     const titleId = useId();
     const of = (status: WorkItem['status']) => tasks.filter(item => item.status === status).sort(newest);
-    const groups: [string, WorkItem[]][] = [[copy('Needs your look', 'სანახავია'), of('NEEDS_LOOK')], [copy('In progress', 'მიმდინარე'), of('IN_PROGRESS')], [copy('Blocked', 'დაბლოკილი'), of('BLOCKED')]];
+    const groups: [string, WorkItem[]][] = [[copy('In progress', 'მიმდინარე'), of('IN_PROGRESS')], [copy('Blocked', 'დაბლოკილი'), of('BLOCKED')]];
     const open = groups.reduce((count, [, items]) => count + items.length, 0);
     return <section className="tw-block tw-now" aria-labelledby={titleId}>
         <h2 id={titleId} className="tw-heading">{copy('Now', 'ახლა')} <span className="gk-faint gk-num">{open || ''}</span></h2>

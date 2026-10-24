@@ -1,78 +1,58 @@
-import { useEffect, useState } from 'react';
-import { CornerDownRight, Folder, Pin, Plus, Rocket } from 'lucide-react';
+import { useEffect, useId, useState } from 'react';
+import { ChevronDown, Plus, Rocket, SlidersHorizontal } from 'lucide-react';
 import { Button, EmptyNote, PageHeader, Panel } from '../../design/primitives';
 import { TurnOnNotificationsPrompt } from '../../components/notifications/TurnOnNotificationsPrompt';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { openCount, type Person, type Plan, type PlanView, type WorkItem, type WorkNode } from './api';
+import type { Person, Plan, PlanView, WorkItem } from './api';
 import { Agenda, AgendaToolbar } from './Agenda';
-import { useAgendaFilter } from './useAgendaFilter';
-import { nodesOf, taskMatches } from './agendaRows';
+import { useAgendaFilter, type AgendaLayout } from './useAgendaFilter';
+import { nodesOf, taskMatches, type AgendaFilter } from './agendaRows';
 import { NeedsYou } from './NeedsYouBlock';
 import { GoneRows, LayoutSwitch, LiveDialog, NowSection, TaskList } from './NowLists';
 import { fetchOpenQuestions, type OpenQuestion } from './overviewApi';
 import { PersonView } from './PersonView';
-import { sortPlans } from './planSteps';
-import { UnpinButton } from './pins';
-import { usePins, type Pins } from './usePins';
+import { PlanRow } from './PlanRow';
+import { usePins } from './usePins';
 import { TaskDialog, type TaskActions } from './TaskDialog';
 import { statusName } from './teamWorkWords';
-import { KeyChip, StatusDot } from './WorkBits';
 import './team-work-agenda.css';
 import './team-work-now.css';
 
-/** Your pins, plans first in the order you pinned them, each opening its plan or task: its name in bold, what it is for beside it. */
-function Pinned({ pins, plans, nodes, planOf, onOpenPlan, onOpen }: { pins: Pins; plans: Plan[]; nodes: Map<number, WorkNode>; planOf: Map<number, Plan>; onOpenPlan: (id: number) => void; onOpen: (taskId: number, stepId: number | null) => void }) {
+/**
+ * The filters folded to one small line that says what they are set to ("All plans · Everyone · By day"); pressed, the
+ * toolbar opens under it. See what's live sits beside it. The filters themselves stay in the link.
+ */
+function FilterLine({ plans, team, lines, filter, layout, onChange, onLayout, onSeeLive }: {
+    plans: Plan[]; team: Person[]; lines: Map<number, string>; filter: AgendaFilter; layout: AgendaLayout;
+    onChange: (change: Partial<AgendaFilter>) => void; onLayout: (layout: AgendaLayout) => void; onSeeLive: () => void;
+}) {
     const copy = useJourneyCopy();
-    const rows = pins.pins.flatMap(pin => {
-        const plan = pin.planId != null ? plans.find(candidate => candidate.id === pin.planId) : undefined;
-        if (plan) return [<li key={`p${pin.id}`} className="tw-pinned__row">
-            <button type="button" className="tw-pinned__open" onClick={() => onOpenPlan(plan.id)}>
-                <Folder className="tw-pinned__plan" aria-hidden="true" /><span className="tw-pinned__name">{plan.name}</span>{plan.purpose && <span className="tw-pinned__sub">{plan.purpose}</span>}
-                <span className="tw-pinned__meta gk-num">{[copy(`${plan.inProgress} in progress · ${plan.toDo} to do · ${plan.done} done`, `${plan.inProgress} მიმდინარე · ${plan.toDo} გასაკეთებელი · ${plan.done} მზადაა`),
-                    plan.needsYou > 0 && copy(`${plan.needsYou} need you`, `${plan.needsYou} გელოდებათ`)].filter(Boolean).join(' · ')}</span>
+    const id = useId();
+    const [open, setOpen] = useState(false);
+    const plan = filter.plan === 'none' ? copy('No plan', 'გეგმის გარეშე') : typeof filter.plan === 'number' ? plans.find(candidate => candidate.id === filter.plan)?.name ?? copy('One plan', 'ერთი გეგმა') : copy('All plans', 'ყველა გეგმა');
+    const who = filter.who === 'team' ? copy('Whole team', 'მთელი გუნდი') : typeof filter.who === 'number' ? team.find(person => person.id === filter.who)?.name ?? '—' : copy('Everyone', 'ყველა');
+    const summary = [plan, who, ...filter.statuses.map(status => statusName(copy, status)), layout === 'list' ? copy('List', 'სია') : copy('By day', 'დღეებით')].join(' · ');
+    return <div className="tw-filters">
+        <div className="tw-filters__line">
+            <button type="button" className="tw-filters__toggle" aria-expanded={open} aria-controls={id} aria-label={copy(`Filters: ${summary}`, `ფილტრები: ${summary}`)} onClick={() => setOpen(value => !value)}>
+                <SlidersHorizontal aria-hidden="true" /><span>{summary}</span><ChevronDown aria-hidden="true" />
             </button>
-            <UnpinButton pins={pins} target={{ planId: plan.id }} name={plan.name} />
-        </li>];
-        const node = pin.itemId != null ? nodes.get(pin.itemId) : undefined;
-        if (!node) return [];
-        const { item } = node;
-        return [<li key={`t${pin.id}`} className="tw-pinned__row">
-            <button type="button" className="tw-pinned__open" onClick={() => onOpen(item.id, null)}>
-                <StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-pinned__name">{item.title}</span>{item.description && <span className="tw-pinned__sub">{item.description}</span>}
-                <span className="tw-pinned__meta">{[statusName(copy, item.status), planOf.get(item.id)?.name].filter(Boolean).join(' · ')}</span>
-            </button>
-            <UnpinButton pins={pins} target={{ itemId: item.id }} name={item.title} />
-        </li>];
-    });
-    if (!rows.length) return null;
-    return <section className="tw-pinned" aria-labelledby="tw-pinned-title">
-        <h2 id="tw-pinned-title" className="tw-heading"><Pin aria-hidden="true" />{copy('Pinned', 'მიმაგრებული')}</h2>
-        <Panel flush><ul className="tw-pinned__list">{rows}</ul></Panel>
-    </section>;
-}
-
-/** The plans, each by its name in bold, then what it is for and what is still open; a plan inside a plan sits under its parent. */
-function PlanLinks({ plans, onOpenPlan, onNewPlan }: { plans: Plan[]; onOpenPlan: (id: number) => void; onNewPlan: () => void }) {
-    const copy = useJourneyCopy();
-    const ids = new Set(plans.map(plan => plan.id));
-    return <nav className="tw-plan-links" aria-label={copy('Plans', 'გეგმები')}>
-        <ul>
-            {sortPlans(plans).map(plan => <li key={plan.id} data-child={plan.partOf && ids.has(plan.partOf.id) ? '' : undefined}><button type="button" data-status={plan.status} onClick={() => onOpenPlan(plan.id)}>
-                <span className="tw-plan-links__title">{plan.partOf && ids.has(plan.partOf.id) ? <CornerDownRight aria-hidden="true" /> : <Folder aria-hidden="true" />}<span>{plan.name}</span></span>
-                <span className="tw-plan-links__line"><span className="tw-plan-links__purpose" data-missing={plan.purpose ? undefined : ''}>{plan.purpose ?? copy('Write what this plan is for', 'დაწერეთ, რისთვისაა ეს გეგმა')}</span>
-                    <span className="tw-plan-links__open gk-num">{plan.status === 'FINISHED' ? copy('finished', 'დასრულდა') : plan.live ? copy('live', 'ლაივზეა') : plan.taskCount === 0 ? `${plan.percent}%` : copy(`${openCount(plan)} open`, `${openCount(plan)} ღია`)}</span></span>
-            </button></li>)}
-            <li><button type="button" className="tw-plan-links__new" onClick={onNewPlan}><Plus aria-hidden="true" />{copy('New plan', 'ახალი გეგმა')}</button></li>
-        </ul>
-    </nav>;
+            <button type="button" className="tw-link-button tw-work-bar__live" onClick={onSeeLive}><Rocket aria-hidden="true" />{copy('See what’s live', 'ნახეთ, რა არის ლაივზე')}</button>
+        </div>
+        {open && <div id={id} className="tw-work-bar">
+            <LayoutSwitch layout={layout} onChange={onLayout} />
+            <AgendaToolbar plans={plans} team={team} lines={lines} filter={filter} onChange={onChange} />
+        </div>}
+    </div>;
 }
 
 /**
- * Overview: what waits on you, your pins and the plans on top; then, filtered by one toolbar, Now (every open task,
- * however old), what happened day by day as cards, and live and cancelled work as grey rows at the very bottom. "List"
- * shows the same tasks one per line instead. Filtered to one person, "What X is doing" (their Now note and open
- * tasks) comes first. Tasks open in a panel over it; findings (Ideas, Waiting) stay in their own places.
+ * Overview: the plans in one row (your pins first), what waits on you, then, filtered by one folded line, Now (every
+ * task in progress or blocked, however old), what happened day by day as cards, and live and cancelled work as grey
+ * rows at the very bottom. "List" shows the same tasks one per line instead. Filtered to one person, "What X is
+ * doing" (their Now note and open tasks) takes the place of what waits on you. Tasks open in a panel over it;
+ * findings (Ideas, Waiting) stay in their own places.
  */
 export function Overview({ items, findings, plans, views, planOf, team, lines, me, revision, task, actions, starting, onAddTask, onNewPlan, onOpenPlan, onLoadStarter, onChanged }: {
     items: WorkItem[]; findings: Set<number>; plans: Plan[]; views: Map<number, PlanView>; planOf: Map<number, Plan>; team: Person[]; lines: Map<number, string>; me: number | null; revision: number;
@@ -113,16 +93,11 @@ export function Overview({ items, findings, plans, views, planOf, team, lines, m
         {header}
         <TurnOnNotificationsPrompt />
         {questionsError && <div className="gk-notice gk-notice--danger" role="alert"><span>{questionsError}</span><Button size="sm" onClick={() => setRetry(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
+        {pins.error && <p className="gk-notice gk-notice--danger" role="alert">{pins.error}</p>}
+        {!person && <PlanRow pins={pins} plans={plans} nodes={nodes} onOpenPlan={onOpenPlan} onOpen={open} onNewPlan={onNewPlan} />}
         {person ? <PersonView person={person} line={person.id != null ? lines.get(person.id) : undefined} items={work} planOf={planOf} team={team} me={me} onOpen={open} />
             : <NeedsYou items={work} questions={questions} planOf={planOf} onOpen={open} onAnswered={onChanged} />}
-        {pins.error && <p className="gk-notice gk-notice--danger" role="alert">{pins.error}</p>}
-        {!person && <Pinned pins={pins} plans={plans} nodes={nodes} planOf={planOf} onOpenPlan={onOpenPlan} onOpen={open} />}
-        {!person && <PlanLinks plans={plans} onOpenPlan={onOpenPlan} onNewPlan={onNewPlan} />}
-        <div className="tw-work-bar">
-            <LayoutSwitch layout={layout} onChange={setLayout} />
-            <AgendaToolbar plans={plans} team={team} lines={lines} filter={filter} onChange={change} />
-            <button type="button" className="tw-link-button tw-work-bar__live" onClick={() => setSeeLive(true)}><Rocket aria-hidden="true" />{copy('See what’s live', 'ნახეთ, რა არის ლაივზე')}</button>
-        </div>
+        <FilterLine plans={plans} team={team} lines={lines} filter={filter} layout={layout} onChange={change} onLayout={setLayout} onSeeLive={() => setSeeLive(true)} />
         {layout === 'list' ? <TaskList tasks={tasks} planOf={planOf} onOpen={open} /> : <>
             {!person && <NowSection tasks={tasks} planOf={planOf} onOpen={open} />}
             <section className="tw-block" aria-labelledby="tw-happened">

@@ -60,6 +60,8 @@ const at = (daysAgo: number, hours: number, minutes: number) => { const date = n
 const event = (id: string, kind: overview.EventKind, when: string, work: api.WorkItem, extra: Partial<overview.WorkEvent> = {}): overview.WorkEvent => ({
     id, kind, at: when, task: refOf(work), parentId: work.parentId, status: work.status, previousStatus: null, by: beqa, text: null, question: null, ...extra });
 function Where() { const location = useLocation(); return <output data-testid="where">{location.search}</output>; }
+/** The Overview's filters are folded to one line; this opens them. */
+const openFilters = async () => userEvent.click(await screen.findByRole('button', { name: /^Filters:/ }));
 const mount = (path = '/team-work') => render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/team-work" element={<><TeamWorkPage /><Where /></>} /></Routes></MemoryRouter>);
 const useLists = (...extra: api.PlanView[]) => {
     vi.mocked(api.fetchPlans).mockResolvedValue([...[5, 6, 4, 7].map(id => plans[id].plan), ...extra.map(found => found.plan)]);
@@ -92,7 +94,7 @@ it('starts with this week’s work as tasks on their own when there is nothing y
     expect(vi.mocked(overview.fetchTimeline).mock.calls.length).toBeGreaterThan(0);
 });
 
-it('opens on what waits on you, your pins and the plans, then what happened day by day with empty days left out', async () => {
+it('opens on the plans in one row with your pins, what waits on you, then what happened day by day with empty days left out', async () => {
     const look = item(90, 'Sign-up screen', 'NEEDS_LOOK', null, { people: [ilo] });
     const asking = item(91, 'Email provider', 'BLOCKED', null, { openQuestions: 1, people: [gio] });
     const extra = view([{ item: look, steps: [] }, { item: asking, steps: [] }], { plan: plan(11, 'Launch'), changes: [] });
@@ -110,12 +112,17 @@ it('opens on what waits on you, your pins and the plans, then what happened day 
     vi.mocked(api.fetchDetail).mockImplementation(async id => detail(id === 21 ? plans[6].tasks[0].item : branding));
     mount();
 
-    // Pins: a plan and a task, each opening its own; unpin is quiet.
-    const pinned = (await screen.findByRole('heading', { name: 'Pinned' })).closest('section')!;
-    expect(within(pinned).getAllByRole('listitem').map(row => row.querySelector('.tw-pinned__name')?.textContent)).toEqual(['Registration and roles', 'Branding and landing']);
-    await userEvent.click(within(pinned).getByRole('button', { name: 'Unpin Registration and roles' }));
+    // One plan row: the pinned plan first with its pin mark, then the others; the pinned task a chip at its start.
+    const row = await screen.findByRole('navigation', { name: 'Plans' });
+    await waitFor(() => expect(row.querySelector('.tw-plan-row__plan[data-pinned]')).not.toBeNull());
+    expect([...row.querySelectorAll('.tw-plan-row__plans .tw-plan-row__name')].map(name => name.textContent)).toEqual(['Registration and roles', 'October work', 'Launch', 'Store', 'This week’s work']);
+    expect(screen.queryByRole('heading', { name: 'Pinned' })).not.toBeInTheDocument();
+    const chips = within(row).getByRole('list', { name: 'Pinned tasks' });
+    expect(within(chips).getByRole('button', { name: /GK-1\s*Branding and landing/ })).toBeInTheDocument();
+    await userEvent.click(within(row).getByRole('button', { name: 'Unpin Registration and roles' }));
     expect(overview.removePin).toHaveBeenCalledWith(1);
-    expect(await within(pinned).findAllByRole('listitem')).toHaveLength(1);
+    await waitFor(() => expect(row.querySelector('.tw-plan-row__plan[data-pinned]')).toBeNull());
+    expect(within(row).getByRole('list', { name: 'Pinned tasks' })).toBeInTheDocument();
 
     // Needs you: the task to look at and the question, answered in place; the board loads again after.
     const needs = (await screen.findByRole('heading', { name: 'Needs you 2' })).closest('section')!;
@@ -141,7 +148,10 @@ it('opens on what waits on you, your pins and the plans, then what happened day 
     expect(live).toHaveTextContent('step GK-11: Went live');
     expect(live).toHaveTextContent('October work');
 
-    // One toolbar: person and status filter the rows, through the link.
+    // One toolbar, folded to one line that says what it is set to: person and status filter the rows, through the link.
+    expect(screen.getByRole('button', { name: /^Filters:/ })).toHaveTextContent('All plans · Everyone · By day');
+    expect(screen.queryByLabelText('Person')).not.toBeInTheDocument();
+    await openFilters();
     await userEvent.selectOptions(screen.getByLabelText('Person'), 'Gio Beridze');
     expect(screen.getByTestId('where')).toHaveTextContent('who=2');
     expect(within(happened).getAllByRole('button', { name: /\. / }).map(row => row.getAttribute('aria-label'))).toEqual(['GK-91 Email provider. Asked']);
@@ -596,7 +606,9 @@ it('shows what one person is doing, with their responsibility, and the Team page
     expect(within(doing).queryByRole('heading', { name: /Blocked|Needs you/ })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Recent activity' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Plans' })).not.toBeInTheDocument();
-    // The person filter names the responsibility too.
+    // The folded filter line names the person; opened, the person filter names the responsibility too.
+    expect(screen.getByRole('button', { name: /^Filters:/ })).toHaveTextContent('All plans · Ilo · By day');
+    await openFilters();
     expect(screen.getByRole('option', { name: 'Ilo · Registration' })).toBeInTheDocument();
 
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Team work' })).getByRole('button', { name: 'Team' }));
@@ -620,16 +632,17 @@ it('puts every open task under Now, live and cancelled work in grey rows at the 
     vi.mocked(overview.fetchTimeline).mockResolvedValue({ more: false, events: [event('s-9', 'STATUS', at(0, 9, 0), old, { status: 'IN_PROGRESS', previousStatus: 'PLANNED' })] });
     mount();
 
-    // Now: every open task however old, by Needs your look, In progress and Blocked; nothing planned or done.
+    // Now: every task in progress or blocked however old; what needs your look is in Needs you; nothing planned or done.
     const nowBlock = (await screen.findByRole('heading', { name: /^Now/ })).closest('section')!;
-    expect(within(nowBlock).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(['Needs your look 1', 'In progress 3', 'Blocked 1']);
+    expect(within(nowBlock).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(['In progress 3', 'Blocked 1']);
+    expect(within(nowBlock).queryByRole('button', { name: /GK-53\s*Sign-up screen/ })).not.toBeInTheDocument();
     const oldRow = within(nowBlock).getByRole('button', { name: /GK-51\s*Squad QR link/ });
     expect(oldRow.closest('li')).toHaveTextContent('Gio Beridze');
     expect(oldRow.closest('li')).toHaveTextContent('Squads');
     expect(within(nowBlock).queryByRole('button', { name: /Save button on phones|Fax sign-up|Schedules/ })).not.toBeInTheDocument();
     // Done means on hover, focus or a long press; said too when it is missing.
     expect(oldRow).toHaveAccessibleDescription('Done means: A coach scans and the player joins');
-    expect(within(nowBlock).getByRole('button', { name: /GK-53\s*Sign-up screen/ })).toHaveAccessibleDescription('Done means not written yet');
+    expect(within(nowBlock).getByRole('button', { name: /GK-1\s*Branding and landing/ })).toHaveAccessibleDescription('Done means not written yet');
 
     // A day card: the short name in bold, what it is for in one grey line, and the same tip.
     const card = await screen.findByRole('button', { name: 'GK-51 Squad QR link. Started' });
@@ -650,7 +663,9 @@ it('puts every open task under Now, live and cancelled work in grey rows at the 
     await userEvent.click(within(live).getAllByRole('button', { name: 'Close' })[0]);
 
     // List: the same tasks, one line each, what moves first; the choice stays in the link; the filters still apply.
+    await openFilters();
     await userEvent.click(within(screen.getByRole('group', { name: 'Show as' })).getByRole('button', { name: 'List' }));
+    expect(screen.getByRole('button', { name: /^Filters:/ })).toHaveTextContent('All plans · Everyone · List');
     expect(screen.getByTestId('where')).toHaveTextContent('show=list');
     expect(screen.queryByRole('heading', { name: /^Now/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'What happened' })).not.toBeInTheDocument();
@@ -722,6 +737,7 @@ it('lets a person write their own Now note, and teammates comment under it', asy
     // Someone else's: read only, with a comment box; each comment edits only for its author.
     vi.mocked(api.fetchNow).mockResolvedValue({ person: gio, body: 'Working on the map', updatedAt: twoDaysAgo, canEdit: false, comments: [comment(4, beqa, 'Let’s do branding first', true), comment(5, ilo, 'Agreed', false)] });
     vi.mocked(api.editNowComment).mockResolvedValue({ person: gio, body: 'Working on the map', updatedAt: twoDaysAgo, canEdit: false, comments: [{ ...comment(4, beqa, 'Branding first, then the map', true), editedAt: now }, comment(5, ilo, 'Agreed', false)] });
+    await openFilters();
     await userEvent.selectOptions(screen.getByLabelText('Person'), 'Gio Beridze');
     expect(await screen.findByText('Working on the map')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Change your Now note' })).not.toBeInTheDocument();

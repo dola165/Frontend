@@ -7,11 +7,11 @@ import type { PurposeChange } from './api';
 import { ago, madeBy, shortDate } from './teamWorkWords';
 
 /**
- * What a plan or a task is for, first and big. Empty, it is a clear prompt to write it; pressed (or the pencil), it
- * becomes a box to write in, saved on Enter. `small` is the quieter version for a task opened in its dialog.
+ * What a plan or a task is for. Empty, it is a clear prompt to write it; pressed (or the pencil), it becomes a box to
+ * write in, saved on Enter. As a paragraph (`as="p"`) it is the quieter line under a bold name.
  */
 export function PurposeLine({ purpose, prompt, label, as: Tag = 'h1', busy = false, onSave }: {
-    purpose: string | null; prompt: string; label: string; as?: 'h1' | 'h2'; busy?: boolean; onSave: (purpose: string) => Promise<void> | void;
+    purpose: string | null; prompt: string; label: string; as?: 'h1' | 'h2' | 'p'; busy?: boolean; onSave: (purpose: string) => Promise<void> | void;
 }) {
     const copy = useJourneyCopy();
     const id = useId();

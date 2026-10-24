@@ -4,7 +4,7 @@ import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { addPlanStep, fetchDetail, isDone, type Detail, type Plan, type PlanStatus, type PlanView, type WorkNode } from './api';
+import { addPlanStep, fetchDetail, isDone, openCount, type Detail, type Plan, type PlanStatus, type PlanView, type WorkNode } from './api';
 import { planAsText } from './planAsText';
 import { ancestorsOf } from './planSteps';
 import { useClickAway } from './useClickAway';
@@ -21,7 +21,7 @@ export function OrderStrip({ nodes, steps = [], numbers, onOpen, onOpenPlan, onD
 }) {
     const copy = useJourneyCopy();
     const track = useRef<HTMLOListElement>(null);
-    const current = nodes.find(node => node.item.status === 'IN_PROGRESS') ?? nodes.find(node => !isDone(node.item.status));
+    const current = nodes.find(node => node.item.status === 'IN_PROGRESS') ?? nodes.find(node => !isDone(node.item.status) && node.item.status !== 'CANCELLED');
     useEffect(() => {
         const card = track.current?.querySelector<HTMLElement>('[data-state="current"]');
         if (track.current && card) track.current.scrollLeft = Math.max(0, card.offsetLeft - 16);
@@ -35,10 +35,10 @@ export function OrderStrip({ nodes, steps = [], numbers, onOpen, onOpenPlan, onD
                 return <li key={`p${plan.id}`} data-state={state} data-plan="" data-status={plan.live ? 'LIVE' : plan.inProgress > 0 ? 'IN_PROGRESS' : 'PLANNED'}>
                     <button type="button" className="tw-order__open" onClick={() => onOpenPlan?.(plan.id)} aria-label={copy(`Plan ${plan.name}`, `გეგმა ${plan.name}`)}>
                         <span className="tw-order__top"><span className="tw-order__number gk-num">{state === 'done' ? <Check aria-hidden="true" /> : index + 1}</span><Folder className="tw-order__folder" aria-hidden="true" /><span className="gk-num tw-order__percent">{plan.percent}%</span></span>
-                        <span className="tw-order__name">{plan.purpose ?? plan.name}</span>
-                        {plan.purpose && <span className="tw-order__plan-name">{plan.name}</span>}
+                        <span className="tw-order__name">{plan.name}</span>
+                        {plan.purpose && <span className="tw-order__plan-name">{plan.purpose}</span>}
                         <span className="tw-order__bar"><span style={{ width: `${plan.percent}%` }} /></span>
-                        <span className="tw-order__when">{plan.live ? copy('live', 'ლაივზეა') : copy(`plan · ${plan.taskCount - plan.done} open`, `გეგმა · ${plan.taskCount - plan.done} ღია`)}</span>
+                        <span className="tw-order__when">{plan.live ? copy('live', 'ლაივზეა') : copy(`plan · ${openCount(plan)} open`, `გეგმა · ${openCount(plan)} ღია`)}</span>
                     </button>
                     {onDetach && <button type="button" className="tw-icon-button tw-order__detach" aria-label={copy(`Take the plan ${plan.name} out`, `გეგმის ${plan.name} ამოღება`)} title={copy('Take out of this plan', 'ამ გეგმიდან ამოღება')} onClick={() => onDetach(plan)}><X aria-hidden="true" /></button>}
                 </li>;
@@ -49,10 +49,10 @@ export function OrderStrip({ nodes, steps = [], numbers, onOpen, onOpenPlan, onD
                 return <li key={item.id} data-state={state} data-status={item.status}>
                     <button type="button" className="tw-order__open" onClick={() => onOpen(item.id)} aria-current={state === 'current' ? 'step' : undefined}>
                         <span className="tw-order__top"><span className="tw-order__number gk-num">{state === 'done' ? <Check aria-hidden="true" /> : (numbers.get(item.id) ?? 0) + steps.length}</span><StatusDot status={item.status} /><span className="gk-num tw-order__percent">{item.percent != null ? `${item.percent}%` : ''}</span></span>
-                        <span className="tw-order__name">{item.description ?? item.title}</span>
-                        {item.description && <span className="tw-order__plan-name">{item.title}</span>}
+                        <span className="tw-order__name">{item.title}</span>
+                        {item.description && <span className="tw-order__plan-name">{item.description}</span>}
                         <span className="tw-order__bar"><span style={{ width: `${item.percent ?? (isDone(item.status) ? 100 : 0)}%` }} /></span>
-                        <span className="tw-order__when">{state === 'done' ? copy('done', 'დასრულდა') : item.end.kind === 'UNKNOWN' ? copy('end not set', 'ვადა არ არის') : `${copy('ends', 'დასრულება')} ${endWords(copy, item.end)}`}</span>
+                        <span className="tw-order__when">{state === 'done' ? copy('done', 'დასრულდა') : item.status === 'CANCELLED' ? copy('cancelled', 'გაუქმდა') : item.end.kind === 'UNKNOWN' ? copy('end not set', 'ვადა არ არის') : `${copy('ends', 'დასრულება')} ${endWords(copy, item.end)}`}</span>
                     </button>
                 </li>;
             })}

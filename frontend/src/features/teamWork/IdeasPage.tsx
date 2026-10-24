@@ -11,6 +11,7 @@ import { useDayTitle } from './useDayTitle';
 import { FindingRow } from './FindingRow';
 import { IDEAS, NOTE, WAITING } from './findings';
 import { MentionInput } from './MentionInput';
+import { NameField } from './WorkBits';
 import { useFresh } from './useFresh';
 import './team-work-agenda.css';
 
@@ -42,7 +43,7 @@ function FilePreview({ file }: { file: File }) {
 function DropZone({ team, ensureIdeas, onDropped }: { team: Person[]; ensureIdeas: () => Promise<number>; onDropped: () => void }) {
     const copy = useJourneyCopy();
     const input = useRef<HTMLInputElement>(null);
-    const nameId = useId(), purposeId = useId(), commentId = useId();
+    const purposeId = useId(), commentId = useId();
     const [files, setFiles] = useState<File[]>([]);
     const [name, setName] = useState('');
     const [purpose, setPurpose] = useState('');
@@ -92,8 +93,7 @@ function DropZone({ team, ensureIdeas, onDropped }: { team: Person[]; ensureIdea
                     <li><button type="button" className="tw-drop__more" disabled={progress !== null} onClick={() => input.current?.click()} aria-label={copy('Add more files', 'მეტი ფაილის დამატება')}><Plus aria-hidden="true" /></button></li>
                 </ul>
                 <div className="tw-drop__fields">
-                    <div className="tw-field"><label htmlFor={nameId}>{copy('Name', 'სახელი')}</label>
-                        <input id={nameId} className="gk-input" autoFocus maxLength={120} value={name} onChange={event => setName(event.target.value)} /></div>
+                    <NameField value={name} autoFocus onChange={setName} />
                     <div className="tw-field"><label htmlFor={purposeId}>{copy('What it’s for (optional)', 'რისთვისაა (არასავალდებულო)')}</label>
                         <textarea id={purposeId} className="gk-input" rows={2} maxLength={400} value={purpose} placeholder={copy('The problem or the idea, in a sentence or two', 'პრობლემა ან იდეა, ერთი-ორი წინადადებით')} onChange={event => setPurpose(event.target.value)} /></div>
                     <div className="tw-field"><label htmlFor={commentId}>{copy('Comment (optional)', 'კომენტარი (არასავალდებულო)')}</label>

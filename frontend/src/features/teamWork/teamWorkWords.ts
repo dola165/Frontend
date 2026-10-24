@@ -11,6 +11,7 @@ export const statusWords: Record<WorkStatus, [en: string, ka: string]> = {
     ACCEPTED: ['Accepted', 'მიღებულია'],
     LIVE: ['Live', 'ლაივზეა'],
     BLOCKED: ['Blocked', 'დაბლოკილია'],
+    CANCELLED: ['Cancelled', 'გაუქმებულია'],
 };
 export const statusName = (copy: Copy, status: WorkStatus) => copy(...statusWords[status]);
 

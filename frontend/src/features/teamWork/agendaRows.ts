@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Ban, Check, CircleHelp, Eye, Play, Plus, Reply, Rocket, Undo2 } from 'lucide-react';
+import { Ban, Check, CircleHelp, CircleSlash, Eye, Play, Plus, Reply, Rocket, Undo2 } from 'lucide-react';
 import { dayKey } from '../schedule/board/scheduleRange';
 import type { Person, Plan, WorkItem, WorkNode, WorkStatus } from './api';
 import type { Timeline, WorkEvent } from './overviewApi';
@@ -10,12 +10,13 @@ type Copy = (en: string, ka: string) => string;
 /** Each status's colour, as the dots and the agenda's symbols show it (the same tones as team-work.css). */
 export const statusTone: Record<WorkStatus, string> = {
     PLANNED: 'var(--gk-text-3)', IN_PROGRESS: 'var(--gk-info)', NEEDS_LOOK: 'var(--gk-warning)',
-    ACCEPTED: 'color-mix(in srgb, var(--gk-accent) 55%, var(--gk-info))', LIVE: 'var(--gk-accent)', BLOCKED: 'var(--gk-danger)',
+    ACCEPTED: 'color-mix(in srgb, var(--gk-accent) 55%, var(--gk-info))', LIVE: 'var(--gk-accent)', BLOCKED: 'var(--gk-danger)', CANCELLED: 'var(--gk-line-strong)',
 };
 
 const MOVED: Record<WorkStatus, [LucideIcon, string, string]> = {
     PLANNED: [Undo2, 'Back to planned', 'ისევ დაგეგმილია'], IN_PROGRESS: [Play, 'Started', 'დაიწყო'], NEEDS_LOOK: [Eye, 'Needs your look', 'სანახავია'],
     ACCEPTED: [Check, 'Accepted', 'მიღებულია'], LIVE: [Rocket, 'Went live', 'ლაივზე გავიდა'], BLOCKED: [Ban, 'Blocked', 'დაიბლოკა'],
+    CANCELLED: [CircleSlash, 'Cancelled', 'გაუქმდა'],
 };
 
 /** The symbol for what happened. */
@@ -122,6 +123,15 @@ export function eventMatches(event: WorkEvent, filter: AgendaFilter, context: { 
     if (typeof filter.who === 'number' && event.by?.id === filter.who) return true;
     const node = context.nodes.get(taskId);
     return node != null && nodeMatches(node, filter.who, context.team);
+}
+
+/** Whether a task passes the filter: its status now, its plan (or none), and who is on it or its steps. */
+export function taskMatches(node: WorkNode, filter: AgendaFilter, context: { planOf: Map<number, Plan>; planItems: Map<number, Set<number>>; team: Person[] }) {
+    const id = node.item.id;
+    if (filter.statuses.length && !filter.statuses.includes(node.item.status)) return false;
+    if (filter.plan === 'none' && context.planOf.has(id)) return false;
+    if (typeof filter.plan === 'number' && !context.planItems.get(filter.plan)?.has(id)) return false;
+    return nodeMatches(node, filter.who, context.team);
 }
 
 /** Every top-level task with its steps, by id. */

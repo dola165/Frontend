@@ -86,9 +86,11 @@ export function useMessenger() {
         }
     }, [setConversations, copy]);
     const { connected, setActiveConversation, sendMessage: saveMessage, loading: loadingMessages, error: deliveryError, sending, loadOlder, hasOlder, loadingOlder, historyError } = useChatWebSocket(handleIncoming, handleUnavailable);
+    // The team chat keeps itself current (features/teamChat); the plain history is for the others.
+    const teamActive = conversations.some(conversation => conversation.id === activeConvId && conversation.contextType === 'TEAM');
     useEffect(() => {
-        void setActiveConversation(activeConvId);
-    }, [activeConvId, setActiveConversation]);
+        void setActiveConversation(teamActive ? null : activeConvId);
+    }, [activeConvId, teamActive, setActiveConversation]);
 
     useEffect(() => {
         const id = Number(searchParams.get('conversationId'));

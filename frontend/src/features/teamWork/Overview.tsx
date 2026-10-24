@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CornerDownRight, Folder, Pin, Plus, Rocket } from 'lucide-react';
 import { Button, EmptyNote, PageHeader, Panel } from '../../design/primitives';
+import { TurnOnNotificationsPrompt } from '../../components/notifications/TurnOnNotificationsPrompt';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { openCount, type Person, type Plan, type PlanView, type WorkItem, type WorkNode } from './api';
@@ -110,6 +111,7 @@ export function Overview({ items, findings, plans, views, planOf, team, lines, m
 
     return <div className="tw-overview">
         {header}
+        <TurnOnNotificationsPrompt />
         {questionsError && <div className="gk-notice gk-notice--danger" role="alert"><span>{questionsError}</span><Button size="sm" onClick={() => setRetry(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
         {person ? <PersonView person={person} line={person.id != null ? lines.get(person.id) : undefined} items={work} planOf={planOf} team={team} me={me} onOpen={open} />
             : <NeedsYou items={work} questions={questions} planOf={planOf} onOpen={open} onAnswered={onChanged} />}

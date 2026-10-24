@@ -101,7 +101,13 @@ export function useMessenger() {
         let current = true;
         chatApi.getConversation(id).then(response => {
             if (!current || !isCurrentAuthSession(sessionId)) return;
-            setConversations(previous => [response.data, ...previous.filter(item => item.id !== id)]);
+            // The single conversation carries no last message: keep the inbox's when it loaded first.
+            setConversations(previous => {
+                const listed = previous.find(item => item.id === id);
+                const opened = listed ? { ...response.data, lastMessage: listed.lastMessage, lastMessageSenderId: listed.lastMessageSenderId,
+                    lastMessageSenderName: listed.lastMessageSenderName, lastMessageAt: listed.lastMessageAt } : response.data;
+                return [opened, ...previous.filter(item => item.id !== id)];
+            });
             setActiveConvId(id);
         }).catch(() => { if (current && isCurrentAuthSession(sessionId)) setManagementError('This conversation couldn’t load. Try again, or open another chat.'); });
         return () => { current = false; };

@@ -142,10 +142,10 @@ const ConversationRow = ({ conv, active, currentUserId, onSelect }: {
                                 <span className="font-medium text-[var(--chat-text-secondary)]">
                                     {conv.lastMessageSenderName}:{' '}
                                 </span>
-                                {conv.lastMessage}
+                                {conv.lastMessage || copy('Sent a file', 'გაიგზავნა ფაილი')}
                             </>
                         ) : (
-                            conv.lastMessage || copy('No messages yet', 'შეტყობინებები ჯერ არ არის')
+                            conv.lastMessage || (conv.lastMessageAt ? copy('Sent a file', 'გაიგზავნა ფაილი') : copy('No messages yet', 'შეტყობინებები ჯერ არ არის'))
                         )}
                     </p>
 

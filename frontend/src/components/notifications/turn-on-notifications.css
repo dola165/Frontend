@@ -1,0 +1,44 @@
+/* The one-tap "Turn on notifications" line. Self-contained: it may be mounted on any page. */
+.gk-turn-on-notifications {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    padding: 10px 12px 10px 14px;
+    border: 1px solid var(--fc-accent-border);
+    border-radius: 12px;
+    background: var(--fc-accent-soft);
+    color: var(--fc-text-primary);
+}
+.gk-turn-on-notifications__icon { width: 18px; height: 18px; flex: none; color: var(--fc-accent); }
+.gk-turn-on-notifications__text { flex: 1 1 240px; min-width: 0; margin: 0; font-size: 14px; line-height: 1.45; }
+.gk-turn-on-notifications__text a { text-decoration: underline; }
+.gk-turn-on-notifications__button {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--fc-accent);
+    color: var(--color-on-accent);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.gk-turn-on-notifications__button:disabled { opacity: 0.6; cursor: default; }
+.gk-turn-on-notifications__more { font-size: 14px; text-decoration: underline; min-height: 44px; display: inline-flex; align-items: center; }
+.gk-turn-on-notifications__error { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--fc-state-danger); }
+.gk-turn-on-notifications__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-left: auto;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--fc-text-secondary);
+    cursor: pointer;
+}
+.gk-turn-on-notifications__close:hover { background: var(--fc-surface-hover); }

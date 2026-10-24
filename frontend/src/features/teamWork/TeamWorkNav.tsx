@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Hourglass, Inbox, LayoutGrid, RefreshCw, Users } from 'lucide-react';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { TeamChatNavItem } from '../teamChat/TeamChatNavItem';
 
 /** The page's places: the overview, ideas, waiting, what changed, and the team last. */
 export type TeamWorkPlace = 'overview' | 'ideas' | 'waiting' | 'changes' | 'team';
@@ -28,6 +29,6 @@ export function TeamWorkNav({ current, needsYou, fresh, waiting, onGo }: { curre
                 {place === 'ideas' && fresh > 0 && <span className="gk-count" title={copy('New to you', 'თქვენთვის ახალი')}>{fresh}</span>}
                 {place === 'waiting' && waiting > 0 && <span className="tw-side__quiet gk-num">{waiting}</span>}
             </button>
-        </li>)}</ul>
+        </li>)}<TeamChatNavItem /></ul>
     </nav>;
 }

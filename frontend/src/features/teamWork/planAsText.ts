@@ -1,7 +1,7 @@
 import type { Detail, PlanView, WorkEnd, WorkItem, WorkStatus } from './api';
 
 /** Each status as the paste format writes it. */
-export const STATUS_WORDS: Record<WorkStatus, string> = { PLANNED: 'planned', IN_PROGRESS: 'in progress', NEEDS_LOOK: 'needs your look', ACCEPTED: 'accepted', LIVE: 'live', BLOCKED: 'blocked' };
+export const STATUS_WORDS: Record<WorkStatus, string> = { PLANNED: 'planned', IN_PROGRESS: 'in progress', NEEDS_LOOK: 'needs your look', ACCEPTED: 'accepted', LIVE: 'live', BLOCKED: 'blocked', CANCELLED: 'cancelled' };
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').replace(/\|/g, '/').trim();
 const keys = (item: WorkItem, kind: WorkItem['links'][number]['kind']) => item.links.filter(link => link.kind === kind).map(link => link.task.key);

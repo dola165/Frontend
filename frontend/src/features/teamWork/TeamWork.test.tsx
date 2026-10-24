@@ -13,7 +13,7 @@ import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
     createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
-    addPlanStep: vi.fn(), removePlanStep: vi.fn(), setResponsibility: vi.fn(),
+    addPlanStep: vi.fn(), removePlanStep: vi.fn(), setResponsibility: vi.fn(), fetchNow: vi.fn(), writeNow: vi.fn(), addNowComment: vi.fn(), editNowComment: vi.fn(), deleteNowComment: vi.fn(),
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
 }));
 vi.mock('./overviewApi', () => ({ fetchTimeline: vi.fn(), fetchOpenQuestions: vi.fn(), fetchPins: vi.fn(), addPin: vi.fn(), removePin: vi.fn() }));
@@ -60,6 +60,8 @@ const at = (daysAgo: number, hours: number, minutes: number) => { const date = n
 const event = (id: string, kind: overview.EventKind, when: string, work: api.WorkItem, extra: Partial<overview.WorkEvent> = {}): overview.WorkEvent => ({
     id, kind, at: when, task: refOf(work), parentId: work.parentId, status: work.status, previousStatus: null, by: beqa, text: null, question: null, ...extra });
 function Where() { const location = useLocation(); return <output data-testid="where">{location.search}</output>; }
+/** The Overview's filters are folded to one line; this opens them. */
+const openFilters = async () => userEvent.click(await screen.findByRole('button', { name: /^Filters:/ }));
 const mount = (path = '/team-work') => render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/team-work" element={<><TeamWorkPage /><Where /></>} /></Routes></MemoryRouter>);
 const useLists = (...extra: api.PlanView[]) => {
     vi.mocked(api.fetchPlans).mockResolvedValue([...[5, 6, 4, 7].map(id => plans[id].plan), ...extra.map(found => found.plan)]);
@@ -74,6 +76,7 @@ beforeEach(() => {
     vi.mocked(overview.fetchTimeline).mockResolvedValue({ events: [], more: false });
     vi.mocked(overview.fetchOpenQuestions).mockResolvedValue([]);
     vi.mocked(overview.fetchPins).mockResolvedValue([]);
+    vi.mocked(api.fetchNow).mockImplementation(async id => ({ person: team.find(person => person.id === id) ?? { id, name: null }, body: null, updatedAt: null, canEdit: id === 1, comments: [] }));
 });
 
 it('starts with this week’s work as tasks on their own when there is nothing yet', async () => {
@@ -91,7 +94,7 @@ it('starts with this week’s work as tasks on their own when there is nothing y
     expect(vi.mocked(overview.fetchTimeline).mock.calls.length).toBeGreaterThan(0);
 });
 
-it('opens on what waits on you, your pins and the plans, then what happened day by day with empty days left out', async () => {
+it('opens on the plans in one row with your pins, what waits on you, then what happened day by day with empty days left out', async () => {
     const look = item(90, 'Sign-up screen', 'NEEDS_LOOK', null, { people: [ilo] });
     const asking = item(91, 'Email provider', 'BLOCKED', null, { openQuestions: 1, people: [gio] });
     const extra = view([{ item: look, steps: [] }, { item: asking, steps: [] }], { plan: plan(11, 'Launch'), changes: [] });
@@ -109,12 +112,17 @@ it('opens on what waits on you, your pins and the plans, then what happened day 
     vi.mocked(api.fetchDetail).mockImplementation(async id => detail(id === 21 ? plans[6].tasks[0].item : branding));
     mount();
 
-    // Pins: a plan and a task, each opening its own; unpin is quiet.
-    const pinned = (await screen.findByRole('heading', { name: 'Pinned' })).closest('section')!;
-    expect(within(pinned).getAllByRole('listitem').map(row => row.querySelector('.tw-pinned__name')?.textContent)).toEqual(['Registration and roles', 'Branding and landing']);
-    await userEvent.click(within(pinned).getByRole('button', { name: 'Unpin Registration and roles' }));
+    // One plan row: the pinned plan first with its pin mark, then the others; the pinned task a chip at its start.
+    const row = await screen.findByRole('navigation', { name: 'Plans' });
+    await waitFor(() => expect(row.querySelector('.tw-plan-row__plan[data-pinned]')).not.toBeNull());
+    expect([...row.querySelectorAll('.tw-plan-row__plans .tw-plan-row__name')].map(name => name.textContent)).toEqual(['Registration and roles', 'October work', 'Launch', 'Store', 'This week’s work']);
+    expect(screen.queryByRole('heading', { name: 'Pinned' })).not.toBeInTheDocument();
+    const chips = within(row).getByRole('list', { name: 'Pinned tasks' });
+    expect(within(chips).getByRole('button', { name: /GK-1\s*Branding and landing/ })).toBeInTheDocument();
+    await userEvent.click(within(row).getByRole('button', { name: 'Unpin Registration and roles' }));
     expect(overview.removePin).toHaveBeenCalledWith(1);
-    expect(await within(pinned).findAllByRole('listitem')).toHaveLength(1);
+    await waitFor(() => expect(row.querySelector('.tw-plan-row__plan[data-pinned]')).toBeNull());
+    expect(within(row).getByRole('list', { name: 'Pinned tasks' })).toBeInTheDocument();
 
     // Needs you: the task to look at and the question, answered in place; the board loads again after.
     const needs = (await screen.findByRole('heading', { name: 'Needs you 2' })).closest('section')!;
@@ -140,15 +148,18 @@ it('opens on what waits on you, your pins and the plans, then what happened day 
     expect(live).toHaveTextContent('step GK-11: Went live');
     expect(live).toHaveTextContent('October work');
 
-    // One toolbar: person and status filter the rows, through the link.
-    await userEvent.selectOptions(within(happened).getByLabelText('Person'), 'Gio Beridze');
+    // One toolbar, folded to one line that says what it is set to: person and status filter the rows, through the link.
+    expect(screen.getByRole('button', { name: /^Filters:/ })).toHaveTextContent('All plans · Everyone · By day');
+    expect(screen.queryByLabelText('Person')).not.toBeInTheDocument();
+    await openFilters();
+    await userEvent.selectOptions(screen.getByLabelText('Person'), 'Gio Beridze');
     expect(screen.getByTestId('where')).toHaveTextContent('who=2');
     expect(within(happened).getAllByRole('button', { name: /\. / }).map(row => row.getAttribute('aria-label'))).toEqual(['GK-91 Email provider. Asked']);
-    await userEvent.selectOptions(within(happened).getByLabelText('Person'), 'Everyone');
-    await userEvent.click(within(within(happened).getByRole('group', { name: 'Show by status' })).getByRole('button', { name: 'Live' }));
+    await userEvent.selectOptions(screen.getByLabelText('Person'), 'Everyone');
+    await userEvent.click(within(screen.getByRole('group', { name: 'Show by status' })).getByRole('button', { name: 'Live' }));
     expect(screen.getByTestId('where')).toHaveTextContent('status=LIVE');
     expect(within(happened).getAllByRole('heading', { level: 4 })).toHaveLength(1);
-    await userEvent.click(within(within(happened).getByRole('group', { name: 'Show by status' })).getByRole('button', { name: 'Live' }));
+    await userEvent.click(within(screen.getByRole('group', { name: 'Show by status' })).getByRole('button', { name: 'Live' }));
 
     // A row opens its task over the agenda; closing it leaves the link clean.
     await userEvent.click(within(happened).getByRole('button', { name: 'GK-21 User registration. Started' }));
@@ -304,19 +315,19 @@ it('lists pending findings with who pushed them, and makes one a task on its own
     expect(api.changePlan).toHaveBeenCalledWith(5, { version: 3, order: [1, 2, 3, 61] });
 });
 
-it('shows what a plan is for first (or asks for it), its tasks in order, and keeps the extras behind “…”', async () => {
+it('shows a plan’s name as its headline with what it is for under it (or asks for it), its tasks in order, and keeps the extras behind “…”', async () => {
     vi.mocked(api.changePlan).mockImplementation(async (id, change) => view(october.tasks, { plan: plan(id, 'October work', { version: 4, purpose: change.purpose ?? 'Pitches for everyone', status: change.status ?? 'NOW' }) }));
     vi.mocked(api.fetchDetail).mockResolvedValue(detail(october.tasks[1].item));
     mount('/team-work?plan=5');
-    // No purpose yet: the name is the heading and a clear prompt asks for the purpose; written, it becomes the heading.
+    // The name is the headline; with no purpose yet a clear prompt asks for it, and written it is the line under the name.
     expect(await screen.findByRole('heading', { name: /^October work/, level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Started by Beqa · Beqa, Gio Beridze')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Write what this plan is for' }));
     await userEvent.type(screen.getByLabelText('What this plan is for'), 'Pitches for everyone{Enter}');
     expect(api.changePlan).toHaveBeenCalledWith(5, { version: 3, purpose: 'Pitches for everyone' });
-    expect(await screen.findByRole('heading', { name: 'Pitches for everyone', level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /^October work/, level: 1 })).not.toBeInTheDocument();
-    expect(screen.getByText('October work')).toBeInTheDocument();
+    expect(await screen.findByText('Pitches for everyone')).toHaveClass('tw-purpose__text');
+    expect(screen.getByRole('heading', { name: /^October work/, level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Pitches for everyone' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Copy as new version|Plan history/)).not.toBeInTheDocument();
 
     const steps = screen.getByRole('heading', { name: 'In order' }).parentElement!;
@@ -546,7 +557,8 @@ it('shows how the point of a plan changed, a plan as a step of another, and “P
     vi.mocked(api.removePlanStep).mockImplementation(async () => { detached = true; return without; });
     vi.mocked(api.addPlanStep).mockResolvedValue(launch);
     mount('/team-work?plan=6');
-    expect(await screen.findByRole('heading', { name: 'Parents find a pitch', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /^Registration and roles/, level: 1 })).toBeInTheDocument();
+    expect(document.querySelector('p.tw-purpose__text')).toHaveTextContent('Parents find a pitch');
     const was = screen.getByText('Was:').closest('p')!;
     expect(was).toHaveTextContent('Was: Every club pin on one map → now: Parents find a pitch');
     expect(was).toHaveTextContent('by Beqa');
@@ -580,7 +592,7 @@ it('shows how the point of a plan changed, a plan as a step of another, and “P
 });
 
 it('shows what one person is doing, with their responsibility, and the Team page writes it', async () => {
-    const members: api.Member[] = [{ userId: 3, name: 'Ilo', email: 'admin.ilo@talanti.ge', admin: true, addedAt: null, pending: false, responsibility: 'Registration' },
+    const members: api.Member[] = [{ userId: 3, name: 'Ilo', email: 'admin.ilo@talanti.ge', admin: true, addedAt: null, pending: false, responsibility: 'Registration', now: 'Finishing sign-up\nthen roles', nowAt: now },
         { userId: 2, name: 'Gio Beridze', email: 'admin.gio@talanti.ge', admin: true, addedAt: null, pending: false }];
     vi.mocked(api.fetchBoard).mockResolvedValue({ items: boardOf(Object.values(plans)), trail: [], canManageTeam: true, team: members });
     vi.mocked(api.fetchTeam).mockResolvedValue(members);
@@ -590,10 +602,13 @@ it('shows what one person is doing, with their responsibility, and the Team page
     expect(doing).toHaveTextContent('Registration');
     expect(within(doing).getByRole('button', { name: /User registration/ })).toBeInTheDocument();
     expect(within(doing).getByRole('heading', { name: /In progress/ })).toBeInTheDocument();
-    expect(within(doing).getByText('Nothing blocked.')).toBeInTheDocument();
+    // Headings only for lists that have something.
+    expect(within(doing).queryByRole('heading', { name: /Blocked|Needs you/ })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Recent activity' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Plans' })).not.toBeInTheDocument();
-    // The person filter names the responsibility too.
+    // The folded filter line names the person; opened, the person filter names the responsibility too.
+    expect(screen.getByRole('button', { name: /^Filters:/ })).toHaveTextContent('All plans · Ilo · By day');
+    await openFilters();
     expect(screen.getByRole('option', { name: 'Ilo · Registration' })).toBeInTheDocument();
 
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Team work' })).getByRole('button', { name: 'Team' }));
@@ -603,6 +618,138 @@ it('shows what one person is doing, with their responsibility, and the Team page
     expect(api.setResponsibility).toHaveBeenCalledWith(3, 'Registration and sign-in');
     expect(await screen.findByDisplayValue('Registration and sign-in')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'What Ilo is doing' })).toHaveAttribute('href', '/team-work?who=3');
+    // Their Now note, in one line, beside what they look after.
+    const note = screen.getByRole('link', { name: 'Now: Finishing sign-up · then roles · now' });
+    expect(note).toHaveAttribute('href', '/team-work?who=3');
+    expect(note).toHaveAttribute('title', 'Finishing sign-up\nthen roles');
+});
+
+it('puts every open task under Now, live and cancelled work in grey rows at the bottom, and the same tasks one per line in List', async () => {
+    const old = item(51, 'Squad QR link', 'IN_PROGRESS', 40, { updatedAt: monthAgo, description: 'Coaches add a player by scanning a code', doneMeans: 'A coach scans and the player joins', people: [gio] });
+    const dropped = item(52, 'Fax sign-up', 'CANCELLED', null, { updatedAt: twoDaysAgo });
+    const look = item(53, 'Sign-up screen', 'NEEDS_LOOK', null);
+    useLists(view([{ item: old, steps: [] }, { item: dropped, steps: [] }, { item: look, steps: [] }], { plan: plan(12, 'Squads'), changes: [] }));
+    vi.mocked(overview.fetchTimeline).mockResolvedValue({ more: false, events: [event('s-9', 'STATUS', at(0, 9, 0), old, { status: 'IN_PROGRESS', previousStatus: 'PLANNED' })] });
+    mount();
+
+    // Now: every task in progress or blocked however old; what needs your look is in Needs you; nothing planned or done.
+    const nowBlock = (await screen.findByRole('heading', { name: /^Now/ })).closest('section')!;
+    expect(within(nowBlock).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(['In progress 3', 'Blocked 1']);
+    expect(within(nowBlock).queryByRole('button', { name: /GK-53\s*Sign-up screen/ })).not.toBeInTheDocument();
+    const oldRow = within(nowBlock).getByRole('button', { name: /GK-51\s*Squad QR link/ });
+    expect(oldRow.closest('li')).toHaveTextContent('Gio Beridze');
+    expect(oldRow.closest('li')).toHaveTextContent('Squads');
+    expect(within(nowBlock).queryByRole('button', { name: /Save button on phones|Fax sign-up|Schedules/ })).not.toBeInTheDocument();
+    // Done means on hover, focus or a long press; said too when it is missing.
+    expect(oldRow).toHaveAccessibleDescription('Done means: A coach scans and the player joins');
+    expect(within(nowBlock).getByRole('button', { name: /GK-1\s*Branding and landing/ })).toHaveAccessibleDescription('Done means not written yet');
+
+    // A day card: the short name in bold, what it is for in one grey line, and the same tip.
+    const card = await screen.findByRole('button', { name: 'GK-51 Squad QR link. Started' });
+    expect(card.querySelector('.tw-card__title')).toHaveTextContent('Squad QR link');
+    expect(card.querySelector('.tw-card__purpose')).toHaveTextContent('Coaches add a player by scanning a code');
+    expect(card).toHaveAccessibleDescription('Done means: A coach scans and the player joins');
+
+    // At the very bottom: live and cancelled, as quiet rows.
+    const gone = screen.getByRole('heading', { name: /^Live and cancelled/ }).closest('section')!;
+    expect(within(gone).getAllByRole('listitem').map(row => row.querySelector('.tw-row__name')?.textContent)).toEqual(['Schedules', 'Fax sign-up']);
+    expect(within(gone).getAllByRole('listitem').every(row => row.hasAttribute('data-quiet'))).toBe(true);
+
+    // "See what's live" opens what went live and the finished plans.
+    await userEvent.click(screen.getByRole('button', { name: 'See what’s live' }));
+    const live = screen.getByRole('dialog', { name: 'What’s live' });
+    expect(within(live).getByRole('button', { name: /GK-31\s*Schedules/ })).toBeInTheDocument();
+    expect(within(within(live).getByRole('region', { name: 'Plans' })).getByRole('button', { name: /This week’s work/ })).toBeInTheDocument();
+    await userEvent.click(within(live).getAllByRole('button', { name: 'Close' })[0]);
+
+    // List: the same tasks, one line each, what moves first; the choice stays in the link; the filters still apply.
+    await openFilters();
+    await userEvent.click(within(screen.getByRole('group', { name: 'Show as' })).getByRole('button', { name: 'List' }));
+    expect(screen.getByRole('button', { name: /^Filters:/ })).toHaveTextContent('All plans · Everyone · List');
+    expect(screen.getByTestId('where')).toHaveTextContent('show=list');
+    expect(screen.queryByRole('heading', { name: /^Now/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'What happened' })).not.toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Tasks' });
+    const names = within(list).getAllByRole('listitem').map(row => row.querySelector('.tw-row__name')?.textContent);
+    expect(names.slice(0, 3)).toEqual(['Branding and landing', 'User registration', 'Squad QR link']);
+    expect(names).toContain('Save button on phones');
+    expect(names).not.toContain('Fax sign-up');
+    await userEvent.click(within(screen.getByRole('group', { name: 'Show by status' })).getByRole('button', { name: 'Blocked' }));
+    expect(within(screen.getByRole('list', { name: 'Tasks' })).getAllByRole('listitem').map(row => row.querySelector('.tw-row__name')?.textContent)).toEqual(['Registration']);
+    await userEvent.click(within(screen.getByRole('group', { name: 'Show as' })).getByRole('button', { name: 'By day' }));
+    expect(screen.getByTestId('where')).not.toHaveTextContent('show=');
+});
+
+it('keeps names short: a counter in the name field, Cancelled last in the status menu, and a paste warns about a long name', async () => {
+    vi.mocked(api.fetchDetail).mockResolvedValue(detail(branding));
+    vi.mocked(api.pasteIntoPlan).mockResolvedValueOnce({ created: 1, updated: 0, moved: 0, unchanged: 1, deleted: 0, applied: false, view: null, problems: [],
+        lines: [{ line: 1, action: 'NEW', title: 'Let coaches add a player to a squad by scanning a code', parent: null, detail: null }, { line: 2, action: 'UNCHANGED', title: 'Registration', parent: null, detail: null }] });
+    mount('/team-work?plan=5');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add task' }));
+    const add = screen.getByRole('dialog', { name: 'Add task' });
+    const name = within(add).getByLabelText('Name');
+    expect(name).toHaveAttribute('placeholder', 'Short name, e.g. Squad QR link');
+    expect(within(add).getByText('0/30')).toBeInTheDocument();
+    await userEvent.type(name, 'Let coaches add a player by a code');
+    expect(within(add).getByText('34/30')).toBeInTheDocument();
+    expect(within(add).getByRole('status')).toHaveTextContent('Long name: keep it to about 30 characters. The rest belongs in “What it’s for”.');
+    // A new task is never cancelled.
+    expect(within(within(add).getByRole('radiogroup', { name: 'Status' })).queryByRole('radio', { name: 'Cancelled' })).not.toBeInTheDocument();
+    await userEvent.click(within(add).getByRole('button', { name: 'Cancel' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Paste from AI' }));
+    const paste = screen.getByRole('dialog', { name: 'Paste from AI' });
+    await userEvent.type(within(paste).getByLabelText('The work, as text'), '- Let coaches add a player');
+    await userEvent.click(within(paste).getByRole('button', { name: 'Preview' }));
+    const long = (await within(paste).findByText('Let coaches add a player to a squad by scanning a code')).closest('li')!;
+    expect(long).toHaveTextContent('Long name: shorten it');
+    expect(within(paste).getByText('Registration').closest('li')).not.toHaveTextContent('Long name');
+    await userEvent.click(within(paste).getByRole('button', { name: 'Cancel' }));
+
+    // An open task: its name is the panel's headline, and Cancelled is the status menu's last choice.
+    await userEvent.click(within(screen.getByRole('heading', { name: 'In order' }).parentElement!).getAllByRole('button')[0]);
+    const opened = await screen.findByRole('dialog', { name: /GK-1\s*Branding and landing/ });
+    expect(opened.querySelector('.tw-task-dialog__name')).toHaveTextContent('Branding and landing');
+    await userEvent.click(await within(opened).findByRole('button', { name: 'Status: In progress' }));
+    expect(within(opened).getAllByRole('menuitemradio').map(option => option.textContent)).toEqual(['Planned', 'In progress', 'Needs your look', 'Accepted', 'Live', 'Blocked', 'Cancelled']);
+});
+
+it('lets a person write their own Now note, and teammates comment under it', async () => {
+    const members: api.Member[] = [{ userId: 1, name: 'Beqa', email: 'admin.beqa@talanti.ge', admin: true, addedAt: null, pending: false }, { userId: 2, name: 'Gio Beridze', email: 'admin.gio@talanti.ge', admin: true, addedAt: null, pending: false }];
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: boardOf(Object.values(plans)), trail: [], canManageTeam: true, team: members });
+    const comment = (id: number, author: api.Person, body: string, canEdit: boolean): api.WorkComment => ({ id, author, body, createdAt: now, editedAt: null, canEdit });
+    vi.mocked(api.writeNow).mockImplementation(async (_id, body) => ({ person: beqa, body, updatedAt: now, canEdit: true, comments: [] }));
+    vi.mocked(api.addNowComment).mockImplementation(async (_id, body) => ({ person: beqa, body: 'Branding on the side', updatedAt: now, canEdit: true, comments: [comment(8, beqa, body, true)] }));
+    mount('/team-work?who=1');
+
+    // Yours: a prompt to write it, then the note with when it changed.
+    await userEvent.click(await screen.findByRole('button', { name: 'Write what you’re doing now, in a few sentences' }));
+    await userEvent.type(screen.getByLabelText('What you’re doing now'), 'Branding on the side');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(api.writeNow).toHaveBeenCalledWith(1, 'Branding on the side');
+    expect(await screen.findByText('Branding on the side')).toHaveClass('tw-now-note__body');
+    expect(screen.getByText('updated now')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Reply'), 'Roles next');
+    await userEvent.click(screen.getByRole('button', { name: 'Reply' }));
+    expect(api.addNowComment).toHaveBeenCalledWith(1, 'Roles next');
+    expect(await screen.findByText('Roles next')).toBeInTheDocument();
+
+    // Someone else's: read only, with a comment box; each comment edits only for its author.
+    vi.mocked(api.fetchNow).mockResolvedValue({ person: gio, body: 'Working on the map', updatedAt: twoDaysAgo, canEdit: false, comments: [comment(4, beqa, 'Let’s do branding first', true), comment(5, ilo, 'Agreed', false)] });
+    vi.mocked(api.editNowComment).mockResolvedValue({ person: gio, body: 'Working on the map', updatedAt: twoDaysAgo, canEdit: false, comments: [{ ...comment(4, beqa, 'Branding first, then the map', true), editedAt: now }, comment(5, ilo, 'Agreed', false)] });
+    await openFilters();
+    await userEvent.selectOptions(screen.getByLabelText('Person'), 'Gio Beridze');
+    expect(await screen.findByText('Working on the map')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Change your Now note' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Edit' })).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    const box = screen.getByLabelText('Edit the comment');
+    await userEvent.clear(box);
+    await userEvent.type(box, 'Branding first, then the map');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(api.editNowComment).toHaveBeenCalledWith(4, 'Branding first, then the map');
+    expect(await screen.findByText('Branding first, then the map')).toBeInTheDocument();
+    expect(screen.getByLabelText('Comment')).toHaveAttribute('placeholder', 'Tell Gio, e.g. let’s do branding first');
 });
 
 it('does not exist for accounts off the team, and Home shows no row without the capability', async () => {

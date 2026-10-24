@@ -100,6 +100,7 @@ const RequestsCentre = lazy(() => import('./features/requests/RequestsCentre').t
 const WorldRoutes = lazy(() => import('./features/world/WorldRoutes'));
 const TryoutDetailPage = lazy(() => import('./features/tryouts/TryoutDetailPage'));
 const TeamWorkPage = lazy(() => import('./features/teamWork/TeamWorkPage').then(module => ({default: module.TeamWorkPage})));
+const TeamChatPage = lazy(() => import('./features/teamChat/TeamChatPage').then(module => ({default: module.TeamChatPage})));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({default: module.AdminPage})));
 const PageReviewQueue = lazy(() => import('./features/pages/verify/PageReviewQueue').then(module => ({ default: module.PageReviewQueue })));
 const PageReviewReceipt = lazy(() => import('./features/pages/verify/PageReviewReceipt').then(module => ({ default: module.PageReviewReceipt })));
@@ -134,7 +135,7 @@ function useRailsFit() {
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
 const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent', '/start']);
-const boundedCanvasPages = new Set(['/messages']);
+const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface)]">
@@ -332,7 +333,7 @@ export function MainLayout() {
         location.pathname === '/assistant' ||
         location.pathname === '/account/roles' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/team-work', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
         location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
         location.pathname.startsWith('/tournament-series/') ||
@@ -353,7 +354,7 @@ export function MainLayout() {
     // W6 â€” one shell: browse/list/destination pages share a single App-level
     // frame (app-page-shell + AppPageFrame, one max-width); the map, chat,
     // schedule and the management workspaces stay full-width canvases.
-    const canvasWorkspacePages = new Set(['/map', '/messages', '/onboarding', '/dob', '/set-password']);
+    const canvasWorkspacePages = new Set(['/map', '/messages', '/team-work/chat', '/onboarding', '/dob', '/set-password']);
     const isImmersiveCanvasPage =
         /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
         canvasWorkspacePages.has(location.pathname) || isWorldMap ||
@@ -412,6 +413,7 @@ export function MainLayout() {
             <Route path="/organizations/:organizationId" element={<ProtectedRoute><OrganizationProfilePage /></ProtectedRoute>} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
             <Route path="/team-work" element={<ProtectedRoute><TeamWorkPage /></ProtectedRoute>} />
+            <Route path="/team-work/chat" element={<ProtectedRoute><TeamChatPage /></ProtectedRoute>} />
             <Route path="/admin/page-reviews" element={<SystemAdminRoute><PageReviewQueue /></SystemAdminRoute>} />
             <Route path="/pages/requests/:reviewId" element={<ProtectedRoute><PageReviewReceipt /></ProtectedRoute>} />
             <Route path="/profile/me" element={<ProtectedRoute><MyProfileRedirect /></ProtectedRoute>} />

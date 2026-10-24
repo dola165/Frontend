@@ -3,14 +3,16 @@ import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { PASTE_EXAMPLE, pasteIntoPlan, type PasteLine, type PasteResult, type PlanView } from './api';
+import { NAME_LIMIT, PASTE_EXAMPLE, pasteIntoPlan, type PasteLine, type PasteResult, type PlanView } from './api';
+import './team-work-now.css';
 
 const ACTIONS: Record<PasteLine['action'], [string, string]> = { NEW: ['New', 'ახალი'], UPDATED: ['Updated', 'განახლდა'], MOVED: ['Moved', 'გადავიდა'], UNCHANGED: ['Same', 'იგივე'], DELETED: ['Deleted', 'წაიშლება'] };
 
 /**
  * Plain text from an AI (or anyone) turned into tasks of work: a preview of what it would do first, then apply.
  * Tasks match by name in this plan; only lines marked [delete] delete. A new task whose name is already in another
- * plan is flagged, so a plan pasted twice does not quietly double.
+ * plan is flagged, so a plan pasted twice does not quietly double. A name over 30 characters still goes in, with a
+ * warning to shorten it.
  */
 export function PasteDialog({ planId, elsewhere, onClose, onApplied }: { planId: number; elsewhere: Map<string, string>; onClose: () => void; onApplied: (view: PlanView) => void }) {
     const copy = useJourneyCopy();
@@ -49,6 +51,7 @@ export function PasteDialog({ planId, elsewhere, onClose, onApplied }: { planId:
             <ol className="tw-paste__lines">{preview.lines.map(line => <li key={line.line} data-action={line.action}>
                 <span className="tw-paste__action">{copy(...ACTIONS[line.action])}</span>
                 <span className="tw-paste__title">{line.parent && <span className="gk-faint">{line.parent} › </span>}{line.title}</span>
+                {line.action !== 'DELETED' && line.title.trim().length > NAME_LIMIT && <span className="tw-paste__long">{copy('Long name: shorten it', 'გრძელი სახელი: შეამოკლეთ')}</span>}
                 {line.detail && <span className="gk-faint">{line.detail}</span>}
                 {line.action === 'NEW' && !line.parent && elsewhere.has(line.title.trim().toLowerCase()) && <span className="tw-paste__doubled">{copy(`Already in ${elsewhere.get(line.title.trim().toLowerCase())}`, `უკვე არის: ${elsewhere.get(line.title.trim().toLowerCase())}`)}</span>}
             </li>)}</ol>

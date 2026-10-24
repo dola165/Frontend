@@ -5,7 +5,8 @@ import { Avatar, Badge, Button, PageHeader, Panel, Skeleton } from '../../design
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addMember, fetchTeam, newInvite, setResponsibility, type Invite, type Member } from './api';
-import { shortDate } from './teamWorkWords';
+import { ago, shortDate } from './teamWorkWords';
+import './team-work-now.css';
 
 const linkOf = (invite: Invite) => `${window.location.origin}/reset-password?token=${encodeURIComponent(invite.token)}`;
 
@@ -44,12 +45,17 @@ function ResponsibilityLine({ member, onSaved }: { member: Member; onSaved: (mem
         <input id={id} className="gk-input" maxLength={120} value={line} placeholder={copy('What they look after, e.g. Agent Dola', 'რას უძღვება, მაგ. Agent Dola')} onChange={event => setLine(event.target.value)} onBlur={() => void save()}
             onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); (event.target as HTMLInputElement).blur(); } }} />
         {error && <span className="gk-notice gk-notice--danger" role="alert">{error}</span>}
+        {member.now && <Link className="tw-team__now" to={`/team-work?who=${member.userId}`} title={member.now}>
+            <span className="tw-team__now-label">{copy('Now', 'ახლა')}:</span> <span className="tw-team__now-text">{member.now.replace(/\s*\n+\s*/g, ' · ')}</span>
+            {member.nowAt && <> <span className="tw-team__now-when">· {ago(copy, member.nowAt)}</span></>}
+        </Link>}
     </span>;
 }
 
 /**
  * Who sees Team work: exactly the team's own accounts, by email (the server setting APP_TEAM_WORK_EMAILS), whatever
- * their role, each with one line saying what they look after and a way to see what they are doing. A team email
+ * their role, each with one line saying what they look after, their Now note in one line, and a way to see what
+ * they are doing. A team email
  * without an account gets one with no password and a one-time sign-up link to pass on; anyone else is refused.
  */
 export function TeamPanel({ canManage }: { canManage: boolean }) {

@@ -4,6 +4,8 @@ import { formatTime } from '../../utils/formatting';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { isDone, type WorkNode } from './api';
 import { eventIcon, eventWords, type DayCard as Card } from './agendaRows';
+import { DoneTip } from './DoneTip';
+import { useDoneTip } from './useDoneTip';
 import type { WorkEvent } from './overviewApi';
 import { progressWords, statusName } from './teamWorkWords';
 import { KeyChip, SmallChip, StatusDot } from './WorkBits';
@@ -11,14 +13,16 @@ import { KeyChip, SmallChip, StatusDot } from './WorkBits';
 const names = (node: WorkNode | undefined) => node?.item.people.map(person => person.name).filter(Boolean).join(', ') ?? '';
 
 /**
- * One task on one day, as a card: what it is for first (then its name, smaller), where it stands now, what happened
- * to it that day (the newest event, with how many more), who is on it, its progress and its plan. Pressed, it opens
- * the task; a step's event opens that step.
+ * One task on one day, as a card: its short name, big and bold, with what it is for as one small grey line under it,
+ * where it stands now, what happened to it that day (the newest event, with how many more), who is on it, its
+ * progress and its plan. "Done means" shows on hover, focus or a long press. Pressed, it opens the task; a step's
+ * event opens that step.
  */
 export function TaskDayCard({ card, node, planName, pinned, fresh, onOpen }: {
     card: Card & { kind: 'task' }; node: WorkNode | undefined; planName?: string; pinned: boolean; fresh: boolean; onOpen: (taskId: number, stepId: number | null) => void;
 }) {
     const copy = useJourneyCopy();
+    const tip = useDoneTip();
     const latest = card.events[0];
     const item = node?.item;
     const status = item?.status ?? latest.task.status;
@@ -31,8 +35,8 @@ export function TaskDayCard({ card, node, planName, pinned, fresh, onOpen }: {
     const more = card.events.length - 1;
     const who = names(node) || latest.by?.name || '';
     const label = `${key} ${title}. ${what}`;
-    return <li className="tw-card" data-status={status} data-fresh={fresh || undefined}>
-        <button type="button" className="tw-card__open" aria-label={label} onClick={() => onOpen(card.taskId, step ? step.id : null)}>
+    return <li className="tw-card" data-status={status} data-fresh={fresh || undefined} {...tip.holder}>
+        <button type="button" className="tw-card__open" aria-label={label} {...tip.trigger} onClick={() => { if (!tip.swallow()) onOpen(card.taskId, step ? step.id : null); }}>
             <span className="tw-card__top">
                 <StatusDot status={status} /><span className="tw-card__status">{statusName(copy, status)}</span>
                 <KeyChip value={key} />
@@ -40,7 +44,8 @@ export function TaskDayCard({ card, node, planName, pinned, fresh, onOpen }: {
                 {item != null && item.openQuestions > 0 && <span className="tw-task__ask gk-num" title={copy('Questions for Beqa', 'კითხვები ბექასთვის')}><CircleHelp aria-hidden="true" />{item.openQuestions}</span>}
                 <span className="tw-card__time gk-num">{pinned && <Pin className="tw-agenda__pinned" aria-label={copy('Pinned', 'მიმაგრებულია')} />}{formatTime(latest.at)}</span>
             </span>
-            {purpose ? <><span className="tw-card__purpose">{purpose}</span><span className="tw-card__name">{title}</span></> : <span className="tw-card__purpose">{title}</span>}
+            <span className="tw-card__title">{title}</span>
+            {purpose && <span className="tw-card__purpose" title={purpose}>{purpose}</span>}
             <span className="tw-card__event">{createElement(eventIcon(latest), { 'aria-hidden': true })}<span>{step && <span className="tw-card__step">{copy(`step ${step.key}: `, `ნაბიჯი ${step.key}: `)}</span>}{what}{detail && <span className="tw-card__detail"> — {detail}</span>}</span>
                 {more > 0 && <span className="tw-card__more gk-num">{copy(`+${more} more`, `+${more}`)}</span>}</span>
             <span className="tw-card__bar"><span style={{ width: `${percent ?? (isDone(status) ? 100 : 0)}%` }} /></span>
@@ -49,6 +54,7 @@ export function TaskDayCard({ card, node, planName, pinned, fresh, onOpen }: {
                 <span className="tw-card__who">{[who, planName].filter(Boolean).join(' · ')}</span>
             </span>
         </button>
+        <DoneTip id={tip.id} doneMeans={item?.doneMeans} />
     </li>;
 }
 

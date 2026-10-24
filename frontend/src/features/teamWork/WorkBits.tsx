@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { PRIORITIES, STATUSES, isDone, type EndKind, type EndUnit, type Person, type Priority, type WorkEnd, type WorkStatus } from './api';
+import { NAME_LIMIT, PRIORITIES, STATUSES, isDone, type EndKind, type EndUnit, type Person, type Priority, type WorkEnd, type WorkStatus } from './api';
 import { ESTIMATES, priorityName, statusName } from './teamWorkWords';
 import { useClickAway } from './useClickAway';
 
@@ -27,7 +27,8 @@ export function SmallPick({ small, onChange }: { small: boolean; onChange: (smal
 }
 
 /**
- * The status as one compact control: the current status (its dot and name), and the other five one tap away.
+ * The status as one compact control: the current status (its dot and name), and the others one tap away; cancelled
+ * (decided not to do) is last, so nobody deletes work they dropped.
  * Accepted or live fills a percent to 100 unless the task follows its steps.
  */
 export function StatusMenu({ status, percent = null, fromSteps = false, onChange }: { status: WorkStatus; percent?: number | null; fromSteps?: boolean; onChange: (change: { status: WorkStatus; percent?: number }) => void }) {
@@ -58,6 +59,23 @@ export function StatusFilter({ chosen, onChange }: { chosen: WorkStatus[]; onCha
     </button>)}</div>;
 }
 
+/**
+ * A task's or a plan's short name, with a counter: about 30 characters reads at a glance, and longer words belong in
+ * "What it's for". Only a hint: a longer name still saves (up to `max`).
+ */
+export function NameField({ value, onChange, max = 120, autoFocus = false, placeholder }: { value: string; onChange: (value: string) => void; max?: number; autoFocus?: boolean; placeholder?: string }) {
+    const copy = useJourneyCopy();
+    const id = useId(), hintId = useId();
+    const length = value.trim().length;
+    const long = length > NAME_LIMIT;
+    return <div className="tw-field tw-name-field" data-long={long || undefined}>
+        <span className="tw-name-field__label"><label htmlFor={id}>{copy('Name', 'სახელი')}</label><span className="tw-name-field__count gk-num" aria-hidden="true">{length}/{NAME_LIMIT}</span></span>
+        <input id={id} className="gk-input" autoFocus={autoFocus} maxLength={max} value={value} aria-describedby={long ? hintId : undefined}
+            placeholder={placeholder ?? copy('Short name, e.g. Squad QR link', 'მოკლე სახელი, მაგ. გუნდის QR ბმული')} onChange={event => onChange(event.target.value)} />
+        {long && <p id={hintId} className="tw-name-field__hint" role="status">{copy(`Long name: keep it to about ${NAME_LIMIT} characters. The rest belongs in “What it’s for”.`, `გრძელი სახელია: დატოვეთ დაახლ. ${NAME_LIMIT} სიმბოლო. დანარჩენი „რისთვისაა“-ში ჩაწერეთ.`)}</p>}
+    </div>;
+}
+
 export function Field({ label, children, wide = false }: { label: string; children: (id: string) => ReactNode; wide?: boolean }) {
     const id = useId();
     return <div className={`tw-field${wide ? ' tw-field--wide' : ''}`}><label htmlFor={id}>{label}</label>{children(id)}</div>;
@@ -85,12 +103,12 @@ export function ProgressPick({ percent, onChange }: { percent: number | null; on
     </div>;
 }
 
-/** Status and progress together, for a new task: the six statuses as radios, then the progress words. */
+/** Status and progress together, for a new task: the statuses as radios (a new task is never cancelled), then the progress words. */
 export function QuickEdit({ status, percent, onChange }: { status: WorkStatus; percent: number | null; onChange: (change: { status?: WorkStatus; percent?: number | null }) => void }) {
     const copy = useJourneyCopy();
     return <div className="tw-quick">
         <div className="tw-status-pick" role="radiogroup" aria-label={copy('Status', 'სტატუსი')}>
-            {STATUSES.map(value => <button key={value} type="button" role="radio" aria-checked={status === value} data-status={value}
+            {STATUSES.filter(value => value !== 'CANCELLED').map(value => <button key={value} type="button" role="radio" aria-checked={status === value} data-status={value}
                 onClick={() => onChange(isDone(value) && !isDone(status) && percent != null ? { status: value, percent: 100 } : { status: value })}>
                 <span className="tw-dot" aria-hidden="true" />{statusName(copy, value)}
             </button>)}

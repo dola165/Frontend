@@ -9,6 +9,7 @@ import { ConversationThread, NoConversationSelected } from '../components/chat/C
 import { MessageComposer } from '../components/chat/MessageComposer';
 import { ConversationInfoPanel } from '../components/chat/ConversationInfoPanel';
 import { NewChatModal } from '../components/chat/NewChatModal';
+import { TeamChatInMessages } from '../features/teamChat/TeamChatPage';
 
 export const MessagingPage = () => {
     const { sessionId } = useAuth();
@@ -33,7 +34,9 @@ function Messages() {
 
             {/* ── CHAT WINDOW ──────────────────────────────────── */}
             <section className="flex-1 flex flex-col bg-[var(--chat-surface)] min-w-0">
-                {squadId ? <SquadInboxConversation key={`${sessionId}:${squadId}`} id={squadId} /> : activeConv ? (
+                {squadId ? <SquadInboxConversation key={`${sessionId}:${squadId}`} id={squadId} /> : activeConv?.contextType === 'TEAM' ? (
+                    <TeamChatInMessages key={sessionId} onBack={() => setSearchParams({})} />
+                ) : activeConv ? (
                     <ConversationThread conversation={activeConv} sessionId={sessionId} currentUserId={currentUserId}
                         messages={chat.activeMessages} viewportRef={chat.messageViewportRef} loadingMessages={chat.loadingMessages}
                         hasOlder={chat.hasOlder} loadingOlder={chat.loadingOlder} historyError={chat.historyError} loadOlder={chat.loadOlder}
@@ -46,7 +49,7 @@ function Messages() {
                 )}
             </section>
 
-            {activeConv && (
+            {activeConv && activeConv.contextType !== 'TEAM' && (
                 <ConversationInfoPanel conversation={activeConv} currentUserId={currentUserId} showInfo={showInfo}
                     managementError={managementError} onDismissError={() => chat.setManagementError(null)} manage={manage} />
             )}

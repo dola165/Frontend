@@ -35,15 +35,16 @@ export function TaskBody({ node, plan, actions, framed = false, onClose }: { nod
 
 /**
  * A task opened from a card, Needs you or a pin: a big panel over the page (nearly the whole screen on a desktop, a
- * sheet on a phone). Its head is the quiet line (status, key, name) with your pin and its plan; the page inside
- * starts with what the task is for. `?task=` (and `?step=` for one of its steps) keep it open across a reload.
+ * sheet on a phone). Its head is the task's short name, big and bold, after its status and key, with your pin and
+ * its plan; the page inside starts with what the task is for. `?task=` (and `?step=` for one of its steps) keep it
+ * open across a reload.
  */
 export function TaskDialog({ node, plan, actions, pins, onOpenPlan }: { node: WorkNode; plan?: Plan; actions: TaskActions; pins: Pins; onOpenPlan?: (id: number) => void }) {
     const copy = useJourneyCopy();
     const { item } = node;
     const close = () => actions.onToggle(item.id);
     return <Dialog open size="lg" className="tw-dialog tw-task-dialog" onClose={close} closeLabel={copy('Close', 'დახურვა')}
-        title={<span className="tw-task-dialog__title"><StatusDot status={item.status} /><KeyChip value={item.key} /><span>{item.title}</span></span>}
+        title={<span className="tw-task-dialog__title"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-task-dialog__name">{item.title}</span></span>}
         description={<span className="tw-task-dialog__bar">
             <PinButton pins={pins} target={{ itemId: item.id }} name={item.title} withLabel />
             {plan && onOpenPlan && <button type="button" className="tw-link-button" onClick={() => onOpenPlan(plan.id)}><Folder aria-hidden="true" />{plan.name}</button>}

@@ -4,7 +4,7 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { formatDateTime } from '../../../utils/formatting';
 import type { useAccountCopy } from './accountCopy';
 
-export type AccountTab = 'profile' | 'security' | 'sessions' | 'accounts' | 'danger';
+export type AccountTab = 'profile' | 'security' | 'notifications' | 'sessions' | 'accounts' | 'danger';
 export type Account = {
     id: number;
     username: string;
@@ -56,12 +56,13 @@ export const accountErrorText = (error: AccountError, copy: (english: string) =>
 export const accountTabItems: EntityTabItem[] = [
     { id: 'profile', label: 'Profile' },
     { id: 'security', label: 'Security' },
+    { id: 'notifications', label: 'Notifications' },
     { id: 'sessions', label: 'Sessions' },
     { id: 'accounts', label: 'Linked Accounts' },
     { id: 'danger', label: 'Danger' }
 ];
 export const normalizeAccountTab = (value: string | null): AccountTab =>
-    value === 'security' || value === 'sessions' || value === 'accounts' || value === 'danger' ? value : 'profile';
+    value === 'security' || value === 'notifications' || value === 'sessions' || value === 'accounts' || value === 'danger' ? value : 'profile';
 export const fmt = (value?: string | null) => (value ? formatDateTime(value) : null);
 
 // Style primitives — use FC workspace tokens

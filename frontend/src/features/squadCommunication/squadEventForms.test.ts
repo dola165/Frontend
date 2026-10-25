@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { newSquadEvent } from './squadEventForms';
 
-const originalZone = process.env.TZ;
-afterEach(() => { vi.useRealTimers(); process.env.TZ = originalZone; });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 
 /** Opens the default form at a local wall-clock time in `zone`, for the day it is opened. */
 function openAt(zone: string, year: number, month: number, day: number, hours: number, minutes: number, seconds = 0) {
-    process.env.TZ = zone;
+    vi.stubEnv('TZ', zone);
     const now = new Date(year, month - 1, day, hours, minutes, seconds);
     vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(now);
     const form = newSquadEvent(new Date(now), 11, true);
@@ -57,7 +56,7 @@ describe('the default training time', () => {
     });
 
     it('leaves a chosen later day at its evening', () => {
-        process.env.TZ = 'Asia/Tbilisi';
+        vi.stubEnv('TZ', 'Asia/Tbilisi');
         vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 9, 21, 23, 0));
         const form = newSquadEvent(new Date(2026, 9, 30, 9, 0), 11, false);
         expect([form.date, form.startTime, form.endTime]).toEqual(['2026-10-30', '18:00', '19:30']);

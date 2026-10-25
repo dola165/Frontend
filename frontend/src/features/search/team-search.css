@@ -1,0 +1,87 @@
+/* Team work's search: the box in the page's header, and the results over the page. Tokens only. */
+.gk .tw-shell > .tw-search { grid-column: 1 / -1; }
+.gk .tw-search__box { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 640px; min-height: 44px; padding: 0 8px 0 14px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-md); text-align: left; cursor: text; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }
+.gk .tw-search__box:hover { border-color: var(--gk-line-strong); }
+.gk .tw-search__box:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+.gk .tw-search__box > svg { flex: none; width: 18px; height: 18px; }
+.gk .tw-search__words { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .tw-search__words[data-typed] { color: var(--gk-text); }
+.gk .tw-search__key { flex: none; display: inline-flex; align-items: center; min-width: 22px; height: 22px; margin-left: 6px; padding: 0 6px; border: 1px solid var(--gk-line); border-bottom-width: 2px; border-radius: var(--gk-r-sm); background: var(--gk-raised); color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-xs); font-weight: 600; justify-content: center; }
+.gk .tw-search-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* On desktop the box lines up with the page beside the side bar. */
+@media (min-width: 901px) { .gk .tw-shell > .tw-search { padding-left: calc(196px + var(--gk-6)); } }
+
+/* The results: near the top of the screen, the words always in view. */
+.gk.tw-search-layer { place-items: start center; padding-top: min(10vh, 96px); }
+.gk .tw-search-dialog { max-height: min(78dvh, 760px); overflow: hidden; }
+.gk .tw-search-dialog__head { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-3) var(--gk-3) var(--gk-4); border-bottom: 1px solid var(--gk-line); }
+.gk .tw-search-dialog__head > svg { flex: none; width: 20px; height: 20px; color: var(--gk-text-3); }
+.gk .tw-search-dialog__input { flex: 1; min-width: 0; min-height: 44px; border: 0; background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-lg); outline: none; }
+.gk .tw-search-dialog__input::-webkit-search-cancel-button { cursor: pointer; }
+/* The whole head is the field: it shows the focus, so the words do not get a second ring inside it. */
+.gk .tw-search-dialog__head .tw-search-dialog__input:focus, .gk .tw-search-dialog__head .tw-search-dialog__input:focus-visible { outline: none; box-shadow: none; }
+.gk .tw-search-dialog__head:focus-within { box-shadow: inset 0 -2px 0 var(--gk-accent); }
+.gk .tw-search-dialog__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--gk-2) var(--gk-2) var(--gk-3); }
+.gk .tw-search-dialog__body[data-stale] .tw-search-dialog__list { opacity: .6; transition: opacity .15s var(--gk-ease); }
+.gk .tw-search-dialog__hint { margin: var(--gk-3) var(--gk-3); color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); max-width: 62ch; }
+.gk .tw-search-dialog__asking { display: flex; align-items: center; gap: 6px; color: var(--gk-text-3); }
+.gk .tw-search-dialog__asking svg { width: 14px; height: 14px; color: var(--gk-accent); }
+.gk .tw-search-dialog__list, .gk .tw-search-group ul { list-style: none; margin: 0; padding: 0; }
+.gk .tw-search-dialog__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
+.gk .tw-search-dialog__foot .tw-link-button { min-height: 32px; }
+.gk .tw-search-dialog__missed { margin-left: auto; color: var(--gk-text-3); }
+.gk .tw-search-dialog__kept { color: var(--gk-text-2); }
+
+/* A group: its name, then its rows. The best matches stand out a little. */
+.gk .tw-search-group { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-2) 0; }
+.gk .tw-search-group + .tw-search-group { border-top: 1px solid var(--gk-line); }
+.gk .tw-search-group__title { display: flex; align-items: center; gap: 6px; margin: 0; padding: 4px var(--gk-3); font-size: var(--gk-fs-xs); font-weight: 650; letter-spacing: .03em; text-transform: uppercase; color: var(--gk-text-3); }
+.gk .tw-search-group__title svg { width: 14px; height: 14px; color: var(--gk-accent); }
+.gk .tw-search-group--best { margin: 0 0 var(--gk-1); border-radius: var(--gk-r); background: var(--gk-accent-soft); }
+.gk .tw-search-group--best + .tw-search-group { border-top: 0; }
+
+/* A row: the short name, why it matched, where it is. */
+.gk .tw-search-row { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--gk-3); align-items: start; min-height: 44px; padding: 8px var(--gk-3); border-radius: var(--gk-r); cursor: pointer; }
+.gk .tw-search-row[data-active] { background: var(--gk-hover); box-shadow: inset 3px 0 0 var(--gk-accent); }
+.gk .tw-search-row__icon, .gk .tw-search-row__thumb { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--gk-r-sm); color: var(--gk-text-3); }
+.gk .tw-search-row__icon { background: var(--gk-raised); }
+.gk .tw-search-row__icon svg { width: 18px; height: 18px; }
+.gk .tw-search-row__icon .tw-dot { width: 10px; height: 10px; }
+.gk .tw-search-row__thumb { overflow: hidden; border: 1px solid var(--gk-line); background: var(--gk-raised); }
+.gk .tw-search-row__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gk .tw-search-row__thumb--icon svg { width: 20px; height: 20px; }
+.gk .tw-search-row__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .tw-search-row__title { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; color: var(--gk-text); overflow-wrap: anywhere; }
+.gk .tw-search-row__why { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .tw-search-row__label { color: var(--gk-text-3); }
+.gk .tw-search-row__why--meaning { display: inline-flex; align-items: center; gap: 4px; color: var(--gk-text-3); }
+.gk .tw-search-row__why--meaning svg { width: 13px; height: 13px; color: var(--gk-accent); }
+.gk .tw-search-row__where { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .tw-search-row__where > span { display: inline-flex; align-items: center; min-width: 0; }
+.gk .tw-search-row__where > span + span::before { content: '·'; margin: 0 6px; }
+.gk .tw-search-row mark, .gk .tw-search-row .tw-key-chip[data-marked] { padding: 0 2px; border-radius: 3px; background: color-mix(in srgb, var(--gk-accent) 26%, transparent); color: inherit; }
+.gk .tw-search-more { display: flex; align-items: center; min-height: 40px; padding: 0 var(--gk-3) 0 calc(40px + 2 * var(--gk-3)); border-radius: var(--gk-r); color: var(--gk-accent); font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .tw-search-more[data-active] { background: var(--gk-hover); }
+
+/* What search missed. */
+.gk .tw-search-missed__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gk .tw-search-missed__list li { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-3) 0; border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
+.gk .tw-search-missed__list li:first-child { border-top: 0; }
+.gk .tw-search-missed__query { font-size: var(--gk-fs-md); font-weight: 650; color: var(--gk-text); overflow-wrap: anywhere; }
+
+/* Phones: the whole screen, the words at the top where the thumb and the keyboard leave room. */
+@media (max-width: 640px) {
+    .gk.tw-search-layer { place-items: stretch; padding: 0; }
+    .gk .tw-search-dialog { height: 100dvh; max-height: 100dvh; border-radius: 0; border-width: 0; }
+    .gk .tw-search-dialog__head { padding-left: var(--gk-3); }
+    .gk .tw-search-dialog__input { font-size: var(--gk-fs-md); }
+    .gk .tw-search-row { grid-template-columns: 36px minmax(0, 1fr); padding: 8px; }
+    .gk .tw-search-row__icon, .gk .tw-search-row__thumb { width: 36px; height: 36px; }
+    .gk .tw-search-more { padding-left: calc(36px + var(--gk-3) + 8px); }
+    .gk .tw-search-dialog__missed { margin-left: 0; }
+    /* No keyboard to press them on. */
+    .gk .tw-search__key { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .gk .tw-search__box, .gk .tw-search-dialog__body[data-stale] .tw-search-dialog__list { transition: none; }
+}

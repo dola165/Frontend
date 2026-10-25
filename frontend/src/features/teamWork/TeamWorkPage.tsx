@@ -16,6 +16,7 @@ import { WaitingPage } from './WaitingPage';
 import { PlanPage, type PlanDialog } from './PlanPage';
 import { TeamPanel } from './TeamPanel';
 import { TeamWorkDola } from './TeamWorkDola';
+import { TeamSearch } from '../search/TeamSearch';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
 import { AddPlanStepDialog, CopyForAiDialog, PlanHistoryDialog } from './PlanBits';
@@ -173,6 +174,7 @@ export function TeamWorkPage() {
 
     return <GkRoot className="gk-page"><PageFrame className="tw-page">
         <div className="tw-shell">
+            <TeamSearch />
             <TeamWorkNav current={place} needsYou={needsYouCount(items.filter(item => !findings.has(item.id)))} fresh={ideas?.tasks.filter(node => { const detail = details.get(node.item.id); return detail != null && isNewFor(detail, me); }).length ?? 0}
                 waiting={waiting?.tasks.length ?? 0} onGo={go} />
             <div className="tw-main" key={`${place}-${wanted ?? ''}`}>

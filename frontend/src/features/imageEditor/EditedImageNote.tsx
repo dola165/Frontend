@@ -7,12 +7,19 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { editedAgo } from './imageEditorWords';
 import { useEditedFrom } from './useEditedFrom';
 
+/** What useMediaSource gives for a picture that could not be fetched. */
+const FAILED = 'data:image/png;base64,invalid';
+
 function Original({ url, onClose }: { url: string; onClose: () => void }) {
     const copy = useJourneyCopy();
     const src = useMediaSource(url);
+    const [broken, setBroken] = useState(false);
+    const failed = broken || src === FAILED;
     return <Dialog open size="lg" className="ie-original" title={copy('Original picture', 'ორიგინალი სურათი')} description={copy('As it was before the edit.', 'როგორც იყო რედაქტირებამდე.')}
         onClose={onClose} closeLabel={copy('Close', 'დახურვა')}>
-        {src ? <img className="ie-original__img" src={src} alt={copy('The original picture', 'ორიგინალი სურათი')} /> : <p className="gk-faint" role="status">{copy('Opening…', 'იხსნება…')}</p>}
+        {failed ? <p className="gk-notice gk-notice--danger" role="alert">{copy('The original could not open. It may have been removed; try again later.', 'ორიგინალი ვერ გაიხსნა. შესაძლოა წაიშალა; სცადეთ მოგვიანებით.')}</p>
+            : src ? <img className="ie-original__img" src={src} alt={copy('The original picture', 'ორიგინალი სურათი')} onError={() => setBroken(true)} />
+                : <p className="gk-faint" role="status">{copy('Opening…', 'იხსნება…')}</p>}
     </Dialog>;
 }
 
@@ -27,12 +34,13 @@ export function EditedImageNote({ url, onOpenOriginal, className }: { url: strin
     const [viewing, setViewing] = useState(false);
     if (!edit) return null;
     const who = edit.editedBy.name ?? copy('someone', 'ვიღაცამ');
+    const original = edit.originalAvailable ? edit.originalUrl : null;
     return <p className={`ie-note${className ? ` ${className}` : ''}`}>
         <PencilLine aria-hidden="true" />
         <span className="ie-note__text">{copy(`Edited by ${who}`, `დაარედაქტირა: ${who}`)} · {editedAgo(copy, edit.editedAt)}</span>
-        {edit.originalAvailable
-            ? <button type="button" className="ie-note__link" onClick={() => onOpenOriginal ? onOpenOriginal(edit.originalUrl) : setViewing(true)}>{copy('Original', 'ორიგინალი')}</button>
+        {original
+            ? <button type="button" className="ie-note__link" onClick={() => onOpenOriginal ? onOpenOriginal(original) : setViewing(true)}>{copy('Original', 'ორიგინალი')}</button>
             : <span className="ie-note__gone">{copy('original removed', 'ორიგინალი წაშლილია')}</span>}
-        {viewing && <Original url={edit.originalUrl} onClose={() => setViewing(false)} />}
+        {viewing && original && <Original url={original} onClose={() => setViewing(false)} />}
     </p>;
 }

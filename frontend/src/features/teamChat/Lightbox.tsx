@@ -11,8 +11,11 @@ import { ChatImage, ChatVideo, FileRow } from './Attachments';
 import { saveFile } from './saveFile';
 import { fileSize } from './teamChatWords';
 
-/** A picture or video seen full screen, and where it came from (`chatId` and `messageId`; none for kept files). */
-export interface Viewed { attachment: ChatAttachment; messageId: number | null; chatId: number | null; caption: string; renew?: () => Promise<{ url: string }> }
+/**
+ * A picture or video seen full screen, and where it came from (`chatId` and `messageId`; none for kept files).
+ * `editable: false` where a copy could not be saved (a chat in Recently deleted).
+ */
+export interface Viewed { attachment: ChatAttachment; messageId: number | null; chatId: number | null; caption: string; renew?: () => Promise<{ url: string }>; editable?: boolean }
 
 /**
  * Pictures and videos full screen, one at a time: arrows (and ← →) move through the set, Download saves it, and
@@ -39,7 +42,7 @@ export function Lightbox({ items, start, onClose, onShow }: { items: Viewed[]; s
         description={`${current.caption} · ${fileSize(attachment.sizeBytes)}${items.length > 1 ? ` · ${index + 1}/${items.length}` : ''}`}
         footer={<>
             {attachment.kind === 'IMAGE' && <EditedImageNote url={attachment.url} className="tc-lightbox__edited" />}
-            {attachment.kind === 'IMAGE' && current.messageId !== null && <EditImageButton media={{ url: attachment.url, name: attachment.name }}
+            {attachment.kind === 'IMAGE' && current.messageId !== null && current.editable !== false && <EditImageButton media={{ url: attachment.url, name: attachment.name, place: { messageId: current.messageId } }}
                 onSaved={(saved, image) => {
                     onClose();
                     // The copy waits in its chat's message box; from another chat or All chats, that chat opens at the original.

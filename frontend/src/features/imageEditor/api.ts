@@ -13,13 +13,18 @@ export interface SavedCopy {
     itemId: number | null; chatId: number | null; replyToId: number | null; attachment: ChatAttachment | null;
     editedBy: EditPerson; editedAt: string;
 }
-/** A picture that is an edited copy, and what it was edited from (`originalAvailable`: you can still open it). */
-export interface MediaEdit { url: string; originalUrl: string; originalAvailable: boolean; place: 'TEAM_WORK' | 'CHAT'; editedBy: EditPerson; editedAt: string }
+/** A picture that is an edited copy, and what it was edited from (`originalAvailable`: you can still open it; only then its URL). */
+export interface MediaEdit { url: string; originalUrl: string | null; originalAvailable: boolean; place: 'TEAM_WORK' | 'CHAT'; editedBy: EditPerson; editedAt: string }
 
-/** Saves the edited image as a new picture where the original is; the original stays as it was. */
-export const saveCopy = (originalUrl: string, image: Blob, name: string, signal?: AbortSignal) => {
+/** Where Edit was pressed: the chat message carrying the original, or the task it is on. The copy goes there. */
+export type EditPlace = { messageId: number } | { itemId: number };
+
+/** Saves the edited image as a new picture where Edit was pressed; the original stays as it was. */
+export const saveCopy = (originalUrl: string, image: Blob, name: string, place?: EditPlace, signal?: AbortSignal) => {
     const form = new FormData();
     form.append('original', originalUrl);
+    if (place && 'messageId' in place) form.append('messageId', String(place.messageId));
+    if (place && 'itemId' in place) form.append('itemId', String(place.itemId));
     form.append('file', image, name);
     return apiClient.post<SavedCopy>('/media/edits', form, { signal, timeout: 0 }).then(response => response.data);
 };

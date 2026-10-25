@@ -86,11 +86,23 @@ export function useChatUploads(chatId: number, limits: ChatLimits | null) {
         patch(id, { state: 'uploading', progress: 0, error: '' });
         start(item);
     }, [start]);
-    /** A file already uploaded to this chat elsewhere (an edited copy): ready to send, or to take out, which cancels it. */
-    const adopt = useCallback((attachment: ChatAttachment, file: File) => {
-        setItems(current => current.some(item => item.attachment?.id === attachment.id) ? current
-            : [...current, { id: crypto.randomUUID(), file, kind: attachment.kind, progress: 1, state: 'ready', attachment, error: '', preview: URL.createObjectURL(file) }]);
-    }, []);
+    /**
+     * Files already uploaded to this chat elsewhere (edited copies): ready to send, or to take out, which cancels them.
+     * The per-message limit holds: any over it are cancelled on the server and the box says why. Gives how many went in.
+     */
+    const adopt = useCallback((files: { attachment: ChatAttachment; file: File }[]) => {
+        const present = new Set(itemsRef.current.flatMap(item => item.attachment ? [item.attachment.id] : []));
+        const fresh = files.filter(({ attachment }) => !present.has(attachment.id));
+        const room = Math.max(0, (limits?.maxAttachments ?? fresh.length) - itemsRef.current.length);
+        const kept = fresh.slice(0, room), over = fresh.slice(room);
+        for (const { attachment } of over) void cancelUpload(attachment.id).catch(() => undefined);
+        if (over.length && limits) setRefusal(copy(`At most ${limits.maxAttachments} files in one message.`, `ერთ შეტყობინებაში მაქსიმუმ ${limits.maxAttachments} ფაილი.`));
+        if (!kept.length) return 0;
+        const added: Upload[] = kept.map(({ attachment, file }) => ({ id: crypto.randomUUID(), file, kind: attachment.kind, progress: 1, state: 'ready', attachment, error: '', preview: URL.createObjectURL(file) }));
+        itemsRef.current = [...itemsRef.current, ...added];
+        setItems(current => [...current, ...added]);
+        return kept.length;
+    }, [limits, copy]);
     /** The files went out with a message: they are the message's now. */
     const sent = useCallback(() => {
         itemsRef.current.forEach(item => { if (item.preview) URL.revokeObjectURL(item.preview); });

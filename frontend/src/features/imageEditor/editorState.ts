@@ -7,6 +7,8 @@ export interface EditorState {
     shownImageDimensions: { originalSourceInitialScale?: number };
     adjustments: { crop?: { x?: number; y?: number; width?: number; height?: number } };
     isDesignState?: boolean;
+    imgSrc?: string;
+    presentOriginalSources?: Record<string, unknown>;
     tabId?: string;
     toolId?: string;
 }

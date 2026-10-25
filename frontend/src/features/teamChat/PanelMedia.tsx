@@ -16,9 +16,9 @@ const KINDS: [AttachmentKind | null, string, string][] = [[null, 'All', 'ყვ�
  * and videos as small tiles (opening full screen, fetched as they come into view), files as rows to save. Each leads
  * back to its message, in whichever chat it came. The filters are kept in the address (mall, mkind, mfrom).
  */
-export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMissing }: {
+export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMissing, trashed = false }: {
     chatId: number; members: ChatPerson[]; filters: MediaFilters; onFilters: (filters: MediaFilters) => void;
-    onShow: (chatId: number, messageId: number) => void; onMissing: () => void;
+    onShow: (chatId: number, messageId: number) => void; onMissing: () => void; trashed?: boolean;
 }) {
     const copy = useJourneyCopy();
     const [items, setItems] = useState<SharedItem[] | null>(null);
@@ -49,7 +49,8 @@ export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMiss
     const visual = (items ?? []).filter(item => item.attachment.kind !== 'FILE');
     const files = (items ?? []).filter(item => item.attachment.kind === 'FILE');
     const caption = (item: SharedItem) => [item.sender?.name, filters.all ? item.chatName : null, shortDay(copy, item.createdAt)].filter(Boolean).join(' · ');
-    const viewed: Viewed[] = visual.map(item => ({ attachment: item.attachment, messageId: item.messageId, chatId: item.chatId, caption: caption(item) }));
+    // All chats lists no deleted chat; This chat may be one, and a deleted chat takes no edited copy.
+    const viewed: Viewed[] = visual.map(item => ({ attachment: item.attachment, messageId: item.messageId, chatId: item.chatId, caption: caption(item), editable: filters.all || !trashed }));
     return <section className="tc-panel__section tc-pmedia" aria-labelledby={`${personId}-title`}>
         <h3 id={`${personId}-title`} className="tc-panel__title">{copy('Media', 'მედია')}</h3>
         <div className="tc-tabs tc-pmedia__scope" role="group" aria-label={copy('Which chats', 'რომელი ჩატები')}>

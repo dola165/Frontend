@@ -15,7 +15,7 @@ export const editorTranslations = (copy: Copy) => ({
     toggleZoomMenuTitle: copy('Zoom', 'მასშტაბი'), actualSize: copy('Actual size (100%)', 'რეალური ზომა (100%)'), fitSize: copy('Fit', 'მორგება'),
     adjustTab: copy('Crop', 'ჭრა'), annotateTabLabel: copy('Draw', 'ხატვა'), aiTab: copy('Blur', 'დაბინდვა'),
     cropTool: copy('Crop', 'ჭრა'), original: copy('Original', 'ორიგინალი'), custom: copy('Free', 'თავისუფალი'),
-    square: copy('Square', 'კვადრატი'), landscape: copy('Landscape', 'ჰორიზონტალური'), portrait: copy('Portrait', 'ვერტიკალური'),
+    square: copy('Square', 'კვადრატი'), ellipse: copy('Ellipse', 'ელიფსი'), landscape: copy('Landscape', 'ჰორიზონტალური'), portrait: copy('Portrait', 'ვერტიკალური'),
     rotateTool: copy('Rotate', 'შემობრუნება'), flipX: copy('Flip ↔', 'არეკვლა ↔'), unFlipX: copy('Flip ↔', 'არეკვლა ↔'),
     flipY: copy('Flip ↕', 'არეკვლა ↕'), unFlipY: copy('Flip ↕', 'არეკვლა ↕'),
     penTool: copy('Pen', 'კალამი'), arrowTool: copy('Arrow', 'ისარი'), rectangleTool: copy('Box', 'ჩარჩო'), textTool: copy('Text', 'ტექსტი'),

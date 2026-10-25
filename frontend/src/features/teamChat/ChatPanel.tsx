@@ -132,7 +132,7 @@ export function ChatPanel({ chat, members, maxDecision, media, onMedia, onChat, 
         <People members={members} />
         <Task chat={chat} />
         <Status chat={chat} max={maxDecision} onChat={onChat} />
-        <PanelMedia chatId={chat.id} members={members} filters={media} onFilters={onMedia} onShow={onShow} onMissing={onMissing} />
+        <PanelMedia chatId={chat.id} members={members} filters={media} onFilters={onMedia} onShow={onShow} onMissing={onMissing} trashed={chat.deletesAt !== null} />
         <Settings chat={chat} onChat={onChat} />
     </div>;
 }

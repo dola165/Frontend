@@ -1,5 +1,6 @@
 import { apiClient } from '../../api/axiosConfig';
-import type { Commit, Repo } from './upToDate';
+import type { Commit } from './upToDate';
+import type { Seen, Versions } from './whichVersion';
 
 /** The pipeline: planned → in progress → needs your look → accepted → live; blocked sits beside it, cancelled after its end. */
 export const STATUSES = ['PLANNED', 'IN_PROGRESS', 'NEEDS_LOOK', 'ACCEPTED', 'LIVE', 'BLOCKED', 'CANCELLED'] as const;
@@ -141,8 +142,10 @@ export const addFile = (itemId: number, file: File, onProgress?: (share: number)
 export const deleteMedia = (itemId: number, mediaId: number) => data(apiClient.delete<Detail>(`${base}/items/${itemId}/media/${mediaId}`));
 /** A ten-minute link a video element can stream from. */
 export const playLink = (itemId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/items/${itemId}/media/${mediaId}/play`));
-/** The commits baked into the running backend (the web app carries its own, see upToDate.ts). */
-export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<{ backend: Repo }>(`${base}/versions`, { signal }));
+/** The running backend's build and history, the releases and where it stands, the live release and what this person last looked at (the web app carries its own build, see whichVersion.ts). */
+export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<Versions>(`${base}/versions`, { signal }));
+/** Remembers the version this person is looking at now, for "new since you last looked". */
+export const saveSeen = (seen: Omit<Seen, 'at'>) => data(apiClient.put<Seen>(`${base}/versions/seen`, seen));
 export const fetchTeam = (signal?: AbortSignal) => data(apiClient.get<Member[]>(`${base}/team`, { signal }));
 export const addMember = (email: string) => data(apiClient.post<{ members: Member[]; invite: Invite | null }>(`${base}/team`, { email }));
 export const newInvite = (userId: number) => data(apiClient.post<Invite>(`${base}/team/${userId}/invite`));

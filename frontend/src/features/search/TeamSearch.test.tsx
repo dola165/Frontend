@@ -129,7 +129,7 @@ it('a chat result opens the chat at its message; Show more brings the next ten',
     expect(await screen.findByRole('option', { name: /Password reset email/ })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Show more' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('option', { name: /Gio Beridze/ }));
-    expect(screen.getByTestId('where')).toHaveTextContent('/team-work/chat?message=70');
+    expect(screen.getByTestId('where')).toHaveTextContent('/team-work/chat?chat=2&message=70');
 });
 
 it('asks for the best matches only for a vague search, once the words settle, and shows them first', async () => {

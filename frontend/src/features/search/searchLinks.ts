@@ -1,8 +1,11 @@
 import type { ResultRef, SearchHit, SearchOpen } from './api';
 
-/** The page a result opens: the task (and its step), the idea, the plan, the person's Now note, or the chat at the message. */
+/**
+ * The page a result opens: the task (and its step), the idea, the plan, the person's Now note, or the chat at the message
+ * (its chat named first, the way notifications link, so it opens the right one of several team chats).
+ */
 export const pathOf = (open: SearchOpen) => {
-    if (open.message != null) return `/team-work/chat?message=${open.message}`;
+    if (open.message != null) return `/team-work/chat?${open.conversation != null ? `chat=${open.conversation}&` : ''}message=${open.message}`;
     if (open.view && open.step != null) return `/team-work?view=${open.view}&step=${open.step}`;
     if (open.plan != null) return `/team-work?plan=${open.plan}`;
     if (open.who != null) return `/team-work?who=${open.who}`;

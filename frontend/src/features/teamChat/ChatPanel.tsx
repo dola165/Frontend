@@ -11,7 +11,7 @@ import { FilePicker } from './FilePicker';
 import { PanelMedia, type MediaFilters } from './PanelMedia';
 import { taskPath } from './richText';
 import { saveFromApi } from './saveFile';
-import { problem, shortDay, STATUSES, statusWord } from './teamChatWords';
+import { onlyDeleters, problem, shortDay, STATUSES, statusWord } from './teamChatWords';
 
 /** Who is in the chat: everyone on the team, the same people in every chat. */
 function People({ members }: { members: ChatPerson[] }) {
@@ -107,8 +107,9 @@ function Settings({ chat, onChat }: { chat: ChatSummary; onChat: (chat: ChatSumm
                 : <Button size="sm" variant="ghost" disabled={trashed} onClick={() => { setName(chat.name); setNaming(true); }}><Pencil aria-hidden="true" />{copy('Rename', 'გადარქმევა')}</Button>}
         <div className="tc-panel__actions">
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void zip()}><Download aria-hidden="true" />{copy('Download all files (zip)', 'ყველა ფაილის ჩამოტვირთვა (zip)')}</Button>
-            {!trashed && <Button size="sm" variant="ghost" className="tc-danger" onClick={() => setDeleting(true)}><Trash2 aria-hidden="true" />{copy('Delete chat…', 'ჩატის წაშლა…')}</Button>}
+            {!trashed && chat.canDelete && <Button size="sm" variant="ghost" className="tc-danger" onClick={() => setDeleting(true)}><Trash2 aria-hidden="true" />{copy('Delete chat…', 'ჩატის წაშლა…')}</Button>}
         </div>
+        {!trashed && !chat.canDelete && <p className="tc-faint">{onlyDeleters(copy, chat, 'delete')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {deleting && <FilePicker chat={chat} mode="delete" onClose={() => setDeleting(false)} onDone={next => { setDeleting(false); onChat(next); }} />}
     </section>;

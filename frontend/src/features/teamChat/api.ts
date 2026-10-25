@@ -7,11 +7,15 @@ export interface ChatLimits { pictureMb: number; videoMb: number; fileMb: number
 export type ChatStatus = 'TALKING' | 'DECIDED' | 'ON_HOLD';
 /** A Team work task named in the text ("GK-12"), or the task a chat is about. */
 export interface ChatTaskRef { id: number; key: string; title: string; status: string; parentId: number | null; doneMeans?: string | null }
-/** One chat in the list: its task (if any), status and decision, what waits for you, its latest activity; `deletesAt` while it waits in Recently deleted. */
+/**
+ * One chat in the list: its task (if any), status and decision, what waits for you, its latest activity; `deletesAt`
+ * while it waits in Recently deleted. `canDelete`: you may delete it and restore it (you started it, or you are a team
+ * admin).
+ */
 export interface ChatSummary {
     id: number; name: string; task: ChatTaskRef | null; status: ChatStatus; decision: string | null; decidedBy: ChatPerson | null; decidedAt: string | null;
     unreadCount: number; unreadMentions: number; messageCount: number; lastActivityAt: string; lastLine: string | null;
-    createdBy: ChatPerson | null; createdAt: string; deletesAt: string | null; deletedBy: ChatPerson | null;
+    createdBy: ChatPerson | null; createdAt: string; deletesAt: string | null; deletedBy: ChatPerson | null; canDelete: boolean;
 }
 /** The chats opened: the team, your chats (unread first), Recently deleted, the Kept files count, the limits. */
 export interface ChatHome { me: number; members: ChatPerson[]; chats: ChatSummary[]; deleted: ChatSummary[]; keptFiles: number; limits: ChatLimits; reactions: string[]; canModerate: boolean }

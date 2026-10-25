@@ -1,6 +1,6 @@
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { monthName } from '../teamWork/teamWorkWords';
-import type { ChatStatus } from './api';
+import type { ChatStatus, ChatSummary } from './api';
 
 export type Copy = ReturnType<typeof useJourneyCopy>;
 
@@ -32,6 +32,20 @@ export const shortDay = (copy: Copy, value: string, now = new Date()) => {
     if (days === 0) return clock(value);
     if (days === 1) return copy('Yesterday', 'გუშინ');
     return `${date.getDate()} ${monthName(copy, date.getMonth())}`;
+};
+
+/**
+ * Who may delete a chat, or restore it, for those who may not: the person who started it or a team admin (only an
+ * admin for the chat the team had before there were several, which nobody started).
+ */
+export const onlyDeleters = (copy: Copy, chat: Pick<ChatSummary, 'createdBy'>, what: 'delete' | 'restore') => {
+    const starter = chat.createdBy?.name;
+    if (what === 'delete') return starter
+        ? copy(`Only ${starter}, who started it, or a team admin can delete it.`, `წაშლა შეუძლია მხოლოდ ჩატის დამწყებს (${starter}) ან გუნდის ადმინს.`)
+        : copy('Only a team admin can delete it.', 'წაშლა შეუძლია მხოლოდ გუნდის ადმინს.');
+    return starter
+        ? copy(`Only ${starter}, who started it, or a team admin can restore it.`, `აღდგენა შეუძლია მხოლოდ ჩატის დამწყებს (${starter}) ან გუნდის ადმინს.`)
+        : copy('Only a team admin can restore it.', 'აღდგენა შეუძლია მხოლოდ გუნდის ადმინს.');
 };
 
 /** "on 1 November" / "1 ნოემბერს": a day something happens on (Georgian takes the dative). */

@@ -5,7 +5,7 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { restoreChat, zipPath, type ChatSummary } from './api';
 import { FilePicker } from './FilePicker';
 import { saveFromApi } from './saveFile';
-import { onDate, problem, shortDay } from './teamChatWords';
+import { onDate, onlyDeleters, problem, shortDay } from './teamChatWords';
 
 /**
  * The decision, pinned at the top of the chat. While the chat is Decided it is the one bright thing; reopened
@@ -23,8 +23,9 @@ export function DecisionBar({ chat }: { chat: ChatSummary }) {
 }
 
 /**
- * A chat waiting in Recently deleted: when it goes, and what can still be done (restore it, keep files, take them
- * all as a zip). It takes no new messages meanwhile.
+ * A chat waiting in Recently deleted: when it goes, and what can still be done (restore it, for the person who
+ * started it and team admins; keep files and take them all as a zip, for anyone in it). It takes no new messages
+ * meanwhile.
  */
 export function DeletedBar({ chat, onChat }: { chat: ChatSummary; onChat: (chat: ChatSummary) => void }) {
     const copy = useJourneyCopy();
@@ -42,10 +43,11 @@ export function DeletedBar({ chat, onChat }: { chat: ChatSummary; onChat: (chat:
         <p><strong>{copy(`This chat will be deleted ${onDate(copy, chat.deletesAt)}.`, `ეს ჩატი წაიშლება ${onDate(copy, chat.deletesAt)}.`)}</strong>{' '}
             {copy('Save anything you need: files you keep stay on the task (or the Kept files shelf).', 'შეინახეთ, რაც გჭირდებათ: შენახული ფაილები საქმეზე (ან შენახული ფაილების თაროზე) დარჩება.')}</p>
         <div className="tc-deleted__actions">
-            <Button size="sm" variant="primary" disabled={busy} onClick={() => void restore()}><RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}</Button>
-            <Button size="sm" disabled={busy} onClick={() => setKeeping(true)}><FolderDown aria-hidden="true" />{copy('Save files', 'ფაილების შენახვა')}</Button>
+            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy} onClick={() => void restore()}><RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}</Button>}
+            <Button size="sm" variant={chat.canDelete ? 'secondary' : 'primary'} disabled={busy} onClick={() => setKeeping(true)}><FolderDown aria-hidden="true" />{copy('Save files', 'ფაილების შენახვა')}</Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void zip()}><Download aria-hidden="true" />{copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)')}</Button>
         </div>
+        {!chat.canDelete && <p className="tc-faint">{onlyDeleters(copy, chat, 'restore')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {keeping && <FilePicker chat={chat} mode="keep" onClose={() => setKeeping(false)} onDone={next => { setKeeping(false); onChat(next); }} />}
     </div>;

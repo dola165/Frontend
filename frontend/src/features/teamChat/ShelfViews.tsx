@@ -7,7 +7,7 @@ import { ChatImage, ChatVideo, FileRow } from './Attachments';
 import { FilePicker } from './FilePicker';
 import { Lightbox, type Viewed } from './Lightbox';
 import { saveFromApi } from './saveFile';
-import { onDate, problem, shortDay } from './teamChatWords';
+import { onDate, onlyDeleters, problem, shortDay } from './teamChatWords';
 
 function ViewHead({ title, onBack }: { title: string; onBack: () => void }) {
     const copy = useJourneyCopy();
@@ -37,11 +37,12 @@ function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: 
             <span className="tc-faint"> · {copy(`deleted by ${chat.deletedBy?.name ?? 'someone'}`, `წაშალა ${chat.deletedBy?.name ?? 'ვიღაცამ'}`)} · {copy(`${chat.messageCount} messages`, `${chat.messageCount} შეტყობინება`)}</span>
         </p>
         <div className="tc-shelfrow__actions">
-            <Button size="sm" variant="primary" disabled={busy} onClick={() => void run(async () => onChat(await restoreChat(chat.id)), ['The chat was not restored.', 'ჩატი ვერ აღდგა.'])}><RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}</Button>
+            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy} onClick={() => void run(async () => onChat(await restoreChat(chat.id)), ['The chat was not restored.', 'ჩატი ვერ აღდგა.'])}><RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}</Button>}
             <Button size="sm" disabled={busy} onClick={() => setKeeping(true)}><FolderDown aria-hidden="true" />{copy('Save files', 'ფაილების შენახვა')}</Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => saveFromApi(zipPath(chat.id), `${chat.name}.zip`), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.'])}><Download aria-hidden="true" />{copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)')}</Button>
             <Button size="sm" variant="ghost" onClick={() => onOpen(chat.id)}><MessageSquare aria-hidden="true" />{copy('Read it', 'წაკითხვა')}</Button>
         </div>
+        {!chat.canDelete && <p className="tc-shelfrow__when tc-faint">{onlyDeleters(copy, chat, 'restore')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {keeping && <FilePicker chat={chat} mode="keep" onClose={() => setKeeping(false)} onDone={next => { setKeeping(false); onChat(next); }} />}
     </li>;

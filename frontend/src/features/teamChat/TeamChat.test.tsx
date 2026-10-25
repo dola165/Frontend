@@ -27,7 +27,7 @@ const minute = (n: number) => new Date(Date.now() - (60 - n) * 60_000).toISOStri
 const task12: api.ChatTaskRef = { id: 12, key: 'GK-12', title: 'Registration', status: 'IN_PROGRESS', parentId: null, doneMeans: 'People can sign up with a code' };
 const summary = (id: number, extra: Partial<api.ChatSummary> = {}): api.ChatSummary => ({
     id, name: `Chat ${id}`, task: null, status: 'TALKING', decision: null, decidedBy: null, decidedAt: null, unreadCount: 0, unreadMentions: 0, messageCount: 2,
-    lastActivityAt: minute(id - 40), lastLine: null, createdBy: beqa, createdAt: minute(1), deletesAt: null, deletedBy: null, ...extra,
+    lastActivityAt: minute(id - 40), lastLine: null, createdBy: beqa, createdAt: minute(1), deletesAt: null, deletedBy: null, canDelete: true, ...extra,
 });
 const registration = (extra: Partial<api.ChatSummary> = {}) => summary(50, { name: 'Registration', task: task12, unreadCount: 1, lastLine: 'Gio: Morning', ...extra });
 const friday = (extra: Partial<api.ChatSummary> = {}) => summary(51, { name: 'Friday plan', ...extra });
@@ -194,6 +194,35 @@ it('deletes a chat keeping the ticked files, says when it goes, and restores it'
     expect(api.restoreChat).toHaveBeenCalledWith(50);
     await waitFor(() => expect(screen.queryByText(/This chat will be deleted/)).not.toBeInTheDocument());
     expect(box()).toBeInTheDocument();
+});
+
+it('leaves Delete to whoever started the chat and the team admins', async () => {
+    const theirs = registration({ createdBy: gio, canDelete: false });
+    vi.mocked(api.fetchHome).mockResolvedValue(home({ chats: [theirs, friday()] }));
+    vi.mocked(api.fetchState).mockImplementation(async id => stateOf(id === 50 ? theirs : friday()));
+    mount();
+    await screen.findByText('Morning');
+    expect(within(panel()).queryByRole('button', { name: 'Delete chat…' })).not.toBeInTheDocument();
+    expect(panel()).toHaveTextContent('Only Gio, who started it, or a team admin can delete it.');
+    expect(within(panel()).getByRole('button', { name: 'Download all files (zip)' })).toBeInTheDocument();
+});
+
+it('leaves Restore to them too, while anyone in the chat may still save its files', async () => {
+    const user = userEvent.setup();
+    // The team's earlier chat, which nobody started: only an admin restores it.
+    const gone = registration({ createdBy: null, canDelete: false, unreadCount: 0, deletesAt: '2026-11-01T10:00:00Z', deletedBy: gio });
+    vi.mocked(api.fetchHome).mockResolvedValue(home({ chats: [friday()], deleted: [gone] }));
+    vi.mocked(api.fetchState).mockImplementation(async id => stateOf(id === 50 ? gone : friday()));
+    mount('/team-work/chat?view=deleted');
+    const view = await screen.findByRole('region', { name: 'Recently deleted' });
+    expect(within(view).queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument();
+    expect(within(view).getByRole('button', { name: 'Save files' })).toBeInTheDocument();
+    expect(view).toHaveTextContent('Only a team admin can restore it.');
+    await user.click(within(view).getByRole('button', { name: 'Read it' }));
+    const bar = (await screen.findByText(/This chat will be deleted on 1 November/)).closest('.tc-deleted') as HTMLElement;
+    expect(within(bar).queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Save files' })).toHaveClass('gk-btn--primary');
+    expect(bar).toHaveTextContent('Only a team admin can restore it.');
 });
 
 it('shows Recently deleted with the day each chat goes, and saves files from there', async () => {

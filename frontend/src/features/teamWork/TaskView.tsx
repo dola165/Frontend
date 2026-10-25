@@ -12,6 +12,7 @@ import { WorkComments } from './WorkComments';
 import { AttachButton, WorkMediaList } from './WorkMedia';
 import { useUploads } from './useUploads';
 import { ReportDialog } from './ReportDialog';
+import { DiscussButton } from '../teamChat/DiscussButton';
 import { ago, day, endWords, madeBy, priorityName, progressWords, shortDate, statusName } from './teamWorkWords';
 import { taskAsText } from './planAsText';
 import { short } from './upToDate';
@@ -230,7 +231,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
         {dragging > 0 && <div className="tw-drop-overlay" aria-hidden="true"><Paperclip />{copy('Drop to attach it to this task', 'ჩააგდეთ, რომ ამ საქმეს მიემაგროს')}</div>}
         <div className="tw-detail__grid">
             <section className="tw-purpose" aria-label={copy('What it’s for', 'რისთვისაა')}>
-                {!framed && <div className="tw-detail__id"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-detail__name">{item.title}</span></div>}
+                {!framed && <div className="tw-detail__id"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-detail__name">{item.title}</span><DiscussButton task={item} /></div>}
                 <PurposeLine as="p" purpose={item.description} label={copy('What it’s for', 'რისთვისაა')} prompt={isStep ? copy('Write what this step is for', 'დაწერეთ, რისთვისაა ეს ნაბიჯი') : copy('Write what this task is for', 'დაწერეთ, რისთვისაა ეს საქმე')}
                     busy={saving} onSave={purpose => saveNow({ description: purpose })} />
                 <PurposeChanged changes={detail.purposeChanges} what="task" />

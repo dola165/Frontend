@@ -5,13 +5,25 @@ import type * as api from './api';
 
 const weekdays: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const time = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+const DEFAULT_START = 18 * 60, DEFAULT_LENGTH = 90, DAY = 24 * 60;
+/** The local wall-clock time `minutes` past midnight of `day` (DST days and :45 zones keep the wall time). */
+const atMinutes = (day: Date, minutes: number) => { const at = new Date(day); at.setHours(0, minutes, 0, 0); return at; };
+/**
+ * The default session runs 90 minutes from 18:00 local time on the chosen day. Once today's 18:00 has
+ * passed it starts at the first local half hour at least an hour from now; when that would not end
+ * before midnight it moves to 18:00 the next day. Rounding uses the local wall clock, so zones with a
+ * :30 or :45 offset still get :00/:30 starts.
+ */
 export function newSquadEvent(date: Date, squadId: number, weekly: boolean): EventCreationFormValues {
-    const start = new Date(date); start.setHours(18, 0, 0, 0);
-    if (localDateISO(start) === localDateISO() && start <= new Date()) {
-        start.setTime(Math.ceil((Date.now() + 3600000) / 1800000) * 1800000);
-        if (start.getHours() > 22) { start.setDate(start.getDate()+1); start.setHours(18,0,0,0); }
+    let start = atMinutes(date, DEFAULT_START);
+    const now = new Date();
+    if (localDateISO(start) === localDateISO(now) && start <= now) {
+        const nowMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() || now.getMilliseconds() ? 1 : 0);
+        const soonest = Math.ceil((nowMinutes + 60) / 30) * 30;
+        if (soonest + DEFAULT_LENGTH < DAY) start = atMinutes(start, soonest);
+        else { const tomorrow = new Date(start); tomorrow.setDate(tomorrow.getDate() + 1); start = atMinutes(tomorrow, DEFAULT_START); }
     }
-    const end = new Date(start.getTime() + 90 * 60000);
+    const end = atMinutes(start, start.getHours() * 60 + start.getMinutes() + DEFAULT_LENGTH);
     const until = new Date(start); until.setDate(until.getDate() + 42);
     return { eventType: 'TRAINING', title: '', date: localDateISO(start), startTime: time(start), endTime: time(end),
         isRecurring: weekly, hostSquadId: squadId, description: '', locationName: '', locationLat: '', locationLng: '',

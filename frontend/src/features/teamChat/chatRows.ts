@@ -1,7 +1,10 @@
 import type { ChatMessage } from './api';
 import { sameDay } from './teamChatWords';
 
-export type Row = { kind: 'day'; key: string; label: string } | { kind: 'unread'; key: string } | { kind: 'message'; key: string; message: ChatMessage; compact: boolean };
+export type Row =
+    | { kind: 'day'; key: string; label: string }
+    | { kind: 'unread'; key: string }
+    | { kind: 'message'; key: string; message: ChatMessage; compact: boolean };
 const GROUP_MS = 5 * 60_000;
 
 /** Day headings, the "New" line where unread messages started, and messages grouped by writer within five minutes. */

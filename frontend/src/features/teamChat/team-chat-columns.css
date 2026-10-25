@@ -1,0 +1,189 @@
+/* Team chats: three columns (the chats, the conversation, its panel); on narrower screens the panel lies over the
+   conversation, and on a phone one column shows at a time. Quiet greys; one bright thing per row. */
+.tc-root .tc-columns {
+    position: relative;
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr) 340px;
+    height: 100%;
+    min-height: 0;
+    max-width: 1840px;
+    margin: 0 auto;
+}
+.tc-root .tc-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.tc-root .tc-col--list { border-right: 1px solid var(--gk-line); }
+.tc-root .tc-col--main { position: relative; }
+/* Recently deleted, Kept files and "no chat yet" have no panel: they take its room. */
+.tc-root .tc-col--main:last-child { grid-column: 2 / -1; }
+.tc-root .tc-col--empty { align-items: center; justify-content: center; padding: var(--gk-6) var(--gk-4); }
+.tc-root .tc-col--panel { overflow-y: auto; overscroll-behavior: contain; border-left: 1px solid var(--gk-line); background: var(--gk-bg); }
+
+/* The list of chats. */
+.tc-root .tc-listhead { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--gk-2) var(--gk-3) 0; }
+.tc-root .tc-listhead .tc-back { margin-left: -6px; }
+.tc-root .tc-chats { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tc-root .tc-chats__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gk-2);
+    padding: var(--gk-2) var(--gk-3);
+}
+.tc-root .tc-chats__title { margin: 0; font-size: var(--gk-fs-sm); font-weight: 650; color: var(--gk-text-2); }
+.tc-root .tc-chats__loading { display: flex; flex-direction: column; gap: var(--gk-2); padding: 0 var(--gk-3); }
+.tc-root .tc-chats__empty { margin: 0; padding: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.tc-root .tc-chats__list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0;
+    padding: 0 var(--gk-2) var(--gk-2);
+    list-style: none;
+}
+.tc-root .tc-chatrow > button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    min-height: 56px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: var(--gk-r);
+    background: none;
+    color: var(--gk-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.tc-root .tc-chatrow > button:hover { background: var(--gk-hover); }
+.tc-root .tc-chatrow > button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
+.tc-root .tc-chatrow[data-current] > button { background: var(--gk-sunken); box-shadow: inset 0 0 0 1px var(--gk-line); }
+.tc-root .tc-chatrow__top, .tc-root .tc-chatrow__bottom { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+.tc-root .tc-chatrow__key, .gk .tc-dialog .tc-chatrow__key {
+    flex: none;
+    font-size: var(--gk-fs-xs);
+    font-weight: 600;
+    color: var(--gk-text-3);
+}
+.tc-root .tc-chatrow__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--gk-fs-sm);
+    font-weight: 500;
+}
+.tc-root .tc-chatrow[data-unread] .tc-chatrow__name { font-weight: 700; }
+.tc-root .tc-chatrow__when { flex: none; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.tc-root .tc-chatrow__line {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--gk-fs-xs);
+    color: var(--gk-text-3);
+}
+.tc-root .tc-chatrow__mention { display: inline-grid; place-items: center; color: var(--gk-text-2); }
+.tc-root .tc-chatrow__mention svg { width: 14px; height: 14px; }
+.tc-root .tc-chatrow .gk-count { flex: none; }
+.tc-root .tc-chats__doors { margin: 0; padding: var(--gk-2); list-style: none; border-top: 1px solid var(--gk-line); }
+.tc-root .tc-chats__doors button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--gk-r);
+    background: none;
+    color: var(--gk-text-2);
+    font: inherit;
+    font-size: var(--gk-fs-sm);
+    text-align: left;
+    cursor: pointer;
+}
+.tc-root .tc-chats__doors button:hover { background: var(--gk-hover); }
+.tc-root .tc-chats__doors button[aria-current] { background: var(--gk-sunken); color: var(--gk-text); }
+.tc-root .tc-chats__doors svg { flex: none; width: 16px; height: 16px; }
+.tc-root .tc-chats__doors .gk-num { margin-left: auto; }
+
+/* A status as a dot and a word: Talking grey, Decided the bright one, On hold an empty ring. */
+.tc-root .tc-status {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--gk-fs-xs);
+    color: var(--gk-text-3);
+    white-space: nowrap;
+}
+.tc-root .tc-status__dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--gk-text-3); }
+.tc-root [data-status='DECIDED'] > .tc-status__dot { background: var(--gk-accent); }
+.tc-root .tc-status[data-status='DECIDED'] { color: var(--gk-text-2); }
+.tc-root [data-status='ON_HOLD'] > .tc-status__dot { background: none; box-shadow: inset 0 0 0 1.5px var(--gk-text-3); }
+
+/* The open chat's header. */
+.tc-root .tc-chathead {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--gk-2);
+    min-height: 56px;
+    padding: 6px var(--gk-3);
+    border-bottom: 1px solid var(--gk-line);
+}
+.tc-root .tc-chathead__back { display: none; }
+.tc-root .tc-chathead__about { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.tc-root .tc-chathead__name {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--gk-fs-lg);
+    line-height: var(--gk-lh-lg);
+    font-weight: 700;
+}
+.tc-root .tc-chathead__name > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-root .tc-chathead__name .tc-chatrow__key { font-size: var(--gk-fs-sm); }
+
+/* Wide screens show the panel beside the chat; narrower ones lay it over the chat when asked (?panel=1). */
+@media (min-width: 1280px) {
+    .tc-root .tc-chathead__panel { display: none; }
+}
+@media (max-width: 1279px) {
+    .tc-root .tc-columns { grid-template-columns: 280px minmax(0, 1fr); }
+    .tc-root .tc-col--main:last-child { grid-column: 2; }
+    .tc-root .tc-col--panel {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        width: min(360px, 100%);
+        box-shadow: var(--gk-elevation);
+    }
+    .tc-root .tc-columns[data-panel] > .tc-col--panel { display: flex; }
+}
+/* A phone: the list, the chat, or the chat's panel (over the chat, so the chat keeps its place). */
+@media (max-width: 899px) {
+    .tc-root .tc-columns { grid-template-columns: minmax(0, 1fr); }
+    .tc-root .tc-columns > .tc-col { display: none; grid-column: 1; }
+    .tc-root .tc-columns[data-show='list'] > .tc-col--list,
+    .tc-root .tc-columns[data-show='main'] > .tc-col--main,
+    .tc-root .tc-columns[data-show='panel'] > .tc-col--main,
+    .tc-root .tc-columns[data-show='panel'] > .tc-col--panel { display: flex; }
+    .tc-root .tc-col--list { border-right: 0; }
+    .tc-root .tc-col--panel { width: 100%; border-left: 0; box-shadow: none; }
+    .tc-root .tc-col--main:last-child { grid-column: 1; }
+    .tc-root .tc-chathead { gap: 4px; padding: 6px 8px; min-height: 52px; }
+    .tc-root .tc-chathead__back { display: inline-flex; }
+    .tc-root .tc-chathead__name { font-size: var(--gk-fs-md); }
+    .tc-root .tc-chathead__about .tc-status { display: none; }
+    .tc-root .tc-chatrow > button { min-height: 60px; }
+}

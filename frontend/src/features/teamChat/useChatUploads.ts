@@ -19,11 +19,11 @@ export function kindOf(file: File, limits: ChatLimits): AttachmentKind | null {
 }
 
 /**
- * The composer's uploads: each starts at once (from the button, a paste or a drop) with its progress, can be
- * cancelled (an upload already made is taken back), retried when it failed, and is checked against the same limits
- * as the server's before it starts.
+ * The composer's uploads into one chat: each starts at once (from the button, a paste or a drop) with its progress,
+ * can be cancelled (an upload already made is taken back), retried when it failed, and is checked against the same
+ * limits as the server's before it starts.
  */
-export function useChatUploads(limits: ChatLimits | null) {
+export function useChatUploads(chatId: number, limits: ChatLimits | null) {
     const copy = useJourneyCopy();
     const [items, setItems] = useState<Upload[]>([]);
     const controllers = useRef(new Map<string, AbortController>());
@@ -34,8 +34,9 @@ export function useChatUploads(limits: ChatLimits | null) {
         const controller = new AbortController();
         controllers.current.set(item.id, controller);
         const onProgress = (share: number) => patch(item.id, { progress: share });
-        const request = item.kind === 'IMAGE' ? uploadPicture(item.file, onProgress, controller.signal)
-            : item.kind === 'VIDEO' ? uploadVideo(item.file, onProgress, controller.signal) : uploadFile(item.file, onProgress, controller.signal);
+        const request = item.kind === 'IMAGE' ? uploadPicture(chatId, item.file, onProgress, controller.signal)
+            : item.kind === 'VIDEO' ? uploadVideo(chatId, item.file, onProgress, controller.signal)
+                : uploadFile(chatId, item.file, onProgress, controller.signal);
         request.then(attachment => {
             if (controller.signal.aborted) { void cancelUpload(attachment.id).catch(() => undefined); return; }
             patch(item.id, { state: 'ready', progress: 1, attachment });
@@ -43,7 +44,7 @@ export function useChatUploads(limits: ChatLimits | null) {
             if (controller.signal.aborted) return;
             patch(item.id, { state: 'failed', error: problem(copy, error, ['The upload failed.', 'ატვირთვა ვერ მოხერხდა.']) });
         }).finally(() => controllers.current.delete(item.id));
-    }, [copy]);
+    }, [chatId, copy]);
 
     const add = useCallback((files: Iterable<File>) => {
         if (!limits) return;
@@ -54,13 +55,18 @@ export function useChatUploads(limits: ChatLimits | null) {
         for (const file of files) {
             const kind = kindOf(file, limits);
             const mb = kind === 'IMAGE' ? limits.pictureMb : kind === 'VIDEO' ? limits.videoMb : limits.fileMb;
-            if (!kind) reasons.push(copy(`“${file.name}”: not a kind of file the team keeps (pictures, MP4/WebM videos, ${limits.fileExtensions.join(', ')}).`, `„${file.name}“: ასეთ ფაილს არ ვინახავთ (სურათები, MP4/WebM ვიდეო, ${limits.fileExtensions.join(', ')}).`));
+            if (!kind) reasons.push(copy(`“${file.name}”: not a kind of file the team keeps (pictures, MP4/WebM videos, ${limits.fileExtensions.join(', ')}).`,
+                `„${file.name}“: ასეთ ფაილს არ ვინახავთ (სურათები, MP4/WebM ვიდეო, ${limits.fileExtensions.join(', ')}).`));
             else if (file.size > mb * 1024 * 1024) reasons.push(copy(`“${file.name}” is over ${mb} MB.`, `„${file.name}“ ${mb} MB-ზე მეტია.`));
             else if (file.size === 0) reasons.push(copy(`“${file.name}” is empty.`, `„${file.name}“ ცარიელია.`));
-            else if (room <= 0) reasons.push(copy(`At most ${limits.maxAttachments} files in one message.`, `ერთ შეტყობინებაში მაქსიმუმ ${limits.maxAttachments} ფაილი.`));
+            else if (room <= 0) reasons.push(copy(`At most ${limits.maxAttachments} files in one message.`,
+                `ერთ შეტყობინებაში მაქსიმუმ ${limits.maxAttachments} ფაილი.`));
             else {
                 room--;
-                accepted.push({ id: crypto.randomUUID(), file, kind, progress: 0, state: 'uploading', attachment: null, error: '', preview: kind === 'IMAGE' ? URL.createObjectURL(file) : null });
+                accepted.push({
+                    id: crypto.randomUUID(), file, kind, progress: 0, state: 'uploading', attachment: null, error: '',
+                    preview: kind === 'IMAGE' ? URL.createObjectURL(file) : null,
+                });
             }
         }
         if (reasons.length) setRefusal(reasons.join(' '));
@@ -86,6 +92,23 @@ export function useChatUploads(limits: ChatLimits | null) {
         patch(id, { state: 'uploading', progress: 0, error: '' });
         start(item);
     }, [start]);
+    /**
+     * Files already uploaded to this chat elsewhere (edited copies): ready to send, or to take out, which cancels them.
+     * The per-message limit holds: any over it are cancelled on the server and the box says why. Gives how many went in.
+     */
+    const adopt = useCallback((files: { attachment: ChatAttachment; file: File }[]) => {
+        const present = new Set(itemsRef.current.flatMap(item => item.attachment ? [item.attachment.id] : []));
+        const fresh = files.filter(({ attachment }) => !present.has(attachment.id));
+        const room = Math.max(0, (limits?.maxAttachments ?? fresh.length) - itemsRef.current.length);
+        const kept = fresh.slice(0, room), over = fresh.slice(room);
+        for (const { attachment } of over) void cancelUpload(attachment.id).catch(() => undefined);
+        if (over.length && limits) setRefusal(copy(`At most ${limits.maxAttachments} files in one message.`, `ერთ შეტყობინებაში მაქსიმუმ ${limits.maxAttachments} ფაილი.`));
+        if (!kept.length) return 0;
+        const added: Upload[] = kept.map(({ attachment, file }) => ({ id: crypto.randomUUID(), file, kind: attachment.kind, progress: 1, state: 'ready', attachment, error: '', preview: URL.createObjectURL(file) }));
+        itemsRef.current = [...itemsRef.current, ...added];
+        setItems(current => [...current, ...added]);
+        return kept.length;
+    }, [limits, copy]);
     /** The files went out with a message: they are the message's now. */
     const sent = useCallback(() => {
         itemsRef.current.forEach(item => { if (item.preview) URL.revokeObjectURL(item.preview); });
@@ -96,7 +119,7 @@ export function useChatUploads(limits: ChatLimits | null) {
     useEffect(() => () => { controllers.current.forEach(controller => controller.abort()); }, []);
 
     const ready = items.length > 0 && items.every(item => item.state === 'ready');
-    return { items, add, cancel, retry, sent, ready, busy: items.some(item => item.state === 'uploading'), refusal, dismiss: () => setRefusal(''),
+    return { items, add, adopt, cancel, retry, sent, ready, busy: items.some(item => item.state === 'uploading'), refusal, dismiss: () => setRefusal(''),
         attachments: items.flatMap(item => item.attachment ? [item.attachment] : []) };
 }
 export type ChatUploads = ReturnType<typeof useChatUploads>;

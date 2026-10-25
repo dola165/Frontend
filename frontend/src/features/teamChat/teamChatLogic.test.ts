@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ChatLimits, ChatMessage, ChatTaskRef } from './api';
-import { addOlder, applyChanges, EMPTY_WINDOW, replaceWindow, upsert } from './chatWindow';
+import { addNewer, addOlder, applyChanges, EMPTY_WINDOW, MAX_WINDOW, replaceWindow, upsert } from './chatWindow';
 import { rowsOf } from './chatRows';
 import { createOutbox } from './outbox';
 import { parts } from './richText';
@@ -39,6 +39,36 @@ describe('the window of messages', () => {
     });
 });
 
+describe('a long chat in memory', () => {
+    const ids = (from: number, count: number) => Array.from({ length: count }, (_, index) => from + index);
+
+    it('holds a few pages at most: moving back lets the newest go, moving forward the oldest', () => {
+        let view = replaceWindow(page(ids(201, 100), { hasOlder: true, revision: 400 }));
+        view = addOlder(view, page(ids(101, 100), { hasOlder: true, revision: 400 }));
+        expect(view.messages).toHaveLength(MAX_WINDOW);
+        expect(view.messages[0].id).toBe(101);
+        expect(view.hasNewer).toBe(true);
+        view = addNewer(view, page(ids(251, 50), { hasNewer: false, revision: 400 }));
+        expect(view.messages).toHaveLength(MAX_WINDOW);
+        expect(view.messages.at(-1)?.id).toBe(300);
+        expect(view.hasOlder).toBe(true);
+    });
+
+    it('lets the oldest go for someone at the newest end, but never under someone reading further up', () => {
+        const full = replaceWindow(page(ids(1, MAX_WINDOW), { revision: 500 }));
+        const fresh = { messages: ids(MAX_WINDOW + 1, 5).map(id => message(id, { revision: 600 + id })), revision: 800, more: false };
+        const following = applyChanges(full, fresh, true);
+        expect(following.messages).toHaveLength(MAX_WINDOW);
+        expect(following.messages.at(-1)?.id).toBe(MAX_WINDOW + 5);
+        expect(following.hasNewer).toBe(false);
+        const reading = applyChanges(full, fresh, false);
+        expect(reading.messages[0].id).toBe(1);
+        expect(reading.messages).toHaveLength(MAX_WINDOW);
+        // The newest wait behind "Jump to the newest".
+        expect(reading.hasNewer).toBe(true);
+    });
+});
+
 describe('quotes', () => {
     it('follow an edit or a deletion of the quoted message, even when it lies above the window', () => {
         const reply = message(9, { replyTo: { id: 2, senderId: 1, senderName: 'Beqa', excerpt: 'message 2', deleted: false, attachments: 0 } });
@@ -55,24 +85,26 @@ describe('the outbox', () => {
     beforeEach(() => { localStorage.clear(); localStorage.setItem('gk-session-id', 'one'); localStorage.setItem('userId', '7'); });
 
     it('keeps a message with its own key until the server confirms it, also after a reload', () => {
-        const outbox = createOutbox();
+        const outbox = createOutbox(50);
         const first = outbox.add({ content: 'hello', replyTo: null, attachments: [] });
-        expect(createOutbox().list()).toEqual([first]);
+        expect(createOutbox(50).list()).toEqual([first]);
+        expect(createOutbox(51).list()).toEqual([]);
         outbox.refuse(first.key, 'refused');
-        expect(createOutbox().list()[0].refused).toBe('refused');
+        expect(createOutbox(50).list()[0].refused).toBe('refused');
         outbox.retry(first.key);
-        expect(createOutbox().list()[0]).toEqual(first);
+        expect(createOutbox(50).list()[0]).toEqual(first);
         outbox.remove(first.key);
-        expect(createOutbox().list()).toEqual([]);
+        expect(createOutbox(50).list()).toEqual([]);
     });
 
     it('never hands one login’s messages to another, even on the same account', () => {
-        createOutbox().add({ content: 'from the first login', replyTo: null, attachments: [] });
+        createOutbox(50).add({ content: 'from the first login', replyTo: null, attachments: [] });
+        createOutbox(51).add({ content: 'and another chat', replyTo: null, attachments: [] });
         localStorage.setItem('gk-session-id', 'two');
-        const second = createOutbox();
+        const second = createOutbox(50);
         expect(second.list()).toEqual([]);
         second.add({ content: 'second', replyTo: null, attachments: [] });
-        expect(Object.keys(localStorage).filter(key => key.startsWith('gk-team-chat-outbox:'))).toEqual(['gk-team-chat-outbox:two:7']);
+        expect(Object.keys(localStorage).filter(key => key.startsWith('gk-team-chat-outbox:'))).toEqual(['gk-team-chat-outbox:two:7:50']);
     });
 });
 
@@ -100,12 +132,16 @@ describe('the words of a message', () => {
 describe('rows', () => {
     it('groups a writer’s messages within five minutes and puts the New line before the first unread', () => {
         const rows = rowsOf([message(1), message(2), message(9), message(10, { senderId: 2 })], 9, () => 'Today');
-        expect(rows.map(row => row.kind === 'message' ? `${row.message.id}${row.compact ? 'c' : ''}` : row.kind)).toEqual(['day', '1', '2c', 'unread', '9', '10']);
+        expect(rows.map(row => row.kind === 'message' ? `${row.message.id}${row.compact ? 'c' : ''}` : row.kind))
+            .toEqual(['day', '1', '2c', 'unread', '9', '10']);
     });
 });
 
 describe('upload kinds', () => {
-    const limits: ChatLimits = { pictureMb: 10, videoMb: 90, fileMb: 25, videoTypes: ['video/mp4', 'video/webm'], fileExtensions: ['pdf', 'txt'], maxLength: 2000, maxAttachments: 10 };
+    const limits: ChatLimits = {
+        pictureMb: 10, videoMb: 90, fileMb: 25, videoTypes: ['video/mp4', 'video/webm'], fileExtensions: ['pdf', 'txt'], maxLength: 2000, maxAttachments: 10,
+        maxDecision: 200,
+    };
     it('routes pictures, videos and the team’s file kinds, and refuses anything else', () => {
         expect(kindOf(new File(['x'], 'a.png', { type: 'image/png' }), limits)).toBe('IMAGE');
         expect(kindOf(new File(['x'], 'a.webm', { type: 'video/webm' }), limits)).toBe('VIDEO');

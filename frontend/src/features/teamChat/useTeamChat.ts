@@ -2,23 +2,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { emitNotificationsChanged } from '../../utils/notifications';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { deleteMessage, editMessage, fetchChanges, fetchPage, fetchState, markRead, react, sendMessage,
-    type ChatAttachment, type ChatMessage, type ChatPage, type ChatQuote, type ChatState } from './api';
+    type ChatAttachment, type ChatMessage, type ChatPage, type ChatQuote, type ChatState, type ChatSummary } from './api';
 import { addNewer, addOlder, applyChanges, EMPTY_WINDOW, replaceWindow, upsert, type ChatWindow } from './chatWindow';
 import { connectLive, type Live } from './liveChat';
 import { createOutbox, type Pending } from './outbox';
-import { isMissing, isPassing, problem } from './teamChatWords';
+import { sharedChanged } from './sharedSignal';
+import { isMissing, isPassing, problem, WRITER_FORBIDDEN } from './teamChatWords';
 
 export type ChatStatus = 'loading' | 'ready' | 'missing' | 'error';
-type Where = Parameters<typeof fetchPage>[0];
+type Where = Parameters<typeof fetchPage>[1];
 const RETRY_LIMIT = 30_000;
 
 /**
- * One person's team chat: the messages on screen and how they stay current (the change feed, nudged by the live
+ * One person in one chat: the messages on screen and how they stay current (the change feed, nudged by the live
  * line, on reconnect, focus, coming back online and every half minute), sending through a persistent outbox that
  * retries until the server confirms (never twice: each message keeps its key), editing, deleting, reactions,
- * reading and typing.
+ * reading and typing. The live line is held only while this chat is open.
  */
-export function useTeamChat(jump: number | null) {
+export function useTeamChat(chatId: number, jump: number | null) {
     const copy = useJourneyCopy();
     const [state, setState] = useState<ChatState | null>(null);
     const [status, setStatus] = useState<ChatStatus>('loading');
@@ -26,7 +27,7 @@ export function useTeamChat(jump: number | null) {
     const [view, setView] = useState<ChatWindow>(EMPTY_WINDOW);
     const viewRef = useRef(view);
     const update = useCallback((change: (current: ChatWindow) => ChatWindow) => { viewRef.current = change(viewRef.current); setView(viewRef.current); }, []);
-    const [outbox] = useState(createOutbox);
+    const [outbox] = useState(() => createOutbox(chatId));
     const [pending, setPending] = useState<Pending[]>(() => outbox.list());
     const [inFlight, setInFlight] = useState<string | null>(null);
     const [connected, setConnected] = useState(false);
@@ -39,6 +40,9 @@ export function useTeamChat(jump: number | null) {
     const live = useRef<Live | null>(null);
     const alive = useRef(true);
     useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+    /** Whether the person is at the newest end (the list says); reading further up, nothing is let go. */
+    const following = useRef(true);
+    const follow = useCallback((value: boolean) => { following.current = value; }, []);
 
     const lost = useCallback((error: unknown) => { if (isMissing(error) && alive.current) setStatus('missing'); }, []);
 
@@ -52,9 +56,11 @@ export function useTeamChat(jump: number | null) {
             do {
                 syncAgain.current = false;
                 for (let more = true; more && alive.current;) {
-                    const changes = await fetchChanges(viewRef.current.cursor);
+                    const changes = await fetchChanges(chatId, viewRef.current.cursor);
                     if (!alive.current) return;
-                    update(current => applyChanges(current, changes));
+                    update(current => applyChanges(current, changes, following.current));
+                    // Files arriving or going with these messages: the panel's Media looks again.
+                    if (changes.messages.some(message => message.deleted || message.attachments.length)) sharedChanged(chatId);
                     more = changes.more;
                 }
             } while (syncAgain.current && alive.current);
@@ -64,7 +70,7 @@ export function useTeamChat(jump: number | null) {
         } finally {
             syncing.current = false;
         }
-    }, [update, lost]);
+    }, [chatId, update, lost]);
 
     // ── Sending ─────────────────────────────────────────────────────────
     const flushing = useRef(false);
@@ -78,11 +84,15 @@ export function useTeamChat(jump: number | null) {
                 if (item.refused !== null) continue;
                 setInFlight(item.key);
                 try {
-                    const message = await sendMessage({ content: item.content, clientMessageId: item.key, replyToId: item.replyTo?.id ?? null, attachmentIds: item.attachments.map(file => file.id) });
+                    const message = await sendMessage(chatId, {
+                        content: item.content, clientMessageId: item.key, replyToId: item.replyTo?.id ?? null,
+                        attachmentIds: item.attachments.map(file => file.id),
+                    });
                     outbox.remove(item.key);
                     if (!alive.current) return;
                     setPending(outbox.list());
                     update(current => upsert(current, message));
+                    if (message.attachments.length) sharedChanged(chatId);
                     retryDelay.current = 2000;
                 } catch (error) {
                     if (isMissing(error)) { lost(error); return; }
@@ -101,7 +111,7 @@ export function useTeamChat(jump: number | null) {
             flushing.current = false;
             if (alive.current) setInFlight(null);
         }
-    }, [outbox, update, lost, copy]);
+    }, [chatId, outbox, update, lost, copy]);
 
     // A message that reached the server while its answer was lost is recognized by its key, never sent twice.
     useEffect(() => {
@@ -119,8 +129,8 @@ export function useTeamChat(jump: number | null) {
         opened.current = true;
         (async () => {
             try {
-                const chat = await fetchState();
-                const first = await fetchPage(jump ? { around: jump } : {});
+                const chat = await fetchState(chatId);
+                const first = await fetchPage(chatId, jump ? { around: jump } : {});
                 if (!alive.current) return;
                 setState(chat);
                 setFirstUnread(chat.unreadCount > 0 ? chat.firstUnreadId : null);
@@ -132,13 +142,15 @@ export function useTeamChat(jump: number | null) {
                 if (alive.current) setStatus(isMissing(error) ? 'missing' : 'error');
             }
         })();
-    }, [jump, update, sync, flush]);
+    }, [chatId, jump, update, sync, flush]);
+
+    /** The chat's own facts (name, status, decision) as the list or the panel just changed them. */
+    const putChat = useCallback((chat: ChatSummary) => setState(current => current ? { ...current, chat } : current), []);
 
     // ── The live line, and catching up whenever it may have missed something ──
-    const conversationId = state?.conversationId ?? null;
     useEffect(() => {
-        if (conversationId === null) return;
-        const connection = connectLive(conversationId, {
+        if (status !== 'ready') return;
+        const connection = connectLive(chatId, {
             onChanged: () => void sync(),
             onTyping: (userId, isTyping) => setTyping(current => {
                 const next = new Map(current);
@@ -149,7 +161,7 @@ export function useTeamChat(jump: number | null) {
         });
         live.current = connection;
         return () => { connection.close(); live.current = null; };
-    }, [conversationId, sync, flush]);
+    }, [chatId, status, sync, flush]);
 
     useEffect(() => {
         const refresh = () => { if (document.visibilityState === 'visible' && navigator.onLine) { void sync(); void flush(); } };
@@ -183,7 +195,7 @@ export function useTeamChat(jump: number | null) {
         pagingRef.current = true;
         setPaging(kind);
         try {
-            const next = await fetchPage(where);
+            const next = await fetchPage(chatId, where);
             if (!alive.current) return;
             update(current => apply(current, next));
             void sync();
@@ -194,7 +206,7 @@ export function useTeamChat(jump: number | null) {
             pagingRef.current = false;
             if (alive.current) setPaging(null);
         }
-    }, [update, sync, lost, copy]);
+    }, [chatId, update, sync, lost, copy]);
     const loadOlder = useCallback(() => {
         const first = viewRef.current.messages[0];
         if (first && viewRef.current.hasOlder) void page('older', { before: first.id }, addOlder);
@@ -224,19 +236,23 @@ export function useTeamChat(jump: number | null) {
     const retry = useCallback((key: string) => { outbox.retry(key); setPending(outbox.list()); void flush(); }, [outbox, flush]);
     const discard = useCallback((key: string) => { outbox.remove(key); setPending(outbox.list()); }, [outbox]);
 
-    const change = useCallback(async (request: Promise<ChatMessage>, what: [string, string]) => {
+    const change = useCallback(async (request: Promise<ChatMessage>, what: [string, string], forbidden?: [string, string]) => {
         try {
             const message = await request;
             if (alive.current) update(current => upsert(current, message));
             return true;
         } catch (error) {
             lost(error);
-            if (alive.current) setNotice(problem(copy, error, what));
+            if (alive.current) setNotice(problem(copy, error, what, forbidden));
             return false;
         }
     }, [update, lost, copy]);
-    const edit = useCallback((id: number, content: string) => change(editMessage(id, content), ['The change was not saved.', 'ცვლილება ვერ შეინახა.']), [change]);
-    const remove = useCallback((id: number) => change(deleteMessage(id), ['The message was not deleted.', 'შეტყობინება ვერ წაიშალა.']), [change]);
+    const edit = useCallback((id: number, content: string) =>
+        change(editMessage(chatId, id, content), ['The change was not saved.', 'ცვლილება ვერ შეინახა.'], WRITER_FORBIDDEN), [chatId, change]);
+    // Its files may leave the panel's Media with it.
+    const remove = useCallback((id: number) =>
+        change(deleteMessage(chatId, id), ['The message was not deleted.', 'შეტყობინება ვერ წაიშალა.'], WRITER_FORBIDDEN)
+            .then(done => { if (done) sharedChanged(chatId); return done; }), [chatId, change]);
     const me = state?.me ?? null;
     const toggleReaction = useCallback((message: ChatMessage, emoji: string) => {
         if (me === null) return;
@@ -250,8 +266,9 @@ export function useTeamChat(jump: number | null) {
                 .filter(reaction => reaction.userIds.length);
         const put = (next: ChatMessage) => update(current => ({ ...current, messages: current.messages.map(known => known.id === next.id ? next : known) }));
         put({ ...message, reactions });
-        void change(react(message.id, emoji, on), ['The reaction was not saved.', 'რეაქცია ვერ შეინახა.']).then(saved => { if (!saved && alive.current) put(message); });
-    }, [me, update, change]);
+        void change(react(chatId, message.id, emoji, on), ['The reaction was not saved.', 'რეაქცია ვერ შეინახა.'])
+            .then(saved => { if (!saved && alive.current) put(message); });
+    }, [chatId, me, update, change]);
 
     // ── Reading ─────────────────────────────────────────────────────────
     const readUpTo = useRef(0), reading = useRef(false);
@@ -259,13 +276,13 @@ export function useTeamChat(jump: number | null) {
         if (upTo <= readUpTo.current || reading.current) return;
         reading.current = true;
         try {
-            await markRead(upTo);
+            await markRead(chatId, upTo);
             readUpTo.current = Math.max(readUpTo.current, upTo);
             emitNotificationsChanged();
         } catch { /* Read again on the next look. */ } finally {
             reading.current = false;
         }
-    }, []);
+    }, [chatId]);
 
     const lastTyping = useRef(0);
     const typingNow = useCallback((isTyping: boolean) => {
@@ -280,8 +297,9 @@ export function useTeamChat(jump: number | null) {
     const typingNames = [...typing.keys()].filter(id => id !== me).map(id => membersById.get(id)?.name).filter((name): name is string => !!name);
 
     return {
-        state, status, notice, dismissNotice: () => setNotice(''), view, pending, inFlight, connected, typingNames, highlight, setHighlight,
+        chatId, state, status, notice, dismissNotice: () => setNotice(''), view, pending, inFlight, connected, typingNames, highlight, setHighlight,
         firstUnread, paging, membersById, loadOlder, loadNewer, jumpTo, jumpToLatest, send, retry, discard, edit, remove, toggleReaction, read, typingNow,
+        putChat, follow,
     };
 }
 export type TeamChatModel = ReturnType<typeof useTeamChat>;

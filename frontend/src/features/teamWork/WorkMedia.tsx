@@ -6,7 +6,9 @@ import { useMediaSource } from '../../hooks/useMediaSource';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { deleteMedia, playLink, type Detail, type WorkMedia as Media } from './api';
+import { EditImageButton } from '../imageEditor/EditImageButton';
+import { EditedImageNote } from '../imageEditor/EditedImageNote';
+import { deleteMedia, fetchDetail, playLink, type Detail, type WorkMedia as Media } from './api';
 import { ago } from './teamWorkWords';
 import { ACCEPT, type Uploads } from './useUploads';
 
@@ -75,6 +77,7 @@ export function WorkMediaList({ itemId, media, onChanged }: { itemId: number; me
     return <div className="tw-media">
         {media.length > 0 && <ul className="tw-media__list">{media.map(item => <li key={item.id} className={item.kind === 'VIDEO' ? 'tw-media__video' : item.kind === 'FILE' ? 'tw-media__file' : undefined}>
             {item.kind === 'VIDEO' ? <Player itemId={itemId} media={item} /> : item.kind === 'FILE' ? <FileRow media={item} /> : <Thumb media={item} onOpen={() => setOpen(item)} />}
+            {item.kind === 'IMAGE' && <EditedImageNote url={item.url} />}
             <span className="tw-media__meta">
                 {item.kind === 'VIDEO' && <Video aria-hidden="true" />}
                 <span>{[item.uploadedBy?.name, ago(copy, item.createdAt)].filter(Boolean).join(' · ')}</span>
@@ -82,7 +85,11 @@ export function WorkMediaList({ itemId, media, onChanged }: { itemId: number; me
             </span>
         </li>)}</ul>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
-        {open && <Dialog open size="lg" className="tw-lightbox" title={copy('Picture', 'სურათი')} description={[open.uploadedBy?.name, ago(copy, open.createdAt)].filter(Boolean).join(' · ')} onClose={() => setOpen(null)} closeLabel={copy('Close', 'დახურვა')}>
+        {open && <Dialog open size="lg" className="tw-lightbox" title={copy('Picture', 'სურათი')} description={[open.uploadedBy?.name, ago(copy, open.createdAt)].filter(Boolean).join(' · ')} onClose={() => setOpen(null)} closeLabel={copy('Close', 'დახურვა')}
+            footer={<EditImageButton media={{ url: open.url, name: open.name, place: { itemId } }} variant="secondary" onSaved={() => {
+                setOpen(null);
+                fetchDetail(itemId).then(onChanged).catch(failure => setError(extractApiErrorMessage(failure, copy('The copy was saved, but the task could not refresh. Open it again to see it.', 'ასლი შეინახა, მაგრამ საქმე ვერ განახლდა. ხელახლა გახსენით.'))));
+            }} />}>
             <Picture media={open} />
         </Dialog>}
     </div>;

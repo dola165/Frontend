@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Download, MessageSquare } from 'lucide-react
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { EditImageButton } from '../imageEditor/EditImageButton';
+import { EditedImageNote } from '../imageEditor/EditedImageNote';
 import type { ChatAttachment } from './api';
 import { ChatImage, ChatVideo, FileRow } from './Attachments';
 import { saveFile } from './saveFile';
@@ -35,6 +37,9 @@ export function Lightbox({ items, start, onClose, onShow }: { items: Viewed[]; s
         title={<span className="tc-lightbox__title">{attachment.name}</span>}
         description={`${current.caption} · ${fileSize(attachment.sizeBytes)}${items.length > 1 ? ` · ${index + 1}/${items.length}` : ''}`}
         footer={<>
+            {attachment.kind === 'IMAGE' && <EditedImageNote url={attachment.url} className="tc-lightbox__edited" />}
+            {attachment.kind === 'IMAGE' && current.messageId !== null && <EditImageButton media={{ url: attachment.url, name: attachment.name }}
+                onSaved={saved => { onClose(); if (saved.messageId && onShow) onShow({ ...current, messageId: saved.messageId }); }} />}
             {onShow && current.messageId !== null && <Button variant="ghost" size="sm" onClick={() => onShow(current)}><MessageSquare aria-hidden="true" />{copy('Show in chat', 'ჩატში ნახვა')}</Button>}
             <Button size="sm" disabled={saving} onClick={() => void save()}><Download aria-hidden="true" />{copy('Download', 'ჩამოტვირთვა')}</Button>
         </>}>

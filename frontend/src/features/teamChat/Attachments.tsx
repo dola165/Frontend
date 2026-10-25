@@ -3,6 +3,7 @@ import { Download, FileText, Loader2, Play } from 'lucide-react';
 import { useMediaSource } from '../../hooks/useMediaSource';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { EditedImageNote } from '../imageEditor/EditedImageNote';
 import { playLink, type ChatAttachment } from './api';
 import { useNearView } from './nearView';
 import { saveFile } from './saveFile';
@@ -71,6 +72,7 @@ export function Attachments({ attachments, onOpen }: { attachments: ChatAttachme
                 </button>
             </li>)}
         </ul>}
+        {visual.map(attachment => attachment.kind === 'IMAGE' && <EditedImageNote key={attachment.id} url={attachment.url} />)}
         {files.map(attachment => <FileRow key={attachment.id} attachment={attachment} />)}
     </div>;
 }

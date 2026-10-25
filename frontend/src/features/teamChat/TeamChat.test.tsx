@@ -1,5 +1,5 @@
 import '../../i18n';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -9,6 +9,7 @@ import { DiscussButton } from './DiscussButton';
 import type { LiveHandlers } from './liveChat';
 import { TeamChatNavItem } from './TeamChatNavItem';
 import { TeamChatPage } from './TeamChatPage';
+import { useTeamChat } from './useTeamChat';
 
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchHome: vi.fn(), fetchUnread: vi.fn(), fetchTasks: vi.fn(), createChat: vi.fn(), fetchState: vi.fn(),
@@ -132,6 +133,42 @@ it('puts the New line where the unread messages start', async () => {
     const line = screen.getByText('New');
     expect(line.closest('[data-unread-line]')).not.toBeNull();
     expect(line.compareDocumentPosition(screen.getByText('@Gio'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+});
+
+it('opens a chat with unread messages where they start, not at a newest page that may not hold the first', async () => {
+    vi.mocked(api.fetchState).mockImplementation(async () => stateOf(registration(), { firstUnreadId: 2, unreadCount: 1 }));
+    mount();
+    await screen.findByText('Morning');
+    expect(api.fetchPage).toHaveBeenCalledWith(50, { around: 2 });
+});
+
+it('brings a message jumped to into view once: new messages afterwards never pull the view back to it', async () => {
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrolled;
+    mount('/team-work/chat?chat=50&message=1');
+    await screen.findByText('Morning');
+    await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(1));
+    vi.mocked(api.fetchChanges).mockResolvedValue({ messages: [message(3, { content: 'Pizza at seven' })], revision: 4, more: false });
+    await waitFor(() => expect(live).not.toBeNull());
+    act(() => live?.onChanged());
+    expect(await screen.findByText('Pizza at seven')).toBeInTheDocument();
+    vi.mocked(api.fetchChanges).mockResolvedValue({ messages: [message(4, { content: 'And cola' })], revision: 5, more: false });
+    act(() => live?.onChanged());
+    expect(await screen.findByText('And cola')).toBeInTheDocument();
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    Element.prototype.scrollIntoView = original;
+});
+
+it('never loses a read: what is seen while another read is on its way is marked next', async () => {
+    const answers: Array<() => void> = [];
+    vi.mocked(api.markRead).mockImplementation(() => new Promise(resolve => answers.push(() => resolve({ firstUnreadId: null, unreadCount: 0 }))));
+    const { result } = renderHook(() => useTeamChat(50, null));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => { result.current.read(5); result.current.read(9); });
+    expect(api.markRead).toHaveBeenCalledTimes(1);
+    await act(async () => { answers[0](); });
+    await waitFor(() => expect(api.markRead).toHaveBeenLastCalledWith(50, 9));
 });
 
 it('does not exist for someone off the team', async () => {

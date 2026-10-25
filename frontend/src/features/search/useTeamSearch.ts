@@ -7,18 +7,19 @@ export const SEARCH_DELAY = 200;
 export const BEST_DELAY = 700;
 const MORE = 10;
 
-type Found = { query: string; status: 'loading' | 'ready' | 'error'; results: SearchResults | null };
+type Found = { query: string; deleted: boolean; status: 'loading' | 'ready' | 'error'; results: SearchResults | null };
 export type BestState = { query: string; status: 'asking' | 'ready' | 'failed'; answer: BestMatches | null };
 
 const key = (kind: string, id: number) => `${kind}:${id}`;
 
 /**
  * Team work search as someone types: the free results first, then, for a vague search only, the best matches.
- * Results of an older search are kept on screen (marked as such) until the new ones arrive.
+ * Results of an older search are kept on screen (marked as such) until the new ones arrive. `deleted`: also the
+ * person's chats in Recently deleted (their results come after the live ones; the best matches never include them).
  */
-export function useTeamSearch(query: string) {
+export function useTeamSearch(query: string, deleted = false) {
     const term = query.trim();
-    const [found, setFound] = useState<Found>({ query: '', status: 'ready', results: null });
+    const [found, setFound] = useState<Found>({ query: '', deleted: false, status: 'ready', results: null });
     const [best, setBest] = useState<BestState | null>(null);
     const [loadingMore, setLoadingMore] = useState<SearchGroup | null>(null);
 
@@ -26,13 +27,13 @@ export function useTeamSearch(query: string) {
         if (!term) return;
         const controller = new AbortController();
         const timer = window.setTimeout(() => {
-            setFound(current => ({ query: term, status: 'loading', results: current.results }));
-            searchTeam(term, controller.signal)
-                .then(results => { if (!controller.signal.aborted) setFound({ query: term, status: 'ready', results }); })
-                .catch(() => { if (!controller.signal.aborted) setFound(current => ({ query: term, status: 'error', results: current.results })); });
+            setFound(current => ({ query: term, deleted, status: 'loading', results: current.results }));
+            searchTeam(term, controller.signal, undefined, deleted)
+                .then(results => { if (!controller.signal.aborted) setFound({ query: term, deleted, status: 'ready', results }); })
+                .catch(() => { if (!controller.signal.aborted) setFound(current => ({ query: term, deleted, status: 'error', results: current.results })); });
         }, SEARCH_DELAY);
         return () => { controller.abort(); window.clearTimeout(timer); };
-    }, [term]);
+    }, [term, deleted]);
 
     const ask = found.status === 'ready' && found.query === term && found.results?.askBest === true;
     useEffect(() => {
@@ -50,13 +51,13 @@ export function useTeamSearch(query: string) {
     /** Ten more of one group. */
     const loadMore = useCallback(async (group: SearchGroup) => {
         const current = found.results?.groups.find(candidate => candidate.group === group);
-        if (!current || found.query !== term) return;
+        if (!current || found.query !== term || found.deleted !== deleted) return;
         setLoadingMore(group);
         try {
-            const page = await searchTeam(term, undefined, { group, offset: current.hits.length, limit: MORE });
+            const page = await searchTeam(term, undefined, { group, offset: current.hits.length, limit: MORE }, deleted);
             const next = page.groups.find(candidate => candidate.group === group);
             setFound(state => {
-                if (state.query !== term || !state.results || !next) return state;
+                if (state.query !== term || state.deleted !== deleted || !state.results || !next) return state;
                 return { ...state, results: { ...state.results, groups: state.results.groups.map(candidate => {
                     if (candidate.group !== group) return candidate;
                     const seen = new Set(candidate.hits.map(hit => key(hit.kind, hit.id)));
@@ -65,10 +66,10 @@ export function useTeamSearch(query: string) {
             });
         } catch { /* the button stays; trying again is the person's call */ }
         finally { setLoadingMore(null); }
-    }, [found, term]);
+    }, [found, term, deleted]);
 
     if (!term) return { status: 'idle' as const, results: null, stale: false, best: null, loadingMore, loadMore };
-    const stale = found.query !== term;
+    const stale = found.query !== term || found.deleted !== deleted;
     return {
         status: stale ? 'loading' as const : found.status,
         results: found.results,

@@ -30,6 +30,7 @@
 .gk .tw-search-dialog__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
 .gk .tw-search-dialog__foot .tw-link-button { min-height: 32px; }
 .gk .tw-search-dialog__missed { margin-left: auto; color: var(--gk-text-3); }
+.gk .tw-search-dialog__deleted { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; color: var(--gk-text-2); cursor: pointer; }
 .gk .tw-search-dialog__kept { color: var(--gk-text-2); }
 
 /* A group: its name, then its rows. The best matches stand out a little. */
@@ -60,6 +61,11 @@
 .gk .tw-search-row__where > span { display: inline-flex; align-items: center; min-width: 0; }
 .gk .tw-search-row__where > span + span::before { content: '·'; margin: 0 6px; }
 .gk .tw-search-row mark, .gk .tw-search-row .tw-key-chip[data-marked] { padding: 0 2px; border-radius: 3px; background: color-mix(in srgb, var(--gk-accent) 26%, transparent); color: inherit; }
+/* A result from a deleted chat: grey all through, its picture too; the where line says so in words. */
+.gk .tw-search-row--deleted .tw-search-row__title, .gk .tw-search-row--deleted .tw-search-row__why { color: var(--gk-text-3); }
+.gk .tw-search-row--deleted mark { background: color-mix(in srgb, var(--gk-text-3) 24%, transparent); }
+.gk .tw-search-row--deleted .tw-search-row__icon, .gk .tw-search-row--deleted .tw-search-row__thumb { opacity: .7; }
+.gk .tw-search-row--deleted .tw-search-row__thumb img { filter: grayscale(1); }
 .gk .tw-search-more { display: flex; align-items: center; min-height: 40px; padding: 0 var(--gk-3) 0 calc(40px + 2 * var(--gk-3)); border-radius: var(--gk-r); color: var(--gk-accent); font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
 .gk .tw-search-more[data-active] { background: var(--gk-hover); }
 
@@ -68,6 +74,7 @@
 .gk .tw-search-missed__list li { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-3) 0; border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
 .gk .tw-search-missed__list li:first-child { border-top: 0; }
 .gk .tw-search-missed__query { font-size: var(--gk-fs-md); font-weight: 650; color: var(--gk-text); overflow-wrap: anywhere; }
+.gk .tw-search-missed__deleted { color: var(--gk-text-3); }
 
 /* Phones: the whole screen, the words at the top where the thumb and the keyboard leave room. */
 @media (max-width: 640px) {

@@ -62,7 +62,11 @@ function whereParts(copy: Copy, hit: SearchHit): ReactNode[] {
         if (where.at) parts.push(ago(copy, where.at));
     } else {
         if (hit.kind === 'TASK_FILE' && about) parts.push(copy(`on ${about.key} ${about.title}`, `საქმეზე ${about.key} ${about.title}`));
-        if (where.chat) parts.push(where.chat.name === 'Team chat' ? copy('Team chat', 'გუნდის ჩატი') : where.chat.name ?? copy('Chat', 'ჩატი'));
+        if (where.chat) {
+            const chat = where.chat.name === 'Team chat' ? copy('Team chat', 'გუნდის ჩატი') : where.chat.name ?? copy('Chat', 'ჩატი');
+            // Said in words, not by the grey alone.
+            parts.push(hit.deleted ? copy(`Deleted chat “${chat}”`, `წაშლილი ჩატი „${chat}“`) : chat);
+        }
         if (where.person && hit.kind !== 'MESSAGE') parts.push(where.person.name);
         const at = when(copy, where.at);
         if (at) parts.push(at);
@@ -73,7 +77,7 @@ function whereParts(copy: Copy, hit: SearchHit): ReactNode[] {
 
 /**
  * One result, in the order the team reads it: the short name first, then why it matched (the matched words marked),
- * then where it is.
+ * then where it is. One from a deleted chat is grey, and says so.
  */
 export function SearchRow({ hit, id, active, onOpen, onHover }: { hit: SearchHit; id: string; active: boolean; onOpen: () => void; onHover: () => void }) {
     const copy = useJourneyCopy();
@@ -82,7 +86,7 @@ export function SearchRow({ hit, id, active, onOpen, onHover }: { hit: SearchHit
     const title = hit.file ? fileName(copy, hit.file, hit.title) : hit.kind === 'NOW' ? copy(`${hit.title ?? ''}’s Now note`, `${hit.title ?? ''} — ახლა`) : hit.title ?? '—';
     const label = why && !named ? whyLabel(copy, why) : null;
     const parts = whereParts(copy, hit);
-    return <li id={id} role="option" aria-selected={active} className="tw-search-row" data-active={active || undefined} onClick={onOpen} onMouseMove={onHover}>
+    return <li id={id} role="option" aria-selected={active} className={hit.deleted ? 'tw-search-row tw-search-row--deleted' : 'tw-search-row'} data-active={active || undefined} onClick={onOpen} onMouseMove={onHover}>
         <Icon hit={hit} />
         <span className="tw-search-row__text">
             <span className="tw-search-row__title">{why?.field === 'NAME' ? <Marked text={why.text} marks={why.marks} /> : title}</span>

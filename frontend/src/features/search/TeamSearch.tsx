@@ -6,12 +6,13 @@ import { useDialogFocus } from '../../components/workspace/useDialogFocus';
 import { useAuth } from '../../context/AuthContext';
 import { Button, GkRoot } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { reportMiss, type SearchGroup, type SearchHit } from './api';
+import { fetchSearchOptions, reportMiss, type SearchGroup, type SearchHit, type SearchOptions } from './api';
 import { MissedList } from './MissedList';
 import { openedAfterMiss, pendingMiss, rememberMiss } from './searchMiss';
 import { openedIn, pathOf, refOf } from './searchLinks';
 import { SearchRow } from './SearchRow';
 import { groupName } from './searchWords';
+import { keepShowDeleted, showsDeleted } from './showDeleted';
 import { useTeamSearch } from './useTeamSearch';
 import '../../design/dialog.css';
 import '../teamWork/team-work.css';
@@ -73,8 +74,18 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
     const [missed, setMissed] = useState(false);
     const [miss, setMiss] = useState<{ query: string; state: 'sending' | 'kept' | 'failed' } | null>(null);
     const [active, setActive] = useState<{ at: number; for: unknown }>({ at: 0, for: null });
+    // "Show deleted" is off unless the person turned it on in this session; the box offers it only with a chat in
+    // Recently deleted, and "What search missed" only to those who may read it.
+    const [deleted, setDeleted] = useState(() => showsDeleted(me));
+    const [options, setOptions] = useState<SearchOptions | null>(null);
     useDialogFocus(true, dialog, onClose, input);
-    const { status, results, stale, best, loadingMore, loadMore } = useTeamSearch(query);
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchSearchOptions(controller.signal).then(setOptions).catch(() => { /* the box works without its extras */ });
+        return () => controller.abort();
+    }, []);
+    const showDeleted = (on: boolean) => { setDeleted(on); keepShowDeleted(me, on); };
+    const { status, results, stale, best, loadingMore, loadMore } = useTeamSearch(query, deleted);
     const picked = best?.status === 'ready' && best.answer?.status === 'PICKED' ? best.answer.hits : [];
     const groups = results?.groups ?? [];
 
@@ -162,11 +173,15 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
                 {asked && limited && <p className="tw-search-dialog__hint">{copy('Best matches are used up for today; these are the plain results.', 'დღევანდელი „ყველაზე შესაფერისი“ ამოიწურა; ეს ჩვეულებრივი შედეგებია.')}</p>}
             </div>
             <div className="tw-search-dialog__foot">
+                {(deleted || (options?.deletedChats ?? 0) > 0) && <label className="tw-search-dialog__deleted">
+                    <input type="checkbox" role="switch" className="gk-switch" checked={deleted} onChange={event => showDeleted(event.target.checked)} />
+                    {copy('Show deleted', 'წაშლილების ჩვენება')}
+                </label>}
                 {asked && status === 'ready' && missState === 'idle' && <button type="button" className="tw-link-button" onClick={() => void sayMissed()}>{copy('Not what I was looking for', 'ეს არ არის, რასაც ვეძებდი')}</button>}
                 {missState === 'sending' && <span className="gk-faint">{copy('Saving…', 'ინახება…')}</span>}
                 {missState === 'kept' && <span className="tw-search-dialog__kept" role="status">{copy('Thanks. Now open what you were looking for — search will learn from it.', 'მადლობა. ახლა გახსენით ის, რასაც ეძებდით — ძიება ამით ისწავლის.')}</span>}
                 {missState === 'failed' && <span className="gk-notice gk-notice--danger" role="alert">{copy('That couldn’t be saved.', 'ვერ შეინახა.')}</span>}
-                <button type="button" className="tw-link-button tw-search-dialog__missed" onClick={() => setMissed(true)}>{copy('What search missed', 'რა ვერ იპოვა ძიებამ')}</button>
+                {options?.seesMissed && <button type="button" className="tw-link-button tw-search-dialog__missed" onClick={() => setMissed(true)}>{copy('What search missed', 'რა ვერ იპოვა ძიებამ')}</button>}
             </div>
         </section>
         {missed && <MissedList onClose={() => setMissed(false)} onOpen={open} />}

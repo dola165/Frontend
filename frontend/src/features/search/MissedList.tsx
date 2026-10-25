@@ -5,7 +5,10 @@ import { ago } from '../teamWork/teamWorkWords';
 import { fetchMissed, type MissedSearch, type SearchHit } from './api';
 import { fileName } from './searchWords';
 
-/** What search missed, newest first: the words, who and when, and what they opened instead. For the team. */
+/**
+ * What search missed, newest first: the words, who and when, and what they opened instead. For the team's admins and
+ * the people named for it (the box shows the link only to them).
+ */
 export function MissedList({ onClose, onOpen }: { onClose: () => void; onOpen: (hit: SearchHit) => void }) {
     const copy = useJourneyCopy();
     const [rows, setRows] = useState<MissedSearch[] | null>(null);
@@ -27,7 +30,8 @@ export function MissedList({ onClose, onOpen }: { onClose: () => void; onOpen: (
                 <span className="tw-search-missed__query">“{row.query}”</span>
                 <span className="gk-faint">{row.by.name ?? '—'} · {ago(copy, row.at)}</span>
                 {row.opened
-                    ? <span>{copy('Opened instead:', 'ამის ნაცვლად გახსნა:')} <button type="button" className="tw-link-button" onClick={() => { if (row.opened) onOpen(row.opened); }}>{title(row.opened)}</button></span>
+                    ? <span>{copy('Opened instead:', 'ამის ნაცვლად გახსნა:')} <button type="button" className={row.opened.deleted ? 'tw-link-button tw-search-missed__deleted' : 'tw-link-button'} onClick={() => { if (row.opened) onOpen(row.opened); }}>{title(row.opened)}</button>
+                        {row.opened.deleted && <span className="gk-faint"> · {copy('in a deleted chat', 'წაშლილ ჩატში')}</span>}</span>
                     : <span className="gk-faint">{row.openedAt ? copy('Opened something you can’t open', 'გახსნა ის, რაც თქვენ არ გეხსნებათ') : copy('Nothing opened after', 'შემდეგ არაფერი გაუხსნია')}</span>}
             </li>)}
         </ul>}

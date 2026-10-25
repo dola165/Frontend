@@ -8,6 +8,7 @@ import { TeamSearch } from './TeamSearch';
 
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), searchTeam: vi.fn(), fetchBestMatches: vi.fn(), reportMiss: vi.fn(), reportOpened: vi.fn(), fetchMissed: vi.fn(),
+    fetchSearchOptions: vi.fn(),
 }));
 // Team files are fetched with the sign-in; here the address itself stands in for the picture.
 vi.mock('../../hooks/useMediaSource', () => ({ useMediaSource: (source?: string) => source }));
@@ -17,17 +18,19 @@ const where = (extra: Partial<api.SearchWhere> = {}): api.SearchWhere => ({ key:
 const open = (extra: Partial<api.SearchOpen> = {}): api.SearchOpen => ({ task: null, step: null, plan: null, view: null, who: null, message: null, conversation: null, ...extra });
 const task = (id: number, title: string, extra: Partial<api.SearchHit> = {}): api.SearchHit => ({
     kind: 'TASK', id, title, why: { field: 'NAME', by: null, text: title, marks: [{ start: 0, end: Math.min(4, title.length) }] },
-    where: where({ key: `GK-${id}`, status: 'IN_PROGRESS', plan: { id: 9, name: 'Registration and roles' } }), open: open({ task: id }), file: null, ...extra,
+    where: where({ key: `GK-${id}`, status: 'IN_PROGRESS', plan: { id: 9, name: 'Registration and roles' } }), open: open({ task: id }), file: null, deleted: false, ...extra,
 });
 const plan: api.SearchHit = { kind: 'PLAN', id: 9, title: 'Registration and roles', why: { field: 'NAME', by: null, text: 'Registration and roles', marks: [{ start: 0, end: 12 }, { start: 17, end: 22 }] },
-    where: where({ status: 'NOW', openTasks: 6 }), open: open({ plan: 9 }), file: null };
+    where: where({ status: 'NOW', openTasks: 6 }), open: open({ plan: 9 }), file: null, deleted: false };
 const comment = task(31, 'Checkout', { why: { field: 'COMMENT', by: 'Beqa', text: 'Payments go through Keepz, not Stripe', marks: [{ start: 20, end: 25 }] } });
 const message: api.SearchHit = { kind: 'MESSAGE', id: 70, title: 'Gio Beridze', why: { field: 'MESSAGE', by: 'Gio Beridze', text: 'დღეს კოდით რეგისტრაცია უნდა დავასრულოთ', marks: [{ start: 11, end: 22 }] },
     where: where({ chat: { id: 2, name: 'Team chat' }, person: { id: 2, name: 'Gio Beridze' }, at: new Date().toISOString(), tasks: [{ id: 21, key: 'GK-21', title: 'User registration', status: 'NEEDS_LOOK' }] }),
-    open: open({ message: 70, conversation: 2 }), file: null };
+    open: open({ message: 70, conversation: 2 }), file: null, deleted: false };
 const picture: api.SearchHit = { kind: 'CHAT_FILE', id: 5, title: 'dinamo-arena.jpg', why: { field: 'SENT_WITH', by: 'Beqa', text: 'Stadium photos for the venue page', marks: [{ start: 0, end: 7 }] },
     where: where({ chat: { id: 2, name: 'Team chat' }, person: { id: 1, name: 'Beqa' }, at: new Date().toISOString() }), open: open({ message: 71, conversation: 2 }),
-    file: { kind: 'IMAGE', name: 'dinamo-arena.jpg', url: '/uploads/team-work/a.jpg', thumbUrl: '/uploads/team-work/a-thumb.jpg', contentType: 'image/jpeg', width: 640, height: 480 } };
+    file: { kind: 'IMAGE', name: 'dinamo-arena.jpg', url: '/uploads/team-work/a.jpg', thumbUrl: '/uploads/team-work/a-thumb.jpg', contentType: 'image/jpeg', width: 640, height: 480 }, deleted: false };
+const oldMessage: api.SearchHit = { ...message, id: 80, title: 'Cotne', why: { field: 'MESSAGE', by: 'Cotne', text: 'The zeppelin sponsor wants registration day photos', marks: [{ start: 29, end: 41 }] },
+    where: where({ chat: { id: 6, name: 'Sponsors, old' }, person: { id: 3, name: 'Cotne' }, at: new Date().toISOString() }), open: open({ message: 80, conversation: 6 }), deleted: true };
 const results = (extra: Partial<api.SearchResults> = {}): api.SearchResults => ({
     query: 'registration and roles', words: ['registration', 'roles'], askBest: false,
     groups: [{ group: 'WORK', hits: [plan, task(21, 'User registration'), comment], more: true }, { group: 'CHATS', hits: [message], more: false }, { group: 'FILES', hits: [picture], more: false }],
@@ -50,6 +53,7 @@ beforeEach(() => {
     vi.mocked(api.reportMiss).mockResolvedValue({ id: 77 });
     vi.mocked(api.reportOpened).mockResolvedValue(undefined);
     vi.mocked(api.fetchMissed).mockResolvedValue([]);
+    vi.mocked(api.fetchSearchOptions).mockResolvedValue({ seesMissed: true, deletedChats: 0 });
 });
 
 it('opens with the box, with / and with Ctrl+K, but / typed in a field stays a character', async () => {
@@ -125,7 +129,7 @@ it('a chat result opens the chat at its message; Show more brings the next ten',
     await screen.findAllByRole('option');
     vi.mocked(api.searchTeam).mockResolvedValueOnce(results({ groups: [{ group: 'WORK', hits: [task(40, 'Password reset email')], more: false }] }));
     await userEvent.click(screen.getByRole('option', { name: 'Show more' }));
-    expect(api.searchTeam).toHaveBeenLastCalledWith('registration and roles', undefined, { group: 'WORK', offset: 3, limit: 10 });
+    expect(api.searchTeam).toHaveBeenLastCalledWith('registration and roles', undefined, { group: 'WORK', offset: 3, limit: 10 }, false);
     expect(await screen.findByRole('option', { name: /Password reset email/ })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Show more' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('option', { name: /Gio Beridze/ }));
@@ -185,13 +189,48 @@ it('what search missed lists the words, who, and what they opened instead', asyn
     ]);
     mount();
     await userEvent.keyboard('/');
-    await userEvent.click(screen.getByRole('button', { name: 'What search missed' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'What search missed' }));
     const dialog = await screen.findByRole('dialog', { name: 'What search missed' });
     expect(await within(dialog).findByText('“flow after registration”')).toBeInTheDocument();
     expect(within(dialog).getByText(/Gio Beridze/)).toBeInTheDocument();
     expect(within(dialog).getByText('Nothing opened after')).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'GK-44 The flow after sign-up' }));
     expect(screen.getByTestId('where')).toHaveTextContent('/team-work?task=44');
+});
+
+it('colleagues get no “What search missed”, and no deleted-chats switch without a deleted chat', async () => {
+    vi.mocked(api.fetchSearchOptions).mockResolvedValue({ seesMissed: false, deletedChats: 0 });
+    mount();
+    await userEvent.keyboard('/');
+    await userEvent.type(box(), 'registration');
+    await screen.findAllByRole('option');
+    expect(api.fetchSearchOptions).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'What search missed' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(vi.mocked(api.searchTeam).mock.calls.at(-1)?.[3]).toBe(false);
+});
+
+it('“Show deleted” brings deleted chats’ results, grey and named, and stays on for the session', async () => {
+    vi.mocked(api.fetchSearchOptions).mockResolvedValue({ seesMissed: false, deletedChats: 1 });
+    mount();
+    await userEvent.keyboard('/');
+    await userEvent.type(box(), 'zeppelin');
+    await screen.findAllByRole('option');
+    const toggle = await screen.findByRole('switch', { name: 'Show deleted' });
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByText(/Deleted chat/)).not.toBeInTheDocument();
+    vi.mocked(api.searchTeam).mockResolvedValue(results({ groups: [{ group: 'CHATS', hits: [message, oldMessage], more: false }] }));
+    await userEvent.click(toggle);
+    expect(toggle).toBeChecked();
+    const old = await screen.findByRole('option', { name: /zeppelin sponsor/ });
+    expect(vi.mocked(api.searchTeam).mock.calls.at(-1)?.[3]).toBe(true);
+    expect(old).toHaveClass('tw-search-row--deleted');
+    expect(old).toHaveTextContent('Deleted chat “Sponsors, old”');
+    expect(screen.getByRole('option', { name: /Gio Beridze/ })).not.toHaveClass('tw-search-row--deleted');
+    // Closed and opened again in this session, it is still on.
+    await userEvent.click(screen.getByRole('button', { name: /Close/ }));
+    await userEvent.keyboard('/');
+    expect(await screen.findByRole('switch', { name: 'Show deleted' })).toBeChecked();
 });
 
 it('says so when nothing is found or search fails', async () => {

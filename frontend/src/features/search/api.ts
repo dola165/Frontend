@@ -20,7 +20,8 @@ export interface SearchOpen {
     message: number | null; conversation: number | null;
 }
 export interface SearchFile { kind: 'IMAGE' | 'VIDEO' | 'FILE'; name: string | null; url: string; thumbUrl: string | null; contentType: string; width: number | null; height: number | null }
-export interface SearchHit { kind: HitKind; id: number; title: string | null; why: SearchWhy | null; where: SearchWhere; open: SearchOpen; file: SearchFile | null }
+/** `deleted`: from a chat in Recently deleted (only when asked for; always after the live results, shown grey). */
+export interface SearchHit { kind: HitKind; id: number; title: string | null; why: SearchWhy | null; where: SearchWhere; open: SearchOpen; file: SearchFile | null; deleted: boolean }
 export interface SearchGroupHits { group: SearchGroup; hits: SearchHit[]; more: boolean }
 /** The groups that found something, the best first; `askBest`: vague enough to ask for the best matches. */
 export interface SearchResults { query: string; words: string[]; groups: SearchGroupHits[]; askBest: boolean }
@@ -29,12 +30,16 @@ export interface BestMatches { status: BestStatus; hits: SearchHit[] }
 /** A result as a reference, for "Not what I was looking for". */
 export interface ResultRef { kind: HitKind; id: number }
 export interface MissedSearch { id: number; query: string; by: SearchRef; at: string; shown: number; opened: SearchHit | null; openedAt: string | null }
+/** What the box offers this person: "What search missed" (team admins and those named for it), and the deleted-chats switch. */
+export interface SearchOptions { seesMissed: boolean; deletedChats: number }
 
 const base = '/team-work/search';
 const data = <T>(request: Promise<{ data: T }>) => request.then(response => response.data);
 
-export const searchTeam = (q: string, signal?: AbortSignal, page?: { group: SearchGroup; offset: number; limit: number }) =>
-    data(apiClient.get<SearchResults>(base, { params: { q, ...page }, signal }));
+/** `deleted`: also the person's chats in Recently deleted. */
+export const searchTeam = (q: string, signal?: AbortSignal, page?: { group: SearchGroup; offset: number; limit: number }, deleted = false) =>
+    data(apiClient.get<SearchResults>(base, { params: { q, ...page, ...(deleted ? { deleted: true } : {}) }, signal }));
+export const fetchSearchOptions = (signal?: AbortSignal) => data(apiClient.get<SearchOptions>(`${base}/options`, { signal }));
 /** One paid call at most, only for a vague search; the server decides and caps it. */
 export const fetchBestMatches = (q: string, signal?: AbortSignal) => data(apiClient.post<BestMatches>(`${base}/best`, { q }, { signal }));
 export const reportMiss = (q: string, shown: ResultRef[]) => data(apiClient.post<{ id: number }>(`${base}/feedback`, { q, shown }));

@@ -62,12 +62,16 @@ function whereParts(copy: Copy, hit: SearchHit): ReactNode[] {
         if (where.at) parts.push(ago(copy, where.at));
     } else {
         if (hit.kind === 'TASK_FILE' && about) parts.push(copy(`on ${about.key} ${about.title}`, `საქმეზე ${about.key} ${about.title}`));
+        if (hit.kind === 'KEPT_FILE') parts.push(where.keptFrom
+            ? copy(`Kept files, from “${where.keptFrom}”`, `შენახული ფაილები, ჩატიდან „${where.keptFrom}“`)
+            : copy('Kept files', 'შენახული ფაილები'));
         if (where.chat) {
             const chat = where.chat.name === 'Team chat' ? copy('Team chat', 'გუნდის ჩატი') : where.chat.name ?? copy('Chat', 'ჩატი');
             // Said in words, not by the grey alone.
             parts.push(hit.deleted ? copy(`Deleted chat “${chat}”`, `წაშლილი ჩატი „${chat}“`) : chat);
         }
-        if (where.person && hit.kind !== 'MESSAGE') parts.push(where.person.name);
+        if (where.person && hit.kind === 'KEPT_FILE') parts.push(copy(`kept by ${where.person.name}`, `შეინახა ${where.person.name}`));
+        else if (where.person && hit.kind !== 'MESSAGE') parts.push(where.person.name);
         const at = when(copy, where.at);
         if (at) parts.push(at);
         if (hit.kind !== 'TASK_FILE' && about) parts.push(copy(`about ${about.key} ${about.title}`, `${about.key} ${about.title}`));

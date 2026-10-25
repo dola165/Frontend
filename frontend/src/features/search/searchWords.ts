@@ -12,7 +12,7 @@ export const groupName = (copy: Copy, group: SearchGroup) => ({
 export const kindName = (copy: Copy, kind: HitKind) => ({
     TASK: copy('Task', 'საქმე'), STEP: copy('Step', 'ნაბიჯი'), IDEA: copy('Idea', 'იდეა'), WAITING: copy('Waiting', 'მოლოდინში'),
     PLAN: copy('Plan', 'გეგმა'), NOW: copy('Now note', 'ახლა'), MESSAGE: copy('Message', 'შეტყობინება'),
-    CHAT_FILE: copy('File', 'ფაილი'), TASK_FILE: copy('File', 'ფაილი'),
+    CHAT_FILE: copy('File', 'ფაილი'), TASK_FILE: copy('File', 'ფაილი'), KEPT_FILE: copy('Kept file', 'შენახული ფაილი'),
 })[kind];
 
 export const fileName = (copy: Copy, file: SearchFile | null, title: string | null) => title ?? ({
@@ -39,6 +39,8 @@ export const whyLabel = (copy: Copy, why: SearchWhy): string | null => {
         case 'FILE_NAME': return copy('File name', 'ფაილის სახელი');
         case 'SENT_WITH': return copy(`Sent by ${by} with`, `გამოგზავნა ${by}`);
         case 'TASK': return copy('On the task', 'საქმეზე');
+        case 'CHAT': return copy('In the chat', 'ჩატში');
+        case 'CHAT_TASK': return copy('The chat is about', 'ჩატი ეხება');
         default: return null;
     }
 };

@@ -2,21 +2,24 @@ import { apiClient } from '../../api/axiosConfig';
 
 /** Mirrors the backend's TeamSearchDto. */
 export type SearchGroup = 'WORK' | 'CHATS' | 'FILES';
-export type HitKind = 'TASK' | 'STEP' | 'IDEA' | 'WAITING' | 'PLAN' | 'NOW' | 'MESSAGE' | 'CHAT_FILE' | 'TASK_FILE';
+export type HitKind = 'TASK' | 'STEP' | 'IDEA' | 'WAITING' | 'PLAN' | 'NOW' | 'MESSAGE' | 'CHAT_FILE' | 'TASK_FILE' | 'KEPT_FILE';
 /** Matched words: `text.slice(start, end)`. */
 export interface SearchMark { start: number; end: number }
-/** Why it matched: the part that matched best (NAME, PURPOSE, COMMENT, SENT_WITH, MEANING…), who wrote it, the words. */
+/** Why it matched: the part that matched best (NAME, PURPOSE, COMMENT, SENT_WITH, CHAT, MEANING…), who wrote it, the words. */
 export interface SearchWhy { field: string; by: string | null; text: string; marks: SearchMark[] }
 export interface SearchRef { id: number; name: string | null }
 export interface SearchTaskRef { id: number; key: string; title: string; status: string }
-/** Where it is: key and status, plan, the task a step belongs to, chat, person, when, the tasks it is about. */
+/**
+ * Where it is: key and status, plan, the task a step belongs to, chat, person, when, the tasks it is about, and for a
+ * file on the Kept files shelf the deleted chat it was kept from.
+ */
 export interface SearchWhere {
     key: string | null; status: string | null; plan: SearchRef | null; parent: SearchTaskRef | null; chat: SearchRef | null;
-    person: SearchRef | null; at: string | null; tasks: SearchTaskRef[] | null; openTasks: number | null;
+    person: SearchRef | null; at: string | null; tasks: SearchTaskRef[] | null; openTasks: number | null; keptFrom: string | null;
 }
-/** What to open: a task (and its step), an idea or waiting item, a plan, a Now note, or a chat message. */
+/** What to open: a task (and its step), an idea or waiting item, a plan, a Now note, a chat message, or the Kept files shelf. */
 export interface SearchOpen {
-    task: number | null; step: number | null; plan: number | null; view: 'ideas' | 'waiting' | null; who: number | null;
+    task: number | null; step: number | null; plan: number | null; view: 'ideas' | 'waiting' | 'kept' | null; who: number | null;
     message: number | null; conversation: number | null;
 }
 export interface SearchFile { kind: 'IMAGE' | 'VIDEO' | 'FILE'; name: string | null; url: string; thumbUrl: string | null; contentType: string; width: number | null; height: number | null }

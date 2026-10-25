@@ -3,7 +3,7 @@ import { Upload as UploadIcon, X } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { takeChatDraft, useChatDraft } from '../imageEditor/chatDraft';
+import { chatDraftsFor, takeChatDrafts, useChatDrafts } from '../imageEditor/chatDraft';
 import { fetchHistory, type ChatAttachment, type ChatMessage, type ChatSummary, type Version } from './api';
 import { DecisionBar, DeletedBar } from './ChatBars';
 import { Composer, type Context } from './Composer';
@@ -91,25 +91,26 @@ export function TeamChat({ model, active = true, onChat }: { model: TeamChatMode
         },
     }), [toggleReaction, jumpTo, copy, model.chatId]);
 
-    // An edited copy saved from this chat's pictures arrives as a ready file answering the original's message, the box
-    // focused (the reply does that) rather than the original it opened at, for the person to add words and send. It
-    // waits a moment for the original to load.
-    const draft = useChatDraft(model.chatId);
+    // Edited copies saved from this chat's pictures arrive as ready files answering the (last) original's message, the
+    // box focused (the reply does that) rather than the original it opened at, for the person to add words and send.
+    // They wait a moment for the original to load.
+    const drafts = useChatDrafts(model.chatId);
     const { adopt } = uploads;
     const { setHighlight } = model;
     useEffect(() => {
-        if (!draft) return undefined;
-        const original = messages.find(message => message.id === draft.replyToId);
+        if (!drafts) return undefined;
         const place = () => {
-            if (!takeChatDraft(model.chatId)) return;
-            adopt(draft.attachment, draft.file);
+            const taken = takeChatDrafts(model.chatId);
+            if (!taken.length || !adopt(taken)) return;
+            const replyTo = taken[taken.length - 1].replyToId;
+            const original = messages.find(message => message.id === replyTo);
             setHighlight(null);
-            setContext({ kind: 'reply', quote: original ? quoteOf(original) : { id: draft.replyToId, senderId: null, senderName: null, excerpt: '', deleted: false, attachments: 1 } });
+            setContext({ kind: 'reply', quote: original ? quoteOf(original) : { id: replyTo, senderId: null, senderName: null, excerpt: '', deleted: false, attachments: 1 } });
         };
-        if (original) { place(); return undefined; }
+        if (messages.some(message => message.id === chatDraftsFor(model.chatId).at(-1)?.replyToId)) { place(); return undefined; }
         const timer = window.setTimeout(place, 1500);
         return () => window.clearTimeout(timer);
-    }, [draft, messages, model.chatId, adopt, setHighlight]);
+    }, [drafts, messages, model.chatId, adopt, setHighlight]);
 
     const editLast = useCallback(() => {
         const last = [...messages].reverse().find(message => message.senderId === me && !message.deleted);
@@ -165,6 +166,6 @@ export function TeamChat({ model, active = true, onChat }: { model: TeamChatMode
                 </Button>
             </>} />}
         {history && <HistoryDialog chatId={model.chatId} message={history} onClose={() => setHistory(null)} />}
-        {viewing && <Lightbox items={viewing.items} start={viewing.start} onClose={() => setViewing(null)} />}
+        {viewing && <Lightbox items={trashed ? viewing.items.map(item => ({ ...item, editable: false })) : viewing.items} start={viewing.start} onClose={() => setViewing(null)} />}
     </section>;
 }

@@ -54,12 +54,17 @@ const suppressBackground = (dialog: HTMLElement) => {
     };
 };
 
-/** Provides entry focus, containment, Escape, background isolation and focus return. */
+/**
+ * Provides entry focus, containment, Escape, background isolation and focus return. `alsoInside` (a CSS selector)
+ * names elements outside the dialog that still count as inside it, such as a library's pop-ups rendered into <body>:
+ * focus may move into them, and Tab there is theirs.
+ */
 export function useDialogFocus(
     open: boolean,
     dialogRef: RefObject<HTMLElement | null>,
     onEscape?: () => void,
     initialFocusRef?: RefObject<HTMLElement | null>,
+    alsoInside?: string,
 ) {
     const onEscapeRef = useRef(onEscape);
     useEffect(() => {
@@ -116,6 +121,7 @@ export function useDialogFocus(
             const first = focusable[0];
             const last = focusable[focusable.length - 1];
             const active = document.activeElement;
+            if (alsoInside && active?.closest(alsoInside) && !dialogElement?.contains(active)) return;
             if (event.shiftKey && (active === first || !dialogElement?.contains(active))) {
                 event.preventDefault();
                 last.focus();
@@ -126,6 +132,7 @@ export function useDialogFocus(
         };
         const handleFocusIn = (event: FocusEvent) => {
             if (!isTopDialog() || dialogRef.current?.contains(event.target as Node)) return;
+            if (alsoInside && event.target instanceof Element && event.target.closest(alsoInside)) return;
             (focusableElements(dialogRef.current)[0] ?? dialogRef.current)?.focus();
         };
         document.addEventListener('keydown', handleKeyDown);
@@ -153,5 +160,5 @@ export function useDialogFocus(
             if (scrollLockCount === 0) document.body.style.overflow = previousBodyOverflow;
             if (wasTop && entry.returnFocus?.isConnected) entry.returnFocus.focus({ preventScroll: true });
         };
-    }, [dialogRef, initialFocusRef, open]);
+    }, [alsoInside, dialogRef, initialFocusRef, open]);
 }

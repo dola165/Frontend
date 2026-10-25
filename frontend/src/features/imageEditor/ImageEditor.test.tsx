@@ -1,11 +1,11 @@
 import '../../i18n';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import * as api from './api';
 import { EditImageButton } from './EditImageButton';
 import { EditedImageNote } from './EditedImageNote';
-import { handOffChatDraft, takeChatDraft, useChatDraft } from './chatDraft';
+import { handOffChatDraft, takeChatDrafts, useChatDrafts } from './chatDraft';
 import { addPicture, type EditorState } from './editorState';
 import { tooBig } from './editorImages';
 import { editedAgo } from './imageEditorWords';
@@ -51,7 +51,7 @@ it('loads the editor only when someone opens it, and the saved copy says at once
 it('asks once for every picture on screen, notes only the edited copies, and opens the original', async () => {
     vi.mocked(api.editsOf).mockResolvedValue([
         { url: '/uploads/b.jpg', originalUrl: '/uploads/a.jpg', originalAvailable: true, place: 'CHAT', editedBy: { id: 2, name: 'Gio' }, editedAt: minutesAgo(5) },
-        { url: '/uploads/c.jpg', originalUrl: '/uploads/gone.jpg', originalAvailable: false, place: 'TEAM_WORK', editedBy: { id: 3, name: 'Ilo' }, editedAt: minutesAgo(90) },
+        { url: '/uploads/c.jpg', originalUrl: null, originalAvailable: false, place: 'TEAM_WORK', editedBy: { id: 3, name: 'Ilo' }, editedAt: minutesAgo(90) },
     ]);
     render(<>{['/uploads/a.jpg', '/uploads/b.jpg', '/uploads/c.jpg'].map(url => <EditedImageNote key={url} url={url} />)}</>);
     expect(await screen.findByText('Edited by Gio · 5 min ago')).toBeInTheDocument();
@@ -113,22 +113,45 @@ it('knows the server’s limits and says how long ago in the person’s words', 
     expect(editedAgo(copy, '2026-10-21T12:00:00Z', now)).toBe('4 days ago');
 });
 
-it('hands a copy saved in a chat to that chat’s message box once, and a Team work copy to none', () => {
-    const file = new File(['x'], 'pitch-edited.png', { type: 'image/png' });
-    const attachment = { id: 31, kind: 'IMAGE' as const, name: 'pitch-edited.jpg', contentType: 'image/jpeg', sizeBytes: 900, url: '/uploads/copy-2.jpg', thumbUrl: null,
-        width: 640, height: 480, playUrl: null, kept: false };
+it('queues copies saved in a chat for that chat’s message box, takes each once, gives a Team work copy none, and forgets them on sign-out', () => {
+    const file = new File(['x'], 'pitch-edited.jpg', { type: 'image/jpeg' });
+    const attachment = (id: number) => ({ id, kind: 'IMAGE' as const, name: 'pitch-edited.jpg', contentType: 'image/jpeg', sizeBytes: 900, url: `/uploads/copy-${id}.jpg`, thumbUrl: null,
+        width: 640, height: 480, playUrl: null, kept: false });
+    const inChat = (chatId: number, id: number) => ({ ...copyOf('/uploads/original-2.jpg'), place: 'CHAT' as const, itemId: null, chatId, replyToId: 120, attachment: attachment(id) });
     expect(handOffChatDraft(copyOf('/uploads/original-2.jpg'), file)).toBe(false);
-    const Box = ({ chatId }: { chatId: number }) => { const draft = useChatDraft(chatId); return <output aria-label={`chat ${chatId}`}>{draft ? `${draft.attachment.id} replying to ${draft.replyToId}` : 'empty'}</output>; };
+    const Box = ({ chatId }: { chatId: number }) => <output aria-label={`chat ${chatId}`}>{useChatDrafts(chatId)}</output>;
     render(<><Box chatId={7} /><Box chatId={8} /></>);
-    let handed = false;
-    act(() => { handed = handOffChatDraft({ ...copyOf('/uploads/original-2.jpg'), place: 'CHAT', itemId: null, chatId: 7, replyToId: 120, attachment }, file); });
-    expect(handed).toBe(true);
-    expect(screen.getByLabelText('chat 7')).toHaveTextContent('31 replying to 120');
-    expect(screen.getByLabelText('chat 8')).toHaveTextContent('empty');
-    expect(takeChatDraft(8)).toBeNull();
-    let taken: ReturnType<typeof takeChatDraft> = null;
-    act(() => { taken = takeChatDraft(7); });
-    expect(taken).toMatchObject({ chatId: 7, replyToId: 120, file });
-    expect(screen.getByLabelText('chat 7')).toHaveTextContent('empty');
-    expect(takeChatDraft(7)).toBeNull();
+    act(() => { handOffChatDraft(inChat(7, 31), file); handOffChatDraft(inChat(7, 32), file); handOffChatDraft(inChat(8, 33), file); });
+    expect(screen.getByLabelText('chat 7')).toHaveTextContent('2');
+    expect(screen.getByLabelText('chat 8')).toHaveTextContent('1');
+    let taken: ReturnType<typeof takeChatDrafts> = [];
+    act(() => { taken = takeChatDrafts(7); });
+    expect(taken.map(draft => draft.attachment.id)).toEqual([31, 32]);
+    expect(screen.getByLabelText('chat 7')).toHaveTextContent('0');
+    expect(takeChatDrafts(7)).toEqual([]);
+    // Another account signs in: what waited for the first is dropped.
+    act(() => { localStorage.setItem('gk-session-id', 'someone-else'); window.dispatchEvent(new Event('gk-auth-changed')); });
+    expect(screen.getByLabelText('chat 8')).toHaveTextContent('0');
+});
+
+it('forgets what it was told when another account signs in, and asks again', async () => {
+    vi.mocked(api.editsOf).mockResolvedValueOnce([
+        { url: '/uploads/h.jpg', originalUrl: '/uploads/g.jpg', originalAvailable: true, place: 'CHAT', editedBy: { id: 2, name: 'Gio' }, editedAt: minutesAgo(3) },
+    ]).mockResolvedValueOnce([]);
+    render(<EditedImageNote url="/uploads/h.jpg" />);
+    expect(await screen.findByText('Edited by Gio · 3 min ago')).toBeInTheDocument();
+    act(() => { localStorage.setItem('gk-session-id', 'another-account'); window.dispatchEvent(new Event('gk-auth-changed')); });
+    await waitFor(() => expect(api.editsOf).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText(/Edited by/)).not.toBeInTheDocument());
+});
+
+it('says so when the original cannot open, instead of opening forever', async () => {
+    vi.mocked(api.editsOf).mockResolvedValue([
+        { url: '/uploads/j.jpg', originalUrl: '/uploads/broken.jpg', originalAvailable: true, place: 'TEAM_WORK', editedBy: { id: 2, name: 'Gio' }, editedAt: minutesAgo(1) },
+    ]);
+    render(<EditedImageNote url="/uploads/j.jpg" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Original' }));
+    const viewer = await screen.findByRole('dialog', { name: 'Original picture' });
+    fireEvent.error(viewer.querySelector('img') as HTMLImageElement);
+    expect(await screen.findByRole('alert')).toHaveTextContent('The original could not open.');
 });

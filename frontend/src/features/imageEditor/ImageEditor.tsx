@@ -9,14 +9,19 @@ import { Button, GkRoot } from '../../design/primitives';
 import { useMediaSource } from '../../hooks/useMediaSource';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { saveCopy, type SavedCopy } from './api';
+import { saveCopy, type EditPlace, type SavedCopy } from './api';
 import { editorColours, type EditorColours } from './editorTheme';
-import { EditorImages, TooBig, fileOf } from './editorImages';
+import { EditorImages, TooBig, TooLargeToAdd, boundsOf, fileOf } from './editorImages';
 import { addPicture, type EditorState } from './editorState';
 import { editorTranslations } from './editorTranslations';
+import { flattenUnder } from './flatten';
+import { LIBRARY_POPUPS, keepEllipseCropHidden, libraryShowsPhoto, withoutPhotoCache } from './libraryTweaks';
 
-/** A picture to edit: its `/uploads/…` URL and, if known, its file name. */
-export interface EditableMedia { url: string; name?: string | null }
+/**
+ * A picture to edit: its `/uploads/…` URL, if known its file name, and where Edit was pressed (the chat message carrying
+ * it, or its task), which is where the copy goes.
+ */
+export interface EditableMedia { url: string; name?: string | null; place?: EditPlace }
 
 /** The tools we offer, and only these; the library's filters, finetunes, watermark and resize stay hidden. */
 const TAB_TOOLS = {
@@ -40,14 +45,13 @@ const PREVIEW_RATIO = Math.min(2, typeof window === 'undefined' ? 1 : window.dev
 const typing = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 const baseName = (media: EditableMedia) => (media.name ?? media.url.split('/').pop() ?? 'picture').replace(/\.[^.]+$/, '').slice(0, 80) || 'picture';
 const canPaste = () => typeof navigator !== 'undefined' && typeof navigator.clipboard?.read === 'function';
-/** Where the library puts its menus, colour picker and confirmations: in <body>, outside our dialog. */
-const LIBRARY_POPUPS = '.SfxPopper-wrapper, .SfxModal-Wrapper, [class*="SfxDrawer"], [data-tippy-root]';
 
 /** What the library hands its brush tool when the painting is applied. */
-interface BlurRequest {
+export interface BlurRequest {
     getMaskedImage: (as: 'toCanvas') => HTMLCanvasElement;
     originalSource: HTMLImageElement;
-    updateOriginalSourceFns: { setOriginalSource: (source: HTMLImageElement) => void };
+    objectPathsAttrs: { points?: number[]; strokeWidth?: number }[];
+    appStore: { designLayer: Parameters<typeof flattenUnder>[1]; annotationIds: string[] };
 }
 type UpdateState = (change: (state: EditorState) => Partial<EditorState> | undefined) => void;
 
@@ -75,6 +79,17 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
     const [error, setError] = useState('');
     const [failed, setFailed] = useState(false);
     const markChanged = useCallback(() => setChanged(true), []);
+    // The library is mounted twice, the second time a frame after the first (see below); only then is it the one on screen,
+    // and it can take changes only once it has loaded the photo itself, a moment later.
+    const [shown, setShown] = useState(false);
+    const [live, setLive] = useState(false);
+    useEffect(() => {
+        if (!shown) return undefined;
+        let timer = 0;
+        const check = () => { if (libraryShowsPhoto(dialog.current)) setLive(true); else timer = window.setTimeout(check, 50); };
+        check();
+        return () => window.clearTimeout(timer);
+    }, [shown]);
 
     // One store of pictures per opening, let go when the editor closes (also under StrictMode's double mount).
     useEffect(() => {
@@ -85,12 +100,12 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
     useEffect(() => { if (dialog.current) setColours(editorColours(dialog.current)); }, []);
     useEffect(() => {
         if (!src || !images) return;
-        let live = true;
+        let current = true;
         // Our own copy of the bytes, so the editor never depends on the viewer's shared copy staying alive.
         fetch(src).then(response => response.blob()).then(blob => images.fromBlob(blob))
-            .then(image => { if (live) setSource(image); })
-            .catch(() => { if (live) setFailed(true); });
-        return () => { live = false; };
+            .then(image => { if (current) setSource(image); })
+            .catch(() => { if (current) setFailed(true); });
+        return () => { current = false; };
     }, [src, images]);
 
     const requestClose = useCallback(() => {
@@ -100,27 +115,34 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
         if (typing(document.activeElement) && dialog.current?.querySelector('.ie-stage')?.contains(document.activeElement)) return;
         if (changed) setConfirming(true); else onClose();
     }, [changed, onClose, saving]);
-    useDialogFocus(true, dialog, requestClose);
-    // The dialog keeps focus inside itself; the library's own pop-ups count as inside, so its colour picker can be typed in.
-    useEffect(() => {
-        const section = dialog.current;
-        if (!section) return undefined;
-        const own = Node.prototype.contains;
-        section.contains = node => own.call(section, node) || (node instanceof Element && node.closest(LIBRARY_POPUPS) !== null);
-        return () => { Reflect.deleteProperty(section, 'contains'); };
-    }, []);
+    // The library's own pop-ups (its colour picker, menus) count as inside the dialog, so they can take focus and typing.
+    useDialogFocus(true, dialog, requestClose, undefined, LIBRARY_POPUPS);
+    useEffect(() => keepEllipseCropHidden(editorTranslations(copy).ellipse), [copy]);
 
+    // A picture put in before the editor can take it waits for it, rather than going to a library that would lose it.
+    const waiting = useRef<Blob | null>(null);
     const add = useCallback(async (file: Blob | undefined) => {
-        if (!file || !images || !source || !updateState.current) return;
+        if (!file) return;
+        if (!images || !source || !live || !updateState.current) { waiting.current = file; return; }
         setError('');
         if (!file.type.startsWith('image/')) { setError(copy('That is not a picture.', 'ეს სურათი არ არის.')); return; }
         try {
             // Never larger than the picture it goes into, so a big photo costs no more memory than the picture itself.
-            const picture = await images.fromBlob(file, Math.max(source.naturalWidth, source.naturalHeight));
+            const picture = await images.fromAddedBlob(file, Math.max(source.naturalWidth, source.naturalHeight));
             updateState.current(state => addPicture(state, picture));
             setChanged(true);
-        } catch { setError(copy('That picture could not be added.', 'სურათი ვერ დაემატა.')); }
-    }, [copy, images, source]);
+        } catch (failure) {
+            setError(failure instanceof TooLargeToAdd
+                ? copy('That picture is too large to add (over 30 MB or 50 megapixels). Make it smaller first.', 'ეს სურათი ჩასასმელად ძალიან დიდია (30 MB-ზე ან 50 მეგაპიქსელზე მეტი). ჯერ შეამცირეთ.')
+                : copy('That picture could not be added.', 'სურათი ვერ დაემატა.'));
+        }
+    }, [copy, images, source, live]);
+    useEffect(() => {
+        if (!live || !waiting.current) return;
+        const file = waiting.current;
+        waiting.current = null;
+        void add(file);
+    }, [live, add]);
 
     const paste = async () => {
         try {
@@ -134,17 +156,17 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
 
     const save = useCallback(async () => {
         const read = imageData.current;
-        if (!read || saving) return;
+        if (!read || saving || !live) return;
         setSaving(true); setError('');
         const controller = new AbortController();
         saveAbort.current = controller;
         let done: (() => void) | undefined;
         try {
-            const { imageData: data, hideLoadingSpinner } = read({ name: baseName(media), extension: 'png' }, 1, true);
+            const { imageData: data, hideLoadingSpinner } = withoutPhotoCache(() => read({ name: baseName(media), extension: 'jpeg' }, 1, true));
             done = hideLoadingSpinner;
             if (!data.imageCanvas) throw new Error('No picture.');
             const file = await fileOf(data.imageCanvas, baseName(media));
-            const saved = await saveCopy(media.url, file.blob, file.name, controller.signal);
+            const saved = await saveCopy(media.url, file.blob, file.name, media.place, controller.signal);
             onSaved(saved, new File([file.blob], file.name, { type: file.blob.type }));
             onClose();
         } catch (failure) {
@@ -156,7 +178,7 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
             done?.();
             setSaving(false);
         }
-    }, [copy, media, onClose, onSaved, saving]);
+    }, [copy, media, onClose, onSaved, saving, live]);
 
     // Undo and redo press the library's own buttons, so its history stays the one source of truth.
     useEffect(() => {
@@ -178,10 +200,17 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
         return () => { document.removeEventListener('keydown', keys); document.removeEventListener('paste', pasted); };
     }, [add, save]);
 
-    const blur = useCallback(async ({ getMaskedImage, updateOriginalSourceFns, originalSource }: BlurRequest) => {
-        if (!images) return;
+    // Blurring hides everything beneath the painted area, not only the photo: drawings, texts and pasted pictures under it
+    // are drawn into the picture first and blurred with it (and hidden as drawings), in one step Undo takes back.
+    const blur = useCallback(async ({ getMaskedImage, originalSource, objectPathsAttrs, appStore }: BlurRequest) => {
+        if (!images || !updateState.current) return;
         try {
-            updateOriginalSourceFns.setOriginalSource(await images.blur(originalSource, getMaskedImage('toCanvas')));
+            const { canvas, baked } = flattenUnder(originalSource, appStore.designLayer, appStore.annotationIds, boundsOf(objectPathsAttrs));
+            const result = await images.blur(canvas, getMaskedImage('toCanvas'));
+            updateState.current(() => ({
+                isDesignState: true, originalSource: result, imgSrc: result.src, presentOriginalSources: { default: result },
+                annotations: Object.fromEntries(baked.map(id => [id, { visible: false }])), selectionsIds: [],
+            }));
             setChanged(true);
         } catch { setError(copy('That part could not be blurred. Try again.', 'ეს ნაწილი ვერ დაიბინდა. სცადეთ თავიდან.')); }
     }, [copy, images]);
@@ -200,7 +229,6 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
     const ready = source && settings;
     // The library sets its words in an effect after its first render, and its toolbar keeps the words it first drew;
     // mounting it once more, hidden, a frame later, shows ours from the start.
-    const [shown, setShown] = useState(false);
     useEffect(() => { if (!ready) return undefined; const frame = requestAnimationFrame(() => setShown(true)); return () => cancelAnimationFrame(frame); }, [ready]);
     return createPortal(<GkRoot className="ie-layer">
         <section ref={dialog} className="ie-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-busy={saving || undefined}>
@@ -210,14 +238,14 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
                     <p className="ie-head__hint">{copy('Saved as a new picture beside the original. The original stays as it is.', 'შეინახება ახალ სურათად ორიგინალის გვერდით. ორიგინალი არ იცვლება.')}</p>
                 </div>
                 <div className="ie-head__actions">
-                    <Button size="sm" variant="ghost" disabled={!ready || saving} onClick={() => pictureInput.current?.click()} title={copy('Put another picture in, or paste one with Ctrl+V', 'ჩასვით სხვა სურათი, ან Ctrl+V-ით')}>
+                    <Button size="sm" variant="ghost" disabled={!ready || !live || saving} onClick={() => pictureInput.current?.click()} title={copy('Put another picture in, or paste one with Ctrl+V', 'ჩასვით სხვა სურათი, ან Ctrl+V-ით')}>
                         <ImagePlus aria-hidden="true" /><span className="ie-head__label">{copy('Add picture', 'სურათის ჩასმა')}</span>
                     </Button>
-                    {canPaste() && <Button size="sm" variant="ghost" iconOnly disabled={!ready || saving} onClick={() => void paste()} aria-label={copy('Paste a picture', 'სურათის ჩასმა ბუფერიდან')} title={copy('Paste a picture (Ctrl+V)', 'სურათის ჩასმა (Ctrl+V)')}>
+                    {canPaste() && <Button size="sm" variant="ghost" iconOnly disabled={!ready || !live || saving} onClick={() => void paste()} aria-label={copy('Paste a picture', 'სურათის ჩასმა ბუფერიდან')} title={copy('Paste a picture (Ctrl+V)', 'სურათის ჩასმა (Ctrl+V)')}>
                         <ClipboardPaste aria-hidden="true" />
                     </Button>}
                     <Button size="sm" variant="ghost" disabled={saving} onClick={requestClose}>{copy('Cancel', 'გაუქმება')}</Button>
-                    <Button size="sm" variant="primary" disabled={!ready || saving} onClick={() => void save()}>{saving ? copy('Saving…', 'ინახება…') : copy('Save as new', 'ახლის შენახვა')}</Button>
+                    <Button size="sm" variant="primary" disabled={!ready || !live || saving} onClick={() => void save()}>{saving ? copy('Saving…', 'ინახება…') : copy('Save as new', 'ახლის შენახვა')}</Button>
                 </div>
                 <input ref={pictureInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={event => { void add(event.target.files?.[0]); event.target.value = ''; }} />
             </header>

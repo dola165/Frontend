@@ -70,9 +70,9 @@ export function Attachments({ attachments, onOpen }: { attachments: ChatAttachme
                         ? <><ChatVideo attachment={attachment} className="tc-tile__media" /><span className="tc-tile__play"><Play aria-hidden="true" /></span></>
                         : <ChatImage attachment={attachment} className="tc-tile__media" />}
                 </button>
+                {attachment.kind === 'IMAGE' && <EditedImageNote url={attachment.url} className="tc-gallery__edited" />}
             </li>)}
         </ul>}
-        {visual.map(attachment => attachment.kind === 'IMAGE' && <EditedImageNote key={attachment.id} url={attachment.url} />)}
         {files.map(attachment => <FileRow key={attachment.id} attachment={attachment} />)}
     </div>;
 }

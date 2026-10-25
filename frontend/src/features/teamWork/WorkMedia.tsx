@@ -86,7 +86,10 @@ export function WorkMediaList({ itemId, media, onChanged }: { itemId: number; me
         </li>)}</ul>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {open && <Dialog open size="lg" className="tw-lightbox" title={copy('Picture', 'სურათი')} description={[open.uploadedBy?.name, ago(copy, open.createdAt)].filter(Boolean).join(' · ')} onClose={() => setOpen(null)} closeLabel={copy('Close', 'დახურვა')}
-            footer={<EditImageButton media={{ url: open.url, name: open.name }} variant="secondary" onSaved={() => { setOpen(null); void fetchDetail(itemId).then(onChanged); }} />}>
+            footer={<EditImageButton media={{ url: open.url, name: open.name, place: { itemId } }} variant="secondary" onSaved={() => {
+                setOpen(null);
+                fetchDetail(itemId).then(onChanged).catch(failure => setError(extractApiErrorMessage(failure, copy('The copy was saved, but the task could not refresh. Open it again to see it.', 'ასლი შეინახა, მაგრამ საქმე ვერ განახლდა. ხელახლა გახსენით.'))));
+            }} />}>
             <Picture media={open} />
         </Dialog>}
     </div>;

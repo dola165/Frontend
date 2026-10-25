@@ -48,9 +48,9 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             if (!squadUpdate && !appointment && !availability && !offer && !coordination && !result) return null;
         }
         const keys = Array.from(url.searchParams.keys());
-        // The team chat: the chat itself, or one message in it (a mention).
+        // The team chats: one chat (?chat=), or one message in it (a mention); an old link names only the message.
         if ((url.pathname === '/team-work/chat' || url.searchParams.has('message'))
-            && (url.pathname !== '/team-work/chat' || url.hash || keys.some(key => key !== 'message'))) return null;
+            && (url.pathname !== '/team-work/chat' || url.hash || keys.some(key => key !== 'message' && key !== 'chat'))) return null;
         if (url.pathname === '/my-organizations' && (url.hash || keys.length !== 1 || !url.searchParams.has('itemId'))) return null;
         if (url.pathname.startsWith('/invite/org-') && (url.search || url.hash || !notificationId(url.pathname.slice('/invite/org-'.length)))) return null;
         if (url.pathname === '/admin/page-reviews' || url.searchParams.has('review')) {

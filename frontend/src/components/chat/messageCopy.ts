@@ -4,7 +4,7 @@ import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 
 const MESSAGE_KA: Record<string, string> = {
     'Online': 'ონლაინ', 'Saved': 'შენახულია', 'Participants': 'მონაწილეები',
-    'Club enquiry': 'კლუბთან დაკავშირება', 'Match Chat': 'მატჩის ჩატი', 'Team chat': 'გუნდის ჩატი', 'Group': 'ჯგუფი', 'Unknown': 'უცნობი',
+    'Club enquiry': 'კლუბთან დაკავშირება', 'Match Chat': 'მატჩის ჩატი', 'Team chat': 'გუნდის ჩატი', 'Team': 'გუნდი', 'Group': 'ჯგუფი', 'Unknown': 'უცნობი',
     'Message actions': 'შეტყობინების მოქმედებები', 'Write a message': 'დაწერეთ შეტყობინება',
     'Load older messages': 'ძველი შეტყობინებების ჩატვირთვა', 'Loading older messages…': 'ძველი შეტყობინებები იტვირთება…',
     'Could not load older messages. Please try again.': 'ძველი შეტყობინებები ვერ ჩაიტვირთა. სცადეთ ხელახლა.',
@@ -33,7 +33,8 @@ export function useMessageCopy() {
 
 export function conversationName(conversation: ConversationDto, currentUserId: number, copy: (english: string) => string): string {
     if (conversation.contextType !== 'DIRECT') {
-        if (conversation.contextType === 'TEAM') return copy('Team chat');
+        // A team chat: one of the team's several, by its own name (a topic, or its task's name).
+        if (conversation.contextType === 'TEAM') return conversation.name ? `${copy('Team')} · ${conversation.name}` : copy('Team chat');
         if (/^Joining enquiry #\d+$/.test(conversation.name ?? '')) {
             const contacts = conversation.participants.filter(person => person.userId !== currentUserId).map(person => person.displayName).filter(Boolean);
             return [...contacts, copy('Club enquiry')].join(' · ');

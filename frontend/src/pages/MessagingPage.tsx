@@ -35,7 +35,7 @@ function Messages() {
             {/* ── CHAT WINDOW ──────────────────────────────────── */}
             <section className="flex-1 flex flex-col bg-[var(--chat-surface)] min-w-0">
                 {squadId ? <SquadInboxConversation key={`${sessionId}:${squadId}`} id={squadId} /> : activeConv?.contextType === 'TEAM' ? (
-                    <TeamChatInMessages key={sessionId} onBack={() => setSearchParams({})} />
+                    <TeamChatInMessages key={`${sessionId}:${activeConv.id}`} chatId={activeConv.id} onBack={() => setSearchParams({})} />
                 ) : activeConv ? (
                     <ConversationThread conversation={activeConv} sessionId={sessionId} currentUserId={currentUserId}
                         messages={chat.activeMessages} viewportRef={chat.messageViewportRef} loadingMessages={chat.loadingMessages}

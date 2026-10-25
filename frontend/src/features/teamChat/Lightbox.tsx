@@ -8,13 +8,14 @@ import { ChatImage, ChatVideo, FileRow } from './Attachments';
 import { saveFile } from './saveFile';
 import { fileSize } from './teamChatWords';
 
-export interface Viewed { attachment: ChatAttachment; messageId: number; caption: string }
+/** A picture or video seen full screen, and where it came from (`chatId` and `messageId`; none for kept files). */
+export interface Viewed { attachment: ChatAttachment; messageId: number | null; chatId: number | null; caption: string; renew?: () => Promise<{ url: string }> }
 
 /**
  * Pictures and videos full screen, one at a time: arrows (and ← →) move through the set, Download saves it, and
  * "Show in chat" goes to the message it came in.
  */
-export function Lightbox({ items, start, onClose, onShow }: { items: Viewed[]; start: number; onClose: () => void; onShow?: (messageId: number) => void }) {
+export function Lightbox({ items, start, onClose, onShow }: { items: Viewed[]; start: number; onClose: () => void; onShow?: (item: Viewed) => void }) {
     const copy = useJourneyCopy();
     const [index, setIndex] = useState(start);
     const [saving, setSaving] = useState(false);
@@ -34,13 +35,13 @@ export function Lightbox({ items, start, onClose, onShow }: { items: Viewed[]; s
         title={<span className="tc-lightbox__title">{attachment.name}</span>}
         description={`${current.caption} · ${fileSize(attachment.sizeBytes)}${items.length > 1 ? ` · ${index + 1}/${items.length}` : ''}`}
         footer={<>
-            {onShow && <Button variant="ghost" size="sm" onClick={() => onShow(current.messageId)}><MessageSquare aria-hidden="true" />{copy('Show in chat', 'ჩატში ნახვა')}</Button>}
+            {onShow && current.messageId !== null && <Button variant="ghost" size="sm" onClick={() => onShow(current)}><MessageSquare aria-hidden="true" />{copy('Show in chat', 'ჩატში ნახვა')}</Button>}
             <Button size="sm" disabled={saving} onClick={() => void save()}><Download aria-hidden="true" />{copy('Download', 'ჩამოტვირთვა')}</Button>
         </>}>
         <div className="tc-lightbox__stage">
             {items.length > 1 && <Button variant="ghost" iconOnly className="tc-lightbox__prev" disabled={index === 0} aria-label={copy('Previous', 'წინა')} onClick={() => setIndex(index - 1)}><ChevronLeft aria-hidden="true" /></Button>}
             {attachment.kind === 'VIDEO'
-                ? <ChatVideo key={attachment.id} attachment={attachment} controls autoPlay className="tc-lightbox__media" />
+                ? <ChatVideo key={attachment.id} attachment={attachment} controls autoPlay renew={current.renew} className="tc-lightbox__media" />
                 : attachment.kind === 'IMAGE' ? <ChatImage key={attachment.id} attachment={attachment} full className="tc-lightbox__media" />
                     : <FileRow attachment={attachment} />}
             {items.length > 1 && <Button variant="ghost" iconOnly className="tc-lightbox__next" disabled={index === items.length - 1} aria-label={copy('Next', 'შემდეგი')} onClick={() => setIndex(index + 1)}><ChevronRight aria-hidden="true" /></Button>}

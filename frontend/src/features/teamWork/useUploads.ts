@@ -24,7 +24,7 @@ export function useUploads(itemId: number, onChanged: (detail: Detail) => void) 
         }
         if (!FILE_EXTENSIONS.includes(extensionOf(file.name))) throw new Error(copy(`“${file.name}” is not a kind of file we keep: pictures, videos, ${FILE_EXTENSIONS.join(', ')}.`, `„${file.name}“ ასეთ ფაილს არ ვინახავთ: სურათები, ვიდეო, ${FILE_EXTENSIONS.join(', ')}.`));
         if (file.size > FILE_LIMIT_MB * 1024 * 1024) throw new Error(copy(`Files are up to ${FILE_LIMIT_MB} MB.`, `ფაილი მაქსიმუმ ${FILE_LIMIT_MB} MB.`));
-        return addFile(itemId, file);
+        return addFile(itemId, file, setProgress);
     };
     const upload = async (files: Iterable<File>) => {
         setError(''); setProgress(0);

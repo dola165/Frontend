@@ -37,6 +37,8 @@ export interface WorkItem {
     people: Person[]; mediaCount: number; commentCount: number; small: boolean;
     doneMeans: string | null; tested: string | null; commits: string | null; priority: Priority | null; requestedBy: Person | null;
     links: WorkLink[]; waitingOn: WorkRef[]; openQuestions: number;
+    /** The task's team chat, if it has one, and how many messages it holds. */
+    chatId?: number | null; chatMessages?: number;
 }
 export interface WorkUpdate {
     id: number; author: Person | null; at: string; previousStatus: WorkStatus | null; status: WorkStatus | null;
@@ -132,8 +134,10 @@ export const addPicture = (itemId: number, file: File) => { const form = new For
 export const addVideo = (itemId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<Detail>(`${base}/items/${itemId}/videos`, file, {
     headers: { 'Content-Type': file.type }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
 }));
-/** Any other file (PDF, text, spreadsheet…) up to 25 MB, kept under its own name. */
-export const addFile = (itemId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<Detail>(`${base}/items/${itemId}/files`, form)); };
+/** Any other file (PDF, text, spreadsheet…) up to 25 MB, kept under its own name: the request body is the file, streamed to storage. */
+export const addFile = (itemId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<Detail>(`${base}/items/${itemId}/files`, file, {
+    params: { name: file.name }, headers: { 'Content-Type': 'application/octet-stream' }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
+}));
 export const deleteMedia = (itemId: number, mediaId: number) => data(apiClient.delete<Detail>(`${base}/items/${itemId}/media/${mediaId}`));
 /** A ten-minute link a video element can stream from. */
 export const playLink = (itemId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/items/${itemId}/media/${mediaId}/play`));

@@ -3,6 +3,7 @@ import { Upload as UploadIcon, X } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { takeChatDraft, useChatDraft } from '../imageEditor/chatDraft';
 import { fetchHistory, type ChatAttachment, type ChatMessage, type ChatSummary, type Version } from './api';
 import { DecisionBar, DeletedBar } from './ChatBars';
 import { Composer, type Context } from './Composer';
@@ -81,6 +82,26 @@ export function TeamChat({ model, active = true, onChat }: { model: TeamChatMode
             setViewing({ items, start: Math.max(0, items.findIndex(item => item.attachment.id === attachment.id)) });
         },
     }), [toggleReaction, jumpTo, copy, model.chatId]);
+
+    // An edited copy saved from this chat's pictures arrives as a ready file answering the original's message, the box
+    // focused (the reply does that) rather than the original it opened at, for the person to add words and send. It
+    // waits a moment for the original to load.
+    const draft = useChatDraft(model.chatId);
+    const { adopt } = uploads;
+    const { setHighlight } = model;
+    useEffect(() => {
+        if (!draft) return undefined;
+        const original = messages.find(message => message.id === draft.replyToId);
+        const place = () => {
+            if (!takeChatDraft(model.chatId)) return;
+            adopt(draft.attachment, draft.file);
+            setHighlight(null);
+            setContext({ kind: 'reply', quote: original ? quoteOf(original) : { id: draft.replyToId, senderId: null, senderName: null, excerpt: '', deleted: false, attachments: 1 } });
+        };
+        if (original) { place(); return undefined; }
+        const timer = window.setTimeout(place, 1500);
+        return () => window.clearTimeout(timer);
+    }, [draft, messages, model.chatId, adopt, setHighlight]);
 
     const editLast = useCallback(() => {
         const last = [...messages].reverse().find(message => message.senderId === me && !message.deleted);

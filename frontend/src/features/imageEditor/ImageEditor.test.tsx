@@ -1,10 +1,11 @@
 import '../../i18n';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import * as api from './api';
 import { EditImageButton } from './EditImageButton';
 import { EditedImageNote } from './EditedImageNote';
+import { handOffChatDraft, takeChatDraft, useChatDraft } from './chatDraft';
 import { addPicture, type EditorState } from './editorState';
 import { tooBig } from './editorImages';
 import { editedAgo } from './imageEditorWords';
@@ -16,15 +17,15 @@ const loaded = vi.hoisted(() => ({ editor: false }));
 vi.mock('./editorLoader', () => ({
     loadEditor: () => {
         loaded.editor = true;
-        return Promise.resolve({ default: ({ media, onSaved, onClose }: { media: { url: string }; onSaved: (saved: api.SavedCopy) => void; onClose: () => void }) =>
+        return Promise.resolve({ default: ({ media, onSaved, onClose }: { media: { url: string }; onSaved: (saved: api.SavedCopy, image: File) => void; onClose: () => void }) =>
             <div role="dialog" aria-label="Edit picture">
-                <button type="button" onClick={() => { onSaved(copyOf(media.url)); onClose(); }}>Save as new</button>
+                <button type="button" onClick={() => { onSaved(copyOf(media.url), new File(['x'], 'copy.png', { type: 'image/png' })); onClose(); }}>Save as new</button>
             </div> });
     },
 }));
 
 const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000).toISOString();
-const copyOf = (original: string): api.SavedCopy => ({ url: '/uploads/copy-1.jpg', thumbUrl: null, originalUrl: original, place: 'TEAM_WORK', itemId: 4, messageId: null,
+const copyOf = (original: string): api.SavedCopy => ({ url: '/uploads/copy-1.jpg', thumbUrl: null, originalUrl: original, place: 'TEAM_WORK', itemId: 4, chatId: null, replyToId: null, attachment: null,
     editedBy: { id: 1, name: 'Beqa' }, editedAt: minutesAgo(2) });
 
 beforeEach(() => {
@@ -39,7 +40,7 @@ it('loads the editor only when someone opens it, and the saved copy says at once
     await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Save as new' }));
     expect(loaded.editor).toBe(true);
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ url: '/uploads/copy-1.jpg', originalUrl: '/uploads/original-1.jpg' }));
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ url: '/uploads/copy-1.jpg', originalUrl: '/uploads/original-1.jpg' }), expect.any(File));
     expect(screen.queryByRole('dialog', { name: 'Edit picture' })).not.toBeInTheDocument();
 
     rerender(<EditedImageNote url="/uploads/copy-1.jpg" />);
@@ -110,4 +111,24 @@ it('knows the server’s limits and says how long ago in the person’s words', 
     expect(editedAgo(copy, '2026-10-25T09:00:00Z', now)).toBe('3 h ago');
     expect(editedAgo(copy, '2026-10-24T11:00:00Z', now)).toBe('yesterday');
     expect(editedAgo(copy, '2026-10-21T12:00:00Z', now)).toBe('4 days ago');
+});
+
+it('hands a copy saved in a chat to that chat’s message box once, and a Team work copy to none', () => {
+    const file = new File(['x'], 'pitch-edited.png', { type: 'image/png' });
+    const attachment = { id: 31, kind: 'IMAGE' as const, name: 'pitch-edited.jpg', contentType: 'image/jpeg', sizeBytes: 900, url: '/uploads/copy-2.jpg', thumbUrl: null,
+        width: 640, height: 480, playUrl: null, kept: false };
+    expect(handOffChatDraft(copyOf('/uploads/original-2.jpg'), file)).toBe(false);
+    const Box = ({ chatId }: { chatId: number }) => { const draft = useChatDraft(chatId); return <output aria-label={`chat ${chatId}`}>{draft ? `${draft.attachment.id} replying to ${draft.replyToId}` : 'empty'}</output>; };
+    render(<><Box chatId={7} /><Box chatId={8} /></>);
+    let handed = false;
+    act(() => { handed = handOffChatDraft({ ...copyOf('/uploads/original-2.jpg'), place: 'CHAT', itemId: null, chatId: 7, replyToId: 120, attachment }, file); });
+    expect(handed).toBe(true);
+    expect(screen.getByLabelText('chat 7')).toHaveTextContent('31 replying to 120');
+    expect(screen.getByLabelText('chat 8')).toHaveTextContent('empty');
+    expect(takeChatDraft(8)).toBeNull();
+    let taken: ReturnType<typeof takeChatDraft> = null;
+    act(() => { taken = takeChatDraft(7); });
+    expect(taken).toMatchObject({ chatId: 7, replyToId: 120, file });
+    expect(screen.getByLabelText('chat 7')).toHaveTextContent('empty');
+    expect(takeChatDraft(7)).toBeNull();
 });

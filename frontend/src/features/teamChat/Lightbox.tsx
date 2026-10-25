@@ -5,6 +5,7 @@ import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { EditImageButton } from '../imageEditor/EditImageButton';
 import { EditedImageNote } from '../imageEditor/EditedImageNote';
+import { handOffChatDraft } from '../imageEditor/chatDraft';
 import type { ChatAttachment } from './api';
 import { ChatImage, ChatVideo, FileRow } from './Attachments';
 import { saveFile } from './saveFile';
@@ -39,7 +40,11 @@ export function Lightbox({ items, start, onClose, onShow }: { items: Viewed[]; s
         footer={<>
             {attachment.kind === 'IMAGE' && <EditedImageNote url={attachment.url} className="tc-lightbox__edited" />}
             {attachment.kind === 'IMAGE' && current.messageId !== null && <EditImageButton media={{ url: attachment.url, name: attachment.name }}
-                onSaved={saved => { onClose(); if (saved.messageId && onShow) onShow({ ...current, messageId: saved.messageId }); }} />}
+                onSaved={(saved, image) => {
+                    onClose();
+                    // The copy waits in its chat's message box; from another chat or All chats, that chat opens at the original.
+                    if (handOffChatDraft(saved, image) && onShow && saved.chatId !== null) onShow({ ...current, chatId: saved.chatId, messageId: saved.replyToId });
+                }} />}
             {onShow && current.messageId !== null && <Button variant="ghost" size="sm" onClick={() => onShow(current)}><MessageSquare aria-hidden="true" />{copy('Show in chat', 'ჩატში ნახვა')}</Button>}
             <Button size="sm" disabled={saving} onClick={() => void save()}><Download aria-hidden="true" />{copy('Download', 'ჩამოტვირთვა')}</Button>
         </>}>

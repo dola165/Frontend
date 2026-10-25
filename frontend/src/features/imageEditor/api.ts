@@ -1,14 +1,17 @@
 import { apiClient } from '../../api/axiosConfig';
+import type { ChatAttachment } from '../teamChat/api';
 
 /** Mirrors the backend's MediaEditDto. */
 export interface EditPerson { id: number | null; name: string | null }
 /**
- * An edited copy just saved, beside its original: on the same Team work task (`itemId`), or in the team chat as a new
- * message answering the original's (`messageId`, with the chat's small copy in `thumbUrl`).
+ * An edited copy just saved, beside its original: another picture on the same Team work task (`itemId`), or in a team
+ * chat an unsent upload of the original's chat (`chatId`, `attachment`) for its message box, answering the original's
+ * message (`replyToId`); it is sent with the person's own words, or taken out (which cancels it).
  */
 export interface SavedCopy {
     url: string; thumbUrl: string | null; originalUrl: string; place: 'TEAM_WORK' | 'CHAT';
-    itemId: number | null; messageId: number | null; editedBy: EditPerson; editedAt: string;
+    itemId: number | null; chatId: number | null; replyToId: number | null; attachment: ChatAttachment | null;
+    editedBy: EditPerson; editedAt: string;
 }
 /** A picture that is an edited copy, and what it was edited from (`originalAvailable`: you can still open it). */
 export interface MediaEdit { url: string; originalUrl: string; originalAvailable: boolean; place: 'TEAM_WORK' | 'CHAT'; editedBy: EditPerson; editedAt: string }

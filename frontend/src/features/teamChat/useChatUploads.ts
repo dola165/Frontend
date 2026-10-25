@@ -19,11 +19,11 @@ export function kindOf(file: File, limits: ChatLimits): AttachmentKind | null {
 }
 
 /**
- * The composer's uploads: each starts at once (from the button, a paste or a drop) with its progress, can be
- * cancelled (an upload already made is taken back), retried when it failed, and is checked against the same limits
- * as the server's before it starts.
+ * The composer's uploads into one chat: each starts at once (from the button, a paste or a drop) with its progress,
+ * can be cancelled (an upload already made is taken back), retried when it failed, and is checked against the same
+ * limits as the server's before it starts.
  */
-export function useChatUploads(limits: ChatLimits | null) {
+export function useChatUploads(chatId: number, limits: ChatLimits | null) {
     const copy = useJourneyCopy();
     const [items, setItems] = useState<Upload[]>([]);
     const controllers = useRef(new Map<string, AbortController>());
@@ -34,8 +34,8 @@ export function useChatUploads(limits: ChatLimits | null) {
         const controller = new AbortController();
         controllers.current.set(item.id, controller);
         const onProgress = (share: number) => patch(item.id, { progress: share });
-        const request = item.kind === 'IMAGE' ? uploadPicture(item.file, onProgress, controller.signal)
-            : item.kind === 'VIDEO' ? uploadVideo(item.file, onProgress, controller.signal) : uploadFile(item.file, onProgress, controller.signal);
+        const request = item.kind === 'IMAGE' ? uploadPicture(chatId, item.file, onProgress, controller.signal)
+            : item.kind === 'VIDEO' ? uploadVideo(chatId, item.file, onProgress, controller.signal) : uploadFile(chatId, item.file, onProgress, controller.signal);
         request.then(attachment => {
             if (controller.signal.aborted) { void cancelUpload(attachment.id).catch(() => undefined); return; }
             patch(item.id, { state: 'ready', progress: 1, attachment });
@@ -43,7 +43,7 @@ export function useChatUploads(limits: ChatLimits | null) {
             if (controller.signal.aborted) return;
             patch(item.id, { state: 'failed', error: problem(copy, error, ['The upload failed.', 'ატვირთვა ვერ მოხერხდა.']) });
         }).finally(() => controllers.current.delete(item.id));
-    }, [copy]);
+    }, [chatId, copy]);
 
     const add = useCallback((files: Iterable<File>) => {
         if (!limits) return;

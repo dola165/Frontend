@@ -1,30 +1,39 @@
-import { useState, type CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { Download, FileText, Loader2, Play } from 'lucide-react';
 import { useMediaSource } from '../../hooks/useMediaSource';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { playLink, type ChatAttachment } from './api';
+import { useNearView } from './nearView';
 import { saveFile } from './saveFile';
 import { fileSize } from './teamChatWords';
 
-/** A picture fetched with the sign-in: the small copy in lists, the picture itself full screen. */
-export function ChatImage({ attachment, full = false, className }: { attachment: ChatAttachment; full?: boolean; className?: string }) {
-    const src = useMediaSource(full ? attachment.url : attachment.thumbUrl ?? attachment.url);
+/**
+ * A picture fetched with the sign-in: the small copy (made once at upload) in lists, the picture itself full screen.
+ * With `lazy`, it is fetched only once it comes near the screen (long grids).
+ */
+export function ChatImage({ attachment, full = false, lazy = false, className }: { attachment: ChatAttachment; full?: boolean; lazy?: boolean; className?: string }) {
+    const box = useRef<HTMLSpanElement>(null);
+    const near = useNearView(box);
+    const src = useMediaSource(full ? attachment.url : attachment.thumbUrl ?? attachment.url, !lazy || near);
     const ratio = attachment.width && attachment.height ? { aspectRatio: `${attachment.width} / ${attachment.height}` } as CSSProperties : undefined;
-    return src ? <img className={className} src={src} alt={attachment.name} style={full ? undefined : ratio} /> : <span className={`${className ?? ''} tc-img--loading`} style={ratio} aria-hidden="true" />;
+    return src ? <img className={className} src={src} alt={attachment.name} style={full ? undefined : ratio} /> : <span ref={box} className={`${className ?? ''} tc-img--loading`} style={ratio} aria-hidden="true" />;
 }
 
 /**
  * A video plays from a ten-minute link signed for this person (a video element cannot send the sign-in); when the
- * link has run out it asks for a fresh one.
+ * link has run out it asks for a fresh one (`renew`, the chat's own link by default).
  */
-export function ChatVideo({ attachment, controls = false, autoPlay = false, className }: { attachment: ChatAttachment; controls?: boolean; autoPlay?: boolean; className?: string }) {
+export function ChatVideo({ attachment, controls = false, autoPlay = false, className, renew }: {
+    attachment: ChatAttachment; controls?: boolean; autoPlay?: boolean; className?: string; renew?: () => Promise<{ url: string }>;
+}) {
     const [src, setSrc] = useState(attachment.playUrl);
     const [renewed, setRenewed] = useState(false);
     const url = src ? resolveMediaUrl(src) : undefined;
+    const fresh = () => (renew ?? (() => playLink(attachment.id)))();
     return <video className={className} src={url ? `${url}${controls ? '' : '#t=0.1'}` : undefined} controls={controls} autoPlay={autoPlay}
         muted={!controls} playsInline preload="metadata" aria-label={attachment.name}
-        onError={() => { if (renewed) return; setRenewed(true); void playLink(attachment.id).then(link => setSrc(link.url)).catch(() => undefined); }} />;
+        onError={() => { if (renewed) return; setRenewed(true); void fresh().then(link => setSrc(link.url)).catch(() => undefined); }} />;
 }
 
 /** A file to save: its name, size and a download button. */

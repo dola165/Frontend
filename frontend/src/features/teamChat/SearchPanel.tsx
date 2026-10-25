@@ -21,8 +21,8 @@ export interface SearchState { q: string; from: number | null; has: MediaFilter 
  * Searching the chat: words (in a message or a file's name), one person's messages, and messages with files. A
  * result opens the chat at that message. What is searched for is kept in the address.
  */
-export function SearchPanel({ query, members, onQuery, onPick, onClose }: {
-    query: SearchState; members: ChatPerson[]; onQuery: (query: SearchState) => void; onPick: (messageId: number) => void; onClose: () => void;
+export function SearchPanel({ chatId, query, members, onQuery, onPick, onClose }: {
+    chatId: number; query: SearchState; members: ChatPerson[]; onQuery: (query: SearchState) => void; onPick: (messageId: number) => void; onClose: () => void;
 }) {
     const copy = useJourneyCopy();
     const [words, setWords] = useState(query.q);
@@ -45,16 +45,16 @@ export function SearchPanel({ query, members, onQuery, onPick, onClose }: {
         const controller = new AbortController();
         // eslint-disable-next-line react-hooks/set-state-in-effect -- a new search clears the last one's problem
         setError('');
-        searchMessages({ q: query.q.trim(), from: query.from, has: query.has }, controller.signal)
+        searchMessages(chatId, { q: query.q.trim(), from: query.from, has: query.has }, controller.signal)
             .then(page => { setFound(page.messages); setMore(page.more); })
             .catch(failure => { if (!controller.signal.aborted) setError(problem(copy, failure, ['The search failed.', 'ძიება ვერ მოხერხდა.'])); });
         return () => controller.abort();
-    }, [query, asked, copy]);
+    }, [chatId, query, asked, copy]);
 
     const loadMore = async () => {
         const last = found?.at(-1);
         if (!last) return;
-        try { const page = await searchMessages({ q: query.q.trim(), from: query.from, has: query.has, before: last.id }); setFound(current => [...(current ?? []), ...page.messages]); setMore(page.more); }
+        try { const page = await searchMessages(chatId, { q: query.q.trim(), from: query.from, has: query.has, before: last.id }); setFound(current => [...(current ?? []), ...page.messages]); setMore(page.more); }
         catch (failure) { setError(problem(copy, failure, ['More could not load.', 'მეტი ვერ ჩაიტვირთა.'])); }
     };
 

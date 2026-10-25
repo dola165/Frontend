@@ -49,7 +49,7 @@ function Tools({ message, mine, reactions, canModerate, conversationId, actions 
         </div>}
         {open === 'more' && <div className="tc-pop tc-pop--menu" role="menu">
             {message.content && <button type="button" role="menuitem" autoFocus onClick={() => write(message.content, 'text')}><Copy aria-hidden="true" />{copied === 'text' ? copy('Copied', 'დაკოპირდა') : copy('Copy text', 'ტექსტის კოპირება')}</button>}
-            <button type="button" role="menuitem" autoFocus={!message.content} onClick={() => write(`${window.location.origin}/team-work/chat?message=${message.id}`, 'link')}><Link2 aria-hidden="true" />{copied === 'link' ? copy('Copied', 'დაკოპირდა') : copy('Copy link', 'ბმულის კოპირება')}</button>
+            <button type="button" role="menuitem" autoFocus={!message.content} onClick={() => write(`${window.location.origin}/team-work/chat?chat=${conversationId}&message=${message.id}`, 'link')}><Link2 aria-hidden="true" />{copied === 'link' ? copy('Copied', 'დაკოპირდა') : copy('Copy link', 'ბმულის კოპირება')}</button>
             {canModerate && message.editedAt && <button type="button" role="menuitem" onClick={() => { setOpen(null); actions.onHistory(message); }}><History aria-hidden="true" />{copy('Earlier versions', 'წინა ვერსიები')}</button>}
             {mine && <button type="button" role="menuitem" className="tc-danger" onClick={() => { setOpen(null); actions.onDelete(message); }}><Trash2 aria-hidden="true" />{copy('Delete for everyone', 'ყველასთვის წაშლა')}</button>}
             {!mine && message.senderId !== null && <ReportControl targetType="MESSAGE" targetId={message.id} conversationId={conversationId} personId={message.senderId} className="tc-pop__report" />}
@@ -71,9 +71,9 @@ function Reactions({ message, me, members, onReact }: { message: ChatMessage; me
     </ul>;
 }
 
-export const MessageRow = memo(function MessageRow({ message, compact, me, members, reactions, canModerate, conversationId, highlighted, actions }: {
+export const MessageRow = memo(function MessageRow({ message, compact, me, members, reactions, canModerate, conversationId, highlighted, actions, readOnly = false }: {
     message: ChatMessage; compact: boolean; me: number | null; members: Map<number, ChatPerson>; reactions: string[]; canModerate: boolean;
-    conversationId: number; highlighted: boolean; actions: RowActions;
+    conversationId: number; highlighted: boolean; actions: RowActions; readOnly?: boolean;
 }) {
     const copy = useJourneyCopy();
     const mine = me !== null && message.senderId === me;
@@ -106,7 +106,7 @@ export const MessageRow = memo(function MessageRow({ message, compact, me, membe
                     {message.reactions.length > 0 && <Reactions message={message} me={me} members={members} onReact={emoji => actions.onReact(message, emoji)} />}
                 </>}
         </div>
-        {!removed && <Tools message={message} mine={mine} reactions={reactions} canModerate={canModerate} conversationId={conversationId} actions={actions} />}
+        {!removed && !readOnly && <Tools message={message} mine={mine} reactions={reactions} canModerate={canModerate} conversationId={conversationId} actions={actions} />}
         {removed && canModerate && <div className="tc-tools"><button type="button" className="tc-tool" aria-label={copy('Earlier versions', 'წინა ვერსიები')} title={copy('Earlier versions', 'წინა ვერსიები')} onClick={() => actions.onHistory(message)}><History aria-hidden="true" /></button></div>}
     </article>;
 });

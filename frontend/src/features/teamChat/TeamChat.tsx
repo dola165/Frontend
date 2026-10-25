@@ -3,7 +3,8 @@ import { Upload as UploadIcon, X } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { fetchHistory, type ChatAttachment, type ChatMessage, type Version } from './api';
+import { fetchHistory, type ChatAttachment, type ChatMessage, type ChatSummary, type Version } from './api';
+import { DecisionBar, DeletedBar } from './ChatBars';
 import { Composer, type Context } from './Composer';
 import { Lightbox, type Viewed } from './Lightbox';
 import { MessageList } from './MessageList';
@@ -26,15 +27,15 @@ function TypingLine({ names }: { names: string[] }) {
 }
 
 /** For moderators: what a message said before each edit and before it was deleted. */
-function HistoryDialog({ message, onClose }: { message: ChatMessage; onClose: () => void }) {
+function HistoryDialog({ chatId, message, onClose }: { chatId: number; message: ChatMessage; onClose: () => void }) {
     const copy = useJourneyCopy();
     const [versions, setVersions] = useState<Version[] | null>(null);
     const [failed, setFailed] = useState(false);
     useEffect(() => {
         let live = true;
-        fetchHistory(message.id).then(history => { if (live) setVersions(history.versions); }).catch(() => { if (live) setFailed(true); });
+        fetchHistory(chatId, message.id).then(history => { if (live) setVersions(history.versions); }).catch(() => { if (live) setFailed(true); });
         return () => { live = false; };
-    }, [message.id]);
+    }, [chatId, message.id]);
     return <Dialog open size="md" className="tc-dialog" title={copy('Earlier versions', 'წინა ვერსიები')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
         description={copy('Kept for moderators; others see only the message as it is now.', 'ინახება მოდერატორებისთვის; სხვები მხოლოდ ამჟამინდელ ტექსტს ხედავენ.')}>
         {failed ? <p className="gk-notice gk-notice--danger" role="alert">{copy('The versions could not load.', 'ვერსიები ვერ ჩაიტვირთა.')}</p>
@@ -50,12 +51,13 @@ function HistoryDialog({ message, onClose }: { message: ChatMessage; onClose: ()
 }
 
 /**
- * The chat itself: the messages, who is typing and the box to write in; files can be dropped anywhere on it. Deleting
+ * The chat itself: its decision pinned on top, the messages, who is typing and the box to write in; files can be dropped
+ * anywhere on it. A chat waiting in Recently deleted says when it goes and takes nothing new. Deleting a message
  * asks first (it deletes the files for everyone); pictures and videos open full screen.
  */
-export function TeamChat({ model, active = true }: { model: TeamChatModel; active?: boolean }) {
+export function TeamChat({ model, active = true, onChat }: { model: TeamChatModel; active?: boolean; onChat?: (chat: ChatSummary) => void }) {
     const copy = useJourneyCopy();
-    const uploads = useChatUploads(model.state?.limits ?? null);
+    const uploads = useChatUploads(model.chatId, model.state?.limits ?? null);
     const [context, setContext] = useState<Context>(null);
     const [deleting, setDeleting] = useState<ChatMessage | null>(null);
     const [history, setHistory] = useState<ChatMessage | null>(null);
@@ -75,10 +77,10 @@ export function TeamChat({ model, active = true }: { model: TeamChatModel; activ
         onJump: id => jumpTo(id),
         onOpen: (message: ChatMessage, attachment: ChatAttachment) => {
             const caption = `${message.senderName ?? ''} · ${fullTime(copy, message.createdAt)}`;
-            const items = message.attachments.filter(file => file.kind !== 'FILE').map(file => ({ attachment: file, messageId: message.id, caption }));
+            const items: Viewed[] = message.attachments.filter(file => file.kind !== 'FILE').map(file => ({ attachment: file, messageId: message.id, chatId: model.chatId, caption }));
             setViewing({ items, start: Math.max(0, items.findIndex(item => item.attachment.id === attachment.id)) });
         },
-    }), [toggleReaction, jumpTo, copy]);
+    }), [toggleReaction, jumpTo, copy, model.chatId]);
 
     const editLast = useCallback(() => {
         const last = [...messages].reverse().find(message => message.senderId === me && !message.deleted);
@@ -100,11 +102,16 @@ export function TeamChat({ model, active = true }: { model: TeamChatModel; activ
         },
     };
 
-    return <section className="tc-chat" aria-label={copy('Team chat', 'გუნდის ჩატი')} {...drop}>
+    const chat = model.state?.chat ?? null;
+    const trashed = !!chat?.deletesAt;
+    const putChat = (next: ChatSummary) => { model.putChat(next); onChat?.(next); };
+    return <section className="tc-chat" aria-label={chat?.name ?? copy('Team chat', 'გუნდის ჩატი')} {...(trashed ? {} : drop)}>
+        {chat && <DecisionBar chat={chat} />}
+        {chat && <DeletedBar chat={chat} onChat={putChat} />}
         {model.notice && <div className="tc-notice" role="alert"><span>{model.notice}</span><button type="button" className="tc-tool" aria-label={copy('Dismiss', 'დახურვა')} onClick={model.dismissNotice}><X aria-hidden="true" /></button></div>}
         <MessageList model={model} actions={actions} active={active} />
         <TypingLine names={model.typingNames} />
-        <Composer model={model} uploads={uploads} context={context} onClearContext={() => setContext(null)} onEditLast={editLast} />
+        {!trashed && <Composer model={model} uploads={uploads} context={context} onClearContext={() => setContext(null)} onEditLast={editLast} />}
         {dragging && <div className="tc-drop" aria-hidden="true"><UploadIcon /><span>{copy('Drop to add to your message', 'ჩააგდეთ შეტყობინებაში დასამატებლად')}</span></div>}
         {deleting && <Dialog open size="sm" role="alertdialog" className="tc-dialog" title={copy('Delete this message for everyone?', 'წავშალოთ ეს შეტყობინება ყველასთვის?')}
             description={deleting.attachments.length
@@ -113,7 +120,7 @@ export function TeamChat({ model, active = true }: { model: TeamChatModel; activ
             onClose={() => setDeleting(null)} closeLabel={copy('Cancel', 'გაუქმება')}
             footer={<><Button variant="ghost" onClick={() => setDeleting(null)}>{copy('Cancel', 'გაუქმება')}</Button>
                 <Button variant="danger" autoFocus onClick={() => { const target = deleting; setDeleting(null); void model.remove(target.id); }}>{copy('Delete', 'წაშლა')}</Button></>} />}
-        {history && <HistoryDialog message={history} onClose={() => setHistory(null)} />}
+        {history && <HistoryDialog chatId={model.chatId} message={history} onClose={() => setHistory(null)} />}
         {viewing && <Lightbox items={viewing.items} start={viewing.start} onClose={() => setViewing(null)} />}
     </section>;
 }

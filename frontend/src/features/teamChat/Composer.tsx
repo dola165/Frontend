@@ -30,7 +30,7 @@ export function Composer({ model, uploads, context, onClearContext, onEditLast }
 }) {
     const copy = useJourneyCopy();
     const { state } = model;
-    const conversation = state?.conversationId ?? null;
+    const conversation = state?.chat.id ?? null;
     const limit = state?.limits.maxLength ?? 2000;
     const [recovery] = useState(createMessageRecovery);
     const [text, setText] = useState(() => conversation ? recovery.readDraft(conversation) : '');

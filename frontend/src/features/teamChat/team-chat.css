@@ -1,20 +1,16 @@
 /* Team chat: the frame, the conversation and its messages. Quiet greys; one bright thing per row
    (the unread line, your mention, a pressed reaction, the send button). */
 .tc-root { height: 100%; background: var(--gk-bg); color: var(--gk-text); }
-.tc-root .tc-page { display: flex; flex-direction: column; height: 100%; max-width: 1240px; margin: 0 auto; padding: 0 var(--gk-gutter); }
 .tc-root .tc-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); min-height: 56px; padding: var(--gk-2) 0; border-bottom: 1px solid var(--gk-line); }
 .tc-root .tc-back { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px 0 6px; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; text-decoration: none; cursor: pointer; }
 .tc-root .tc-back:hover { background: var(--gk-hover); color: var(--gk-text); }
 .tc-root .tc-back svg { width: 18px; height: 18px; }
 .tc-root .tc-title { margin: 0; font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 700; }
-.tc-root .tc-people { display: inline-flex; align-items: center; gap: 6px; }
-.tc-root .tc-people__faces { display: inline-flex; }
-.tc-root .tc-people__faces .gk-avatar + .gk-avatar { margin-left: -6px; box-shadow: 0 0 0 2px var(--gk-bg); }
 .tc-root .tc-offline { display: inline-flex; align-items: center; gap: 4px; font-size: var(--gk-fs-xs); color: var(--gk-warning); }
 .tc-root .tc-offline svg { width: 14px; height: 14px; }
 .tc-root .tc-tabs { display: inline-flex; gap: 2px; margin-left: auto; padding: 2px; border-radius: var(--gk-r-pill); background: var(--gk-sunken); }
 .tc-root .tc-tabs button { min-height: 32px; padding: 0 14px; border: 0; border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
-.tc-root .tc-tabs button[aria-selected='true'] { background: var(--gk-surface); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
+.tc-root .tc-tabs button[aria-selected='true'], .tc-root .tc-tabs button[aria-pressed='true'] { background: var(--gk-surface); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
 .tc-root .tc-open { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-info); text-decoration: none; }
 .tc-root .tc-open svg { width: 14px; height: 14px; }
 .tc-root .tc-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -50,7 +46,7 @@
 .tc-root .tc-msg[data-compact] { padding-top: 1px; padding-bottom: 1px; }
 .tc-root .tc-msg:hover, .tc-root .tc-msg:focus-within { background: var(--gk-hover); }
 .tc-root .tc-msg:focus-visible { box-shadow: inset 0 0 0 2px var(--gk-focus, var(--gk-accent)); }
-.tc-root .tc-msg[data-highlight] { box-shadow: inset 3px 0 0 var(--gk-accent); animation: tc-flash 2.6s var(--gk-ease); }
+.tc-root .tc-msg[data-highlight] { background: color-mix(in srgb, var(--gk-accent) 7%, transparent); animation: tc-flash 2.6s var(--gk-ease); }
 @keyframes tc-flash { from { background-color: color-mix(in srgb, var(--gk-accent) 18%, transparent); } }
 .tc-root .tc-msg__side { display: flex; justify-content: center; padding-top: 2px; }
 .tc-root .tc-msg__hover-time { visibility: hidden; font-size: 11px; line-height: 22px; color: var(--gk-text-3); }
@@ -119,9 +115,8 @@
     .tc-root .tc-msg:hover:not(:focus-within) .tc-tools { display: none; }
 }
 @media (max-width: 640px) {
-    .tc-root .tc-page { padding: 0; }
     .tc-root .tc-head { gap: 6px; padding: 6px 8px; min-height: 52px; }
-    .tc-root .tc-back__label, .tc-root .tc-people { display: none; }
+    .tc-root .tc-head .tc-back__label { display: none; }
     .tc-root .tc-title { font-size: var(--gk-fs-md); }
     .tc-root .tc-tabs button { padding: 0 10px; }
     .tc-root .tc-msg { grid-template-columns: 36px minmax(0, 1fr); padding: 6px 8px; }

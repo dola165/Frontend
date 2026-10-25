@@ -6,8 +6,8 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { fetchUnread } from './api';
 
 /**
- * Team work's side bar entry for the team chat, with how many messages wait for you (bright, like Ideas). Asking
- * does not count as having the chat open, so nobody misses the "away" notification because of the badge.
+ * Team work's side bar entry for the team chats, with how many messages wait for you in all of them (bright, like Ideas). Asking
+ * does not count as having a chat open, so nobody misses the "away" notification because of the badge.
  */
 export function TeamChatNavItem() {
     const copy = useJourneyCopy();
@@ -22,8 +22,8 @@ export function TeamChatNavItem() {
         return () => { controller.abort(); window.clearInterval(timer); stop(); };
     }, []);
     return <li data-place="chat">
-        <button type="button" title={copy('Team chat', 'გუნდის ჩატი')} onClick={() => navigate('/team-work/chat')}>
-            <MessagesSquare aria-hidden="true" /><span className="tw-side__label">{copy('Chat', 'ჩატი')}</span>
+        <button type="button" title={copy('Team chats', 'გუნდის ჩატები')} onClick={() => navigate('/team-work/chat')}>
+            <MessagesSquare aria-hidden="true" /><span className="tw-side__label">{copy('Chats', 'ჩატები')}</span>
             {unread > 0 && <span className="gk-count" title={copy('Unread', 'წაუკითხავი')}>{unread > 99 ? '99+' : unread}</span>}
         </button>
     </li>;

@@ -19,11 +19,12 @@ const valid = (item: unknown): item is Pending => {
         && Array.isArray(pending.attachments) && (pending.refused === null || typeof pending.refused === 'string');
 };
 
-/** The outbox of one login, in this browser. A different login (even the same account) never sees it. */
-export function createOutbox() {
+/** The outbox of one login and one chat, in this browser. A different login (even the same account) never sees it. */
+export function createOutbox(chatId: number) {
     const session = getAuthSessionId();
     const user = getStoredUserId();
-    const key = `${prefix}${session ?? 'legacy'}:${user ?? 'guest'}`;
+    const login = `${prefix}${session ?? 'legacy'}:${user ?? 'guest'}:`;
+    const key = `${login}${chatId}`;
     const current = () => isCurrentAuthSession(session) && getStoredUserId() === user;
     let memory: Pending[] = [];
     const read = (): Pending[] => {
@@ -38,8 +39,8 @@ export function createOutbox() {
         if (!current()) return;
         memory = items;
         try {
-            // Retired logins' messages are never sent later, even for the same account.
-            for (const stored of Object.keys(localStorage)) if (stored.startsWith(prefix) && stored !== key) localStorage.removeItem(stored);
+            // Retired logins' messages are never sent later, even for the same account; other chats of this login keep theirs.
+            for (const stored of Object.keys(localStorage)) if (stored.startsWith(prefix) && !stored.startsWith(login)) localStorage.removeItem(stored);
             if (items.length) localStorage.setItem(key, JSON.stringify(items));
             else localStorage.removeItem(key);
         } catch { /* Kept in memory for this page. */ }

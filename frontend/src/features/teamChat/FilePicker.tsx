@@ -5,7 +5,7 @@ import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { deleteChat, fetchShared, keepFiles, type ChatSummary, type SharedItem } from './api';
 import { ChatImage } from './Attachments';
-import { fileSize, problem } from './teamChatWords';
+import { DELETE_FORBIDDEN, fileSize, problem } from './teamChatWords';
 
 /**
  * The chat's files with a tick each, before a delete ("Delete chat" keeps the ticked ones onto the task, or the
@@ -44,7 +44,12 @@ export function FilePicker({ chat, mode, onClose, onDone }: { chat: ChatSummary;
     const go = async () => {
         setBusy(true); setError('');
         try { onDone(await (mode === 'delete' ? deleteChat(chat.id, [...ticked]) : keepFiles(chat.id, [...ticked]))); }
-        catch (failure) { setError(problem(copy, failure, mode === 'delete' ? ['The chat was not deleted.', 'ჩატი ვერ წაიშალა.'] : ['The files were not kept.', 'ფაილები ვერ შეინახა.'])); setBusy(false); }
+        catch (failure) {
+            setError(mode === 'delete'
+                ? problem(copy, failure, ['The chat was not deleted.', 'ჩატი ვერ წაიშალა.'], DELETE_FORBIDDEN)
+                : problem(copy, failure, ['The files were not kept.', 'ფაილები ვერ შეინახა.']));
+            setBusy(false);
+        }
     };
     const count = ticked.size;
     const action = mode === 'delete'
@@ -54,8 +59,8 @@ export function FilePicker({ chat, mode, onClose, onDone }: { chat: ChatSummary;
     return <Dialog open size="md" role={mode === 'delete' ? 'alertdialog' : 'dialog'} className="tc-dialog tc-picker" onClose={onClose} closeLabel={copy('Cancel', 'გაუქმება')}
         title={mode === 'delete' ? copy(`Delete “${chat.name}”?`, `წავშალოთ „${chat.name}“?`) : copy('Keep files', 'ფაილების შენახვა')}
         description={mode === 'delete'
-            ? copy(`Tick the files to keep (${where}). The chat then waits in Recently deleted for 7 days; anyone can restore it. After that its messages and unkept files are gone.`,
-                `მონიშნეთ შესანახი ფაილები (${where}). ჩატი 7 დღე „ბოლოს წაშლილებში“ დარჩება და ნებისმიერს შეუძლია აღადგინოს. მერე შეტყობინებები და შეუნახავი ფაილები წაიშლება.`)
+            ? copy(`Tick the files to keep (${where}). The chat then waits in Recently deleted for 7 days, where the person who started it or a team admin can restore it. After that its messages and unkept files are gone.`,
+                `მონიშნეთ შესანახი ფაილები (${where}). ჩატი 7 დღე „ბოლოს წაშლილებში“ დარჩება; აღდგენა შეუძლია მის დამწყებს ან გუნდის ადმინს. მერე შეტყობინებები და შეუნახავი ფაილები წაიშლება.`)
             : copy(`Ticked files are kept ${where} and never purged.`, `მონიშნული ფაილები შეინახება ${where} და არასდროს წაიშლება.`)}
         footer={<>
             <Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button>

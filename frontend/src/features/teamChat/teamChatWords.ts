@@ -69,11 +69,22 @@ export const isMissing = (error: unknown) => statusOf(error) === 404;
 /** No answer at all, or the server or connection is in trouble: worth trying again by itself. */
 export const isPassing = (error: unknown) => { const status = statusOf(error); return status === undefined || status === 401 || status === 408 || status === 429 || status >= 500; };
 
-/** What went wrong, in our words (the server's own words are English). */
-export function problem(copy: Copy, error: unknown, what: [en: string, ka: string]) {
+/** Why deleting a chat, or restoring it, is refused: only the person who started it or a team admin may. */
+export const DELETE_FORBIDDEN: [string, string] = ['Only the person who started this chat or a team admin can delete it.', 'ჩატის წაშლა შეუძლია მხოლოდ მის დამწყებს ან გუნდის ადმინს.'];
+export const RESTORE_FORBIDDEN: [string, string] = ['Only the person who started this chat or a team admin can restore it.', 'ჩატის აღდგენა შეუძლია მხოლოდ მის დამწყებს ან გუნდის ადმინს.'];
+/** Why changing a message is refused: only the person who wrote it may. */
+export const WRITER_FORBIDDEN: [string, string] = ['Only the person who wrote it can change or delete it.', 'შეცვლა ან წაშლა მხოლოდ ავტორს შეუძლია.'];
+
+/**
+ * What went wrong, in our words (the server's own words are English). `forbidden` is the true reason a 403 has for
+ * this action; without one, a plain "not allowed".
+ */
+export function problem(copy: Copy, error: unknown, what: [en: string, ka: string], forbidden?: [en: string, ka: string]) {
     const status = statusOf(error);
     if (status === undefined) return copy(`${what[0]} No connection; it will be tried again.`, `${what[1]} კავშირი არ არის; ხელახლა ვცდით.`);
-    if (status === 403) return copy(`${what[0]} Only its writer can do that.`, `${what[1]} ეს მხოლოდ ავტორს შეუძლია.`);
+    if (status === 403) return forbidden
+        ? copy(`${what[0]} ${forbidden[0]}`, `${what[1]} ${forbidden[1]}`)
+        : copy(`${what[0]} You are not allowed to do that.`, `${what[1]} ეს თქვენ არ შეგიძლიათ.`);
     if (status === 404) return copy(`${what[0]} It is no longer here.`, `${what[1]} აღარ არსებობს.`);
     if (status === 409) return copy(`${what[0]} This chat is in Recently deleted; restore it first.`, `${what[1]} ეს ჩატი ბოლოს წაშლილებშია; ჯერ აღადგინეთ.`);
     if (status === 413) return copy(`${what[0]} It is too large.`, `${what[1]} ზედმეტად დიდია.`);

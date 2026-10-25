@@ -5,6 +5,7 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { fetchShared, type AttachmentKind, type ChatPerson, type SharedItem } from './api';
 import { ChatImage, ChatVideo, FileRow } from './Attachments';
 import { Lightbox, type Viewed } from './Lightbox';
+import { onSharedChanged } from './sharedSignal';
 import { isMissing, problem, shortDay } from './teamChatWords';
 
 export interface MediaFilters { all: boolean; kind: AttachmentKind | null; from: number | null }
@@ -28,14 +29,36 @@ export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMiss
     const [viewing, setViewing] = useState<number | null>(null);
     const personId = useId();
     const where = { chat: filters.all ? null : chatId, kind: filters.kind, from: filters.from };
+    /** Goes up when something shared changed in the open chat: the first page is fetched again, quietly. */
+    const [round, setRound] = useState(0);
+
+    useEffect(() => {
+        let timer: number | undefined;
+        const stop = onSharedChanged(changed => {
+            if (!filters.all && changed !== chatId) return;
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => setRound(current => current + 1), 400);
+        });
+        return () => { stop(); window.clearTimeout(timer); };
+    }, [chatId, filters.all]);
 
     useEffect(() => {
         const controller = new AbortController();
-        setItems(null); setError('');
+        setItems(null); setError(''); setRound(0);
         fetchShared({ chat: filters.all ? null : chatId, kind: filters.kind, from: filters.from }, controller.signal).then(page => { setItems(page.items); setMore(page.more); })
             .catch(failure => { if (controller.signal.aborted) return; if (isMissing(failure)) onMissing(); setError(problem(copy, failure, ['What was shared could not load.', 'გაზიარებული ვერ ჩაიტვირთა.'])); });
         return () => controller.abort();
     }, [chatId, filters.all, filters.kind, filters.from, copy, onMissing]);
+
+    // The refresh keeps what is shown until the new first page is here (no flash), then replaces it.
+    useEffect(() => {
+        if (!round) return;
+        const controller = new AbortController();
+        fetchShared({ chat: filters.all ? null : chatId, kind: filters.kind, from: filters.from }, controller.signal)
+            .then(page => { setItems(page.items); setMore(page.more); })
+            .catch(() => { /* The next change, or opening the panel again, tries again. */ });
+        return () => controller.abort();
+    }, [round, chatId, filters.all, filters.kind, filters.from]);
 
     const loadMore = async () => {
         const last = items?.at(-1);

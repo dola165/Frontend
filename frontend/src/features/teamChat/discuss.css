@@ -10,7 +10,19 @@
 .gk .tc-discuss__spin { animation: tc-discuss-spin 1s linear infinite; }
 @keyframes tc-discuss-spin { to { transform: rotate(360deg); } }
 
-/* The quiet form, at the end of a task row: no frame, the symbol and the count. */
+/* The quiet form, at the end of a task row: no frame, the symbol and the count; an error as a bubble beneath. */
+.gk .tc-discuss[data-compact] { position: relative; }
+.gk .tc-discuss[data-compact] .tc-discuss__error {
+    position: absolute; top: calc(100% + 4px); right: 0; z-index: 3;
+    display: flex; align-items: flex-start; gap: 6px;
+    width: max-content; max-width: min(280px, 80vw); padding: 6px 6px 6px 10px;
+    border: 1px solid var(--gk-danger); border-radius: var(--gk-r);
+    background: var(--gk-surface); box-shadow: var(--gk-shadow-md, 0 4px 16px rgb(0 0 0 / .14));
+    line-height: 1.35; white-space: normal;
+}
+.gk .tc-discuss__dismiss { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--gk-text-3); cursor: pointer; }
+.gk .tc-discuss__dismiss:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .tc-discuss__dismiss svg { width: 14px; height: 14px; }
 .gk .tc-discuss[data-compact] .tc-discuss__button { min-width: 36px; min-height: 36px; justify-content: center; padding: 0 6px; border-color: transparent; background: none; color: var(--gk-text-3); }
 .gk .tc-discuss[data-compact] .tc-discuss__button:hover { background: var(--gk-hover); color: var(--gk-text); }
 .gk .tw-row:has(> .tc-discuss) { display: flex; align-items: center; }

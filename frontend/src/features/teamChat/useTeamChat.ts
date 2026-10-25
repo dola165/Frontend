@@ -6,7 +6,8 @@ import { deleteMessage, editMessage, fetchChanges, fetchPage, fetchState, markRe
 import { addNewer, addOlder, applyChanges, EMPTY_WINDOW, replaceWindow, upsert, type ChatWindow } from './chatWindow';
 import { connectLive, type Live } from './liveChat';
 import { createOutbox, type Pending } from './outbox';
-import { isMissing, isPassing, problem } from './teamChatWords';
+import { sharedChanged } from './sharedSignal';
+import { isMissing, isPassing, problem, WRITER_FORBIDDEN } from './teamChatWords';
 
 export type ChatStatus = 'loading' | 'ready' | 'missing' | 'error';
 type Where = Parameters<typeof fetchPage>[1];
@@ -58,6 +59,8 @@ export function useTeamChat(chatId: number, jump: number | null) {
                     const changes = await fetchChanges(chatId, viewRef.current.cursor);
                     if (!alive.current) return;
                     update(current => applyChanges(current, changes, following.current));
+                    // Files arriving or going with these messages: the panel's Media looks again.
+                    if (changes.messages.some(message => message.deleted || message.attachments.length)) sharedChanged(chatId);
                     more = changes.more;
                 }
             } while (syncAgain.current && alive.current);
@@ -86,6 +89,7 @@ export function useTeamChat(chatId: number, jump: number | null) {
                     if (!alive.current) return;
                     setPending(outbox.list());
                     update(current => upsert(current, message));
+                    if (message.attachments.length) sharedChanged(chatId);
                     retryDelay.current = 2000;
                 } catch (error) {
                     if (isMissing(error)) { lost(error); return; }
@@ -229,19 +233,23 @@ export function useTeamChat(chatId: number, jump: number | null) {
     const retry = useCallback((key: string) => { outbox.retry(key); setPending(outbox.list()); void flush(); }, [outbox, flush]);
     const discard = useCallback((key: string) => { outbox.remove(key); setPending(outbox.list()); }, [outbox]);
 
-    const change = useCallback(async (request: Promise<ChatMessage>, what: [string, string]) => {
+    const change = useCallback(async (request: Promise<ChatMessage>, what: [string, string], forbidden?: [string, string]) => {
         try {
             const message = await request;
             if (alive.current) update(current => upsert(current, message));
             return true;
         } catch (error) {
             lost(error);
-            if (alive.current) setNotice(problem(copy, error, what));
+            if (alive.current) setNotice(problem(copy, error, what, forbidden));
             return false;
         }
     }, [update, lost, copy]);
-    const edit = useCallback((id: number, content: string) => change(editMessage(chatId, id, content), ['The change was not saved.', 'ცვლილება ვერ შეინახა.']), [chatId, change]);
-    const remove = useCallback((id: number) => change(deleteMessage(chatId, id), ['The message was not deleted.', 'შეტყობინება ვერ წაიშალა.']), [chatId, change]);
+    const edit = useCallback((id: number, content: string) =>
+        change(editMessage(chatId, id, content), ['The change was not saved.', 'ცვლილება ვერ შეინახა.'], WRITER_FORBIDDEN), [chatId, change]);
+    // Its files may leave the panel's Media with it.
+    const remove = useCallback((id: number) =>
+        change(deleteMessage(chatId, id), ['The message was not deleted.', 'შეტყობინება ვერ წაიშალა.'], WRITER_FORBIDDEN)
+            .then(done => { if (done) sharedChanged(chatId); return done; }), [chatId, change]);
     const me = state?.me ?? null;
     const toggleReaction = useCallback((message: ChatMessage, emoji: string) => {
         if (me === null) return;

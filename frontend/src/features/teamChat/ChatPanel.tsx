@@ -5,12 +5,12 @@ import { Avatar, Button } from '../../design/primitives';
 import type { WorkStatus } from '../teamWork/api';
 import { statusName, statusWords } from '../teamWork/teamWorkWords';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { renameChat, setChatStatus, zipPath, type ChatPerson, type ChatStatus, type ChatSummary } from './api';
+import { renameChat, setChatStatus, type ChatPerson, type ChatStatus, type ChatSummary } from './api';
 import { DecideDialog } from './DecideDialog';
 import { FilePicker } from './FilePicker';
 import { PanelMedia, type MediaFilters } from './PanelMedia';
 import { taskPath } from './richText';
-import { saveFromApi } from './saveFile';
+import { downloadZip } from './saveFile';
 import { onlyDeleters, problem, shortDay, STATUSES, statusWord } from './teamChatWords';
 
 /** Who is in the chat: everyone on the team, the same people in every chat. */
@@ -28,9 +28,19 @@ function People({ members }: { members: ChatPerson[] }) {
 function Task({ chat }: { chat: ChatSummary }) {
     const copy = useJourneyCopy();
     const task = chat.task;
+    const earlier = chat.earlierTask;
     if (!task) return <section className="tc-panel__section" aria-label={copy('Task', 'საქმე')}>
         <h3 className="tc-panel__title">{copy('Task', 'საქმე')}</h3>
-        <p className="tc-faint">{copy('A general topic, about no single task.', 'ზოგადი თემა, არც ერთ საქმეზე.')}</p>
+        {earlier
+            ? <>
+                <p className="tc-faint">
+                    {copy(`An earlier chat about ${earlier.key}, a general topic now: the task's newer chat is its chat.`,
+                        `ადრინდელი ჩატი ${earlier.key}-ზე, ახლა ზოგადი თემა: საქმის ჩატი მისი ახალი ჩატია.`)}
+                </p>
+                <p className="tc-panel__taskname">{earlier.title}</p>
+                <Link className="tc-link-button" to={taskPath(earlier)}><ExternalLink aria-hidden="true" />{copy('Open the task', 'საქმის გახსნა')}</Link>
+            </>
+            : <p className="tc-faint">{copy('A general topic, about no single task.', 'ზოგადი თემა, არც ერთ საქმეზე.')}</p>}
     </section>;
     const status = task.status as WorkStatus;
     return <section className="tc-panel__section tc-panel__task" aria-label={copy('Task', 'საქმე')} data-status={task.status}>
@@ -91,7 +101,7 @@ function Settings({ chat, onChat }: { chat: ChatSummary; onChat: (chat: ChatSumm
     };
     const zip = async () => {
         setBusy(true); setError('');
-        try { await saveFromApi(zipPath(chat.id), `${chat.name}.zip`); }
+        try { await downloadZip(chat.id); }
         catch (failure) { setError(problem(copy, failure, ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.'])); }
         finally { setBusy(false); }
     };

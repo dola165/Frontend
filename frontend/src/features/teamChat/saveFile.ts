@@ -1,6 +1,6 @@
-import { apiClient } from '../../api/axiosConfig';
+import { API_BASE_URL, apiClient } from '../../api/axiosConfig';
 import { protectedMediaUrl } from '../../hooks/useMediaSource';
-import type { ChatAttachment } from './api';
+import { zipLink, type ChatAttachment } from './api';
 
 const offer = (blob: Blob, name: string) => {
     const url = URL.createObjectURL(blob);
@@ -20,8 +20,16 @@ export async function saveFile(attachment: ChatAttachment) {
     offer(response.data, attachment.name);
 }
 
-/** Saves an API download (the zip of a chat's files) under a name, with the sign-in. */
-export async function saveFromApi(path: string, name: string) {
-    const response = await apiClient.get<Blob>(path, { responseType: 'blob', timeout: 0 });
-    offer(response.data, name);
+/**
+ * Downloads a chat's files as one zip through a one-time link: the browser saves the stream straight to disk, so a
+ * large zip never sits in this page's memory. The link is the server's own path ("/api/…"), on the API's address.
+ */
+export async function downloadZip(chat: number) {
+    const { url } = await zipLink(chat);
+    const link = document.createElement('a');
+    link.href = new URL(API_BASE_URL.replace(/\/$/, '') + url.replace(/^\/api(?=\/)/, ''), window.location.origin).href;
+    link.rel = 'noopener';
+    document.body.append(link);
+    link.click();
+    link.remove();
 }

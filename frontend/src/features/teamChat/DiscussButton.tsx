@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, MessagesSquare } from 'lucide-react';
+import { Loader2, MessagesSquare, X } from 'lucide-react';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { createChat } from './api';
 import { problem } from './teamChatWords';
@@ -25,12 +25,17 @@ export function DiscussButton({ task, compact = false }: { task: { id: number; k
     const label = count
         ? copy(`Discuss ${task.key}: ${count} ${count === 1 ? 'message' : 'messages'}`, `${task.key}-ის განხილვა: ${count} შეტყობინება`)
         : copy(`Discuss ${task.key} in a chat`, `${task.key}-ის განხილვა ჩატში`);
+    // In a row of tasks the error is a small bubble under the button: seen, without moving the row.
     return <span className="tc-discuss" data-compact={compact || undefined}>
-        <button type="button" className="tc-discuss__button" onClick={event => { event.stopPropagation(); void open(); }} disabled={busy} aria-label={label} title={error || label}>
+        <button type="button" className="tc-discuss__button" onClick={event => { event.stopPropagation(); void open(); }} disabled={busy} aria-label={label} title={label}>
             {busy ? <Loader2 className="tc-discuss__spin" aria-hidden="true" /> : <MessagesSquare aria-hidden="true" />}
             {!compact && <span>{copy('Discuss', 'განხილვა')}</span>}
             {count > 0 && <span className="tc-discuss__count gk-num">{count}</span>}
         </button>
-        {error && !compact && <span className="tc-discuss__error" role="alert">{error}</span>}
+        {error && <span className="tc-discuss__error" role="alert">
+            {error}
+            {compact && <button type="button" className="tc-discuss__dismiss" aria-label={copy('Close', 'დახურვა')}
+                onClick={event => { event.stopPropagation(); setError(''); }}><X aria-hidden="true" /></button>}
+        </span>}
     </span>;
 }

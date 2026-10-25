@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, FolderDown, MessageSquare, Play, RotateCcw } from 'lucide-react';
 import { Button, EmptyNote, Skeleton } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { fetchKept, keptPlayLink, restoreChat, zipPath, type ChatSummary, type KeptFile } from './api';
+import { fetchKept, keptPlayLink, restoreChat, type ChatSummary, type KeptFile } from './api';
 import { ChatImage, ChatVideo, FileRow } from './Attachments';
 import { FilePicker } from './FilePicker';
 import { Lightbox, type Viewed } from './Lightbox';
-import { saveFromApi } from './saveFile';
-import { onDate, onlyDeleters, problem, shortDay } from './teamChatWords';
+import { downloadZip } from './saveFile';
+import { onDate, onlyDeleters, problem, RESTORE_FORBIDDEN, shortDay } from './teamChatWords';
 
 function ViewHead({ title, onBack }: { title: string; onBack: () => void }) {
     const copy = useJourneyCopy();
@@ -23,9 +23,9 @@ function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: 
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [keeping, setKeeping] = useState(false);
-    const run = async (work: () => Promise<void>, what: [string, string]) => {
+    const run = async (work: () => Promise<void>, what: [string, string], forbidden?: [string, string]) => {
         setBusy(true); setError('');
-        try { await work(); } catch (failure) { setError(problem(copy, failure, what)); } finally { setBusy(false); }
+        try { await work(); } catch (failure) { setError(problem(copy, failure, what, forbidden)); } finally { setBusy(false); }
     };
     return <li className="tc-shelfrow">
         <button type="button" className="tc-shelfrow__open" onClick={() => onOpen(chat.id)}>
@@ -37,9 +37,14 @@ function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: 
             <span className="tc-faint"> · {copy(`deleted by ${chat.deletedBy?.name ?? 'someone'}`, `წაშალა ${chat.deletedBy?.name ?? 'ვიღაცამ'}`)} · {copy(`${chat.messageCount} messages`, `${chat.messageCount} შეტყობინება`)}</span>
         </p>
         <div className="tc-shelfrow__actions">
-            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy} onClick={() => void run(async () => onChat(await restoreChat(chat.id)), ['The chat was not restored.', 'ჩატი ვერ აღდგა.'])}><RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}</Button>}
+            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy}
+                onClick={() => void run(async () => onChat(await restoreChat(chat.id, copy('en', 'ka') as 'en' | 'ka')), ['The chat was not restored.', 'ჩატი ვერ აღდგა.'], RESTORE_FORBIDDEN)}>
+                <RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}
+            </Button>}
             <Button size="sm" disabled={busy} onClick={() => setKeeping(true)}><FolderDown aria-hidden="true" />{copy('Save files', 'ფაილების შენახვა')}</Button>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => saveFromApi(zipPath(chat.id), `${chat.name}.zip`), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.'])}><Download aria-hidden="true" />{copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)')}</Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => downloadZip(chat.id), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.'])}>
+                <Download aria-hidden="true" />{copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)')}
+            </Button>
             <Button size="sm" variant="ghost" onClick={() => onOpen(chat.id)}><MessageSquare aria-hidden="true" />{copy('Read it', 'წაკითხვა')}</Button>
         </div>
         {!chat.canDelete && <p className="tc-shelfrow__when tc-faint">{onlyDeleters(copy, chat, 'restore')}</p>}
@@ -49,8 +54,9 @@ function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: 
 }
 
 /**
- * Recently deleted: every deleted chat for seven days, with the day it goes for good. Anyone in it can restore it,
- * save its files (onto its task, or the Kept files shelf) or download them all; it can still be read.
+ * Recently deleted: every deleted chat for seven days, with the day it goes for good. The person who started it or a
+ * team admin can restore it; anyone in it can save its files (onto its task, or the Kept files shelf), download them
+ * all, and still read it.
  */
 export function DeletedView({ chats, onOpen, onChat, onBack }: { chats: ChatSummary[]; onOpen: (id: number) => void; onChat: (chat: ChatSummary) => void; onBack: () => void }) {
     const copy = useJourneyCopy();

@@ -10,12 +10,14 @@ export interface ChatTaskRef { id: number; key: string; title: string; status: s
 /**
  * One chat in the list: its task (if any), status and decision, what waits for you, its latest activity; `deletesAt`
  * while it waits in Recently deleted. `canDelete`: you may delete it and restore it (you started it, or you are a team
- * admin).
+ * admin). `earlierTask`: an earlier chat (restored beside its task's newer chat, a general topic now) names the task
+ * it was about.
  */
 export interface ChatSummary {
     id: number; name: string; task: ChatTaskRef | null; status: ChatStatus; decision: string | null; decidedBy: ChatPerson | null; decidedAt: string | null;
     unreadCount: number; unreadMentions: number; messageCount: number; lastActivityAt: string; lastLine: string | null;
     createdBy: ChatPerson | null; createdAt: string; deletesAt: string | null; deletedBy: ChatPerson | null; canDelete: boolean;
+    earlierTask: ChatTaskRef | null;
 }
 /** The chats opened: the team, your chats (unread first), Recently deleted, the Kept files count, the limits. */
 export interface ChatHome { me: number; members: ChatPerson[]; chats: ChatSummary[]; deleted: ChatSummary[]; keptFiles: number; limits: ChatLimits; reactions: string[]; canModerate: boolean }
@@ -64,10 +66,12 @@ export const renameChat = (chat: number, name: string) => data(apiClient.patch<C
 export const setChatStatus = (chat: number, status: ChatStatus, decision?: string) => data(apiClient.put<ChatSummary>(`${of(chat)}/status`, { status, decision }));
 /** Keeps the ticked files, then moves the chat to Recently deleted for seven days. */
 export const deleteChat = (chat: number, attachmentIds: number[]) => data(apiClient.post<ChatSummary>(`${of(chat)}/delete`, { attachmentIds }));
-export const restoreChat = (chat: number) => data(apiClient.post<ChatSummary>(`${of(chat)}/restore`));
+/** Restores a chat; `language` names it "… (earlier)" in yours when its task has a newer chat by now. */
+export const restoreChat = (chat: number, language: 'en' | 'ka') => data(apiClient.post<ChatSummary>(`${of(chat)}/restore`, { language }));
 /** Keeps files onto the task (or the Kept files shelf), so a purge never takes them. */
 export const keepFiles = (chat: number, attachmentIds: number[]) => data(apiClient.post<ChatSummary>(`${of(chat)}/keep`, { attachmentIds }));
-export const zipPath = (chat: number) => `${of(chat)}/files.zip`;
+/** A one-time link, good for a minute, to the chat's files as one zip (a plain download, no sign-in needed). */
+export const zipLink = (chat: number) => data(apiClient.post<{ url: string; expiresAt: string }>(`${of(chat)}/files.zip/link`));
 export const fetchKept = (signal?: AbortSignal) => data(apiClient.get<KeptFile[]>(`${base}/kept`, { signal }));
 export const keptPlayLink = (id: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/kept/${id}/play`));
 

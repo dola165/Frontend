@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { CircleCheck, Download, FolderDown, RotateCcw } from 'lucide-react';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { restoreChat, zipPath, type ChatSummary } from './api';
+import { restoreChat, type ChatSummary } from './api';
 import { FilePicker } from './FilePicker';
-import { saveFromApi } from './saveFile';
-import { onDate, onlyDeleters, problem, shortDay } from './teamChatWords';
+import { downloadZip } from './saveFile';
+import { onDate, onlyDeleters, problem, RESTORE_FORBIDDEN, shortDay } from './teamChatWords';
 
 /**
  * The decision, pinned at the top of the chat. While the chat is Decided it is the one bright thing; reopened
@@ -33,12 +33,12 @@ export function DeletedBar({ chat, onChat }: { chat: ChatSummary; onChat: (chat:
     const [error, setError] = useState('');
     const [keeping, setKeeping] = useState(false);
     if (!chat.deletesAt) return null;
-    const run = async (work: () => Promise<void>, what: [string, string]) => {
+    const run = async (work: () => Promise<void>, what: [string, string], forbidden?: [string, string]) => {
         setBusy(true); setError('');
-        try { await work(); } catch (failure) { setError(problem(copy, failure, what)); } finally { setBusy(false); }
+        try { await work(); } catch (failure) { setError(problem(copy, failure, what, forbidden)); } finally { setBusy(false); }
     };
-    const restore = () => run(async () => onChat(await restoreChat(chat.id)), ['The chat was not restored.', 'ჩატი ვერ აღდგა.']);
-    const zip = () => run(() => saveFromApi(zipPath(chat.id), `${chat.name}.zip`), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.']);
+    const restore = () => run(async () => onChat(await restoreChat(chat.id, copy('en', 'ka') as 'en' | 'ka')), ['The chat was not restored.', 'ჩატი ვერ აღდგა.'], RESTORE_FORBIDDEN);
+    const zip = () => run(() => downloadZip(chat.id), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.']);
     return <div className="tc-deleted" role="status">
         <p><strong>{copy(`This chat will be deleted ${onDate(copy, chat.deletesAt)}.`, `ეს ჩატი წაიშლება ${onDate(copy, chat.deletesAt)}.`)}</strong>{' '}
             {copy('Save anything you need: files you keep stay on the task (or the Kept files shelf).', 'შეინახეთ, რაც გჭირდებათ: შენახული ფაილები საქმეზე (ან შენახული ფაილების თაროზე) დარჩება.')}</p>

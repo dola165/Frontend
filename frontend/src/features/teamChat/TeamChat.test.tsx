@@ -3,6 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
+import { API_BASE_URL } from '../../api/axiosConfig';
 import * as api from './api';
 import { DiscussButton } from './DiscussButton';
 import type { LiveHandlers } from './liveChat';
@@ -11,7 +12,7 @@ import { TeamChatPage } from './TeamChatPage';
 
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchHome: vi.fn(), fetchUnread: vi.fn(), fetchTasks: vi.fn(), createChat: vi.fn(), fetchState: vi.fn(), renameChat: vi.fn(),
-    setChatStatus: vi.fn(), deleteChat: vi.fn(), restoreChat: vi.fn(), keepFiles: vi.fn(), fetchKept: vi.fn(), keptPlayLink: vi.fn(), fetchPage: vi.fn(), fetchChanges: vi.fn(),
+    setChatStatus: vi.fn(), deleteChat: vi.fn(), restoreChat: vi.fn(), keepFiles: vi.fn(), fetchKept: vi.fn(), keptPlayLink: vi.fn(), zipLink: vi.fn(), fetchPage: vi.fn(), fetchChanges: vi.fn(),
     sendMessage: vi.fn(), editMessage: vi.fn(), deleteMessage: vi.fn(), react: vi.fn(), fetchHistory: vi.fn(), markRead: vi.fn(), fetchShared: vi.fn(), searchMessages: vi.fn(),
     uploadPicture: vi.fn(), uploadVideo: vi.fn(), uploadFile: vi.fn(), cancelUpload: vi.fn(), playLink: vi.fn(),
 }));
@@ -27,7 +28,8 @@ const minute = (n: number) => new Date(Date.now() - (60 - n) * 60_000).toISOStri
 const task12: api.ChatTaskRef = { id: 12, key: 'GK-12', title: 'Registration', status: 'IN_PROGRESS', parentId: null, doneMeans: 'People can sign up with a code' };
 const summary = (id: number, extra: Partial<api.ChatSummary> = {}): api.ChatSummary => ({
     id, name: `Chat ${id}`, task: null, status: 'TALKING', decision: null, decidedBy: null, decidedAt: null, unreadCount: 0, unreadMentions: 0, messageCount: 2,
-    lastActivityAt: minute(id - 40), lastLine: null, createdBy: beqa, createdAt: minute(1), deletesAt: null, deletedBy: null, canDelete: true, ...extra,
+    lastActivityAt: minute(id - 40), lastLine: null, createdBy: beqa, createdAt: minute(1), deletesAt: null, deletedBy: null, canDelete: true, earlierTask: null,
+    ...extra,
 });
 const registration = (extra: Partial<api.ChatSummary> = {}) => summary(50, { name: 'Registration', task: task12, unreadCount: 1, lastLine: 'Gio: Morning', ...extra });
 const friday = (extra: Partial<api.ChatSummary> = {}) => summary(51, { name: 'Friday plan', ...extra });
@@ -191,7 +193,7 @@ it('deletes a chat keeping the ticked files, says when it goes, and restores it'
     expect(screen.queryByRole('combobox', { name: 'Message the team' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Recently deleted/ })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Restore' }));
-    expect(api.restoreChat).toHaveBeenCalledWith(50);
+    expect(api.restoreChat).toHaveBeenCalledWith(50, 'en');
     await waitFor(() => expect(screen.queryByText(/This chat will be deleted/)).not.toBeInTheDocument());
     expect(box()).toBeInTheDocument();
 });
@@ -374,6 +376,80 @@ it('shows Team work how many messages wait in all chats, without opening any', a
     render(<MemoryRouter><ul><TeamChatNavItem /></ul></MemoryRouter>);
     expect(await screen.findByText('3')).toBeInTheDocument();
     expect(api.fetchState).not.toHaveBeenCalled();
+});
+
+it('says the true reason when a delete or a restore is refused', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.deleteChat).mockRejectedValue({ response: { status: 403 } });
+    mount();
+    await screen.findByText('Morning');
+    await user.click(within(panel()).getByRole('button', { name: 'Delete chat…' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete “Registration”?' });
+    expect(dialog).toHaveTextContent('the person who started it or a team admin can restore it');
+    expect(dialog).not.toHaveTextContent('anyone can restore it');
+    await user.click(within(dialog).getByRole('button', { name: 'Delete chat' }));
+    expect(await within(dialog).findByRole('alert'))
+        .toHaveTextContent('The chat was not deleted. Only the person who started this chat or a team admin can delete it.');
+});
+
+it('restores in the person’s language, and says why a refused restore is refused', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.fetchHome).mockResolvedValue(home({ chats: [friday()], deleted: [registration({ deletesAt: '2026-11-01T10:00:00Z', deletedBy: gio })] }));
+    vi.mocked(api.restoreChat).mockRejectedValue({ response: { status: 403 } });
+    mount('/team-work/chat?view=deleted');
+    const view = await screen.findByRole('region', { name: 'Recently deleted' });
+    await user.click(within(view).getByRole('button', { name: 'Restore' }));
+    expect(api.restoreChat).toHaveBeenCalledWith(50, 'en');
+    expect(await within(view).findByRole('alert'))
+        .toHaveTextContent('The chat was not restored. Only the person who started this chat or a team admin can restore it.');
+});
+
+it('downloads the zip through its one-time link, so it never sits in the page', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.zipLink).mockResolvedValue({ url: '/api/team-chat/zip?t=abc', expiresAt: minute(59) });
+    const opened: string[] = [];
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { opened.push(this.href); });
+    try {
+        mount();
+        await screen.findByText('Morning');
+        await user.click(within(panel()).getByRole('button', { name: 'Download all files (zip)' }));
+        await waitFor(() => expect(opened).toEqual([new URL(`${API_BASE_URL.replace(/\/$/, '')}/team-chat/zip?t=abc`, window.location.origin).href]));
+        expect(api.zipLink).toHaveBeenCalledWith(50);
+    } finally {
+        click.mockRestore();
+    }
+});
+
+it('shows an earlier chat as a general topic that names the task it was about', async () => {
+    const earlier = summary(52, { name: 'Registration (earlier)', earlierTask: task12 });
+    vi.mocked(api.fetchHome).mockResolvedValue(home({ chats: [registration(), friday(), earlier] }));
+    vi.mocked(api.fetchState).mockImplementation(async id => stateOf(id === 52 ? earlier : id === 50 ? registration() : friday()));
+    mount('/team-work/chat?chat=52');
+    await screen.findByText('Morning');
+    expect(panel()).toHaveTextContent('An earlier chat about GK-12, a general topic now: the task’s newer chat is its chat.'.replace('’', "'"));
+    expect(within(panel()).getByRole('link', { name: 'Open the task' })).toHaveAttribute('href', '/team-work?task=12');
+});
+
+it('keeps the panel’s Media up to date as files come into the open chat', async () => {
+    mount();
+    await screen.findByText('Morning');
+    await waitFor(() => expect(api.fetchShared).toHaveBeenCalledTimes(1));
+    vi.mocked(api.fetchChanges).mockResolvedValueOnce({ messages: [message(3, { attachments: [file(9, 'plan.pdf')] })], revision: 4, more: false });
+    vi.mocked(api.fetchShared).mockResolvedValue({ more: false, items: [
+        { attachment: file(9, 'plan.pdf'), messageId: 3, chatId: 50, chatName: 'Registration', sender: gio, createdAt: minute(3) }] });
+    act(() => live?.onChanged());
+    expect(await within(panel()).findByText('plan.pdf', {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(api.fetchShared).toHaveBeenCalledTimes(2);
+});
+
+it('shows a compact Discuss error where it can be seen, and lets it go', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.createChat).mockRejectedValue({ response: { status: 500 } });
+    render(<MemoryRouter><DiscussButton compact task={{ id: 12, key: 'GK-12' }} /></MemoryRouter>);
+    await user.click(screen.getByRole('button', { name: 'Discuss GK-12 in a chat' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('The chat could not open. The server had a problem; try again.');
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
 it('Discuss opens a task’s chat, or starts it named after the task', async () => {

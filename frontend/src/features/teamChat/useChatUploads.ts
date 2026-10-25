@@ -35,7 +35,8 @@ export function useChatUploads(chatId: number, limits: ChatLimits | null) {
         controllers.current.set(item.id, controller);
         const onProgress = (share: number) => patch(item.id, { progress: share });
         const request = item.kind === 'IMAGE' ? uploadPicture(chatId, item.file, onProgress, controller.signal)
-            : item.kind === 'VIDEO' ? uploadVideo(chatId, item.file, onProgress, controller.signal) : uploadFile(chatId, item.file, onProgress, controller.signal);
+            : item.kind === 'VIDEO' ? uploadVideo(chatId, item.file, onProgress, controller.signal)
+                : uploadFile(chatId, item.file, onProgress, controller.signal);
         request.then(attachment => {
             if (controller.signal.aborted) { void cancelUpload(attachment.id).catch(() => undefined); return; }
             patch(item.id, { state: 'ready', progress: 1, attachment });
@@ -54,13 +55,18 @@ export function useChatUploads(chatId: number, limits: ChatLimits | null) {
         for (const file of files) {
             const kind = kindOf(file, limits);
             const mb = kind === 'IMAGE' ? limits.pictureMb : kind === 'VIDEO' ? limits.videoMb : limits.fileMb;
-            if (!kind) reasons.push(copy(`“${file.name}”: not a kind of file the team keeps (pictures, MP4/WebM videos, ${limits.fileExtensions.join(', ')}).`, `„${file.name}“: ასეთ ფაილს არ ვინახავთ (სურათები, MP4/WebM ვიდეო, ${limits.fileExtensions.join(', ')}).`));
+            if (!kind) reasons.push(copy(`“${file.name}”: not a kind of file the team keeps (pictures, MP4/WebM videos, ${limits.fileExtensions.join(', ')}).`,
+                `„${file.name}“: ასეთ ფაილს არ ვინახავთ (სურათები, MP4/WebM ვიდეო, ${limits.fileExtensions.join(', ')}).`));
             else if (file.size > mb * 1024 * 1024) reasons.push(copy(`“${file.name}” is over ${mb} MB.`, `„${file.name}“ ${mb} MB-ზე მეტია.`));
             else if (file.size === 0) reasons.push(copy(`“${file.name}” is empty.`, `„${file.name}“ ცარიელია.`));
-            else if (room <= 0) reasons.push(copy(`At most ${limits.maxAttachments} files in one message.`, `ერთ შეტყობინებაში მაქსიმუმ ${limits.maxAttachments} ფაილი.`));
+            else if (room <= 0) reasons.push(copy(`At most ${limits.maxAttachments} files in one message.`,
+                `ერთ შეტყობინებაში მაქსიმუმ ${limits.maxAttachments} ფაილი.`));
             else {
                 room--;
-                accepted.push({ id: crypto.randomUUID(), file, kind, progress: 0, state: 'uploading', attachment: null, error: '', preview: kind === 'IMAGE' ? URL.createObjectURL(file) : null });
+                accepted.push({
+                    id: crypto.randomUUID(), file, kind, progress: 0, state: 'uploading', attachment: null, error: '',
+                    preview: kind === 'IMAGE' ? URL.createObjectURL(file) : null,
+                });
             }
         }
         if (reasons.length) setRefusal(reasons.join(' '));

@@ -11,9 +11,10 @@ import { TeamChatNavItem } from './TeamChatNavItem';
 import { TeamChatPage } from './TeamChatPage';
 
 vi.mock('./api', async importOriginal => ({
-    ...await importOriginal<typeof api>(), fetchHome: vi.fn(), fetchUnread: vi.fn(), fetchTasks: vi.fn(), createChat: vi.fn(), fetchState: vi.fn(), renameChat: vi.fn(),
-    setChatStatus: vi.fn(), deleteChat: vi.fn(), restoreChat: vi.fn(), keepFiles: vi.fn(), fetchKept: vi.fn(), keptPlayLink: vi.fn(), zipLink: vi.fn(), fetchPage: vi.fn(), fetchChanges: vi.fn(),
-    sendMessage: vi.fn(), editMessage: vi.fn(), deleteMessage: vi.fn(), react: vi.fn(), fetchHistory: vi.fn(), markRead: vi.fn(), fetchShared: vi.fn(), searchMessages: vi.fn(),
+    ...await importOriginal<typeof api>(), fetchHome: vi.fn(), fetchUnread: vi.fn(), fetchTasks: vi.fn(), createChat: vi.fn(), fetchState: vi.fn(),
+    renameChat: vi.fn(), setChatStatus: vi.fn(), deleteChat: vi.fn(), restoreChat: vi.fn(), keepFiles: vi.fn(), fetchKept: vi.fn(),
+    keptPlayLink: vi.fn(), zipLink: vi.fn(), fetchPage: vi.fn(), fetchChanges: vi.fn(), sendMessage: vi.fn(), editMessage: vi.fn(),
+    deleteMessage: vi.fn(), react: vi.fn(), fetchHistory: vi.fn(), markRead: vi.fn(), fetchShared: vi.fn(), searchMessages: vi.fn(),
     uploadPicture: vi.fn(), uploadVideo: vi.fn(), uploadFile: vi.fn(), cancelUpload: vi.fn(), playLink: vi.fn(),
 }));
 let live: LiveHandlers | null = null;
@@ -23,26 +24,38 @@ vi.mock('../../pages/RouteRecoveryPage', () => ({ RouteRecoveryPage: () => <p>Pa
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'one', user: { id: 1 } }) }));
 
 const beqa = { id: 1, name: 'Beqa', avatarUrl: null }, gio = { id: 2, name: 'Gio', avatarUrl: null }, ilo = { id: 3, name: 'Ilo', avatarUrl: null };
-const limits: api.ChatLimits = { pictureMb: 10, videoMb: 90, fileMb: 25, videoTypes: ['video/mp4', 'video/webm'], fileExtensions: ['pdf', 'txt'], maxLength: 2000, maxAttachments: 10, maxDecision: 200 };
+const limits: api.ChatLimits = {
+    pictureMb: 10, videoMb: 90, fileMb: 25, videoTypes: ['video/mp4', 'video/webm'], fileExtensions: ['pdf', 'txt'], maxLength: 2000, maxAttachments: 10,
+    maxDecision: 200,
+};
 const minute = (n: number) => new Date(Date.now() - (60 - n) * 60_000).toISOString();
-const task12: api.ChatTaskRef = { id: 12, key: 'GK-12', title: 'Registration', status: 'IN_PROGRESS', parentId: null, doneMeans: 'People can sign up with a code' };
+const task12: api.ChatTaskRef = {
+    id: 12, key: 'GK-12', title: 'Registration', status: 'IN_PROGRESS', parentId: null, doneMeans: 'People can sign up with a code',
+};
 const summary = (id: number, extra: Partial<api.ChatSummary> = {}): api.ChatSummary => ({
     id, name: `Chat ${id}`, task: null, status: 'TALKING', decision: null, decidedBy: null, decidedAt: null, unreadCount: 0, unreadMentions: 0, messageCount: 2,
-    lastActivityAt: minute(id - 40), lastLine: null, createdBy: beqa, createdAt: minute(1), deletesAt: null, deletedBy: null, canDelete: true, earlierTask: null,
-    ...extra,
+    lastActivityAt: minute(id - 40), lastLine: null, createdBy: beqa, createdAt: minute(1), deletesAt: null, deletedBy: null, canDelete: true,
+    earlierTask: null, ...extra,
 });
-const registration = (extra: Partial<api.ChatSummary> = {}) => summary(50, { name: 'Registration', task: task12, unreadCount: 1, lastLine: 'Gio: Morning', ...extra });
+const registration = (extra: Partial<api.ChatSummary> = {}) =>
+    summary(50, { name: 'Registration', task: task12, unreadCount: 1, lastLine: 'Gio: Morning', ...extra });
 const friday = (extra: Partial<api.ChatSummary> = {}) => summary(51, { name: 'Friday plan', ...extra });
-const home = (extra: Partial<api.ChatHome> = {}): api.ChatHome => ({ me: 1, members: [beqa, gio, ilo], chats: [registration(), friday()], deleted: [], keptFiles: 0, limits,
-    reactions: ['👍', '❤️', '🎉'], canModerate: false, ...extra });
-const stateOf = (chat: api.ChatSummary, extra: Partial<api.ChatState> = {}): api.ChatState => ({ chat, me: 1, members: [beqa, gio, ilo], firstUnreadId: null, unreadCount: 0, revision: 3,
-    limits, reactions: ['👍', '❤️', '🎉'], canModerate: false, ...extra });
+const home = (extra: Partial<api.ChatHome> = {}): api.ChatHome => ({
+    me: 1, members: [beqa, gio, ilo], chats: [registration(), friday()], deleted: [], keptFiles: 0, limits,
+    reactions: ['👍', '❤️', '🎉'], canModerate: false, ...extra,
+});
+const stateOf = (chat: api.ChatSummary, extra: Partial<api.ChatState> = {}): api.ChatState => ({
+    chat, me: 1, members: [beqa, gio, ilo], firstUnreadId: null, unreadCount: 0, revision: 3,
+    limits, reactions: ['👍', '❤️', '🎉'], canModerate: false, ...extra,
+});
 const message = (id: number, extra: Partial<api.ChatMessage> = {}): api.ChatMessage => ({
     id, senderId: 2, senderName: 'Gio', content: `message ${id}`, createdAt: minute(id), editedAt: null, deleted: false, replyTo: null,
     attachments: [], reactions: [], mentions: [], tasks: [], revision: id, clientMessageId: null, ...extra,
 });
-const file = (id: number, name: string): api.ChatAttachment => ({ id, kind: 'FILE', name, contentType: 'application/pdf', sizeBytes: 4096, url: `/uploads/team-work/${id}.pdf`,
-    thumbUrl: null, width: null, height: null, playUrl: null, kept: false });
+const file = (id: number, name: string): api.ChatAttachment => ({
+    id, kind: 'FILE', name, contentType: 'application/pdf', sizeBytes: 4096, url: `/uploads/team-work/${id}.pdf`,
+    thumbUrl: null, width: null, height: null, playUrl: null, kept: false,
+});
 const page = (messages: api.ChatMessage[]): api.ChatPage => ({ messages, hasOlder: false, hasNewer: false, revision: 3 });
 
 function Where() { const location = useLocation(); return <output data-testid="where">{location.pathname}{location.search}</output>; }
@@ -54,7 +67,8 @@ const box = () => screen.getByRole('combobox', { name: 'Message the team' });
 const where = () => screen.getByTestId('where');
 const panel = () => screen.getByRole('complementary', { name: 'About this chat' });
 /** The message whose own words are these (not a quote of it). */
-const row = (text: string) => [...document.querySelectorAll<HTMLElement>('article')].find(article => article.querySelector('.tc-msg__text')?.textContent?.replace(/ \(edited\)$/, '') === text) as HTMLElement;
+const row = (text: string) => [...document.querySelectorAll<HTMLElement>('article')]
+    .find(article => article.querySelector('.tc-msg__text')?.textContent?.replace(/ \(edited\)$/, '') === text) as HTMLElement;
 
 beforeEach(() => {
     vi.resetAllMocks();
@@ -66,7 +80,10 @@ beforeEach(() => {
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     vi.mocked(api.fetchHome).mockResolvedValue(home());
     vi.mocked(api.fetchState).mockImplementation(async id => stateOf(id === 50 ? registration() : id === 51 ? friday() : summary(id)));
-    vi.mocked(api.fetchPage).mockResolvedValue(page([message(1, { content: 'Morning' }), message(2, { senderId: 1, senderName: 'Beqa', content: '@Gio see GK-12', mentions: [2], tasks: [task12] })]));
+    vi.mocked(api.fetchPage).mockResolvedValue(page([
+        message(1, { content: 'Morning' }),
+        message(2, { senderId: 1, senderName: 'Beqa', content: '@Gio see GK-12', mentions: [2], tasks: [task12] }),
+    ]));
     vi.mocked(api.fetchChanges).mockResolvedValue({ messages: [], revision: 3, more: false });
     vi.mocked(api.markRead).mockResolvedValue({ firstUnreadId: null, unreadCount: 0 });
     vi.mocked(api.fetchShared).mockResolvedValue({ items: [], more: false });
@@ -155,7 +172,8 @@ it('starts a chat from a task, or about a general topic', async () => {
 
 it('marks a chat Decided with one line, pinned at the top and written to its task', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.setChatStatus).mockImplementation(async (_, status, decision) => registration({ status, decision: decision ?? null, decidedBy: beqa, decidedAt: minute(59) }));
+    vi.mocked(api.setChatStatus).mockImplementation(async (_, status, decision) =>
+        registration({ status, decision: decision ?? null, decidedBy: beqa, decidedAt: minute(59) }));
     mount();
     await screen.findByText('Morning');
     await user.click(within(panel()).getByRole('button', { name: 'Decided' }));
@@ -167,7 +185,8 @@ it('marks a chat Decided with one line, pinned at the top and written to its tas
     expect(await screen.findByRole('note', { name: 'Decided' })).toHaveTextContent('Email codes, no SMS');
     expect(within(panel()).getByRole('button', { name: 'Decided' })).toHaveAttribute('aria-pressed', 'true');
     // On hold takes no line, and the last decision stays in sight.
-    vi.mocked(api.setChatStatus).mockImplementation(async (_, status) => registration({ status, decision: 'Email codes, no SMS', decidedBy: beqa, decidedAt: minute(59) }));
+    vi.mocked(api.setChatStatus).mockImplementation(async (_, status) =>
+        registration({ status, decision: 'Email codes, no SMS', decidedBy: beqa, decidedAt: minute(59) }));
     await user.click(within(panel()).getByRole('button', { name: 'On hold' }));
     expect(api.setChatStatus).toHaveBeenLastCalledWith(50, 'ON_HOLD');
     expect(await screen.findByRole('note', { name: 'Last decision' })).toHaveTextContent('Email codes, no SMS');
@@ -230,7 +249,9 @@ it('leaves Restore to them too, while anyone in the chat may still save its file
 it('shows Recently deleted with the day each chat goes, and saves files from there', async () => {
     const user = userEvent.setup();
     vi.mocked(api.fetchHome).mockResolvedValue(home({ chats: [friday()], deleted: [registration({ deletesAt: '2026-11-01T10:00:00Z', deletedBy: gio })] }));
-    vi.mocked(api.fetchShared).mockResolvedValue({ more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 50, chatName: 'Registration', sender: gio, createdAt: minute(1) }] });
+    vi.mocked(api.fetchShared).mockResolvedValue({
+        more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 50, chatName: 'Registration', sender: gio, createdAt: minute(1) }],
+    });
     vi.mocked(api.keepFiles).mockImplementation(async () => registration({ deletesAt: '2026-11-01T10:00:00Z', deletedBy: gio }));
     mount('/team-work/chat?view=deleted');
     const view = await screen.findByRole('region', { name: 'Recently deleted' });
@@ -245,7 +266,9 @@ it('shows Recently deleted with the day each chat goes, and saves files from the
 
 it('shows this chat’s media or every chat’s, by person and kind, and leads back to its message', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.fetchShared).mockResolvedValue({ more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 51, chatName: 'Friday plan', sender: gio, createdAt: minute(1) }] });
+    vi.mocked(api.fetchShared).mockResolvedValue({
+        more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 51, chatName: 'Friday plan', sender: gio, createdAt: minute(1) }],
+    });
     mount();
     await screen.findByText('Morning');
     await waitFor(() => expect(api.fetchShared).toHaveBeenCalledWith({ chat: 50, kind: null, from: null }, expect.anything()));
@@ -264,7 +287,8 @@ it('shows this chat’s media or every chat’s, by person and kind, and leads b
 it('sends a message once, even when the first try got no answer', async () => {
     const user = userEvent.setup();
     vi.mocked(api.sendMessage).mockRejectedValueOnce(new Error('Network Error'))
-        .mockImplementationOnce(async (_, body) => message(10, { senderId: 1, senderName: 'Beqa', content: body.content, clientMessageId: body.clientMessageId }));
+        .mockImplementationOnce(async (_, body) =>
+            message(10, { senderId: 1, senderName: 'Beqa', content: body.content, clientMessageId: body.clientMessageId }));
     mount();
     await screen.findByText('Morning');
     await user.type(box(), 'Hello team{Enter}');
@@ -295,8 +319,10 @@ it('says why a message was refused, and it can be tried again or removed', async
 it('edits your own message, then deletes it for everyone after asking', async () => {
     const user = userEvent.setup();
     vi.mocked(api.fetchPage).mockResolvedValue(page([message(5, { senderId: 1, senderName: 'Beqa', content: 'Plan at 18:00' })]));
-    vi.mocked(api.editMessage).mockImplementation(async (_, id, content) => message(id, { senderId: 1, senderName: 'Beqa', content, editedAt: new Date().toISOString(), revision: 20 }));
-    vi.mocked(api.deleteMessage).mockImplementation(async (_, id) => message(id, { senderId: 1, senderName: 'Beqa', content: '', deleted: true, revision: 21 }));
+    vi.mocked(api.editMessage).mockImplementation(async (_, id, content) =>
+        message(id, { senderId: 1, senderName: 'Beqa', content, editedAt: new Date().toISOString(), revision: 20 }));
+    vi.mocked(api.deleteMessage).mockImplementation(async (_, id) =>
+        message(id, { senderId: 1, senderName: 'Beqa', content: '', deleted: true, revision: 21 }));
     mount();
     await screen.findByText('Plan at 18:00');
     await user.click(within(row('Plan at 18:00')).getByLabelText('Edit'));
@@ -316,8 +342,10 @@ it('edits your own message, then deletes it for everyone after asking', async ()
 
 it('replies with the message quoted, and reacts', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.sendMessage).mockImplementation(async (_, body) => message(11, { senderId: 1, senderName: 'Beqa', content: body.content, clientMessageId: body.clientMessageId,
-        replyTo: { id: 1, senderId: 2, senderName: 'Gio', excerpt: 'Morning', deleted: false, attachments: 0 } }));
+    vi.mocked(api.sendMessage).mockImplementation(async (_, body) => message(11, {
+        senderId: 1, senderName: 'Beqa', content: body.content, clientMessageId: body.clientMessageId,
+        replyTo: { id: 1, senderId: 2, senderName: 'Gio', excerpt: 'Morning', deleted: false, attachments: 0 },
+    }));
     vi.mocked(api.react).mockImplementation(async (_, id, emoji) => message(id, { content: 'Morning', reactions: [{ emoji, userIds: [1] }], revision: 30 }));
     mount();
     await screen.findByText('Morning');
@@ -345,7 +373,8 @@ it('uploads a file before sending it with the message, and refuses kinds the tea
     const user = userEvent.setup({ applyAccept: false });
     const plan = file(70, 'plan.pdf');
     vi.mocked(api.uploadFile).mockResolvedValue(plan);
-    vi.mocked(api.sendMessage).mockImplementation(async (_, body) => message(12, { senderId: 1, senderName: 'Beqa', content: body.content, attachments: [plan], clientMessageId: body.clientMessageId }));
+    vi.mocked(api.sendMessage).mockImplementation(async (_, body) =>
+        message(12, { senderId: 1, senderName: 'Beqa', content: body.content, attachments: [plan], clientMessageId: body.clientMessageId }));
     const { container } = mount();
     await screen.findByText('Morning');
     const input = container.querySelector<HTMLInputElement>('.tc-composer input[type=file]') as HTMLInputElement;
@@ -455,10 +484,11 @@ it('shows a compact Discuss error where it can be seen, and lets it go', async (
 it('Discuss opens a task’s chat, or starts it named after the task', async () => {
     const user = userEvent.setup();
     vi.mocked(api.createChat).mockResolvedValue(summary(90, { name: 'Map markers' }));
-    const discuss = (task: { id: number; key: string; chatId?: number | null; chatMessages?: number }) => render(<MemoryRouter initialEntries={['/team-work']}><Routes>
-        <Route path="/team-work" element={<DiscussButton task={task} />} />
-        <Route path="/team-work/chat" element={<Where />} />
-    </Routes></MemoryRouter>);
+    const discuss = (task: { id: number; key: string; chatId?: number | null; chatMessages?: number }) =>
+        render(<MemoryRouter initialEntries={['/team-work']}><Routes>
+            <Route path="/team-work" element={<DiscussButton task={task} />} />
+            <Route path="/team-work/chat" element={<Where />} />
+        </Routes></MemoryRouter>);
     const first = discuss({ id: 30, key: 'GK-30', chatId: 77, chatMessages: 12 });
     await user.click(screen.getByRole('button', { name: 'Discuss GK-30: 12 messages' }));
     expect(where()).toHaveTextContent('/team-work/chat?chat=77');

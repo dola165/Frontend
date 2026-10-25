@@ -53,11 +53,17 @@ export function useChats() {
             const next = list.some(known => known.id === chat.id) ? list.map(known => known.id === chat.id ? chat : known) : [chat, ...list];
             return next.sort((a, b) => Number(a.unreadCount === 0) - Number(b.unreadCount === 0) || b.lastActivityAt.localeCompare(a.lastActivityAt));
         };
-        return { ...current, chats: deleted ? without(current.chats) : into(current.chats), deleted: deleted ? into(current.deleted) : without(current.deleted) };
+        return {
+            ...current,
+            chats: deleted ? without(current.chats) : into(current.chats),
+            deleted: deleted ? into(current.deleted) : without(current.deleted),
+        };
     }), []);
 
     /** A chat is gone for good (purged while the page was open). */
-    const drop = useCallback((id: number) => setHome(current => current ? { ...current, chats: current.chats.filter(chat => chat.id !== id), deleted: current.deleted.filter(chat => chat.id !== id) } : current), []);
+    const drop = useCallback((id: number) => setHome(current => current
+        ? { ...current, chats: current.chats.filter(chat => chat.id !== id), deleted: current.deleted.filter(chat => chat.id !== id) }
+        : current), []);
 
     return { home, status, refresh, put, drop };
 }

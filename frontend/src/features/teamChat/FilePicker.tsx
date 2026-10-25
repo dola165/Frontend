@@ -12,7 +12,9 @@ import { DELETE_FORBIDDEN, fileSize, problem } from './teamChatWords';
  * Kept files shelf) or on their own from Recently deleted ("Save files"). Files already kept are shown as such and
  * cannot be lost. One button says exactly what will happen.
  */
-export function FilePicker({ chat, mode, onClose, onDone }: { chat: ChatSummary; mode: 'delete' | 'keep'; onClose: () => void; onDone: (chat: ChatSummary) => void }) {
+export function FilePicker({ chat, mode, onClose, onDone }: {
+    chat: ChatSummary; mode: 'delete' | 'keep'; onClose: () => void; onDone: (chat: ChatSummary) => void;
+}) {
     const copy = useJourneyCopy();
     const [items, setItems] = useState<SharedItem[] | null>(null);
     const [ticked, setTicked] = useState<Set<number>>(new Set());
@@ -53,10 +55,13 @@ export function FilePicker({ chat, mode, onClose, onDone }: { chat: ChatSummary;
     };
     const count = ticked.size;
     const action = mode === 'delete'
-        ? count ? copy(`Delete chat, keep ${count} ${count === 1 ? 'file' : 'files'}`, `ჩატის წაშლა, ${count} ფაილის შენახვა`) : copy('Delete chat', 'ჩატის წაშლა')
+        ? count
+            ? copy(`Delete chat, keep ${count} ${count === 1 ? 'file' : 'files'}`, `ჩატის წაშლა, ${count} ფაილის შენახვა`)
+            : copy('Delete chat', 'ჩატის წაშლა')
         : copy(`Keep ${count} ${count === 1 ? 'file' : 'files'}`, `${count} ფაილის შენახვა`);
 
-    return <Dialog open size="md" role={mode === 'delete' ? 'alertdialog' : 'dialog'} className="tc-dialog tc-picker" onClose={onClose} closeLabel={copy('Cancel', 'გაუქმება')}
+    return <Dialog open size="md" role={mode === 'delete' ? 'alertdialog' : 'dialog'} className="tc-dialog tc-picker" onClose={onClose}
+        closeLabel={copy('Cancel', 'გაუქმება')}
         title={mode === 'delete' ? copy(`Delete “${chat.name}”?`, `წავშალოთ „${chat.name}“?`) : copy('Keep files', 'ფაილების შენახვა')}
         description={mode === 'delete'
             ? copy(`Tick the files to keep (${where}). The chat then waits in Recently deleted for 7 days, where the person who started it or a team admin can restore it. After that its messages and unkept files are gone.`,
@@ -64,25 +69,37 @@ export function FilePicker({ chat, mode, onClose, onDone }: { chat: ChatSummary;
             : copy(`Ticked files are kept ${where} and never purged.`, `მონიშნული ფაილები შეინახება ${where} და არასდროს წაიშლება.`)}
         footer={<>
             <Button variant="ghost" onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button>
-            <Button variant={mode === 'delete' ? 'danger' : 'primary'} disabled={busy || !items || (mode === 'keep' && !count)} onClick={() => void go()}>{action}</Button>
+            <Button variant={mode === 'delete' ? 'danger' : 'primary'} disabled={busy || !items || (mode === 'keep' && !count)} onClick={() => void go()}>
+                {action}
+            </Button>
         </>}>
         {mode === 'delete' && chat.decision && !chat.task && <p className="gk-notice gk-notice--warning" role="note">
-            {copy(`Its decision “${chat.decision}” is on no task, so it goes with the chat. Copy it first if you need it.`, `მისი გადაწყვეტილება „${chat.decision}“ არც ერთ საქმეზე არ წერია და ჩატთან ერთად წაიშლება. თუ გჭირდებათ, ჯერ გადაიწერეთ.`)}
+            {copy(`Its decision “${chat.decision}” is on no task, so it goes with the chat. Copy it first if you need it.`,
+                `მისი გადაწყვეტილება „${chat.decision}“ არც ერთ საქმეზე არ წერია და ჩატთან ერთად წაიშლება. თუ გჭირდებათ, ჯერ გადაიწერეთ.`)}
         </p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {!items && !error && <p className="tc-faint" role="status">{copy('Loading the files…', 'ფაილები იტვირთება…')}</p>}
         {items && !items.length && <p className="tc-faint">{copy('This chat has no files.', 'ამ ჩატში ფაილები არ არის.')}</p>}
-        {open.length > 1 && <p className="tc-picker__all"><button type="button" className="tc-link-button" onClick={all}>{copy(`Tick all ${open.length}`, `ყველას მონიშვნა (${open.length})`)}</button></p>}
+        {open.length > 1 && <p className="tc-picker__all">
+            <button type="button" className="tc-link-button" onClick={all}>{copy(`Tick all ${open.length}`, `ყველას მონიშვნა (${open.length})`)}</button>
+        </p>}
         {open.length > 0 && <ul className="tc-picker__list">
             {open.map(item => <li key={item.attachment.id}>
                 <label>
                     <input type="checkbox" checked={ticked.has(item.attachment.id)} onChange={() => toggle(item.attachment.id)} />
-                    <span className="tc-picker__thumb">{item.attachment.kind === 'IMAGE' ? <ChatImage attachment={item.attachment} /> : item.attachment.kind === 'VIDEO' ? <Film aria-hidden="true" /> : <FileText aria-hidden="true" />}</span>
+                    <span className="tc-picker__thumb">
+                        {item.attachment.kind === 'IMAGE'
+                            ? <ChatImage attachment={item.attachment} />
+                            : item.attachment.kind === 'VIDEO' ? <Film aria-hidden="true" /> : <FileText aria-hidden="true" />}
+                    </span>
                     <span className="tc-picker__name">{item.attachment.name}</span>
                     <span className="tc-faint">{fileSize(item.attachment.sizeBytes)} · {item.sender?.name}</span>
                 </label>
             </li>)}
         </ul>}
-        {kept.length > 0 && <p className="tc-faint tc-picker__kept">{copy(`${kept.length} already kept: ${kept.map(item => item.attachment.name).join(', ')}`, `${kept.length} უკვე შენახულია: ${kept.map(item => item.attachment.name).join(', ')}`)}</p>}
+        {kept.length > 0 && <p className="tc-faint tc-picker__kept">
+            {copy(`${kept.length} already kept: ${kept.map(item => item.attachment.name).join(', ')}`,
+                `${kept.length} უკვე შენახულია: ${kept.map(item => item.attachment.name).join(', ')}`)}
+        </p>}
     </Dialog>;
 }

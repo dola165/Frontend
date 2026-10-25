@@ -22,7 +22,13 @@ const requote = (messages: ChatMessage[], changed: ChatMessage[]) => {
         const quote = message.replyTo;
         const source = quote ? byId.get(quote.id) : undefined;
         if (!quote || !source) return message;
-        return { ...message, replyTo: { ...quote, excerpt: source.deleted ? '' : excerpt(source.content), deleted: source.deleted, attachments: source.deleted ? 0 : source.attachments.length } };
+        return {
+            ...message,
+            replyTo: {
+                ...quote, excerpt: source.deleted ? '' : excerpt(source.content), deleted: source.deleted,
+                attachments: source.deleted ? 0 : source.attachments.length,
+            },
+        };
     });
 };
 

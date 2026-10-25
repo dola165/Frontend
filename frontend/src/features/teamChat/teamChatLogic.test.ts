@@ -132,12 +132,16 @@ describe('the words of a message', () => {
 describe('rows', () => {
     it('groups a writer’s messages within five minutes and puts the New line before the first unread', () => {
         const rows = rowsOf([message(1), message(2), message(9), message(10, { senderId: 2 })], 9, () => 'Today');
-        expect(rows.map(row => row.kind === 'message' ? `${row.message.id}${row.compact ? 'c' : ''}` : row.kind)).toEqual(['day', '1', '2c', 'unread', '9', '10']);
+        expect(rows.map(row => row.kind === 'message' ? `${row.message.id}${row.compact ? 'c' : ''}` : row.kind))
+            .toEqual(['day', '1', '2c', 'unread', '9', '10']);
     });
 });
 
 describe('upload kinds', () => {
-    const limits: ChatLimits = { pictureMb: 10, videoMb: 90, fileMb: 25, videoTypes: ['video/mp4', 'video/webm'], fileExtensions: ['pdf', 'txt'], maxLength: 2000, maxAttachments: 10, maxDecision: 200 };
+    const limits: ChatLimits = {
+        pictureMb: 10, videoMb: 90, fileMb: 25, videoTypes: ['video/mp4', 'video/webm'], fileExtensions: ['pdf', 'txt'], maxLength: 2000, maxAttachments: 10,
+        maxDecision: 200,
+    };
     it('routes pictures, videos and the team’s file kinds, and refuses anything else', () => {
         expect(kindOf(new File(['x'], 'a.png', { type: 'image/png' }), limits)).toBe('IMAGE');
         expect(kindOf(new File(['x'], 'a.webm', { type: 'video/webm' }), limits)).toBe('VIDEO');

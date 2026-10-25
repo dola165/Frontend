@@ -2,7 +2,10 @@ import { apiClient } from '../../api/axiosConfig';
 
 /** Mirrors the backend's TeamChatDto. */
 export interface ChatPerson { id: number; name: string | null; avatarUrl: string | null }
-export interface ChatLimits { pictureMb: number; videoMb: number; fileMb: number; videoTypes: string[]; fileExtensions: string[]; maxLength: number; maxAttachments: number; maxDecision: number }
+export interface ChatLimits {
+    pictureMb: number; videoMb: number; fileMb: number; videoTypes: string[]; fileExtensions: string[]; maxLength: number; maxAttachments: number;
+    maxDecision: number;
+}
 /** Talking (the default), Decided (with its one line), or On hold. */
 export type ChatStatus = 'TALKING' | 'DECIDED' | 'ON_HOLD';
 /** A Team work task named in the text ("GK-12"), or the task a chat is about. */
@@ -20,9 +23,15 @@ export interface ChatSummary {
     earlierTask: ChatTaskRef | null;
 }
 /** The chats opened: the team, your chats (unread first), Recently deleted, the Kept files count, the limits. */
-export interface ChatHome { me: number; members: ChatPerson[]; chats: ChatSummary[]; deleted: ChatSummary[]; keptFiles: number; limits: ChatLimits; reactions: string[]; canModerate: boolean }
+export interface ChatHome {
+    me: number; members: ChatPerson[]; chats: ChatSummary[]; deleted: ChatSummary[]; keptFiles: number; limits: ChatLimits; reactions: string[];
+    canModerate: boolean;
+}
 /** One chat opened: itself, where your unread messages start, the newest revision, the upload limits. */
-export interface ChatState { chat: ChatSummary; me: number; members: ChatPerson[]; firstUnreadId: number | null; unreadCount: number; revision: number; limits: ChatLimits; reactions: string[]; canModerate: boolean }
+export interface ChatState {
+    chat: ChatSummary; me: number; members: ChatPerson[]; firstUnreadId: number | null; unreadCount: number; revision: number; limits: ChatLimits;
+    reactions: string[]; canModerate: boolean;
+}
 export interface ChatQuote { id: number; senderId: number | null; senderName: string | null; excerpt: string | null; deleted: boolean; attachments: number }
 export interface ChatReaction { emoji: string; userIds: number[] }
 export type AttachmentKind = 'IMAGE' | 'VIDEO' | 'FILE';
@@ -39,7 +48,9 @@ export interface ChatPage { messages: ChatMessage[]; hasOlder: boolean; hasNewer
 export interface ChatChanges { messages: ChatMessage[]; revision: number; more: boolean }
 export interface ReadState { firstUnreadId: number | null; unreadCount: number }
 export interface ChatUnread { unreadCount: number; unreadMentions: number; chats: { chatId: number; unreadCount: number; unreadMentions: number }[] }
-export interface SharedItem { attachment: ChatAttachment; messageId: number; chatId: number; chatName: string | null; sender: ChatPerson | null; createdAt: string }
+export interface SharedItem {
+    attachment: ChatAttachment; messageId: number; chatId: number; chatName: string | null; sender: ChatPerson | null; createdAt: string;
+}
 export interface Version { kind: 'EDIT' | 'DELETE'; previous: string; by: ChatPerson | null; at: string }
 export interface NewMessage { content: string; clientMessageId: string; replyToId?: number | null; attachmentIds?: number[] }
 export type MediaFilter = 'MEDIA' | AttachmentKind;
@@ -63,7 +74,8 @@ export const createChat = (body: { name?: string; taskId?: number | null }) => d
 export const fetchState = (chat: number, signal?: AbortSignal) => data(apiClient.get<ChatState>(of(chat), { signal }));
 export const renameChat = (chat: number, name: string) => data(apiClient.patch<ChatSummary>(of(chat), { name }));
 /** Decided takes its line, which is pinned and written to the task. */
-export const setChatStatus = (chat: number, status: ChatStatus, decision?: string) => data(apiClient.put<ChatSummary>(`${of(chat)}/status`, { status, decision }));
+export const setChatStatus = (chat: number, status: ChatStatus, decision?: string) =>
+    data(apiClient.put<ChatSummary>(`${of(chat)}/status`, { status, decision }));
 /** Keeps the ticked files, then moves the chat to Recently deleted for seven days. */
 export const deleteChat = (chat: number, attachmentIds: number[]) => data(apiClient.post<ChatSummary>(`${of(chat)}/delete`, { attachmentIds }));
 /** Restores a chat; `language` names it "… (earlier)" in yours when its task has a newer chat by now. */
@@ -78,23 +90,32 @@ export const keptPlayLink = (id: number) => data(apiClient.get<{ url: string; ex
 // ── Messages ───────────────────────────────────────────────────────────────
 export const fetchPage = (chat: number, where: { before?: number; after?: number; around?: number; limit?: number }, signal?: AbortSignal) =>
     data(apiClient.get<ChatPage>(`${of(chat)}/messages`, { params: where, signal }));
-export const fetchChanges = (chat: number, since: number, signal?: AbortSignal) => data(apiClient.get<ChatChanges>(`${of(chat)}/changes`, { params: { since }, signal }));
+export const fetchChanges = (chat: number, since: number, signal?: AbortSignal) =>
+    data(apiClient.get<ChatChanges>(`${of(chat)}/changes`, { params: { since }, signal }));
 export const sendMessage = (chat: number, message: NewMessage) => data(apiClient.post<ChatMessage>(`${of(chat)}/messages`, message));
 export const editMessage = (chat: number, id: number, content: string) => data(apiClient.patch<ChatMessage>(`${of(chat)}/messages/${id}`, { content }));
 /** Deletes your message for everyone, its files too; "Message deleted" stays in its place. */
 export const deleteMessage = (chat: number, id: number) => data(apiClient.delete<ChatMessage>(`${of(chat)}/messages/${id}`));
-export const react = (chat: number, id: number, emoji: string, on: boolean) => data(apiClient.put<ChatMessage>(`${of(chat)}/messages/${id}/reactions`, { emoji, on }));
-export const fetchHistory = (chat: number, id: number) => data(apiClient.get<{ message: ChatMessage; versions: Version[] }>(`${of(chat)}/messages/${id}/history`));
+export const react = (chat: number, id: number, emoji: string, on: boolean) =>
+    data(apiClient.put<ChatMessage>(`${of(chat)}/messages/${id}/reactions`, { emoji, on }));
+export const fetchHistory = (chat: number, id: number) =>
+    data(apiClient.get<{ message: ChatMessage; versions: Version[] }>(`${of(chat)}/messages/${id}/history`));
 export const markRead = (chat: number, upTo: number) => data(apiClient.post<ReadState>(`${of(chat)}/read`, { upTo }));
 /** What was shared in one chat, or in every chat (no `chat`), by kind and by person. */
 export const fetchShared = (where: { chat?: number | null; kind?: AttachmentKind | null; from?: number | null; before?: number }, signal?: AbortSignal) =>
-    data(apiClient.get<{ items: SharedItem[]; more: boolean }>(`${base}/shared`, { params: { chat: where.chat ?? undefined, kind: where.kind ?? undefined, from: where.from ?? undefined, before: where.before, limit: 60 }, signal }));
+    data(apiClient.get<{ items: SharedItem[]; more: boolean }>(`${base}/shared`, {
+        params: { chat: where.chat ?? undefined, kind: where.kind ?? undefined, from: where.from ?? undefined, before: where.before, limit: 60 }, signal,
+    }));
 export const searchMessages = (chat: number, { q, from, has, before }: SearchQuery, signal?: AbortSignal) =>
-    data(apiClient.get<{ messages: ChatMessage[]; more: boolean }>(`${of(chat)}/search`, { params: { q: q || undefined, from: from ?? undefined, has: has ?? undefined, before }, signal }));
+    data(apiClient.get<{ messages: ChatMessage[]; more: boolean }>(`${of(chat)}/search`, {
+        params: { q: q || undefined, from: from ?? undefined, has: has ?? undefined, before }, signal,
+    }));
 
 // ── Files ──────────────────────────────────────────────────────────────────
 type Progress = (share: number) => void;
-const progressOf = (onProgress?: Progress) => ({ onUploadProgress: (event: { loaded: number; total?: number }) => { if (event.total) onProgress?.(event.loaded / event.total); } });
+const progressOf = (onProgress?: Progress) => ({
+    onUploadProgress: (event: { loaded: number; total?: number }) => { if (event.total) onProgress?.(event.loaded / event.total); },
+});
 export const uploadPicture = (chat: number, file: File, onProgress?: Progress, signal?: AbortSignal) => {
     const form = new FormData();
     form.append('file', file);
@@ -102,10 +123,14 @@ export const uploadPicture = (chat: number, file: File, onProgress?: Progress, s
 };
 /** The video is the request body, streamed to storage; MP4 or WebM. */
 export const uploadVideo = (chat: number, file: File, onProgress?: Progress, signal?: AbortSignal) =>
-    data(apiClient.post<ChatAttachment>(`${of(chat)}/attachments/videos`, file, { params: { name: file.name }, headers: { 'Content-Type': file.type }, signal, timeout: 0, ...progressOf(onProgress) }));
+    data(apiClient.post<ChatAttachment>(`${of(chat)}/attachments/videos`, file, {
+        params: { name: file.name }, headers: { 'Content-Type': file.type }, signal, timeout: 0, ...progressOf(onProgress),
+    }));
 /** Any other file, the request body itself; its name's extension says what it is. */
 export const uploadFile = (chat: number, file: File, onProgress?: Progress, signal?: AbortSignal) =>
-    data(apiClient.post<ChatAttachment>(`${of(chat)}/attachments/files`, file, { params: { name: file.name }, headers: { 'Content-Type': 'application/octet-stream' }, signal, timeout: 0, ...progressOf(onProgress) }));
+    data(apiClient.post<ChatAttachment>(`${of(chat)}/attachments/files`, file, {
+        params: { name: file.name }, headers: { 'Content-Type': 'application/octet-stream' }, signal, timeout: 0, ...progressOf(onProgress),
+    }));
 /** Takes back an upload that was not sent. */
 export const cancelUpload = (id: number) => apiClient.delete(`${base}/attachments/${id}`).then(() => undefined);
 /** A fresh ten-minute link to play a video. */

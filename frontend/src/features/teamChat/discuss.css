@@ -1,6 +1,20 @@
 /* "Discuss" on a task: quiet grey, the count beside it. On a row of tasks it sits at the row's end. */
 .gk .tc-discuss { display: inline-flex; align-items: center; gap: 6px; flex: none; }
-.gk .tc-discuss__button { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 8px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .tc-discuss__button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--gk-line);
+    border-radius: var(--gk-r-pill);
+    background: var(--gk-surface);
+    color: var(--gk-text-2);
+    font: inherit;
+    font-size: var(--gk-fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
 .gk .tc-discuss__button:hover { border-color: var(--gk-line-strong); color: var(--gk-text); }
 .gk .tc-discuss__button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 1px; }
 .gk .tc-discuss__button:disabled { cursor: progress; opacity: .7; }
@@ -20,10 +34,30 @@
     background: var(--gk-surface); box-shadow: var(--gk-shadow-md, 0 4px 16px rgb(0 0 0 / .14));
     line-height: 1.35; white-space: normal;
 }
-.gk .tc-discuss__dismiss { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--gk-text-3); cursor: pointer; }
+.gk .tc-discuss__dismiss {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--gk-text-3);
+    cursor: pointer;
+}
 .gk .tc-discuss__dismiss:hover { background: var(--gk-hover); color: var(--gk-text); }
 .gk .tc-discuss__dismiss svg { width: 14px; height: 14px; }
-.gk .tc-discuss[data-compact] .tc-discuss__button { min-width: 36px; min-height: 36px; justify-content: center; padding: 0 6px; border-color: transparent; background: none; color: var(--gk-text-3); }
+.gk .tc-discuss[data-compact] .tc-discuss__button {
+    min-width: 36px;
+    min-height: 36px;
+    justify-content: center;
+    padding: 0 6px;
+    border-color: transparent;
+    background: none;
+    color: var(--gk-text-3);
+}
 .gk .tc-discuss[data-compact] .tc-discuss__button:hover { background: var(--gk-hover); color: var(--gk-text); }
 .gk .tw-row:has(> .tc-discuss) { display: flex; align-items: center; }
 .gk .tw-row:has(> .tc-discuss) > .tw-row__open { flex: 1; min-width: 0; }

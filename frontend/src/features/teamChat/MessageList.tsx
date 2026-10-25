@@ -53,7 +53,9 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
         follow(atBottom.current && !view.hasNewer);
         setAway(!atBottom.current || view.hasNewer);
         const line = element.querySelector<HTMLElement>('[data-unread-line]');
-        setUnreadAbove(firstUnread !== null && (!line ? view.messages.length > 0 && view.messages[0].id > firstUnread : line.getBoundingClientRect().top < element.getBoundingClientRect().top));
+        setUnreadAbove(firstUnread !== null && (!line
+            ? view.messages.length > 0 && view.messages[0].id > firstUnread
+            : line.getBoundingClientRect().top < element.getBoundingClientRect().top));
         readIfSeen();
     }, [view.hasNewer, view.messages, firstUnread, readIfSeen, follow]);
 
@@ -137,26 +139,43 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
 
     const unreadCount = state?.unreadCount ?? 0;
     return <div className="tc-list-wrap">
-        {unreadAbove && <button type="button" className="tc-pill tc-pill--top" onClick={toUnread}><ArrowUp aria-hidden="true" />{copy(`${unreadCount} new · jump to the first`, `${unreadCount} ახალი · პირველზე გადასვლა`)}</button>}
+        {unreadAbove && <button type="button" className="tc-pill tc-pill--top" onClick={toUnread}>
+            <ArrowUp aria-hidden="true" />{copy(`${unreadCount} new · jump to the first`, `${unreadCount} ახალი · პირველზე გადასვლა`)}
+        </button>}
         <div ref={list} className="tc-list" role="log" aria-label={copy(`Messages in ${chatName}`, `შეტყობინებები: ${chatName}`)} onScroll={onScroll}>
-            {!view.loaded && <div className="tc-list__loading" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div>}
+            {!view.loaded && <div className="tc-list__loading" role="status" aria-label={copy('Loading', 'იტვირთება')}>
+                <Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} />
+            </div>}
             {view.loaded && view.hasOlder && <button type="button" className="tc-more" disabled={model.paging === 'older'} onClick={older}>
                 {model.paging === 'older' ? <Loader2 className="tc-spin" aria-hidden="true" /> : null}{copy('Earlier messages', 'ძველი შეტყობინებები')}
             </button>}
-            {view.loaded && !view.hasOlder && view.messages.length > 0 && <p className="tc-start">{copy(`This is where “${chatName}” begins.`, `აქ იწყება „${chatName}“.`)}</p>}
-            {view.loaded && !view.messages.length && !pending.length && <div className="tc-empty"><p className="tc-empty__title">{copy('No messages yet', 'შეტყობინებები ჯერ არ არის')}</p><p>{copy('Write the first one, mention someone with @, or name a task like GK-12.', 'დაწერეთ პირველი, მოიხსენიეთ ვინმე @-ით ან დაასახელეთ საქმე, მაგ. GK-12.')}</p></div>}
+            {view.loaded && !view.hasOlder && view.messages.length > 0 && <p className="tc-start">
+                {copy(`This is where “${chatName}” begins.`, `აქ იწყება „${chatName}“.`)}
+            </p>}
+            {view.loaded && !view.messages.length && !pending.length && <div className="tc-empty">
+                <p className="tc-empty__title">{copy('No messages yet', 'შეტყობინებები ჯერ არ არის')}</p>
+                <p>
+                    {copy('Write the first one, mention someone with @, or name a task like GK-12.',
+                        'დაწერეთ პირველი, მოიხსენიეთ ვინმე @-ით ან დაასახელეთ საქმე, მაგ. GK-12.')}
+                </p>
+            </div>}
             {rows.map(row => row.kind === 'day'
                 ? <h3 key={row.key} className="tc-day"><span>{row.label}</span></h3>
                 : row.kind === 'unread'
                     ? <div key={row.key} className="tc-unread" data-unread-line=""><span>{copy('New', 'ახალი')}</span></div>
                     : <VirtualRow key={row.key} id={row.message.id} rows={virtual} keep={row.message.id === highlight}>
                         <MessageRow message={row.message} compact={row.compact} me={me} members={membersById} reactions={state?.reactions ?? []}
-                            canModerate={!!state?.canModerate} conversationId={model.chatId} highlighted={row.message.id === highlight} actions={actions} readOnly={!!state?.chat.deletesAt} />
+                            canModerate={!!state?.canModerate} conversationId={model.chatId} highlighted={row.message.id === highlight}
+                            actions={actions} readOnly={!!state?.chat.deletesAt} />
                     </VirtualRow>)}
-            {view.hasNewer && <button type="button" className="tc-more" disabled={model.paging === 'newer'} onClick={newer}>{copy('Later messages', 'შემდეგი შეტყობინებები')}</button>}
-            {showPending && pending.map(item => <PendingRow key={item.key} item={item} sending={inFlight === item.key} me={me !== null ? membersById.get(me) : undefined}
-                onRetry={() => model.retry(item.key)} onDiscard={() => model.discard(item.key)} />)}
+            {view.hasNewer && <button type="button" className="tc-more" disabled={model.paging === 'newer'} onClick={newer}>
+                {copy('Later messages', 'შემდეგი შეტყობინებები')}
+            </button>}
+            {showPending && pending.map(item => <PendingRow key={item.key} item={item} sending={inFlight === item.key}
+                me={me !== null ? membersById.get(me) : undefined} onRetry={() => model.retry(item.key)} onDiscard={() => model.discard(item.key)} />)}
         </div>
-        {away && <button type="button" className="tc-pill tc-pill--bottom" onClick={toBottom}><ArrowDown aria-hidden="true" />{view.hasNewer ? copy('Jump to the newest', 'უახლესზე გადასვლა') : copy('Newest', 'უახლესი')}</button>}
+        {away && <button type="button" className="tc-pill tc-pill--bottom" onClick={toBottom}>
+            <ArrowDown aria-hidden="true" />{view.hasNewer ? copy('Jump to the newest', 'უახლესზე გადასვლა') : copy('Newest', 'უახლესი')}
+        </button>}
     </div>;
 }

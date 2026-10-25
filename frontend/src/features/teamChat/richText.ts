@@ -51,7 +51,10 @@ export function parts(text: string, mentioned: ChatPerson[], tasks: ChatTaskRef[
             let parsed: URL | null = null;
             try { parsed = new URL(url); } catch { /* Not a link after all. */ }
             if (parsed && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
-                out.push({ kind: 'url', text: url, href: parsed.href, internal: parsed.origin === origin && !parsed.pathname.startsWith('//') ? `${parsed.pathname}${parsed.search}${parsed.hash}` : null });
+                out.push({
+                    kind: 'url', text: url, href: parsed.href,
+                    internal: parsed.origin === origin && !parsed.pathname.startsWith('//') ? `${parsed.pathname}${parsed.search}${parsed.hash}` : null,
+                });
                 push(found.slice(url.length));
             } else push(found);
         } else if (match[2]) {

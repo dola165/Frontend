@@ -15,10 +15,15 @@ export function DecisionBar({ chat }: { chat: ChatSummary }) {
     const copy = useJourneyCopy();
     if (!chat.decision) return null;
     const decided = chat.status === 'DECIDED';
-    return <div className="tc-decision" data-decided={decided || undefined} role="note" aria-label={decided ? copy('Decided', 'გადაწყდა') : copy('Last decision', 'ბოლო გადაწყვეტილება')}>
+    return <div className="tc-decision" data-decided={decided || undefined} role="note"
+        aria-label={decided ? copy('Decided', 'გადაწყდა') : copy('Last decision', 'ბოლო გადაწყვეტილება')}>
         <CircleCheck aria-hidden="true" />
-        <p><span className="tc-decision__label">{decided ? copy('Decided', 'გადაწყდა') : copy('Last decision', 'ბოლო გადაწყვეტილება')}</span> {chat.decision}
-            {chat.decidedBy && <span className="tc-faint"> · {chat.decidedBy.name}{chat.decidedAt ? `, ${shortDay(copy, chat.decidedAt)}` : ''}</span>}</p>
+        <p>
+            <span className="tc-decision__label">
+                {decided ? copy('Decided', 'გადაწყდა') : copy('Last decision', 'ბოლო გადაწყვეტილება')}
+            </span> {chat.decision}
+            {chat.decidedBy && <span className="tc-faint"> · {chat.decidedBy.name}{chat.decidedAt ? `, ${shortDay(copy, chat.decidedAt)}` : ''}</span>}
+        </p>
     </div>;
 }
 
@@ -37,15 +42,23 @@ export function DeletedBar({ chat, onChat }: { chat: ChatSummary; onChat: (chat:
         setBusy(true); setError('');
         try { await work(); } catch (failure) { setError(problem(copy, failure, what, forbidden)); } finally { setBusy(false); }
     };
-    const restore = () => run(async () => onChat(await restoreChat(chat.id, copy('en', 'ka') as 'en' | 'ka')), ['The chat was not restored.', 'ჩატი ვერ აღდგა.'], RESTORE_FORBIDDEN);
+    const restore = () => run(async () => onChat(await restoreChat(chat.id, copy('en', 'ka') as 'en' | 'ka')),
+        ['The chat was not restored.', 'ჩატი ვერ აღდგა.'], RESTORE_FORBIDDEN);
     const zip = () => run(() => downloadZip(chat.id), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.']);
     return <div className="tc-deleted" role="status">
         <p><strong>{copy(`This chat will be deleted ${onDate(copy, chat.deletesAt)}.`, `ეს ჩატი წაიშლება ${onDate(copy, chat.deletesAt)}.`)}</strong>{' '}
-            {copy('Save anything you need: files you keep stay on the task (or the Kept files shelf).', 'შეინახეთ, რაც გჭირდებათ: შენახული ფაილები საქმეზე (ან შენახული ფაილების თაროზე) დარჩება.')}</p>
+            {copy('Save anything you need: files you keep stay on the task (or the Kept files shelf).',
+                'შეინახეთ, რაც გჭირდებათ: შენახული ფაილები საქმეზე (ან შენახული ფაილების თაროზე) დარჩება.')}</p>
         <div className="tc-deleted__actions">
-            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy} onClick={() => void restore()}><RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}</Button>}
-            <Button size="sm" variant={chat.canDelete ? 'secondary' : 'primary'} disabled={busy} onClick={() => setKeeping(true)}><FolderDown aria-hidden="true" />{copy('Save files', 'ფაილების შენახვა')}</Button>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void zip()}><Download aria-hidden="true" />{copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)')}</Button>
+            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy} onClick={() => void restore()}>
+                <RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}
+            </Button>}
+            <Button size="sm" variant={chat.canDelete ? 'secondary' : 'primary'} disabled={busy} onClick={() => setKeeping(true)}>
+                <FolderDown aria-hidden="true" />{copy('Save files', 'ფაილების შენახვა')}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void zip()}>
+                <Download aria-hidden="true" />{copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)')}
+            </Button>
         </div>
         {!chat.canDelete && <p className="tc-faint">{onlyDeleters(copy, chat, 'restore')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

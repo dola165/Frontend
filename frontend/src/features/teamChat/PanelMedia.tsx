@@ -10,7 +10,9 @@ import { isMissing, problem, shortDay } from './teamChatWords';
 
 export interface MediaFilters { all: boolean; kind: AttachmentKind | null; from: number | null }
 
-const KINDS: [AttachmentKind | null, string, string][] = [[null, 'All', 'ყველა'], ['IMAGE', 'Pictures', 'სურათები'], ['VIDEO', 'Videos', 'ვიდეო'], ['FILE', 'Files', 'ფაილები']];
+const KINDS: [AttachmentKind | null, string, string][] = [
+    [null, 'All', 'ყველა'], ['IMAGE', 'Pictures', 'სურათები'], ['VIDEO', 'Videos', 'ვიდეო'], ['FILE', 'Files', 'ფაილები'],
+];
 
 /**
  * The panel's Media: what was shared in this chat or in every chat, by one person or anyone, and by kind; pictures
@@ -45,8 +47,13 @@ export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMiss
     useEffect(() => {
         const controller = new AbortController();
         setItems(null); setError(''); setRound(0);
-        fetchShared({ chat: filters.all ? null : chatId, kind: filters.kind, from: filters.from }, controller.signal).then(page => { setItems(page.items); setMore(page.more); })
-            .catch(failure => { if (controller.signal.aborted) return; if (isMissing(failure)) onMissing(); setError(problem(copy, failure, ['What was shared could not load.', 'გაზიარებული ვერ ჩაიტვირთა.'])); });
+        fetchShared({ chat: filters.all ? null : chatId, kind: filters.kind, from: filters.from }, controller.signal)
+            .then(page => { setItems(page.items); setMore(page.more); })
+            .catch(failure => {
+                if (controller.signal.aborted) return;
+                if (isMissing(failure)) onMissing();
+                setError(problem(copy, failure, ['What was shared could not load.', 'გაზიარებული ვერ ჩაიტვირთა.']));
+            });
         return () => controller.abort();
     }, [chatId, filters.all, filters.kind, filters.from, copy, onMissing]);
 
@@ -64,7 +71,11 @@ export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMiss
         const last = items?.at(-1);
         if (!last) return;
         setLoading(true);
-        try { const page = await fetchShared({ ...where, before: last.attachment.id }); setItems(current => [...(current ?? []), ...page.items]); setMore(page.more); }
+        try {
+            const page = await fetchShared({ ...where, before: last.attachment.id });
+            setItems(current => [...(current ?? []), ...page.items]);
+            setMore(page.more);
+        }
         catch (failure) { setError(problem(copy, failure, ['More could not load.', 'მეტი ვერ ჩაიტვირთა.'])); }
         finally { setLoading(false); }
     };
@@ -81,22 +92,34 @@ export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMiss
         </div>
         <div className="tc-pmedia__filters">
             <label className="tc-sr" htmlFor={personId}>{copy('Shared by', 'ვინ გააზიარა')}</label>
-            <select id={personId} className="gk-input tc-pmedia__person" value={filters.from ?? ''} onChange={event => onFilters({ ...filters, from: event.target.value ? Number(event.target.value) : null })}>
+            <select id={personId} className="gk-input tc-pmedia__person" value={filters.from ?? ''}
+                onChange={event => onFilters({ ...filters, from: event.target.value ? Number(event.target.value) : null })}>
                 <option value="">{copy('Anyone', 'ნებისმიერი')}</option>
                 {members.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
             </select>
             <div className="tc-pmedia__kinds" role="group" aria-label={copy('Kind', 'სახეობა')}>
-                {KINDS.map(([value, en, ka]) => <Chip key={value ?? 'all'} pressed={filters.kind === value} onClick={() => onFilters({ ...filters, kind: value })}>{copy(en, ka)}</Chip>)}
+                {KINDS.map(([value, en, ka]) => <Chip key={value ?? 'all'} pressed={filters.kind === value}
+                    onClick={() => onFilters({ ...filters, kind: value })}>{copy(en, ka)}</Chip>)}
             </div>
         </div>
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
-        {!items && !error && <div className="tc-pmedia__grid" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={88} /><Skeleton height={88} /><Skeleton height={88} /></div>}
-        {items && !items.length && <p className="tc-faint tc-pmedia__none">{filters.kind || filters.from ? copy('Nothing like that yet.', 'ასეთი ჯერ არაფერია.') : copy('Pictures, videos and files sent here collect in this place.', 'აქ გაგზავნილი სურათები, ვიდეოები და ფაილები აქ გროვდება.')}</p>}
+        {!items && !error && <div className="tc-pmedia__grid" role="status" aria-label={copy('Loading', 'იტვირთება')}>
+            <Skeleton height={88} /><Skeleton height={88} /><Skeleton height={88} />
+        </div>}
+        {items && !items.length && <p className="tc-faint tc-pmedia__none">
+            {filters.kind || filters.from
+                ? copy('Nothing like that yet.', 'ასეთი ჯერ არაფერია.')
+                : copy('Pictures, videos and files sent here collect in this place.', 'აქ გაგზავნილი სურათები, ვიდეოები და ფაილები აქ გროვდება.')}
+        </p>}
         {visual.length > 0 && <ul className="tc-pmedia__grid">
             {visual.map((item, index) => <li key={item.attachment.id}>
-                <button type="button" className="tc-tile" onClick={() => setViewing(index)} aria-label={`${item.attachment.name}, ${caption(item)}`} title={caption(item)}>
+                <button type="button" className="tc-tile" onClick={() => setViewing(index)}
+                    aria-label={`${item.attachment.name}, ${caption(item)}`} title={caption(item)}>
                     {item.attachment.kind === 'VIDEO'
-                        ? <><ChatVideo attachment={item.attachment} className="tc-tile__media" /><span className="tc-tile__play"><Play aria-hidden="true" /></span></>
+                        ? <>
+                            <ChatVideo attachment={item.attachment} className="tc-tile__media" />
+                            <span className="tc-tile__play"><Play aria-hidden="true" /></span>
+                        </>
                         : <ChatImage attachment={item.attachment} lazy className="tc-tile__media" />}
                 </button>
             </li>)}
@@ -104,7 +127,8 @@ export function PanelMedia({ chatId, members, filters, onFilters, onShow, onMiss
         {files.length > 0 && <ul className="tc-pmedia__files">
             {files.map(item => <li key={item.attachment.id}>
                 <FileRow attachment={item.attachment} />
-                <button type="button" className="tc-link-button tc-pmedia__by" onClick={() => onShow(item.chatId, item.messageId)} title={copy('Show in chat', 'ჩატში ნახვა')}>
+                <button type="button" className="tc-link-button tc-pmedia__by" onClick={() => onShow(item.chatId, item.messageId)}
+                    title={copy('Show in chat', 'ჩატში ნახვა')}>
                     <MessageSquare aria-hidden="true" /><span>{caption(item)}</span>
                 </button>
             </li>)}

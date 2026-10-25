@@ -14,14 +14,18 @@ function TaskLink({ text, task }: { text: string; task: ChatTaskRef }) {
     return <Link className="tc-task" to={taskPath(task)} aria-describedby={id}>
         {text}
         <span id={id} role="tooltip" className="tc-task__card" data-status={task.status}>
-            <span className="tc-task__status"><span className="tc-dot" aria-hidden="true" />{status in statusWords ? statusName(copy, status) : task.status}</span>
+            <span className="tc-task__status">
+                <span className="tc-dot" aria-hidden="true" />{status in statusWords ? statusName(copy, status) : task.status}
+            </span>
             <span className="tc-task__title">{task.title}</span>
         </span>
     </Link>;
 }
 
 /** A message's words: mentions stand out (more when it is you), task keys and links can be followed; `trailing` ends the line ("edited"). */
-export function MessageBody({ message, members, me, trailing }: { message: ChatMessage; members: Map<number, ChatPerson>; me: number | null; trailing?: ReactNode }) {
+export function MessageBody({ message, members, me, trailing }: {
+    message: ChatMessage; members: Map<number, ChatPerson>; me: number | null; trailing?: ReactNode;
+}) {
     const pieces = useMemo(() => {
         const mentioned = message.mentions.flatMap(id => members.get(id) ? [members.get(id) as ChatPerson] : []);
         return parts(message.content, mentioned, message.tasks);

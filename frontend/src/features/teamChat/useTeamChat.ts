@@ -84,7 +84,10 @@ export function useTeamChat(chatId: number, jump: number | null) {
                 if (item.refused !== null) continue;
                 setInFlight(item.key);
                 try {
-                    const message = await sendMessage(chatId, { content: item.content, clientMessageId: item.key, replyToId: item.replyTo?.id ?? null, attachmentIds: item.attachments.map(file => file.id) });
+                    const message = await sendMessage(chatId, {
+                        content: item.content, clientMessageId: item.key, replyToId: item.replyTo?.id ?? null,
+                        attachmentIds: item.attachments.map(file => file.id),
+                    });
                     outbox.remove(item.key);
                     if (!alive.current) return;
                     setPending(outbox.list());
@@ -263,7 +266,8 @@ export function useTeamChat(chatId: number, jump: number | null) {
                 .filter(reaction => reaction.userIds.length);
         const put = (next: ChatMessage) => update(current => ({ ...current, messages: current.messages.map(known => known.id === next.id ? next : known) }));
         put({ ...message, reactions });
-        void change(react(chatId, message.id, emoji, on), ['The reaction was not saved.', 'რეაქცია ვერ შეინახა.']).then(saved => { if (!saved && alive.current) put(message); });
+        void change(react(chatId, message.id, emoji, on), ['The reaction was not saved.', 'რეაქცია ვერ შეინახა.'])
+            .then(saved => { if (!saved && alive.current) put(message); });
     }, [chatId, me, update, change]);
 
     // ── Reading ─────────────────────────────────────────────────────────
@@ -294,7 +298,8 @@ export function useTeamChat(chatId: number, jump: number | null) {
 
     return {
         chatId, state, status, notice, dismissNotice: () => setNotice(''), view, pending, inFlight, connected, typingNames, highlight, setHighlight,
-        firstUnread, paging, membersById, loadOlder, loadNewer, jumpTo, jumpToLatest, send, retry, discard, edit, remove, toggleReaction, read, typingNow, putChat, follow,
+        firstUnread, paging, membersById, loadOlder, loadNewer, jumpTo, jumpToLatest, send, retry, discard, edit, remove, toggleReaction, read, typingNow,
+        putChat, follow,
     };
 }
 export type TeamChatModel = ReturnType<typeof useTeamChat>;

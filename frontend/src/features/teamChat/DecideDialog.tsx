@@ -23,8 +23,10 @@ export function DecideDialog({ chat, max, onClose, onDone }: { chat: ChatSummary
         catch (failure) { setError(problem(copy, failure, ['The decision was not saved.', 'გადაწყვეტილება ვერ შეინახა.'])); setBusy(false); }
     };
     const where = chat.task
-        ? copy(`It is pinned at the top of the chat and written to ${chat.task.key} (its history and notes).`, `ის ჩატის თავში მიემაგრება და ჩაიწერება ${chat.task.key}-ში (ისტორიასა და შენიშვნებში).`)
-        : copy('It is pinned at the top of the chat. This chat has no task, so it lives only here.', 'ის ჩატის თავში მიემაგრება. ამ ჩატს საქმე არ აქვს, ამიტომ მხოლოდ აქ დარჩება.');
+        ? copy(`It is pinned at the top of the chat and written to ${chat.task.key} (its history and notes).`,
+            `ის ჩატის თავში მიემაგრება და ჩაიწერება ${chat.task.key}-ში (ისტორიასა და შენიშვნებში).`)
+        : copy('It is pinned at the top of the chat. This chat has no task, so it lives only here.',
+            'ის ჩატის თავში მიემაგრება. ამ ჩატს საქმე არ აქვს, ამიტომ მხოლოდ აქ დარჩება.');
     return <Dialog open size="md" className="tc-dialog tc-decide" title={copy('What was decided?', 'რა გადაწყდა?')} description={where}
         onClose={onClose} closeLabel={copy('Cancel', 'გაუქმება')}
         footer={<>
@@ -34,7 +36,8 @@ export function DecideDialog({ chat, max, onClose, onDone }: { chat: ChatSummary
         <form onSubmit={event => { event.preventDefault(); void save(); }}>
             <label className="tc-sr" htmlFor={fieldId}>{copy('The decision, in one line', 'გადაწყვეტილება, ერთ ხაზად')}</label>
             <input id={fieldId} className="gk-input" value={line} maxLength={max} autoFocus aria-describedby={hintId}
-                placeholder={copy('For example: MapLibre with our own tiles', 'მაგალითად: MapLibre, ჩვენი ფილებით')} onChange={event => setLine(event.target.value.replace(/[\r\n]+/g, ' '))} />
+                placeholder={copy('For example: MapLibre with our own tiles', 'მაგალითად: MapLibre, ჩვენი ფილებით')}
+                onChange={event => setLine(event.target.value.replace(/[\r\n]+/g, ' '))} />
             <p id={hintId} className="tc-faint tc-decide__count gk-num">{`${line.length}/${max}`}</p>
         </form>
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

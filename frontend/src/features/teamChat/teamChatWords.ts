@@ -67,11 +67,18 @@ export const statusWord = (copy: Copy, status: ChatStatus) =>
 const statusOf = (error: unknown) => (error as { response?: { status?: number } })?.response?.status;
 export const isMissing = (error: unknown) => statusOf(error) === 404;
 /** No answer at all, or the server or connection is in trouble: worth trying again by itself. */
-export const isPassing = (error: unknown) => { const status = statusOf(error); return status === undefined || status === 401 || status === 408 || status === 429 || status >= 500; };
+export const isPassing = (error: unknown) => {
+    const status = statusOf(error);
+    return status === undefined || status === 401 || status === 408 || status === 429 || status >= 500;
+};
 
 /** Why deleting a chat, or restoring it, is refused: only the person who started it or a team admin may. */
-export const DELETE_FORBIDDEN: [string, string] = ['Only the person who started this chat or a team admin can delete it.', 'ჩატის წაშლა შეუძლია მხოლოდ მის დამწყებს ან გუნდის ადმინს.'];
-export const RESTORE_FORBIDDEN: [string, string] = ['Only the person who started this chat or a team admin can restore it.', 'ჩატის აღდგენა შეუძლია მხოლოდ მის დამწყებს ან გუნდის ადმინს.'];
+export const DELETE_FORBIDDEN: [string, string] = [
+    'Only the person who started this chat or a team admin can delete it.', 'ჩატის წაშლა შეუძლია მხოლოდ მის დამწყებს ან გუნდის ადმინს.',
+];
+export const RESTORE_FORBIDDEN: [string, string] = [
+    'Only the person who started this chat or a team admin can restore it.', 'ჩატის აღდგენა შეუძლია მხოლოდ მის დამწყებს ან გუნდის ადმინს.',
+];
 /** Why changing a message is refused: only the person who wrote it may. */
 export const WRITER_FORBIDDEN: [string, string] = ['Only the person who wrote it can change or delete it.', 'შეცვლა ან წაშლა მხოლოდ ავტორს შეუძლია.'];
 

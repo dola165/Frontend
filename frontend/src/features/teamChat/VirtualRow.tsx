@@ -13,6 +13,7 @@ export function VirtualRow({ id, rows, keep, children }: { id: number; rows: Vir
         const element = ref.current;
         return element ? watch(id, element) : undefined;
     }, [id, watch, hidden]);
-    if (hidden) return <div ref={ref} id={`tc-m-${id}`} className="tc-vrow" data-row-id={id} data-placeholder="" style={{ height: rows.height(id) }} aria-hidden="true" />;
+    if (hidden) return <div ref={ref} id={`tc-m-${id}`} className="tc-vrow" data-row-id={id} data-placeholder=""
+        style={{ height: rows.height(id) }} aria-hidden="true" />;
     return <div ref={ref} className="tc-vrow" data-row-id={id}>{children}</div>;
 }

@@ -8,6 +8,8 @@
 .gk .tw-search__words[data-typed] { color: var(--gk-text); }
 .gk .tw-search__key { flex: none; display: inline-flex; align-items: center; min-width: 22px; height: 22px; margin-left: 6px; padding: 0 6px; border: 1px solid var(--gk-line); border-bottom-width: 2px; border-radius: var(--gk-r-sm); background: var(--gk-raised); color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-xs); font-weight: 600; justify-content: center; }
 .gk .tw-search-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* In the team chats it sits under the list's title, as wide as the list. */
+.gk .tc-listhead > .tw-search { align-self: stretch; margin-top: var(--gk-2); }
 /* On desktop the box lines up with the page beside the side bar. */
 @media (min-width: 901px) { .gk .tw-shell > .tw-search { padding-left: calc(196px + var(--gk-6)); } }
 

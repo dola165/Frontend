@@ -14,7 +14,7 @@ vi.mock('./api', async importOriginal => ({
 vi.mock('../../hooks/useMediaSource', () => ({ useMediaSource: (source?: string) => source }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
 
-const where = (extra: Partial<api.SearchWhere> = {}): api.SearchWhere => ({ key: null, status: null, plan: null, parent: null, chat: null, person: null, at: null, tasks: null, openTasks: null, ...extra });
+const where = (extra: Partial<api.SearchWhere> = {}): api.SearchWhere => ({ key: null, status: null, plan: null, parent: null, chat: null, person: null, at: null, tasks: null, openTasks: null, keptFrom: null, ...extra });
 const open = (extra: Partial<api.SearchOpen> = {}): api.SearchOpen => ({ task: null, step: null, plan: null, view: null, who: null, message: null, conversation: null, ...extra });
 const task = (id: number, title: string, extra: Partial<api.SearchHit> = {}): api.SearchHit => ({
     kind: 'TASK', id, title, why: { field: 'NAME', by: null, text: title, marks: [{ start: 0, end: Math.min(4, title.length) }] },
@@ -37,11 +37,13 @@ const results = (extra: Partial<api.SearchResults> = {}): api.SearchResults => (
     ...extra,
 });
 
-function Where() { const location = useLocation(); return <output data-testid="where">{location.pathname + location.search}</output>; }
+function Where() { const location = useLocation(); return <output data-testid="where">{decodeURIComponent((location.pathname + location.search).replace(/\+/g, ' '))}</output>; }
 function Go({ to }: { to: string }) { const navigate = useNavigate(); return <button type="button" onClick={() => navigate(to)}>go {to}</button>; }
-const mount = () => render(<MemoryRouter initialEntries={['/team-work']}><Routes>
-    <Route path="/team-work" element={<><TeamSearch /><input aria-label="Elsewhere" /><Go to="/team-work?task=44" /><Where /></>} />
-    <Route path="/team-work/chat" element={<Where />} />
+function Back() { const navigate = useNavigate(); return <button type="button" onClick={() => navigate(-1)}>back</button>; }
+// The box is in the header of Team work and of the team chats.
+const mount = (at = '/team-work') => render(<MemoryRouter initialEntries={[at]}><Routes>
+    <Route path="/team-work" element={<><TeamSearch /><input aria-label="Elsewhere" /><Go to="/team-work?task=44" /><Back /><Where /></>} />
+    <Route path="/team-work/chat" element={<><TeamSearch /><Go to="/team-work/chat?chat=2&message=90" /><Back /><Where /></>} />
 </Routes></MemoryRouter>);
 const box = () => screen.getByRole('combobox', { name: 'Search words' });
 
@@ -210,7 +212,7 @@ it('colleagues get no “What search missed”, and no deleted-chats switch with
     expect(vi.mocked(api.searchTeam).mock.calls.at(-1)?.[3]).toBe(false);
 });
 
-it('“Show deleted” brings deleted chats’ results, grey and named, and stays on for the session', async () => {
+it('“Show deleted” brings deleted chats’ results, grey and named, while the box is open; opened afresh it is off', async () => {
     vi.mocked(api.fetchSearchOptions).mockResolvedValue({ seesMissed: false, deletedChats: 1 });
     mount();
     await userEvent.keyboard('/');
@@ -227,10 +229,100 @@ it('“Show deleted” brings deleted chats’ results, grey and named, and stay
     expect(old).toHaveClass('tw-search-row--deleted');
     expect(old).toHaveTextContent('Deleted chat “Sponsors, old”');
     expect(screen.getByRole('option', { name: /Gio Beridze/ })).not.toHaveClass('tw-search-row--deleted');
-    // Closed and opened again in this session, it is still on.
+    // On while the words change.
+    await userEvent.type(box(), ' day');
+    await waitFor(() => expect(vi.mocked(api.searchTeam).mock.calls.at(-1)?.[0]).toBe('zeppelin day'));
+    expect(vi.mocked(api.searchTeam).mock.calls.at(-1)?.[3]).toBe(true);
+    expect(screen.getByRole('switch', { name: 'Show deleted' })).toBeChecked();
+    // Closed and opened again, it is off.
     await userEvent.click(screen.getByRole('button', { name: /Close/ }));
     await userEvent.keyboard('/');
-    expect(await screen.findByRole('switch', { name: 'Show deleted' })).toBeChecked();
+    expect(await screen.findByRole('switch', { name: 'Show deleted' })).not.toBeChecked();
+    await waitFor(() => expect(vi.mocked(api.searchTeam).mock.calls.at(-1)?.[3]).toBe(false));
+});
+
+it('Enter opens the top result for the words now typed, never an older one still on screen', async () => {
+    let answer: (found: api.SearchResults) => void = () => {};
+    mount();
+    await userEvent.keyboard('/');
+    await userEvent.type(box(), 'registration');
+    await screen.findAllByRole('option');
+    vi.mocked(api.searchTeam).mockImplementationOnce(() => new Promise(resolve => { answer = resolve; }));
+    await userEvent.type(box(), ' flow{Enter}');
+    // The older results are still on screen: Enter waits for the new ones.
+    expect(screen.getByTestId('where')).not.toHaveTextContent('plan=9');
+    expect(box()).toBeInTheDocument();
+    await waitFor(() => expect(api.searchTeam).toHaveBeenLastCalledWith('registration flow', expect.any(AbortSignal), undefined, false));
+    await act(async () => answer(results({ groups: [{ group: 'WORK', hits: [task(44, 'The flow after sign-up')], more: false }] })));
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/team-work?task=44'));
+});
+
+it('Enter does nothing with results of other words when the new search fails', async () => {
+    mount();
+    await userEvent.keyboard('/');
+    await userEvent.type(box(), 'registration');
+    await screen.findAllByRole('option');
+    vi.mocked(api.searchTeam).mockRejectedValueOnce(new Error('down'));
+    await userEvent.type(box(), ' flow');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Search isn’t working right now');
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByTestId('where')).not.toHaveTextContent('plan=9');
+    expect(box()).toBeInTheDocument();
+});
+
+it('keeps its words in the address while open: Back from a result brings them back, closing lets them go', async () => {
+    mount('/team-work?task=5');
+    await userEvent.keyboard('/');
+    await userEvent.type(box(), 'registration');
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/team-work?task=5&search=registration'));
+    await userEvent.click(await screen.findByRole('option', { name: /^User registration/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/team-work?task=21');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'back' }));
+    expect(await screen.findByRole('combobox', { name: 'Search words' })).toHaveValue('registration');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByTestId('where').textContent).toBe('/team-work?task=5');
+    // The words stay in the box for next time.
+    expect(screen.getByRole('button', { name: /registration/ })).toBeInTheDocument();
+});
+
+it('a link with the words opens the box with them, on Team work and in the team chats', async () => {
+    mount('/team-work?search=stadium%20pics');
+    expect(await screen.findByRole('combobox', { name: 'Search words' })).toHaveValue('stadium pics');
+    await waitFor(() => expect(api.searchTeam).toHaveBeenCalledWith('stadium pics', expect.any(AbortSignal), undefined, false));
+});
+
+it('in the team chats a message opened after “Not what I was looking for” is what was wanted', async () => {
+    mount('/team-work/chat?chat=2');
+    await userEvent.keyboard('/');
+    await userEvent.type(box(), 'stadium');
+    await screen.findAllByRole('option');
+    await userEvent.click(screen.getByRole('button', { name: 'Not what I was looking for' }));
+    await screen.findByText(/Now open what you were looking for/);
+    await userEvent.click(screen.getByRole('button', { name: /Close/ }));
+    // Typing in the box and closing it opened nothing; a message linked in the chat did.
+    expect(api.reportOpened).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'go /team-work/chat?chat=2&message=90' }));
+    await waitFor(() => expect(api.reportOpened).toHaveBeenCalledWith(77, { kind: 'MESSAGE', id: 90 }));
+});
+
+it('a picture found by its chat says so, and a kept file says where it was kept from and opens the shelf', async () => {
+    const shot: api.SearchHit = { kind: 'CHAT_FILE', id: 6, title: 'IMG_2041.jpg', why: { field: 'CHAT', by: null, text: 'GK-2 MapLibre markers', marks: [{ start: 14, end: 21 }] },
+        where: where({ chat: { id: 7, name: 'MapLibre markers' }, person: { id: 2, name: 'Gio Beridze' }, at: new Date().toISOString() }), open: open({ message: 91, conversation: 7 }),
+        file: { kind: 'IMAGE', name: 'IMG_2041.jpg', url: '/uploads/team-chat/s.jpg', thumbUrl: null, contentType: 'image/jpeg', width: 640, height: 480 }, deleted: false };
+    const kept: api.SearchHit = { kind: 'KEPT_FILE', id: 3, title: 'old-trophy-sketch.jpg', why: { field: 'FILE_NAME', by: null, text: 'old-trophy-sketch.jpg', marks: [{ start: 4, end: 10 }] },
+        where: where({ person: { id: 4, name: 'Ilo' }, at: new Date().toISOString(), keptFrom: 'Purged ideas' }), open: open({ view: 'kept' }),
+        file: { kind: 'IMAGE', name: 'old-trophy-sketch.jpg', url: '/uploads/team-chat/k.jpg', thumbUrl: null, contentType: 'image/jpeg', width: 320, height: 200 }, deleted: false };
+    vi.mocked(api.searchTeam).mockResolvedValue(results({ groups: [{ group: 'FILES', hits: [shot, kept], more: false }] }));
+    mount();
+    await userEvent.keyboard('/');
+    await userEvent.type(box(), 'markers trophy');
+    expect(await screen.findByRole('option', { name: /IMG_2041/ })).toHaveTextContent('In the chat: GK-2 MapLibre markers');
+    const row = screen.getByRole('option', { name: /old-trophy-sketch/ });
+    expect(row).toHaveTextContent('Kept files, from “Purged ideas”');
+    expect(row).toHaveTextContent('kept by Ilo');
+    await userEvent.click(row);
+    expect(screen.getByTestId('where')).toHaveTextContent('/team-work/chat?view=kept');
 });
 
 it('says so when nothing is found or search fails', async () => {

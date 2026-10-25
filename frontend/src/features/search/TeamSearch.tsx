@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Sparkles } from 'lucide-react';
 import { useDialogFocus } from '../../components/workspace/useDialogFocus';
 import { useAuth } from '../../context/AuthContext';
@@ -9,10 +9,9 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { fetchSearchOptions, reportMiss, type SearchGroup, type SearchHit, type SearchOptions } from './api';
 import { MissedList } from './MissedList';
 import { openedAfterMiss, pendingMiss, rememberMiss } from './searchMiss';
-import { openedIn, pathOf, refOf } from './searchLinks';
+import { openedIn, pathOf, refOf, SEARCH_PARAM, withoutSearch } from './searchLinks';
 import { SearchRow } from './SearchRow';
 import { groupName } from './searchWords';
-import { keepShowDeleted, showsDeleted } from './showDeleted';
 import { useTeamSearch } from './useTeamSearch';
 import '../../design/dialog.css';
 import '../teamWork/team-work.css';
@@ -23,16 +22,27 @@ const typing = (target: EventTarget | null) => target instanceof HTMLElement
     && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
 /**
- * Team work's search: a box in the page's header, opened by a click, "/" or Ctrl+K (⌘K). It finds tasks, steps,
- * ideas, plans, Now notes, chat messages and pictures and files by what people mean; each result says its short name,
- * why it matched and where it is. Enter opens the top result.
+ * Team work's search: a box in the header of Team work and of the team chats, opened by a click, "/" or Ctrl+K (⌘K).
+ * It finds tasks, steps, ideas, plans, Now notes, chat messages and pictures and files by what people mean; each result
+ * says its short name, why it matched and where it is. Enter opens the top result for the words typed. While it is open
+ * the address holds its words (?search=), so Back from a result, a refresh or a shared link brings them back.
  */
 export function TeamSearch() {
     const copy = useJourneyCopy();
     const me = useAuth().user?.id ?? null;
-    const [open, setOpen] = useState(false);
-    const [query, setQuery] = useState('');
-    const [params] = useSearchParams();
+    const { pathname } = useLocation();
+    const [params, setParams] = useSearchParams();
+    const typed = params.get(SEARCH_PARAM);
+    // The last words stay in the box when it closes, for the next time it opens (also words the address brought).
+    const [last, setLast] = useState(typed ?? '');
+    if (typed !== null && typed !== last) setLast(typed);
+    const setTyped = useCallback((words: string | null) => setParams(current => {
+        const next = new URLSearchParams(current);
+        if (words === null) next.delete(SEARCH_PARAM);
+        else next.set(SEARCH_PARAM, words);
+        return next;
+    }, { replace: true }), [setParams]);
+    const query = typed ?? last;
 
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
@@ -41,26 +51,28 @@ export function TeamSearch() {
                 || ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k');
             if (!shortcut) return;
             event.preventDefault();
-            setOpen(true);
+            setTyped(last);
         };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, []);
+    }, [setTyped, last]);
 
-    // After "Not what I was looking for", the next thing opened on Team work is what was wanted.
-    const where = params.toString();
+    // After "Not what I was looking for", the next thing opened on Team work or in the team chats is what was wanted;
+    // the box's own words are not something opened.
+    const rest = withoutSearch(params).toString();
+    const where = rest ? `${pathname}?${rest}` : pathname;
     useEffect(() => {
-        const opened = openedIn(new URLSearchParams(where));
+        const opened = openedIn(pathname, new URLSearchParams(rest));
         if (opened && pendingMiss(me)) openedAfterMiss(me, opened, where);
-    }, [where, me]);
+    }, [pathname, rest, where, me]);
 
     return <div className="tw-search">
-        <button type="button" className="tw-search__box" aria-haspopup="dialog" aria-keyshortcuts="/ Control+K" onClick={() => setOpen(true)}>
+        <button type="button" className="tw-search__box" aria-haspopup="dialog" aria-keyshortcuts="/ Control+K" onClick={() => setTyped(last)}>
             <Search aria-hidden="true" />
             <span className="tw-search__words" data-typed={query ? true : undefined}>{query || copy('Search tasks, plans, chats and pictures', 'ძიება: საქმეები, გეგმები, ჩატი, სურათები')}</span>
             <kbd className="tw-search__key">/</kbd>
         </button>
-        {open && <SearchPalette query={query} onQuery={setQuery} me={me} where={where} onClose={() => setOpen(false)} />}
+        {typed !== null && <SearchPalette query={typed} onQuery={words => { setLast(words); setTyped(words); }} me={me} where={where} onClose={() => setTyped(null)} />}
     </div>;
 }
 
@@ -74,9 +86,11 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
     const [missed, setMissed] = useState(false);
     const [miss, setMiss] = useState<{ query: string; state: 'sending' | 'kept' | 'failed' } | null>(null);
     const [active, setActive] = useState<{ at: number; for: unknown }>({ at: 0, for: null });
-    // "Show deleted" is off unless the person turned it on in this session; the box offers it only with a chat in
-    // Recently deleted, and "What search missed" only to those who may read it.
-    const [deleted, setDeleted] = useState(() => showsDeleted(me));
+    // "Show deleted" is off each time the box opens, and stays as set while it is open; the box offers it only with a
+    // chat in Recently deleted, and "What search missed" only to those who may read it.
+    const [deleted, setDeleted] = useState(false);
+    // Enter pressed before the results for these words came: the top one opens when they do.
+    const entered = useRef<string | null>(null);
     const [options, setOptions] = useState<SearchOptions | null>(null);
     useDialogFocus(true, dialog, onClose, input);
     useEffect(() => {
@@ -84,8 +98,7 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
         fetchSearchOptions(controller.signal).then(setOptions).catch(() => { /* the box works without its extras */ });
         return () => controller.abort();
     }, []);
-    const showDeleted = (on: boolean) => { setDeleted(on); keepShowDeleted(me, on); };
-    const { status, results, stale, best, loadingMore, loadMore } = useTeamSearch(query, deleted);
+    const { status, results, stale, fresh, best, loadingMore, loadMore } = useTeamSearch(query, deleted);
     const picked = best?.status === 'ready' && best.answer?.status === 'PICKED' ? best.answer.hits : [];
     const groups = results?.groups ?? [];
 
@@ -101,9 +114,9 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
 
     useEffect(() => { document.getElementById(optionId(current))?.scrollIntoView?.({ block: 'nearest' }); });
 
+    // The result's own address replaces the box's words (?search=), which stay one step back.
     const open = (hit: SearchHit) => {
         openedAfterMiss(me, refOf(hit));
-        onClose();
         navigate(pathOf(hit.open));
     };
     const pick = (row: Row | undefined) => { if (!row) return; if ('hit' in row) open(row.hit); else void loadMore(row.more); };
@@ -113,9 +126,17 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
             if (rows.length) choose((current + (event.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length);
         } else if (event.key === 'Enter') {
             event.preventDefault();
-            pick(rows[current]);
+            // Only results for the words now typed: older ones may still be on screen while the new ones come.
+            if (fresh) pick(rows[current]);
+            else if (asked) entered.current = query.trim();
         }
     };
+    useEffect(() => {
+        if (entered.current === null || !fresh) return;
+        const words = entered.current;
+        entered.current = null;
+        if (words === query.trim()) pick(rows[current]);
+    });
     const sayMissed = async () => {
         const words = query;
         setMiss({ query: words, state: 'sending' });
@@ -174,7 +195,7 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
             </div>
             <div className="tw-search-dialog__foot">
                 {(deleted || (options?.deletedChats ?? 0) > 0) && <label className="tw-search-dialog__deleted">
-                    <input type="checkbox" role="switch" className="gk-switch" checked={deleted} onChange={event => showDeleted(event.target.checked)} />
+                    <input type="checkbox" role="switch" className="gk-switch" checked={deleted} onChange={event => setDeleted(event.target.checked)} />
                     {copy('Show deleted', 'წაშლილების ჩვენება')}
                 </label>}
                 {asked && status === 'ready' && missState === 'idle' && <button type="button" className="tw-link-button" onClick={() => void sayMissed()}>{copy('Not what I was looking for', 'ეს არ არის, რასაც ვეძებდი')}</button>}

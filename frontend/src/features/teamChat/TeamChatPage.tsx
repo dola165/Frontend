@@ -5,6 +5,7 @@ import { Button, EmptyNote, GkRoot } from '../../design/primitives';
 import { useAuth } from '../../context/AuthContext';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { TeamSearch } from '../search/TeamSearch';
 import type { AttachmentKind, ChatSummary, MediaFilter } from './api';
 import { ChatList, StatusMark } from './ChatList';
 import { ChatPanel } from './ChatPanel';
@@ -85,6 +86,7 @@ function TeamChatScreen() {
                 <div className="tc-listhead">
                     <Link to="/team-work" className="tc-back"><ArrowLeft aria-hidden="true" /><span>{copy('Team work', 'გუნდის სამუშაო')}</span></Link>
                     <h1 className="tc-title">{copy('Team chats', 'გუნდის ჩატები')}</h1>
+                    <TeamSearch />
                 </div>
                 {chats.status === 'error' && !home && <div className="gk-notice gk-notice--danger" role="alert"><span>{copy('The chats could not load.', 'ჩატები ვერ ჩაიტვირთა.')}</span>
                     <Button size="sm" onClick={() => void chats.refresh()}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}

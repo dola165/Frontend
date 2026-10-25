@@ -1,8 +1,11 @@
 import { apiClient } from '../api/axiosConfig';
 
 // Only mounted consumers share bytes. Releasing the last consumer revokes the URL
-// immediately, so private media never becomes a persistent browser cache.
+// immediately, so no object URL outlives its last viewer.
 const MAX_IN_FLIGHT = 6;
+// Team work and team chat files never change under their name: the server lets this person's browser keep them
+// (private, immutable), so they are not asked for again. Everything else is checked anew each time.
+const UNCHANGING = /\/uploads\/team-work\//;
 type Entry = {
     refs: number;
     controller: AbortController;
@@ -41,7 +44,7 @@ export const acquireMedia = (key: string, source: string) => {
                     inFlight--;
                     queueMicrotask(drain);
                 };
-                void apiClient.get<Blob>(source, { responseType: 'blob', signal: controller.signal, headers: { 'Cache-Control': 'no-cache' } })
+                void apiClient.get<Blob>(source, { responseType: 'blob', signal: controller.signal, headers: UNCHANGING.test(source) ? undefined : { 'Cache-Control': 'no-cache' } })
                     .then(response => {
                         if (controller.signal.aborted) return;
                         created.url = URL.createObjectURL(response.data);

@@ -29,6 +29,8 @@ export async function downloadZip(chat: number) {
     const link = document.createElement('a');
     link.href = new URL(API_BASE_URL.replace(/\/$/, '') + url.replace(/^\/api(?=\/)/, ''), window.location.origin).href;
     link.rel = 'noopener';
+    // A download, so a link that has run out never takes the person away from the app.
+    link.download = '';
     document.body.append(link);
     link.click();
     link.remove();

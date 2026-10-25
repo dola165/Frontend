@@ -41,7 +41,7 @@ const limits: chatApi.ChatLimits = { pictureMb: 10, videoMb: 90, fileMb: 25, vid
 const at = new Date().toISOString();
 const chat = (extra: Partial<chatApi.ChatSummary> = {}): chatApi.ChatSummary => ({
     id: 51, name: 'Kit', task: null, status: 'TALKING', decision: null, decidedBy: null, decidedAt: null, unreadCount: 0, unreadMentions: 0, messageCount: 1,
-    lastActivityAt: at, lastLine: null, createdBy: beqa, createdAt: at, deletesAt: null, deletedBy: null, canDelete: true, ...extra,
+    lastActivityAt: at, lastLine: null, createdBy: beqa, createdAt: at, deletesAt: null, deletedBy: null, canDelete: true, earlierTask: null, ...extra,
 });
 const picture: chatApi.ChatAttachment = { id: 7, kind: 'IMAGE', name: 'pitch.jpg', contentType: 'image/jpeg', sizeBytes: 80_000, url: '/uploads/pitch.jpg', thumbUrl: null,
     width: 640, height: 480, playUrl: null, kept: false };

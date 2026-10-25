@@ -6,6 +6,7 @@ import { PinButton } from './pins';
 import type { Pins } from './usePins';
 import { TaskView, type PlaceOnPlan } from './TaskView';
 import { KeyChip, StatusDot } from './WorkBits';
+import { DiscussButton } from '../teamChat/DiscussButton';
 
 export interface TaskActions {
     open: number | null; team: Person[]; me: number | null;
@@ -27,7 +28,7 @@ export function TaskBody({ node, plan, actions, framed = false, onClose }: { nod
     return <>
         <TaskView id={item.id} team={team} me={me} plan={plan?.name ?? planName} place={placeOf?.(item)} candidates={candidates} framed={framed} onOpen={id => onOpen(open === id ? null : id)} onAddStep={() => onAddStep(item)} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />
         {step && <div className="tw-task__step">
-            <p className="tw-task__step-title"><StatusDot status={step.status} /><KeyChip value={step.key} /><span className="gk-faint">{copy('Step', 'ნაბიჯი')}:</span> {step.title}</p>
+            <p className="tw-task__step-title"><StatusDot status={step.status} /><KeyChip value={step.key} /><span className="gk-faint">{copy('Step', 'ნაბიჯი')}:</span> {step.title} <DiscussButton task={step} compact /></p>
             <TaskView key={step.id} id={step.id} team={team} me={me} plan={plan?.name ?? planName} candidates={candidates} framed onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} onDeleted={() => { onOpen(null); onSaved(); }} />
         </div>}
     </>;
@@ -47,6 +48,7 @@ export function TaskDialog({ node, plan, actions, pins, onOpenPlan }: { node: Wo
         title={<span className="tw-task-dialog__title"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-task-dialog__name">{item.title}</span></span>}
         description={<span className="tw-task-dialog__bar">
             <PinButton pins={pins} target={{ itemId: item.id }} name={item.title} withLabel />
+            <DiscussButton task={item} />
             {plan && onOpenPlan && <button type="button" className="tw-link-button" onClick={() => onOpenPlan(plan.id)}><Folder aria-hidden="true" />{plan.name}</button>}
             {pins.error && <span className="gk-notice gk-notice--danger" role="alert">{pins.error}</span>}
         </span>}>

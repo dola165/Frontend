@@ -1,4 +1,5 @@
 import { CircleHelp } from 'lucide-react';
+import { DiscussButton } from '../teamChat/DiscussButton';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { WorkItem } from './api';
 import { DoneTip } from './DoneTip';
@@ -28,6 +29,7 @@ export function TaskRow({ item, parent, planName, quiet = false, onOpen }: {
             <span className="tw-row__plan" title={where || undefined}>{where}</span>
             <span className="tw-row__when gk-num" title={copy('Last change', 'ბოლო ცვლილება')}>{when}</span>
         </button>
+        <DiscussButton task={item} compact />
         <DoneTip id={tip.id} doneMeans={item.doneMeans} />
     </li>;
 }

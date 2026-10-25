@@ -86,6 +86,11 @@ export function useChatUploads(chatId: number, limits: ChatLimits | null) {
         patch(id, { state: 'uploading', progress: 0, error: '' });
         start(item);
     }, [start]);
+    /** A file already uploaded to this chat elsewhere (an edited copy): ready to send, or to take out, which cancels it. */
+    const adopt = useCallback((attachment: ChatAttachment, file: File) => {
+        setItems(current => current.some(item => item.attachment?.id === attachment.id) ? current
+            : [...current, { id: crypto.randomUUID(), file, kind: attachment.kind, progress: 1, state: 'ready', attachment, error: '', preview: URL.createObjectURL(file) }]);
+    }, []);
     /** The files went out with a message: they are the message's now. */
     const sent = useCallback(() => {
         itemsRef.current.forEach(item => { if (item.preview) URL.revokeObjectURL(item.preview); });
@@ -96,7 +101,7 @@ export function useChatUploads(chatId: number, limits: ChatLimits | null) {
     useEffect(() => () => { controllers.current.forEach(controller => controller.abort()); }, []);
 
     const ready = items.length > 0 && items.every(item => item.state === 'ready');
-    return { items, add, cancel, retry, sent, ready, busy: items.some(item => item.state === 'uploading'), refusal, dismiss: () => setRefusal(''),
+    return { items, add, adopt, cancel, retry, sent, ready, busy: items.some(item => item.state === 'uploading'), refusal, dismiss: () => setRefusal(''),
         attachments: items.flatMap(item => item.attachment ? [item.attachment] : []) };
 }
 export type ChatUploads = ReturnType<typeof useChatUploads>;

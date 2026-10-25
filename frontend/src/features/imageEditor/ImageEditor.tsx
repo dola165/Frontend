@@ -57,7 +57,7 @@ type UpdateState = (change: (state: EditorState) => Partial<EditorState> | undef
  * library: everything the library sees is set here, so replacing it touches this file only. Every canvas and object
  * URL it makes is let go on close.
  */
-export default function ImageEditor({ media, onClose, onSaved }: { media: EditableMedia; onClose: () => void; onSaved: (saved: SavedCopy) => void }) {
+export default function ImageEditor({ media, onClose, onSaved }: { media: EditableMedia; onClose: () => void; onSaved: (saved: SavedCopy, image: File) => void }) {
     const copy = useJourneyCopy();
     const dialog = useRef<HTMLElement>(null);
     const pictureInput = useRef<HTMLInputElement>(null);
@@ -145,7 +145,7 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
             if (!data.imageCanvas) throw new Error('No picture.');
             const file = await fileOf(data.imageCanvas, baseName(media));
             const saved = await saveCopy(media.url, file.blob, file.name, controller.signal);
-            onSaved(saved);
+            onSaved(saved, new File([file.blob], file.name, { type: file.blob.type }));
             onClose();
         } catch (failure) {
             if (controller.signal.aborted) return;

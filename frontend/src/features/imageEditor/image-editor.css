@@ -34,3 +34,6 @@
 
 /* The library puts its menus, colour picker and confirmations in <body>, at z-index 1200-1400; above the editor. */
 .SfxPopper-wrapper, .SfxModal-Wrapper, .SfxModal-Overlay, [class*='SfxDrawer'] { z-index: 4100 !important; }
+/* The library's Ellipse crop (its 5th built-in choice: Free, Original, 16:9, 9:16, Ellipse) makes transparent corners
+   that the server's JPEG turns black, so it is not offered. Pinned to react-filerobot-image-editor 5.0.0-beta.159. */
+.FIE_crop-presets-menu .SfxMenuItem-wrapper:nth-child(5):has([data-testid='FIE-crop-preset-item']) { display: none; }

@@ -12,13 +12,13 @@ export type AccessAction =
     | 'add_child' | 'arrange_match' | 'report_score' | 'start_club' | 'follow'
     | 'join_squad' | 'manage_join_link' | 'approve_join_requests' | 'link_parent';
 export interface AccessDecision { allowed: boolean; reason?: string | null; askAdmin?: boolean }
-/** `admins`: who "Ask the admin" writes to. GAP: the server does not name them yet (asked of fnd-access-b, 26 Oct). */
-export interface AccessRules { subject: AccessSubject; actions: Partial<Record<AccessAction, AccessDecision>>; admins?: { userId: number; name: string }[] }
+/** `admins`: who "Ask the admin" writes to, the Owner first (active accounts only). */
+export interface AccessRules { subject: AccessSubject; actions: Partial<Record<AccessAction, AccessDecision>>; admins?: { userId: number; name: string; owner?: boolean }[] }
 
 interface AccessAnswer {
     allowed: string[];
     refused: { action: string; reason: string; message: string | null }[];
-    admins?: { userId: number; name: string }[];
+    admins?: { userId: number; name: string; owner?: boolean }[];
 }
 /** Refusals an admin can lift by giving a job; the rest (age, a confirmed email, the Owner staying) are not theirs to change. */
 const ADMIN_DECIDES = new Set(['ONLY_ADMINS', 'ONLY_ADMINS_AND_HEAD_COACHES', 'ONLY_HEAD_COACHES', 'ADMINS_INVITE_DIRECTLY', 'STAFF_BY_INVITATION', 'ONLY_SQUAD_COACHES', 'ONLY_SQUAD_MATCH_STAFF']);

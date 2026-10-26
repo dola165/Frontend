@@ -21,5 +21,9 @@ export function useJobWords(choices: JobChoice[] = []) {
         ACTIVE: null, INVITED: copy('Invited', 'მოწვეული'), SUGGESTED: copy('Suggested', 'შეთავაზებული'), UPCOMING: copy('Starts later', 'მოგვიანებით იწყება'),
         EXPIRED: copy('Invite expired', 'მოწვევის ვადა გავიდა'), UNAVAILABLE: copy('Can’t start', 'ვერ დაიწყება'),
     })[status], [copy]);
-    return { copy, jobName, jobLabel, whereLabel, statusLabel };
+    const eventLabel = useCallback((action: string) => ({
+        GIVEN: copy('Given', 'მიეცა'), SUGGESTED: copy('Suggested', 'შეთავაზდა'), CONFIRMED: copy('Confirmed', 'დადასტურდა'), DECLINED: copy('Declined', 'უარყოფილია'),
+        ACCEPTED: copy('Accepted', 'მიიღო'), CHANGED: copy('Changed', 'შეიცვალა'), JOINED_BY_LINK: copy('Joined through a staff link', 'შემოვიდა პერსონალის ბმულით'), ENDED: copy('Ended', 'დასრულდა'),
+    } as Record<string, string>)[action] ?? action, [copy]);
+    return { copy, jobName, jobLabel, whereLabel, statusLabel, eventLabel };
 }

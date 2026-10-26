@@ -26,7 +26,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
     club: number; clubName: string; view: PeopleView; person: Person; member?: ClubManagedMember; link?: InviteLink; busy: boolean; rights: PeopleRights;
     onNewLink: () => void; onHideLink: () => void; onAddJob: () => void; onEnd: (job: PersonJob) => void; onChanged: (notice: string) => void;
 }) {
-    const { copy, jobLabel, whereLabel, statusLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
+    const { copy, jobLabel, whereLabel, statusLabel, eventLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
     const me = view.viewer.userId, self = person.userId === me;
     const [profile, setProfile] = useState(false), [story, setStory] = useState(false);
     const [editing, setEditing] = useState<PersonJob | null>(null), [draft, setDraft] = useState<JobDraft | null>(null);
@@ -39,7 +39,8 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
     const endText = (job: PersonJob) => job.kind === 'ADMIN_INVITE' || job.kind === 'COACH_INVITE' || job.status === 'INVITED' || job.status === 'EXPIRED'
         ? copy('Cancel invite', 'მოწვევის გაუქმება') : job.kind === 'APPOINTMENT' ? copy('End job', 'დასრულება') : copy('Remove', 'მოხსნა');
     const jobsText = person.jobs.map(job => `${jobLabel(job)} · ${whereLabel(job)}`).join('; ');
-    const history = person.jobs.flatMap(job => job.history ?? []).sort((a, b) => b.at.localeCompare(a.at));
+    // Every job's events together, newest first (the server sends each job's oldest first).
+    const history = person.jobs.flatMap(job => (job.history ?? []).map(event => ({ ...event, job }))).sort((a, b) => b.at.localeCompare(a.at));
     const edit = (job: PersonJob) => { setEditing(job); setDraft(draftOf(job)); setError(''); };
     const save = async () => {
         if (!editing || !draft) return;
@@ -82,8 +83,8 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
                 {job.unavailableReason && <p className="gk-faint pp-job__reason">{job.unavailableReason}</p>}
             </li>;
         })}</ul>
-        {story && <ol className="pp-history" aria-label={copy(`${person.name}: history`, `${person.name}: ისტორია`)}>{history.map((event, index) => <li key={`${event.at}-${index}`}>
-            <span>{event.summary}</span><small className="gk-faint">{event.byName} · {relativeTime(event.at)}</small>
+        {story && <ol className="pp-history" aria-label={copy(`${person.name}: history`, `${person.name}: ისტორია`)}>{history.map(({ job, ...event }, index) => <li key={`${event.at}-${index}`}>
+            <span>{eventLabel(event.action)} · {jobLabel(job)}{event.summary ? `: ${event.summary}` : ''}</span><small className="gk-faint">{event.byName} · {relativeTime(event.at)}</small>
         </li>)}</ol>}
         {profile && member && <StaffPublicProfile clubId={club} member={member} onClose={() => setProfile(false)}
             onSaved={() => { setProfile(false); onChanged(copy('Public profile saved.', 'საჯარო პროფილი შეინახა.')); }} />}

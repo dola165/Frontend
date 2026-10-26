@@ -8,10 +8,11 @@ import { useJobWords } from './jobWords';
 import './people.css';
 
 /**
- * Notice types that can point at a suggested job. GAP (26 Oct 2026): fnd-access-b has not named the admins' suggestion
- * notice yet; the buttons show only when the job it names is still SUGGESTED and this admin may confirm it.
+ * The admins' notice for a suggestion (fnd-access-b): CLUB_PEOPLE on a club_staff_appointment, linking to People. The
+ * same type also tells the head coach the outcome, so the buttons show only while the job is SUGGESTED and this admin
+ * may confirm it. The row has no club id; it is read from the link path.
  */
-const SUGGESTION_NOTICES = new Set(['ASSISTANT_SUGGESTION', 'CLUB_PEOPLE', 'CLUB_STAFF_APPOINTMENT']);
+const clubIn = (path?: string | null) => Number(path?.match(/^\/clubs\/(\d+)\//)?.[1]) || null;
 
 /**
  * "Giorgi suggests Levan as assistant coach for U14": any admin confirms or declines it in the notification itself.
@@ -19,8 +20,8 @@ const SUGGESTION_NOTICES = new Set(['ASSISTANT_SUGGESTION', 'CLUB_PEOPLE', 'CLUB
  */
 export function AssistantSuggestionActions({ notification }: { notification: NotificationItem }) {
     const { copy } = useJobWords();
-    const club = notification.clubId ?? null, appointment = notification.entityId ?? null;
-    const relevant = SUGGESTION_NOTICES.has(notification.type) && club != null && appointment != null;
+    const club = notification.clubId ?? clubIn(notification.linkPath), appointment = notification.entityId ?? null;
+    const relevant = notification.type === 'CLUB_PEOPLE' && notification.entityType === 'club_staff_appointment' && club != null && appointment != null;
     const [job, setJob] = useState<PersonJob | null>(null);
     const [busy, setBusy] = useState(false), [done, setDone] = useState(''), [error, setError] = useState('');
     useEffect(() => {

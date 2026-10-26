@@ -109,7 +109,7 @@ it('an admin changes a job at once, sees where it came from, and can end an Admi
     const giga = screen.getByText('Giga Kapanadze').closest('li') as HTMLElement;
     expect(within(giga).getByText(/Changed by Nino/)).toBeInTheDocument();
     fireEvent.click(within(giga).getByRole('button', { name: /History/ }));
-    expect(within(giga).getByText('Assistant coach → Team manager · U12')).toBeInTheDocument();
+    expect(within(giga).getByText('Changed · Team manager: Assistant coach → Team manager · U12')).toBeInTheDocument();
 
     fireEvent.click(within(giga).getByRole('button', { name: /Change/ }));
     const form = within(giga).getByRole('form');

@@ -18,12 +18,11 @@ export interface PersonJob {
     canChange?: boolean; canEnd?: boolean; canConfirm?: boolean;
     tools: string[];
     /**
-     * Who last changed it and the story. GAP: the server keeps the history (APPOINTMENT_CHANGED events) but People does
-     * not return it yet (asked of fnd-access-b, 26 October); the screen shows it once it arrives.
+     * Who last changed it (the last CHANGED event) and the story, oldest first; memberships and invites have none.
      */
     changedByName?: string | null; changedAt?: string | null; history?: JobEvent[];
 }
-export interface JobEvent { at: string; byName: string; action: string; summary: string }
+export interface JobEvent { at: string; byName: string; action: 'GIVEN' | 'SUGGESTED' | 'CONFIRMED' | 'DECLINED' | 'ACCEPTED' | 'CHANGED' | 'JOINED_BY_LINK' | 'ENDED'; summary: string | null }
 export interface Person { userId: number; name: string; email: string | null; avatarUrl: string | null; needsLink: boolean; jobs: PersonJob[] }
 export interface NameCheck { id: number; userId: number; invitedName: string; acceptedName: string; at: string }
 export interface JobChoice { key: string; title: string; description: string; tools: string[] }

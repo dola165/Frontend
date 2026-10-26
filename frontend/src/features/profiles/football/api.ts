@@ -55,6 +55,10 @@ export interface FootballLine {
     kind: LineKind;
     /** "Head coach · U12" (without the club, which the row shows under it). */
     title: string;
+    /** The job or link alone: "Head coach", "Owner", "Player". */
+    role: string;
+    /** Where it applies inside the club; empty for the whole club. */
+    squads: { id: number; name: string }[];
     label: string;
     home: FootballHome | null;
     child: { id: number; name: string } | null;
@@ -120,7 +124,7 @@ export function readFootball(value: PersonFootballProfile): FootballProfileData 
     return {
         own,
         lines: current.filter(line => line.kind !== 'FOLLOWS').map(line => ({
-            id: line.line, kind: line.kind, title: titleOf(line), label: line.label, home: homeOf(line),
+            id: line.line, kind: line.kind, title: titleOf(line), role: line.title, squads: line.clubWide ? [] : list(line.squads), label: line.label, home: homeOf(line),
             child: own ? line.child ?? null : null, since: line.since ?? null,
             manage: own ? manageOf(line) : null, leave: own ? leaveOf(line) : null,
         })),
@@ -132,6 +136,29 @@ export function readFootball(value: PersonFootballProfile): FootballProfileData 
             .map(line => ({ id: line.line, kind: line.kind, title: titleOf(line), home: homeOf(line), startsOn: line.since ?? null, endsOn: line.until ?? null })),
         totals: { sessionsCoached: count(value.career?.counts?.sessionsCoached), matchesPlayed: count(value.career?.counts?.matchesPlayed), matchesRefereed: count(value.career?.counts?.matchesRefereed) },
     };
+}
+
+/** One club with everything the person is there; a line without a club (a child, refereeing) stands alone. */
+export interface LineGroup { key: string; home: FootballHome | null; roles: FootballLine[] }
+
+/**
+ * Lines grouped by club, in the server's order. The same job in several squads with nothing to leave (a head coach of
+ * six squads) becomes one role with its squads beside it, so a club reads once instead of six times.
+ */
+export function groupByClub(lines: FootballLine[]): LineGroup[] {
+    const groups: LineGroup[] = [];
+    for (const line of lines) {
+        const key = line.home ? `club:${line.home.id}` : `line:${line.id}`;
+        let group = groups.find(candidate => candidate.key === key);
+        if (!group) groups.push(group = { key, home: line.home, roles: [] });
+        const same = line.squads.length && !line.leave
+            ? group.roles.find(role => role.kind === line.kind && role.role === line.role && !role.leave && role.manage === line.manage && role.squads.length) : undefined;
+        if (same) {
+            same.squads = [...same.squads, ...line.squads];
+            if (line.since && (!same.since || line.since < same.since)) same.since = line.since;
+        } else group.roles.push({ ...line });
+    }
+    return groups;
 }
 
 export const fetchFootball = async (userId: number | 'me', signal?: AbortSignal) =>

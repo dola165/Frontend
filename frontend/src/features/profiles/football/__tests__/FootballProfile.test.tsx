@@ -51,12 +51,17 @@ describe('your football profile', () => {
     it('fills where you are from links and jobs, with Leave only where the rule-checker allows it', async () => {
         serve(); mount();
         const where = within(await screen.findByRole('list', { name: 'Where you are' }));
-        expect(where.getByText('Head coach · U12')).toBeInTheDocument();
+        // One block per club: Dinamo's two head-coach places (one a job that can end, so not merged), then Veterans FC.
+        expect(where.getAllByRole('link', { name: /Dinamo Academy|Veterans FC/ }).map(link => link.textContent)).toEqual(['Dinamo Academy', 'Veterans FC']);
+        expect(where.getAllByText('Head coach')).toHaveLength(2);
+        expect(where.getByRole('link', { name: 'U12' })).toHaveAttribute('href', '/my-squads?squad=12');
+        expect(where.getByRole('link', { name: 'U14' })).toHaveAttribute('href', '/my-squads?squad=14');
+        expect(where.getByRole('link', { name: 'Veterans 35+' })).toHaveAttribute('href', '/squads/3');
         expect(where.getByText('Parent of Luka')).toBeInTheDocument();
         expect(where.getByText('Follows Saburtalo')).toBeInTheDocument();
         // The job ends as a job and the squad place is left; a squad's head coach and the Owner have no Leave here.
         expect(where.getAllByRole('button', { name: 'Leave' })).toHaveLength(2);
-        expect(where.getAllByRole('link', { name: 'Manage' }).map(link => link.getAttribute('href'))).toEqual(['/my-squads', '/my-squads', '/clubs/9/workspace', '/squads/3', '/parent?player=4']);
+        expect(where.getAllByRole('link', { name: 'Manage' }).map(link => link.getAttribute('href'))).toEqual(['/clubs/9/workspace', '/parent?player=4']);
         expect(screen.getByLabelText('Career in numbers')).toHaveTextContent('212 sessions coached3 matches refereed');
         expect(within(screen.getByRole('list', { name: 'Career' })).getByText('Assistant coach · U10')).toBeInTheDocument();
         expect(screen.queryByRole('checkbox', { name: /Player|Coach|Fan/ })).not.toBeInTheDocument();

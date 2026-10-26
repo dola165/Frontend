@@ -1,7 +1,7 @@
 import { Skeleton } from '../../../design/primitives';
 import { ChoiceTiles } from '../../../design/ChoiceTiles';
 import { RoleIcon } from '../../profiles/person/RoleIcon';
-import type { FootballRole } from '../../roles/domain';
+import { isOffered, type FootballRole } from '../../roles/domain';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { SETUP_CHOICES } from '../setupWords';
 import type { SetupDraft } from '../useSetupProfile';
@@ -14,7 +14,7 @@ import { ADULT_ROLES } from '../welcomeSteps';
 export function RolesStep({ draft, onChange, adult }: { draft: SetupDraft | null; onChange: (draft: SetupDraft) => void; adult: boolean }) {
     const copy = useJourneyCopy();
     if (!draft) return <div role="status" aria-label={copy('Loading your roles', 'როლები იტვირთება')} className="gk-setup__loading"><Skeleton height={56} /><Skeleton height={56} /><Skeleton height={56} /></div>;
-    const offered = adult ? SETUP_CHOICES : SETUP_CHOICES.filter(item => item.id !== 'BUSINESS' && !(ADULT_ROLES as readonly string[]).includes(item.id));
+    const offered = SETUP_CHOICES.filter(item => isOffered(item.id, draft.roles) && (adult || (item.id !== 'BUSINESS' && !(ADULT_ROLES as readonly string[]).includes(item.id))));
     const items = offered.map(item => ({ id: item.id, label: copy(item.en[0], item.ka[0]), hint: copy(item.en[1], item.ka[1]), icon: <RoleIcon role={item.id} /> }));
     const chosen = [...draft.roles, ...(draft.business ? ['BUSINESS'] : [])];
     const toggle = (id: string) => onChange(id === 'BUSINESS'

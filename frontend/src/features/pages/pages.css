@@ -1,4 +1,4 @@
-/* Pages: creating one (the start sheet), claiming, the entry points. Scoped under .gk where the design system runs; tokens only. */
+/* Pages: creating one (the start sheet) and the entry points. Scoped under .gk where the design system runs; tokens only. */
 
 /* The four picture tiles. A theme-coloured veil keeps the words readable on any photo, light or dark. */
 .gk .gk-ctiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }

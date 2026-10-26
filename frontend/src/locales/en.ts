@@ -1026,6 +1026,7 @@ const en = {
       errUnder13: 'You must be at least 13 years old to register. Ask your parent or coach to add you through your club.',
       errSubmitFallback: 'Registration failed. Please try again.',
       emailUnavailable: 'We couldn’t send your verification email. Please try again later.',
+      emailUsedMinor: 'This email is already used. Ask a parent to add you.',
     },
     login: {
       heroMicro: 'Welcome back',
@@ -1043,6 +1044,7 @@ const en = {
       qr: 'Sign in with QR code',
       notYet: 'New to GrassKickZ?',
       goRegister: 'Create account',
+      accountExists: 'You already have an account. Sign in with your password.',
       errInvalid: 'Email or password is wrong. Please try again.',
       errDelayed: 'Too many sign-in attempts. Wait {{seconds}} seconds, then try again.',
       errEmailRequired: 'Email is required.',

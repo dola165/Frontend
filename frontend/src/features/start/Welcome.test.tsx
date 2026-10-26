@@ -104,6 +104,7 @@ describe('set up your profile', () => {
         const tiles = await within(box).findByRole('group', { name: 'What do you do in football?' });
         expect(within(tiles).getAllByRole('checkbox').filter(input => (input as HTMLInputElement).checked)).toEqual([]);
         expect(within(tiles).getByRole('checkbox', { name: /^Business or sponsor/ })).toBeInTheDocument();
+        expect(within(tiles).queryByRole('checkbox', { name: /^Club or academy staff|^Tournament organiser/ })).toBeNull();
         await next(user);
         const note = screen.getByRole('dialog', { name: 'Continue as Other' });
         expect(note).toHaveTextContent('You’ll continue as Other, an everyday member. Add roles any time.');
@@ -201,7 +202,7 @@ describe('set up your profile', () => {
         mount('/home?welcome=roles');
         const tiles = await screen.findByRole('group', { name: 'What do you do in football?' });
         expect(within(tiles).getAllByRole('checkbox').map(input => input.closest('label')?.querySelector('strong')?.textContent))
-            .toEqual(['Player', 'Coach', 'Club or academy staff', 'Referee', 'Fan']);
+            .toEqual(['Player', 'Coach', 'Referee', 'Fan']);
         expect(within(tiles).getAllByRole('checkbox').every(input => !(input as HTMLInputElement).checked)).toBe(true);
     });
 

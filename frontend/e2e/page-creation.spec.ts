@@ -4,8 +4,8 @@ import { expect, test, type Page } from '@playwright/test';
  * Creating a club end to end on the sandbox (start both: `node sandbox/server.mjs 4306` and `node sandbox/web.mjs 4306 5179`,
  * then `PLAYWRIGHT_BASE_URL=http://localhost:5179 npx playwright test e2e/page-creation.spec.ts`).
  * 1. register a new adult; 2. create a club from Home with a crest from colours, a ground from the map, two age groups
- * and a fee range; 3. go live; 4. see the club in World, in search and under the My Club tab; 5. claim a pre-created
- * club as a second new user. Run at desktop and phone widths.
+ * and a fee range; 3. go live; 4. see the club in World, in search and under the My Club tab. Run at desktop
+ * and phone widths.
  */
 /** Each run and each width registers its own people and club: the sandbox keeps them until it restarts. */
 const stamp = Date.now().toString(36);
@@ -37,7 +37,7 @@ const flow = (width: number, height: number) => {
     test.use({ viewport: { width, height } });
     test.setTimeout(120_000);
 
-    test('a newcomer creates a club in a minute, goes live, is found, and a second newcomer claims a known club', async ({ page }) => {
+    test('a newcomer creates a club in a minute, goes live, is found', async ({ page }) => {
       const run = `${stamp}${width}`;
       const clubName = `Rustavi Lions ${run}`;
       await register(page, 'Giorgi Beridze', `giorgi.${run}@example.org`);
@@ -124,28 +124,6 @@ const flow = (width: number, height: number) => {
       await expect(page.getByRole('link', { name: new RegExp(clubName) }).first()).toBeVisible();
       await page.getByRole('link', { name: 'My Club' }).first().click();
       await expect(page).toHaveURL(new RegExp(clubUrl.replace(/[/]/g, '\\/')));
-
-      // 5. A second newcomer claims a pre-created club: the first seeded one still unclaimed (claims last until the sandbox restarts).
-      await page.context().clearCookies();
-      await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
-      await register(page, 'Nino Kapanadze', `nino.${run}@example.org`);
-      let known = 0;
-      for (const id of [307, 306, 305, 304, 303, 302, 301]) {
-        await page.goto(`/clubs/${id}`);
-        await page.waitForLoadState('networkidle');
-        if (await page.getByRole('link', { name: 'Claim it' }).count()) { known = id; break; }
-      }
-      expect(known, 'a seeded club still unclaimed').toBeGreaterThan(0);
-      await page.getByRole('link', { name: 'Claim it' }).click();
-      const claim = page.getByRole('dialog', { name: /^Claim / });
-      await claim.getByRole('button', { name: 'I run it' }).click();
-      await claim.getByLabel('Phone').fill('+995 577 11 22 33');
-      await claim.getByRole('button', { name: 'Claim it' }).click();
-      await expect(page).toHaveURL(new RegExp(`/clubs/${known}\\?edit=1&claimed=1`));
-      await expect(page.getByText('Claim pending verification')).toBeVisible();
-      // What was known about the club is already on the page and counted by the ring; the page was live before the claim.
-      if (known === 307) await expect(page.getByText('Poladi Stadium training pitch').first()).toBeVisible();
-      await expect(page.getByRole('button', { name: /of \d+ done/ })).toBeVisible();
     });
   });
 };

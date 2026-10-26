@@ -132,7 +132,7 @@ post('/feed/events', ({ body, headers }) => {
   if (!events || events.length > 100) return badRequest('Send up to 100 events.');
   let accepted = 0;
   for (const event of events) {
-    // The page creation funnel (opened from where, type chosen, created, boxes filled, live, shared, claims) has no post.
+    // The page creation funnel (opened from where, type chosen, created, boxes filled, live, shared) has no post.
     if (V.FUNNEL_EVENTS.includes(event?.type)) {
       const detail = Object.fromEntries(['from', 'kind', 'box', 'via', 'pageRef'].filter(key => typeof event[key] === 'string').map(key => [key, event[key].slice(0, 60)]));
       V.recordEvent(viewer, { type: event.type, ...detail, ...(typeof event.at === 'string' ? { at: event.at } : {}) });

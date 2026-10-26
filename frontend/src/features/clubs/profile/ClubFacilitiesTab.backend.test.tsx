@@ -35,7 +35,7 @@ it('preserves the grounds editor when the current page confirms editing authorit
     expect(screen.getByRole('link', { name: 'Manage locations' })).toHaveAttribute('href', '/clubs/1?edit=1&panel=grounds');
 });
 it('keeps a facilities appointment in its operational workspace when page editing is unavailable', () => {
-    state.page = makePage({ viewer: { role: 'COACH', canEdit: false, editable: [], canClaim: false } });
+    state.page = makePage({ viewer: { role: 'COACH', canEdit: false, editable: [] } });
     show();
     expect(screen.getByRole('link', { name: 'Manage locations' })).toHaveAttribute('href', '/clubs/1/workspace?tab=facilities');
 });

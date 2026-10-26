@@ -139,4 +139,8 @@
 .gk .ph-own--done { gap: var(--gk-2); color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
 .gk .ph-own--done svg { width: 16px; height: 16px; color: var(--gk-accent); }
 .gk .ph-own__spin { width: 14px; height: 14px; animation: ph-own-spin 1s linear infinite; }
+/* Waiting: a dot before the status, red when the account waits, amber while it still works. */
+.gk .ph-own__dot { display: inline-block; width: 7px; height: 7px; margin-right: var(--gk-2); border-radius: 50%; vertical-align: 1px; }
+.gk .ph-own__dot--urgent { background: var(--gk-danger); }
+.gk .ph-own__dot--decide { background: var(--gk-warning); }
 @keyframes ph-own-spin { to { transform: rotate(360deg); } }

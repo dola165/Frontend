@@ -262,6 +262,12 @@ export function MainLayout() {
 
         if (!user.mustChangePassword && user.onboardingRequired && location.pathname !== '/onboarding') {
             navigate('/onboarding', { replace: true });
+            return;
+        }
+
+        // A 13 to 15-year-old's account waits for a parent; the server answers nothing else meanwhile.
+        if (user.accountState === 'AWAITING_PARENT' && location.pathname !== WAITING_FOR_PARENT_PATH) {
+            navigate(WAITING_FOR_PARENT_PATH, { replace: true });
         }
     }, [location.pathname, navigate, status, user]);
 

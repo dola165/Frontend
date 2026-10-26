@@ -1,5 +1,6 @@
-export type ParentApproval = 'NONE' | 'WAITING' | 'APPROVED';
-/** Where a 13 to 15-year-old waits for a parent's approval after signing up or in. */
+/** The backend's account state: AWAITING_PARENT is a 13 to 15-year-old's account until a parent approves it. */
+export type AccountState = 'ACTIVE' | 'AWAITING_PARENT';
+/** Where a 13 to 15-year-old waits for a parent's approval after signing up or in; nothing else answers it meanwhile. */
 export const WAITING_FOR_PARENT_PATH = '/waiting-for-parent';
 
 const AUTH_FLOW_STORAGE_KEY = 'grasskickz.auth-flow.v1';
@@ -32,8 +33,7 @@ export interface AuthDestinationUser {
     profileComplete?: boolean;
     onboardingRequired?: boolean;
     mustChangePassword?: boolean;
-    /** WAITING: a 13 to 15-year-old's account until a parent approves it. */
-    parentApproval?: ParentApproval;
+    accountState?: AccountState;
 }
 
 let memoryFlow: AuthFlowState = {};
@@ -139,7 +139,7 @@ export const publicContinuationPath = (value?: string | null) => {
 
 export const requiredAccountStep = (user?: AuthDestinationUser | null) => {
     if (user?.mustChangePassword) return '/set-password';
-    if (user?.parentApproval === 'WAITING') return WAITING_FOR_PARENT_PATH;
+    if (user?.accountState === 'AWAITING_PARENT') return WAITING_FOR_PARENT_PATH;
     if (user?.onboardingRequired || user?.profileComplete === false) return '/onboarding';
     return null;
 };

@@ -114,13 +114,28 @@ it('sends under-13s to a parent, stores nothing, and keeps that answer when an o
     expect(apiClient.post).not.toHaveBeenCalled();
 });
 
-it('sends a 13 to 15-year-old to wait for a parent after sign-up', async () => {
-    vi.mocked(apiClient.post).mockImplementation(async url => ({ data: url === '/auth/register' ? { parentApprovalRequired: true } : { accessToken: 'verified-token' } }));
+it('asks a 13 to 15-year-old for a parent’s email in the same form, then waits for the parent', async () => {
+    vi.mocked(apiClient.post).mockImplementation(async url => ({ data: url === '/auth/register' ? { accountState: 'AWAITING_PARENT' } : { accessToken: 'verified-token', accountState: 'AWAITING_PARENT' } }));
     render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
     change('auth-name', 'Example Teen'); change('auth-email', 'teen@example.test');
     change('auth-password', 'SyntheticPassword1'); change('auth-dob', `${new Date().getFullYear() - 14}-01-01`);
     fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByText('A parent approves your account')).toBeInTheDocument();
+    expect(apiClient.post).not.toHaveBeenCalled();
+    change('auth-parent-email', 'teen@example.test'); fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByText('Enter a valid email.')).toBeInTheDocument();
+    change('auth-parent-email', 'Parent@Example.test'); fireEvent.submit(document.querySelector('form')!);
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/waiting-for-parent'));
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/register', expect.objectContaining({ parentEmail: 'parent@example.test' }), expect.anything());
+});
+
+it('shows the parent answer when the server finds the person under 13, and says nothing about a blocked retry', async () => {
+    vi.mocked(apiClient.post).mockRejectedValueOnce({ response: { status: 400, data: { code: 'AGE_BELOW_MINIMUM' } } });
+    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /></MemoryRouter>);
+    change('auth-name', 'Example Person'); change('auth-email', 'person@example.test');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', '1990-01-01');
+    fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByText('Under-13s join through a parent')).toBeInTheDocument();
 });
 
 it('signs up with email only: a phone number is not accepted', async () => {

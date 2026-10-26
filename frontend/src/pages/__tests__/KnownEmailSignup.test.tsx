@@ -53,7 +53,7 @@ it('offers to create an account for an unknown email on sign-in, keeping what wa
 });
 
 it('tells someone under 18 to ask a parent, and stays on sign-up', async () => {
-    signUp(`${new Date().getFullYear() - 15}-01-01`);
+    signUp(`${new Date().getFullYear() - 17}-01-01`);
     expect(await screen.findByText('This email is already used. Ask a parent to add you.')).toBeInTheDocument();
     expect(document.getElementById('auth-email')).toHaveAttribute('aria-invalid', 'true');
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/signup'));

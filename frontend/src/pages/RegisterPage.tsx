@@ -22,7 +22,7 @@ import {
     authPrimaryButtonClass,
 } from '../components/auth/authClasses';
 import { useAuth } from '../context/AuthContext';
-import { extractApiErrorMessage } from '../utils/apiError';
+import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, isUnder13, todayIso } from '../utils/age';
 import { isEmail } from '../utils/registration';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../utils/authStorage';
@@ -35,9 +35,10 @@ import {
     rememberAuthFlow,
     requiredAccountStep,
     resolvePostAuthRedirect,
+    type AccountState,
 } from '../utils/authRedirect';
 
-type RegisterField = 'name' | 'email' | 'password' | 'dob';
+type RegisterField = 'name' | 'email' | 'password' | 'dob' | 'parent';
 
 /** The backend's answer to an email that already has an account: a code, never who owns it. */
 const accountExists = (error: unknown) => {
@@ -48,8 +49,9 @@ const accountExists = (error: unknown) => {
 /**
  * One screen: Google first, then name, email, password, date of birth and town (filled in). The birth date says
  * nothing about a minimum age; under 13 gets a kind "join through a parent" screen instead of an account, and that
- * answer stands on this device for a day. A known email is offered sign-in. A new account then goes to its welcome,
- * or, at 13 to 15, to "Waiting for your parent".
+ * answer stands on this device for a day. At 13 to 15 the same form then asks for a parent's email, which the account
+ * is created with, and the person lands on "Waiting for your parent". A known email is offered sign-in. A new account
+ * otherwise goes to its welcome.
  */
 export const RegisterPage = () => {
     const navigate = useNavigate();
@@ -76,7 +78,11 @@ export const RegisterPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [known, setKnown] = useState(false);
-    const [underThirteen, setUnderThirteen] = useState(false);
+    // The Google birth-date step sends an under-13 answer here, signed out.
+    const [underThirteen, setUnderThirteen] = useState(() => (location.state as { underThirteen?: boolean } | null)?.underThirteen === true);
+    // 13 to 15: a parent approves the account, so its email goes with the sign-up.
+    const [parentStep, setParentStep] = useState(false);
+    const [parentEmail, setParentEmail] = useState('');
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
 
     const passwordRules = [
@@ -103,6 +109,7 @@ export const RegisterPage = () => {
         if (!passwordRulesMet) errors.password = t('auth.register.errPasswordWeak');
         if (!dob) errors.dob = t('auth.register.errDobRequired');
         else if (!Number.isFinite(ageFromDob(dob)) || dob > todayIso()) errors.dob = t('auth.register.dobInvalid');
+        if (parentStep && (!isEmail(parentEmail) || parentEmail.trim().toLowerCase() === email.trim().toLowerCase())) errors.parent = t('auth.parentWait.errEmail');
         setFieldErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -129,6 +136,7 @@ export const RegisterPage = () => {
             setUnderThirteen(true);
             return;
         }
+        if (!parentStep && ageFromDob(dob) < 16) { setParentStep(true); return; }
 
         setIsLoading(true);
         setError('');
@@ -139,12 +147,13 @@ export const RegisterPage = () => {
         let installingSession = false;
         try {
             // The town travels with the sign-up flow to the welcome, which saves it; the request keeps the backend's own shape.
-            const response = await apiClient.post<{ parentApprovalRequired?: boolean }>('/auth/register', {
+            const response = await apiClient.post<{ accountState?: AccountState }>('/auth/register', {
                 fullName: fullName.trim(),
                 email: normalizedEmail,
                 password,
                 dateOfBirth: dob,
                 continuationPath: publicContinuationPath(nextPath),
+                ...(parentStep ? { parentEmail: parentEmail.trim().toLowerCase() } : {}),
             }, { signal: controller.signal });
             if (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current)) return;
 
@@ -158,7 +167,7 @@ export const RegisterPage = () => {
             const requiredStep = requiredAccountStep({
                 ...authenticatedUser,
                 mustChangePassword: result.mustChangePassword || authenticatedUser.mustChangePassword,
-                parentApproval: response.data?.parentApprovalRequired ? 'WAITING' : authenticatedUser.parentApproval,
+                accountState: result.accountState ?? response.data?.accountState ?? authenticatedUser.accountState,
             });
             navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, true), { replace: true });
         } catch (requestError) {
@@ -169,6 +178,12 @@ export const RegisterPage = () => {
                 setKnown(true);
                 return;
             }
+            const code = extractApiErrorCode(requestError);
+            if (!installingSession && code === 'AGE_BELOW_MINIMUM') { rememberAgeRefusal(); setPassword(''); setUnderThirteen(true); return; }
+            if (!installingSession && code === 'PARENT_EMAIL_REQUIRED') { setParentStep(true); return; }
+            if (!installingSession && code === 'PARENT_EMAIL_INVALID') { setFieldErrors({ parent: t('auth.parentWait.errEmail') }); return; }
+            // The server saw an older date right after an age answer from here: say nothing about why.
+            if (!installingSession && code === 'AGE_RETRY_BLOCKED') { setError(t('auth.register.tryLater')); return; }
             setError(extractApiErrorMessage(requestError, t('auth.register.errSubmitFallback')));
         } finally {
             registration.current = null;
@@ -186,7 +201,7 @@ export const RegisterPage = () => {
             if (!result) return;
             rememberAuthFlow({ nextPath, town, newAccount: result.newAccount === true });
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            const requiredStep = requiredAccountStep({ ...authenticatedUser, mustChangePassword: result.mustChangePassword === true || authenticatedUser.mustChangePassword });
+            const requiredStep = requiredAccountStep({ ...authenticatedUser, mustChangePassword: result.mustChangePassword === true || authenticatedUser.mustChangePassword, accountState: result.accountState ?? authenticatedUser.accountState });
             navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, result.newAccount === true), { replace: true });
         } catch (requestError) {
             setError(extractApiErrorMessage(requestError, t('auth.common.googleFailed')));
@@ -281,7 +296,7 @@ export const RegisterPage = () => {
                         <div className="grid gap-5 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <label htmlFor="auth-dob" className={authLabelClass}>{t('auth.register.labelDob')}</label>
-                                <input id="auth-dob" type="date" value={dob} max={todayIso()} required autoComplete="bday" onChange={(event) => { setDob(event.target.value); clearFieldError('dob'); }}
+                                <input id="auth-dob" type="date" value={dob} max={todayIso()} required autoComplete="bday" onChange={(event) => { setDob(event.target.value); clearFieldError('dob'); setParentStep(false); }}
                                     className={fieldClass('dob')} aria-invalid={Boolean(fieldErrors.dob)} aria-describedby={describedBy('auth-dob', 'dob')} />
                                 {fieldError('auth-dob', 'dob')}
                             </div>
@@ -297,8 +312,16 @@ export const RegisterPage = () => {
                                 {locating === 'failed' && <p id="auth-town-note" role="status" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('auth.register.locationUnavailable')}</p>}
                             </div>
                         </div>
+                        {parentStep && <div className="space-y-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 p-3">
+                            <p className="text-sm font-semibold text-[var(--color-text)]">{t('auth.register.parentTitle')}</p>
+                            <p className="text-xs text-[var(--color-secondary)]">{t('auth.register.parentLine')}</p>
+                            <label htmlFor="auth-parent-email" className={authLabelClass}>{t('auth.parentWait.emailLabel')}</label>
+                            <input id="auth-parent-email" type="email" value={parentEmail} autoFocus autoComplete="off" onChange={(event) => { setParentEmail(event.target.value); clearFieldError('parent'); }}
+                                className={fieldClass('parent')} aria-invalid={Boolean(fieldErrors.parent)} aria-describedby={describedBy('auth-parent-email', 'parent')} />
+                            {fieldError('auth-parent-email', 'parent')}
+                        </div>}
                         <button type="submit" disabled={isLoading} className={authPrimaryButtonClass}>
-                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('auth.register.submit')}
+                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : parentStep ? t('auth.register.parentSubmit') : t('auth.register.submit')}
                         </button>
                     </form>
                 </>

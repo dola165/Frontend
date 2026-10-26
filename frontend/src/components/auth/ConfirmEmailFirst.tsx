@@ -12,9 +12,9 @@ export function ConfirmEmailFirst({ className = '' }: { className?: string }) {
     const email = useAuth().user?.email;
     const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
     const resend = async () => {
-        if (!email) return;
         setState('sending');
-        try { await apiClient.post('/auth/resend-verification', { email }); setState('sent'); } catch { setState('failed'); }
+        // Signed in: the server sends to the account's own address.
+        try { await apiClient.post('/auth/send-verification'); setState('sent'); } catch { setState('failed'); }
     };
     return <div role="alert" className={`gk-confirm-email ${className}`.trim()}>
         <MailCheck aria-hidden="true" />
@@ -24,7 +24,7 @@ export function ConfirmEmailFirst({ className = '' }: { className?: string }) {
                 : state === 'failed' ? copy('That did not send. Try again.', 'ვერ გაიგზავნა. სცადეთ ხელახლა.')
                 : copy(`The link is in ${email ?? 'your inbox'}.`, `ბმული ${email ?? 'თქვენს ელფოსტაშია'}.`)}</small>
         </span>
-        {state !== 'sent' && <Button size="sm" variant="secondary" disabled={state === 'sending' || !email} onClick={() => void resend()}>
+        {state !== 'sent' && <Button size="sm" variant="secondary" disabled={state === 'sending'} onClick={() => void resend()}>
             {state === 'sending' && <Loader2 className="animate-spin" aria-hidden="true" />}{copy('Resend', 'ხელახლა გაგზავნა')}
         </Button>}
     </div>;

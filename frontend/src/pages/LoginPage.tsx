@@ -107,7 +107,7 @@ export const LoginPage = () => {
             if (!result) return;
             setPassword('');
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true);
+            navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true);
         } catch (err) {
             const code = extractApiErrorCode(err);
             if (code === 'ACCOUNT_NOT_FOUND') { setUnknownEmail(true); return; }
@@ -136,7 +136,7 @@ export const LoginPage = () => {
             if (!result) return;
             rememberAuthFlow({ nextPath, newAccount: result.newAccount === true });
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true, result.newAccount === true);
+            navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true, result.newAccount === true);
         } catch (err) {
             setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
         } finally {

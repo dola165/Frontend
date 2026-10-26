@@ -27,7 +27,7 @@ export const operationTabs = [
 export type OperationTab = typeof operationTabs[number]['id'];
 export const operationModule = (tab: string) => operationTabs.find(item => item.id === tab)?.module;
 export const operationTab = (module: string | null) => operationTabs.find(item => item.module === module)?.id ?? 'actions';
-export const staffTabs = new Set<string>(['personnel', 'staff-duties', 'credentials', 'specialists', 'role-requests']);
+export const staffTabs = new Set<string>(['personnel', 'staff-duties', 'credentials', 'specialists']);
 export const availableOperationTabs = (boot: Bootstrap) => operationTabs.filter(item => item.module === 'HOME' || item.module === 'SETTINGS' && boot.leadership || boot.modules.some(m => m.id === item.module));
 const DESCRIBED = ['HOME', 'STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'REGISTRATION', 'DEVELOPMENT', 'EDUCATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'DEPARTURES', 'AVAILABILITY', 'MEDICAL', 'WELFARE'] as const;
 /** What each tool is for, in one line, in the person's language. */

@@ -97,13 +97,13 @@ it.each([
     expect(screen.queryByRole('link',{name:/^Map/})).not.toBeInTheDocument();
 });
 
-it('opens the workspace from one row and switches only through the short list', async () => {
+it('opens the workspace from one row and switches through the list of the others', async () => {
     const ws = (id: string, type: string, cid: number, label: string) => ({ id, context: { type, id: cid, label } });
     render(<MemoryRouter><LeftSidebar user={{ id: 9, navigationCapabilities: { version: 1, workspaces: [ws('club.workspace', 'club', 1, 'Academy'), ws('squad.workspace', 'squad', 18, 'U12'), ws('squad.workspace', 'squad', 19, 'U13'), ws('squad.workspace', 'squad', 20, 'U14'), ws('squad.workspace', 'squad', 21, 'U15'), ws('squad.workspace', 'squad', 22, 'U16')] } }} /></MemoryRouter>);
     expect(screen.getByRole('link', { name: /Academy.*Workspace/ })).toHaveAttribute('href', '/clubs/1/workspace');
     await userEvent.click(screen.getByRole('button', { name: 'Switch workspace' }));
     const list = screen.getByRole('navigation', { name: 'Switch workspace' });
-    expect(Array.from(list.querySelectorAll('a')).map(link => link.getAttribute('href'))).toEqual(['/squads/18', '/squads/19', '/squads/20', '/squads/21', '/workspaces']);
+    expect(Array.from(list.querySelectorAll('a')).map(link => link.getAttribute('href'))).toEqual(['/squads/18', '/squads/19', '/squads/20', '/squads/21', '/squads/22']);
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('navigation', { name: 'Switch workspace' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Switch workspace' })).toHaveFocus();

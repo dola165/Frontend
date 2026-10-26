@@ -4,7 +4,6 @@ import { useClubAdmissions } from '../features/admissions/club/useClubAdmissions
 import { useClubAdmissionCopy } from '../features/admissions/club/copy';
 import { WorkspaceOperations } from '../features/clubOperations/WorkspaceOperations';
 import { WorkspaceSquads } from '../features/clubOperations/WorkspaceSquads';
-import { WorkspaceRolesPanel } from '../features/clubOperations/WorkspaceRoleViews';
 import { useClubOperations } from '../features/clubOperations/useClubOperations';
 import { useWorkspaceRoles, type RoleView } from '../features/clubOperations/useWorkspaceRoles';
 import { operationModule } from '../features/clubOperations/workspaceNavigation';
@@ -193,7 +192,6 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     else if (activeTab === 'squads' && can.operations) content = <SquadsPage key={clubId} clubId={clubId} overview={overview} setParentError={membership.setErrorMessage} setParentSuccess={membership.setSuccessMessage}
         workspace={roles ? { data: roles, boot: operations.boot, onOpen: openWork } : undefined} />;
     else if (activeTab === 'squads') content = roles && <WorkspaceSquads data={roles} boot={operations.boot} squad={workSquad} onSquad={chooseWorkSquad} onOpen={openWork} />;
-    else if (activeTab === 'role-requests') content = roles && (<WorkspaceRolesPanel club={clubId} data={roles} onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />);
     else if (selectedOperation) content = operations.boot
         ? <WorkspaceOperations key={`${clubId}-${selectedOperation}-${workSquad}-${searchParams.get('session') ?? ''}-${searchParams.get('person') ?? ''}`} boot={{ ...operations.boot, peopleBySquad: roles?.people }} module={selectedOperation} onRefresh={operations.refresh} origin={origin} />
         : <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{operations.error || 'This section is unavailable for your account.'}</span><Button size="sm" onClick={() => { void operations.refresh(); }}>Try again</Button></div></PageFrame>;

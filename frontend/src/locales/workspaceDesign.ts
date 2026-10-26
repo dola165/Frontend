@@ -39,7 +39,7 @@ export const workspaceNavEn = {
     overview: 'Today', 'coach-hub': 'Coach Hub', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools', calendar: 'Calendar',
     personnel: 'People', players: 'Players', invites: 'Invitations', applications: 'Applications', roles: 'Ownership & access', 'club-approaches': 'Agent approaches',
     jobs: 'Hiring', programmes: 'Programmes & fees', store: 'Store', campaigns: 'Fundraising', settings: 'Club settings', squads: 'Squads',
-    'player-cards': 'Player cards', tryouts: 'Tryouts', 'role-requests': 'Roles & requests',
+    'player-cards': 'Player cards', tryouts: 'Tryouts',
     'staff-duties': 'Duties', credentials: 'Credentials', specialists: 'Specialists', guardians: 'Guardians & permissions', attendance: 'Attendance & collection',
     registration: 'Registration', departures: 'Departures', development: 'Development', education: 'Education', facilities: 'Grounds & facilities',
     preparation: 'Match preparation', equipment: 'Equipment', finance: 'Finance', travel: 'Travel', restrictions: 'Restrictions',
@@ -58,7 +58,7 @@ export const workspaceNavKa: Record<keyof typeof workspaceNavEn, string> = {
     overview: 'დღეს', 'coach-hub': 'მწვრთნელის პანელი', inbox: 'კლუბის სიახლეები', actions: 'სამუშაო რიგი', tools: 'ყველა ინსტრუმენტი', calendar: 'კალენდარი',
     personnel: 'ხალხი', players: 'მოთამაშეები', invites: 'მოწვევები', applications: 'განაცხადები', roles: 'მფლობელობა და წვდომა', 'club-approaches': 'აგენტების მიმართვები',
     jobs: 'დაქირავება', programmes: 'პროგრამები და საფასური', store: 'მაღაზია', campaigns: 'შემოწირულობები', settings: 'კლუბის პარამეტრები', squads: 'შემადგენლობები',
-    'player-cards': 'მოთამაშის ბარათები', tryouts: 'სინჯები', 'role-requests': 'როლები და მოთხოვნები',
+    'player-cards': 'მოთამაშის ბარათები', tryouts: 'სინჯები',
     'staff-duties': 'მოვალეობები', credentials: 'კვალიფიკაციები', specialists: 'სპეციალისტები', guardians: 'მეურვეები და ნებართვები', attendance: 'დასწრება და წაყვანა',
     registration: 'რეგისტრაცია', departures: 'წასვლები', development: 'განვითარება', education: 'განათლება', facilities: 'მოედნები და ინფრასტრუქტურა',
     preparation: 'მატჩისთვის მომზადება', equipment: 'ინვენტარი', finance: 'ფინანსები', travel: 'მგზავრობა', restrictions: 'შეზღუდვები',
@@ -83,10 +83,10 @@ export const coachHubEn = {
     weekEmpty: 'No sessions or matches in the next 7 days', weekEmptyHint: 'Plan training from a squad’s schedule.',
     mySquads: 'My squads', squads_one: '{{count}} squad', squads_other: '{{count}} squads',
     playerCount_one: '{{count}} player', playerCount_other: '{{count}} players',
-    noSquads: 'No squads in your hub', takeOn: 'Take on a responsibility', showAll: 'Show all my responsibilities',
-    noSquadsLeadership: 'You see the whole club through club administration. Ask for a squad responsibility to coach a team from here.',
-    noSquadsStaff: 'Club leadership assigns squads to your responsibilities. Ask for one to start.',
-    focusHidden: 'Your squad responsibilities are switched off in Responsibilities, so their squads are not shown here.',
+    noSquads: 'No squads in your hub', showAll: 'Show all my responsibilities',
+    
+    
+    
     nextTraining: 'Next: {{time}} {{day}} · {{name}}', noTraining: 'No training planned in the next 14 days',
     findPlayer: 'Find a player', squadFilter: 'Squad', allMySquads: 'All my squads', notesAndTools: 'Notes and tools',
     noPlayersMatch: 'No players match', clearFilters: 'Clear filters', noPlayersMatchHint: 'Try another name or squad.', noPlayersYet: 'Players appear here once a club admin assigns you a squad.',
@@ -100,7 +100,7 @@ export const coachHubEn = {
     myTasks: 'My tasks', assigned: '{{count}} assigned to you', workQueue: 'Work queue', loadingTasks: 'Loading your tasks', tasksError: 'Could not load your tasks.',
     noTasks: 'Nothing is assigned to you', noTasksHint: 'Records where you are the responsible person appear here.', moreTasks: '{{count}} more in the work queue',
     clubWide: 'Club-wide', expired: 'Expired',
-    otherWork: 'Your other work', allWorkspaces: 'All workspaces',
+    otherWork: 'Your other work', 
     panelClose: 'Close player details', panelFallback: 'Squad player', shirt: '#{{number}}', age: 'Age {{age}}',
     addObservation: 'Add observation', removeFromSquad: 'Remove from {{squad}}', publicProfile: 'Public profile', observationTitle: 'Coach observation', observationLabel: 'Observation', observationPlaceholder: 'What did you notice?',
     nextSteps: 'Next steps', optional: '(optional)', saveObservation: 'Save observation', saving: 'Saving…', cancel: 'Cancel',
@@ -128,10 +128,10 @@ export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
     weekEmpty: 'მომდევნო 7 დღეში ვარჯიში ან მატჩი არ არის', weekEmptyHint: 'დაგეგმეთ ვარჯიში გუნდის განრიგიდან.',
     mySquads: 'ჩემი გუნდები', squads_one: '{{count}} გუნდი', squads_other: '{{count}} გუნდი',
     playerCount_one: '{{count}} მოთამაშე', playerCount_other: '{{count}} მოთამაშე',
-    noSquads: 'პანელში გუნდები არ არის', takeOn: 'პასუხისმგებლობის აღება', showAll: 'ყველა პასუხისმგებლობის ჩვენება',
-    noSquadsLeadership: 'კლუბს მთლიანად ადმინისტრირების უფლებით ხედავთ. გუნდის სავარჯიშოდ მოითხოვეთ გუნდის პასუხისმგებლობა.',
-    noSquadsStaff: 'გუნდებს კლუბის ხელმძღვანელობა გინიშნავთ. დასაწყებად მოითხოვეთ პასუხისმგებლობა.',
-    focusHidden: 'გუნდის პასუხისმგებლობები პასუხისმგებლობების ჩანართში გამორთულია, ამიტომ მათი გუნდები აქ არ ჩანს.',
+    noSquads: 'პანელში გუნდები არ არის', showAll: 'ყველა პასუხისმგებლობის ჩვენება',
+    
+    
+    
     nextTraining: 'შემდეგი: {{time}} {{day}} · {{name}}', noTraining: 'მომდევნო 14 დღეში ვარჯიში დაგეგმილი არ არის',
     findPlayer: 'მოთამაშის ძიება', squadFilter: 'გუნდი', allMySquads: 'ჩემი ყველა გუნდი', notesAndTools: 'ჩანაწერები და ინსტრუმენტები',
     noPlayersMatch: 'მოთამაშე ვერ მოიძებნა', clearFilters: 'ფილტრების გასუფთავება', noPlayersMatchHint: 'სცადეთ სხვა სახელი ან გუნდი.', noPlayersYet: 'მოთამაშეები გამოჩნდება, როცა კლუბის ადმინისტრატორი გუნდს დაგინიშნავთ.',
@@ -145,7 +145,7 @@ export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
     myTasks: 'ჩემი დავალებები', assigned: '{{count}} თქვენზე დანიშნული', workQueue: 'სამუშაო რიგი', loadingTasks: 'დავალებები იტვირთება', tasksError: 'დავალებების ჩატვირთვა ვერ მოხერხდა.',
     noTasks: 'თქვენზე არაფერია დანიშნული', noTasksHint: 'ჩანაწერები, რომლებზეც პასუხისმგებელი ხართ, აქ გამოჩნდება.', moreTasks: 'კიდევ {{count}} სამუშაო რიგში',
     clubWide: 'მთელი კლუბი', expired: 'ვადაგასული',
-    otherWork: 'თქვენი სხვა სამუშაო', allWorkspaces: 'ყველა სამუშაო სივრცე',
+    otherWork: 'თქვენი სხვა სამუშაო', 
     panelClose: 'მოთამაშის დეტალების დახურვა', panelFallback: 'გუნდის მოთამაშე', shirt: '#{{number}}', age: '{{age}} წლის',
     addObservation: 'დაკვირვების დამატება', removeFromSquad: '{{squad}}-დან ამოღება', publicProfile: 'საჯარო პროფილი', observationTitle: 'მწვრთნელის დაკვირვება', observationLabel: 'დაკვირვება', observationPlaceholder: 'რა შენიშნეთ?',
     nextSteps: 'შემდეგი ნაბიჯები', optional: '(არასავალდებულო)', saveObservation: 'დაკვირვების შენახვა', saving: 'ინახება…', cancel: 'გაუქმება',
@@ -159,15 +159,6 @@ export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
     planSession: 'ვარჯიშის დაგეგმვა', cancelled: 'გაუქმებულია',
     arrangeMatch: 'მატჩის მოწყობა', cancelSession: 'გაუქმება', addResult: 'შედეგის დამატება', messageParents: 'რამდენიმე მშობლისთვის მიწერა', sharePhoto: 'ფოტოს გაზიარება', manageRoster: 'შემადგენლობის მართვა', newAnnouncement: 'ახალი განცხადება', matches: 'მატჩები', arrangeAsk: 'გსურთ მატჩის მოწყობა?', comingUp: 'მომავალი', played: 'ჩატარებული', homeGame: 'შინ', awayGame: 'გასვლაზე', edit: 'რედაქტირება', matchPage: 'მატჩის გვერდი', partOverview: 'ჩატები და მწვრთნელები', partSessions: 'სესიები', partUpdates: 'განახლებები', partsJoin: ' და ', couldNotLoad: '{{what}} ვერ ჩაიტვირთა', squadCouldNotLoad: '{{squad}}: {{what}} ვერ ჩაიტვირთა', recordsFailed: 'მოთამაშეების შეზღუდვები და ჩანაწერები ვერ ჩაიტვირთა', sessionsFailed: 'სესიები ვერ ჩაიტვირთა', retrying: 'ხელახლა ცდა…', cancelTitle: 'გავაუქმოთ „{{title}}“?', cancelledTitle: '„{{title}}“ გაუქმებულია', cancelMessage: 'გაუქმდა: {{title}}, {{when}}{{where}}. {{squad}} არ იკრიბება. ბოდიშს გიხდით, რომ ასე გვიან გატყობინებთ.', cancelWhere: ', {{place}}', cancelAnnouncement: 'გაუქმდა: {{title}}', messageToParents: 'შეტყობინება მშობლებს', cancelHint: 'მიმაგრებული განცხადებით გაეგზავნება {{squad}}-ის ყველა მშობელსა და მეურვეს, წაკითხვის დადასტურების თხოვნით.', keepIt: 'დატოვება', cancelAndTell: 'გაუქმება და მშობლების ინფორმირება', cancelAndTellCount: 'გაუქმება და {{count}} მშობლის ინფორმირება', cancelling: 'უქმდება…', cancelUnconfirmed: 'გაუქმება ვერ დადასტურდა. სცადეთ ხელახლა: ორჯერ არ გაუქმდება.', cancelledNotSent: 'გაუქმებულია, დამატებითი შეტყობინება ვერ გაიგზავნა.', sendAgain: 'შეტყობინების ხელახლა გაგზავნა', sending: 'იგზავნება…', close: 'დახურვა', noMatchesSoon: 'მატჩი ჯერ არ არის მოწყობილი', noMatchesSoonHint: 'მოიწვიეთ კლუბი და მატჩი აქაც და „მალე“-შიც გამოჩნდება.', noMatchesPlayed: 'ჩატარებული მატჩი ჯერ არ არის', noMatchesPlayedHint: 'შედეგები ყოველი მატჩის შემდეგ აქ გამოჩნდება.',
     updates: 'განახლებები', coaches: 'მწვრთნელები', suggestAssistant: 'ასისტენტის შეთავაზება', clubStaff: 'კლუბის პერსონალი', loadingSquads: 'თქვენი გუნდები იტვირთება', squadsLoadError: 'თქვენი გუნდები ვერ ჩაიტვირთა.', noSquadsYet: 'გუნდი ჯერ არ გაქვთ', noSquadsYetHint: 'როცა კლუბი გუნდის მწვრთნელად დაგნიშნავთ, გუნდი აქ გამოჩნდება თავისი კალენდრით, მოთამაშეებით, მშობლებითა და მწვრთნელებით.', allSquads: 'ყველა გუნდი', clubCalendar: 'კლუბის კალენდარი', versus: '{{team}}-ის წინააღმდეგ', matchTitle: '{{home}} – {{away}}', dateToAgree: 'თარიღი შესათანხმებელია', noScore: 'ანგარიში არ არის', waitingOpponent: 'მეტოქის პასუხის მოლოდინში', openToAnyClub: 'ღიაა ნებისმიერი კლუბისთვის', matchesLoadError: 'თქვენი მატჩები ვერ ჩაიტვირთა.', sharePhotoHint: 'გამოქვეყნდება კლუბის გვერდსა და არხზე, კლუბის სახელით.', filterEveryone: 'ყველა', filterRestricted: 'შეზღუდული', filterTrial: 'სინჯებზე', filterConsent: 'თანხმობა', consentAwaiting: 'თანხმობა მშობლის მოლოდინში', developmentReview: 'განვითარების მიმოხილვა', reviewOnDate: 'მიმოხილვა {{date}}', removeConfirm: 'ამოვიღოთ {{name}} გუნდიდან „{{squad}}“? კლუბში ადგილი უნარჩუნდება.', removeFailed: 'მოთამაშის ამოღება ვერ მოხერხდა.', removeFrom: '{{name}}: ამოღება გუნდიდან „{{squad}}“', colPlayer: 'მოთამაშე', colNumber: '№', colPosition: 'პოზიცია', colAge: 'ასაკი', colSigns: 'ნიშნები', tryAnotherName: 'სცადეთ სხვა სახელი ან ნომერი.', playersAppear: 'მოთამაშეები აქ გამოჩნდებიან, როცა თქვენს გუნდებს შეუერთდებიან.', nobodyFilter: 'არავინ: {{filter}}', goodNews: 'კარგი ამბავია.', playersIn: '{{count}} · {{where}}', inYourSquads: 'თქვენს გუნდებში', show: 'ჩვენება', namePlaceholder: 'სახელი ან მაისურის ნომერი', layout: 'განლაგება', cards: 'ბარათები', table: 'ცხრილი', whoAckFailed: 'ვინ დაადასტურა, ვერ ჩაიტვირთა.', notAckYet: 'ჯერ არ დაუდასტურებიათ', everyoneAck: 'ყველა მშობელმა და მეურვემ დაადასტურა.', deleteUpdateConfirm: 'წავშალოთ ეს განახლება ყველა მშობლისა და მეურვისთვის?', deleteUpdateFailed: 'განახლება ვერ წაიშალა.', pinned: 'მიმაგრებული', ofTotal: '{{total}}-დან {{count}}', parentsAcknowledged: 'მშობელმა დაადასტურა', noAckAsked: 'დადასტურება არ მოთხოვნილა', deleteUpdate: 'წაშლა', noUpdatesYet: 'განახლებები ჯერ არ არის', noUpdatesHint: 'თქვენი პირველი განცხადება მშობლებისა და მეურვეებისთვის აქ გამოჩნდება.', parentMessages: 'შეტყობინებები მშობლებისა და მეურვეებისგან', newCount: '{{count}} ახალი', messageSeveral: '+ რამდენიმე მშობლისთვის მიწერა', allAnswered: 'ყველას უპასუხეთ', allAnsweredHint: 'მშობლებისა და მეურვეების ახალი შეტყობინებები აქ გამოჩნდება.', chats: 'ჩატები', chatsHint: 'სადაც თქვენი გუნდები საუბრობენ', familiesChat: '{{squad}}: მშობლები და მეურვეები', familiesChatHint: 'პირადი: თითოეული მშობელი მხოლოდ თქვენ გწერთ', squadChatOf: '{{squad}}: გუნდის ჩატი', squadChatHint: 'ყველა ერთად: მოთამაშეები, მშობლები და მწვრთნელები', notifyMe: 'შემატყობინე', nameYou: '{{name}} (თქვენ)', headCoach: 'მთავარი მწვრთნელი', coach: 'მწვრთნელი', message: 'მიწერა', headCoachEach: 'თითოეული გუნდის მთავარი მწვრთნელი', notAssigned: 'არ არის დანიშნული', sharedJobs: 'საერთო საქმეები', sharedJobsHint: 'შეცვლა, ეკიპირება, მატჩის დღე', nobodyYet: 'ჯერ არავინ', noSharedJobs: 'საერთო საქმეები არ არის', noSharedJobsHint: 'თქვენი გუნდების ვარჯიშის შეცვლა, ეკიპირების შემოწმება და მატჩის დღის საქმეები აქ გამოჩნდება.', yourResponsibilities: 'თქვენი პასუხისმგებლობები', wholeClub: 'მთელი კლუბი', noneYet: 'ჯერ არცერთი', adminApproves: 'სამუშაოს აქ ადმინი გასცემს.', headCoachFailed: 'მთავარი მწვრთნელი ვერ შეიცვალა.', messageParentsTitle: 'მშობლებისთვის მიწერა', toNames: 'ადრესატები: {{names}}', tapParents: 'მონიშნეთ მშობლები, ვისაც გსურთ მისწეროთ', sendTo: 'გაგზავნა ({{count}})', send: 'გაგზავნა', noParentsLinked: 'მშობლები ჯერ არ არიან დაკავშირებული', noParentsHint: 'მშობლები და მეურვეები აქ გამოჩნდებიან, როცა თქვენს მოთამაშეებს დაუკავშირდებიან.', writeOnce: 'დაწერეთ ერთხელ, ყველა არჩეული მიიღებს…', messageFailed: 'შეტყობინება ვერ გაიგზავნა.', parentsAndGuardians: 'მშობლები და მეურვეები', playersInSquad: '{{count}} მოთამაშე გუნდში „{{squad}}“', moreInWorkspace: 'მეტი კლუბის სამუშაო სივრცეში', ageValue: 'ასაკი: {{age}}', remove: 'ამოღება', removeName: '{{name}}: ამოღება', addClubPlayers: 'დაამატეთ კლუბის მოთამაშეები ამ გუნდში.', squad: 'გუნდი', sideHome: 'მასპინძელი', sideAway: 'სტუმარი', goals: '{{team}}: გოლები', notNow: 'ახლა არა', saveResult: 'შედეგის შენახვა', resultFailed: 'შედეგი ვერ შეინახა.', needNoReply: '{{count}} უპასუხოდ', needMessagedOne: '{{name}} მოგწერათ', needMessagedMany: '{{count}} მშობელმა მოგწერათ', privateMessage: 'პირადი შეტყობინება', reply: 'პასუხი', updateFallback: 'განახლება', needConfirmed: '{{total}}-დან {{count}} მშობელმა დაადასტურა', needNotAck: '{{count}} არ დაუდასტურებია', needConsent: 'თანხმობა: {{title}}', needDraft: 'მონახაზი', needDue: 'ვადა: {{date}}', assignedToYou: 'თქვენზე დანიშნული', toDo: 'გასაკეთებელი', repliesComing: '{{count}} მოდის', repliesCant: '{{count}} ვერ მოდის', repliesUnsure: '{{count}} ჯერ არ იცის', repliesEveryone: 'ყველას ველოდებით',
-};
-
-/** How a staff responsibility request's status reads (requests made before the 26 October foundation). */
-export const responsibilitiesEn = {
-    PENDING: 'Awaiting approval', APPROVED: 'Approved', DECLINED: 'Declined', WITHDRAWN: 'Withdrawn',
-};
-
-export const responsibilitiesKa: Record<keyof typeof responsibilitiesEn, string> = {
-    PENDING: 'დამტკიცების მოლოდინში', APPROVED: 'დამტკიცებული', DECLINED: 'უარყოფილი', WITHDRAWN: 'გაუქმებული',
 };
 
 /** Days, event kinds and due dates on fixture lines and record rows. */

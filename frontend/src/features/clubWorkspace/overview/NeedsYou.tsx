@@ -45,8 +45,6 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
         if (trials) items.push({ key: 'trials', title: copy('needTrials', { count: trials }), meta: copy('needTrialsMeta'), badge: copy('badgeReview'), tone: 'neutral', rank: 3, open: () => openPlayers('TRIALIST') });
     }
     if (roles?.invitations.length) items.push({ key: 'invitations', title: copy('needInvitations', { count: roles.invitations.length }), meta: roles.invitations.map(a => a.title).join(', '), badge: copy('badgeRespond'), tone: 'warning', rank: 1, open: () => onOpen('coach-hub', { hub: 'responsibilities' }) });
-    const requests = roles?.leadership ? roles.requests.filter(r => r.status === 'PENDING' && r.user_id !== roles.actorId) : [];
-    if (clubWide && requests.length) items.push({ key: 'role-requests', title: copy('needRoleRequests', { count: requests.length }), meta: requests.map(r => r.name).join(', '), badge: copy('badgeDecide'), tone: 'warning', rank: 1, open: () => onOpen('role-requests') });
     // Parent consent: up to three players by name, then the rest together. The check covers a bounded sample.
     const consentRows = consent.result?.players ?? [];
     consentRows.slice(0, 3).forEach(player => {

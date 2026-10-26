@@ -1,13 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
 import { operationTabs, type OperationTab } from '../../features/clubOperations/workspaceNavigation';
 
-export type WorkspaceTab = OperationTab | 'calendar' | 'tools' | 'coach-hub' | 'my-day' | 'my-people' | 'my-squads' | 'my-role' | 'role-requests' | 'overview' | 'personnel' | 'players' | 'invites' | 'admissions' | 'applications' | 'roles' | 'jobs' | 'settings' | 'programmes' | 'squads' | 'player-cards' | 'tryouts' | 'inbox' | 'store' | 'campaigns' | 'club-approaches';
+export type WorkspaceTab = OperationTab | 'calendar' | 'tools' | 'coach-hub' | 'my-day' | 'my-people' | 'my-squads' | 'my-role' | 'overview' | 'personnel' | 'players' | 'invites' | 'admissions' | 'applications' | 'roles' | 'jobs' | 'settings' | 'programmes' | 'squads' | 'player-cards' | 'tryouts' | 'inbox' | 'store' | 'campaigns' | 'club-approaches';
 
 export const WORKSPACE_TAB_IDS: readonly WorkspaceTab[] = [
     'overview', 'calendar', 'personnel', 'players', 'invites', 'admissions', 'applications', 'roles', 'jobs',
     'settings', 'programmes', 'squads', 'player-cards', 'tryouts', 'inbox', 'store', 'campaigns', 'club-approaches',
     ...operationTabs.map(tab => tab.id),
-    'tools', 'coach-hub', 'my-day', 'my-people', 'my-squads', 'my-role', 'role-requests',
+    'tools', 'coach-hub', 'my-day', 'my-people', 'my-squads', 'my-role',
 ];
 
 export const parseWorkspaceTab = (value: string | null): WorkspaceTab | null => (

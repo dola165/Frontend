@@ -11,7 +11,7 @@ export const toolPath = (club: number, tab: WorkspaceTab) => `/clubs/${club}/wor
 
 const iconFor = (tab: WorkspaceTab): PinIcon => {
     if (tab === 'squads' || tab === 'coach-hub') return 'squad';
-    if (['players', 'personnel', 'invites', 'role-requests'].includes(tab)) return 'people';
+    if (['players', 'personnel', 'invites'].includes(tab)) return 'people';
     if (['store'].includes(tab)) return 'store';
     if (['campaigns'].includes(tab)) return 'family';
     if (['jobs', 'finance', 'programmes'].includes(tab)) return 'briefcase';

@@ -17,10 +17,11 @@ const anchorOf = (list: HTMLElement): Anchor | null => {
     const first = [...list.querySelectorAll<HTMLElement>('[data-row-id]')].find(row => row.getBoundingClientRect().bottom > top);
     return first?.dataset.rowId ? { id: first.dataset.rowId, offset: first.getBoundingClientRect().top - top } : null;
 };
-/** Puts the message an anchor names back where it was. */
+/** Puts the message an anchor names back where it was (only when it moved: any setting stops a scroll under way). */
 const restore = (list: HTMLElement, kept: Anchor) => {
     const row = list.querySelector<HTMLElement>(`[data-row-id="${kept.id}"]`);
-    if (row) list.scrollTop += row.getBoundingClientRect().top - list.getBoundingClientRect().top - kept.offset;
+    const moved = row ? row.getBoundingClientRect().top - list.getBoundingClientRect().top - kept.offset : 0;
+    if (Math.abs(moved) >= 1) list.scrollTop += moved;
 };
 /** The newest message that has been on screen in this list. */
 const seenIn = (list: HTMLElement) => lastSeen([...list.querySelectorAll<HTMLElement>('[data-row-id]')]
@@ -42,6 +43,8 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
     const anchor = useRef<Anchor | null>(null);
     /** Where the person is reading while away from the bottom, so a change of heights never moves it. */
     const reading = useRef<Anchor | null>(null);
+    /** On the way down after "Newest" / "N new messages": the bottom is where the view goes, until a person scrolls. */
+    const heading = useRef(false);
     const placed = useRef(false);
     /** The message last jumped to, once it has been brought into view. */
     const shownJump = useRef<number | null>(null);
@@ -80,7 +83,8 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
         else if (view.loaded && !paging && below < 240 && view.hasNewer) newer();
         // At the bottom = at the newest end of the chat, where new messages keep coming in and stay in view.
         atBottom.current = below < 80 && !view.hasNewer;
-        reading.current = atBottom.current ? null : anchorOf(element);
+        if (atBottom.current) heading.current = false;
+        reading.current = atBottom.current || heading.current ? null : anchorOf(element);
         follow(atBottom.current);
         setAway(!atBottom.current);
         const line = element.querySelector<HTMLElement>('[data-unread-line]');
@@ -109,7 +113,7 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
         if (kept) {
             anchor.current = null;
             restore(element, kept);
-        } else if (atBottom.current) element.scrollTop = element.scrollHeight;
+        } else if (atBottom.current || heading.current) element.scrollTop = element.scrollHeight;
         else if (reading.current) restore(element, reading.current);
     }, [view.messages, view.loaded, pending, highlight, active]);
 
@@ -132,7 +136,7 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
         const element = list.current, inner = content.current;
         if (!element || !inner || typeof ResizeObserver === 'undefined') return;
         const observer = new ResizeObserver(() => {
-            if (atBottom.current) element.scrollTop = element.scrollHeight;
+            if (atBottom.current || heading.current) element.scrollTop = element.scrollHeight;
             else if (reading.current) restore(element, reading.current);
         });
         observer.observe(element);
@@ -158,9 +162,11 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
 
     const toBottom = () => {
         if (view.hasNewer) { model.jumpToLatest(); atBottom.current = true; return; }
+        heading.current = true;
         list.current?.scrollTo({ top: list.current.scrollHeight, behavior: 'smooth' });
         model.setHighlight(null);
     };
+    const scrolledByHand = () => { heading.current = false; };
     const newest = newBelow > 0
         ? copy(newBelow === 1 ? '1 new message' : `${newBelow} new messages`, `${newBelow} ახალი შეტყობინება`)
         : view.hasNewer ? copy('Jump to the newest', 'უახლესზე გადასვლა') : copy('Newest', 'უახლესი');
@@ -176,7 +182,8 @@ export function MessageList({ model, actions, active }: { model: TeamChatModel; 
         {unreadAbove && <button type="button" className="tc-pill tc-pill--top" onClick={toUnread}>
             <ArrowUp aria-hidden="true" />{copy(`${unreadCount} new · jump to the first`, `${unreadCount} ახალი · პირველზე გადასვლა`)}
         </button>}
-        <div ref={list} className="tc-list" role="log" aria-label={copy(`Messages in ${chatName}`, `შეტყობინებები: ${chatName}`)} onScroll={onScroll}>
+        <div ref={list} className="tc-list" role="log" aria-label={copy(`Messages in ${chatName}`, `შეტყობინებები: ${chatName}`)} onScroll={onScroll}
+            onWheel={scrolledByHand} onTouchStart={scrolledByHand}>
             <div ref={content}>
                 {!view.loaded && <div className="tc-list__loading" role="status" aria-label={copy('Loading', 'იტვირთება')}>
                     <Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} />

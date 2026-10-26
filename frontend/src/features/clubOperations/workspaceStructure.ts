@@ -16,7 +16,7 @@ export const workspaceAreas = [
   { id: 'staff', label: 'Staff', description: 'The people who work for the club: jobs, access, credentials, hiring.', tabs: ['personnel', 'staff-duties', 'credentials', 'specialists', 'jobs'] },
   { id: 'joining', label: 'Joining', description: 'Players coming in: first visits, applications, tryouts, agents, invitations.', tabs: ['admissions', 'applications', 'tryouts', 'club-approaches', 'invites'] },
   { id: 'club', label: 'Club', description: 'Grounds, travel, kit, fees, money, the store and fundraising.', tabs: ['facilities', 'travel', 'equipment', 'programmes', 'finance', 'store', 'campaigns'] },
-  { id: 'settings', label: 'Settings', description: 'Club setup, the public profile and ownership.', tabs: ['settings', 'workspace-settings', 'roles'] },
+  { id: 'settings', label: 'Settings', description: 'Club setup, the public profile and ownership.', tabs: ['settings', 'workspace-settings'] },
 ] as const;
 export const areaFor = (tab: string) => workspaceAreas.find(area => (area.tabs as readonly string[]).includes(tab));
 
@@ -29,7 +29,7 @@ export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
   return operationDescriptions[operationModule(tab.id) ?? ''] ?? ({
     squads: 'Rosters, training sessions and squad responsibilities.', calendar: 'Every squad’s training, matches and club events together.',
     players: 'Manage club affiliations, trialists and player status.', personnel: 'Coaches, specialists, referees and management access.',
-    roles: 'Manage ownership and club membership.', settings: 'Joining policy, public profile, activities and imports.',
+    settings: 'Joining policy, public profile, activities and imports.',
     programmes: 'Training programmes, prices and fees shown on the club profile.',
     overview: 'Club totals, decisions and the coming week.', inbox: 'Decisions and alerts for the club.',
     'club-approaches': 'Review player-approved approaches from agents.', jobs: 'Post openings and review applicants.',

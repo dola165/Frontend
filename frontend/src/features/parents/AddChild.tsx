@@ -6,6 +6,7 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { useCanBeGuardian } from '../../hooks/useCanBeGuardian';
 import './add-child.css';
 import './parents.css';
 
@@ -13,8 +14,11 @@ type Intent = { fullName: string; dateOfBirth: string; responsible: boolean; req
 /** `inline`: just the two fields and the promise, open at once (joining a group with no child yet). */
 type Props = { onCreated: (childId: number) => void; inline?: boolean };
 
+/** Adding a child; an under-18 account sees only the plain reason instead of the form. */
 export function AddChild(props: Props) {
     const { user, sessionId } = useAuth();
+    const guardian = useCanBeGuardian();
+    if (!guardian.allowed) return <p className="family-notice" role="status">{guardian.reason}</p>;
     return <ChildForm key={`${user?.id}:${sessionId}`} {...props} />;
 }
 

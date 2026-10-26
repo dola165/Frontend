@@ -3,6 +3,7 @@ import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { CalendarDays, Check, Loader2, User, Users } from 'lucide-react';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
+import { useCanBeGuardian } from '../../../hooks/useCanBeGuardian';
 import { fetchJoiningChildren, type JoiningChild } from '../../parents/api';
 import { extractApiErrorCode, extractApiErrorMessage } from '../../../utils/apiError';
 import { buildLoginRedirectPath, buildSignupPath } from '../../../utils/authRedirect';
@@ -37,6 +38,7 @@ export function JoinPage() {
   const [link, setLink] = useState<JoinLink | null>(null);
   const [failed, setFailed] = useState('');
   const { sessionId, isAuthenticated, isBootstrapping, user } = useAuth();
+  const guardian = useCanBeGuardian();
   const [child, setChild] = useState({ name: '', birthDate: '', consent: false });
   const [birthDate, setBirthDate] = useState('');
   const [needsBirth, setNeedsBirth] = useState(false);
@@ -97,7 +99,7 @@ export function JoinPage() {
       <h2 className="gk-join__question">{t('Who’s joining?')}</h2>
       <div className="gk-ctiles gk-ctiles--two" role="group" aria-label={t('Who’s joining?')}>
         <button type="button" className="gk-ctile" onClick={() => choosing('PLAYER')}><span className="gk-ctile__icon"><User aria-hidden="true" /></span><span className="gk-ctile__label">{t('Me')}</span><span className="gk-ghost__hint">{t('I play')}</span></button>
-        <button type="button" className="gk-ctile" onClick={() => choosing('PARENT')}><span className="gk-ctile__icon"><Users aria-hidden="true" /></span><span className="gk-ctile__label">{t('My child')}</span><span className="gk-ghost__hint">{t('Name and birth date')}</span></button>
+        {guardian.allowed && <button type="button" className="gk-ctile" onClick={() => choosing('PARENT')}><span className="gk-ctile__icon"><Users aria-hidden="true" /></span><span className="gk-ctile__label">{t('My child')}</span><span className="gk-ghost__hint">{t('Name and birth date')}</span></button>}
       </div>
       <p className="gk-field__hint gk-join__note">{t('The coach confirms. Nothing is public.')}</p>
     </Panel>
@@ -110,11 +112,16 @@ export function JoinPage() {
         {back}
       </div>
     </Panel>
+    : who === 'PARENT' && !guardian.allowed ? <Panel padded>
+      {header}
+      <p className="gk-join__lead">{guardian.reason}</p>
+      <div className="gk-boxedit__foot"><Button variant="primary" onClick={() => choosing('PLAYER')}>{t('Me')}</Button>{back}</div>
+    </Panel>
     : tooOld ? <Panel padded>
       {header}
       <h2 className="gk-join__question">{t('Joining for your child?')}</h2>
       <p className="gk-join__lead">{youthUnder ? t('{squad} is for players under {age}.', { squad: link.squad.name, age: youthUnder }) : t('This squad is for young players.')}</p>
-      <div className="gk-boxedit__foot"><Button variant="primary" onClick={() => choosing('PARENT')}>{t('Yes, my child')}</Button>{back}</div>
+      <div className="gk-boxedit__foot">{guardian.allowed && <Button variant="primary" onClick={() => choosing('PARENT')}>{t('Yes, my child')}</Button>}{back}</div>
     </Panel>
     : same !== null ? <Panel padded>
       {header}

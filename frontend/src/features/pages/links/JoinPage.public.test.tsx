@@ -86,3 +86,14 @@ it('keeps the skeleton while the session is still being restored', async () => {
     expect(fetchJoinLink).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /My child/ })).not.toBeInTheDocument();
 });
+
+it('an account under 18 joins only as itself: no "My child", and a child link explains why', async () => {
+    signIn('2010-06-01');
+    show();
+    expect(await screen.findByRole('button', { name: /Me/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /My child/ })).not.toBeInTheDocument();
+    cleanup();
+    show(`/join/${code}?who=child`);
+    expect(await screen.findByText(/Only a parent or guardian who is 18 or older can add a child/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Child’s name')).not.toBeInTheDocument();
+});

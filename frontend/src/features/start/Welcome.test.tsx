@@ -79,7 +79,7 @@ describe('the welcome', () => {
         expect(within(box).getByText('Coaches, referees, physios, analysts, agents, volunteers')).toBeInTheDocument();
     });
 
-    it('shows someone under 16 only Play for themselves and Follow', async () => {
+    it('shows someone under 18 only Play for themselves and Follow', async () => {
         auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 14}-01-01` };
         mount('/home?welcome=start');
         const box = await dialog();
@@ -90,17 +90,20 @@ describe('the welcome', () => {
         expect(within(box).getByRole('button', { name: /I’m here to follow football/ })).toBeInTheDocument();
     });
 
-    it('leaves out the business tile and Start your club under 18: pages are for adults', async () => {
+    it('opens step 1 for a 17-year-old who follows an adult answer, and shows them the follower’s week', async () => {
         auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 17}-01-01` };
-        mount('/home?welcome=start');
+        mount('/home?welcome=work');
         const box = await dialog();
-        expect(within(box).getByRole('button', { name: /^A club/ })).toBeInTheDocument();
-        expect(within(box).queryByRole('button', { name: /^A business or organisation/ })).toBeNull();
+        expect(within(box).getByRole('heading', { name: 'What brings you to GrassKickZ?' })).toBeInTheDocument();
+        expect(within(box).queryByRole('button', { name: 'Play football: For my child' })).toBeNull();
+        expect(within(box).queryByRole('button', { name: /^Work or volunteer/ })).toBeNull();
         cleanup();
-        mount('/home?welcome=club');
-        const club = await dialog();
-        expect(within(club).getByRole('heading', { name: 'Find your club' })).toBeInTheDocument();
-        expect(within(club).queryByRole('button', { name: 'Not here? Start your club' })).toBeNull();
+        // Another 17-year-old whose stored answer is an adult one.
+        auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 17}-01-01` };
+        server.prefs = { start: { welcome: { state: 'DONE', choice: 'CHILD', week: [], cardDismissed: false } } };
+        mount('/home');
+        expect(await screen.findByRole('link', { name: 'Follow clubs near you' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Add your child' })).toBeNull();
     });
 
     it('treats Skip as following football: the welcome ends and the first week offers following', async () => {

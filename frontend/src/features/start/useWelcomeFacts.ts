@@ -48,11 +48,8 @@ export function useWelcomeFacts() {
 
     return {
         place, locating, locate, age,
-        /** A missing birth date is not adult (utils/age). */
+        /** A missing birth date is not adult (utils/age); under 18 the welcome offers only Play (for me) and Follow. */
         adult: isAdult(user?.dob),
-        minor: !isAdult(user?.dob),
-        /** Under 16 the welcome offers only Play (for me) and Follow. */
-        under16: age != null && age < 16,
     };
 }
 

@@ -5,7 +5,8 @@ import { Button } from '../../design/primitives';
 import { usePreferences, type WelcomeProgress } from '../preferences/preferencesStore';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { saveStart } from './startApi';
-import { choiceFromStored, WELCOME_PARAM, weekDone, type Choice } from './welcomeSteps';
+import { isAdult } from '../../utils/age';
+import { choiceFromStored, choicesFor, WELCOME_PARAM, weekDone, type Choice } from './welcomeSteps';
 import './welcome.css';
 
 interface WeekStep { id: string; icon: LucideIcon; en: string; ka: string; to: string }
@@ -43,10 +44,13 @@ function stepsFor(choice: Choice, childAge: number | null | undefined): WeekStep
 export function FirstWeek() {
     const copy = useJourneyCopy();
     const [params] = useSearchParams();
-    const userId = useAuth().user?.id;
+    const user = useAuth().user;
+    const userId = user?.id;
     const start = usePreferences(userId).start;
     const progress = start?.welcome;
-    const choice = choiceFromStored(progress?.choice);
+    // An answer this person is not offered (a minor's stored adult answer) shows the follower's week.
+    const stored = choiceFromStored(progress?.choice);
+    const choice = stored && !choicesFor({ adult: isAdult(user?.dob) }).includes(stored) ? 'follow' : stored;
     if (!userId || !choice || progress?.state !== 'DONE' || progress.cardDismissed || params.has(WELCOME_PARAM)) return null;
     const steps = stepsFor(choice, start?.childAge);
     const done = new Set(progress.week ?? []);

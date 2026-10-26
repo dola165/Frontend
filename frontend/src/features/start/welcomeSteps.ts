@@ -15,9 +15,11 @@ export const storedChoice = (choice: Choice) => STORED[choice];
 export const choiceFromStored = (stored?: WelcomeChoice | null): Choice | null =>
     (stored ? CHOICES.find(choice => STORED[choice] === stored) : null) ?? null;
 
-/** Under 16 a person sees only Play (for themselves) and Follow (F7); a business means a page, and pages are for adults. */
-export const choicesFor = ({ under16, adult }: { under16: boolean; adult: boolean }): readonly Choice[] =>
-    under16 ? ['me', 'follow'] : adult ? CHOICES : CHOICES.filter(choice => choice !== 'business');
+/**
+ * Under 18 a person sees only Play (for themselves) and Follow: adding a child, a club's jobs, work and pages are for
+ * adults (F7, review of 26 October 2026). A missing birth date is not adult.
+ */
+export const choicesFor = ({ adult }: { adult: boolean }): readonly Choice[] => (adult ? CHOICES : ['me', 'follow']);
 
 /** The step an address names; links of the earlier five-step welcome open step 1. */
 export function stepFromParam(value: string | null): Step | null {

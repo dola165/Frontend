@@ -41,7 +41,7 @@ export function InviteDialog({ open, club, view, person, allowAdmin, onClose, on
             <Button variant="primary" disabled={busy} onClick={() => void submit()}>{busy ? copy('Inviting…', 'იგზავნება…') : copy('Invite', 'მოწვევა')}</Button></>}>
         <form className="pp-form" onSubmit={event => { event.preventDefault(); void submit(); }}>
             {!person && <div className="pp-form__who">
-                <Field label={copy('Name', 'სახელი')} htmlFor={`${id}-name`}><input id={`${id}-name`} className="gk-input" autoComplete="off" maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></Field>
+                <Field label={copy('Name', 'სახელი')} htmlFor={`${id}-name`}><input id={`${id}-name`} className="gk-input" required aria-required="true" autoComplete="off" maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></Field>
                 <Field label={copy('Email', 'ელფოსტა')} htmlFor={`${id}-email`}><input id={`${id}-email`} className="gk-input" type="email" autoComplete="off" maxLength={254} value={email} disabled={busy} onChange={event => setEmail(event.target.value)} /></Field>
             </div>}
             <JobPicker view={view} draft={draft} onChange={setDraft} choices={allowAdmin ? MAIN_JOBS : MAIN_JOBS.filter(job => job !== 'ADMIN')} extras disabled={busy} />

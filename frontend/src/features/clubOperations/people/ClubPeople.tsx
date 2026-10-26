@@ -8,7 +8,7 @@ import { refreshAccess, useCan } from '../../../hooks/useCan';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import type { ClubManagedMember } from '../../clubs/domain';
-import { answerSuggestion, endJob, fetchPeople, newInviteLink, settleNameCheck, suggestionsIn, type InviteLink, type Suggestion, type InviteResult, type Person, type PersonJob, type PeopleView } from './api';
+import { answerSuggestion, endJob, fetchPeople, isOwnAccount, newInviteLink, settleNameCheck, suggestionsIn, type InviteLink, type Suggestion, type InviteResult, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteDialog } from './InviteDialog';
 import { InviteLinkBox } from './InviteLinkBox';
 import { PersonRow, type PeopleRights } from './PersonRow';
@@ -75,10 +75,14 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
             .filter(p => !needle || `${p.name} ${p.email ?? ''} ${p.jobs.map(j => `${jobLabel(j)} ${whereLabel(j)}`).join(' ')}`.toLowerCase().includes(needle));
     }, [view, query, jobLabel, whereLabel]);
     const hideLink = (userId: number) => setLinks(all => Object.fromEntries(Object.entries(all).filter(([id]) => Number(id) !== userId)));
+    const ownAccount = (name: string) => copy(`${name} has their own account, so there’s no link to send: the invitation waits for them in the app.`,
+        `${name}-ს საკუთარი ანგარიში აქვს, ამიტომ ბმული არ არის საჭირო: მოწვევა აპში ელოდება.`);
     const makeLink = (person: Person) => void run(async () => {
-        const link = await newInviteLink(clubId, person.userId);
-        setLinks(all => ({ ...all, [person.userId]: link }));
-        setNotice(copy('New link made. The earlier one no longer works.', 'ახალი ბმული შეიქმნა. ძველი აღარ მუშაობს.'));
+        try {
+            const link = await newInviteLink(clubId, person.userId);
+            setLinks(all => ({ ...all, [person.userId]: link }));
+            setNotice(copy('New link made. The earlier one no longer works.', 'ახალი ბმული შეიქმნა. ძველი აღარ მუშაობს.'));
+        } catch (failure) { if (!isOwnAccount(failure)) throw failure; setNotice(ownAccount(person.name)); }
     }, copy('Could not make a new link.', 'ახალი ბმული ვერ შეიქმნა.'));
     const settle = (check: number, outcome: 'keep' | 'undo', done: string) => void run(async () => { await settleNameCheck(clubId, check, outcome); refresh(done); }, copy('Could not settle this.', 'ვერ შესრულდა.'));
     const showInvite = (result: InviteResult) => {
@@ -87,7 +91,11 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     const decide = ({ person, job }: Suggestion, decision: 'confirm' | 'decline' | 'withdraw') => void run(async () => {
         const coach = job.suggestedByName ?? copy('The head coach', 'მთავარი მწვრთნელი');
         if (decision === 'withdraw') { await endJob(clubId, person.userId, job); refresh(copy('Withdrawn.', 'გაუქმდა.')); return; }
-        const answer = await answerSuggestion(clubId, job, decision === 'confirm');
+        const answer = await answerSuggestion(clubId, job, decision === 'confirm').catch(failure => {
+            if (!isOwnAccount(failure)) throw failure;
+            return null;
+        });
+        if (!answer) { refresh(ownAccount(person.name)); return; }
         if (answer.link) showInvite({ userId: person.userId, name: person.name, inApp: false, link: answer.link });
         refresh(answer.outcome === 'CONFIRMED' ? copy(`${person.name} is invited as ${jobLabel(job).toLowerCase()}. ${coach} is told.`, `${person.name} მოწვეულია (${jobLabel(job)}). ${coach}-ს ეცნობა.`)
             : copy(`Declined. ${coach} is told.`, `უარყოფილია. ${coach}-ს ეცნობა.`));
@@ -148,8 +156,9 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
                 const added = Boolean(forPerson);
                 open(null);
                 showInvite(result);
-                refresh(result.inApp ? copy(`${result.name} already has an account, so the invitation is waiting in their notifications.`, `${result.name}-ს უკვე აქვს ანგარიში, მოწვევა შეტყობინებებში ელოდება.`)
-                    : added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`));
+                // Never say whether the address already had an account: with a link, send it; without, they find it on signing in.
+                refresh(result.link ? (added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`))
+                    : copy(`Invited ${result.name}. They’ll find the invitation when they sign in.`, `${result.name} მოწვეულია. მოწვევას შესვლისას ნახავს.`));
             }} />}
         {/* Opens at once: while the links load it says so; if they fail, an error line with Try again (remounted once they arrive). */}
         {view && rights.invite && inviting === 'link' && <StaffLinkDialog key={staff.links ? 'loaded' : 'waiting'} club={clubId} clubName={clubName} view={view} links={staff.links ?? []}

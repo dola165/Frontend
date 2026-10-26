@@ -1,5 +1,6 @@
 import { apiClient } from '../../../api/axiosConfig';
 import { cancelClubInvitation, removeClubMember } from '../../clubs/api';
+import { extractApiErrorCode } from '../../../utils/apiError';
 
 /** The club's People screen: person → jobs → where (backend `ClubPeopleController`, fnd-access-b, 26 October 2026). */
 export interface PeopleSquad { id: number; name: string }
@@ -39,8 +40,11 @@ export interface StaffLink {
     joined: { appointmentId: number; userId: number; name: string; avatarUrl: string | null; joinedAt: string; status: string; revision: number | null }[];
 }
 export interface InviteLink { token: string; expiresAt: string }
-/** `status`: INVITED, SUGGESTED (a head coach's; no link until an admin confirms) or ADMIN_INVITED. */
-export interface InviteResult { userId: number; name: string; inApp: boolean; link: InviteLink | null; status?: 'INVITED' | 'SUGGESTED' | 'ADMIN_INVITED' }
+/**
+ * `name` is always the name the inviter typed and `userId` may be null: the answer never says whether the address
+ * already has an account. `status`: INVITED, SUGGESTED (a head coach's; no link until an admin confirms) or ADMIN_INVITED.
+ */
+export interface InviteResult { userId: number | null; name: string; inApp: boolean; link: InviteLink | null; status?: 'INVITED' | 'SUGGESTED' | 'ADMIN_INVITED' }
 export interface SuggestionAnswer { appointmentId: number; outcome: 'CONFIRMED' | 'DECLINED'; answeredBy: string | null; link: InviteLink | null }
 /** A job and where it applies, as the forms edit it. `job` is a main job, another bundle's key or CUSTOM. */
 export interface JobDraft { job: string; title: string; tools: string[]; clubWide: boolean; squadIds: number[] }
@@ -110,3 +114,6 @@ export type Suggestion = { person: Person; job: PersonJob };
 /** Head coaches' suggestions waiting for an admin: jobs with status SUGGESTED. */
 export const suggestionsIn = (people: Person[]): Suggestion[] =>
     people.flatMap(person => person.jobs.filter(job => job.status === 'SUGGESTED').map(job => ({ person, job })));
+
+/** A link was refused because the person has their own account: they get the invitation in the app, never a link. */
+export const isOwnAccount = (failure: unknown) => extractApiErrorCode(failure) === 'NOT_AN_INVITE_ACCOUNT';

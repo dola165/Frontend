@@ -507,7 +507,7 @@ it('lists the team’s accounts without remove buttons, makes the account and on
     expect(await within(panel).findByRole('alert')).toHaveTextContent('not on the team list');
 });
 
-it('says which release I am on and what I am missing, remembers what I saw, and still lets me set my version by hand', async () => {
+it('says which release I am on and what I am missing, remembers what I saw, checks my project folders and copies a message that keeps my work', async () => {
     const commit = (id: string, title: string, date: string, merge = false) => ({ id: id.padEnd(40, '0'), date, author: 'Dola', title, merge });
     const release = (number: number, backend: string, summary: string, tasks: { id: number; key: string; title: string; status: string; how: 'BRANCH' }[] = []) =>
         ({ number, date: '2026-10-24', backend: backend.padEnd(40, '0'), web: `c9d357${number}`.padEnd(40, '0'), summary: { en: summary, ka: summary }, tasks });
@@ -527,7 +527,19 @@ it('says which release I am on and what I am missing, remembers what I saw, and 
     });
     vi.mocked(api.saveSeen).mockResolvedValue({ release: 4, backend: '9f8c21b8'.padEnd(40, '0'), web: null, at: now });
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
-    localStorage.removeItem('gk.teamWork.myVersion');
+    // The browser's folder picker hands over the folder that holds my projects.
+    type Tree = { [name: string]: Tree | string };
+    const folder = (name: string, tree: Tree): unknown => ({
+        kind: 'directory', name,
+        async *values() { for (const [entry, value] of Object.entries(tree)) yield typeof value === 'string' ? { kind: 'file', name: entry } : folder(entry, value); },
+        async getDirectoryHandle(entry: string) { const value = tree[entry]; if (!value || typeof value === 'string') throw new DOMException(entry, 'NotFoundError'); return folder(entry, value); },
+        async getFileHandle(entry: string) { const value = tree[entry]; if (typeof value !== 'string') throw new DOMException(entry, 'NotFoundError'); return { getFile: async () => ({ text: async () => value }) }; },
+    });
+    const picker = vi.fn().mockResolvedValue(folder('IdeaProjects', {
+        GrassKickZ: { '.git': { config: '[remote "origin"]\n\turl = https://github.com/dola165/GrassKickZ.git\n', HEAD: `${'9f8c21b8'.padEnd(40, '0')}\n` }, src: { main: { java: { ge: { dola: { talanti: {} } } } } } },
+        AgentDola: { '.git': { config: '[remote "origin"]\n\turl = https://github.com/cotnetavkhelidzed-code/AgentDola.git\n', HEAD: 'ref: refs/heads/main\n' } },
+    }));
+    Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
     mount('/team-work');
     await userEvent.click(await screen.findByRole('button', { name: 'What changed' }));
     expect(screen.getByTestId('where')).toHaveTextContent('view=changes');
@@ -544,27 +556,27 @@ it('says which release I am on and what I am missing, remembers what I saw, and 
     expect(within(behind).getByRole('link', { name: 'GK-1 Branding and landing' })).toHaveAttribute('href', '/team-work?task=1');
     await waitFor(() => expect(api.saveSeen).toHaveBeenCalledWith({ release: 4, backend: '9f8c21b8'.padEnd(40, '0'), web: null }));
 
-    // By hand, folded below: pick or paste a commit to see what this computer is missing.
+    // Every change, folded below, newest first.
     await userEvent.click(screen.getByText('Every change, day by day'));
-    expect(screen.getByRole('heading', { name: 'Recent changes' })).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText('My backend version'), '9f8c21b8'.padEnd(40, '0'));
-    expect(screen.getByRole('heading', { name: 'You’re missing 1' })).toBeInTheDocument();
-    const missingList = screen.getByRole('heading', { name: 'You’re missing 1' }).parentElement!;
-    expect(within(missingList).getByText('Format the media files')).toBeInTheDocument();
-    expect(within(missingList).getByText('merged: golive/teamwork-5')).toBeInTheDocument();
-    expect(within(missingList).queryByText('Plans with a status')).not.toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('gk.teamWork.myVersion')!)).toEqual({ backend: '9f8c21b8'.padEnd(40, '0') });
+    const recent = screen.getByRole('heading', { name: 'Recent changes' }).parentElement!;
+    expect(within(recent).getByText('Format the media files')).toBeInTheDocument();
+    expect(within(recent).getByText('merged: golive/teamwork-5')).toBeInTheDocument();
 
-    await userEvent.clear(screen.getByLabelText('Or paste the backend commit id'));
-    await userEvent.type(screen.getByLabelText('Or paste the backend commit id'), '148b8c6');
-    expect(screen.getByRole('heading', { name: 'You are up to date' })).toBeInTheDocument();
+    // My computer: the folder I pick is read in the browser, each copy listed with where it stands.
+    await userEvent.click(screen.getByRole('button', { name: 'Check my project folders' }));
+    const computer = await screen.findByRole('list', { name: 'Projects in IdeaProjects' });
+    expect(within(computer).getByText('IdeaProjects/GrassKickZ').closest('li')).toHaveTextContent('Release 4 · 1 change behind this copy');
+    expect(within(computer).getByText('IdeaProjects/AgentDola').closest('li')).toHaveTextContent('Different project · bring your work over');
 
-    // The update message aims at what is live, not at this copy's own newest commit.
+    // The update message aims at what is live, names what was found, and the button copies exactly it.
     const message = screen.getByLabelText('The message for Claude or Codex') as HTMLTextAreaElement;
-    expect(message.value).toContain('github.com/dola165/GrassKickZ — reach at least commit 148b8c6 (release 5, what is live)');
-    expect(message.value).toContain('whether this computer was already up to date');
-    await userEvent.click(screen.getAllByRole('button', { name: 'Copy update message' })[0]);
+    expect(message.value).toContain('The latest version is release 5');
+    expect(message.value).toContain('github.com/dola165/GrassKickZ, at least commit 148b8c6.');
+    expect(message.value).toContain('- IdeaProjects/GrassKickZ: backend, a detached HEAD at 9f8c21b; release 4, 1 change behind.');
+    expect(message.value).toContain('port my work, do not update it');
+    await userEvent.click(screen.getByRole('button', { name: 'Copy the update message' }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
+    Reflect.deleteProperty(window, 'showDirectoryPicker');
     await userEvent.click(screen.getByRole('button', { name: 'Overview' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');
 });

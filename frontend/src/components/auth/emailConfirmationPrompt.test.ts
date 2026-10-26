@@ -24,6 +24,11 @@ describe('the confirm-your-email prompt', () => {
         expect(api.post).toHaveBeenCalledWith('/auth/send-verification');
     });
 
+    it('says what waits on the email, from confirmFor', () => {
+        promptEmailConfirmation(refusal({ code: 'EMAIL_CONFIRMATION_REQUIRED', confirmFor: 'PUBLISH', action: 'publish_page' }));
+        expect(sonner.toast.warning.mock.calls[0][0]).toBe('Confirm your email to publish');
+    });
+
     it('names the job that waits on the email', () => {
         promptEmailConfirmation(refusal({ code: 'EMAIL_CONFIRMATION_REQUIRED', action: 'JOB', jobTitle: 'Admin' }));
         expect(sonner.toast.warning.mock.calls[0][0]).toBe('Confirm your email to start as Admin');

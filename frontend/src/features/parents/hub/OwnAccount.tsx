@@ -6,12 +6,13 @@ import { extractApiErrorCode, extractApiErrorMessage } from '../../../utils/apiE
 import { ageFromDob } from '../../../utils/age';
 import { isEmail } from '../../../utils/registration';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { giveOwnAccount, type JoiningChild } from '../api';
+import { giveOwnAccount, type JoiningChild, type OwnAccount as OwnAccountState } from '../api';
+import { relativeTime } from './relativeTime';
 
 /**
- * "Give Luka their own account" on the child's card (release 7), for a child of 13 or more without one: the child's
- * email, then "Link sent", with Send again and Use another email. The child sets a password from the link and keeps
- * their history; the parent stays their parent. Nothing for younger children or a child who already signs in.
+ * "Give Luka their own account" on the child's card (release 7), from the server's `ownAccount`: NONE offers it (the
+ * child's email), INVITED says where and when the link went with Send again and Use another email, ACTIVE says the
+ * child has their own account, NOT_ELIGIBLE shows nothing. Without `ownAccount` (an older server) a child of 13+ is offered it.
  */
 export function OwnAccount({ child, onChanged }: { child: JoiningChild; onChanged: () => void }) {
     const copy = useJourneyCopy();
@@ -20,18 +21,19 @@ export function OwnAccount({ child, onChanged }: { child: JoiningChild; onChange
     const known = child.ownAccount;
     const [open, setOpen] = useState(false);
     const [email, setEmail] = useState('');
-    const [sentTo, setSentTo] = useState<string | null>(null);
+    const [sent, setSent] = useState<Pick<OwnAccountState, 'email' | 'sentAt'> | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-    const status = sentTo ? 'INVITED' : known?.status ?? 'NONE';
-    const address = sentTo ?? known?.email ?? null;
-    if (age == null || age < 13 || status === 'NOT_ELIGIBLE') return null;
-    if (status === 'ACTIVE') return <p className="ph-own ph-own--done"><BadgeCheck aria-hidden="true" />{copy(`${first} signs in with their own account.`, `${first} საკუთარი ანგარიშით შედის.`)}</p>;
+    const status = sent ? 'INVITED' : known?.status ?? (age != null && age >= 13 ? 'NONE' : 'NOT_ELIGIBLE');
+    const address = sent?.email ?? known?.email ?? null;
+    const sentAt = sent ? sent.sentAt : known?.sentAt;
+    if (status === 'NOT_ELIGIBLE') return null;
+    if (status === 'ACTIVE') return <p className="ph-own ph-own--done"><BadgeCheck aria-hidden="true" />{copy(`${first} has their own account.`, `${first} საკუთარი ანგარიშით სარგებლობს.`)}</p>;
 
     const send = async (to: string) => {
         if (busy) return;
         setBusy(true); setError('');
-        try { await giveOwnAccount(child.playerId, to); setSentTo(to); setOpen(false); onChanged(); }
+        try { const reply = await giveOwnAccount(child.playerId, to); setSent({ email: reply?.email ?? to, sentAt: reply?.sentAt ?? new Date().toISOString() }); setOpen(false); onChanged(); }
         catch (failure) {
             if (promptEmailConfirmation(failure)) return;
             setError(extractApiErrorCode(failure) === 'EMAIL_IN_USE'
@@ -49,7 +51,7 @@ export function OwnAccount({ child, onChanged }: { child: JoiningChild; onChange
 
     if (status === 'INVITED' && address && !open) return <div className="ph-own" role="status">
         <span className="ph-row__icon" aria-hidden="true"><MailCheck /></span>
-        <span className="ph-own__text"><strong>{copy(`Link sent to ${address}`, `ბმული გაიგზავნა: ${address}`)}</strong>
+        <span className="ph-own__text"><span><strong>{copy(`Link sent to ${address}`, `ბმული გაიგზავნა: ${address}`)}</strong>{sentAt && <span className="ph-own__when"> · {relativeTime(sentAt)}</span>}</span>
             <small>{copy(`When ${first} sets a password, they sign in on their own. You stay their parent.`, `როცა ${first} პაროლს შექმნის, თავად შევა. თქვენ მისი მშობელი რჩებით.`)}</small></span>
         <span className="ph-own__actions">
             <Button size="sm" variant="secondary" disabled={busy} onClick={() => void send(address)}>{busy && spinner}{copy('Send again', 'ხელახლა გაგზავნა')}</Button>

@@ -106,6 +106,13 @@ describe('the start sheet', () => {
     expect(api.createPage.mock.calls[0][0].requestId).toBe(api.createPage.mock.calls[1][0].requestId);
   });
 
+  it('asks an account without a birth date for it before the sheet', async () => {
+    auth.user = { id: 9503, dob: '' };
+    render(<MemoryRouter initialEntries={['/home?create=club&from=link']}><Routes><Route path="/home" element={<CreatePageHost />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole('dialog', { name: 'Your date of birth' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Club name')).toBeNull();
+  });
+
   it('tells someone under 18 that pages are for adults, whatever kind the link asks for', async () => {
     auth.user = { id: 9501, dob: `${new Date().getFullYear() - 17}-01-01` };
     render(<MemoryRouter initialEntries={['/home?create=fan-club&from=link']}><Routes><Route path="/home" element={<CreatePageHost />} /></Routes></MemoryRouter>);

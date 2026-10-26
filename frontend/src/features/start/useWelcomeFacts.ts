@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { ageFromDob } from '../pages/create/useCreatePage';
+import { ageFromDob, isAdult } from '../../utils/age';
 import { usePreferences } from '../preferences/preferencesStore';
 import { devicePosition, fetchPlace, resolveTown, saveStart, type Place } from './startApi';
 
@@ -48,9 +48,9 @@ export function useWelcomeFacts() {
 
     return {
         place, locating, locate, age,
-        /** Unknown age counts as adult: the server still refuses what a minor may not do. */
-        adult: age == null || age >= 18,
-        minor: age != null && age < 18,
+        /** A missing birth date is not adult (utils/age). */
+        adult: isAdult(user?.dob),
+        minor: !isAdult(user?.dob),
         /** Under 16 the welcome offers only Play (for me) and Follow. */
         under16: age != null && age < 16,
     };

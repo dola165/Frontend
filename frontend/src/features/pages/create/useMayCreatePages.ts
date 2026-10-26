@@ -1,6 +1,8 @@
 import { useAuth } from '../../../context/AuthContext';
-import { mayCreatePages } from '../model/kinds';
-import { ageFromDob } from './useCreatePage';
+import { isKnownMinor } from '../../../utils/age';
 
-/** Whether this person may start a page at all: pages are for adults, so under 18 every way in is hidden. */
-export const useMayCreatePages = () => mayCreatePages(ageFromDob(useAuth().user?.dob));
+/**
+ * Whether to offer page creation: pages are for adults, so it is hidden from someone known to be under 18. Without a
+ * birth date it is offered, and the create sheet asks for the date first.
+ */
+export const useMayCreatePages = () => !isKnownMinor(useAuth().user?.dob);

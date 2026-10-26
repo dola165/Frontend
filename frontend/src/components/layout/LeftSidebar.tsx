@@ -1,5 +1,4 @@
-import { mayCreatePages } from '../../features/pages/model/kinds';
-import { ageFromDob } from '../../features/pages/create/useCreatePage';
+import { isKnownMinor } from '../../utils/age';
 import { showSquadNavigation } from './organizationNavigation';
 import { MediaImage } from "../ui/MediaImage";
 import { Link } from "react-router-dom";
@@ -100,7 +99,7 @@ export const LeftSidebar = ({ user, embedded = false }: LeftSidebarProps) => {
         <TeamWorkHomeRow caps={capabilities} />
         </div>
         {/* Someone with no page of their own is offered one; once they have a club or a page, the card goes. */}
-        {capabilitiesKnown(capabilities) && !hasOwnPage(capabilities) && mayCreatePages(ageFromDob(user?.dob)) && <CreateCard from="home" />}
+        {capabilitiesKnown(capabilities) && !hasOwnPage(capabilities) && !isKnownMinor(user?.dob) && <CreateCard from="home" />}
         <div className="home-shortcut-group home-rail-card" role="group" aria-label={copy('Your football', 'თქვენი ფეხბურთი')}>
           <h2 className="home-shortcut-heading">{copy('Your football', 'თქვენი ფეხბურთი')}</h2>
           {primary.map(shortcut)}

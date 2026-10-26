@@ -16,9 +16,9 @@ export function lastSeen(rows: { id: number; top: number }[], viewBottom: number
     return seen;
 }
 
-/** Messages from others below what has been on screen: the "N new messages" waiting under the person's place. */
+/** Messages from others below what has been on screen: the "N new messages" waiting under the person's place (not the chat's own lines). */
 export const unseenBelow = (messages: ChatMessage[], seenTo: number, me: number | null) =>
-    messages.filter(message => message.id > seenTo && message.senderId !== me && !message.deleted).length;
+    messages.filter(message => message.id > seenTo && message.senderId !== me && !message.deleted && !message.event).length;
 
 /**
  * Marks a chat read up to a message, one request at a time and never losing one: a read asked for while another is on

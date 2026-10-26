@@ -161,6 +161,12 @@ describe('reading', () => {
         expect(unseenBelow(messages, 8, 1)).toBe(0);
     });
 
+    it('does not count the chat’s own lines ("Beqa added Gio") as new messages', () => {
+        const added = message(9, { senderId: 2, event: { kind: 'ADDED', by: { id: 2, name: 'Gio', avatarUrl: null }, people: [{ id: 3, name: 'Ilo', avatarUrl: null }] } });
+        expect(unseenBelow([message(8, { senderId: 2 }), added], 7, 1)).toBe(1);
+        expect(unseenBelow([added], 7, 1)).toBe(0);
+    });
+
     it('never loses a read: one asked for while another is on its way goes next, a failed one is tried again', async () => {
         const sent: number[] = [];
         const answers: Array<{ resolve: () => void; reject: () => void }> = [];

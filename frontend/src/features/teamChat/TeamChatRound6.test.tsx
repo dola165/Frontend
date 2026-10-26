@@ -228,6 +228,17 @@ it('chooses who is in a chat: remove with a check first, add team members, open 
     expect(within(people).getByRole('button', { name: 'Choose people' })).toBeInTheDocument();
 });
 
+it('says a chosen task chat’s kept files stay with its people on the shelf, never on the task', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.fetchState).mockResolvedValue(stateOf(registration({ audience: 'CHOSEN' }), { members: [beqa, gio] }));
+    mount('/team-work/chat?chat=50');
+    await screen.findByText('Morning');
+    await user.click(within(panel()).getByRole('button', { name: 'Delete chat…' }));
+    const dialog = await screen.findByRole('alertdialog', { name: /Delete/ });
+    expect(dialog).toHaveTextContent('onto the Kept files shelf, for this chat’s people only, never onto its task');
+    expect(dialog).not.toHaveTextContent('onto GK-12');
+});
+
 it('leaves a chat for chosen people and goes back to the chats', async () => {
     const user = userEvent.setup();
     const chosen = friday({ audience: 'CHOSEN', canManagePeople: false, createdBy: gio });

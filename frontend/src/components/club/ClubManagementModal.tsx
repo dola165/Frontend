@@ -31,7 +31,6 @@ interface ClubManagementModalProps {
     currentRole: string | null;
     initialTab?: ClubManagementTab | null;
     onClose: () => void;
-    onDissolveClub?: () => void;
     onSquadCreated?: () => void;
     onDataChanged?: () => void;
     onMembershipLeft?: () => Promise<void> | void;
@@ -55,7 +54,6 @@ export const ClubManagementModal = ({
     clubName,
     currentRole,
     onClose,
-    onDissolveClub,
 }: ClubManagementModalProps) => {
     const navigate = useNavigate();
 
@@ -252,11 +250,6 @@ export const ClubManagementModal = ({
 
                 </div>
 
-                {onDissolveClub && <details className="mx-5 mb-5 rounded-xl border border-[color:var(--color-danger)]/20 p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-[var(--color-secondary)]">Advanced club settings</summary>
-                    <p className="mt-3 text-xs leading-5 text-[var(--color-secondary)]">Dissolving ends club operations permanently. Review the consequences before continuing.</p>
-                    <button type="button" onClick={onDissolveClub} className="mt-3 rounded-lg border border-[color:var(--color-danger)]/30 px-4 py-2.5 text-sm font-semibold text-[color:var(--color-danger)]">Dissolve Club</button>
-                </details>}
 
                 {/* footer */}
                 <div className="border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-5 py-3 flex justify-end">

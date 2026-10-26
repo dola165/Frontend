@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
-import { toast } from 'sonner';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
-import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { ClubManagementModal, type ClubManagementTab } from '../../../components/club/ClubManagementModal';
 import { ClubEnquiryModal } from '../../../components/club/ClubEnquiryModal';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
@@ -13,7 +11,6 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { playerPath, positivePlayerId } from '../../parents/playerSelection';
 import { ProfileMediaTab } from '../../profiles/ProfileMediaTab';
 import { useProfileImageControls } from '../../profiles/useProfileImageControls';
-import { dissolveClub } from '../api';
 import { clubRoleLabel } from '../domain';
 import { profileKindLabel } from '../presentation';
 import { ClubAboutTab } from './ClubAboutTab';
@@ -59,7 +56,7 @@ function ClubProfileView({ id }: { id: number }) {
     const location = useLocation();
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
-    const { club, loading, failed, permissions: can, refresh, toggleFollow, leftClub, updateImage, forgetMembership } = useClubProfile(id);
+    const { club, loading, failed, permissions: can, refresh, toggleFollow, leftClub, updateImage } = useClubProfile(id);
     // The page under edit (identity, boxes, layout): absent on a backend without pages, and then nothing here changes.
     const edit = usePageEdit();
     const pt = usePagesCopy();
@@ -70,15 +67,12 @@ function ClubProfileView({ id }: { id: number }) {
     // Edits go to the page; the club record, its squads and its posts are read again the moment edit mode or the
     // share card closes, so Done shows the page exactly as visitors now see it, with no reload.
     const [postsRevision, setPostsRevision] = useState(0);
-    const shown = useRef({ editing, live: edit.panel === 'live' });
-    useEffect(() => {
-        const before = shown.current;
-        shown.current = { editing, live: edit.panel === 'live' };
-        if (!(before.editing && !editing) && !(before.live && edit.panel !== 'live')) return;
-        refresh(); setSquadsRevision(value => value + 1); setPostsRevision(value => value + 1);
-    }, [editing, edit.panel, refresh]);
-    const [dissolveOpen, setDissolveOpen] = useState(false);
-    const [dissolving, setDissolving] = useState(false);
+    const live = edit.panel === 'live';
+    const [shown, setShown] = useState({ editing, live });
+    if (shown.editing !== editing || shown.live !== live) {
+        setShown({ editing, live });
+        if ((shown.editing && !editing) || (shown.live && !live)) { refresh(); setSquadsRevision(value => value + 1); setPostsRevision(value => value + 1); }
+    }
     const images = useProfileImageControls({ enabled: can.isLeader, scope: `club:${id}`, imageKind: 'logo', hasCover: Boolean(club?.bannerUrl), onSave: updateImage });
     const tab = clubTabFrom(params.get('tab'));
     const managing = params.get('manageClub') === '1' && can.canManage;
@@ -104,18 +98,6 @@ function ClubProfileView({ id }: { id: number }) {
     };
     const join = () => navigate(playerPath(`/clubs/${id}?tab=teams`, player));
     const message = () => { if (club) setEnquiry({ name: club.name, path: `/clubs/${club.id}?tab=teams`, squadIds: [] }); };
-    const dissolve = async () => {
-        if (!club || dissolving) return;
-        setDissolving(true);
-        try {
-            await dissolveClub(club.id);
-            setDissolveOpen(false);
-            forgetMembership();
-            toast.success('Club dissolved');
-            navigate('/world/clubs', { replace: true });
-        } catch (error) { toast.error(extractApiErrorMessage(error, 'The club could not be dissolved.')); }
-        finally { setDissolving(false); }
-    };
 
     if ((loading && !club) || (edit.loading && !page && !edit.notFound)) return <ClubLoading />;
     if (!club) return <ClubUnavailable failed={failed} onRetry={refresh} />;
@@ -158,16 +140,10 @@ function ClubProfileView({ id }: { id: number }) {
         </ProfileLayout></RearrangeFrame>
         <PagePanels />
 
-        {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))} onClose={() => setManaging(false)}
-            onDissolveClub={can.own && can.role === 'OWNER' ? () => { setManaging(false); setDissolveOpen(true); } : undefined}
-            onSquadCreated={() => setSquadsRevision(value => value + 1)}
+        {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))} onClose={() => setManaging(false)}            onSquadCreated={() => setSquadsRevision(value => value + 1)}
             onDataChanged={() => { refresh(); setSquadsRevision(value => value + 1); }}
             onMembershipLeft={async () => { setManaging(false); await leftClub(); setSquadsRevision(value => value + 1); }} />}
         {enquiry && <ClubEnquiryModal key={`${club.id}:${sessionId}:${enquiry.path}`} clubId={club.id} clubName={club.name} context={enquiry} onClose={() => setEnquiry(null)} />}
-        <ConfirmDialog open={dissolveOpen} variant="danger" title="Dissolve this club?"
-            message="Dissolving is permanent. Club memberships end, pending invitations and applications close, and recruitment stops. Accounts and club history are preserved. Members and followers will be notified. Finish or cancel tournaments the club hosts or organizes, and withdraw its unfinished entries before continuing."
-            confirmLabel={dissolving ? 'Dissolving…' : 'Dissolve club'} onConfirm={() => void dissolve()}
-            onCancel={() => { if (dissolving) return; setDissolveOpen(false); }} />
     </>;
 }
 

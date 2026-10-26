@@ -97,7 +97,7 @@ it('shows the link as a QR code with Copy, WhatsApp and Print', async () => {
     const sheet = { document: { write: vi.fn(), close: vi.fn() }, focus: vi.fn(), print: vi.fn() };
     vi.stubGlobal('open', vi.fn(() => sheet));
     show();
-    expect(await screen.findByTitle('QR code for U12')).toBeInTheDocument();
+    expect(await screen.findByTitle('QR code: Join U12')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Print' }));
     expect(sheet.document.write).toHaveBeenCalledWith(expect.stringContaining('<svg'));
     expect(sheet.document.write).toHaveBeenCalledWith(expect.stringContaining(`${window.location.origin}${active.path}`));

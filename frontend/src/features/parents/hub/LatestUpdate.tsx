@@ -6,7 +6,7 @@ import { MessageText } from '../../../components/chat/MessageText';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import * as api from '../../squadCommunication/api';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { relativeTime } from './relativeTime';
+import { relativeTime } from '../../../utils/relativeTime';
 
 type Latest = { squad: api.SquadOverview; message: api.SquadMessage };
 

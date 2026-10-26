@@ -1,0 +1,4 @@
+/* A refused action: its plain reason and "Ask the admin". Scoped under `.gk-ask-admin`; tokens only. */
+.gk-ask-admin { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gk-1) var(--gk-3); min-width: 0; }
+.gk-ask-admin > .gk-faint { font-size: var(--gk-fs-sm); }
+.gk-ask-admin--compact { flex-wrap: nowrap; }

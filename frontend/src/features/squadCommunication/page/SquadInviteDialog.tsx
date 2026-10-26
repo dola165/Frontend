@@ -6,7 +6,7 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import * as api from '../api';
 import { useJourneyCopy } from '../journeyCopy';
 import { SquadApproveAll } from './SquadApproveAll';
-import { SquadJoinLinkShare } from './SquadJoinLinkShare';
+import { LinkShare } from '../../../components/share/LinkShare';
 import type { JoinRequests } from './useJoinRequests';
 
 
@@ -60,7 +60,7 @@ export function SquadInviteDialog({ space, requests, onClose, onAnswered }: { sp
             {linkError ? <p className="gk-notice gk-notice--danger" role="alert">{linkError}</p>
                 : !link ? <p className="sp-quiet" role="status">{copy('Loading…', 'იტვირთება…')}</p>
                 : link.status === 'ACTIVE' ? <>
-                    <SquadJoinLinkShare url={url} squad={space.name} club={space.academy_name} onError={setError} />
+                    <LinkShare url={url} title={copy(`Join ${space.name}`, `შემოუერთდით: ${space.name}`)} subtitle={space.academy_name} message={`${space.name} · ${space.academy_name}`} label={copy('Join link', 'გაწევრიანების ბმული')} onError={setError} />
                     <div className="sp-invite__manage">
                         <small className="sp-quiet">{expiry ? copy(`Works until ${expiry}.`, `მოქმედებს ${expiry}-მდე.`) : copy('Works until you switch it off.', 'მოქმედებს გათიშვამდე.')}{link.createdByName ? ` · ${copy(`made by ${link.createdByName}`, `შექმნა ${link.createdByName}`)}` : ''}</small>
                         <Button size="sm" variant="ghost" disabled={busy === 'link'} onClick={() => void changeLink('rotate')}><RefreshCw aria-hidden="true" />{copy('New link', 'ახალი ბმული')}</Button>

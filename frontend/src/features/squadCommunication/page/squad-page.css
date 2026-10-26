@@ -70,11 +70,7 @@
 .gk .sp-requests__text strong { font-weight: 650; }
 .gk .sp-requests__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
 .gk .sp-requests__group { margin-top: 4px; max-width: 240px; font-size: var(--gk-fs-sm); }
-/* The link to share: QR code beside Copy, WhatsApp and Print; Approve all beside the waiting list and in the notice. */
-.gk .sp-share { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); }
-.gk .sp-share__qr { flex: none; line-height: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); overflow: hidden; }
-.gk .sp-share__actions { display: flex; flex: 1 1 240px; flex-direction: column; gap: var(--gk-2); min-width: 0; }
-.gk .sp-share__buttons { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+/* Approve all beside the waiting list and in the notice. */
 .gk .sp-invite__waiting { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
 .gk .sp-approve-all { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 .gk .sp-approve-all__group { max-width: 220px; font-size: var(--gk-fs-sm); }

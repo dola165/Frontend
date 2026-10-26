@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import '../../i18n';
 import { LoginPage } from '../LoginPage';
@@ -52,9 +52,25 @@ it('offers to create an account for an unknown email on sign-in, keeping what wa
     expect(document.getElementById('auth-email')).toHaveValue('new@example.test');
 });
 
-it('tells someone under 18 to ask a parent, and stays on sign-up', async () => {
+it('offers sign-in for a known email whatever the age', async () => {
     signUp(`${new Date().getFullYear() - 17}-01-01`);
-    expect(await screen.findByText('This email is already used. Ask a parent to add you.')).toBeInTheDocument();
-    expect(document.getElementById('auth-email')).toHaveAttribute('aria-invalid', 'true');
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/signup'));
+    expect(await screen.findByText('You already have an account. Sign in?')).toBeInTheDocument();
+    expect(document.getElementById('auth-email')).not.toHaveAttribute('aria-invalid', 'true');
+});
+
+it('offers sign-in, not an error, when the account was made but the automatic sign-in failed', async () => {
+    vi.mocked(apiClient.post).mockImplementation(async url => {
+        if (url === '/auth/register') return { data: { accountState: 'AWAITING_PARENT' } };
+        throw { response: { status: 503, data: { detail: 'Service unavailable' } } };
+    });
+    render(<MemoryRouter initialEntries={['/signup']}><Routes><Route path="/signup" element={<RegisterPage />} /><Route path="/login" element={<LoginPage />} /></Routes><Location /></MemoryRouter>);
+    change('auth-name', 'Example Teen'); change('auth-email', 'teen@example.test');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', `${new Date().getFullYear() - 14}-01-01`);
+    fireEvent.submit(document.querySelector('form')!);
+    change('auth-parent-email', 'parent@example.test'); fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByText('Your account is ready. Sign in to continue.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/login');
+    expect(document.getElementById('auth-login-email')).toHaveValue('teen@example.test');
 });

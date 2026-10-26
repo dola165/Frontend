@@ -1025,6 +1025,7 @@ const en = {
       errSubmitFallback: 'Registration failed. Please try again.',
       orEmail: 'Or with email',
       knownEmail: 'You already have an account. Sign in?',
+      createdSignIn: 'Your account is ready. Sign in to continue.',
       parentTitle: 'A parent approves your account',
       parentLine: 'We send them one link. Until they tap it, your account waits.',
       parentSubmit: 'Send and create account',
@@ -1033,7 +1034,6 @@ const en = {
       botUnavailable: 'The check could not be reached. Try again in a minute.',
       retry: 'Try again',
       tryLater: 'You can’t sign up from here right now. Try again later.',
-      emailUsedMinor: 'This email is already used. Ask a parent to add you.',
     },
     under13: {
       title: 'Under-13s join through a parent',

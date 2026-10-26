@@ -34,7 +34,8 @@ export function OwnAccount({ child, onChanged }: { child: JoiningChild; onChange
         try { await giveOwnAccount(child.playerId, to, child.identity.dateOfBirth); setSentTo(to); setOpen(false); onChanged(); }
         catch (failure) {
             if (promptEmailConfirmation(failure)) return;
-            setError(extractApiErrorCode(failure) === 'EMAIL_IN_USE'
+            // 409 today means the email is taken or the card already has an account; EMAIL_IN_USE once fnd-access-b names it.
+            setError(extractApiErrorCode(failure) === 'EMAIL_IN_USE' || (failure as { response?: { status?: number } })?.response?.status === 409
                 ? copy('That email already has an account. Use your child’s own email.', 'ამ ელფოსტით ანგარიში უკვე არსებობს. მიუთითეთ შვილის საკუთარი ელფოსტა.')
                 : extractApiErrorMessage(failure, copy('That did not send. Try again.', 'ვერ გაიგზავნა. სცადეთ ხელახლა.')));
         } finally { setBusy(false); }

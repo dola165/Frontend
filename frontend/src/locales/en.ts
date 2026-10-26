@@ -1067,6 +1067,10 @@ const en = {
       failed: 'That did not work. Try again.',
       invalid: 'This link no longer works.',
       invalidLine: 'Ask your parent to send you a new one.',
+      expired: 'This link has expired.',
+      used: 'Your account is ready.',
+      usedLine: 'Sign in with your password.',
+      signIn: 'Sign in',
     },
     parentApprove: {
       title: 'Approve an account',

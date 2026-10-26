@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, Eye, EyeOff, KeyRound, Loader2, ShieldQuestion } from 'lucide-react';
+import { BadgeCheck, Check, Eye, EyeOff, KeyRound, Loader2, ShieldQuestion } from 'lucide-react';
 import { acceptOwnAccount, fetchOwnAccountLink, type OwnAccountLink } from '../api/ownAccount';
 import { AuthCenterCard } from '../components/auth/AuthCenterCard';
 import { authFieldErrorClass, authInputClass, authInputErrorClass, authLabelClass, authPrimaryButtonClass } from '../components/auth/authClasses';
 import { passwordRules } from '../components/auth/passwordRules';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorCode } from '../utils/apiError';
-import { requiredAccountStep } from '../utils/authRedirect';
+import { rememberAuthFlow, requiredAccountStep } from '../utils/authRedirect';
+
+/** A link that cannot set a password: used (the account exists: sign in), expired (ask again) or not a link at all. */
+type Closed = 'used' | 'expired' | 'invalid';
 
 /**
  * A child's own account from the link a parent sent (`/own-account?token=…`, release 7): the child sees their name and
@@ -19,7 +22,8 @@ export function OwnAccountPage() {
     const navigate = useNavigate();
     const { loginWithAccessToken } = useAuth();
     const token = useSearchParams()[0].get('token') ?? '';
-    const [link, setLink] = useState<OwnAccountLink | null | 'invalid'>(token ? null : 'invalid');
+    const [link, setLink] = useState<OwnAccountLink | null | Closed>(token ? null : 'invalid');
+    const [email, setEmail] = useState<string | null>(null);
     const [password, setPassword] = useState('');
     const [show, setShow] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -29,7 +33,11 @@ export function OwnAccountPage() {
     useEffect(() => {
         if (!token) return;
         let active = true;
-        fetchOwnAccountLink(token).then(found => { if (active) setLink(found.status === 'PENDING' ? found : 'invalid'); }).catch(() => { if (active) setLink('invalid'); });
+        fetchOwnAccountLink(token).then(found => {
+            if (!active) return;
+            setEmail(found.email);
+            setLink(found.status === 'PENDING' ? found : found.status === 'USED' ? 'used' : 'expired');
+        }).catch(() => { if (active) setLink('invalid'); });
         return () => { active = false; };
     }, [token]);
 
@@ -45,13 +53,19 @@ export function OwnAccountPage() {
             navigate(requiredAccountStep({ ...user, accountState: result.accountState ?? user.accountState }) ?? '/home', { replace: true });
         } catch (failure) {
             const code = extractApiErrorCode(failure);
-            if (code === 'used_token' || code === 'expired_token' || code === 'invalid_token') setLink('invalid');
+            if (code === 'used_token') setLink('used');
+            else if (code === 'expired_token') setLink('expired');
+            else if (code === 'invalid_token') setLink('invalid');
             else setError(code === 'PASSWORD_WEAK' ? t('auth.register.errPasswordWeak') : t('auth.ownAccount.failed'));
         } finally { setBusy(false); }
     };
 
     if (link === null) return <AuthCenterCard icon={<Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />} title={t('auth.ownAccount.title')} />;
-    if (link === 'invalid') return <AuthCenterCard icon={<ShieldQuestion className="h-8 w-8" aria-hidden="true" />} title={t('auth.ownAccount.invalid')} line={t('auth.ownAccount.invalidLine')} />;
+    if (link === 'used') return <AuthCenterCard icon={<BadgeCheck className="h-8 w-8" aria-hidden="true" />} title={t('auth.ownAccount.used')} line={t('auth.ownAccount.usedLine')}>
+        <button type="button" className={authPrimaryButtonClass} onClick={() => { if (email) rememberAuthFlow({ email }); navigate('/login', { replace: true }); }}>{t('auth.ownAccount.signIn')}</button>
+    </AuthCenterCard>;
+    if (link === 'expired' || link === 'invalid') return <AuthCenterCard icon={<ShieldQuestion className="h-8 w-8" aria-hidden="true" />}
+        title={t(link === 'expired' ? 'auth.ownAccount.expired' : 'auth.ownAccount.invalid')} line={t('auth.ownAccount.invalidLine')} />;
     return <AuthCenterCard icon={<KeyRound className="h-8 w-8" aria-hidden="true" />} title={t('auth.ownAccount.title')} line={t('auth.ownAccount.line', { name: link.name.split(' ')[0] })}>
         <form className="flex flex-col gap-3" onSubmit={event => void submit(event)} noValidate>
             {link.email && <p className="text-sm text-[var(--color-secondary)]">{t('auth.ownAccount.email', { email: link.email })}</p>}

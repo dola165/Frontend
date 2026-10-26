@@ -29,8 +29,15 @@ it('lets the child set a password and lands them in their own account', async ()
     expect(login).toHaveBeenCalledWith('child-token');
 });
 
-it('says a used link no longer works', async () => {
-    api.fetchOwnAccountLink.mockResolvedValue({ name: 'Luka', email: null, status: 'USED' });
-    render(<MemoryRouter initialEntries={['/own-account?token=old']}><Routes><Route path="/own-account" element={<OwnAccountPage />} /></Routes></MemoryRouter>);
-    expect(await screen.findByText('This link no longer works.')).toBeInTheDocument();
+it('sends a used link to sign-in and asks for a new expired one', async () => {
+    api.fetchOwnAccountLink.mockResolvedValue({ name: 'Luka', email: 'luka@example.test', status: 'USED' });
+    const { unmount } = render(<MemoryRouter initialEntries={['/own-account?token=old']}><Routes><Route path="/own-account" element={<OwnAccountPage />} /><Route path="*" element={<Where />} /></Routes></MemoryRouter>);
+    expect(await screen.findByText('Your account is ready.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/login'));
+    unmount();
+    api.fetchOwnAccountLink.mockResolvedValue({ name: 'Luka', email: null, status: 'EXPIRED' });
+    render(<MemoryRouter initialEntries={['/own-account?token=late']}><Routes><Route path="/own-account" element={<OwnAccountPage />} /></Routes></MemoryRouter>);
+    expect(await screen.findByText('This link has expired.')).toBeInTheDocument();
+    expect(screen.getByText('Ask your parent to send you a new one.')).toBeInTheDocument();
 });

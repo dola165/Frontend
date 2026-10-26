@@ -10,7 +10,6 @@ import { choiceFromStored, choicesFor, WELCOME_PARAM, weekDone, type Choice } fr
 import './welcome.css';
 
 interface WeekStep { id: string; icon: LucideIcon; en: string; ka: string; to: string }
-const THIS_YEAR = new Date().getFullYear();
 
 /** Three steps for each answer to the welcome, each one tap to where it is done. */
 function stepsFor(choice: Choice, childAge: number | null | undefined): WeekStep[] {
@@ -20,7 +19,7 @@ function stepsFor(choice: Choice, childAge: number | null | undefined): WeekStep
         case 'me': return [
             { id: 'trials', icon: Search, en: 'Find a trial that fits you', ka: 'იპოვეთ თქვენთვის შესაფერისი გასინჯვა', to: '/world/opportunities?tab=trials&forMe=true' }, follow, photo];
         case 'child': return [
-            { id: 'groups', icon: Dumbbell, en: 'Find a place to train', ka: 'იპოვეთ სავარჯიშო ადგილი', to: `/world/opportunities?tab=groups${childAge != null ? `&birthYear=${THIS_YEAR - childAge}` : ''}` },
+            { id: 'groups', icon: Dumbbell, en: 'Find a place to train', ka: 'იპოვეთ სავარჯიშო ადგილი', to: `/world/clubs${childAge != null ? `?age=${childAge}` : ''}` },
             { id: 'child', icon: UserPlus, en: 'Add your child', ka: 'დაამატეთ თქვენი შვილი', to: '/parent' }, follow];
         case 'club': return [
             { id: 'club', icon: Shield, en: 'Open your club', ka: 'გახსენით თქვენი კლუბი', to: '/my-club' },

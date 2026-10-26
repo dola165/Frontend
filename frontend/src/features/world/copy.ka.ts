@@ -199,7 +199,7 @@ export const WORLD_KA: Record<string, string> = {
     'No open trials right now': 'ახლა ღია გასინჯვები არ არის', 'Clubs publish trials here before each intake.': 'კლუბები აქ აქვეყნებენ გასინჯვებს ყოველი მიღების წინ.',
     'Places to train': 'სავარჯიშო ჯგუფები', 'Search training groups': 'სავარჯიშო ჯგუფების ძიება', 'Search groups or organisations': 'მოძებნეთ ჯგუფები ან ორგანიზაციები', 'Beginners welcome': 'დამწყებთათვის',
     'Category': 'კატეგორია', 'Boys and men': 'ბიჭები და მამაკაცები', 'Girls and women': 'გოგონები და ქალები', 'One organisation': 'ერთი ორგანიზაცია', 'Player’s birth year': 'მოთამაშის დაბადების წელი',
-    'For example 2015': 'მაგალითად, 2015', 'Any way': 'ნებისმიერი გზით', 'Join directly': 'პირდაპირი ჩარიცხვა', 'Introductory session first': 'ჯერ გაცნობითი ვარჯიში', 'Selection': 'შერჩევა',
+    'For example 2015': 'მაგალითად, 2015', 'Player’s age': 'მოთამაშის ასაკი', 'For example 9': 'მაგალითად, 9', 'Any way': 'ნებისმიერი გზით', 'Join directly': 'პირდაპირი ჩარიცხვა', 'Introductory session first': 'ჯერ გაცნობითი ვარჯიში', 'Selection': 'შერჩევა',
     'Include groups not taking players': 'ის ჯგუფებიც, რომლებიც არ იღებენ მოთამაშეებს', 'Include waiting lists': 'მოლოდინის სიების ჩათვლით',
     'No groups are taking players': 'ახლა არცერთი ჯგუფი არ იღებს მოთამაშეებს', 'Include waiting lists, or ask a club directly from its profile.': 'ჩართეთ მოლოდინის სიები ან ჰკითხეთ კლუბს პირდაპირ მის გვერდზე.',
     'Born {from}–{to}': 'დაბ. {from}–{to}', 'Boys': 'ბიჭები', 'Girls': 'გოგონები', 'Joining football': 'ფეხბურთში ჩართვა',

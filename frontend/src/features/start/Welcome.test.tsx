@@ -12,6 +12,8 @@ import { stepFromParam } from './welcomeSteps';
 // A fake server: preferences, where the person is, clubs near them and by age, follows, professions and discovery.
 const server = vi.hoisted(() => ({
     prefs: {} as Record<string, unknown>, followed: new Set<number>(), gets: [] as string[],
+    /** Open listings near the person, by job category (ALL: no category); clubs for an age, when set. */
+    jobs: {} as Record<string, number>, clubsForAge: null as null | unknown[],
     professions: { items: [] as { id: number; title: string; detail: null; since: null; published: boolean; label: null }[], version: 0 },
     discovery: { openTo: [] as string[], licence: null, rate: null, version: 0 },
 }));
@@ -45,8 +47,11 @@ beforeEach(async () => {
     server.followed = new Set(); server.gets = [];
     server.professions = { items: [], version: 0 };
     server.discovery = { openTo: [], licence: null, rate: null, version: 0 };
-    vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+    server.jobs = {}; server.clubsForAge = null;
+    vi.mocked(apiClient.get).mockImplementation(async (url: string, config?: { params?: unknown }) => {
         server.gets.push(url);
+        if (url === '/jobs/listings') return { data: { content: [], totalElements: server.jobs[String((config?.params as { category?: string } | undefined)?.category ?? 'ALL')] ?? 0 } };
+        if (url.startsWith('/clubs?') && server.clubsForAge) return { data: { content: server.clubsForAge, pageNumber: 0, pageSize: 8, totalElements: 0, totalPages: 0 } };
         if (url.startsWith('/clubs?')) return { data: { content: [{ id: 9, name: 'Rustavi Juniors', cityName: 'Rustavi', followerCount: 3, isFollowedByMe: false }], pageNumber: 0, pageSize: 8, totalElements: 1, totalPages: 1 } };
         if (url === '/clubs/near-you') return { data: [club(5, 'Rustavi Lions', 1), club(6, 'Rustavi Steel', 2), club(7, 'Gardabani Youth', 18), club(8, 'Tbilisi Juniors', 25)] };
         const data: Record<string, unknown> = {
@@ -131,7 +136,7 @@ describe('the welcome', () => {
         await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'FOLLOW' }));
     });
 
-    it('asks a parent only the birth year and town, keeps only the age, and opens places to train for that year', async () => {
+    it('asks a parent only the birth year and town, keeps only the age, and lands on World’s clubs for that age', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=start');
         await user.click(within(await dialog()).getByRole('button', { name: 'Play football: For my child' }));
@@ -141,10 +146,22 @@ describe('the welcome', () => {
         await user.selectOptions(within(box).getByRole('combobox', { name: 'Born in' }), String(year));
         expect(await within(box).findByText('Rustavi Juniors')).toBeInTheDocument();
         expect(server.gets.some(url => url.startsWith('/clubs?') && url.includes('age=9') && url.includes('city=Rustavi'))).toBe(true);
-        await user.click(within(box).getByRole('button', { name: 'Show places to train' }));
-        await waitFor(() => expect(address()).toBe(`/world/opportunities?tab=groups&birthYear=${year}&near=Rustavi`));
+        await user.click(within(box).getByRole('button', { name: 'Show clubs for this age' }));
+        // The same source as the list it showed: World's clubs for age 9 in Rustavi.
+        await waitFor(() => expect(address()).toBe('/world/clubs?near=Rustavi&age=9'));
         await waitFor(() => expect(start().childAge).toBe(9));
         expect(Object.keys(start())).not.toContain('child');
+    });
+
+    it('lands on the town’s clubs when none listed a programme for that age, never an empty list', async () => {
+        const user = userEvent.setup();
+        server.clubsForAge = [];
+        mount('/home?welcome=child');
+        const box = await dialog();
+        await user.selectOptions(within(box).getByRole('combobox', { name: 'Born in' }), String(new Date().getFullYear() - 5));
+        expect(await within(box).findByText('No clubs here yet. World shows more.')).toBeInTheDocument();
+        await user.click(within(box).getByRole('button', { name: 'Show clubs for this age' }));
+        await waitFor(() => expect(address()).toBe('/world/clubs?near=Rustavi'));
     });
 
     it('finds the club: the nearest is suggested, the staff link is explained, and the club opens followed', async () => {
@@ -178,12 +195,32 @@ describe('the welcome', () => {
         const user = userEvent.setup();
         mount('/home?welcome=work');
         const box = await dialog();
+        server.jobs = { MEDICAL: 2, ALL: 5 };
         await user.click(within(box).getByRole('button', { name: 'Physio' }));
         expect(within(box).getByRole('switch', { name: /Open to work/ })).toBeChecked();
         await user.click(within(box).getByRole('button', { name: 'Show jobs' }));
         await waitFor(() => expect(address()).toBe('/jobs/all?category=MEDICAL'));
         expect(server.professions.items.map(item => item.title)).toEqual(['Physio']);
         expect(server.discovery.openTo).toEqual(['WORK']);
+    });
+
+    it('opens jobs on an answer that has listings, or all listings, never an empty search', async () => {
+        const user = userEvent.setup();
+        server.jobs = { COACHING: 3, ALL: 3 };
+        mount('/home?welcome=work');
+        const box = await dialog();
+        await user.click(within(box).getByRole('button', { name: 'Physio' }));
+        await user.click(within(box).getByRole('button', { name: 'Coach' }));
+        await user.click(within(box).getByRole('button', { name: 'Show jobs' }));
+        await waitFor(() => expect(address()).toBe('/jobs/all?category=COACHING'));
+        cleanup();
+        auth.user = { id: nextUser++, dob: '1985-05-02' };
+        server.jobs = {};
+        mount('/home?welcome=work');
+        const again = await dialog();
+        await user.click(within(again).getByRole('button', { name: 'Physio' }));
+        await user.click(within(again).getByRole('button', { name: 'Show jobs' }));
+        await waitFor(() => expect(address()).toBe('/jobs/all'));
     });
 
     it('ticks a first-week step once opened and goes away when dismissed', async () => {

@@ -26,6 +26,7 @@ import { useMediaQuery } from './features/world/useMediaQuery';
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
 import { useBuildWatch } from './hooks/useBuildWatch';
+import { ParentApprovalBanner } from './components/auth/ParentApprovalBanner';
 import { LoginPage } from './pages/LoginPage';
 
 // Native navigation and chat replace these browser surfaces. Keep their imports
@@ -97,6 +98,7 @@ const StaffLinkPage = lazy(() => import('./pages/StaffLinkPage').then(module => 
 const StaffClubPage = lazy(() => import('./pages/StaffClubPage').then(module => ({default: module.StaffClubPage})));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
 const WaitingForParentPage = lazy(() => import('./pages/WaitingForParentPage').then(module => ({default: module.WaitingForParentPage})));
+const OwnAccountPage = lazy(() => import('./pages/OwnAccountPage').then(module => ({default: module.OwnAccountPage})));
 const ParentApprovalPage = lazy(() => import('./pages/ParentApprovalPage').then(module => ({default: module.ParentApprovalPage})));
 const ReportReceipts = lazy(() => import('./features/moderation/ReportReceipts').then(module => ({default: module.ReportReceipts})));
 const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
@@ -139,7 +141,7 @@ function useRailsFit() {
 }
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval', '/own-account']);
 const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -485,6 +487,7 @@ export function MainLayout() {
             {showsHeader && (
                 <AppHeader user={user} myClubId={myClubId} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={() => void handleLogout()} />
             )}
+            {showsHeader && <ParentApprovalBanner />}
 
             {isLandingPage || isAuthPage ? (
                 <main>
@@ -499,6 +502,7 @@ export function MainLayout() {
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/parent-approval" element={<ParentApprovalPage />} />
+                        <Route path="/own-account" element={<OwnAccountPage />} />
                         <Route path={WAITING_FOR_PARENT_PATH} element={<ProtectedRoute><WaitingForParentPage /></ProtectedRoute>} />
                         <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=start`} replace /></ProtectedRoute>} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />

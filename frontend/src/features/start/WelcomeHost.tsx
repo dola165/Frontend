@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { CREATE_PARAM } from '../pages/create/entry';
 import { usePreferences } from '../preferences/preferencesStore';
 import { stepFromParam, stepFromStored, WELCOME_PARAM } from './welcomeSteps';
 
@@ -16,7 +17,8 @@ export function WelcomeHost() {
     const [params, setParams] = useSearchParams();
     const progress = usePreferences(user?.id).start?.welcome;
     const step = stepFromParam(params.get(WELCOME_PARAM));
-    const resume = !step && progress?.state === 'OPEN' ? stepFromStored(progress.at) ?? 'start' : null;
+    // A welcome left open comes back, but never over another sheet the address asks for (creating a page).
+    const resume = !step && !params.has(CREATE_PARAM) && progress?.state === 'OPEN' ? stepFromStored(progress.at) ?? 'start' : null;
     // Once shown on this visit, closing it is final even before the save that says so has landed.
     const shown = useRef(false);
     useEffect(() => { if (step) shown.current = true; }, [step]);

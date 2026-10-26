@@ -167,9 +167,9 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
         return false;
       }
       if (options.optimistic) replace(before);
+      // Publishing and inviting need a confirmed email: say so where it was pressed, with Resend. Nothing went unsaved.
+      if (promptEmailConfirmation(error)) { settle('idle'); return false; }
       settle('failed');
-      // Publishing and inviting need a confirmed email: say so where it was pressed, with Resend.
-      if (promptEmailConfirmation(error)) return false;
       toast.error(extractApiErrorMessage(error, pt('Not saved. Check your connection and try again.')), { action: { label: pt('Try again'), onClick: retry } });
       return false;
     }

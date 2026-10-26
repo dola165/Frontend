@@ -16,6 +16,7 @@ const AUTH_FLOW_ROUTES = new Set([
     '/set-password',
     '/start',
     WAITING_FOR_PARENT_PATH,
+    '/own-account',
 ]);
 
 export const isAuthFlowRoute = (pathname: string) => AUTH_FLOW_ROUTES.has(pathname.toLowerCase());

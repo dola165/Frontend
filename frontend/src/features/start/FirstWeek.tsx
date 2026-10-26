@@ -1,4 +1,4 @@
-import { Briefcase, Camera, Check, ChevronRight, Dumbbell, Heart, MapPin, Search, Shield, Trophy, UserPlus, Users, X, type LucideIcon } from 'lucide-react';
+import { Briefcase, Camera, Check, ChevronRight, Dumbbell, Hammer, Heart, MapPin, Search, Shield, Trophy, UserPlus, Users, X, type LucideIcon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../design/primitives';
@@ -14,7 +14,7 @@ interface WeekStep { id: string; icon: LucideIcon; en: string; ka: string; to: s
 /** Three steps for each answer to the welcome, each one tap to where it is done. */
 function stepsFor(choice: Choice, childAge: number | null | undefined): WeekStep[] {
     const follow: WeekStep = { id: 'follow', icon: Heart, en: 'Follow clubs near you', ka: 'გამოიწერეთ ახლომდებარე კლუბები', to: '/world/clubs' };
-    const photo: WeekStep = { id: 'photo', icon: Camera, en: 'Add your photo', ka: 'დაამატეთ ფოტო', to: '/profile/me' };
+    const photo: WeekStep = { id: 'photo', icon: Camera, en: 'Add your photo', ka: 'დაამატეთ ფოტო', to: '/profile/me?edit=photo' };
     switch (choice) {
         case 'me': return [
             { id: 'trials', icon: Search, en: 'Find a trial that fits you', ka: 'იპოვეთ თქვენთვის შესაფერისი გასინჯვა', to: '/world/opportunities?tab=trials&forMe=true' }, follow, photo];
@@ -25,8 +25,8 @@ function stepsFor(choice: Choice, childAge: number | null | undefined): WeekStep
             { id: 'club', icon: Shield, en: 'Open your club', ka: 'გახსენით თქვენი კლუბი', to: '/my-club' },
             { id: 'squads', icon: Users, en: 'Plan a training session', ka: 'დაგეგმეთ ვარჯიში', to: '/my-squads' }, photo];
         case 'work': return [
-            { id: 'jobs', icon: Briefcase, en: 'Look at jobs near you', ka: 'ნახეთ ახლომდებარე სამსახურები', to: '/jobs/all' },
-            { id: 'profile', icon: Camera, en: 'Add your photo and experience', ka: 'დაამატეთ ფოტო და გამოცდილება', to: '/profile/me' }, follow];
+            { id: 'jobs', icon: Briefcase, en: 'Look at jobs near you', ka: 'ნახეთ ახლომდებარე სამუშაოები', to: '/jobs/all' },
+            { id: 'work', icon: Hammer, en: 'Say what you do', ka: 'მიუთითეთ, რას აკეთებთ', to: '/profile/me?edit=work' }, photo];
         case 'business': return [
             { id: 'page', icon: Shield, en: 'Finish your page', ka: 'დაასრულეთ თქვენი გვერდი', to: '/my-organizations' },
             { id: 'clubs', icon: MapPin, en: 'Find clubs near you', ka: 'იპოვეთ ახლომდებარე კლუბები', to: '/world/clubs' },

@@ -30,7 +30,7 @@ export function WhatBringsStep({ choices, onPick, onSkip }: { choices: readonly 
     return <WelcomeFrame position={1} title={copy('What brings you to GrassKickZ?', 'რამ მოგიყვანათ GrassKickZ-ზე?')} onClose={onSkip}
         footer={<>
             <Button variant="secondary" className="gk-welcome__follow" onClick={() => onPick('follow')}>
-                <span>{copy('I’m here to follow football', 'უბრალოდ ფეხბურთს ვადევნებ თვალს')}<small>{copy('Pick a few clubs near you', 'აირჩიეთ რამდენიმე კლუბი ახლოს')}</small></span>
+                <span>{copy('I’m here to follow football', 'უბრალოდ ფეხბურთს ვადევნებ თვალს')}<small>{copy('Pick a few clubs near you', 'აირჩიეთ რამდენიმე ახლომდებარე კლუბი')}</small></span>
             </Button>
             <Button variant="ghost" onClick={onSkip}>{copy('Skip', 'გამოტოვება')}</Button>
         </>}>
@@ -47,7 +47,7 @@ export function WhatBringsStep({ choices, onPick, onSkip }: { choices: readonly 
                     quiet={copy('Owners, coaches, managers, academy staff', 'მფლობელები, მწვრთნელები, მენეჯერები, აკადემიის თანამშრომლები')} />
             </button>}
             {has('work') && <button type="button" className="gk-wtile gk-wtile--medium" style={photo('/venue-demo/pitch-indoor.jpg')} onClick={() => onPick('work')}>
-                <TileText icon={Briefcase} title={copy('Work or volunteer', 'სამსახური ან მოხალისეობა')} line={copy('Jobs and ways to help local clubs.', 'სამსახური და დახმარების გზები ადგილობრივი კლუბებისთვის.')}
+                <TileText icon={Briefcase} title={copy('Work or volunteer', 'სამუშაო ან მოხალისეობა')} line={copy('Jobs and ways to help local clubs.', 'სამუშაო და მოხალისეობა ადგილობრივ კლუბებში.')}
                     quiet={copy('Coaches, referees, physios, analysts, agents, volunteers', 'მწვრთნელები, მსაჯები, ფიზიოთერაპევტები, ანალიტიკოსები, აგენტები, მოხალისეები')} />
             </button>}
             {has('business') && <button type="button" className="gk-wtile gk-wtile--medium" style={photo('/venue-demo/pitch-aerial.jpg')} onClick={() => onPick('business')}>

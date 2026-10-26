@@ -69,7 +69,7 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
         hint={who === 'me' ? copy('Follow the ones you like.', 'გამოიწერეთ, რომლებიც მოგწონთ.') : copy('Clubs with a programme for that age.', 'კლუბები, რომლებსაც ამ ასაკისთვის პროგრამა აქვთ.')}
         footer={<Button variant="primary" disabled={busy} onClick={() => void finish()}>
             {busy && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}
-            {who === 'me' ? copy('Show clubs near me', 'ახლომდებარე კლუბები') : copy('Show clubs for this age', 'კლუბები ამ ასაკისთვის')}
+            {who === 'me' ? copy('Show clubs near me', 'ახლომდებარე კლუბების ნახვა') : copy('Show clubs for this age', 'ამ ასაკის კლუბების ნახვა')}
         </Button>}>
         <div className="gk-welcome__fields">
             {yearField}
@@ -82,7 +82,7 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
             </label>
         </div>
         <ClubPicker clubs={clubs} chosen={chosen} onToggle={toggle} label={copy('Clubs to follow', 'გამოსაწერი კლუბები')}
-            empty={who === 'child' && age == null ? copy('Pick the year to see clubs.', 'აირჩიეთ წელი, რომ კლუბები ნახოთ.') : copy('No clubs here yet. World shows more.', 'აქ კლუბები ჯერ არ არის. მეტს World გაჩვენებთ.')} />
+            empty={who === 'child' && age == null ? copy('Pick the year to see clubs.', 'აირჩიეთ წელი, რომ კლუბები ნახოთ.') : copy('No clubs here yet. World shows more.', 'აქ კლუბები ჯერ არ არის. მეტს მსოფლიოში ნახავთ.')} />
         {failed && <p role="alert" className="gk-notice gk-notice--warning">{copy('Some follows did not go through. Try again.', 'ზოგი გამოწერა ვერ შესრულდა. სცადეთ ხელახლა.')}</p>}
     </WelcomeFrame>;
 }

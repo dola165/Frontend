@@ -6,13 +6,17 @@ import { apiClient } from './axiosConfig';
  * Backend: fnd-signup-b (`/api/auth/parent-approval*`).
  */
 export interface ParentApprovalStatus {
-    /** WAITING: a link went to `parentEmail`. PARENT_EMAIL_NEEDED: staff asked for a parent; ask for the email. */
-    status: 'WAITING' | 'PARENT_EMAIL_NEEDED' | 'NOT_NEEDED';
+    /**
+     * WAITING: a link went to `parentEmail`. PARENT_EMAIL_NEEDED: staff asked for a parent; ask for the email. GRACE: an
+     * account made before parents approved accounts, working until `switchesToWaitingAt` (`linkSent` once asked).
+     */
+    status: 'WAITING' | 'PARENT_EMAIL_NEEDED' | 'GRACE' | 'NOT_NEEDED';
     parentEmail?: string | null;
     linkSent?: boolean;
     sentAt?: string | null;
-    /** Without approval, the account is removed after this moment. */
+    /** Without approval, the account is removed after this moment (null for the older accounts: never removed). */
     deleteAfter?: string | null;
+    switchesToWaitingAt?: string | null;
 }
 
 export const fetchParentApproval = (signal?: AbortSignal) =>

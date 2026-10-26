@@ -36,8 +36,8 @@ const georgian = (_text: string, ka: string) => ka;
 
 describe('work and skills recovery', () => {
     const labels = {
-        en: { section: 'What you do', error: 'Work and skills couldn’t load', retry: 'Try again', loading: 'Loading work and skills…', add: 'Add', manage: 'Manage', edit: 'Edit', empty: 'Add what you do professionally' },
-        ka: { section: 'რას აკეთებთ', error: 'სამუშაო და უნარები ვერ ჩაიტვირთა', retry: 'ხელახლა ცდა', loading: 'იტვირთება…', add: 'დამატება', manage: 'მართვა', edit: 'შეცვლა', empty: 'დაამატეთ თქვენი პროფესია' },
+        en: { section: 'What you do', error: 'Work and skills couldn’t load', retry: 'Try again', loading: 'Loading work and skills…', add: 'Add what you do', edit: 'Edit', empty: 'Add what you do' },
+        ka: { section: 'რას აკეთებთ', error: 'სამუშაო და უნარები ვერ ჩაიტვირთა', retry: 'ხელახლა ცდა', loading: 'იტვირთება…', add: 'დაამატეთ, რას აკეთებთ', edit: 'შეცვლა', empty: 'დაამატეთ, რას აკეთებთ' },
     };
     const later = <T,>() => {
         let resolve!: (value: T) => void;
@@ -87,15 +87,15 @@ describe('work and skills recovery', () => {
         });
         await mountProfile(language); await screen.findByText(words.error);
         let work = section(words.section);
-        expect({ add: Boolean(work.queryByRole('link', { name: words.add })), retry: Boolean(work.queryByRole('button', { name: words.retry })) }).toEqual({ add: false, retry: true });
-        expect(work.getByRole('link', { name: words.manage })).toHaveAttribute('href', '/account/football#work');
+        expect({ add: Boolean(work.queryByRole('button', { name: words.add })), retry: Boolean(work.queryByRole('button', { name: words.retry })) }).toEqual({ add: false, retry: true });
+        expect(work.queryByRole('button', { name: words.edit })).not.toBeInTheDocument();
         expect(work.queryByText(words.empty)).not.toBeInTheDocument();
         fireEvent.click(work.getByRole('button', { name: words.retry }));
         await waitFor(() => expect(attempts).toBe(2));
         work = section(words.section);
         expect(work.getByText(words.loading)).toBeInTheDocument();
         expect(work.queryByRole('button', { name: words.retry })).not.toBeInTheDocument();
-        expect(work.queryByRole('link', { name: words.add })).not.toBeInTheDocument();
+        expect(work.queryByRole('button', { name: words.add })).not.toBeInTheDocument();
         const saved = [{ ...professions[0], title: 'Add', detail: 'Profile' }];
         await act(async () => retry.resolve({ data: populated ? saved : [] }));
         work = section(words.section);
@@ -103,10 +103,10 @@ describe('work and skills recovery', () => {
             expect(work.getByRole('list', { name: language === 'ka' ? 'პროფესიები და უნარები' : 'Professions and skills' })).toHaveTextContent('Add');
             expect(work.getByRole('listitem')).toHaveTextContent('Profile');
             expect(work.getByRole('listitem')).not.toHaveTextContent('პროფილი');
-            expect(work.getByRole('link', { name: words.edit })).toHaveAttribute('href', '/account/football#work');
+            expect(work.getByRole('button', { name: words.edit })).toBeInTheDocument();
         } else {
             expect(work.getByText(words.empty)).toBeInTheDocument();
-            expect(work.getByRole('link', { name: words.add })).toHaveAttribute('href', '/account/football#work');
+            expect(work.getByRole('button', { name: words.add })).toBeInTheDocument();
         }
         expect(reads('/users/30/professions')).toHaveLength(2); expect(reads('/users/30')).toHaveLength(2);
         expect(reads('/posts/user/30')).toHaveLength(1); readonly();
@@ -147,7 +147,7 @@ describe('work and skills recovery', () => {
         fireEvent.click(captured);
         await act(async () => old.resolve({ data: [{ ...professions[0], title: 'Old private skill' }] }));
         expect(screen.queryByText('Old private skill')).not.toBeInTheDocument();
-        expect(section('What Next does').queryByRole('link', { name: /Add|Edit|Manage/ })).not.toBeInTheDocument();
+        expect(section('What Next Person does').queryByRole('link', { name: /Add|Edit|Manage/ })).not.toBeInTheDocument();
         expect(apiClient.get).toHaveBeenCalledTimes(count);
         expect(reads('/users/31/professions')).toHaveLength(1); readonly();
     });
@@ -161,7 +161,8 @@ describe('person profile', () => {
         ], career: { lines: [{ line: 'member:1', kind: 'MEMBER', title: 'Player', label: 'Player · U14', club: { id: 1, name: 'Dinamo Academy' }, squads: [{ id: 2, name: 'U14' }], since: '2022-09-01', until: '2024-06-30' }], counts: { matchesPlayed: 31 } } });
         render(<MemoryRouter><PersonLayers profile={player} football={football} professions={professions} professionsFailed={false} own={false} /></MemoryRouter>);
         const lines = within(screen.getByRole('list', { name: 'Where you are' }));
-        expect(lines.getByText('Player · U16 Boys')).toBeInTheDocument();
+        expect(lines.getByText('Player')).toBeInTheDocument();
+        expect(lines.getByText('U16 Boys')).toBeInTheDocument();
         expect(screen.queryByText(/Luka/)).not.toBeInTheDocument();
         expect(lines.queryByRole('link', { name: 'Manage' })).not.toBeInTheDocument();
         expect(lines.queryByRole('button', { name: 'Leave' })).not.toBeInTheDocument();

@@ -38,6 +38,19 @@
 .gk .gk-fp-line__text span { color: var(--gk-text-3); font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
 .gk .gk-fp-line__actions { display: flex; align-items: center; gap: var(--gk-1); flex: none; }
 .gk .gk-fp-quiet { color: var(--gk-text-3); }
+/* A club once, with each job or place there under its name. */
+.gk .gk-fp-line--club { align-items: flex-start; padding-top: var(--gk-3); padding-bottom: var(--gk-3); }
+.gk .gk-fp-club { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--gk-1); }
+.gk .gk-fp-club__name { align-self: flex-start; color: var(--gk-text); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
+.gk .gk-fp-club__name:hover { text-decoration: underline; }
+.gk .gk-fp-role { display: flex; align-items: center; gap: var(--gk-2); min-height: 36px; }
+.gk .gk-fp-role__text { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .gk-fp-role__name { font-weight: 600; color: var(--gk-text); }
+.gk .gk-fp-role__where, .gk .gk-fp-role__since { color: var(--gk-text-3); }
+.gk .gk-fp-squads { display: flex; flex-wrap: wrap; gap: 4px; }
+.gk .gk-fp-squad { display: inline-flex; align-items: center; min-height: 28px; padding: 0 var(--gk-2); border-radius: var(--gk-r-pill); background: var(--gk-info-soft); color: var(--gk-text); font-size: var(--gk-fs-xs); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.gk a.gk-fp-squad:hover { box-shadow: inset 0 0 0 1px var(--gk-info); }
+.gk a.gk-fp-squad:focus-visible { outline: none; box-shadow: var(--gk-focus); }
 @media (hover: hover) and (min-width: 700px) {
     .gk .gk-fp-line .gk-fp-quiet { opacity: 0; transition: opacity .12s var(--gk-ease); }
     .gk .gk-fp-line:hover .gk-fp-quiet, .gk .gk-fp-line:focus-within .gk-fp-quiet { opacity: 1; }
@@ -102,14 +115,18 @@
 .gk .gk-fp-door__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
 .gk .gk-fp-door__arrow { width: 16px; height: 16px; color: var(--gk-text-3); flex: none; }
 
-.gk .gk-fp-about { display: flex; flex-direction: column; gap: var(--gk-1); }
-.gk .gk-fp-about textarea { resize: vertical; }
+/* About me, written in place. Empty and "what you do" empty states share the dashed box. */
+.gk .gk-about { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); }
+.gk .gk-about--open { align-items: stretch; }
+.gk .gk-about textarea { resize: vertical; }
+.gk .gk-about__foot { display: flex; align-items: center; justify-content: flex-end; gap: var(--gk-3); min-height: 32px; }
+.gk .gk-about--empty, .gk .gk-fp-start { padding: var(--gk-4); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); }
 @media (max-width: 640px) {
     .gk .gk-fp-line, .gk .gk-fp-door { padding-left: var(--gk-3); padding-right: var(--gk-3); }
     .gk .gk-fp-head { padding-top: var(--gk-3); }
     /* The text keeps the width; Leave and Manage go under it. */
     .gk .gk-fp-line { flex-wrap: wrap; }
-    .gk .gk-fp-line__text { flex-basis: calc(100% - 40px - var(--gk-3)); }
+    .gk .gk-fp-line__text, .gk .gk-fp-club { flex-basis: calc(100% - 40px - var(--gk-3)); }
     .gk .gk-fp-line__actions { width: 100%; justify-content: flex-end; }
 }
 .gk .gk-fp-chip--more { border-style: solid; border-color: transparent; color: var(--gk-text-3); }

@@ -33,6 +33,10 @@ interface ProfileLayoutProps<T extends string> {
     bannerAction?: ReactNode;
     /** A control over the crest or avatar, for example "Change photo". */
     imageAction?: ReactNode;
+    /** Shown in place of the initials when there is no image, for example "Add photo" on your own profile. */
+    emptyImage?: ReactNode;
+    /** A short strip shown where the cover would be when there is none, for example "Add a cover photo". */
+    emptyCover?: ReactNode;
     /** One primary action and a few secondary ones. */
     actions?: ReactNode;
     /** Shown under the header, for example a page-level error. */
@@ -59,7 +63,7 @@ const initials = (name: string) => name.trim().split(/\s+/).filter(part => /^[\p
  * One layout for club, person and organization profiles: a compact identity header,
  * tabs kept in the URL by the page, and a main column with side facts that stacks on phones.
  */
-export function ProfileLayout<T extends string>({ identity, banner, bannerAction, imageAction, actions, notice, tabs, tab, onTab, tabsLabel, side, sideLabel = 'About', sideLeft, sideLeftLabel = 'Information', className, children }: ProfileLayoutProps<T>) {
+export function ProfileLayout<T extends string>({ identity, banner, bannerAction, imageAction, emptyImage, emptyCover, actions, notice, tabs, tab, onTab, tabsLabel, side, sideLabel = 'About', sideLeft, sideLeftLabel = 'Information', className, children }: ProfileLayoutProps<T>) {
     const cover = banner ? resolveMediaUrl(banner) : undefined;
     const image = identity.image ? resolveMediaUrl(identity.image) : undefined;
     const facts = (identity.facts ?? []).filter(Boolean);
@@ -68,13 +72,14 @@ export function ProfileLayout<T extends string>({ identity, banner, bannerAction
         <GkRoot className={`gk-page gk-profile${className ? ` ${className}` : ''}`}>
             <PageFrame width="profile">
                 <header className={`gk-profile__head${cover ? ' gk-profile__head--cover' : ''}`}>
+                    {!cover && emptyCover && <div className="gk-profile__cover gk-profile__cover--empty">{emptyCover}</div>}
                     {cover && <div className="gk-profile__cover">
                         <MediaImage src={cover} alt="" className="gk-profile__cover-image" />
                         {bannerAction && <div className="gk-profile__cover-action">{bannerAction}</div>}
                     </div>}
                     <div className="gk-profile__identity">
                         <div className={`gk-profile__image${identity.square ? ' gk-profile__image--square' : ''}`}>
-                            {image ? <MediaImage src={image} alt="" /> : <span aria-hidden="true">{initials(identity.name)}</span>}
+                            {image ? <MediaImage src={image} alt="" /> : emptyImage ?? <span aria-hidden="true">{initials(identity.name)}</span>}
                             {imageAction && <div className="gk-profile__image-action">{imageAction}</div>}
                         </div>
                         <div className="gk-profile__text">

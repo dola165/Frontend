@@ -3,23 +3,19 @@ import { BadgeCheck, Loader2, UsersRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { Dialog } from '../../design/Dialog';
-import { appLocale } from '../../utils/formatting';
 import { authPrimaryButtonClass } from './authClasses';
 import { ParentApprovalRequest } from './ParentApprovalRequest';
-import { useParentApproval } from './useParentApproval';
+import { dayOf, useParentApproval } from './useParentApproval';
 
 const HIDDEN = 'grasskickz.parent-banner-later';
 const hiddenThisVisit = () => { try { return window.sessionStorage.getItem(HIDDEN) === '1'; } catch { return false; } };
-
-/** The day the account starts waiting for a parent, as people say it ("26 November"); the server sends a full time. */
-const dayOf = (iso: string) => new Date(iso.length > 10 ? iso : `${iso}T00:00:00`).toLocaleDateString(appLocale(), { day: 'numeric', month: 'long' });
 
 function AskDialog({ due, onClose }: { due: string; onClose: () => void }) {
     const { t } = useTranslation();
     const { user, bootstrapSession } = useAuth();
     const flow = useParentApproval(user?.email);
     const approved = flow.request?.status === 'NOT_NEEDED';
-    return <Dialog open size="sm" title={approved ? t('auth.parentBanner.approved') : t('auth.parentBanner.title')}
+    return <Dialog open size="sm" closeLabel={t('auth.parentBanner.close')} title={approved ? t('auth.parentBanner.approved') : t('auth.parentBanner.title')}
         description={approved ? undefined : t('auth.parentBanner.dialogLine', { date: dayOf(due) })}
         onClose={() => { if (approved) void bootstrapSession().catch(() => undefined); onClose(); }}>
         {approved ? <BadgeCheck className="mx-auto h-10 w-10 text-[var(--color-accent)]" aria-hidden="true" />

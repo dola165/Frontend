@@ -11,7 +11,7 @@ import { extractApiErrorCode } from '../utils/apiError';
 import { rememberAuthFlow, requiredAccountStep } from '../utils/authRedirect';
 
 /** A link that cannot set a password: used (the account exists: sign in), expired (ask again) or not a link at all. */
-type Closed = 'used' | 'expired' | 'invalid';
+type Closed = 'used' | 'expired' | 'invalid' | 'failed';
 
 /**
  * A child's own account from the link a parent sent (`/own-account?token=…`, release 7): the child sees their name and
@@ -24,6 +24,7 @@ export function OwnAccountPage() {
     const token = useSearchParams()[0].get('token') ?? '';
     const [link, setLink] = useState<OwnAccountLink | null | Closed>(token ? null : 'invalid');
     const [email, setEmail] = useState<string | null>(null);
+    const [attempt, setAttempt] = useState(0);
     const [password, setPassword] = useState('');
     const [show, setShow] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -37,9 +38,9 @@ export function OwnAccountPage() {
             if (!active) return;
             setEmail(found.email);
             setLink(found.status === 'PENDING' ? found : found.status === 'USED' ? 'used' : 'expired');
-        }).catch(() => { if (active) setLink('invalid'); });
+        }).catch(failure => { if (active) setLink(extractApiErrorCode(failure) === 'invalid_token' ? 'invalid' : 'failed'); });
         return () => { active = false; };
-    }, [token]);
+    }, [token, attempt]);
 
     const submit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -61,6 +62,9 @@ export function OwnAccountPage() {
     };
 
     if (link === null) return <AuthCenterCard icon={<Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />} title={t('auth.ownAccount.title')} />;
+    if (link === 'failed') return <AuthCenterCard icon={<ShieldQuestion className="h-8 w-8" aria-hidden="true" />} title={t('auth.ownAccount.title')} line={t('auth.parentWait.loadFailed')}>
+        <button type="button" className={authPrimaryButtonClass} onClick={() => { setLink(null); setAttempt(value => value + 1); }}>{t('auth.register.retry')}</button>
+    </AuthCenterCard>;
     if (link === 'used') return <AuthCenterCard icon={<BadgeCheck className="h-8 w-8" aria-hidden="true" />} title={t('auth.ownAccount.used')} line={t('auth.ownAccount.usedLine')}>
         <button type="button" className={authPrimaryButtonClass} onClick={() => { if (email) rememberAuthFlow({ email }); navigate('/login', { replace: true }); }}>{t('auth.ownAccount.signIn')}</button>
     </AuthCenterCard>;

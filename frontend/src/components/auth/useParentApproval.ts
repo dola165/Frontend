@@ -3,7 +3,11 @@ import { isAxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { fetchParentApproval, sendParentApproval, type ParentApprovalStatus } from '../../api/parentApproval';
 import { extractApiErrorCode } from '../../utils/apiError';
+import { appLocale } from '../../utils/formatting';
 import { isEmail } from '../../utils/registration';
+
+/** A day as people say it ("26 November"); the server sends a full time or a date. */
+export const dayOf = (iso: string) => new Date(iso.length > 10 ? iso : `${iso}T00:00:00`).toLocaleDateString(appLocale(), { day: 'numeric', month: 'long' });
 
 /**
  * Asking a parent to approve a 13 to 15-year-old's account: the request as the server has it (re-read whenever the

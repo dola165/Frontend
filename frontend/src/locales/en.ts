@@ -1054,6 +1054,8 @@ const en = {
       line: 'Ask your parent to approve your account by {{date}}.',
       ask: 'Ask my parent',
       later: 'Later',
+      close: 'Close',
+      sentHint: 'Ask them to open the email. After {{date}} your account waits for their approval.',
       title: 'Ask your parent to approve',
       dialogLine: 'Your account keeps working until {{date}}. After that it waits for your parent.',
       approved: 'Your parent approved. Thank you!',

@@ -87,7 +87,7 @@ export function PlayerCardsPage({ clubId, canRemove = false, setParentError, set
             <span className="gk-list-row__trail pc-trail">
                 <Badge tone={card.registered ? 'accent' : 'neutral'}>{t(card.registered ? 'minors.playerCard.registered' : 'minors.playerCard.notRegistered')}</Badge>
                 {card.claimed && <Badge tone="info">{t('minors.playerCard.claimed')}</Badge>}
-                {!card.registered && card.birthYear != null && year - card.birthYear >= 18 && <IdentityActivationForm adult path={`/clubs/${clubId}/player-cards/${card.id}/activation-invitation`} onChanged={() => void load()} />}
+                {!card.registered && card.birthYear != null && year - card.birthYear >= 18 && <IdentityActivationForm path={`/clubs/${clubId}/player-cards/${card.id}/activation-invitation`} onChanged={() => void load()} />}
                 <Button size="sm" variant="ghost" iconOnly aria-label={t('squadDesign.editNamedPlayer', { defaultValue: 'Edit {{name}}', name })} title={t('minors.playerCard.edit')} onClick={() => setEditing(card)}><Pencil aria-hidden="true" /></Button>
                 {canRemove && <Button size="sm" variant="ghost" iconOnly className="pc-danger" aria-label={`${t(card.registered ? 'minors.playerCard.remove' : 'minors.playerCard.delete')}: ${name}`} disabled={removingId === card.id} onClick={() => setRemoving(card)}><Trash2 aria-hidden="true" /></Button>}
             </span>

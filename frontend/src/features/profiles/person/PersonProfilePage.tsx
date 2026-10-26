@@ -23,6 +23,9 @@ import { personTabFrom, personTabs, type PersonTab } from './personTabs';
 import { usePersonProfile } from './usePersonProfile';
 import './person-profile.css';
 
+/** The part of your profile a link asked to open, and how often each part was asked for (a new ask reopens it). */
+export interface EditRequest { part: string; counts: Record<string, number> }
+
 /** `/profile/me` opens your own profile, keeping the tab and anything else in the link. */
 export function MyProfileRedirect() {
     const { user, status } = useAuth();
@@ -55,18 +58,27 @@ function PersonProfileView({ id }: { id: number }) {
     const tabs = personTabs({ own, hidden, career }, copy);
     const tab = personTabFrom(params.get('tab'), tabs);
     const connections = params.get('connections');
-    // `?edit=photo|about|work` (from "Your first week") opens that part of your own profile where it is shown.
-    const edit = params.get('edit');
-    const addPhoto = useRef<HTMLButtonElement>(null);
-    const loaded = Boolean(profile);
+    // `?edit=photo|about|work` (from "Your first week") is a one-time request to open that part of your own profile: it
+    // is taken when it appears (also while the page is open), then removed from the address without a history entry.
+    const requested = own ? params.get('edit') : null;
+    const [taken, setTaken] = useState<string | null>(null);
+    const [edit, setEdit] = useState<EditRequest | null>(null);
+    if (requested !== taken) {
+        setTaken(requested);
+        if (requested) setEdit(current => ({ part: requested, counts: { ...current?.counts, [requested]: (current?.counts[requested] ?? 0) + 1 } }));
+    }
     useEffect(() => {
-        if (!loaded || !own || !edit) return;
+        if (requested) setParams(current => { const query = new URLSearchParams(current); query.delete('edit'); return query; }, { replace: true, preventScrollReset: true });
+    }, [requested, setParams]);
+    const addPhoto = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        if (!edit) return;
         const frame = requestAnimationFrame(() => {
-            if (edit === 'photo') { addPhoto.current?.focus(); return; }
-            document.getElementById(edit)?.scrollIntoView({ block: 'center' });
+            if (edit.part === 'photo') { addPhoto.current?.focus(); return; }
+            document.getElementById(edit.part)?.scrollIntoView({ block: 'center' });
         });
         return () => cancelAnimationFrame(frame);
-    }, [loaded, own, edit]);
+    }, [edit]);
 
     // Links to representation land beside it.
     useEffect(() => {
@@ -76,6 +88,7 @@ function PersonProfileView({ id }: { id: number }) {
     }, [profile, params]);
 
     const setTab = (next: PersonTab) => {
+        setEdit(null);
         const query = new URLSearchParams();
         if (next !== 'overview') query.set('tab', next);
         setParams(query);

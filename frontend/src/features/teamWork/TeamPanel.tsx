@@ -5,6 +5,7 @@ import { Avatar, Badge, Button, PageHeader, Panel, Skeleton } from '../../design
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addMember, fetchTeam, newInvite, setResponsibility, type Invite, type Member } from './api';
+import { OutsideChats } from './OutsideChats';
 import { ago, shortDate } from './teamWorkWords';
 import './team-work-now.css';
 
@@ -92,6 +93,7 @@ export function TeamPanel({ canManage }: { canManage: boolean }) {
             <Link className="tw-team__doing" to={`/team-work?who=${member.userId}`}>{copy(`What ${(member.name ?? member.email).split(' ')[0]} is doing`, `რას აკეთებს ${(member.name ?? member.email).split(' ')[0]}`)}<ChevronRight aria-hidden="true" /></Link>
             {canManage && member.pending && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(async () => setInvite(await newInvite(member.userId)))}>{copy('New link', 'ახალი ბმული')}</Button>}
         </li>)}</ul>
+        {members != null && <OutsideChats />}
         {invite && <InviteLink invite={invite} onDone={() => setInvite(null)} />}
         {canManage && <form className="tw-team__add" onSubmit={event => {
             event.preventDefault();

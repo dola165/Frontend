@@ -1,5 +1,6 @@
 import { apiClient } from '../../api/axiosConfig';
-import type { Commit, Repo } from './upToDate';
+import type { Commit } from './upToDate';
+import type { Seen, Versions } from './whichVersion';
 
 /** The pipeline: planned → in progress → needs your look → accepted → live; blocked sits beside it, cancelled after its end. */
 export const STATUSES = ['PLANNED', 'IN_PROGRESS', 'NEEDS_LOOK', 'ACCEPTED', 'LIVE', 'BLOCKED', 'CANCELLED'] as const;
@@ -37,8 +38,8 @@ export interface WorkItem {
     people: Person[]; mediaCount: number; commentCount: number; small: boolean;
     doneMeans: string | null; tested: string | null; commits: string | null; priority: Priority | null; requestedBy: Person | null;
     links: WorkLink[]; waitingOn: WorkRef[]; openQuestions: number;
-    /** The task's team chat, if it has one, and how many messages it holds. */
-    chatId?: number | null; chatMessages?: number;
+    /** The task's team chat, if it has one, and how many messages it holds; `chatPrivate`: its chat is for chosen people you are not in. */
+    chatId?: number | null; chatMessages?: number; chatPrivate?: boolean;
 }
 export interface WorkUpdate {
     id: number; author: Person | null; at: string; previousStatus: WorkStatus | null; status: WorkStatus | null;
@@ -46,8 +47,11 @@ export interface WorkUpdate {
     /** Done by Agent Dola for the author, after they approved its preview. */
     byDola?: boolean;
 }
-/** A picture, a video or any other file; `name` is the file's own name (files only). */
-export interface WorkMedia { id: number; kind: 'IMAGE' | 'VIDEO' | 'FILE'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean; name?: string | null }
+/** A picture, a video or any other file; `name` is the file's own name (files only); `title` and `tags` what people named and tagged it. */
+export interface WorkMedia {
+    id: number; kind: 'IMAGE' | 'VIDEO' | 'FILE'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean;
+    name?: string | null; title?: string | null; tags?: string[]; labelledBy?: Person | null; labelledAt?: string | null;
+}
 export interface WorkComment { id: number; author: Person | null; body: string; createdAt: string; editedAt: string | null; canEdit: boolean; byDola?: boolean }
 export interface WorkSwitch { itemId: number; title: string; at: string }
 /** Every task, the trail, and the team with each person's responsibility. */
@@ -141,9 +145,20 @@ export const addFile = (itemId: number, file: File, onProgress?: (share: number)
 export const deleteMedia = (itemId: number, mediaId: number) => data(apiClient.delete<Detail>(`${base}/items/${itemId}/media/${mediaId}`));
 /** A ten-minute link a video element can stream from. */
 export const playLink = (itemId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/items/${itemId}/media/${mediaId}/play`));
-/** The commits baked into the running backend (the web app carries its own, see upToDate.ts). */
-export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<{ backend: Repo }>(`${base}/versions`, { signal }));
+/** The running backend's build and history, the releases and where it stands, the live release and what this person last looked at (the web app carries its own build, see whichVersion.ts). */
+export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<Versions>(`${base}/versions`, { signal }));
+/** Remembers the version this person is looking at now, for "new since you last looked". */
+export const saveSeen = (seen: Omit<Seen, 'at'>) => data(apiClient.put<Seen>(`${base}/versions/seen`, seen));
 export const fetchTeam = (signal?: AbortSignal) => data(apiClient.get<Member[]>(`${base}/team`, { signal }));
+/**
+ * Someone on the team list who cannot use the team chats now, and why: left out of them (no account, not active, under
+ * 18 by their birth date) or in them with a step of their own first (`inChats`).
+ */
+export interface OutsideChats {
+    email: string; userId: number | null; name: string | null; accountState: string | null; inChats: boolean;
+    reason: 'NO_ACCOUNT' | 'NOT_ACTIVE' | 'UNDER_18' | 'DOB_REQUIRED' | 'ONBOARDING_REQUIRED' | 'PASSWORD_CHANGE_REQUIRED';
+}
+export const fetchOutsideChats = (signal?: AbortSignal) => data(apiClient.get<OutsideChats[]>(`${base}/team/outside-chats`, { signal }));
 export const addMember = (email: string) => data(apiClient.post<{ members: Member[]; invite: Invite | null }>(`${base}/team`, { email }));
 export const newInvite = (userId: number) => data(apiClient.post<Invite>(`${base}/team/${userId}/invite`));
 export const removeMember = (userId: number) => data(apiClient.delete<Member[]>(`${base}/team/${userId}`));

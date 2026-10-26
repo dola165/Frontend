@@ -15,7 +15,7 @@ import { EditorImages, TooBig, TooLargeToAdd, boundsOf, fileOf } from './editorI
 import { addPicture, type EditorState } from './editorState';
 import { editorTranslations } from './editorTranslations';
 import { flattenUnder } from './flatten';
-import { LIBRARY_POPUPS, keepEllipseCropHidden, libraryShowsPhoto, withoutPhotoCache } from './libraryTweaks';
+import { LIBRARY_POPUPS, arrowHeads, editorStage, friendlierDrawing, keepEllipseCropHidden, libraryShowsPhoto, withoutPhotoCache } from './libraryTweaks';
 
 /**
  * A picture to edit: its `/uploads/…` URL, if known its file name, and where Edit was pressed (the chat message carrying
@@ -78,7 +78,12 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
     const [confirming, setConfirming] = useState(false);
     const [error, setError] = useState('');
     const [failed, setFailed] = useState(false);
-    const markChanged = useCallback(() => setChanged(true), []);
+    // Any change marks the picture changed; an arrow given a new colour gets it on its head too, not only its line.
+    const markChanged = useCallback((design?: { annotations?: Parameters<typeof arrowHeads>[0] }) => {
+        setChanged(true);
+        const heads = arrowHeads(design?.annotations);
+        if (heads) updateState.current?.(() => ({ annotations: heads }));
+    }, []);
     // The library is mounted twice, the second time a frame after the first (see below); only then is it the one on screen,
     // and it can take changes only once it has loaded the photo itself, a moment later.
     const [shown, setShown] = useState(false);
@@ -118,6 +123,13 @@ export default function ImageEditor({ media, onClose, onSaved }: { media: Editab
     // The library's own pop-ups (its colour picker, menus) count as inside the dialog, so they can take focus and typing.
     useDialogFocus(true, dialog, requestClose, undefined, LIBRARY_POPUPS);
     useEffect(() => keepEllipseCropHidden(editorTranslations(copy).ellipse), [copy]);
+
+    // Drawings can be picked up again by pressing on them, and Text takes a click and the first key (see friendlierDrawing).
+    useEffect(() => {
+        const stage = live ? editorStage(dialog.current) : undefined;
+        if (!stage || !dialog.current) return undefined;
+        return friendlierDrawing(stage, dialog.current, (id, kind) => updateState.current?.(() => ({ selectionsIds: [id], toolId: kind })));
+    }, [live]);
 
     // A picture put in before the editor can take it waits for it, rather than going to a library that would lose it.
     const waiting = useRef<Blob | null>(null);

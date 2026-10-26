@@ -57,6 +57,12 @@ describe('the update prompt', () => {
         expect(prompt).toMatch(/Only if build\.gradle\.kts.*refresh Gradle/);
     });
 
+    it('on a copy, aims at the live release rather than the newest commit it has', () => {
+        const toLive = updatePrompt({ backend, web }, { release: 5, backend: 'c4ba0824'.padEnd(40, '0'), web: 'c9d3570d'.padEnd(40, '0') });
+        expect(toLive).toContain('github.com/dola165/GrassKickZ — reach at least commit c4ba082 (release 5, what is live)');
+        expect(toLive).toContain('github.com/dola165/Frontend — reach at least commit c9d3570 (release 5, what is live)');
+    });
+
     it('still works when a build did not know its history', () => {
         expect(updatePrompt({ backend: { known: false }, web })).toContain('GrassKickZ — reach the newest commit on the branch');
     });

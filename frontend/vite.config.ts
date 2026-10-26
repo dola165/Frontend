@@ -34,7 +34,21 @@ const gitHistory = (): Plugin => {
       return { id, date, author, title, merge: parents.trim().includes(' ') }
     }),
   }
-  return { name: 'gk-git-history', config: () => ({ define: { __GIT_HISTORY__: JSON.stringify(history) } }) }
+  // Beside it (__GIT_BUILD__): the commit this bundle or dev server was made from, when, how many files had
+  // uncommitted changes, and the last 1000 commits with their parents ("id parent parent", 12 characters each), so
+  // "What changed" can tell which release this copy contains. Taken once, at build or dev-server start.
+  const head = git('rev-parse', 'HEAD')?.trim()
+  const graph = git('log', '-1000', '--format=%H %P')
+  const dirty = git('status', '--porcelain', '--untracked-files=no')
+  const build = head == null || graph == null || !branch ? { known: false, builtAt: new Date().toISOString() } : {
+    known: true,
+    head,
+    branch,
+    builtAt: new Date().toISOString(),
+    dirty: (dirty ?? '').split('\n').filter(line => line.trim()).length,
+    graph: graph.split('\n').map(line => line.trim()).filter(Boolean).map(line => line.split(' ').map(id => id.slice(0, 12)).join(' ')),
+  }
+  return { name: 'gk-git-history', config: () => ({ define: { __GIT_HISTORY__: JSON.stringify(history), __GIT_BUILD__: JSON.stringify(build) } }) }
 }
 
 export default defineConfig({

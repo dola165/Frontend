@@ -3,6 +3,7 @@ import type { ChatLimits, ChatMessage, ChatTaskRef } from './api';
 import { addNewer, addOlder, applyChanges, EMPTY_WINDOW, MAX_WINDOW, replaceWindow, upsert } from './chatWindow';
 import { rowsOf } from './chatRows';
 import { createOutbox } from './outbox';
+import { createReader, lastSeen, unseenBelow } from './reading';
 import { parts } from './richText';
 import { kindOf } from './useChatUploads';
 
@@ -134,6 +135,57 @@ describe('rows', () => {
         const rows = rowsOf([message(1), message(2), message(9), message(10, { senderId: 2 })], 9, () => 'Today');
         expect(rows.map(row => row.kind === 'message' ? `${row.message.id}${row.compact ? 'c' : ''}` : row.kind))
             .toEqual(['day', '1', '2c', 'unread', '9', '10']);
+    });
+
+    it('draws the New line only where the unread messages really start, never on top of a later part of the chat', () => {
+        const kinds = (rows: ReturnType<typeof rowsOf>) => rows.map(row => row.kind === 'message' ? String(row.message.id) : row.kind);
+        // Unread from message 3, but the part loaded starts at 9 (earlier messages are not loaded): no line at its top.
+        expect(kinds(rowsOf([message(9), message(10)], 3, () => 'Today', true))).toEqual(['day', '9', '10']);
+        // The part loaded starts exactly at the first unread, or is the start of the chat: the line is real.
+        expect(kinds(rowsOf([message(3), message(4)], 3, () => 'Today', true))).toEqual(['day', 'unread', '3', '4']);
+        expect(kinds(rowsOf([message(9), message(10)], 3, () => 'Today', false))).toEqual(['day', 'unread', '9', '10']);
+    });
+});
+
+describe('reading', () => {
+    it('counts as seen the newest message whose top is on screen', () => {
+        const rows = [{ id: 4, top: 100 }, { id: 5, top: 500 }, { id: 6, top: 790 }, { id: 7, top: 1200 }];
+        expect(lastSeen(rows, 800)).toBe(5);
+        expect(lastSeen(rows, 900)).toBe(6);
+        expect(lastSeen(rows, 50)).toBeNull();
+    });
+
+    it('counts the new messages from others below what has been on screen', () => {
+        const messages = [message(4, { senderId: 2 }), message(5, { senderId: 2 }), message(6), message(7, { senderId: 3, deleted: true }), message(8, { senderId: 3 })];
+        expect(unseenBelow(messages, 4, 1)).toBe(2);
+        expect(unseenBelow(messages, 8, 1)).toBe(0);
+    });
+
+    it('does not count the chat’s own lines ("Beqa added Gio") as new messages', () => {
+        const added = message(9, { senderId: 2, event: { kind: 'ADDED', by: { id: 2, name: 'Gio', avatarUrl: null }, people: [{ id: 3, name: 'Ilo', avatarUrl: null }] } });
+        expect(unseenBelow([message(8, { senderId: 2 }), added], 7, 1)).toBe(1);
+        expect(unseenBelow([added], 7, 1)).toBe(0);
+    });
+
+    it('never loses a read: one asked for while another is on its way goes next, a failed one is tried again', async () => {
+        const sent: number[] = [];
+        const answers: Array<{ resolve: () => void; reject: () => void }> = [];
+        const read = createReader(upTo => { sent.push(upTo); return new Promise<void>((resolve, reject) => answers.push({ resolve, reject })); }, () => undefined);
+        read(5);
+        read(7);
+        read(9);
+        expect(sent).toEqual([5]);
+        answers[0].resolve();
+        await Promise.resolve(); await Promise.resolve();
+        expect(sent).toEqual([5, 9]);
+        answers[1].reject();
+        await Promise.resolve(); await Promise.resolve();
+        read(9);
+        expect(sent).toEqual([5, 9, 9]);
+        answers[2].resolve();
+        await Promise.resolve(); await Promise.resolve();
+        read(8);
+        expect(sent).toEqual([5, 9, 9]);
     });
 });
 

@@ -1,11 +1,13 @@
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
+import type { ContextMenuBinding } from '../../components/useContextMenu';
 import { CircleHelp, Pin, Plus } from 'lucide-react';
 import { formatTime } from '../../utils/formatting';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { isDone, type WorkNode } from './api';
+import { isDone, type WorkItem, type WorkNode } from './api';
 import { eventIcon, eventWords, type DayCard as Card } from './agendaRows';
 import { DoneTip } from './DoneTip';
 import { useDoneTip } from './useDoneTip';
+import { useTaskMenu } from './useTaskMenu';
 import type { WorkEvent } from './overviewApi';
 import { progressWords, statusName } from './teamWorkWords';
 import { KeyChip, SmallChip, StatusDot } from './WorkBits';
@@ -18,6 +20,7 @@ const names = (node: WorkNode | undefined) => node?.item.people.map(person => pe
  * progress and its plan. "Done means" shows on hover, focus or a long press. Pressed, it opens the task; a step's
  * event opens that step.
  */
+/** A task's card on the day it moved; right-click (or hold) it to open, discuss, move, copy or pin it. */
 export function TaskDayCard({ card, node, planName, pinned, fresh, onOpen }: {
     card: Card & { kind: 'task' }; node: WorkNode | undefined; planName?: string; pinned: boolean; fresh: boolean; onOpen: (taskId: number, stepId: number | null) => void;
 }) {
@@ -35,8 +38,9 @@ export function TaskDayCard({ card, node, planName, pinned, fresh, onOpen }: {
     const more = card.events.length - 1;
     const who = names(node) || latest.by?.name || '';
     const label = `${key} ${title}. ${what}`;
+    const open = () => onOpen(card.taskId, step ? step.id : null);
     return <li className="tw-card" data-status={status} data-fresh={fresh || undefined} {...tip.holder}>
-        <button type="button" className="tw-card__open" aria-label={label} {...tip.trigger} onClick={() => { if (!tip.swallow()) onOpen(card.taskId, step ? step.id : null); }}>
+        <CardMenu item={item} open={open}>{bind => <button type="button" className="tw-card__open gk-cm-target" aria-label={label} {...tip.trigger} {...bind} onClick={() => { if (!tip.swallow()) open(); }}>
             <span className="tw-card__top">
                 <StatusDot status={status} /><span className="tw-card__status">{statusName(copy, status)}</span>
                 <KeyChip value={key} />
@@ -53,9 +57,20 @@ export function TaskDayCard({ card, node, planName, pinned, fresh, onOpen }: {
                 <span className="tw-card__percent gk-num">{percent != null && !isDone(status) ? progressWords(copy, percent) : isDone(status) ? copy('done', 'მზადაა') : ''}</span>
                 <span className="tw-card__who">{[who, planName].filter(Boolean).join(' · ')}</span>
             </span>
-        </button>
+        </button>}</CardMenu>
         <DoneTip id={tip.id} doneMeans={item?.doneMeans} />
     </li>;
+}
+
+/** The task menu for a card whose task is known (a card for a task no longer on the board has none). */
+function CardMenu({ item, open, children }: { item: WorkItem | undefined; open: () => void; children: (bind: Partial<ContextMenuBinding>) => ReactNode }) {
+    if (!item) return <>{children({})}</>;
+    return <KnownCardMenu item={item} open={open}>{children}</KnownCardMenu>;
+}
+
+function KnownCardMenu({ item, open, children }: { item: WorkItem; open: () => void; children: (bind: Partial<ContextMenuBinding>) => ReactNode }) {
+    const menu = useTaskMenu(item, open);
+    return <>{children(menu.bind)}{menu.notice && <span className="tw-row__notice" role="status">{menu.notice}</span>}{menu.menu}</>;
 }
 
 /** Three or more tasks one person added to one plan at once: one quiet card, opened to the tasks. */

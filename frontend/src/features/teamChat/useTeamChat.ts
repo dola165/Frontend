@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { emitNotificationsChanged } from '../../utils/notifications';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { deleteMessage, editMessage, fetchChanges, fetchPage, fetchState, markRead, react, sendMessage,
-    type ChatAttachment, type ChatMessage, type ChatPage, type ChatQuote, type ChatState, type ChatSummary } from './api';
+    type ChatAttachment, type ChatMessage, type ChatPage, type ChatPerson, type ChatQuote, type ChatState, type ChatSummary } from './api';
 import { addNewer, addOlder, applyChanges, EMPTY_WINDOW, replaceWindow, upsert, type ChatWindow } from './chatWindow';
 import { connectLive, type Live } from './liveChat';
 import { createOutbox, type Pending } from './outbox';
+import { createReader } from './reading';
 import { sharedChanged } from './sharedSignal';
 import { isMissing, isPassing, problem, WRITER_FORBIDDEN } from './teamChatWords';
 
@@ -130,7 +131,9 @@ export function useTeamChat(chatId: number, jump: number | null) {
         (async () => {
             try {
                 const chat = await fetchState(chatId);
-                const first = await fetchPage(chatId, jump ? { around: jump } : {});
+                // Opened with unread messages, it starts where they start (the newest page may not hold the first).
+                const start = jump ?? (chat.unreadCount > 0 ? chat.firstUnreadId : null);
+                const first = await fetchPage(chatId, start ? { around: start } : {});
                 if (!alive.current) return;
                 setState(chat);
                 setFirstUnread(chat.unreadCount > 0 ? chat.firstUnreadId : null);
@@ -146,6 +149,8 @@ export function useTeamChat(chatId: number, jump: number | null) {
 
     /** The chat's own facts (name, status, decision) as the list or the panel just changed them. */
     const putChat = useCallback((chat: ChatSummary) => setState(current => current ? { ...current, chat } : current), []);
+    /** Who is in the chat changed (someone added, removed, or it was opened to everyone). */
+    const putPeople = useCallback((chat: ChatSummary, members: ChatPerson[]) => setState(current => current ? { ...current, chat, members } : current), []);
 
     // ── The live line, and catching up whenever it may have missed something ──
     useEffect(() => {
@@ -271,18 +276,9 @@ export function useTeamChat(chatId: number, jump: number | null) {
     }, [chatId, me, update, change]);
 
     // ── Reading ─────────────────────────────────────────────────────────
-    const readUpTo = useRef(0), reading = useRef(false);
-    const read = useCallback(async (upTo: number) => {
-        if (upTo <= readUpTo.current || reading.current) return;
-        reading.current = true;
-        try {
-            await markRead(chatId, upTo);
-            readUpTo.current = Math.max(readUpTo.current, upTo);
-            emitNotificationsChanged();
-        } catch { /* Read again on the next look. */ } finally {
-            reading.current = false;
-        }
-    }, [chatId]);
+    // What the person has seen is marked read, every time, in order: the chat list, the side bar and the header look
+    // again at once.
+    const [read] = useState(() => createReader(upTo => markRead(chatId, upTo), () => emitNotificationsChanged({ chatRead: true })));
 
     const lastTyping = useRef(0);
     const typingNow = useCallback((isTyping: boolean) => {
@@ -299,7 +295,7 @@ export function useTeamChat(chatId: number, jump: number | null) {
     return {
         chatId, state, status, notice, dismissNotice: () => setNotice(''), view, pending, inFlight, connected, typingNames, highlight, setHighlight,
         firstUnread, paging, membersById, loadOlder, loadNewer, jumpTo, jumpToLatest, send, retry, discard, edit, remove, toggleReaction, read, typingNow,
-        putChat, follow,
+        putChat, putPeople, follow, catchUp: sync,
     };
 }
 export type TeamChatModel = ReturnType<typeof useTeamChat>;

@@ -1,28 +1,19 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Download, ExternalLink, Pencil, Trash2 } from 'lucide-react';
-import { Avatar, Button } from '../../design/primitives';
+import { Button } from '../../design/primitives';
 import type { WorkStatus } from '../teamWork/api';
 import { statusName, statusWords } from '../teamWork/teamWorkWords';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { renameChat, setChatStatus, type ChatPerson, type ChatStatus, type ChatSummary } from './api';
+import { renameChat, setChatStatus, type ChatPeople, type ChatPerson, type ChatStatus, type ChatSummary } from './api';
 import { DecideDialog } from './DecideDialog';
 import { FilePicker } from './FilePicker';
 import { PanelMedia, type MediaFilters } from './PanelMedia';
+import { PanelPeople } from './PanelPeople';
+import type { PersonTab } from './personTabs';
 import { taskPath } from './richText';
 import { downloadZip } from './saveFile';
 import { onlyDeleters, problem, shortDay, STATUSES, statusWord } from './teamChatWords';
-
-/** Who is in the chat: everyone on the team, the same people in every chat. */
-function People({ members }: { members: ChatPerson[] }) {
-    const copy = useJourneyCopy();
-    return <section className="tc-panel__section" aria-label={copy('People', 'ხალხი')}>
-        <h3 className="tc-panel__title">{copy('People', 'ხალხი')} <span className="tc-faint gk-num">{members.length}</span></h3>
-        <ul className="tc-panel__people">
-            {members.map(person => <li key={person.id}><Avatar src={person.avatarUrl} name={person.name} size={24} /><span>{person.name}</span></li>)}
-        </ul>
-    </section>;
-}
 
 /** The task the chat is about: its key, status, what done means, and the way to it. */
 function Task({ chat }: { chat: ChatSummary }) {
@@ -141,12 +132,13 @@ function Settings({ chat, onChat }: { chat: ChatSummary; onChat: (chat: ChatSumm
 }
 
 /**
- * The right-hand panel of a chat: its people, its task, its status, what was shared, and its settings. On a phone
- * it is a page of its own, with a way back to the chat.
+ * The right-hand panel of a chat: its people (and who chooses them), its task, its status, what was shared here, and
+ * its settings. On a phone it is a page of its own, with a way back to the chat.
  */
-export function ChatPanel({ chat, members, maxDecision, media, onMedia, onChat, onShow, onMissing, onBack }: {
-    chat: ChatSummary; members: ChatPerson[]; maxDecision: number; media: MediaFilters; onMedia: (filters: MediaFilters) => void;
-    onChat: (chat: ChatSummary) => void; onShow: (chatId: number, messageId: number) => void; onMissing: () => void; onBack: () => void;
+export function ChatPanel({ chat, members, team, me, maxDecision, media, onMedia, onAllMedia, onChat, onPeople, onLeft, onPerson, onShow, onMissing, onBack }: {
+    chat: ChatSummary; members: ChatPerson[]; team: ChatPerson[]; me: number | null; maxDecision: number; media: MediaFilters; onMedia: (filters: MediaFilters) => void;
+    onAllMedia: () => void; onChat: (chat: ChatSummary) => void; onPeople: (people: ChatPeople) => void; onLeft: () => void;
+    onPerson: (personId: number, tab: PersonTab) => void; onShow: (chatId: number, messageId: number) => void; onMissing: () => void; onBack: () => void;
 }) {
     const copy = useJourneyCopy();
     return <div className="tc-panel">
@@ -156,10 +148,10 @@ export function ChatPanel({ chat, members, maxDecision, media, onMedia, onChat, 
             </button>
             <h2 className="tc-panel__name">{chat.name}</h2>
         </header>
-        <People members={members} />
+        <PanelPeople chat={chat} members={members} team={team} me={me} onPeople={onPeople} onLeft={onLeft} onPerson={onPerson} />
         <Task chat={chat} />
         <Status chat={chat} max={maxDecision} onChat={onChat} />
-        <PanelMedia chatId={chat.id} members={members} filters={media} onFilters={onMedia} onShow={onShow} onMissing={onMissing} trashed={chat.deletesAt !== null} />
+        <PanelMedia chatId={chat.id} members={members} filters={media} onFilters={onMedia} onShow={onShow} onMedia={onAllMedia} onMissing={onMissing} trashed={chat.deletesAt !== null} />
         <Settings chat={chat} onChat={onChat} />
     </div>;
 }

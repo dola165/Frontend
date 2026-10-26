@@ -53,8 +53,10 @@ export function byDay(commits: (Commit & { repo: RepoKey })[]) {
  * keep any local work; fast-forward only; prove it with git log and git status; say whether it was already up to date
  * (the page can be wrong); summarise what changed; reinstall only when the lockfiles changed.
  */
-export function updatePrompt(repos: Record<RepoKey, Repo>) {
+export function updatePrompt(repos: Record<RepoKey, Repo>, live?: { release: number; backend: string; web: string }) {
     const target = (key: RepoKey) => {
+        // A copy updates to the live release; the live site, or a page that cannot tell, to the newest commit it knows.
+        if (live) return `at least commit ${short(live[key])} (release ${live.release}, what is live)`;
         const newest = repos[key].known ? repos[key].commits?.[0] : undefined;
         const merged = newest ? mergedBranch(newest) : null;
         const title = merged === null ? newest?.title : `merged: ${merged || 'a branch'}`;

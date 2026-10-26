@@ -14,6 +14,7 @@ import { fetchOpenQuestions, type OpenQuestion } from './overviewApi';
 import { PersonView } from './PersonView';
 import { PlanRow } from './PlanRow';
 import { usePins } from './usePins';
+import { TaskMenuProvider } from './TaskMenuProvider';
 import { TaskDialog, type TaskActions } from './TaskDialog';
 import { statusName } from './teamWorkWords';
 import './team-work-agenda.css';
@@ -89,7 +90,7 @@ export function Overview({ items, findings, plans, views, planOf, team, lines, m
         </div>} />
     </Panel></>;
 
-    return <div className="tw-overview">
+    return <TaskMenuProvider pins={pins}><div className="tw-overview">
         {header}
         <TurnOnNotificationsPrompt />
         {questionsError && <div className="gk-notice gk-notice--danger" role="alert"><span>{questionsError}</span><Button size="sm" onClick={() => setRetry(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
@@ -109,5 +110,5 @@ export function Overview({ items, findings, plans, views, planOf, team, lines, m
         </>}
         {seeLive && <LiveDialog tasks={work.filter(item => item.parentId == null)} plans={plans} planOf={planOf} onOpen={open} onOpenPlan={onOpenPlan} onClose={() => setSeeLive(false)} />}
         {opened && <TaskDialog node={opened} plan={planOf.get(opened.item.id)} actions={actions} pins={pins} onOpenPlan={onOpenPlan} />}
-    </div>;
+    </div></TaskMenuProvider>;
 }

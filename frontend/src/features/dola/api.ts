@@ -72,7 +72,7 @@ export async function streamDola(request: DolaRequest, sessionId: AuthSessionId,
 const destinations: Record<string, string> = {
     home: '/home', clubs: '/clubs', my_club: '/my-club', parent_hub: '/parent', my_squads: '/squads',
     my_schedule: '/calendar?scope=personal', match_exchange: '/match-exchange', referees: '/referees/me',
-    stadiums: '/stadiums', tournaments: '/tournaments', jobs: '/jobs', account: '/account', football_roles: '/account/roles', agent_hub: '/agent',
+    stadiums: '/stadiums', tournaments: '/tournaments', jobs: '/jobs', account: '/account', football_roles: '/account/football', agent_hub: '/agent',
 };
 export const safeDolaDestination = (destination: DolaAnswer['destinations'][number]) => {
     const venue = /^venue_workspace:([1-9][0-9]{0,14})$/.exec(destination.id);

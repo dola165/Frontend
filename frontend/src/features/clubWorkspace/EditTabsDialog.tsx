@@ -53,7 +53,7 @@ export function EditTabsDialog({ tabs, layout, focus, readOnly, onClose, onAskAc
             })}
             <p className="cw-tabs__foot">
                 {copy('accessFrom')} {onAskAccess && <button type="button" className="cw-text-button" onClick={onAskAccess}>{copy('askAccess')}</button>}<br />
-                {copy('profileRoles')} <Link to="/account/roles">{copy('rolesAndWork')}</Link>
+                {copy('profileRoles')} <Link to="/account/football">{copy('rolesAndWork')}</Link>
             </p>
         </div>
     </Dialog>;

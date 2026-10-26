@@ -13,7 +13,7 @@ export interface ChoiceTile {
 /**
  * Tiles to pick from: icon, label, one grey line, the check in the corner, and a soft tint when picked. Several at once
  * by default; `single` makes it one choice. `compact` is the tighter grid of a guided flow (three or four across, two on
- * a phone). Used by Roles and work and by "Set up your profile".
+ * a phone). Used by the welcome.
  */
 export function ChoiceTiles({ items, chosen, onToggle, label, single = false, compact = false }: {
     items: ChoiceTile[]; chosen: readonly string[]; onToggle: (id: string) => void; label: string; single?: boolean; compact?: boolean;

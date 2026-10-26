@@ -243,6 +243,14 @@ describe('the welcome', () => {
         await waitFor(() => expect(screen.queryByRole('heading', { name: 'Your first week' })).toBeNull());
     });
 
+    it('does not come back over the create sheet a link asks for', async () => {
+        server.prefs = { start: { welcome: { state: 'OPEN', at: 'START' } } };
+        mount('/home?create=fan-club&from=home');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        expect(screen.queryByRole('dialog', { name: 'What brings you to GrassKickZ?' })).toBeNull();
+        expect(address()).toBe('/home?create=fan-club&from=home');
+    });
+
     it('opens step 1 for links of the earlier five-step welcome', () => {
         expect(stepFromParam('roles')).toBe('start');
         expect(stepFromParam('profile')).toBe('start');

@@ -36,6 +36,8 @@ async function startApp() {
           <Toaster
             position="bottom-right"
             toastOptions={{
+              // The second line reads in both themes (sonner's own grey is for light backgrounds).
+              descriptionClassName: '!text-[var(--color-secondary)]',
               style: {
                 background: 'var(--color-elevated)',
                 color: 'var(--color-text)',

@@ -50,3 +50,38 @@
   .gk .pp-person .pp-link, .gk .pp-edit { padding: var(--gk-3); }
   .gk .pp-job__actions { margin-left: 0; }
 }
+
+/* Waiting: suggested assistants, a dot in front, the state in words, the decision behind */
+.gk .pp-waiting { list-style: none; margin: 0; padding: 0; }
+.gk .pp-waiting__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); min-height: 44px; padding: var(--gk-2) 0; }
+.gk .pp-waiting__row + .pp-waiting__row { border-top: 1px solid var(--gk-line); }
+.gk .pp-waiting__text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--gk-2); flex: 1 1 260px; min-width: 0; }
+.gk .pp-waiting__text small { flex-basis: 100%; font-size: var(--gk-fs-sm); }
+.gk .pp-waiting__actions { margin-left: auto; }
+
+/* Staff links: one row each, a QR mark, the faces of who joined */
+.gk .pp-links__icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .pp-links__icon svg { width: 18px; height: 18px; }
+.gk .pp-links__trail { display: inline-flex; align-items: center; gap: var(--gk-2); }
+.gk .pp-faces { display: inline-flex; }
+.gk .pp-faces > * + * { margin-left: -4px; }
+.gk .pp-faces > * { box-shadow: 0 0 0 2px var(--gk-surface); border-radius: 50%; }
+
+/* The staff link dialog: job and where, the link, then who joined */
+.gk .pp-staff-link { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .pp-staff-link__meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .pp-staff-link__make { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); }
+.gk .pp-joined { display: flex; flex-direction: column; gap: var(--gk-2); padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); }
+.gk .pp-joined__title { margin: 0; font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .pp-joined__list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }
+.gk .pp-joined__row { display: flex; align-items: center; gap: var(--gk-3); min-height: 44px; }
+.gk .pp-joined__who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.gk .pp-joined__who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .pp-joined__who small, .gk .pp-joined__empty { margin: 0; font-size: var(--gk-fs-sm); }
+
+/* A person's history, newest first */
+.gk .pp-history { grid-column: 1 / -1; margin: 0; padding: var(--gk-3) var(--gk-4); list-style: none; border-radius: var(--gk-r); background: var(--gk-sunken); display: flex; flex-direction: column; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .pp-history li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--gk-1) var(--gk-3); }
+
+/* Confirm and Decline inside an admin's notification */
+.gk.pp-notice-actions, .gk .pp-notice-actions { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); padding: var(--gk-2) var(--gk-4) var(--gk-3); }

@@ -1,35 +1,43 @@
 import { useState } from 'react';
-import { Link2, Pencil, Plus, UserRound } from 'lucide-react';
+import { History, Link2, Pencil, Plus, UserRound } from 'lucide-react';
 import { Avatar, Badge, Button } from '../../../design/primitives';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { relativeTime } from '../../../utils/relativeTime';
 import type { ClubManagedMember } from '../../clubs/domain';
-import { changeJob, draftOf, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
+import { changeJob, draftOf, MAIN_JOBS, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteLinkBox } from './InviteLinkBox';
 import { JobPicker } from './JobPicker';
 import { StaffPublicProfile } from './StaffPublicProfile';
 import { useJobWords } from './jobWords';
 
+/** What the viewer may do to other people's jobs, from the rule-checker (or the People view's flags on older servers). */
+export interface PeopleRights { change: boolean; end: boolean; invite: boolean }
+/** A squad job changes into another job in place; making someone an Admin is Add job (an invitation of its own). */
+const CHANGE_JOBS = MAIN_JOBS.filter(job => job !== 'ADMIN');
+
 /**
- * One person: their jobs and where, each changeable in place by an admin. Someone invited shows "Invited" with
- * New link, and Copy and WhatsApp once a link exists in this session. A head coach's helper shows who added it,
- * with Undo for admins. A club member's public People-tab profile is edited here too.
+ * One person: their jobs and where. The Owner and Admins change or end anyone's job in place (never the Owner's); the
+ * change applies at once and its line says who made it, with the whole story under History. Someone invited shows
+ * "Invited" with New link, and Copy and WhatsApp once a link exists in this session. A club member's public People-tab
+ * profile is edited here too.
  */
-export function PersonRow({ club, clubName, view, person, member, link, busy, onNewLink, onHideLink, onAddJob, onEnd, onChanged }: {
-    club: number; clubName: string; view: PeopleView; person: Person; member?: ClubManagedMember; link?: InviteLink; busy: boolean;
+export function PersonRow({ club, clubName, view, person, member, link, busy, rights, onNewLink, onHideLink, onAddJob, onEnd, onChanged }: {
+    club: number; clubName: string; view: PeopleView; person: Person; member?: ClubManagedMember; link?: InviteLink; busy: boolean; rights: PeopleRights;
     onNewLink: () => void; onHideLink: () => void; onAddJob: () => void; onEnd: (job: PersonJob) => void; onChanged: (notice: string) => void;
 }) {
     const { copy, jobLabel, whereLabel, statusLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
-    const { leader, owner, userId: me } = view.viewer;
-    const [profile, setProfile] = useState(false);
+    const me = view.viewer.userId, self = person.userId === me;
+    const [profile, setProfile] = useState(false), [story, setStory] = useState(false);
     const [editing, setEditing] = useState<PersonJob | null>(null), [draft, setDraft] = useState<JobDraft | null>(null);
     const [saving, setSaving] = useState(false), [error, setError] = useState('');
     const invited = person.jobs.some(job => job.status === 'INVITED' || job.status === 'EXPIRED');
-    const canLink = person.needsLink && invited && (leader || person.jobs.some(job => job.addedById === me && job.kind === 'APPOINTMENT'));
-    const canEnd = (job: PersonJob) => leader && job.kind !== 'OWNER' && person.userId !== me && (job.kind !== 'ADMIN' || owner);
+    const canLink = person.needsLink && invited && (rights.invite || person.jobs.some(job => job.addedById === me && job.kind === 'APPOINTMENT'));
+    const canEnd = (job: PersonJob) => rights.end && job.kind !== 'OWNER' && !self;
     const endText = (job: PersonJob) => job.kind === 'ADMIN_INVITE' || job.kind === 'COACH_INVITE' || job.status === 'INVITED' || job.status === 'EXPIRED'
         ? copy('Cancel invite', 'მოწვევის გაუქმება') : job.kind === 'APPOINTMENT' ? copy('End job', 'დასრულება') : copy('Remove', 'მოხსნა');
     const jobsText = person.jobs.map(job => `${jobLabel(job)} · ${whereLabel(job)}`).join('; ');
+    const history = person.jobs.flatMap(job => job.history ?? []).sort((a, b) => b.at.localeCompare(a.at));
     const edit = (job: PersonJob) => { setEditing(job); setDraft(draftOf(job)); setError(''); };
     const save = async () => {
         if (!editing || !draft) return;
@@ -38,7 +46,8 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, on
         try {
             await changeJob(club, editing, draft);
             setEditing(null); setDraft(null);
-            onChanged(person.needsLink ? copy('Job changed.', 'სამუშაო შეიცვალა.') : copy(`Sent to ${person.name} to accept. Their earlier tools pause until then.`, `გაეგზავნა ${person.name}-ს დასადასტურებლად. მანამდე ძველი ხელსაწყოები შეჩერებულია.`));
+            const now = `${person.name}: ${jobLabel(draft)} · ${whereLabel({ clubWide: draft.clubWide, squads: view.squads.filter(s => draft.squadIds.includes(s.id)) })}`;
+            onChanged(copy(`${now}. Changed now.`, `${now}. შეიცვალა.`));
         } catch (failure) { setError(extractApiErrorMessage(failure, copy('The job couldn’t be changed.', 'სამუშაო ვერ შეიცვალა.'))); }
         finally { setSaving(false); }
     };
@@ -46,35 +55,39 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, on
         <div className="pp-person__head">
             <Avatar src={resolveMediaUrl(person.avatarUrl) || null} name={person.name} size={40} />
             <div className="pp-person__who">
-                <strong className="pp-person__name">{person.name}{person.userId === me && <Badge tone="info">{copy('You', 'თქვენ')}</Badge>}</strong>
+                <strong className="pp-person__name">{person.name}{self && <Badge tone="info">{copy('You', 'თქვენ')}</Badge>}</strong>
                 {person.email && person.needsLink && <span className="gk-muted pp-person__email">{person.email}</span>}
             </div>
         </div>
         <div className="pp-person__actions">
             {canLink && <Button size="sm" disabled={busy} onClick={onNewLink}><Link2 aria-hidden="true" />{copy('New link', 'ახალი ბმული')}</Button>}
-            {leader && person.userId !== me && <Button size="sm" variant="ghost" disabled={busy} onClick={onAddJob}><Plus aria-hidden="true" />{copy('Add job', 'სამუშაოს დამატება')}</Button>}
-            {leader && member && !profile && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setProfile(true)}><UserRound aria-hidden="true" />{copy('Public profile', 'საჯარო პროფილი')}</Button>}
+            {rights.invite && !self && <Button size="sm" variant="ghost" disabled={busy} onClick={onAddJob}><Plus aria-hidden="true" />{copy('Add job', 'სამუშაოს დამატება')}</Button>}
+            {history.length > 0 && <Button size="sm" variant="ghost" aria-expanded={story} onClick={() => setStory(open => !open)}><History aria-hidden="true" />{copy('History', 'ისტორია')}</Button>}
+            {rights.invite && member && !profile && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setProfile(true)}><UserRound aria-hidden="true" />{copy('Public profile', 'საჯარო პროფილი')}</Button>}
         </div>
         <ul className="pp-jobs" aria-label={copy(`${person.name}’s jobs`, `${person.name}: სამუშაოები`)}>{person.jobs.map(job => {
             const status = statusLabel(job.status);
             return <li key={`${job.kind}-${job.id}`} className="pp-job">
                 <span className="pp-job__what"><span className="pp-job__name">{jobLabel(job)}</span><span className="pp-job__where">{whereLabel(job)}</span></span>
                 {status && <Badge tone={job.status === 'INVITED' ? 'warning' : job.status === 'UNAVAILABLE' ? 'danger' : 'neutral'}>{status}</Badge>}
-                {job.addedByHeadCoach && <span className="gk-faint pp-job__by">{copy(`Added by ${job.addedByName ?? 'a head coach'}`, `დაამატა ${job.addedByName ?? 'მთავარმა მწვრთნელმა'}`)}</span>}
+                {job.changedByName && job.changedAt ? <span className="gk-faint pp-job__by">{copy(`Changed by ${job.changedByName} · ${relativeTime(job.changedAt)}`, `შეცვალა ${job.changedByName} · ${relativeTime(job.changedAt)}`)}</span>
+                    : job.addedByHeadCoach && <span className="gk-faint pp-job__by">{copy(`Added by ${job.addedByName ?? 'a head coach'}`, `დაამატა ${job.addedByName ?? 'მთავარმა მწვრთნელმა'}`)}</span>}
                 <span className="pp-job__actions">
-                    {leader && job.kind === 'APPOINTMENT' && person.userId !== me && <Button size="sm" variant="ghost" disabled={busy || saving} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
+                    {rights.change && job.kind === 'APPOINTMENT' && !self && <Button size="sm" variant="ghost" disabled={busy || saving} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
                     {canEnd(job) && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy || saving} onClick={() => onEnd(job)}>{job.addedByHeadCoach ? copy('Undo', 'გაუქმება') : endText(job)}</Button>}
                 </span>
                 {job.unavailableReason && <p className="gk-faint pp-job__reason">{job.unavailableReason}</p>}
             </li>;
         })}</ul>
+        {story && <ol className="pp-history" aria-label={copy(`${person.name}: history`, `${person.name}: ისტორია`)}>{history.map((event, index) => <li key={`${event.at}-${index}`}>
+            <span>{event.summary}</span><small className="gk-faint">{event.byName} · {relativeTime(event.at)}</small>
+        </li>)}</ol>}
         {profile && member && <StaffPublicProfile clubId={club} member={member} onClose={() => setProfile(false)}
             onSaved={() => { setProfile(false); onChanged(copy('Public profile saved.', 'საჯარო პროფილი შეინახა.')); }} />}
         {link && <InviteLinkBox name={person.name} link={link} onClose={onHideLink}
             message={copy(`You’re invited to ${clubName}: ${jobsText}. Choose your password here:`, `მოწვეული ხართ ${clubName}-ში: ${jobsText}. აირჩიეთ პაროლი აქ:`)} />}
         {editing && draft && <form className="pp-edit" aria-label={copy(`Change ${jobLabel(editing)}`, `შეცვლა: ${jobLabel(editing)}`)} onSubmit={event => { event.preventDefault(); void save(); }}>
-            <JobPicker view={view} draft={draft} onChange={setDraft} headCoachOnly={false} allowAdmin={false} disabled={saving} />
-            {!person.needsLink && <p className="gk-faint">{copy(`${person.name} accepts the change before it applies.`, `ცვლილება ძალაში შევა, როცა ${person.name} დაადასტურებს.`)}</p>}
+            <JobPicker view={view} draft={draft} onChange={setDraft} choices={CHANGE_JOBS} extras disabled={saving} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             <div className="gk-row pp-edit__actions">
                 <Button type="submit" size="sm" variant="primary" disabled={saving}>{saving ? copy('Saving…', 'ინახება…') : copy('Save', 'შენახვა')}</Button>

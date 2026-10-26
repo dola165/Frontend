@@ -1,3 +1,4 @@
+import { AssistantSuggestionActions } from '../../features/clubOperations/people/AssistantSuggestionActions';
 import { JourneyReminderActions } from '../../features/mapPlanning/JourneyReminderActions';
 import { FamilyLinkRequestActions } from '../../features/parents/FamilyLinkRequestActions';
 import { SquadJoinNoticeActions } from '../../features/squadCommunication/SquadJoinNoticeActions';
@@ -9,5 +10,6 @@ export function NotificationActions({ notification }: { notification: Notificati
         <JourneyReminderActions notification={notification} />
         <SquadJoinNoticeActions notification={notification} />
         <FamilyLinkRequestActions notification={notification} />
+        <AssistantSuggestionActions notification={notification} />
     </>;
 }

@@ -43,7 +43,7 @@ export function ClubTools(ctx: ClubToolsContext) {
     const players = m.players, apps = m.applications;
     const focusNote = (text: string) => <PageFrame className="cw-focus-note"><div className="gk-notice" role="status"><span className="cw-notices__text">{text}</span><Button size="sm" onClick={ctx.clearApplicationFocus}>Show all applications</Button></div></PageFrame>;
     switch (tab) {
-        case 'personnel': return <ClubPeople key={clubId} clubId={clubId} clubName={ctx.boot?.clubName ?? ''} roles={ctx.roles} members={overview?.members}
+        case 'personnel': return <ClubPeople key={clubId} clubId={clubId} clubName={ctx.boot?.clubName ?? ''} members={overview?.members}
             onChanged={() => { void ctx.reloadOverview(); ctx.refreshBoot(); ctx.refreshRoles(); }} />;
         case 'players': return <PlayersPage
             playerDirectory={players.directory} playerLoading={players.loading} playerError={players.error} playerStatusFilter={players.filter}

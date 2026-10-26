@@ -1,40 +1,68 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MessageSquarePlus, UserPlus } from 'lucide-react';
-import { Button, EmptyNote, PageFrame, PageHeader, Panel, SearchInput, Skeleton } from '../../../design/primitives';
+import { useSearchParams } from 'react-router-dom';
+import { QrCode, UserPlus } from 'lucide-react';
+import { Button, EmptyNote, PageFrame, PageHeader, Panel, SearchInput, Section, Skeleton } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
+import { AskAdmin } from '../../../components/access/AskAdmin';
+import { refreshAccess, useCan } from '../../../hooks/useCan';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { ResponsibilityRequests } from '../../clubWorkspace/coachHub/ResponsibilityRequests';
 import type { ClubManagedMember } from '../../clubs/domain';
-import type { RolesWorkspace } from '../useWorkspaceRoles';
-import { endJob, fetchPeople, newInviteLink, settleNameCheck, type InviteLink, type Person, type PersonJob, type PeopleView } from './api';
+import { decideSuggestion, endJob, fetchPeople, newInviteLink, settleNameCheck, type AssistantSuggestion, type InviteLink, type InviteResult, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteDialog } from './InviteDialog';
 import { InviteLinkBox } from './InviteLinkBox';
-import { PersonRow } from './PersonRow';
+import { PersonRow, type PeopleRights } from './PersonRow';
+import { StaffLinkDialog } from './StaffLinkDialog';
+import { StaffLinkList } from './StaffLinkList';
+import { SuggestAssistantDialog } from './SuggestAssistantDialog';
+import { SuggestionList } from './SuggestionList';
 import { useJobWords } from './jobWords';
+import { useStaffLinks } from './useStaffLinks';
 import '../../clubWorkspace/club-workspace.css';
 import './people.css';
 
+type Inviting = 'link' | 'person' | 'suggest';
+
 /**
- * The club's People: one list of person → jobs → where. Admins invite with name, email, job and where, and change
- * jobs in place; a head coach invites helpers to their own squads and asks an admin for anything else.
+ * The club's People: one list of person → jobs → where. Admins invite staff in bulk with a staff link and QR code,
+ * invite one person (the only way to make an Admin), confirm head coaches' suggested assistants and change or end
+ * anyone's job but the Owner's. A head coach suggests an assistant for their own squad. Which buttons show is the
+ * rule-checker's answer; the dialog open, the link shown and the search live in the address.
  */
-export function ClubPeople({ clubId, clubName, roles, members = [], onChanged }: {
-    clubId: number; clubName: string; roles?: RolesWorkspace | null; members?: ClubManagedMember[]; onChanged?: () => void;
+export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
+    clubId: number; clubName: string; members?: ClubManagedMember[]; onChanged?: () => void;
 }) {
+    const [params, setParams] = useSearchParams();
     const [view, setView] = useState<PeopleView | null>(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
-    const [query, setQuery] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
-    const [inviting, setInviting] = useState<{ person?: Person } | null>(null), [asking, setAsking] = useState(false);
+    const [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
     const [ending, setEnding] = useState<{ person: Person; job: PersonJob } | null>(null);
     const [links, setLinks] = useState<Record<number, InviteLink>>({});
     const [fresh, setFresh] = useState<{ name: string; link: InviteLink; message: string } | null>(null);
     const { copy, jobLabel, whereLabel } = useJobWords(view ? [...view.jobs, ...view.moreJobs] : []);
+    const inviting = (['link', 'person', 'suggest'] as const).find(value => value === params.get('invite')) ?? null;
+    const query = params.get('q') ?? '';
+    const forPerson = view?.people.find(p => p.userId === Number(params.get('for')));
+    const setParam = (patch: Record<string, string | null>) => setParams(current => {
+        const next = new URLSearchParams(current);
+        Object.entries(patch).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
+        return next;
+    }, { replace: true });
+    const open = (what: Inviting | null, extra: Record<string, string | null> = {}) => setParam({ invite: what, link: null, for: null, ...extra });
+
+    const can = useCan(`club:${clubId}`);
+    const leader = Boolean(view?.viewer.leader), headCoachSquads = view?.viewer.headCoachSquads ?? [];
+    const rights: PeopleRights = { invite: can.decide('invite_staff', leader).allowed, change: can.decide('change_job', leader).allowed, end: can.decide('end_job', leader).allowed };
+    const inviteAdmin = can.decide('invite_admin', leader).allowed;
+    const suggest = can.decide('suggest_assistant', !leader && headCoachSquads.length > 0);
+    const refused = [can.decide('invite_staff', leader), suggest].find(decision => !decision.allowed && decision.askAdmin);
+    const staff = useStaffLinks(clubId, Boolean(view) && rights.invite, inviting === 'link', copy('Could not load the staff links.', 'პერსონალის ბმულები ვერ ჩაიტვირთა.'));
+
     useEffect(() => {
         const controller = new AbortController();
         fetchPeople(clubId, controller.signal).then(data => { if (!controller.signal.aborted) { setView(data); setError(''); } })
-            .catch(failure => { if (!controller.signal.aborted) setError(extractApiErrorMessage(failure, 'Could not load People.')); });
+            .catch(failure => { if (!controller.signal.aborted) setError(extractApiErrorMessage(failure, copy('Could not load People.', 'ხალხი ვერ ჩაიტვირთა.'))); });
         return () => controller.abort();
-    }, [clubId, revision]);
-    const refresh = (message?: string) => { if (message) setNotice(message); setRevision(value => value + 1); onChanged?.(); };
+    }, [clubId, revision, copy]);
+    const refresh = (message?: string) => { if (message) setNotice(message); setRevision(value => value + 1); refreshAccess(); onChanged?.(); };
     const run = async (work: () => Promise<void>, fallback: string) => {
         setBusy(true); setError('');
         try { await work(); } catch (failure) { setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
@@ -43,29 +71,44 @@ export function ClubPeople({ clubId, clubName, roles, members = [], onChanged }:
         const needle = query.trim().toLowerCase();
         return (view?.people ?? []).filter(p => !needle || `${p.name} ${p.email ?? ''} ${p.jobs.map(j => `${jobLabel(j)} ${whereLabel(j)}`).join(' ')}`.toLowerCase().includes(needle));
     }, [view, query, jobLabel, whereLabel]);
-    const canInvite = Boolean(view && (view.viewer.leader || view.viewer.headCoachSquads.length));
-    const headCoach = Boolean(view && !view.viewer.leader && view.viewer.headCoachSquads.length);
     const hideLink = (userId: number) => setLinks(all => Object.fromEntries(Object.entries(all).filter(([id]) => Number(id) !== userId)));
     const makeLink = (person: Person) => void run(async () => {
         const link = await newInviteLink(clubId, person.userId);
         setLinks(all => ({ ...all, [person.userId]: link }));
         setNotice(copy('New link made. The earlier one no longer works.', 'ახალი ბმული შეიქმნა. ძველი აღარ მუშაობს.'));
-    }, 'Could not make a new link.');
-    const settle = (check: number, outcome: 'keep' | 'undo', done: string) => void run(async () => { await settleNameCheck(clubId, check, outcome); refresh(done); }, 'Could not settle this.');
+    }, copy('Could not make a new link.', 'ახალი ბმული ვერ შეიქმნა.'));
+    const settle = (check: number, outcome: 'keep' | 'undo', done: string) => void run(async () => { await settleNameCheck(clubId, check, outcome); refresh(done); }, copy('Could not settle this.', 'ვერ შესრულდა.'));
+    const showInvite = (result: InviteResult) => {
+        if (result.link) setFresh({ name: result.name, link: result.link, message: copy(`You’re invited to ${clubName}. Choose your password here:`, `მოწვეული ხართ ${clubName}-ში. აირჩიეთ პაროლი აქ:`) });
+    };
+    const decide = (suggestion: AssistantSuggestion, decision: 'confirm' | 'decline' | 'withdraw') => void run(async () => {
+        const result = await decideSuggestion(clubId, suggestion.id, decision);
+        if (result) showInvite(result);
+        refresh(decision === 'confirm' ? copy(`${suggestion.name} is invited as assistant coach. ${suggestion.suggestedByName} is told.`, `${suggestion.name} მოწვეულია მწვრთნელის ასისტენტად. ${suggestion.suggestedByName}-ს ეცნობა.`)
+            : decision === 'decline' ? copy(`Declined. ${suggestion.suggestedByName} is told.`, `უარყოფილია. ${suggestion.suggestedByName}-ს ეცნობა.`) : copy('Withdrawn.', 'გაუქმდა.'));
+    }, copy('Your answer wasn’t saved.', 'პასუხი ვერ შეინახა.'));
     const end = () => {
         const target = ending;
         if (!target) return;
-        void run(async () => { await endJob(clubId, target.person.userId, target.job, 'Ended from People.'); setEnding(null); refresh(copy('Done.', 'შესრულდა.')); }, 'Could not end this job.');
+        void run(async () => { await endJob(clubId, target.person.userId, target.job, 'Ended from People.'); setEnding(null); refresh(copy(`${target.person.name}: ${jobLabel(target.job)} ended.`, `${target.person.name}: ${jobLabel(target.job)} დასრულდა.`)); },
+            copy('Could not end this job.', 'სამუშაო ვერ დასრულდა.'));
     };
     const invited = ending && (ending.job.status === 'INVITED' || ending.job.kind.endsWith('INVITE'));
+    const ownSquads = view?.squads.filter(s => headCoachSquads.includes(s.id)) ?? [];
+    const suggestions = view?.suggestions ?? [];
+    const activeLinks = staff.links ?? [];
 
     return <PageFrame className="cw-page pp-page">
         <PageHeader title={copy('People', 'ხალხი')} subtitle={copy('Everyone with a job here, and where.', 'ყველა, ვისაც აქ სამუშაო აქვს, და სად.')}
-            actions={<>{headCoach && roles && <Button onClick={() => setAsking(true)}><MessageSquarePlus aria-hidden="true" />{copy('Ask the admin', 'ადმინთან მიმართვა')}</Button>}
-                {canInvite && <Button variant="primary" onClick={() => setInviting({})}><UserPlus aria-hidden="true" />{copy('Invite', 'მოწვევა')}</Button>}</>} />
+            actions={<>
+                {rights.invite && <Button onClick={() => open('person')}><UserPlus aria-hidden="true" />{copy('Invite one person', 'ერთი ადამიანის მოწვევა')}</Button>}
+                {rights.invite && <Button variant="primary" onClick={() => open('link')}><QrCode aria-hidden="true" />{copy('Invite staff', 'პერსონალის მოწვევა')}</Button>}
+                {suggest.allowed && <Button variant="primary" onClick={() => open('suggest')}><UserPlus aria-hidden="true" />{copy('Suggest an assistant', 'ასისტენტის შეთავაზება')}</Button>}
+                {!rights.invite && !suggest.allowed && refused && <AskAdmin reason={refused.reason} admin={can.admin} />}
+            </>} />
         <div className="gk-stack">
             {notice && <p role="status" className="gk-notice cw-notices__success">{notice}</p>}
-            {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span>
+            {(error || staff.error) && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error || staff.error}</span>
                 {!view && <Button size="sm" onClick={() => setRevision(v => v + 1)}>{copy('Try again', 'თავიდან')}</Button>}</div>}
             {fresh && <InviteLinkBox name={fresh.name} link={fresh.link} message={fresh.message} onClose={() => setFresh(null)} />}
             {view?.nameChecks.map(check => <div key={check.id} className="gk-notice gk-notice--warning pp-check" role="status">
@@ -75,33 +118,41 @@ export function ClubPeople({ clubId, clubName, roles, members = [], onChanged }:
                     <Button size="sm" variant="danger" disabled={busy} onClick={() => settle(check.id, 'undo', copy(`Undone. ${check.acceptedName} no longer has a job here.`, `გაუქმდა. ${check.acceptedName}-ს აქ სამუშაო აღარ აქვს.`))}>{copy('Undo', 'გაუქმება')}</Button>
                 </span>
             </div>)}
+            {view && suggestions.some(s => leader || s.suggestedById === view.viewer.userId) && <Section boxed title={leader ? copy('Waiting for you', 'გელოდებათ') : copy('Your suggestions', 'თქვენი შეთავაზებები')}>
+                <SuggestionList suggestions={suggestions} me={view.viewer.userId} admin={leader} busy={busy} onDecide={decide} />
+            </Section>}
+            {view && rights.invite && activeLinks.length > 0 && <Section boxed title={copy('Staff links', 'პერსონალის ბმულები')} hint={copy('7 days or 10 people each', 'თითო 7 დღე ან 10 ადამიანი')}>
+                <StaffLinkList links={activeLinks} choices={[...view.jobs, ...view.moreJobs]} onOpen={link => open('link', { link: String(link.id) })} />
+            </Section>}
             {view && view.people.length > 6 && <div className="rec-toolbar"><SearchInput className="rec-toolbar__search" aria-label={copy('Find a person', 'პირის ძებნა')} value={query}
-                onChange={event => setQuery(event.target.value)} placeholder={copy('Name, job or squad', 'სახელი, სამუშაო ან გუნდი')} /></div>}
+                onChange={event => setParam({ q: event.target.value || null })} placeholder={copy('Name, job or squad', 'სახელი, სამუშაო ან გუნდი')} /></div>}
             {!view ? !error && <Panel><div className="cw-skeleton-rows" role="status" aria-label={copy('Loading people', 'იტვირთება')}>{[0, 1, 2].map(i => <Skeleton key={i} height={56} />)}</div></Panel>
                 : visible.length ? <Panel flush><ul className="pp-list" aria-label={copy('People', 'ხალხი')}>{visible.map(person => <PersonRow key={person.userId}
-                    club={clubId} clubName={clubName} view={view} person={person} busy={busy} link={links[person.userId]}
+                    club={clubId} clubName={clubName} view={view} person={person} busy={busy} link={links[person.userId]} rights={rights}
                     member={members.find(m => m.userId === person.userId)}
                     onHideLink={() => hideLink(person.userId)} onNewLink={() => makeLink(person)}
-                    onAddJob={() => setInviting({ person })} onEnd={job => setEnding({ person, job })} onChanged={message => refresh(message)} />)}</ul></Panel>
+                    onAddJob={() => open('person', { for: String(person.userId) })} onEnd={job => setEnding({ person, job })} onChanged={message => refresh(message)} />)}</ul></Panel>
                     : <Panel><EmptyNote title={query ? copy('No one matches', 'ვერაფერი მოიძებნა') : copy('No one here yet', 'ჯერ არავინაა')}
-                        action={!query && canInvite ? <Button size="sm" onClick={() => setInviting({})}><UserPlus aria-hidden="true" />{copy('Invite', 'მოწვევა')}</Button> : undefined}>
-                        {query ? copy('Try a name, job or squad.', 'სცადეთ სახელი, სამუშაო ან გუნდი.') : copy('Invite your coaches with their name and email.', 'მოიწვიეთ მწვრთნელები სახელით და ელფოსტით.')}</EmptyNote></Panel>}
+                        action={!query && rights.invite ? <Button size="sm" onClick={() => open('link')}><QrCode aria-hidden="true" />{copy('Invite staff', 'პერსონალის მოწვევა')}</Button> : undefined}>
+                        {query ? copy('Try a name, job or squad.', 'სცადეთ სახელი, სამუშაო ან გუნდი.') : copy('One link or QR code brings your coaches in.', 'ერთი ბმული ან QR კოდი და მწვრთნელები შემოვლენ.')}</EmptyNote></Panel>}
         </div>
-        {view && <InviteDialog open={inviting !== null} club={clubId} view={view} person={inviting?.person} onClose={() => setInviting(null)}
+        {view && rights.invite && <InviteDialog open={inviting === 'person'} club={clubId} view={view} person={forPerson} allowAdmin={inviteAdmin} onClose={() => open(null)}
             onInvited={result => {
-                const added = Boolean(inviting?.person);
-                setInviting(null);
-                if (result.link) setFresh({ name: result.name, link: result.link, message: copy(`You’re invited to ${clubName}. Choose your password here:`, `მოწვეული ხართ ${clubName}-ში. აირჩიეთ პაროლი აქ:`) });
-                const told = view.viewer.leader ? '' : ` ${copy('The admins have been told.', 'ადმინებს ეცნობათ.')}`;
-                refresh((result.inApp ? copy(`${result.name} already has an account, so the invitation is waiting in their notifications.`, `${result.name}-ს უკვე აქვს ანგარიში, მოწვევა შეტყობინებებში ელოდება.`)
-                    : added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`)) + told);
+                const added = Boolean(forPerson);
+                open(null);
+                showInvite(result);
+                refresh(result.inApp ? copy(`${result.name} already has an account, so the invitation is waiting in their notifications.`, `${result.name}-ს უკვე აქვს ანგარიში, მოწვევა შეტყობინებებში ელოდება.`)
+                    : added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`));
             }} />}
+        {view && rights.invite && inviting === 'link' && staff.links && <StaffLinkDialog club={clubId} clubName={clubName} view={view} links={staff.links}
+            opened={Number(params.get('link')) || null} onLinks={staff.setLinks} onClose={() => open(null)} onChanged={message => refresh(message)} />}
+        {view && suggest.allowed && inviting === 'suggest' && <SuggestAssistantDialog club={clubId} squads={ownSquads} onClose={() => open(null)}
+            onSent={message => { open(null); refresh(message); }} />}
         <Dialog open={ending !== null} role="alertdialog" size="sm" onClose={() => setEnding(null)}
             title={ending ? `${ending.person.name}: ${jobLabel(ending.job)} · ${whereLabel(ending.job)}` : ''}
             description={invited ? copy('Cancel this invitation? It can no longer be accepted.', 'გაუქმდეს მოწვევა? მისი მიღება აღარ იქნება შესაძლებელი.')
                 : copy('End this job? Its tools stop now. Everything they recorded stays with the club.', 'დასრულდეს სამუშაო? ხელსაწყოები ახლავე ითიშება. ყველაფერი, რაც ჩაწერეს, კლუბს რჩება.')}
             footer={<><Button variant="ghost" disabled={busy} onClick={() => setEnding(null)}>{copy('Keep', 'დატოვება')}</Button>
                 <Button variant="danger" disabled={busy} onClick={end}>{invited ? copy('Cancel invite', 'მოწვევის გაუქმება') : copy('End job', 'დასრულება')}</Button></>} />
-        {roles && asking && <ResponsibilityRequests open clubId={clubId} roles={roles} onClose={() => setAsking(false)} onChanged={() => onChanged?.()} />}
     </PageFrame>;
 }

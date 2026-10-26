@@ -728,6 +728,7 @@ export const PAGES_KA: Record<string, string> = {
   "Squad": "გუნდი",
   "Clear": "გასუფთავება",
   "Manage staff": "თანამშრომლების მართვა",
+  "Invite staff": "პერსონალის მოწვევა",
   "The staff directory couldn’t load": "თანამშრომელთა სია ვერ ჩაიტვირთა",
   "No matching staff": "თანამშრომლები ვერ მოიძებნა",
   "No staff published yet": "თანამშრომლები ჯერ არ გამოქვეყნებულა",

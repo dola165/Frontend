@@ -30,3 +30,16 @@ export const acceptClubInvite = async (invite: LinkInvite) => {
     if (invite.kind === 'APPOINTMENT') await apiClient.post(`/clubs/${invite.clubId}/operations/appointments/${invite.id}/transition`, { status: 'ACTIVE', revision: invite.revision });
     else await apiClient.post(`/club-memberships/invites/${invite.id}/accept`);
 };
+
+/**
+ * The staff link page (`/staff-link?token=…`, from a QR code or a group chat): one job for many people. The preview is
+ * open without signing in; joining needs the person's own account. GAP (26 Oct 2026): fnd-people-f's proposal.
+ */
+export interface StaffLinkPreview {
+    clubId: number; clubName: string; clubLogoUrl: string | null; invitedBy: string | null; job: string; clubWide: boolean; squads: string[];
+    expiresAt: string; usesLeft: number; unavailableReason: string | null;
+}
+export const previewStaffLink = async (token: string, signal?: AbortSignal) =>
+    (await apiClient.post<StaffLinkPreview>('/auth/staff-link/preview', { token }, { signal })).data;
+export const joinStaffLink = async (token: string) =>
+    (await apiClient.post<{ clubId: number; jobId: number; landing: string }>('/staff-links/join', { token })).data;

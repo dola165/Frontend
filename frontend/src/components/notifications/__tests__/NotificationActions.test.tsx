@@ -40,3 +40,11 @@ it('lets a parent confirm a second parent, which sends the usual guardian invita
     expect(await screen.findByText('Invitation sent. They accept it in Parent Hub.')).toBeInTheDocument();
     expect(squads.joinRequests).not.toHaveBeenCalled();
 });
+
+it('lets an admin confirm a suggested assistant in the notification itself', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: '' });
+    render(<NotificationActions notification={{ ...base, type: 'ASSISTANT_SUGGESTION', clubId: 7, entityType: 'club_staff_suggestion', entityId: 55, title: 'Giorgi suggests Dato as assistant coach for U12' }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/clubs/7/people/suggestions/55/confirm'));
+    expect(await screen.findByText('Confirmed. The head coach is told and sends the link.')).toBeInTheDocument();
+});

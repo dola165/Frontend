@@ -94,6 +94,7 @@ const OAuth2RedirectHandler = lazy(() => import('./pages/OAuth2RedirectHandler')
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(module => ({default: module.ForgotPasswordPage})));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({default: module.ResetPasswordPage})));
 const ClubInvitePage = lazy(() => import('./pages/ClubInvitePage').then(module => ({default: module.ClubInvitePage})));
+const StaffLinkPage = lazy(() => import('./pages/StaffLinkPage').then(module => ({default: module.StaffLinkPage})));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
 const ReportReceipts = lazy(() => import('./features/moderation/ReportReceipts').then(module => ({default: module.ReportReceipts})));
 const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
@@ -135,7 +136,7 @@ function useRailsFit() {
 }
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/staff-link', '/verify-email', '/consent', '/start']);
 const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -484,6 +485,7 @@ export function MainLayout() {
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/club-invite" element={<ClubInvitePage />} />
+                        <Route path="/staff-link" element={<StaffLinkPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=roles`} replace /></ProtectedRoute>} />

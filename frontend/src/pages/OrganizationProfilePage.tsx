@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, List, ListRow, PageFrame, Panel, Section, Skeleton } from '../design/primitives';
 import { ProfileLayout, SideBlock } from '../design/profile/ProfileLayout';
 import type { TabItem } from '../design/Tabs';
+import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
 import { extractApiErrorMessage } from '../utils/apiError';
 import type { OrganizationProfile, OrganizationProfileDraft } from '../features/organizations/domain';
 import { OrganizationVenues } from '../features/organizations/presentation/OrganizationVenues';
@@ -147,7 +148,7 @@ export function OrganizationProfileEditor({ id, onSaved }: { id: string; onSaved
     event.preventDefault(); if (!draft || !profile?.canEdit || profile.promotionBlocked || saving.current) return;
     saving.current = true; setBusy(true); setError(''); setMessage('');
     try { const r = await apiClient.put<OrganizationProfile>(`/organizations/${id}`, draft); if (active.current) { setProfile(r.data); setDraft(draftFrom(r.data)); setMessage(t('saved')); onSaved?.(); } }
-    catch (e) { if (active.current) setError(extractApiErrorMessage(e, t('saveError'))); }
+    catch (e) { if (active.current && !promptEmailConfirmation(e)) setError(extractApiErrorMessage(e, t('saveError'))); }
     finally { saving.current = false; if (active.current) setBusy(false); }
   }
   if (profile?.clubId) return <Navigate replace to={`/clubs/${profile.clubId}/profile-settings`} />;

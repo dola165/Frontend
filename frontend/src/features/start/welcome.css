@@ -2,12 +2,17 @@
 .gk .gk-dialog.gk-welcome-dialog { min-width: 0; }
 /* Choosing (step 1, a business's kind): wide and tall enough for big photo tiles. */
 .gk .gk-dialog.gk-welcome-dialog--choose { max-width: min(1040px, 94vw); max-height: min(94dvh, 980px); }
-/* Working through a list (clubs, work): close to a full page, the list scrolling inside. */
-.gk .gk-dialog.gk-welcome-dialog--work { max-width: min(1180px, 94vw); height: min(90dvh, 980px); max-height: none; }
+/* Working through a list (clubs, work): wide, as tall as the list up to most of the screen, then scrolling inside. */
+.gk .gk-dialog.gk-welcome-dialog--work { max-width: min(1180px, 94vw); max-height: min(90dvh, 980px); }
 .gk .gk-welcome-dialog .gk-dialog__title { font-size: var(--gk-fs-4xl); line-height: 1.2; }
 .gk .gk-welcome-dialog .gk-dialog__description { font-size: var(--gk-fs-lg); }
-.gk .gk-welcome-dialog--work .gk-tiles--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: var(--gk-3); }
-.gk .gk-welcome-dialog--work .gk-tiles--compact .gk-tile { min-height: 64px; padding: var(--gk-3) var(--gk-4); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gk-3); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact .gk-tile { min-height: 84px; align-items: flex-start; padding: var(--gk-3) var(--gk-4); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact .gk-tile strong { font-size: var(--gk-fs-lg); }
+/* A club tile: where and how far, then the programme that takes the age (or its followers). */
+.gk .gk-welcome-club { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-welcome-club__fit { display: inline-flex; align-items: flex-start; gap: 4px; color: var(--gk-text); }
+.gk .gk-welcome-club__fit svg { flex: none; width: 13px; height: 13px; margin-top: 2px; color: var(--gk-accent); }
 /* A business's kind: one tap each, as big as the choice it is. */
 .gk .gk-welcome-dialog--choose .gk-tiles--act { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--gk-3); }
 .gk .gk-welcome-dialog--choose .gk-tiles--act .gk-tile { min-height: 96px; align-items: center; padding: var(--gk-4); font-size: var(--gk-fs-xl); }

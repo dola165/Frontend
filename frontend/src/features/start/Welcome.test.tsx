@@ -52,7 +52,9 @@ beforeEach(async () => {
         server.gets.push(url);
         if (url === '/jobs/listings') return { data: { content: [], totalElements: server.jobs[String((config?.params as { category?: string } | undefined)?.category ?? 'ALL')] ?? 0 } };
         if (url.startsWith('/clubs?') && server.clubsForAge) return { data: { content: server.clubsForAge, pageNumber: 0, pageSize: 8, totalElements: 0, totalPages: 0 } };
-        if (url.startsWith('/clubs?')) return { data: { content: [{ id: 9, name: 'Rustavi Juniors', cityName: 'Rustavi', followerCount: 3, isFollowedByMe: false }], pageNumber: 0, pageSize: 8, totalElements: 1, totalPages: 1 } };
+        if (url.startsWith('/clubs?')) return { data: { content: [{ id: 9, name: 'Rustavi Juniors', cityName: 'Rustavi', followerCount: 3, isFollowedByMe: false, latitude: 41.5495, longitude: 45.0012, presentation: { profileKind: 'ACADEMY', revision: 1, canEdit: false, sponsors: [], affiliations: [], programmes: [
+            { name: 'U10 Development', ageMin: 8, ageMax: 10, sessionsPerWeek: 2, priceType: 'FIXED', amount: '80', currency: 'GEL', billingPeriod: 'MONTH', trialAmount: null, joiningFee: null, equipmentFee: null, details: null, published: true },
+        ] } }], pageNumber: 0, pageSize: 8, totalElements: 1, totalPages: 1 } };
         if (url === '/clubs/near-you') return { data: [club(5, 'Rustavi Lions', 1), club(6, 'Rustavi Steel', 2), club(7, 'Gardabani Youth', 18), club(8, 'Tbilisi Juniors', 25)] };
         const data: Record<string, unknown> = {
             '/users/me/preferences': server.prefs, '/users/me/place': place, '/users/me/professions': server.professions, '/users/me/discovery': server.discovery,
@@ -145,6 +147,10 @@ describe('the welcome', () => {
         const year = new Date().getFullYear() - 9;
         await user.selectOptions(within(box).getByRole('combobox', { name: 'Born in' }), String(year));
         expect(await within(box).findByText('Rustavi Juniors')).toBeInTheDocument();
+        // The tile carries the programme that takes age 9: its name, ages, how often and what it costs.
+        expect(within(box).getByText('U10 Development')).toBeInTheDocument();
+        expect(within(box).getByText('Ages 8–10 · 2× a week · 80 GEL / month')).toBeInTheDocument();
+        expect(within(box).getByText('Rustavi · 0 km')).toBeInTheDocument();
         expect(server.gets.some(url => url.startsWith('/clubs?') && url.includes('age=9') && url.includes('city=Rustavi'))).toBe(true);
         await user.click(within(box).getByRole('button', { name: 'Show clubs for this age' }));
         // The same source as the list it showed: World's clubs for age 9 in Rustavi.

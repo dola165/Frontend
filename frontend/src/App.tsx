@@ -332,7 +332,7 @@ export function MainLayout() {
         location.pathname === '/requests' || location.pathname === '/events' ||
         location.pathname === '/tryouts' || location.pathname.startsWith('/tryouts/') ||
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||
-        location.pathname === '/club-operations' ||
+        location.pathname === '/club-operations' || location.pathname === '/me/staff-club' ||
         location.pathname === '/assistant' ||
         location.pathname === '/account/roles' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
@@ -349,7 +349,7 @@ export function MainLayout() {
         location.pathname.startsWith('/jobs/') || location.pathname.startsWith('/roles/') ||
         location.pathname.startsWith('/campaigns/') ||
         location.pathname.startsWith('/organizations') ||
-        location.pathname.startsWith('/join/') || location.pathname.startsWith('/invite/') ||
+        location.pathname.startsWith('/join/') || location.pathname.startsWith('/invite/') || location.pathname.startsWith('/staff-invite/') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
         isClubSurfaceRoute;
@@ -457,6 +457,8 @@ export function MainLayout() {
             <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
             {/* Public: the squad and club show before sign-in; asking to join signs in first. */}
             <Route path="/join/:code" element={<JoinPage />} />
+            <Route path="/staff-invite/:code" element={<StaffLinkPage />} />
+            <Route path="/me/staff-club" element={<ProtectedRoute><StaffClubPage /></ProtectedRoute>} />
             <Route path="/invite/:code" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
@@ -486,7 +488,6 @@ export function MainLayout() {
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/club-invite" element={<ClubInvitePage />} />
-                        <Route path="/staff-invite/:code" element={<StaffLinkPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=roles`} replace /></ProtectedRoute>} />
@@ -519,7 +520,6 @@ export function MainLayout() {
                         <main className="min-w-0">
                             <RouteViewport><Routes>
                                 <Route path="/home" element={<ProtectedRoute><FeedPage user={user} managedClubs={managedClubs} /></ProtectedRoute>} />
-                                <Route path="/me/staff-club" element={<ProtectedRoute><StaffClubPage /></ProtectedRoute>} />
                                 <Route path="/feed" element={<Navigate to={`/home${location.search}`} replace />} />
                                 <Route path="*" element={<RouteRecoveryPage />} />
                             </Routes></RouteViewport>

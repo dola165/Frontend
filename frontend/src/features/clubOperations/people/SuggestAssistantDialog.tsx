@@ -3,7 +3,7 @@ import { Button, Field } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { ScopeChips } from '../ScopeChips';
-import { suggestAssistant, type PeopleSquad } from './api';
+import { invitePerson, type PeopleSquad } from './api';
 import { useJobWords } from './jobWords';
 
 /**
@@ -25,7 +25,8 @@ export function SuggestAssistantDialog({ club, squads, onClose, onSent }: {
         if (problem) { setError(problem); return; }
         setBusy(true); setError('');
         try {
-            await suggestAssistant(club, squadIds, { name: name.trim(), email: email.trim() });
+            // From a head coach, an invite is a suggestion: it waits for an admin (status SUGGESTED, no link yet).
+            await invitePerson(club, { name: name.trim(), email: email.trim() }, { job: 'ASSISTANT_COACH', title: '', tools: [], clubWide: false, squadIds });
             onSent(copy(`Suggested ${name.trim()}. An admin confirms or declines it; you’ll be told.`, `${name.trim()} შეთავაზებულია. ადმინი დაადასტურებს ან უარყოფს; შეგატყობინებთ.`));
         } catch (failure) { setError(extractApiErrorMessage(failure, copy('The suggestion couldn’t be sent.', 'შეთავაზება ვერ გაიგზავნა.'))); setBusy(false); }
     };

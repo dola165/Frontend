@@ -32,14 +32,14 @@ export const acceptClubInvite = async (invite: LinkInvite) => {
 };
 
 /**
- * The staff link page (`/staff-link?token=…`, from a QR code or a group chat): one job for many people. The preview is
- * open without signing in; joining needs the person's own account. GAP (26 Oct 2026): fnd-people-f's proposal.
+ * The staff link page (`/staff-invite/{code}`, from a QR code or a group chat): one job for many people. The preview is
+ * open without signing in; joining needs the person's own account and gives the job at once (fnd-access-b).
  */
-export interface StaffLinkPreview {
-    clubId: number; clubName: string; clubLogoUrl: string | null; invitedBy: string | null; job: string; clubWide: boolean; squads: string[];
-    expiresAt: string; usesLeft: number; unavailableReason: string | null;
+export interface StaffInvitePreview {
+    clubId: number; clubName: string; clubLogoUrl: string | null; job: string; title: string; clubWide: boolean; squads: string[];
+    invitedBy: string | null; status: 'ACTIVE' | 'EXPIRED' | 'USED_UP' | 'REVOKED'; expiresAt: string;
 }
-export const previewStaffLink = async (token: string, signal?: AbortSignal) =>
-    (await apiClient.post<StaffLinkPreview>('/auth/staff-link/preview', { token }, { signal })).data;
-export const joinStaffLink = async (token: string) =>
-    (await apiClient.post<{ clubId: number; jobId: number; landing: string }>('/staff-links/join', { token })).data;
+export interface StaffInviteJoined { appointmentId: number; clubId: number; clubName: string; title: string; squads: string[]; alreadyJoined: boolean }
+export const previewStaffInvite = async (code: string, signal?: AbortSignal) =>
+    (await apiClient.get<StaffInvitePreview>(`/staff-invite/${encodeURIComponent(code)}`, { signal })).data;
+export const joinStaffInvite = async (code: string) => (await apiClient.post<StaffInviteJoined>(`/staff-invite/${encodeURIComponent(code)}`)).data;

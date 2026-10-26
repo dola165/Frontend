@@ -22,7 +22,7 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
     // The squad's join link shows where the rule-checker allows it (the squad's own flag on servers without one).
-    const canInvite = useCan(space.can_manage ? `squad:${space.id}` : null).decide('invite_squad_link', space.can_manage).allowed;
+    const canInvite = useCan(space.can_manage ? `squad:${space.id}` : null).decide('manage_join_link', space.can_manage).allowed;
     const inviting = canInvite && params.get('invite') === '1';
     const setInviting = (open: boolean) => setParams(previous => { const next = new URLSearchParams(previous); if (open) next.set('invite', '1'); else next.delete('invite'); return next; }, { replace: !open });
     const [busy, setBusy] = useState<number | null>(null), [error, setError] = useState('');

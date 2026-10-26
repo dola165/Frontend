@@ -7,7 +7,7 @@ import { AskAdmin } from '../../../components/access/AskAdmin';
 import { refreshAccess, useCan } from '../../../hooks/useCan';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import type { ClubManagedMember } from '../../clubs/domain';
-import { decideSuggestion, endJob, fetchPeople, newInviteLink, settleNameCheck, type AssistantSuggestion, type InviteLink, type InviteResult, type Person, type PersonJob, type PeopleView } from './api';
+import { answerSuggestion, endJob, fetchPeople, newInviteLink, settleNameCheck, suggestionsIn, type InviteLink, type Suggestion, type InviteResult, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteDialog } from './InviteDialog';
 import { InviteLinkBox } from './InviteLinkBox';
 import { PersonRow, type PeopleRights } from './PersonRow';
@@ -51,7 +51,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     const can = useCan(`club:${clubId}`);
     const leader = Boolean(view?.viewer.leader), headCoachSquads = view?.viewer.headCoachSquads ?? [];
     const rights: PeopleRights = { invite: can.decide('invite_staff', leader).allowed, change: can.decide('change_job', leader).allowed, end: can.decide('end_job', leader).allowed };
-    const inviteAdmin = can.decide('invite_admin', leader).allowed;
+    const inviteAdmin = can.decide('make_admin', leader).allowed;
     const suggest = can.decide('suggest_assistant', !leader && headCoachSquads.length > 0);
     const refused = [can.decide('invite_staff', leader), suggest].find(decision => !decision.allowed && decision.askAdmin);
     const staff = useStaffLinks(clubId, Boolean(view) && rights.invite, inviting === 'link', copy('Could not load the staff links.', 'პერსონალის ბმულები ვერ ჩაიტვირთა.'));
@@ -67,9 +67,11 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
         setBusy(true); setError('');
         try { await work(); } catch (failure) { setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
     };
+    // Suggestions wait above the list; the list shows the jobs people hold or were invited to.
     const visible = useMemo(() => {
         const needle = query.trim().toLowerCase();
-        return (view?.people ?? []).filter(p => !needle || `${p.name} ${p.email ?? ''} ${p.jobs.map(j => `${jobLabel(j)} ${whereLabel(j)}`).join(' ')}`.toLowerCase().includes(needle));
+        return (view?.people ?? []).map(p => ({ ...p, jobs: p.jobs.filter(j => j.status !== 'SUGGESTED') })).filter(p => p.jobs.length)
+            .filter(p => !needle || `${p.name} ${p.email ?? ''} ${p.jobs.map(j => `${jobLabel(j)} ${whereLabel(j)}`).join(' ')}`.toLowerCase().includes(needle));
     }, [view, query, jobLabel, whereLabel]);
     const hideLink = (userId: number) => setLinks(all => Object.fromEntries(Object.entries(all).filter(([id]) => Number(id) !== userId)));
     const makeLink = (person: Person) => void run(async () => {
@@ -81,21 +83,23 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     const showInvite = (result: InviteResult) => {
         if (result.link) setFresh({ name: result.name, link: result.link, message: copy(`You’re invited to ${clubName}. Choose your password here:`, `მოწვეული ხართ ${clubName}-ში. აირჩიეთ პაროლი აქ:`) });
     };
-    const decide = (suggestion: AssistantSuggestion, decision: 'confirm' | 'decline' | 'withdraw') => void run(async () => {
-        const result = await decideSuggestion(clubId, suggestion.id, decision);
-        if (result) showInvite(result);
-        refresh(decision === 'confirm' ? copy(`${suggestion.name} is invited as assistant coach. ${suggestion.suggestedByName} is told.`, `${suggestion.name} მოწვეულია მწვრთნელის ასისტენტად. ${suggestion.suggestedByName}-ს ეცნობა.`)
-            : decision === 'decline' ? copy(`Declined. ${suggestion.suggestedByName} is told.`, `უარყოფილია. ${suggestion.suggestedByName}-ს ეცნობა.`) : copy('Withdrawn.', 'გაუქმდა.'));
+    const decide = ({ person, job }: Suggestion, decision: 'confirm' | 'decline' | 'withdraw') => void run(async () => {
+        const coach = job.suggestedByName ?? copy('The head coach', 'მთავარი მწვრთნელი');
+        if (decision === 'withdraw') { await endJob(clubId, person.userId, job); refresh(copy('Withdrawn.', 'გაუქმდა.')); return; }
+        const answer = await answerSuggestion(clubId, job, decision === 'confirm');
+        if (answer.link) showInvite({ userId: person.userId, name: person.name, inApp: false, link: answer.link });
+        refresh(answer.outcome === 'CONFIRMED' ? copy(`${person.name} is invited as ${jobLabel(job).toLowerCase()}. ${coach} is told.`, `${person.name} მოწვეულია (${jobLabel(job)}). ${coach}-ს ეცნობა.`)
+            : copy(`Declined. ${coach} is told.`, `უარყოფილია. ${coach}-ს ეცნობა.`));
     }, copy('Your answer wasn’t saved.', 'პასუხი ვერ შეინახა.'));
     const end = () => {
         const target = ending;
         if (!target) return;
-        void run(async () => { await endJob(clubId, target.person.userId, target.job, 'Ended from People.'); setEnding(null); refresh(copy(`${target.person.name}: ${jobLabel(target.job)} ended.`, `${target.person.name}: ${jobLabel(target.job)} დასრულდა.`)); },
+        void run(async () => { await endJob(clubId, target.person.userId, target.job); setEnding(null); refresh(copy(`${target.person.name}: ${jobLabel(target.job)} ended.`, `${target.person.name}: ${jobLabel(target.job)} დასრულდა.`)); },
             copy('Could not end this job.', 'სამუშაო ვერ დასრულდა.'));
     };
     const invited = ending && (ending.job.status === 'INVITED' || ending.job.kind.endsWith('INVITE'));
     const ownSquads = view?.squads.filter(s => headCoachSquads.includes(s.id)) ?? [];
-    const suggestions = view?.suggestions ?? [];
+    const suggestions = view ? suggestionsIn(view.people).filter(s => leader || s.job.suggestedById === view.viewer.userId) : [];
     const activeLinks = staff.links ?? [];
 
     return <PageFrame className="cw-page pp-page">
@@ -118,7 +122,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
                     <Button size="sm" variant="danger" disabled={busy} onClick={() => settle(check.id, 'undo', copy(`Undone. ${check.acceptedName} no longer has a job here.`, `გაუქმდა. ${check.acceptedName}-ს აქ სამუშაო აღარ აქვს.`))}>{copy('Undo', 'გაუქმება')}</Button>
                 </span>
             </div>)}
-            {view && suggestions.some(s => leader || s.suggestedById === view.viewer.userId) && <Section boxed title={leader ? copy('Waiting for you', 'გელოდებათ') : copy('Your suggestions', 'თქვენი შეთავაზებები')}>
+            {view && suggestions.length > 0 && <Section boxed title={leader ? copy('Waiting for you', 'გელოდებათ') : copy('Your suggestions', 'თქვენი შეთავაზებები')}>
                 <SuggestionList suggestions={suggestions} me={view.viewer.userId} admin={leader} busy={busy} onDecide={decide} />
             </Section>}
             {view && rights.invite && activeLinks.length > 0 && <Section boxed title={copy('Staff links', 'პერსონალის ბმულები')} hint={copy('7 days or 10 people each', 'თითო 7 დღე ან 10 ადამიანი')}>

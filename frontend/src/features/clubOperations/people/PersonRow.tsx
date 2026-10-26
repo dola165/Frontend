@@ -33,7 +33,9 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
     const [saving, setSaving] = useState(false), [error, setError] = useState('');
     const invited = person.jobs.some(job => job.status === 'INVITED' || job.status === 'EXPIRED');
     const canLink = person.needsLink && invited && (rights.invite || person.jobs.some(job => job.addedById === me && job.kind === 'APPOINTMENT'));
-    const canEnd = (job: PersonJob) => rights.end && job.kind !== 'OWNER' && !self;
+    // Each job carries the rule-checker's answer (canChange, canEnd); older answers fall back to the page's rights.
+    const canEnd = (job: PersonJob) => (job.canEnd ?? rights.end) && job.kind !== 'OWNER' && !self;
+    const canChange = (job: PersonJob) => (job.canChange ?? rights.change) && job.kind === 'APPOINTMENT' && !self;
     const endText = (job: PersonJob) => job.kind === 'ADMIN_INVITE' || job.kind === 'COACH_INVITE' || job.status === 'INVITED' || job.status === 'EXPIRED'
         ? copy('Cancel invite', 'მოწვევის გაუქმება') : job.kind === 'APPOINTMENT' ? copy('End job', 'დასრულება') : copy('Remove', 'მოხსნა');
     const jobsText = person.jobs.map(job => `${jobLabel(job)} · ${whereLabel(job)}`).join('; ');
@@ -71,10 +73,11 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
                 <span className="pp-job__what"><span className="pp-job__name">{jobLabel(job)}</span><span className="pp-job__where">{whereLabel(job)}</span></span>
                 {status && <Badge tone={job.status === 'INVITED' ? 'warning' : job.status === 'UNAVAILABLE' ? 'danger' : 'neutral'}>{status}</Badge>}
                 {job.changedByName && job.changedAt ? <span className="gk-faint pp-job__by">{copy(`Changed by ${job.changedByName} · ${relativeTime(job.changedAt)}`, `შეცვალა ${job.changedByName} · ${relativeTime(job.changedAt)}`)}</span>
-                    : job.addedByHeadCoach && <span className="gk-faint pp-job__by">{copy(`Added by ${job.addedByName ?? 'a head coach'}`, `დაამატა ${job.addedByName ?? 'მთავარმა მწვრთნელმა'}`)}</span>}
+                    : job.source === 'STAFF_LINK' ? <span className="gk-faint pp-job__by">{copy('Joined through a staff link', 'შემოვიდა პერსონალის ბმულით')}</span>
+                    : job.suggestedByName && <span className="gk-faint pp-job__by">{copy(`Suggested by ${job.suggestedByName}`, `შესთავაზა ${job.suggestedByName}`)}</span>}
                 <span className="pp-job__actions">
-                    {rights.change && job.kind === 'APPOINTMENT' && !self && <Button size="sm" variant="ghost" disabled={busy || saving} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
-                    {canEnd(job) && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy || saving} onClick={() => onEnd(job)}>{job.addedByHeadCoach ? copy('Undo', 'გაუქმება') : endText(job)}</Button>}
+                    {canChange(job) && <Button size="sm" variant="ghost" disabled={busy || saving} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
+                    {canEnd(job) && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy || saving} onClick={() => onEnd(job)}>{endText(job)}</Button>}
                 </span>
                 {job.unavailableReason && <p className="gk-faint pp-job__reason">{job.unavailableReason}</p>}
             </li>;

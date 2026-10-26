@@ -42,9 +42,18 @@ it('lets a parent confirm a second parent, which sends the usual guardian invita
 });
 
 it('lets an admin confirm a suggested assistant in the notification itself', async () => {
-    vi.mocked(apiClient.post).mockResolvedValue({ data: '' });
-    render(<NotificationActions notification={{ ...base, type: 'ASSISTANT_SUGGESTION', clubId: 7, entityType: 'club_staff_suggestion', entityId: 55, title: 'Giorgi suggests Dato as assistant coach for U12' }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-    await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/clubs/7/people/suggestions/55/confirm'));
+    const suggested = { kind: 'APPOINTMENT', id: 55, status: 'SUGGESTED', revision: 3, canConfirm: true };
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { people: [{ userId: 30, name: 'Dato', jobs: [suggested] }] } });
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { appointmentId: 55, outcome: 'CONFIRMED', answeredBy: 'Nino', link: null } });
+    render(<NotificationActions notification={{ ...base, type: 'ASSISTANT_SUGGESTION', clubId: 7, entityType: 'club_staff_appointment', entityId: 55, title: 'Giorgi suggests Dato as assistant coach for U12' }} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/clubs/7/people/suggestions/55', { confirm: true, revision: 3 }));
     expect(await screen.findByText('Confirmed. The head coach is told and sends the link.')).toBeInTheDocument();
+});
+
+it('shows no buttons once the suggestion was already answered', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { people: [{ userId: 30, name: 'Dato', jobs: [{ kind: 'APPOINTMENT', id: 55, status: 'INVITED', revision: 4 }] }] } });
+    const { container } = render(<NotificationActions notification={{ ...base, type: 'ASSISTANT_SUGGESTION', clubId: 7, entityType: 'club_staff_appointment', entityId: 55 }} />);
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalledWith('/clubs/7/people', expect.anything()));
+    expect(container.querySelector('button')).toBeNull();
 });

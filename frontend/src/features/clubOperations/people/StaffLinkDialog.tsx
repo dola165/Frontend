@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link2Off, QrCode, RefreshCw } from 'lucide-react';
 import { Avatar, Button } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
@@ -28,6 +28,7 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
     const { copy, jobName, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
     const [draft, setDraft] = useState<JobDraft>(() => draftFor(links.find(l => l.id === opened) ?? links[0]));
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [removing, setRemoving] = useState<number | null>(null);
+    const request = useRef<{ key: string; id: string } | null>(null);
     const link = links.find(l => l.job === draft.job && sameWhere(l, draft));
     const run = async (work: () => Promise<void>, fallback: string) => {
         if (busy) return;
@@ -36,8 +37,15 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
     };
     const make = () => {
         if (!draft.clubWide && !draft.squadIds.length) { setError(copy('Choose the whole club or at least one squad.', 'აირჩიეთ მთელი კლუბი ან ერთი გუნდი მაინც.')); return; }
+        // A retry after a failure sends the same request id, so the server never makes two links for one tap.
+        const key = JSON.stringify([draft, link?.id ?? null]);
+        if (request.current?.key !== key) request.current = { key, id: crypto.randomUUID() };
+        const requestId = request.current.id;
         void run(async () => {
-            const made = await makeStaffLink(club, draft);
+            const made = await makeStaffLink(club, draft, requestId);
+            request.current = null;
+            // New link replaces the old one for the same job and where: the old one is switched off.
+            if (link) await stopStaffLink(club, link.id);
             onLinks([made, ...links.filter(l => l.id !== link?.id)]);
             if (link) onChanged(copy('New link made. The earlier one no longer works.', 'ახალი ბმული შეიქმნა. ძველი აღარ მუშაობს.'));
         }, copy('The link couldn’t be made.', 'ბმული ვერ შეიქმნა.'));
@@ -47,14 +55,15 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
         onLinks(links.filter(l => l.id !== target.id));
         onChanged(copy('Link switched off. Nobody else can join through it.', 'ბმული გაითიშა. მისით აღარავინ შემოვა.'));
     }, copy('The link couldn’t be switched off.', 'ბმული ვერ გაითიშა.'));
-    const remove = (target: StaffLink, userId: number, name: string) => void run(async () => {
-        await removeJoined(club, target.id, userId);
+    const remove = (target: StaffLink, person: StaffLink['joined'][number]) => void run(async () => {
+        await removeJoined(club, person);
         setRemoving(null);
-        onLinks(links.map(l => l.id === target.id ? { ...l, joined: l.joined.filter(j => j.userId !== userId) } : l));
-        onChanged(copy(`${name} removed. Their job here has ended.`, `${name} მოიხსნა. მისი სამუშაო აქ დასრულდა.`));
+        onLinks(links.map(l => l.id === target.id ? { ...l, joined: l.joined.filter(j => j.appointmentId !== person.appointmentId) } : l));
+        onChanged(copy(`${person.name} removed. Their job here has ended.`, `${person.name} მოიხსნა. მისი სამუშაო აქ დასრულდა.`));
     }, copy('They couldn’t be removed.', 'ვერ მოიხსნა.'));
     const title = `${jobName(draft.job)} · ${draft.clubWide ? copy('Whole club', 'მთელი კლუბი') : whereLabel({ clubWide: false, squads: view.squads.filter(s => draft.squadIds.includes(s.id)) })}`;
     const left = link ? Math.max(0, link.maxUses - link.uses) : 0;
+    const joined = link?.joined.filter(person => person.status !== 'ENDED') ?? [];
 
     return <Dialog open size="md" onClose={() => { if (!busy) onClose(); }} title={copy('Invite staff', 'პერსონალის მოწვევა')}
         description={copy('One link for many people. Admins are invited one by one.', 'ერთი ბმული ბევრისთვის. ადმინებს სათითაოდ იწვევთ.')}>
@@ -62,7 +71,7 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
             <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setError(''); }} choices={LINK_JOBS} extras={false} disabled={busy} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             {link ? <>
-                <LinkShare url={staffLinkUrl(link.token)} title={title} subtitle={clubName} label={copy('Staff link', 'პერსონალის ბმული')} onError={setError}
+                <LinkShare url={staffLinkUrl(link)} title={title} subtitle={clubName} label={copy('Staff link', 'პერსონალის ბმული')} onError={setError}
                     message={copy(`Join ${clubName} as ${title}:`, `შემოუერთდით ${clubName}-ს (${title}):`)} />
                 <div className="pp-staff-link__meta">
                     <span className="gk-muted">{copy(`Until ${formatDate(link.expiresAt, { day: 'numeric', month: 'short' })} · ${left} of ${link.maxUses} uses left`,
@@ -73,14 +82,14 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
                     </span>
                 </div>
                 <section className="pp-joined" aria-label={copy('Joined through this link', 'ამ ბმულით შემოვიდნენ')}>
-                    <h3 className="pp-joined__title">{copy('Joined', 'შემოვიდნენ')} <span className="gk-faint">{link.joined.length}</span></h3>
-                    {link.joined.length ? <ul className="pp-joined__list">{link.joined.map(person => <li key={person.userId} className="pp-joined__row">
+                    <h3 className="pp-joined__title">{copy('Joined', 'შემოვიდნენ')} <span className="gk-faint">{joined.length}</span></h3>
+                    {joined.length ? <ul className="pp-joined__list">{joined.map(person => <li key={person.appointmentId} className="pp-joined__row">
                         <Avatar src={resolveMediaUrl(person.avatarUrl) || null} name={person.name} size={32} />
                         <span className="pp-joined__who"><strong>{person.name}</strong><small className="gk-faint">{relativeTime(person.joinedAt)}</small></span>
-                        {removing === person.userId ? <span className="gk-row">
-                            <Button size="sm" variant="danger" disabled={busy} onClick={() => remove(link, person.userId, person.name)}>{copy('Remove', 'მოხსნა')}</Button>
+                        {removing === person.appointmentId ? <span className="gk-row">
+                            <Button size="sm" variant="danger" disabled={busy} onClick={() => remove(link, person)}>{copy('Remove', 'მოხსნა')}</Button>
                             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setRemoving(null)}>{copy('Keep', 'დატოვება')}</Button>
-                        </span> : <Button size="sm" variant="ghost" className="pp-danger" disabled={busy} aria-label={copy(`Remove ${person.name}`, `მოხსნა: ${person.name}`)} onClick={() => setRemoving(person.userId)}>{copy('Remove', 'მოხსნა')}</Button>}
+                        </span> : <Button size="sm" variant="ghost" className="pp-danger" disabled={busy} aria-label={copy(`Remove ${person.name}`, `მოხსნა: ${person.name}`)} onClick={() => setRemoving(person.appointmentId)}>{copy('Remove', 'მოხსნა')}</Button>}
                     </li>)}</ul> : <p className="gk-faint pp-joined__empty">{copy('Nobody yet. Names appear here as people join.', 'ჯერ არავინ. სახელები აქ გამოჩნდება, როგორც კი შემოვლენ.')}</p>}
                 </section>
             </> : <div className="pp-staff-link__make">

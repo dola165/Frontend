@@ -15,7 +15,7 @@ export function StaffLinkList({ links, choices, onOpen }: { links: StaffLink[]; 
             title={`${jobName(link.job)} · ${whereLabel(link)}`}
             meta={copy(`${link.joined.length} joined · ${left} of ${link.maxUses} left · until ${until}`, `შემოვიდა ${link.joined.length} · დარჩა ${left} / ${link.maxUses} · ${until}-მდე`)}
             trail={<span className="pp-links__trail">
-                <span className="pp-faces" aria-hidden="true">{link.joined.slice(0, 4).map(person => <Avatar key={person.userId} src={resolveMediaUrl(person.avatarUrl) || null} name={person.name} size={28} />)}</span>
+                <span className="pp-faces" aria-hidden="true">{link.joined.slice(0, 4).map(person => <Avatar key={person.appointmentId} src={resolveMediaUrl(person.avatarUrl) || null} name={person.name} size={28} />)}</span>
                 <ChevronRight aria-hidden="true" className="gk-faint" />
             </span>} />;
     })}</List>;

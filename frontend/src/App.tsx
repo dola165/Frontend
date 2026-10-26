@@ -136,7 +136,7 @@ function useRailsFit() {
 }
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/staff-link', '/verify-email', '/consent', '/start']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start']);
 const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -485,7 +485,7 @@ export function MainLayout() {
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/club-invite" element={<ClubInvitePage />} />
-                        <Route path="/staff-link" element={<StaffLinkPage />} />
+                        <Route path="/staff-invite/:code" element={<StaffLinkPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=roles`} replace /></ProtectedRoute>} />

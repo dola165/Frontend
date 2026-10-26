@@ -7,7 +7,8 @@ import type { PeopleView, PersonJob, StaffLink } from './api';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: api, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
-vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1, email: 'nino@example.test', dob: '1985-01-01' } }) }));
+const toast = vi.hoisted(() => ({ warning: vi.fn() }));
+vi.mock('sonner', () => ({ toast }));
 
 const job = (over: Partial<PersonJob>): PersonJob => ({ kind: 'APPOINTMENT', id: 1, job: 'HEAD_COACH', title: 'Head coach', clubWide: false, squads: [{ id: 5, name: 'U12' }], status: 'ACTIVE', unavailableReason: null, revision: 0, addedById: 1, addedByName: 'Nino', tools: [], ...over });
 const view = (viewer: Partial<PeopleView['viewer']> = {}, extra: PeopleView['people'] = []): PeopleView => ({
@@ -177,8 +178,8 @@ it('asks to confirm the email first when the server refuses an invite for it', a
     fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Tamar Lomidze' } });
     fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'tamar@example.test' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'U12' }));
-    api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 403, data: { code: 'EMAIL_NOT_VERIFIED', message: 'Confirm your email first.' } } });
+    api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 403, data: { code: 'EMAIL_CONFIRMATION_REQUIRED', action: 'INVITE', message: 'Confirm your email first.' } } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Invite' }));
-    expect(await within(dialog).findByText('Confirm your email first')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Resend' })).toBeInTheDocument();
+    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith('Confirm your email first', expect.objectContaining({ action: expect.objectContaining({ label: 'Resend' }) })));
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
 });

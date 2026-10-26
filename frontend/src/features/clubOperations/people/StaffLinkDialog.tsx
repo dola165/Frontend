@@ -4,8 +4,7 @@ import { Avatar, Button } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { LinkShare } from '../../../components/share/LinkShare';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { ConfirmEmailFirst } from '../../../components/auth/ConfirmEmailFirst';
-import { needsConfirmedEmail } from '../../../components/auth/emailConfirmation';
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { formatDate } from '../../../utils/formatting';
 import { relativeTime } from '../../../utils/relativeTime';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
@@ -29,13 +28,13 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
 }) {
     const { copy, jobName, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
     const [draft, setDraft] = useState<JobDraft>(() => draftFor(links.find(l => l.id === opened) ?? links[0]));
-    const [busy, setBusy] = useState(false), [error, setError] = useState(''), [confirmEmail, setConfirmEmail] = useState(false), [removing, setRemoving] = useState<number | null>(null);
+    const [busy, setBusy] = useState(false), [error, setError] = useState(''), [removing, setRemoving] = useState<number | null>(null);
     const request = useRef<{ key: string; id: string } | null>(null);
     const link = links.find(l => l.job === draft.job && sameWhere(l, draft));
     const run = async (work: () => Promise<void>, fallback: string) => {
         if (busy) return;
-        setBusy(true); setError(''); setConfirmEmail(false);
-        try { await work(); } catch (failure) { if (needsConfirmedEmail(failure)) setConfirmEmail(true); else setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
+        setBusy(true); setError('');
+        try { await work(); } catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
     };
     const make = () => {
         if (!draft.clubWide && !draft.squadIds.length) { setError(copy('Choose the whole club or at least one squad.', 'აირჩიეთ მთელი კლუბი ან ერთი გუნდი მაინც.')); return; }
@@ -71,7 +70,6 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
         description={copy('One link for many people. Admins are invited one by one.', 'ერთი ბმული ბევრისთვის. ადმინებს სათითაოდ იწვევთ.')}>
         <div className="pp-staff-link">
             <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setError(''); }} choices={LINK_JOBS} extras={false} disabled={busy} />
-            {confirmEmail && <ConfirmEmailFirst />}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             {link ? <>
                 <LinkShare url={staffLinkUrl(link)} title={title} subtitle={clubName} label={copy('Staff link', 'პერსონალის ბმული')} onError={setError}

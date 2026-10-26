@@ -2,8 +2,7 @@ import { useId, useState } from 'react';
 import { Button, Chip, Field } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { ConfirmEmailFirst } from '../../../components/auth/ConfirmEmailFirst';
-import { needsConfirmedEmail } from '../../../components/auth/emailConfirmation';
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { ScopeChips } from '../ScopeChips';
 import { HELPER_JOBS, invitePerson, type PeopleSquad } from './api';
 import { useJobWords } from './jobWords';
@@ -20,18 +19,18 @@ export function SuggestAssistantDialog({ club, squads, onClose, onSent }: {
     const { copy, jobName } = useJobWords();
     const [name, setName] = useState(''), [email, setEmail] = useState(''), [job, setJob] = useState<typeof HELPER_JOBS[number]>('ASSISTANT_COACH');
     const [squadIds, setSquadIds] = useState<number[]>(squads.length === 1 ? [squads[0].id] : []);
-    const [busy, setBusy] = useState(false), [error, setError] = useState(''), [confirmEmail, setConfirmEmail] = useState(false);
+    const [busy, setBusy] = useState(false), [error, setError] = useState('');
     const problem = name.trim().length < 2 ? copy('Enter their name.', 'შეიყვანეთ სახელი.')
         : !/^\S+@\S+\.\S+$/.test(email.trim()) ? copy('Enter their email.', 'შეიყვანეთ ელფოსტა.')
             : !squadIds.length ? copy('Choose the squad.', 'აირჩიეთ გუნდი.') : '';
     const submit = async () => {
         if (problem) { setError(problem); return; }
-        setBusy(true); setError(''); setConfirmEmail(false);
+        setBusy(true); setError('');
         try {
             // From a head coach, an invite is a suggestion: it waits for an admin (status SUGGESTED, no link yet).
             await invitePerson(club, { name: name.trim(), email: email.trim() }, { job, title: '', tools: [], clubWide: false, squadIds });
             onSent(copy(`Suggested ${name.trim()}. An admin confirms or declines it; you’ll be told.`, `${name.trim()} შეთავაზებულია. ადმინი დაადასტურებს ან უარყოფს; შეგატყობინებთ.`));
-        } catch (failure) { if (needsConfirmedEmail(failure)) setConfirmEmail(true); else setError(extractApiErrorMessage(failure, copy('The suggestion couldn’t be sent.', 'შეთავაზება ვერ გაიგზავნა.'))); setBusy(false); }
+        } catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, copy('The suggestion couldn’t be sent.', 'შეთავაზება ვერ გაიგზავნა.'))); setBusy(false); }
     };
     return <Dialog open size="md" onClose={() => { if (!busy) onClose(); }} title={copy('Suggest an assistant', 'ასისტენტის შეთავაზება')}
         description={squads.length === 1 ? copy(`A helper for ${squads[0].name}. An admin confirms it.`, `დამხმარე გუნდისთვის ${squads[0].name}. ადმინი ადასტურებს.`)
@@ -51,7 +50,6 @@ export function SuggestAssistantDialog({ club, squads, onClose, onSent }: {
             </fieldset>
             {squads.length > 1 && <ScopeChips squads={squads} allowClubWide={false} disabled={busy} legend={copy('Squad', 'გუნდი')}
                 value={{ clubWide: false, squadIds }} onChange={scope => setSquadIds(scope.squadIds)} />}
-            {confirmEmail && <ConfirmEmailFirst />}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             <button type="submit" hidden />
         </form>

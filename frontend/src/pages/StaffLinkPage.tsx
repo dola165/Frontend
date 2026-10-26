@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Crest } from '../features/world/Crest';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { joinStaffInvite, previewStaffInvite, type StaffInvitePreview } from '../features/clubOperations/people/inviteLinkApi';
+import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
 import { useAdultOnly } from '../hooks/useAdultOnly';
 import { refreshAccess } from '../hooks/useCan';
 import { extractApiErrorMessage } from '../utils/apiError';
@@ -47,7 +48,11 @@ function StaffLink({ code }: { code: string }) {
             refreshAccess();
             await refreshNavigationCapabilities().catch(() => undefined);
             navigate(!preview.clubWide && joined.squads.length ? '/my-squads' : `/clubs/${joined.clubId}/workspace`, { replace: true });
-        } catch (failure) { setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.'))); setBusy(false); }
+        } catch (failure) {
+            // "Confirm your email to start as Assistant coach", with Resend, when the server waits on the email.
+            if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
+            setBusy(false);
+        }
     };
 
     const card = (children: React.ReactNode) => <GkRoot className="ci-page"><main className="ci-card">{children}</main></GkRoot>;

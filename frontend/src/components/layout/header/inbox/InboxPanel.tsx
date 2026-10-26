@@ -4,7 +4,7 @@ import { BellRing, CheckCheck, type LucideIcon } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, List, ListRow, Skeleton } from '../../../../design/primitives';
 import { Tabs } from '../../../../design/Tabs';
 import { useJourneyCopy } from '../../../../features/squadCommunication/journeyCopy';
-import { JourneyReminderActions } from '../../../../features/mapPlanning/JourneyReminderActions';
+import { NotificationActions } from '../../../notifications/NotificationActions';
 import { requestDestination, type RequestItem } from '../../../../features/requests/api';
 import { requestIcon } from '../../../../features/requests/requestIcon';
 import type { NotificationItem } from '../../../../types/notifications';
@@ -119,7 +119,7 @@ function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; ti
                                         <span className="gk-list-row__main"><span className="gk-list-row__title">{notification.title}</span><span className="gk-list-row__meta">{notification.body}</span></span>
                                         <span className="gk-list-row__trail"><span className="gk-inbox__time">{formatNotificationTime(notification.createdAt)}</span></span>
                                     </button>
-                                    <JourneyReminderActions notification={notification} />
+                                    <NotificationActions notification={notification} />
                                 </li>
                             ))}
                         </ul>)}

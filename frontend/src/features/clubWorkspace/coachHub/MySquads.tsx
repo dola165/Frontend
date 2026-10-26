@@ -8,7 +8,10 @@ import type { SquadSession } from '../../squadCommunication/api';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
 import { eventSquadId } from '../fixtures';
 import { CancelSessionDialog } from './CancelSessionDialog';
-import { ResultDialog } from './ResultDialog';
+import { Status } from '../../../design/DataTable';
+import { ScoreDialog } from '../../scores/ScoreDialog';
+import { isOpen, scoreState } from '../../scores/status';
+import { useResultCopy } from '../../matchHistory/copy';
 import { Crest } from '../../../design/visuals';
 import { addDays, isoDay } from '../../../design/calendar/calendarDates';
 import { coachHubEn } from '../../../locales/workspaceDesign';
@@ -69,23 +72,32 @@ export function MySquads({ data }: { data: CoachData }) {
     </PageFrame>;
 }
 
-/** Matches of my squads played in the last week that still have no score: one row each, "Add the result" beside it. */
+/** Matches of my squads played in the last week whose score still has an open step: one row each, its status beside it. */
 function ResultsToAdd({ data }: { data: CoachData }) {
     const copy = useCopy('coachHub', coachHubEn);
+    const { copy: result } = useResultCopy();
     const [adding, setAdding] = useState<ScheduleEventOccurrence | null>(null);
     const since = data.now - 7 * 86_400_000;
     const played = data.events.filter(event => ['MATCH', 'FRIENDLY'].includes(event.eventType) && event.status !== 'CANCELLED' && event.canRecordResult !== false
-        && (event.resultStatus ?? 'NONE') === 'NONE' && event.homeScore == null && data.shown.includes(eventSquadId(event) ?? -1)
+        && ((event.resultStatus ?? 'NONE') === 'NONE' || isOpen(event.resultStatus)) && event.homeScore == null && data.shown.includes(eventSquadId(event) ?? -1)
         && new Date(event.endsAt).getTime() < data.now && new Date(event.endsAt).getTime() >= since);
     if (!played.length) return null;
-    const items: DayAgendaItem[] = played.map(event => ({
-        key: `result-${event.eventId}-${event.occurrenceId}`, startsAt: event.startsAt, title: event.title, kind: event.eventType, kindLabel: kindNames[event.eventType],
-        squad: data.names.get(eventSquadId(event) ?? -1), meta: [data.names.get(eventSquadId(event) ?? -1), event.locationName].filter(Boolean).join(' · '),
-        status: <span className="cw-status cw-status--warning">{copy('addResult')}</span>, onClick: () => setAdding(event), label: `${copy('addResult')}: ${event.title}`,
-    }));
+    const items: DayAgendaItem[] = played.map(event => {
+        const state = scoreState(event.resultStatus);
+        const word = (event.resultStatus ?? 'NONE') === 'NONE' ? copy('addResult') : result(...state.words);
+        return {
+            key: `result-${event.eventId}-${event.occurrenceId}`, startsAt: event.startsAt, title: event.title, kind: event.eventType, kindLabel: kindNames[event.eventType],
+            squad: data.names.get(eventSquadId(event) ?? -1), meta: [data.names.get(eventSquadId(event) ?? -1), event.locationName].filter(Boolean).join(' · '),
+            status: <Status tone={state.tone}>{word}</Status>, onClick: () => setAdding(event), label: `${word}: ${event.title}`,
+        };
+    });
     return <>
-        <Section boxed icon={Trophy} title={copy('addResult')} hint={`${played.length}`}><Panel flush><DayAgenda label={copy('addResult')} items={items} limit={6} /></Panel></Section>
-        {adding && <ResultDialog match={{ eventId: adding.eventId, title: adding.title, startsAt: adding.startsAt, clubId: adding.clubId, opponentClubId: adding.opponentClubId }} clubId={data.clubId} clubName={data.clubName} clubLogo={data.clubLogo} now={data.now} onClose={() => setAdding(null)} onDone={() => { setAdding(null); data.refresh(); }} />}
+        <Section boxed icon={Trophy} title={result('Scores', 'ანგარიშები')} hint={`${played.length}`}><Panel flush><DayAgenda label={result('Scores', 'ანგარიშები')} items={items} limit={6} /></Panel></Section>
+        {/* A Match Exchange match reads its own home and away; a calendar match has this club at home. */}
+        {adding && <ScoreDialog target={adding.matchExchangeId ? { kind: 'EXCHANGE', eventId: adding.matchExchangeId } : { kind: 'CALENDAR', eventId: adding.eventId }}
+            teams={adding.matchExchangeId ? undefined : { home: { name: data.clubName, logo: data.clubLogo }, away: { name: adding.opponentClubName || result('Opponent', 'მეტოქე') } }}
+            title={adding.title} description={`${adding.title} · ${dayLabel(adding.startsAt, data.now)} ${timeLabel(adding.startsAt)}`}
+            onClose={() => setAdding(null)} onChanged={data.refresh} />}
     </>;
 }
 

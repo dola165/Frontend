@@ -18,7 +18,7 @@ describe('form', () => {
     it('counts only agreed results, newest first, from my squad’s side', () => {
         const results = formOf([
             match('old', -10), match('new', -2, { homeScore: 0, awayScore: 3 }),
-            match('proposed', -1, { resultStatus: 'PROPOSED' }), match('disputed', -1, { resultStatus: 'DISPUTED' }),
+            match('proposed', -1, { resultStatus: 'REPORTED' }), match('disputed', -1, { resultStatus: 'DISPUTED' }),
             match('missing', -1, { homeScore: null, awayScore: null, resultStatus: 'NONE' }), match('cancelled', -3, { fixtureStatus: 'CANCELLED' }),
         ], { clubId: 1, squadId: 103 });
         expect(results.map(result => `${result.id}:${result.outcome}`)).toEqual(['new:L', 'old:W']);
@@ -34,7 +34,7 @@ describe('form', () => {
     it('finds the last meeting from my side, and keeps a meeting whose score is not agreed without a result', () => {
         const mine = { clubId: 1, squadId: 103 }, theirs = { clubId: 4, squadId: 9125 };
         expect(lastMeeting([match('a', -20), match('b', -5, { homeScore: 0, awayScore: 2 })], mine, theirs, NOW)?.result).toMatchObject({ id: 'b', outcome: 'L', scored: 0, conceded: 2 });
-        const pending = lastMeeting([match('a', -20), match('b', -5, { resultStatus: 'PROPOSED' }), match('c', -1, { fixtureStatus: 'CANCELLED' })], mine, theirs, NOW);
+        const pending = lastMeeting([match('a', -20), match('b', -5, { resultStatus: 'REPORTED' }), match('c', -1, { fixtureStatus: 'CANCELLED' })], mine, theirs, NOW);
         expect(pending?.match.id).toBe('b');
         expect(pending?.result).toBeNull();
     });

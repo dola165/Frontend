@@ -351,7 +351,7 @@ export const WORLD_KA: Record<string, string> = {
     // Matches: score lines and their honest states
     'Tournaments': 'ტურნირები', 'Tournament': 'ტურნირი', 'FT': 'დასრ.', 'Canc.': 'გაუქმ.', 'Postp.': 'გადად.', 'Aband.': 'შეწყვ.',
     'On now': 'მიმდინარეობს', 'On now, by the schedule (no live score)': 'მიმდინარეობს განრიგით (ცოცხალი ანგარიში არ არის)', 'Started': 'დაიწყო',
-    'Confirm score': 'დაადასტურეთ ანგარიში', 'Score to confirm': 'ანგარიში დასადასტურებელია', 'Add result': 'შედეგის დამატება',
+    'Confirm score': 'დაადასტურეთ ანგარიში', 'Settle score': 'გადაწყვიტეთ ანგარიში', 'Report score': 'ანგარიშის შეტანა', 'Reported': 'შეტანილი', 'Settled': 'გადაწყვეტილი', 'Score to confirm': 'ანგარიში დასადასტურებელია', 'Add result': 'შედეგის დამატება',
     'in {hours} h': '{hours} სთ-ში', 'in {minutes} min': '{minutes} წთ-ში', 'Your team': 'თქვენი გუნდი', 'Form': 'ფორმა', 'No results yet': 'შედეგები ჯერ არ არის',
     'To be decided': 'გასარკვევია', 'goes through': 'გადის შემდეგ ეტაპზე', 'Top {count} go through': 'პირველი {count} გადის შემდეგ ეტაპზე', 'winner to confirm': 'გამარჯვებული დასადასტურებელია', 'v': '–',
     'checked {time}': 'შემოწმდა {time}',

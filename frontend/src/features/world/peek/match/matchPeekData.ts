@@ -12,13 +12,14 @@ import { rememberedMatch, rememberedStart } from '../../scoreboard/matchRegistry
 import { zonedMatch } from '../../scoreboard/matchState';
 import { zoned } from '../../scoreboard/standings';
 import { useWorldData } from '../../useWorldData';
+import { isOfficial } from '../../../scores/status';
 
 /** A tournament's detail, shared by the match drawer, the tournament drawer and their tables for a minute. */
 export const tournamentDetail = (id: number) => shared(`tournament:${id}`, () => fetchTournament(id));
 
 /** An arranged match or open listing as a match-history row (the same shape every match drawer reads). */
 export function historyOfListing(m: Match): HistoryMatch {
-    const confirmed = m.result_status === 'CONFIRMED';
+    const confirmed = isOfficial(m.result_status);
     return {
         id: `event:${m.event_id}`, source: 'MATCH_EXCHANGE', sourceId: m.event_id, title: m.title, startsAt: m.starts_at_iso, endsAt: m.ends_at_iso, timezone: m.timezone,
         homeClubId: m.club_id, homeClubName: m.club_name, homeSquadId: m.squad_id, homeSquadName: m.squad_name,

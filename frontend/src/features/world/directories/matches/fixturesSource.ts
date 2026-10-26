@@ -79,7 +79,8 @@ export const fixtures: DirectorySource<Fixture> = {
         competitionScope('tournamentId'),
         { kind: 'choice', key: 'resultStatus', label: 'Result', allLabel: 'Any result',
             when: query => ['HISTORY', 'NEEDS_RESULT'].includes(first(query, 'period')) || Boolean(first(query, 'day') && first(query, 'day') < isoDay(0)), options: [
-                { value: 'NONE', label: 'Not recorded' }, { value: 'PROPOSED', label: 'Awaiting confirmation' }, { value: 'DISPUTED', label: 'Disputed' }, { value: 'CONFIRMED', label: 'Confirmed' },
+                { value: 'NONE', label: 'Not recorded' }, { value: 'REPORTED', label: 'Reported' }, { value: 'DISPUTED', label: 'Disputed' }, { value: 'CONFIRMED', label: 'Confirmed' },
+                { value: 'SETTLED', label: 'Settled' }, { value: 'FINAL', label: 'Final' },
                 { value: 'RECORDED', label: 'Recorded by organiser' }, { value: 'BYE', label: 'Bye' }, { value: 'LEGACY', label: 'Previously recorded' },
             ] },
         { kind: 'date', key: 'from', label: 'From', when: query => Boolean(first(query, 'period')) },

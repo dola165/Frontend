@@ -3,7 +3,8 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { Pencil, Send } from 'lucide-react';
 import { Button, EmptyNote, GkRoot, PageFrame, PageHeader, Panel, Section, Skeleton } from '../design/primitives';
 import { chatApi, type ConversationDto } from '../api/chat';
-import { formats, label, when, type Match, type PublicMatchResult, type Squad } from '../features/matchExchange/api';
+import { formats, label, when, type Match, type Squad } from '../features/matchExchange/api';
+import type { ScoreSummary } from '../features/scores/api';
 import { useClock, useLoad } from '../features/matchExchange/hooks';
 import { journeyLabel, useJourneyCopy } from '../features/matchExchange/journeyCopy';
 import { useMatchCopy } from '../features/matchExchange/copy';
@@ -59,8 +60,8 @@ export function MatchDetailPage() {
     const { data: m, error, reload } = useLoad<Match>(`/match-exchange/${eventId}`);
     const { data: squads } = useLoad<Squad[]>('/match-exchange/squads');
     const [editing, setEditing] = useState(false);
-    const [summary, setSummary] = useState<PublicMatchResult>();
-    const onSummary = useCallback((next: PublicMatchResult | undefined) => setSummary(next), []);
+    const [summary, setSummary] = useState<ScoreSummary>();
+    const onSummary = useCallback((next: ScoreSummary | undefined) => setSummary(next), []);
     const conversation = useMatchConversation(m);
     // A direct invitation names its club only by id until it is accepted.
     const requested = m?.requested_club_id && !m.opponent_name ? m.requested_club_id : null;

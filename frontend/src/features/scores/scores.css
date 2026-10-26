@@ -1,0 +1,42 @@
+/* The score record (features/scores): one card wherever a finished match shows, and the two-box goals picker. */
+.gk .gk-score { display: grid; gap: var(--gk-3); min-width: 0; color: var(--gk-text); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); scroll-margin-top: 96px; }
+.gk .gk-score__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); padding-bottom: var(--gk-2); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-score__title { margin: 0; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
+.gk .gk-score__line { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--gk-3); }
+.gk .gk-score__team { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; font-weight: 600; }
+.gk .gk-score__team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-score__team--away { justify-content: flex-end; text-align: right; }
+.gk .gk-score__goals { font-family: var(--gk-font-display); font-size: 28px; line-height: 32px; font-weight: 650; white-space: nowrap; }
+.gk .gk-score__meta, .gk .gk-score__quiet { margin: 0; color: var(--gk-text-2); }
+.gk .gk-score__error { margin: 0; color: var(--gk-danger); }
+.gk .gk-score__notice { margin: 0; color: var(--gk-accent); }
+.gk .gk-score__versions { display: grid; gap: var(--gk-1); margin: 0; padding: 0; list-style: none; }
+.gk .gk-score__versions li { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); padding: var(--gk-2) var(--gk-3); border-radius: var(--gk-r); background: var(--gk-danger-soft); }
+.gk .gk-score__versions strong { font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); }
+.gk .gk-score__ask { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-3); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-raised); font-weight: 600; }
+.gk .gk-score__wait { display: flex; align-items: center; gap: var(--gk-2); margin: 0; color: var(--gk-text-2); }
+.gk .gk-score__dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--gk-line-strong); }
+.gk .gk-score__form { display: grid; gap: var(--gk-3); }
+.gk .gk-score__label { margin: 0; font-weight: 600; }
+.gk .gk-score__hint { margin: 0; color: var(--gk-warning); }
+.gk .gk-score__field { display: grid; gap: var(--gk-1); color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-score__field .gk-input { color: var(--gk-text); font-size: var(--gk-fs-md); }
+.gk .gk-score__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-score__actions .gk-btn { min-height: 44px; }
+.gk .gk-score__choices { display: grid; gap: var(--gk-1); margin: 0; padding: 0; border: 0; min-width: 0; }
+.gk .gk-score__choice { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; text-align: left; font-weight: 500; gap: var(--gk-2); min-height: 44px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); cursor: pointer; }
+.gk .gk-score__choice:has(input:checked) { border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); background: var(--gk-accent-soft); }
+.gk .gk-score__choice strong { margin-left: auto; font-family: var(--gk-font-display); font-size: var(--gk-fs-xl); }
+.gk .gk-score__history summary { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; color: var(--gk-text-2); cursor: pointer; font-weight: 600; }
+.gk .gk-score__count { color: var(--gk-text-3); font-weight: 500; }
+.gk .gk-score__history ol { display: grid; gap: var(--gk-2); margin: var(--gk-2) 0 0; padding: 0; list-style: none; }
+.gk .gk-score__history li { display: grid; gap: 2px; padding-left: var(--gk-3); border-left: 2px solid var(--gk-line); }
+.gk .gk-score__history-who { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .gk-score__history-why { color: var(--gk-text-2); overflow-wrap: anywhere; }
+
+.gk .gk-score-pick { display: grid; max-width: 440px; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: var(--gk-3); }
+.gk .gk-score-pick__side { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .gk-score-pick__name { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; font-size: var(--gk-fs-sm); }
+.gk .gk-score-pick__name strong { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-score-pick__input { height: 64px; font-family: var(--gk-font-display); font-size: 32px; font-weight: 650; text-align: center; }
+.gk .gk-score-pick__dash { padding-bottom: 18px; color: var(--gk-text-3); font-size: 24px; }

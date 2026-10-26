@@ -17,6 +17,7 @@ import { TournamentFixtureReferees } from "./TournamentFixtureReferees";
 import { VenueReservationSummary } from '../../eventVenues/VenueReservationSummary';
 import { ExtensionSurface } from '../../capabilities/ExtensionBoundary';
 import { isExtensionCapabilityAvailable } from '../../capabilities/extensions';
+import { ScoreInputs } from '../../scores/ScoreInputs';
 
 interface Props {
   tournament: TournamentDetail;
@@ -150,45 +151,24 @@ export function TournamentMatchDialog({
             {notice}
           </p>
         )}
-        <div className="tw-score-inputs">
-          <label>
-            {homeLabel}
-            <input
-              aria-label={copy("Home score", "მასპინძლის ანგარიში")}
-              type="number"
-              min={0}
-              max={999}
-              step={1}
-              value={home}
-              onChange={(e) => setHome(e.target.value)}
-              disabled={
-                busy ||
-                !canScore ||
-                !scoringOpen ||
-                fixture.status === "CANCELLED" ||
-                fixture.homeEntryId == null
-              }
-            />
-          </label>
-          <label>
-            {awayLabel}
-            <input
-              aria-label={copy("Away score", "სტუმრის ანგარიში")}
-              type="number"
-              min={0}
-              max={999}
-              step={1}
-              value={away}
-              onChange={(e) => setAway(e.target.value)}
-              disabled={
-                busy ||
-                !canScore ||
-                !scoringOpen ||
-                fixture.status === "CANCELLED" ||
-                fixture.awayEntryId == null
-              }
-            />
-          </label>
+        <div className="gk">
+          <ScoreInputs
+            home={{ name: homeLabel }}
+            away={{ name: awayLabel }}
+            value={{ home, away }}
+            onChange={(value) => {
+              setHome(value.home);
+              setAway(value.away);
+            }}
+            disabled={
+              busy ||
+              !canScore ||
+              !scoringOpen ||
+              fixture.status === "CANCELLED" ||
+              fixture.homeEntryId == null ||
+              fixture.awayEntryId == null
+            }
+          />
         </div>
         {tied &&
           knockout &&

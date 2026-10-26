@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { Badge } from '../../../design/primitives';
 import { Crest } from '../../world/Crest';
 import { ResultSummary } from '../../matchHistory/ResultSummary';
-import type { Match, PublicMatchResult } from '../api';
+import type { Match } from '../api';
+import type { ScoreSummary } from '../../scores/api';
 import { useWorldCopy } from '../../world/copy';
 import { fixtureState, kickoffDay, kickoffTime } from './matchState';
 
@@ -13,17 +14,18 @@ function Team({ name, squad, logo, clubId, align }: { name: string; squad?: stri
 }
 
 /** The fixture at a glance: both teams, kick-off or the score, and where the arrangement stands. */
-export function FixtureBand({ match: m, summary, invitedClub, now }: { match: Match; summary?: PublicMatchResult; invitedClub?: { name: string; logoUrl?: string | null } | null; now: number }) {
+export function FixtureBand({ match: m, summary, invitedClub, now }: { match: Match; summary?: ScoreSummary; invitedClub?: { name: string; logoUrl?: string | null } | null; now: number }) {
     const t = useWorldCopy();
     const state = fixtureState(m, now);
-    const scored = summary && summary.homeScore != null && summary.awayScore != null;
+    // Once a score exists in any state (reported, disputed, official, private) or the match has ended, the band shows it.
+    const scored = summary && (summary.status !== 'NONE' || summary.legacy);
     const ended = new Date(m.ends_at_iso).getTime() <= now;
     return (
         <section className="gk-match-band" aria-label={t('Fixture')}>
             <Team align="home" name={m.club_name} squad={m.squad_name} logo={m.club_logo_url} clubId={m.club_id} />
             <div className="gk-match-band__centre">
                 {scored || (summary && ended)
-                    ? <ResultSummary homeScore={summary.homeScore} awayScore={summary.awayScore} status={summary.status} legacy={summary.legacy} fixtureStatus={summary.fixtureStatus} ended={ended} compact />
+                    ? <ResultSummary homeScore={summary.homeScore} awayScore={summary.awayScore} status={summary.status} legacy={summary.legacy} fixtureStatus={summary.fixtureStatus} reported={summary.reported} disputed={summary.disputed} scorePrivate={summary.scorePrivate} ended={ended} compact />
                     : <><span className="gk-match-band__time gk-num">{kickoffTime(m)}</span><span className="gk-match-band__day">{kickoffDay(m)}</span></>}
                 <Badge tone={state.tone}>{t(state.label)}</Badge>
             </div>

@@ -7,7 +7,7 @@ export interface FormResult { id: string; outcome: Outcome; scored: number; conc
 export interface TeamRef { clubId: number | null; squadId?: number | null }
 
 /** Results that count: recorded and agreed. A proposed, disputed or missing score is never read as a result (and never as a draw). */
-const COUNTED = new Set(['CONFIRMED', 'RECORDED', 'LEGACY']);
+const COUNTED = new Set(['CONFIRMED', 'SETTLED', 'FINAL', 'RECORDED', 'LEGACY']);
 export const counted = (match: HistoryMatch) => COUNTED.has(match.resultStatus) && match.fixtureStatus !== 'CANCELLED' && match.homeScore != null && match.awayScore != null;
 
 /** One end of a match: its club, squad and score. */

@@ -8,6 +8,7 @@ import { Track } from '../../scoreboard/Track';
 import { useClubCrests } from '../../scoreboard/useClubCrests';
 import type { Arrangement } from './arrangements';
 import { opponentOf } from './matchBrowse';
+import { isOfficial } from '../../../scores/status';
 
 /**
  * One of my arrangements as a row: both sides (my side starred; an opponent still to find as an empty ring), when
@@ -19,7 +20,7 @@ export function ArrangementRow({ item: a }: { item: Arrangement }) {
     const crestOf = useClubCrests();
     const { m } = a;
     const cancelled = m.event_status === 'CANCELLED' || m.listing_status === 'CANCELLED';
-    const scored = a.lane === 'played' && m.result_status === 'CONFIRMED' && m.home_score != null && m.away_score != null;
+    const scored = a.lane === 'played' && isOfficial(m.result_status) && m.home_score != null && m.away_score != null;
     const away = m.opponent_name
         ? { name: opponentOf(m), logo: crestOf(m.opponent_club_id), score: scored ? m.away_score : null, mine: a.mine.away }
         : { name: opponentOf(m), muted: true };

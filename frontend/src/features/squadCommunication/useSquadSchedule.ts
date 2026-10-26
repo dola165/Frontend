@@ -28,7 +28,7 @@ export function sessionEvent(squad: CalendarSquad, session: api.SquadSession): S
 
 function assignedEvent(event: ScheduleEventOccurrence, squad: CalendarSquad): SquadCalendarEvent {
     return { id: event.occurrenceId, eventId: event.eventId, origin: event.origin, originId: event.originId, title: event.title, description: event.description,
-        homeScore: event.homeScore, awayScore: event.awayScore, resultStatus: event.resultStatus, matchExchangeId: event.matchExchangeId, canRecordResult: event.canRecordResult, resultClubId: event.resultClubId,
+        homeScore: event.homeScore, awayScore: event.awayScore, resultStatus: event.resultStatus, matchExchangeId: event.matchExchangeId, canRecordResult: event.canRecordResult,
         eventType: event.eventType, startsAt: event.startsAt, endsAt: event.endsAt, locationText: event.locationName,
         status: event.status, visibility: event.visibility === 'PRIVATE' ? 'CLUB_ONLY' : event.visibility,
         publicationState: event.publicNow ? 'LIVE' : event.publishAt ? 'QUEUED' : 'PRIVATE',

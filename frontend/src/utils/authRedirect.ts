@@ -13,7 +13,6 @@ const AUTH_FLOW_ROUTES = new Set([
     '/reset-password',
     '/oauth2/callback',
     '/onboarding',
-    '/dob',
     '/set-password',
     '/start',
     WAITING_FOR_PARENT_PATH,

@@ -229,17 +229,6 @@ const en = {
     members: '{{count}} members',
   },
   minors: {
-    dob: {
-      title: 'One More Step',
-      subtitle: 'Confirm your date of birth to enter the arena.',
-      label: 'Date of Birth',
-      under13: 'You must be at least 13 years old to join',
-      required: 'Date of birth is required.',
-      blocked: 'You must be at least 13 years old to use GrassKickZ. Ask your parent or coach to add you through your club.',
-      confirm: 'Confirm & Enter',
-      notYou: 'Not you? Sign out',
-      failed: 'Something went wrong. Please try again.',
-    },
     consent: {
       title: 'Parental Consent',
       intro: "A club is requesting your consent for a player under 18 to participate.",

@@ -16,7 +16,7 @@ export function StaffClubCard() {
         <span className="lv-card__icon" aria-hidden="true"><ShieldCheck /></span>
         <span className="lv-card__text">
             <strong>{copy(`You’re staff at ${choice.clubs.length} clubs. Staff means one club now.`, `${choice.clubs.length} კლუბის თანამშრომელი ხართ. ახლა თანამშრომელი ერთ კლუბშია.`)}</strong>
-            {by && kept && <small>{copy(`If you don’t choose by ${by}, we keep ${kept}.`, `თუ ${by}-მდე არ აირჩევთ, დავტოვებთ ${kept}-ს.`)}</small>}
+            {by && kept && <small>{copy(`If you don’t choose by ${by}, we keep ${kept}.`, `თუ ${by}-მდე არ აირჩევთ, დაგტოვებთ ${kept}-ში.`)}</small>}
         </span>
         <ButtonLink size="sm" variant="primary" to="/me/staff-club">{copy('Choose your club', 'აირჩიეთ კლუბი')}</ButtonLink>
     </section>;

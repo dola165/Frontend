@@ -71,13 +71,13 @@ export function StaffClubPage() {
                         {failed && <p className="gk-notice gk-notice--danger" role="alert">{failed}</p>}
                         <div className="lv-choose__foot">
                             <Button variant="primary" disabled={busy || !picked} onClick={() => void keep()}>
-                                {copy(`Keep ${choice.clubs.find(c => c.clubId === picked)?.name ?? ''}`, `${choice.clubs.find(c => c.clubId === picked)?.name ?? ''}-ის დატოვება`)}</Button>
-                            {by && suggested && <span className="gk-faint">{copy(`If you don’t choose by ${by}, we keep ${suggested.name}.`, `თუ ${by}-მდე არ აირჩევთ, დავტოვებთ ${suggested.name}-ს.`)}</span>}
+                                {copy(`Keep ${choice.clubs.find(c => c.clubId === picked)?.name ?? ''}`, `${choice.clubs.find(c => c.clubId === picked)?.name ?? ''}-ში დარჩენა`)}</Button>
+                            {by && suggested && <span className="gk-faint">{copy(`If you don’t choose by ${by}, we keep ${suggested.name}.`, `თუ ${by}-მდე არ აირჩევთ, დაგტოვებთ ${suggested.name}-ში.`)}</span>}
                         </div>
                     </>;
     return <GkRoot className="gk-page"><PageFrame className="lv-choose">
         <PageHeader title={copy('Choose your club', 'აირჩიეთ კლუბი')}
-            subtitle={copy('Staff means one club. Keep one: your jobs at the others end and stay in your career.', 'თანამშრომელი ერთ კლუბშია. დატოვეთ ერთი: სხვაგან სამუშაოები სრულდება და კარიერაში რჩება.')} />
+            subtitle={copy('Staff means one club. Keep one: your jobs at the others end and stay in your career.', 'თანამშრომელი ერთ კლუბშია. აირჩიეთ ერთი: სხვაგან სამუშაოები სრულდება და კარიერაში რჩება.')} />
         {body}
         {!done && choice?.needed && <ButtonLink variant="ghost" to="/home">{copy('Decide later', 'მოგვიანებით')}</ButtonLink>}
     </PageFrame></GkRoot>;

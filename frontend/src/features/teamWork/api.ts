@@ -147,6 +147,15 @@ export const playLink = (itemId: number, mediaId: number) => data(apiClient.get<
 /** The commits baked into the running backend (the web app carries its own, see upToDate.ts). */
 export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<{ backend: Repo }>(`${base}/versions`, { signal }));
 export const fetchTeam = (signal?: AbortSignal) => data(apiClient.get<Member[]>(`${base}/team`, { signal }));
+/**
+ * Someone on the team list who cannot use the team chats now, and why: left out of them (no account, not active, under
+ * 18 by their birth date) or in them with a step of their own first (`inChats`).
+ */
+export interface OutsideChats {
+    email: string; userId: number | null; name: string | null; accountState: string | null; inChats: boolean;
+    reason: 'NO_ACCOUNT' | 'NOT_ACTIVE' | 'UNDER_18' | 'DOB_REQUIRED' | 'ONBOARDING_REQUIRED' | 'PASSWORD_CHANGE_REQUIRED';
+}
+export const fetchOutsideChats = (signal?: AbortSignal) => data(apiClient.get<OutsideChats[]>(`${base}/team/outside-chats`, { signal }));
 export const addMember = (email: string) => data(apiClient.post<{ members: Member[]; invite: Invite | null }>(`${base}/team`, { email }));
 export const newInvite = (userId: number) => data(apiClient.post<Invite>(`${base}/team/${userId}/invite`));
 export const removeMember = (userId: number) => data(apiClient.delete<Member[]>(`${base}/team/${userId}`));

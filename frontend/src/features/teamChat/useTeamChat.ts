@@ -6,6 +6,7 @@ import { deleteMessage, editMessage, fetchChanges, fetchPage, fetchState, markRe
 import { addNewer, addOlder, applyChanges, EMPTY_WINDOW, replaceWindow, upsert, type ChatWindow } from './chatWindow';
 import { connectLive, type Live } from './liveChat';
 import { createOutbox, type Pending } from './outbox';
+import { createReader } from './reading';
 import { sharedChanged } from './sharedSignal';
 import { isMissing, isPassing, problem, WRITER_FORBIDDEN } from './teamChatWords';
 
@@ -130,7 +131,9 @@ export function useTeamChat(chatId: number, jump: number | null) {
         (async () => {
             try {
                 const chat = await fetchState(chatId);
-                const first = await fetchPage(chatId, jump ? { around: jump } : {});
+                // Opened with unread messages, it starts where they start (the newest page may not hold the first).
+                const start = jump ?? (chat.unreadCount > 0 ? chat.firstUnreadId : null);
+                const first = await fetchPage(chatId, start ? { around: start } : {});
                 if (!alive.current) return;
                 setState(chat);
                 setFirstUnread(chat.unreadCount > 0 ? chat.firstUnreadId : null);
@@ -273,18 +276,9 @@ export function useTeamChat(chatId: number, jump: number | null) {
     }, [chatId, me, update, change]);
 
     // ── Reading ─────────────────────────────────────────────────────────
-    const readUpTo = useRef(0), reading = useRef(false);
-    const read = useCallback(async (upTo: number) => {
-        if (upTo <= readUpTo.current || reading.current) return;
-        reading.current = true;
-        try {
-            await markRead(chatId, upTo);
-            readUpTo.current = Math.max(readUpTo.current, upTo);
-            emitNotificationsChanged();
-        } catch { /* Read again on the next look. */ } finally {
-            reading.current = false;
-        }
-    }, [chatId]);
+    // What the person has seen is marked read, every time, in order: the chat list, the side bar and the header look
+    // again at once.
+    const [read] = useState(() => createReader(upTo => markRead(chatId, upTo), () => emitNotificationsChanged({ chatRead: true })));
 
     const lastTyping = useRef(0);
     const typingNow = useCallback((isTyping: boolean) => {

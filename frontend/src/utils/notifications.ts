@@ -6,6 +6,8 @@ const NOTIFICATIONS_CHANGED_EVENT = 'talanti:notifications-changed';
 
 interface NotificationsChange {
     allRead?: boolean;
+    /** A chat was just read: counts of unread conversations look again. */
+    chatRead?: boolean;
 }
 
 export const emitNotificationsChanged = (change?: NotificationsChange) => {

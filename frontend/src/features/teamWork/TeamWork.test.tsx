@@ -12,7 +12,7 @@ import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
-    createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
+    createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), fetchOutsideChats: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
     addPlanStep: vi.fn(), removePlanStep: vi.fn(), setResponsibility: vi.fn(), fetchNow: vi.fn(), writeNow: vi.fn(), addNowComment: vi.fn(), editNowComment: vi.fn(), deleteNowComment: vi.fn(),
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
 }));
@@ -72,6 +72,7 @@ const useLists = (...extra: api.PlanView[]) => {
 beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(api.fetchTeam).mockResolvedValue([{ userId: 1, name: 'Nino', email: 'nino@example.com', admin: true, addedAt: null, pending: false }]);
+    vi.mocked(api.fetchOutsideChats).mockResolvedValue([]);
     useLists();
     vi.mocked(overview.fetchTimeline).mockResolvedValue({ events: [], more: false });
     vi.mocked(overview.fetchOpenQuestions).mockResolvedValue([]);
@@ -622,6 +623,26 @@ it('shows what one person is doing, with their responsibility, and the Team page
     const note = screen.getByRole('link', { name: 'Now: Finishing sign-up · then roles · now' });
     expect(note).toHaveAttribute('href', '/team-work?who=3');
     expect(note).toHaveAttribute('title', 'Finishing sign-up\nthen roles');
+});
+
+it('says on the Team page who on the team list cannot use the team chats, and why, so nobody is missing from them unseen', async () => {
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [], trail: [], canManageTeam: true, team: [] });
+    vi.mocked(api.fetchOutsideChats).mockResolvedValue([
+        { email: 'admin.gio@talanti.ge', userId: 7, name: 'Gio Beridze', accountState: 'ACTIVE', reason: 'DOB_REQUIRED', inChats: true },
+        { email: 'admin.otto@talanti.ge', userId: 8, name: 'Otto', accountState: 'ACTIVE', reason: 'UNDER_18', inChats: false },
+        { email: 'admin.new@talanti.ge', userId: null, name: null, accountState: null, reason: 'NO_ACCOUNT', inChats: false },
+    ]);
+    mount();
+    await userEvent.click(await within(await screen.findByRole('navigation', { name: 'Team work' })).findByRole('button', { name: 'Team' }));
+    const outside = await screen.findByRole('region', { name: 'Not in the team chats yet' });
+    const rows = within(outside).getAllByRole('listitem');
+    expect(rows[0]).toHaveTextContent('Gio Beridze');
+    expect(rows[0]).toHaveTextContent('In the chats');
+    expect(rows[0]).toHaveTextContent('the app asks for their birth date');
+    expect(rows[1]).toHaveTextContent('Left out');
+    expect(rows[1]).toHaveTextContent('birth date says under 18');
+    expect(rows[2]).toHaveTextContent('admin.new@talanti.ge');
+    expect(rows[2]).toHaveTextContent('No account has this email yet.');
 });
 
 it('puts every open task under Now, live and cancelled work in grey rows at the bottom, and the same tasks one per line in List', async () => {

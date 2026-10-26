@@ -95,6 +95,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({default: module.ResetPasswordPage})));
 const ClubInvitePage = lazy(() => import('./pages/ClubInvitePage').then(module => ({default: module.ClubInvitePage})));
 const StaffLinkPage = lazy(() => import('./pages/StaffLinkPage').then(module => ({default: module.StaffLinkPage})));
+const StaffClubPage = lazy(() => import('./pages/StaffClubPage').then(module => ({default: module.StaffClubPage})));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
 const ReportReceipts = lazy(() => import('./features/moderation/ReportReceipts').then(module => ({default: module.ReportReceipts})));
 const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
@@ -518,6 +519,7 @@ export function MainLayout() {
                         <main className="min-w-0">
                             <RouteViewport><Routes>
                                 <Route path="/home" element={<ProtectedRoute><FeedPage user={user} managedClubs={managedClubs} /></ProtectedRoute>} />
+                                <Route path="/me/staff-club" element={<ProtectedRoute><StaffClubPage /></ProtectedRoute>} />
                                 <Route path="/feed" element={<Navigate to={`/home${location.search}`} replace />} />
                                 <Route path="*" element={<RouteRecoveryPage />} />
                             </Routes></RouteViewport>

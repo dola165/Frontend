@@ -28,3 +28,10 @@
 .gk .lv-club__text small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
 .gk .lv-club__ends { color: var(--gk-warning); }
 .gk .lv-choose__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); margin-top: var(--gk-4); }
+
+/* Home's card while a club is to be chosen */
+.gk.lv-card { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); }
+.gk .lv-card__icon { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .lv-card__icon svg { width: 20px; height: 20px; }
+.gk .lv-card__text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 260px; min-width: 0; }
+.gk .lv-card__text small { color: var(--gk-text-2); }

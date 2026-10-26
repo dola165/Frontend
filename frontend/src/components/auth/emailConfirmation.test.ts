@@ -7,6 +7,7 @@ describe('the confirm-your-email refusal', () => {
     it('is recognised by the backend code, old and new', () => {
         expect(needsConfirmedEmail(refusal({ code: 'EMAIL_CONFIRMATION_REQUIRED', action: 'PUBLISH' }))).toBe(true);
         expect(needsConfirmedEmail(refusal({ code: 'EMAIL_NOT_VERIFIED' }))).toBe(true);
+        expect(needsConfirmedEmail(refusal({ code: 'EMAIL_CONFIRMATION_NEEDED' }))).toBe(true);
         expect(needsConfirmedEmail(refusal({ code: 'PARENT_APPROVAL_REQUIRED' }))).toBe(false);
         expect(needsConfirmedEmail(new Error('offline'))).toBe(false);
     });

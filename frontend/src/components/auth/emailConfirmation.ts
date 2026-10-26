@@ -3,11 +3,11 @@ import { extractApiErrorCode } from '../../utils/apiError';
 
 /**
  * The backend's refusal of an action that needs a confirmed email: 403 EMAIL_CONFIRMATION_REQUIRED, with `action`
- * INVITE, PUBLISH, MONEY or JOB (starting a job, with `jobTitle` when known) (fnd-signup-b). The older
- * EMAIL_NOT_VERIFIED is read the same way. Sign-in and everything else work without it; show `ConfirmEmailFirst`
+ * INVITE, PUBLISH, MONEY or JOB (starting a job, with `jobTitle` when known) (fnd-signup-b). fnd-access-b's
+ * rule-checker and staff links say EMAIL_CONFIRMATION_NEEDED, and the older EMAIL_NOT_VERIFIED is read the same way. Sign-in and everything else work without it; show `ConfirmEmailFirst`
  * (or a toast with Resend) at the refused spot.
  */
-export const needsConfirmedEmail = (error: unknown) => ['EMAIL_CONFIRMATION_REQUIRED', 'EMAIL_NOT_VERIFIED'].includes(extractApiErrorCode(error) ?? '');
+export const needsConfirmedEmail = (error: unknown) => ['EMAIL_CONFIRMATION_REQUIRED', 'EMAIL_CONFIRMATION_NEEDED', 'EMAIL_NOT_VERIFIED'].includes(extractApiErrorCode(error) ?? '');
 
 /** The job waiting on the confirmation ("Assistant coach"), when the server names it. */
 export function confirmationJobTitle(error: unknown): string | null {

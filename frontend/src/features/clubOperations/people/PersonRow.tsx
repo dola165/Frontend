@@ -12,7 +12,8 @@ import { StaffPublicProfile } from './StaffPublicProfile';
 import { useJobWords } from './jobWords';
 
 /** What the viewer may do to other people's jobs, from the rule-checker (or the People view's flags on older servers). */
-export interface PeopleRights { change: boolean; end: boolean; invite: boolean }
+/** `pending`: the rule-checker has not answered yet; the buttons show, disabled, until it has. */
+export interface PeopleRights { change: boolean; end: boolean; invite: boolean; pending?: boolean }
 /** A squad job changes into another job in place; making someone an Admin is Add job (an invitation of its own). */
 const CHANGE_JOBS = MAIN_JOBS.filter(job => job !== 'ADMIN');
 
@@ -63,10 +64,10 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
             </div>
         </div>
         <div className="pp-person__actions">
-            {canLink && <Button size="sm" disabled={busy} onClick={onNewLink}><Link2 aria-hidden="true" />{copy('New link', 'ახალი ბმული')}</Button>}
-            {rights.invite && !self && <Button size="sm" variant="ghost" disabled={busy} onClick={onAddJob}><Plus aria-hidden="true" />{copy('Add job', 'სამუშაოს დამატება')}</Button>}
+            {canLink && <Button size="sm" disabled={busy || rights.pending} onClick={onNewLink}><Link2 aria-hidden="true" />{copy('New link', 'ახალი ბმული')}</Button>}
+            {rights.invite && !self && <Button size="sm" variant="ghost" disabled={busy || rights.pending} onClick={onAddJob}><Plus aria-hidden="true" />{copy('Add job', 'სამუშაოს დამატება')}</Button>}
             {history.length > 0 && <Button size="sm" variant="ghost" aria-expanded={story} onClick={() => setStory(open => !open)}><History aria-hidden="true" />{copy('History', 'ისტორია')}</Button>}
-            {rights.invite && member && !profile && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setProfile(true)}><UserRound aria-hidden="true" />{copy('Public profile', 'საჯარო პროფილი')}</Button>}
+            {rights.invite && member && !profile && <Button size="sm" variant="ghost" disabled={busy || rights.pending} onClick={() => setProfile(true)}><UserRound aria-hidden="true" />{copy('Public profile', 'საჯარო პროფილი')}</Button>}
         </div>
         <ul className="pp-jobs" aria-label={copy(`${person.name}’s jobs`, `${person.name}: სამუშაოები`)}>{person.jobs.map(job => {
             const status = statusLabel(job.status);
@@ -77,8 +78,8 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
                     : job.source === 'STAFF_LINK' ? <span className="gk-faint pp-job__by">{copy('Joined through a staff link', 'შემოვიდა პერსონალის ბმულით')}</span>
                     : job.suggestedByName && <span className="gk-faint pp-job__by">{copy(`Suggested by ${job.suggestedByName}`, `შესთავაზა ${job.suggestedByName}`)}</span>}
                 <span className="pp-job__actions">
-                    {canChange(job) && <Button size="sm" variant="ghost" disabled={busy || saving} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
-                    {canEnd(job) && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy || saving} onClick={() => onEnd(job)}>{endText(job)}</Button>}
+                    {canChange(job) && <Button size="sm" variant="ghost" disabled={busy || saving || rights.pending} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
+                    {canEnd(job) && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy || saving || rights.pending} onClick={() => onEnd(job)}>{endText(job)}</Button>}
                 </span>
                 {job.unavailableReason && <p className="gk-faint pp-job__reason">{job.unavailableReason}</p>}
             </li>;

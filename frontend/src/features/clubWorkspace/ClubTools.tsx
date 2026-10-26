@@ -12,7 +12,7 @@ import type { WorkspaceTab } from '../../components/workspace/types';
 import type { AuthSessionId } from '../../utils/authStorage';
 import { InboxTab } from '../../components/workspace/tabs/InboxTab';
 import { RolesTab } from '../../components/workspace/tabs/RolesTab';
-import { Button, PageFrame, PageHeader } from '../../design/primitives';
+import { Button, PageFrame } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
 import { ClubCampaignsPage } from './commerce/ClubCampaignsPage';
 import { OpenRolesPage } from './commerce/OpenRolesPage';
@@ -63,9 +63,8 @@ export function ClubTools(ctx: ClubToolsContext) {
             onTrialEndsChange={m.actions.trialEndsChange} onRetry={() => { void players.reload(); }} onPageChange={players.setPage}
             onMessagePlayer={userId => navigate(`/messages?chatWith=${userId}`)} onSendConsentEmail={m.actions.sendConsentEmail}
             onTabChange={next => next === 'admissions' ? ctx.openWork('admissions', { intake: '1' }) : ctx.switchTab(next)} />;
-        case 'invites': return <PageFrame className="cw-page"><PageHeader title="Invitations" subtitle="Club invitations waiting for an answer. Staff jobs are given and followed in People." />
-            <SentInvitations overview={overview} pendingKey={m.pendingKey} onCancelInvite={m.actions.cancelInvite}
-                onOpenPeople={ctx.allowed('personnel') ? () => ctx.switchTab('personnel') : undefined} /></PageFrame>;
+        case 'invites': return <SentInvitations overview={overview} pendingKey={m.pendingKey} onCancelInvite={m.actions.cancelInvite}
+                onOpenPeople={ctx.allowed('personnel') ? () => ctx.switchTab('personnel') : undefined} />;
         case 'admissions': return <ClubAdmissionWorkspace state={ctx.admissions} sessionId={ctx.sessionId} existingPeople={ctx.roles?.people} onOpen={ctx.openWork}
             onRosterChanged={() => { players.invalidate(); void ctx.reloadOverview(); ctx.refreshRoles(); }} />;
         case 'applications': return <>

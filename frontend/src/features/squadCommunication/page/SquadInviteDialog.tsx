@@ -17,7 +17,7 @@ import type { JoinRequests } from './useJoinRequests';
  * request into the squad's joining group and offers the place; the family accepts the terms. Another parent asking
  * to be linked to a child already here shows below; their child's parent confirms them.
  */
-export function SquadInviteDialog({ space, requests, onClose, onAnswered }: { space: api.SquadOverview; requests: JoinRequests; onClose: () => void; onAnswered: () => void }) {
+export function SquadInviteDialog({ space, requests, canLink = true, onClose, onAnswered }: { space: api.SquadOverview; requests: JoinRequests; canLink?: boolean; onClose: () => void; onAnswered: () => void }) {
     const copy = useJourneyCopy();
     const [link, setLink] = useState<api.SquadJoinLink | null>(null), [linkError, setLinkError] = useState(''), [error, setError] = useState('');
     const [busy, setBusy] = useState<'link' | number | null>(null), [approved, setApproved] = useState('');
@@ -25,10 +25,11 @@ export function SquadInviteDialog({ space, requests, onClose, onAnswered }: { sp
     const pending = useRef(new Map<string, string>());
     const requestIdFor = (key: string) => { const found = pending.current.get(key); if (found) return found; const made = crypto.randomUUID(); pending.current.set(key, made); return made; };
     useEffect(() => {
+        if (!canLink) return;
         const abort = new AbortController();
         void api.joinLink(space.id, abort.signal).then(found => { if (!abort.signal.aborted) setLink(found); }).catch(e => { if (!abort.signal.aborted) setLinkError(extractApiErrorMessage(e, copy('The join link could not load.', 'ბმული ვერ ჩაიტვირთა.'))); });
         return () => abort.abort();
-    }, [space.id, copy]);
+    }, [space.id, copy, canLink]);
     const url = link?.path ? `${window.location.origin}${link.path}` : '';
     const changeLink = async (action: 'create' | 'rotate' | 'disable') => {
         if (busy) return;
@@ -54,10 +55,10 @@ export function SquadInviteDialog({ space, requests, onClose, onAnswered }: { sp
     };
     const expiry = link?.expiresAt ? new Date(link.expiresAt).toLocaleDateString() : null;
     const waiting = requests.items ?? [];
-    return <Dialog open size="md" title={copy('Invite players', 'მოთამაშეების მოწვევა')} description={space.name} onClose={onClose}>
+    return <Dialog open size="md" title={canLink ? copy('Invite players', 'მოთამაშეების მოწვევა') : copy('Waiting to join', 'გაწევრიანებას ელოდებიან')} description={space.name} onClose={onClose}>
         <div className="sp-invite">
-            <p className="sp-quiet">{copy('One link for the squad: share it in the parents’ group or print the QR code. Each family says who’s joining; you say yes here.', 'ერთი ბმული გუნდისთვის: გააზიარეთ მშობლების ჯგუფში ან დაბეჭდეთ QR კოდი. ოჯახი ირჩევს, ვინ წევრიანდება; თქვენ ადასტურებთ აქ.')}</p>
-            {linkError ? <p className="gk-notice gk-notice--danger" role="alert">{linkError}</p>
+            {canLink && <p className="sp-quiet">{copy('One link for the squad: share it in the parents’ group or print the QR code. Each family says who’s joining; you say yes here.', 'ერთი ბმული გუნდისთვის: გააზიარეთ მშობლების ჯგუფში ან დაბეჭდეთ QR კოდი. ოჯახი ირჩევს, ვინ წევრიანდება; თქვენ ადასტურებთ აქ.')}</p>}
+            {!canLink ? null : linkError ? <p className="gk-notice gk-notice--danger" role="alert">{linkError}</p>
                 : !link ? <p className="sp-quiet" role="status">{copy('Loading…', 'იტვირთება…')}</p>
                 : link.status === 'ACTIVE' ? <>
                     <LinkShare url={url} title={copy(`Join ${space.name}`, `შემოუერთდით: ${space.name}`)} subtitle={space.academy_name} message={`${space.name} · ${space.academy_name}`} label={copy('Join link', 'გაწევრიანების ბმული')} onError={setError} />

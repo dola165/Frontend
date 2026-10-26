@@ -24,8 +24,8 @@ export function FamilyLinkRequestActions({ notification }: { notification: Notif
     };
     return <div className="px-4 pb-4 sm:px-5" onClick={event => event.stopPropagation()}>
         {status ? <p role="status">{status}</p> : <div className="flex flex-wrap gap-2">
-            <button type="button" className="rounded-lg border px-3 py-2 text-sm" disabled={busy} onClick={() => void answer(true)}>{copy('Yes, add as parent', 'დიახ, დაემატოს მშობლად')}</button>
-            <button type="button" className="rounded-lg border px-3 py-2 text-sm" disabled={busy} onClick={() => void answer(false)}>{copy('Not their parent', 'მშობელი არ არის')}</button>
+            <button type="button" className="min-h-11 rounded-lg border px-3 py-2 text-sm" disabled={busy} onClick={() => void answer(true)}>{copy('Yes, add as parent', 'დიახ, დაემატოს მშობლად')}</button>
+            <button type="button" className="min-h-11 rounded-lg border px-3 py-2 text-sm" disabled={busy} onClick={() => void answer(false)}>{copy('Not their parent', 'მშობელი არ არის')}</button>
         </div>}
         {error && <p role="alert">{error}</p>}
     </div>;

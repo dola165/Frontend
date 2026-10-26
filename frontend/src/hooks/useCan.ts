@@ -18,11 +18,12 @@ const load = (key: string, subject: AccessSubject) => {
 };
 
 export interface Can {
-    /** False until the server answered (or said it has no checker). */
-    known: boolean;
+    /** True while the answer is on its way: show the screen's own buttons disabled, so none appears and then vanishes. */
+    pending: boolean;
     /**
      * The decision for one action. Without the checker (an older server, or a failed check) the screen's own flag
-     * decides, so buttons never vanish because the checker is missing; with it, unknown actions are refused.
+     * decides, so buttons never vanish because the checker is missing; with it, unknown actions are refused. While
+     * it loads, the flag decides and the decision says `pending`.
      */
     decide: (action: AccessAction, fallback: boolean) => AccessDecision;
     /** Who "Ask the admin" writes to, when the server named one. */
@@ -47,7 +48,9 @@ export function useCan(subject: AccessSubject | null): Can {
         return () => { live = false; };
     }, [key, subject, round]);
     const rules = state && state.key === key ? state.rules : undefined;
+    // Nothing to wait for when no check was asked for; a failed check counts as answered (the flags decide).
+    const pending = key !== null && rules === undefined;
     const decide = useCallback((action: AccessAction, fallback: boolean): AccessDecision =>
-        rules ? rules.actions[action] ?? { allowed: false } : { allowed: fallback }, [rules]);
-    return { known: rules !== undefined, decide, admin: rules?.admins?.[0] ?? null };
+        rules ? rules.actions[action] ?? { allowed: false } : { allowed: fallback, pending }, [rules, pending]);
+    return { pending, decide, admin: rules?.admins?.[0] ?? null };
 }

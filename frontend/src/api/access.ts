@@ -11,7 +11,8 @@ export type AccessAction =
     | 'see_people' | 'invite_staff' | 'make_admin' | 'change_job' | 'end_job' | 'suggest_assistant' | 'confirm_assistant'
     | 'add_child' | 'arrange_match' | 'report_score' | 'start_club' | 'follow'
     | 'join_squad' | 'manage_join_link' | 'approve_join_requests' | 'link_parent';
-export interface AccessDecision { allowed: boolean; reason?: string | null; askAdmin?: boolean }
+/** `pending`: the checker has not answered yet; the screen's own flag stands in, shown disabled. */
+export interface AccessDecision { allowed: boolean; reason?: string | null; askAdmin?: boolean; pending?: boolean }
 /** `admins`: who "Ask the admin" writes to, the Owner first (active accounts only). */
 export interface AccessRules { subject: AccessSubject; actions: Partial<Record<AccessAction, AccessDecision>>; admins?: { userId: number; name: string; owner?: boolean }[] }
 

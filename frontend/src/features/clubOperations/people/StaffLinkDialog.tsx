@@ -22,14 +22,15 @@ const draftFor = (link?: StaffLink): JobDraft => link ? { job: link.job, title: 
  * staff room. 7 days or 10 uses; who joined shows underneath as they join, each with Remove. Never Admin: admins
  * are invited one by one. New link replaces the old one for the same job and where.
  */
-export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, onClose, onChanged }: {
-    club: number; clubName: string; view: PeopleView; links: StaffLink[]; opened?: number | null;
+export function StaffLinkDialog({ club, clubName, view, links, loading = false, loadError = '', onRetry, opened, onLinks, onClose, onChanged }: {
+    club: number; clubName: string; view: PeopleView; links: StaffLink[]; loading?: boolean; loadError?: string; onRetry?: () => void; opened?: number | null;
     onLinks: (links: StaffLink[]) => void; onClose: () => void; onChanged: (notice: string) => void;
 }) {
     const { copy, jobName, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
     const [draft, setDraft] = useState<JobDraft>(() => draftFor(links.find(l => l.id === opened) ?? links[0]));
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [removing, setRemoving] = useState<number | null>(null);
     const request = useRef<{ key: string; id: string } | null>(null);
+    const [stale, setStale] = useState<StaffLink | null>(null);
     const link = links.find(l => l.job === draft.job && sameWhere(l, draft));
     const run = async (work: () => Promise<void>, fallback: string) => {
         if (busy) return;
@@ -45,14 +46,21 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
         void run(async () => {
             const made = await makeStaffLink(club, draft, requestId);
             request.current = null;
-            // New link replaces the old one for the same job and where: the old one is switched off.
-            if (link) await stopStaffLink(club, link.id);
-            onLinks([made, ...links.filter(l => l.id !== link?.id)]);
-            if (link) onChanged(copy('New link made. The earlier one no longer works.', 'ახალი ბმული შეიქმნა. ძველი აღარ მუშაობს.'));
+            // New link replaces the old one for the same job and where. The new one shows at once; the old one is then
+            // switched off, and if that fails it is named with its own Switch off, so a retry never makes a third link.
+            const old = link;
+            onLinks([made, ...links]);
+            if (!old) return;
+            try {
+                await stopStaffLink(club, old.id);
+                onLinks([made, ...links.filter(l => l.id !== old.id)]);
+                onChanged(copy('New link made. The earlier one no longer works.', 'ახალი ბმული შეიქმნა. ძველი აღარ მუშაობს.'));
+            } catch { setStale(old); }
         }, copy('The link couldn’t be made.', 'ბმული ვერ შეიქმნა.'));
     };
     const stop = (target: StaffLink) => void run(async () => {
         await stopStaffLink(club, target.id);
+        if (stale?.id === target.id) setStale(null);
         onLinks(links.filter(l => l.id !== target.id));
         onChanged(copy('Link switched off. Nobody else can join through it.', 'ბმული გაითიშა. მისით აღარავინ შემოვა.'));
     }, copy('The link couldn’t be switched off.', 'ბმული ვერ გაითიშა.'));
@@ -71,6 +79,15 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
         <div className="pp-staff-link">
             <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setError(''); }} choices={LINK_JOBS} extras={false} disabled={busy} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+            {stale && <div className="gk-notice gk-notice--warning pp-check" role="alert">
+                <span className="cw-notices__text">{copy('The old link is still on.', 'ძველი ბმული ჯერ კიდევ მუშაობს.')}</span>
+                <Button size="sm" disabled={busy} onClick={() => stop(stale)}><Link2Off aria-hidden="true" />{copy('Switch off', 'გათიშვა')}</Button>
+            </div>}
+            {loadError && <div className="gk-notice gk-notice--danger pp-check" role="alert">
+                <span className="cw-notices__text">{loadError}</span>
+                {onRetry && <Button size="sm" onClick={onRetry}>{copy('Try again', 'თავიდან')}</Button>}
+            </div>}
+            {loading && !link && <p className="gk-faint" role="status">{copy('Loading the club’s links…', 'კლუბის ბმულები იტვირთება…')}</p>}
             {link ? <>
                 <LinkShare url={staffLinkUrl(link)} title={title} subtitle={clubName} label={copy('Staff link', 'პერსონალის ბმული')} onError={setError}
                     message={copy(`Join ${clubName} as ${title}:`, `შემოუერთდით ${clubName}-ს (${title}):`)} />
@@ -93,7 +110,7 @@ export function StaffLinkDialog({ club, clubName, view, links, opened, onLinks, 
                         </span> : <Button size="sm" variant="ghost" className="pp-danger" disabled={busy} aria-label={copy(`Remove ${person.name}`, `მოხსნა: ${person.name}`)} onClick={() => setRemoving(person.appointmentId)}>{copy('Remove', 'მოხსნა')}</Button>}
                     </li>)}</ul> : <p className="gk-faint pp-joined__empty">{copy('Nobody yet. Names appear here as people join.', 'ჯერ არავინ. სახელები აქ გამოჩნდება, როგორც კი შემოვლენ.')}</p>}
                 </section>
-            </> : <div className="pp-staff-link__make">
+            </> : loading || loadError ? null : <div className="pp-staff-link__make">
                 <Button variant="primary" disabled={busy} onClick={make}><QrCode aria-hidden="true" />{busy ? copy('Making…', 'იქმნება…') : copy('Make the link', 'ბმულის შექმნა')}</Button>
                 <span className="gk-faint">{copy('Works for 7 days or 10 people.', 'მოქმედებს 7 დღე ან 10 ადამიანზე.')}</span>
             </div>}

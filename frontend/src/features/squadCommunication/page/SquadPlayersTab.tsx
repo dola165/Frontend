@@ -21,9 +21,11 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
     const copy = useJourneyCopy();
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
-    // The squad's join link shows where the rule-checker allows it (the squad's own flag on servers without one).
-    const canInvite = useCan(space.can_manage ? `squad:${space.id}` : null).decide('manage_join_link', space.can_manage).allowed;
-    const inviting = canInvite && params.get('invite') === '1';
+    // The rule-checker decides each part (the squad's own flag on servers without one): sharing the join link, and answering
+    // who is waiting. Either opens the dialog; the link block shows only to those who manage the link.
+    const access = useCan(space.can_manage ? `squad:${space.id}` : null);
+    const canInvite = access.decide('manage_join_link', space.can_manage).allowed, canAnswer = access.decide('approve_join_requests', space.can_manage).allowed;
+    const inviting = (canInvite || canAnswer) && params.get('invite') === '1';
     const setInviting = (open: boolean) => setParams(previous => { const next = new URLSearchParams(previous); if (open) next.set('invite', '1'); else next.delete('invite'); return next; }, { replace: !open });
     const [busy, setBusy] = useState<number | null>(null), [error, setError] = useState('');
     const requests = useJoinRequests(space);
@@ -38,8 +40,10 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
     const players = [...space.players].sort((a, b) => (a.number ?? 99) - (b.number ?? 99) || a.name.localeCompare(b.name));
     return <div className="sp-players">
         {space.can_manage && <div className="sp-players__bar">
-            {waiting > 0 && <span className="sp-wait"><span className="sp-dot" aria-hidden="true" />{copy(`${waiting} waiting to join`, `${waiting} ელოდება გაწევრიანებას`)}</span>}
-            {canInvite && <Button variant="primary" onClick={() => setInviting(true)}><UserPlus aria-hidden="true" />{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button>}
+            {waiting > 0 && (canAnswer
+                ? <Button variant="ghost" disabled={access.pending} onClick={() => setInviting(true)}><span className="sp-dot" aria-hidden="true" />{copy(`${waiting} waiting to join`, `${waiting} ელოდება გაწევრიანებას`)}</Button>
+                : <span className="sp-wait"><span className="sp-dot" aria-hidden="true" />{copy(`${waiting} waiting to join`, `${waiting} ელოდება გაწევრიანებას`)}</span>)}
+            {canInvite && <Button variant="primary" disabled={access.pending} onClick={() => setInviting(true)}><UserPlus aria-hidden="true" />{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button>}
         </div>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {players.length ? <ul className="sp-cards">{players.map(player => <li key={player.id}>
@@ -48,6 +52,6 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
                 signs={childIds.includes(player.id) ? <span className="pc-sign sp-yours">{copy('Yours', 'თქვენი')}</span> : undefined}
                 actions={space.can_manage ? <Button size="sm" variant="ghost" iconOnly aria-label={copy(`Remove ${player.name} from the squad`, `${player.name} — გუნდიდან წაშლა`)} disabled={busy === player.id} onClick={() => void remove(player)}><UserMinus aria-hidden="true" /></Button> : undefined} />
         </li>)}</ul> : <EmptyNote title={copy('No players yet', 'მოთამაშეები ჯერ არ არის')} action={canInvite ? <Button size="sm" onClick={() => setInviting(true)}>{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button> : undefined} />}
-        {inviting && <SquadInviteDialog space={space} requests={requests} onClose={() => setInviting(false)} onAnswered={onChanged} />}
+        {inviting && <SquadInviteDialog space={space} requests={requests} canLink={canInvite} onClose={() => setInviting(false)} onAnswered={onChanged} />}
     </div>;
 }

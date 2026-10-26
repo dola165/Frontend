@@ -44,11 +44,13 @@ it('lets a parent confirm a second parent, which sends the usual guardian invita
 it('lets an admin confirm a suggested assistant in the notification itself', async () => {
     const suggested = { kind: 'APPOINTMENT', id: 55, status: 'SUGGESTED', revision: 3, canConfirm: true };
     vi.mocked(apiClient.get).mockResolvedValue({ data: { people: [{ userId: 30, name: 'Dato', jobs: [suggested] }] } });
-    vi.mocked(apiClient.post).mockResolvedValue({ data: { appointmentId: 55, outcome: 'CONFIRMED', answeredBy: 'Nino', link: null } });
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { appointmentId: 55, outcome: 'CONFIRMED', answeredBy: 'Nino', link: { token: 'dato.tok', expiresAt: '2026-11-02T12:00:00' } } });
     render(<NotificationActions notification={{ ...base, type: 'CLUB_PEOPLE', clubId: null, linkPath: '/clubs/7/workspace?tab=personnel', entityType: 'club_staff_appointment', entityId: 55, title: 'Giorgi suggests Dato as assistant coach for U12' }} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/clubs/7/people/suggestions/55', { confirm: true, revision: 3 }));
-    expect(await screen.findByText('Confirmed. The head coach is told and sends the link.')).toBeInTheDocument();
+    expect(await screen.findByText('Confirmed. Send Dato this link to choose a password.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Invite link for Dato')).toHaveValue(`${window.location.origin}/club-invite?token=dato.tok`);
+    expect(screen.getByRole('link', { name: /WhatsApp/ })).toBeInTheDocument();
 });
 
 it('shows no buttons once the suggestion was already answered', async () => {

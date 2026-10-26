@@ -73,6 +73,16 @@ describe('the start sheet', () => {
     await waitFor(() => expect(api.createPage).toHaveBeenCalledTimes(1));
   });
 
+  it('staff means one club: starting a club while staff elsewhere asks to leave that club first', async () => {
+    const user = userEvent.setup();
+    api.createPage.mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'STAFF_OF_ANOTHER_CLUB', message: 'You are staff at Saburtalo.', otherClubId: 3, otherClubName: 'Saburtalo' } } });
+    mount({ kind: 'CLUB' });
+    await user.type(screen.getByLabelText('Club name'), 'Rustavi Juniors');
+    await user.click(screen.getByRole('button', { name: 'Create club' }));
+    expect(await screen.findByText('You’re staff at Saburtalo. Leave Saburtalo first.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Leave Saburtalo' })).toBeInTheDocument();
+  });
+
   it('creates the club with the name and town and lands on the page', async () => {
     const user = userEvent.setup();
     api.createPage.mockResolvedValue({ id: 7000, clubId: 400, profilePath: '/clubs/400', workspacePath: '/clubs/400/workspace' });

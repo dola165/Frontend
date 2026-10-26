@@ -30,7 +30,7 @@ const KIND_WORD: Record<PageKind, string> = { CLUB: 'Club', FAN_CLUB: 'Fan club'
 export function StartSheet({ kind, business = null, from, draw, onClose }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void }) {
   const t = usePagesCopy();
   const { user } = useAuth();
-  const { create, busy, error, clearError, unanswered } = useCreatePage();
+  const { create, busy, error, clearError, unanswered, otherClub } = useCreatePage();
   // One club per person (owner, 16 October): someone already at a club opens it, or starts a fan club instead.
   const club = ownClub(user?.navigationCapabilities);
   // A draft left in the sheet comes back, unless the link asks for another kind: then it starts afresh on that kind.
@@ -160,6 +160,7 @@ export function StartSheet({ kind, business = null, from, draw, onClose }: { kin
               <button type="button" className="gk-cmatch__no" onClick={() => setDismissed(nameKey(name))}>{t('No, mine is different')}</button>
             </div>
           )}
+          {otherClub}
           {(error || unanswered) && <p className={`gk-notice${error ? ' gk-notice--warning' : ''}`} role="alert">{error || t('The last try was not answered. Try again with the same name; it never makes two pages.')}</p>}
         </div>
       )}

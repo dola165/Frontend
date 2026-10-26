@@ -26,6 +26,7 @@ import { useMediaQuery } from './features/world/useMediaQuery';
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
 import { useBuildWatch } from './hooks/useBuildWatch';
+import { ParentApprovalBanner } from './components/auth/ParentApprovalBanner';
 import { LoginPage } from './pages/LoginPage';
 
 // Native navigation and chat replace these browser surfaces. Keep their imports
@@ -478,6 +479,7 @@ export function MainLayout() {
             {showsHeader && (
                 <AppHeader user={user} myClubId={myClubId} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={() => void handleLogout()} />
             )}
+            {showsHeader && <ParentApprovalBanner />}
 
             {isLandingPage || isAuthPage ? (
                 <main>

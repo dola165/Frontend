@@ -1050,6 +1050,14 @@ const en = {
       errEmail: 'Enter a valid email.',
       signOut: 'Sign out',
     },
+    parentBanner: {
+      line: 'Ask your parent to approve your account by {{date}}.',
+      ask: 'Ask my parent',
+      later: 'Later',
+      title: 'Ask your parent to approve',
+      dialogLine: 'Your account keeps working until {{date}}. After that it waits for your parent.',
+      approved: 'Your parent approved. Thank you!',
+    },
     parentApprove: {
       title: 'Approve an account',
       line: '{{name}} signed up for GrassKickZ and gave your email. Once you approve, they can follow clubs, see trials and talk to their own squad.',

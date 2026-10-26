@@ -1071,6 +1071,7 @@ const en = {
       used: 'Your account is ready.',
       usedLine: 'Sign in with your password.',
       signIn: 'Sign in',
+      sentTo: 'Link sent to {{email}}. They set a password from it and sign in.',
     },
     parentApprove: {
       title: 'Approve an account',

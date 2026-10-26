@@ -22,7 +22,7 @@ it('gives a child of 13 or more their own account: their email, then where the l
     fireEvent.change(screen.getByLabelText('Luka’s email'), { target: { value: 'Luka@Example.test' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send the link' }));
     expect(await screen.findByText('Link sent to luka@example.test')).toBeInTheDocument();
-    expect(api.giveOwnAccount).toHaveBeenCalledWith(31, 'luka@example.test', `${year - 14}-02-01`);
+    expect(api.giveOwnAccount).toHaveBeenCalledWith(31, 'luka@example.test');
     expect(changed).toHaveBeenCalled();
 });
 

@@ -39,6 +39,6 @@ export interface ParentHub {
 export { fetchJoiningChildren, createPlayerLinkCode } from '../joining-contract/api';
 export type { JoiningChild, ChildDirectory, ChildClub, ChildFees, OwnAccount } from '../joining-contract/types';
 
-/** Sends the child the link to their own account (again, or to a corrected email). The recorded birth date goes along while the server still asks for it. */
-export const giveOwnAccount = (childId: number, email: string, dateOfBirth: string | null) =>
-    apiClient.post<Partial<OwnAccount>>(`/family/children/${childId}/activation`, { email, ...(dateOfBirth ? { dateOfBirth } : {}) }).then(r => r.data);
+/** Sends the child the link to their own account (again, or to a corrected email); the card's birth date stands. */
+export const giveOwnAccount = (childId: number, email: string) =>
+    apiClient.post<OwnAccount>(`/family/children/${childId}/activation`, { email }).then(r => r.data);

@@ -14,7 +14,7 @@ type Stage =
     | { kind: 'login-required' }
     | { kind: 'confirm' }
     | { kind: 'activate'; cardId: number }
-    | { kind: 'credentials'; username: string; email: string }
+    | { kind: 'credentials'; email: string }
     | { kind: 'done-accepted' }
     | { kind: 'done-declined' }
     | { kind: 'error'; message: string };
@@ -73,7 +73,7 @@ export const ConsentPage = () => {
         setBusy(true);
         try {
             const creds = await activatePlayerCard(cardId, childDob, childEmail.trim());
-            setStage({ kind: 'credentials', username: creds.username, email: creds.email });
+            setStage({ kind: 'credentials', email: creds.email });
         } catch (err) {
             setActivationError(extractApiErrorMessage(err, t('minors.consent.activationFailed')));
         } finally {
@@ -195,11 +195,7 @@ export const ConsentPage = () => {
 
                     {stage.kind === 'credentials' && (
                         <div className="flex flex-col gap-3">
-                            <p className="text-sm font-semibold text-[var(--color-text)]">Account invitation sent</p>
-                            <p className="text-[11px] font-semibold  text-[color:var(--state-danger)]">
-                                Email verification is required before sign-in.
-                            </p>
-                            <p role="status">Account invitation sent to {stage.email}. The recipient must verify this address and use the password setup link sent to their mailbox. Club consent remains separate.</p>
+                            <p role="status" className="text-sm text-[var(--color-text)]">{t('auth.ownAccount.sentTo', { email: stage.email })}</p>
                             <Link to="/login" className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] app-text-action">
                                 {t('minors.consent.goLogin')}
                             </Link>

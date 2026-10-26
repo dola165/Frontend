@@ -47,10 +47,12 @@ export function useWelcomeFacts() {
     }, [userId]);
 
     return {
-        place, locating, locate,
+        place, locating, locate, age,
         /** Unknown age counts as adult: the server still refuses what a minor may not do. */
         adult: age == null || age >= 18,
         minor: age != null && age < 18,
+        /** Under 16 the welcome offers only Play (for me) and Follow. */
+        under16: age != null && age < 16,
     };
 }
 

@@ -488,7 +488,7 @@ export function MainLayout() {
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/parent-approval" element={<ParentApprovalPage />} />
                         <Route path={WAITING_FOR_PARENT_PATH} element={<ProtectedRoute><WaitingForParentPage /></ProtectedRoute>} />
-                        <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=roles`} replace /></ProtectedRoute>} />
+                        <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=start`} replace /></ProtectedRoute>} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes></RouteViewport>
                 </main>

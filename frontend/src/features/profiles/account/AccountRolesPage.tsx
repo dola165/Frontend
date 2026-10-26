@@ -41,7 +41,7 @@ function AccountRoles() {
                 subtitle={firstUse ? copy("Your account is ready. Add what describes you now; you can change it any time.") : copy("What you do in football and professionally. Change it whenever your life in football changes.")}
                 actions={next ? <ButtonLink to={next}>{copy("Back to opportunity", "შეთავაზებაზე დაბრუნება")}</ButtonLink> : <>
                     {/* The welcome after sign-up, from its first step, over Home. */}
-                    <ButtonLink variant="ghost" to={`/home?${WELCOME_PARAM}=roles`}><Sparkles aria-hidden="true" />{copy("Guided set-up", "ნაბიჯ-ნაბიჯ დაყენება")}</ButtonLink>
+                    <ButtonLink variant="ghost" to={`/home?${WELCOME_PARAM}=start`}><Sparkles aria-hidden="true" />{copy("Guided set-up", "ნაბიჯ-ნაბიჯ დაყენება")}</ButtonLink>
                     <ButtonLink to={`/profile/${user.id}`}>{copy("View your profile")}</ButtonLink>
                 </>} />
             <div className="gk-grid gk-grid--split gk-account-roles__body">

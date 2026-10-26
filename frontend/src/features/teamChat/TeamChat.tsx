@@ -3,11 +3,15 @@ import { Upload as UploadIcon, X } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { chatDraftsFor, takeChatDrafts, useChatDrafts } from '../imageEditor/chatDraft';
+import { chatDraftsFor, handOffChatDraft, takeChatDrafts, useChatDrafts } from '../imageEditor/chatDraft';
 import { fetchHistory, type ChatAttachment, type ChatMessage, type ChatSummary, type Version } from './api';
 import { DecisionBar, DeletedBar } from './ChatBars';
 import { Composer, type Context } from './Composer';
+import { LabelDialog } from './LabelDialog';
 import { Lightbox, type Viewed } from './Lightbox';
+import { labelTarget } from './mediaWords';
+import { PictureEditor } from './PictureEditor';
+import { saveFile } from './saveFile';
 import { MessageList } from './MessageList';
 import type { RowActions } from './MessageRow';
 import { fullTime } from './teamChatWords';
@@ -63,20 +67,26 @@ function HistoryDialog({ chatId, message, onClose }: { chatId: number; message: 
  * anywhere on it. A chat waiting in Recently deleted says when it goes and takes nothing new. Deleting a message
  * asks first (it deletes the files for everyone); pictures and videos open full screen.
  */
-export function TeamChat({ model, active = true, onChat }: { model: TeamChatModel; active?: boolean; onChat?: (chat: ChatSummary) => void }) {
+export function TeamChat({ model, active = true, onChat, onMedia }: { model: TeamChatModel; active?: boolean; onChat?: (chat: ChatSummary) => void; onMedia?: () => void }) {
     const copy = useJourneyCopy();
     const uploads = useChatUploads(model.chatId, model.state?.limits ?? null);
     const [context, setContext] = useState<Context>(null);
     const [deleting, setDeleting] = useState<ChatMessage | null>(null);
     const [history, setHistory] = useState<ChatMessage | null>(null);
     const [viewing, setViewing] = useState<{ items: Viewed[]; start: number } | null>(null);
+    const [labelling, setLabelling] = useState<ChatAttachment | null>(null);
+    const [editing, setEditing] = useState<{ message: ChatMessage; attachment: ChatAttachment } | null>(null);
     const [dragging, setDragging] = useState(false);
     const depth = useRef(0);
     const me = model.state?.me ?? null;
     const messages = model.view.messages;
 
-    const { toggleReaction, jumpTo } = model;
+    const { toggleReaction, jumpTo, catchUp } = model;
     const actions = useMemo<RowActions>(() => ({
+        onLabel: (_, attachment) => setLabelling(attachment),
+        onEditPicture: (message, attachment) => setEditing({ message, attachment }),
+        onMedia,
+        onSave: attachment => void saveFile(attachment).catch(() => undefined),
         onReply: message => setContext({ kind: 'reply', quote: quoteOf(message) }),
         onEdit: message => setContext({ kind: 'edit', message }),
         onDelete: message => setDeleting(message),
@@ -86,10 +96,10 @@ export function TeamChat({ model, active = true, onChat }: { model: TeamChatMode
         onOpen: (message: ChatMessage, attachment: ChatAttachment) => {
             const caption = `${message.senderName ?? ''} · ${fullTime(copy, message.createdAt)}`;
             const items: Viewed[] = message.attachments.filter(file => file.kind !== 'FILE')
-                .map(file => ({ attachment: file, messageId: message.id, chatId: model.chatId, caption }));
+                .map(file => ({ attachment: file, messageId: message.id, chatId: model.chatId, caption, label: labelTarget({ source: 'CHAT', attachment: file }) }));
             setViewing({ items, start: Math.max(0, items.findIndex(item => item.attachment.id === attachment.id)) });
         },
-    }), [toggleReaction, jumpTo, copy, model.chatId]);
+    }), [toggleReaction, jumpTo, copy, model.chatId, onMedia]);
 
     // Edited copies saved from this chat's pictures arrive as ready files answering the (last) original's message, the
     // box focused (the reply does that) rather than the original it opened at, for the person to add words and send.
@@ -166,6 +176,11 @@ export function TeamChat({ model, active = true, onChat }: { model: TeamChatMode
                 </Button>
             </>} />}
         {history && <HistoryDialog chatId={model.chatId} message={history} onClose={() => setHistory(null)} />}
-        {viewing && <Lightbox items={trashed ? viewing.items.map(item => ({ ...item, editable: false })) : viewing.items} start={viewing.start} onClose={() => setViewing(null)} />}
+        {viewing && <Lightbox items={trashed ? viewing.items.map(item => ({ ...item, editable: false, label: undefined })) : viewing.items} start={viewing.start} onClose={() => setViewing(null)}
+            onLabel={item => { setViewing(null); setLabelling(item.attachment); }} />}
+        {labelling && <LabelDialog target={labelTarget({ source: 'CHAT', attachment: labelling })} onClose={() => setLabelling(null)}
+            onSaved={() => { setLabelling(null); void catchUp(); }} />}
+        {editing && <PictureEditor media={{ url: editing.attachment.url, name: editing.attachment.name, place: { messageId: editing.message.id } }} onClose={() => setEditing(null)}
+            onSaved={(saved, image) => { setEditing(null); handOffChatDraft(saved, image); }} />}
     </section>;
 }

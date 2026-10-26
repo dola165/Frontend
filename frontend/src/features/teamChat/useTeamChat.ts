@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { emitNotificationsChanged } from '../../utils/notifications';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { deleteMessage, editMessage, fetchChanges, fetchPage, fetchState, markRead, react, sendMessage,
-    type ChatAttachment, type ChatMessage, type ChatPage, type ChatQuote, type ChatState, type ChatSummary } from './api';
+    type ChatAttachment, type ChatMessage, type ChatPage, type ChatPerson, type ChatQuote, type ChatState, type ChatSummary } from './api';
 import { addNewer, addOlder, applyChanges, EMPTY_WINDOW, replaceWindow, upsert, type ChatWindow } from './chatWindow';
 import { connectLive, type Live } from './liveChat';
 import { createOutbox, type Pending } from './outbox';
@@ -149,6 +149,8 @@ export function useTeamChat(chatId: number, jump: number | null) {
 
     /** The chat's own facts (name, status, decision) as the list or the panel just changed them. */
     const putChat = useCallback((chat: ChatSummary) => setState(current => current ? { ...current, chat } : current), []);
+    /** Who is in the chat changed (someone added, removed, or it was opened to everyone). */
+    const putPeople = useCallback((chat: ChatSummary, members: ChatPerson[]) => setState(current => current ? { ...current, chat, members } : current), []);
 
     // ── The live line, and catching up whenever it may have missed something ──
     useEffect(() => {
@@ -293,7 +295,7 @@ export function useTeamChat(chatId: number, jump: number | null) {
     return {
         chatId, state, status, notice, dismissNotice: () => setNotice(''), view, pending, inFlight, connected, typingNames, highlight, setHighlight,
         firstUnread, paging, membersById, loadOlder, loadNewer, jumpTo, jumpToLatest, send, retry, discard, edit, remove, toggleReaction, read, typingNow,
-        putChat, follow,
+        putChat, putPeople, follow, catchUp: sync,
     };
 }
 export type TeamChatModel = ReturnType<typeof useTeamChat>;

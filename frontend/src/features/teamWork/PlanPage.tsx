@@ -8,6 +8,7 @@ import { useAgendaFilter } from './useAgendaFilter';
 import { nodesOf } from './agendaRows';
 import { PinButton } from './pins';
 import { usePins } from './usePins';
+import { TaskMenuProvider } from './TaskMenuProvider';
 import { PlanMenu, OrderStrip } from './PlanBits';
 import { nodeMatches, peopleLine } from './planPeople';
 import { PurposeChanged, PurposeLine } from './PurposeBits';
@@ -51,7 +52,7 @@ export function PlanPage({ view, items, views, planOf, lines, revision, task, ac
     const partOf = view.plan.partOf;
     const listed = [...scope].flatMap(id => { const node = nodes.get(id); return node && nodeMatches(node, who, view.team) && (!statuses.length || statuses.includes(node.item.status)) ? [node.item] : []; });
 
-    return <>
+    return <TaskMenuProvider pins={pins}>
         <div className="tw-plan-head">
             <div className="tw-plan-head__crumbs">
                 <button type="button" className="tw-back" onClick={onBack}><ArrowLeft aria-hidden="true" />{copy('Back to overview', 'მიმოხილვაზე დაბრუნება')}</button>
@@ -91,5 +92,5 @@ export function PlanPage({ view, items, views, planOf, lines, revision, task, ac
                         pinned={id => pins.pinned({ itemId: id })} onOpen={agenda.open} onClear={clear} />}
             </>}
         {opened && <TaskDialog node={opened} plan={planOf.get(opened.item.id)} actions={placed} pins={pins} onOpenPlan={onOpenPlan} />}
-    </>;
+    </TaskMenuProvider>;
 }

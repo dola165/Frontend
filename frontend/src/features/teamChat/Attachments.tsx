@@ -1,10 +1,12 @@
 import { useRef, useState, type CSSProperties } from 'react';
+import { useContextMenu, type ContextMenuItems } from '../../components/useContextMenu';
 import { Download, FileText, Loader2, Play } from 'lucide-react';
 import { useMediaSource } from '../../hooks/useMediaSource';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { EditedImageNote } from '../imageEditor/EditedImageNote';
 import { playLink, type ChatAttachment } from './api';
+import { shownName } from './mediaWords';
 import { useNearView } from './nearView';
 import { saveFile } from './saveFile';
 import { fileSize } from './teamChatWords';
@@ -49,30 +51,50 @@ export function FileRow({ attachment }: { attachment: ChatAttachment }) {
     const extension = attachment.name.includes('.') ? attachment.name.slice(attachment.name.lastIndexOf('.') + 1).toUpperCase() : '';
     return <button type="button" className="tc-file" onClick={() => void save()} disabled={busy} title={copy(`Save ${attachment.name}`, `${attachment.name}-ის შენახვა`)}>
         <FileText aria-hidden="true" />
-        <span className="tc-file__name">{attachment.name}</span>
+        <span className="tc-file__name">{shownName(attachment)}</span>
         <span className="tc-file__meta">{[extension, fileSize(attachment.sizeBytes)].filter(Boolean).join(' · ')}</span>
         {busy ? <Loader2 className="tc-spin" aria-hidden="true" /> : <Download aria-hidden="true" />}
         {failed && <span className="tc-file__error" role="alert">{copy('Could not save; try again.', 'ვერ შეინახა; სცადეთ ხელახლა.')}</span>}
     </button>;
 }
 
-/** A message's pictures and videos in a small grid (opening full screen), then its files. */
-export function Attachments({ attachments, onOpen }: { attachments: ChatAttachment[]; onOpen: (attachment: ChatAttachment) => void }) {
+/** One picture or video in a message: opens full screen; right-click (or hold) for what else it can do. */
+function GalleryTile({ attachment, onOpen, menu }: { attachment: ChatAttachment; onOpen: (attachment: ChatAttachment) => void; menu?: (attachment: ChatAttachment) => ContextMenuItems }) {
     const copy = useJourneyCopy();
+    const name = shownName(attachment);
+    const context = useContextMenu(() => menu?.(attachment) ?? [], { label: name, disabled: !menu });
+    return <li>
+        <button type="button" className="tc-tile gk-cm-target" onClick={() => onOpen(attachment)} {...context.bind}
+            aria-label={attachment.kind === 'VIDEO' ? copy(`Play ${name}`, `${name}-ის ჩართვა`) : copy(`Open ${name}`, `${name}-ის გახსნა`)}>
+            {attachment.kind === 'VIDEO'
+                ? <><ChatVideo attachment={attachment} className="tc-tile__media" /><span className="tc-tile__play"><Play aria-hidden="true" /></span></>
+                : <ChatImage attachment={attachment} className="tc-tile__media" />}
+        </button>
+        {attachment.title && <span className="tc-gallery__name" title={attachment.name}>{attachment.title}</span>}
+        {attachment.kind === 'IMAGE' && <EditedImageNote url={attachment.url} className="tc-gallery__edited" />}
+        {context.menu}
+    </li>;
+}
+
+/** One file in a message: saves on a click; right-click (or hold) for what else it can do. */
+function FileItem({ attachment, menu }: { attachment: ChatAttachment; menu?: (attachment: ChatAttachment) => ContextMenuItems }) {
+    const context = useContextMenu(() => menu?.(attachment) ?? [], { label: shownName(attachment), disabled: !menu });
+    return <div className="tc-fileitem gk-cm-target" {...context.bind}><FileRow attachment={attachment} />{context.menu}</div>;
+}
+
+/**
+ * A message's pictures and videos in a small grid (opening full screen), then its files. `menu` gives each its own
+ * right-click menu (open, save, edit, show in media, name and tags).
+ */
+export function Attachments({ attachments, onOpen, menu }: {
+    attachments: ChatAttachment[]; onOpen: (attachment: ChatAttachment) => void; menu?: (attachment: ChatAttachment) => ContextMenuItems;
+}) {
     const visual = attachments.filter(attachment => attachment.kind !== 'FILE');
     const files = attachments.filter(attachment => attachment.kind === 'FILE');
     return <div className="tc-attachments">
         {visual.length > 0 && <ul className="tc-gallery" data-count={Math.min(visual.length, 4)}>
-            {visual.map(attachment => <li key={attachment.id}>
-                <button type="button" className="tc-tile" onClick={() => onOpen(attachment)}
-                    aria-label={attachment.kind === 'VIDEO' ? copy(`Play ${attachment.name}`, `${attachment.name}-ის ჩართვა`) : copy(`Open ${attachment.name}`, `${attachment.name}-ის გახსნა`)}>
-                    {attachment.kind === 'VIDEO'
-                        ? <><ChatVideo attachment={attachment} className="tc-tile__media" /><span className="tc-tile__play"><Play aria-hidden="true" /></span></>
-                        : <ChatImage attachment={attachment} className="tc-tile__media" />}
-                </button>
-                {attachment.kind === 'IMAGE' && <EditedImageNote url={attachment.url} className="tc-gallery__edited" />}
-            </li>)}
+            {visual.map(attachment => <GalleryTile key={attachment.id} attachment={attachment} onOpen={onOpen} menu={menu} />)}
         </ul>}
-        {files.map(attachment => <FileRow key={attachment.id} attachment={attachment} />)}
+        {files.map(attachment => <FileItem key={attachment.id} attachment={attachment} menu={menu} />)}
     </div>;
 }

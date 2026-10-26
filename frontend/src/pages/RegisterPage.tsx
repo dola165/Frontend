@@ -278,7 +278,7 @@ export const RegisterPage = () => {
                             {fieldError('auth-email', 'email')}
                             {signIn && <div id="auth-email-known" role="status" className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--color-text)]">
                                 <span>{signIn === 'known' ? t('auth.register.knownEmail') : t('auth.register.createdSignIn')}</span>
-                                <button type="button" onClick={signInInstead} className="min-h-9 px-3 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.register.goLogin')}</button>
+                                <button type="button" onClick={signInInstead} className="min-h-11 px-4 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.register.goLogin')}</button>
                             </div>}
                         </div>
                         <div className="space-y-2">
@@ -314,7 +314,7 @@ export const RegisterPage = () => {
                                 <select id="auth-town" value={town} onChange={(event) => setTown(event.target.value)} className={authInputClass} aria-describedby={locating === 'failed' ? 'auth-town-note' : undefined}>
                                     {TOWNS.map(option => <option key={option.name} value={option.name}>{option.name}</option>)}
                                 </select>
-                                <button type="button" onClick={() => void findMyTown()} disabled={locating === 'locating'} className="inline-flex min-h-7 items-center gap-1.5 text-[11px] font-semibold text-[var(--color-accent)] disabled:opacity-60">
+                                <button type="button" onClick={() => void findMyTown()} disabled={locating === 'locating'} className="inline-flex min-h-11 items-center gap-1.5 text-[11px] font-semibold text-[var(--color-accent)] disabled:opacity-60">
                                     {locating === 'locating' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <LocateFixed className="h-3.5 w-3.5" aria-hidden="true" />}
                                     {locating === 'locating' ? t('auth.register.locating') : t('auth.register.useLocation')}
                                 </button>

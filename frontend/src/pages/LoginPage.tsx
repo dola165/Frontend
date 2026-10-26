@@ -211,7 +211,7 @@ export const LoginPage = () => {
                             )}
                             {unknownEmail && <div role="status" className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--color-text)]">
                                 <span>{t('auth.login.noAccount')}</span>
-                                <button type="button" onClick={createInstead} className="min-h-9 px-3 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.login.goRegister')}</button>
+                                <button type="button" onClick={createInstead} className="min-h-11 px-4 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.login.goRegister')}</button>
                             </div>}
                         </div>
                         <div className="space-y-2">

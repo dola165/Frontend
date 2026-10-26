@@ -96,7 +96,7 @@ export function WaitingForParentPage() {
         </form>}
         {error && <p role="alert" className="mt-3 text-sm font-semibold text-[color:var(--state-danger)]">{error}</p>}
         <div className="mt-6 flex justify-end border-t border-[color:var(--color-border)]/10 pt-4 text-xs font-semibold">
-            <button type="button" className="text-[var(--color-secondary)] hover:text-[var(--color-text)]" onClick={() => void logout().then(() => navigate('/login', { replace: true }))}>{t('auth.parentWait.signOut')}</button>
+            <button type="button" className="min-h-11 px-2 text-[var(--color-secondary)] hover:text-[var(--color-text)]" onClick={() => void logout().then(() => navigate('/login', { replace: true }))}>{t('auth.parentWait.signOut')}</button>
         </div>
     </AuthCenterCard>;
 }

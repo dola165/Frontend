@@ -1,4 +1,4 @@
-// Pages in the sandbox: every page's identity, boxes, layout and state (draft, live, unclaimed, claim pending).
+// Pages in the sandbox: every page's identity, boxes, layout and state (draft or live).
 // What a club page holds is written through to the club records the rest of the app already reads, so a club
 // created here shows in World, search, My Club, My squads, the feed and the workspace without special cases.
 // The page model (boxes per type, setup, Go live, crests, name matching) is the app's own: imported from src.
@@ -8,8 +8,8 @@ import * as W from './world.mjs';
 import * as C from './world-club.mjs';
 import * as S from './world-social.mjs';
 import * as V from './viewer.mjs';
-import { pitchById, unclaimedSeeds } from './pages-seed.mjs';
-import { defaultLayout, normalizeLayout, setupState, goLiveCheck, isBoxKey, isPageKind, minimumAge, INVOLVED_PARTS, ORGANIZATION_TYPE, CLUB_CATEGORIES, BUSINESS_KINDS, DEFAULT_CLUB_CATEGORY } from '../../src/features/pages/model/kinds.ts';
+import { pitchById, listedSeeds } from './pages-seed.mjs';
+import { defaultLayout, normalizeLayout, setupState, goLiveCheck, isBoxKey, isPageKind, PAGE_MINIMUM_AGE, INVOLVED_PARTS, ORGANIZATION_TYPE, CLUB_CATEGORIES, BUSINESS_KINDS, DEFAULT_CLUB_CATEGORY } from '../../src/features/pages/model/kinds.ts';
 import { normalizeCrest, defaultCrest, crestSvg } from '../../src/features/pages/model/crest.ts';
 import { findSimilar, nameKey } from '../../src/features/pages/model/nameMatch.ts';
 import { COVER_PHOTOS, isCoverPhoto, coverForColour } from '../../src/features/pages/model/photos.ts';
@@ -49,11 +49,11 @@ function registerClub(club) {
 }
 const members = page => !page ? 0 : (page.ownerId ? 1 : 0) + [...page.staff.keys()].filter(id => id !== page.ownerId).length + squadsOf(page).reduce((n, s) => n + s.playerIds.length, 0);
 
-function newPage({ kind, name, town, ownerId, status, claim = null, clubId = null, organizationId = nextOrgId++, category = DEFAULT_CLUB_CATEGORY, crest, language = 'en' }) {
+function newPage({ kind, name, town, ownerId, status, clubId = null, organizationId = nextOrgId++, category = DEFAULT_CLUB_CATEGORY, crest, language = 'en' }) {
   const design = crest ? normalizeCrest(crest, name) : defaultCrest(name);
   const page = {
     ref: clubId ? { type: 'club', id: clubId } : { type: 'organization', id: organizationId }, organizationId, clubId, kind, organizationType: ORGANIZATION_TYPE[kind],
-    ownerId, staff: new Map(ownerId ? [[ownerId, 'OWNER']] : []), status, claim, verification: 'NONE', verificationFor: [],
+    ownerId, staff: new Map(ownerId ? [[ownerId, 'OWNER']] : []), status, verification: 'NONE', verificationFor: [],
     identity: { version: 1, name, tagline: '', about: '', aboutAuto: true, town: townOf(town), crest: { kind: 'generated', design, kept: Boolean(crest) }, language,
       cover: { kind: 'photo', photo: coverForColour(design.primary) }, contact: { phone: '', email: '' }, social: { website: '', instagram: '', facebook: '' },
       businessKind: kind === 'BUSINESS' ? 'COMPANY' : null, clubCategory: kind === 'CLUB' ? category : null },
@@ -76,7 +76,7 @@ export function clubPage(clubId) {
   const extras = [...(presentation?.sponsors.length ? ['sponsors'] : []), ...(C.honours[id]?.length ? ['honours'] : []), 'involved'];
   const page = {
     ref: { type: 'club', id }, organizationId: id === C.CLUB_ID ? 901 : 900 + id, clubId: id, kind: 'CLUB', organizationType: 'CLUB',
-    ownerId: id === C.CLUB_ID ? W.ME_ID : null, staff: new Map(id === C.CLUB_ID ? [[W.ME_ID, 'OWNER']] : []), status: 'LIVE', claim: null,
+    ownerId: id === C.CLUB_ID ? W.ME_ID : null, staff: new Map(id === C.CLUB_ID ? [[W.ME_ID, 'OWNER']] : []), status: 'LIVE',
     verification: club.verified ? 'VERIFIED' : 'NONE', verificationFor: [],
     identity: { version: 1, name: club.name, tagline: '', about: C.clubEdits.get(id)?.description ?? club.description ?? '', aboutAuto: false, town: townOf(club.city),
       crest: { kind: 'image', url: C.clubEdits.get(id)?.logoUrl ?? club.logoUrl, kept: true }, cover: club.bannerUrl ? { kind: 'image', url: C.clubEdits.get(id)?.bannerUrl ?? club.bannerUrl } : null,
@@ -121,7 +121,7 @@ export function clubOf(viewer) {
   const page = ownedPages(viewer).find(owned => owned.clubId);
   return page ? { ref: page.ref, name: page.identity.name } : null;
 }
-/** The answer when someone already in a club tries to start or claim another: their club, to open instead. */
+/** The answer when someone already in a club tries to start another: their club, to open instead. */
 export const oneClubRefusal = club => ({ status: 409, body: { status: 409, code: 'ONE_CLUB', message: `You are already part of ${club.name}. One club per person: open it, or start a fan club.`, club } });
 
 export function createPage(viewer, body) {
@@ -130,7 +130,7 @@ export function createPage(viewer, body) {
   if (name.length < 2) return { status: 400, body: { status: 400, message: 'Enter a name between 2 and 120 characters.' } };
   if (kind === 'VENUE') return { status: 400, body: { status: 400, message: 'Venues open later.' } };
   const age = viewerAge(viewer);
-  if (age == null || age < minimumAge(kind)) return { status: 403, body: { status: 403, code: 'AGE', minimumAge: minimumAge(kind), message: `Creating this page needs an account aged ${minimumAge(kind)} or over.` } };
+  if (age == null || age < PAGE_MINIMUM_AGE) return { status: 403, body: { status: 403, code: 'AGE', minimumAge: PAGE_MINIMUM_AGE, message: `Creating this page needs an account aged ${PAGE_MINIMUM_AGE} or over.` } };
   const current = kind === 'CLUB' ? clubOf(viewer) : null;
   if (current) return oneClubRefusal(current);
   const exact = similarPages(name, null, viewer).find(match => match.exact);
@@ -156,10 +156,10 @@ export const result = page => page.clubId
 function knownPages(viewer) {
   const clubs = W.clubs.filter(club => !club.draft || pages.get(`club:${club.id}`)?.ownerId === viewer).map(club => {
     const page = pages.get(`club:${club.id}`);
-    return { ref: { type: 'club', id: club.id }, name: club.name, town: club.city, kind: 'CLUB', crestUrl: crestUrlOf(page) ?? club.logoUrl, status: page?.status ?? 'LIVE', claim: page?.claim?.state ?? null, mine: Boolean(page && roleOf(page, viewer)) };
+    return { ref: { type: 'club', id: club.id }, name: club.name, town: club.city, kind: 'CLUB', crestUrl: crestUrlOf(page) ?? club.logoUrl, status: page?.status ?? 'LIVE', mine: Boolean(page && roleOf(page, viewer)) };
   });
   const others = [...pages.values()].filter(page => !page.clubId && (page.status === 'LIVE' || roleOf(page, viewer))).map(page => ({
-    ref: page.ref, name: page.identity.name, town: page.identity.town.name, kind: page.kind, crestUrl: crestUrlOf(page), status: page.status, claim: page.claim?.state ?? null, mine: Boolean(roleOf(page, viewer)),
+    ref: page.ref, name: page.identity.name, town: page.identity.town.name, kind: page.kind, crestUrl: crestUrlOf(page), status: page.status, mine: Boolean(roleOf(page, viewer)),
   }));
   return [...clubs, ...others];
 }
@@ -167,14 +167,14 @@ export function similarPages(name, town, viewer) {
   return findSimilar(name, knownPages(viewer), { town, limit: 4 }).map(({ candidate, exact }) => ({ ...candidate, exact }));
 }
 
-// ---------------------------------------------------------------- unclaimed pages seeded from public sources
+// ---------------------------------------------------------------- known clubs listed from public sources (nobody runs them yet)
 
-function seedUnclaimed() {
-  for (const seed of unclaimedSeeds) {
+function seedListings() {
+  for (const seed of listedSeeds) {
     const t = townOf(seed.town), ground = pitchById(seed.ground), design = normalizeCrest(seed.crest, seed.name);
     registerClub({ id: seed.id, name: seed.name, short: seed.short, type: TYPE_OF_CATEGORY[seed.category], city: t.name, venueId: ground?.venueId ?? null, founded: seed.founded, color: null,
       verified: false, joinPolicy: 'APPLICATION', description: '', lat: ground?.latitude ?? t.latitude, lng: ground?.longitude ?? t.longitude, address: ground?.address ?? `${t.name}, Georgia`, logoUrl: null, bannerUrl: null, crest: design });
-    const page = newPage({ kind: 'CLUB', name: seed.name, town: seed.town, ownerId: null, status: 'LIVE', claim: { state: 'UNCLAIMED' }, clubId: seed.id, organizationId: 800 + seed.id - 300, category: seed.category, crest: design });
+    const page = newPage({ kind: 'CLUB', name: seed.name, town: seed.town, ownerId: null, status: 'LIVE', clubId: seed.id, organizationId: 800 + seed.id - 300, category: seed.category, crest: design });
     if (ground) page.boxes.grounds.items.push(groundFromPitch(ground));
     for (const [age, gender] of seed.squads) W.squads.push({ id: W.newId(), clubId: seed.id, name: squadName(age, gender), ageGroup: age, gender, headCoachId: null, playerIds: [], format: formatFor(age), trainingDays: [], trainingTime: null, groundId: null });
     syncClub(page);
@@ -283,9 +283,8 @@ export function viewOf(page, viewer) {
   const id = page.identity, account = V.account(viewer);
   return {
     ref: page.ref, organizationId: page.organizationId, clubId: page.clubId, kind: page.kind, status: page.status,
-    claim: page.claim ? { state: page.claim.state, role: page.claim.role ?? null, mine: page.claim.by === viewer } : null,
     verification: page.verification,
-    viewer: { role, canEdit: editor, editable: editor ? 'ALL' : role === 'COACH' ? ['squads', 'events', 'posts'] : [], canClaim: page.claim?.state === 'UNCLAIMED' && !role && viewer != null },
+    viewer: { role, canEdit: editor, editable: editor ? 'ALL' : role === 'COACH' ? ['squads', 'events', 'posts'] : [] },
     identity: { ...id, crest: { ...id.crest, url: crestUrlOf(page) }, cover: id.cover ? { ...id.cover, url: coverUrlOf(page) } : null,
       contact: editor || page.status === 'LIVE' ? id.contact : { phone: '', email: '' } },
     layout: { version: page.layout.version, columns: page.layout.columns, hidden: page.layout.hidden },
@@ -372,7 +371,7 @@ export const organizationAuthor = organizationId => { const page = organizationP
 export const linkedPageClubs = viewer => ownedPages(viewer).filter(page => page.clubId).map(page => page.clubId);
 
 // Seeded last, once every helper above exists.
-seedUnclaimed();
+seedListings();
 
 /** Cancelling a creation: a draft and everything it made (its club, its teams) are gone, as if never started. */
 export function deleteDraft(page) {

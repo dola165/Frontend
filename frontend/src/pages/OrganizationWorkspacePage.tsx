@@ -6,6 +6,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
 import { isCurrentAuthSession } from '../utils/authStorage';
 import { fetchPage, isPageView, type PageView } from '../features/pages/api';
 import { OrganizationProfileEditor } from './OrganizationProfilePage';
@@ -78,7 +79,7 @@ function WorkspaceContent({ id }: { id: string }) {
   const [workspace, setWorkspace] = useState<Workspace | null>(null), [error, setError] = useState(''), [attempt, setAttempt] = useState(0);
   const [type, setType] = useState(''), [busy, setBusy] = useState(false);
   const active = useRef(true), submitting = useRef(false);
-  useEffect(() => { active.current = true; const controller = new AbortController(); const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId); setError(''); void apiClient.get<Workspace>(`/organizations/${id}/workspace`, { signal: controller.signal }).then(r => { if (current()) { setWorkspace(r.data); setType(r.data.organizationType); } }).catch(e => { if (current()) { setWorkspace(null); setError(extractApiErrorMessage(e, '') || 'loadError'); } }); return () => { controller.abort(); active.current = false; }; }, [id, attempt, sessionId]);
+  useEffect(() => { active.current = true; const controller = new AbortController(); const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId); setError(''); void apiClient.get<Workspace>(`/organizations/${id}/workspace`, { signal: controller.signal }).then(r => { if (current()) { setWorkspace(r.data); setType(r.data.organizationType); } }).catch(e => { if (current()) { setWorkspace(null); promptEmailConfirmation(e); setError(extractApiErrorMessage(e, '') || 'loadError'); } }); return () => { controller.abort(); active.current = false; }; }, [id, attempt, sessionId]);
   async function saveType(event: FormEvent) {
     event.preventDefault(); if (!workspace || submitting.current || !isCurrentAuthSession(sessionId)) return;
     submitting.current = true; setBusy(true); setError('');

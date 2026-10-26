@@ -3,11 +3,13 @@ import type { TabItem } from '../../../design/Tabs';
 
 export type PersonTab = 'overview' | 'posts' | 'career' | 'media' | 'schedule';
 
-/** Tabs a viewer sees: career for football professionals, the schedule only on your own profile, and only the overview of a private profile. */
+/** Tabs a viewer sees: career for football professionals, the schedule only on your own profile, and only the first tab (About) of a private profile. */
 export function personTabs({ own, hidden, career }: { own: boolean; hidden: boolean; career: boolean }, copy: ReturnType<typeof useJourneyCopy>): TabItem<PersonTab>[] {
-    if (hidden) return [{ id: 'overview', label: copy('Overview', 'მიმოხილვა') }];
+    // The first tab is "About me" on your own profile and "About" on someone else's (the owner: no "Overview"); its id stays.
+    const about = own ? copy('About me', 'ჩემ შესახებ') : copy('About', 'შესახებ');
+    if (hidden) return [{ id: 'overview', label: about }];
     return [
-        { id: 'overview', label: copy('Overview', 'მიმოხილვა') },
+        { id: 'overview', label: about },
         { id: 'posts', label: copy('Posts', 'პოსტები') },
         ...(career ? [{ id: 'career' as const, label: copy('Career', 'კარიერა') }] : []),
         { id: 'media', label: copy('Photos & videos', 'ფოტოები და ვიდეოები') },

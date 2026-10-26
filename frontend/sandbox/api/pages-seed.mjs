@@ -1,5 +1,5 @@
 // Synthetic data for creating pages: pitches across Georgia (what OpenStreetMap's leisure=pitch + sport=soccer would
-// return through Overpass) and a few known clubs nobody has claimed yet, most of them outside Tbilisi. Invented.
+// return through Overpass) and a few known clubs nobody runs yet, most of them outside Tbilisi. Invented.
 import * as W from './world.mjs';
 
 /** Pitches by town. Surfaces: GRASS, ARTIFICIAL, HYBRID, INDOOR. Size is the biggest game the pitch takes. */
@@ -55,10 +55,10 @@ export const pitches = [
 export const pitchById = id => pitches.find(p => p.id === String(id)) ?? null;
 
 /**
- * Known clubs, pre-created as unclaimed pages from public sources: live, findable, "Is this your club? Claim it".
- * What is known is filled in, so whoever claims one starts from more than a name.
+ * Known clubs, pre-created as listings from public sources: live and findable; anyone can still start their own page.
+ * What is known is filled in, so the listing says more than a name.
  */
-export const unclaimedSeeds = [
+export const listedSeeds = [
   { id: 301, name: 'Torpedo Kutaisi Juniors', short: 'TK', town: 'Kutaisi', category: 'COMMUNITY_CLUB', crest: { shape: 'shield', primary: 'black', secondary: 'white', initials: 'TK' }, ground: 'p12', squads: [['U10', 'MALE'], ['U12', 'MALE']], founded: 2009 },
   { id: 302, name: 'Dila Gori Youth', short: 'DG', town: 'Gori', category: 'PRIVATE_ACADEMY', crest: { shape: 'round', primary: 'blue', secondary: 'white', initials: 'DG' }, ground: 'p17', squads: [['U12', 'MALE'], ['U14', 'MALE']], founded: 2004 },
   { id: 303, name: 'Margveti Zestaponi Kids', short: 'MZ', town: 'Zestaponi', category: 'COMMUNITY_CLUB', crest: { shape: 'shield', primary: 'yellow', secondary: 'black', initials: 'MZ' }, ground: 'p27', squads: [['U8', 'MIXED']], founded: 2015 },

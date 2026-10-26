@@ -1,0 +1,21 @@
+/* The page a club invite link opens. Scoped under `.gk .ci-*`; tokens only. */
+.gk.ci-page { min-height: 100vh; display: grid; place-items: start center; padding: var(--gk-8) var(--gk-4); background: var(--gk-bg); color: var(--gk-text); }
+.gk .ci-card { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-6); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .ci-head { display: flex; align-items: center; gap: var(--gk-4); }
+.gk .ci-head > svg { width: 40px; height: 40px; color: var(--gk-accent); }
+.gk .ci-club { margin: 0; font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
+.gk .ci-title { margin: 0; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 700; }
+.gk .ci-jobs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .ci-job { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-3) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
+.gk .ci-form { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .ci-email { margin: 0; font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
+.gk .ci-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .ci-decline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .ci-failures { margin: 0; padding-left: var(--gk-4); }
+@media (max-width: 480px) {
+  .gk.ci-page { padding: var(--gk-4); }
+  .gk .ci-card { padding: var(--gk-4); }
+}
+.gk .ci-email-wait { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-3); }
+.gk .ci-email-wait > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .ci-email-wait small { color: var(--gk-text-2); }

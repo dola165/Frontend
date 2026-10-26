@@ -10,22 +10,23 @@ vi.mock('../../api', () => ({ fetchSimilar: api.fetchSimilar, createPage: api.cr
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, status: 'authenticated', refreshNavigationCapabilities: auth.refresh }) }));
 vi.mock('../../../start/startApi', () => ({ fetchSavedTown: vi.fn().mockResolvedValue({ name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }) }));
 
+import { CreatePageHost } from '../CreatePageHost';
 import { StartSheet } from '../StartSheet';
 
-const dinamo: SimilarPage = { ref: { type: 'club', id: 2 }, name: 'FC Dinamo Tbilisi', town: 'Tbilisi', kind: 'CLUB', crestUrl: null, status: 'LIVE', claim: null, mine: false, exact: false };
-const unclaimed: SimilarPage = { ref: { type: 'club', id: 307 }, name: 'Rustavi Metallurgi Kids', town: 'Rustavi', kind: 'CLUB', crestUrl: null, status: 'LIVE', claim: 'UNCLAIMED', mine: false, exact: false };
+const dinamo: SimilarPage = { ref: { type: 'club', id: 2 }, name: 'FC Dinamo Tbilisi', town: 'Tbilisi', kind: 'CLUB', crestUrl: null, status: 'LIVE', mine: false, exact: false };
+const listing: SimilarPage = { ref: { type: 'club', id: 307 }, name: 'Rustavi Metallurgi Kids', town: 'Rustavi', kind: 'CLUB', crestUrl: null, status: 'LIVE', mine: false, exact: false };
 
 function mount(props: Partial<Parameters<typeof StartSheet>[0]> = {}) {
-  const onClose = vi.fn(), onClaim = vi.fn();
+  const onClose = vi.fn();
   render(
     <MemoryRouter initialEntries={['/home?create=any&from=home']}>
       <Routes>
-        <Route path="/home" element={<StartSheet kind={null} from="home" draw={false} onClose={onClose} onClaim={onClaim} {...props} />} />
+        <Route path="/home" element={<StartSheet kind={null} from="home" draw={false} onClose={onClose} {...props} />} />
         <Route path="/clubs/:id" element={<p>The club page</p>} />
       </Routes>
     </MemoryRouter>,
   );
-  return { onClose, onClaim };
+  return { onClose };
 }
 
 describe('the start sheet', () => {
@@ -48,27 +49,38 @@ describe('the start sheet', () => {
     expect(screen.getByLabelText('Club name')).toBeInTheDocument();
   });
 
-  it('shows a known club that looks like the name, with Claim it for an unclaimed one', async () => {
+  it('shows known pages that look like the name as listings to open', async () => {
     const user = userEvent.setup();
-    api.fetchSimilar.mockResolvedValue([unclaimed, dinamo]);
-    const { onClaim } = mount({ kind: 'CLUB' });
+    api.fetchSimilar.mockResolvedValue([listing, dinamo]);
+    mount({ kind: 'CLUB' });
     await user.type(screen.getByLabelText('Club name'), 'Metalurgi');
-    expect(await screen.findByText('Is this your club?')).toBeInTheDocument();
+    expect(await screen.findByText('Looking for one of these?')).toBeInTheDocument();
     expect(api.fetchSimilar).toHaveBeenCalledWith('Metalurgi', expect.any(String), expect.anything());
-    await user.click(screen.getByRole('button', { name: 'Claim it' }));
-    expect(onClaim).toHaveBeenCalledWith({ type: 'club', id: 307 });
-    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/clubs/2');
+    expect(screen.queryByRole('button', { name: 'Claim it' })).toBeNull();
+    expect(screen.getAllByRole('link', { name: 'Open' }).map(link => link.getAttribute('href'))).toEqual(['/clubs/307', '/clubs/2']);
+    expect(screen.getByRole('button', { name: 'Create club' })).toBeEnabled();
   });
 
-  it('never creates a copy of a known name: the button becomes Open it', async () => {
+  it('says an exact name is already on GrassKickZ and still lets the person start their own', async () => {
     const user = userEvent.setup();
     api.fetchSimilar.mockResolvedValue([{ ...dinamo, exact: true }]);
+    api.createPage.mockResolvedValue({ id: 7002, clubId: 401, profilePath: '/clubs/401', workspacePath: '/clubs/401/workspace' });
     mount({ kind: 'CLUB' });
     await user.type(screen.getByLabelText('Club name'), 'Dinamo Tbilisi');
     expect(await screen.findByText('This is already on GrassKickZ')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Create club' })).toBeNull();
-    expect(screen.getAllByRole('link', { name: 'Open' }).length).toBeGreaterThan(0);
-    expect(api.createPage).not.toHaveBeenCalled();
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/clubs/2');
+    await user.click(screen.getByRole('button', { name: 'Create club' }));
+    await waitFor(() => expect(api.createPage).toHaveBeenCalledTimes(1));
+  });
+
+  it('staff means one club: starting a club while staff elsewhere asks to leave that club first', async () => {
+    const user = userEvent.setup();
+    api.createPage.mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'STAFF_OF_ANOTHER_CLUB', message: 'You are staff at Saburtalo.', otherClubId: 3, otherClubName: 'Saburtalo' } } });
+    mount({ kind: 'CLUB' });
+    await user.type(screen.getByLabelText('Club name'), 'Rustavi Juniors');
+    await user.click(screen.getByRole('button', { name: 'Create club' }));
+    expect(await screen.findByText('You’re staff at Saburtalo. Leave Saburtalo first.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Leave Saburtalo' })).toBeInTheDocument();
   });
 
   it('creates the club with the name and town and lands on the page', async () => {
@@ -104,17 +116,17 @@ describe('the start sheet', () => {
     expect(api.createPage.mock.calls[0][0].requestId).toBe(api.createPage.mock.calls[1][0].requestId);
   });
 
-  it('locks a club and a business for someone under 18, and lets them start a fan club', async () => {
-    const user = userEvent.setup();
-    auth.user = { id: 9501, dob: `${new Date().getFullYear() - 15}-05-02` };
-    mount({ from: 'my-club' });
-    const club = screen.getByRole('radio', { name: /^Club/ });
-    expect(club).toHaveAttribute('aria-disabled', 'true');
-    expect(club).toHaveTextContent('From 18');
-    await user.click(club);
-    expect(screen.getByRole('status')).toHaveTextContent('From 18');
+  it('asks an account without a birth date for it before the sheet', async () => {
+    auth.user = { id: 9503, dob: '' };
+    render(<MemoryRouter initialEntries={['/home?create=club&from=link']}><Routes><Route path="/home" element={<CreatePageHost />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole('dialog', { name: 'Your date of birth' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Club name')).toBeNull();
-    await user.click(screen.getByRole('radio', { name: /^Fan club/ }));
-    expect(screen.getByLabelText('Fan club name')).toBeInTheDocument();
+  });
+
+  it('tells someone under 18 that pages are for adults, whatever kind the link asks for', async () => {
+    auth.user = { id: 9501, dob: `${new Date().getFullYear() - 17}-01-01` };
+    render(<MemoryRouter initialEntries={['/home?create=fan-club&from=link']}><Routes><Route path="/home" element={<CreatePageHost />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole('dialog', { name: 'Pages are for adults' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Fan club name')).toBeNull();
   });
 });

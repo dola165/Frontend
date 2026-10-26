@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { canManageClubOperations } from '../../clubs/domain';
 import { createHref } from '../../pages/create/entry';
+import { useMayCreatePages } from '../../pages/create/useMayCreatePages';
 import { useWorldSession } from '../worldSession';
 import { drawPeek } from '../../tournaments/create/drawDraft';
 import { arrangePeek } from './arrangeSeed';
@@ -23,13 +24,14 @@ export function useCreateActions(): CreateAction[] | undefined {
     const { membership } = useWorldSession();
     const squads = useArrangeableSquads();
     const location = useLocation();
+    const adult = useMayCreatePages();
     if (status !== 'authenticated') return status === 'bootstrapping' ? undefined : [];
     if (squads === undefined || membership === undefined) return undefined;
     const canArrange = squads.length > 0;
     const clubId = membership?.clubId;
     const onClubs = location.pathname === '/world/clubs';
     const offered: (CreateAction | false | null | undefined)[] = [
-        { id: 'create-page', label: 'Create a page', icon: Shield, group: 'Page', to: createHref(location, onClubs ? 'CLUB' : null, onClubs ? 'world-clubs' : 'world') },
+        adult && { id: 'create-page', label: 'Create a page', icon: Shield, group: 'Page', to: createHref(location, onClubs ? 'CLUB' : null, onClubs ? 'world-clubs' : 'world') },
         canArrange && { id: 'arrange', label: 'Arrange a match', icon: CalendarPlus, group: 'Matches', peek: arrangePeek({ mode: 'direct' }) },
         canArrange && { id: 'open-match', label: 'Post an open match', icon: Megaphone, group: 'Matches', peek: arrangePeek({ mode: 'open' }) },
         clubId != null && canManageClubOperations(membership?.myRole) && { id: 'post-job', label: 'Post a job', icon: Briefcase, group: 'Club', to: `/clubs/${clubId}/workspace?tab=jobs` },

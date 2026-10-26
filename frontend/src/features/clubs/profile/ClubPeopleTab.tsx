@@ -7,6 +7,7 @@ import { staffMatchesSquad, staffTitle, type PublicResponsibility, type PublicSt
 import { responsibilityAreas, staffAreas } from '../staffAreas';
 import { useOverviewSource } from '../useOverviewSource';
 import { usePagesCopy } from '../../pages/copy';
+import { useCan } from '../../../hooks/useCan';
 
 const areas = [{ id: 'coaching', name: 'Coaching' }, { id: 'analysis', name: 'Analysis & scouting' }, { id: 'performance', name: 'Sports science' }, { id: 'care', name: 'Medical & player care' }, { id: 'operations', name: 'Club operations' }, { id: 'officials', name: 'Match officials' }];
 
@@ -36,6 +37,9 @@ export function ClubPeopleTab({ clubId, clubName, canManageStaff }: { clubId: nu
     const t = usePagesCopy();
     const [params, setParams] = useClubProfileSearchParams();
     const people = useOverviewSource<PublicStaff[]>(`/clubs/${clubId}/staff-directory`);
+    // One action, many doors: the staff link opens from the club page too, when the rule-checker allows it.
+    const staffAccess = useCan(canManageStaff ? `club:${clubId}` : null);
+    const inviteStaff = !staffAccess.pending && staffAccess.decide('invite_staff', canManageStaff).allowed;
     const query = (params.get('q') ?? '').trim().toLocaleLowerCase(), squad = params.get('squad') ?? '', area = params.get('staff') ?? '';
     const all = people.data ?? [];
     const filter = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
@@ -55,6 +59,7 @@ export function ClubPeopleTab({ clubId, clubName, canManageStaff }: { clubId: nu
                 <select className="gk-input gk-club-select" aria-label={t('Squad')} value={squad} onChange={e => filter('squad', e.target.value)}><option value="">{t('All squads')}</option>{squad && !squads.some(([id]) => String(id) === squad) && <option value={squad}>{t('Selected squad')}</option>}{squads.map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select>
             </>}
             {(query || squad || area) && <button type="button" className="gk-section__action" onClick={clear}>{t('Clear')}</button>}
+            {inviteStaff && <Link className="gk-section__action" to={`/clubs/${clubId}/workspace?tab=personnel&invite=link`}>{t('Invite staff')}</Link>}
             {canManageStaff && <a className="gk-section__action" href={`/clubs/${clubId}?edit=1&panel=staff`}>{t('Manage staff')}</a>}
         </div>}
         {people.loading ? <Panel flush><div className="gk-panel--pad"><Skeleton height={80} /></div></Panel>

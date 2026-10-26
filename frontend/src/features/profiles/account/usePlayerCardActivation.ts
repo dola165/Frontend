@@ -10,7 +10,7 @@ export function usePlayerCardActivation(setMyCards: Dispatch<SetStateAction<Play
     const [activatingCard, setActivatingCard] = useState<PlayerCard | null>(null);
     const [childDob, setChildDob] = useState('');
     const [childEmail, setChildEmail] = useState('');
-    const [activationCreds, setActivationCreds] = useState<{ username: string; email: string; status: string } | null>(null);
+    const [activationCreds, setActivationCreds] = useState<{ email: string } | null>(null);
     const [activationError, setActivationError] = useState<string | null>(null);
     const [activating, setActivating] = useState(false);
 

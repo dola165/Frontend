@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
 import { ct, useCommerceCopy } from '../features/store/copy';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -60,7 +61,7 @@ function Tool({ tool, campaign, backLabel, onDone }: { tool: FundraiserTool; cam
         if (saving) return;
         setSaving(true); setError('');
         try { await save(); clearForm(); onDone(message); }
-        catch (failure) { setError(extractApiErrorMessage(failure, fallback)); }
+        catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, fallback)); }
         finally { setSaving(false); }
     };
     const cancel = () => { clearForm(); onDone(); };

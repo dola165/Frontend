@@ -104,12 +104,11 @@ export function useClubProfile(id: number) {
     };
     // Leaving the club changes the membership as well as the club, so both are asked again.
     const leftClub = async () => { refresh(); };
-    const forgetMembership = () => setMembershipResult({ key: memberKey, clubId: null, role: null });
     const updateImage = async (field: 'banner' | 'logo', url: string) => {
         await apiClient.put(`/clubs/${id}`, field === 'banner' ? { bannerUrl: url } : { logoUrl: url });
         refresh();
     };
-    return { club, loading, failed, permissions, refresh, toggleFollow, leftClub, updateImage, forgetMembership };
+    return { club, loading, failed, permissions, refresh, toggleFollow, leftClub, updateImage };
 }
 
 export type ClubPermissions = ReturnType<typeof useClubProfile>['permissions'];

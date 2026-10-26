@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight,
     BellRing,
-    Crown,
     GripHorizontal,
     Loader2,
     Settings,
@@ -24,7 +23,7 @@ import {
 import { apiClient } from '../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
-export type ClubManagementTab = 'personnel' | 'players' | 'invites' | 'applications' | 'roles' | 'squads' | 'tryouts';
+export type ClubManagementTab = 'personnel' | 'players' | 'invites' | 'applications' | 'squads' | 'tryouts';
 
 interface ClubManagementModalProps {
     clubId: number;
@@ -32,7 +31,6 @@ interface ClubManagementModalProps {
     currentRole: string | null;
     initialTab?: ClubManagementTab | null;
     onClose: () => void;
-    onDissolveClub?: () => void;
     onSquadCreated?: () => void;
     onDataChanged?: () => void;
     onMembershipLeft?: () => Promise<void> | void;
@@ -56,7 +54,6 @@ export const ClubManagementModal = ({
     clubName,
     currentRole,
     onClose,
-    onDissolveClub,
 }: ClubManagementModalProps) => {
     const navigate = useNavigate();
 
@@ -251,19 +248,8 @@ export const ClubManagementModal = ({
                         )}
                     </div>
 
-                    {canManageLeadership && (
-                        <button type="button" onClick={() => goWorkspace('roles')} className="w-full rounded-[2px] border border-[var(--color-orange)]/20 bg-[var(--color-orange)]/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-orange)] hover:bg-[var(--color-orange)] hover:text-[var(--color-on-accent)] transition-colors">
-                            <Crown className="mr-2 inline-block h-3.5 w-3.5" />
-                            Ownership &amp; Roles
-                        </button>
-                    )}
                 </div>
 
-                {onDissolveClub && <details className="mx-5 mb-5 rounded-xl border border-[color:var(--color-danger)]/20 p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-[var(--color-secondary)]">Advanced club settings</summary>
-                    <p className="mt-3 text-xs leading-5 text-[var(--color-secondary)]">Dissolving ends club operations permanently. Review the consequences before continuing.</p>
-                    <button type="button" onClick={onDissolveClub} className="mt-3 rounded-lg border border-[color:var(--color-danger)]/30 px-4 py-2.5 text-sm font-semibold text-[color:var(--color-danger)]">Dissolve Club</button>
-                </details>}
 
                 {/* footer */}
                 <div className="border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-5 py-3 flex justify-end">

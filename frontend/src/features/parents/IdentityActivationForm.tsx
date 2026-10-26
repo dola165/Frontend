@@ -7,8 +7,9 @@ import { todayIso } from '../../utils/age';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import './parents.css';
 
-export function IdentityActivationForm({ childId, adult = false, path, onChanged }: {
-    childId?: number; adult?: boolean; path?: string; onChanged: () => void;
+/** Invites an adult to the account their player identity already has (children: Parent Hub's own-account row). */
+export function IdentityActivationForm({ childId, path, onChanged }: {
+    childId?: number; path?: string; onChanged: () => void;
 }) {
     const copy = useJourneyCopy();
     const { sessionId } = useAuth();
@@ -36,8 +37,8 @@ export function IdentityActivationForm({ childId, adult = false, path, onChanged
         } finally { if (isCurrentAuthSession(sessionId)) { saving.current = false; setBusy(false); } }
     };
     return <details className="family-history">
-        <summary>{adult ? copy('Invite adult to their existing account', 'ზრდასრულის მოწვევა არსებულ ანგარიშზე') : copy('Account invitation for ages 13–17', 'ანგარიშის მოწვევა 13–17 წლისთვის')}</summary>
-        <p>{adult ? copy('This is an invitation for the adult to accept independently. It grants no guardian access or club responsibility.', 'ზრდასრულმა მოწვევა დამოუკიდებლად უნდა მიიღოს. მეურვის წვდომა ან კლუბის უფლებამოსილება არ ენიჭება.') : copy('A current guardian can invite their child without a club enrollment. Club participation needs separate consent.', 'მიმდინარე მეურვეს შეუძლია ბავშვის მოწვევა კლუბის გარეშეც. კლუბში მონაწილეობას ცალკე თანხმობა სჭირდება.')}</p>
+        <summary>{copy('Invite adult to their existing account', 'ზრდასრულის მოწვევა არსებულ ანგარიშზე')}</summary>
+        <p>{copy('This is an invitation for the adult to accept independently. It grants no guardian access or club responsibility.', 'ზრდასრულმა მოწვევა დამოუკიდებლად უნდა მიიღოს. მეურვის წვდომა ან კლუბის უფლებამოსილება არ ენიჭება.')}</p>
         {message && <p role="status">{message}</p>}{error && <p role="alert">{error}</p>}
         <form onSubmit={event => void send(event)} className="family-invite-form">
             <label>{copy('Recorded date of birth', 'დაბადების ჩაწერილი თარიღი')}<input type="date" required max={todayIso()} disabled={busy} value={dob} onChange={e => setDob(e.target.value)} /></label>

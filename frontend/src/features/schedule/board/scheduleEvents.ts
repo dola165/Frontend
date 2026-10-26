@@ -12,7 +12,7 @@ export function toWorkspaceEvent(event: ScheduleEventOccurrence, ownerLabel: str
     return {
         id: event.occurrenceId, eventId: event.eventId,
         homeScore: event.homeScore, awayScore: event.awayScore, resultStatus: event.resultStatus, matchExchangeId: event.matchExchangeId,
-        canRecordResult: event.canRecordResult, resultClubId: event.resultClubId, origin: event.origin, originId: event.originId,
+        canRecordResult: event.canRecordResult, origin: event.origin, originId: event.originId,
         title: event.title, subtitle: event.opponentClubName ? `vs ${event.opponentClubName}` : null, description: event.description,
         eventType: event.eventType, startsAt: event.startsAt, endsAt: event.endsAt,
         locationText: event.locationName, locationLat: event.locationLat, locationLng: event.locationLng,

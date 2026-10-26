@@ -1,7 +1,10 @@
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import type { AuthSessionId } from '../../utils/authStorage';
 
-export type ResultStatus = 'NONE' | 'PROPOSED' | 'CONFIRMED' | 'DISPUTED' | 'LEGACY' | 'RECORDED' | 'BYE';
+import type { AnyScoreStatus } from '../scores/status';
+
+/** A listing's result: the shared record's status (F4), or a historical, organiser-recorded or bye row. */
+export type ResultStatus = AnyScoreStatus;
 export type MatchPeriod = 'UPCOMING' | 'NEEDS_RESULT' | 'HISTORY' | 'ALL';
 export type HistorySource = 'MATCH_EXCHANGE' | 'SCHEDULE' | 'TOURNAMENT';
 export type HistoryMatch = {
@@ -16,7 +19,7 @@ export type HistoryMatch = {
 export type MatchHistoryPage = { items: HistoryMatch[]; total: number; page: number; pageSize: number };
 export type ImportOptions = { clubs: { id: number; name: string; squads: { id: number; name: string }[] }[] };
 export type HistoricalMatchInput = { clubId: number; opponentClubId: number; homeSquadId?: number; awaySquadId?: number; title?: string; startsAt: string; endsAt: string; homeScore: number; awayScore: number; visibility: 'PRIVATE' | 'PUBLIC'; reason: string; requestId: string };
-export type HistoricalMatchCreated = { eventId: number; detailPath: string; resultStatus: 'RECORDED'; historicalImport: true; homeScore: number; awayScore: number };
+export type HistoricalMatchCreated = { eventId: number; detailPath: string; resultStatus: 'REPORTED'; historicalImport: true; homeScore: number; awayScore: number };
 export async function getHistoricalImportOptions(signal: AbortSignal, sessionId: AuthSessionId) {
   const config: AuthSessionRequestConfig = { signal, _authSessionId: sessionId, timeout: 15000 };
   return (await apiClient.get<ImportOptions>('/match-history/import/options', config)).data;

@@ -2,9 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { ClubAdmissionWorkspace } from '../admissions/club/ClubAdmissionWorkspace';
 import type { useClubAdmissions } from '../admissions/club/useClubAdmissions';
 import { ClubApproachesPanel } from '../agents/ClubApproachesPanel';
-import { ClubStaffTeam } from '../clubOperations/ClubStaffTeam';
-import { ManagementInvites } from '../clubOperations/staff/ManagementInvites';
-import { MemberAdministration } from '../clubOperations/staff/MemberAdministration';
+import { ClubPeople } from '../clubOperations/people/ClubPeople';
+import { SentInvitations } from '../clubOperations/people/SentInvitations';
 import type { Bootstrap } from '../clubOperations/api';
 import type { RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
 import type { OpenWorkspace } from '../clubOperations/workspaceStructure';
@@ -12,8 +11,7 @@ import type { ClubManagementOverview, PlayerAffiliationStatus } from '../clubs/d
 import type { WorkspaceTab } from '../../components/workspace/types';
 import type { AuthSessionId } from '../../utils/authStorage';
 import { InboxTab } from '../../components/workspace/tabs/InboxTab';
-import { RolesTab } from '../../components/workspace/tabs/RolesTab';
-import { Button, PageFrame, PageHeader } from '../../design/primitives';
+import { Button, PageFrame } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
 import { ClubCampaignsPage } from './commerce/ClubCampaignsPage';
 import { OpenRolesPage } from './commerce/OpenRolesPage';
@@ -43,16 +41,9 @@ export function ClubTools(ctx: ClubToolsContext) {
     const { tab, clubId, overview, membership: m, can } = ctx;
     const players = m.players, apps = m.applications;
     const focusNote = (text: string) => <PageFrame className="cw-focus-note"><div className="gk-notice" role="status"><span className="cw-notices__text">{text}</span><Button size="sm" onClick={ctx.clearApplicationFocus}>Show all applications</Button></div></PageFrame>;
-    const invites = <ManagementInvites overview={overview} searchQuery={m.invites.query} searchResults={m.invites.results} searchLoading={m.invites.loading}
-        selectedInviteRole={m.invites.role} pendingKey={m.pendingKey} invitedUserIds={m.invites.invitedUserIds}
-        totalSearchPages={m.invites.results ? Math.max(1, Math.ceil(m.invites.results.totalElements / Math.max(m.invites.results.pageSize, 1))) : 1}
-        onSearchQueryChange={m.invites.setQuery} onSearchPageChange={m.invites.setPage} onInviteRoleChange={m.invites.setRole} onInvite={m.actions.invite} onCancelInvite={m.actions.cancelInvite} />;
-
     switch (tab) {
-        case 'personnel': return ctx.boot ? <ClubStaffTeam key={clubId} boot={ctx.boot} members={overview?.members} roles={ctx.roles?.catalog} onChanged={ctx.refreshBoot}
-            renderAdministration={can.leadership ? member => <MemberAdministration clubId={clubId} member={member} assignableRoles={overview?.assignableStaffRoles ?? []} onProfileSaved={ctx.reloadOverview}
-                currentUserId={ctx.currentUserId} currentRole={overview?.currentUserRole ?? null} canManageLeadership={can.leadership} pendingKey={m.pendingKey}
-                onRoleChange={m.actions.roleChange} onRemoveMember={m.actions.removeMember} /> : undefined} /> : null;
+        case 'personnel': return <ClubPeople key={clubId} clubId={clubId} clubName={ctx.boot?.clubName ?? ''} members={overview?.members}
+            onChanged={() => { void ctx.reloadOverview(); ctx.refreshBoot(); ctx.refreshRoles(); }} />;
         case 'players': return <PlayersPage
             playerDirectory={players.directory} playerLoading={players.loading} playerError={players.error} playerStatusFilter={players.filter}
             playerCounts={overview ? {
@@ -71,9 +62,8 @@ export function ClubTools(ctx: ClubToolsContext) {
             onTrialEndsChange={m.actions.trialEndsChange} onRetry={() => { void players.reload(); }} onPageChange={players.setPage}
             onMessagePlayer={userId => navigate(`/messages?chatWith=${userId}`)} onSendConsentEmail={m.actions.sendConsentEmail}
             onTabChange={next => next === 'admissions' ? ctx.openWork('admissions', { intake: '1' }) : ctx.switchTab(next)} />;
-        case 'invites': return ctx.boot?.leadership
-            ? <ClubStaffTeam key={clubId} boot={ctx.boot} members={overview?.members} roles={ctx.roles?.catalog} mode="invites" onChanged={ctx.refreshBoot}>{invites}</ClubStaffTeam>
-            : <PageFrame className="cw-page"><PageHeader title="Invitations" subtitle="Management memberships waiting for an answer. Nothing is granted before the person accepts." />{invites}</PageFrame>;
+        case 'invites': return <SentInvitations overview={overview} pendingKey={m.pendingKey} onCancelInvite={m.actions.cancelInvite}
+                onOpenPeople={ctx.allowed('personnel') ? () => ctx.switchTab('personnel') : undefined} />;
         case 'admissions': return <ClubAdmissionWorkspace state={ctx.admissions} sessionId={ctx.sessionId} existingPeople={ctx.roles?.people} onOpen={ctx.openWork}
             onRosterChanged={() => { players.invalidate(); void ctx.reloadOverview(); ctx.refreshRoles(); }} />;
         case 'applications': return <>
@@ -88,10 +78,6 @@ export function ClubTools(ctx: ClubToolsContext) {
                 onRetry={() => { void apps.reload(); }}
                 onOpenPlayers={ctx.allowed('players') ? () => ctx.openPlayers() : undefined} />
         </>;
-        case 'roles': return overview ? <RolesTab overview={overview} currentUserId={ctx.currentUserId} currentRole={overview.currentUserRole ?? null} pendingKey={m.pendingKey}
-            confirmingOwnershipTransferUserId={m.decisions.confirmingOwnershipTransferUserId} confirmingSelfLeave={m.decisions.confirmingSelfLeave} isOwner={can.owner}
-            onConfirmOwnershipTransfer={m.decisions.setConfirmingOwnershipTransferUserId} onTransferOwnership={m.actions.transferOwnership}
-            onConfirmSelfLeave={m.actions.confirmSelfLeave} onLeaveClub={m.actions.leaveClub} onOpenJobs={() => ctx.switchTab('jobs')} /> : null;
         case 'club-approaches': return can.leadership ? <ClubApproachesPanel mode="club" clubId={clubId} /> : null;
         case 'jobs': return <OpenRolesPage clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
         case 'store': return can.leadership ? <StoreProductsPage key={clubId} clubId={clubId} /> : null;

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
+import { useOtherClub } from '../features/clubOperations/leaving/useOtherClub';
 import { get, post, put, root, label, appointmentScope, appointmentStatus, type Appointment, type Choice } from '../features/clubOperations/api';
 import '../features/clubOperations/operations.css';
 import { ArrowRight, Building2, CalendarDays, ChevronDown, Eye, Route, ShieldCheck } from 'lucide-react';
@@ -14,16 +16,18 @@ interface Inbox { appointments:Appointment[]; permissions:GuardianPermission[]; 
 export default function MyClubOperationsPage({embedded=false}:{embedded?:boolean}={}){const {user,sessionId}=useAuth();return <Inbox embedded={embedded} key={`${user?.id}-${sessionId}`}/>;}
 function Inbox({embedded}:{embedded:boolean}){
   const {user,refreshNavigationCapabilities}=useAuth();
+  const other=useOtherClub();
   const [params]=useSearchParams(), inFlight=useRef(false);
   const [data,setData]=useState<Inbox|null>(null),[error,setError]=useState(''),[refresh,setRefresh]=useState(0),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const selectedAppointment=params.get('appointmentId');
   const appointmentId=selectedAppointment&&/^[1-9]\d*$/.test(selectedAppointment)&&Number.isSafeInteger(Number(selectedAppointment))?selectedAppointment:null;
   useEffect(()=>{const c=new AbortController();setData(null);void get<Inbox>(`/club-operations/mine${appointmentId?`?appointmentId=${appointmentId}`:''}`,c.signal).then(r=>{if(!c.signal.aborted)setData(r);}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load your club work.'));});return()=>c.abort();},[refresh,appointmentId]);
-  const act=async(club:number,id:number,revision:number,status:string,appointment=false)=>{if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');setMessage('');try{await post(`${root(club)}/${appointment?'appointments':'records'}/${id}/transition`,{revision,status,note:null});setMessage(appointment?'Appointment decision saved.':`Permission ${label(status).toLowerCase()} · decision saved.`);setRefresh(v=>v+1);if(appointment)await refreshNavigationCapabilities();}catch(e){setError(extractApiErrorMessage(e,'Could not record your decision.'));}finally{inFlight.current=false;setBusy(false);}};
+  const act=async(club:number,id:number,revision:number,status:string,appointment=false)=>{if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');setMessage('');try{await post(`${root(club)}/${appointment?'appointments':'records'}/${id}/transition`,{revision,status,note:null});setMessage(appointment?'Appointment decision saved.':`Permission ${label(status).toLowerCase()} · decision saved.`);setRefresh(v=>v+1);if(appointment)await refreshNavigationCapabilities();}catch(e){if(!other.catchOther(e,()=>void act(club,id,revision,status,appointment))&&!promptEmailConfirmation(e))setError(extractApiErrorMessage(e,'Could not record your decision.'));}finally{inFlight.current=false;setBusy(false);}};
   const visibility=async(a:Appointment)=>{setBusy(true);setError("");try{await put(`${root(a.club_id)}/appointments/${a.id}/publication`,{published:!a.published,revision:a.revision});setRefresh(v=>v+1);}catch(e){setError(extractApiErrorMessage(e,"Could not update public visibility."));}finally{setBusy(false);}};
   return <main className={`club-ops club-connections ${embedded?'club-connections-embedded':''}`}><header className="connections-heading"><div><p className="ops-kicker">YOUR CLUB & FAMILY</p><h1>Club connections</h1><p>Your people, permissions and responsibilities. Everything you need to stay connected with your club.</p></div><div className="connections-heading-actions"><Link to="/calendar"><CalendarDays size={17}/>Open Schedule</Link><Link to="/world/map?plans=family"><Route size={17}/>Your journeys</Link></div></header><div className="connections-content">
     {error&&<p role="alert" className="ops-alert">{error}<button onClick={()=>{setError('');setRefresh(v=>v+1);}}>Refresh requests</button></p>}
     {message&&<p className="connections-saved" role="status">{message}</p>}
+    {other.notice}
     {!data&&!error&&<p role="status">Loading your club work…</p>}
     {data&&<>
       {appointmentId&&!data.appointments.some(a=>String(a.id)===appointmentId)&&<p role="status" className="connections-quiet-note">This appointment is no longer available to your account. You can review your current appointments below.</p>}

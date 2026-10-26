@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { JourneyReminderActions } from '../../features/mapPlanning/JourneyReminderActions';
+import { NotificationActions } from './NotificationActions';
 import {
     ArrowRight,
     BellRing,
@@ -113,6 +113,6 @@ export const NotificationListItem = ({
                     </div>
                 </div>
             </div>
-        </button><JourneyReminderActions notification={notification}/></>
+        </button><NotificationActions notification={notification} /></>
     );
 };

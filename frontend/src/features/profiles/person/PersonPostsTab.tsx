@@ -15,6 +15,6 @@ export function PersonPostsTab({ view }: { view: PersonView }) {
     return <Section title={own ? copy('Your posts', 'თქვენი პოსტები') : copy('Posts', 'პოსტები')}>
         <ProfilePosts feed={feed}
             composer={own ? <PostComposer home compact authorName={name} avatarUrl={profile.avatarUrl} onPostCreated={feed.pages.refresh} /> : undefined}
-            empty={{ title: copy('No posts yet', 'პოსტები ჯერ არ არის'), body: own ? copy('Share an update above. Your followers see it on Home.', 'გააზიარეთ სიახლე ზემოთ. გამომწერები მას მთავარ გვერდზე ნახავენ.') : copy(`${name.split(' ')[0]} hasn’t posted anything public yet.`, `${name.split(' ')[0]}-ს საჯარო პოსტი ჯერ არ აქვს.`) }} />
+            empty={{ title: copy('No posts yet', 'პოსტები ჯერ არ არის'), body: own ? copy('Share an update above. Your followers see it on Home.', 'გააზიარეთ სიახლე ზემოთ. გამომწერები მას მთავარ გვერდზე ნახავენ.') : copy(`${name} hasn’t posted anything public yet.`, 'საჯარო პოსტები ჯერ არ არის.') }} />
     </Section>;
 }

@@ -10,7 +10,7 @@ vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id
 vi.mock('../../../start/startApi', () => ({ fetchSavedTown: vi.fn().mockResolvedValue({ name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }) }));
 import { StartSheet } from '../StartSheet';
 
-const unclaimed: SimilarPage = { ref: { type: 'club', id: 307 }, name: 'Rustavi Metallurgi Kids', town: 'Rustavi', kind: 'CLUB', crestUrl: null, status: 'LIVE', claim: 'UNCLAIMED', mine: false, exact: false };
+const listing: SimilarPage = { ref: { type: 'club', id: 307 }, name: 'Rustavi Metallurgi Kids', town: 'Rustavi', kind: 'CLUB', crestUrl: null, status: 'LIVE', mine: false, exact: false };
 const restored = () => sessionStorage.setItem('gk.first-use.v1:9500:page-start', JSON.stringify({ accountId: 9500, value: { kind: 'CLUB', name: 'Saved draft', town: 'Rustavi' } }));
 function delayedEntryFrame() {
   let next = 0;
@@ -24,27 +24,24 @@ function delayedEntryFrame() {
   });
 }
 function mount(kind: 'CLUB' | null = 'CLUB') {
-  const onClaim = vi.fn();
-  render(<MemoryRouter><StartSheet kind={kind} from="home" draw={false} onClose={vi.fn()} onClaim={onClaim} /></MemoryRouter>);
-  return onClaim;
+  render(<MemoryRouter><StartSheet kind={kind} from="home" draw={false} onClose={vi.fn()} /></MemoryRouter>);
 }
-beforeEach(() => { sessionStorage.clear(); api.fetchSimilar.mockReset().mockResolvedValue([unclaimed]); api.createPage.mockReset(); });
+beforeEach(() => { sessionStorage.clear(); api.fetchSimilar.mockReset().mockResolvedValue([listing]); api.createPage.mockReset(); });
 afterEach(() => { vi.restoreAllMocks(); });
 
 it.each(['preset', 'chosen'] as const)('keeps fast input before delayed entry focus for a %s club and looks up the full name', async entry => {
   const user = userEvent.setup();
   const focusFrame = delayedEntryFrame();
-  const onClaim = mount(entry === 'preset' ? 'CLUB' : null);
+  mount(entry === 'preset' ? 'CLUB' : null);
   if (entry === 'chosen') await user.click(screen.getByRole('radio', { name: 'Club' }));
   const input = screen.getByRole<HTMLInputElement>('textbox', { name: 'Club name' });
   await user.type(input, 'M');
   expect(input).toHaveValue('M');
   focusFrame();
   await user.keyboard('etalurgi');
-  await screen.findByText('Is this your club?');
+  await screen.findByText('Looking for one of these?');
   expect({ value: input.value, lookup: api.fetchSimilar.mock.calls.at(-1)?.[0] }).toEqual({ value: 'Metalurgi', lookup: 'Metalurgi' });
-  await user.click(screen.getByRole('button', { name: 'Claim it' }));
-  expect(onClaim).toHaveBeenCalledWith({ type: 'club', id: 307 });
+  expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/clubs/307');
   expect(api.createPage).not.toHaveBeenCalled();
 });
 

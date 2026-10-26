@@ -1,7 +1,8 @@
 import { apiClient } from '../../api/axiosConfig';
 import { fetchClubDirectory } from '../world/api';
 import { loadPreferences, readPreferences, updatePreferences, type StartPreferences } from '../preferences/preferencesStore';
-import { townByName, type Town } from './towns';
+import { publicProgrammes, fitsAge, programmeAges, programmeFee } from '../world/cards/programmes';
+import { kmBetween, townByName, type Town } from './towns';
 
 const abortable = <T,>(work: Promise<T>, signal?: AbortSignal) => signal
     ? Promise.race([work, new Promise<never>((_, reject) => {
@@ -77,17 +78,34 @@ export interface NearbyClub {
     km: number | null;
     followers: number;
     following: boolean;
+    /** The club's published programme that takes the age asked about (the clubs for an age), when it lists one. */
+    programme?: { name: string; ages: string; sessionsPerWeek: number | null; fee: string } | null;
 }
 /** Clubs in the person's own country: nearest first from a town they gave, or the most followed first. */
 export const fetchClubsNearYou = (limit = 8, sort: 'NEAREST' | 'POPULAR' = 'NEAREST', signal?: AbortSignal) =>
     apiClient.get<NearbyClub[]>('/clubs/near-you', { params: { limit, sort }, signal }).then(r => r.data);
 
+/**
+ * Clubs from World's directory, as tiles: with a town, how far each is from it; with an age, the published programme
+ * that takes it (the server matched the age; the programme says which one, how often and what it costs).
+ */
+const directoryClubs = async (params: Record<string, string>, signal?: AbortSignal, near?: { town: Town | null; age: number }): Promise<NearbyClub[]> =>
+    (await fetchClubDirectory(new URLSearchParams({ page: '0', size: '12', ...params }), signal)).content.map(club => {
+        const fit = near ? publicProgrammes(club.presentation).find(programme => fitsAge(programme, near.age)) : undefined;
+        const placed = near?.town && club.latitude != null && club.longitude != null;
+        return {
+            id: club.id, name: club.name, logoUrl: club.logoUrl ?? null, bannerUrl: null, cityName: club.cityName ?? null,
+            km: placed ? kmBetween(near.town!, { latitude: club.latitude!, longitude: club.longitude! }) : null,
+            followers: club.followerCount ?? 0, following: club.isFollowedByMe === true,
+            programme: fit ? { name: fit.name, ages: programmeAges(fit), sessionsPerWeek: fit.sessionsPerWeek, fee: programmeFee(fit) } : null,
+        };
+    });
 /** Clubs found by name, anywhere: searching is how a club far away is found. */
-export const searchClubs = async (query: string, signal?: AbortSignal): Promise<NearbyClub[]> =>
-    (await fetchClubDirectory(new URLSearchParams({ search: query, page: '0', size: '8' }), signal)).content.map(club => ({
-        id: club.id, name: club.name, logoUrl: club.logoUrl ?? null, bannerUrl: null, cityName: club.cityName ?? null, km: null,
-        followers: club.followerCount ?? 0, following: club.isFollowedByMe === true,
-    }));
+export const searchClubs = (query: string, signal?: AbortSignal) => directoryClubs({ search: query }, signal);
+/** Clubs in a town whose published programme takes this age (the server matches the age, as World's directory does). */
+export const fetchClubsForAge = (age: number, city: string, signal?: AbortSignal) => directoryClubs({ age: String(age), city }, signal, { town: townByName(city), age });
 
 export const followClub = (id: number) => apiClient.post(`/clubs/${id}/follow`);
-export const unfollowClub = (id: number) => apiClient.delete(`/clubs/${id}/follow`);
+/** Follows each club not followed yet; resolves to how many did not go through. */
+export const followClubs = async (clubs: NearbyClub[]) =>
+    (await Promise.allSettled(clubs.filter(club => !club.following).map(club => followClub(club.id)))).filter(result => result.status === 'rejected').length;

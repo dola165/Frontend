@@ -5,6 +5,7 @@ import { apiClient } from '../../../../api/axiosConfig';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { PersonProfile, Profession } from '../../api';
 import { PersonLayers } from '../PersonLayers';
+import { readFootball } from '../../football/api';
 import { PersonSide } from '../PersonSide';
 import { PersonProfilePage } from '../PersonProfilePage';
 import { personTabFrom, personTabs } from '../personTabs';
@@ -35,8 +36,8 @@ const georgian = (_text: string, ka: string) => ka;
 
 describe('work and skills recovery', () => {
     const labels = {
-        en: { section: 'Work and skills', error: 'Work and skills couldn’t load', retry: 'Try again', loading: 'Loading work and skills…', add: 'Add', manage: 'Manage', edit: 'Edit', empty: 'Add what you do professionally' },
-        ka: { section: 'სამუშაო და უნარები', error: 'სამუშაო და უნარები ვერ ჩაიტვირთა', retry: 'ხელახლა ცდა', loading: 'იტვირთება…', add: 'დამატება', manage: 'მართვა', edit: 'შეცვლა', empty: 'დაამატეთ თქვენი პროფესია' },
+        en: { section: 'What you do', error: 'Work and skills couldn’t load', retry: 'Try again', loading: 'Loading work and skills…', add: 'Add what you do', edit: 'Edit', empty: 'Add what you do' },
+        ka: { section: 'რას აკეთებთ', error: 'სამუშაო და უნარები ვერ ჩაიტვირთა', retry: 'ხელახლა ცდა', loading: 'იტვირთება…', add: 'დაამატეთ, რას აკეთებთ', edit: 'შეცვლა', empty: 'დაამატეთ, რას აკეთებთ' },
     };
     const later = <T,>() => {
         let resolve!: (value: T) => void;
@@ -86,15 +87,15 @@ describe('work and skills recovery', () => {
         });
         await mountProfile(language); await screen.findByText(words.error);
         let work = section(words.section);
-        expect({ add: Boolean(work.queryByRole('link', { name: words.add })), retry: Boolean(work.queryByRole('button', { name: words.retry })) }).toEqual({ add: false, retry: true });
-        expect(work.getByRole('link', { name: words.manage })).toHaveAttribute('href', '/account/roles#professions');
+        expect({ add: Boolean(work.queryByRole('button', { name: words.add })), retry: Boolean(work.queryByRole('button', { name: words.retry })) }).toEqual({ add: false, retry: true });
+        expect(work.queryByRole('button', { name: words.edit })).not.toBeInTheDocument();
         expect(work.queryByText(words.empty)).not.toBeInTheDocument();
         fireEvent.click(work.getByRole('button', { name: words.retry }));
         await waitFor(() => expect(attempts).toBe(2));
         work = section(words.section);
         expect(work.getByText(words.loading)).toBeInTheDocument();
         expect(work.queryByRole('button', { name: words.retry })).not.toBeInTheDocument();
-        expect(work.queryByRole('link', { name: words.add })).not.toBeInTheDocument();
+        expect(work.queryByRole('button', { name: words.add })).not.toBeInTheDocument();
         const saved = [{ ...professions[0], title: 'Add', detail: 'Profile' }];
         await act(async () => retry.resolve({ data: populated ? saved : [] }));
         work = section(words.section);
@@ -102,10 +103,10 @@ describe('work and skills recovery', () => {
             expect(work.getByRole('list', { name: language === 'ka' ? 'პროფესიები და უნარები' : 'Professions and skills' })).toHaveTextContent('Add');
             expect(work.getByRole('listitem')).toHaveTextContent('Profile');
             expect(work.getByRole('listitem')).not.toHaveTextContent('პროფილი');
-            expect(work.getByRole('link', { name: words.edit })).toHaveAttribute('href', '/account/roles#professions');
+            expect(work.getByRole('button', { name: words.edit })).toBeInTheDocument();
         } else {
             expect(work.getByText(words.empty)).toBeInTheDocument();
-            expect(work.getByRole('link', { name: words.add })).toHaveAttribute('href', '/account/roles#professions');
+            expect(work.getByRole('button', { name: words.add })).toBeInTheDocument();
         }
         expect(reads('/users/30/professions')).toHaveLength(2); expect(reads('/users/30')).toHaveLength(2);
         expect(reads('/posts/user/30')).toHaveLength(1); readonly();
@@ -146,21 +147,33 @@ describe('work and skills recovery', () => {
         fireEvent.click(captured);
         await act(async () => old.resolve({ data: [{ ...professions[0], title: 'Old private skill' }] }));
         expect(screen.queryByText('Old private skill')).not.toBeInTheDocument();
-        expect(section(labels.en.section).queryByRole('link', { name: /Add|Edit|Manage/ })).not.toBeInTheDocument();
+        expect(section('What Next Person does').queryByRole('link', { name: /Add|Edit|Manage/ })).not.toBeInTheDocument();
         expect(apiClient.get).toHaveBeenCalledTimes(count);
         expect(reads('/users/31/professions')).toHaveLength(1); readonly();
     });
 });
 
 describe('person profile', () => {
-    it('keeps roles, professions and club confirmation apart and never presents self-reported facts as verified', () => {
-        render(<MemoryRouter><PersonLayers profile={player} roles={['PLAYER']} professions={professions} professionsFailed={false} own={false} /></MemoryRouter>);
-        expect(screen.getByText(/Qualifications \(self-reported\): Regional camp/)).toBeInTheDocument();
+    it('shows real lines and career, never a parent line to others, and never presents self-reported facts as verified', () => {
+        const football = readFootball({ userId: 30, firstName: 'Saba', own: false, publicRole: null, whereYouAre: [
+            { line: 'plays:4', kind: 'PLAYS_FOR', title: 'Player', label: 'Player · U16 Boys · Dinamo Academy', club: { id: 1, name: 'Dinamo Academy' }, squads: [{ id: 4, name: 'U16 Boys' }], actions: [{ action: 'leave_club', allowed: true }] },
+            { line: 'parent:9', kind: 'PARENT_OF', title: 'Parent', label: 'Parent', child: { id: 9, name: 'Luka' } },
+        ], career: { lines: [{ line: 'member:1', kind: 'MEMBER', title: 'Player', label: 'Player · U14', club: { id: 1, name: 'Dinamo Academy' }, squads: [{ id: 2, name: 'U14' }], since: '2022-09-01', until: '2024-06-30' }], counts: { matchesPlayed: 31 } } });
+        render(<MemoryRouter><PersonLayers profile={player} football={football} professions={professions} professionsFailed={false} own={false} /></MemoryRouter>);
+        expect(screen.getByRole('heading', { name: 'Where Saba is' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Saba’s career' })).toBeInTheDocument();
+        const lines = within(screen.getByRole('list', { name: 'Where you are' }));
+        expect(lines.getByText('Player')).toBeInTheDocument();
+        expect(lines.getByText('U16 Boys')).toBeInTheDocument();
+        expect(screen.queryByText(/Luka/)).not.toBeInTheDocument();
+        expect(lines.queryByRole('link', { name: 'Manage' })).not.toBeInTheDocument();
+        expect(lines.queryByRole('button', { name: 'Leave' })).not.toBeInTheDocument();
+        expect(screen.getByLabelText('Career in numbers')).toHaveTextContent('31 matches played');
+        expect(within(screen.getByRole('list', { name: 'Career' })).getByText('Player · U14')).toBeInTheDocument();
         const work = within(screen.getByRole('list', { name: 'Professions and skills' }));
         expect(work.getByText('Self-reported')).toBeInTheDocument();
         expect(work.getByText('Confirmed by Dinamo Academy')).toBeInTheDocument();
-        expect(within(screen.getByRole('list', { name: 'Club appointments' })).getByText('Recorded by the club')).toBeInTheDocument();
-        expect(screen.queryByRole('link', { name: 'Change roles' })).not.toBeInTheDocument();
+        expect(screen.queryByText(/Qualifications/)).not.toBeInTheDocument();
     });
 
     it('keeps a possible minor’s body measurements off other people’s view', () => {
@@ -178,7 +191,15 @@ describe('person profile', () => {
         expect(personTabFrom('schedule', others)).toBe('overview');
         expect(personTabFrom('stats', others)).toBe('career');
         expect(personTabFrom('videos', others)).toBe('media');
-        expect(personTabs({ own: true, hidden: false, career: true }, georgian).map(tab => tab.label)).toEqual(['მიმოხილვა', 'პოსტები', 'კარიერა', 'ფოტოები და ვიდეოები', 'განრიგი']);
+        expect(personTabs({ own: true, hidden: false, career: true }, georgian).map(tab => tab.label)).toEqual(['ჩემ შესახებ', 'პოსტები', 'კარიერა', 'ფოტოები და ვიდეოები', 'განრიგი']);
+        expect(personTabFrom('about', others)).toBe('overview');
+    });
+
+    it('calls the first tab About me on your own profile and About on someone else’s, never Overview', () => {
+        expect(personTabs({ own: true, hidden: false, career: false }, english)[0].label).toBe('About me');
+        expect(personTabs({ own: false, hidden: false, career: false }, english)[0].label).toBe('About');
+        expect(personTabs({ own: false, hidden: true, career: false }, english)[0].label).toBe('About');
+        expect(personTabs({ own: false, hidden: false, career: false }, georgian)[0].label).toBe('შესახებ');
     });
 
     it.each([

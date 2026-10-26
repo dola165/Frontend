@@ -95,3 +95,15 @@ export const createJoinLink=async(id:number,body:{requestId:string;expiresInDays
 export const disableJoinLink=async(id:number)=>(await apiClient.delete<SquadJoinLink>(`${root}/${id}/join-link`)).data;
 export const joinRequests=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal})).data;
 export const decideJoinRequest=async(id:number,inquiryId:number,body:SquadJoinDecision)=>(await apiClient.post<SquadJoinOutcome>(`${root}/${id}/join-requests/${inquiryId}`,body)).data;
+/**
+ * "Approve all" from the coach's one squad notice: exactly the requests the coach saw (with the versions seen), each
+ * through the same decision as one at a time. All or nothing; `groupId` only when several groups are open.
+ * Problem codes: JOINING_TERMS_NEEDED, CHOOSE_GROUP.
+ */
+export interface SquadApproveAll { requestId:string; requests:{ inquiryId:number; expectedVersion:number }[]; groupId?:number|null; groupVersion?:number|null }
+export interface SquadApproveAllResult { approved:number; groupName:string; decisions:SquadJoinOutcome[] }
+export const approveAllJoinRequests=async(id:number,body:SquadApproveAll)=>(await apiClient.post<SquadApproveAllResult>(`${root}/${id}/join-requests/approve-all`,body)).data;
+/** Another parent asking to be linked to a child in or waiting for the squad. `canLink`: the child has no parent yet. */
+export interface SquadParentLink { id:number; childName:string; requesterName:string; createdAt:string; canLink:boolean }
+export const parentLinks=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadParentLink[]>(`${root}/${id}/parent-links`,{signal})).data;
+export const answerParentLink=async(id:number,link:number,accept:boolean)=>(await apiClient.post<{ id:number; outcome:'LINKED'|'DECLINED' }>(`${root}/${id}/parent-links/${link}`,{ accept })).data;

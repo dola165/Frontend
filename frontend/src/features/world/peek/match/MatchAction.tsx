@@ -57,7 +57,7 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
         const ended = Date.parse(m.endsAt ?? m.startsAt) <= now;
         if (ended) page = <ScheduleResult onSaved={reload} clubId={m.homeClubId} clubName={m.homeClubName}
             event={{ eventId: m.sourceId, eventType: 'MATCH', status: m.fixtureStatus, endsAt: m.endsAt ?? m.startsAt, homeScore: m.homeScore, awayScore: m.awayScore,
-                resultStatus: m.resultStatus, matchExchangeId: null, canRecordResult: m.canRecordResult, opponentClubId: m.awayClubId }} />;
+                resultStatus: m.resultStatus, matchExchangeId: null, canRecordResult: m.canRecordResult, opponentClubId: m.awayClubId, title: m.title, opponentClubName: m.awayClubName }} />;
         else journey = true;
     } else if (m.source === 'TOURNAMENT' && m.tournamentId != null) {
         // The tournament's staff add its results in its workspace (the drawer has no tournament result step yet).

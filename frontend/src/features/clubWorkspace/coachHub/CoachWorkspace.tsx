@@ -120,7 +120,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
         };
         // Without a squad yet, the coaches page still lets a person ask for one.
         const page = !mine.length && tab !== 'coaches' ?<PageFrame className="cw-page"><PageHeader title={copy('mySquads')} subtitle={clubName} />
-            <Panel><NoSquadsYet clubId={clubId} leadership={roles.leadership} canOpenWorkspace={canOpenWorkspace} coachesTo={href('coaches')} /></Panel></PageFrame>
+            <Panel><NoSquadsYet clubId={clubId} leadership={roles.leadership} canOpenWorkspace={canOpenWorkspace} /></Panel></PageFrame>
             : tab === 'calendar' ? <CoachCalendar data={data} />
                 : tab === 'players' ? <CoachPlayers data={data} />
                     : tab === 'updates' ? <CoachUpdates data={data} />

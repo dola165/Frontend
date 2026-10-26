@@ -1,3 +1,5 @@
+import { apiClient } from '../../api/axiosConfig';
+import type { OwnAccount } from '../joining-contract/types';
 
 export interface ParentEvent {
     eventId: number;
@@ -18,7 +20,6 @@ export interface ParentChild {
     photoUrl: string | null;
     position: string | null;
     registered: boolean;
-    activationEligible: boolean;
     clubId: number;
     clubName: string;
     squadNames: string[];
@@ -35,4 +36,12 @@ export interface ParentHub {
 }
 
 export { fetchJoiningChildren, createPlayerLinkCode } from '../joining-contract/api';
-export type { JoiningChild, ChildDirectory, ChildClub, ChildFees } from '../joining-contract/types';
+export type { JoiningChild, ChildDirectory, ChildClub, ChildFees, OwnAccount } from '../joining-contract/types';
+
+/** Sends the child the link to their own account (again, or to a corrected email); the card's birth date stands. */
+/** Approves a waiting (or grace-period) child's account, as the emailed link does. */
+export const approveChildAccount = (childId: number) =>
+    apiClient.post<{ childName: string; status: 'APPROVED' }>(`/family/children/${childId}/approve-account`).then(r => r.data);
+
+export const giveOwnAccount = (childId: number, email: string) =>
+    apiClient.post<OwnAccount>(`/family/children/${childId}/activation`, { email }).then(r => r.data);

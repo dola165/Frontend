@@ -8,6 +8,7 @@ import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } f
 import { PageConflict, fetchPage, isPageView, goLive as goLiveCall, saveBox as saveBoxCall, saveIdentity as saveIdentityCall, saveLayout as saveLayoutCall, type PageIdentity, type PageRef, type PageView, type SavableBox } from '../api';
 import { PageEditContext, SETUP_PANEL, isPanelKey, type IdentityPatch, type PageEdit, type PanelKey, type SaveOptions, type SaveStatus } from './context';
 import { pt } from '../copy';
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { BOX_COLUMN, insertionIndex, type BoxKey, type Column, type PageLayout, type SetupKey } from '../model/kinds';
 import { boxData } from './boxData';
 
@@ -34,11 +35,9 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   const location = useLocation();
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState(0);
-  // A page claimed from the sheet over it is read again on arrival: the claim made this person its owner.
-  const justClaimed = new URLSearchParams(location.search).get('claimed') === '1';
   const userId = user?.id;
   const accountPage = `${pageRef.type}:${pageRef.id}:${userId}:${sessionId}`;
-  const key = `${accountPage}:${attempt}:${justClaimed ? 'claimed' : ''}`;
+  const key = `${accountPage}:${attempt}`;
   const scope = useMemo(() => ({ key, auth }), [key, auth]);
   // Only receipts present on entry belong to recovery. A consumer can save as soon as the page appears,
   // before the passive replay effect runs; that new receipt must not become a second automatic request.
@@ -86,7 +85,7 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
   const requested = params.get(PANEL);
   const panel = editing && isPanelKey(requested) ? requested : null;
   const rearranging = editing && params.get(REARRANGE) === '1';
-  const arrival = editing ? (params.get('new') === '1' ? 'new' : params.get('claimed') === '1' ? 'claimed' : null) : null;
+  const arrival = editing && params.get('new') === '1' ? 'new' : null;
 
   const go = useCallback((change: (next: URLSearchParams) => void, push = false) => {
     const next = new URLSearchParams(location.search);
@@ -94,10 +93,10 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     const search = next.toString();
     navigate({ pathname: location.pathname, search: search ? `?${search}` : '', hash: location.hash }, { replace: !push });
   }, [location.hash, location.pathname, location.search, navigate]);
-  const setEditing = useCallback((on: boolean) => go(next => { if (on) next.set(EDIT, '1'); else next.delete(EDIT); for (const drop of [PANEL, REARRANGE, 'new', 'claimed', 'steps']) next.delete(drop); }), [go]);
+  const setEditing = useCallback((on: boolean) => go(next => { if (on) next.set(EDIT, '1'); else next.delete(EDIT); for (const drop of [PANEL, REARRANGE, 'new', 'steps']) next.delete(drop); }), [go]);
   const setRearranging = useCallback((on: boolean) => go(next => { next.set(EDIT, '1'); next.delete(PANEL); if (on) next.set(REARRANGE, '1'); else next.delete(REARRANGE); }), [go]);
   // A panel is a step in history, so Back closes it.
-  const openPanel = useCallback((next: PanelKey) => go(search => { search.set(EDIT, '1'); search.set(PANEL, next); search.delete(REARRANGE); search.delete('new'); search.delete('claimed'); if (next === 'live') search.delete('steps'); }, true), [go]);
+  const openPanel = useCallback((next: PanelKey) => go(search => { search.set(EDIT, '1'); search.set(PANEL, next); search.delete(REARRANGE); search.delete('new'); if (next === 'live') search.delete('steps'); }, true), [go]);
   const closePanel = useCallback(() => go(next => next.delete(PANEL)), [go]);
   // The About is no panel: it is typed where it shows, so its step turns edit mode on and opens that line.
   const openStep = useCallback((step: SetupKey) => {
@@ -168,6 +167,8 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
         return false;
       }
       if (options.optimistic) replace(before);
+      // Publishing and inviting need a confirmed email: say so where it was pressed, with Resend. Nothing went unsaved.
+      if (promptEmailConfirmation(error)) { settle('idle'); return false; }
       settle('failed');
       toast.error(extractApiErrorMessage(error, pt('Not saved. Check your connection and try again.')), { action: { label: pt('Try again'), onClick: retry } });
       return false;

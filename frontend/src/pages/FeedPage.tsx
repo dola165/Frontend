@@ -16,8 +16,9 @@ import type { NavigationCapabilities } from '../context/navigationCapabilities';
 import { isAndroidApp } from '../android/bridge';
 import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
-import { FinishSetup } from '../features/start/FinishSetup';
+import { FirstWeek } from '../features/start/FirstWeek';
 import { WelcomeHost } from '../features/start/WelcomeHost';
+import { StaffClubCard } from '../features/clubOperations/leaving/StaffClubCard';
 
 type FeedView = 'for-you' | 'following';
 type FeedCursor = { cursor: number; cursorTime?: string };
@@ -237,13 +238,14 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
   <div className="home-feed-canvas mx-auto flex w-full max-w-[680px] flex-col gap-4">
    <h1 className="sr-only">{copy('Home', 'მთავარი')}</h1>
    <WelcomeHost />
+   <StaffClubCard />
    {isAndroidApp ? <div className="lg:hidden"><WorkspaceShortcuts clubs={managedClubs} navigationCapabilities={user?.navigationCapabilities} /></div> :
     <details className="home-mobile-shortcuts">
      <summary><span>{copy('Your football', 'თქვენი ფეხბურთი')}</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || copy('Your shortcuts', 'მალსახმობები')}</span><ChevronDown size={16} aria-hidden="true" /></summary>
      <LeftSidebar user={user} embedded />
     </details>}
 
-   <FinishSetup />
+   <FirstWeek />
 
    <PostComposer
     compact

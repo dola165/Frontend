@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../../components/auth/emailConfirmationPrompt';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Check, Copy, MessageCircle } from 'lucide-react';
 import { Avatar, Button, ButtonLink, List, ListRow } from '../../../../design/primitives';
@@ -49,7 +50,7 @@ export function StaffPanel() {
     try {
       replace(await inviteStaff(page.ref, { ...body, requestId: attempt.current.id }));
       setDraft({ ...draft, name: '', userId: null }); setPeople([]); attempt.current = null;
-    } catch (failure) { setError(extractApiErrorMessage(failure, t('Could not make the invitation. Try again.'))); } finally { setBusy(false); }
+    } catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, t('Could not make the invitation. Try again.'))); } finally { setBusy(false); }
   };
   const copy = async (invite: { id: number; code: string }) => { try { await navigator.clipboard.writeText(url(invite.code)); setCopied(invite.id); window.setTimeout(() => setCopied(null), 2000); } catch { setCopied(null); } };
   const message = (invite: { name: string; role: StaffRole; code: string; squadId: number | null }) => {

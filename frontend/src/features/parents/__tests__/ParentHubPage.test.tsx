@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ParentHubPage } from '../../../pages/ParentHubPage';
 import { fetchJoiningChildren } from '../api';
 import type { ChildDirectory, JoiningChild } from '../../joining-contract/types';
-const auth = vi.hoisted(() => ({ user: { id: 7 }, sessionId: 'parent-session', isAuthenticated: true }));
+const auth = vi.hoisted(() => ({ user: { id: 7, dob: '1988-04-12' }, sessionId: 'parent-session', isAuthenticated: true }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../api', () => ({ fetchJoiningChildren: vi.fn() }));
 vi.mock('../FamilyRelationships', () => ({ FamilyRelationships: () => <p>Guardian tools</p> }));
@@ -23,7 +23,7 @@ const fixture = (): ChildDirectory => ({ children: [child(61, 'Nika'), child(62,
 const show = (path = '/parent') => render(<MemoryRouter initialEntries={[path]}><ParentHubPage /></MemoryRouter>);
 const dinamo = { clubId: 1, clubName: 'Dinamo', cardId: 501, affiliationStatus: 'ACTIVE', consentStatus: 'CONFIRMED', squadNames: ['U11'] };
 const playing = (clubs = [dinamo]) => { const data = fixture(); data.children[0].clubs = clubs; vi.mocked(fetchJoiningChildren).mockResolvedValue(data); };
-beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); auth.user = { id: 7 }; auth.sessionId = 'parent-session'; vi.mocked(fetchJoiningChildren).mockResolvedValue(fixture()); });
+beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); auth.user = { id: 7, dob: '1988-04-12' }; auth.sessionId = 'parent-session'; vi.mocked(fetchJoiningChildren).mockResolvedValue(fixture()); });
 afterEach(cleanup);
 describe('Parent Hub', () => {
     it('shows a child with no club and keeps their identity through the group link', async () => {
@@ -74,7 +74,7 @@ describe('Parent Hub', () => {
     });
     it('ignores a response from a previous account', async () => {
         let finish!: (data: ChildDirectory) => void; vi.mocked(fetchJoiningChildren).mockReturnValueOnce(new Promise(resolve => { finish = resolve; })).mockResolvedValueOnce({ children: [] });
-        const first = show(); auth.user = { id: 8 }; auth.sessionId = 'other-session'; first.rerender(<MemoryRouter><ParentHubPage /></MemoryRouter>);
+        const first = show(); auth.user = { id: 8, dob: '1990-02-03' }; auth.sessionId = 'other-session'; first.rerender(<MemoryRouter><ParentHubPage /></MemoryRouter>);
         await screen.findByText('Add your child'); await act(async () => finish(fixture())); expect(screen.queryByRole('button', { name: 'Nika, No club yet' })).not.toBeInTheDocument();
     });
 });

@@ -41,7 +41,7 @@ function ClubGuide() {
   const flowId = `club:${user.id}:${page.ref.type}:${page.ref.id}`;
   const enter = (key: SetupKey | 'ready') => {
     const query = new URLSearchParams(location.search);
-    ['steps', 'new', 'claimed', 'tab', 'rearrange'].forEach(item => query.delete(item));
+    ['steps', 'new', 'tab', 'rearrange'].forEach(item => query.delete(item));
     if (key !== 'ready' && !isQuick(key)) query.set('panel', SETUP_PANEL[key]); else query.delete('panel');
     navigate({ pathname: location.pathname, search: `?${query}`, hash: location.hash }, { replace: true });
   };

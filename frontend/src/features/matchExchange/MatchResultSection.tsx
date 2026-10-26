@@ -6,19 +6,25 @@ import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { ResultSummary } from '../matchHistory/ResultSummary';
 import { useResultCopy } from '../matchHistory/copy';
-import { getPublicMatchResult, type Match, type PublicMatchResult } from './api';
-import { MatchResult } from './MatchResult';
+import { getScoreSummary, type ScoreSummary } from '../scores/api';
+import { MatchScore, type ScoreTeams } from '../scores/MatchScore';
+import type { Match } from './api';
 import { useClock } from './hooks';
 import { ResultSuggestionsPanel } from './ResultSuggestionsPanel';
 import '../matchHistory/match-history.css';
 
 type ResultSectionProps = {
   match: Match; reload: () => void;
-  /** False when the page shows the score itself (the match page's fixture band); only reporting and suggestions remain. */
+  /** False when the page shows the score itself (the match page's fixture band); only the record and suggestions remain. */
   scoreboard?: boolean;
-  /** Receives the public result whenever it loads, for a page that shows the score elsewhere. */
-  onSummary?: (summary: PublicMatchResult | undefined) => void;
+  /** Receives the public score whenever it loads, for a page that shows the score elsewhere. */
+  onSummary?: (summary: ScoreSummary | undefined) => void;
 };
+
+/** The two teams of a listing, as the score card names them. */
+const matchTeams = (match: Match, opponent = 'Opponent'): ScoreTeams => ({
+  home: { name: match.club_name, logo: match.club_logo_url, clubId: match.club_id }, away: { name: match.opponent_name || opponent, clubId: match.opponent_club_id },
+});
 
 export function MatchResultSection(props: ResultSectionProps) {
   const { sessionId } = useAuth();
@@ -29,15 +35,15 @@ function ResultSection({ match, reload, scoreboard = true, onSummary }: ResultSe
   const now = useClock();
   const { sessionId } = useAuth();
   const { copy } = useResultCopy();
-  const [summary, setSummary] = useState<PublicMatchResult>();
+  const [summary, setSummary] = useState<ScoreSummary>();
   const [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [loadedLogo, setLoadedLogo] = useState<string>();
   const anchored = useRef(false);
-  const fallback = copy('Could not load the match result.', 'მატჩის შედეგი ვერ ჩაიტვირთა.');
+  const fallback = copy('The score could not load.', 'ანგარიში ვერ ჩაიტვირთა.');
   useEffect(() => {
     const abort = new AbortController();
-    const load = () => { void getPublicMatchResult(match.event_id, abort.signal, sessionId).then(next => {
+    const load = () => { void getScoreSummary({ kind: 'EXCHANGE', eventId: match.event_id }, abort.signal, sessionId).then(next => {
       if (!abort.signal.aborted) { setSummary(next); setError(''); }
     }).catch(cause => { if (!abort.signal.aborted) { setSummary(undefined); setError(extractApiErrorMessage(cause, fallback)); } }); };
     load();
@@ -45,6 +51,7 @@ function ResultSection({ match, reload, scoreboard = true, onSummary }: ResultSe
     window.addEventListener('focus', load);
     return () => { abort.abort(); clearInterval(timer); window.removeEventListener('focus', load); };
   }, [match.event_id, match.result_status, match.home_score, match.away_score, sessionId, refresh, fallback]);
+  // The 24-hour reminder links to `#result`: bring the score into view once it has loaded.
   useEffect(() => {
     if (!summary || anchored.current || window.location.hash !== '#result') return;
     document.getElementById('result')?.scrollIntoView?.({ block: 'start' });
@@ -52,11 +59,14 @@ function ResultSection({ match, reload, scoreboard = true, onSummary }: ResultSe
   }, [summary]);
   const changed = useCallback(() => { setRefresh(n => n + 1); reload(); }, [reload]);
   useEffect(() => { onSummary?.(summary); }, [summary, onSummary]);
-  if (!summary && !scoreboard) return error ? <p className="gk-notice gk-notice--danger" role="alert">{error} <button type="button" className="gk-btn gk-btn--sm gk-btn--secondary" onClick={() => setRefresh(n => n + 1)}>{copy('Retry result', 'ხელახლა ცდა')}</button></p> : null;
-  if (!summary) return <section id="result" className="mx-panel result-section"><h2>{copy('Match result', 'მატჩის შედეგი')}</h2>{error ? <><p role="alert">{error}</p><button type="button" onClick={() => setRefresh(n => n + 1)}>{copy('Retry result', 'ხელახლა ცდა')}</button></> : <p role="status">{copy('Loading result…', 'შედეგი იტვირთება…')}</p>}</section>;
+  const retry = <button type="button" className="gk-btn gk-btn--sm gk-btn--secondary" onClick={() => setRefresh(n => n + 1)}>{copy('Try again', 'ხელახლა')}</button>;
+  if (!summary && !scoreboard) return error ? <p className="gk-notice gk-notice--danger" role="alert">{error} {retry}</p> : null;
+  if (!summary) return <section id="result" className="mx-panel result-section"><h2>{copy('Score', 'ანგარიში')}</h2>{error ? <p role="alert">{error} {retry}</p> : <p role="status">{copy('Loading the score…', 'ანგარიში იტვირთება…')}</p>}</section>;
+  const teams = matchTeams(match, copy('Opponent', 'მეტოქე'));
   return <>
-    {scoreboard && <section id={summary.canReadAudit ? "scoreboard" : "result"} className="mx-panel result-section"><h2>{summary.canReadAudit ? copy('Scoreboard', 'ტაბლო') : copy('Match result', 'მატჩის შედეგი')}</h2><div className="match-scoreboard"><Link className="match-scoreboard-team" to={`/clubs/${match.club_id}`}><span className="match-team-mark">{(!match.club_logo_url || loadedLogo !== match.club_logo_url) && <Shield size={32}/>} {match.club_logo_url && <MediaImage src={match.club_logo_url} alt="" style={{ opacity: loadedLogo === match.club_logo_url ? 1 : 0 }} onLoad={() => setLoadedLogo(match.club_logo_url ?? undefined)} onError={() => setLoadedLogo(undefined)}/>}</span><strong>{match.club_name}</strong><small>{match.squad_name}</small></Link><div className="match-scoreboard-result"><ResultSummary homeScore={summary.homeScore} awayScore={summary.awayScore} status={summary.status} legacy={summary.legacy} fixtureStatus={summary.fixtureStatus} ended={new Date(match.ends_at_iso).getTime() <= now} /></div><div className="match-scoreboard-team"><span className="match-team-mark match-team-mark-away"><Shield size={32}/></span>{match.opponent_name && match.opponent_club_id ? <Link to={`/clubs/${match.opponent_club_id}`}><strong>{match.opponent_name}</strong></Link> : <strong>{copy('Opponent to be confirmed', 'მეტოქე დასაზუსტებელია')}</strong>}<small>{match.opponent_squad_name || (match.listing_status === 'OPEN' ? copy('Match proposal open', 'მატჩის შეთავაზება ღიაა') : '')}</small></div></div></section>}
-    {summary.canReadAudit && <details className="mx-panel mx-result-management" open={window.location.hash === '#result' || new Date(match.ends_at_iso).getTime() <= now || summary.status === 'PROPOSED' || summary.status === 'DISPUTED'}><summary>{copy('Result reporting & history', 'შედეგის შეტანა და ისტორია')}</summary><MatchResult key={`result:${summary.revision}`} match={match} reload={changed}/></details>}
+    {scoreboard && !summary.canReadAudit && <section id="result" className="mx-panel result-section"><h2>{copy('Score', 'ანგარიში')}</h2><div className="match-scoreboard"><Link className="match-scoreboard-team" to={`/clubs/${match.club_id}`}><span className="match-team-mark">{(!match.club_logo_url || loadedLogo !== match.club_logo_url) && <Shield size={32}/>} {match.club_logo_url && <MediaImage src={match.club_logo_url} alt="" style={{ opacity: loadedLogo === match.club_logo_url ? 1 : 0 }} onLoad={() => setLoadedLogo(match.club_logo_url ?? undefined)} onError={() => setLoadedLogo(undefined)}/>}</span><strong>{match.club_name}</strong><small>{match.squad_name}</small></Link><div className="match-scoreboard-result"><ResultSummary homeScore={summary.homeScore} awayScore={summary.awayScore} status={summary.status} legacy={summary.legacy} fixtureStatus={summary.fixtureStatus} reported={summary.reported} disputed={summary.disputed} scorePrivate={summary.scorePrivate} ended={new Date(match.ends_at_iso).getTime() <= now} /></div><div className="match-scoreboard-team"><span className="match-team-mark match-team-mark-away"><Shield size={32}/></span>{match.opponent_name && match.opponent_club_id ? <Link to={`/clubs/${match.opponent_club_id}`}><strong>{match.opponent_name}</strong></Link> : <strong>{copy('Opponent to be confirmed', 'მეტოქე დასაზუსტებელია')}</strong>}<small>{match.opponent_squad_name}</small></div></div></section>}
+    {/* Those on the record (both clubs' staff, the referee, the organiser) get the card: the score, their one step, its history. */}
+    {summary.canReadAudit && <div className="gk-match-score"><MatchScore revision={summary.revision} eventId={match.event_id} {...teams} line={scoreboard} onChanged={changed} /></div>}
     <ResultSuggestionsPanel key={`suggestions:${summary.revision}`} match={match} onChanged={changed} />
   </>;
 }

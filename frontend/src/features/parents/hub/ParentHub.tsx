@@ -23,6 +23,8 @@ import { ChildClubs } from './ChildClubs';
 import { GroupsThatFit } from './GroupsThatFit';
 import { LatestUpdate } from './LatestUpdate';
 import { NextUp } from './NextUp';
+import { ApproveAccount } from './ApproveAccount';
+import { OwnAccount } from './OwnAccount';
 import { useChildSquads } from './useChildSquads';
 import './parent-hub.css';
 
@@ -82,6 +84,7 @@ function ChildView({ child, sessionId, revision, onChanged }: { child: JoiningCh
     return <div className="ph-grid">
         <div className="ph-col ph-col--main">
             {consent && <Link className="ph-alert" to={playerPath('/parent?tab=connections', child.playerId)}><span className="ph-dot ph-dot--urgent" aria-hidden="true" /><span>{copy(`${consent.clubName} asks for your consent`, `${consent.clubName} თქვენს თანხმობას ითხოვს`)}</span><ArrowRight aria-hidden="true" /></Link>}
+            <ApproveAccount key={`approve-${child.playerId}`} child={child} onChanged={onChanged} />
             {playing.length > 0 && <>
                 {loading && <p className="ph-quiet" role="status">{squads.length ? copy('Refreshing squads…', 'გუნდები ახლდება…') : copy('Loading squads…', 'გუნდები იტვირთება…')}</p>}
                 {error && <div className="ph-quiet" role="alert">
@@ -119,6 +122,7 @@ function ChildView({ child, sessionId, revision, onChanged }: { child: JoiningCh
                     : <div className="ph-card__face"><PlayerCard crest={crest} player={{ id: child.playerId, name: child.identity.fullName, position: child.identity.positions[0] ?? null, photoUrl: child.identity.photoUrl, age: born ? new Date().getFullYear() - born.getFullYear() : null }} />
                         <p className="ph-quiet">{copy('Yours to keep. Clubs see it while your child plays for them.', 'ბარათი თქვენია. კლუბები მას ხედავენ, სანამ ბავშვი მათთან თამაშობს.')}</p></div>}
             </Section>
+            <OwnAccount key={`own-${child.playerId}`} child={child} onChanged={onChanged} />
             {!playing.length && <PlayerLinkCode key={child.playerId} child={child} onChanged={onChanged} />}
             <Link className="ph-row ph-row--boxed" to={playerPath('/parent?tab=connections', child.playerId)}><span className="ph-row__icon" aria-hidden="true"><HeartHandshake /></span>
                 <span className="ph-row__text"><strong>{copy('Family & guardians', 'ოჯახი და მეურვეები')}</strong><small>{child.guardians?.length ? child.guardians.map(g => g.self ? copy('You', 'თქვენ') : g.name.split(' ')[0]).join(' · ') : copy('Who else looks after this card, club consent', 'ვინ უვლის ბარათს, კლუბის თანხმობა')}</small></span>{!!child.guardians?.length && <FaceStack people={child.guardians.map(g => ({ id: g.id, name: g.name }))} size={24} />}<ArrowRight aria-hidden="true" /></Link>

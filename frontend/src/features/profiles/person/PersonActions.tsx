@@ -1,12 +1,12 @@
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { Check, MessageCircle, PenLine, Plus, Share2 } from 'lucide-react';
+import { Check, MessageCircle, Plus, Share2, Shirt } from 'lucide-react';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { RepresentationShortcut } from '../../agents/RepresentationPanel';
 import { ReportControl } from '../../moderation/Reporting';
 import type { PersonProfile } from '../api';
 
 /**
- * Your own profile: edit it. Someone else's: follow (the one primary action), message,
+ * Your own profile: everything is edited where it is shown; "Your football" opens your lines, jobs and the line under your name. Someone else's: follow (the one primary action), message,
  * representation when it applies, report or block, and share.
  */
 export function PersonActions({ profile, own, onFollow, onShare, onRepresentation }: {
@@ -16,7 +16,7 @@ export function PersonActions({ profile, own, onFollow, onShare, onRepresentatio
     const share = <Button variant="ghost" iconOnly aria-label={copy('Share profile', 'პროფილის გაზიარება')} title={copy('Share profile', 'პროფილის გაზიარება')} onClick={onShare}><Share2 aria-hidden="true" /></Button>;
     if (own) return <>
         {share}
-        <ButtonLink variant="primary" to="/account/roles"><PenLine aria-hidden="true" />{copy('Edit profile', 'პროფილის რედაქტირება')}</ButtonLink>
+        <ButtonLink to="/account/football"><Shirt aria-hidden="true" />{copy('Your football', 'თქვენი ფეხბურთი')}</ButtonLink>
     </>;
     return <>
         {share}

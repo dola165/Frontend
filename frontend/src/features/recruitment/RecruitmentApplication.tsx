@@ -1,5 +1,5 @@
-import { AdditionalResponsibility } from './AdditionalResponsibility';
 import { recruitmentOutcome } from './outcome';
+import { useOtherClub } from '../clubOperations/leaving/useOtherClub';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
@@ -25,18 +25,20 @@ export function RecruitmentApplication({ applicationId, initial, onChanged }: {a
  const [receipt,setReceipt] = useState(initial ?? null),[error,setError] = useState(''),[loading,setLoading] = useState(!initial),[busy,setBusy] = useState(false);
  const [confirm,setConfirm] = useState<'accept'|'decline'|'withdraw'|'cancel'|null>(null),[offering,setOffering] = useState(false);
  const lock=useRef(false);
+ const other=useOtherClub();
  const load=useCallback(async()=>{setLoading(true);try {setReceipt((await apiClient.get<RecruitmentReceipt>(`/recruitment/applications/${applicationId}`)).data);setError('');} catch(e){setError(extractApiErrorMessage(e,'Could not load this application.'));}finally{setLoading(false);}},[applicationId]);
  useEffect(()=>{if(!initial)void load();},[initial,load]);
  async function run(action:()=>Promise<unknown>) {
   if(lock.current)return;lock.current=true;setBusy(true);setError('');
   try {await action();setConfirm(null);setOffering(false);await load();await refreshNavigationCapabilities();onChanged?.();}
-  catch(e){setError(extractApiErrorMessage(e,'The action could not be completed. Reload the receipt before retrying.'));}
+  catch(e){if(other.catchOther(e,()=>void run(action)))return;setError(extractApiErrorMessage(e,'The action could not be completed. Reload the receipt before retrying.'));}
   finally{lock.current=false;setBusy(false);}
  }
  if(!receipt)return <section className="recruitment-offer" aria-label="Recruitment application">{loading?<p role="status">Loading application…</p>:<p role="alert">{error}<button type="button" onClick={()=>void load()}>Retry</button></p>}</section>;
  const r=receipt,o=r.offer;
  return <article className="recruitment-offer" id={`recruitment-application-${r.id}`} aria-label={`${r.clubName} application`}>
   <header><div><small>{r.role==='PLAYER'?'Player recruitment':'Coaching recruitment'}</small><h3>{r.jobTitle || r.clubName}</h3><p>{r.clubName} · {r.applicantName}</p></div><strong className="recruitment-outcome" data-status={r.status}>{recruitmentOutcome(r.status)}</strong></header>
+  {other.notice}
   {error&&<p role="alert">{error} <button type="button" disabled={busy} onClick={()=>void load()}>Reload receipt</button></p>}
   {r.unavailableReason&&<p className="recruitment-notice">{r.unavailableReason}</p>}
   {r.status==='PENDING'&&<p>The club will review this request. Any offer requires the applicant’s response before access begins.</p>}
@@ -88,7 +90,7 @@ export function RecruitmentInbox({onChanged}:{onChanged?:()=>void}) {
  const [rows,setRows]=useState<RecruitmentReceipt[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[revision,setRevision]=useState(0);
  useEffect(()=>{const c=new AbortController();void apiClient.get<RecruitmentReceipt[]>('/recruitment/applications',{signal:c.signal}).then(x=>{setRows(x.data);setError('');}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load applications.'));}).finally(()=>{if(!c.signal.aborted)setLoading(false);});return()=>c.abort();},[revision]);
  useEffect(()=>{const id=new URLSearchParams(location.search).get('applicationId');if(id&&!loading)document.getElementById(`recruitment-application-${id}`)?.scrollIntoView({block:'center'});},[loading,rows]);
- return <section className="recruitment-inbox" aria-label="Applications and offers"><h2>Applications and offers</h2><p>Review each offer before a new club responsibility begins.</p>{loading&&<p role="status">Loading applications…</p>}{error&&<p role="alert">{error}<button type="button" onClick={()=>setRevision(n=>n+1)}>Retry</button></p>}{!loading&&!error&&!rows.length&&<p>No applications yet. Discover a club or an open role to get started.</p>}{rows.map(r=><RecruitmentApplication key={`${revision}:${r.id}`} applicationId={r.id} initial={r} onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}<InvitationHistory/><AdditionalResponsibility onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/></section>;
+ return <section className="recruitment-inbox" aria-label="Applications and offers"><h2>Applications and offers</h2><p>Review each offer before a new club responsibility begins.</p>{loading&&<p role="status">Loading applications…</p>}{error&&<p role="alert">{error}<button type="button" onClick={()=>setRevision(n=>n+1)}>Retry</button></p>}{!loading&&!error&&!rows.length&&<p>No applications yet. Discover a club or an open role to get started.</p>}{rows.map(r=><RecruitmentApplication key={`${revision}:${r.id}`} applicationId={r.id} initial={r} onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}<InvitationHistory/></section>;
 }
 function InvitationHistory() {
  const [rows,setRows]=useState<{id:number;clubName:string;role:string;status:string}[]>([]),[error,setError]=useState(''),[retry,setRetry]=useState(0);

@@ -19,7 +19,6 @@ vi.mock('../features/clubWorkspace/useClubInbox', () => ({ useClubInbox: () => (
 vi.mock('../features/admissions/club/useClubAdmissions', () => ({ useClubAdmissions: () => ({ data: null }) }));
 vi.mock('../features/clubWorkspace/ClubDecisionDialogs', () => ({ ClubDecisionDialogs: () => null }));
 vi.mock('../features/clubWorkspace/WorkspaceGuide', () => ({ WorkspaceGuide: () => null }));
-vi.mock('../features/clubWorkspace/coachHub/ResponsibilityRequests', () => ({ ResponsibilityRequests: () => null }));
 vi.mock('../features/clubOperations/WorkspaceSquads', () => ({ WorkspaceSquads: () => <h1>Squad lists</h1> }));
 vi.mock('../features/clubWorkspace/squads/SquadsPage', () => ({ SquadsPage: () => <h1>Squad lists</h1> }));
 vi.mock('../design/workspace/WorkspaceShell', () => ({ WorkspaceShell: ({ children }: { children: ReactNode }) => children }));

@@ -17,7 +17,14 @@ export type ChildFees = { status: 'DUE' | 'OVERDUE' | 'PAID'; amount: number | n
 export type ChildClub = { clubId: number; clubName: string; cardId: number | null; affiliationStatus: string | null; consentStatus: string | null; squadNames: string[]; fees?: ChildFees | null };
 /** `guardians`: everyone who looks after the card, the viewer included (backend needed: older servers omit it). */
 export type ChildGuardian = { id: number; name: string; self: boolean };
-export type JoiningChild = { playerId: number; identity: PlayerIdentity; clubs: ChildClub[]; cases: AdmissionCase[]; inquiries: ConnectedInquiry[]; guardians?: ChildGuardian[] };
+/**
+ * A child's own sign-in (release 7): NONE until a parent gives it, INVITED once the link went to the child's email,
+ * ACTIVE once the child set a password; NOT_ELIGIBLE under 13. Backend: fnd-signup-b (older servers omit it).
+ */
+export type OwnAccount = { status: 'NONE' | 'INVITED' | 'ACTIVE' | 'NOT_ELIGIBLE'; email?: string | null; sentAt?: string | null };
+/** A 13 to 15-year-old's account waiting for a parent (dueAt: removal, or null when never removed), or an older one working until dueAt. */
+export type ChildParentApproval = { status: 'WAITING' | 'GRACE'; dueAt: string | null };
+export type JoiningChild = { playerId: number; identity: PlayerIdentity; clubs: ChildClub[]; cases: AdmissionCase[]; inquiries: ConnectedInquiry[]; guardians?: ChildGuardian[]; ownAccount?: OwnAccount; parentApproval?: ChildParentApproval | null };
 export type ChildDirectory = { children: JoiningChild[] };
 export type JoiningOption = { squadId: number | null; squadName: string; programmeIds: number[]; opportunity: Opportunity | null; availability: 'AVAILABLE' | 'WAITLIST' | 'CLOSED' | 'ENQUIRY_ONLY'; destination: string | null };
 export type ClubJoiningOptions = { clubId: number; organizationId: number; options: JoiningOption[] };

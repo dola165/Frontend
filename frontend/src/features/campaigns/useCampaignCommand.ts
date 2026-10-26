@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../components/auth/emailConfirmationPrompt';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthSessionId, getStoredUserId } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -61,7 +62,7 @@ export function useCampaignCommand(clubId: number, onSaved: (campaign: Campaign)
                 try { sessionStorage.removeItem(scope); current.current = null; setAttempt(null); }
                 catch { setError(commandCopy('storage')); return; }
             }
-            setError(extractApiErrorMessage(failure, commandCopy('failure')));
+            if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, commandCopy('failure')));
         } finally { pending.current = false; if (active()) setBusy(false); }
     };
     return { attempt, busy, error, send };

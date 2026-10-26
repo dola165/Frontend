@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
 
-export type EntryIntent = 'JOIN' | 'ADDITIONAL_RESPONSIBILITY' | 'OPEN_TRIAL';
+export type EntryIntent = 'JOIN' | 'OPEN_TRIAL';
 export interface EntryDecision {
   allowed: boolean; reason: string | null; message: string | null;
   pendingApplicationId: number | null; pendingInvitationId: number | null; eligibleFrom: string | null;
@@ -32,7 +32,7 @@ export function useClubEntryEligibility(clubId: number, role: 'PLAYER' | 'COACH'
 }
 
 const reasons: Record<string, [string, string]> = {
-  ALREADY_CONNECTED: ['You are already connected to this club. Request another responsibility from Account.', 'თქვენ უკვე დაკავშირებული ხართ ამ კლუბთან. დამატებითი პასუხისმგებლობა მოითხოვეთ ანგარიშიდან.'],
+  ALREADY_CONNECTED: ['You are already connected to this club. For another job here, ask the admin.', 'თქვენ უკვე დაკავშირებული ხართ ამ კლუბთან. სხვა სამუშაოსთვის მიწერეთ ადმინს.'],
   ALREADY_PLAYER: ['You already have a playing relationship with this club.', 'თქვენ უკვე გაქვთ მოთამაშის კავშირი ამ კლუბთან.'],
   RELATIONSHIP_REQUIRED: ['Choose a club you currently belong to.', 'აირჩიეთ კლუბი, რომელთანაც ამჟამად ხართ დაკავშირებული.'],
   PENDING_APPLICATION: ['Review your existing application before sending another request.', 'ახალი მოთხოვნის გაგზავნამდე გადახედეთ არსებულ განაცხადს.'],

@@ -1,6 +1,6 @@
 import {
-    BellRing, CalendarDays, Briefcase, BriefcaseBusiness, CheckCircle2, Settings2, ClipboardList, CreditCard, Crown, HeartHandshake, Landmark, LayoutDashboard, LayoutGrid,
-    ReceiptText, Settings, ShieldCheck, ShoppingBag, UserPlus, Users, UserRoundCog,
+    BellRing, CalendarDays, Briefcase, BriefcaseBusiness, CheckCircle2, Settings2, ClipboardList, CreditCard, HeartHandshake, Landmark, LayoutDashboard, LayoutGrid,
+    ReceiptText, Settings, ShieldCheck, ShoppingBag, UserPlus, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { TabItem, WorkspaceTab } from '../../components/workspace/types';
@@ -35,7 +35,8 @@ export function buildClubTabs({ overview, roles, boot, canManageLeadership, canM
     const add = (item: TabItem) => { if (!items.some(existing => existing.id === item.id)) items.push(item.id in workspaceNavEn ? { ...item, label: navLabel(item.id) } : item); };
     if (overview || roles) add({ id: 'overview', label: 'Overview', icon: LayoutDashboard });
     if (overview || roles) add({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
-    if (canManageLeadership || boot?.modules.some(m => m.id === 'STAFF')) add({ id: 'personnel', label: 'Staff', icon: Users });
+    // People: admins, staff with the staff tool, and head coaches (who invite helpers to their own squads).
+    if (canManageLeadership || boot?.modules.some(m => m.id === 'STAFF') || roles?.headCoachSquads?.length) add({ id: 'personnel', label: 'People', icon: Users });
     if (canManageOperations) {
         add({ id: 'players', label: 'Players', icon: Users });
         add({ id: 'invites', label: 'Invites', icon: UserPlus, count: overview?.pendingInvitations.length || undefined });
@@ -43,7 +44,6 @@ export function buildClubTabs({ overview, roles, boot, canManageLeadership, canM
     if (admissionsLabel) add({ id: 'admissions', label: admissionsLabel, icon: UserPlus, count: admissionsWaiting || undefined });
     if (canManageOperations) add({ id: 'applications', label: 'Applications', icon: CheckCircle2, count: overview?.pendingApplications.length || undefined });
     if (canManageLeadership) {
-        add({ id: 'roles', label: 'Ownership & access', icon: Crown });
         add({ id: 'club-approaches', label: 'Agent approaches', icon: HeartHandshake });
     }
     if (canManageOperations) add({ id: 'jobs', label: 'Open roles', icon: Briefcase });
@@ -63,7 +63,6 @@ export function buildClubTabs({ overview, roles, boot, canManageLeadership, canM
     if (roles) {
         add({ id: 'tools', label: 'All tools', icon: LayoutGrid });
         if (roles.squads.length && !canManageOperations) add({ id: 'squads', label: 'Squads', icon: ShieldCheck });
-        if (roles.leadership) add({ id: 'role-requests', label: 'Staff roles', icon: UserRoundCog, count: roles.requests.filter(r => r.status === 'PENDING' && r.user_id !== roles.actorId).length || undefined });
     }
     return items;
 }

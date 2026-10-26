@@ -16,7 +16,7 @@ vi.mock('../../features/organizations/setup/OrganizationTeam', () => ({ Organiza
 vi.mock('../../features/organizations/setup/OrganizationLifecycle', () => ({ OrganizationLifecycle: () => <p>Current organization responsibility</p> }));
 
 const denied = (status: number, message = 'Server refused this request') => ({ response: { status, data: { message } } });
-const page = (kind: PageView['kind'] = 'FAN_CLUB', role: PageView['viewer']['role'] = 'OWNER', canEdit = true) => makePage({ kind, viewer: { role, canEdit, editable: canEdit ? 'ALL' : [], canClaim: false } });
+const page = (kind: PageView['kind'] = 'FAN_CLUB', role: PageView['viewer']['role'] = 'OWNER', canEdit = true) => makePage({ kind, viewer: { role, canEdit, editable: canEdit ? 'ALL' : [] } });
 function Destination() { const location = useLocation(); return <p data-testid="destination">{location.pathname}{location.search}</p>; }
 const tree = (query = '') => <MemoryRouter initialEntries={[`/organizations/7002/workspace${query}`]}><Routes><Route path="/organizations/:organizationId/workspace" element={<OrganizationWorkspacePage />} /><Route path="*" element={<Destination />} /></Routes></MemoryRouter>;
 const pageReply = (reply: PageView) => api.get.mockImplementation(async (url: string) => {

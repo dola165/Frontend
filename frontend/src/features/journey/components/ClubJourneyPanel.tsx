@@ -1,4 +1,5 @@
 import { RecruitmentInbox } from '../../recruitment/RecruitmentApplication';
+import { useOtherClub } from '../../clubOperations/leaving/useOtherClub';
 import { formatDate } from '../../../utils/formatting';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +29,7 @@ const ClubJourneyContent = () => {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [busyKey, setBusyKey] = useState<string | null>(null);
     const actionLock = useRef(false);
+    const other = useOtherClub();
     const mounted = useRef(false);
     const latestLoad = useRef(0);
 
@@ -63,6 +65,8 @@ const ClubJourneyContent = () => {
             window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
             await refreshNavigationCapabilities().catch(() => { if (mounted.current && isCurrentAuthSession(sessionId)) setError('Your response was saved. Reload to refresh your navigation.'); });
         } catch (err) {
+            // Staff means one club: "Leave {club} first", then accept again.
+            if (mounted.current && isCurrentAuthSession(sessionId) && other.catchOther(err, () => void runAction(key, action))) return;
             if (mounted.current && isCurrentAuthSession(sessionId)) {
                 setError(extractApiErrorMessage(err, 'Request failed.'));
                 window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
@@ -92,6 +96,7 @@ const ClubJourneyContent = () => {
 
     return <div className="squad-design recruitment-design rc-journey">
         <header className="sd-heading"><div><span className="sd-eyebrow">{r('recruitment')}</span><h2>{r('journey')}</h2><p>{r('journeyIntro')}</p></div></header>
+        {other.notice}
         {(error || loadError) && <p role="alert" className="text-xs text-[var(--fc-state-danger)]">{error || loadError} {loadError && <button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button>}</p>}
         <div className="rc-journey-counts">{pills.map((pill) => <span key={pill.label}>{pill.label} · {pill.count}</span>)}</div>
         {!hasActivity && <div className="sd-empty"><Users size={28} /><p>{t('journey.empty')}</p><button type="button" className="sd-button" onClick={() => navigate('/map')}>{t('journey.browseClubs')}<ArrowUpRight size={14} /></button></div>}

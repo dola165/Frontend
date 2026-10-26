@@ -5,6 +5,11 @@
 .gk .gk-profile__cover { position: relative; height: clamp(80px, 6vw, 112px); border-radius: var(--gk-r-lg); overflow: hidden; background: var(--gk-pitch); border: 1px solid var(--gk-line); }
 .gk .gk-profile__cover-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gk .gk-profile__cover-action { position: absolute; top: var(--gk-3); right: var(--gk-3); display: flex; gap: var(--gk-2); }
+/* Your own profile without a cover or photo: the empty places themselves are the way to fill them. */
+.gk .gk-profile__cover--empty { height: 56px; display: grid; place-items: center; background: transparent; border: 1px dashed var(--gk-line-strong); }
+.gk .gk-profile__add-photo { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 2px dashed color-mix(in srgb, var(--gk-accent) 60%, transparent); border-radius: inherit; background: var(--gk-accent-soft); color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-xs); font-weight: 650; line-height: 1.1; cursor: pointer; }
+.gk .gk-profile__add-photo svg { width: 20px; height: 20px; }
+.gk .gk-profile__add-photo:focus-visible { outline: none; box-shadow: var(--gk-focus); }
 
 .gk .gk-profile__identity { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: var(--gk-3) var(--gk-5); padding: var(--gk-5) 0 var(--gk-5); }
 .gk .gk-profile__head--cover .gk-profile__identity { padding-top: 0; padding-left: var(--gk-5); }

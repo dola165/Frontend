@@ -29,24 +29,24 @@ it('saves the competition-zone kickoff through the canonical pitch-slot operatio
     await waitFor(() => expect(operation).toHaveBeenCalledWith(8, 'fixtures/postpone', expect.objectContaining({ fixtureId: 4, startsAt: '2026-01-10T19:30:00.000Z', pitch: 2, revision: 3, reason: 'Updated published timetable' })));
 });
 it('records a tied score without inventing a penalty winner', async () => {
-    open(); fireEvent.change(screen.getByLabelText('Home score'), { target: { value: '1' } }); fireEvent.change(screen.getByLabelText('Away score'), { target: { value: '1' } });
+    open(); fireEvent.change(screen.getAllByLabelText(/^Goals for/)[0], { target: { value: '1' } }); fireEvent.change(screen.getAllByLabelText(/^Goals for/)[1], { target: { value: '1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm final result' }));
     await waitFor(() => expect(saveCompetitionResult).toHaveBeenCalledWith(8, expect.objectContaining({ fixtureId: 4, action: 'COMPLETE', homeScore: 1, awayScore: 1, winnerEntryId: null, revision: 3 })));
     expect(screen.queryByRole('combobox', { name: 'Winner after penalties' })).not.toBeInTheDocument();
 });
 it('keeps the original result intent and entered scores after an uncertain response', async () => {
     vi.mocked(saveCompetitionResult).mockRejectedValueOnce(new Error('Connection lost')).mockResolvedValue(tournament);
-    open(); fireEvent.change(screen.getByLabelText('Home score'), { target: { value: '2' } }); fireEvent.change(screen.getByLabelText('Away score'), { target: { value: '0' } });
+    open(); fireEvent.change(screen.getAllByLabelText(/^Goals for/)[0], { target: { value: '2' } }); fireEvent.change(screen.getAllByLabelText(/^Goals for/)[1], { target: { value: '0' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm final result' }));
     await screen.findByRole('heading', { name: 'Confirm an interrupted submission' });
-    expect(screen.getByLabelText('Home score')).toHaveValue(2);
+    expect(screen.getAllByLabelText(/^Goals for/)[0]).toHaveValue('2');
     fireEvent.click(screen.getByRole('button', { name: 'Confirm final result' }));
     await waitFor(() => expect(saveCompetitionResult).toHaveBeenCalledTimes(2));
     expect(vi.mocked(saveCompetitionResult).mock.calls[1][1]).toEqual(vi.mocked(saveCompetitionResult).mock.calls[0][1]);
 });
 it('keeps future results disabled before full time', async () => {
     open({ ...fixture, scheduledAt: '2099-01-10T13:00-05:00' });
-    fireEvent.change(screen.getByLabelText('Home score'), { target: { value: '2' } }); fireEvent.change(screen.getByLabelText('Away score'), { target: { value: '0' } });
+    fireEvent.change(screen.getAllByLabelText(/^Goals for/)[0], { target: { value: '2' } }); fireEvent.change(screen.getAllByLabelText(/^Goals for/)[1], { target: { value: '0' } });
     expect(screen.getByRole('button', { name: 'Confirm final result' })).toBeDisabled(); expect(saveCompetitionResult).not.toHaveBeenCalled();
 });
 

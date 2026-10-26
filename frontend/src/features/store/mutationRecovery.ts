@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../components/auth/emailConfirmationPrompt';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { CommerceDraftContext, useCommerceDraftState } from '../../components/workspace/commerceDraftState';
 import { getAuthSessionId, getStoredUserId } from '../../utils/authStorage';
@@ -53,7 +54,7 @@ export function useStoreMutationRecovery(clubId: number) {
             if (scopeFor(clubId) !== scope || current()?.key !== request.key) return;
             const status = (failure as { response?: { status?: number } })?.response?.status;
             setAttempt({ ...request, state: status && status >= 400 && status < 500 ? 'review' : 'uncertain' });
-            if (active()) setError(extractApiErrorMessage(failure, ct('The change was not confirmed. Retry the original change or review saved products.')));
+            if (active() && !promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, ct('The change was not confirmed. Retry the original change or review saved products.')));
         } finally { inFlight.current = false; }
     };
     const review = () => {

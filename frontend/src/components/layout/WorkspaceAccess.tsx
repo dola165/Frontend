@@ -1,7 +1,7 @@
 import { connectedWorkspaces, type ConnectedWorkspace } from './connectedWorkspaces';
 import { useId, useState, type FocusEvent, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown } from 'lucide-react';
 import { type NavigationCapabilities } from '../../context/navigationCapabilities';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { Crest } from '../../features/world/Crest';
@@ -10,8 +10,6 @@ import { useWorldData } from '../../features/world/useWorldData';
 import '../../design/design.css';
 import './workspace-access.css';
 
-/** The switcher lists a few workspaces; everything else is one tap away under "All my workspaces". */
-const SWITCHER_LIMIT = 4;
 const clubIdOf = (workspace: ConnectedWorkspace) => workspace.key.startsWith('club:') ? Number(workspace.key.slice(5)) : null;
 
 function WorkspaceCrest({ workspace, size }: { workspace: ConnectedWorkspace; size: number }) {
@@ -47,10 +45,9 @@ export function WorkspaceAccess({ caps, userId }: { caps?: NavigationCapabilitie
       {others.length > 0 && <button type="button" className="workspace-access__switch" aria-expanded={open} aria-controls={id} aria-label={copy('Switch workspace', 'სამუშაო სივრცის შეცვლა')} onClick={() => setOpen(!open)}><ChevronsUpDown size={16} aria-hidden="true" /></button>}
     </div>
     {open && <nav id={id} aria-label={copy('Switch workspace', 'სამუშაო სივრცის შეცვლა')} className="workspace-access-list">
-      {others.slice(0, SWITCHER_LIMIT).map(w => <Link key={w.key} to={w.path} className="workspace-access-link" title={w.label} onClick={() => select(w.path)}>
+      {others.map(w => <Link key={w.key} to={w.path} className="workspace-access-link" title={w.label} onClick={() => select(w.path)}>
         <WorkspaceCrest workspace={w} size={28} /><span><strong>{w.label}</strong><small>{subtitle(w)}</small></span>
       </Link>)}
-      <Link className="workspace-access-link workspace-access-all" to="/workspaces" onClick={() => setOpen(false)}>{copy('All my workspaces', 'ყველა სამუშაო სივრცე')}<ArrowUpRight size={14} aria-hidden="true" /></Link>
     </nav>}
   </div>;
 }

@@ -11,6 +11,7 @@ import { matchState } from '../../scoreboard/matchState';
 import type { Arrangement } from './arrangements';
 import type { Fixture } from './fixtures';
 import { eventWhen, fixtureTitle } from './matchPlaces';
+import { isOfficial } from '../../../scores/status';
 
 export const HOSTING: Record<string, string> = { HOME: 'They host', AWAY: 'They travel', EITHER: 'Either ground' };
 const TAG_TONE = { danger: 'danger', warning: 'warning', neutral: undefined } as const;
@@ -42,7 +43,7 @@ export const opponentOf = (m: Match) => m.opponent_name ? [m.opponent_name, m.op
 
 /** One of my arrangements in the Browse area: both sides, the score once agreed, and what it waits for. */
 export function arrangementLine({ m, code, wait, lane, mine }: Arrangement, places?: Places): BrowseLine {
-    const scored = lane === 'played' && m.result_status === 'CONFIRMED';
+    const scored = lane === 'played' && isOfficial(m.result_status);
     return {
         when: listingWhen(m), title: m.opponent_name ? `${m.club_name} v ${m.opponent_name}` : m.title, to: `/match-exchange/${m.event_id}`, action: wt('Open match'), peek: peekOf('match', code),
         sides: { home: { name: `${m.club_name} ${m.squad_name}`, crest: m.club_logo_url, mine: mine.home, score: scored ? m.home_score : null },

@@ -2,7 +2,6 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import type {
     BulkApplicationDecisionRequestPayload,
     BulkApplicationDecisionResponse,
-    ClubInviteCandidate,
     ClubJourney,
     ClubManagementOverview,
     ClubMembershipApplication,
@@ -25,17 +24,6 @@ export const fetchClubManagementOverview = async (clubId: number) => {
     return response.data;
 };
 
-export const searchClubInviteCandidates = async (clubId: number, query: string, page = 0, size = 8) => {
-    const response = await apiClient.get<PageResult<ClubInviteCandidate>>(`/clubs/${clubId}/management/user-search`, {
-        params: { query, page, size }
-    });
-    return response.data;
-};
-
-export const createClubInvitation = async (clubId: number, userId: number, role: ClubMembershipRole) => {
-    await apiClient.post(`/clubs/${clubId}/management/invitations`, { userId, role });
-};
-
 export const cancelClubInvitation = async (clubId: number, inviteId: number) => {
     await apiClient.delete(`/clubs/${clubId}/management/invitations/${inviteId}`);
 };
@@ -55,33 +43,12 @@ export const declineClubInvitation = async (inviteId: number, config?: AuthSessi
     return response.data;
 };
 
-export const updateClubMemberRole = async (clubId: number, userId: number, role: ClubMembershipRole) => {
-    await apiClient.patch(`/clubs/${clubId}/management/members/${userId}/role`, { role });
-};
-
 export const removeClubMember = async (clubId: number, userId: number) => {
     await apiClient.post(`/clubs/${clubId}/management/members/${userId}/remove`);
 };
 
 export const dissolveClub = async (clubId: number) => {
     await apiClient.post(`/clubs/${clubId}/dissolve`);
-};
-
-export interface ClubDepartureCommand { requestId: string; snapshot: string }
-
-export const prepareStaffDeparture = async (clubId: number): Promise<ClubDepartureCommand> => {
-    const response = await apiClient.get<{ clubId: number; departureSnapshots: { STAFF: string } }[]>('/me/club-relationships');
-    const snapshot = response.data.find(row => row.clubId === clubId)?.departureSnapshots?.STAFF;
-    if (!snapshot) throw new Error('Refresh your club responsibilities before confirming departure.');
-    return { requestId: crypto.randomUUID(), snapshot };
-};
-
-export const leaveClubMembership = async (clubId: number, command: ClubDepartureCommand) => {
-    await apiClient.post(`/clubs/${clubId}/membership/leave`, command);
-};
-
-export const transferClubOwnership = async (clubId: number, userId: number) => {
-    await apiClient.post(`/clubs/${clubId}/ownership/transfer`, { userId });
 };
 
 export const fetchPendingClubApplications = async (clubId: number) => {
@@ -394,7 +361,7 @@ export const fetchMyPlayerCards = async () => {
 };
 
 export const activatePlayerCard = async (cardId: number, dateOfBirth: string, email: string) => {
-    const response = await apiClient.post<{ username: string; email: string; status: string }>(
+    const response = await apiClient.post<{ status: 'INVITED'; email: string; sentAt: string | null }>(
         `/player-cards/${cardId}/activate`,
         { dateOfBirth, email }
     );

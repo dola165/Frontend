@@ -7,6 +7,7 @@ import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { joinStaffInvite, previewStaffInvite, type StaffInvitePreview } from '../features/clubOperations/people/inviteLinkApi';
 import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
 import { useAdultOnly } from '../hooks/useAdultOnly';
+import { useOtherClub } from '../features/clubOperations/leaving/useOtherClub';
 import { AdultOnlyNote } from '../components/access/AdultOnlyNote';
 import { refreshAccess } from '../hooks/useCan';
 import { extractApiErrorMessage } from '../utils/apiError';
@@ -33,6 +34,7 @@ function StaffLink({ code }: { code: string }) {
     const { isAuthenticated, isBootstrapping, refreshNavigationCapabilities } = useAuth();
     const { copy, jobName } = useJobWords();
     const adult = useAdultOnly('job');
+    const other = useOtherClub();
     const [stage, setStage] = useState<Stage>({ kind: 'loading' });
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
     useEffect(() => {
@@ -51,7 +53,9 @@ function StaffLink({ code }: { code: string }) {
             navigate(!preview.clubWide && joined.squads.length ? '/my-squads' : `/clubs/${joined.clubId}/workspace`, { replace: true });
         } catch (failure) {
             // "Confirm your email to start as Assistant coach", with Resend, when the server waits on the email.
-            if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
+            // Staff means one club: "Leave {club} first", then Join again.
+            if (!other.catchOther(failure, () => void join(preview)) && !promptEmailConfirmation(failure))
+                setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
             setBusy(false);
         }
     };
@@ -79,6 +83,7 @@ function StaffLink({ code }: { code: string }) {
         {closed ? <p role="alert" className="gk-notice gk-notice--warning">{closed}</p> : <>
             <p className="ci-email gk-faint">{copy(`Works until ${formatDate(preview.expiresAt, { day: 'numeric', month: 'short' })}`, `მოქმედებს ${formatDate(preview.expiresAt, { day: 'numeric', month: 'short' })}-მდე`)}</p>
             {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
+            {other.notice}
             <div className="ci-actions">{isAuthenticated && !adult.allowed ? <AdultOnlyNote adult={adult} />
                 : isAuthenticated ? <Button variant="primary" disabled={busy} onClick={() => void join(preview)}>{busy ? copy('Joining…', 'შემოდიხართ…') : copy(`Join as ${job}`, `შემოსვლა: ${job}`)}</Button>
                 : <>

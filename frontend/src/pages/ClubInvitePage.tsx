@@ -4,6 +4,8 @@ import { ShieldCheck } from 'lucide-react';
 import { Avatar, Button, Field, GkRoot } from '../design/primitives';
 import { useAuth } from '../context/AuthContext';
 import { isMinor } from '../utils/age';
+import { otherClubOf } from '../features/clubOperations/leaving/api';
+import { OtherClubNotice } from '../features/clubOperations/leaving/OtherClubNotice';
 import { confirmationJobTitle, needsConfirmedEmail, sendEmailConfirmation } from '../components/auth/emailConfirmation';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { acceptClubInvite, claimClubInvite, declineClubInvite, landingFor, previewClubInvite, signInAfterClaim, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
@@ -12,7 +14,7 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { buildLoginPath } from '../utils/authRedirect';
 import '../features/clubOperations/people/club-invite.css';
 
-type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' } | { kind: 'partly'; failures: string[]; next: string; waitsOnEmail: string | null };
+type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' } | { kind: 'partly'; failures: string[]; next: string; waitsOnEmail: string | null; other: { clubId: number; name: string } | null; blocked: LinkInvite[] };
 
 /**
  * The page a club invite link opens: "Nino invited you: Assistant coach · U12" with the club's crest. The person
@@ -59,23 +61,29 @@ function ClubInvite({ token }: { token: string }) {
                 .then(async found => { if (found) await loginWithAccessToken(found); return found; })
                 .catch(() => null);
             if (!accessToken) { navigate(buildLoginPath('/notifications'), { replace: true }); return; }
-            const open = preview.invites.filter(i => !i.unavailableReason);
-            const failures: string[] = [], accepted: LinkInvite[] = [];
-            let waitsOnEmail: string | null = null;
-            for (const invite of open) {
-                try { await acceptClubInvite(invite); accepted.push(invite); }
-                catch (failure) {
-                    // A new account confirms its email before starting a job; the job waits in the notifications meanwhile.
-                    if (needsConfirmedEmail(failure)) waitsOnEmail ??= confirmationJobTitle(failure) ?? jobLabel(invite);
-                    else failures.push(`${jobLabel(invite)}: ${extractApiErrorMessage(failure, copy('it couldn’t be accepted.', 'ვერ მიიღეს.'))}`);
-                }
-            }
-            const next = !accepted.length && waitsOnEmail ? '/notifications' : landingFor(accepted);
-            if (failures.length || waitsOnEmail) setStage({ kind: 'partly', failures, next, waitsOnEmail });
-            else navigate(next, { replace: true });
+            await acceptAll(preview.invites.filter(i => !i.unavailableReason));
         } catch (failure) {
             setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
         } finally { sending.current = false; setBusy(false); }
+    };
+    /** Accepts each job the normal way; also the retry once the person has left the club they were staff at. */
+    const acceptAll = async (invites: LinkInvite[]) => {
+        const failures: string[] = [], accepted: LinkInvite[] = [], blocked: LinkInvite[] = [];
+        let waitsOnEmail: string | null = null, other: { clubId: number; name: string } | null = null;
+        for (const invite of invites) {
+            try { await acceptClubInvite(invite); accepted.push(invite); }
+            catch (failure) {
+                const club = otherClubOf(failure);
+                // A new account confirms its email before starting a job; the job waits in the notifications meanwhile.
+                if (needsConfirmedEmail(failure)) waitsOnEmail ??= confirmationJobTitle(failure) ?? jobLabel(invite);
+                // Staff means one club: "Leave {club} first", then these are accepted again.
+                else if (club) { other ??= club; blocked.push(invite); }
+                else failures.push(`${jobLabel(invite)}: ${extractApiErrorMessage(failure, copy('it couldn’t be accepted.', 'ვერ მიიღეს.'))}`);
+            }
+        }
+        const next = !accepted.length && (waitsOnEmail || other) ? '/notifications' : landingFor(accepted);
+        if (failures.length || waitsOnEmail || other) setStage({ kind: 'partly', failures, next, waitsOnEmail, other, blocked });
+        else navigate(next, { replace: true });
     };
     const decline = async () => {
         if (sending.current) return;
@@ -98,6 +106,7 @@ function ClubInvite({ token }: { token: string }) {
     </>);
     if (stage.kind === 'partly') return card(<>
         <h1 className="ci-title">{copy('Your account is ready', 'თქვენი ანგარიში მზადაა')}</h1>
+        {stage.other && <OtherClubNotice club={stage.other} onLeft={() => void acceptAll(stage.blocked)} />}
         {stage.waitsOnEmail && <EmailWait job={stage.waitsOnEmail} />}
         {stage.failures.length > 0 && <div role="alert" className="gk-notice gk-notice--warning"><ul className="ci-failures">{stage.failures.map(f => <li key={f}>{f}</li>)}</ul></div>}
         <Button variant="primary" onClick={() => navigate(stage.next, { replace: true })}>{copy('Continue', 'გაგრძელება')}</Button>

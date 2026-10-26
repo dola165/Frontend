@@ -9,7 +9,8 @@ import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { ageRefusedRecently, rememberAgeRefusal } from '../components/auth/ageRefusal';
 import { UnderThirteenNotice } from '../components/auth/UnderThirteenNotice';
 import { Turnstile } from '../components/auth/Turnstile';
-import { BOT_CHECK_CODES, turnstileEnabled } from '../components/auth/turnstileConfig';
+import { BOT_CHECK_CODES } from '../components/auth/turnstileConfig';
+import { useBotCheck } from '../components/auth/useBotCheck';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
@@ -86,8 +87,7 @@ export const RegisterPage = () => {
     const [parentStep, setParentStep] = useState(false);
     const [parentEmail, setParentEmail] = useState('');
     // The bot check, when the server asks for one: a token is good for one try, so each try gets a new check.
-    const [botToken, setBotToken] = useState<string | null>(null);
-    const [botRound, setBotRound] = useState(0);
+    const bot = useBotCheck();
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
 
     const passwordRules = [
@@ -133,7 +133,7 @@ export const RegisterPage = () => {
 
     const handleRegister = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (registration.current || isLoading || !validate() || (turnstileEnabled && !botToken)) return;
+        if (registration.current || isLoading || !validate() || !bot.ready) return;
         // Under 13, or a refusal on this device in the last day: no account and nothing sent.
         if (isUnder13(dob) || ageRefusedRecently()) {
             rememberAgeRefusal();
@@ -159,7 +159,7 @@ export const RegisterPage = () => {
                 dateOfBirth: dob,
                 continuationPath: publicContinuationPath(nextPath),
                 ...(parentStep ? { parentEmail: parentEmail.trim().toLowerCase() } : {}),
-                ...(botToken ? { turnstileToken: botToken } : {}),
+                ...(bot.token ? { turnstileToken: bot.token } : {}),
             }, { signal: controller.signal });
             if (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current)) return;
 
@@ -178,7 +178,7 @@ export const RegisterPage = () => {
             navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, true), { replace: true });
         } catch (requestError) {
             if (!installingSession && (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current))) return;
-            if (!installingSession && turnstileEnabled) { setBotToken(null); setBotRound(round => round + 1); }
+            if (!installingSession && bot.enabled) bot.renew();
             // A known email is offered sign-in instead of a second account. Nothing about that account is shown.
             if (!installingSession && accountExists(requestError)) {
                 if (ageFromDob(dob) < 18) { setFieldErrors({ email: t('auth.register.emailUsedMinor') }); return; }
@@ -328,8 +328,8 @@ export const RegisterPage = () => {
                                 className={fieldClass('parent')} aria-invalid={Boolean(fieldErrors.parent)} aria-describedby={describedBy('auth-parent-email', 'parent')} />
                             {fieldError('auth-parent-email', 'parent')}
                         </div>}
-                        {turnstileEnabled && <Turnstile key={botRound} onToken={setBotToken} />}
-                        <button type="submit" disabled={isLoading || (turnstileEnabled && !botToken)} className={authPrimaryButtonClass}>
+                        <Turnstile check={bot} />
+                        <button type="submit" disabled={isLoading || !bot.ready} className={authPrimaryButtonClass}>
                             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : parentStep ? t('auth.register.parentSubmit') : t('auth.register.submit')}
                         </button>
                     </form>

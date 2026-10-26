@@ -70,6 +70,8 @@ describe('which version a person is on', () => {
         expect(s).toMatchObject({ release: 4, split: true, exact: false });
         expect(comparedWithLive(english, s)).toBe('Backend and web are on different releases (backend 5, web 4).');
         expect(liveSourceLine(english, s)).toMatch(/did not answer.*Live may be newer/);
+        const asking = standing(versions({ live: { release: 5, changes: 0, source: 'ASKING', checkedAt: null } }), build(graph.slice(2)));
+        expect(liveSourceLine(english, asking)).toMatch(/being asked.*newest release your copy knows/);
     });
 
     it('a release recorded in this copy that live does not run yet', () => {

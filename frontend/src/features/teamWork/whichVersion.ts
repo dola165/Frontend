@@ -9,7 +9,7 @@ import { commitId, type Repo } from './upToDate';
  */
 
 export type Place = 'LIVE' | 'COPY';
-export type LiveSource = 'HERE' | 'LIVE_SITE' | 'NO_ANSWER' | 'NOT_ASKED';
+export type LiveSource = 'HERE' | 'LIVE_SITE' | 'NO_ANSWER' | 'ASKING' | 'NOT_ASKED';
 export type MatchedBy = 'LISTED' | 'COMMIT' | 'BRANCH' | 'KEY' | 'MARKED_LIVE';
 export interface Words { en: string; ka: string }
 export interface ReleaseTask { id: number; key: string; title: string; status: string; how: MatchedBy }
@@ -181,6 +181,8 @@ export function liveSourceLine(copy: Copy, s: Standing): string {
     switch (s.live.source) {
         case 'HERE': return copy('This server is the live site.', 'ეს სერვერი ლაივ საიტია.');
         case 'LIVE_SITE': return copy('The live site said which release it runs.', 'ლაივ საიტმა თქვა, რომელი რელიზი მუშაობს.');
+        case 'ASKING': return copy('The live site is being asked which release it runs; until it answers, live is taken as the newest release your copy knows. Open this page again in a moment.',
+            'ლაივ საიტს ეკითხება, რომელი რელიზი მუშაობს; პასუხამდე ლაივად ითვლება უახლესი რელიზი, რომელიც თქვენმა ასლმა იცის. ცოტა ხანში ისევ გახსენით ეს გვერდი.');
         case 'NO_ANSWER': return copy('The live site did not answer (it may be behind the preview password), so live is taken as the newest release your copy knows. Live may be newer.',
             'ლაივ საიტმა არ უპასუხა (შეიძლება პაროლით არის დაკეტილი), ამიტომ ლაივად ითვლება უახლესი რელიზი, რომელიც თქვენმა ასლმა იცის. ლაივი შეიძლება უფრო ახალი იყოს.');
         default: return copy('Live is taken as the newest release your copy knows: no live address is set here.', 'ლაივად ითვლება უახლესი რელიზი, რომელიც თქვენმა ასლმა იცის: ლაივის მისამართი აქ არ არის.');

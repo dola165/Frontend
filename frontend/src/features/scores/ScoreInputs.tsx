@@ -3,7 +3,8 @@ import { useResultCopy } from '../matchHistory/copy';
 import type { GoalsDraft } from './goals';
 import './scores.css';
 
-export type Team = { name: string; logo?: string | null };
+/** A side of the match; `clubId` where known, for links to that club's own settings. */
+export type Team = { name: string; logo?: string | null; clubId?: number | null };
 
 /** The score as two big boxes under the two crests, home first: the one way a score is typed anywhere in the app. */
 export function ScoreInputs({ home, away, value, onChange, disabled, autoFocus }: {

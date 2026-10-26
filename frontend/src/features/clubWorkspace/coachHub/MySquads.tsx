@@ -95,7 +95,7 @@ function ResultsToAdd({ data }: { data: CoachData }) {
         <Section boxed icon={Trophy} title={result('Scores', 'ანგარიშები')} hint={`${played.length}`}><Panel flush><DayAgenda label={result('Scores', 'ანგარიშები')} items={items} limit={6} /></Panel></Section>
         {/* A Match Exchange match reads its own home and away; a calendar match has this club at home. */}
         {adding && <ScoreDialog target={adding.matchExchangeId ? { kind: 'EXCHANGE', eventId: adding.matchExchangeId } : { kind: 'CALENDAR', eventId: adding.eventId }}
-            teams={adding.matchExchangeId ? undefined : { home: { name: data.clubName, logo: data.clubLogo }, away: { name: adding.opponentClubName || result('Opponent', 'მეტოქე') } }}
+            teams={adding.matchExchangeId ? undefined : { home: { name: data.clubName, logo: data.clubLogo, clubId: data.clubId }, away: { clubId: adding.opponentClubId, name: adding.opponentClubName || result('Opponent', 'მეტოქე') } }}
             title={adding.title} description={`${adding.title} · ${dayLabel(adding.startsAt, data.now)} ${timeLabel(adding.startsAt)}`}
             onClose={() => setAdding(null)} onChanged={data.refresh} />}
     </>;

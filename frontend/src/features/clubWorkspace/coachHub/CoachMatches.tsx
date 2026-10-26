@@ -108,7 +108,7 @@ export function CoachMatches({ data }: { data: CoachData }) {
                 onSent={() => { setArranging(false); setRevision(value => value + 1); data.refresh(); }} /></div>
         </Dialog>}
         {adding && <ScoreDialog target={{ kind: adding.source === 'MATCH_EXCHANGE' ? 'EXCHANGE' : 'CALENDAR', eventId: adding.sourceId }} title={adding.title}
-            teams={{ home: { name: adding.homeClubName ?? '', logo: adding.homeClubId === data.clubId ? data.clubLogo : null }, away: { name: adding.awayClubName ?? '', logo: adding.awayClubId === data.clubId ? data.clubLogo : null } }}
+            teams={{ home: { name: adding.homeClubName ?? '', logo: adding.homeClubId === data.clubId ? data.clubLogo : null, clubId: adding.homeClubId }, away: { name: adding.awayClubName ?? '', logo: adding.awayClubId === data.clubId ? data.clubLogo : null, clubId: adding.awayClubId } }}
             description={adding.startsAt ? `${adding.title} · ${dayLabel(adding.startsAt, data.now)} ${timeLabel(adding.startsAt)}` : adding.title}
             onClose={() => setAdding(null)} onChanged={() => { setRevision(value => value + 1); data.refresh(); }} />}
     </PageFrame>;

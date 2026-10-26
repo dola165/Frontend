@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { MatchScore } from '../MatchScore';
 import { getScoreRecord, writeScore, type ScoreRecord } from '../api';
 
@@ -111,4 +112,23 @@ it('never offers a correction for a two-sided score', async () => {
   render(<MatchScore eventId={12} {...teams} />);
   expect(await screen.findByText('Final')).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Correct the score' })).not.toBeInTheDocument();
+});
+
+it('tells the clubs’ staff why a score is private, and links an unknown age group to that squad', async () => {
+  const privateFinal = { ...reported, status: 'FINAL' as const, official: true, homeScore: 2, awayScore: 1 };
+  vi.mocked(getScoreRecord).mockResolvedValue({ ...privateFinal, hiddenReason: 'AGE_UNKNOWN', ageUnknownSquadIds: [41], permissions: { parties: ['AWAY'], report: [], respond: [], settle: [], correct: [] } });
+  const { unmount } = render(<MemoryRouter><MatchScore eventId={12} home={{ name: 'Dinamo', clubId: 1 }} away={{ name: 'Saburtalo', clubId: 7 }} /></MemoryRouter>);
+  expect(await screen.findByText(/Only your club sees this/)).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Set the age group' })).toHaveAttribute('href', '/clubs/7/workspace?tab=squads&squad=41&edit=1');
+  unmount();
+  vi.mocked(getScoreRecord).mockResolvedValue({ ...privateFinal, hiddenReason: 'UNDER_ELEVEN', ageUnknownSquadIds: [] });
+  render(<MemoryRouter><MatchScore eventId={12} {...teams} /></MemoryRouter>);
+  expect(await screen.findByText('Under-11 results are private to the two clubs and their families.')).toBeInTheDocument();
+});
+
+it('says nothing about privacy to anyone the server tells no reason', async () => {
+  vi.mocked(getScoreRecord).mockResolvedValue({ ...reported, hiddenReason: null, ageUnknownSquadIds: [] });
+  render(<MemoryRouter><MatchScore eventId={12} {...teams} /></MemoryRouter>);
+  expect(await screen.findByText(/Reported by Dinamo/)).toBeInTheDocument();
+  expect(screen.queryByText(/private|Only your club/)).not.toBeInTheDocument();
 });

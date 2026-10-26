@@ -23,7 +23,7 @@ type ResultSectionProps = {
 
 /** The two teams of a listing, as the score card names them. */
 const matchTeams = (match: Match, opponent = 'Opponent'): ScoreTeams => ({
-  home: { name: match.club_name, logo: match.club_logo_url }, away: { name: match.opponent_name || opponent },
+  home: { name: match.club_name, logo: match.club_logo_url, clubId: match.club_id }, away: { name: match.opponent_name || opponent, clubId: match.opponent_club_id },
 });
 
 export function MatchResultSection(props: ResultSectionProps) {

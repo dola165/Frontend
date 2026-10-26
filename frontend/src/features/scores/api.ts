@@ -15,6 +15,11 @@ export type ScoreSide = 'HOME' | 'AWAY' | 'REFEREE';
 export type ScoreKind = 'EXCHANGE' | 'CALENDAR';
 export type ScoreTarget = { kind: ScoreKind; eventId: number };
 export type Goals = { home: number; away: number };
+/**
+ * Why a score is private, told only to the two clubs' staff: an under-11 match, or a squad whose age group is not set
+ * (then `ageUnknownSquadIds` names the viewer's own squads to set). Null and empty for everyone else.
+ */
+export type ScorePrivacy = { hiddenReason?: 'UNDER_ELEVEN' | 'AGE_UNKNOWN' | null; ageUnknownSquadIds?: number[] };
 export type ScoreVersion = { homeScore: number | null; awayScore: number | null; side: ScoreParty; at: string };
 export type ScoreSettlement = { choice: 'REPORTED' | 'DISPUTED' | 'CORRECTED'; homeScore: number; awayScore: number; side: 'REFEREE' | 'ORGANISER'; at: string };
 export type ScoreHistory = {
@@ -37,13 +42,13 @@ export type ScoreRecord = {
   /** The parties the reader holds, and under which each action is open now: the buttons follow these. */
   permissions: { parties: ScoreSide[]; report: ScoreSide[]; respond: ('HOME' | 'AWAY')[]; settle: ('REFEREE' | 'ORGANISER')[]; correct: ('HOME' | 'AWAY')[] };
   history: ScoreHistory[];
-};
+} & ScorePrivacy;
 /** What any permitted viewer may see: no identities, reasons or history. `scorePrivate` is an under-11 match the viewer is not part of. */
 export type ScoreSummary = {
   eventId: number; kind: ScoreKind; oneSided: boolean; status: ScoreStatus; fixtureStatus: string; revision: number;
   homeScore: number | null; awayScore: number | null; reported: Goals | null; disputed: Goals | null;
   official: boolean; legacy: boolean; scorePrivate: boolean; canReadAudit: boolean;
-};
+} & ScorePrivacy;
 
 type Stamp = { revision: number; requestId: string };
 export type ScoreWrite =

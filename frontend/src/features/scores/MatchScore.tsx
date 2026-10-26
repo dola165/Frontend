@@ -12,6 +12,7 @@ import { getScoreRecord, writeScore, type ScoreKind, type ScoreRecord, type Scor
 import { correctWindow, disputeWindow, goals, partyName, scoreState } from './status';
 import { ScoreAnswer } from './ScoreAnswer';
 import { ScoreHistoryList } from './ScoreHistoryList';
+import { ScorePrivacyNote } from './ScorePrivacyNote';
 import type { Team } from './ScoreInputs';
 import './scores.css';
 
@@ -136,6 +137,7 @@ function ScoreCard({ eventId, kind = 'EXCHANGE', revision, home, away, onChanged
       : copy('No referee or organiser can settle this friendly, so both scores stay.', 'ამ ამხანაგურ მატჩს მსაჯი ან ორგანიზატორი არ ჰყავს, ამიტომ ორივე ანგარიში რჩება.')}</p>}
     {refereeFirst && <p className="gk-score__meta">{copy(`The referee reports first. If they haven't by ${formatTime(record.deadlines.refereeOnlyUntil!)}, you can.`, `ჯერ მსაჯი შეიტანს. თუ ${formatTime(record.deadlines.refereeOnlyUntil!)}-მდე არ შეიტანა, შეძლებთ თქვენ.`)}</p>}
     {record.status === 'NONE' && !record.permissions.report.length && !refereeFirst && !cancelled && <p className="gk-score__quiet">{copy('No score has been reported yet.', 'ანგარიში ჯერ არ შეუტანიათ.')}</p>}
+    <ScorePrivacyNote record={record} home={home} away={away} />
     {error && <p className="gk-score__error" role="alert">{error}</p>}
     {notice && <p className="gk-score__notice" role="status">{notice}</p>}
     {!cancelled && <ScoreAnswer record={record} home={home} away={away} busy={busy} send={send} />}

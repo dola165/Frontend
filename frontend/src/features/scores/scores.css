@@ -9,6 +9,9 @@
 .gk .gk-score__goals { font-family: var(--gk-font-display); font-size: 28px; line-height: 32px; font-weight: 650; white-space: nowrap; }
 .gk .gk-score__meta, .gk .gk-score__quiet { margin: 0; color: var(--gk-text-2); }
 .gk .gk-score__error { margin: 0; color: var(--gk-danger); }
+.gk .gk-score__private { display: flex; align-items: flex-start; gap: var(--gk-2); margin: 0; color: var(--gk-text-2); }
+.gk .gk-score__private svg { flex: none; width: 14px; height: 14px; margin-top: 2px; }
+.gk .gk-score__private a { margin-left: var(--gk-2); color: var(--gk-accent); font-weight: 600; white-space: nowrap; }
 .gk .gk-score__notice { margin: 0; color: var(--gk-accent); }
 .gk .gk-score__versions { display: grid; gap: var(--gk-1); margin: 0; padding: 0; list-style: none; }
 .gk .gk-score__versions li { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); padding: var(--gk-2) var(--gk-3); border-radius: var(--gk-r); background: var(--gk-danger-soft); }

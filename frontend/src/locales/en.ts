@@ -1052,6 +1052,8 @@ const en = {
       sentHint: 'Ask them to open the email. If nobody approves within 7 days, the account is removed.',
       resend: 'Send again',
       change: 'Use another email',
+      keep: 'Keep {{email}}',
+      loadFailed: 'This could not be loaded. Check your connection and try again.',
       wait: 'You can send again in {{seconds}} seconds.',
       approved: 'Your parent approved. You’re in.',
       continue: 'Continue',

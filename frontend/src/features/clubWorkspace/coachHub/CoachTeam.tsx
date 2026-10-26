@@ -48,10 +48,11 @@ export function CoachTeam({ data }: { data: CoachData }) {
     const staffName = (id: number | null) => data.boot?.staff.find(person => person.id === id)?.name ?? null;
     const responsibilities = focusableViews(roles.views);
     const ownSquads = roles.squads.filter(squad => roles.headCoachSquads?.includes(squad.id));
-    const suggest = useCan(`club:${data.clubId}`).decide('suggest_assistant', ownSquads.length > 0).allowed && ownSquads.length > 0;
+    const access = useCan(`club:${data.clubId}`);
+    const suggest = access.decide('suggest_assistant', ownSquads.length > 0).allowed && ownSquads.length > 0;
 
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title={copy('coaches')} actions={suggest ? <Button onClick={() => setSuggesting(true)}><UserPlus aria-hidden="true" />{copy('suggestAssistant')}</Button> : undefined} />
+        <PageHeader title={copy('coaches')} actions={suggest ? <Button disabled={access.pending} onClick={() => setSuggesting(true)}><UserPlus aria-hidden="true" />{copy('suggestAssistant')}</Button> : undefined} />
         <SquadSwitch data={data} />
         <div className="gk-stack">
             {!data.squads ? <Skeleton height={150} />

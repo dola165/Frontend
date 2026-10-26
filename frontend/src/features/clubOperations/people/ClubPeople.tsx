@@ -51,7 +51,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
 
     const can = useCan(`club:${clubId}`);
     const leader = Boolean(view?.viewer.leader), headCoachSquads = view?.viewer.headCoachSquads ?? [];
-    const rights: PeopleRights = { invite: can.decide('invite_staff', leader).allowed, change: can.decide('change_job', leader).allowed, end: can.decide('end_job', leader).allowed };
+    const rights: PeopleRights = { pending: can.pending, invite: can.decide('invite_staff', leader).allowed, change: can.decide('change_job', leader).allowed, end: can.decide('end_job', leader).allowed };
     const inviteAdmin = can.decide('make_admin', leader).allowed;
     const suggest = can.decide('suggest_assistant', !leader && headCoachSquads.length > 0);
     const refused = [can.decide('invite_staff', leader), suggest].find(decision => !decision.allowed && decision.askAdmin);
@@ -100,21 +100,23 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     };
     const invited = ending && (ending.job.status === 'INVITED' || ending.job.kind.endsWith('INVITE'));
     const ownSquads = view?.squads.filter(s => headCoachSquads.includes(s.id)) ?? [];
+    // A suggestion is always for a squad the person leads: no squad, no button (as in Coach team).
+    const canSuggest = suggest.allowed && ownSquads.length > 0;
     const suggestions = view ? suggestionsIn(view.people).filter(s => leader || s.job.suggestedById === view.viewer.userId) : [];
     const activeLinks = staff.links ?? [];
 
     return <PageFrame className="cw-page pp-page">
         <PageHeader title={copy('People', 'ხალხი')} subtitle={copy('Everyone with a job here, and where.', 'ყველა, ვისაც აქ სამუშაო აქვს, და სად.')}
             actions={<>
-                {rights.invite && <Button onClick={() => open('person')}><UserPlus aria-hidden="true" />{copy('Invite one person', 'ერთი ადამიანის მოწვევა')}</Button>}
-                {rights.invite && <Button variant="primary" onClick={() => open('link')}><QrCode aria-hidden="true" />{copy('Invite staff', 'პერსონალის მოწვევა')}</Button>}
-                {suggest.allowed && <Button variant="primary" onClick={() => open('suggest')}><UserPlus aria-hidden="true" />{copy('Suggest an assistant', 'ასისტენტის შეთავაზება')}</Button>}
-                {!rights.invite && !suggest.allowed && refused && <AskAdmin reason={refused.reason} admin={can.admin} />}
+                {rights.invite && <Button disabled={can.pending} onClick={() => open('person')}><UserPlus aria-hidden="true" />{copy('Invite one person', 'ერთი ადამიანის მოწვევა')}</Button>}
+                {rights.invite && <Button variant="primary" disabled={can.pending} onClick={() => open('link')}><QrCode aria-hidden="true" />{copy('Invite staff', 'პერსონალის მოწვევა')}</Button>}
+                {canSuggest && <Button variant="primary" disabled={can.pending} onClick={() => open('suggest')}><UserPlus aria-hidden="true" />{copy('Suggest an assistant', 'ასისტენტის შეთავაზება')}</Button>}
+                {!rights.invite && !canSuggest && refused && <AskAdmin reason={refused.reason} admin={can.admin} />}
             </>} />
         <div className="gk-stack">
             {notice && <p role="status" className="gk-notice cw-notices__success">{notice}</p>}
             {(error || staff.error) && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error || staff.error}</span>
-                {!view && <Button size="sm" onClick={() => setRevision(v => v + 1)}>{copy('Try again', 'თავიდან')}</Button>}</div>}
+                {(!view || (!error && staff.error)) && <Button size="sm" onClick={() => { if (!view) setRevision(v => v + 1); else staff.reload(); }}>{copy('Try again', 'თავიდან')}</Button>}</div>}
             {fresh && <InviteLinkBox name={fresh.name} link={fresh.link} message={fresh.message} onClose={() => setFresh(null)} />}
             {view?.nameChecks.map(check => <div key={check.id} className="gk-notice gk-notice--warning pp-check" role="status">
                 <span className="cw-notices__text">{copy(`Accepted by ${check.acceptedName}, not ${check.invitedName}.`, `მიიღო ${check.acceptedName}-მ და არა ${check.invitedName}-მ.`)}</span>
@@ -149,9 +151,11 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
                 refresh(result.inApp ? copy(`${result.name} already has an account, so the invitation is waiting in their notifications.`, `${result.name}-ს უკვე აქვს ანგარიში, მოწვევა შეტყობინებებში ელოდება.`)
                     : added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`));
             }} />}
-        {view && rights.invite && inviting === 'link' && staff.links && <StaffLinkDialog club={clubId} clubName={clubName} view={view} links={staff.links}
+        {/* Opens at once: while the links load it says so; if they fail, an error line with Try again (remounted once they arrive). */}
+        {view && rights.invite && inviting === 'link' && <StaffLinkDialog key={staff.links ? 'loaded' : 'waiting'} club={clubId} clubName={clubName} view={view} links={staff.links ?? []}
+            loading={staff.links === null && !staff.error} loadError={staff.error} onRetry={staff.reload}
             opened={Number(params.get('link')) || null} onLinks={staff.setLinks} onClose={() => open(null)} onChanged={message => refresh(message)} />}
-        {view && suggest.allowed && inviting === 'suggest' && <SuggestAssistantDialog club={clubId} squads={ownSquads} onClose={() => open(null)}
+        {view && canSuggest && inviting === 'suggest' && <SuggestAssistantDialog club={clubId} squads={ownSquads} onClose={() => open(null)}
             onSent={message => { open(null); refresh(message); }} />}
         <Dialog open={ending !== null} role="alertdialog" size="sm" onClose={() => setEnding(null)}
             title={ending ? `${ending.person.name}: ${jobLabel(ending.job)} · ${whereLabel(ending.job)}` : ''}

@@ -52,9 +52,12 @@ function ClubInvite({ token }: { token: string }) {
         sending.current = true; setBusy(true); setError('');
         try {
             const { email } = await claimClubInvite({ token, name: name.trim(), dateOfBirth: birth, password });
-            const accessToken = await signInAfterClaim(email, password);
+            // The link is used from here on: if signing in fails now, the account exists, so the person signs in
+            // normally (the job waits in their notifications) instead of trying the used link again.
+            const accessToken = await signInAfterClaim(email, password)
+                .then(async found => { if (found) await loginWithAccessToken(found); return found; })
+                .catch(() => null);
             if (!accessToken) { navigate(buildLoginPath('/notifications'), { replace: true }); return; }
-            await loginWithAccessToken(accessToken);
             const open = preview.invites.filter(i => !i.unavailableReason);
             const failures: string[] = [], accepted: LinkInvite[] = [];
             for (const invite of open) {

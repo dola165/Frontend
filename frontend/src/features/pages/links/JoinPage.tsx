@@ -4,6 +4,7 @@ import { CalendarDays, Check, Loader2, User, Users } from 'lucide-react';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { useAdultOnly } from '../../../hooks/useAdultOnly';
+import { AdultOnlyNote } from '../../../components/access/AdultOnlyNote';
 import { fetchJoiningChildren, type JoiningChild } from '../../parents/api';
 import { extractApiErrorCode, extractApiErrorMessage } from '../../../utils/apiError';
 import { buildLoginRedirectPath, buildSignupPath } from '../../../utils/authRedirect';
@@ -114,7 +115,7 @@ export function JoinPage() {
     </Panel>
     : who === 'PARENT' && !guardian.allowed ? <Panel padded>
       {header}
-      <p className="gk-join__lead">{guardian.reason}</p>
+      <AdultOnlyNote adult={guardian} />
       <div className="gk-boxedit__foot"><Button variant="primary" onClick={() => choosing('PLAYER')}>{t('Me')}</Button>{back}</div>
     </Panel>
     : tooOld ? <Panel padded>

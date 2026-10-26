@@ -3,7 +3,8 @@ import type { NotificationItem } from '../../../types/notifications';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { refreshAccess } from '../../../hooks/useCan';
 import { Button } from '../../../design/primitives';
-import { answerSuggestion, fetchPeople, type PersonJob } from './api';
+import { answerSuggestion, fetchPeople, type InviteLink, type PersonJob } from './api';
+import { InviteLinkBox } from './InviteLinkBox';
 import { useJobWords } from './jobWords';
 import './people.css';
 
@@ -22,31 +23,41 @@ export function AssistantSuggestionActions({ notification }: { notification: Not
     const { copy } = useJobWords();
     const club = notification.clubId ?? clubIn(notification.linkPath), appointment = notification.entityId ?? null;
     const relevant = notification.type === 'CLUB_PEOPLE' && notification.entityType === 'club_staff_appointment' && club != null && appointment != null;
-    const [job, setJob] = useState<PersonJob | null>(null);
+    const [found, setFound] = useState<{ job: PersonJob; name: string; clubName: string } | null>(null);
     const [busy, setBusy] = useState(false), [done, setDone] = useState(''), [error, setError] = useState('');
+    const [link, setLink] = useState<InviteLink | null>(null);
     useEffect(() => {
         if (!relevant || club == null) return;
         const controller = new AbortController();
         fetchPeople(club, controller.signal).then(view => {
-            const found = view.people.flatMap(person => person.jobs).find(item => item.kind === 'APPOINTMENT' && item.id === appointment);
-            if (!controller.signal.aborted && found?.status === 'SUGGESTED' && found.canConfirm !== false) setJob(found);
+            const person = view.people.find(p => p.jobs.some(item => item.kind === 'APPOINTMENT' && item.id === appointment));
+            const job = person?.jobs.find(item => item.kind === 'APPOINTMENT' && item.id === appointment);
+            if (!controller.signal.aborted && person && job?.status === 'SUGGESTED' && job.canConfirm !== false)
+                setFound({ job, name: person.name, clubName: notification.clubName ?? '' });
         }).catch(() => { /* Opening the notice still leads to People. */ });
         return () => controller.abort();
-    }, [relevant, club, appointment]);
-    if (!relevant || club == null || (!job && !done)) return null;
+    }, [relevant, club, appointment, notification.clubName]);
+    if (!relevant || club == null || (!found && !done)) return null;
     const decide = async (confirm: boolean) => {
-        if (busy || !job) return;
+        if (busy || !found) return;
         setBusy(true); setError('');
         try {
-            const answer = await answerSuggestion(club, job, confirm);
+            const answer = await answerSuggestion(club, found.job, confirm);
             refreshAccess();
-            setDone(answer.outcome === 'CONFIRMED' ? copy('Confirmed. The head coach is told and sends the link.', 'დადასტურდა. მთავარ მწვრთნელს ეცნობა და ბმულს გაუგზავნის.')
-                : copy('Declined. The head coach is told.', 'უარყოფილია. მთავარ მწვრთნელს ეცნობა.'));
+            // Confirming a person without a password returns their one-time link: it is this admin's to send, here.
+            setLink(answer.link);
+            setDone(answer.outcome !== 'CONFIRMED' ? copy('Declined. The head coach is told.', 'უარყოფილია. მთავარ მწვრთნელს ეცნობა.')
+                : answer.link ? copy(`Confirmed. Send ${found.name} this link to choose a password.`, `დადასტურდა. გაუგზავნეთ ${found.name}-ს ეს ბმული პაროლის ასარჩევად.`)
+                    : copy(`Confirmed. ${found.name} finds the invitation in the app; the head coach is told.`, `დადასტურდა. ${found.name} მოწვევას აპში ნახავს; მთავარ მწვრთნელს ეცნობა.`));
         } catch (failure) { setError(extractApiErrorMessage(failure, copy('Your answer wasn’t saved. Try again.', 'პასუხი ვერ შეინახა. სცადეთ ხელახლა.'))); }
         finally { setBusy(false); }
     };
     return <div className="gk pp-notice-actions" onClick={event => event.stopPropagation()}>
-        {done ? <p className="gk-faint" role="status">{done}</p> : <div className="gk-row">
+        {done ? <>
+            <p className="gk-faint" role="status">{done}</p>
+            {link && found && <InviteLinkBox name={found.name} link={link}
+                message={copy(`You’re invited${found.clubName ? ` to ${found.clubName}` : ''}. Choose your password here:`, `მოწვეული ხართ${found.clubName ? ` ${found.clubName}-ში` : ''}. აირჩიეთ პაროლი აქ:`)} />}
+        </> : <div className="gk-row">
             <Button size="sm" variant="primary" disabled={busy} onClick={() => void decide(true)}>{copy('Confirm', 'დადასტურება')}</Button>
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void decide(false)}>{copy('Decline', 'უარყოფა')}</Button>
         </div>}

@@ -38,3 +38,11 @@ it('says plainly when the link has expired', async () => {
     show();
     expect(await screen.findByText(/This link has expired/)).toBeInTheDocument();
 });
+
+it('an account without a birth date is not counted as an adult and is asked for it', async () => {
+    auth.user = { id: 5, dob: null };
+    show();
+    expect(await screen.findByText(/Add your date of birth first/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add your date of birth' })).toHaveAttribute('href', '/onboarding');
+    expect(screen.queryByRole('button', { name: /Join/ })).not.toBeInTheDocument();
+});

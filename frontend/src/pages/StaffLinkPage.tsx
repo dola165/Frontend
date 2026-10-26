@@ -7,6 +7,7 @@ import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { joinStaffInvite, previewStaffInvite, type StaffInvitePreview } from '../features/clubOperations/people/inviteLinkApi';
 import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
 import { useAdultOnly } from '../hooks/useAdultOnly';
+import { AdultOnlyNote } from '../components/access/AdultOnlyNote';
 import { refreshAccess } from '../hooks/useCan';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { buildLoginRedirectPath, buildSignupPath } from '../utils/authRedirect';
@@ -78,7 +79,7 @@ function StaffLink({ code }: { code: string }) {
         {closed ? <p role="alert" className="gk-notice gk-notice--warning">{closed}</p> : <>
             <p className="ci-email gk-faint">{copy(`Works until ${formatDate(preview.expiresAt, { day: 'numeric', month: 'short' })}`, `მოქმედებს ${formatDate(preview.expiresAt, { day: 'numeric', month: 'short' })}-მდე`)}</p>
             {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
-            <div className="ci-actions">{isAuthenticated && !adult.allowed ? <p role="status" className="gk-notice gk-notice--warning">{adult.reason}</p>
+            <div className="ci-actions">{isAuthenticated && !adult.allowed ? <AdultOnlyNote adult={adult} />
                 : isAuthenticated ? <Button variant="primary" disabled={busy} onClick={() => void join(preview)}>{busy ? copy('Joining…', 'შემოდიხართ…') : copy(`Join as ${job}`, `შემოსვლა: ${job}`)}</Button>
                 : <>
                     <ButtonLink variant="primary" to={buildLoginRedirectPath(location.pathname, location.search)}>{copy('Sign in', 'შესვლა')}</ButtonLink>

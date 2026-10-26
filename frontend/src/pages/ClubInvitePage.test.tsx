@@ -14,6 +14,7 @@ const preview = {
 const open = () => render(<MemoryRouter initialEntries={['/club-invite?token=abc.def']}><Routes>
     <Route path="/club-invite" element={<ClubInvitePage />} />
     <Route path="/my-squads" element={<p>My squads page</p>} />
+    <Route path="/login" element={<p>Sign-in page</p>} />
 </Routes></MemoryRouter>);
 const fill = (birth: string) => {
     fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: birth } });
@@ -72,4 +73,18 @@ it('a used or expired link explains itself', async () => {
     api.post.mockRejectedValue({ isAxiosError: true, response: { status: 400, data: { detail: 'This invitation link has expired. Ask the club for a new one.' } } });
     open();
     expect(await screen.findByRole('alert')).toHaveTextContent('This invitation link has expired');
+});
+
+it('once the link is used, a failed sign-in goes to sign-in instead of trying the used link again', async () => {
+    api.post.mockImplementation(async (url: string) => {
+        if (url === '/auth/club-invite/preview') return { data: preview };
+        if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test' } };
+        throw new Error('network');
+    });
+    open();
+    await screen.findByRole('heading', { name: 'Nino invited you' });
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    expect(await screen.findByText('Sign-in page')).toBeInTheDocument();
+    expect(api.post.mock.calls.filter(([url]) => url === '/auth/club-invite/claim')).toHaveLength(1);
 });

@@ -38,7 +38,8 @@ export function ClubPeopleTab({ clubId, clubName, canManageStaff }: { clubId: nu
     const [params, setParams] = useClubProfileSearchParams();
     const people = useOverviewSource<PublicStaff[]>(`/clubs/${clubId}/staff-directory`);
     // One action, many doors: the staff link opens from the club page too, when the rule-checker allows it.
-    const inviteStaff = useCan(canManageStaff ? `club:${clubId}` : null).decide('invite_staff', canManageStaff).allowed;
+    const staffAccess = useCan(canManageStaff ? `club:${clubId}` : null);
+    const inviteStaff = !staffAccess.pending && staffAccess.decide('invite_staff', canManageStaff).allowed;
     const query = (params.get('q') ?? '').trim().toLocaleLowerCase(), squad = params.get('squad') ?? '', area = params.get('staff') ?? '';
     const all = people.data ?? [];
     const filter = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };

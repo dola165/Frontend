@@ -7,6 +7,7 @@ import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { useAdultOnly } from '../../hooks/useAdultOnly';
+import { AdultOnlyNote } from '../../components/access/AdultOnlyNote';
 import './add-child.css';
 import './parents.css';
 
@@ -18,7 +19,7 @@ type Props = { onCreated: (childId: number) => void; inline?: boolean };
 export function AddChild(props: Props) {
     const { user, sessionId } = useAuth();
     const guardian = useAdultOnly('guardian');
-    if (!guardian.allowed) return <p className="family-notice" role="status">{guardian.reason}</p>;
+    if (!guardian.allowed) return <AdultOnlyNote adult={guardian} className="family-notice" />;
     return <ChildForm key={`${user?.id}:${sessionId}`} {...props} />;
 }
 

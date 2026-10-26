@@ -85,7 +85,8 @@ it('an admin invites one person, Admin included, and gets the link to send', asy
 
 it('invites staff in bulk with one link and QR code, never as Admin, and removes someone who joined', async () => {
     renderPeople(view(), { links: [staffLink(), staffLink({ id: 60, status: 'EXPIRED', code: null, path: null })], url: '/?invite=link' });
-    const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
+    await screen.findByLabelText('Staff link');
+    const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
     for (const job of ['Head coach', 'Assistant coach', 'Team manager', 'Fees']) expect(within(dialog).getByRole('button', { name: job })).toBeInTheDocument();
     for (const other of ['Admin', 'Owner', 'More jobs', 'Custom']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
@@ -182,4 +183,45 @@ it('asks to confirm the email first when the server refuses an invite for it', a
     fireEvent.click(within(dialog).getByRole('button', { name: 'Invite' }));
     await waitFor(() => expect(toast.warning).toHaveBeenCalledWith('Confirm your email first', expect.objectContaining({ action: expect.objectContaining({ label: 'Resend' }) })));
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it('opens Invite staff even when the links fail to load, with Try again', async () => {
+    let fail = true;
+    api.get.mockImplementation(async (path: string) => {
+        if (path.startsWith('/access/')) throw new Error('no rule-checker');
+        if (path.endsWith('/staff-links')) { if (fail) throw new Error('down'); return { data: [staffLink()] }; }
+        return { data: view() };
+    });
+    render(<MemoryRouter initialEntries={['/?invite=link']}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
+    const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
+    expect(within(dialog).queryByRole('button', { name: /Make the link/ })).not.toBeInTheDocument();
+    fail = false;
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Try again' }));
+    expect(await screen.findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
+});
+
+it('New link shows the new link even if switching off the old one fails, and offers Switch off for it', async () => {
+    renderPeople(view(), { links: [staffLink()], url: '/?invite=link' });
+    await screen.findByLabelText('Staff link');
+    const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
+    api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', uses: 0, joined: [] }) });
+    api.delete.mockRejectedValueOnce(new Error('down'));
+    fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
+    expect(await within(dialog).findByText('The old link is still on.')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/newcode`);
+    api.delete.mockResolvedValueOnce({ data: {} });
+    fireEvent.click(within(within(dialog).getByText('The old link is still on.').closest('div') as HTMLElement).getByRole('button', { name: /Switch off/ }));
+    await waitFor(() => expect(api.delete).toHaveBeenLastCalledWith('/clubs/7/staff-links/70'));
+    await waitFor(() => expect(within(dialog).queryByText('The old link is still on.')).not.toBeInTheDocument());
+    expect(api.post.mock.calls.filter(([url]) => url === '/clubs/7/staff-links')).toHaveLength(1);
+});
+
+it('keeps the buttons disabled while the rule-checker answers, so none appears and vanishes', async () => {
+    let answer!: (value: unknown) => void;
+    api.get.mockImplementation((path: string) => path.startsWith('/access/') ? new Promise(resolve => { answer = resolve; })
+        : Promise.resolve({ data: path.endsWith('/staff-links') ? [] : view() }));
+    render(<MemoryRouter><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
+    expect(await screen.findByRole('button', { name: /Invite staff/ })).toBeDisabled();
+    answer({ data: { clubId: 7, squadId: null, allowed: ['invite_staff', 'make_admin', 'change_job', 'end_job'], refused: [] } });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Invite staff/ })).toBeEnabled());
 });

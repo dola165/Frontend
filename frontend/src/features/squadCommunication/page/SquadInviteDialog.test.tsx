@@ -7,6 +7,8 @@ import * as api from '../api';
 
 vi.mock('../api', () => ({ joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn(), approveAllJoinRequests: vi.fn(), parentLinks: vi.fn(), answerParentLink: vi.fn() }));
 vi.mock('../../clubs/api', () => ({ removePlayerFromSquad: vi.fn() }));
+const rules = vi.hoisted(() => ({ value: null as null | Record<string, boolean> }));
+vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, admin: null, decide: (action: string, fallback: boolean) => ({ allowed: rules.value ? Boolean(rules.value[action]) : fallback }) }) }));
 vi.mock('../../clubWorkspace/squads/PlayerCard', () => ({ PlayerCard: ({ player }: { player: { name: string } }) => <div>{player.name}</div> }));
 
 const space = { id: 11, name: 'U12', academy_name: 'Test FC', club_id: 1, can_manage: true, players: [{ id: 41, name: 'Alex' }] } as api.SquadOverview;
@@ -23,6 +25,7 @@ const show = (entry = '/squads/11?tab=players&invite=1') => {
 };
 beforeEach(() => {
     vi.clearAllMocks();
+    rules.value = null;
     vi.mocked(api.joinLink).mockResolvedValue(none);
     vi.mocked(api.joinRequests).mockResolvedValue([]);
     vi.mocked(api.parentLinks).mockResolvedValue([]);
@@ -126,4 +129,14 @@ it('lists a parent asking to be linked; the coach links only a child with no par
     expect(screen.getAllByRole('button', { name: 'Link' })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Link' }));
     await waitFor(() => expect(api.answerParentLink).toHaveBeenCalledWith(11, 6, true));
+});
+
+it('someone who may answer requests but not manage the link sees who is waiting, without the link', async () => {
+    rules.value = { approve_join_requests: true };
+    vi.mocked(api.joinRequests).mockResolvedValue([request()]);
+    show();
+    expect(await screen.findByRole('dialog', { name: 'Waiting to join' })).toBeInTheDocument();
+    expect(await screen.findByText('Nino Beridze')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Create link|New link/ })).not.toBeInTheDocument();
+    expect(api.joinLink).not.toHaveBeenCalled();
 });

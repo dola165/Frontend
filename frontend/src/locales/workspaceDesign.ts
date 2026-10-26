@@ -37,7 +37,7 @@ export const workspaceNavEn = {
     workspace: 'Club workspace', clubPage: 'Club page', clubStaff: 'Club staff', backTo: 'Back to {{name}}',
     'area-squads': 'Squads', 'area-players': 'Players', 'area-staff': 'Staff', 'area-joining': 'Joining', 'area-club': 'Club', 'area-settings': 'Settings',
     overview: 'Today', 'coach-hub': 'Coach Hub', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools', calendar: 'Calendar',
-    personnel: 'People', players: 'Players', invites: 'Invitations', applications: 'Applications', roles: 'Ownership & access', 'club-approaches': 'Agent approaches',
+    personnel: 'People', players: 'Players', invites: 'Invitations', applications: 'Applications', 'club-approaches': 'Agent approaches',
     jobs: 'Hiring', programmes: 'Programmes & fees', store: 'Store', campaigns: 'Fundraising', settings: 'Club settings', squads: 'Squads',
     'player-cards': 'Player cards', tryouts: 'Tryouts',
     'staff-duties': 'Duties', credentials: 'Credentials', specialists: 'Specialists', guardians: 'Guardians & permissions', attendance: 'Attendance & collection',
@@ -56,7 +56,7 @@ export const workspaceNavKa: Record<keyof typeof workspaceNavEn, string> = {
     workspace: 'კლუბის სამუშაო სივრცე', clubPage: 'კლუბის გვერდი', clubStaff: 'კლუბის პერსონალი', backTo: 'უკან: {{name}}',
     'area-squads': 'გუნდები', 'area-players': 'მოთამაშეები', 'area-staff': 'პერსონალი', 'area-joining': 'გაწევრიანება', 'area-club': 'კლუბი', 'area-settings': 'პარამეტრები',
     overview: 'დღეს', 'coach-hub': 'მწვრთნელის პანელი', inbox: 'კლუბის სიახლეები', actions: 'სამუშაო რიგი', tools: 'ყველა ინსტრუმენტი', calendar: 'კალენდარი',
-    personnel: 'ხალხი', players: 'მოთამაშეები', invites: 'მოწვევები', applications: 'განაცხადები', roles: 'მფლობელობა და წვდომა', 'club-approaches': 'აგენტების მიმართვები',
+    personnel: 'ხალხი', players: 'მოთამაშეები', invites: 'მოწვევები', applications: 'განაცხადები', 'club-approaches': 'აგენტების მიმართვები',
     jobs: 'დაქირავება', programmes: 'პროგრამები და საფასური', store: 'მაღაზია', campaigns: 'შემოწირულობები', settings: 'კლუბის პარამეტრები', squads: 'შემადგენლობები',
     'player-cards': 'მოთამაშის ბარათები', tryouts: 'სინჯები',
     'staff-duties': 'მოვალეობები', credentials: 'კვალიფიკაციები', specialists: 'სპეციალისტები', guardians: 'მეურვეები და ნებართვები', attendance: 'დასწრება და წაყვანა',
@@ -84,9 +84,6 @@ export const coachHubEn = {
     mySquads: 'My squads', squads_one: '{{count}} squad', squads_other: '{{count}} squads',
     playerCount_one: '{{count}} player', playerCount_other: '{{count}} players',
     noSquads: 'No squads in your hub', showAll: 'Show all my responsibilities',
-    
-    
-    
     nextTraining: 'Next: {{time}} {{day}} · {{name}}', noTraining: 'No training planned in the next 14 days',
     findPlayer: 'Find a player', squadFilter: 'Squad', allMySquads: 'All my squads', notesAndTools: 'Notes and tools',
     noPlayersMatch: 'No players match', clearFilters: 'Clear filters', noPlayersMatchHint: 'Try another name or squad.', noPlayersYet: 'Players appear here once a club admin assigns you a squad.',
@@ -129,9 +126,6 @@ export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
     mySquads: 'ჩემი გუნდები', squads_one: '{{count}} გუნდი', squads_other: '{{count}} გუნდი',
     playerCount_one: '{{count}} მოთამაშე', playerCount_other: '{{count}} მოთამაშე',
     noSquads: 'პანელში გუნდები არ არის', showAll: 'ყველა პასუხისმგებლობის ჩვენება',
-    
-    
-    
     nextTraining: 'შემდეგი: {{time}} {{day}} · {{name}}', noTraining: 'მომდევნო 14 დღეში ვარჯიში დაგეგმილი არ არის',
     findPlayer: 'მოთამაშის ძიება', squadFilter: 'გუნდი', allMySquads: 'ჩემი ყველა გუნდი', notesAndTools: 'ჩანაწერები და ინსტრუმენტები',
     noPlayersMatch: 'მოთამაშე ვერ მოიძებნა', clearFilters: 'ფილტრების გასუფთავება', noPlayersMatchHint: 'სცადეთ სხვა სახელი ან გუნდი.', noPlayersYet: 'მოთამაშეები გამოჩნდება, როცა კლუბის ადმინისტრატორი გუნდს დაგინიშნავთ.',

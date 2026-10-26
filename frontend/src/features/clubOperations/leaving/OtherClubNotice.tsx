@@ -12,7 +12,7 @@ import './leaving.css';
  */
 export function OtherClubNotice({ club, onLeft }: { club: { clubId: number; name: string }; onLeft: () => void }) {
     const copy = useJourneyCopy();
-    const { go } = useLeaveStep();
+    const { go } = useLeaveStep(club.clubId);
     const name = club.name || copy('your club', 'თქვენი კლუბი');
     return <div className="gk gk-notice gk-notice--warning lv-other" role="alert">
         <span>{copy(`You’re staff at ${name}. Leave ${name} first.`, `${name}-ის თანამშრომელი ხართ. ჯერ დატოვეთ ${name}.`)}</span>

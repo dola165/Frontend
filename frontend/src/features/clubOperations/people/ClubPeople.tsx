@@ -36,7 +36,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     clubId: number; clubName: string; members?: ClubManagedMember[]; onChanged?: () => void;
 }) {
     const [params, setParams] = useSearchParams();
-    const navigate = useNavigate(), leave = useLeaveStep();
+    const navigate = useNavigate(), leave = useLeaveStep(clubId);
     const [view, setView] = useState<PeopleView | null>(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
     const [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
     const [ending, setEnding] = useState<{ person: Person; job: PersonJob } | null>(null);

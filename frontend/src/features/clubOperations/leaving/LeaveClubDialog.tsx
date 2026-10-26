@@ -21,16 +21,19 @@ import './leaving.css';
 export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; clubName: string; onDone: (notice: string, outcome: 'left' | 'handed' | 'closed') => void }) {
     const copy = useJourneyCopy();
     const { user, refreshNavigationCapabilities } = useAuth();
-    const { step, go } = useLeaveStep();
+    const { step, go } = useLeaveStep(clubId);
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [note, setNote] = useState('');
     const [people, setPeople] = useState<Person[] | null>(null);
+    // A failed load belongs to its attempt: Try again starts a new one, and the old message no longer shows.
+    const [round, setRound] = useState(0), [loadFailure, setLoadFailure] = useState<{ round: number; message: string } | null>(null);
     useEffect(() => {
         if (step !== 'handover') return;
         const controller = new AbortController();
         fetchPeople(clubId, controller.signal).then(view => { if (!controller.signal.aborted) setPeople(view.people); })
-            .catch(failure => { if (!controller.signal.aborted) setError(extractApiErrorMessage(failure, copy('The club’s people couldn’t load.', 'კლუბის ხალხი ვერ ჩაიტვირთა.'))); });
+            .catch(failure => { if (!controller.signal.aborted) setLoadFailure({ round, message: extractApiErrorMessage(failure, copy('The club’s people couldn’t load.', 'კლუბის ხალხი ვერ ჩაიტვირთა.')) }); });
         return () => controller.abort();
-    }, [step, clubId, copy]);
+    }, [step, clubId, copy, round]);
+    const loadError = loadFailure?.round === round ? loadFailure.message : '';
     if (!step) return null;
     const finish = async (message: string, outcome: 'left' | 'handed' | 'closed') => {
         go(null); refreshAccess();
@@ -72,7 +75,7 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
         </button>
     </li>);
     const title = step === 'handover' ? copy(`Hand ${clubName} over`, `${clubName}-ის გადაცემა`) : step === 'close' ? copy(`Close ${clubName}?`, `დაიხუროს ${clubName}?`) : copy(`Leave ${clubName}?`, `დატოვოთ ${clubName}?`);
-    return <Dialog open size="md" role={step === 'close' ? 'alertdialog' : 'dialog'} onClose={() => { if (!busy) go(null); }} title={title}
+    return <Dialog open size="md" role={step === 'close' ? 'alertdialog' : 'dialog'} onClose={() => { if (!busy) go(null); }} closeLabel={copy('Close', 'დახურვა')} title={title}
         description={step === 'handover' ? copy('You own this club, so someone takes it over before you leave.', 'ეს კლუბი თქვენია, ამიტომ წასვლამდე ვინმემ უნდა ჩაიბაროს.')
             : step === 'close' ? copy('You’re the last staff member here.', 'აქ ბოლო თანამშრომელი ხართ.')
                 : copy('Your staff jobs here end. What you recorded stays with the club, and your career keeps the jobs.', 'აქაური სამუშაოები სრულდება. რაც ჩაწერეთ, კლუბს რჩება, სამუშაოები კი თქვენს კარიერაში.')}
@@ -83,7 +86,9 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
         <div className="gk lv-body">
             {note && <p className="gk-notice cw-notices__success" role="status">{note}</p>}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
-            {step === 'handover' && (people === null ? !error && <p className="gk-faint" role="status">{copy('Loading the club’s people…', 'კლუბის ხალხი იტვირთება…')}</p>
+            {step === 'handover' && loadError && people === null && <div className="gk-notice gk-notice--danger lv-other" role="alert"><span>{loadError}</span>
+                <Button size="sm" onClick={() => setRound(value => value + 1)}>{copy('Try again', 'თავიდან')}</Button></div>}
+            {step === 'handover' && (people === null ? !loadError && <p className="gk-faint" role="status">{copy('Loading the club’s people…', 'კლუბის ხალხი იტვირთება…')}</p>
                 : others.length ? <ul className="lv-picks" aria-label={copy('Who takes the club over', 'ვინ ჩაიბარებს კლუბს')}>
                     {pick(admins, copy('Admin · takes over at once', 'ადმინი · ჩაიბარებს მაშინვე'))}
                     {pick(rest, copy('Accepts first', 'ჯერ დაეთანხმება'))}

@@ -296,7 +296,7 @@ it('the last staff member closes the club after a plain confirmation of what is 
     const handover = await screen.findByRole('dialog', { name: 'Hand FC Dinamo Tbilisi Academy over' });
     fireEvent.click(within(handover).getByRole('button', { name: 'Not now' }));
     // Leaving as the Owner with nobody else answers OWNER_MUST_HAND_OVER lastStaff: closing is offered.
-    render(<MemoryRouter initialEntries={['/people?leave=leave']}><Routes>
+    render(<MemoryRouter initialEntries={['/people?leave=7:leave']}><Routes>
         <Route path="/people" element={<ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" />} /><Route path="/home" element={<p>Home page</p>} />
     </Routes></MemoryRouter>);
     const leave = await screen.findByRole('dialog', { name: 'Leave FC Dinamo Tbilisi Academy?' });
@@ -323,4 +323,32 @@ it('someone offered the club takes it over, and an Admin can ask GrassKickZ when
     fireEvent.click(await screen.findByRole('button', { name: /Ask GrassKickZ to hand it over/ }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/ownership/reclaim'));
     expect(await screen.findByText(/Nino Owner is told and can object until/)).toBeInTheDocument();
+});
+
+it('opens only the leave dialog for the club named in the address', async () => {
+    auth.user = { id: 1, dob: '1985-01-01' };
+    renderPeople(view(), { url: '/?leave=9:leave' });
+    await screen.findByText('Nino Owner');
+    expect(screen.queryByRole('dialog', { name: /Leave FC Dinamo Tbilisi Academy/ })).not.toBeInTheDocument();
+    cleanup();
+    renderPeople(view(), { url: '/?leave=7:leave' });
+    expect(await screen.findByRole('dialog', { name: 'Leave FC Dinamo Tbilisi Academy?' })).toBeInTheDocument();
+});
+
+it('the handover list offers Try again when the club’s people fail to load', async () => {
+    auth.user = { id: 1, dob: '1985-01-01' };
+    let peopleReads = 0;
+    api.get.mockImplementation(async (path: string) => {
+        if (path.startsWith('/access/') || path.endsWith('/ownership')) throw new Error('none');
+        if (path.endsWith('/staff-links')) return { data: [] };
+        peopleReads += 1;
+        // The dialog's read comes first (a child's effect runs before its page's).
+        if (peopleReads === 1) throw new Error('down');
+        return { data: view() };
+    });
+    render(<MemoryRouter initialEntries={['/?leave=7:handover']}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
+    const dialog = await screen.findByRole('dialog', { name: 'Hand FC Dinamo Tbilisi Academy over' });
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Try again' }));
+    expect(await within(dialog).findByRole('button', { name: /Mari Admin.*takes over at once/ })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
 });

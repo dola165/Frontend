@@ -16,6 +16,7 @@ const dinamo = { id: 7, name: 'Dinamo Academy', logoUrl: null };
 const vets = { id: 9, name: 'Veterans FC', logoUrl: null };
 const lines: ServerLine[] = [
     { line: 'job:81', kind: 'JOB', title: 'Head coach', label: 'Head coach · U12 · Dinamo Academy', club: dinamo, squads: [{ id: 12, name: 'U12' }], clubWide: false, since: '2025-09-01', appointmentId: 81, revision: 4, actions: [yes('end_job'), yes('manage_club')] },
+    { line: 'head:14', kind: 'COACH', title: 'Head coach', label: 'Head coach · U14 · Dinamo Academy', club: dinamo, squads: [{ id: 14, name: 'U14' }], clubWide: false, since: null, leaveAs: null, actions: [yes('manage_squad')] },
     { line: 'owner:9', kind: 'OWNER', title: 'Owner', label: 'Owner · Veterans FC', club: vets, squads: [], clubWide: true, leaveAs: 'STAFF', actions: [{ action: 'leave_club', allowed: false, reason: 'OWNER_STAYS' }, yes('manage_club')] },
     { line: 'plays:3', kind: 'PLAYS_FOR', title: 'Player', label: 'Player · Veterans 35+ · Veterans FC', club: vets, squads: [{ id: 3, name: 'Veterans 35+' }], clubWide: false, leaveAs: 'PLAYER', actions: [yes('leave_club')] },
     { line: 'parent:4', kind: 'PARENT_OF', title: 'Parent', label: 'Parent', club: null, child: { id: 4, name: 'Luka Beridze' }, actions: [] },
@@ -53,9 +54,9 @@ describe('your football profile', () => {
         expect(where.getByText('Head coach · U12')).toBeInTheDocument();
         expect(where.getByText('Parent of Luka')).toBeInTheDocument();
         expect(where.getByText('Follows Saburtalo')).toBeInTheDocument();
-        // The job ends as a job and the squad place is left; the Owner hands the club over first.
+        // The job ends as a job and the squad place is left; a squad's head coach and the Owner have no Leave here.
         expect(where.getAllByRole('button', { name: 'Leave' })).toHaveLength(2);
-        expect(where.getAllByRole('link', { name: 'Manage' }).map(link => link.getAttribute('href'))).toEqual(['/my-squads', '/clubs/9/workspace', '/squads/3', '/parent?player=4']);
+        expect(where.getAllByRole('link', { name: 'Manage' }).map(link => link.getAttribute('href'))).toEqual(['/my-squads', '/my-squads', '/clubs/9/workspace', '/squads/3', '/parent?player=4']);
         expect(screen.getByLabelText('Career in numbers')).toHaveTextContent('212 sessions coached3 matches refereed');
         expect(within(screen.getByRole('list', { name: 'Career' })).getByText('Assistant coach · U10')).toBeInTheDocument();
         expect(screen.queryByRole('checkbox', { name: /Player|Coach|Fan/ })).not.toBeInTheDocument();
@@ -112,7 +113,7 @@ describe('your football profile', () => {
 describe('someone else’s football', () => {
     it('never keeps a parent line, a child, a follow or any control for another viewer', () => {
         const view = readFootball({ ...profile, own: false, roleChoices: [] });
-        expect(view.lines.map(line => line.kind)).toEqual(['JOB', 'OWNER', 'PLAYS_FOR']);
+        expect(view.lines.map(line => line.kind)).toEqual(['JOB', 'COACH', 'OWNER', 'PLAYS_FOR']);
         expect(view.lines.every(line => line.manage === null && line.leave === null && line.child === null)).toBe(true);
         expect(view.follows).toEqual([]);
         expect(view.choices).toEqual([]);

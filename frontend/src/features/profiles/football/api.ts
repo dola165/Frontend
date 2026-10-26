@@ -91,9 +91,12 @@ function manageOf(line: ServerLine): string | null {
         case 'PARENT_OF': return line.child ? `/parent?player=${line.child.id}` : '/parent';
         case 'REFEREE': return '/referees/me';
         case 'PLAYS_FOR': { const squad = line.squads?.[0]?.id; return squad ? `/squads/${squad}` : null; }
-        case 'JOB': case 'COACH':
-            if (!allowed(line, 'manage_club')) return null;
-            return COACHING.test(line.title) && (line.squads?.length ?? 0) > 0 ? '/my-squads' : club ? `/clubs/${club}/workspace` : null;
+        // A squad's head coach (`head:{squadId}`, manage_squad only) and coaching jobs work in My squads; other jobs in the club.
+        case 'JOB': case 'COACH': {
+            const coaching = COACHING.test(line.title) && (line.squads?.length ?? 0) > 0;
+            if (coaching && (allowed(line, 'manage_squad') || allowed(line, 'manage_club'))) return '/my-squads';
+            return club && allowed(line, 'manage_club') ? `/clubs/${club}/workspace` : null;
+        }
         case 'OWNER': case 'ADMIN': return club && allowed(line, 'manage_club') ? `/clubs/${club}/workspace` : null;
         default: return null;
     }

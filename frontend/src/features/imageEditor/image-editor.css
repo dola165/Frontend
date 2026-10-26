@@ -32,8 +32,14 @@
 .ie-note__gone { color: var(--gk-text-3, var(--color-muted)); }
 .gk .ie-original__img { display: block; max-width: 100%; max-height: 70dvh; margin: 0 auto; object-fit: contain; }
 
-/* The library puts its menus, colour picker and confirmations in <body>, at z-index 1200-1400; above the editor. */
-.SfxPopper-wrapper, .SfxModal-Wrapper, .SfxModal-Overlay, [class*='SfxDrawer'] { z-index: 4100 !important; }
+/* The library puts its menus and pop-overs, its colour picker (a modal) and the lists inside it in <body>, under the
+   editor (at 1300, 1301 and 11112): lifted above it in that same order, so the colour picker opens over the pop-over it
+   was opened from and the Hex/RGB list over the colour picker. Only those outer layers: a modal's own overlay stays
+   under its content (the library gives it -1), or it takes every click meant for the colour picker; the tools drawer is
+   inside the editor already. */
+.SfxPopper-wrapper { z-index: 4100 !important; }
+.SfxModal-Wrapper { z-index: 4200 !important; }
+.SfxPopper-wrapper:has(.SfxSelect-tickIcon) { z-index: 4300 !important; }
 
 /* Where the note sits: in the chat viewer's foot, before its buttons; under its own picture in a message's gallery. */
 .gk .ie-note.tc-lightbox__edited { margin-right: auto; min-width: 0; }

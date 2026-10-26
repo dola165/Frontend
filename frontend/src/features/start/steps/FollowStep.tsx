@@ -15,7 +15,7 @@ export function FollowStep({ land, back, close }: WelcomeStepProps) {
     const [failed, setFailed] = useState(false);
     useEffect(() => {
         const controller = new AbortController();
-        fetchClubsNearYou(8, 'NEAREST', controller.signal)
+        fetchClubsNearYou(12, 'NEAREST', controller.signal)
             .then(found => { if (controller.signal.aborted) return; setClubs(found); setChosen(new Set(found.slice(0, 3).map(club => club.id))); })
             .catch(() => { if (!controller.signal.aborted) setClubs([]); });
         return () => controller.abort();

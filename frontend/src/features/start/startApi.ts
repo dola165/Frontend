@@ -83,7 +83,7 @@ export const fetchClubsNearYou = (limit = 8, sort: 'NEAREST' | 'POPULAR' = 'NEAR
     apiClient.get<NearbyClub[]>('/clubs/near-you', { params: { limit, sort }, signal }).then(r => r.data);
 
 const directoryClubs = async (params: Record<string, string>, signal?: AbortSignal): Promise<NearbyClub[]> =>
-    (await fetchClubDirectory(new URLSearchParams({ page: '0', size: '8', ...params }), signal)).content.map(club => ({
+    (await fetchClubDirectory(new URLSearchParams({ page: '0', size: '12', ...params }), signal)).content.map(club => ({
         id: club.id, name: club.name, logoUrl: club.logoUrl ?? null, bannerUrl: null, cityName: club.cityName ?? null, km: null,
         followers: club.followerCount ?? 0, following: club.isFollowedByMe === true,
     }));

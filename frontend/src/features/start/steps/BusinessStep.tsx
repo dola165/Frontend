@@ -23,7 +23,7 @@ export function BusinessStep({ land, back, close }: WelcomeStepProps) {
         const item = KINDS.find(kind => kind.id === id);
         if (item) land('business', createHref(HOME, item.kind, 'start', item.draw === true, item.business ?? null));
     };
-    return <WelcomeFrame position={2} onClose={close} back={back} title={copy('What kind?', 'რა სახის?')} footer={null}>
+    return <WelcomeFrame position={2} size="choose" onClose={close} back={back} title={copy('What kind?', 'რა სახის?')} footer={null}>
         <ActionTiles label={copy('What kind?', 'რა სახის?')} onPick={pick}
             items={KINDS.map(item => ({ id: item.id, label: copy(item.en, item.ka), icon: <span className="gk-welcome__mark"><item.icon aria-hidden="true" /></span> }))} />
     </WelcomeFrame>;

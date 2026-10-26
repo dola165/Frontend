@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { Check, Loader2, Lock, MapPin } from 'lucide-react';
+import { ConfirmEmailFirst } from '../../../components/auth/ConfirmEmailFirst';
 import { useAuth } from '../../../context/AuthContext';
+import { isUnder16 } from '../../../utils/age';
 import { getAuthFlow } from '../../../utils/authRedirect';
 import { Dialog } from '../../../design/Dialog';
 import { Button, ButtonLink } from '../../../design/primitives';
@@ -30,7 +32,7 @@ const KIND_WORD: Record<PageKind, string> = { CLUB: 'Club', FAN_CLUB: 'Fan club'
 export function StartSheet({ kind, business = null, from, draw, onClose }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void }) {
   const t = usePagesCopy();
   const { user } = useAuth();
-  const { create, busy, error, clearError, unanswered, age } = useCreatePage();
+  const { create, busy, error, emailFirst, clearError, unanswered, age } = useCreatePage();
   const locked = (candidate: PageKind) => age != null && age < minimumAge(candidate);
   // One club per person (owner, 16 October): someone already at a club opens it, or starts a fan club instead.
   const club = ownClub(user?.navigationCapabilities);
@@ -113,7 +115,8 @@ export function StartSheet({ kind, business = null, from, draw, onClose }: { kin
         </Button>}
       </>}>
       <div className="gk-ctiles" role="radiogroup" aria-label={t('What are you creating?')}>
-        {CREATABLE_KINDS.map(candidate => {
+        {/* Under 16, kinds they cannot create are not shown at all; 16 and 17 see them locked with the age. */}
+        {CREATABLE_KINDS.filter(candidate => !(isUnder16(user?.dob) && locked(candidate))).map(candidate => {
           const item = KIND_TILES[candidate as Exclude<PageKind, 'VENUE'>], shut = locked(candidate);
           return (
             <button key={candidate} type="button" role="radio" aria-checked={chosen === candidate} aria-disabled={shut || undefined} className="gk-ctile"
@@ -162,6 +165,7 @@ export function StartSheet({ kind, business = null, from, draw, onClose }: { kin
               <button type="button" className="gk-cmatch__no" onClick={() => setDismissed(nameKey(name))}>{t('No, mine is different')}</button>
             </div>
           )}
+          {emailFirst && <ConfirmEmailFirst />}
           {(error || unanswered) && <p className={`gk-notice${error ? ' gk-notice--warning' : ''}`} role="alert">{error || t('The last try was not answered. Try again with the same name; it never makes two pages.')}</p>}
         </div>
       )}

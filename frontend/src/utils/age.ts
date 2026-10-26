@@ -14,6 +14,12 @@ export const ageFromDob = (dob: string): number => {
 
 export const isUnder13 = (dob: string): boolean => ageFromDob(dob) < 13;
 
+/**
+ * Under 16 (F1, 26 October 2026): a parent approves the account, and the person can look, follow and talk to their
+ * own squad, and what they could not finish is hidden. Unknown age is not counted: the server still refuses.
+ */
+export const isUnder16 = (dob?: string | null): boolean => Boolean(dob) && ageFromDob(dob!) < 16;
+
 export const isMinor = (dob?: string | null): boolean => {
     // Aug 17 fail-safe: missing DOB = minor (mirrors backend MinorPolicy) —
     // unknown age gets the restrictions until the DOB gate is completed.

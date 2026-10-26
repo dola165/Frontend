@@ -15,7 +15,7 @@ import {
   resolvePostAuthRedirect,
 } from '../utils/authRedirect';
 
-type VerifyState = 'pending' | 'loading' | 'success' | 'error' | 'invitation';
+type VerifyState = 'loading' | 'success' | 'error' | 'invitation';
 type VerificationResponse = { message?: string; email?: string; passwordSetupRequired?: boolean };
 
 // React StrictMode intentionally remounts effects in development. Keeping the
@@ -47,14 +47,12 @@ const VerificationForm = () => {
   const [searchParams] = useSearchParams();
   const { status, bootstrapSession } = useAuth();
   const token = searchParams.get('token');
-  const pending = searchParams.get('pending') === '1';
   const requestedDestination = resolvePostAuthRedirect(searchParams.get('next'), '');
   const initialFlow = getAuthFlow();
   const originalEmail = useRef(initialFlow.email ?? '');
-  const [verifyState, setVerifyState] = useState<VerifyState>(token ? 'loading' : pending || initialFlow.awaitingVerification ? 'pending' : 'error');
-  const [message, setMessage] = useState(token ? t('auth.verify.verifyingMessage') : pending || initialFlow.awaitingVerification
-    ? t('auth.verify.pendingMessage')
-    : t('auth.verify.missingToken'));
+  // Confirming the email opens nothing: an unconfirmed account already signs in. This page only reads the link.
+  const [verifyState, setVerifyState] = useState<VerifyState>(token ? 'loading' : 'error');
+  const [message, setMessage] = useState(token ? t('auth.verify.verifyingMessage') : t('auth.verify.missingToken'));
   const [email, setEmail] = useState(initialFlow.email ?? '');
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -91,8 +89,6 @@ const VerificationForm = () => {
         rememberAuthFlow({
           email: verifiedEmail || undefined,
           nextPath: requestedDestination,
-          newAccount: true,
-          awaitingVerification: false,
         });
         setVerifyState('success');
         setMessage(data.passwordSetupRequired ? 'Email verified. Check this mailbox for the password setup link, then sign in with your own password.' : data.message || t('auth.verify.successFallback'));
@@ -126,11 +122,6 @@ const VerificationForm = () => {
       className: 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent)]',
     };
     if (verifyState === 'invitation') return { icon: <Mail className="h-6 w-6" />, title: 'Review account invitation', className: 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 text-[var(--color-accent)]' };
-    if (verifyState === 'pending') return {
-      icon: <Mail className="h-6 w-6" />,
-      title: t('auth.verify.checkInbox'),
-      className: 'border-[color:var(--color-info)]/30 bg-[color:var(--color-info)]/10 text-[color:var(--color-info)]',
-    };
     return {
       icon: <MailWarning className="h-6 w-6" />,
       title: t('auth.verify.verificationIssue'),
@@ -159,7 +150,7 @@ const VerificationForm = () => {
         continuationPath: publicContinuationPath(requestedDestination),
       }, { signal: controller.signal });
       if (controller.signal.aborted) return;
-      rememberAuthFlow({ email: normalizedEmail, awaitingVerification: true });
+      rememberAuthFlow({ email: normalizedEmail });
       setResendMessage(response.data.message || t('auth.verify.resendMessageFallback'));
     } catch (error) {
       if (!controller.signal.aborted) setResendError(extractApiErrorMessage(error, t('auth.verify.resendErrorFallback')));
@@ -196,11 +187,9 @@ const VerificationForm = () => {
           {verifyState === 'invitation' && <button type="button" className={`${authPrimaryButtonClass} mt-6`} onClick={() => setAcceptInvitation(true)}>Accept my account invitation</button>}
           {verifyState === 'error' && retryable && <button type="button" className={`${authPrimaryButtonClass} mt-6`} onClick={() => setAttempt(value => value + 1)}>Retry verification</button>}
 
-          {verifyState === 'pending' && <p className="mt-4 text-sm leading-6 text-[var(--color-secondary)]">Check spam and confirm the address below. If you left signup before finishing, <Link className="underline text-[var(--color-text)]" to="/signup">complete registration</Link> first.</p>}
-
           {canContinue && (
-            <Link to={buildLoginPath(requestedDestination)} className={`${authPrimaryButtonClass} mt-6 rounded-xl`}>
-              {verifyState === 'success' ? t('auth.verify.continueLogin') : t('auth.verify.alreadyVerified')}
+            <Link to={status === 'authenticated' ? requestedDestination || '/home' : buildLoginPath(requestedDestination)} className={`${authPrimaryButtonClass} mt-6 rounded-xl`}>
+              {status === 'authenticated' ? t('auth.verify.continueApp') : verifyState === 'success' ? t('auth.verify.continueLogin') : t('auth.verify.alreadyVerified')}
             </Link>
           )}
 

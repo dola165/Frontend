@@ -28,14 +28,28 @@ beforeEach(() => {
     vi.mocked(apiClient.post).mockRejectedValue({ response: { status: 409, data: { code: 'ACCOUNT_EXISTS', detail: 'You already have an account. Sign in instead.' } } });
 });
 
-it('moves a known email to sign-in with the email filled in, instead of an error', async () => {
+it('offers sign-in for a known email, and moves there with the email filled in', async () => {
     signUp('1990-05-01');
-    expect(await screen.findByText('You already have an account. Sign in with your password.')).toBeInTheDocument();
+    expect(await screen.findByText('You already have an account. Sign in?')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/signup');
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/login');
     expect(document.getElementById('auth-login-email')).toHaveValue('known@example.test');
     expect(document.getElementById('auth-login-password')).toHaveValue('');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(vi.mocked(apiClient.post).mock.calls.map(([url]) => url)).toEqual(['/auth/register']);
+});
+
+it('offers to create an account for an unknown email on sign-in, keeping what was typed', async () => {
+    vi.mocked(apiClient.post).mockRejectedValue({ response: { status: 401, data: { code: 'ACCOUNT_NOT_FOUND' } } });
+    render(<MemoryRouter initialEntries={['/login']}><Routes><Route path="/signup" element={<RegisterPage />} /><Route path="/login" element={<LoginPage />} /></Routes><Location /></MemoryRouter>);
+    change('auth-login-email', 'New@Example.test'); change('auth-login-password', 'SyntheticPassword1');
+    fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByText('No account with this email. Create one?')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Create account' })[0]);
+    expect(screen.getByTestId('location')).toHaveTextContent('/signup');
+    expect(document.getElementById('auth-email')).toHaveValue('new@example.test');
 });
 
 it('tells someone under 18 to ask a parent, and stays on sign-up', async () => {

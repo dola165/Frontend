@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { needsConfirmedEmail } from '../../../components/auth/emailConfirmation';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { appLanguage } from '../../../utils/formatting';
@@ -38,6 +39,8 @@ export function useCreatePage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // The server refused because the account's email is not confirmed yet: the sheet offers Resend there.
+  const [emailFirst, setEmailFirst] = useState(false);
   const [pending, setPending] = useState<Pending | null>(() => readSetupRecovery(user?.id, RECOVERY, validPending));
 
   const create = useCallback(async ({ kind, name, town, draw = false, business = null }: { kind: PageKind; name: string; town: Town | null; draw?: boolean; business?: BusinessKind | null }): Promise<CreateOutcome> => {
@@ -52,7 +55,7 @@ export function useCreatePage() {
     // Saved before sending: leaving the page can never turn an unanswered request into a fresh one.
     writeSetupRecovery(user?.id, RECOVERY, request);
     setPending(request);
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setEmailFirst(false);
     try {
       const created = await createPage(request.body);
       clearSetupRecovery(user?.id, RECOVERY); setPending(null);
@@ -64,10 +67,11 @@ export function useCreatePage() {
       const settled = response?.status != null && response.status < 500;
       if (settled) { clearSetupRecovery(user?.id, RECOVERY); setPending(null); }
       if (response?.status === 409 && response.data?.code === 'PAGE_EXISTS' && response.data.match) return { kind: 'exists', match: response.data.match };
+      if (needsConfirmedEmail(failure)) { setEmailFirst(true); return { kind: 'failed' }; }
       setError(extractApiErrorMessage(failure, pt(settled ? 'Could not create the page. Try again: nothing is lost.' : 'The last try was not answered. Try again with the same name; it never makes two pages.')));
       return { kind: 'failed' };
     } finally { setBusy(false); }
   }, [busy, navigate, pending, refreshNavigationCapabilities, user?.dob, user?.id]);
 
-  return { create, busy, error, clearError: () => setError(''), unanswered: pending !== null, age: ageFromDob(user?.dob) };
+  return { create, busy, error, emailFirst, clearError: () => { setError(''); setEmailFirst(false); }, unanswered: pending !== null, age: ageFromDob(user?.dob) };
 }

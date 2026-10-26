@@ -46,7 +46,7 @@ describe('registration destination flow', () => {
         expect(buildLoginRedirectPath('/messages', '?conversationId=801')).toBe('/login');
         // Repeated protected-route renders cannot restore the retired account's continuation.
         expect(buildLoginRedirectPath('/messages', '?conversationId=801')).toBe('/login');
-        expect(getAuthFlow()).toEqual({ nextPath: undefined, email: undefined, newAccount: false, town: undefined, awaitingVerification: false });
+        expect(getAuthFlow()).toEqual({ nextPath: undefined, email: undefined, newAccount: false, town: undefined });
         completeSignOutNavigation();
         expect(buildLoginRedirectPath('/join-squad', '', '#new-invitation')).toBe('/login');
         expect(getAuthFlow().nextPath).toBe('/join-squad#new-invitation');

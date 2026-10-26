@@ -147,9 +147,9 @@ const OnboardingForm = () => {
                             onChange={(event) => { setDateOfBirth(event.target.value); setDobError(''); }}
                             className={dobError ? authInputErrorClass : authInputClass}
                             aria-invalid={Boolean(dobError)}
-                            aria-describedby={`onboarding-dob-hint${dobError ? ' onboarding-dob-error' : ''}`}
+                            aria-describedby={[user?.dob ? 'onboarding-dob-hint' : '', dobError ? 'onboarding-dob-error' : ''].filter(Boolean).join(' ') || undefined}
                         />
-                        <p id="onboarding-dob-hint" className="text-[10px] leading-4 text-[var(--color-secondary)]">{user?.dob ? t('onboarding.dobLocked') : t('auth.register.dobHint')}</p>
+                        {user?.dob && <p id="onboarding-dob-hint" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('onboarding.dobLocked')}</p>}
                         {dobError && <p id="onboarding-dob-error" className={authFieldErrorClass}>{dobError}</p>}
                     </div>
 

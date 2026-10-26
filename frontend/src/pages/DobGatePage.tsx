@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { ageRefusedRecently, rememberAgeRefusal } from '../components/auth/ageRefusal';
 import { isUnder13, todayIso } from '../utils/age';
 import { ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 
@@ -35,7 +36,9 @@ export const DobGatePage = () => {
             setError(t('minors.dob.required'));
             return;
         }
-        if (isUnder13(dob)) {
+        // A refusal on this device stands for a day, whatever date is tried next.
+        if (isUnder13(dob) || ageRefusedRecently()) {
+            rememberAgeRefusal();
             setError(t('minors.dob.blocked'));
             return;
         }

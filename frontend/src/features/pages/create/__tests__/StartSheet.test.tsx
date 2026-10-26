@@ -105,9 +105,19 @@ describe('the start sheet', () => {
     expect(api.createPage.mock.calls[0][0].requestId).toBe(api.createPage.mock.calls[1][0].requestId);
   });
 
-  it('locks a club and a business for someone under 18, and lets them start a fan club', async () => {
+  it('hides what someone under 16 cannot create, and lets them start a fan club', async () => {
     const user = userEvent.setup();
-    auth.user = { id: 9501, dob: `${new Date().getFullYear() - 15}-05-02` };
+    auth.user = { id: 9502, dob: `${new Date().getFullYear() - 14}-01-01` };
+    mount({ from: 'my-club' });
+    expect(screen.queryByRole('radio', { name: /^Club/ })).toBeNull();
+    expect(screen.queryByRole('radio', { name: /^Sponsor/ })).toBeNull();
+    await user.click(screen.getByRole('radio', { name: /^Fan club/ }));
+    expect(screen.getByLabelText('Fan club name')).toBeInTheDocument();
+  });
+
+  it('locks a club and a business for someone of 16 or 17, and lets them start a fan club', async () => {
+    const user = userEvent.setup();
+    auth.user = { id: 9501, dob: `${new Date().getFullYear() - 17}-01-01` };
     mount({ from: 'my-club' });
     const club = screen.getByRole('radio', { name: /^Club/ });
     expect(club).toHaveAttribute('aria-disabled', 'true');

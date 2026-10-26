@@ -3,6 +3,7 @@ import { appLanguage } from '../utils/formatting';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { isAndroidApp, nativeCall, nativeSession } from '../android/bridge';
 import { normalizeNavigationCapabilities, type NavigationCapabilities } from './navigationCapabilities';
+import type { ParentApproval } from '../utils/authRedirect';
 import {
     apiClient,
     ensureCsrfToken,
@@ -49,6 +50,8 @@ export interface AuthUser {
     onboardingRequired: boolean;
     mustChangePassword: boolean;
     emailVerified: boolean;
+    /** WAITING: a 13 to 15-year-old's account until a parent approves it (F1). */
+    parentApproval?: ParentApproval;
     navigationCapabilities?: NavigationCapabilities;
 }
 
@@ -79,6 +82,7 @@ const normalizeAuthUser = (payload: Record<string, unknown>) => ({
     onboardingRequired: payload.onboardingRequired === true || payload.profileComplete === false,
     mustChangePassword: payload.mustChangePassword === true,
     emailVerified: payload.emailVerified === true,
+    parentApproval: payload.parentApproval === 'WAITING' || payload.parentApproval === 'APPROVED' ? payload.parentApproval : 'NONE',
     navigationCapabilities: normalizeNavigationCapabilities(payload.navigationCapabilities, Number(payload.id)),
 } satisfies AuthUser);
 

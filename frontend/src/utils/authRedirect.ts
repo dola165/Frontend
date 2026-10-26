@@ -1,3 +1,7 @@
+export type ParentApproval = 'NONE' | 'WAITING' | 'APPROVED';
+/** Where a 13 to 15-year-old waits for a parent's approval after signing up or in. */
+export const WAITING_FOR_PARENT_PATH = '/waiting-for-parent';
+
 const AUTH_FLOW_STORAGE_KEY = 'grasskickz.auth-flow.v1';
 
 const AUTH_FLOW_ROUTES = new Set([
@@ -11,6 +15,7 @@ const AUTH_FLOW_ROUTES = new Set([
     '/dob',
     '/set-password',
     '/start',
+    WAITING_FOR_PARENT_PATH,
 ]);
 
 export const isAuthFlowRoute = (pathname: string) => AUTH_FLOW_ROUTES.has(pathname.toLowerCase());
@@ -19,7 +24,6 @@ export interface AuthFlowState {
     nextPath?: string;
     email?: string;
     newAccount?: boolean;
-    awaitingVerification?: boolean;
     /** The town given at registration; the first run starts from it. */
     town?: string;
 }
@@ -28,6 +32,8 @@ export interface AuthDestinationUser {
     profileComplete?: boolean;
     onboardingRequired?: boolean;
     mustChangePassword?: boolean;
+    /** WAITING: a 13 to 15-year-old's account until a parent approves it. */
+    parentApproval?: ParentApproval;
 }
 
 let memoryFlow: AuthFlowState = {};
@@ -75,7 +81,6 @@ export const getAuthFlow = (): AuthFlowState => {
             nextPath: sanitizeAuthRedirect(parsed.nextPath) ?? undefined,
             email: typeof parsed.email === 'string' ? parsed.email : undefined,
             newAccount: parsed.newAccount === true,
-            awaitingVerification: parsed.awaitingVerification === true,
             town: typeof parsed.town === 'string' && parsed.town.trim() ? parsed.town.trim().slice(0, 80) : undefined,
         };
     } catch {
@@ -134,6 +139,7 @@ export const publicContinuationPath = (value?: string | null) => {
 
 export const requiredAccountStep = (user?: AuthDestinationUser | null) => {
     if (user?.mustChangePassword) return '/set-password';
+    if (user?.parentApproval === 'WAITING') return WAITING_FOR_PARENT_PATH;
     if (user?.onboardingRequired || user?.profileComplete === false) return '/onboarding';
     return null;
 };

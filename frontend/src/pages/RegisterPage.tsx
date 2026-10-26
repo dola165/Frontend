@@ -6,6 +6,8 @@ import { AlertCircle, Check, Eye, EyeOff, Loader2, LocateFixed } from 'lucide-re
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
+import { ageRefusedRecently, rememberAgeRefusal } from '../components/auth/ageRefusal';
+import { UnderThirteenNotice } from '../components/auth/UnderThirteenNotice';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
@@ -28,6 +30,7 @@ import { DEFAULT_TOWN, TOWNS, locateTown } from '../features/start/towns';
 import {
     buildLoginPath,
     completedAuthDestination,
+    getAuthFlow,
     publicContinuationPath,
     rememberAuthFlow,
     requiredAccountStep,
@@ -43,8 +46,10 @@ const accountExists = (error: unknown) => {
 };
 
 /**
- * One screen: name, email, password, date of birth and town. No role: what a person does in football is
- * chosen later and never decides access. A new account then goes to its first run (`/start`).
+ * One screen: Google first, then name, email, password, date of birth and town (filled in). The birth date says
+ * nothing about a minimum age; under 13 gets a kind "join through a parent" screen instead of an account, and that
+ * answer stands on this device for a day. A known email is offered sign-in. A new account then goes to its welcome,
+ * or, at 13 to 15, to "Waiting for your parent".
  */
 export const RegisterPage = () => {
     const navigate = useNavigate();
@@ -61,7 +66,8 @@ export const RegisterPage = () => {
         return () => { unsubscribe(); registration.current?.abort(); };
     }, []);
     const [fullName, setFullName] = useState('');
-    const [email, setEmail] = useState('');
+    // An email typed on sign-in ("No account with this email. Create one?") comes along.
+    const [email, setEmail] = useState(() => getAuthFlow().email ?? '');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [dob, setDob] = useState('');
@@ -69,6 +75,8 @@ export const RegisterPage = () => {
     const [locating, setLocating] = useState<'idle' | 'locating' | 'failed'>('idle');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [known, setKnown] = useState(false);
+    const [underThirteen, setUnderThirteen] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
 
     const passwordRules = [
@@ -95,7 +103,6 @@ export const RegisterPage = () => {
         if (!passwordRulesMet) errors.password = t('auth.register.errPasswordWeak');
         if (!dob) errors.dob = t('auth.register.errDobRequired');
         else if (!Number.isFinite(ageFromDob(dob)) || dob > todayIso()) errors.dob = t('auth.register.dobInvalid');
-        else if (isUnder13(dob)) errors.dob = t('auth.register.errUnder13');
         setFieldErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -106,19 +113,33 @@ export const RegisterPage = () => {
         if (found) { setTown(found.name); setLocating('idle'); } else setLocating('failed');
     };
 
+    const signInInstead = () => {
+        setPassword('');
+        rememberAuthFlow({ email: email.trim().toLowerCase(), nextPath, town, newAccount: false });
+        navigate(buildLoginPath(nextPath), { replace: true });
+    };
+
     const handleRegister = async (event: React.FormEvent) => {
         event.preventDefault();
         if (registration.current || isLoading || !validate()) return;
+        // Under 13, or a refusal on this device in the last day: no account and nothing sent.
+        if (isUnder13(dob) || ageRefusedRecently()) {
+            rememberAgeRefusal();
+            setPassword('');
+            setUnderThirteen(true);
+            return;
+        }
 
         setIsLoading(true);
         setError('');
+        setKnown(false);
         const controller = new AbortController();
         registration.current = controller;
         const normalizedEmail = email.trim().toLowerCase();
         let installingSession = false;
         try {
-            // The town travels with the sign-up flow to the first run, which saves it; the request keeps the backend's own shape.
-            const response = await apiClient.post<{ emailVerificationRequired?: boolean }>('/auth/register', {
+            // The town travels with the sign-up flow to the welcome, which saves it; the request keeps the backend's own shape.
+            const response = await apiClient.post<{ parentApprovalRequired?: boolean }>('/auth/register', {
                 fullName: fullName.trim(),
                 email: normalizedEmail,
                 password,
@@ -127,19 +148,8 @@ export const RegisterPage = () => {
             }, { signal: controller.signal });
             if (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current)) return;
 
-            rememberAuthFlow({
-                email: normalizedEmail,
-                nextPath,
-                newAccount: true,
-                town,
-                awaitingVerification: response.data.emailVerificationRequired === true,
-            });
-
-            if (response.data.emailVerificationRequired) {
-                navigate('/verify-email?pending=1', { replace: true });
-                return;
-            }
-
+            rememberAuthFlow({ email: normalizedEmail, nextPath, newAccount: true, town });
+            // An unconfirmed email no longer stops sign-in: the account is in at once.
             const result = await secondFactor.authenticate({ kind: 'password', email: normalizedEmail, password });
             if (!result) return;
             setPassword('');
@@ -148,21 +158,18 @@ export const RegisterPage = () => {
             const requiredStep = requiredAccountStep({
                 ...authenticatedUser,
                 mustChangePassword: result.mustChangePassword || authenticatedUser.mustChangePassword,
+                parentApproval: response.data?.parentApprovalRequired ? 'WAITING' : authenticatedUser.parentApproval,
             });
             navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, true), { replace: true });
         } catch (requestError) {
             if (!installingSession && (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current))) return;
-            // A known email signs in instead of making a second account. Nothing about that account is shown.
+            // A known email is offered sign-in instead of a second account. Nothing about that account is shown.
             if (!installingSession && accountExists(requestError)) {
                 if (ageFromDob(dob) < 18) { setFieldErrors({ email: t('auth.register.emailUsedMinor') }); return; }
-                setPassword('');
-                rememberAuthFlow({ email: normalizedEmail, nextPath, town, newAccount: false });
-                navigate(buildLoginPath(nextPath), { replace: true, state: { accountExists: true } });
+                setKnown(true);
                 return;
             }
-
-            const message = extractApiErrorMessage(requestError, t('auth.register.errSubmitFallback'));
-            setError(message === 'Transactional email sender is not configured.' ? t('auth.register.emailUnavailable') : message);
+            setError(extractApiErrorMessage(requestError, t('auth.register.errSubmitFallback')));
         } finally {
             registration.current = null;
             if (!controller.signal.aborted || installingSession) setIsLoading(false);
@@ -198,7 +205,7 @@ export const RegisterPage = () => {
             heroTitle={t('auth.register.heroTitle')}
             heroTagline={t('auth.register.heroTagline')}
             chips={[t('auth.register.chipFollow'), t('auth.register.chipEvents'), t('auth.register.chipFree')]}
-            cardHeader={(
+            cardHeader={underThirteen ? <GrasskickzLogo wordmark className="mb-6 lg:hidden" /> : (
                 <div className="mb-6">
                     <GrasskickzLogo wordmark className="mb-6 lg:hidden" />
                     <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">{t('auth.register.title')}</h1>
@@ -209,6 +216,7 @@ export const RegisterPage = () => {
                 <>{t('auth.register.alreadyHave')}{' '}<Link to={buildLoginPath(nextPath)} className="ml-1 app-text-action">{t('auth.register.goLogin')}</Link></>
             )}
         >
+            {underThirteen ? <UnderThirteenNotice /> : <>
             {error && (
                 <div role="alert" className="mb-6 flex items-center gap-2 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                     <AlertCircle className="h-5 w-5 shrink-0" /> {error}
@@ -217,6 +225,21 @@ export const RegisterPage = () => {
 
             {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); }} /> : (
                 <>
+                    {!isAndroidApp && <>
+                        <GoogleLogin
+                            theme="filled_black"
+                            size="large"
+                            width="100%"
+                            text="continue_with"
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => setError(t('auth.common.googleClosed'))}
+                        />
+                        <div className={authDividerClass}>
+                            <div className={authDividerLineClass} />
+                            <span className={authDividerLabelClass}>{t('auth.register.orEmail')}</span>
+                            <div className={authDividerLineClass} />
+                        </div>
+                    </>}
                     <form onSubmit={handleRegister} className="flex flex-col gap-5" noValidate>
                         <div className="space-y-2">
                             <label htmlFor="auth-name" className={authLabelClass}>{t('auth.register.labelName')}</label>
@@ -226,9 +249,13 @@ export const RegisterPage = () => {
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="auth-email" className={authLabelClass}>{t('auth.register.labelEmail')}</label>
-                            <input id="auth-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); }} required autoComplete="email"
-                                className={fieldClass('email')} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={describedBy('auth-email', 'email')} />
+                            <input id="auth-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); setKnown(false); }} required autoComplete="email"
+                                className={fieldClass('email')} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={describedBy('auth-email', 'email', known ? 'auth-email-known' : undefined)} />
                             {fieldError('auth-email', 'email')}
+                            {known && <div id="auth-email-known" role="status" className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--color-text)]">
+                                <span>{t('auth.register.knownEmail')}</span>
+                                <button type="button" onClick={signInInstead} className="min-h-9 px-3 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.register.goLogin')}</button>
+                            </div>}
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="auth-password" className={authLabelClass}>{t('auth.register.labelPassword')}</label>
@@ -255,8 +282,7 @@ export const RegisterPage = () => {
                             <div className="space-y-2">
                                 <label htmlFor="auth-dob" className={authLabelClass}>{t('auth.register.labelDob')}</label>
                                 <input id="auth-dob" type="date" value={dob} max={todayIso()} required autoComplete="bday" onChange={(event) => { setDob(event.target.value); clearFieldError('dob'); }}
-                                    className={fieldClass('dob')} aria-invalid={Boolean(fieldErrors.dob)} aria-describedby={describedBy('auth-dob', 'dob', 'auth-dob-hint')} />
-                                <p id="auth-dob-hint" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('auth.register.dobHint')}</p>
+                                    className={fieldClass('dob')} aria-invalid={Boolean(fieldErrors.dob)} aria-describedby={describedBy('auth-dob', 'dob')} />
                                 {fieldError('auth-dob', 'dob')}
                             </div>
                             <div className="space-y-2">
@@ -275,21 +301,9 @@ export const RegisterPage = () => {
                             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('auth.register.submit')}
                         </button>
                     </form>
-                    {!isAndroidApp && <div className={authDividerClass}>
-                        <div className={authDividerLineClass} />
-                        <span className={authDividerLabelClass}>{t('auth.login.orVia')}</span>
-                        <div className={authDividerLineClass} />
-                    </div>}
-                    {!isAndroidApp && <GoogleLogin
-                        theme="filled_black"
-                        size="large"
-                        width="100%"
-                        text="signup_with"
-                        onSuccess={handleGoogleSuccess}
-                        onError={() => setError(t('auth.common.googleClosed'))}
-                    />}
                 </>
             )}
+            </>}
         </AuthSplitShell>
     );
 };

@@ -12,9 +12,10 @@ const THIS_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 16 }, (_, index) => THIS_YEAR - 3 - index);
 
 /**
- * Step 2 of Play football. For me: the town (filled in) and clubs near it that fit the person's age, to follow; then
- * World's trials that fit them. For my child: the child's birth year and the town, clubs whose programmes take that
- * age; then World's places to train for that year. Only the age is kept, never a child.
+ * Step 2 of Play football. For me: the town (filled in) and clubs near it that fit the person's age, to follow. For my
+ * child: the child's birth year and the town, clubs whose programmes take that age. Both land on World's clubs with the
+ * same age and town, so the list goes on from what was shown; with none shown for that age, on the town's clubs. Only
+ * the age is kept, never a child.
  */
 export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & { who: 'me' | 'child' }) {
     const copy = useJourneyCopy();
@@ -41,12 +42,12 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
     }, [age, query, town]);
 
     const toggle = (id: number) => setChosen(current => { const next = new Set(current); if (!next.delete(id)) next.add(id); return next; });
+    // The same source as the list above (clubs for this age in this town), never an emptier one.
     const destination = useMemo(() => {
-        const params = new URLSearchParams(who === 'me' ? { tab: 'trials', forMe: 'true' } : { tab: 'groups' });
-        if (who === 'child' && year) params.set('birthYear', String(year));
-        params.set('near', town);
-        return `/world/opportunities?${params}`;
-    }, [town, who, year]);
+        const params = new URLSearchParams({ near: town });
+        if (age != null && clubs?.length) params.set('age', String(age));
+        return `/world/clubs?${params}`;
+    }, [age, clubs?.length, town]);
     const finish = async () => {
         setBusy(true); setFailed(false);
         const missed = await followClubs((clubs ?? []).filter(club => chosen.has(club.id)));
@@ -68,7 +69,7 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
         hint={who === 'me' ? copy('Follow the ones you like.', 'გამოიწერეთ, რომლებიც მოგწონთ.') : copy('Clubs with a programme for that age.', 'კლუბები, რომლებსაც ამ ასაკისთვის პროგრამა აქვთ.')}
         footer={<Button variant="primary" disabled={busy} onClick={() => void finish()}>
             {busy && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}
-            {who === 'me' ? copy('Show trials near me', 'ახლომდებარე გასინჯვები') : copy('Show places to train', 'სავარჯიშო ადგილები')}
+            {who === 'me' ? copy('Show clubs near me', 'ახლომდებარე კლუბები') : copy('Show clubs for this age', 'კლუბები ამ ასაკისთვის')}
         </Button>}>
         <div className="gk-welcome__fields">
             {yearField}

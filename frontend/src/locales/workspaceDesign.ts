@@ -47,7 +47,7 @@ export const workspaceNavEn = {
     customize: 'Edit tabs', editTabsTitle: 'Your tabs', editTabsHint: 'Hide what you do not use; it waits under More tools. The essentials stay.',
     toolsFirstFor: 'Tools first for', alwaysShown: 'Always shown', showTool: 'Show {{name}}', hideTool: 'Hide {{name}}', showArea: 'Show {{name}}', hideArea: 'Hide {{name}}',
     resetTabs: 'Show everything again', done: 'Done', accessFrom: 'Access to a tool comes from the club, never from here.', askAccess: 'Ask the admin',
-    profileRoles: 'What you do in football, for your profile, is in', rolesAndWork: 'Account › Roles and work',
+    profileRoles: 'What you do in football, for your profile, is in', rolesAndWork: 'Your football profile',
     notInAccess: 'Not in your access', notInAccessHint: 'Tools the club uses for other jobs. The admin gives jobs.',
     viewOnly: 'View only', viewOnlyNote: 'View only: you can read these records, not change them.',
 };
@@ -66,7 +66,7 @@ export const workspaceNavKa: Record<keyof typeof workspaceNavEn, string> = {
     customize: 'ჩანართების რედაქტირება', editTabsTitle: 'თქვენი ჩანართები', editTabsHint: 'დამალეთ, რასაც არ იყენებთ; ის „სხვა ინსტრუმენტებში“ დაგელოდებათ. მთავარი რჩება.',
     toolsFirstFor: 'ინსტრუმენტები პირველ რიგში', alwaysShown: 'ყოველთვის ჩანს', showTool: '{{name}}: ჩვენება', hideTool: '{{name}}: დამალვა', showArea: '{{name}}: ჩვენება', hideArea: '{{name}}: დამალვა',
     resetTabs: 'ყველაფრის დაბრუნება', done: 'მზადაა', accessFrom: 'ინსტრუმენტზე წვდომას კლუბი იძლევა, არა ეს ფანჯარა.', askAccess: 'ადმინთან მიწერა',
-    profileRoles: 'რას აკეთებთ ფეხბურთში (პროფილისთვის), იხილეთ:', rolesAndWork: 'ანგარიში › როლები და საქმიანობა',
+    profileRoles: 'რას აკეთებთ ფეხბურთში (პროფილისთვის), იხილეთ:', rolesAndWork: 'თქვენი საფეხბურთო პროფილი',
     notInAccess: 'თქვენი წვდომის გარეთ', notInAccessHint: 'ინსტრუმენტები კლუბის სხვა სამუშაოებისთვის. სამუშაოს ადმინი გასცემს.',
     viewOnly: 'მხოლოდ ნახვა', viewOnlyNote: 'მხოლოდ ნახვა: ამ ჩანაწერების წაკითხვა შეგიძლიათ, შეცვლა — არა.',
 };

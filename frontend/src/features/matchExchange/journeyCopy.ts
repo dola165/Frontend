@@ -74,7 +74,7 @@ export const journeyCopy = {
   withdrawn: ["Appointment withdrawn. The host needs a replacement.", "დანიშვნიდან გასვლა დადასტურებულია. მასპინძელს შემცვლელი სჭირდება."],
   availability: ["Set availability for the whole match", "მიუთითეთ ხელმისაწვდომობა მთელი მატჩისთვის"],
   profile: ["Set up referee profile", "მსაჯის პროფილის შექმნა"],
-  roles: ["Review football roles", "საფეხბურთო როლების ნახვა"],
+  roles: ["Your football profile", "თქვენი საფეხბურთო პროფილი"],
   schedule: ["Review My schedule", "ჩემი განრიგის ნახვა"],
   workspace: ["Open referee workspace", "მსაჯის სამუშაო სივრცის გახსნა"],
   refresh: ["Refresh appointment", "დანიშვნის განახლება"],

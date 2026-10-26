@@ -3,6 +3,7 @@ import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { profileRoles } from '../../roles/domain';
 import { fetchPersonProfile, fetchProfessions, type PersonProfile, type Profession } from '../api';
+import { useFootball } from '../football/useFootball';
 
 /**
  * A person's profile, their professions and what the viewer may see and do.
@@ -37,7 +38,9 @@ export function usePersonProfile(id: number) {
         return () => controller.abort();
     }, [id, key]);
 
+    const football = useFootball(id);
     const own = Boolean(user && profile && Number(user.id) === profile.id);
+    const shownLine = football.data?.publicRole?.label ?? null;
     const roles = profile ? profileRoles(profile) : [];
     const hidden = Boolean(profile?.isPrivate && !own);
     // Minors' birth dates never reach other viewers. Treat a player without one as a possible minor.
@@ -58,9 +61,12 @@ export function usePersonProfile(id: number) {
 
     return {
         profile, status, own, roles, hidden, possibleMinor, setProfile,
+        football: football.data,
+        /** The line under the name, from the person's real lines. */
+        line: shownLine,
         professions: currentProfessions?.items ?? null,
         professionsFailed: currentProfessions?.failed ?? false,
-        reload: () => setRevision(value => value + 1), toggleFollow, updateImage,
+        reload: () => { setRevision(value => value + 1); football.reload(); }, toggleFollow, updateImage,
     };
 }
 

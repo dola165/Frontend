@@ -113,7 +113,8 @@ const JoinPage = lazy(() => import('./features/pages/links/JoinPage').then(modul
 const InvitePage = lazy(() => import('./features/pages/links/InvitePage').then(module => ({ default: module.InvitePage })));
 const CreateRedirect = lazy(() => import('./features/pages/create/CreateRedirect').then(module => ({ default: module.CreateRedirect })));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage').then(module => ({default: module.OrganizationProfilePage})));
-const AccountRolesPage = lazy(() => import('./features/profiles/account/AccountRolesPage').then(module => ({default: module.AccountRolesPage})));
+const FootballProfilePage = lazy(() => import('./features/profiles/football/FootballProfilePage').then(module => ({default: module.FootballProfilePage})));
+const RolesRedirect = lazy(() => import('./features/profiles/football/FootballProfilePage').then(module => ({default: module.RolesRedirect})));
 const MatchDetailPage = lazy(() => import('./pages/MatchDetailPage').then(module => ({default: module.MatchDetailPage})));
 const RefereePage = lazy(() => import('./pages/RefereePage').then(module => ({default: module.RefereePage})));
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(module => ({default: module.AgentDashboardPage})));
@@ -340,7 +341,7 @@ export function MainLayout() {
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||
         location.pathname === '/club-operations' ||
         location.pathname === '/assistant' ||
-        location.pathname === '/account/roles' ||
+        location.pathname === '/account/football' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
         ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
@@ -397,7 +398,8 @@ export function MainLayout() {
             <Route path="/admissions/organizations/:organizationId/inquire" element={<ProtectedRoute><GeneralAdmissionInquiryPage /></ProtectedRoute>} />
             <Route path="/admissions/inquiries/:inquiryId" element={<ProtectedRoute><AdmissionInquiryPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ReportReceipts /></ProtectedRoute>} />
-            <Route path="/account/roles" element={<ProtectedRoute><AccountRolesPage /></ProtectedRoute>} />
+            <Route path="/account/football" element={<ProtectedRoute><FootballProfilePage /></ProtectedRoute>} />
+            <Route path="/account/roles" element={<RolesRedirect />} />
             <Route path="/matches" element={<LegacyMatchesRedirect kind="hub" />} />
             <Route path="/match-exchange" element={<LegacyMatchesRedirect kind="exchange" />} />
             <Route path="/match-history" element={<LegacyMatchesRedirect kind="history" />} />
@@ -430,7 +432,7 @@ export function MainLayout() {
             <Route path="/agents/:id" element={<AgentProfilePage />} />
             <Route path="/posts/:postId" element={<PostPage />} />
             <Route path="/agent" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
-            <Route path="/agent/dashboard" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
+            <Route path="/agent/dashboard" element={<Navigate to="/agent" replace />} />
             <Route path="/store" element={<StorePage />} />
             <Route path="/store/all" element={<StoreCataloguePage />} />
             <Route path="/stadiums" element={<WorldRedirect to="/world/venues" />} />

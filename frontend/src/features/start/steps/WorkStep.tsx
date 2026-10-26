@@ -1,26 +1,11 @@
 import { useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { Button } from '../../../design/primitives';
-import type { CATEGORIES } from '../../jobs/api';
 import { jobsPath } from '../../jobs/query';
 import { fetchDiscoveryPreferences, fetchOwnProfessions, saveDiscoveryPreferences, saveProfessions } from '../../profiles/api';
+import { WORK_CHIPS as WORK } from '../../profiles/workChips';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { WelcomeFrame, type WelcomeStepProps } from '../WelcomeFrame';
-
-/** What people do, as real job titles, each with the jobs category it opens. */
-const WORK: { id: string; en: string; ka: string; category: typeof CATEGORIES[number]['value'] }[] = [
-    { id: 'coach', en: 'Coach', ka: 'მწვრთნელი', category: 'COACHING' },
-    { id: 'assistant', en: 'Assistant coach', ka: 'მწვრთნელის ასისტენტი', category: 'COACHING' },
-    { id: 'goalkeeping', en: 'Goalkeeper coach', ka: 'მეკარეთა მწვრთნელი', category: 'COACHING' },
-    { id: 'referee', en: 'Referee', ka: 'მსაჯი', category: 'MATCHDAY' },
-    { id: 'physio', en: 'Physio', ka: 'ფიზიოთერაპევტი', category: 'MEDICAL' },
-    { id: 'analyst', en: 'Analyst', ka: 'ანალიტიკოსი', category: 'FOOTBALL_OPERATIONS' },
-    { id: 'scout', en: 'Scout', ka: 'სკაუტი', category: 'FOOTBALL_OPERATIONS' },
-    { id: 'manager', en: 'Team manager', ka: 'გუნდის მენეჯერი', category: 'FOOTBALL_OPERATIONS' },
-    { id: 'agent', en: 'Agent', ka: 'აგენტი', category: 'OTHER' },
-    { id: 'media', en: 'Photographer', ka: 'ფოტოგრაფი', category: 'MEDIA_COMMUNICATIONS' },
-    { id: 'volunteer', en: 'Volunteer', ka: 'მოხალისე', category: 'OTHER' },
-];
 
 /**
  * Step 2 of Work or volunteer: what the person does (chips) and "Open to work", on by default. The chips go on their

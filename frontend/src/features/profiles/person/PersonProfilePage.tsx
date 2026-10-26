@@ -98,7 +98,7 @@ function PersonProfileView({ id }: { id: number }) {
         onClick={() => setConnections(kind)}><strong>{value.toLocaleString()}</strong>{kind === 'followers' ? copy(value === 1 ? 'follower' : 'followers', 'გამომწერი') : copy('following', 'გამოწერილი')}</button>;
     return <>
         <ProfileLayout
-            identity={personIdentity({ profile, roles, own, hidden, possibleMinor: view.possibleMinor, copy, counts })}
+            identity={personIdentity({ profile, hidden, line: view.line, copy, counts })}
             banner={hidden ? null : profile.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
             actions={<PersonActions profile={profile} own={own} onFollow={() => void follow()} onShare={() => void share()} onRepresentation={openRepresentation} />}
             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}

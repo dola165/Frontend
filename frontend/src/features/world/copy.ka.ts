@@ -323,7 +323,7 @@ export const WORLD_KA: Record<string, string> = {
     'Confirmed by {club}': 'დაადასტურა: {club}', 'a club': 'კლუბი', 'Club / academy staff': 'კლუბის / აკადემიის პერსონალი',
     'Parent / guardian': 'მშობელი / მეურვე', 'Tournament organizer': 'ტურნირის ორგანიზატორი', 'Venue manager': 'მოედნის მენეჯერი',
     'Fan': 'გულშემატკივარი', 'Your card': 'შენი ბარათი', 'Your profile could not load.': 'შენი პროფილი ვერ ჩაიტვირთა.',
-    'This is how People shows you to others.': 'ასე გხედავენ სხვები გვერდზე „ხალხი“.', 'Edit roles': 'როლების რედაქტირება', 'Mark when you’re free': 'მონიშნე, როდის ხარ თავისუფალი',
+    'This is how People shows you to others.': 'ასე გხედავენ სხვები გვერდზე „ხალხი“.', 'Your football': 'თქვენი ფეხბურთი', 'Mark when you’re free': 'მონიშნე, როდის ხარ თავისუფალი',
     'No referees listed yet': 'მსაჯები ჯერ არ არიან', 'Referees appear here when they publish a referee profile.': 'მსაჯები აქ ჩნდებიან, როცა მსაჯის პროფილს გამოაქვეყნებენ.', 'No specialists listed here yet': 'აქ სპეციალისტები ჯერ არ არიან',
     'Physios, analysts and other specialists appear here when they publish a profile.': 'ფიზიოთერაპევტები, ანალიტიკოსები და სხვა სპეციალისტები აქ ჩნდებიან, როცა პროფილს გამოაქვეყნებენ.', 'No coaches or club staff listed here yet': 'აქ მწვრთნელები და პერსონალი ჯერ არ არიან', 'People appear here when they publish a football profile.': 'ადამიანები აქ ჩნდებიან, როცა საფეხბურთო პროფილს გამოაქვეყნებენ.',
     'No players listed here yet': 'აქ მოთამაშეები ჯერ არ არიან', 'Adult players appear here when they publish a football profile.': 'ზრდასრული მოთამაშეები აქ ჩნდებიან, როცა საფეხბურთო პროფილს გამოაქვეყნებენ.', 'Sign in to find people by role and area.': 'შედი, რომ იპოვო ადამიანები როლისა და რეგიონის მიხედვით.',

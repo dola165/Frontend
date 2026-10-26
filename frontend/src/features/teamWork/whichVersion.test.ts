@@ -39,7 +39,7 @@ describe('which version a person is on', () => {
     it('on the live site: the release, and that it is live', () => {
         const s = standing(versions({ place: 'LIVE', live: { release: 5, changes: 0, source: 'HERE', checkedAt: null } }), build(graph.slice(2)));
         expect(s).toMatchObject({ place: 'LIVE', release: 5, exact: true, behind: [] });
-        expect(headline(english, s)).toBe('You’re on release 5 · live');
+        expect(headline(english, s)).toBe('Live is on release 5');
         expect(comparedWithLive(english, s)).toBe('This is what everyone using the app sees.');
         expect(liveSourceLine(english, s)).toBe('This server is the live site.');
     });
@@ -88,15 +88,6 @@ describe('which version a person is on', () => {
         const old = standing({ backend: { known: true, commits: [] } }, build(graph));
         expect(old.oldBackend).toBe(true);
         expect(comparedWithLive(english, old)).toMatch(/older than this page/);
-    });
-});
-
-describe('a copy that cannot tell, set by hand', () => {
-    it('a pasted release commit gives that release; anything else stays unknown', () => {
-        const blind = versions({ at: { known: false, release: null, changes: 0 }, build: { known: false } });
-        expect(standing(blind, { known: false }, { backend: full('e04').slice(0, 8), web: R4 })).toMatchObject({ known: true, release: 4, split: false });
-        expect(standing(blind, { known: false }, { backend: full('e05'), web: 'abcdef1' })).toMatchObject({ known: true, release: 5, split: false });
-        expect(standing(blind, { known: false }, { backend: 'not an id' }).known).toBe(false);
     });
 });
 

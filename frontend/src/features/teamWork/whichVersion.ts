@@ -1,4 +1,4 @@
-import { commitId, type Repo } from './upToDate';
+import type { Repo } from './upToDate';
 
 /**
  * Which version a person is on, in words, without them knowing commits or release numbers. Each build knows the commit
@@ -96,19 +96,12 @@ export interface Standing {
 
 const UNKNOWN: At = { known: false, release: null, changes: 0 };
 
-/** A commit id pasted by hand for a build that cannot tell: the release it is exactly, or not known. */
-export function pastedAt(id: string | undefined, releases: Release[], side: 'backend' | 'web'): At {
-    const wanted = id ? commitId(id) : null;
-    const found = wanted ? releases.find(release => release[side].toLowerCase().startsWith(wanted)) : undefined;
-    return found ? { known: true, release: found.number, changes: 0 } : UNKNOWN;
-}
-
-/** Where this person stands; `pasted` are the commit ids they gave by hand, used only for a side that cannot tell. */
-export function standing(versions: Versions, web: WebBuild, pasted: { backend?: string; web?: string } = {}): Standing {
+/** Where this server and this page stand, against the releases and live. */
+export function standing(versions: Versions, web: WebBuild): Standing {
     const releases = versions.releases ?? [];
     const oldBackend = !versions.releases;
-    const backend = versions.at?.known ? versions.at : pastedAt(pasted.backend, releases, 'backend');
-    const webAt = web.known ? atRelease(web.graph, releases.map(release => ({ number: release.number, commit: release.web }))) : pastedAt(pasted.web, releases, 'web');
+    const backend = versions.at?.known ? versions.at : UNKNOWN;
+    const webAt = web.known ? atRelease(web.graph, releases.map(release => ({ number: release.number, commit: release.web }))) : UNKNOWN;
     const sides = [backend, webAt].filter(side => side.known);
     const numbers = sides.map(side => side.release);
     const release = numbers.length === 0 || numbers.includes(null) ? null : Math.min(...(numbers as number[]));
@@ -143,11 +136,13 @@ export function newSince(seen: Seen | null | undefined, now: number | null, rele
 type Copy = (en: string, ka: string) => string;
 const plus = (copy: Copy, changes: number) => changes === 0 ? '' : changes === 1 ? copy(' plus 1 change', ' (+1 ცვლილება)') : copy(` plus ${changes} changes`, ` (+${changes} ცვლილება)`);
 
-/** The page's first line: which release, and whether this is the live site or a copy. */
+/** The page's first line: which release live runs, or which release this local copy is on. */
 export function headline(copy: Copy, s: Standing): string {
-    const where = s.place === 'LIVE' ? copy('live', 'ლაივი') : copy('your local copy', 'თქვენი ლოკალური ასლი');
     if (!s.known) return s.place === 'LIVE' ? copy('Live · which release is not known', 'ლაივი · რომელი რელიზია, უცნობია')
         : copy('Your local copy · which release is not known', 'თქვენი ლოკალური ასლი · რომელი რელიზია, უცნობია');
+    if (s.place === 'LIVE') return s.release == null ? copy('Live is on a version from before release 1', 'ლაივზეა 1-ელ რელიზამდელი ვერსია')
+        : copy(`Live is on release ${s.release}${plus(copy, s.changes)}`, `ლაივზეა რელიზი ${s.release}${plus(copy, s.changes)}`);
+    const where = copy('your local copy', 'თქვენი ლოკალური ასლი');
     if (s.release == null) return copy(`You’re on a version from before release 1 · ${where}`, `თქვენ ხართ 1-ელ რელიზამდელ ვერსიაზე · ${where}`);
     return copy(`You’re on release ${s.release}${plus(copy, s.changes)} · ${where}`, `თქვენ ხართ რელიზ ${s.release}-ზე${plus(copy, s.changes)} · ${where}`);
 }
@@ -156,7 +151,7 @@ export function headline(copy: Copy, s: Standing): string {
 export function comparedWithLive(copy: Copy, s: Standing): string {
     if (s.oldBackend) return copy('Your backend copy is older than this page, so it can’t say which release it is. Update it with the update message.',
         'თქვენი ბექენდის ასლი ამ გვერდზე ძველია და ვერ ამბობს, რომელი რელიზია. განაახლეთ განახლების ტექსტით.');
-    if (!s.known) return copy('It was built without git, so it can’t tell. Set it by hand below.', 'ის git-ის გარეშე აიწყო, ამიტომ ვერ გაიგებს. მიუთითეთ ხელით ქვემოთ.');
+    if (!s.known) return copy('It was built without git, so it can’t tell. Check your project folders below.', 'ის git-ის გარეშე აიწყო, ამიტომ ვერ გაიგებს. შეამოწმეთ თქვენი პროექტების საქაღალდე ქვემოთ.');
     if (s.place === 'LIVE') return s.changes === 0 && !s.split
         ? copy('This is what everyone using the app sees.', 'ამას ხედავს ყველა, ვინც აპს იყენებს.')
         : copy('Live runs changes that are not recorded as a release yet.', 'ლაივზე არის ცვლილებები, რომლებიც ჯერ რელიზად არ ჩაწერილა.');

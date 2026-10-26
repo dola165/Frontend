@@ -4,6 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 import { Avatar, Button, Field, GkRoot } from '../design/primitives';
 import { useAuth } from '../context/AuthContext';
 import { isMinor } from '../utils/age';
+import { confirmationJobTitle, needsConfirmedEmail, sendEmailConfirmation } from '../components/auth/emailConfirmation';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { acceptClubInvite, claimClubInvite, declineClubInvite, landingFor, previewClubInvite, signInAfterClaim, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
@@ -11,7 +12,7 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { buildLoginPath } from '../utils/authRedirect';
 import '../features/clubOperations/people/club-invite.css';
 
-type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' } | { kind: 'partly'; failures: string[]; next: string };
+type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' } | { kind: 'partly'; failures: string[]; next: string; waitsOnEmail: string | null };
 
 /**
  * The page a club invite link opens: "Nino invited you: Assistant coach · U12" with the club's crest. The person
@@ -60,12 +61,17 @@ function ClubInvite({ token }: { token: string }) {
             if (!accessToken) { navigate(buildLoginPath('/notifications'), { replace: true }); return; }
             const open = preview.invites.filter(i => !i.unavailableReason);
             const failures: string[] = [], accepted: LinkInvite[] = [];
+            let waitsOnEmail: string | null = null;
             for (const invite of open) {
                 try { await acceptClubInvite(invite); accepted.push(invite); }
-                catch (failure) { failures.push(`${jobLabel(invite)}: ${extractApiErrorMessage(failure, copy('it couldn’t be accepted.', 'ვერ მიიღეს.'))}`); }
+                catch (failure) {
+                    // A new account confirms its email before starting a job; the job waits in the notifications meanwhile.
+                    if (needsConfirmedEmail(failure)) waitsOnEmail ??= confirmationJobTitle(failure) ?? jobLabel(invite);
+                    else failures.push(`${jobLabel(invite)}: ${extractApiErrorMessage(failure, copy('it couldn’t be accepted.', 'ვერ მიიღეს.'))}`);
+                }
             }
-            const next = landingFor(accepted);
-            if (failures.length) setStage({ kind: 'partly', failures, next });
+            const next = !accepted.length && waitsOnEmail ? '/notifications' : landingFor(accepted);
+            if (failures.length || waitsOnEmail) setStage({ kind: 'partly', failures, next, waitsOnEmail });
             else navigate(next, { replace: true });
         } catch (failure) {
             setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
@@ -92,7 +98,8 @@ function ClubInvite({ token }: { token: string }) {
     </>);
     if (stage.kind === 'partly') return card(<>
         <h1 className="ci-title">{copy('Your account is ready', 'თქვენი ანგარიში მზადაა')}</h1>
-        <div role="alert" className="gk-notice gk-notice--warning"><ul className="ci-failures">{stage.failures.map(f => <li key={f}>{f}</li>)}</ul></div>
+        {stage.waitsOnEmail && <EmailWait job={stage.waitsOnEmail} />}
+        {stage.failures.length > 0 && <div role="alert" className="gk-notice gk-notice--warning"><ul className="ci-failures">{stage.failures.map(f => <li key={f}>{f}</li>)}</ul></div>}
         <Button variant="primary" onClick={() => navigate(stage.next, { replace: true })}>{copy('Continue', 'გაგრძელება')}</Button>
     </>);
 
@@ -137,4 +144,18 @@ function ClubInvite({ token }: { token: string }) {
         </form>}
         {allBlocked && <p className="gk-muted">{copy(`Ask ${inviter} for a new invitation.`, `სთხოვეთ ${inviter}-ს ახალი მოწვევა.`)}</p>}
     </>);
+}
+
+/** "Confirm your email to start as Assistant coach", with Resend: a new account confirms before its job starts. */
+function EmailWait({ job }: { job: string }) {
+    const { copy } = useJobWords();
+    const [sent, setSent] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+    const resend = () => { setSent('sending'); sendEmailConfirmation().then(() => setSent('sent'), () => setSent('failed')); };
+    return <div role="status" className="gk-notice gk-notice--warning ci-email-wait">
+        <span><strong>{copy(`Confirm your email to start as ${job}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${job}`)}</strong>
+            <small>{sent === 'sent' ? copy('Sent. Open the link, then accept the job in your notifications.', 'გაიგზავნა. გახსენით ბმული და მიიღეთ სამუშაო შეტყობინებებში.')
+                : sent === 'failed' ? copy('That did not send. Try again.', 'ვერ გაიგზავნა. სცადეთ ხელახლა.')
+                    : copy('Open the link we sent, then accept the job in your notifications.', 'გახსენით გამოგზავნილი ბმული და მიიღეთ სამუშაო შეტყობინებებში.')}</small></span>
+        {sent !== 'sent' && <Button size="sm" disabled={sent === 'sending'} onClick={resend}>{copy('Resend', 'ხელახლა გაგზავნა')}</Button>}
+    </div>;
 }

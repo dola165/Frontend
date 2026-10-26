@@ -39,7 +39,7 @@ export function SuggestAssistantDialog({ club, squads, onClose, onSent }: {
             <Button variant="primary" disabled={busy} onClick={() => void submit()}>{busy ? copy('Sending…', 'იგზავნება…') : copy('Suggest', 'შეთავაზება')}</Button></>}>
         <form className="pp-form" onSubmit={event => { event.preventDefault(); void submit(); }}>
             <div className="pp-form__who">
-                <Field label={copy('Name', 'სახელი')} htmlFor={`${id}-name`}><input id={`${id}-name`} className="gk-input" autoComplete="off" maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></Field>
+                <Field label={copy('Name', 'სახელი')} htmlFor={`${id}-name`}><input id={`${id}-name`} className="gk-input" required aria-required="true" autoComplete="off" maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></Field>
                 <Field label={copy('Email', 'ელფოსტა')} htmlFor={`${id}-email`}><input id={`${id}-email`} className="gk-input" type="email" autoComplete="off" maxLength={254} value={email} disabled={busy} onChange={event => setEmail(event.target.value)} /></Field>
             </div>
             <fieldset className="pp-picker__jobs" disabled={busy}>

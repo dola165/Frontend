@@ -3,7 +3,7 @@ import type { NotificationItem } from '../../../types/notifications';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { refreshAccess } from '../../../hooks/useCan';
 import { Button } from '../../../design/primitives';
-import { answerSuggestion, fetchPeople, type InviteLink, type PersonJob } from './api';
+import { answerSuggestion, fetchPeople, isOwnAccount, type InviteLink, type PersonJob } from './api';
 import { InviteLinkBox } from './InviteLinkBox';
 import { useJobWords } from './jobWords';
 import './people.css';
@@ -49,7 +49,10 @@ export function AssistantSuggestionActions({ notification }: { notification: Not
             setDone(answer.outcome !== 'CONFIRMED' ? copy('Declined. The head coach is told.', 'უარყოფილია. მთავარ მწვრთნელს ეცნობა.')
                 : answer.link ? copy(`Confirmed. Send ${found.name} this link to choose a password.`, `დადასტურდა. გაუგზავნეთ ${found.name}-ს ეს ბმული პაროლის ასარჩევად.`)
                     : copy(`Confirmed. ${found.name} finds the invitation in the app; the head coach is told.`, `დადასტურდა. ${found.name} მოწვევას აპში ნახავს; მთავარ მწვრთნელს ეცნობა.`));
-        } catch (failure) { setError(extractApiErrorMessage(failure, copy('Your answer wasn’t saved. Try again.', 'პასუხი ვერ შეინახა. სცადეთ ხელახლა.'))); }
+        } catch (failure) {
+            if (isOwnAccount(failure)) setDone(copy(`${found.name} has their own account, so there’s no link to send: the invitation waits for them in the app.`, `${found.name}-ს საკუთარი ანგარიში აქვს, ამიტომ ბმული არ არის საჭირო: მოწვევა აპში ელოდება.`));
+            else setError(extractApiErrorMessage(failure, copy('Your answer wasn’t saved. Try again.', 'პასუხი ვერ შეინახა. სცადეთ ხელახლა.')));
+        }
         finally { setBusy(false); }
     };
     return <div className="gk pp-notice-actions" onClick={event => event.stopPropagation()}>

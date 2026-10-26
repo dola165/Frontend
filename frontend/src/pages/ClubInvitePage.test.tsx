@@ -88,3 +88,21 @@ it('once the link is used, a failed sign-in goes to sign-in instead of trying th
     expect(await screen.findByText('Sign-in page')).toBeInTheDocument();
     expect(api.post.mock.calls.filter(([url]) => url === '/auth/club-invite/claim')).toHaveLength(1);
 });
+
+it('after claiming, a job that waits on the email says "Confirm your email to start as …" with Resend', async () => {
+    api.post.mockImplementation(async (url: string) => {
+        if (url === '/auth/club-invite/preview') return { data: preview };
+        if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test' } };
+        if (url === '/auth/login') return { data: { accessToken: 'token' } };
+        if (url === '/auth/send-verification') return { data: {} };
+        throw { isAxiosError: true, response: { status: 403, data: { code: 'EMAIL_CONFIRMATION_REQUIRED', action: 'JOB', jobTitle: 'Assistant coach', resendPath: '/auth/send-verification' } } };
+    });
+    open();
+    await screen.findByRole('heading', { name: 'Nino invited you' });
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    expect(await screen.findByText('Confirm your email to start as Assistant coach')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification'));
+    expect(await screen.findByText(/Sent. Open the link/)).toBeInTheDocument();
+});

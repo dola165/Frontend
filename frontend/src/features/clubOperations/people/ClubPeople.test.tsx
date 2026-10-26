@@ -225,3 +225,22 @@ it('keeps the buttons disabled while the rule-checker answers, so none appears a
     answer({ data: { clubId: 7, squadId: null, allowed: ['invite_staff', 'make_admin', 'change_job', 'end_job'], refused: [] } });
     await waitFor(() => expect(screen.getByRole('button', { name: /Invite staff/ })).toBeEnabled());
 });
+
+it('says plainly when a person has their own account and so gets no link', async () => {
+    renderPeople(view());
+    const luka = (await screen.findByText('Luka Beridze')).closest('li') as HTMLElement;
+    api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { code: 'NOT_AN_INVITE_ACCOUNT', message: 'Not an invite account.' } } });
+    fireEvent.click(within(luka).getByRole('button', { name: /New link/ }));
+    expect(await screen.findByText(/Luka Beridze has their own account, so there’s no link to send/)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it('shows emails to admins only, and no Ask the admin link when no admin is named', async () => {
+    renderPeople(view({ userId: 4, leader: false, owner: false, headCoachSquads: [] }), {
+        access: { clubId: 7, squadId: null, allowed: ['see_people'], admins: [], refused: [
+            { action: 'invite_staff', allowed: false, reason: 'ONLY_ADMINS', message: 'Only the club’s admins can do this.', because: null }] },
+    });
+    expect(await screen.findByText('Only the club’s admins can do this.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Ask the admin/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('luka@example.test')).not.toBeInTheDocument();
+});

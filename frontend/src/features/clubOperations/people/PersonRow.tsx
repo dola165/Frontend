@@ -60,7 +60,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
             <Avatar src={resolveMediaUrl(person.avatarUrl) || null} name={person.name} size={40} />
             <div className="pp-person__who">
                 <strong className="pp-person__name">{person.name}{self && <Badge tone="info">{copy('You', 'თქვენ')}</Badge>}</strong>
-                {person.email && person.needsLink && <span className="gk-muted pp-person__email">{person.email}</span>}
+                {view.viewer.leader && person.email && person.needsLink && <span className="gk-muted pp-person__email">{person.email}</span>}
             </div>
         </div>
         <div className="pp-person__actions">

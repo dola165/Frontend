@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { ct, useCommerceCopy } from '../../store/copy';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -44,7 +45,7 @@ export function ManageFundraiser({ campaign, onChanged, compact, allowed: known 
             }
             await changeCampaignState(campaign.clubId, latest, status);
             if (current()) onChanged();
-        } catch (failure) { if (current()) setError(extractApiErrorMessage(failure, ct("The fundraiser could not be changed."))); }
+        } catch (failure) { if (current() && !promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, ct("The fundraiser could not be changed."))); }
         finally { pending.current = false; if (mounted.current) setBusy(false); }
     };
     return (

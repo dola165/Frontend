@@ -16,9 +16,6 @@
 .gk .gk-ctile__tick { position: absolute; top: var(--gk-2); right: var(--gk-2); width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--gk-accent); color: var(--gk-on-accent); opacity: 0; transform: scale(.6); transition: opacity .15s var(--gk-ease), transform .2s var(--gk-ease); }
 .gk .gk-ctile__tick svg { width: 13px; height: 13px; }
 .gk .gk-ctile[aria-checked='true'] .gk-ctile__tick { opacity: 1; transform: none; }
-.gk .gk-ctile__lock { position: absolute; top: var(--gk-2); right: var(--gk-2); color: var(--gk-text-2); }
-.gk .gk-ctile__lock svg { width: 14px; height: 14px; }
-.gk .gk-ctile[aria-disabled='true'] { opacity: .62; cursor: not-allowed; }
 @media (max-width: 640px) { .gk .gk-ctiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .gk .gk-ctile { min-height: 104px; } }
 
 /* The name with the town beside it, the town list, the known pages it looks like. */

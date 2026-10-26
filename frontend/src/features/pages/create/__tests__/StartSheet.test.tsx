@@ -10,6 +10,7 @@ vi.mock('../../api', () => ({ fetchSimilar: api.fetchSimilar, createPage: api.cr
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, status: 'authenticated', refreshNavigationCapabilities: auth.refresh }) }));
 vi.mock('../../../start/startApi', () => ({ fetchSavedTown: vi.fn().mockResolvedValue({ name: 'Rustavi', latitude: 41.5495, longitude: 45.0012 }) }));
 
+import { CreatePageHost } from '../CreatePageHost';
 import { StartSheet } from '../StartSheet';
 
 const dinamo: SimilarPage = { ref: { type: 'club', id: 2 }, name: 'FC Dinamo Tbilisi', town: 'Tbilisi', kind: 'CLUB', crestUrl: null, status: 'LIVE', mine: false, exact: false };
@@ -105,27 +106,10 @@ describe('the start sheet', () => {
     expect(api.createPage.mock.calls[0][0].requestId).toBe(api.createPage.mock.calls[1][0].requestId);
   });
 
-  it('hides what someone under 16 cannot create, and lets them start a fan club', async () => {
-    const user = userEvent.setup();
-    auth.user = { id: 9502, dob: `${new Date().getFullYear() - 14}-01-01` };
-    mount({ from: 'my-club' });
-    expect(screen.queryByRole('radio', { name: /^Club/ })).toBeNull();
-    expect(screen.queryByRole('radio', { name: /^Sponsor/ })).toBeNull();
-    await user.click(screen.getByRole('radio', { name: /^Fan club/ }));
-    expect(screen.getByLabelText('Fan club name')).toBeInTheDocument();
-  });
-
-  it('locks a club and a business for someone of 16 or 17, and lets them start a fan club', async () => {
-    const user = userEvent.setup();
+  it('tells someone under 18 that pages are for adults, whatever kind the link asks for', async () => {
     auth.user = { id: 9501, dob: `${new Date().getFullYear() - 17}-01-01` };
-    mount({ from: 'my-club' });
-    const club = screen.getByRole('radio', { name: /^Club/ });
-    expect(club).toHaveAttribute('aria-disabled', 'true');
-    expect(club).toHaveTextContent('From 18');
-    await user.click(club);
-    expect(screen.getByRole('status')).toHaveTextContent('From 18');
-    expect(screen.queryByLabelText('Club name')).toBeNull();
-    await user.click(screen.getByRole('radio', { name: /^Fan club/ }));
-    expect(screen.getByLabelText('Fan club name')).toBeInTheDocument();
+    render(<MemoryRouter initialEntries={['/home?create=fan-club&from=link']}><Routes><Route path="/home" element={<CreatePageHost />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole('dialog', { name: 'Pages are for adults' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Fan club name')).toBeNull();
   });
 });

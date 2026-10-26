@@ -9,7 +9,7 @@ import * as C from './world-club.mjs';
 import * as S from './world-social.mjs';
 import * as V from './viewer.mjs';
 import { pitchById, listedSeeds } from './pages-seed.mjs';
-import { defaultLayout, normalizeLayout, setupState, goLiveCheck, isBoxKey, isPageKind, minimumAge, INVOLVED_PARTS, ORGANIZATION_TYPE, CLUB_CATEGORIES, BUSINESS_KINDS, DEFAULT_CLUB_CATEGORY } from '../../src/features/pages/model/kinds.ts';
+import { defaultLayout, normalizeLayout, setupState, goLiveCheck, isBoxKey, isPageKind, PAGE_MINIMUM_AGE, INVOLVED_PARTS, ORGANIZATION_TYPE, CLUB_CATEGORIES, BUSINESS_KINDS, DEFAULT_CLUB_CATEGORY } from '../../src/features/pages/model/kinds.ts';
 import { normalizeCrest, defaultCrest, crestSvg } from '../../src/features/pages/model/crest.ts';
 import { findSimilar, nameKey } from '../../src/features/pages/model/nameMatch.ts';
 import { COVER_PHOTOS, isCoverPhoto, coverForColour } from '../../src/features/pages/model/photos.ts';
@@ -130,7 +130,7 @@ export function createPage(viewer, body) {
   if (name.length < 2) return { status: 400, body: { status: 400, message: 'Enter a name between 2 and 120 characters.' } };
   if (kind === 'VENUE') return { status: 400, body: { status: 400, message: 'Venues open later.' } };
   const age = viewerAge(viewer);
-  if (age == null || age < minimumAge(kind)) return { status: 403, body: { status: 403, code: 'AGE', minimumAge: minimumAge(kind), message: `Creating this page needs an account aged ${minimumAge(kind)} or over.` } };
+  if (age == null || age < PAGE_MINIMUM_AGE) return { status: 403, body: { status: 403, code: 'AGE', minimumAge: PAGE_MINIMUM_AGE, message: `Creating this page needs an account aged ${PAGE_MINIMUM_AGE} or over.` } };
   const current = kind === 'CLUB' ? clubOf(viewer) : null;
   if (current) return oneClubRefusal(current);
   const exact = similarPages(name, null, viewer).find(match => match.exact);

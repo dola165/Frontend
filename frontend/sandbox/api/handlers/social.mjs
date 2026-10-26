@@ -13,7 +13,7 @@ import { canReadSquadSession, canSelectSessionPlayer, squadAccess } from '../squ
 import { squadSessionDto as sessionDto, sessionResponseOf as responseOf, projectSquadSession } from '../squad-session-dto.mjs';
 import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
 import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs, createPage, viewerAge as pageAge } from '../pages-data.mjs';
-import { minimumAge, ORGANIZATION_TYPE } from '../../../src/features/pages/model/kinds.ts';
+import { ORGANIZATION_TYPE, PAGE_MINIMUM_AGE } from '../../../src/features/pages/model/kinds.ts';
 
 const ME = W.ME_ID;
 /** Posts, reactions and follows belong to whoever asks: Luka, or an account registered in the sandbox. */
@@ -786,7 +786,7 @@ function dolaAnswer(message, request, viewer = ME) {
     // Dola creates a page through the same action as the start sheet, within the person's permissions, previewing first.
     const kind = /fan club|fans|ფან/.test(text) ? 'FAN_CLUB' : /business|sponsor|company|shop|ბიზნეს|სპონსორ/.test(text) ? 'BUSINESS' : /\bpage\b/.test(text) && !/club/.test(text) ? 'PAGE' : 'CLUB';
     const name = pageNameIn(message), town = V.preferencesOf(viewer)?.town?.name ?? 'Tbilisi';
-    const age = pageAge(viewer), minimum = minimumAge(kind);
+    const age = pageAge(viewer), minimum = PAGE_MINIMUM_AGE;
     if (age != null && age < minimum) {
       answer = `A ${kind === 'CLUB' ? 'club' : 'business page'} needs an account aged ${minimum} or over. Ask an adult at the club to create it and invite you; you can start a fan club or another page yourself.`;
       destinations = [{ id: 'home', title: 'Home', path: '/home' }];

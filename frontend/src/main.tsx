@@ -13,9 +13,11 @@ import { installNativeFetch, isAndroidApp, nativeSession } from './android/bridg
 import { installAndroidPreferences } from './android/preferences';
 import { clearStoredAuth, setStoredAccessToken } from './utils/authStorage';
 import { applyDocumentTheme, readThemePreference, themeForRoute } from './theme';
+import { appLanguage } from './utils/formatting';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const IdentityProvider = ({ children }: React.PropsWithChildren) => isAndroidApp ? children : <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
+// Google's button speaks the app's language, not the browser's.
+const IdentityProvider = ({ children }: React.PropsWithChildren) => isAndroidApp ? children : <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID} locale={appLanguage()}>{children}</GoogleOAuthProvider>;
 
 async function startApp() {
   if (isAndroidApp) {

@@ -1,8 +1,6 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { Check, Loader2, Lock, MapPin } from 'lucide-react';
-import { ConfirmEmailFirst } from '../../../components/auth/ConfirmEmailFirst';
+import { Check, Loader2, MapPin } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-import { isUnder16 } from '../../../utils/age';
 import { getAuthFlow } from '../../../utils/authRedirect';
 import { Dialog } from '../../../design/Dialog';
 import { Button, ButtonLink } from '../../../design/primitives';
@@ -12,7 +10,7 @@ import { DEFAULT_TOWN, TOWNS, townByName, type Town } from '../../start/towns';
 import { Crest } from '../../world/Crest';
 import { fetchSimilar, type SimilarPage } from '../api';
 import { usePagesCopy } from '../copy';
-import { CREATABLE_KINDS, minimumAge, type BusinessKind, type PageKind } from '../model/kinds';
+import { CREATABLE_KINDS, type BusinessKind, type PageKind } from '../model/kinds';
 import { nameKey } from '../model/nameMatch';
 import { FOOTBALL_ENTRIES, ownClub, pagePath, type CreateFrom } from './entry';
 import { KIND_TILES } from './kindTiles';
@@ -32,14 +30,13 @@ const KIND_WORD: Record<PageKind, string> = { CLUB: 'Club', FAN_CLUB: 'Fan club'
 export function StartSheet({ kind, business = null, from, draw, onClose }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void }) {
   const t = usePagesCopy();
   const { user } = useAuth();
-  const { create, busy, error, emailFirst, clearError, unanswered, age } = useCreatePage();
-  const locked = (candidate: PageKind) => age != null && age < minimumAge(candidate);
+  const { create, busy, error, clearError, unanswered } = useCreatePage();
   // One club per person (owner, 16 October): someone already at a club opens it, or starts a fan club instead.
   const club = ownClub(user?.navigationCapabilities);
   // A draft left in the sheet comes back, unless the link asks for another kind: then it starts afresh on that kind.
   const [draft] = useState(() => { const kept = readSetupRecovery(user?.id, DRAFT, validDraft); return kept && (!kind || kept.kind === kind) ? kept : null; });
   const preset = kind ?? (FOOTBALL_ENTRIES.includes(from) ? 'CLUB' : null);
-  const [chosen, setChosen] = useState<PageKind | null>(() => { const start = kind ?? draft?.kind ?? preset; return start && !locked(start) ? start : null; });
+  const [chosen, setChosen] = useState<PageKind | null>(() => { const start = kind ?? draft?.kind ?? preset; return start ?? null; });
   const [name, setName] = useState(draft?.name ?? '');
   // The town is the one the person picked here, else the one they registered with, else the one they chose at the start.
   const [town, setTown] = useState<Town>(() => townByName(draft?.town) ?? townByName(getAuthFlow().town) ?? DEFAULT_TOWN);
@@ -88,7 +85,6 @@ export function StartSheet({ kind, business = null, from, draw, onClose }: { kin
   const matches = found && (found.key === lookupKey || found.key === 'exists') ? found.items : [];
 
   const choose = (next: PageKind) => {
-    if (locked(next)) { setNote(t('From {age}: ask an adult at the club to create it and invite you.', { age: minimumAge(next) })); return; }
     setNote(''); clearError(); setChosen(next);
   };
   const exact = matches.find(match => match.exact) ?? null;
@@ -115,17 +111,16 @@ export function StartSheet({ kind, business = null, from, draw, onClose }: { kin
         </Button>}
       </>}>
       <div className="gk-ctiles" role="radiogroup" aria-label={t('What are you creating?')}>
-        {/* Under 16, kinds they cannot create are not shown at all; 16 and 17 see them locked with the age. */}
-        {CREATABLE_KINDS.filter(candidate => !(isUnder16(user?.dob) && locked(candidate))).map(candidate => {
-          const item = KIND_TILES[candidate as Exclude<PageKind, 'VENUE'>], shut = locked(candidate);
+        {CREATABLE_KINDS.map(candidate => {
+          const item = KIND_TILES[candidate as Exclude<PageKind, 'VENUE'>];
           return (
-            <button key={candidate} type="button" role="radio" aria-checked={chosen === candidate} aria-disabled={shut || undefined} className="gk-ctile"
+            <button key={candidate} type="button" role="radio" aria-checked={chosen === candidate} className="gk-ctile"
               aria-label={t(item.label)} aria-describedby={`${nameId}-${candidate}`}
               style={{ '--tile-photo': `url(${item.photo})`, '--tile-position': item.position ?? 'center', '--tile': item.color } as CSSProperties} onClick={() => choose(candidate)}>
               <span className="gk-ctile__icon"><item.icon aria-hidden="true" /></span>
               <span className="gk-ctile__label">{t(item.label)}</span>
-              <span className="gk-ctile__hint" id={`${nameId}-${candidate}`}>{shut ? t('From {age}', { age: minimumAge(candidate) }) : t(item.hint)}</span>
-              {shut ? <span className="gk-ctile__lock"><Lock aria-hidden="true" /></span> : <span className="gk-ctile__tick" aria-hidden="true"><Check /></span>}
+              <span className="gk-ctile__hint" id={`${nameId}-${candidate}`}>{t(item.hint)}</span>
+              <span className="gk-ctile__tick" aria-hidden="true"><Check /></span>
             </button>
           );
         })}
@@ -165,7 +160,6 @@ export function StartSheet({ kind, business = null, from, draw, onClose }: { kin
               <button type="button" className="gk-cmatch__no" onClick={() => setDismissed(nameKey(name))}>{t('No, mine is different')}</button>
             </div>
           )}
-          {emailFirst && <ConfirmEmailFirst />}
           {(error || unanswered) && <p className={`gk-notice${error ? ' gk-notice--warning' : ''}`} role="alert">{error || t('The last try was not answered. Try again with the same name; it never makes two pages.')}</p>}
         </div>
       )}

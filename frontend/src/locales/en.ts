@@ -1029,6 +1029,8 @@ const en = {
       parentLine: 'We send them one link. Until they tap it, your account waits.',
       parentSubmit: 'Send and create account',
       back: 'Back',
+      botCheck: 'Finish the check that you’re not a robot, then try again.',
+      botUnavailable: 'The check could not be reached. Try again in a minute.',
       tryLater: 'You can’t sign up from here right now. Try again later.',
       emailUsedMinor: 'This email is already used. Ask a parent to add you.',
     },

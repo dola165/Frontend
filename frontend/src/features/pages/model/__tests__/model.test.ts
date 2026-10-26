@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addableBoxes, BOX_DEFAULTS, defaultLayout, goLiveCheck, insertionIndex, isLocked, minimumAge, normalizeLayout, setupState, type PageFacts } from '../kinds';
+import { addableBoxes, BOX_DEFAULTS, defaultLayout, goLiveCheck, insertionIndex, isLocked, mayCreatePages, normalizeLayout, setupState, type PageFacts } from '../kinds';
 import { findSimilar, latinWords, nameKey } from '../nameMatch';
 import { contrast, crestSvg, defaultCrest, initialsFor, letteringOn, normalizeCrest, paint, CREST_COLOURS } from '../crest';
 import { coverForColour } from '../photos';
@@ -63,8 +63,8 @@ describe('verification unlocks, it never blocks', () => {
     expect(isLocked('SELL', 'VERIFIED')).toBe(false);
   });
 
-  it('lets a person of 13 make a fan club or a page, and only an adult a club or a business', () => {
-    expect([minimumAge('CLUB'), minimumAge('BUSINESS'), minimumAge('FAN_CLUB'), minimumAge('PAGE')]).toEqual([18, 18, 13, 13]);
+  it('lets only adults create a page, of any kind', () => {
+    expect([mayCreatePages(17), mayCreatePages(18), mayCreatePages(null)]).toEqual([false, true, true]);
   });
 });
 

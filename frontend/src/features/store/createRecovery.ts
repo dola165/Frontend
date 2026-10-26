@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../components/auth/emailConfirmationPrompt';
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CommerceDraftContext, useCommerceDraftState } from '../../components/workspace/commerceDraftState';
 import { getAuthSessionId, getStoredUserId } from '../../utils/authStorage';
@@ -82,7 +83,7 @@ export function useStoreCreateRecovery(clubId: number) {
             // Even a definite first validation refusal retains its identity until an explicit separate-create choice.
             const refused = status === 400 && !request.unknown;
             setAttempt({ ...request, state: status === 409 ? 'conflict' : 'uncertain', unknown: !refused, refused, held: clone(latest.current ?? input) });
-            if (active()) setError(extractApiErrorMessage(failure, ct('The original save was not confirmed. Your answers are kept.')));
+            if (active() && !promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, ct('The original save was not confirmed. Your answers are kept.')));
         }
     };
     return { attempt, error, observe, hold, finishReview, save, pending: attempt?.state === 'pending',

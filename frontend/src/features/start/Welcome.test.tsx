@@ -90,6 +90,19 @@ describe('the welcome', () => {
         expect(within(box).getByRole('button', { name: /I’m here to follow football/ })).toBeInTheDocument();
     });
 
+    it('leaves out the business tile and Start your club under 18: pages are for adults', async () => {
+        auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 17}-01-01` };
+        mount('/home?welcome=start');
+        const box = await dialog();
+        expect(within(box).getByRole('button', { name: /^A club/ })).toBeInTheDocument();
+        expect(within(box).queryByRole('button', { name: /^A business or organisation/ })).toBeNull();
+        cleanup();
+        mount('/home?welcome=club');
+        const club = await dialog();
+        expect(within(club).getByRole('heading', { name: 'Find your club' })).toBeInTheDocument();
+        expect(within(club).queryByRole('button', { name: 'Not here? Start your club' })).toBeNull();
+    });
+
     it('treats Skip as following football: the welcome ends and the first week offers following', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=start');

@@ -6,6 +6,8 @@ import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import { authInputClass, authLabelClass, authPrimaryButtonClass } from '../components/auth/authClasses';
+import { Turnstile } from '../components/auth/Turnstile';
+import { BOT_CHECK_CODES, turnstileEnabled } from '../components/auth/turnstileConfig';
 import {
   buildLoginPath,
   getAuthFlow,
@@ -57,6 +59,9 @@ const VerificationForm = () => {
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
+  // Resending while signed out passes the bot check when the server asks for one; each try gets a new check.
+  const [botToken, setBotToken] = useState<string | null>(null);
+  const [botRound, setBotRound] = useState(0);
   const resendRequest = useRef<AbortController | null>(null);
   const [acceptInvitation, setAcceptInvitation] = useState(false);
   const [attempt, setAttempt] = useState(0), [retryable, setRetryable] = useState(false);
@@ -130,7 +135,7 @@ const VerificationForm = () => {
   }, [t, verifyState]);
 
   const handleResend = async () => {
-    if (resendRequest.current) return;
+    if (resendRequest.current || (turnstileEnabled && !botToken)) return;
     if (!email.trim()) {
       setResendError(t('auth.verify.emailRequired'));
       return;
@@ -148,13 +153,18 @@ const VerificationForm = () => {
       const response = await apiClient.post<{ message?: string }>('/auth/resend-verification', {
         email: normalizedEmail,
         continuationPath: publicContinuationPath(requestedDestination),
+        ...(botToken ? { turnstileToken: botToken } : {}),
       }, { signal: controller.signal });
       if (controller.signal.aborted) return;
       rememberAuthFlow({ email: normalizedEmail });
       setResendMessage(response.data.message || t('auth.verify.resendMessageFallback'));
     } catch (error) {
-      if (!controller.signal.aborted) setResendError(extractApiErrorMessage(error, t('auth.verify.resendErrorFallback')));
+      const code = extractApiErrorCode(error);
+      if (!controller.signal.aborted) setResendError(code && (BOT_CHECK_CODES as readonly string[]).includes(code)
+        ? (code === 'BOT_CHECK_FAILED' ? t('auth.register.botCheck') : t('auth.register.botUnavailable'))
+        : extractApiErrorMessage(error, t('auth.verify.resendErrorFallback')));
     } finally {
+      if (turnstileEnabled) { setBotToken(null); setBotRound(round => round + 1); }
       if (resendRequest.current === controller) resendRequest.current = null;
       if (!controller.signal.aborted) setIsSendingVerification(false);
     }
@@ -211,7 +221,8 @@ const VerificationForm = () => {
               </div>
               {resendMessage && <p role="status" className="rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-4 py-3 text-sm font-semibold text-[var(--color-accent)]">{resendMessage}</p>}
               {resendError && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--color-danger)]"><ShieldAlert className="mt-0.5 h-4 w-4" />{resendError}</p>}
-              <button type="button" onClick={() => void handleResend()} disabled={isSendingVerification} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--color-border)]/15 px-4 py-3 text-xs font-semibold text-[var(--color-text)] disabled:opacity-60">
+              {turnstileEnabled && <Turnstile key={botRound} onToken={setBotToken} />}
+              <button type="button" onClick={() => void handleResend()} disabled={isSendingVerification || (turnstileEnabled && !botToken)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--color-border)]/15 px-4 py-3 text-xs font-semibold text-[var(--color-text)] disabled:opacity-60">
                 {isSendingVerification ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 {t('auth.verify.resend')}
               </button>

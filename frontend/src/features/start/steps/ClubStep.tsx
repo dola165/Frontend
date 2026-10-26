@@ -14,7 +14,7 @@ const HOME = { pathname: '/home', search: '' };
  * with the staff link", and it is followed as the person opens it. Not found: Start your club, in the one create sheet.
  * Nobody asks to join as staff here (F2: staff join through the admin's link).
  */
-export function ClubStep({ land, back, close }: WelcomeStepProps) {
+export function ClubStep({ facts, land, back, close }: WelcomeStepProps) {
     const copy = useJourneyCopy();
     const [query, setQuery] = useState('');
     const [near, setNear] = useState<NearbyClub[] | null>(null);
@@ -46,7 +46,7 @@ export function ClubStep({ land, back, close }: WelcomeStepProps) {
     };
     return <WelcomeFrame position={2} onClose={close} back={back} title={copy('Find your club', 'იპოვეთ თქვენი კლუბი')}
         footer={<>
-            <Button variant="ghost" onClick={() => land('club', createHref(HOME, 'CLUB', 'start'))}><Plus aria-hidden="true" />{copy('Not here? Start your club', 'არ არის? დააარსეთ თქვენი კლუბი')}</Button>
+            {facts.adult && <Button variant="ghost" onClick={() => land('club', createHref(HOME, 'CLUB', 'start'))}><Plus aria-hidden="true" />{copy('Not here? Start your club', 'არ არის? დააარსეთ თქვენი კლუბი')}</Button>}
             <Button variant="primary" disabled={!chosen || busy} onClick={() => void open()}>
                 {busy && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}{copy('Follow and open', 'გამოწერა და გახსნა')}
             </Button>

@@ -19,7 +19,7 @@ import * as P from '../pages-data.mjs';
 import { familyRequest, hasFamily } from '../world-family.mjs';
 import { saveBox, joinLinkFor, addArrival, decideArrival, pastePlayers, inviteFor, acceptInvite } from '../pages-boxes.mjs';
 import { pitches, reverseGeocode } from '../pages-seed.mjs';
-import { goLiveCheck, LOCKED_ACTIONS, minimumAge } from '../../../src/features/pages/model/kinds.ts';
+import { goLiveCheck, LOCKED_ACTIONS, PAGE_MINIMUM_AGE } from '../../../src/features/pages/model/kinds.ts';
 
 const notFound = (message = 'Not found.') => reply(404, { status: 404, message });
 const forbidden = (message = 'Only the page’s owner can change this.') => reply(403, { status: 403, message });
@@ -63,7 +63,7 @@ get('/organizations/workspaces', ({ headers }) => {
   }));
   return legacy && !rows.some(row => row.id === legacy.id) ? [legacy, ...rows] : rows;
 });
-get('/pages/eligibility', ({ headers }) => { const age = P.viewerAge(viewerOf(headers)); return { age, kinds: ['CLUB', 'FAN_CLUB', 'BUSINESS', 'PAGE'].map(kind => ({ kind, allowed: age != null && age >= minimumAge(kind), minimumAge: minimumAge(kind) })) }; });
+get('/pages/eligibility', ({ headers }) => { const age = P.viewerAge(viewerOf(headers)); return { age, kinds: ['CLUB', 'FAN_CLUB', 'BUSINESS', 'PAGE'].map(kind => ({ kind, allowed: age != null && age >= PAGE_MINIMUM_AGE, minimumAge: PAGE_MINIMUM_AGE })) }; });
 get('/pitches', ({ query }) => {
   const lat = Number(query.get('lat')), lng = Number(query.get('lng')), radius = Math.min(80, Math.max(1, Number(query.get('radiusKm')) || 25));
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return bad('Say where to look: lat and lng.');

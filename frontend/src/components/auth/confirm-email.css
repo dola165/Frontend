@@ -1,5 +1,0 @@
-/* "Confirm your email first": one calm row where a refused action was. */
-.gk-confirm-email { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-warning-soft); color: var(--gk-text); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
-.gk-confirm-email > svg { flex: none; width: 18px; height: 18px; color: var(--gk-warning); }
-.gk-confirm-email__text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
-.gk-confirm-email__text small { color: var(--gk-text-2); overflow-wrap: anywhere; }

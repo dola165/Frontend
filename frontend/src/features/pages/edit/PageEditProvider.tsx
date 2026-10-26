@@ -8,7 +8,7 @@ import { isRecord, readSetupRecovery, writeSetupRecovery, clearSetupRecovery } f
 import { PageConflict, fetchPage, isPageView, goLive as goLiveCall, saveBox as saveBoxCall, saveIdentity as saveIdentityCall, saveLayout as saveLayoutCall, type PageIdentity, type PageRef, type PageView, type SavableBox } from '../api';
 import { PageEditContext, SETUP_PANEL, isPanelKey, type IdentityPatch, type PageEdit, type PanelKey, type SaveOptions, type SaveStatus } from './context';
 import { pt } from '../copy';
-import { needsConfirmedEmail, sendEmailConfirmation } from '../../../components/auth/emailConfirmation';
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { BOX_COLUMN, insertionIndex, type BoxKey, type Column, type PageLayout, type SetupKey } from '../model/kinds';
 import { boxData } from './boxData';
 
@@ -168,13 +168,8 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
       }
       if (options.optimistic) replace(before);
       settle('failed');
-      // Publishing needs a confirmed email: say so where it was pressed, with Resend.
-      if (needsConfirmedEmail(error)) {
-        toast.warning(pt('Confirm your email first'), { description: pt('Open the link we sent, then try again.'), action: { label: pt('Resend'), onClick: () => {
-          void sendEmailConfirmation().then(() => toast(pt('Sent. Check your inbox.')), () => toast.error(pt('That did not send. Try again.')));
-        } } });
-        return false;
-      }
+      // Publishing and inviting need a confirmed email: say so where it was pressed, with Resend.
+      if (promptEmailConfirmation(error)) return false;
       toast.error(extractApiErrorMessage(error, pt('Not saved. Check your connection and try again.')), { action: { label: pt('Try again'), onClick: retry } });
       return false;
     }

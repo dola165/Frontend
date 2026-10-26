@@ -15,8 +15,9 @@ export const storedChoice = (choice: Choice) => STORED[choice];
 export const choiceFromStored = (stored?: WelcomeChoice | null): Choice | null =>
     (stored ? CHOICES.find(choice => STORED[choice] === stored) : null) ?? null;
 
-/** Under 16 a person sees only Play (for themselves) and Follow (F7). */
-export const choicesFor = (under16: boolean): readonly Choice[] => (under16 ? ['me', 'follow'] : CHOICES);
+/** Under 16 a person sees only Play (for themselves) and Follow (F7); a business means a page, and pages are for adults. */
+export const choicesFor = ({ under16, adult }: { under16: boolean; adult: boolean }): readonly Choice[] =>
+    under16 ? ['me', 'follow'] : adult ? CHOICES : CHOICES.filter(choice => choice !== 'business');
 
 /** The step an address names; links of the earlier five-step welcome open step 1. */
 export function stepFromParam(value: string | null): Step | null {

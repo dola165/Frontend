@@ -23,8 +23,10 @@ export type ClubCategory = typeof CLUB_CATEGORIES[number];
 /** Smart default before anything is known: most new clubs are grassroots community clubs. */
 export const DEFAULT_CLUB_CATEGORY: ClubCategory = 'COMMUNITY_CLUB';
 
-/** Pages that take an adult: a club runs children's football and a business takes money. */
-export const ADULT_ONLY_KINDS: readonly PageKind[] = ['CLUB', 'BUSINESS', 'VENUE'];
+/** Every kind of page is for adults (owner, 26 October 2026): under 18 a person is invited to one, never creates one. */
+export const PAGE_MINIMUM_AGE = 18;
+/** Unknown age is not counted here: the server still refuses. */
+export const mayCreatePages = (age: number | null | undefined) => age == null || age >= PAGE_MINIMUM_AGE;
 
 // ---------------------------------------------------------------- boxes
 
@@ -183,5 +185,3 @@ export type VerificationState = 'NONE' | 'REQUESTED' | 'VERIFIED';
 
 export const isLocked = (action: LockedAction, verification: VerificationState) => verification !== 'VERIFIED' && (LOCKED_ACTIONS as readonly string[]).includes(action);
 
-/** Ages that may create each kind of page. Under 18 a person can be invited to a club or a business, not create one. */
-export const minimumAge = (kind: PageKind) => (ADULT_ONLY_KINDS.includes(kind) ? 18 : 13);

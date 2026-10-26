@@ -29,7 +29,6 @@ export async function leaveClubStaff(clubId: number) {
     await apiClient.post(`/clubs/${clubId}/relationships/STAFF/leave`, { requestId: crypto.randomUUID(), snapshot: snapshot ?? '' });
 }
 
-export const closeClub = async (clubId: number) => { await apiClient.post(`/clubs/${clubId}/dissolve`); };
 
 export interface Ownership {
     ownerId: number; ownerName: string;

@@ -1,5 +1,5 @@
 import {
-    BellRing, CalendarDays, Briefcase, BriefcaseBusiness, CheckCircle2, Settings2, ClipboardList, CreditCard, Crown, HeartHandshake, Landmark, LayoutDashboard, LayoutGrid,
+    BellRing, CalendarDays, Briefcase, BriefcaseBusiness, CheckCircle2, Settings2, ClipboardList, CreditCard, HeartHandshake, Landmark, LayoutDashboard, LayoutGrid,
     ReceiptText, Settings, ShieldCheck, ShoppingBag, UserPlus, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -44,7 +44,6 @@ export function buildClubTabs({ overview, roles, boot, canManageLeadership, canM
     if (admissionsLabel) add({ id: 'admissions', label: admissionsLabel, icon: UserPlus, count: admissionsWaiting || undefined });
     if (canManageOperations) add({ id: 'applications', label: 'Applications', icon: CheckCircle2, count: overview?.pendingApplications.length || undefined });
     if (canManageLeadership) {
-        add({ id: 'roles', label: 'Ownership & access', icon: Crown });
         add({ id: 'club-approaches', label: 'Agent approaches', icon: HeartHandshake });
     }
     if (canManageOperations) add({ id: 'jobs', label: 'Open roles', icon: Briefcase });

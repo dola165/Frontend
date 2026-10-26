@@ -15,7 +15,7 @@ const iconFor = (tab: WorkspaceTab): PinIcon => {
     if (['store'].includes(tab)) return 'store';
     if (['campaigns'].includes(tab)) return 'family';
     if (['jobs', 'finance', 'programmes'].includes(tab)) return 'briefcase';
-    if (['settings', 'workspace-settings', 'roles'].includes(tab)) return 'settings';
+    if (['settings', 'workspace-settings'].includes(tab)) return 'settings';
     if (['attendance'].includes(tab)) return 'calendar';
     if (['facilities'].includes(tab)) return 'venue';
     if (operationModule(tab)) return 'clipboard';

@@ -41,7 +41,7 @@ import { RearrangeFrame } from '../../pages/edit/Rearrange';
 import { usePageEdit } from '../../pages/edit/context';
 import './club-profile.css';
 
-const managementTabs: ClubManagementTab[] = ['personnel', 'players', 'invites', 'applications', 'roles', 'squads', 'tryouts'];
+const managementTabs: ClubManagementTab[] = ['personnel', 'players', 'invites', 'applications', 'squads', 'tryouts'];
 const managementTabFrom = (value: string | null) => managementTabs.find(tab => tab === value) ?? null;
 
 /** A club's public page: its posts first, then its photos, story, squads, people, places and ways to get involved. */

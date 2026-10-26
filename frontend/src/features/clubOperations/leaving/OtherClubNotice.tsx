@@ -17,6 +17,7 @@ export function OtherClubNotice({ club, onLeft }: { club: { clubId: number; name
     return <div className="gk gk-notice gk-notice--warning lv-other" role="alert">
         <span>{copy(`You’re staff at ${name}. Leave ${name} first.`, `${name}-ის თანამშრომელი ხართ. ჯერ დატოვეთ ${name}.`)}</span>
         <Button size="sm" onClick={() => go('leave')}><DoorOpen aria-hidden="true" />{copy(`Leave ${name}`, `${name}-ის დატოვება`)}</Button>
-        <LeaveClubDialog clubId={club.clubId} clubName={name} onDone={() => onLeft()} />
+        {/* Retried once they are no longer staff there; a handover still waiting on the other person does not count. */}
+        <LeaveClubDialog clubId={club.clubId} clubName={name} onDone={(_, outcome) => { if (outcome !== 'handed') onLeft(); }} />
     </div>;
 }

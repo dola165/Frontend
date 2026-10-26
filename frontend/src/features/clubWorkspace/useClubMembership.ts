@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import {
     acceptClubApplication, bulkDecideClubApplications, cancelClubInvitation, declineClubApplication,
-    fetchAllClubJobs, fetchClubPlayers, type ClubJob, leaveClubMembership, prepareStaffDeparture,
-    sendParentalConsentEmail, transferClubOwnership, updateClubPlayerStatus,
+    fetchAllClubJobs, fetchClubPlayers, type ClubJob,
+    sendParentalConsentEmail, updateClubPlayerStatus,
 } from '../clubs/api';
 import {
-    type ClubManagedMember, type ClubManagementOverview, type ClubMembershipApplication,
+    type ClubManagementOverview, type ClubMembershipApplication,
     type ClubPlayerAffiliation, type PageResult, type PlayerAffiliationStatus,
 } from '../clubs/domain';
 import type { ApplicationFilters } from './recruitment/ApplicationsPage';
@@ -27,7 +26,6 @@ const fresh = (cache: { key: string; loadedAt: number }, key: string) => cache.k
  * own result; the page decides only what to show.
  */
 export function useClubMembership({ clubId, activeTab, overview, reloadOverview, canChangePlayerStatus, focusedApplicationId }: Input) {
-    const navigate = useNavigate();
     const [pendingKey, setPendingKey] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -144,9 +142,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
     const [releaseMessage, setReleaseMessage] = useState('');
     const [showStatusConfirm, setShowStatusConfirm] = useState(false);
     const pendingStatus = useRef<{ userId: number; status: PlayerAffiliationStatus; playerName?: string } | null>(null);
-    const [confirmingOwnershipTransferUserId, setConfirmingOwnershipTransferUserId] = useState<number | null>(null);
-    const [confirmingSelfLeave, setConfirmingSelfLeave] = useState(false);
-    const selfDeparture = useRef<{ requestId: string; snapshot: string } | null>(null);
 
     const decideTryout = async (target: TryoutApplicantDto, status: 'ACCEPTED' | 'REJECTED', message: string | null) => runAction(`tryout-${target.id}-${status}`, async () => {
         await apiClient.put(`/admin/tryouts/clubs/${clubId}/applications/${target.id}/status`, { message: message ?? null }, { params: { status } });
@@ -218,26 +213,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
             if (!canChangePlayerStatus) { setErrorMessage('Only club owners and admins can change trial dates.'); return; }
             await runAction(`trial-ends-${userId}`, async () => { await updateClubPlayerStatus(clubId, userId, 'TRIALIST', trialEndsOn || null); await loadPlayers(true); setSuccessMessage('Trial deadline updated.'); });
         },
-        transferOwnership: (member: ClubManagedMember) => runAction(`transfer-${member.userId}`, async () => {
-            await transferClubOwnership(clubId, member.userId);
-            setConfirmingOwnershipTransferUserId(null);
-            setSuccessMessage('Ownership transferred. Redirecting...');
-            setTimeout(() => navigate(`/clubs/${clubId}`), 1500);
-        }),
-        leaveClub: () => runAction('leave-club', async () => {
-            if (!selfDeparture.current) throw new Error('Refresh your club responsibilities before confirming departure.');
-            try { await leaveClubMembership(clubId, selfDeparture.current); }
-            catch (error) {
-                if ((error as { response?: { status?: number } }).response?.status === 409) { selfDeparture.current = null; setConfirmingSelfLeave(false); }
-                throw error;
-            }
-            selfDeparture.current = null; setConfirmingSelfLeave(false);
-            navigate(`/clubs/${clubId}`);
-        }),
-        confirmSelfLeave: (confirm: boolean) => {
-            if (!confirm) { selfDeparture.current = null; setConfirmingSelfLeave(false); return; }
-            void runAction('prepare-leave', async () => { selfDeparture.current = await prepareStaffDeparture(clubId); setConfirmingSelfLeave(true); });
-        },
         // Both decisions open the note dialog (accept: invitation instructions, decline: the kind note); the change happens on confirm.
         tryoutStatus: (applicationId: number, status: 'ACCEPTED' | 'REJECTED') => {
             const target = tryoutApplicants.find(a => a.id === applicationId) ?? null;
@@ -255,7 +230,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
         decisions: {
             acceptTarget, setAcceptTarget, declineTarget, setDeclineTarget, tryoutAcceptTarget, setTryoutAcceptTarget, tryoutDeclineTarget, setTryoutDeclineTarget,
             releaseMessage, setReleaseMessage, showStatusConfirm, pendingStatus: pendingStatus.current,
-            confirmingOwnershipTransferUserId, setConfirmingOwnershipTransferUserId, confirmingSelfLeave,
         },
     };
 }

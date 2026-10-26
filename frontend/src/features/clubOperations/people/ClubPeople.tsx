@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { QrCode, UserPlus } from 'lucide-react';
 import { Button, EmptyNote, PageFrame, PageHeader, Panel, SearchInput, Section, Skeleton } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
@@ -18,6 +18,9 @@ import { SuggestAssistantDialog } from './SuggestAssistantDialog';
 import { SuggestionList } from './SuggestionList';
 import { useJobWords } from './jobWords';
 import { useStaffLinks } from './useStaffLinks';
+import { LeaveClubDialog } from '../leaving/LeaveClubDialog';
+import { OwnershipPanel } from '../leaving/OwnershipPanel';
+import { useLeaveStep } from '../leaving/useLeaveStep';
 import '../../clubWorkspace/club-workspace.css';
 import './people.css';
 
@@ -33,6 +36,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     clubId: number; clubName: string; members?: ClubManagedMember[]; onChanged?: () => void;
 }) {
     const [params, setParams] = useSearchParams();
+    const navigate = useNavigate(), leave = useLeaveStep();
     const [view, setView] = useState<PeopleView | null>(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
     const [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
     const [ending, setEnding] = useState<{ person: Person; job: PersonJob } | null>(null);
@@ -136,6 +140,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
             {view && suggestions.length > 0 && <Section boxed title={leader ? copy('Waiting for you', 'გელოდებათ') : copy('Your suggestions', 'თქვენი შეთავაზებები')}>
                 <SuggestionList suggestions={suggestions} me={view.viewer.userId} admin={leader} busy={busy} onDecide={decide} />
             </Section>}
+            {view && <OwnershipPanel clubId={clubId} clubName={clubName} canAsk={can.decide('ask_handover', false).allowed} onChanged={refresh} />}
             {view && rights.invite && activeLinks.length > 0 && <Section boxed title={copy('Staff links', 'პერსონალის ბმულები')} hint={copy('7 days or 10 people each', 'თითო 7 დღე ან 10 ადამიანი')}>
                 <StaffLinkList links={activeLinks} choices={[...view.jobs, ...view.moreJobs]} onOpen={link => open('link', { link: String(link.id) })} />
             </Section>}
@@ -146,7 +151,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
                     club={clubId} clubName={clubName} view={view} person={person} busy={busy} link={links[person.userId]} rights={rights}
                     member={members.find(m => m.userId === person.userId)}
                     onHideLink={() => hideLink(person.userId)} onNewLink={() => makeLink(person)}
-                    onAddJob={() => open('person', { for: String(person.userId) })} onEnd={job => setEnding({ person, job })} onChanged={message => refresh(message)} />)}</ul></Panel>
+                    onAddJob={() => open('person', { for: String(person.userId) })} onEnd={job => setEnding({ person, job })} onLeave={leave.go} onChanged={message => refresh(message)} />)}</ul></Panel>
                     : <Panel><EmptyNote title={query ? copy('No one matches', 'ვერაფერი მოიძებნა') : copy('No one here yet', 'ჯერ არავინაა')}
                         action={!query && rights.invite ? <Button size="sm" onClick={() => open('link')}><QrCode aria-hidden="true" />{copy('Invite staff', 'პერსონალის მოწვევა')}</Button> : undefined}>
                         {query ? copy('Try a name, job or squad.', 'სცადეთ სახელი, სამუშაო ან გუნდი.') : copy('One link or QR code brings your coaches in.', 'ერთი ბმული ან QR კოდი და მწვრთნელები შემოვლენ.')}</EmptyNote></Panel>}
@@ -166,6 +171,8 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
             opened={Number(params.get('link')) || null} onLinks={staff.setLinks} onClose={() => open(null)} onChanged={message => refresh(message)} />}
         {view && canSuggest && inviting === 'suggest' && <SuggestAssistantDialog club={clubId} squads={ownSquads} onClose={() => open(null)}
             onSent={message => { open(null); refresh(message); }} />}
+        {/* Leaving: someone who left goes to the club's page (People is for its staff); a closed club to Home. */}
+        <LeaveClubDialog clubId={clubId} clubName={clubName} onDone={(notice, outcome) => outcome === 'handed' ? refresh(notice) : navigate(outcome === 'closed' ? '/home' : `/clubs/${clubId}`, { replace: true })} />
         <Dialog open={ending !== null} role="alertdialog" size="sm" onClose={() => setEnding(null)}
             title={ending ? `${ending.person.name}: ${jobLabel(ending.job)} · ${whereLabel(ending.job)}` : ''}
             description={invited ? copy('Cancel this invitation? It can no longer be accepted.', 'გაუქმდეს მოწვევა? მისი მიღება აღარ იქნება შესაძლებელი.')

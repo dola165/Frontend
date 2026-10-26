@@ -11,7 +11,6 @@ import type { ClubManagementOverview, PlayerAffiliationStatus } from '../clubs/d
 import type { WorkspaceTab } from '../../components/workspace/types';
 import type { AuthSessionId } from '../../utils/authStorage';
 import { InboxTab } from '../../components/workspace/tabs/InboxTab';
-import { RolesTab } from '../../components/workspace/tabs/RolesTab';
 import { Button, PageFrame } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
 import { ClubCampaignsPage } from './commerce/ClubCampaignsPage';
@@ -79,10 +78,6 @@ export function ClubTools(ctx: ClubToolsContext) {
                 onRetry={() => { void apps.reload(); }}
                 onOpenPlayers={ctx.allowed('players') ? () => ctx.openPlayers() : undefined} />
         </>;
-        case 'roles': return overview ? <RolesTab overview={overview} currentUserId={ctx.currentUserId} currentRole={overview.currentUserRole ?? null} pendingKey={m.pendingKey}
-            confirmingOwnershipTransferUserId={m.decisions.confirmingOwnershipTransferUserId} confirmingSelfLeave={m.decisions.confirmingSelfLeave} isOwner={can.owner}
-            onConfirmOwnershipTransfer={m.decisions.setConfirmingOwnershipTransferUserId} onTransferOwnership={m.actions.transferOwnership}
-            onConfirmSelfLeave={m.actions.confirmSelfLeave} onLeaveClub={m.actions.leaveClub} onOpenJobs={() => ctx.switchTab('jobs')} /> : null;
         case 'club-approaches': return can.leadership ? <ClubApproachesPanel mode="club" clubId={clubId} /> : null;
         case 'jobs': return <OpenRolesPage clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
         case 'store': return can.leadership ? <StoreProductsPage key={clubId} clubId={clubId} /> : null;

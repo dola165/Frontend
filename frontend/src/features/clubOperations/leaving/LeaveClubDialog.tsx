@@ -8,7 +8,8 @@ import { refreshAccess } from '../../../hooks/useCan';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { fetchPeople, type Person } from '../people/api';
-import { closeClub, handOver, leaveClubStaff, ownerMustHandOver } from './api';
+import { dissolveClub as closeClub } from '../../clubs/api';
+import { handOver, leaveClubStaff, ownerMustHandOver } from './api';
 import { useLeaveStep } from './useLeaveStep';
 import './leaving.css';
 
@@ -17,7 +18,7 @@ import './leaving.css';
  * else accepts first), and for the last staff member "Close the club" with what is kept said plainly. Used on People,
  * beside "Leave {club} first" wherever a second club's job is refused, and by the profile's "Where you are".
  */
-export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; clubName: string; onDone: (notice: string) => void }) {
+export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; clubName: string; onDone: (notice: string, outcome: 'left' | 'handed' | 'closed') => void }) {
     const copy = useJourneyCopy();
     const { user, refreshNavigationCapabilities } = useAuth();
     const { step, go } = useLeaveStep();
@@ -31,10 +32,10 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
         return () => controller.abort();
     }, [step, clubId, copy]);
     if (!step) return null;
-    const finish = async (message: string) => {
+    const finish = async (message: string, outcome: 'left' | 'handed' | 'closed') => {
         go(null); refreshAccess();
         await refreshNavigationCapabilities().catch(() => undefined);
-        onDone(message);
+        onDone(message, outcome);
     };
     const run = async (work: () => Promise<void>, fallback: string) => {
         if (busy) return;
@@ -49,17 +50,17 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
             go(owner.lastStaff ? 'close' : 'handover');
             return;
         }
-        await finish(copy(`You’ve left ${clubName}. Your jobs there are in your career.`, `${clubName} დატოვეთ. იქაური სამუშაოები თქვენს კარიერაში რჩება.`));
+        await finish(copy(`You’ve left ${clubName}. Your jobs there are in your career.`, `${clubName} დატოვეთ. იქაური სამუშაოები თქვენს კარიერაში რჩება.`), 'left');
     }, copy('You couldn’t leave. Try again.', 'ვერ დატოვეთ. სცადეთ ხელახლა.'));
     const give = (person: Person) => void run(async () => {
         const answer = await handOver(clubId, person.userId);
         refreshAccess();
         if (answer.outcome === 'TRANSFERRED') { setNote(copy(`${person.name} owns ${clubName} now; you’re an Admin.`, `${clubName} ახლა ${person.name}-ს ეკუთვნის; თქვენ ადმინი ხართ.`)); go('leave'); }
-        else await finish(copy(`${person.name} is asked to take ${clubName} over. You can leave once they accept.`, `${person.name}-ს ეთხოვა ${clubName}-ის მიღება. დატოვებას შეძლებთ, როცა დათანხმდება.`));
+        else await finish(copy(`${person.name} is asked to take ${clubName} over. You can leave once they accept.`, `${person.name}-ს ეთხოვა ${clubName}-ის მიღება. დატოვებას შეძლებთ, როცა დათანხმდება.`), 'handed');
     }, copy('The club couldn’t be handed over. Try again.', 'კლუბი ვერ გადაეცა. სცადეთ ხელახლა.'));
     const close = () => void run(async () => {
         await closeClub(clubId);
-        await finish(copy(`${clubName} is closed. Its records are kept.`, `${clubName} დაიხურა. მისი ჩანაწერები შენახულია.`));
+        await finish(copy(`${clubName} is closed. Its records are kept.`, `${clubName} დაიხურა. მისი ჩანაწერები შენახულია.`), 'closed');
     }, copy('The club couldn’t be closed. Try again.', 'კლუბი ვერ დაიხურა. სცადეთ ხელახლა.'));
 
     const others = (people ?? []).filter(p => p.userId !== user?.id && p.jobs.some(j => j.status === 'ACTIVE'));

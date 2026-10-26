@@ -11,7 +11,9 @@ const load = (key: string, subject: AccessSubject) => {
     let found = cache.get(key);
     if (!found) {
         found = fetchAccess(subject);
-        found.catch(() => cache.delete(key));
+        const asked = found;
+        // A failed answer is forgotten, but only if it is still the one cached (a newer ask may have replaced it).
+        asked.catch(() => { if (cache.get(key) === asked) cache.delete(key); });
         cache.set(key, found);
     }
     return found;

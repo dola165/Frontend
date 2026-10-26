@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight,
     BellRing,
-    Crown,
     GripHorizontal,
     Loader2,
     Settings,
@@ -24,7 +23,7 @@ import {
 import { apiClient } from '../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
-export type ClubManagementTab = 'personnel' | 'players' | 'invites' | 'applications' | 'roles' | 'squads' | 'tryouts';
+export type ClubManagementTab = 'personnel' | 'players' | 'invites' | 'applications' | 'squads' | 'tryouts';
 
 interface ClubManagementModalProps {
     clubId: number;
@@ -251,12 +250,6 @@ export const ClubManagementModal = ({
                         )}
                     </div>
 
-                    {canManageLeadership && (
-                        <button type="button" onClick={() => goWorkspace('roles')} className="w-full rounded-[2px] border border-[var(--color-orange)]/20 bg-[var(--color-orange)]/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-orange)] hover:bg-[var(--color-orange)] hover:text-[var(--color-on-accent)] transition-colors">
-                            <Crown className="mr-2 inline-block h-3.5 w-3.5" />
-                            Ownership &amp; Roles
-                        </button>
-                    )}
                 </div>
 
                 {onDissolveClub && <details className="mx-5 mb-5 rounded-xl border border-[color:var(--color-danger)]/20 p-4">

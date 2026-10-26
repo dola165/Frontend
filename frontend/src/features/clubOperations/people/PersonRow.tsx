@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { History, Link2, Pencil, Plus, UserRound } from 'lucide-react';
+import { Crown, DoorOpen, History, Link2, Pencil, Plus, UserRound } from 'lucide-react';
 import { Avatar, Badge, Button } from '../../../design/primitives';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../../utils/apiError';
@@ -23,9 +23,9 @@ const CHANGE_JOBS = MAIN_JOBS.filter(job => job !== 'ADMIN');
  * "Invited" with New link, and Copy and WhatsApp once a link exists in this session. A club member's public People-tab
  * profile is edited here too.
  */
-export function PersonRow({ club, clubName, view, person, member, link, busy, rights, onNewLink, onHideLink, onAddJob, onEnd, onChanged }: {
+export function PersonRow({ club, clubName, view, person, member, link, busy, rights, onNewLink, onHideLink, onAddJob, onEnd, onLeave, onChanged }: {
     club: number; clubName: string; view: PeopleView; person: Person; member?: ClubManagedMember; link?: InviteLink; busy: boolean; rights: PeopleRights;
-    onNewLink: () => void; onHideLink: () => void; onAddJob: () => void; onEnd: (job: PersonJob) => void; onChanged: (notice: string) => void;
+    onNewLink: () => void; onHideLink: () => void; onAddJob: () => void; onEnd: (job: PersonJob) => void; onLeave: (step: 'leave' | 'handover') => void; onChanged: (notice: string) => void;
 }) {
     const { copy, jobLabel, whereLabel, statusLabel, eventLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
     const me = view.viewer.userId, self = person.userId === me;
@@ -36,6 +36,11 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
     const canLink = person.needsLink && invited && (rights.invite || person.jobs.some(job => job.addedById === me && job.kind === 'APPOINTMENT'));
     // Each job carries the rule-checker's answer (canChange, canEnd); older answers fall back to the page's rights.
     const canEnd = (job: PersonJob) => (job.canEnd ?? rights.end) && job.kind !== 'OWNER' && !self;
+    // Your own lines: the Owner hands the club over; one job among several ends on its own; the last one is leaving the club.
+    const ownLeave = (job: PersonJob) => !self || !['ACTIVE', 'UPCOMING'].includes(job.status) ? null
+        : job.kind === 'OWNER' ? <Button size="sm" variant="ghost" disabled={busy} onClick={() => onLeave('handover')}><Crown aria-hidden="true" />{copy('Hand the club over', 'კლუბის გადაცემა')}</Button>
+            : <Button size="sm" variant="ghost" className="pp-danger" disabled={busy}
+                onClick={() => job.kind === 'APPOINTMENT' && person.jobs.length > 1 ? onEnd(job) : onLeave('leave')}><DoorOpen aria-hidden="true" />{copy('Leave', 'დატოვება')}</Button>;
     const canChange = (job: PersonJob) => (job.canChange ?? rights.change) && job.kind === 'APPOINTMENT' && !self;
     const endText = (job: PersonJob) => job.kind === 'ADMIN_INVITE' || job.kind === 'COACH_INVITE' || job.status === 'INVITED' || job.status === 'EXPIRED'
         ? copy('Cancel invite', 'მოწვევის გაუქმება') : job.kind === 'APPOINTMENT' ? copy('End job', 'დასრულება') : copy('Remove', 'მოხსნა');
@@ -80,6 +85,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
                 <span className="pp-job__actions">
                     {canChange(job) && <Button size="sm" variant="ghost" disabled={busy || saving || rights.pending} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
                     {canEnd(job) && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy || saving || rights.pending} onClick={() => onEnd(job)}>{endText(job)}</Button>}
+                    {ownLeave(job)}
                 </span>
                 {job.unavailableReason && <p className="gk-faint pp-job__reason">{job.unavailableReason}</p>}
             </li>;

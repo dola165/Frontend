@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { refreshAccess } from '../../../hooks/useCan';
 import { ClubPeople } from './ClubPeople';
@@ -9,6 +9,8 @@ const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delet
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: api, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
 const toast = vi.hoisted(() => ({ warning: vi.fn() }));
 vi.mock('sonner', () => ({ toast }));
+const auth = vi.hoisted(() => ({ user: { id: 1, dob: '1985-01-01' }, refreshNavigationCapabilities: () => Promise.resolve() }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 
 const job = (over: Partial<PersonJob>): PersonJob => ({ kind: 'APPOINTMENT', id: 1, job: 'HEAD_COACH', title: 'Head coach', clubWide: false, squads: [{ id: 5, name: 'U12' }], status: 'ACTIVE', unavailableReason: null, revision: 0, addedById: 1, addedByName: 'Nino', tools: [], ...over });
 const view = (viewer: Partial<PeopleView['viewer']> = {}, extra: PeopleView['people'] = []): PeopleView => ({
@@ -40,16 +42,17 @@ const suggested = { userId: 30, name: 'Dato Kvaratskhelia', email: 'dato@example
     jobs: [job({ id: 55, job: 'ASSISTANT_COACH', title: 'Assistant coach', status: 'SUGGESTED', revision: 3, suggestedById: 4, suggestedByName: 'Giorgi', canConfirm: true })] };
 
 /** The People view, the staff links and the rule-checker (an old server without it unless `access` is given). */
-const renderPeople = (data: PeopleView, { links = [] as StaffLink[], access = null as unknown, url = '/' } = {}) => {
+const renderPeople = (data: PeopleView, { links = [] as StaffLink[], access = null as unknown, url = '/', ownership = null as unknown } = {}) => {
     api.get.mockImplementation(async (path: string) => {
         if (path.startsWith('/access/')) { if (access) return { data: access }; throw new Error('no rule-checker'); }
         if (path.endsWith('/staff-links')) return { data: links };
+        if (path.endsWith('/ownership')) { if (ownership) return { data: ownership }; throw new Error('settled'); }
         return { data };
     });
     return render(<MemoryRouter initialEntries={[url]}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
 };
 
-beforeEach(() => { vi.clearAllMocks(); refreshAccess(); api.post.mockResolvedValue({ data: {} }); api.put.mockResolvedValue({ data: {} }); api.delete.mockResolvedValue({ data: {} }); });
+beforeEach(() => { vi.clearAllMocks(); refreshAccess(); auth.user = { id: 1, dob: '1985-01-01' }; api.post.mockResolvedValue({ data: {} }); api.put.mockResolvedValue({ data: {} }); api.delete.mockResolvedValue({ data: {} }); });
 afterEach(cleanup);
 
 it('lists each person with their jobs and where, and invited people with a new link', async () => {
@@ -243,4 +246,81 @@ it('shows emails to admins only, and no Ask the admin link when no admin is name
     expect(await screen.findByText('Only the club’s admins can do this.')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Ask the admin/ })).not.toBeInTheDocument();
     expect(screen.queryByText('luka@example.test')).not.toBeInTheDocument();
+});
+
+const showAt = (data: PeopleView, me: number, extra: { ownership?: unknown; access?: unknown } = {}) => {
+    auth.user = { id: me, dob: '1985-01-01' };
+    api.get.mockImplementation(async (path: string) => {
+        if (path.startsWith('/access/')) { if (extra.access) return { data: extra.access }; throw new Error('no rule-checker'); }
+        if (path.endsWith('/staff-links')) return { data: [] };
+        if (path.endsWith('/ownership')) { if (extra.ownership) return { data: extra.ownership }; throw new Error('settled'); }
+        if (path === '/me/club-relationships') return { data: [{ clubId: 7, departureSnapshots: { STAFF: 'snap' } }] };
+        return { data };
+    });
+    return render(<MemoryRouter initialEntries={['/people']}><Routes>
+        <Route path="/people" element={<ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" />} />
+        <Route path="/clubs/7" element={<p>Club page</p>} /><Route path="/home" element={<p>Home page</p>} />
+    </Routes></MemoryRouter>);
+};
+
+it('Leave on your own only job leaves the club and lands on its page', async () => {
+    showAt(view({ userId: 3, leader: false, owner: false, headCoachSquads: [] }), 3);
+    const me = (await screen.findByText('Giga Kapanadze')).closest('li') as HTMLElement;
+    fireEvent.click(within(me).getByRole('button', { name: 'Leave' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Leave FC Dinamo Tbilisi Academy?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Leave FC Dinamo Tbilisi Academy' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/relationships/STAFF/leave', { requestId: expect.any(String), snapshot: 'snap' }));
+    expect(await screen.findByText('Club page')).toBeInTheDocument();
+});
+
+it('the Owner hands the club over to an Admin at once, then may leave', async () => {
+    showAt(view(), 1);
+    const owner = (await screen.findByText('Nino Owner')).closest('li') as HTMLElement;
+    fireEvent.click(within(owner).getByRole('button', { name: /Hand the club over/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Hand FC Dinamo Tbilisi Academy over' });
+    api.post.mockResolvedValueOnce({ data: { outcome: 'TRANSFERRED', handoverId: 3 } });
+    fireEvent.click(await within(dialog).findByRole('button', { name: /Mari Admin.*takes over at once/ }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/ownership/handover', { userId: 4 }));
+    expect(await screen.findByText('Mari Admin owns FC Dinamo Tbilisi Academy now; you’re an Admin.')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Leave FC Dinamo Tbilisi Academy?' })).toBeInTheDocument();
+});
+
+it('the last staff member closes the club after a plain confirmation of what is kept', async () => {
+    showAt(view(), 1);
+    await screen.findByText('Nino Owner');
+    const luka = screen.getByText('Luka Beridze').closest('li') as HTMLElement;
+    expect(luka).toBeInTheDocument();
+    api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { code: 'OWNER_MUST_HAND_OVER', lastStaff: true } } });
+    const owner = screen.getByText('Nino Owner').closest('li') as HTMLElement;
+    fireEvent.click(within(owner).getByRole('button', { name: /Hand the club over/ }));
+    const handover = await screen.findByRole('dialog', { name: 'Hand FC Dinamo Tbilisi Academy over' });
+    fireEvent.click(within(handover).getByRole('button', { name: 'Not now' }));
+    // Leaving as the Owner with nobody else answers OWNER_MUST_HAND_OVER lastStaff: closing is offered.
+    render(<MemoryRouter initialEntries={['/people?leave=leave']}><Routes>
+        <Route path="/people" element={<ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" />} /><Route path="/home" element={<p>Home page</p>} />
+    </Routes></MemoryRouter>);
+    const leave = await screen.findByRole('dialog', { name: 'Leave FC Dinamo Tbilisi Academy?' });
+    fireEvent.click(within(leave).getByRole('button', { name: 'Leave FC Dinamo Tbilisi Academy' }));
+    const close = await screen.findByRole('alertdialog', { name: 'Close FC Dinamo Tbilisi Academy?' });
+    expect(within(close).getByText('Kept: its sessions, attendance, records and results.')).toBeInTheDocument();
+    fireEvent.click(within(close).getByRole('button', { name: /Close the club/ }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/dissolve'));
+    expect(await screen.findByText('Home page')).toBeInTheDocument();
+});
+
+it('someone offered the club takes it over, and an Admin can ask GrassKickZ when the Owner vanished', async () => {
+    const { unmount } = showAt(view({ userId: 4, leader: true, owner: false }), 4, {
+        ownership: { ownerId: 1, ownerName: 'Nino Owner', handover: { id: 3, toUserId: 4, toName: 'Mari Admin', status: 'PENDING', createdAt: '2026-10-26T10:00:00' }, reclaim: null } });
+    api.post.mockResolvedValueOnce({ data: { outcome: 'TRANSFERRED' } });
+    fireEvent.click(await screen.findByRole('button', { name: /Take over/ }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/ownership/handover/3/answer', { accept: true }));
+    unmount();
+    refreshAccess();
+    showAt(view({ userId: 4, leader: true, owner: false }), 4, {
+        ownership: { ownerId: 1, ownerName: 'Nino Owner', handover: null, reclaim: null },
+        access: { clubId: 7, squadId: null, allowed: ['see_people', 'invite_staff', 'ask_handover'], refused: [], admins: [] } });
+    api.post.mockResolvedValueOnce({ data: { reclaimId: 8, dueAt: '2026-11-26T10:00:00' } });
+    fireEvent.click(await screen.findByRole('button', { name: /Ask GrassKickZ to hand it over/ }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/ownership/reclaim'));
+    expect(await screen.findByText(/Nino Owner is told and can object until/)).toBeInTheDocument();
 });

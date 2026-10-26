@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Copy, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { keepsNativeMenu, LONG_PRESS_MS, placeMenu, type ContextMenuItems } from '../contextMenuParts';
 import { useContextMenu } from '../useContextMenu';
@@ -202,6 +203,33 @@ describe('useContextMenu', () => {
         act(() => { vi.advanceTimersByTime(LONG_PRESS_MS + 20); });
         expect(screen.getAllByRole('menu')).toHaveLength(1);
         expect(screen.getByRole('menu', { name: 'Chat' })).toBeInTheDocument();
+    });
+
+    it('ignores events from a dialog the element rendered elsewhere (React passes them up through portals)', () => {
+        function WithDialog() {
+            const menu = useContextMenu(() => [{ key: 'start', label: 'Start a chat', onSelect: () => undefined }], { label: 'Column' });
+            return <nav {...menu.bind}>
+                <span>The column</span>
+                {createPortal(<div role="dialog" aria-label="Rename"><span>Inside the dialog</span><input aria-label="New name" /></div>, document.body)}
+                {menu.menu}
+            </nav>;
+        }
+        render(<WithDialog />);
+        expect(fireEvent.contextMenu(screen.getByText('Inside the dialog'), { clientX: 5, clientY: 5 })).toBe(true);
+        fireEvent.keyDown(screen.getByRole('textbox', { name: 'New name' }), { key: 'F10', shiftKey: true });
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+        // The element itself still opens it.
+        expect(fireEvent.contextMenu(screen.getByText('The column'), { clientX: 5, clientY: 5 })).toBe(false);
+        expect(screen.getByRole('menu', { name: 'Column' })).toBeInTheDocument();
+    });
+
+    it('leaves Shift+F10 and the menu key to the browser in a text box, as a right click there', () => {
+        render(<Row items={() => standard()} />);
+        const box = screen.getByRole('textbox', { name: 'Box' });
+        box.focus();
+        expect(fireEvent.keyDown(box, { key: 'F10', shiftKey: true })).toBe(true);
+        expect(fireEvent.keyDown(box, { key: 'ContextMenu' })).toBe(true);
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
 
     it('stays inside the screen, measured where it opens', async () => {

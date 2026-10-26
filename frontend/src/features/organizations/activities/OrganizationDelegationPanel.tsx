@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +50,8 @@ export function DelegationPanel({ id }: { id: number }) {
             window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
         } catch (err) {
             if (!alive.current || !isCurrentAuthSession(sessionId)) return;
+            // An unconfirmed email is not an authority loss: keep the lists and offer Resend.
+            if (promptEmailConfirmation(err)) return;
             setError(activityError(err, copy));
             // Do not retain privileged membership lists after authority loss or an uncertain mutation.
             setData(null); setConfirm(null);
@@ -115,7 +118,7 @@ export function Invitations() {
             if (!alive.current) return;
             setMessage(copy.responded); setReload(n => n + 1);
         } catch (err) {
-            if (!alive.current) return;
+            if (!alive.current || promptEmailConfirmation(err)) return;
             setError(activityError(err, copy)); setInvitations([]);
         } finally { submitting.current = false; if (alive.current) setBusy(false); }
     };

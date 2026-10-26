@@ -26,6 +26,19 @@ beforeEach(async () => {
 afterEach(async () => { cleanup(); await i18n.changeLanguage('en'); });
 
 describe('football roles', () => {
+    it('never offers club staff or organiser to someone who does not have them, and keeps them for someone who does', async () => {
+        render(roles());
+        await screen.findByRole('button', { name: 'Save roles' });
+        expect(screen.getByRole('checkbox', { name: /Coach/ })).toBeInTheDocument();
+        expect(screen.queryByRole('checkbox', { name: /academy staff/ })).toBeNull();
+        expect(screen.queryByRole('checkbox', { name: /Tournament organizer/ })).toBeNull();
+        cleanup();
+        vi.mocked(apiClient.get).mockResolvedValue({ data: [{ role: 'CLUB_STAFF', primary: true, published: false }] });
+        render(roles());
+        await screen.findByRole('button', { name: 'Save roles' });
+        fireEvent.click(screen.getByRole('checkbox', { name: /academy staff/ }));
+        expect(screen.getByRole('checkbox', { name: /academy staff/ })).not.toBeChecked();
+    });
     it('sends explicit false flags when an older server omits the hidden defaults', async () => {
         vi.mocked(apiClient.get).mockResolvedValue({ data: [{ role: 'ORGANIZER', primary: true }] });
         render(roles());

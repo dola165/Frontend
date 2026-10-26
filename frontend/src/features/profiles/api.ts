@@ -84,6 +84,8 @@ export const fetchDiscoveryPreferences = async (signal?: AbortSignal) =>
 export const saveDiscoveryPreferences = async (value: Omit<DiscoveryPreferences, 'version'>, expectedVersion: number, requestId: string) =>
     (await apiClient.put<DiscoveryPreferences>('/users/me/discovery', { ...value, expectedVersion, requestId })).data;
 export const saveAbout = async (bio: string) => apiClient.put('/users/me', { bio });
+/** Gives an account its birth date, once (the server refuses to change it later). */
+export const saveBirthDate = async (dateOfBirth: string) => apiClient.put('/users/me', { dateOfBirth });
 
 /** Free-text suggestions; people can type anything else. */
 export const professionSuggestions = [

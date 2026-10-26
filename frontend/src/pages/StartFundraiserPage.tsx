@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../components/auth/emailConfirmationPrompt';
 import { ct, useCommerceCopy } from '../features/store/copy';
 import { CreateLink } from '../features/pages/create/CreateLink';
 import { useRef, useState } from 'react';
@@ -109,7 +110,7 @@ export const StartFundraiserPage = () => {
             // Validation rejection proves no draft was created; network/5xx uncertainty must reuse the same request.
             const code = (failure as { response?: { status?: number } })?.response?.status;
             if (creating && (code === 400 || code === 422)) owned.change({ createAttempt: undefined });
-            setError(extractApiErrorMessage(failure, ct("Could not publish. Your answers and any saved draft are kept. Retry to check and publish the same fundraiser.")));
+            if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, ct("Could not publish. Your answers and any saved draft are kept. Retry to check and publish the same fundraiser.")));
         }
         finally { pending.current = false; setSaving(false); }
     };

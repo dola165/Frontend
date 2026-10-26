@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { MailOpen } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -41,7 +42,7 @@ function TeamPanel({ id, draftKey }: { id: number; draftKey: string }) {
         setMessage(path === 'invitations' ? 'Invitation sent. They can respond in My organizations.' : 'Team access updated.');
         window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
       }
-    } catch (failure) { if (current()) { setTeam(null); setRemoving(null); setError(extractApiErrorMessage(failure, '') || 'Could not update the team.'); } }
+    } catch (failure) { if (current() && !promptEmailConfirmation(failure)) { setTeam(null); setRemoving(null); setError(extractApiErrorMessage(failure, '') || 'Could not update the team.'); } }
     finally { submitting.current = false; if (current()) setBusy(false); }
   }
   function invite(event: FormEvent) {

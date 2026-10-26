@@ -8,13 +8,21 @@ import { getAuthSessionId } from '../../utils/authStorage';
  * through. Nothing here grants or removes access. Sign-out removes the local copy (`clearStoredAuth`).
  */
 export interface PreferencesTown { name: string; latitude: number; longitude: number; countryCode?: string }
-/** A step of the welcome popup after sign-up. */
-/** "Set up your profile": ROLES, ABOUT, FOLLOW (clubs), PROFILE, PAGE; the rest are the earlier welcome's, still read. */
-export type WelcomeStep = 'ROLES' | 'ABOUT' | 'FOLLOW' | 'PROFILE' | 'PAGE' | 'CLUB' | 'CHILD' | 'TOURNAMENT' | 'VENUE' | 'BUSINESS';
-/** OPEN shows the popup over Home until finished or closed; DONE never shows it by itself again. Skipped steps come back once as a card. */
-export interface WelcomeProgress { state: 'OPEN' | 'DONE'; at?: WelcomeStep | null; skipped?: WelcomeStep[]; cardDismissed?: boolean }
-/** The first run: the town Home and World start from, and the welcome's progress. */
-export interface StartPreferences { town?: PreferencesTown | null; welcome?: WelcomeProgress | null; /** Said in the setup: here as a business or sponsor. */ business?: boolean | null }
+/** The answer to "What brings you to GrassKickZ?" (F7): for me, for my child, a club, work, a business, following. */
+export type WelcomeChoice = 'ME' | 'CHILD' | 'CLUB' | 'WORK' | 'BUSINESS' | 'FOLLOW';
+/** Where the welcome is: START (step 1) or the choice's step 2. The rest are earlier welcomes' steps, still read. */
+export type WelcomeStep = 'START' | WelcomeChoice | 'ROLES' | 'ABOUT' | 'PROFILE' | 'PAGE' | 'TOURNAMENT' | 'VENUE';
+/**
+ * OPEN shows the welcome over Home until finished or closed; DONE never shows it by itself again. `choice` picks the
+ * "Your first week" card on Home, `week` holds its steps done, and `cardDismissed` hides it. `skipped` is the earlier
+ * welcome's, still read, never written.
+ */
+export interface WelcomeProgress { state: 'OPEN' | 'DONE'; at?: WelcomeStep | null; choice?: WelcomeChoice | null; week?: string[]; skipped?: WelcomeStep[]; cardDismissed?: boolean }
+/**
+ * The first run: the town Home and World start from, the welcome's progress, and the age a parent looks for (only the
+ * age, never a child record).
+ */
+export interface StartPreferences { town?: PreferencesTown | null; welcome?: WelcomeProgress | null; childAge?: number | null; /** Said in the earlier setup: here as a business or sponsor. */ business?: boolean | null }
 export interface StoredPin { path: string; label: string; icon: string }
 export interface WorkspacePreferences { hiddenTabs?: string[]; hiddenAreas?: string[]; hiddenResponsibilities?: string[] }
 export interface Preferences {

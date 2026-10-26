@@ -4,7 +4,6 @@
 .gk .gk-editbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); min-height: 44px; margin: var(--gk-2) 0 var(--gk-3); padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
 .gk .gk-editbar[data-editing] { border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); box-shadow: inset 0 0 0 1px var(--gk-accent-soft); }
 .gk .gk-editbar__draft { display: inline-flex; align-items: center; gap: var(--gk-2); font-weight: 600; }
-.gk .gk-editbar__claim { display: inline-flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-2); }
 .gk .gk-editbar__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); flex-shrink: 0; }
 .gk .gk-editbar__dot--live { background: var(--gk-accent); }
 .gk .gk-editbar__saved { min-width: 48px; color: var(--gk-text-2); }

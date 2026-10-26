@@ -1,10 +1,11 @@
+import type { AccountState } from '../../utils/authRedirect';
 import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../../api/axiosConfig';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../../utils/authStorage';
 import { extractApiErrorCode, extractApiErrorMessage } from '../../utils/apiError';
 
 export type PrimaryLoginProof = { kind: 'password'; email: string; password: string } | { kind: 'google'; token: string };
-export type CompletedLogin = { accessToken: string; mustChangePassword?: boolean; newAccount?: boolean };
+export type CompletedLogin = { accessToken: string; mustChangePassword?: boolean; newAccount?: boolean; accountState?: AccountState };
 
 export function secondFactorError(error: unknown, fallback: string) {
     switch (extractApiErrorCode(error)) {

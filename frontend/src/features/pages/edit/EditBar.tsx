@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import { ChevronRight, LayoutList, PenLine } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button, ButtonLink } from '../../../design/primitives';
+import { Button } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
-import { claimHref } from '../create/entry';
 import { usePageEdit } from './context';
 import { SETUP_ITEMS } from '../model/kinds';
 import { DolaPet } from '../guide/DolaPet';
@@ -19,33 +16,17 @@ import './edit.css';
 
 /**
  * The line under a page's header while its owner is there: "Draft · only you see this" with Go live, the setup
- * ring ("4 of 7 · Where do you play?"), a quiet "Saved", and the Edit page switch. Visitors to an unclaimed page
- * see "Is this your club? Claim it" here instead.
+ * ring ("4 of 7 · Where do you play?"), a quiet "Saved", and the Edit page switch. Visitors see nothing here.
  */
 export function EditBar() {
   const t = usePagesCopy();
-  const location = useLocation();
-  const { page, editing, canEdit, setEditing, openStep, goLive, status, arrival, pendingCount, rearranging, setRearranging } = usePageEdit();
-  // The first time on a claimed page, one hint, once. A new page gets no tour: the current step is the one thing it shows.
-  useEffect(() => {
-    if (arrival !== 'claimed' || !page) return;
-    toast(t('This page is yours now. Tap a box to fill it.'), { id: 'page-arrival', duration: 6000 });
-  }, [arrival, page, t]);
+  const { page, editing, canEdit, setEditing, openStep, goLive, status, pendingCount, rearranging, setRearranging } = usePageEdit();
   // The steps drop down from the bar when the ring is pressed; they start folded, so the current step is the one thing in view.
   const [stepsOpen, setStepsOpen] = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
   // On a phone a draft is set up one full-screen card per step; the current step opens its card.
   const phoneSteps = usePhoneSteps();
-  if (!page) return null;
-  if (!canEdit) {
-    if (!page.viewer.canClaim && !page.claim?.mine) return null;
-    return (
-      <div className="gk-editbar">
-        <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t(page.claim?.mine ? 'Claim status' : page.kind === 'CLUB' ? 'Is this your club?' : 'Is this your page?')}</span>
-        <span className="gk-editbar__actions"><ButtonLink size="sm" variant="primary" to={claimHref(location, page.ref, 'link')}>{t(page.claim?.mine ? 'View request' : 'Claim it')}</ButtonLink></span>
-      </div>
-    );
-  }
+  if (!page || !canEdit) return null;
   const setup = page.setup;
   const total = SETUP_ITEMS[page.kind].length, next = setup.next;
   const CurrentIcon = next ? STEP_ICONS[next] : null;
@@ -54,9 +35,7 @@ export function EditBar() {
       <PhoneSteps />
       {verificationOpen && <UnlockSheet key={`${page.ref.type}-${page.ref.id}`} action="VERIFIED_BADGE" onClose={() => setVerificationOpen(false)} />}
       {editing && page.kind === 'CLUB' && <DolaPet />}
-      {page.status === 'DRAFT'
-        ? <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>
-        : page.claim?.state === 'PENDING' ? <span className="gk-editbar__claim"><span className="gk-editbar__dot" aria-hidden="true" />{t('Claim pending review')}</span> : null}
+      {page.status === 'DRAFT' && <span className="gk-editbar__draft"><span className="gk-editbar__dot" aria-hidden="true" />{t('Draft · only you see this')}</span>}
       {!setup.completedAt && (
         <button type="button" className="gk-ring" aria-expanded={stepsOpen} onClick={() => setStepsOpen(value => !value)} aria-label={t('{done} of {total} done. Set-up steps', { done: setup.done, total })}>
           <SetupRing done={setup.done} total={total} />

@@ -16,6 +16,8 @@ import { AGE_OPTIONS } from './matches/listings';
 const PAGE = 12;
 /** The kinds of club a person thinks in, each standing for the club types the directory knows. */
 const KINDS: Record<string, string[]> = { ACADEMY: ['ACADEMY'], SCHOOL: ['SCHOOL'], COMMUNITY: ['GRASSROOTS', 'AMATEUR'], PRO: ['PROFESSIONAL', 'SEMI_PROFESSIONAL'], OTHER: ['OTHER'] };
+/** A player's age typed into the address (the welcome's landing, a shared link): a whole number from 3 to 99. */
+const typedAge = (query: DirectoryQuery) => { const age = Number(first(query, 'age')); return Number.isInteger(age) && age >= 3 && age <= 99 ? age : undefined; };
 /** "Taking new players": clubs with open trials or open to applications. */
 const TAKING = ['OPEN_TRIAL', 'APPLICATION_REQUIRED'];
 
@@ -66,6 +68,9 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             { kind: 'choice', key: 'country', label: 'Country', primary: true, allLabel: 'Any country', options: places.countries },
             { kind: 'choice', key: 'city', label: 'City', primary: true, allLabel: 'Any city', options: places.cities },
             { kind: 'choice', key: 'ageGroup', label: 'Age group', primary: true, allLabel: 'Any age group', options: AGE_OPTIONS },
+            // A player's age without a child chosen in the World bar (the welcome lands here with it): clubs whose
+            // programme takes that age, as the welcome listed them. A removable chip; a chosen child wins.
+            { kind: 'text', key: 'age', label: 'Player’s age', placeholder: 'For example 9', inputMode: 'numeric', primary: true, when: () => !child },
             { kind: 'choice', key: 'gender', label: 'Gender', primary: true, allLabel: 'Everyone', options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }, { value: 'MIXED', label: 'Mixed' }] },
             { kind: 'range', key: 'fee', label: 'Training fee', primary: true, unit: 'GEL / month' },
             { kind: 'toggle', key: 'open', label: 'Taking new players', primary: true },
@@ -88,7 +93,7 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             if (feeMin) params.set('feeMin', feeMin);
             if (feeMax) params.set('feeMax', feeMax);
             // The server matches age and price against the same current published programme.
-            const age = ageOn(child?.dateOfBirth);
+            const age = ageOn(child?.dateOfBirth) ?? typedAge(query);
             if (age != null) params.set('age', String(age));
             if (query.sort && query.sort !== 'NEWEST') params.set('sort', query.sort);
             params.set('page', String(page));

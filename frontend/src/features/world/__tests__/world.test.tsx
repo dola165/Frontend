@@ -215,3 +215,12 @@ it('opens the role an old jobs link selected, and the jobs tab otherwise', () =>
     expect(screen.getByText('/world/opportunities?q=coach&tab=jobs')).toBeInTheDocument();
 });
 
+
+it('asks clubs for a typed player age, the welcome’s landing, unless a child is chosen', async () => {
+    await clubsSource().load(query({ age: '9' }), 0, { ...context, area: { city: 'Tbilisi' } } as LoadContext);
+    expect(String(vi.mocked(apiClient.get).mock.calls.at(-1)?.[0])).toMatch(/[?&]age=9(&|$)/);
+    expect(String(vi.mocked(apiClient.get).mock.calls.at(-1)?.[0])).toMatch(/city=Tbilisi/);
+    await clubsSource().load(query({ age: 'nine' }), 0, context);
+    expect(String(vi.mocked(apiClient.get).mock.calls.at(-1)?.[0])).not.toMatch(/[?&]age=/);
+    expect(clubsSource({ child: { id: 7, name: 'Nino', dateOfBirth: '2016-01-01' } as Participant }).filters.find(filter => filter.key === 'age')?.when?.(query({}))).toBe(false);
+});

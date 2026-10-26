@@ -1,3 +1,4 @@
+import { isKnownMinor } from '../../../utils/age';
 import { useId } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -69,7 +70,7 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
             {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                 <Link role={item} to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>
             )}
-            {createPage && <CreateLink role={item} variant="menu" from="account" onClick={() => close()}>{copy('Create a page', 'გვერდის შექმნა')}</CreateLink>}
+            {createPage && !isKnownMinor(user.dob) && <CreateLink role={item} variant="menu" from="account" onClick={() => close()}>{copy('Create a page', 'გვერდის შექმნა')}</CreateLink>}
             {/* The phone's "You" sheet is a whole page, so it keeps a row for each workspace it does not show elsewhere. */}
             {!menu && workspaces.length > 0 && (
                 <>

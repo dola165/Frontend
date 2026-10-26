@@ -23,6 +23,7 @@ import { ChildClubs } from './ChildClubs';
 import { GroupsThatFit } from './GroupsThatFit';
 import { LatestUpdate } from './LatestUpdate';
 import { NextUp } from './NextUp';
+import { OwnAccount } from './OwnAccount';
 import { useChildSquads } from './useChildSquads';
 import './parent-hub.css';
 
@@ -119,6 +120,7 @@ function ChildView({ child, sessionId, revision, onChanged }: { child: JoiningCh
                     : <div className="ph-card__face"><PlayerCard crest={crest} player={{ id: child.playerId, name: child.identity.fullName, position: child.identity.positions[0] ?? null, photoUrl: child.identity.photoUrl, age: born ? new Date().getFullYear() - born.getFullYear() : null }} />
                         <p className="ph-quiet">{copy('Yours to keep. Clubs see it while your child plays for them.', 'ბარათი თქვენია. კლუბები მას ხედავენ, სანამ ბავშვი მათთან თამაშობს.')}</p></div>}
             </Section>
+            <OwnAccount key={`own-${child.playerId}`} child={child} onChanged={onChanged} />
             {!playing.length && <PlayerLinkCode key={child.playerId} child={child} onChanged={onChanged} />}
             <Link className="ph-row ph-row--boxed" to={playerPath('/parent?tab=connections', child.playerId)}><span className="ph-row__icon" aria-hidden="true"><HeartHandshake /></span>
                 <span className="ph-row__text"><strong>{copy('Family & guardians', 'ოჯახი და მეურვეები')}</strong><small>{child.guardians?.length ? child.guardians.map(g => g.self ? copy('You', 'თქვენ') : g.name.split(' ')[0]).join(' · ') : copy('Who else looks after this card, club consent', 'ვინ უვლის ბარათს, კლუბის თანხმობა')}</small></span>{!!child.guardians?.length && <FaceStack people={child.guardians.map(g => ({ id: g.id, name: g.name }))} size={24} />}<ArrowRight aria-hidden="true" /></Link>

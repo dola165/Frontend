@@ -9,6 +9,7 @@ import { DiscoveryPreferencesEditor } from './DiscoveryPreferencesEditor';
 import { ProfessionsEditor } from './ProfessionsEditor';
 import { RolesEditor } from './RolesEditor';
 import { createHref } from '../../pages/create/entry';
+import { useMayCreatePages } from '../../pages/create/useMayCreatePages';
 import { sanitizeAuthRedirect } from '../../../utils/authRedirect';
 import { WELCOME_PARAM } from '../../start/welcomeSteps';
 import './account-roles.css';
@@ -23,6 +24,7 @@ function AccountRoles() {
     const copy = useAccountCopy();
     const { user } = useAuth();
     const here = useLocation();
+    const adult = useMayCreatePages();
     const { hash } = here;
     const [params] = useSearchParams();
     const firstUse = params.get('setup') === '1';
@@ -41,7 +43,7 @@ function AccountRoles() {
                 subtitle={firstUse ? copy("Your account is ready. Add what describes you now; you can change it any time.") : copy("What you do in football and professionally. Change it whenever your life in football changes.")}
                 actions={next ? <ButtonLink to={next}>{copy("Back to opportunity", "შეთავაზებაზე დაბრუნება")}</ButtonLink> : <>
                     {/* The welcome after sign-up, from its first step, over Home. */}
-                    <ButtonLink variant="ghost" to={`/home?${WELCOME_PARAM}=roles`}><Sparkles aria-hidden="true" />{copy("Guided set-up", "ნაბიჯ-ნაბიჯ დაყენება")}</ButtonLink>
+                    <ButtonLink variant="ghost" to={`/home?${WELCOME_PARAM}=start`}><Sparkles aria-hidden="true" />{copy("Guided set-up", "ნაბიჯ-ნაბიჯ დაყენება")}</ButtonLink>
                     <ButtonLink to={`/profile/${user.id}`}>{copy("View your profile")}</ButtonLink>
                 </>} />
             <div className="gk-grid gk-grid--split gk-account-roles__body">
@@ -62,7 +64,7 @@ function AccountRoles() {
                     {firstUse && <Panel title={copy("Next steps")}><List label={copy("Next steps")}>
                         <ListRow to="/home" title={copy("Continue to Home")} />
                         <ListRow to="/world/clubs" title={copy("Find a club")} />
-                        <ListRow to={createHref(here, null, 'roles')} title={copy("Create a club or page")} />
+                        {adult && <ListRow to={createHref(here, null, 'roles')} title={copy("Create a club or page")} />}
                     </List></Panel>}
                     <p className="gk-faint">{copy("Name, photos, privacy and sign-in are in")} <Link className="gk-account-roles__link" to="/account?tab=profile">{copy("Account settings")}</Link>.</p>
                 </aside>

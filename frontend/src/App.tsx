@@ -12,7 +12,7 @@ import { AppPageFrame } from './components/layout/AppPageShell';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { isSystemAdmin } from './context/navigationCapabilities';
 import { AuthSessionBoundary } from './context/AuthSessionBoundary';
-import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, completeSignOutNavigation, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
+import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, completeSignOutNavigation, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect, WAITING_FOR_PARENT_PATH } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
 import { applyDocumentTheme, readThemePreference, themeForRoute, isThemePreference, type ThemePreference } from './theme';
 import { AppSettingsPage } from './android/AppSettingsPage';
@@ -26,6 +26,7 @@ import { useMediaQuery } from './features/world/useMediaQuery';
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
 import { useBuildWatch } from './hooks/useBuildWatch';
+import { ParentApprovalBanner } from './components/auth/ParentApprovalBanner';
 import { LoginPage } from './pages/LoginPage';
 
 // Native navigation and chat replace these browser surfaces. Keep their imports
@@ -87,7 +88,6 @@ const ClubSquadsPage = lazy(() => import('./pages/ClubSquadsPage').then(module =
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(module => ({default: module.NotificationsPage})));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(module => ({default: module.OnboardingPage})));
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then(module => ({default: module.RegisterPage})));
-const DobGatePage = lazy(() => import('./pages/DobGatePage').then(module => ({default: module.DobGatePage})));
 const ConsentPage = lazy(() => import('./pages/ConsentPage').then(module => ({default: module.ConsentPage})));
 const SetPasswordPage = lazy(() => import('./pages/SetPasswordPage').then(module => ({default: module.SetPasswordPage})));
 const OAuth2RedirectHandler = lazy(() => import('./pages/OAuth2RedirectHandler').then(module => ({default: module.OAuth2RedirectHandler})));
@@ -97,6 +97,9 @@ const ClubInvitePage = lazy(() => import('./pages/ClubInvitePage').then(module =
 const StaffLinkPage = lazy(() => import('./pages/StaffLinkPage').then(module => ({default: module.StaffLinkPage})));
 const StaffClubPage = lazy(() => import('./pages/StaffClubPage').then(module => ({default: module.StaffClubPage})));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
+const WaitingForParentPage = lazy(() => import('./pages/WaitingForParentPage').then(module => ({default: module.WaitingForParentPage})));
+const OwnAccountPage = lazy(() => import('./pages/OwnAccountPage').then(module => ({default: module.OwnAccountPage})));
+const ParentApprovalPage = lazy(() => import('./pages/ParentApprovalPage').then(module => ({default: module.ParentApprovalPage})));
 const ReportReceipts = lazy(() => import('./features/moderation/ReportReceipts').then(module => ({default: module.ReportReceipts})));
 const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
 const RequestsCentre = lazy(() => import('./features/requests/RequestsCentre').then(module => ({default: module.RequestsCentre})));
@@ -137,7 +140,7 @@ function useRailsFit() {
 }
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval', '/own-account']);
 const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -263,6 +266,12 @@ export function MainLayout() {
 
         if (!user.mustChangePassword && user.onboardingRequired && location.pathname !== '/onboarding') {
             navigate('/onboarding', { replace: true });
+            return;
+        }
+
+        // A 13 to 15-year-old's account waits for a parent; the server answers nothing else meanwhile.
+        if (user.accountState === 'AWAITING_PARENT' && location.pathname !== WAITING_FOR_PARENT_PATH) {
+            navigate(WAITING_FOR_PARENT_PATH, { replace: true });
         }
     }, [location.pathname, navigate, status, user]);
 
@@ -336,7 +345,7 @@ export function MainLayout() {
         location.pathname === '/assistant' ||
         location.pathname === '/account/roles' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
         location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
         location.pathname.startsWith('/tournament-series/') ||
@@ -357,7 +366,7 @@ export function MainLayout() {
     // W6 â€” one shell: browse/list/destination pages share a single App-level
     // frame (app-page-shell + AppPageFrame, one max-width); the map, chat,
     // schedule and the management workspaces stay full-width canvases.
-    const canvasWorkspacePages = new Set(['/map', '/messages', '/team-work/chat', '/onboarding', '/dob', '/set-password']);
+    const canvasWorkspacePages = new Set(['/map', '/messages', '/team-work/chat', '/onboarding', '/set-password']);
     const isImmersiveCanvasPage =
         /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
         canvasWorkspacePages.has(location.pathname) || isWorldMap ||
@@ -461,7 +470,6 @@ export function MainLayout() {
             <Route path="/me/staff-club" element={<ProtectedRoute><StaffClubPage /></ProtectedRoute>} />
             <Route path="/invite/:code" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-            <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
             <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
             <Route path="*" element={<RouteRecoveryPage />} />
         </Routes></RouteViewport>
@@ -477,6 +485,7 @@ export function MainLayout() {
             {showsHeader && (
                 <AppHeader user={user} myClubId={myClubId} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={() => void handleLogout()} />
             )}
+            {showsHeader && <ParentApprovalBanner />}
 
             {isLandingPage || isAuthPage ? (
                 <main>
@@ -490,7 +499,10 @@ export function MainLayout() {
                         <Route path="/club-invite" element={<ClubInvitePage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
-                        <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=roles`} replace /></ProtectedRoute>} />
+                        <Route path="/parent-approval" element={<ParentApprovalPage />} />
+                        <Route path="/own-account" element={<OwnAccountPage />} />
+                        <Route path={WAITING_FOR_PARENT_PATH} element={<ProtectedRoute><WaitingForParentPage /></ProtectedRoute>} />
+                        <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=start`} replace /></ProtectedRoute>} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes></RouteViewport>
                 </main>
@@ -529,7 +541,7 @@ export function MainLayout() {
                     </div>
                 </div>
             )}
-            {/* The start sheet and the claim sheet open over whatever page says `?create=` or `?claim=`. */}
+            {/* The start sheet opens over whatever page says `?create=`. */}
             <CreatePageHost />
         </div>
     );

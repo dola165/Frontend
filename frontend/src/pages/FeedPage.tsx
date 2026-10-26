@@ -16,7 +16,7 @@ import type { NavigationCapabilities } from '../context/navigationCapabilities';
 import { isAndroidApp } from '../android/bridge';
 import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
-import { FinishSetup } from '../features/start/FinishSetup';
+import { FirstWeek } from '../features/start/FirstWeek';
 import { WelcomeHost } from '../features/start/WelcomeHost';
 import { StaffClubCard } from '../features/clubOperations/leaving/StaffClubCard';
 
@@ -245,7 +245,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
      <LeftSidebar user={user} embedded />
     </details>}
 
-   <FinishSetup />
+   <FirstWeek />
 
    <PostComposer
     compact

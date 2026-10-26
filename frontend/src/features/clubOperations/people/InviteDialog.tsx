@@ -2,6 +2,8 @@ import { useId, useState } from 'react';
 import { Button, Field } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { ConfirmEmailFirst } from '../../../components/auth/ConfirmEmailFirst';
+import { needsConfirmedEmail } from '../../../components/auth/emailConfirmation';
 import { invitePerson, MAIN_JOBS, type InviteResult, type JobDraft, type Person, type PeopleView } from './api';
 import { JobPicker } from './JobPicker';
 import { useJobWords } from './jobWords';
@@ -19,7 +21,7 @@ export function InviteDialog({ open, club, view, person, allowAdmin, onClose, on
     const id = useId();
     const { copy } = useJobWords();
     const [name, setName] = useState(''), [email, setEmail] = useState(''), [draft, setDraft] = useState<JobDraft>(() => blank());
-    const [busy, setBusy] = useState(false), [error, setError] = useState('');
+    const [busy, setBusy] = useState(false), [error, setError] = useState(''), [confirmEmail, setConfirmEmail] = useState(false);
     const close = () => { if (busy) return; setName(''); setEmail(''); setDraft(blank()); setError(''); onClose(); };
     const problem = !person && name.trim().length < 2 ? copy('Enter their name.', 'შეიყვანეთ სახელი.')
         : !person && !/^\S+@\S+\.\S+$/.test(email.trim()) ? copy('Enter their email.', 'შეიყვანეთ ელფოსტა.')
@@ -27,12 +29,12 @@ export function InviteDialog({ open, club, view, person, allowAdmin, onClose, on
                 : draft.job !== 'ADMIN' && !draft.clubWide && !draft.squadIds.length ? copy('Choose where the job applies.', 'აირჩიეთ, სად ვრცელდება სამუშაო.') : '';
     const submit = async () => {
         if (problem) { setError(problem); return; }
-        setBusy(true); setError('');
+        setBusy(true); setError(''); setConfirmEmail(false);
         try {
             const result = await invitePerson(club, person ? { userId: person.userId } : { name: name.trim(), email: email.trim() }, draft);
             setBusy(false); setName(''); setEmail(''); setDraft(blank());
             onInvited(result);
-        } catch (failure) { setError(extractApiErrorMessage(failure, copy('The invite couldn’t be sent.', 'მოწვევა ვერ გაიგზავნა.'))); setBusy(false); }
+        } catch (failure) { if (needsConfirmedEmail(failure)) setConfirmEmail(true); else setError(extractApiErrorMessage(failure, copy('The invite couldn’t be sent.', 'მოწვევა ვერ გაიგზავნა.'))); setBusy(false); }
     };
     return <Dialog open={open} size="md" onClose={close} title={person ? copy(`Give ${person.name} a job`, `${person.name}: ახალი სამუშაო`) : copy('Invite one person', 'ერთი ადამიანის მოწვევა')}
         description={person ? undefined : copy('They get a link to choose their own password, or an invite in the app if they already have an account.', 'მიიღებს ბმულს საკუთარი პაროლის ასარჩევად, ან მოწვევას აპში, თუ ანგარიში უკვე აქვს.')}
@@ -44,6 +46,7 @@ export function InviteDialog({ open, club, view, person, allowAdmin, onClose, on
                 <Field label={copy('Email', 'ელფოსტა')} htmlFor={`${id}-email`}><input id={`${id}-email`} className="gk-input" type="email" autoComplete="off" maxLength={254} value={email} disabled={busy} onChange={event => setEmail(event.target.value)} /></Field>
             </div>}
             <JobPicker view={view} draft={draft} onChange={setDraft} choices={allowAdmin ? MAIN_JOBS : MAIN_JOBS.filter(job => job !== 'ADMIN')} extras disabled={busy} />
+            {confirmEmail && <ConfirmEmailFirst />}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             <button type="submit" hidden />
         </form>

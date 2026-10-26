@@ -7,6 +7,7 @@ import type { PeopleView, PersonJob, StaffLink } from './api';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: api, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1, email: 'nino@example.test', dob: '1985-01-01' } }) }));
 
 const job = (over: Partial<PersonJob>): PersonJob => ({ kind: 'APPOINTMENT', id: 1, job: 'HEAD_COACH', title: 'Head coach', clubWide: false, squads: [{ id: 5, name: 'U12' }], status: 'ACTIVE', unavailableReason: null, revision: 0, addedById: 1, addedByName: 'Nino', tools: [], ...over });
 const view = (viewer: Partial<PeopleView['viewer']> = {}, extra: PeopleView['people'] = []): PeopleView => ({
@@ -135,12 +136,14 @@ it('a head coach suggests an assistant for their own squad and changes nobody’
     expect(screen.queryByRole('button', { name: /Change/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Suggest an assistant/ }));
     const dialog = screen.getByRole('dialog', { name: 'Suggest an assistant' });
-    expect(within(dialog).getByText(/Assistant coach for U12/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/A helper for U12/)).toBeInTheDocument();
+    for (const other of ['Head coach', 'Fees', 'Admin']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Team manager' }));
     fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Dato Kvaratskhelia' } });
     fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'dato@example.test' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Suggest' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/invites', {
-        name: 'Dato Kvaratskhelia', email: 'dato@example.test', job: 'ASSISTANT_COACH', title: null, tools: null, clubWide: false, squadIds: [5],
+        name: 'Dato Kvaratskhelia', email: 'dato@example.test', job: 'TEAM_MANAGER', title: null, tools: null, clubWide: false, squadIds: [5],
     }));
     expect(await screen.findByText(/An admin confirms or declines it/)).toBeInTheDocument();
 });
@@ -166,4 +169,16 @@ it('follows the rule-checker: a refused button is hidden and its plain reason sh
     expect(screen.getByRole('link', { name: /Ask the admin/ })).toHaveAttribute('href', '/messages?chatWith=1');
     expect(screen.queryByRole('button', { name: /Invite staff|Suggest an assistant/ })).not.toBeInTheDocument();
     expect(api.get).toHaveBeenCalledWith('/access/clubs/7', expect.anything());
+});
+
+it('asks to confirm the email first when the server refuses an invite for it', async () => {
+    renderPeople(view(), { url: '/?invite=person' });
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Tamar Lomidze' } });
+    fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'tamar@example.test' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'U12' }));
+    api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 403, data: { code: 'EMAIL_NOT_VERIFIED', message: 'Confirm your email first.' } } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Invite' }));
+    expect(await within(dialog).findByText('Confirm your email first')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Resend' })).toBeInTheDocument();
 });

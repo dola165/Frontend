@@ -45,7 +45,7 @@ it('shows who invited them to which job, and accepting sets the account up and l
     expect(api.post).toHaveBeenCalledWith('/clubs/7/operations/appointments/9/transition', { status: 'ACTIVE', revision: 3 });
 });
 
-it('says why in plain words when they can’t take the job', async () => {
+it('refuses an under-18 before any account is made: club jobs are for adults', async () => {
     api.post.mockImplementation(async (url: string) => {
         if (url === '/auth/club-invite/preview') return { data: preview };
         throw { isAxiosError: true, response: { status: 409, data: { detail: 'Club jobs are for adults (18 or older), so you can’t take this one yet. Let Nino know; nothing has been set up.' } } };
@@ -54,7 +54,8 @@ it('says why in plain words when they can’t take the job', async () => {
     await screen.findByRole('heading', { name: 'Nino invited you' });
     fill('2010-01-01');
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Club jobs are for adults (18 or older)');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Club jobs are for adults (18+).');
+    expect(api.post).not.toHaveBeenCalledWith('/auth/club-invite/claim', expect.anything());
     expect(api.login).not.toHaveBeenCalled();
 });
 

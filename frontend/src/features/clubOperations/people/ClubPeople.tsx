@@ -6,6 +6,8 @@ import { Dialog } from '../../../design/Dialog';
 import { AskAdmin } from '../../../components/access/AskAdmin';
 import { refreshAccess, useCan } from '../../../hooks/useCan';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { ConfirmEmailFirst } from '../../../components/auth/ConfirmEmailFirst';
+import { needsConfirmedEmail } from '../../../components/auth/emailConfirmation';
 import type { ClubManagedMember } from '../../clubs/domain';
 import { answerSuggestion, endJob, fetchPeople, newInviteLink, settleNameCheck, suggestionsIn, type InviteLink, type Suggestion, type InviteResult, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteDialog } from './InviteDialog';
@@ -32,7 +34,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     clubId: number; clubName: string; members?: ClubManagedMember[]; onChanged?: () => void;
 }) {
     const [params, setParams] = useSearchParams();
-    const [view, setView] = useState<PeopleView | null>(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
+    const [view, setView] = useState<PeopleView | null>(null), [error, setError] = useState(''), [confirmEmail, setConfirmEmail] = useState(false), [revision, setRevision] = useState(0);
     const [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
     const [ending, setEnding] = useState<{ person: Person; job: PersonJob } | null>(null);
     const [links, setLinks] = useState<Record<number, InviteLink>>({});
@@ -64,8 +66,8 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
     }, [clubId, revision, copy]);
     const refresh = (message?: string) => { if (message) setNotice(message); setRevision(value => value + 1); refreshAccess(); onChanged?.(); };
     const run = async (work: () => Promise<void>, fallback: string) => {
-        setBusy(true); setError('');
-        try { await work(); } catch (failure) { setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
+        setBusy(true); setError(''); setConfirmEmail(false);
+        try { await work(); } catch (failure) { if (needsConfirmedEmail(failure)) setConfirmEmail(true); else setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
     };
     // Suggestions wait above the list; the list shows the jobs people hold or were invited to.
     const visible = useMemo(() => {
@@ -114,6 +116,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
             {notice && <p role="status" className="gk-notice cw-notices__success">{notice}</p>}
             {(error || staff.error) && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error || staff.error}</span>
                 {!view && <Button size="sm" onClick={() => setRevision(v => v + 1)}>{copy('Try again', 'თავიდან')}</Button>}</div>}
+            {confirmEmail && <ConfirmEmailFirst />}
             {fresh && <InviteLinkBox name={fresh.name} link={fresh.link} message={fresh.message} onClose={() => setFresh(null)} />}
             {view?.nameChecks.map(check => <div key={check.id} className="gk-notice gk-notice--warning pp-check" role="status">
                 <span className="cw-notices__text">{copy(`Accepted by ${check.acceptedName}, not ${check.invitedName}.`, `მიიღო ${check.acceptedName}-მ და არა ${check.invitedName}-მ.`)}</span>

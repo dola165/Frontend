@@ -7,7 +7,7 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import { useAuth } from '../../context/AuthContext';
 import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import { useCanBeGuardian } from '../../hooks/useCanBeGuardian';
+import { useAdultOnly } from '../../hooks/useAdultOnly';
 import './family-relationships.css';
 import { IdentityActivationForm } from './IdentityActivationForm';
 import './parents.css';
@@ -27,7 +27,7 @@ export function FamilyRelationships({ revision = 0, onChanged, compact = false, 
     const revealed = useRef(false);
     const newChildSummary = useRef<HTMLElement>(null);
     const { sessionId, refreshNavigationCapabilities } = useAuth();
-    const guardian = useCanBeGuardian();
+    const guardian = useAdultOnly('guardian');
     const [data, setData] = useState<Family | null>(null);
     const [error, setError] = useState('');
     // A failed read keeps its cause; the message is worded at render time, in the current language.

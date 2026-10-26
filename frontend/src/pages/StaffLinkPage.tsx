@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Crest } from '../features/world/Crest';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { joinStaffInvite, previewStaffInvite, type StaffInvitePreview } from '../features/clubOperations/people/inviteLinkApi';
+import { useAdultOnly } from '../hooks/useAdultOnly';
 import { refreshAccess } from '../hooks/useCan';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { buildLoginRedirectPath, buildSignupPath } from '../utils/authRedirect';
@@ -29,6 +30,7 @@ function StaffLink({ code }: { code: string }) {
     const location = useLocation();
     const { isAuthenticated, isBootstrapping, refreshNavigationCapabilities } = useAuth();
     const { copy, jobName } = useJobWords();
+    const adult = useAdultOnly('job');
     const [stage, setStage] = useState<Stage>({ kind: 'loading' });
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
     useEffect(() => {
@@ -71,8 +73,8 @@ function StaffLink({ code }: { code: string }) {
         {closed ? <p role="alert" className="gk-notice gk-notice--warning">{closed}</p> : <>
             <p className="ci-email gk-faint">{copy(`Works until ${formatDate(preview.expiresAt, { day: 'numeric', month: 'short' })}`, `მოქმედებს ${formatDate(preview.expiresAt, { day: 'numeric', month: 'short' })}-მდე`)}</p>
             {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
-            <div className="ci-actions">{isAuthenticated
-                ? <Button variant="primary" disabled={busy} onClick={() => void join(preview)}>{busy ? copy('Joining…', 'შემოდიხართ…') : copy(`Join as ${job}`, `შემოსვლა: ${job}`)}</Button>
+            <div className="ci-actions">{isAuthenticated && !adult.allowed ? <p role="status" className="gk-notice gk-notice--warning">{adult.reason}</p>
+                : isAuthenticated ? <Button variant="primary" disabled={busy} onClick={() => void join(preview)}>{busy ? copy('Joining…', 'შემოდიხართ…') : copy(`Join as ${job}`, `შემოსვლა: ${job}`)}</Button>
                 : <>
                     <ButtonLink variant="primary" to={buildLoginRedirectPath(location.pathname, location.search)}>{copy('Sign in', 'შესვლა')}</ButtonLink>
                     <ButtonLink to={buildSignupPath(`${location.pathname}${location.search}`)}>{copy('Create an account', 'ანგარიშის შექმნა')}</ButtonLink>

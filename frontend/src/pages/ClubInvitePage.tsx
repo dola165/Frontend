@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { Avatar, Button, Field, GkRoot } from '../design/primitives';
 import { useAuth } from '../context/AuthContext';
+import { isMinor } from '../utils/age';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { acceptClubInvite, claimClubInvite, declineClubInvite, landingFor, previewClubInvite, signInAfterClaim, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
@@ -44,6 +45,8 @@ function ClubInvite({ token }: { token: string }) {
         if (sending.current) return;
         if (name.trim().length < 2) { setError(copy('Enter your name.', 'შეიყვანეთ სახელი.')); return; }
         if (!birth) { setError(copy('Enter your date of birth.', 'შეიყვანეთ დაბადების თარიღი.')); return; }
+        // Club jobs are for adults (26 October); the server refuses too, this says so before an account is made.
+        if (isMinor(birth)) { setError(copy('Club jobs are for adults (18+).', 'კლუბში სამუშაო მხოლოდ სრულწლოვნებისთვისაა (18+).')); return; }
         if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) { setError(copy('Your password needs 8 characters with an upper-case letter, a lower-case letter and a digit.', 'პაროლს სჭირდება 8 სიმბოლო, დიდი და პატარა ასო და ციფრი.')); return; }
         if (password !== again) { setError(copy('The two passwords are different.', 'პაროლები არ ემთხვევა.')); return; }
         sending.current = true; setBusy(true); setError('');

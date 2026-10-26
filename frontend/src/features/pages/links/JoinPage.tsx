@@ -3,7 +3,7 @@ import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { CalendarDays, Check, Loader2, User, Users } from 'lucide-react';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
-import { useCanBeGuardian } from '../../../hooks/useCanBeGuardian';
+import { useAdultOnly } from '../../../hooks/useAdultOnly';
 import { fetchJoiningChildren, type JoiningChild } from '../../parents/api';
 import { extractApiErrorCode, extractApiErrorMessage } from '../../../utils/apiError';
 import { buildLoginRedirectPath, buildSignupPath } from '../../../utils/authRedirect';
@@ -38,7 +38,7 @@ export function JoinPage() {
   const [link, setLink] = useState<JoinLink | null>(null);
   const [failed, setFailed] = useState('');
   const { sessionId, isAuthenticated, isBootstrapping, user } = useAuth();
-  const guardian = useCanBeGuardian();
+  const guardian = useAdultOnly('guardian');
   const [child, setChild] = useState({ name: '', birthDate: '', consent: false });
   const [birthDate, setBirthDate] = useState('');
   const [needsBirth, setNeedsBirth] = useState(false);

@@ -49,6 +49,8 @@ export interface JobDraft { job: string; title: string; tools: string[]; clubWid
 export const MAIN_JOBS = ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'FEES', 'ADMIN'] as const;
 /** What a staff link can give: never Admin or Owner (admins are invited one by one). */
 export const LINK_JOBS = ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'FEES'] as const;
+/** What a head coach may suggest, for their own squads only (an admin confirms). */
+export const HELPER_JOBS = ['ASSISTANT_COACH', 'TEAM_MANAGER'] as const;
 
 const base = (club: number) => `/clubs/${club}/people`;
 const where = (draft: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>) => draft.job === 'ADMIN' ? { clubWide: true, squadIds: [] }

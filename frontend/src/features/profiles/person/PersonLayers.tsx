@@ -31,8 +31,8 @@ export function PersonLayers({ profile, football, professions, professionsFailed
 }) {
     const copy = useJourneyCopy();
     const [editing, setEditing] = useState(own && editWork);
-    // The whole name: a first word can be a title ("Coach Luka"), and headings read naturally either way.
-    const name = profile.fullName?.trim() || profile.username;
+    // The server's first name ("Where Luka is"); the whole name when it sends none.
+    const name = football?.firstName || profile.fullName?.trim() || profile.username;
     // The server already leaves parent lines out for other viewers; the page never shows one even if it came.
     const lines = (football?.lines ?? []).filter(line => own || line.kind !== 'PARENT_OF');
     const totals = football?.totals;

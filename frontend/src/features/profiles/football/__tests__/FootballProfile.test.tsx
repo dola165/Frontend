@@ -15,7 +15,7 @@ const yes = (action: string) => ({ action, allowed: true });
 const dinamo = { id: 7, name: 'Dinamo Academy', logoUrl: null };
 const vets = { id: 9, name: 'Veterans FC', logoUrl: null };
 const lines: ServerLine[] = [
-    { line: 'job:81', kind: 'JOB', title: 'Head coach', label: 'Head coach · U12 · Dinamo Academy', club: dinamo, squads: [{ id: 12, name: 'U12' }], clubWide: false, since: '2025-09-01', appointmentId: 81, revision: 4, actions: [yes('end_job'), yes('manage_club')] },
+    { line: 'job:81', kind: 'JOB', title: 'Head coach', label: 'Head coach · U12 · Dinamo Academy', club: dinamo, squads: [{ id: 12, name: 'U12' }], clubWide: false, since: '2025-09-01', sinceKnown: false, appointmentId: 81, revision: 4, actions: [yes('end_job'), yes('manage_club')] },
     { line: 'head:14', kind: 'COACH', title: 'Head coach', label: 'Head coach · U14 · Dinamo Academy', club: dinamo, squads: [{ id: 14, name: 'U14' }], clubWide: false, since: null, leaveAs: null, actions: [yes('manage_squad')] },
     { line: 'owner:9', kind: 'OWNER', title: 'Owner', label: 'Owner · Veterans FC', club: vets, squads: [], clubWide: true, leaveAs: 'STAFF', actions: [{ action: 'leave_club', allowed: false, reason: 'OWNER_STAYS' }, yes('manage_club')] },
     { line: 'plays:3', kind: 'PLAYS_FOR', title: 'Player', label: 'Player · Veterans 35+ · Veterans FC', club: vets, squads: [{ id: 3, name: 'Veterans 35+' }], clubWide: false, leaveAs: 'PLAYER', actions: [yes('leave_club')] },
@@ -27,7 +27,7 @@ const profile: PersonFootballProfile = {
     publicRole: { line: 'job:81', label: 'Head coach · U12 · Dinamo Academy', chosen: false },
     roleChoices: [{ line: 'job:81', label: 'Head coach · U12 · Dinamo Academy' }, { line: 'owner:9', label: 'Owner · Veterans FC' }, { line: 'plays:3', label: 'Player · Veterans 35+ · Veterans FC' }],
     whereYouAre: lines,
-    career: { lines: [{ line: 'job:31', kind: 'JOB', title: 'Assistant coach', label: 'Assistant coach · U10 · Dinamo Academy', club: dinamo, squads: [{ id: 10, name: 'U10' }], since: '2023-09-01', until: '2025-08-31' }], counts: { sessionsCoached: 212, matchesPlayed: 0, matchesRefereed: 3 } },
+    career: { lines: [{ line: 'job:31', kind: 'JOB', title: 'Assistant coach', label: 'Assistant coach · U10 · Dinamo Academy', club: dinamo, squads: [{ id: 10, name: 'U10' }], since: '2023-09-01', until: '2025-08-31' }], counts: { sessionsCoached: 212, matchesPlayed: null, matchesRefereed: 3 } },
 };
 
 function serve(data = profile) {
@@ -54,6 +54,8 @@ describe('your football profile', () => {
         // One block per club: Dinamo's two head-coach places (one a job that can end, so not merged), then Veterans FC.
         expect(where.getAllByRole('link', { name: /Dinamo Academy|Veterans FC/ }).map(link => link.textContent)).toEqual(['Dinamo Academy', 'Veterans FC']);
         expect(where.getAllByText('Head coach')).toHaveLength(2);
+        // A start filled in from older data is not a fact: "since at least".
+        expect(where.getByText(/^since at least Sept? 2025$/)).toBeInTheDocument();
         expect(where.getByRole('link', { name: 'U12' })).toHaveAttribute('href', '/my-squads?squad=12');
         expect(where.getByRole('link', { name: 'U14' })).toHaveAttribute('href', '/my-squads?squad=14');
         expect(where.getByRole('link', { name: 'Veterans 35+' })).toHaveAttribute('href', '/squads/3');

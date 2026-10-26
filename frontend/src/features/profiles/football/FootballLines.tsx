@@ -18,6 +18,12 @@ const month = (value: string | null | undefined, copy: Copy) => {
     return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(copy('en-GB', 'ka-GE'), { month: 'short', year: 'numeric' });
 };
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
+/** "since Sep 2024", or "since at least Sep 2024" when the start was filled in from older data. */
+const sinceText = (line: Pick<FootballLine, 'since' | 'sinceKnown'>, copy: Copy) => {
+    const since = month(line.since, copy);
+    if (!since) return null;
+    return line.sinceKnown ? copy(`since ${since}`, `${since}-დან`) : copy(`since at least ${since}`, `არანაკლებ ${since}-დან`);
+};
 
 /** A line's picture: the club's crest, the child's face, or the referee's flag. */
 function LineMark({ line, size = 40 }: { line: Pick<FootballLine, 'kind' | 'home' | 'child'>; size?: number }) {
@@ -48,12 +54,12 @@ export function FootballLines({ lines, follows = [], own, label, onChanged }: { 
             {groupByClub(lines).map(group => {
                 if (!group.home) {
                     const line = group.roles[0];
-                    const since = month(line.since, copy);
+                    const since = sinceText(line, copy);
                     return <li key={group.key} className="gk-fp-line">
                         <LineMark line={line} />
                         <div className="gk-fp-line__text">
                             <strong>{line.kind === 'PARENT_OF' && line.child ? copy(`Parent of ${firstName(line.child.name)}`, `მშობელი: ${firstName(line.child.name)}`) : line.title}</strong>
-                            {since && <span>{copy(`since ${since}`, `${since}-დან`)}</span>}
+                            {since && <span>{since}</span>}
                         </div>
                         {actions(line, false)}
                     </li>;
@@ -63,7 +69,7 @@ export function FootballLines({ lines, follows = [], own, label, onChanged }: { 
                     <div className="gk-fp-club">
                         <Link className="gk-fp-club__name" to={`/clubs/${group.home.id}`}>{group.home.name}</Link>
                         {group.roles.map(role => {
-                            const since = month(role.since, copy);
+                            const since = sinceText(role, copy);
                             const chips = role.squads.length > 1 || squadPath(role, role.squads[0]?.id ?? 0, own) !== null;
                             return <div key={role.id} className="gk-fp-role">
                                 <div className="gk-fp-role__text">
@@ -72,7 +78,7 @@ export function FootballLines({ lines, follows = [], own, label, onChanged }: { 
                                         const to = squadPath(role, squad.id, own);
                                         return to ? <Link key={squad.id} className="gk-fp-squad" to={to}>{squad.name}</Link> : <span key={squad.id} className="gk-fp-squad">{squad.name}</span>;
                                     })}</span> : role.squads.length > 0 && <span className="gk-fp-role__where">{role.squads[0].name}</span>}
-                                    {since && <span className="gk-fp-role__since">{copy(`since ${since}`, `${since}-დან`)}</span>}
+                                    {since && <span className="gk-fp-role__since">{since}</span>}
                                 </div>
                                 {actions(role, chips)}
                             </div>;
@@ -138,7 +144,9 @@ export function CareerCards({ rows }: { rows: CareerRow[] }) {
     if (!rows.length) return null;
     return <ul className="gk-fp-career" aria-label={copy('Career', 'კარიერა')}>
         {rows.map(row => {
-            const from = month(row.startsOn, copy), to = month(row.endsOn, copy);
+            const start = month(row.startsOn, copy), to = month(row.endsOn, copy);
+            // A start filled in from older data is a latest date: "by Sep 2021 – Jun 2024".
+            const from = start && !row.startKnown ? copy(`by ${start}`, `არაუგვიანეს ${start}`) : start;
             return <li key={row.id} className="gk-fp-card">
                 <div className="gk-fp-card__top">
                     <LineMark line={{ kind: row.kind, home: row.home, child: null }} size={36} />

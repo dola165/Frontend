@@ -155,11 +155,13 @@ describe('work and skills recovery', () => {
 
 describe('person profile', () => {
     it('shows real lines and career, never a parent line to others, and never presents self-reported facts as verified', () => {
-        const football = readFootball({ userId: 30, own: false, publicRole: null, whereYouAre: [
+        const football = readFootball({ userId: 30, firstName: 'Saba', own: false, publicRole: null, whereYouAre: [
             { line: 'plays:4', kind: 'PLAYS_FOR', title: 'Player', label: 'Player · U16 Boys · Dinamo Academy', club: { id: 1, name: 'Dinamo Academy' }, squads: [{ id: 4, name: 'U16 Boys' }], actions: [{ action: 'leave_club', allowed: true }] },
             { line: 'parent:9', kind: 'PARENT_OF', title: 'Parent', label: 'Parent', child: { id: 9, name: 'Luka' } },
         ], career: { lines: [{ line: 'member:1', kind: 'MEMBER', title: 'Player', label: 'Player · U14', club: { id: 1, name: 'Dinamo Academy' }, squads: [{ id: 2, name: 'U14' }], since: '2022-09-01', until: '2024-06-30' }], counts: { matchesPlayed: 31 } } });
         render(<MemoryRouter><PersonLayers profile={player} football={football} professions={professions} professionsFailed={false} own={false} /></MemoryRouter>);
+        expect(screen.getByRole('heading', { name: 'Where Saba is' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Saba’s career' })).toBeInTheDocument();
         const lines = within(screen.getByRole('list', { name: 'Where you are' }));
         expect(lines.getByText('Player')).toBeInTheDocument();
         expect(lines.getByText('U16 Boys')).toBeInTheDocument();

@@ -31,11 +31,10 @@ export function OwnAccount({ child, onChanged }: { child: JoiningChild; onChange
     const send = async (to: string) => {
         if (busy) return;
         setBusy(true); setError('');
-        try { await giveOwnAccount(child.playerId, to, child.identity.dateOfBirth); setSentTo(to); setOpen(false); onChanged(); }
+        try { await giveOwnAccount(child.playerId, to); setSentTo(to); setOpen(false); onChanged(); }
         catch (failure) {
             if (promptEmailConfirmation(failure)) return;
-            // 409 today means the email is taken or the card already has an account; EMAIL_IN_USE once fnd-access-b names it.
-            setError(extractApiErrorCode(failure) === 'EMAIL_IN_USE' || (failure as { response?: { status?: number } })?.response?.status === 409
+            setError(extractApiErrorCode(failure) === 'EMAIL_IN_USE'
                 ? copy('That email already has an account. Use your child’s own email.', 'ამ ელფოსტით ანგარიში უკვე არსებობს. მიუთითეთ შვილის საკუთარი ელფოსტა.')
                 : extractApiErrorMessage(failure, copy('That did not send. Try again.', 'ვერ გაიგზავნა. სცადეთ ხელახლა.')));
         } finally { setBusy(false); }

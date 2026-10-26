@@ -73,10 +73,7 @@ export const PlayerCardActivationDialog = ({ card, activation }: { card: PlayerC
                 <div className="px-5 py-5">
                     {activationCreds ? (
                         <div className="flex flex-col gap-3">
-                            <p className="text-[11px] font-semibold text-[color:var(--state-danger)]">
-                                Email verification is required before sign-in.
-                            </p>
-                            <p role="status">Invitation sent to {activationCreds.email}. The recipient must verify their mailbox and use the password setup link sent there. Their player identity and club participation consent stay separate.</p>
+                            <p role="status">{t('auth.ownAccount.sentTo', { email: activationCreds.email })}</p>
                             <button
                                 type="button"
                                 onClick={activation.finish}

@@ -2,8 +2,9 @@ import { apiClient } from '../../api/axiosConfig';
 import { extractApiErrorCode } from '../../utils/apiError';
 
 /**
- * The backend's refusal of an action that needs a confirmed email: 403 EMAIL_CONFIRMATION_REQUIRED, with `action`
- * INVITE, PUBLISH, MONEY or JOB (starting a job, with `jobTitle` when known) (fnd-signup-b). fnd-access-b's
+ * The backend's refusal of an action that needs a confirmed email: 403 EMAIL_CONFIRMATION_REQUIRED, with `confirmFor`
+ * INVITE, PUBLISH, MONEY or JOB (starting a job, with `jobTitle` when known) (fnd-signup-b); `action` may be the
+ * rule-checker's own key (`invite_staff`), so only `confirmFor` and `jobTitle` shape the words. fnd-access-b's
  * rule-checker and staff links say EMAIL_CONFIRMATION_NEEDED, and the older EMAIL_NOT_VERIFIED is read the same way.
  * Sign-in and everything else work without it; `promptEmailConfirmation` answers it where it was pressed.
  */

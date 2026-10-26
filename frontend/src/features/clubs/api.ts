@@ -361,7 +361,7 @@ export const fetchMyPlayerCards = async () => {
 };
 
 export const activatePlayerCard = async (cardId: number, dateOfBirth: string, email: string) => {
-    const response = await apiClient.post<{ username: string; email: string; status: string }>(
+    const response = await apiClient.post<{ status: 'INVITED'; email: string; sentAt: string | null }>(
         `/player-cards/${cardId}/activate`,
         { dateOfBirth, email }
     );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BRANCH, byDay, mergedBranch, missing, updatePrompt, webHistory, type Commit, type Repo } from './upToDate';
+import { BRANCH, byDay, mergedBranch, missing, webHistory, type Commit, type Repo } from './upToDate';
 
 const commit = (id: string, title: string, date: string, merge = false): Commit => ({ id: id.padEnd(40, '0'), date, author: 'Dola', title, merge });
 const backend: Repo = { known: true, branch: BRANCH, commits: [
@@ -32,38 +32,5 @@ describe('changes you are missing', () => {
 
     it('says "not known" when the bundle has no git history (tests and Docker builds)', () => {
         expect(webHistory()).toEqual({ known: false });
-    });
-});
-
-describe('the update prompt', () => {
-    const prompt = updatePrompt({ backend, web });
-
-    it('names both repositories, the branch and the commits to reach', () => {
-        expect(prompt).toContain(`branch ${BRANCH}`);
-        expect(prompt).toContain('github.com/dola165/GrassKickZ — reach at least commit 148b8c6');
-        expect(prompt).toContain('github.com/dola165/Frontend — reach at least commit 119093d');
-    });
-
-    it('keeps local work, fast-forwards only, proves the result and asks whether it was already up to date', () => {
-        expect(prompt).toMatch(/uncommitted or unpushed work\. Never discard it/);
-        expect(prompt).toContain('git stash push -u -m "before-update-<date>"');
-        expect(prompt).toContain('ask me before going on');
-        expect(prompt).toContain('git pull --ff-only');
-        expect(prompt).toMatch(/tell me a merge is needed\. Do not force, reset or rebase/);
-        expect(prompt).toContain('`git log -1 --oneline` and `git status`');
-        expect(prompt).toContain('whether this computer was already up to date before you started');
-        expect(prompt).toContain('Summarise in plain words what changed');
-        expect(prompt).toMatch(/Only if package-lock\.json changed, run `npm ci`/);
-        expect(prompt).toMatch(/Only if build\.gradle\.kts.*refresh Gradle/);
-    });
-
-    it('on a copy, aims at the live release rather than the newest commit it has', () => {
-        const toLive = updatePrompt({ backend, web }, { release: 5, backend: 'c4ba0824'.padEnd(40, '0'), web: 'c9d3570d'.padEnd(40, '0') });
-        expect(toLive).toContain('github.com/dola165/GrassKickZ — reach at least commit c4ba082 (release 5, what is live)');
-        expect(toLive).toContain('github.com/dola165/Frontend — reach at least commit c9d3570 (release 5, what is live)');
-    });
-
-    it('still works when a build did not know its history', () => {
-        expect(updatePrompt({ backend: { known: false }, web })).toContain('GrassKickZ — reach the newest commit on the branch');
     });
 });

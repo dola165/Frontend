@@ -23,6 +23,7 @@ import { ChildClubs } from './ChildClubs';
 import { GroupsThatFit } from './GroupsThatFit';
 import { LatestUpdate } from './LatestUpdate';
 import { NextUp } from './NextUp';
+import { ApproveAccount } from './ApproveAccount';
 import { OwnAccount } from './OwnAccount';
 import { useChildSquads } from './useChildSquads';
 import './parent-hub.css';
@@ -83,6 +84,7 @@ function ChildView({ child, sessionId, revision, onChanged }: { child: JoiningCh
     return <div className="ph-grid">
         <div className="ph-col ph-col--main">
             {consent && <Link className="ph-alert" to={playerPath('/parent?tab=connections', child.playerId)}><span className="ph-dot ph-dot--urgent" aria-hidden="true" /><span>{copy(`${consent.clubName} asks for your consent`, `${consent.clubName} თქვენს თანხმობას ითხოვს`)}</span><ArrowRight aria-hidden="true" /></Link>}
+            <ApproveAccount key={`approve-${child.playerId}`} child={child} onChanged={onChanged} />
             {playing.length > 0 && <>
                 {loading && <p className="ph-quiet" role="status">{squads.length ? copy('Refreshing squads…', 'გუნდები ახლდება…') : copy('Loading squads…', 'გუნდები იტვირთება…')}</p>}
                 {error && <div className="ph-quiet" role="alert">

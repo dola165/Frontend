@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { AboutInPlace } from '../../football/AboutInPlace';
 import { apiClient } from '../../../../api/axiosConfig';
 import { PersonProfilePage } from '../PersonProfilePage';
 
@@ -20,7 +21,9 @@ function serve() {
         return { data: [] };
     });
 }
-const mount = (search = '') => render(<MemoryRouter initialEntries={[`/profile/7${search}`]}><Routes><Route path="/profile/:id" element={<PersonProfilePage />} /></Routes></MemoryRouter>);
+/** Where the address is now, and a link that asks for About me while the page is open. */
+function Address() { const { search } = useLocation(); return <><output aria-label="address">{search}</output><Link to="/profile/7?edit=about">ask for about</Link></>; }
+const mount = (search = '') => render(<MemoryRouter initialEntries={[`/profile/7${search}`]}><Address /><Routes><Route path="/profile/:id" element={<PersonProfilePage />} /></Routes></MemoryRouter>);
 beforeAll(() => { Element.prototype.scrollIntoView = vi.fn(); });
 afterEach(() => { cleanup(); vi.mocked(apiClient.get).mockReset(); vi.mocked(apiClient.put).mockReset(); });
 
@@ -51,5 +54,27 @@ describe('making your profile, in place', () => {
         const work = within((await screen.findByRole('heading', { name: 'What you do' })).closest('section')!);
         expect(await work.findByRole('group', { name: 'What you do' })).toBeInTheDocument();
         expect(work.getByRole('button', { name: 'Done' })).toBeInTheDocument();
+        // A one-time request: it leaves the address once taken, and What you do stays open.
+        await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^$/));
+        expect(work.getByRole('group', { name: 'What you do' })).toBeInTheDocument();
+    });
+
+    it('opens About me when ?edit=about arrives while the page is open', async () => {
+        serve(); mount();
+        expect(await screen.findByRole('button', { name: 'Write about you' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('link', { name: 'ask for about' }));
+        expect(await screen.findByRole('textbox', { name: 'About me' })).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^$/));
+    });
+
+    it('offers Try again after a failed save, also where the box is always open', async () => {
+        vi.mocked(apiClient.put).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ data: {} });
+        render(<AboutInPlace bio="" alwaysOpen />);
+        const box = screen.getByRole('textbox', { name: 'About me' });
+        fireEvent.change(box, { target: { value: 'Physio in Batumi.' } });
+        fireEvent.blur(box);
+        fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
+        expect(await screen.findByText('Saved')).toBeInTheDocument();
+        expect(apiClient.put).toHaveBeenLastCalledWith('/users/me', { bio: 'Physio in Batumi.' });
     });
 });

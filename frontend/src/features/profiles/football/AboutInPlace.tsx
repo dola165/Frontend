@@ -45,7 +45,7 @@ export function AboutInPlace({ bio, onSaved, open: startOpen = false, alwaysOpen
             onChange={event => { setText(event.target.value); if (state !== 'saving') setState('idle'); }} onBlur={() => void save(false)} />
         <div className="gk-about__foot">
             {state === 'saved' && <span role="status" className="gk-fp-saved">{copy('Saved', 'შენახულია')}</span>}
-            {state === 'failed' && <span role="alert" className="gk-fp-error">{copy('Not saved. Your text is still here.', 'ვერ შეინახა. ტექსტი აქვეა.')}</span>}
+            {state === 'failed' && <span role="alert" className="gk-fp-error">{copy('Not saved. Your text is still here.', 'ვერ შეინახა. ტექსტი აქვეა.')} <button type="button" className="gk-fp-link" onMouseDown={event => event.preventDefault()} onClick={() => void save(false)}>{copy('Try again', 'ხელახლა ცდა')}</button></span>}
             {!alwaysOpen && <Button size="sm" variant="primary" disabled={state === 'saving'} onMouseDown={event => event.preventDefault()} onClick={() => void save(true)}>{copy('Done', 'მზადაა')}</Button>}
         </div>
     </div>;

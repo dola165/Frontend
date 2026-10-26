@@ -1,6 +1,6 @@
-import { appLocale, formatDate } from '../../../utils/formatting';
+import { appLocale, formatDate } from './formatting';
 
-/** "3 hours ago", "yesterday", then the date: how a coach update's age reads on the parent's side. */
+/** "3 hours ago", "yesterday", then the date: how the age of an update or a change reads. */
 export function relativeTime(value: string) {
     const at = new Date(value), diff = at.getTime() - Date.now();
     if (Number.isNaN(at.getTime())) return '';

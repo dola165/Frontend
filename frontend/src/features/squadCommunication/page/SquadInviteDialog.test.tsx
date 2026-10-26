@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { SquadPlayersTab } from './SquadPlayersTab';
 import * as api from '../api';
 
-vi.mock('../api', () => ({ joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn() }));
+vi.mock('../api', () => ({ joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn(), approveAllJoinRequests: vi.fn(), parentLinks: vi.fn(), answerParentLink: vi.fn() }));
 vi.mock('../../clubs/api', () => ({ removePlayerFromSquad: vi.fn() }));
 vi.mock('../../clubWorkspace/squads/PlayerCard', () => ({ PlayerCard: ({ player }: { player: { name: string } }) => <div>{player.name}</div> }));
 
@@ -25,6 +25,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.joinLink).mockResolvedValue(none);
     vi.mocked(api.joinRequests).mockResolvedValue([]);
+    vi.mocked(api.parentLinks).mockResolvedValue([]);
     vi.stubGlobal('confirm', vi.fn(() => true));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -89,4 +90,40 @@ it('shows a failed waiting list and a failed save as errors instead of an empty 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
     expect(await screen.findByText('This request changed. Reload the arrivals before deciding.')).toBeInTheDocument();
+});
+
+it('shows the link as a QR code with Copy, WhatsApp and Print', async () => {
+    vi.mocked(api.joinLink).mockResolvedValue(active);
+    const sheet = { document: { write: vi.fn(), close: vi.fn() }, focus: vi.fn(), print: vi.fn() };
+    vi.stubGlobal('open', vi.fn(() => sheet));
+    show();
+    expect(await screen.findByTitle('QR code: Join U12')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Print' }));
+    expect(sheet.document.write).toHaveBeenCalledWith(expect.stringContaining('<svg'));
+    expect(sheet.document.write).toHaveBeenCalledWith(expect.stringContaining(`${window.location.origin}${active.path}`));
+    expect(sheet.print).toHaveBeenCalled();
+});
+
+it('approves everyone the coach sees at once, with the versions seen and the shared group', async () => {
+    vi.mocked(api.joinRequests).mockResolvedValueOnce([request(), request({ id: 63, version: 2, childName: 'Luka Kapanadze' })]).mockResolvedValue([]);
+    vi.mocked(api.approveAllJoinRequests).mockResolvedValue({ approved: 2, groupName: 'U12 intake', decisions: [] });
+    const onChanged = show();
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve all 2' }));
+    await waitFor(() => expect(api.approveAllJoinRequests).toHaveBeenCalledWith(11, { requestId: expect.stringMatching(/^[0-9a-f-]{36}$/), requests: [{ inquiryId: 62, expectedVersion: 4 }, { inquiryId: 63, expectedVersion: 2 }], groupId: 81, groupVersion: 3 }));
+    expect(await screen.findByText('2 offered a place in U12 intake. Families accept the terms next.')).toBeInTheDocument();
+    expect(onChanged).toHaveBeenCalled();
+    expect(await screen.findByText('Nobody is waiting.')).toBeInTheDocument();
+});
+
+it('lists a parent asking to be linked; the coach links only a child with no parent yet', async () => {
+    vi.mocked(api.parentLinks).mockResolvedValueOnce([
+        { id: 5, childName: 'Luka Beridze', requesterName: 'Nino Kapanadze', createdAt: '2026-10-23T09:00:00Z', canLink: false },
+        { id: 6, childName: 'Ana Gelashvili', requesterName: 'Dato Gelashvili', createdAt: '2026-10-23T09:00:00Z', canLink: true },
+    ]).mockResolvedValue([]);
+    vi.mocked(api.answerParentLink).mockResolvedValue({ id: 6, outcome: 'LINKED' });
+    show();
+    expect(await screen.findByText('Luka’s parent confirms them.')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Link' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+    await waitFor(() => expect(api.answerParentLink).toHaveBeenCalledWith(11, 6, true));
 });

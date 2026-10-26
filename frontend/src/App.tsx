@@ -93,6 +93,8 @@ const SetPasswordPage = lazy(() => import('./pages/SetPasswordPage').then(module
 const OAuth2RedirectHandler = lazy(() => import('./pages/OAuth2RedirectHandler').then(module => ({default: module.OAuth2RedirectHandler})));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(module => ({default: module.ForgotPasswordPage})));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({default: module.ResetPasswordPage})));
+const ClubInvitePage = lazy(() => import('./pages/ClubInvitePage').then(module => ({default: module.ClubInvitePage})));
+const StaffLinkPage = lazy(() => import('./pages/StaffLinkPage').then(module => ({default: module.StaffLinkPage})));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
 const WaitingForParentPage = lazy(() => import('./pages/WaitingForParentPage').then(module => ({default: module.WaitingForParentPage})));
 const ParentApprovalPage = lazy(() => import('./pages/ParentApprovalPage').then(module => ({default: module.ParentApprovalPage})));
@@ -136,7 +138,7 @@ function useRailsFit() {
 }
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval']);
 const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -490,6 +492,8 @@ export function MainLayout() {
                         <Route path="/register" element={<Navigate to="/signup" replace />} />
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
+                        <Route path="/club-invite" element={<ClubInvitePage />} />
+                        <Route path="/staff-invite/:code" element={<StaffLinkPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/parent-approval" element={<ParentApprovalPage />} />

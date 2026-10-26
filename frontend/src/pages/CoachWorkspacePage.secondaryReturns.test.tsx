@@ -26,7 +26,6 @@ vi.mock('../features/clubWorkspace/useClubInbox', () => ({ useClubInbox: () => (
 vi.mock('../features/admissions/club/useClubAdmissions', () => ({ useClubAdmissions: () => ({ data: null }) }));
 vi.mock('../features/clubWorkspace/ClubDecisionDialogs', () => ({ ClubDecisionDialogs: () => null }));
 vi.mock('../features/clubWorkspace/WorkspaceGuide', () => ({ WorkspaceGuide: () => null }));
-vi.mock('../features/clubWorkspace/coachHub/ResponsibilityRequests', () => ({ ResponsibilityRequests: () => null }));
 vi.mock('../features/clubWorkspace/coachHub/CoachUpdates', () => ({ CoachUpdates: ({ data }: { data: CoachData }) => <p data-testid="updates">Updates club{data.clubId} squad{data.focus}</p> }));
 const boot: Bootstrap = { clubId: 400, actorId: 9500, clubName: 'Assigned club', leadership: false, definitions: [{ module: 'AVAILABILITY', kind: 'RESTRICTION', label: 'Participation restriction', fields: [], states: [] }], specialisations: [], permissions: [],
     settings: { setting: 'ACADEMY', playing_level: 'AMATEUR', enabled_modules: ['AVAILABILITY'], revision: 0 }, modules: [{ id: 'AVAILABILITY', writable: false, globalWrite: false, writeSquads: [], readSquads: [401], globalRead: false }],

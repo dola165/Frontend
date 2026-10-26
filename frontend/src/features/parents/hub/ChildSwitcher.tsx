@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+import { useAdultOnly } from '../../../hooks/useAdultOnly';
 import type { JoiningChild } from '../api';
 
 const age = (dateOfBirth: string | null) => {
@@ -18,6 +19,7 @@ const age = (dateOfBirth: string | null) => {
  */
 export function ChildSwitcher({ items, selectedId, onSelect, addTo }: { items: JoiningChild[]; selectedId?: number; onSelect: (id: number) => void; addTo: string }) {
     const copy = useJourneyCopy();
+    const guardian = useAdultOnly('guardian');
     const list = useRef<HTMLDivElement>(null);
     useEffect(() => { list.current?.querySelector('[aria-pressed=true]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); }, [selectedId]);
     return <nav className="ph-switch" aria-label={copy('Choose a child', 'აირჩიეთ ბავშვი')}>
@@ -30,7 +32,7 @@ export function ChildSwitcher({ items, selectedId, onSelect, addTo }: { items: J
                     <span className="ph-switch__text"><strong>{child.identity.fullName.split(' ')[0]}{years != null && <span className="ph-switch__age">{years}</span>}</strong><small>{where}</small></span>
                 </button>;
             })}
-            <Link className="ph-switch__add" to={addTo} aria-label={copy('Add a child', 'ბავშვის დამატება')} title={copy('Add a child', 'ბავშვის დამატება')}><Plus aria-hidden="true" /></Link>
+            {guardian.allowed && <Link className="ph-switch__add" to={addTo} aria-label={copy('Add a child', 'ბავშვის დამატება')} title={copy('Add a child', 'ბავშვის დამატება')}><Plus aria-hidden="true" /></Link>}
         </div>
     </nav>;
 }

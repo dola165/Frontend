@@ -80,7 +80,7 @@ export interface SimilarPage { ref: PageRef; name: string; town: string; kind: P
 export interface MyPage extends CreatedPage { ref: PageRef; name: string; kind: PageKind; status: 'DRAFT' | 'LIVE'; role: string | null; crestUrl: string | null }
 export interface Pitch { id: string; name: string; town: string; latitude: number; longitude: number; address: string; surface: Surface; size: PitchSize; lights: boolean; indoor: boolean; venueId: number | null; distanceKm: number }
 export interface Arrival { id: number; version: number; childFirstName: string; childLastName: string; birthYear: number; squadId: number; squadName: string | null; guardianName: string; at: string; destination: string; groups: { id: number; version: number; name: string; method: 'DIRECT' | 'INTRODUCTION' | 'SELECTIVE' }[] }
-export interface JoinLink { code: string; page: { ref: PageRef; name: string; town: string; crestUrl: string | null; profilePath: string; live: boolean }; squad: { id: number; name: string; ageGroup: string; gender: Gender } }
+export interface JoinLink { code: string; page: { ref: PageRef; name: string; town: string; crestUrl: string | null; profilePath: string; live: boolean }; squad: { id: number; name: string; ageGroup: string; youthUnder?: number | null; gender: Gender } }
 export interface InviteLink { code: string; role: StaffRole; status: 'INVITED' | 'JOINED'; version: number; permissions: string[]; startsOn: string | null; endsOn: string | null; engagement: string | null; squad: { id: number; name: string | null } | null; page: JoinLink['page'] }
 
 /** What creating sends: the backend's setup request, with the page kind. */
@@ -140,8 +140,13 @@ export const ensureJoinLinks = (ref: PageRef, signal?: AbortSignal) => apiClient
 export const fetchStaffCandidates = (ref: PageRef, q: string, signal?: AbortSignal) => apiClient.get<{ id: number; name: string }[]>(`${pageBase(ref)}/staff-candidates`, { params: { q }, signal }).then(r => r.data);
 export const inviteStaff = (ref: PageRef, body: { requestId: string; userId: number; role: StaffRole; squadId: number | null; engagement: string; startsOn: string }) => apiClient.post<PageView>(`${pageBase(ref)}/staff-invitations`, body).then(r => r.data);
 export const fetchJoinLink = (code: string, signal?: AbortSignal) => apiClient.get<JoinLink>(`/join/${encodeURIComponent(code)}`, { signal }).then(r => r.data);
-/** `playerId`: a child the parent already looks after (the server checks the card is theirs and joins that card). */
-export const sendJoin = (code: string, body: { requestId: string; who: 'PARENT' | 'PLAYER'; childFirstName: string; childLastName: string; childGender: 'MALE' | 'FEMALE' | null; birthDate: string; consent: true; playerId?: number }) =>
-  apiClient.post<{ id: number; status: string; squadName: string | null; destination: string }>(`/join/${encodeURIComponent(code)}`, body).then(r => r.data);
+/**
+ * "Who's joining? Me · My child". PARENT names the child and birth date (the server reuses the parent's own child with
+ * the same name and birth date); `sameChild` answers "Is this Luka, added by another parent?". PLAYER needs nothing more
+ * unless the account has no birth date. Problem codes: JOINING_FOR_CHILD, CHILD_ALREADY_LISTED, BIRTH_DATE_NEEDED.
+ */
+export interface JoinSendBody { requestId: string; who: 'PARENT' | 'PLAYER'; childName?: string; birthDate?: string; sameChild?: boolean; consent: true }
+export interface JoinSent { id?: number; status: string; squadId: number; squadName: string; clubName: string; coachName: string | null; childName?: string; destination?: string | null; nextTraining: { title: string; startsAt: string; endsAt: string } | null }
+export const sendJoin = (code: string, body: JoinSendBody) => apiClient.post<JoinSent>(`/join/${encodeURIComponent(code)}`, body).then(r => r.data);
 export const fetchInvite = (code: string, signal?: AbortSignal) => apiClient.get<InviteLink>(`/invite/${encodeURIComponent(code)}`, { signal }).then(r => r.data);
 export const acceptInvite = (code: string, body: { requestId: string; expectedVersion: number }) => apiClient.post<{ profilePath: string }>(`/invite/${encodeURIComponent(code)}/accept`, body).then(r => r.data);

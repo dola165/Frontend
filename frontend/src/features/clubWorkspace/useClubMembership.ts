@@ -2,16 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import {
-    acceptClubApplication, bulkDecideClubApplications, cancelClubInvitation, createClubInvitation, declineClubApplication,
-    fetchAllClubJobs, fetchClubPlayers, type ClubJob, leaveClubMembership, prepareStaffDeparture, removeClubMember, searchClubInviteCandidates,
-    sendParentalConsentEmail, transferClubOwnership, updateClubMemberRole, updateClubPlayerStatus,
+    acceptClubApplication, bulkDecideClubApplications, cancelClubInvitation, declineClubApplication,
+    fetchAllClubJobs, fetchClubPlayers, type ClubJob, leaveClubMembership, prepareStaffDeparture,
+    sendParentalConsentEmail, transferClubOwnership, updateClubPlayerStatus,
 } from '../clubs/api';
 import {
-    clubRoleLabel, type ClubManagedMember, type ClubManagementOverview, type ClubMembershipApplication, type ClubMembershipRole,
+    type ClubManagedMember, type ClubManagementOverview, type ClubMembershipApplication,
     type ClubPlayerAffiliation, type PageResult, type PlayerAffiliationStatus,
 } from '../clubs/domain';
 import type { ApplicationFilters } from './recruitment/ApplicationsPage';
-import type { TryoutApplicantDto, UserSearchDto, WorkspaceTab } from '../../components/workspace/types';
+import type { TryoutApplicantDto, WorkspaceTab } from '../../components/workspace/types';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface Input {
@@ -22,7 +22,7 @@ interface Input {
 const fresh = (cache: { key: string; loadedAt: number }, key: string) => cache.key === key && Date.now() - cache.loadedAt < 30_000;
 
 /**
- * Players, invitations, applications, tryouts and membership decisions for the club workspace.
+ * Players, invitation cancelling, applications, tryouts and membership decisions for the club workspace.
  * Every list discards answers that arrive after a newer request, and every action reports its
  * own result; the page decides only what to show.
  */
@@ -125,18 +125,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
         return () => { current = false; };
     }, [activeTab, clubId]);
 
-    // ── invitations ──
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchPage, setSearchPage] = useState(0);
-    const [searchResults, setSearchResults] = useState<PageResult<UserSearchDto> | null>(null);
-    const [searchLoading, setSearchLoading] = useState(false);
-    const [selectedInviteRole, setSelectedInviteRole] = useState<ClubMembershipRole>('COACH');
-    const invitedUserIds = useMemo(() => new Set(overview?.pendingInvitations.map(i => i.userId) || []), [overview]);
-    useEffect(() => {
-        const roles = overview?.assignableInviteRoles ?? [];
-        if (roles.length > 0 && !roles.includes(selectedInviteRole)) setSelectedInviteRole(roles[0]);
-    }, [overview, selectedInviteRole]);
-
     // ── loading by tab ──
     useEffect(() => { if (activeTab === 'players') void loadPlayers(); }, [activeTab, clubId, playerPage, playerStatusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => {
@@ -147,17 +135,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
     }, [activeTab, overview?.trialistCount, playerStatusFilter]);
     useEffect(() => { if (activeTab === 'applications') void loadApplications(); }, [activeTab, clubId, applicationsFilters, focusedApplicationId, applicationPage]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => { if (activeTab === 'tryouts') void loadTryouts(); }, [activeTab, clubId]); // eslint-disable-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        if (activeTab !== 'invites') return;
-        if (searchQuery.trim().length < 2) { setSearchResults(null); return; }
-        const timeoutId = window.setTimeout(async () => {
-            setSearchLoading(true);
-            try { setSearchResults(await searchClubInviteCandidates(clubId, searchQuery, searchPage, 8) as PageResult<UserSearchDto>); }
-            catch { setSearchResults(null); }
-            finally { setSearchLoading(false); }
-        }, 300);
-        return () => window.clearTimeout(timeoutId);
-    }, [activeTab, clubId, searchPage, searchQuery]);
 
     // ── decisions ──
     const [acceptTarget, setAcceptTarget] = useState<ClubMembershipApplication | null>(null);
@@ -167,7 +144,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
     const [releaseMessage, setReleaseMessage] = useState('');
     const [showStatusConfirm, setShowStatusConfirm] = useState(false);
     const pendingStatus = useRef<{ userId: number; status: PlayerAffiliationStatus; playerName?: string } | null>(null);
-    const [confirmingRemovalUserId, setConfirmingRemovalUserId] = useState<number | null>(null);
     const [confirmingOwnershipTransferUserId, setConfirmingOwnershipTransferUserId] = useState<number | null>(null);
     const [confirmingSelfLeave, setConfirmingSelfLeave] = useState(false);
     const selfDeparture = useRef<{ requestId: string; snapshot: string } | null>(null);
@@ -188,9 +164,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
     };
 
     const actions = {
-        roleChange: (userId: number, role: ClubMembershipRole) => runAction(`role-${userId}`, async () => { await updateClubMemberRole(clubId, userId, role); await reloadOverview(); setSuccessMessage(`Role updated to ${clubRoleLabel(role)}.`); }),
-        removeMember: (member: ClubManagedMember) => runAction(`remove-${member.userId}`, async () => { await removeClubMember(clubId, member.userId); await reloadOverview(); setConfirmingRemovalUserId(null); setSuccessMessage(`${member.fullName || member.username} was removed.`); }),
-        invite: (userId: number) => runAction(`invite-${userId}`, async () => { await createClubInvitation(clubId, userId, selectedInviteRole); await reloadOverview(); setSuccessMessage('Invitation sent.'); }),
         cancelInvite: (inviteId: number) => runAction(`cancel-${inviteId}`, async () => { await cancelClubInvitation(clubId, inviteId); await reloadOverview(); setSuccessMessage('Invitation cancelled.'); }),
         acceptApplication: (id: number) => setAcceptTarget(applicationsList.find(a => a.id === id) ?? overview?.pendingApplications.find(a => a.id === id) ?? null),
         acceptConfirm: async (message: string | null) => {
@@ -279,11 +252,10 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
         players: { filter: playerStatusFilter, setFilter: setPlayerStatusFilter, page: playerPage, setPage: setPlayerPage, directory: playerDirectory, loading: playerLoading, error: playerError, reload: () => loadPlayers(true), invalidate: invalidatePlayers, show: showPlayers },
         tryouts: { applicants: tryoutApplicants, loading: tryoutsLoading, pendingCount: tryoutPendingCount },
         applications: { jobs, list: applicationsList, loading: applicationsLoading, error: applicationsError, filters: applicationsFilters, setFilters: setApplicationsFilters, page: applicationPage, setPage: setApplicationPage, total: applicationTotal, reload: () => loadApplications(true) },
-        invites: { query: searchQuery, setQuery: setSearchQuery, page: searchPage, setPage: setSearchPage, results: searchResults, loading: searchLoading, role: selectedInviteRole, setRole: setSelectedInviteRole, invitedUserIds },
         decisions: {
             acceptTarget, setAcceptTarget, declineTarget, setDeclineTarget, tryoutAcceptTarget, setTryoutAcceptTarget, tryoutDeclineTarget, setTryoutDeclineTarget,
             releaseMessage, setReleaseMessage, showStatusConfirm, pendingStatus: pendingStatus.current,
-            confirmingRemovalUserId, setConfirmingRemovalUserId, confirmingOwnershipTransferUserId, setConfirmingOwnershipTransferUserId, confirmingSelfLeave,
+            confirmingOwnershipTransferUserId, setConfirmingOwnershipTransferUserId, confirmingSelfLeave,
         },
     };
 }

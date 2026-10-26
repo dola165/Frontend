@@ -20,7 +20,8 @@ import { Settings, SlidersHorizontal } from 'lucide-react';
 import { buildClubTabs, clubNavigation, navLabel, visibleTabs } from '../features/clubWorkspace/clubTabs';
 import { EditTabsDialog } from '../features/clubWorkspace/EditTabsDialog';
 import { ViewOnlyNote } from '../features/clubWorkspace/ViewOnlyNote';
-import { ResponsibilityRequests } from '../features/clubWorkspace/coachHub/ResponsibilityRequests';
+import { askAdminPath } from '../api/access';
+import { useCan } from '../hooks/useCan';
 import { guardWorkspaceNavigation } from '../features/clubOperations/workspaceGuard';
 import { useCopy } from '../locales/useCopy';
 import { coachHubEn, workspaceNavEn } from '../locales/workspaceDesign';
@@ -67,7 +68,7 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     const roles = workspaceRoles.data;
     const { c: admissionCopy } = useClubAdmissionCopy();
     const [showHiddenSections, setShowHiddenSections] = useState(false);
-    const [editingTabs, setEditingTabs] = useState(false), [asking, setAsking] = useState(false);
+    const [editingTabs, setEditingTabs] = useState(false);
     const [overviewRevision, setOverviewRevision] = useState(0);
     // The URL decides the open tool; until access is known, the requested one is shown as loading.
     const parsedTab = parseWorkspaceTab(searchParams.get('tab'));
@@ -105,7 +106,9 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     // A tool the server lets this person read but not write anywhere: shown with an eye, opened with one quiet line.
     const readOnly = (id: WorkspaceTab) => { const module = operationModule(id); const access = module ? operations.boot?.modules.find(m => m.id === module) : undefined; return Boolean(access && !access.writable); };
     const nav = clubNavigation(shownTabs, { focus: focus.tabs, pins: pins.pinned, inbox: { allowed: canReadInbox, unread: inbox.unreadCount }, layout, readOnly });
-    const askAccess = roles ? () => { setEditingTabs(false); setAsking(true); } : undefined;
+    // "Ask the admin" is a direct message to an admin the rule-checker names; without one, the button is not shown.
+    const admin = useCan(`club:${clubId}`).admin;
+    const askAccess = admin ? () => { setEditingTabs(false); navigate(askAdminPath(admin)); } : undefined;
 
     // Editors with unsaved work can cancel navigation inside the workspace.
     const navigateWorkspace = guardWorkspaceNavigation;
@@ -222,6 +225,5 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
         </WorkspaceShell>
         <ClubDecisionDialogs membership={membership} />
         {editingTabs && <EditTabsDialog tabs={shownTabs} layout={layout} focus={focus} readOnly={readOnly} onClose={() => setEditingTabs(false)} onAskAccess={askAccess} />}
-        {roles && <ResponsibilityRequests open={asking} clubId={clubId} roles={roles} onClose={() => setAsking(false)} onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />}
     </>;
 }

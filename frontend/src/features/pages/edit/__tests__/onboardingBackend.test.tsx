@@ -66,11 +66,10 @@ it('does not expose an empty join URL while link creation is still loading', asy
   calls.links.mockImplementation(() => new Promise(() => undefined));const value = page();value.boxes.players.links = {};panel(<PlayersPanel />, value);
   expect(screen.getByRole('button', { name: 'Copy link' })).toBeDisabled();expect(screen.queryByRole('link', { name: 'WhatsApp' })).not.toBeInTheDocument();
 });
-it('blocks new child creation while the existing-family lookup failed', async () => {
+it('a failed family lookup only loses the shortcuts: the server still reuses the parent’s own child', async () => {
   calls.kids.mockRejectedValue(new Error('Offline'));
-  render(<MemoryRouter initialEntries={['/join/test-code']}><Routes><Route path="/join/:code" element={<JoinPage />} /></Routes></MemoryRouter>);
-  fireEvent.click(await screen.findByRole('button', { name: /I am a parent/ }));
-  await screen.findByRole('alert');expect(screen.queryByRole('textbox', { name: 'Child’s first name' })).not.toBeInTheDocument();expect(calls.join).not.toHaveBeenCalled();
+  render(<MemoryRouter initialEntries={['/join/test-code?who=child']}><Routes><Route path="/join/:code" element={<JoinPage />} /></Routes></MemoryRouter>);
+  expect(await screen.findByLabelText('Child’s name')).toBeInTheDocument();expect(screen.queryByRole('group', { name: 'Your children' })).not.toBeInTheDocument();expect(calls.join).not.toHaveBeenCalled();
 });
 it('shows the exact invitation scope and sends the reviewed version on acceptance', async () => {
   calls.fetchInvite.mockResolvedValue({ code: 'test-invite', role: 'COACH', status: 'INVITED', version: 7, permissions: ['ATTENDANCE:WRITE'], startsOn: '2026-10-17', endsOn: null, engagement: 'VOLUNTEER', squad: link.squad, page: link.page });

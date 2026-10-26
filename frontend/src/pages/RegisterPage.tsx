@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
+import { googleSignInConfigured } from '../components/auth/googleConfig';
 import { AlertCircle, Check, Eye, EyeOff, Loader2, LocateFixed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
@@ -245,7 +246,7 @@ export const RegisterPage = () => {
 
             {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); }} /> : (
                 <>
-                    {!isAndroidApp && <>
+                    {!isAndroidApp && googleSignInConfigured() && <>
                         <GoogleLogin
                             theme="filled_black"
                             size="large"

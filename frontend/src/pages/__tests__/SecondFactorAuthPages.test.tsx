@@ -30,6 +30,7 @@ const verify = async () => {
 };
 beforeEach(() => {
     vi.resetAllMocks(); localStorage.clear(); sessionStorage.clear(); clearStoredAuth();
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'synthetic.apps.googleusercontent.com');
     login.mockResolvedValue({ id: 7, profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true, dob: '2000-01-01' });
     vi.mocked(useAuth).mockReturnValue({ loginWithAccessToken: login, isAuthenticated: false } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(apiClient.post).mockImplementation(async (url, body) => {
@@ -46,6 +47,14 @@ it('requires the second factor on the password Login page and retries only the s
     expect(apiClient.post).toHaveBeenLastCalledWith('/auth/login', { email: 'person@example.test', password: 'SyntheticPassword1', oneTimeCode: '123456' }, expect.anything());
     expect(login).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/home'));
+});
+afterEach(() => { vi.unstubAllEnvs(); });
+
+it.each([LoginPage, RegisterPage])('hides Google on the %s page when the web has no Google client ID', Page => {
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '');
+    render(<MemoryRouter><Page /></MemoryRouter>);
+    expect(screen.queryByRole('button', { name: 'Test Google sign-in' })).not.toBeInTheDocument();
+    expect(document.querySelector('form')).toBeInTheDocument();
 });
 
 it.each([LoginPage, RegisterPage])('requires the second factor for Google in the %s page', async Page => {

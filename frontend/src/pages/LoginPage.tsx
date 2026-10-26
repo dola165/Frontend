@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, QrCode } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
+import { googleSignInConfigured } from '../components/auth/googleConfig';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
@@ -266,7 +267,7 @@ export const LoginPage = () => {
                             {t('auth.login.qr')}
                         </button>
 
-                        {!isAndroidApp && <GoogleLogin
+                        {!isAndroidApp && googleSignInConfigured() && <GoogleLogin
                             theme="filled_black"
                             size="large"
                             width="100%"

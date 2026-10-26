@@ -188,7 +188,15 @@ describe('person profile', () => {
         expect(personTabFrom('schedule', others)).toBe('overview');
         expect(personTabFrom('stats', others)).toBe('career');
         expect(personTabFrom('videos', others)).toBe('media');
-        expect(personTabs({ own: true, hidden: false, career: true }, georgian).map(tab => tab.label)).toEqual(['მიმოხილვა', 'პოსტები', 'კარიერა', 'ფოტოები და ვიდეოები', 'განრიგი']);
+        expect(personTabs({ own: true, hidden: false, career: true }, georgian).map(tab => tab.label)).toEqual(['ჩემ შესახებ', 'პოსტები', 'კარიერა', 'ფოტოები და ვიდეოები', 'განრიგი']);
+        expect(personTabFrom('about', others)).toBe('overview');
+    });
+
+    it('calls the first tab About me on your own profile and About on someone else’s, never Overview', () => {
+        expect(personTabs({ own: true, hidden: false, career: false }, english)[0].label).toBe('About me');
+        expect(personTabs({ own: false, hidden: false, career: false }, english)[0].label).toBe('About');
+        expect(personTabs({ own: false, hidden: true, career: false }, english)[0].label).toBe('About');
+        expect(personTabs({ own: false, hidden: false, career: false }, georgian)[0].label).toBe('შესახებ');
     });
 
     it.each([

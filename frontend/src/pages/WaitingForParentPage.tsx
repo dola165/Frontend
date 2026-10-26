@@ -27,10 +27,12 @@ export function WaitingForParentPage() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [fieldError, setFieldError] = useState('');
+    // The status could not be read: say so with Try again, never the form (sending would replace a link already sent).
+    const [loadFailed, setLoadFailed] = useState(false);
 
     const load = useCallback((signal?: AbortSignal) => fetchParentApproval(signal)
-        .then(setRequest)
-        .catch(() => { if (!signal?.aborted) setRequest(current => current ?? { status: 'PARENT_EMAIL_NEEDED' }); }), []);
+        .then(found => { setRequest(found); setLoadFailed(false); })
+        .catch(() => { if (!signal?.aborted) setLoadFailed(true); }), []);
     useEffect(() => {
         const controller = new AbortController();
         void load(controller.signal);
@@ -63,6 +65,9 @@ export function WaitingForParentPage() {
         navigate(completedAuthDestination(fresh ?? user ?? {}, getAuthFlow().nextPath, getAuthFlow().newAccount), { replace: true });
     };
 
+    if (!request && loadFailed) return <AuthCenterCard icon={<Hourglass className="h-8 w-8" aria-hidden="true" />} title={t('auth.parentWait.title')} line={t('auth.parentWait.loadFailed')}>
+        <button type="button" className={authPrimaryButtonClass} onClick={() => { setLoadFailed(false); void load(); }}>{t('auth.register.retry')}</button>
+    </AuthCenterCard>;
     if (!request) return <AuthCenterCard icon={<Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />} title={t('auth.parentWait.title')} />;
     if (request.status === 'NOT_NEEDED') return <AuthCenterCard icon={<BadgeCheck className="h-8 w-8" aria-hidden="true" />} title={t('auth.parentWait.approved')}>
         <button type="button" className={authPrimaryButtonClass} onClick={() => void enter()}>{t('auth.parentWait.continue')}</button>
@@ -87,10 +92,11 @@ export function WaitingForParentPage() {
             <button type="submit" className={authPrimaryButtonClass} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : t('auth.parentWait.send')}
             </button>
+            {editing && request.parentEmail && <button type="button" className={authGhostButtonClass} onClick={() => { setEditing(false); setFieldError(''); setError(''); }}>{t('auth.parentWait.keep', { email: request.parentEmail })}</button>}
         </form>}
         {error && <p role="alert" className="mt-3 text-sm font-semibold text-[color:var(--state-danger)]">{error}</p>}
         <div className="mt-6 flex justify-end border-t border-[color:var(--color-border)]/10 pt-4 text-xs font-semibold">
-            <button type="button" className="text-[var(--color-secondary)] hover:text-[var(--color-text)]" onClick={() => void logout().then(() => navigate('/login', { replace: true }))}>{t('auth.parentWait.signOut')}</button>
+            <button type="button" className="min-h-11 px-2 text-[var(--color-secondary)] hover:text-[var(--color-text)]" onClick={() => void logout().then(() => navigate('/login', { replace: true }))}>{t('auth.parentWait.signOut')}</button>
         </div>
     </AuthCenterCard>;
 }

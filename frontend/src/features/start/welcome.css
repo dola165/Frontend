@@ -52,7 +52,7 @@
 .gk .gk-welcome__mark { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
 .gk .gk-welcome__mark svg { width: 16px; height: 16px; }
 .gk .gk-welcome-chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
-.gk .gk-welcome-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: 999px; background: var(--gk-surface); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-welcome-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: 999px; background: var(--gk-surface); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
 .gk .gk-welcome-chip[aria-pressed='true'] { border-color: var(--gk-accent); background: var(--gk-accent-soft); }
 .gk .gk-welcome-chip svg { width: 14px; height: 14px; color: var(--gk-accent); }
 .gk .gk-welcome-chip:focus-visible { outline: none; box-shadow: var(--gk-focus); }

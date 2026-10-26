@@ -1,5 +1,4 @@
-import { mayCreatePages } from '../../features/pages/model/kinds';
-import { ageFromDob } from '../../features/pages/create/useCreatePage';
+import { isKnownMinor } from '../../utils/age';
 import { CreateLink } from '../../features/pages/create/CreateLink';
 import { pt } from '../../features/pages/copy';
 import { MediaImage } from '../ui/MediaImage';
@@ -255,7 +254,7 @@ function SearchContent({ light = false, mobile = false, className }: { light?: b
           ) : current && currentResults.length === 0 && !isLoading && !questionIntent && !tooLong && !current.partial ? (
             <div className="px-4 py-6 text-center text-sm text-[var(--color-secondary)]">
               {t('search.noResults', { query: debouncedQuery })}
-              {user && mayCreatePages(ageFromDob(user.dob)) && <p className="mt-2"><CreateLink from="search" variant="text" onClick={() => setIsOpen(false)}>{pt('Can’t find it? Create it')}</CreateLink></p>}
+              {user && !isKnownMinor(user.dob) && <p className="mt-2"><CreateLink from="search" variant="text" onClick={() => setIsOpen(false)}>{pt('Can’t find it? Create it')}</CreateLink></p>}
             </div>
           ) : null}
           {/* Options only: each opens one place. Pressing one keeps focus in the field. */}

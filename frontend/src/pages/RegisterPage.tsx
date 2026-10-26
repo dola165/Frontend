@@ -9,7 +9,8 @@ import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { ageRefusedRecently, rememberAgeRefusal } from '../components/auth/ageRefusal';
 import { UnderThirteenNotice } from '../components/auth/UnderThirteenNotice';
 import { Turnstile } from '../components/auth/Turnstile';
-import { BOT_CHECK_CODES, turnstileEnabled } from '../components/auth/turnstileConfig';
+import { BOT_CHECK_CODES } from '../components/auth/turnstileConfig';
+import { useBotCheck } from '../components/auth/useBotCheck';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
@@ -79,15 +80,15 @@ export const RegisterPage = () => {
     const [locating, setLocating] = useState<'idle' | 'locating' | 'failed'>('idle');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [known, setKnown] = useState(false);
+    // Sign-in is offered under the email: a known email, or an account just made whose automatic sign-in failed.
+    const [signIn, setSignIn] = useState<'known' | 'created' | null>(null);
     // The Google birth-date step sends an under-13 answer here, signed out.
     const [underThirteen, setUnderThirteen] = useState(() => (location.state as { underThirteen?: boolean } | null)?.underThirteen === true);
     // 13 to 15: a parent approves the account, so its email goes with the sign-up.
     const [parentStep, setParentStep] = useState(false);
     const [parentEmail, setParentEmail] = useState('');
     // The bot check, when the server asks for one: a token is good for one try, so each try gets a new check.
-    const [botToken, setBotToken] = useState<string | null>(null);
-    const [botRound, setBotRound] = useState(0);
+    const bot = useBotCheck();
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
 
     const passwordRules = [
@@ -127,13 +128,13 @@ export const RegisterPage = () => {
 
     const signInInstead = () => {
         setPassword('');
-        rememberAuthFlow({ email: email.trim().toLowerCase(), nextPath, town, newAccount: false });
+        rememberAuthFlow({ email: email.trim().toLowerCase(), nextPath, town, newAccount: signIn === 'created' });
         navigate(buildLoginPath(nextPath), { replace: true });
     };
 
     const handleRegister = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (registration.current || isLoading || !validate() || (turnstileEnabled && !botToken)) return;
+        if (registration.current || isLoading || !validate() || !bot.ready) return;
         // Under 13, or a refusal on this device in the last day: no account and nothing sent.
         if (isUnder13(dob) || ageRefusedRecently()) {
             rememberAgeRefusal();
@@ -145,11 +146,12 @@ export const RegisterPage = () => {
 
         setIsLoading(true);
         setError('');
-        setKnown(false);
+        setSignIn(null);
         const controller = new AbortController();
         registration.current = controller;
         const normalizedEmail = email.trim().toLowerCase();
         let installingSession = false;
+        let created = false;
         try {
             // The town travels with the sign-up flow to the welcome, which saves it; the request keeps the backend's own shape.
             const response = await apiClient.post<{ accountState?: AccountState }>('/auth/register', {
@@ -159,9 +161,10 @@ export const RegisterPage = () => {
                 dateOfBirth: dob,
                 continuationPath: publicContinuationPath(nextPath),
                 ...(parentStep ? { parentEmail: parentEmail.trim().toLowerCase() } : {}),
-                ...(botToken ? { turnstileToken: botToken } : {}),
+                ...(bot.token ? { turnstileToken: bot.token } : {}),
             }, { signal: controller.signal });
             if (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current)) return;
+            created = true;
 
             rememberAuthFlow({ email: normalizedEmail, nextPath, newAccount: true, town });
             // An unconfirmed email no longer stops sign-in: the account is in at once.
@@ -178,13 +181,11 @@ export const RegisterPage = () => {
             navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, true), { replace: true });
         } catch (requestError) {
             if (!installingSession && (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current))) return;
-            if (!installingSession && turnstileEnabled) { setBotToken(null); setBotRound(round => round + 1); }
-            // A known email is offered sign-in instead of a second account. Nothing about that account is shown.
-            if (!installingSession && accountExists(requestError)) {
-                if (ageFromDob(dob) < 18) { setFieldErrors({ email: t('auth.register.emailUsedMinor') }); return; }
-                setKnown(true);
-                return;
-            }
+            // The account exists but signing in failed: offer sign-in, not an error (the welcome or the parent wait follows).
+            if (created && !installingSession) { setPassword(''); setSignIn('created'); return; }
+            if (!installingSession && bot.enabled) bot.renew();
+            // A known email is offered sign-in instead of a second account, whatever the age. Nothing about it is shown.
+            if (!installingSession && accountExists(requestError)) { setSignIn('known'); return; }
             const code = extractApiErrorCode(requestError);
             if (!installingSession && code === 'AGE_BELOW_MINIMUM') { rememberAgeRefusal(); setPassword(''); setUnderThirteen(true); return; }
             if (!installingSession && code === 'PARENT_EMAIL_REQUIRED') { setParentStep(true); return; }
@@ -272,12 +273,12 @@ export const RegisterPage = () => {
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="auth-email" className={authLabelClass}>{t('auth.register.labelEmail')}</label>
-                            <input id="auth-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); setKnown(false); }} required autoComplete="email"
-                                className={fieldClass('email')} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={describedBy('auth-email', 'email', known ? 'auth-email-known' : undefined)} />
+                            <input id="auth-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); clearFieldError('email'); setSignIn(null); }} required autoComplete="email"
+                                className={fieldClass('email')} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={describedBy('auth-email', 'email', signIn ? 'auth-email-known' : undefined)} />
                             {fieldError('auth-email', 'email')}
-                            {known && <div id="auth-email-known" role="status" className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--color-text)]">
-                                <span>{t('auth.register.knownEmail')}</span>
-                                <button type="button" onClick={signInInstead} className="min-h-9 px-3 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.register.goLogin')}</button>
+                            {signIn && <div id="auth-email-known" role="status" className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--color-text)]">
+                                <span>{signIn === 'known' ? t('auth.register.knownEmail') : t('auth.register.createdSignIn')}</span>
+                                <button type="button" onClick={signInInstead} className="min-h-11 px-4 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.register.goLogin')}</button>
                             </div>}
                         </div>
                         <div className="space-y-2">
@@ -313,7 +314,7 @@ export const RegisterPage = () => {
                                 <select id="auth-town" value={town} onChange={(event) => setTown(event.target.value)} className={authInputClass} aria-describedby={locating === 'failed' ? 'auth-town-note' : undefined}>
                                     {TOWNS.map(option => <option key={option.name} value={option.name}>{option.name}</option>)}
                                 </select>
-                                <button type="button" onClick={() => void findMyTown()} disabled={locating === 'locating'} className="inline-flex min-h-7 items-center gap-1.5 text-[11px] font-semibold text-[var(--color-accent)] disabled:opacity-60">
+                                <button type="button" onClick={() => void findMyTown()} disabled={locating === 'locating'} className="inline-flex min-h-11 items-center gap-1.5 text-[11px] font-semibold text-[var(--color-accent)] disabled:opacity-60">
                                     {locating === 'locating' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <LocateFixed className="h-3.5 w-3.5" aria-hidden="true" />}
                                     {locating === 'locating' ? t('auth.register.locating') : t('auth.register.useLocation')}
                                 </button>
@@ -328,8 +329,8 @@ export const RegisterPage = () => {
                                 className={fieldClass('parent')} aria-invalid={Boolean(fieldErrors.parent)} aria-describedby={describedBy('auth-parent-email', 'parent')} />
                             {fieldError('auth-parent-email', 'parent')}
                         </div>}
-                        {turnstileEnabled && <Turnstile key={botRound} onToken={setBotToken} />}
-                        <button type="submit" disabled={isLoading || (turnstileEnabled && !botToken)} className={authPrimaryButtonClass}>
+                        <Turnstile check={bot} />
+                        <button type="submit" disabled={isLoading || !bot.ready} className={authPrimaryButtonClass}>
                             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : parentStep ? t('auth.register.parentSubmit') : t('auth.register.submit')}
                         </button>
                     </form>

@@ -23,10 +23,11 @@ export type ClubCategory = typeof CLUB_CATEGORIES[number];
 /** Smart default before anything is known: most new clubs are grassroots community clubs. */
 export const DEFAULT_CLUB_CATEGORY: ClubCategory = 'COMMUNITY_CLUB';
 
-/** Every kind of page is for adults (owner, 26 October 2026): under 18 a person is invited to one, never creates one. */
+/**
+ * Every kind of page is for adults (owner, 26 October 2026): under 18 a person is invited to one, never creates one.
+ * The app asks `isAdult` (utils/age); this number is for the sandbox's server rules.
+ */
 export const PAGE_MINIMUM_AGE = 18;
-/** Unknown age is not counted here: the server still refuses. */
-export const mayCreatePages = (age: number | null | undefined) => age == null || age >= PAGE_MINIMUM_AGE;
 
 // ---------------------------------------------------------------- boxes
 

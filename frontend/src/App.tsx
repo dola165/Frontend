@@ -87,7 +87,6 @@ const ClubSquadsPage = lazy(() => import('./pages/ClubSquadsPage').then(module =
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(module => ({default: module.NotificationsPage})));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(module => ({default: module.OnboardingPage})));
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then(module => ({default: module.RegisterPage})));
-const DobGatePage = lazy(() => import('./pages/DobGatePage').then(module => ({default: module.DobGatePage})));
 const ConsentPage = lazy(() => import('./pages/ConsentPage').then(module => ({default: module.ConsentPage})));
 const SetPasswordPage = lazy(() => import('./pages/SetPasswordPage').then(module => ({default: module.SetPasswordPage})));
 const OAuth2RedirectHandler = lazy(() => import('./pages/OAuth2RedirectHandler').then(module => ({default: module.OAuth2RedirectHandler})));
@@ -343,7 +342,7 @@ export function MainLayout() {
         location.pathname === '/assistant' ||
         location.pathname === '/account/roles' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
         location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
         location.pathname.startsWith('/tournament-series/') ||
@@ -364,7 +363,7 @@ export function MainLayout() {
     // W6 â€” one shell: browse/list/destination pages share a single App-level
     // frame (app-page-shell + AppPageFrame, one max-width); the map, chat,
     // schedule and the management workspaces stay full-width canvases.
-    const canvasWorkspacePages = new Set(['/map', '/messages', '/team-work/chat', '/onboarding', '/dob', '/set-password']);
+    const canvasWorkspacePages = new Set(['/map', '/messages', '/team-work/chat', '/onboarding', '/set-password']);
     const isImmersiveCanvasPage =
         /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
         canvasWorkspacePages.has(location.pathname) || isWorldMap ||
@@ -466,7 +465,6 @@ export function MainLayout() {
             <Route path="/join/:code" element={<JoinPage />} />
             <Route path="/invite/:code" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-            <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
             <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
             <Route path="*" element={<RouteRecoveryPage />} />
         </Routes></RouteViewport>

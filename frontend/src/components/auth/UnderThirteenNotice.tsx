@@ -30,6 +30,6 @@ export function UnderThirteenNotice() {
             {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
             {copied ? t('auth.under13.copied') : t('auth.under13.share')}
         </button>
-        <Link to="/" className="text-xs font-semibold app-text-action">{t('auth.under13.home')}</Link>
+        <Link to="/" className="inline-flex min-h-11 items-center text-xs font-semibold app-text-action">{t('auth.under13.home')}</Link>
     </div>;
 }

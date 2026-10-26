@@ -23,7 +23,7 @@ export function WelcomeDialog({ step: asked }: { step: Step }) {
     const userId = useAuth().user?.id ?? 0;
     const facts = useWelcomeFacts();
     const choices = choicesFor(facts);
-    // An answer this person is not offered (under 16) opens step 1 instead.
+    // An answer this person is not offered (under 18) opens step 1 instead.
     const step: Step = asked === 'start' || choices.includes(asked) ? asked : 'start';
 
     // The welcome is up at this step: a first visit starts it, an open one remembers where it is.

@@ -1,4 +1,3 @@
-import { AdditionalResponsibility } from './AdditionalResponsibility';
 import { recruitmentOutcome } from './outcome';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -88,7 +87,7 @@ export function RecruitmentInbox({onChanged}:{onChanged?:()=>void}) {
  const [rows,setRows]=useState<RecruitmentReceipt[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[revision,setRevision]=useState(0);
  useEffect(()=>{const c=new AbortController();void apiClient.get<RecruitmentReceipt[]>('/recruitment/applications',{signal:c.signal}).then(x=>{setRows(x.data);setError('');}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load applications.'));}).finally(()=>{if(!c.signal.aborted)setLoading(false);});return()=>c.abort();},[revision]);
  useEffect(()=>{const id=new URLSearchParams(location.search).get('applicationId');if(id&&!loading)document.getElementById(`recruitment-application-${id}`)?.scrollIntoView({block:'center'});},[loading,rows]);
- return <section className="recruitment-inbox" aria-label="Applications and offers"><h2>Applications and offers</h2><p>Review each offer before a new club responsibility begins.</p>{loading&&<p role="status">Loading applications…</p>}{error&&<p role="alert">{error}<button type="button" onClick={()=>setRevision(n=>n+1)}>Retry</button></p>}{!loading&&!error&&!rows.length&&<p>No applications yet. Discover a club or an open role to get started.</p>}{rows.map(r=><RecruitmentApplication key={`${revision}:${r.id}`} applicationId={r.id} initial={r} onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}<InvitationHistory/><AdditionalResponsibility onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/></section>;
+ return <section className="recruitment-inbox" aria-label="Applications and offers"><h2>Applications and offers</h2><p>Review each offer before a new club responsibility begins.</p>{loading&&<p role="status">Loading applications…</p>}{error&&<p role="alert">{error}<button type="button" onClick={()=>setRevision(n=>n+1)}>Retry</button></p>}{!loading&&!error&&!rows.length&&<p>No applications yet. Discover a club or an open role to get started.</p>}{rows.map(r=><RecruitmentApplication key={`${revision}:${r.id}`} applicationId={r.id} initial={r} onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}<InvitationHistory/></section>;
 }
 function InvitationHistory() {
  const [rows,setRows]=useState<{id:number;clubName:string;role:string;status:string}[]>([]),[error,setError]=useState(''),[retry,setRetry]=useState(0);

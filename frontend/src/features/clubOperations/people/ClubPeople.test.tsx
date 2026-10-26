@@ -302,7 +302,7 @@ it('the last staff member closes the club after a plain confirmation of what is 
     const leave = await screen.findByRole('dialog', { name: 'Leave FC Dinamo Tbilisi Academy?' });
     fireEvent.click(within(leave).getByRole('button', { name: 'Leave FC Dinamo Tbilisi Academy' }));
     const close = await screen.findByRole('alertdialog', { name: 'Close FC Dinamo Tbilisi Academy?' });
-    expect(within(close).getByText('Kept: its sessions, attendance, records and results.')).toBeInTheDocument();
+    expect(within(close).getByText('Kept: the club’s history, its events and records, and the jobs that ended.')).toBeInTheDocument();
     fireEvent.click(within(close).getByRole('button', { name: /Close the club/ }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/dissolve'));
     expect(await screen.findByText('Home page')).toBeInTheDocument();

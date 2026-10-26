@@ -92,8 +92,8 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
                     <Button onClick={() => go('close')}><Lock aria-hidden="true" />{copy('Close the club instead', 'სანაცვლოდ კლუბის დახურვა')}</Button></div>)}
             {step === 'handover' && <p className="gk-faint lv-hint"><Crown aria-hidden="true" />{copy('To hand it to someone new, invite them on People first.', 'ახალი ადამიანისთვის გადასაცემად ჯერ მოიწვიეთ ის ხალხის გვერდზე.')}</p>}
             {step === 'close' && <ul className="lv-kept">
-                <li>{copy('The club leaves listings and every job here ends.', 'კლუბი სიებიდან ქრება და ყველა სამუშაო სრულდება.')}</li>
-                <li>{copy('Kept: its sessions, attendance, records and results.', 'შენახულია: ვარჯიშები, დასწრება, ჩანაწერები და შედეგები.')}</li>
+                <li>{copy('The club leaves listings and search. Every job, player place and follow ends, and everyone is told.', 'კლუბი სიებიდან და ძიებიდან ქრება. ყველა სამუშაო, მოთამაშის ადგილი და გამოწერა სრულდება და ყველას ეცნობა.')}</li>
+                <li>{copy('Kept: the club’s history, its events and records, and the jobs that ended.', 'შენახულია: კლუბის ისტორია, მოვლენები და ჩანაწერები, დასრულებული სამუშაოები.')}</li>
                 <li>{copy('Players keep their cards, and everyone keeps their career.', 'მოთამაშეებს რჩებათ ბარათები, ყველას — კარიერა.')}</li>
             </ul>}
         </div>

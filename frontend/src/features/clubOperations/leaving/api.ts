@@ -49,8 +49,8 @@ export const objectToReclaim = async (club: number, reclaim: number) => { await 
 
 /** People who are staff at several clubs today choose one (§N.2). */
 export interface StaffClubChoice {
-    needed: boolean; deadline: string | null; suggestedClubId: number | null; chosenClubId: number | null;
-    clubs: { clubId: number; name: string; logoUrl: string | null; jobs: string[]; activity: string | null; suggested: boolean }[];
+    needed: boolean; deadline: string | null; suggestedClubId: number | null; chosenClubId: number | null; chosenBy?: string | null;
+    clubs: { clubId: number; name: string; logoUrl: string | null; jobs: string[]; activity: string | null; owner?: boolean; suggested: boolean }[];
 }
 export const fetchStaffClubChoice = async (signal?: AbortSignal) => (await apiClient.get<StaffClubChoice>('/me/staff-club', { signal })).data;
 export const chooseStaffClub = async (clubId: number) =>

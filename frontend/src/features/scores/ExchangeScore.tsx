@@ -27,5 +27,5 @@ export function ExchangeScore({ eventId, onChanged, title }: { eventId: number; 
     : <p className="gk-score__quiet" role="status">{copy('Loading the score…', 'ანგარიში იტვირთება…')}</p>}</div>;
   const m = current.value;
   return <ScoreBlock target={{ kind: 'EXCHANGE', eventId }} title={title} onChanged={onChanged}
-    home={{ name: m.club_name, logo: m.club_logo_url }} away={{ name: m.opponent_name || copy('Opponent', 'მეტოქე') }} />;
+    home={{ name: m.club_name, logo: m.club_logo_url, clubId: m.club_id }} away={{ name: m.opponent_name || copy('Opponent', 'მეტოქე'), clubId: m.opponent_club_id }} />;
 }

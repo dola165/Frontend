@@ -14,7 +14,7 @@ type ResultEvent = { eventId: number; eventType: string; status: string; endsAt:
  * A finished match on a calendar (an event's details, a reminder): its score card, the same as on the match page.
  * A Match Exchange match uses its exchange record; a club-calendar match its own (the event's club is home).
  */
-export function ScheduleResult({ event, clubName, onSaved }: { event: ResultEvent; clubId?: number | null; clubName?: string | null; onSaved?: () => void }) {
+export function ScheduleResult({ event, clubId, clubName, onSaved }: { event: ResultEvent; clubId?: number | null; clubName?: string | null; onSaved?: () => void }) {
   const now = useClock();
   const { copy } = useResultCopy();
   const ended = new Date(event.endsAt).getTime() <= now;
@@ -25,7 +25,7 @@ export function ScheduleResult({ event, clubName, onSaved }: { event: ResultEven
   return <div className="schedule-result-record">{event.matchExchangeId
     ? <ExchangeScore eventId={event.matchExchangeId} onChanged={onSaved} />
     : <ScoreBlock target={{ kind: 'CALENDAR', eventId: event.eventId }} onChanged={onSaved}
-      home={{ name: clubName || copy('Home team', 'მასპინძელი გუნდი') }} away={{ name: event.opponentClubName || copy('Opponent', 'მეტოქე') }} />}</div>;
+      home={{ name: clubName || copy('Home team', 'მასპინძელი გუნდი'), clubId }} away={{ name: event.opponentClubName || copy('Opponent', 'მეტოქე'), clubId: event.opponentClubId }} />}</div>;
 }
 
 /** A calendar card's score line: the score where there is one, and its status as a dot and a word. */

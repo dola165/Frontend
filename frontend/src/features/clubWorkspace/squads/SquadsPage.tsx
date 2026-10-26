@@ -138,6 +138,14 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
     // The server lets a coach change only the squads they coach; deleting a squad is for leadership.
     const coached = workspace?.data.views.find(v => v.id === 'coaching')?.squadIds;
     const canChangeSquad = (id: number) => leadership || !coached || coached.includes(id);
+    // `edit=1` with `squad` (a score kept private until the squad's age group is set) opens that squad's editor once.
+    const editLinked = params.get('edit') === '1' ? linkedSquad : undefined;
+    useEffect(() => {
+        const squad = editLinked ? squads.find(item => item.id === editLinked) : undefined;
+        if (!squad) return;
+        if (leadership || !coached || coached.includes(squad.id)) setSquadEditor(squad);
+        const next = new URLSearchParams(params); next.delete('edit'); setParams(next, { replace: true });
+    }, [editLinked, squads, leadership, coached, params, setParams]);
 
     const roster = selectedSquad && <SquadRoster squadId={selectedSquad.id} groups={rosterGroups} visibleGroups={visibleGroups} loading={rosterLoading} error={rosterError} onRetry={() => void loadRoster(selectedSquad.id)}
         query={query} position={position} onQuery={value => { setQuery(value); keepInUrl('playerSearch', value); }} onPosition={value => { setPosition(value); keepInUrl('position', value); }} onClear={clearFilters}

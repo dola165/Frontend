@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, FolderDown, MessageSquare, Play, RotateCcw } from 'lucide-react';
+import { useContextMenu } from '../../components/useContextMenu';
 import { Button, EmptyNote, Skeleton } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { fetchKept, keptPlayLink, restoreChat, type ChatSummary, type KeptFile } from './api';
@@ -19,7 +20,7 @@ function ViewHead({ title, onBack }: { title: string; onBack: () => void }) {
     </header>;
 }
 
-/** One deleted chat: when it goes, who deleted it, and what can still be done. */
+/** One deleted chat: when it goes, who deleted it, and what can still be done (also on a right-click). */
 function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: number) => void; onChat: (chat: ChatSummary) => void }) {
     const copy = useJourneyCopy();
     const [busy, setBusy] = useState(false);
@@ -29,8 +30,16 @@ function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: 
         setBusy(true); setError('');
         try { await work(); } catch (failure) { setError(problem(copy, failure, what, forbidden)); } finally { setBusy(false); }
     };
+    const restore = () => void run(async () => onChat(await restoreChat(chat.id, copy('en', 'ka') as 'en' | 'ka')), ['The chat was not restored.', 'ჩატი ვერ აღდგა.'], RESTORE_FORBIDDEN);
+    const zip = () => void run(() => downloadZip(chat.id), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.']);
+    const menu = useContextMenu(() => [
+        { key: 'read', label: copy('Read it', 'წაკითხვა'), icon: MessageSquare, onSelect: () => onOpen(chat.id) },
+        { key: 'restore', label: copy('Restore', 'აღდგენა'), icon: RotateCcw, disabled: !chat.canDelete, reason: chat.canDelete ? undefined : onlyDeleters(copy, chat, 'restore'), onSelect: restore },
+        { key: 'keep', label: copy('Save files…', 'ფაილების შენახვა…'), icon: FolderDown, separated: true, onSelect: () => setKeeping(true) },
+        { key: 'zip', label: copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)'), icon: Download, onSelect: zip },
+    ], { label: chat.name });
     return <li className="tc-shelfrow">
-        <button type="button" className="tc-shelfrow__open" onClick={() => onOpen(chat.id)}>
+        <button type="button" className="tc-shelfrow__open gk-cm-target" onClick={() => onOpen(chat.id)} {...menu.bind}>
             {chat.task && <span className="tc-chatrow__key gk-num">{chat.task.key}</span>}
             <span className="tc-shelfrow__name">{chat.name}</span>
         </button>
@@ -44,16 +53,13 @@ function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: 
             </span>
         </p>
         <div className="tc-shelfrow__actions">
-            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy}
-                onClick={() => void run(async () => onChat(await restoreChat(chat.id, copy('en', 'ka') as 'en' | 'ka')),
-                    ['The chat was not restored.', 'ჩატი ვერ აღდგა.'], RESTORE_FORBIDDEN)}>
+            {chat.canDelete && <Button size="sm" variant="primary" disabled={busy} onClick={restore}>
                 <RotateCcw aria-hidden="true" />{copy('Restore', 'აღდგენა')}
             </Button>}
             <Button size="sm" disabled={busy} onClick={() => setKeeping(true)}>
                 <FolderDown aria-hidden="true" />{copy('Save files', 'ფაილების შენახვა')}
             </Button>
-            <Button size="sm" variant="ghost" disabled={busy}
-                onClick={() => void run(() => downloadZip(chat.id), ['The files could not be downloaded.', 'ფაილები ვერ ჩამოიტვირთა.'])}>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={zip}>
                 <Download aria-hidden="true" />{copy('Download all (zip)', 'ყველას ჩამოტვირთვა (zip)')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => onOpen(chat.id)}><MessageSquare aria-hidden="true" />{copy('Read it', 'წაკითხვა')}</Button>
@@ -61,6 +67,7 @@ function DeletedRow({ chat, onOpen, onChat }: { chat: ChatSummary; onOpen: (id: 
         {!chat.canDelete && <p className="tc-shelfrow__when tc-faint">{onlyDeleters(copy, chat, 'restore')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {keeping && <FilePicker chat={chat} mode="keep" onClose={() => setKeeping(false)} onDone={next => { setKeeping(false); onChat(next); }} />}
+        {menu.menu}
     </li>;
 }
 

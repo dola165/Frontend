@@ -15,7 +15,7 @@ import './team-work-now.css';
  * comments ("let's do branding first"), each edited or deleted by its author. A comment tells the person; their reply
  * tells whoever commented.
  */
-function NowNoteCard({ person, team, me }: { person: Person & { id: number }; team: Person[]; me: number | null }) {
+export function NowNoteCard({ person, team, me }: { person: Person & { id: number }; team: Person[]; me: number | null }) {
     const copy = useJourneyCopy();
     const id = useId();
     const [note, setNote] = useState<NowNote | null>(null);

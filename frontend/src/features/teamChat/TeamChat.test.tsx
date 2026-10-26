@@ -94,7 +94,9 @@ it('lists the chats, unread first with their task key and status, and opens the 
     expect(await screen.findByText('Morning')).toBeInTheDocument();
     expect(where()).toHaveTextContent('chat=50');
     const list = screen.getByRole('navigation', { name: 'Chats' });
-    const rows = within(list).getAllByRole('listitem');
+    // Media comes first, above the chats.
+    expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('Media');
+    const rows = within(list).getAllByRole('listitem').filter(row => row.classList.contains('tc-chatrow'));
     expect(rows[0]).toHaveTextContent('GK-12');
     expect(rows[0]).toHaveTextContent('Registration');
     expect(rows[0]).toHaveTextContent('Talking');
@@ -159,14 +161,14 @@ it('starts a chat from a task, or about a general topic', async () => {
     await user.type(within(dialog).getByRole('searchbox'), 'map');
     expect(within(dialog).queryByText('Jobs page')).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: /GK-30.*Map markers/ }));
-    expect(api.createChat).toHaveBeenCalledWith({ taskId: 30 });
+    expect(api.createChat).toHaveBeenCalledWith({ taskId: 30, people: null });
     await waitFor(() => expect(where()).toHaveTextContent('chat=60'));
 
     await user.click(screen.getByRole('button', { name: 'Start a chat' }));
     dialog = await screen.findByRole('dialog', { name: 'Start a chat' });
     await user.click(within(dialog).getByRole('tab', { name: 'General topic' }));
     await user.type(within(dialog).getByRole('textbox'), 'Friday pizza{Enter}');
-    expect(api.createChat).toHaveBeenLastCalledWith({ name: 'Friday pizza' });
+    expect(api.createChat).toHaveBeenLastCalledWith({ name: 'Friday pizza', people: null });
     await waitFor(() => expect(where()).toHaveTextContent('chat=61'));
 });
 
@@ -264,24 +266,26 @@ it('shows Recently deleted with the day each chat goes, and saves files from the
     expect(api.keepFiles).toHaveBeenCalledWith(50, [9]);
 });
 
-it('shows this chat’s media or every chat’s, by person and kind, and leads back to its message', async () => {
+it('shows this chat’s media by person and kind, leads back to its message, and on to all media', async () => {
     const user = userEvent.setup();
     vi.mocked(api.fetchShared).mockResolvedValue({
-        more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 51, chatName: 'Friday plan', sender: gio, createdAt: minute(1) }],
+        more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 50, chatName: 'Registration', sender: gio, createdAt: minute(1) }],
     });
     mount();
     await screen.findByText('Morning');
     await waitFor(() => expect(api.fetchShared).toHaveBeenCalledWith({ chat: 50, kind: null, from: null }, expect.anything()));
-    await user.click(within(panel()).getByRole('button', { name: 'All chats' }));
-    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: null, kind: null, from: null }, expect.anything()));
+    // The panel keeps this chat's media only: everything else is on the Media page.
+    expect(within(panel()).queryByRole('button', { name: 'All chats' })).not.toBeInTheDocument();
     await user.selectOptions(within(panel()).getByRole('combobox', { name: 'Shared by' }), '2');
-    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: null, kind: null, from: 2 }, expect.anything()));
+    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: 50, kind: null, from: 2 }, expect.anything()));
     await user.click(within(panel()).getByRole('button', { name: 'Files' }));
-    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: null, kind: 'FILE', from: 2 }, expect.anything()));
-    expect(where()).toHaveTextContent('mall=1');
-    await user.click(await within(panel()).findByRole('button', { name: /Gio · Friday plan/ }));
-    await waitFor(() => expect(where()).toHaveTextContent('chat=51'));
-    expect(where()).toHaveTextContent('message=40');
+    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: 50, kind: 'FILE', from: 2 }, expect.anything()));
+    expect(where()).toHaveTextContent('mkind=FILE');
+    await user.click(await within(panel()).findByRole('button', { name: 'Show in chat' }));
+    await waitFor(() => expect(where()).toHaveTextContent('message=40'));
+    await user.click(within(panel()).getByRole('button', { name: 'All media' }));
+    await waitFor(() => expect(where()).toHaveTextContent('view=media'));
+    expect(where()).toHaveTextContent('in=chat-50');
 });
 
 it('sends a message once, even when the first try got no answer', async () => {

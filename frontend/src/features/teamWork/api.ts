@@ -37,8 +37,8 @@ export interface WorkItem {
     people: Person[]; mediaCount: number; commentCount: number; small: boolean;
     doneMeans: string | null; tested: string | null; commits: string | null; priority: Priority | null; requestedBy: Person | null;
     links: WorkLink[]; waitingOn: WorkRef[]; openQuestions: number;
-    /** The task's team chat, if it has one, and how many messages it holds. */
-    chatId?: number | null; chatMessages?: number;
+    /** The task's team chat, if it has one, and how many messages it holds; `chatPrivate`: its chat is for chosen people you are not in. */
+    chatId?: number | null; chatMessages?: number; chatPrivate?: boolean;
 }
 export interface WorkUpdate {
     id: number; author: Person | null; at: string; previousStatus: WorkStatus | null; status: WorkStatus | null;
@@ -46,8 +46,11 @@ export interface WorkUpdate {
     /** Done by Agent Dola for the author, after they approved its preview. */
     byDola?: boolean;
 }
-/** A picture, a video or any other file; `name` is the file's own name (files only). */
-export interface WorkMedia { id: number; kind: 'IMAGE' | 'VIDEO' | 'FILE'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean; name?: string | null }
+/** A picture, a video or any other file; `name` is the file's own name (files only); `title` and `tags` what people named and tagged it. */
+export interface WorkMedia {
+    id: number; kind: 'IMAGE' | 'VIDEO' | 'FILE'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean;
+    name?: string | null; title?: string | null; tags?: string[]; labelledBy?: Person | null; labelledAt?: string | null;
+}
 export interface WorkComment { id: number; author: Person | null; body: string; createdAt: string; editedAt: string | null; canEdit: boolean; byDola?: boolean }
 export interface WorkSwitch { itemId: number; title: string; at: string }
 /** Every task, the trail, and the team with each person's responsibility. */

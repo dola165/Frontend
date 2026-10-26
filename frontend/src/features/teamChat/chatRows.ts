@@ -16,7 +16,7 @@ export function rowsOf(messages: ChatMessage[], firstUnread: number | null, labe
         if (newDay) rows.push({ kind: 'day', key: `day-${message.id}`, label: label(message.createdAt) });
         const unread = firstUnread !== null && message.id >= firstUnread && (!previous || previous.id < firstUnread);
         if (unread) rows.push({ kind: 'unread', key: 'unread' });
-        const compact = !!previous && !newDay && !unread && !message.replyTo && previous.senderId === message.senderId
+        const compact = !!previous && !newDay && !unread && !message.replyTo && !message.event && !previous.event && previous.senderId === message.senderId
             && new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime() < GROUP_MS;
         rows.push({ kind: 'message', key: `m-${message.id}`, message, compact });
         previous = message;

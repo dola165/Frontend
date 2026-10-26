@@ -17,6 +17,7 @@ import { PlanPage, type PlanDialog } from './PlanPage';
 import { TeamPanel } from './TeamPanel';
 import { TeamWorkDola } from './TeamWorkDola';
 import { TeamSearch } from '../search/TeamSearch';
+import { TaskMenuProvider } from './TaskMenuProvider';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
 import { AddPlanStepDialog, CopyForAiDialog, PlanHistoryDialog } from './PlanBits';
@@ -179,7 +180,7 @@ export function TeamWorkPage() {
                 waiting={waiting?.tasks.length ?? 0} onGo={go} />
             <div className="tw-main" key={`${place}-${wanted ?? ''}`}>
                 {error && <div className="gk-notice gk-notice--danger" role="alert"><span>{error}</span><Button size="sm" onClick={reload}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
-                {main}
+                <TaskMenuProvider onChanged={reload}>{main}</TaskMenuProvider>
             </div>
         </div>
         {adding && <AddTaskDialog planId={adding.view?.plan.id} parent={adding.parent} team={team} others={adding.others} onClose={() => setAdding(null)}

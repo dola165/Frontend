@@ -5,10 +5,10 @@ import { MessageLink } from '../directories/people/PersonResult';
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 } }) }));
 afterEach(cleanup);
 
-it('opens your role editor instead of offering a conversation with yourself', () => {
+it('opens your football profile instead of offering a conversation with yourself', () => {
     render(<MemoryRouter><MessageLink id={1} name="Me" /></MemoryRouter>);
     expect(screen.queryByRole('link', { name: /Message/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Edit roles' })).toHaveAttribute('href', '/account/roles');
+    expect(screen.getByRole('link', { name: 'Your football' })).toHaveAttribute('href', '/account/football');
 });
 it('retains messaging for another person', () => {
     render(<MemoryRouter><MessageLink id={26} name="Nika" /></MemoryRouter>);

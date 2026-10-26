@@ -16,7 +16,7 @@ export function PersonActions({ profile, own, onFollow, onShare, onRepresentatio
     const share = <Button variant="ghost" iconOnly aria-label={copy('Share profile', 'პროფილის გაზიარება')} title={copy('Share profile', 'პროფილის გაზიარება')} onClick={onShare}><Share2 aria-hidden="true" /></Button>;
     if (own) return <>
         {share}
-        <ButtonLink variant="primary" to="/account/roles"><PenLine aria-hidden="true" />{copy('Edit profile', 'პროფილის რედაქტირება')}</ButtonLink>
+        <ButtonLink variant="primary" to="/account/football"><PenLine aria-hidden="true" />{copy('Edit profile', 'პროფილის რედაქტირება')}</ButtonLink>
     </>;
     return <>
         {share}

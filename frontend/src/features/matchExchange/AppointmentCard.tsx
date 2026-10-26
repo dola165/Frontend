@@ -69,7 +69,7 @@ export function AppointmentCard({ appointment: a, reload, embedded = false }: { 
     <div className="mx-actions mx-appointment-decisions">
       {blocker === "AVAILABILITY_REQUIRED" && (workspace ? <button onClick={() => workspace.addAvailability(a)}>{copy("availability")}</button> : <Link className="mx-button" to="/referees/me#availability">{copy("availability")}</Link>)}
       {blocker === "PROFILE_REQUIRED" && <Link className="mx-button" to="/referees/me#profile">{copy("profile")}</Link>}
-      {blocker === "REFEREE_ROLE_REQUIRED" && <Link className="mx-button" to="/account/roles">{copy("roles")}</Link>}
+      {blocker === "REFEREE_ROLE_REQUIRED" && <Link className="mx-button" to="/account/football">{copy("roles")}</Link>}
       {["APPOINTMENT_CONFLICT", "PERSONAL_EVENT_CONFLICT"].includes(blocker || "") && <Link className="mx-button" to="/calendar">{copy("schedule")}</Link>}
       {a.status === "INVITED" && future && <>
         <button className="mx-primary" disabled={busy || !can("ACCEPT")} onClick={() => decision("ACCEPT", "accepted")}>{copy("accept")}</button>

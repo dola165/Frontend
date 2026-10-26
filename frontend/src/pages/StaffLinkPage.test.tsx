@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { StaffLinkPage } from './StaffLinkPage';
@@ -45,4 +45,22 @@ it('an account without a birth date is not counted as an adult and is asked for 
     expect(await screen.findByText(/Add your date of birth first/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Add your date of birth' })).toHaveAttribute('href', '/onboarding');
     expect(screen.queryByRole('button', { name: /Join/ })).not.toBeInTheDocument();
+});
+
+it('staff means one club: "Leave Saburtalo first", the leave flow, then the join again', async () => {
+    let staffElsewhere = true;
+    api.get.mockImplementation(async (url: string) => url === '/me/club-relationships' ? { data: [{ clubId: 9, departureSnapshots: { STAFF: 'snap' } }] } : { data: preview });
+    api.post.mockImplementation(async (url: string) => {
+        if (url === '/clubs/9/relationships/STAFF/leave') { staffElsewhere = false; return { data: {} }; }
+        if (url === '/staff-invite/abc' && staffElsewhere) throw { isAxiosError: true, response: { status: 409, data: { code: 'STAFF_OF_ANOTHER_CLUB', otherClubId: 9, otherClubName: 'Saburtalo' } } };
+        return { data: { appointmentId: 9, clubId: 1, clubName: 'FC Dinamo Tbilisi Academy', title: 'Assistant coach', squads: ['U12'], alreadyJoined: false } };
+    });
+    show();
+    fireEvent.click(await screen.findByRole('button', { name: 'Join as Assistant coach' }));
+    expect(await screen.findByText('You’re staff at Saburtalo. Leave Saburtalo first.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Leave Saburtalo' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Leave Saburtalo?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Leave Saburtalo' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/9/relationships/STAFF/leave', { requestId: expect.any(String), snapshot: 'snap' }));
+    expect(await screen.findByText('My squads')).toBeInTheDocument();
 });

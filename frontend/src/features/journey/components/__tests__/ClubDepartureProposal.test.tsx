@@ -2,7 +2,6 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ClubRelationships } from '../ClubRelationships';
-import { prepareStaffDeparture, leaveClubMembership } from '../../../clubs/api';
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), refresh: vi.fn() }));
 vi.mock('../../../../api/axiosConfig', () => ({ apiClient: { get: mocks.get, post: mocks.post } }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ refreshNavigationCapabilities: mocks.refresh }) }));
@@ -33,13 +32,4 @@ it('requires a fresh confirmation after the server rejects a changed relationshi
   fireEvent.click(screen.getByRole('button', { name: 'Confirm departure' }));
   await waitFor(() => expect(mocks.post).toHaveBeenCalledTimes(2));
   expect(mocks.post.mock.calls[1][1].requestId).not.toBe(first.requestId);
-});
-it('workspace confirmation captures STAFF once and keeps the bound legacy command for retries', async () => {
-  const command = await prepareStaffDeparture(1);
-  mocks.post.mockRejectedValueOnce(new Error('Connection closed'));
-  await expect(leaveClubMembership(1, command)).rejects.toThrow();
-  await leaveClubMembership(1, command);
-  expect(mocks.get).toHaveBeenCalledOnce();
-  expect(mocks.post.mock.calls).toEqual([['/clubs/1/membership/leave', command], ['/clubs/1/membership/leave', command]]);
-  expect(command.snapshot).toBe(row.departureSnapshots.STAFF);
 });

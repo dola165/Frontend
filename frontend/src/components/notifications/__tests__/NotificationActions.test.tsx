@@ -8,6 +8,7 @@ import type { NotificationItem } from '../../../types/notifications';
 
 vi.mock('../../../features/squadCommunication/api', () => ({ joinRequests: vi.fn(), approveAllJoinRequests: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: { post: vi.fn(), get: vi.fn() } }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 4 }, refreshNavigationCapabilities: () => Promise.resolve() }) }));
 
 const base: NotificationItem = { id: 1, type: 'SQUAD_JOIN_REQUESTS', scope: 'CLUB', entityType: 'squad', entityId: 11, title: '3 want to join U12', body: 'Approve all, or open each request.', isRead: false, createdAt: '2026-10-23T09:00:00Z', linkPath: '/squads/11?tab=players&invite=1' };
 const group = { id: 81, version: 3, name: 'U12 intake', method: 'DIRECT' as const };
@@ -58,4 +59,13 @@ it('shows no buttons once the suggestion was already answered', async () => {
     const { container } = render(<NotificationActions notification={{ ...base, type: 'CLUB_PEOPLE', linkPath: '/clubs/7/workspace?tab=personnel', entityType: 'club_staff_appointment', entityId: 55 }} />);
     await waitFor(() => expect(apiClient.get).toHaveBeenCalledWith('/clubs/7/people', expect.anything()));
     expect(container.querySelector('button')).toBeNull();
+});
+
+it('lets the person a club is handed to take it over in the notification', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { ownerId: 1, ownerName: 'Luka', handover: { id: 3, toUserId: 4, toName: 'Mari', status: 'PENDING', createdAt: '2026-10-27T10:00:00' }, reclaim: null } });
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { outcome: 'TRANSFERRED' } });
+    render(<NotificationActions notification={{ ...base, type: 'CLUB_OWNERSHIP', clubId: null, linkPath: '/clubs/7', entityType: 'club', entityId: 7, title: 'Luka wants to hand you FC Dinamo' }} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Take over/ }));
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/clubs/7/ownership/handover/3/answer', { accept: true }));
+    expect(await screen.findByText('You own the club now.')).toBeInTheDocument();
 });

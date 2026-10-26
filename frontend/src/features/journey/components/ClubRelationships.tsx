@@ -55,7 +55,7 @@ export function ClubRelationships({ onChanged }: { onChanged?: () => void }) {
         {row.playerStatus && <button type="button" disabled={busy} onClick={() => select(row, 'PLAYER')}>{labels.PLAYER}</button>}
         {row.staffRole && row.playerStatus && row.staffRole !== 'OWNER' && <button type="button" disabled={busy} onClick={() => select(row, 'ALL')}>{labels.ALL}</button>}
       </div>
-      {row.staffRole === 'OWNER' && <p>Transfer ownership in the club workspace before ending your staff membership.</p>}
+      {row.staffRole === 'OWNER' && <p>You own this club: <Link to={`/clubs/${row.clubId}/workspace?tab=personnel&leave=handover`}>hand it over first</Link>.</p>}
     </article>)}
     {selection && <section className="relationship-confirmation" aria-label="Confirm departure">
       <h3>{labels[selection.scope]} at {selection.row.clubName}?</h3>

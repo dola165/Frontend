@@ -51,23 +51,6 @@ export const dissolveClub = async (clubId: number) => {
     await apiClient.post(`/clubs/${clubId}/dissolve`);
 };
 
-export interface ClubDepartureCommand { requestId: string; snapshot: string }
-
-export const prepareStaffDeparture = async (clubId: number): Promise<ClubDepartureCommand> => {
-    const response = await apiClient.get<{ clubId: number; departureSnapshots: { STAFF: string } }[]>('/me/club-relationships');
-    const snapshot = response.data.find(row => row.clubId === clubId)?.departureSnapshots?.STAFF;
-    if (!snapshot) throw new Error('Refresh your club responsibilities before confirming departure.');
-    return { requestId: crypto.randomUUID(), snapshot };
-};
-
-export const leaveClubMembership = async (clubId: number, command: ClubDepartureCommand) => {
-    await apiClient.post(`/clubs/${clubId}/membership/leave`, command);
-};
-
-export const transferClubOwnership = async (clubId: number, userId: number) => {
-    await apiClient.post(`/clubs/${clubId}/ownership/transfer`, { userId });
-};
-
 export const fetchPendingClubApplications = async (clubId: number) => {
     const response = await apiClient.get<ClubMembershipApplication[]>(`/clubs/${clubId}/management/applications`);
     return response.data;

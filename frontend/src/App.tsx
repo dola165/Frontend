@@ -94,6 +94,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({default: module.ResetPasswordPage})));
 const ClubInvitePage = lazy(() => import('./pages/ClubInvitePage').then(module => ({default: module.ClubInvitePage})));
 const StaffLinkPage = lazy(() => import('./pages/StaffLinkPage').then(module => ({default: module.StaffLinkPage})));
+const StaffClubPage = lazy(() => import('./pages/StaffClubPage').then(module => ({default: module.StaffClubPage})));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
 const WaitingForParentPage = lazy(() => import('./pages/WaitingForParentPage').then(module => ({default: module.WaitingForParentPage})));
 const ParentApprovalPage = lazy(() => import('./pages/ParentApprovalPage').then(module => ({default: module.ParentApprovalPage})));
@@ -339,7 +340,7 @@ export function MainLayout() {
         location.pathname === '/requests' || location.pathname === '/events' ||
         location.pathname === '/tryouts' || location.pathname.startsWith('/tryouts/') ||
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||
-        location.pathname === '/club-operations' ||
+        location.pathname === '/club-operations' || location.pathname === '/me/staff-club' ||
         location.pathname === '/assistant' ||
         location.pathname === '/account/football' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
@@ -356,7 +357,7 @@ export function MainLayout() {
         location.pathname.startsWith('/jobs/') || location.pathname.startsWith('/roles/') ||
         location.pathname.startsWith('/campaigns/') ||
         location.pathname.startsWith('/organizations') ||
-        location.pathname.startsWith('/join/') || location.pathname.startsWith('/invite/') ||
+        location.pathname.startsWith('/join/') || location.pathname.startsWith('/invite/') || location.pathname.startsWith('/staff-invite/') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
         isClubSurfaceRoute;
@@ -465,6 +466,8 @@ export function MainLayout() {
             <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
             {/* Public: the squad and club show before sign-in; asking to join signs in first. */}
             <Route path="/join/:code" element={<JoinPage />} />
+            <Route path="/staff-invite/:code" element={<StaffLinkPage />} />
+            <Route path="/me/staff-club" element={<ProtectedRoute><StaffClubPage /></ProtectedRoute>} />
             <Route path="/invite/:code" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
@@ -493,7 +496,6 @@ export function MainLayout() {
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/club-invite" element={<ClubInvitePage />} />
-                        <Route path="/staff-invite/:code" element={<StaffLinkPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/parent-approval" element={<ParentApprovalPage />} />

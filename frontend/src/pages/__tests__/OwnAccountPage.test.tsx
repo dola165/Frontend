@@ -29,6 +29,17 @@ it('lets the child set a password and lands them in their own account', async ()
     expect(login).toHaveBeenCalledWith('child-token');
 });
 
+it('offers Try again when the link could not be read, and says invalid only when the server says so', async () => {
+    api.fetchOwnAccountLink.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ name: 'Luka Beridze', email: null, status: 'PENDING' });
+    const { unmount } = render(<MemoryRouter initialEntries={['/own-account?token=abc']}><Routes><Route path="/own-account" element={<OwnAccountPage />} /></Routes></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(await screen.findByLabelText('Your password')).toBeInTheDocument();
+    unmount();
+    api.fetchOwnAccountLink.mockRejectedValueOnce({ response: { status: 400, data: { code: 'invalid_token' } } });
+    render(<MemoryRouter initialEntries={['/own-account?token=bad']}><Routes><Route path="/own-account" element={<OwnAccountPage />} /></Routes></MemoryRouter>);
+    expect(await screen.findByText('This link no longer works.')).toBeInTheDocument();
+});
+
 it('sends a used link to sign-in and asks for a new expired one', async () => {
     api.fetchOwnAccountLink.mockResolvedValue({ name: 'Luka', email: 'luka@example.test', status: 'USED' });
     const { unmount } = render(<MemoryRouter initialEntries={['/own-account?token=old']}><Routes><Route path="/own-account" element={<OwnAccountPage />} /><Route path="*" element={<Where />} /></Routes></MemoryRouter>);

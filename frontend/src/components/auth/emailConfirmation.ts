@@ -16,5 +16,11 @@ export function confirmationJobTitle(error: unknown): string | null {
     return typeof title === 'string' && title.trim() ? title.trim() : null;
 }
 
+/** What waits on the email (`confirmFor`), when the server says. */
+export function confirmationFor(error: unknown): 'INVITE' | 'PUBLISH' | 'MONEY' | 'JOB' | null {
+    const value = (error as { response?: { data?: { confirmFor?: unknown } } } | null)?.response?.data?.confirmFor;
+    return value === 'INVITE' || value === 'PUBLISH' || value === 'MONEY' || value === 'JOB' ? value : null;
+}
+
 /** Sends a new confirmation link to the signed-in person's own address. */
 export const sendEmailConfirmation = () => apiClient.post('/auth/send-verification');

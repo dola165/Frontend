@@ -131,6 +131,7 @@
 .gk .ph-own__text { display: flex; flex: 1; flex-direction: column; min-width: 200px; }
 .gk .ph-own__text strong { font-weight: 650; overflow-wrap: anywhere; }
 .gk .ph-own__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .ph-own__when { color: var(--gk-text-3); }
 .gk .ph-own__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); margin-left: auto; }
 .gk .ph-own--form { flex-direction: column; align-items: stretch; }
 .gk .ph-own__label { color: var(--gk-text-3); font-size: var(--gk-fs-sm); font-weight: 600; }

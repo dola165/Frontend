@@ -1,8 +1,21 @@
 import { toast } from 'sonner';
 import { appLanguage } from '../../utils/formatting';
-import { confirmationJobTitle, needsConfirmedEmail, sendEmailConfirmation } from './emailConfirmation';
+import { confirmationFor, confirmationJobTitle, needsConfirmedEmail, sendEmailConfirmation } from './emailConfirmation';
 
 const say = (en: string, ka: string) => (appLanguage() === 'ka' ? ka : en);
+
+/** "Confirm your email to publish": what was pressed, from the server's `confirmFor`; the job by name when known. */
+function title(error: unknown) {
+    const job = confirmationJobTitle(error);
+    if (job) return say(`Confirm your email to start as ${job}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${job}`);
+    switch (confirmationFor(error)) {
+        case 'INVITE': return say('Confirm your email to invite people', 'მოსაწვევად ჯერ დაადასტურეთ ელფოსტა');
+        case 'PUBLISH': return say('Confirm your email to publish', 'გამოსაქვეყნებლად ჯერ დაადასტურეთ ელფოსტა');
+        case 'MONEY': return say('Confirm your email to take payments', 'გადახდების მისაღებად ჯერ დაადასტურეთ ელფოსტა');
+        case 'JOB': return say('Confirm your email to start this job', 'ამ სამუშაოს დასაწყებად ჯერ დაადასტურეთ ელფოსტა');
+        default: return say('Confirm your email first', 'ჯერ დაადასტურეთ ელფოსტა');
+    }
+}
 
 /**
  * For a write the backend refused with EMAIL_CONFIRMATION_REQUIRED: one toast, right where it was pressed, saying
@@ -11,8 +24,7 @@ const say = (en: string, ka: string) => (appLanguage() === 'ka' ? ka : en);
  */
 export function promptEmailConfirmation(error: unknown): boolean {
     if (!needsConfirmedEmail(error)) return false;
-    const job = confirmationJobTitle(error);
-    toast.warning(job ? say(`Confirm your email to start as ${job}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${job}`) : say('Confirm your email first', 'ჯერ დაადასტურეთ ელფოსტა'), {
+    toast.warning(title(error), {
         id: 'confirm-email',
         description: say('Open the link we sent, then try again.', 'გახსენით გამოგზავნილი ბმული და სცადეთ ხელახლა.'),
         action: { label: say('Resend', 'ხელახლა გაგზავნა'), onClick: () => {

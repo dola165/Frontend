@@ -20,7 +20,6 @@ export interface ParentChild {
     photoUrl: string | null;
     position: string | null;
     registered: boolean;
-    activationEligible: boolean;
     clubId: number;
     clubName: string;
     squadNames: string[];

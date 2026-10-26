@@ -13,9 +13,9 @@ const fill = () => {
 };
 describe('Identity invitation', () => {
     beforeEach(() => { vi.clearAllMocks(); auth.sessionId = 'identity-session'; });
-    it('explains adult acceptance and sends the invitation to the recorded identity', async () => {
+    it('explains acceptance and sends the invitation to the recorded identity', async () => {
         vi.mocked(apiClient.post).mockResolvedValue({ data: { status: 'EMAIL_VERIFICATION_PENDING' } });
-        render(<IdentityActivationForm childId={42} adult onChanged={vi.fn()} />);
+        render(<IdentityActivationForm childId={42} onChanged={vi.fn()} />);
         expect(screen.getByText(/grants no guardian access/)).toBeInTheDocument();
         fill(); fireEvent.click(screen.getByRole('button', { name: 'Send account invitation' }));
         await screen.findByRole('status');
@@ -35,7 +35,7 @@ describe('Identity invitation', () => {
     });
     it('keeps recipient input available after a recoverable delivery failure', async () => {
         vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('Delivery failed')).mockResolvedValueOnce({ data: {} });
-        render(<IdentityActivationForm adult path="/clubs/3/player-cards/7/activation-invitation" onChanged={vi.fn()} />);
+        render(<IdentityActivationForm path="/clubs/3/player-cards/7/activation-invitation" onChanged={vi.fn()} />);
         fill(); fireEvent.click(screen.getByRole('button', { name: 'Send account invitation' }));
         await screen.findByRole('alert'); expect(screen.getByLabelText('Recipient’s own email')).toHaveValue('adult@example.test');
         fireEvent.click(screen.getByRole('button', { name: 'Send account invitation' }));

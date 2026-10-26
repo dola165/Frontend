@@ -13,13 +13,15 @@ beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); auth.user = { id:
 
 it('asks an older 13–15 account to get a parent’s approval by the date, with the same parent-email flow', async () => {
     api.fetchParentApproval.mockResolvedValue({ status: 'GRACE', parentEmail: null, linkSent: false, switchesToWaitingAt: '2026-11-26T09:00:00Z' });
-    api.sendParentApproval.mockResolvedValue({ status: 'GRACE', parentEmail: 'parent@example.test', linkSent: true });
+    api.sendParentApproval.mockResolvedValue({ status: 'GRACE', parentEmail: 'parent@example.test', linkSent: true, switchesToWaitingAt: '2026-11-26T09:00:00Z' });
     render(<ParentApprovalBanner />);
     expect(screen.getByText('Ask your parent to approve your account by 26 November.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ask my parent' }));
     fireEvent.change(await screen.findByLabelText('Your parent’s email'), { target: { value: 'parent@example.test' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
     expect(await screen.findByText('Sent to parent@example.test')).toBeInTheDocument();
+    expect(screen.getByText('Ask them to open the email. After 26 November your account waits for their approval.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(api.sendParentApproval).toHaveBeenCalledWith('parent@example.test');
 });
 

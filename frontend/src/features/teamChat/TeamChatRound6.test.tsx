@@ -114,7 +114,7 @@ it('opens Media above the chats, with every filter in the address', async () => 
     await waitFor(() => expect(where()).toHaveTextContent('mq=arena'));
     await user.type(within(media).getByRole('combobox', { name: 'Tag' }), 'stadium');
     await waitFor(() => expect(where()).toHaveTextContent('mtag=stadium'));
-    expect(api.fetchMedia).toHaveBeenLastCalledWith({ chat: 51, place: 'CHATS', kind: 'IMAGE', from: 2, tag: 'stadium', q: 'arena' }, null, expect.anything());
+    await waitFor(() => expect(api.fetchMedia).toHaveBeenLastCalledWith({ chat: 51, place: 'CHATS', kind: 'IMAGE', from: 2, tag: 'stadium', q: 'arena' }, null, expect.anything()));
     await user.click(within(media).getByRole('button', { name: 'Show everything' }));
     await waitFor(() => expect(where()).not.toHaveTextContent('mq='));
     expect(where()).not.toHaveTextContent('in=');

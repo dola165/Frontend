@@ -37,10 +37,12 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
     // Each job carries the rule-checker's answer (canChange, canEnd); older answers fall back to the page's rights.
     const canEnd = (job: PersonJob) => (job.canEnd ?? rights.end) && job.kind !== 'OWNER' && !self;
     // Your own lines: the Owner hands the club over; one job among several ends on its own; the last one is leaving the club.
+    // Only jobs held now or starting soon count (invited, suggested or expired ones don't); when unsure, the leave flow decides.
+    const liveJobs = person.jobs.filter(job => job.status === 'ACTIVE' || job.status === 'UPCOMING').length;
     const ownLeave = (job: PersonJob) => !self || !['ACTIVE', 'UPCOMING'].includes(job.status) ? null
         : job.kind === 'OWNER' ? <Button size="sm" variant="ghost" disabled={busy} onClick={() => onLeave('handover')}><Crown aria-hidden="true" />{copy('Hand the club over', 'კლუბის გადაცემა')}</Button>
             : <Button size="sm" variant="ghost" className="pp-danger" disabled={busy}
-                onClick={() => job.kind === 'APPOINTMENT' && person.jobs.length > 1 ? onEnd(job) : onLeave('leave')}><DoorOpen aria-hidden="true" />{copy('Leave', 'დატოვება')}</Button>;
+                onClick={() => job.kind === 'APPOINTMENT' && liveJobs > 1 ? onEnd(job) : onLeave('leave')}><DoorOpen aria-hidden="true" />{copy('Leave', 'დატოვება')}</Button>;
     const canChange = (job: PersonJob) => (job.canChange ?? rights.change) && job.kind === 'APPOINTMENT' && !self;
     const endText = (job: PersonJob) => job.kind === 'ADMIN_INVITE' || job.kind === 'COACH_INVITE' || job.status === 'INVITED' || job.status === 'EXPIRED'
         ? copy('Cancel invite', 'მოწვევის გაუქმება') : job.kind === 'APPOINTMENT' ? copy('End job', 'დასრულება') : copy('Remove', 'მოხსნა');

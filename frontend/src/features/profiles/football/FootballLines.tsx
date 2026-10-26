@@ -47,9 +47,11 @@ const squadPath = (role: FootballLine, squad: number, own: boolean) => !own ? nu
  */
 export function FootballLines({ lines, follows = [], own, label, onChanged }: { lines: FootballLine[]; follows?: FootballHome[]; own: boolean; label?: string; onChanged?: () => void }) {
     const copy = useJourneyCopy();
-    const [leaving, setLeaving] = useState<FootballLine | null>(null), [clubFlow, setClubFlow] = useState<FootballHome | null>(null);
+    const [leaving, setLeaving] = useState<FootballLine | null>(null);
+    // The club's leave flow is in the address (leave=<clubId>:<step>), so a reload reopens it for the same club.
     const leaveStep = useLeaveStep();
-    const openClubFlow = (home: FootballHome, step: 'leave' | 'handover') => { setClubFlow(home); leaveStep.go(step); };
+    const clubFlow = leaveStep.clubId ? lines.find(line => line.home?.id === leaveStep.clubId)?.home ?? null : null;
+    const openClubFlow = (home: FootballHome, step: 'leave' | 'handover') => leaveStep.go(step, home.id);
     const leave = (role: FootballLine) => role.leave?.kind === 'DEPART' && role.leave.as === 'STAFF' && role.home ? openClubFlow(role.home, 'leave') : setLeaving(role);
     const actions = (role: FootballLine, chips: boolean) => own && (role.leave || role.handOver || (role.manage && !chips)) ? <div className="gk-fp-line__actions">
         {role.handOver && role.home && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => openClubFlow(role.home!, 'handover')}><Crown aria-hidden="true" />{copy('Hand the club over', 'კლუბის გადაცემა')}</Button>}
@@ -103,7 +105,7 @@ export function FootballLines({ lines, follows = [], own, label, onChanged }: { 
             </li>}
         </ul>
         {leaving?.leave && <LeaveDialog line={leaving} onClose={() => setLeaving(null)} onLeft={() => { setLeaving(null); onChanged?.(); }} />}
-        {clubFlow && <LeaveClubDialog clubId={clubFlow.id} clubName={clubFlow.name} onDone={() => { setClubFlow(null); onChanged?.(); }} />}
+        {clubFlow && <LeaveClubDialog clubId={clubFlow.id} clubName={clubFlow.name} onDone={() => onChanged?.()} />}
     </>;
 }
 

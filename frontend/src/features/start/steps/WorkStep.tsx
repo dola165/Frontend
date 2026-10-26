@@ -76,7 +76,7 @@ export function WorkStep({ facts, land, back, close }: WelcomeStepProps) {
     return <WelcomeFrame position={2} onClose={close} back={back} title={copy('What do you do?', 'რას აკეთებთ?')}
         hint={copy('Pick all that fit.', 'აირჩიეთ ყველა, რაც გეხებათ.')}
         footer={<Button variant="primary" disabled={busy} onClick={() => void finish()}>
-            {busy && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}{copy('Show jobs', 'სამსახურების ნახვა')}
+            {busy && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}{copy('Show jobs', 'სამუშაოების ნახვა')}
         </Button>}>
         <div className="gk-welcome-chips" role="group" aria-label={copy('What do you do?', 'რას აკეთებთ?')}>
             {WORK.map(item => {
@@ -88,7 +88,7 @@ export function WorkStep({ facts, land, back, close }: WelcomeStepProps) {
         </div>
         <label className="gk-welcome__switch">
             <input type="checkbox" role="switch" checked={open} onChange={event => setOpen(event.target.checked)} />
-            <span><strong>{copy('Open to work', 'ღია ვარ სამსახურისთვის')}</strong><small>{copy('Clubs looking for help can find you.', 'კლუბები, რომლებსაც დახმარება სჭირდებათ, გიპოვიან.')}</small></span>
+            <span><strong>{copy('Open to work', 'ვეძებ სამუშაოს')}</strong><small>{copy('Clubs looking for help can find you.', 'კლუბები, რომლებსაც დახმარება სჭირდებათ, გიპოვიან.')}</small></span>
         </label>
         {failed && <p role="alert" className="gk-notice gk-notice--warning">{copy('That couldn’t be saved. Your choices are still here.', 'ვერ შეინახა. არჩევანი აქვეა.')}</p>}
     </WelcomeFrame>;

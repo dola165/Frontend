@@ -59,12 +59,12 @@ export function OwnAccount({ child, onChanged }: { child: JoiningChild; onChange
     </div>;
     if (!open) return <button type="button" className="ph-row ph-row--boxed ph-own__start" onClick={() => setOpen(true)}>
         <span className="ph-row__icon" aria-hidden="true"><KeyRound /></span>
-        <span className="ph-row__text"><strong>{copy(`Give ${first} their own account`, `მიეცით ${first}-ს საკუთარი ანგარიში`)}</strong>
+        <span className="ph-row__text"><strong>{copy(`Give ${first} their own account`, `${first}: საკუთარი ანგარიში`)}</strong>
             <small>{copy('Their own sign-in, their history kept. You stay their parent.', 'საკუთარი შესვლა, ისტორია შენარჩუნდება. თქვენ მშობლად რჩებით.')}</small></span>
         <ArrowRight aria-hidden="true" />
     </button>;
     return <form className="ph-own ph-own--form" onSubmit={submit} noValidate>
-        <label className="ph-own__label" htmlFor={`own-${child.playerId}`}>{copy(`${first}’s email`, `${first}-ს ელფოსტა`)}</label>
+        <label className="ph-own__label" htmlFor={`own-${child.playerId}`}>{copy(`${first}’s email`, 'შვილის ელფოსტა')}</label>
         <input id={`own-${child.playerId}`} className="gk-input" type="email" autoComplete="off" value={email} onChange={event => { setEmail(event.target.value); setError(''); }} aria-invalid={Boolean(error)} />
         <span className="ph-own__actions">
             <Button type="button" size="sm" variant="ghost" onClick={() => { setOpen(false); setError(''); }}>{copy('Cancel', 'გაუქმება')}</Button>

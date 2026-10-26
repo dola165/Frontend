@@ -25,7 +25,7 @@ function stepsFor(choice: Choice, childAge: number | null | undefined): WeekStep
             { id: 'club', icon: Shield, en: 'Open your club', ka: 'გახსენით თქვენი კლუბი', to: '/my-club' },
             { id: 'squads', icon: Users, en: 'Plan a training session', ka: 'დაგეგმეთ ვარჯიში', to: '/my-squads' }, photo];
         case 'work': return [
-            { id: 'jobs', icon: Briefcase, en: 'Look at jobs near you', ka: 'ნახეთ ახლომდებარე სამსახურები', to: '/jobs/all' },
+            { id: 'jobs', icon: Briefcase, en: 'Look at jobs near you', ka: 'ნახეთ ახლომდებარე სამუშაოები', to: '/jobs/all' },
             { id: 'profile', icon: Camera, en: 'Add your photo and experience', ka: 'დაამატეთ ფოტო და გამოცდილება', to: '/profile/me' }, follow];
         case 'business': return [
             { id: 'page', icon: Shield, en: 'Finish your page', ka: 'დაასრულეთ თქვენი გვერდი', to: '/my-organizations' },

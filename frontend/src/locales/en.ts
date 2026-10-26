@@ -1058,6 +1058,16 @@ const en = {
       dialogLine: 'Your account keeps working until {{date}}. After that it waits for your parent.',
       approved: 'Your parent approved. Thank you!',
     },
+    ownAccount: {
+      title: 'Your own account',
+      line: '{{name}}, set a password and sign in on your own. Your football history stays with you.',
+      email: 'You sign in with {{email}}.',
+      password: 'Your password',
+      submit: 'Set password and sign in',
+      failed: 'That did not work. Try again.',
+      invalid: 'This link no longer works.',
+      invalidLine: 'Ask your parent to send you a new one.',
+    },
     parentApprove: {
       title: 'Approve an account',
       line: '{{name}} signed up for GrassKickZ and gave your email. Once you approve, they can follow clubs, see trials and talk to their own squad.',

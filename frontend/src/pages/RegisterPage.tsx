@@ -8,6 +8,7 @@ import { apiClient } from '../api/axiosConfig';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { ageRefusedRecently, rememberAgeRefusal } from '../components/auth/ageRefusal';
 import { UnderThirteenNotice } from '../components/auth/UnderThirteenNotice';
+import { passwordRules } from '../components/auth/passwordRules';
 import { Turnstile } from '../components/auth/Turnstile';
 import { BOT_CHECK_CODES } from '../components/auth/turnstileConfig';
 import { useBotCheck } from '../components/auth/useBotCheck';
@@ -91,13 +92,8 @@ export const RegisterPage = () => {
     const bot = useBotCheck();
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
 
-    const passwordRules = [
-        { key: 'length', test: (value: string) => value.length >= 8, label: t('auth.register.ruleLength') },
-        { key: 'upper', test: (value: string) => /[A-Z]/.test(value), label: t('auth.register.ruleUpper') },
-        { key: 'lower', test: (value: string) => /[a-z]/.test(value), label: t('auth.register.ruleLower') },
-        { key: 'digit', test: (value: string) => /\d/.test(value), label: t('auth.register.ruleDigit') },
-    ];
-    const passwordRulesMet = passwordRules.every((rule) => rule.test(password));
+    const rules = passwordRules(t);
+    const passwordRulesMet = rules.every((rule) => rule.test(password));
 
     const clearFieldError = (field: RegisterField) => setFieldErrors((current) => {
         if (!current[field]) return current;
@@ -293,7 +289,7 @@ export const RegisterPage = () => {
                             </div>
                             {password.length > 0 && (
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                                    {passwordRules.map((rule) => (
+                                    {rules.map((rule) => (
                                         <span key={rule.key} className={`flex items-center gap-1.5 text-[10px] font-semibold ${rule.test(password) ? 'text-[var(--color-accent)]' : 'text-[var(--color-secondary)]'}`}>
                                             <Check className="h-3.5 w-3.5" aria-hidden="true" /> {rule.label}
                                         </span>

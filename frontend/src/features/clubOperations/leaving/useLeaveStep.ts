@@ -20,6 +20,3 @@ export function useLeaveStep(clubId?: number) {
     }, { replace: true });
     return { step, clubId: step ? club : null, go };
 }
-
-/** The address of a club's People with the leave flow open at a step. */
-export const leaveFlowPath = (clubId: number, step: LeaveStep) => `/clubs/${clubId}/workspace?tab=personnel&leave=${clubId}:${step}`;

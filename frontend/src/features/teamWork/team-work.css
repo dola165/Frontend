@@ -246,6 +246,13 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-team__add { display: flex; gap: var(--gk-2); margin-top: var(--gk-3); }
 .gk .tw-team__add .gk-input { flex: 1; min-width: 0; max-width: 360px; }
 .gk .tw-team__hint { margin: var(--gk-2) 0 0; font-size: var(--gk-fs-sm); }
+/* Who on the team list cannot use the team chats now, under the team. */
+.gk .tw-outside { margin-top: var(--gk-3); padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); }
+.gk .tw-outside__title { margin: 0 0 var(--gk-2); font-size: var(--gk-fs-sm); font-weight: 650; color: var(--gk-text-2); }
+.gk .tw-outside__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .tw-outside__list li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .tw-outside__who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-2); min-width: 0; }
+.gk .tw-outside__why { flex: 1 1 100%; color: var(--gk-text-2); }
 .gk .tw-invite { display: flex; flex-direction: column; gap: 6px; margin-top: var(--gk-3); padding: var(--gk-3); border: 1px solid color-mix(in srgb, var(--gk-accent) 40%, var(--gk-line)); border-radius: var(--gk-r); background: var(--gk-accent-soft); }
 .gk .tw-invite > label { font-size: var(--gk-fs-sm); font-weight: 650; color: var(--gk-text); }
 .gk .tw-invite__row { display: flex; gap: var(--gk-2); }

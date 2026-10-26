@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Flag } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Button, ButtonLink } from '../../../design/primitives';
@@ -6,7 +7,7 @@ import { Dialog } from '../../../design/Dialog';
 import { Crest } from '../../world/Crest';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { leaveLine, type CareerRow, type CareerTotals, type FootballHome, type FootballLine } from './api';
+import { groupByClub, leaveLine, type CareerRow, type CareerTotals, type FootballHome, type FootballLine } from './api';
 import './football-profile.css';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
@@ -16,11 +17,13 @@ const month = (value: string | null | undefined, copy: Copy) => {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(copy('en-GB', 'ka-GE'), { month: 'short', year: 'numeric' });
 };
-const year = (value: string | null | undefined) => {
-    const date = value ? new Date(value) : null;
-    return date && !Number.isNaN(date.getTime()) ? date.getFullYear() : null;
-};
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
+/** "since Sep 2024", or "since at least Sep 2024" when the start was filled in from older data. */
+const sinceText = (line: Pick<FootballLine, 'since' | 'sinceKnown'>, copy: Copy) => {
+    const since = month(line.since, copy);
+    if (!since) return null;
+    return line.sinceKnown ? copy(`since ${since}`, `${since}-დან`) : copy(`since at least ${since}`, `არანაკლებ ${since}-დან`);
+};
 
 /** A line's picture: the club's crest, the child's face, or the referee's flag. */
 function LineMark({ line, size = 40 }: { line: Pick<FootballLine, 'kind' | 'home' | 'child'>; size?: number }) {
@@ -29,32 +32,58 @@ function LineMark({ line, size = 40 }: { line: Pick<FootballLine, 'kind' | 'home
     return <span className="gk-fp-mark" style={{ width: size, height: size }} aria-hidden="true"><Flag /></span>;
 }
 
-const lineTitle = (line: FootballLine, copy: Copy) => line.kind === 'PARENT_OF' && line.child
-    ? copy(`Parent of ${firstName(line.child.name)}`, `${firstName(line.child.name)}-ს მშობელი`)
-    : line.title;
+/** Where a squad chip leads: your own squads open where you work on them; others' are plain text. */
+const squadPath = (role: FootballLine, squad: number, own: boolean) => !own ? null
+    : role.manage === '/my-squads' ? `/my-squads?squad=${squad}` : role.kind === 'PLAYS_FOR' ? `/squads/${squad}` : null;
 
 /**
- * "Where you are": one row per real link or job, with its crest or face, and Manage or Leave beside it on your own
- * profile. Rows are never ticked or typed; they come from what a club or a family confirmed. Leave and Manage show only
- * when the rule-checker allows them (the Owner hands the club over first, so has no Leave).
+ * "Where you are": one block per club (its crest once, then each job or place there, a head coach's squads as chips),
+ * and a row for each line without a club (a child, refereeing). Rows are never ticked or typed; they come from what a
+ * club or a family confirmed. Manage and Leave show on your own profile only where the rule-checker allows them (the
+ * Owner hands the club over first, so has no Leave).
  */
-export function FootballLines({ lines, follows = [], own, onChanged }: { lines: FootballLine[]; follows?: FootballHome[]; own: boolean; onChanged?: () => void }) {
+export function FootballLines({ lines, follows = [], own, label, onChanged }: { lines: FootballLine[]; follows?: FootballHome[]; own: boolean; label?: string; onChanged?: () => void }) {
     const copy = useJourneyCopy();
     const [leaving, setLeaving] = useState<FootballLine | null>(null);
+    const actions = (role: FootballLine, chips: boolean) => own && (role.leave || (role.manage && !chips)) ? <div className="gk-fp-line__actions">
+        {role.leave && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => setLeaving(role)}>{copy('Leave', 'დატოვება')}</Button>}
+        {role.manage && !chips && <ButtonLink size="sm" to={role.manage}>{copy('Manage', 'მართვა')}</ButtonLink>}
+    </div> : null;
     return <>
-        <ul className="gk-fp-lines" aria-label={copy('Where you are', 'სად ხართ')}>
-            {lines.map(line => {
-                const since = month(line.since, copy);
-                return <li key={line.id} className="gk-fp-line">
-                    <LineMark line={line} />
-                    <div className="gk-fp-line__text">
-                        <strong>{lineTitle(line, copy)}</strong>
-                        <span>{[line.home?.name, since ? copy(`since ${since}`, `${since}-დან`) : null].filter(Boolean).join(' · ')}</span>
+        <ul className="gk-fp-lines" aria-label={label ?? copy('Where you are', 'სად ხართ')}>
+            {groupByClub(lines).map(group => {
+                if (!group.home) {
+                    const line = group.roles[0];
+                    const since = sinceText(line, copy);
+                    return <li key={group.key} className="gk-fp-line">
+                        <LineMark line={line} />
+                        <div className="gk-fp-line__text">
+                            <strong>{line.kind === 'PARENT_OF' && line.child ? copy(`Parent of ${firstName(line.child.name)}`, `მშობელი: ${firstName(line.child.name)}`) : line.title}</strong>
+                            {since && <span>{since}</span>}
+                        </div>
+                        {actions(line, false)}
+                    </li>;
+                }
+                return <li key={group.key} className="gk-fp-line gk-fp-line--club">
+                    <LineMark line={group.roles[0]} />
+                    <div className="gk-fp-club">
+                        <Link className="gk-fp-club__name" to={`/clubs/${group.home.id}`}>{group.home.name}</Link>
+                        {group.roles.map(role => {
+                            const since = sinceText(role, copy);
+                            const chips = role.squads.length > 1 || squadPath(role, role.squads[0]?.id ?? 0, own) !== null;
+                            return <div key={role.id} className="gk-fp-role">
+                                <div className="gk-fp-role__text">
+                                    <span className="gk-fp-role__name">{role.role}</span>
+                                    {chips ? <span className="gk-fp-squads">{role.squads.map(squad => {
+                                        const to = squadPath(role, squad.id, own);
+                                        return to ? <Link key={squad.id} className="gk-fp-squad" to={to}>{squad.name}</Link> : <span key={squad.id} className="gk-fp-squad">{squad.name}</span>;
+                                    })}</span> : role.squads.length > 0 && <span className="gk-fp-role__where">{role.squads[0].name}</span>}
+                                    {since && <span className="gk-fp-role__since">{since}</span>}
+                                </div>
+                                {actions(role, chips)}
+                            </div>;
+                        })}
                     </div>
-                    {own && (line.leave || line.manage) && <div className="gk-fp-line__actions">
-                        {line.leave && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => setLeaving(line)}>{copy('Leave', 'დატოვება')}</Button>}
-                        {line.manage && <ButtonLink size="sm" to={line.manage}>{copy('Manage', 'მართვა')}</ButtonLink>}
-                    </div>}
                 </li>;
             })}
             {follows.length > 0 && <li className="gk-fp-line">
@@ -86,10 +115,10 @@ function LeaveDialog({ line, onClose, onLeft }: { line: FootballLine; onClose: (
         } catch (reason) { setError(extractApiErrorMessage(reason, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ ხელახლა.'))); setBusy(false); }
     };
     return <Dialog open size="sm" role="alertdialog" onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        title={copy(`Leave ${home}?`, `დატოვებთ ${home}-ს?`)}
+        title={copy(`Leave ${home}?`, `დატოვებთ კლუბს — ${home}?`)}
         description={asStaff
-            ? copy(`You stop being ${line.title}. The club keeps the sessions and notes; it stays in your career.`, `აღარ იქნებით ${line.title}. კლუბს რჩება ვარჯიშები და ჩანაწერები; თქვენს კარიერაში ეს დარჩება.`)
-            : copy(`You leave as ${line.title}. It stays in your career.`, `ტოვებთ როგორც ${line.title}. თქვენს კარიერაში ეს დარჩება.`)}
+            ? copy(`You stop being ${line.title}. The club keeps the sessions and notes; it stays in your career.`, `სამსახური „${line.title}“ დასრულდება. ვარჯიშები და ჩანაწერები კლუბს რჩება, თქვენს კარიერაში კი ეს დარჩება.`)
+            : copy('You leave the squad. It stays in your career.', 'ტოვებთ გუნდს. თქვენს კარიერაში ეს დარჩება.')}
         footer={<><Button onClick={onClose} disabled={busy}>{copy('Stay', 'დარჩენა')}</Button><Button variant="danger" disabled={busy} onClick={() => void leave()}>{copy('Leave', 'დატოვება')}</Button></>}>
         {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
     </Dialog>;
@@ -101,7 +130,7 @@ export function CareerTotalsRow({ totals }: { totals: CareerTotals }) {
     const items = [
         { value: totals.sessionsCoached, label: copy('sessions coached', 'ჩატარებული ვარჯიში') },
         { value: totals.matchesPlayed, label: copy('matches played', 'ნათამაშები მატჩი') },
-        { value: totals.matchesRefereed, label: copy('matches refereed', 'მსაჯობით მატჩი') },
+        { value: totals.matchesRefereed, label: copy('matches refereed', 'მატჩი მსაჯად') },
     ].filter(item => item.value > 0);
     if (!items.length) return null;
     return <p className="gk-fp-totals" aria-label={copy('Career in numbers', 'კარიერა ციფრებში')}>
@@ -115,7 +144,9 @@ export function CareerCards({ rows }: { rows: CareerRow[] }) {
     if (!rows.length) return null;
     return <ul className="gk-fp-career" aria-label={copy('Career', 'კარიერა')}>
         {rows.map(row => {
-            const from = year(row.startsOn), to = year(row.endsOn);
+            const start = month(row.startsOn, copy), to = month(row.endsOn, copy);
+            // A start filled in from older data is a latest date: "by Sep 2021 – Jun 2024".
+            const from = start && !row.startKnown ? copy(`by ${start}`, `არაუგვიანეს ${start}`) : start;
             return <li key={row.id} className="gk-fp-card">
                 <div className="gk-fp-card__top">
                     <LineMark line={{ kind: row.kind, home: row.home, child: null }} size={36} />

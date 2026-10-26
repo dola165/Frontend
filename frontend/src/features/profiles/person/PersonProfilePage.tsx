@@ -1,5 +1,6 @@
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera } from 'lucide-react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
@@ -54,6 +55,18 @@ function PersonProfileView({ id }: { id: number }) {
     const tabs = personTabs({ own, hidden, career }, copy);
     const tab = personTabFrom(params.get('tab'), tabs);
     const connections = params.get('connections');
+    // `?edit=photo|about|work` (from "Your first week") opens that part of your own profile where it is shown.
+    const edit = params.get('edit');
+    const addPhoto = useRef<HTMLButtonElement>(null);
+    const loaded = Boolean(profile);
+    useEffect(() => {
+        if (!loaded || !own || !edit) return;
+        const frame = requestAnimationFrame(() => {
+            if (edit === 'photo') { addPhoto.current?.focus(); return; }
+            document.getElementById(edit)?.scrollIntoView({ block: 'center' });
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [loaded, own, edit]);
 
     // Links to representation land beside it.
     useEffect(() => {
@@ -99,13 +112,17 @@ function PersonProfileView({ id }: { id: number }) {
     return <>
         <ProfileLayout
             identity={personIdentity({ profile, hidden, line: view.line, copy, counts })}
-            banner={hidden ? null : profile.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
+            banner={hidden ? null : profile.bannerUrl} bannerAction={profile.bannerUrl ? images.coverAction : undefined}
+            /* Your own empty photo and cover are the buttons that fill them; the pickers stay on the page, out of sight. */
+            imageAction={own && !profile.avatarUrl ? <span hidden>{images.imageAction}</span> : images.imageAction}
+            emptyImage={own ? <button ref={addPhoto} type="button" className="gk-profile__add-photo" disabled={!!images.busy} onClick={images.pickImage}><Camera aria-hidden="true" />{copy('Add photo', 'ფოტოს დამატება')}</button> : undefined}
+            emptyCover={own && !hidden ? images.coverAction : undefined}
             actions={<PersonActions profile={profile} own={own} onFollow={() => void follow()} onShare={() => void share()} onRepresentation={openRepresentation} />}
             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}
             tabs={tabs} tab={tab} onTab={setTab} tabsLabel={copy('Profile sections', 'პროფილის სექციები')}
             side={tab === 'schedule' ? undefined : <ErrorBoundary key={`side:${profile.id}`} fallback={<SectionFailed />}><PersonSide view={view} /></ErrorBoundary>} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>
             <ErrorBoundary key={`${tab}:${profile.id}`} fallback={<SectionFailed />}>
-            {tab === 'overview' && <PersonOverviewTab view={view} />}
+            {tab === 'overview' && <PersonOverviewTab view={view} edit={own ? edit : null} />}
             {tab === 'posts' && <PersonPostsTab view={view} />}
             {tab === 'career' && <ProfileCareer key={`career-${profile.id}`} profile={profile} isMyProfile={own}
                 onChanged={footballProfile => view.setProfile(current => current?.id === profile.id ? { ...current, footballProfile } : current)} />}
@@ -136,6 +153,6 @@ function PersonUnavailable({ failed = false, onRetry }: { failed?: boolean; onRe
     return <GkRoot className="gk-page gk-profile"><PageFrame width="profile"><div className="gk-person-loading">
         <Panel>{failed
             ? <EmptyNote title={copy('This profile couldn’t load', 'პროფილი ვერ ჩაიტვირთა')} action={<Button onClick={onRetry}>{copy('Try again', 'ხელახლა ცდა')}</Button>}>{copy('Check your connection and try again.', 'შეამოწმეთ კავშირი და სცადეთ ხელახლა.')}</EmptyNote>
-            : <EmptyNote title={copy('Profile not found', 'პროფილი ვერ მოიძებნა')} action={<ButtonLink to="/world/people">{copy('Find people', 'ადამიანების მოძებნა')}</ButtonLink>}>{copy('The account may have been closed, or the link is wrong.', 'ანგარიში შეიძლება დახურულია, ან ბმული არასწორია.')}</EmptyNote>}</Panel>
+            : <EmptyNote title={copy('Profile not found', 'პროფილი ვერ მოიძებნა')} action={<ButtonLink to="/world/people">{copy('Find people', 'ადამიანების მოძებნა')}</ButtonLink>}>{copy('The account may have been closed, or the link is wrong.', 'ანგარიში შეიძლება დახურული იყოს, ან ბმული არასწორია.')}</EmptyNote>}</Panel>
     </div></PageFrame></GkRoot>;
 }

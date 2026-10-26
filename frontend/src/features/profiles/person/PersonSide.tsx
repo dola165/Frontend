@@ -59,8 +59,8 @@ export function PersonSide({ view }: { view: PersonView }) {
                 <ListRow to="/reports" lead={<Flag size={18} aria-hidden="true" />} title={copy('Reports and safety', 'საჩივრები და უსაფრთხოება')} />
             </List>
         </SideBlock>}
-        {!own && !hidden && (profile.footballProfile?.appointments.length ?? 0) === 0 && <SideBlock title={copy('How this profile is checked', 'როგორ მოწმდება ეს პროფილი')}>
-            <p className="gk-row"><ShieldCheck size={16} aria-hidden="true" />{copy('Nothing on this profile has been confirmed by a club yet. Roles and skills are self-reported.', 'ამ პროფილზე კლუბს ჯერ არაფერი დაუდასტურებია. როლები და უნარები თავად არის მითითებული.')}</p>
+        {!own && !hidden && (view.football?.lines.length ?? 0) === 0 && (profile.footballProfile?.appointments.length ?? 0) === 0 && <SideBlock title={copy('How this profile is checked', 'როგორ მოწმდება ეს პროფილი')}>
+            <p className="gk-row"><ShieldCheck size={16} aria-hidden="true" />{copy('No club has confirmed anything here yet. What they do is in their own words.', 'ამ პროფილზე კლუბს ჯერ არაფერი დაუდასტურებია. საქმიანობა თავად არის მითითებული.')}</p>
         </SideBlock>}
     </>;
 }

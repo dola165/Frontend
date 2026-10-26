@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Eye } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
@@ -6,7 +6,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { sanitizeAuthRedirect } from '../../../utils/authRedirect';
-import { saveAbout, type PersonProfile } from '../api';
+import type { PersonProfile } from '../api';
+import { AboutInPlace } from './AboutInPlace';
 import { CareerCards, CareerTotalsRow, FootballLines } from './FootballLines';
 import { PublicLinePicker } from './PublicLinePicker';
 import { StartDoors } from './StartDoors';
@@ -70,7 +71,7 @@ function FootballProfile({ userId }: { userId: number }) {
                         {status === 'loading' && !data ? <div role="status" aria-label={copy('Loading', 'იტვირთება')} className="gk-fp-loading"><Skeleton height={48} /><Skeleton height={48} /></div>
                             : !data ? <EmptyNote title={copy('This couldn’t load', 'ვერ ჩაიტვირთა')} action={<Button size="sm" onClick={football.reload}>{copy('Try again', 'ხელახლა ცდა')}</Button>} />
                             : lines.length || data.follows.length ? <FootballLines lines={lines} follows={data.follows} own onChanged={football.reload} />
-                            : <p className="gk-fp-empty">{copy('Nothing yet. A line appears when a coach takes you into a squad, a club gives you a job, or you add your child.', 'ჯერ არაფერია. ხაზი გამოჩნდება, როცა მწვრთნელი გუნდში მიგიღებთ, კლუბი სამსახურს მოგცემთ, ან შვილს დაამატებთ.')}</p>}
+                            : <p className="gk-fp-empty">{copy('Nothing yet. This fills itself when a coach or a club adds you.', 'ჯერ არაფერია. შეივსება, როცა მწვრთნელი ან კლუბი დაგამატებთ.')}</p>}
                     </Section>
                     <Section boxed id="career" title={copy('Career', 'კარიერა')} hint={copy('From the clubs’ records; it stays with you when you leave', 'კლუბების ჩანაწერებიდან; წასვლისას თქვენთან რჩება')}>
                         {!data ? (status === 'loading' ? <Skeleton height={120} /> : null)
@@ -98,28 +99,14 @@ function FootballProfile({ userId }: { userId: number }) {
 function AboutBox({ userId }: { userId: number }) {
     const copy = useJourneyCopy();
     const [bio, setBio] = useState<string | null>(null);
-    const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'failed' | 'unloaded'>('idle');
-    const stored = useRef('');
+    const [failed, setFailed] = useState(false);
     useEffect(() => {
         const controller = new AbortController();
         void apiClient.get<PersonProfile>(`/users/${userId}`, { signal: controller.signal })
-            .then(response => { if (!controller.signal.aborted) { stored.current = response.data.bio ?? ''; setBio(stored.current); } })
-            .catch(() => { if (!controller.signal.aborted) setState('unloaded'); });
+            .then(response => { if (!controller.signal.aborted) setBio(response.data.bio ?? ''); })
+            .catch(() => { if (!controller.signal.aborted) setFailed(true); });
         return () => controller.abort();
     }, [userId]);
-    const save = async () => {
-        if (bio === null || bio.trim() === stored.current.trim()) return;
-        setState('saving');
-        try { await saveAbout(bio.trim()); stored.current = bio.trim(); setState('saved'); }
-        catch { setState('failed'); }
-    };
-    if (state === 'unloaded') return <p role="alert" className="gk-fp-error">{copy('This couldn’t load.', 'ვერ ჩაიტვირთა.')}</p>;
-    if (bio === null) return <Skeleton height={72} />;
-    return <div className="gk-fp-about">
-        <textarea className="gk-input" rows={3} maxLength={1000} value={bio} aria-label={copy('About you', 'თქვენ შესახებ')}
-            placeholder={copy('Your football and your work, in a few lines.', 'თქვენი ფეხბურთი და საქმე, რამდენიმე სიტყვით.')}
-            onChange={event => { setBio(event.target.value); if (state !== 'saving') setState('idle'); }} onBlur={() => void save()} />
-        {state === 'saved' && <span role="status" className="gk-fp-saved">{copy('Saved', 'შენახულია')}</span>}
-        {state === 'failed' && <span role="alert" className="gk-fp-error">{copy('Not saved. Your text is still here.', 'არ შეინახა. ტექსტი აქვეა.')} <button type="button" className="gk-fp-link" onClick={() => void save()}>{copy('Try again', 'ხელახლა ცდა')}</button></span>}
-    </div>;
+    if (failed) return <p role="alert" className="gk-fp-error">{copy('This couldn’t load.', 'ვერ ჩაიტვირთა.')}</p>;
+    return bio === null ? <Skeleton height={72} /> : <AboutInPlace bio={bio} alwaysOpen />;
 }

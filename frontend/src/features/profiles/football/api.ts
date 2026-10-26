@@ -20,6 +20,8 @@ export interface ServerLine {
     /** Parent lines, own view only. */
     child?: { id: number; name: string } | null;
     since?: string | null;
+    /** False when the start was filled in from older data: "since at least …". */
+    sinceKnown?: boolean;
     until?: string | null;
     appointmentId?: number | null;
     revision?: number | null;
@@ -29,12 +31,15 @@ export interface ServerLine {
 
 export interface PersonFootballProfile {
     userId: number;
+    /** The first word of the name, for headings ("Where Luka is"). */
+    firstName?: string | null;
     own: boolean;
     publicRole: { line: string; label: string; chosen: boolean } | null;
     roleChoices?: { line: string; label: string }[];
     revision?: number;
     whereYouAre?: ServerLine[];
-    career?: { lines?: ServerLine[]; counts?: Partial<CareerTotals> };
+    /** A count is null when there is no record to count (never a 0 that pretends to be one). */
+    career?: { lines?: ServerLine[]; counts?: Partial<Record<keyof CareerTotals, number | null>> };
 }
 
 export interface CareerTotals { sessionsCoached: number; matchesPlayed: number; matchesRefereed: number }
@@ -55,20 +60,26 @@ export interface FootballLine {
     kind: LineKind;
     /** "Head coach · U12" (without the club, which the row shows under it). */
     title: string;
+    /** The job or link alone: "Head coach", "Owner", "Player". */
+    role: string;
+    /** Where it applies inside the club; empty for the whole club. */
+    squads: { id: number; name: string }[];
     label: string;
     home: FootballHome | null;
     child: { id: number; name: string } | null;
     since: string | null;
+    sinceKnown: boolean;
     /** The page where this line is worked on; own view only. */
     manage: string | null;
     leave: LeaveRoute | null;
 }
 
 /** One past stint, from the clubs' records. */
-export interface CareerRow { id: string; kind: LineKind; title: string; home: FootballHome | null; startsOn: string | null; endsOn: string | null }
+export interface CareerRow { id: string; kind: LineKind; title: string; home: FootballHome | null; startsOn: string | null; startKnown: boolean; endsOn: string | null }
 
 export interface FootballProfileData {
     own: boolean;
+    firstName: string | null;
     lines: FootballLine[];
     /** Clubs the person follows, shown as crests (own view only). */
     follows: FootballHome[];
@@ -119,9 +130,10 @@ export function readFootball(value: PersonFootballProfile): FootballProfileData 
     const homes = new Map(current.map(line => [line.line, homeOf(line)]));
     return {
         own,
+        firstName: value.firstName?.trim() || null,
         lines: current.filter(line => line.kind !== 'FOLLOWS').map(line => ({
-            id: line.line, kind: line.kind, title: titleOf(line), label: line.label, home: homeOf(line),
-            child: own ? line.child ?? null : null, since: line.since ?? null,
+            id: line.line, kind: line.kind, title: titleOf(line), role: line.title, squads: line.clubWide ? [] : list(line.squads), label: line.label, home: homeOf(line),
+            child: own ? line.child ?? null : null, since: line.since ?? null, sinceKnown: line.sinceKnown !== false,
             manage: own ? manageOf(line) : null, leave: own ? leaveOf(line) : null,
         })),
         follows: own ? current.filter(line => line.kind === 'FOLLOWS').map(homeOf).filter((home): home is FootballHome => home !== null) : [],
@@ -129,9 +141,32 @@ export function readFootball(value: PersonFootballProfile): FootballProfileData 
         choices: own ? list(value.roleChoices).map(choice => ({ id: choice.line, label: choice.label, home: homes.get(choice.line) ?? null })) : [],
         revision: value.revision ?? 0,
         career: list(value.career?.lines).filter(line => line.kind !== 'FOLLOWS' && line.kind !== 'PARENT_OF')
-            .map(line => ({ id: line.line, kind: line.kind, title: titleOf(line), home: homeOf(line), startsOn: line.since ?? null, endsOn: line.until ?? null })),
+            .map(line => ({ id: line.line, kind: line.kind, title: titleOf(line), home: homeOf(line), startsOn: line.since ?? null, startKnown: line.sinceKnown !== false, endsOn: line.until ?? null })),
         totals: { sessionsCoached: count(value.career?.counts?.sessionsCoached), matchesPlayed: count(value.career?.counts?.matchesPlayed), matchesRefereed: count(value.career?.counts?.matchesRefereed) },
     };
+}
+
+/** One club with everything the person is there; a line without a club (a child, refereeing) stands alone. */
+export interface LineGroup { key: string; home: FootballHome | null; roles: FootballLine[] }
+
+/**
+ * Lines grouped by club, in the server's order. The same job in several squads with nothing to leave (a head coach of
+ * six squads) becomes one role with its squads beside it, so a club reads once instead of six times.
+ */
+export function groupByClub(lines: FootballLine[]): LineGroup[] {
+    const groups: LineGroup[] = [];
+    for (const line of lines) {
+        const key = line.home ? `club:${line.home.id}` : `line:${line.id}`;
+        let group = groups.find(candidate => candidate.key === key);
+        if (!group) groups.push(group = { key, home: line.home, roles: [] });
+        const same = line.squads.length && !line.leave
+            ? group.roles.find(role => role.kind === line.kind && role.role === line.role && !role.leave && role.manage === line.manage && role.squads.length) : undefined;
+        if (same) {
+            same.squads = [...same.squads, ...line.squads];
+            if (line.since && (!same.since || line.since < same.since)) same.since = line.since;
+        } else group.roles.push({ ...line });
+    }
+    return groups;
 }
 
 export const fetchFootball = async (userId: number | 'me', signal?: AbortSignal) =>

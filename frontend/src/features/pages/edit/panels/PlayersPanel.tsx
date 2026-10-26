@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../../components/auth/emailConfirmationPrompt';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Copy, MessageCircle, Users } from 'lucide-react';
@@ -37,7 +38,7 @@ export function PlayersPanel() {
     const target = { type: refType, id: refId };
     ensureJoinLinks(target, controller.signal).then(updated => { if (!controller.signal.aborted) replace(updated); return fetchArrivals(target, controller.signal); })
       .then(list => { if (!controller.signal.aborted) { setArrivals(list); setFailed(''); } })
-      .catch(failure => { if (!controller.signal.aborted) setFailed(extractApiErrorMessage(failure, t('Could not load joining requests. Try again.'))); });
+      .catch(failure => { if (!controller.signal.aborted && !promptEmailConfirmation(failure)) setFailed(extractApiErrorMessage(failure, t('Could not load joining requests. Try again.'))); });
     return () => controller.abort();
   }, [refType, refId, status, replace, reload, t]);
   useGuideTask('players', {

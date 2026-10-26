@@ -1,5 +1,9 @@
 export const footballRoles = ['PLAYER', 'COACH', 'REFEREE', 'AGENT', 'CLUB_STAFF', 'PARENT', 'ORGANIZER', 'VENUE_MANAGER', 'FAN'] as const;
 export type FootballRole = typeof footballRoles[number];
+/** Sections only a link adds (a club appointment, an organisation): someone who has one keeps or removes it, nobody picks it. */
+export const linkedRoles: readonly FootballRole[] = ['CLUB_STAFF', 'ORGANIZER'];
+/** Whether a role is offered as a tile: every role anyone may pick, plus the linked ones this person already holds. */
+export const isOffered = (role: string, held: readonly string[]) => !(linkedRoles as readonly string[]).includes(role) || held.includes(role);
 export interface RoleProfile {
     role: FootballRole;
     primary: boolean;

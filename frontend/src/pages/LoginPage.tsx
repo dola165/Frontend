@@ -1,7 +1,6 @@
 import React, { lazy, Suspense, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { apiClient } from '../api/axiosConfig';
 import { Loader2, AlertCircle, QrCode } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
@@ -14,7 +13,6 @@ import {
     buildSignupPath,
     completedAuthDestination,
     getAuthFlow,
-    publicContinuationPath,
     rememberAuthFlow,
     requiredAccountStep,
     resolvePostAuthRedirect,
@@ -49,9 +47,8 @@ export const LoginPage = () => {
     const [error, setError] = useState('');
     const [showQr, setShowQr] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<'email' | 'password', string>>>({});
-    const [emailNotVerified, setEmailNotVerified] = useState(false);
-    const [isResendingVerification, setIsResendingVerification] = useState(false);
-    const [resendConfirmation, setResendConfirmation] = useState<string | null>(null);
+    // The server knows no account with this email: offered "Create one?" with what was typed kept.
+    const [unknownEmail, setUnknownEmail] = useState(false);
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '');
 
     const navigateAfterLogin = (
@@ -103,43 +100,31 @@ export const LoginPage = () => {
 
         setIsLoading(true);
         setError('');
-        setEmailNotVerified(false);
-        setResendConfirmation(null);
+        setUnknownEmail(false);
 
         try {
             const result = await secondFactor.authenticate({ kind: 'password', email: email.trim(), password });
             if (!result) return;
             setPassword('');
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true);
+            navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true);
         } catch (err) {
             const code = extractApiErrorCode(err);
+            if (code === 'ACCOUNT_NOT_FOUND') { setUnknownEmail(true); return; }
             // After five failed tries the server asks for a growing wait; other limits are per minute.
             const wait = Number(isAxiosError(err) ? err.response?.headers?.['retry-after'] : NaN);
             setError(code === 'SIGN_IN_DELAYED' || code === 'TOO_MANY_REQUESTS'
                 ? t('auth.login.errDelayed', { seconds: Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : 60 })
                 : extractApiErrorMessage(err, t('auth.login.errInvalid')));
-            setEmailNotVerified(code === 'EMAIL_NOT_VERIFIED');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleResendLoginVerification = async () => {
-        setIsResendingVerification(true);
-        try {
-            const res = await apiClient.post<{ message?: string }>('/auth/resend-verification', {
-                email: email.trim(),
-                continuationPath: publicContinuationPath(nextPath),
-            });
-            setError('');
-            setEmailNotVerified(false);
-            setResendConfirmation(res.data?.message ?? 'Verification email sent.');
-        } catch (err) {
-            setError(extractApiErrorMessage(err, 'Could not resend the verification email. Please try again.'));
-        } finally {
-            setIsResendingVerification(false);
-        }
+    const createInstead = () => {
+        setPassword('');
+        rememberAuthFlow({ email: email.trim().toLowerCase(), nextPath });
+        navigate(buildSignupPath(nextPath));
     };
 
     const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
@@ -151,7 +136,7 @@ export const LoginPage = () => {
             if (!result) return;
             rememberAuthFlow({ nextPath, newAccount: result.newAccount === true });
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true, result.newAccount === true);
+            navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true, result.newAccount === true);
         } catch (err) {
             setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
         } finally {
@@ -195,26 +180,6 @@ export const LoginPage = () => {
                             <div className="flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5 shrink-0" /> {error}
                             </div>
-                            {emailNotVerified && (
-                                <button
-                                    type="button"
-                                    onClick={() => void handleResendLoginVerification()}
-                                    disabled={isResendingVerification}
-                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--state-danger)] px-4 py-2 text-xs font-semibold text-[color:var(--state-danger)] transition-colors hover:bg-[color:var(--state-danger)] hover:text-[color:var(--color-text)] disabled:opacity-60"
-                                >
-                                    {isResendingVerification ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        'Resend verification email'
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-                    {resendConfirmation && (
-                        <div className="mb-6 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-4 py-3 text-sm font-semibold text-[var(--color-accent)]">
-                            {resendConfirmation}
                         </div>
                     )}
 
@@ -230,6 +195,7 @@ export const LoginPage = () => {
                                 onChange={(e) => {
                                     setEmail(e.target.value);
                                     clearFieldError('email');
+                                    setUnknownEmail(false);
                                 }}
                                 required
                                 autoComplete="email"
@@ -243,6 +209,10 @@ export const LoginPage = () => {
                                     {fieldErrors.email}
                                 </p>
                             )}
+                            {unknownEmail && <div role="status" className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--color-text)]">
+                                <span>{t('auth.login.noAccount')}</span>
+                                <button type="button" onClick={createInstead} className="min-h-9 px-3 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.login.goRegister')}</button>
+                            </div>}
                         </div>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">

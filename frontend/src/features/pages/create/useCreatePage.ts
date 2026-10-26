@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { appLanguage } from '../../../utils/formatting';
@@ -7,7 +8,7 @@ import { clearSetupRecovery, isRecord, isRequestId, readSetupRecovery, writeSetu
 import type { Town } from '../../start/towns';
 import { createPage, type CreatedPage, type CreateRequest, type SimilarPage } from '../api';
 import { pt } from '../copy';
-import { DEFAULT_CLUB_CATEGORY, isPageKind, minimumAge, ORGANIZATION_TYPE, type BusinessKind, type PageKind } from '../model/kinds';
+import { DEFAULT_CLUB_CATEGORY, isPageKind, mayCreatePages, ORGANIZATION_TYPE, type BusinessKind, type PageKind } from '../model/kinds';
 
 interface Pending { requestId: string; body: CreateRequest }
 const RECOVERY = 'page-create';
@@ -43,8 +44,7 @@ export function useCreatePage() {
   const create = useCallback(async ({ kind, name, town, draw = false, business = null }: { kind: PageKind; name: string; town: Town | null; draw?: boolean; business?: BusinessKind | null }): Promise<CreateOutcome> => {
     if (busy) return { kind: 'failed' };
     const displayName = name.trim().replace(/\s+/g, ' ');
-    const age = ageFromDob(user?.dob);
-    if (age != null && age < minimumAge(kind)) { setError(pt('From {age}: ask an adult at the club to create it and invite you.', { age: minimumAge(kind) })); return { kind: 'failed' }; }
+    if (!mayCreatePages(ageFromDob(user?.dob))) { setError(pt('Pages are for adults. Ask an adult at your club to create it and invite you.')); return { kind: 'failed' }; }
     const same = pending && pending.body.displayName === displayName && pending.body.pageKind === kind && (pending.body.businessKind ?? null) === business ? pending : null;
     const requestId = same?.requestId ?? crypto.randomUUID();
     const request: Pending = same ?? { requestId, body: { requestId, displayName, pageKind: kind, organizationType: ORGANIZATION_TYPE[kind], clubCategory: kind === 'CLUB' ? DEFAULT_CLUB_CATEGORY : null,
@@ -64,10 +64,11 @@ export function useCreatePage() {
       const settled = response?.status != null && response.status < 500;
       if (settled) { clearSetupRecovery(user?.id, RECOVERY); setPending(null); }
       if (response?.status === 409 && response.data?.code === 'PAGE_EXISTS' && response.data.match) return { kind: 'exists', match: response.data.match };
+      if (promptEmailConfirmation(failure)) return { kind: 'failed' };
       setError(extractApiErrorMessage(failure, pt(settled ? 'Could not create the page. Try again: nothing is lost.' : 'The last try was not answered. Try again with the same name; it never makes two pages.')));
       return { kind: 'failed' };
     } finally { setBusy(false); }
   }, [busy, navigate, pending, refreshNavigationCapabilities, user?.dob, user?.id]);
 
-  return { create, busy, error, clearError: () => setError(''), unanswered: pending !== null, age: ageFromDob(user?.dob) };
+  return { create, busy, error, clearError: () => setError(''), unanswered: pending !== null };
 }

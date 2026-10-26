@@ -39,7 +39,7 @@ export const TOPICS = ['CLUBS', 'YOUTH', 'MATCHES', 'TOURNAMENTS', 'WOMENS', 'JO
 export const ACTIVITIES = ['PLAY', 'COACH', 'PARENT', 'WATCH'];
 export const EVENT_TYPES = ['SEEN', 'OPENED', 'HIDDEN', 'LESS', 'UNDO_LESS', 'FOLLOWED', 'UNFOLLOWED'];
 /** Where people give up creating a page: each step of the funnel, recorded with the feed's events (no post attached). */
-export const FUNNEL_EVENTS = ['PAGE_CREATE_OPENED', 'PAGE_TYPE_CHOSEN', 'PAGE_CREATED', 'PAGE_BOX_FILLED', 'PAGE_LIVE', 'PAGE_SHARED', 'PAGE_CLAIM_STARTED', 'PAGE_CLAIM_FINISHED'];
+export const FUNNEL_EVENTS = ['PAGE_CREATE_OPENED', 'PAGE_TYPE_CHOSEN', 'PAGE_CREATED', 'PAGE_BOX_FILLED', 'PAGE_LIVE', 'PAGE_SHARED'];
 
 // ---------------------------------------------------------------- registered accounts
 export const accounts = new Map(); // id -> account

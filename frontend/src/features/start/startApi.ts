@@ -82,12 +82,17 @@ export interface NearbyClub {
 export const fetchClubsNearYou = (limit = 8, sort: 'NEAREST' | 'POPULAR' = 'NEAREST', signal?: AbortSignal) =>
     apiClient.get<NearbyClub[]>('/clubs/near-you', { params: { limit, sort }, signal }).then(r => r.data);
 
-/** Clubs found by name, anywhere: searching is how a club far away is found. */
-export const searchClubs = async (query: string, signal?: AbortSignal): Promise<NearbyClub[]> =>
-    (await fetchClubDirectory(new URLSearchParams({ search: query, page: '0', size: '8' }), signal)).content.map(club => ({
+const directoryClubs = async (params: Record<string, string>, signal?: AbortSignal): Promise<NearbyClub[]> =>
+    (await fetchClubDirectory(new URLSearchParams({ page: '0', size: '8', ...params }), signal)).content.map(club => ({
         id: club.id, name: club.name, logoUrl: club.logoUrl ?? null, bannerUrl: null, cityName: club.cityName ?? null, km: null,
         followers: club.followerCount ?? 0, following: club.isFollowedByMe === true,
     }));
+/** Clubs found by name, anywhere: searching is how a club far away is found. */
+export const searchClubs = (query: string, signal?: AbortSignal) => directoryClubs({ search: query }, signal);
+/** Clubs in a town whose published programme takes this age (the server matches the age, as World's directory does). */
+export const fetchClubsForAge = (age: number, city: string, signal?: AbortSignal) => directoryClubs({ age: String(age), city }, signal);
 
 export const followClub = (id: number) => apiClient.post(`/clubs/${id}/follow`);
-export const unfollowClub = (id: number) => apiClient.delete(`/clubs/${id}/follow`);
+/** Follows each club not followed yet; resolves to how many did not go through. */
+export const followClubs = async (clubs: NearbyClub[]) =>
+    (await Promise.allSettled(clubs.filter(club => !club.following).map(club => followClub(club.id)))).filter(result => result.status === 'rejected').length;

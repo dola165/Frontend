@@ -28,7 +28,7 @@ describe('edit mode on a page', () => {
   beforeEach(() => { toasts.calls.length = 0; api.fetchPage.mockReset(); api.saveIdentity.mockReset(); api.saveBox.mockReset(); api.goLive.mockReset(); sessionStorage.clear(); localStorage.setItem('gk-session-id', 's1'); });
 
   it('never shows edit mode to someone who may not edit, whatever the address says', async () => {
-    api.fetchPage.mockResolvedValue(makePage({ status: 'LIVE', viewer: { role: null, canEdit: false, editable: [], canClaim: false }, identity: { about: 'Supporters of Rustavi' } as never }));
+    api.fetchPage.mockResolvedValue(makePage({ status: 'LIVE', viewer: { role: null, canEdit: false, editable: [] }, identity: { about: 'Supporters of Rustavi' } as never }));
     mount('/organizations/7002?edit=1&panel=contact');
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Rustavi Ultras');
     expect(screen.queryByRole('button', { name: 'Edit page' })).toBeNull();

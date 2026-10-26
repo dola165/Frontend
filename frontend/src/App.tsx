@@ -12,7 +12,7 @@ import { AppPageFrame } from './components/layout/AppPageShell';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { isSystemAdmin } from './context/navigationCapabilities';
 import { AuthSessionBoundary } from './context/AuthSessionBoundary';
-import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, completeSignOutNavigation, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
+import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, completeSignOutNavigation, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect, WAITING_FOR_PARENT_PATH } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
 import { applyDocumentTheme, readThemePreference, themeForRoute, isThemePreference, type ThemePreference } from './theme';
 import { AppSettingsPage } from './android/AppSettingsPage';
@@ -94,6 +94,8 @@ const OAuth2RedirectHandler = lazy(() => import('./pages/OAuth2RedirectHandler')
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(module => ({default: module.ForgotPasswordPage})));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({default: module.ResetPasswordPage})));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
+const WaitingForParentPage = lazy(() => import('./pages/WaitingForParentPage').then(module => ({default: module.WaitingForParentPage})));
+const ParentApprovalPage = lazy(() => import('./pages/ParentApprovalPage').then(module => ({default: module.ParentApprovalPage})));
 const ReportReceipts = lazy(() => import('./features/moderation/ReportReceipts').then(module => ({default: module.ReportReceipts})));
 const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
 const RequestsCentre = lazy(() => import('./features/requests/RequestsCentre').then(module => ({default: module.RequestsCentre})));
@@ -134,7 +136,7 @@ function useRailsFit() {
 }
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent', '/start']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval']);
 const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -260,6 +262,12 @@ export function MainLayout() {
 
         if (!user.mustChangePassword && user.onboardingRequired && location.pathname !== '/onboarding') {
             navigate('/onboarding', { replace: true });
+            return;
+        }
+
+        // A 13 to 15-year-old's account waits for a parent; the server answers nothing else meanwhile.
+        if (user.accountState === 'AWAITING_PARENT' && location.pathname !== WAITING_FOR_PARENT_PATH) {
+            navigate(WAITING_FOR_PARENT_PATH, { replace: true });
         }
     }, [location.pathname, navigate, status, user]);
 
@@ -484,7 +492,9 @@ export function MainLayout() {
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
-                        <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=roles`} replace /></ProtectedRoute>} />
+                        <Route path="/parent-approval" element={<ParentApprovalPage />} />
+                        <Route path={WAITING_FOR_PARENT_PATH} element={<ProtectedRoute><WaitingForParentPage /></ProtectedRoute>} />
+                        <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=start`} replace /></ProtectedRoute>} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes></RouteViewport>
                 </main>
@@ -523,7 +533,7 @@ export function MainLayout() {
                     </div>
                 </div>
             )}
-            {/* The start sheet and the claim sheet open over whatever page says `?create=` or `?claim=`. */}
+            {/* The start sheet opens over whatever page says `?create=`. */}
             <CreatePageHost />
         </div>
     );

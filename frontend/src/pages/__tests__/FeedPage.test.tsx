@@ -27,7 +27,7 @@ vi.mock('../../components/feed/PostComposer', () => ({
 
 // The welcome popup and its "Finish setting up" card read the signed-in person and have their own tests.
 vi.mock('../../features/start/WelcomeHost', () => ({ WelcomeHost: () => null }));
-vi.mock('../../features/start/FinishSetup', () => ({ FinishSetup: () => null }));
+vi.mock('../../features/start/FirstWeek', () => ({ FirstWeek: () => null }));
 
 // "This week" and announcements above the feed load their own data and have their own tests.
 vi.mock('../../components/feed/FeedList', () => ({

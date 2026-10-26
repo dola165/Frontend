@@ -12,7 +12,7 @@ import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
-    createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), fetchOutsideChats: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
+    createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), fetchOutsideChats: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(), saveSeen: vi.fn(),
     addPlanStep: vi.fn(), removePlanStep: vi.fn(), setResponsibility: vi.fn(), fetchNow: vi.fn(), writeNow: vi.fn(), addNowComment: vi.fn(), editNowComment: vi.fn(), deleteNowComment: vi.fn(),
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
 }));
@@ -507,24 +507,46 @@ it('lists the team’s accounts without remove buttons, makes the account and on
     expect(await within(panel).findByRole('alert')).toHaveTextContent('not on the team list');
 });
 
-it('stays up to date: shows the latest backend, remembers my version, lists only what I am missing and copies the update message', async () => {
+it('says which release I am on and what I am missing, remembers what I saw, and still lets me set my version by hand', async () => {
     const commit = (id: string, title: string, date: string, merge = false) => ({ id: id.padEnd(40, '0'), date, author: 'Dola', title, merge });
-    vi.mocked(api.fetchVersions).mockResolvedValue({ backend: { known: true, branch: 'codex/real-backend-integration-20261017', commits: [
-        commit('148b8c6d', 'Format the media files', '2026-10-22T19:38:58+04:00'),
-        commit('02896b0e', 'Merge branch \'refs/heads/golive/teamwork-5\' into codex/real-backend-integration-20261017', '2026-10-22T19:30:00+04:00', true),
-        commit('9f8c21b8', 'Only the team’s own six accounts', '2026-10-21T19:15:26+04:00'),
-        commit('715d88c1', 'Plans with a status', '2026-10-20T10:00:00+04:00'),
-    ] } });
+    const release = (number: number, backend: string, summary: string, tasks: { id: number; key: string; title: string; status: string; how: 'BRANCH' }[] = []) =>
+        ({ number, date: '2026-10-24', backend: backend.padEnd(40, '0'), web: `c9d357${number}`.padEnd(40, '0'), summary: { en: summary, ka: summary }, tasks });
+    vi.mocked(api.fetchVersions).mockResolvedValue({
+        backend: { known: true, branch: 'codex/real-backend-integration-20261017', commits: [
+            commit('148b8c6d', 'Format the media files', '2026-10-22T19:38:58+04:00'),
+            commit('02896b0e', 'Merge branch \'refs/heads/golive/teamwork-5\' into codex/real-backend-integration-20261017', '2026-10-22T19:30:00+04:00', true),
+            commit('9f8c21b8', 'Only the team’s own six accounts', '2026-10-21T19:15:26+04:00'),
+            commit('715d88c1', 'Plans with a status', '2026-10-20T10:00:00+04:00'),
+        ] },
+        place: 'COPY', liveOrigin: 'https://app.grasskickz.com',
+        build: { known: true, head: '9f8c21b8'.padEnd(40, '0'), branch: 'codex/real-backend-integration-20261017', builtAt: now, dirty: 0 },
+        at: { known: true, release: 4, changes: 0 },
+        live: { release: 5, changes: 0, source: 'LIVE_SITE', checkedAt: now },
+        releases: [release(5, '148b8c6d', 'A chat for every task', [{ id: 1, key: 'GK-1', title: 'Branding and landing', status: 'LIVE', how: 'BRANCH' }]), release(4, '9f8c21b8', 'The team chat')],
+        seen: { release: 3, backend: null, web: null, at: twoDaysAgo },
+    });
+    vi.mocked(api.saveSeen).mockResolvedValue({ release: 4, backend: '9f8c21b8'.padEnd(40, '0'), web: null, at: now });
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
     localStorage.removeItem('gk.teamWork.myVersion');
     mount('/team-work');
     await userEvent.click(await screen.findByRole('button', { name: 'What changed' }));
     expect(screen.getByTestId('where')).toHaveTextContent('view=changes');
     expect(await screen.findByRole('heading', { name: 'What changed', level: 1 })).toBeInTheDocument();
-    expect(await screen.findByText('Format the media files', { selector: '.tw-latest__commit' })).toBeInTheDocument();
-    expect(screen.getByText('Not known for this build')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Recent changes' })).toBeInTheDocument();
 
+    // The answer comes first, in words: the release, that this is a copy, and how far behind live it is.
+    expect(await screen.findByRole('heading', { name: 'You’re on release 4 · your local copy', level: 2 })).toBeInTheDocument();
+    expect(screen.getByText('1 release behind live (release 5): you’re missing release 5.')).toBeInTheDocument();
+    const fresh = screen.getByRole('heading', { name: /New since you last looked/ }).parentElement!;
+    expect(within(fresh).getByText('The team chat')).toBeInTheDocument();
+    expect(within(fresh).getByText(/on release 3/)).toBeInTheDocument();
+    const behind = screen.getByRole('heading', { name: 'What your copy is missing' }).parentElement!;
+    expect(within(behind).getByText('A chat for every task')).toBeInTheDocument();
+    expect(within(behind).getByRole('link', { name: 'GK-1 Branding and landing' })).toHaveAttribute('href', '/team-work?task=1');
+    await waitFor(() => expect(api.saveSeen).toHaveBeenCalledWith({ release: 4, backend: '9f8c21b8'.padEnd(40, '0'), web: null }));
+
+    // By hand, folded below: pick or paste a commit to see what this computer is missing.
+    await userEvent.click(screen.getByText('Every change, day by day'));
+    expect(screen.getByRole('heading', { name: 'Recent changes' })).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('My backend version'), '9f8c21b8'.padEnd(40, '0'));
     expect(screen.getByRole('heading', { name: 'You’re missing 1' })).toBeInTheDocument();
     const missingList = screen.getByRole('heading', { name: 'You’re missing 1' }).parentElement!;
@@ -537,10 +559,11 @@ it('stays up to date: shows the latest backend, remembers my version, lists only
     await userEvent.type(screen.getByLabelText('Or paste the backend commit id'), '148b8c6');
     expect(screen.getByRole('heading', { name: 'You are up to date' })).toBeInTheDocument();
 
+    // The update message aims at what is live, not at this copy's own newest commit.
     const message = screen.getByLabelText('The message for Claude or Codex') as HTMLTextAreaElement;
-    expect(message.value).toContain('github.com/dola165/GrassKickZ — reach at least commit 148b8c6');
+    expect(message.value).toContain('github.com/dola165/GrassKickZ — reach at least commit 148b8c6 (release 5, what is live)');
     expect(message.value).toContain('whether this computer was already up to date');
-    await userEvent.click(screen.getByRole('button', { name: 'Copy update message' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Copy update message' })[0]);
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
     await userEvent.click(screen.getByRole('button', { name: 'Overview' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');

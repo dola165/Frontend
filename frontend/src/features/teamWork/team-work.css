@@ -346,3 +346,21 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
     .gk .tw-invite__row .gk-input { flex-basis: 100%; }
     .gk .tw-team__doing { flex: 1 1 100%; }
 }
+
+/* What changed: the answer first (which release, live or a copy), then releases as small cards. */
+.gk .tw-answer { display: flex; flex-direction: column; gap: 4px; padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .tw-answer__title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--gk-fs-lg); font-weight: 650; color: var(--gk-text); overflow-wrap: anywhere; }
+.gk .tw-answer__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-info); }
+.gk .tw-answer[data-place='LIVE'] .tw-answer__dot { background: var(--gk-accent); }
+.gk .tw-answer__line { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .tw-answer__ask { margin-top: var(--gk-2); align-items: center; }
+.gk .tw-release { display: flex; flex-direction: column; gap: 4px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-md, 8px); font-size: var(--gk-fs-sm); min-width: 0; }
+.gk .tw-release__head { display: flex; gap: 6px; align-items: baseline; }
+.gk .tw-release__summary { margin: 0; color: var(--gk-text-2); }
+.gk .tw-release__tasks { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.gk .tw-release__tasks a { color: var(--gk-text); text-decoration: none; overflow-wrap: anywhere; }
+.gk .tw-release__tasks a:hover { text-decoration: underline; }
+.gk .tw-release__tasks code { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .tw-release__hint { font-size: var(--gk-fs-xs); }
+.gk .tw-releases { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gk-2); }
+.gk .tw-how { display: flex; flex-direction: column; gap: 4px; margin: 0; padding-left: 18px; font-size: var(--gk-fs-sm); color: var(--gk-text-2); overflow-wrap: anywhere; }

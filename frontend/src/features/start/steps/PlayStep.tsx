@@ -35,7 +35,7 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
     useEffect(() => {
         if (query == null) return;
         const controller = new AbortController();
-        (age != null ? fetchClubsForAge(age, town, controller.signal) : fetchClubsNearYou(8, 'NEAREST', controller.signal))
+        (age != null ? fetchClubsForAge(age, town, controller.signal) : fetchClubsNearYou(12, 'NEAREST', controller.signal))
             .then(found => { if (!controller.signal.aborted) setLoaded({ query, clubs: found }); })
             .catch(() => { if (!controller.signal.aborted) setLoaded({ query, clubs: [] }); });
         return () => controller.abort();

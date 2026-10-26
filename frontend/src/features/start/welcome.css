@@ -1,6 +1,23 @@
 /* The welcome over Home (two screens) and Home's "Your first week" card. Scoped under .gk; tokens only; compact like Home. */
-.gk .gk-welcome-dialog { min-width: 0; max-height: min(88dvh, 860px); }
-.gk .gk-welcome-dialog .gk-dialog__title { font-size: var(--gk-fs-3xl); line-height: var(--gk-lh-3xl); }
+.gk .gk-dialog.gk-welcome-dialog { min-width: 0; }
+/* Choosing (step 1, a business's kind): wide and tall enough for big photo tiles. */
+.gk .gk-dialog.gk-welcome-dialog--choose { max-width: min(1040px, 94vw); max-height: min(94dvh, 980px); }
+/* Working through a list (clubs, work): close to a full page, the list scrolling inside. */
+.gk .gk-dialog.gk-welcome-dialog--work { max-width: min(1180px, 94vw); height: min(90dvh, 980px); max-height: none; }
+.gk .gk-welcome-dialog .gk-dialog__title { font-size: var(--gk-fs-4xl); line-height: 1.2; }
+.gk .gk-welcome-dialog .gk-dialog__description { font-size: var(--gk-fs-lg); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: var(--gk-3); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact .gk-tile { min-height: 64px; padding: var(--gk-3) var(--gk-4); }
+/* A business's kind: one tap each, as big as the choice it is. */
+.gk .gk-welcome-dialog--choose .gk-tiles--act { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--gk-3); }
+.gk .gk-welcome-dialog--choose .gk-tiles--act .gk-tile { min-height: 96px; align-items: center; padding: var(--gk-4); font-size: var(--gk-fs-xl); }
+.gk .gk-welcome-dialog--choose .gk-tiles--act .gk-tile__text strong { font-size: var(--gk-fs-xl); line-height: 1.3; }
+.gk .gk-welcome-dialog--choose .gk-welcome__mark { width: 44px; height: 44px; }
+.gk .gk-welcome-dialog--choose .gk-welcome__mark svg { width: 22px; height: 22px; }
+@media (max-width: 640px) {
+  .gk .gk-dialog.gk-welcome-dialog { max-width: none; height: 100dvh; max-height: none; border-radius: 0; border-width: 0; }
+  .gk .gk-welcome-dialog .gk-dialog__title { font-size: var(--gk-fs-3xl); }
+}
 .gk .gk-welcome-dialog .gk-dialog__foot { flex-wrap: wrap; }
 .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__back,
 .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__follow { margin-right: auto; }
@@ -14,7 +31,7 @@
 @keyframes gk-welcome-spin { to { transform: rotate(360deg); } }
 
 /* Step 1: size shows weight. Two large photo tiles, two medium ones under them. */
-.gk .gk-wtiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-3); }
+.gk .gk-wtiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-4); }
 .gk .gk-wtile { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gk-3); min-width: 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg);
   background: var(--tile-photo) var(--tile-position, center) / cover no-repeat, var(--gk-sunken); color: var(--gk-text); font: inherit; text-align: left; overflow: hidden; isolation: isolate;
   transition: border-color .15s var(--gk-ease), transform .2s var(--gk-ease); }
@@ -22,25 +39,29 @@
 .gk button.gk-wtile { cursor: pointer; }
 .gk button.gk-wtile:hover { border-color: var(--gk-line-strong); transform: translateY(-1px); }
 .gk button.gk-wtile:focus-visible, .gk .gk-wtile__half:focus-visible { outline: none; box-shadow: var(--gk-focus); }
-.gk .gk-wtile--large { min-height: 236px; }
-.gk .gk-wtile--medium { min-height: 150px; }
+.gk .gk-wtile--large { min-height: 340px; padding: var(--gk-5); }
+.gk .gk-wtile--medium { min-height: 200px; }
 .gk .gk-wtile__text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.gk .gk-wtile__text strong { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 700; }
-.gk .gk-wtile--medium .gk-wtile__text strong { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
-.gk .gk-wtile__line { color: var(--gk-text); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
-.gk .gk-wtile__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); }
-.gk .gk-wtile__icon { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: var(--gk-2); border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .gk-wtile__icon svg { width: 17px; height: 17px; }
+.gk .gk-wtile__text strong { font-size: var(--gk-fs-4xl); line-height: 1.15; font-weight: 700; }
+.gk .gk-wtile--medium .gk-wtile__text strong { font-size: var(--gk-fs-3xl); line-height: 1.2; }
+.gk .gk-wtile__line { color: var(--gk-text); font-size: var(--gk-fs-lg); line-height: 1.4; }
+.gk .gk-wtile--medium .gk-wtile__line { font-size: var(--gk-fs-md); }
+.gk .gk-wtile__text small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-wtile__icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: var(--gk-2); border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-wtile--medium .gk-wtile__icon { width: 34px; height: 34px; }
+.gk .gk-wtile__icon svg { width: 20px; height: 20px; }
 .gk .gk-wtile__halves { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--gk-2); }
-.gk .gk-wtile__half { display: inline-flex; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 48px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r);
+.gk .gk-wtile__half { display: inline-flex; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 56px; padding: 0 var(--gk-4); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r);
   background: color-mix(in srgb, var(--gk-surface) 88%, transparent); color: var(--gk-text); font: inherit; font-weight: 650; cursor: pointer; transition: background .15s var(--gk-ease), border-color .15s var(--gk-ease); }
 .gk .gk-wtile__half:hover { border-color: var(--gk-accent); background: var(--gk-accent-soft); }
 .gk .gk-wtile__half svg { width: 17px; height: 17px; color: var(--gk-accent); }
 @media (max-width: 640px) {
   .gk .gk-wtiles { grid-template-columns: minmax(0, 1fr); gap: var(--gk-2); }
   .gk .gk-wtile { padding: var(--gk-3); }
-  .gk .gk-wtile--large { min-height: 176px; }
-  .gk .gk-wtile--medium { min-height: 104px; }
+  .gk .gk-wtile--large { min-height: 200px; padding: var(--gk-4); }
+  .gk .gk-wtile--medium { min-height: 120px; }
+  .gk .gk-wtile__text strong { font-size: var(--gk-fs-3xl); }
+  .gk .gk-wtile--medium .gk-wtile__text strong { font-size: var(--gk-fs-2xl); }
   .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__follow { flex: 1; }
 }
 

@@ -26,7 +26,7 @@ export function ClubStep({ facts, land, back, close }: WelcomeStepProps) {
 
     useEffect(() => {
         const controller = new AbortController();
-        fetchClubsNearYou(5, 'NEAREST', controller.signal).then(setNear).catch(() => { if (!controller.signal.aborted) setNear([]); });
+        fetchClubsNearYou(8, 'NEAREST', controller.signal).then(setNear).catch(() => { if (!controller.signal.aborted) setNear([]); });
         return () => controller.abort();
     }, []);
     useEffect(() => {

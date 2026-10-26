@@ -16,12 +16,16 @@ export interface WelcomeStepProps {
     close: () => void;
 }
 
-/** The welcome's one dialog over Home: "Welcome · 1 of 2", the title, one grey line, the screen and its footer. */
-export function WelcomeFrame({ position, title, hint, onClose, back, footer, children }: {
-    position: 1 | 2; title: string; hint?: string; onClose: () => void; back?: () => void; footer: ReactNode; children: ReactNode;
+/**
+ * The welcome's one dialog over Home: "Welcome · 1 of 2", the title, one grey line, the screen and its footer. Big, so
+ * the choice is the page (owner, 26 October): `choose` for picking one tile (step 1, a business's kind), `work` close
+ * to a full page for a list (clubs, work), scrolling inside. On a phone it fills the screen.
+ */
+export function WelcomeFrame({ position, size = position === 1 ? 'choose' : 'work', title, hint, onClose, back, footer, children }: {
+    position: 1 | 2; size?: 'choose' | 'work'; title: string; hint?: string; onClose: () => void; back?: () => void; footer: ReactNode; children: ReactNode;
 }) {
     const copy = useJourneyCopy();
-    return <Dialog open size="lg" className="gk-welcome-dialog" title={title} description={hint} onClose={onClose}
+    return <Dialog open size="lg" className={`gk-welcome-dialog gk-welcome-dialog--${size}`} title={title} description={hint} onClose={onClose}
         closeLabel={copy('Close', 'დახურვა')} eyebrow={copy(`Welcome · ${position} of 2`, `მოგესალმებით · ${position} / 2`)}
         footer={<>
             {back && <Button variant="ghost" className="gk-welcome__back" onClick={back}>{copy('Back', 'უკან')}</Button>}

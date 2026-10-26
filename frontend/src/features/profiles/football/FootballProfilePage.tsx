@@ -71,7 +71,7 @@ function FootballProfile({ userId }: { userId: number }) {
                         {status === 'loading' && !data ? <div role="status" aria-label={copy('Loading', 'იტვირთება')} className="gk-fp-loading"><Skeleton height={48} /><Skeleton height={48} /></div>
                             : !data ? <EmptyNote title={copy('This couldn’t load', 'ვერ ჩაიტვირთა')} action={<Button size="sm" onClick={football.reload}>{copy('Try again', 'ხელახლა ცდა')}</Button>} />
                             : lines.length || data.follows.length ? <FootballLines lines={lines} follows={data.follows} own onChanged={football.reload} />
-                            : <p className="gk-fp-empty">{copy('Nothing yet. A line appears when a coach takes you into a squad, a club gives you a job, or you add your child.', 'ჯერ არაფერია. ხაზი გამოჩნდება, როცა მწვრთნელი გუნდში მიგიღებთ, კლუბი სამსახურს მოგცემთ, ან შვილს დაამატებთ.')}</p>}
+                            : <p className="gk-fp-empty">{copy('Nothing yet. This fills itself when a coach or a club adds you.', 'ჯერ არაფერია. შეივსება, როცა მწვრთნელი ან კლუბი დაგამატებთ.')}</p>}
                     </Section>
                     <Section boxed id="career" title={copy('Career', 'კარიერა')} hint={copy('From the clubs’ records; it stays with you when you leave', 'კლუბების ჩანაწერებიდან; წასვლისას თქვენთან რჩება')}>
                         {!data ? (status === 'loading' ? <Skeleton height={120} /> : null)

@@ -17,10 +17,6 @@ const month = (value: string | null | undefined, copy: Copy) => {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(copy('en-GB', 'ka-GE'), { month: 'short', year: 'numeric' });
 };
-const year = (value: string | null | undefined) => {
-    const date = value ? new Date(value) : null;
-    return date && !Number.isNaN(date.getTime()) ? date.getFullYear() : null;
-};
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
 /** A line's picture: the club's crest, the child's face, or the referee's flag. */
@@ -113,10 +109,10 @@ function LeaveDialog({ line, onClose, onLeft }: { line: FootballLine; onClose: (
         } catch (reason) { setError(extractApiErrorMessage(reason, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ ხელახლა.'))); setBusy(false); }
     };
     return <Dialog open size="sm" role="alertdialog" onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
-        title={copy(`Leave ${home}?`, `დატოვებთ ${home}-ს?`)}
+        title={copy(`Leave ${home}?`, `დატოვებთ კლუბს — ${home}?`)}
         description={asStaff
-            ? copy(`You stop being ${line.title}. The club keeps the sessions and notes; it stays in your career.`, `აღარ იქნებით ${line.title}. კლუბს რჩება ვარჯიშები და ჩანაწერები; თქვენს კარიერაში ეს დარჩება.`)
-            : copy(`You leave as ${line.title}. It stays in your career.`, `ტოვებთ როგორც ${line.title}. თქვენს კარიერაში ეს დარჩება.`)}
+            ? copy(`You stop being ${line.title}. The club keeps the sessions and notes; it stays in your career.`, `სამსახური „${line.title}“ დასრულდება. ვარჯიშები და ჩანაწერები კლუბს რჩება, თქვენს კარიერაში კი ეს დარჩება.`)
+            : copy('You leave the squad. It stays in your career.', 'ტოვებთ გუნდს. თქვენს კარიერაში ეს დარჩება.')}
         footer={<><Button onClick={onClose} disabled={busy}>{copy('Stay', 'დარჩენა')}</Button><Button variant="danger" disabled={busy} onClick={() => void leave()}>{copy('Leave', 'დატოვება')}</Button></>}>
         {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
     </Dialog>;
@@ -128,7 +124,7 @@ export function CareerTotalsRow({ totals }: { totals: CareerTotals }) {
     const items = [
         { value: totals.sessionsCoached, label: copy('sessions coached', 'ჩატარებული ვარჯიში') },
         { value: totals.matchesPlayed, label: copy('matches played', 'ნათამაშები მატჩი') },
-        { value: totals.matchesRefereed, label: copy('matches refereed', 'მსაჯობით მატჩი') },
+        { value: totals.matchesRefereed, label: copy('matches refereed', 'მატჩი მსაჯად') },
     ].filter(item => item.value > 0);
     if (!items.length) return null;
     return <p className="gk-fp-totals" aria-label={copy('Career in numbers', 'კარიერა ციფრებში')}>
@@ -142,7 +138,7 @@ export function CareerCards({ rows }: { rows: CareerRow[] }) {
     if (!rows.length) return null;
     return <ul className="gk-fp-career" aria-label={copy('Career', 'კარიერა')}>
         {rows.map(row => {
-            const from = year(row.startsOn), to = year(row.endsOn);
+            const from = month(row.startsOn, copy), to = month(row.endsOn, copy);
             return <li key={row.id} className="gk-fp-card">
                 <div className="gk-fp-card__top">
                     <LineMark line={{ kind: row.kind, home: row.home, child: null }} size={36} />

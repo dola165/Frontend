@@ -102,7 +102,7 @@ export function WhatYouDo() {
         <div className="gk-fp-licence" role="group" aria-label={copy('Coaching licence', 'სამწვრთნელო ლიცენზია')}>
             <span className="gk-faint">{copy('Licence', 'ლიცენზია')}</span>
             {LICENCES.map(value => <button key={value} type="button" className="gk-chip" aria-pressed={discovery.licence === value} disabled={busy}
-                onClick={() => void writeDiscovery({ licence: discovery.licence === value ? null : value })}>{value === 'GK' ? copy('Goalkeeper', 'მეკარის') : `UEFA ${value === 'PRO' ? 'Pro' : value}`}</button>)}
+                onClick={() => void writeDiscovery({ licence: discovery.licence === value ? null : value })}>{value === 'GK' ? copy('Goalkeeper', 'მეკარეთა') : `UEFA ${value === 'PRO' ? 'Pro' : value}`}</button>)}
         </div>
 
         <div className="gk-fp-switches">

@@ -36,7 +36,7 @@ export function AboutInPlace({ bio, onSaved, open: startOpen = false, alwaysOpen
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{copy('Edit', 'შეცვლა')}</Button>
         </div>
         : <div className="gk-about gk-about--empty">
-            <p className="gk-faint">{copy('A few words about you and your football.', 'რამდენიმე სიტყვა თქვენსა და თქვენს ფეხბურთზე.')}</p>
+            <p className="gk-faint">{copy('A few words about you and your football.', 'რამდენიმე სიტყვა თქვენზე და თქვენს ფეხბურთზე.')}</p>
             <Button size="sm" variant="primary" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{copy('Write about you', 'დაწერეთ თქვენ შესახებ')}</Button>
         </div>;
     return <div className="gk-about gk-about--open">
@@ -45,7 +45,7 @@ export function AboutInPlace({ bio, onSaved, open: startOpen = false, alwaysOpen
             onChange={event => { setText(event.target.value); if (state !== 'saving') setState('idle'); }} onBlur={() => void save(false)} />
         <div className="gk-about__foot">
             {state === 'saved' && <span role="status" className="gk-fp-saved">{copy('Saved', 'შენახულია')}</span>}
-            {state === 'failed' && <span role="alert" className="gk-fp-error">{copy('Not saved. Your text is still here.', 'არ შეინახა. ტექსტი აქვეა.')}</span>}
+            {state === 'failed' && <span role="alert" className="gk-fp-error">{copy('Not saved. Your text is still here.', 'ვერ შეინახა. ტექსტი აქვეა.')}</span>}
             {!alwaysOpen && <Button size="sm" variant="primary" disabled={state === 'saving'} onMouseDown={event => event.preventDefault()} onClick={() => void save(true)}>{copy('Done', 'მზადაა')}</Button>}
         </div>
     </div>;

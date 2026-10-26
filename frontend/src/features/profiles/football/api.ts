@@ -90,7 +90,7 @@ function manageOf(line: ServerLine): string | null {
     switch (line.kind) {
         case 'PARENT_OF': return line.child ? `/parent?player=${line.child.id}` : '/parent';
         case 'REFEREE': return '/referees/me';
-        case 'PLAYS_FOR': { const squad = /^plays:(\d+)$/.exec(line.line)?.[1]; return squad ? `/squads/${squad}` : null; }
+        case 'PLAYS_FOR': { const squad = line.squads?.[0]?.id; return squad ? `/squads/${squad}` : null; }
         case 'JOB': case 'COACH':
             if (!allowed(line, 'manage_club')) return null;
             return COACHING.test(line.title) && (line.squads?.length ?? 0) > 0 ? '/my-squads' : club ? `/clubs/${club}/workspace` : null;

@@ -7,7 +7,7 @@ import { ageFromDob } from '../../../utils/age';
 import { isEmail } from '../../../utils/registration';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { giveOwnAccount, type JoiningChild, type OwnAccount as OwnAccountState } from '../api';
-import { relativeTime } from './relativeTime';
+import { relativeTime } from '../../../utils/relativeTime';
 
 /**
  * "Give Luka their own account" on the child's card (release 7), from the server's `ownAccount`: NONE offers it (the

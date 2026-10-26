@@ -1,6 +1,7 @@
 import { apiClient, type AuthSessionRequestConfig } from "../../api/axiosConfig";
 import { isAxiosError } from "axios";
 import type { AuthSessionId } from "../../utils/authStorage";
+import type { ScoreStatus } from "../scores/api";
 export const formats: Record<string, string> = {
   "5_A_SIDE": "5-a-side",
   "7_A_SIDE": "7-a-side",
@@ -86,7 +87,9 @@ export type Match = {
   can_arrange_official?: boolean;
   home_score: number | null;
   away_score: number | null;
-  result_status?: "PROPOSED" | "CONFIRMED" | "DISPUTED" | null;
+  result_status?: ScoreStatus | null;
+  /** An under-11 match the viewer is not part of: `home_score`/`away_score` are null. */
+  score_private?: boolean;
   result_legacy?: boolean;
   event_id: number;
   squad_id: number;
@@ -188,49 +191,6 @@ export type OfficialCoordination = {
   messages: OfficialCoordinationMessage[]; page: number; size: number; totalElements: number; totalPages: number; hasMore: boolean;
 };
 export type ResultSide = "HOME" | "AWAY" | "REFEREE";
-export type MatchResultHistory = {
-  id: number;
-  action: string;
-  actor_id: number | null;
-  actor_side: ResultSide | null;
-  home_score: number | null;
-  away_score: number | null;
-  previous_home_score: number | null;
-  previous_away_score: number | null;
-  previous_status: string | null;
-  status: string;
-  reason: string | null;
-  created_at: string;
-  revision: number;
-};
-export type MatchResultState = {
-  eventId: number;
-  fixtureStatus?: "SCHEDULED" | "COMPLETED" | "CANCELLED";
-  status: "NONE" | "PROPOSED" | "CONFIRMED" | "DISPUTED";
-  revision: number;
-  homeScore: number | null;
-  awayScore: number | null;
-  proposalSide: ResultSide | null;
-  requiredConfirmations: ResultSide[];
-  confirmations: ResultSide[];
-  legacy: boolean;
-  authority: {
-    roles: ResultSide[];
-    canPropose: boolean;
-    canCorrect: boolean;
-    canDispute: boolean;
-    confirmableRoles: ResultSide[];
-    correctableRoles: ResultSide[];
-  };
-  history: MatchResultHistory[];
-};
-export type ResultWrite = { side: ResultSide; revision: number; requestId: string };
-export type ResultScoreWrite = ResultWrite & { homeScore: number; awayScore: number };
-export type ResultReasonWrite = ResultWrite & { reason: string };
-export type PublicMatchResult = {
-  eventId: number; status: MatchResultState['status']; fixtureStatus: string; revision: number;
-  homeScore: number | null; awayScore: number | null; official: boolean; legacy: boolean; canReadAudit: boolean;
-};
 export type ResultSuggestion = {
   id: number; homeScore: number; awayScore: number; note: string | null; evidenceUrl: string | null;
   status: 'PENDING' | 'ADOPTED' | 'DISMISSED'; revision: number; createdAt: string; reviewedAt: string | null;
@@ -245,10 +205,6 @@ export type ResultSuggestions = {
 };
 export type SuggestionWrite = { homeScore: number; awayScore: number; note?: string; evidenceUrl?: string; revision: number; requestId: string };
 export type SuggestionReview = { action: 'ADOPT' | 'DISMISS'; side: ResultSide; revision: number; suggestionRevision: number; requestId: string; reason: string };
-export async function getPublicMatchResult(eventId: number, signal: AbortSignal, sessionId: AuthSessionId) {
-  const config: AuthSessionRequestConfig = { signal, _authSessionId: sessionId, timeout: 15000 };
-  return (await apiClient.get<PublicMatchResult>(`/match-exchange/${eventId}/result/summary`, config)).data;
-}
 export async function getResultSuggestions(eventId: number, page: number, signal: AbortSignal, sessionId: AuthSessionId) {
   const config: AuthSessionRequestConfig = { signal, params: { page }, _authSessionId: sessionId, timeout: 15000 };
   return (await apiClient.get<ResultSuggestions>(`/match-exchange/${eventId}/result/suggestions`, config)).data;
@@ -274,15 +230,6 @@ export async function post(path: string, data: unknown = {}, impactToken?: strin
 export async function getOfficialCoordination(eventId: number, page: number, signal: AbortSignal, sessionId: AuthSessionId) {
   const config: AuthSessionRequestConfig = { params: { page, size: 30 }, signal, _authSessionId: sessionId };
   return (await apiClient.get<OfficialCoordination>(`/match-exchange/${eventId}/coordination`, config)).data;
-}
-export async function getMatchResult(eventId: number, signal: AbortSignal, sessionId: AuthSessionId) {
-  const config: AuthSessionRequestConfig = { signal, _authSessionId: sessionId };
-  return (await apiClient.get<MatchResultState>(`/match-exchange/${eventId}/result`, config)).data;
-}
-export async function writeMatchResult(eventId: number, action: "propose" | "confirm" | "dispute" | "correct", body: ResultWrite | ResultScoreWrite | ResultReasonWrite, signal: AbortSignal, sessionId: AuthSessionId) {
-  const config: AuthSessionRequestConfig = { signal, _authSessionId: sessionId };
-  const path = `/match-exchange/${eventId}/result${action === "propose" ? "" : `/${action}`}`;
-  return (await apiClient.post<MatchResultState>(path, body, config)).data;
 }
 export async function sendOfficialCoordination(eventId: number, body: string, requestId: string, signal: AbortSignal, sessionId: AuthSessionId) {
   const config: AuthSessionRequestConfig = { signal, _authSessionId: sessionId };

@@ -28,12 +28,12 @@ describe('matchState: what a match is, honestly', () => {
         expect(matchState(match({ resultStatus: 'BYE' }), NOW).when).toMatchObject({ word: 'Bye' });
     });
 
-    it('shows a score only once it counts: never a proposed or disputed one', () => {
+    it('shows a score only once it counts: never a reported or disputed one', () => {
         expect(matchState(match({ startsAt: at(-30), endsAt: at(-28), homeScore: 3, awayScore: 1, resultStatus: 'RECORDED', fixtureStatus: 'COMPLETED' }), NOW))
             .toMatchObject({ code: 'ft', when: { word: 'FT' }, score: { home: 3, away: 1 } });
-        const proposed = matchState(match({ startsAt: at(-30), endsAt: at(-28), homeScore: 0, awayScore: 1, resultStatus: 'PROPOSED' }), NOW);
-        expect(proposed).toMatchObject({ code: 'proposed', score: null, tag: { word: 'Score to confirm', tone: 'neutral' } });
-        expect(matchState(match({ startsAt: at(-30), endsAt: at(-28), homeScore: 0, awayScore: 1, resultStatus: 'PROPOSED', canRecordResult: true }), NOW).tag)
+        const proposed = matchState(match({ startsAt: at(-30), endsAt: at(-28), homeScore: 0, awayScore: 1, resultStatus: 'REPORTED' }), NOW);
+        expect(proposed).toMatchObject({ code: 'reported', score: null, tag: { word: 'Score to confirm', tone: 'neutral' } });
+        expect(matchState(match({ startsAt: at(-30), endsAt: at(-28), homeScore: 0, awayScore: 1, resultStatus: 'REPORTED', canRecordResult: true }), NOW).tag)
             .toEqual({ word: 'Score to confirm', tone: 'warning' });
         expect(matchState(match({ startsAt: at(-30), endsAt: at(-28), homeScore: 2, awayScore: 2, resultStatus: 'DISPUTED' }), NOW))
             .toMatchObject({ code: 'disputed', score: null, tag: { word: 'Disputed', tone: 'danger' } });
@@ -65,7 +65,7 @@ describe('matchState: what a match is, honestly', () => {
         expect(matchState(match({ source: 'TOURNAMENT', startsAt: at(-0.5), endsAt: null }), NOW)).toMatchObject({ code: 'started', when: { word: 'Started' } });
         // Long after kick-off with no end time, a fixture owes its result rather than being "started" forever.
         expect(matchState(match({ source: 'TOURNAMENT', startsAt: at(-26), endsAt: null }), NOW)).toMatchObject({ code: 'none', tag: { word: 'No result yet' } });
-        expect(matchState(match({ startsAt: at(-26), endsAt: at(-24), canRecordResult: true }), NOW).tag).toEqual({ word: 'Add result', tone: 'warning' });
+        expect(matchState(match({ startsAt: at(-26), endsAt: at(-24), canRecordResult: true }), NOW).tag).toEqual({ word: 'Report score', tone: 'warning' });
     });
 
     it('reads a time without an offset as the ground’s clock in Georgia', () => {

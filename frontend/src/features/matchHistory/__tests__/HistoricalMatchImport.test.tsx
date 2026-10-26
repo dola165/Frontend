@@ -9,7 +9,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getHistoricalImportOptions).mockResolvedValue({ clubs: [{ id: 1, name: 'My Club', squads: [{ id: 7, name: 'U16' }] }] });
   vi.mocked(searchHistoricalOpponents).mockResolvedValue({ content: [{ id: 2, name: 'Opponents' }], totalElements: 1 });
-  vi.mocked(importHistoricalMatch).mockResolvedValue({ eventId: 90, detailPath: '/calendar?eventId=90', historicalImport: true, resultStatus: 'RECORDED', homeScore: 0, awayScore: 2 });
+  vi.mocked(importHistoricalMatch).mockResolvedValue({ eventId: 90, detailPath: '/calendar?eventId=90', historicalImport: true, resultStatus: 'REPORTED', homeScore: 0, awayScore: 2 });
 });
 
 async function fill(away = false) {
@@ -21,9 +21,9 @@ async function fill(away = false) {
   if (away) fireEvent.change(screen.getByRole('combobox', { name: 'Your club played' }), { target: { value: 'AWAY' } });
   fireEvent.change(screen.getByLabelText('Local kickoff date & time'), { target: { value: '2020-09-20T14:00' } });
   fireEvent.change(screen.getByLabelText('Local end date & time'), { target: { value: '2020-09-20T15:30' } });
-  fireEvent.change(screen.getByRole('spinbutton', { name: 'Home score' }), { target: { value: '0' } });
+  fireEvent.change(screen.getAllByRole('textbox', { name: /^Goals for/ })[0], { target: { value: '0' } });
   expect(screen.getByRole('button', { name: 'Add historical record' })).toBeDisabled();
-  fireEvent.change(screen.getByRole('spinbutton', { name: 'Away score' }), { target: { value: '2' } });
+  fireEvent.change(screen.getAllByRole('textbox', { name: /^Goals for/ })[1], { target: { value: '2' } });
   expect(screen.getByRole('button', { name: 'Add historical record' })).toBeDisabled();
   fireEvent.change(screen.getByRole('textbox', { name: 'Record source / reason' }), { target: { value: 'Signed club scorebook, 20 September 2020' } });
 }
@@ -41,7 +41,7 @@ it('preserves actual home/away sides and uses private visibility and a source no
   expect(screen.getByRole('combobox', { name: 'Visibility' })).toHaveValue('PRIVATE');
   fireEvent.click(screen.getByRole('button', { name: 'Add historical record' }));
   await waitFor(() => expect(importHistoricalMatch).toHaveBeenCalledWith(expect.objectContaining({ clubId: 2, opponentClubId: 1, awaySquadId: 7, homeSquadId: undefined, homeScore: 0, awayScore: 2, visibility: 'PRIVATE', reason: 'Signed club scorebook, 20 September 2020', startsAt: '2020-09-20T14:00:00', endsAt: '2020-09-20T15:30:00', requestId: expect.any(String) }), expect.any(AbortSignal), 'session-a'));
-  expect(await screen.findByRole('link', { name: /Open recorded match/ })).toHaveAttribute('href', '/calendar?eventId=90');
+  expect(await screen.findByRole('link', { name: /Open the match/ })).toHaveAttribute('href', '/calendar?eventId=90');
   expect(screen.queryByText('Confirmed result')).not.toBeInTheDocument();
 });
 

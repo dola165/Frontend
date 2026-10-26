@@ -577,16 +577,6 @@
   font-size: 12px;
   margin-top: 5px;
 }
-.tw-score-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-.tw-score-inputs input {
-  text-align: center;
-  font-size: 28px;
-  font-variant-numeric: tabular-nums;
-}
 .tw-settings {
   max-width: 860px;
 }

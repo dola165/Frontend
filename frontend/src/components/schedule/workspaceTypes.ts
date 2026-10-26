@@ -42,7 +42,6 @@ export interface ScheduleWorkspaceEvent {
     resultStatus?: import('../../features/matchHistory/api').ResultStatus;
     matchExchangeId?: number | null;
     canRecordResult?: boolean;
-    resultClubId?: number | null;
     seriesId?: string | null;
     /** Squad availability in opt-out terms: `going` are expected, `pending` were asked to confirm and have not. */
     responseSummary?: { total: number; going: number; pending: number; cantCome?: number };

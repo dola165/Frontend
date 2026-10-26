@@ -13,6 +13,7 @@ import type { TournamentDetail, TournamentFixtureDto } from '../domain';
 import { distinctParticipantNames } from '../participantLabels';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { VenueReservationSummary } from '../../eventVenues/VenueReservationSummary';
+import { ScoreInputs } from '../../scores/ScoreInputs';
 
 interface Props {
     tournament: TournamentDetail; fixture: TournamentFixtureDto; profile: Profile;
@@ -91,10 +92,8 @@ export function ManagedTournamentMatchDialog({ tournament, fixture, profile, can
         <CompetitionRecoveryPanel id={tournament.id} changed={refresh}/>
         {(commands.error || loadError || time.error) && <p role="alert">{commands.error || loadError || time.error} <button type="button" className="tw-button" disabled={busy} onClick={() => { setAttempt(value => value + 1); void refresh().catch(() => {}); }}>{copy('Refresh saved match', 'შენახული მატჩის განახლება')}</button></p>}
         {commands.notice && <p role="status">{commands.notice}</p>}
-        <div className="tw-score-inputs">
-            <label>{homeName}<input type="number" min={0} max={999} aria-label={copy('Home score', 'მასპინძლის ანგარიში')} value={home} disabled={busy || !canScore || !active || fixture.status === 'CANCELLED'} onChange={event => setHome(event.target.value)}/></label>
-            <label>{awayName}<input type="number" min={0} max={999} aria-label={copy('Away score', 'სტუმრის ანგარიში')} value={away} disabled={busy || !canScore || !active || fixture.status === 'CANCELLED'} onChange={event => setAway(event.target.value)}/></label>
-        </div>
+        <div className="gk"><ScoreInputs home={{ name: homeName }} away={{ name: awayName }} value={{ home, away }} onChange={value => { setHome(value.home); setAway(value.away); }}
+            disabled={busy || !canScore || !active || fixture.status === 'CANCELLED'}/></div>
         {canScore && active && !fullTime && fixture.status === 'SCHEDULED' && <p>{copy('Confirm the final result after full time.', 'საბოლოო შედეგი დაადასტურეთ მატჩის დასრულების შემდეგ.')}</p>}
         {valid && home === away && tournament.stages.find(stage => stage.id === fixture.stageId)?.stageType === 'KNOCKOUT' && <p>{copy('Save the tied score, then record the tie decision in Draw & qualification.', 'შეინახეთ ფრე ანგარიში, შემდეგ ჩაწერეთ გადაწყვეტილება ბადის მართვის განყოფილებაში.')}</p>}
         {(canManage || canScore) && <label>{copy('Reason or result note', 'მიზეზი ან შედეგის შენიშვნა')}<textarea value={reason} maxLength={1000} disabled={busy} onChange={event => setReason(event.target.value)}/></label>}

@@ -3,6 +3,9 @@ import { PastEventModal } from '../PastEventModal';
 import type { ScheduleWorkspaceEvent } from '../workspaceTypes';
 import '../../../i18n';
 
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'session-a' }) }));
+vi.mock('../../../features/scores/api', () => ({ getScoreSummary: vi.fn(() => new Promise(() => {})), getScoreRecord: vi.fn(), writeScore: vi.fn() }));
+
 const event: ScheduleWorkspaceEvent = {
     id: 'match-1', eventId: 1, title: 'City derby', eventType: 'MATCH',
     startsAt: '2020-01-05T18:00:00', endsAt: '2020-01-05T19:30:00',

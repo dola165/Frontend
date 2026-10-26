@@ -2,10 +2,11 @@ import type { HistoryMatch } from '../../matchHistory/api';
 import type { CopyVars } from '../copy';
 import { fixtureTime } from '../format';
 import { counted } from './form';
+import { isOfficial } from '../../scores/status';
 import { zoned } from './standings';
 
 /** What a match is, worked out honestly from its statuses and the clock. Never "live": there is no live score. */
-export type MatchStateCode = 'cancelled' | 'postponed' | 'abandoned' | 'bye' | 'ft' | 'tbc' | 'before' | 'on' | 'started' | 'unplayed' | 'disputed' | 'proposed' | 'none';
+export type MatchStateCode = 'cancelled' | 'postponed' | 'abandoned' | 'bye' | 'ft' | 'tbc' | 'before' | 'on' | 'started' | 'unplayed' | 'disputed' | 'reported' | 'none';
 /** Words in English, the key of their translation; they are translated where they are shown. */
 export interface Said { word: string; vars?: CopyVars }
 export type WhenTone = 'danger' | 'accent' | 'muted';
@@ -40,7 +41,7 @@ const FIXTURE_WORD: Record<string, { code: MatchStateCode; word: string; tone: W
 /**
  * The state of one match, in this order: called off, a bye, a result that counts (FT), no date yet, before kick-off
  * (own matches say how soon), on now by the schedule, just started (no end time), then what a played match still
- * owes. `own` is whether the viewer plays in it; "Add result" follows what the person may record. Whose turn a proposed
+ * owes. `own` is whether the viewer plays in it; "Report score" follows what the person may record. Whose turn a reported
  * score is, a row does not say: it is "to confirm" for everyone (amber for those who may record results).
  */
 export function matchState(source: HistoryMatch, now: number, own = false): MatchState {
@@ -50,6 +51,8 @@ export function matchState(source: HistoryMatch, now: number, own = false): Matc
     if (match.resultStatus === 'BYE') return { code: 'bye', when: { word: 'Bye', tone: 'muted' }, score: null };
     if (counted(match)) return { code: 'ft', when: { word: 'FT', tone: 'muted' }, score: { home: match.homeScore!, away: match.awayScore! },
         faint: match.legacy || match.resultStatus === 'LEGACY' };
+    // An under-11 score the viewer is not part of stays private: full time, and no score, not even a placeholder.
+    if (isOfficial(match.resultStatus) && match.fixtureStatus !== 'CANCELLED') return { code: 'ft', when: { word: 'FT', tone: 'muted' }, score: null };
     if (!match.startsAt) return { code: 'tbc', when: { word: 'TBC', tone: 'muted' }, score: null };
     const start = Date.parse(match.startsAt), end = match.endsAt ? Date.parse(match.endsAt) : null;
     const time = fixtureTime(match.startsAt, match.timezone);
@@ -70,7 +73,7 @@ export function matchState(source: HistoryMatch, now: number, own = false): Matc
     if (end != null && now < end) return { code: 'on', when: { word: 'On now', tone: 'accent', spoken: 'On now, by the schedule (no live score)' }, score: null };
     if (end == null && now - start < STARTED_FOR) return { code: 'started', when: { word: 'Started', tone: 'muted' }, score: null };
     if (match.resultStatus === 'DISPUTED') return { code: 'disputed', when: { time }, score: null, tag: { word: 'Disputed', tone: 'danger' } };
-    if (match.resultStatus === 'PROPOSED') return { code: 'proposed', when: { time }, score: null,
+    if (match.resultStatus === 'REPORTED') return { code: 'reported', when: { time }, score: null,
         tag: { word: 'Score to confirm', tone: match.canRecordResult ? 'warning' : 'neutral' } };
-    return { code: 'none', when: { time }, score: null, tag: match.canRecordResult ? { word: 'Add result', tone: 'warning' } : { word: 'No result yet', tone: 'neutral' } };
+    return { code: 'none', when: { time }, score: null, tag: match.canRecordResult ? { word: 'Report score', tone: 'warning' } : { word: 'No result yet', tone: 'neutral' } };
 }

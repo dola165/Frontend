@@ -5,6 +5,7 @@ import { Plus, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { safeNotificationLink } from '../../utils/notificationDestinations';
+import { ScoreInputs } from '../scores/ScoreInputs';
 import { useResultCopy } from './copy';
 import { getHistoricalImportOptions, searchHistoricalOpponents, importHistoricalMatch, type ImportOptions, type HistoricalMatchCreated } from './api';
 
@@ -37,6 +38,8 @@ export function HistoricalMatchImport({ clubId, onSaved }: { clubId?: number; on
   }, [search, page, open, sessionId, searchFailure]);
   const selectedClub = options?.clubs.find(club => String(club.id) === homeClub) ?? options?.clubs.find(club => club.id === clubId) ?? options?.clubs[0];
   const candidates = opponents?.content.filter(club => club.id !== selectedClub?.id) ?? [];
+  const opponentName = candidates.find(club => String(club.id) === opponent)?.name;
+  const [homeName, awayName] = playedAt === 'HOME' ? [selectedClub?.name, opponentName] : [opponentName, selectedClub?.name];
   const validScores = home !== '' && away !== '' && [Number(home), Number(away)].every(value => Number.isInteger(value) && value >= 0 && value <= 100);
   async function submit() {
     if (!selectedClub || !opponent || !candidates.some(club => club.id === Number(opponent)) || !validScores || !reason.trim() || !start || !end || inFlight.current) return;
@@ -63,7 +66,7 @@ export function HistoricalMatchImport({ clubId, onSaved }: { clubId?: number; on
   if (!options?.clubs.length) return null;
   return <div className="mh-import">
     {!open && <button type="button" onClick={() => { setOpen(true); setSaved(undefined); }}><Plus size={16} aria-hidden="true" />{copy('Add past match', 'წარსული მატჩის დამატება')}</button>}
-    {saved && <p role="status" className="mx-notice">{copy('Past match added as a club record.', 'წარსული მატჩი დაემატა კლუბის ჩანაწერის სახით.')} <Link to={saved.detailPath}>{copy('Open recorded match', 'დაფიქსირებული მატჩის გახსნა')} →</Link></p>}
+    {saved && <p role="status" className="mx-notice">{copy('Past match added. The other club can confirm or dispute the score for 48 hours.', 'წარსული მატჩი დაემატა. მეორე კლუბს 48 საათის განმავლობაში შეუძლია ანგარიშის დადასტურება ან გასაჩივრება.')} <Link to={saved.detailPath}>{copy('Open the match', 'მატჩის გახსნა')} →</Link></p>}
     {open && <section className="mx-panel"><header className="mx-head"><div><h2>{copy('Add a past match', 'წარსული მატჩის დამატება')}</h2><p className="mx-muted">{copy('Use this for a match missing from GrassKickZ. For an existing match, open its result to add or correct the score.', 'გამოიყენეთ GrassKickZ-ში გამოტოვებული მატჩისთვის. არსებული მატჩის ანგარიშის შესავსებად ან შესასწორებლად გახსენით მისი შედეგი.')}</p></div><button type="button" disabled={busy} aria-label={copy('Close historical entry', 'ისტორიული ჩანაწერის დახურვა')} onClick={() => setOpen(false)}><X size={18} /></button></header>
       <form className="mx-form" onSubmit={e => { e.preventDefault(); void submit(); }}>
         <label>{copy('Your club', 'თქვენი კლუბი')}<select required disabled={busy} value={selectedClub?.id ?? ''} onChange={e => { setHomeClub(e.target.value); setSquad(''); setOpponent(''); }}>{options.clubs.map(club => <option key={club.id} value={club.id}>{club.name}</option>)}</select></label>
@@ -76,10 +79,10 @@ export function HistoricalMatchImport({ clubId, onSaved }: { clubId?: number; on
         <p className="mx-wide mx-muted">{copy('Home', 'მასპინძელი')}: {playedAt === 'HOME' ? selectedClub?.name : candidates.find(club => String(club.id) === opponent)?.name || '—'} · {copy('Away', 'სტუმარი')}: {playedAt === 'AWAY' ? selectedClub?.name : candidates.find(club => String(club.id) === opponent)?.name || '—'}</p>
         <label className="mx-wide">{copy('Match title (optional)', 'მატჩის სახელი (არასავალდებულო)')}<input maxLength={140} value={title} disabled={busy} onChange={e => setTitle(e.target.value)} /></label>
         <label>{copy('Local kickoff date & time', 'დაწყების ადგილობრივი თარიღი და დრო')}<input type="datetime-local" required value={start} disabled={busy} onChange={e => setStart(e.target.value)} /></label><label>{copy('Local end date & time', 'დასრულების ადგილობრივი თარიღი და დრო')}<input type="datetime-local" required min={start || undefined} value={end} disabled={busy} onChange={e => setEnd(e.target.value)} /></label>
-        <label>{copy('Home score', 'მასპინძლის ანგარიში')}<input required type="number" min={0} max={100} step={1} value={home} disabled={busy} onChange={e => setHome(e.target.value)} /></label><label>{copy('Away score', 'სტუმრის ანგარიში')}<input required type="number" min={0} max={100} step={1} value={away} disabled={busy} onChange={e => setAway(e.target.value)} /></label>
+        <div className="mx-wide gk"><ScoreInputs home={{ name: homeName || copy('Home team', 'მასპინძელი გუნდი') }} away={{ name: awayName || copy('Away team', 'სტუმარი გუნდი') }} value={{ home, away }} disabled={busy} onChange={value => { setHome(value.home); setAway(value.away); }} /></div>
         <label className="mx-wide">{copy('Record source / reason', 'ჩანაწერის წყარო / მიზეზი')}<textarea required maxLength={1000} value={reason} disabled={busy} placeholder={copy('For example, the dated club scorebook or signed match report.', 'მაგალითად, კლუბის დათარიღებული ოქმი ან ხელმოწერილი ანგარიში.')} onChange={e => setReason(e.target.value)} /></label>
         <label className="mx-wide">{copy('Visibility', 'ხილვადობა')}<select value={visibility} disabled={busy} onChange={e => setVisibility(e.target.value as 'PRIVATE' | 'PUBLIC')}><option value="PRIVATE">{copy('Private club record', 'კლუბის კერძო ჩანაწერი')}</option><option value="PUBLIC">{copy('Public match record', 'მატჩის საჯარო ჩანაწერი')}</option></select></label>
-        <p className="mx-muted mx-wide">{copy('Recorded by your club. Independent confirmation, referee appointments and opponent approval are not recorded by this action. Private records follow club calendar access.', 'ფიქსირდება თქვენი კლუბის მიერ. ეს მოქმედება არ აფიქსირებს დამოუკიდებელ დადასტურებას, მსაჯის დანიშვნას ან მეტოქის თანხმობას. კერძო ჩანაწერზე ვრცელდება კლუბის კალენდრის წვდომის წესები.')}</p>
+        <p className="mx-muted mx-wide">{copy('Your club reports the score; the other club confirms or disputes it within 48 hours. Private records follow club calendar access.', 'ანგარიშს თქვენი კლუბი შეიტანს; მეორე კლუბი 48 საათში დაადასტურებს ან გაასაჩივრებს. კერძო ჩანაწერზე ვრცელდება კლუბის კალენდრის წვდომის წესები.')}</p>
         {error && <p className="mx-error mx-wide" role="alert">{error}{existingPath && <> <Link to={existingPath}>{copy('Open existing match', 'არსებული მატჩის გახსნა')}</Link></>}</p>}<footer><button className="mx-primary" disabled={busy || !opponent || !validScores || !reason.trim() || !start || !end}>{copy('Add historical record', 'ისტორიული ჩანაწერის დამატება')}</button></footer>
       </form>
     </section>}

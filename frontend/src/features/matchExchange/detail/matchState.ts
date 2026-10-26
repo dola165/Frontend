@@ -20,7 +20,7 @@ export function matchGates(m: Match, now: number, squads: Squad[] = []) {
         active, eligible,
         canPropose: m.listing_status === 'OPEN' && !m.requested_club_id && !m.can_manage && eligible.length > 0 && active,
         respond: Boolean(m.can_respond && m.listing_status === 'OPEN' && active),
-        finished: new Date(m.ends_at_iso).getTime() <= now || m.result_status === 'PROPOSED' || m.result_status === 'DISPUTED',
+        finished: new Date(m.ends_at_iso).getTime() <= now || m.result_status === 'REPORTED' || m.result_status === 'DISPUTED',
         // Before kick-off there is no result to report or suggest.
         started: new Date(m.starts_at_iso).getTime() <= now || Boolean(m.result_status),
     };

@@ -53,7 +53,7 @@ export interface AuthUser {
     /** AWAITING_PARENT: a 13 to 15-year-old's account until a parent approves it (F1). */
     accountState?: AccountState;
     /** A 13 to 15-year-old's account made before parents approved: the day it starts waiting for one (release 7). */
-    parentApprovalDueBy?: string | null;
+    parentApprovalDueAt?: string | null;
     navigationCapabilities?: NavigationCapabilities;
 }
 
@@ -85,7 +85,7 @@ const normalizeAuthUser = (payload: Record<string, unknown>) => ({
     mustChangePassword: payload.mustChangePassword === true,
     emailVerified: payload.emailVerified === true,
     accountState: payload.accountState === 'AWAITING_PARENT' ? 'AWAITING_PARENT' : 'ACTIVE',
-    parentApprovalDueBy: typeof payload.parentApprovalDueBy === 'string' ? payload.parentApprovalDueBy : null,
+    parentApprovalDueAt: typeof payload.parentApprovalDueAt === 'string' ? payload.parentApprovalDueAt : null,
     navigationCapabilities: normalizeNavigationCapabilities(payload.navigationCapabilities, Number(payload.id)),
 } satisfies AuthUser);
 

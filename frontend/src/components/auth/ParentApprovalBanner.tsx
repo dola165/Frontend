@@ -11,8 +11,8 @@ import { useParentApproval } from './useParentApproval';
 const HIDDEN = 'grasskickz.parent-banner-later';
 const hiddenThisVisit = () => { try { return window.sessionStorage.getItem(HIDDEN) === '1'; } catch { return false; } };
 
-/** The day the account starts waiting for a parent, as people say it ("26 November"). */
-const dayOf = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString(appLocale(), { day: 'numeric', month: 'long' });
+/** The day the account starts waiting for a parent, as people say it ("26 November"); the server sends a full time. */
+const dayOf = (iso: string) => new Date(iso.length > 10 ? iso : `${iso}T00:00:00`).toLocaleDateString(appLocale(), { day: 'numeric', month: 'long' });
 
 function AskDialog({ due, onClose }: { due: string; onClose: () => void }) {
     const { t } = useTranslation();
@@ -39,7 +39,7 @@ export function ParentApprovalBanner() {
     const { user } = useAuth();
     const [hidden, setHidden] = useState(hiddenThisVisit);
     const [asking, setAsking] = useState(false);
-    const due = user?.accountState !== 'AWAITING_PARENT' ? user?.parentApprovalDueBy : null;
+    const due = user?.accountState !== 'AWAITING_PARENT' ? user?.parentApprovalDueAt : null;
     if (!due || (hidden && !asking)) return null;
     const later = () => { setHidden(true); try { window.sessionStorage.setItem(HIDDEN, '1'); } catch { /* Shown again next time. */ } };
     return <>

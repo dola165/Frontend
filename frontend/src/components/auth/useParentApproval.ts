@@ -55,7 +55,7 @@ export function useParentApproval(ownEmail?: string | null) {
     const change = () => { setEditing(true); setEmail(''); setError(''); };
     const keep = () => { setEditing(false); setFieldError(''); setError(''); };
     const type = (value: string) => { setEmail(value); setFieldError(''); };
-    const sent = request?.status === 'WAITING' && Boolean(request.parentEmail) && !editing;
+    const sent = (request?.status === 'WAITING' || (request?.status === 'GRACE' && Boolean(request.linkSent))) && Boolean(request.parentEmail) && !editing;
     return { request, loadFailed, editing, email, busy, error, fieldError, sent, send, submit, retry, change, keep, type };
 }
 export type ParentApprovalFlow = ReturnType<typeof useParentApproval>;

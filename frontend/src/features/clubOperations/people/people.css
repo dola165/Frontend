@@ -1,0 +1,52 @@
+/* The club's People screen and its invite. Scoped under `.gk .pp-*`; tokens only. */
+.gk .pp-list { list-style: none; margin: 0; padding: 0; }
+/* One row: who · their jobs and where · what can be done for the person. Panels (link, change) span the row. */
+.gk .pp-person { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0, 1fr) auto; grid-template-areas: 'who jobs actions'; align-items: start; gap: var(--gk-2) var(--gk-5); padding: var(--gk-3) var(--gk-5); }
+.gk .pp-person > .pp-link, .gk .pp-person > .pp-edit { grid-column: 1 / -1; }
+.gk .pp-person + .pp-person { border-top: 1px solid var(--gk-line); }
+.gk .pp-person__head { grid-area: who; display: flex; align-items: center; gap: var(--gk-3); min-width: 0; min-height: 44px; }
+.gk .pp-person__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.gk .pp-person__name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); font-weight: 600; overflow-wrap: anywhere; }
+.gk .pp-person__email { font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
+.gk .pp-person__actions { grid-area: actions; display: flex; flex-wrap: wrap; gap: var(--gk-2); justify-content: flex-end; align-items: center; min-height: 44px; }
+.gk .pp-person__actions:empty { display: none; }
+.gk .pp-jobs { grid-area: jobs; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.gk .pp-job { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-1) var(--gk-3); min-height: 44px; max-width: 760px; }
+.gk .pp-job__what { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--gk-2); min-width: 0; }
+.gk .pp-job__name { font-weight: 600; }
+.gk .pp-job__where { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .pp-job__where::before { content: '· '; }
+.gk .pp-job__by { font-size: var(--gk-fs-sm); }
+.gk .pp-job__actions { display: inline-flex; flex-wrap: wrap; gap: var(--gk-1); margin-left: auto; }
+.gk .pp-job__reason { flex-basis: 100%; margin: 0; font-size: var(--gk-fs-sm); }
+.gk .pp-danger { color: var(--gk-danger); }
+.gk .pp-danger:hover { background: var(--gk-danger-soft); }
+.gk .pp-check { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+
+/* The one-time link, with Copy and WhatsApp */
+.gk .pp-link { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
+.gk .pp-link__label { font-weight: 600; font-size: var(--gk-fs-sm); }
+.gk .pp-link__row { display: flex; flex-wrap: wrap; gap: var(--gk-2); align-items: center; }
+.gk .pp-link__row .gk-input { flex: 1 1 260px; min-width: 0; }
+.gk .pp-link__note { margin: 0; font-size: var(--gk-fs-sm); }
+
+/* Invite form and in-place change */
+.gk .pp-form, .gk .pp-picker { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .pp-form__who { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--gk-3); }
+.gk .pp-picker fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.gk .pp-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 var(--gk-3); max-height: 280px; overflow-y: auto; }
+.gk .pp-tool { display: flex; align-items: center; gap: var(--gk-2); min-height: 44px; font-size: var(--gk-fs-sm); }
+.gk .pp-edit { display: flex; flex-direction: column; gap: var(--gk-3); max-width: 760px; padding: var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
+.gk .pp-edit__actions { flex-wrap: wrap; }
+
+@media (max-width: 1100px) {
+  .gk .pp-person { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'who actions' 'jobs jobs'; }
+  .gk .pp-jobs { padding-left: calc(40px + var(--gk-3)); }
+}
+@media (max-width: 760px) {
+  .gk .pp-person { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'who' 'jobs' 'actions'; padding: var(--gk-3) var(--gk-4); }
+  .gk .pp-jobs { padding-left: 0; }
+  .gk .pp-person__actions { justify-content: flex-start; }
+  .gk .pp-person .pp-link, .gk .pp-edit { padding: var(--gk-3); }
+  .gk .pp-job__actions { margin-left: 0; }
+}

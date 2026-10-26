@@ -2,7 +2,6 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import type {
     BulkApplicationDecisionRequestPayload,
     BulkApplicationDecisionResponse,
-    ClubInviteCandidate,
     ClubJourney,
     ClubManagementOverview,
     ClubMembershipApplication,
@@ -25,17 +24,6 @@ export const fetchClubManagementOverview = async (clubId: number) => {
     return response.data;
 };
 
-export const searchClubInviteCandidates = async (clubId: number, query: string, page = 0, size = 8) => {
-    const response = await apiClient.get<PageResult<ClubInviteCandidate>>(`/clubs/${clubId}/management/user-search`, {
-        params: { query, page, size }
-    });
-    return response.data;
-};
-
-export const createClubInvitation = async (clubId: number, userId: number, role: ClubMembershipRole) => {
-    await apiClient.post(`/clubs/${clubId}/management/invitations`, { userId, role });
-};
-
 export const cancelClubInvitation = async (clubId: number, inviteId: number) => {
     await apiClient.delete(`/clubs/${clubId}/management/invitations/${inviteId}`);
 };
@@ -53,10 +41,6 @@ export const acceptClubInvitation = async (inviteId: number, config?: AuthSessio
 export const declineClubInvitation = async (inviteId: number, config?: AuthSessionRequestConfig) => {
     const response = await apiClient.post<{ status: string }>(`/club-memberships/invites/${inviteId}/decline`, null, config);
     return response.data;
-};
-
-export const updateClubMemberRole = async (clubId: number, userId: number, role: ClubMembershipRole) => {
-    await apiClient.patch(`/clubs/${clubId}/management/members/${userId}/role`, { role });
 };
 
 export const removeClubMember = async (clubId: number, userId: number) => {

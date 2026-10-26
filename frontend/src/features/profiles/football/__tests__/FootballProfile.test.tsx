@@ -82,6 +82,16 @@ describe('your football profile', () => {
         expect(auth.refreshNavigationCapabilities).toHaveBeenCalled();
     });
 
+    it('the Owner hands the club over, and leaving a club’s staff goes through the one leave flow', async () => {
+        serve();
+        mount();
+        const where = within(await screen.findByRole('list', { name: 'Where you are' }));
+        fireEvent.click(where.getByRole('button', { name: /Hand the club over/ }));
+        expect(await screen.findByRole('dialog', { name: 'Hand Veterans FC over' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Hand Veterans FC over' })).not.toBeInTheDocument());
+    });
+
     it('picks the line under your name from your real lines, with the revision', async () => {
         serve(); mount();
         fireEvent.click(await screen.findByRole('button', { name: /Head coach · U12 · Dinamo Academy/ }));

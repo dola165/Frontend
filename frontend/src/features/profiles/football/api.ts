@@ -72,6 +72,8 @@ export interface FootballLine {
     /** The page where this line is worked on; own view only. */
     manage: string | null;
     leave: LeaveRoute | null;
+    /** The Owner's own line: hand the club over (the one way out for an Owner). */
+    handOver: boolean;
 }
 
 /** One past stint, from the clubs' records. */
@@ -135,6 +137,8 @@ export function readFootball(value: PersonFootballProfile): FootballProfileData 
             id: line.line, kind: line.kind, title: titleOf(line), role: line.title, squads: line.clubWide ? [] : list(line.squads), label: line.label, home: homeOf(line),
             child: own ? line.child ?? null : null, since: line.since ?? null, sinceKnown: line.sinceKnown !== false,
             manage: own ? manageOf(line) : null, leave: own ? leaveOf(line) : null,
+            // The Owner's one way out; hidden only when the rule-checker refuses hand_over outright.
+            handOver: own && line.kind === 'OWNER' && Boolean(line.club?.id) && list(line.actions).find(verdict => verdict.action === 'hand_over')?.allowed !== false,
         })),
         follows: own ? current.filter(line => line.kind === 'FOLLOWS').map(homeOf).filter((home): home is FootballHome => home !== null) : [],
         publicRole: value.publicRole ? { id: value.publicRole.line, label: value.publicRole.label, chosen: value.publicRole.chosen === true } : null,

@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Flag } from 'lucide-react';
+import { Crown, Flag } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { Crest } from '../../world/Crest';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { LeaveClubDialog } from '../../clubOperations/leaving/LeaveClubDialog';
+import { useLeaveStep } from '../../clubOperations/leaving/useLeaveStep';
 import { groupByClub, leaveLine, type CareerRow, type CareerTotals, type FootballHome, type FootballLine } from './api';
 import './football-profile.css';
 
@@ -39,14 +41,19 @@ const squadPath = (role: FootballLine, squad: number, own: boolean) => !own ? nu
 /**
  * "Where you are": one block per club (its crest once, then each job or place there, a head coach's squads as chips),
  * and a row for each line without a club (a child, refereeing). Rows are never ticked or typed; they come from what a
- * club or a family confirmed. Manage and Leave show on your own profile only where the rule-checker allows them (the
- * Owner hands the club over first, so has no Leave).
+ * club or a family confirmed. Manage and Leave show on your own profile only where the rule-checker allows them. Leaving
+ * a club's staff and the Owner's "Hand the club over" open the one leave flow (LeaveClubDialog: hand over, or close the
+ * club as its last staff member); a single job or a player's place ends here.
  */
 export function FootballLines({ lines, follows = [], own, label, onChanged }: { lines: FootballLine[]; follows?: FootballHome[]; own: boolean; label?: string; onChanged?: () => void }) {
     const copy = useJourneyCopy();
-    const [leaving, setLeaving] = useState<FootballLine | null>(null);
-    const actions = (role: FootballLine, chips: boolean) => own && (role.leave || (role.manage && !chips)) ? <div className="gk-fp-line__actions">
-        {role.leave && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => setLeaving(role)}>{copy('Leave', 'დატოვება')}</Button>}
+    const [leaving, setLeaving] = useState<FootballLine | null>(null), [clubFlow, setClubFlow] = useState<FootballHome | null>(null);
+    const leaveStep = useLeaveStep();
+    const openClubFlow = (home: FootballHome, step: 'leave' | 'handover') => { setClubFlow(home); leaveStep.go(step); };
+    const leave = (role: FootballLine) => role.leave?.kind === 'DEPART' && role.leave.as === 'STAFF' && role.home ? openClubFlow(role.home, 'leave') : setLeaving(role);
+    const actions = (role: FootballLine, chips: boolean) => own && (role.leave || role.handOver || (role.manage && !chips)) ? <div className="gk-fp-line__actions">
+        {role.handOver && role.home && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => openClubFlow(role.home!, 'handover')}><Crown aria-hidden="true" />{copy('Hand the club over', 'კლუბის გადაცემა')}</Button>}
+        {role.leave && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => leave(role)}>{copy('Leave', 'დატოვება')}</Button>}
         {role.manage && !chips && <ButtonLink size="sm" to={role.manage}>{copy('Manage', 'მართვა')}</ButtonLink>}
     </div> : null;
     return <>
@@ -96,6 +103,7 @@ export function FootballLines({ lines, follows = [], own, label, onChanged }: { 
             </li>}
         </ul>
         {leaving?.leave && <LeaveDialog line={leaving} onClose={() => setLeaving(null)} onLeft={() => { setLeaving(null); onChanged?.(); }} />}
+        {clubFlow && <LeaveClubDialog clubId={clubFlow.id} clubName={clubFlow.name} onDone={() => { setClubFlow(null); onChanged?.(); }} />}
     </>;
 }
 

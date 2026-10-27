@@ -2,7 +2,7 @@ import { isKnownMinor } from '../../../utils/age';
 import { useId } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, LayoutGrid, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
+import { LayoutGrid, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import type { AuthUser } from '../../../context/AuthContext';
@@ -37,7 +37,7 @@ export function AccountSettingsLink({ menu = false }: { menu?: boolean }) {
 }
 
 /**
- * Profile, schedule, settings, workspaces, appearance, language and signing out: the desktop account menu (as menu
+ * Profile, settings, workspaces, appearance, language and signing out: the desktop account menu (as menu
  * items) and the phone's "You" sheet (as plain links and toggles) list the same things.
  */
 export function AccountItems({ user, workspaces, themePreference, setThemePreference, onLogout, close, menu, profile = true, createPage = true, accountSettings = true }: AccountProps & {
@@ -60,7 +60,6 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
                 <Avatar src={resolveMediaUrl(user.avatarUrl)} name={name} size={36} />
                 <span className="gk-menu__profile-text"><strong>{name}</strong><span>{copy('View your profile', 'პროფილის ნახვა')}</span></span>
             </Link>}
-            <Link role={item} to={`/profile/${user.id}?tab=schedule`} className="gk-menu__item"><CalendarDays aria-hidden="true" />{copy('My schedule', 'ჩემი განრიგი')}</Link>
             {/* The menu has one line for every workspace: the page lists them all, so it stays short however many there are. */}
             {menu && workspaces.length > 0 && (
                 <Link role={item} to={WORKSPACES_PATH} className="gk-menu__item" aria-current={pathname === WORKSPACES_PATH ? 'page' : undefined}>

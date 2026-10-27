@@ -1,5 +1,6 @@
 import { CreatePageHost } from './features/pages/create/CreatePageHost';
 import { ActionHost } from './features/actions/ActionHost';
+import { CornerDock } from './components/layout/CornerDock';
 import { useTranslation } from 'react-i18next';
 import { isAndroidApp, nativeCall } from './android/bridge';
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type CSSProperties, type JSX } from 'react';
@@ -39,6 +40,7 @@ const RightSidebar = isAndroidApp ? null : lazy(() => import('./components/layou
 // Agent Dola's conversation shows only on /assistant or once its panel is opened, so its code and styles load after the first screen.
 const AgentDolaPage = lazy(() => import('./features/dola/AgentDolaPage').then(module => ({ default: module.AgentDolaPage })));
 const DolaDock = lazy(() => import('./features/dola/AgentDolaPage').then(module => ({ default: module.DolaDock })));
+const FirstWeek = lazy(() => import('./features/firstWeek/FirstWeek').then(module => ({ default: module.FirstWeek })));
 
 const FundraisingPage = lazy(() => import('./pages/FundraisingPage').then(module => ({default: module.FundraisingPage})));
 const FundraisingCataloguePage = lazy(() => import('./pages/FundraisingCataloguePage').then(module => ({default: module.FundraisingCataloguePage})));
@@ -547,6 +549,8 @@ export function MainLayout() {
             {/* The start sheet opens over whatever page says `?create=`, an action's flow over whatever page says `?do=`. */}
             <CreatePageHost />
             <ActionHost />
+            {/* The frame's one floating corner: "Your first week" now, the Dola guide later. */}
+            {showsHeader && user && <CornerDock><Suspense fallback={null}><FirstWeek /></Suspense></CornerDock>}
         </div>
     );
 }

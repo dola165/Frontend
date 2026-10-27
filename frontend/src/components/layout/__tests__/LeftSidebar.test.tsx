@@ -23,10 +23,10 @@ describe("LeftSidebar", () => {
       { id: 'agent.hub', context: { type: 'user', id: 9, label: 'Agent' } },
     ] }, 9);
     render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: 'Alex Morgan', navigationCapabilities: caps }} /></MemoryRouter>);
-    // Someone without a page of their own is offered one; My Schedule came back to Home's rail (owner, 10 October).
+    // Someone without a page of their own is offered one; My schedule left Home's rail, it is pinned instead (owner, 27 October).
     // The workspace row opens the first workspace; Joining football left the rail (owner, 21 October).
     expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([
-      '/profile/9', '/referees/me', '/?create=any&from=home', '/referees/me', '/agent', '/calendar?scope=personal',
+      '/profile/9', '/referees/me', '/?create=any&from=home', '/referees/me', '/agent',
     ]);
     expect(screen.getByRole('button', { name: 'Switch workspace' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('link', { name: /My squads/ })).not.toBeInTheDocument();
@@ -55,8 +55,8 @@ describe("LeftSidebar", () => {
     expect(screen.queryByRole('button', { name: /Following/ })).not.toBeInTheDocument();
   });
   it.each([
-    { language: 'en', profile: 'Alex Morgan. View your profile', following: 'Following. People you keep up with', clubs: 'Followed clubs. Clubs you keep up with', schedule: 'My schedule. Your personal calendar' },
-    { language: 'ka', profile: 'Alex Morgan. პროფილის ნახვა', following: 'გამოწერილი. ადამიანები, ვისაც ადევნებთ თვალს', clubs: 'გამოწერილი კლუბები. კლუბები, რომლებსაც ადევნებთ თვალს', schedule: 'ჩემი განრიგი. თქვენი პირადი კალენდარი' },
+    { language: 'en', profile: 'Alex Morgan. View your profile', following: 'Following. People you keep up with', clubs: 'Followed clubs. Clubs you keep up with', schedule: 'My schedule' },
+    { language: 'ka', profile: 'Alex Morgan. პროფილის ნახვა', following: 'გამოწერილი. ადამიანები, ვისაც ადევნებთ თვალს', clubs: 'გამოწერილი კლუბები. კლუბები, რომლებსაც ადევნებთ თვალს', schedule: 'ჩემი განრიგი' },
   ])("offers Following in $language to someone nobody has linked yet, while other shortcuts remain navigation links", async ({ language, profile, following, clubs, schedule }) => {
     const i18n = createInstance();
     await i18n.init({ lng: language, resources: { en: { translation: {} }, ka: { translation: {} } } });
@@ -70,7 +70,7 @@ describe("LeftSidebar", () => {
     expect(screen.queryByRole("dialog", { name: "Following" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: clubs })).toHaveAttribute("href", "/clubs/following");
     expect(screen.queryByRole("link", { name: /Map.*Find football near you/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: schedule })).toHaveAttribute("href", "/calendar?scope=personal");
+    expect(screen.queryByRole("link", { name: new RegExp(schedule) })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Match Exchange/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /My club|Club workspace|Find clubs|Find people/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Events/ })).not.toBeInTheDocument();

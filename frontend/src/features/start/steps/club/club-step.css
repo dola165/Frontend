@@ -1,13 +1,14 @@
 /* The welcome's Club step: start a club (crest, name, town), or find yours and join. Scoped under the welcome. */
 .gk .gk-wclub { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--gk-6); align-items: start; padding: var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg);
   background: radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--gk-info) 14%, transparent), transparent 55%), var(--gk-surface); }
-.gk .gk-wclub__crest { display: flex; flex-direction: column; align-items: center; gap: var(--gk-3); width: 228px; }
+.gk .gk-wclub__crest { display: flex; flex-direction: column; align-items: center; gap: var(--gk-3); width: 280px; }
 .gk .gk-wclub__crest img { width: 132px; height: 132px; filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--gk-shadow) 30%, transparent)); }
-.gk .gk-wclub__colours { display: grid; grid-template-columns: repeat(6, 32px); gap: var(--gk-2); }
-.gk .gk-wclub__colour { width: 32px; height: 32px; padding: 0; border: 1px solid var(--gk-line-strong); border-radius: 50%; background: linear-gradient(135deg, var(--c1) 50%, var(--c2) 50%); cursor: pointer;
-  transition: transform .15s var(--gk-ease); }
-.gk .gk-wclub__colour:hover { transform: scale(1.08); }
-.gk .gk-wclub__colour[aria-checked='true'] { box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+.gk .gk-wclub__colours { display: grid; grid-template-columns: repeat(6, 44px); gap: 2px; }
+/* Each colour pair is a 44px target around a 32px swatch. */
+.gk .gk-wclub__colour { width: 44px; height: 44px; padding: 6px; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.gk .gk-wclub__colour::before { content: ""; display: block; width: 100%; height: 100%; border: 1px solid var(--gk-line-strong); border-radius: 50%; background: linear-gradient(135deg, var(--c1) 50%, var(--c2) 50%); transition: transform .15s var(--gk-ease); }
+.gk .gk-wclub__colour:hover::before { transform: scale(1.08); }
+.gk .gk-wclub__colour[aria-checked='true']::before { box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
 .gk .gk-wclub__colour:focus-visible { outline: none; box-shadow: var(--gk-focus); }
 .gk .gk-wclub__fields { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
 .gk .gk-wclub__fields .gk-welcome__field:not(:first-child) { margin-top: var(--gk-2); }
@@ -24,7 +25,7 @@
 .gk .gk-wjoin__code { display: flex; flex-direction: column; gap: 4px; padding: 0 var(--gk-3) var(--gk-3) calc(40px + var(--gk-3) * 2); }
 .gk .gk-wjoin__coderow { display: flex; gap: var(--gk-2); }
 .gk .gk-wjoin__coderow .gk-input { flex: 1; min-width: 0; min-height: 44px; font-family: var(--gk-font); letter-spacing: .04em; }
-@media (prefers-reduced-motion: reduce) { .gk .gk-wclub__colour { transition: none; } .gk .gk-wclub__colour:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-wclub__colour::before { transition: none; } .gk .gk-wclub__colour:hover::before { transform: none; } }
 @media (max-width: 640px) {
   .gk .gk-wclub { grid-template-columns: minmax(0, 1fr); gap: var(--gk-4); padding: var(--gk-4); }
   .gk .gk-wclub__crest { width: auto; }

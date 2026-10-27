@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { Baby, Building2, ClipboardList, Shield, UserRound, Volleyball, type LucideIcon } from 'lucide-react';
+import { Baby, Building2, ClipboardList, Heart, Shield, UserRound, Volleyball, type LucideIcon } from 'lucide-react';
 import { Button } from '../../../design/primitives';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { WelcomeFrame } from '../WelcomeFrame';
@@ -41,6 +41,7 @@ export function WhatBringsStep({ choices, onPick, onSkip }: { choices: readonly 
     return <WelcomeFrame position={1} title={copy('What brings you to GrassKickZ?', 'რამ მოგიყვანათ GrassKickZ-ზე?')} onClose={onSkip}
         footer={<>
             <Button variant="secondary" className="gk-welcome__follow" onClick={() => onPick('follow')}>
+                <span className="gk-welcome__follow-mark"><Heart aria-hidden="true" /></span>
                 <span>{copy('I’m here to follow football', 'უბრალოდ ფეხბურთს ვადევნებ თვალს')}<small>{copy('Pick a few clubs near you', 'აირჩიეთ რამდენიმე ახლომდებარე კლუბი')}</small></span>
             </Button>
             <Button variant="ghost" onClick={onSkip}>{copy('Skip', 'გამოტოვება')}</Button>

@@ -19,9 +19,9 @@ const YEARS = Array.from({ length: 16 }, (_, index) => THIS_YEAR - 3 - index);
  * they don't know yet. For me: the town (filled in) and the clubs near it that fit the person's age, each with its
  * programme for that age; a heart follows, then Home. For my child: the birth year and the town, the clubs with a
  * programme for that age, then "Add your child" (the existing add-child form, the year already given) and Parent Hub
- * with the child chosen; skipping it lands on Home. Only the age is kept until a child is added.
+ * with the child chosen (`part=add` in the address); skipping it lands on Home. Only the age is kept until a child is added.
  */
-export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & { who: 'me' | 'child' }) {
+export function PlayStep({ who, facts, land, back, close, part, openPart }: WelcomeStepProps & { who: 'me' | 'child' }) {
     const copy = useJourneyCopy();
     const saved = facts.place?.source === 'SAVED' ? facts.place.name : null;
     const [picked, setTown] = useState<string | null>(null);
@@ -36,7 +36,8 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
     const [chosen, setChosen] = useState<Set<number>>(new Set());
     const [busy, setBusy] = useState(false);
     const [failed, setFailed] = useState(false);
-    const [adding, setAdding] = useState(false);
+    // Add your child is a screen of its own in the address (`part=add`), so Back returns to the clubs.
+    const adding = who === 'child' && part === 'add';
 
     useEffect(() => {
         if (query == null) return;
@@ -57,10 +58,10 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
         const missed = await followClubs((clubs ?? []).filter(club => chosen.has(club.id)));
         setBusy(false);
         if (missed) { setFailed(true); return; }
-        if (who === 'child' && !to) setAdding(true); else land(who, to, extra);
+        if (who === 'child' && !to) openPart('add'); else land(who, to, extra);
     };
 
-    if (adding) return <WelcomeFrame position={2} size="choose" onClose={() => land('child', null, extra)} back={() => setAdding(false)}
+    if (adding) return <WelcomeFrame position={2} size="choose" onClose={() => land('child', null, extra)} back={() => openPart(null)}
         title={copy('Add your child', 'დაამატეთ თქვენი შვილი')} hint={copy('Their private player card, for joining a squad.', 'მისი პირადი მოთამაშის ბარათი, გუნდში შესასვლელად.')}
         footer={<Button variant="ghost" onClick={() => land('child', null, extra)}>{copy('Not now', 'ახლა არა')}</Button>}>
         <AddChild inline birthYear={year} onCreated={childId => { refreshAccess(); land('child', `/parent?player=${childId}`, extra); }} />

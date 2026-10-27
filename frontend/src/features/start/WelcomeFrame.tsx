@@ -3,7 +3,7 @@ import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { WelcomeFacts } from './useWelcomeFacts';
-import type { Choice } from './welcomeSteps';
+import type { Choice, Part } from './welcomeSteps';
 import type { StartPreferences } from '../preferences/preferencesStore';
 import './welcome.css';
 
@@ -16,6 +16,10 @@ export interface WelcomeStepProps {
     finish: (choice: Choice) => void;
     back: () => void;
     close: () => void;
+    /** The screen inside this step that the address names, if any. */
+    part: Part | null;
+    /** Opens a screen inside the step (in the address, so Back returns), or with null goes back to the step's own. */
+    openPart: (part: Part | null) => void;
 }
 
 /**

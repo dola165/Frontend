@@ -11,6 +11,7 @@ import { DolaLink } from '../../../features/dola/DolaProvider';
 import { DolaContext } from '../../../features/dola/DolaContext';
 import { TEAM_WORK_DOLA_PATH, useDolaEntry } from '../../../features/dola/dolaEntry';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
+import { WORLD_BRAND } from '../../brand/worldBrand';
 import { themeForRoute, type ThemePreference } from '../../../theme';
 import { AccountMenu } from './AccountMenu';
 import { ExploreMenu } from './ExploreMenu';
@@ -68,7 +69,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const section = pinned ? null : primarySectionFor(pathname, club.ids, search);
     const tabs: PrimaryTab[] = [
         { id: 'home', to: '/home', label: copy('Home', 'მთავარი'), icon: House, current: section === 'home' },
-        { id: 'world', to: '/world', label: copy('World', 'მსოფლიო'), icon: Earth, current: section === 'world' },
+        { id: 'world', to: '/world', label: copy(...WORLD_BRAND.short), icon: Earth, current: section === 'world' },
         // Role tabs come from relationships: coaching a squad gives My squads (first: the coach's own work comes before
         // the club), a linked child gives Parent Hub. Later hubs (referee, organiser) are one more line here.
         ...(hasNavigationCapability(capabilities, 'squad.workspace') ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
@@ -138,7 +139,7 @@ function GuestHeader({ themePreference }: { themePreference: ThemePreference }) 
                 <HeaderBrand to="/" />
                 <nav className="gk-header__nav" aria-label={copy('Main', 'მთავარი ნავიგაცია')}>
                     <ul className="gk-header__tabs">
-                        <li><HeaderTab to="/world" label={copy('World', 'მსოფლიო')} icon={Earth} current={primarySectionFor(pathname, []) === 'world'} /></li>
+                        <li><HeaderTab to="/world" label={copy(...WORLD_BRAND.short)} icon={Earth} current={primarySectionFor(pathname, []) === 'world'} /></li>
                     </ul>
                     <ExploreMenu />
                 </nav>

@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import i18n from '../i18n';
+import { chooseThemePreference, readThemePreference, THEME_CHOSEN_KEY } from '../theme';
 import { applyAndroidPreferences, updateAndroidPreferences } from './preferences';
 
 afterEach(async () => { localStorage.clear(); delete window.GrassKickZ; await i18n.changeLanguage('en'); });
@@ -36,4 +37,27 @@ it('ignores malformed broadcast preferences', async () => {
     await applyAndroidPreferences({ theme: 'unknown', language: 'ka' });
     expect(localStorage.getItem('theme-preference')).toBe('light');
     expect(i18n.resolvedLanguage).toBe('en');
+});
+
+it('never lets the app’s map-light default override or erase a choice', async () => {
+    await applyAndroidPreferences({ theme: 'map-light', language: 'en' });
+    expect(readThemePreference()).toBe('light');
+    chooseThemePreference('dark');
+    await applyAndroidPreferences({ theme: 'map-light', language: 'en' });
+    expect(readThemePreference()).toBe('dark');
+    expect(localStorage.getItem(THEME_CHOSEN_KEY)).toBe('1');
+});
+
+it('counts a pick on the app’s settings page as a choice, and keeps a later web choice over a launch broadcast', async () => {
+    window.GrassKickZ = { onmessage: null, postMessage: value => {
+        const request = JSON.parse(value);
+        queueMicrotask(() => window.GrassKickZ?.onmessage?.(new MessageEvent('message', {
+            data: JSON.stringify({ id: request.id, status: 200, body: btoa(JSON.stringify({ theme: request.theme ?? 'dark', language: 'en' })) }),
+        })));
+    } };
+    await updateAndroidPreferences({ theme: 'dark' });
+    expect(readThemePreference()).toBe('dark');
+    chooseThemePreference('light');
+    await updateAndroidPreferences();
+    expect(readThemePreference()).toBe('light');
 });

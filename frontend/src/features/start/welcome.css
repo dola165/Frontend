@@ -1,6 +1,6 @@
-/* The welcome over Home (two screens) and Home's "Your first week" card. Scoped under .gk; tokens only; compact like Home. */
+/* The welcome over Home (two screens). Scoped under .gk; tokens only; compact like Home. */
 .gk .gk-dialog.gk-welcome-dialog { min-width: 0; }
-/* Choosing (step 1, a business's kind): wide and tall enough for big photo tiles. */
+/* Choosing (step 1, a business’s kind): wide and tall enough for big tiles. */
 .gk .gk-dialog.gk-welcome-dialog--choose { max-width: min(1040px, 94vw); max-height: min(94dvh, 980px); }
 /* Working through a list (clubs, work): wide, as tall as the list up to most of the screen, then scrolling inside. */
 .gk .gk-dialog.gk-welcome-dialog--work { max-width: min(1180px, 94vw); max-height: min(90dvh, 980px); }
@@ -26,24 +26,39 @@
 .gk .gk-welcome-dialog .gk-dialog__foot { flex-wrap: wrap; }
 .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__back,
 .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__follow { margin-right: auto; }
-.gk .gk-welcome__follow { min-height: 48px; text-align: left; }
-.gk .gk-welcome__follow > span { display: flex; flex-direction: column; gap: 1px; }
-.gk .gk-welcome__follow small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 500; }
+/* "I'm here to follow football": a real button with a heart, lighter than the tiles above it. */
+.gk .gk-welcome__follow { gap: var(--gk-3); min-height: 60px; padding: var(--gk-2) var(--gk-5) var(--gk-2) var(--gk-3); border: 1px solid color-mix(in srgb, var(--gk-danger) 30%, var(--gk-line)); border-radius: var(--gk-r-lg);
+  background: color-mix(in srgb, var(--gk-danger) 7%, var(--gk-surface)); text-align: left; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }
+.gk .gk-welcome__follow:hover { border-color: color-mix(in srgb, var(--gk-danger) 60%, var(--gk-line)); background: color-mix(in srgb, var(--gk-danger) 12%, var(--gk-surface)); }
+.gk .gk-welcome__follow-mark { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--gk-danger-soft); color: var(--gk-danger); }
+.gk .gk-welcome__follow-mark svg { width: 20px; height: 20px; fill: currentColor; }
+.gk .gk-welcome__follow > span:last-child { display: flex; flex-direction: column; gap: 2px; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
+.gk .gk-welcome__follow small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 500; }
 .gk .gk-welcome { display: flex; flex: 1; flex-direction: column; gap: var(--gk-3); min-width: 0; min-height: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
 .gk .gk-welcome__loading { display: flex; flex-direction: column; gap: var(--gk-2); }
 .gk .gk-welcome__hint { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
 .gk .gk-welcome__spin { width: 14px; height: 14px; animation: gk-welcome-spin 1s linear infinite; }
+/* The one quiet grey line under a step ("Already in a club?", "See all on the map"). */
+.gk .gk-welcome__quiet { align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-md); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.gk .gk-welcome__quiet:hover { color: var(--gk-text); }
+.gk .gk-welcome__quiet:focus-visible { outline: none; box-shadow: var(--gk-focus); border-radius: var(--gk-r-sm); }
 @keyframes gk-welcome-spin { to { transform: rotate(360deg); } }
 
-/* Step 1: size shows weight. Two large photo tiles, two medium ones under them. */
+/* Step 1: size shows weight. Two large tiles, two medium ones under them, each drawn in its own colour (--wt). */
 .gk .gk-wtiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-4); }
-.gk .gk-wtile { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gk-3); min-width: 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg);
-  background: var(--tile-photo) var(--tile-position, center) / cover no-repeat, var(--gk-sunken); color: var(--gk-text); font: inherit; text-align: left; overflow: hidden; isolation: isolate;
-  transition: border-color .15s var(--gk-ease), transform .2s var(--gk-ease); }
-.gk .gk-wtile::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, color-mix(in srgb, var(--gk-bg) 15%, transparent), color-mix(in srgb, var(--gk-bg) 92%, transparent) 62%); }
+.gk .gk-wtile { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gk-3); min-width: 0; padding: var(--gk-4);
+  border: 1px solid color-mix(in srgb, var(--wt) 36%, var(--gk-line)); border-radius: var(--gk-r-lg); color: var(--gk-text); font: inherit; text-align: left; overflow: hidden; isolation: isolate;
+  background: radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--wt) 30%, transparent), transparent 60%), linear-gradient(160deg, color-mix(in srgb, var(--wt) 20%, var(--gk-surface)), color-mix(in srgb, var(--wt) 8%, var(--gk-surface)));
+  transition: transform .25s var(--gk-ease), box-shadow .25s var(--gk-ease), border-color .2s var(--gk-ease), opacity .2s var(--gk-ease), filter .2s var(--gk-ease); }
 .gk button.gk-wtile { cursor: pointer; }
-.gk button.gk-wtile:hover { border-color: var(--gk-line-strong); transform: translateY(-1px); }
 .gk button.gk-wtile:focus-visible, .gk .gk-wtile__half:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-wart { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; color: var(--wt); pointer-events: none; transition: transform .4s var(--gk-ease); }
+.gk .gk-wart__lines { fill: none; stroke: currentColor; stroke-width: 2.5; opacity: .34; }
+.gk .gk-wart__mark { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
+/* A soft scrim from the words up, so the drawing never fights the text. */
+.gk .gk-wtile::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to top, color-mix(in srgb, var(--gk-surface) 72%, transparent), transparent 62%); }
+.gk .gk-wart__fill { fill: currentColor; fill-opacity: .38; }
+.gk .gk-wart g.gk-wart__fill { stroke: none; }
 .gk .gk-wtile--large { min-height: 340px; padding: var(--gk-5); }
 .gk .gk-wtile--medium { min-height: 200px; }
 .gk .gk-wtile__text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
@@ -52,14 +67,36 @@
 .gk .gk-wtile__line { color: var(--gk-text); font-size: var(--gk-fs-lg); line-height: 1.4; }
 .gk .gk-wtile--medium .gk-wtile__line { font-size: var(--gk-fs-md); }
 .gk .gk-wtile__text small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
-.gk .gk-wtile__icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: var(--gk-2); border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .gk-wtile--medium .gk-wtile__icon { width: 34px; height: 34px; }
-.gk .gk-wtile__icon svg { width: 20px; height: 20px; }
+.gk .gk-wtile__icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: var(--gk-2); border-radius: 50%; background: color-mix(in srgb, var(--wt) 22%, var(--gk-surface)); color: var(--wt); }
+.gk .gk-wtile--medium .gk-wtile__icon { width: 36px; height: 36px; }
+.gk .gk-wtile__icon svg { width: 21px; height: 21px; }
+/* What happens next: two lines that open on hover and focus. */
+.gk .gk-wtile__next { display: flex; flex-direction: column; gap: 1px; max-height: 0; opacity: 0; transform: translateY(6px); overflow: hidden; color: var(--gk-text); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600;
+  transition: max-height .25s var(--gk-ease), opacity .2s var(--gk-ease), transform .25s var(--gk-ease); }
 .gk .gk-wtile__halves { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--gk-2); }
-.gk .gk-wtile__half { display: inline-flex; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 56px; padding: 0 var(--gk-4); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r);
-  background: color-mix(in srgb, var(--gk-surface) 88%, transparent); color: var(--gk-text); font: inherit; font-weight: 650; cursor: pointer; transition: background .15s var(--gk-ease), border-color .15s var(--gk-ease); }
-.gk .gk-wtile__half:hover { border-color: var(--gk-accent); background: var(--gk-accent-soft); }
-.gk .gk-wtile__half svg { width: 17px; height: 17px; color: var(--gk-accent); }
+.gk .gk-wtile__half { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; min-height: 60px; padding: var(--gk-3) var(--gk-4); border: 1px solid color-mix(in srgb, var(--wt) 34%, var(--gk-line)); border-radius: var(--gk-r);
+  background: color-mix(in srgb, var(--gk-surface) 84%, transparent); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer;
+  transition: background .15s var(--gk-ease), border-color .15s var(--gk-ease), transform .2s var(--gk-ease); }
+.gk .gk-wtile__halflabel { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-xl); font-weight: 650; }
+.gk .gk-wtile__halflabel svg { width: 18px; height: 18px; color: var(--wt); }
+.gk .gk-wtile__half .gk-wtile__next { font-weight: 500; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-wtile__half:hover, .gk .gk-wtile__half:focus-visible { border-color: var(--wt); background: color-mix(in srgb, var(--wt) 16%, var(--gk-surface)); }
+/* With a mouse: the tile under it lifts, the others dim, and it says what happens next. */
+@media (hover: hover) and (min-width: 641px) {
+  .gk .gk-wtiles:has(button.gk-wtile:is(:hover, :focus-visible), .gk-wtile__half:is(:hover, :focus-visible)) .gk-wtile:not(:hover, :focus-visible, :has(:focus-visible)) { opacity: .5; filter: saturate(.5); }
+  .gk button.gk-wtile:is(:hover, :focus-visible), .gk .gk-wtile--play:is(:hover, :has(:focus-visible)) { transform: translateY(-4px); border-color: color-mix(in srgb, var(--wt) 60%, var(--gk-line)); box-shadow: var(--gk-elevation); }
+  .gk .gk-wtile:is(:hover, :focus-visible) .gk-wart { transform: scale(1.04); }
+  .gk button.gk-wtile:is(:hover, :focus-visible) > .gk-wtile__next, .gk .gk-wtile__half:is(:hover, :focus-visible) > .gk-wtile__next { max-height: 72px; opacity: 1; transform: none; }
+  .gk .gk-wtile__half:is(:hover, :focus-visible) { transform: translateY(-2px); }
+}
+/* On a touch screen or a phone the two lines always show, smaller. */
+@media (hover: none), (max-width: 640px) {
+  .gk .gk-wtile__next { max-height: none; opacity: 1; transform: none; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 500; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gk .gk-wtile, .gk .gk-wart, .gk .gk-wtile__next, .gk .gk-wtile__half { transition: none; }
+  .gk .gk-wtile, .gk .gk-wtile .gk-wart, .gk .gk-wtile__half { transform: none !important; }
+}
 @media (max-width: 640px) {
   .gk .gk-wtiles { grid-template-columns: minmax(0, 1fr); gap: var(--gk-2); }
   .gk .gk-wtile { padding: var(--gk-3); }
@@ -67,14 +104,13 @@
   .gk .gk-wtile--medium { min-height: 120px; }
   .gk .gk-wtile__text strong { font-size: var(--gk-fs-3xl); }
   .gk .gk-wtile--medium .gk-wtile__text strong { font-size: var(--gk-fs-2xl); }
+  .gk .gk-wtile__halflabel { font-size: var(--gk-fs-lg); }
   .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__follow { flex: 1; }
 }
 
 /* Step 2: a field or two, then tiles. */
 .gk .gk-welcome__fields { display: flex; flex-wrap: wrap; gap: var(--gk-3); }
 .gk .gk-welcome__field { display: flex; flex-direction: column; gap: 4px; min-width: 160px; color: var(--gk-text-3); font-size: var(--gk-fs-sm); font-weight: 600; }
-.gk .gk-welcome__note { display: flex; align-items: center; gap: var(--gk-2); margin: 0; padding: var(--gk-2) var(--gk-3); border-radius: var(--gk-r); background: var(--gk-accent-soft); font-size: var(--gk-fs-sm); }
-.gk .gk-welcome__note svg { flex: none; width: 16px; height: 16px; color: var(--gk-accent); }
 .gk .gk-welcome__mark { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
 .gk .gk-welcome__mark svg { width: 16px; height: 16px; }
 .gk .gk-welcome-chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
@@ -86,20 +122,12 @@
 .gk .gk-welcome__switch input { width: 18px; height: 18px; accent-color: var(--gk-accent); }
 .gk .gk-welcome__switch span { display: flex; flex-direction: column; gap: 1px; }
 .gk .gk-welcome__switch small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
-
-/* Home: "Your first week", three rows, one tap each. */
-.gk.gk-week { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); }
-.gk .gk-week__head { display: flex; align-items: center; gap: var(--gk-2); }
-.gk .gk-week__head h2 { margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; }
-.gk .gk-week__count { margin-right: auto; color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-variant-numeric: tabular-nums; }
-.gk .gk-week__rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
-.gk .gk-week__row { display: flex; align-items: center; gap: var(--gk-2); min-height: 44px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); color: var(--gk-text); font-size: var(--gk-fs-sm); font-weight: 600; text-decoration: none; transition: border-color .15s var(--gk-ease); }
-.gk .gk-week__row:hover { border-color: var(--gk-line-strong); }
-.gk .gk-week__row:focus-visible { outline: none; box-shadow: var(--gk-focus); }
-.gk .gk-week__row > svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
-.gk .gk-week__row[data-done] { color: var(--gk-text-3); }
-.gk .gk-week__label { flex: 1; min-width: 0; }
-.gk .gk-week__icon { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .gk-week__row[data-done] .gk-week__icon { background: var(--gk-accent); color: var(--gk-on-accent); }
-.gk .gk-week__icon svg { width: 15px; height: 15px; }
-.gk .gk-week__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Work: the listings near the person that match, as the chips are tapped. */
+.gk .gk-wjobs { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-wjobs__count { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-wjobs__count strong { color: var(--gk-text); font-size: var(--gk-fs-2xl); font-variant-numeric: tabular-nums; margin-right: 2px; }
+.gk .gk-wjobs__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-wjobs__row { display: flex; align-items: center; gap: var(--gk-3); min-height: 52px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .gk-wjobs__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gk .gk-wjobs__text strong { overflow: hidden; font-size: var(--gk-fs-md); text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-wjobs__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }

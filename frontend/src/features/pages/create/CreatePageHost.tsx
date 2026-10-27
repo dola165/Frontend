@@ -26,14 +26,19 @@ export function CreatePageHost() {
   if (!create) return null;
   if (status === 'bootstrapping') return null;
   if (status !== 'authenticated') return <Navigate to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} replace />;
-  const close = () => navigate({ pathname: location.pathname, search: withoutCreate(location.search), hash: location.hash }, { replace: true });
+  // Opened from the welcome's "What kind?": Not now goes back to it, so nobody is left on a page they did not pick.
+  const rest = withoutCreate(location.search);
+  const search = params.get(FROM_PARAM) === 'welcome' ? `${rest ? `${rest}&` : '?'}welcome=business` : rest;
+  const close = () => navigate({ pathname: location.pathname, search, hash: location.hash }, { replace: true });
+  // Opening a known page from the sheet leaves the welcome behind too: Back from that page returns here, not to it.
+  const leave = () => navigate({ pathname: location.pathname, search: rest, hash: location.hash }, { replace: true });
   // A missing birth date is not adult: asked for once, then the sheet or the answer below.
   if (!user?.dob) return <BirthDateStep onClose={close} />;
   if (!isAdult(user.dob)) return <Dialog open size="sm" title={t('Pages are for adults')} description={t('Ask an adult at your club to create it and invite you.')} onClose={close}
     footer={<Button variant="primary" onClick={close}>{t('Close')}</Button>} />;
   return (
     <Suspense fallback={null}>
-      <StartSheet kind={kindFromParam(create)} business={businessFromParam(params.get(BUSINESS_PARAM))} from={fromParam(params.get(FROM_PARAM))} draw={params.get(DRAW_PARAM) === '1'} onClose={close} />
+      <StartSheet kind={kindFromParam(create)} business={businessFromParam(params.get(BUSINESS_PARAM))} from={fromParam(params.get(FROM_PARAM))} draw={params.get(DRAW_PARAM) === '1'} onClose={close} onLeave={leave} />
     </Suspense>
   );
 }

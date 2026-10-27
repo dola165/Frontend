@@ -49,7 +49,6 @@ const ka = {
     lightMode: 'ღია რეჟიმი',
     darkMode: 'მუქი რეჟიმი',
     appearance: 'გარეგნობა',
-    mapLightMode: 'მუქი აპი + ღია რუკა',
     people: 'ხალხი',
     followedClubs: 'მიყოლილი კლუბები',
     parentHub: 'მშობლის სივრცე',

@@ -6,19 +6,19 @@ import { Crest } from '../world/Crest';
 import type { NearbyClub } from './startApi';
 
 /**
- * Clubs as tiles to tick: crest, name, town and distance, then the programme that takes the age asked about (its name,
- * how often, what it costs) or, without one, how many follow the club. Several at once, or one (`single`, finding your
- * own club). Nothing happens until the welcome's main button: then the ticked clubs are followed.
+ * Clubs as tiles to follow with a heart: crest, name, town and distance, then the programme that takes the age asked
+ * about (its name, how often, what it costs) or, without one, how many follow the club. Several at once; nothing
+ * happens until the welcome's main button: then the hearted clubs are followed.
  */
-export function ClubPicker({ clubs, chosen, onToggle, label, single = false, empty }: {
-    clubs: NearbyClub[] | null; chosen: ReadonlySet<number>; onToggle: (id: number) => void; label: string; single?: boolean; empty: string;
+export function ClubPicker({ clubs, chosen, onToggle, label, empty }: {
+    clubs: NearbyClub[] | null; chosen: ReadonlySet<number>; onToggle: (id: number) => void; label: string; empty: string;
 }) {
     const copy = useJourneyCopy();
     if (!clubs) return <div role="status" aria-label={copy('Loading clubs', 'კლუბები იტვირთება')} className="gk-welcome__loading"><Skeleton height={72} /><Skeleton height={72} /><Skeleton height={72} /></div>;
     if (!clubs.length) return <p className="gk-welcome__hint">{empty}</p>;
     const place = (club: NearbyClub) => [club.cityName, club.km != null ? copy(`${Math.round(club.km)} km`, `${Math.round(club.km)} კმ`) : null].filter(Boolean).join(' · ');
     const often = (sessions: number | null) => sessions ? copy(`${sessions}× a week`, `კვირაში ${sessions}-ჯერ`) : null;
-    return <ChoiceTiles compact single={single} label={label} chosen={[...chosen].map(String)} onToggle={id => onToggle(Number(id))}
+    return <ChoiceTiles compact mark="heart" label={label} chosen={[...chosen].map(String)} onToggle={id => onToggle(Number(id))}
         items={clubs.map(club => ({
             id: String(club.id), label: club.name, icon: <Crest src={club.logoUrl} name={club.name} size={40} />,
             hint: <span className="gk-welcome-club">

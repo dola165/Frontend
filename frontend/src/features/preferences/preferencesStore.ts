@@ -14,8 +14,8 @@ export type WelcomeChoice = 'ME' | 'CHILD' | 'CLUB' | 'WORK' | 'BUSINESS' | 'FOL
 export type WelcomeStep = 'START' | WelcomeChoice | 'ROLES' | 'ABOUT' | 'PROFILE' | 'PAGE' | 'TOURNAMENT' | 'VENUE';
 /**
  * OPEN shows the welcome over Home until finished or closed; DONE never shows it by itself again. `choice` picks the
- * "Your first week" card on Home, `week` holds its steps done, and `cardDismissed` hides it. `skipped` is the earlier
- * welcome's, still read, never written.
+ * "Your first week" checklist in the frame's corner, `week` holds its steps done (and `open` while it is unfolded), and
+ * `cardDismissed` hides it for good. `skipped` is the earlier welcome's, still read, never written.
  */
 export interface WelcomeProgress { state: 'OPEN' | 'DONE'; at?: WelcomeStep | null; choice?: WelcomeChoice | null; week?: string[]; skipped?: WelcomeStep[]; cardDismissed?: boolean }
 /**

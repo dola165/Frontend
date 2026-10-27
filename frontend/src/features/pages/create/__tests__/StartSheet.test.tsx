@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SimilarPage } from '../../api';
 
@@ -121,6 +121,27 @@ describe('the start sheet', () => {
     render(<MemoryRouter initialEntries={['/home?create=club&from=link']}><Routes><Route path="/home" element={<CreatePageHost />} /></Routes></MemoryRouter>);
     expect(await screen.findByRole('dialog', { name: 'Your date of birth' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Club name')).toBeNull();
+  });
+
+  it('goes back to the welcome’s “What kind?” when the sheet the welcome opened is closed, never to a bare page', async () => {
+    const user = userEvent.setup();
+    const Address = () => <output data-testid="address">{useLocation().search}</output>;
+    render(<MemoryRouter initialEntries={['/home?create=business&from=welcome&business=SPONSOR']}><Routes><Route path="/home" element={<><CreatePageHost /><Address /></>} /></Routes></MemoryRouter>);
+    await screen.findByRole('dialog');
+    await user.click(screen.getAllByRole('button', { name: 'Not now' }).at(-1)!);
+    expect(screen.getByTestId('address')).toHaveTextContent('?welcome=business');
+  });
+
+  it('opens a known page from the sheet the welcome opened without leaving the welcome behind it', async () => {
+    const user = userEvent.setup();
+    api.fetchSimilar.mockResolvedValue([dinamo]);
+    const Address = () => { const { pathname, search } = useLocation(); const navigate = useNavigate(); return <><output data-testid="address">{`${pathname}${search}`}</output><button type="button" onClick={() => navigate(-1)}>Go back</button></>; };
+    render(<MemoryRouter initialEntries={['/home?create=club&from=welcome']}><Address /><Routes><Route path="/home" element={<CreatePageHost />} /><Route path="/clubs/:id" element={<p>The club page</p>} /></Routes></MemoryRouter>);
+    await user.type(await screen.findByLabelText('Club name'), 'Dinamo');
+    await user.click(await screen.findByRole('link', { name: 'Open' }));
+    expect(await screen.findByText('The club page')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Go back' }));
+    expect(screen.getByTestId('address')).toHaveTextContent(/^\/home$/);
   });
 
   it('tells someone under 18 that pages are for adults, whatever kind the link asks for', async () => {

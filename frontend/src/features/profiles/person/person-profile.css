@@ -19,3 +19,6 @@
     .gk .gk-person-layers .gk-list-row__main { flex-basis: calc(100% - 56px); }
     .gk .gk-person-layers .gk-list-row__trail { flex-basis: 100%; padding-left: 52px; }
 }
+/* Own profile: the quiet way back into the welcome. */
+.gk .gk-person-rewelcome { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; color: var(--gk-text-3); font-size: var(--gk-fs-sm); text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-person-rewelcome:hover { color: var(--gk-text); }

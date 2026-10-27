@@ -26,8 +26,9 @@ const KIND_WORD: Record<PageKind, string> = { CLUB: 'Club', FAN_CLUB: 'Fan club'
  * The start sheet, about ten seconds: what it is (four picture tiles), its name with the town already filled in, and
  * Create. While the name is typed, known pages that look like it are shown with Open, so someone looking for a known club
  * finds it; a listing stays a listing and the person can still start their own page. Nothing else is asked here.
+ * `onLeave` runs as a link opens a known page from the sheet (default: `onClose`), so closing and leaving can differ.
  */
-export function StartSheet({ kind, business = null, from, draw, onClose }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void }) {
+export function StartSheet({ kind, business = null, from, draw, onClose, onLeave = onClose }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void; onLeave?: () => void }) {
   const t = usePagesCopy();
   const { user } = useAuth();
   const { create, busy, error, clearError, unanswered, otherClub } = useCreatePage();
@@ -99,13 +100,13 @@ export function StartSheet({ kind, business = null, from, draw, onClose }: { kin
   };
   const onKey = (event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter') { event.preventDefault(); void submit(); } };
   const tile = chosen ? KIND_TILES[chosen as Exclude<PageKind, 'VENUE'>] : null;
-  const matchAction = (match: SimilarPage) => <ButtonLink size="sm" to={pagePath(match.ref)} onClick={onClose}>{t(match.mine ? 'Open yours' : 'Open')}</ButtonLink>;
+  const matchAction = (match: SimilarPage) => <ButtonLink size="sm" to={pagePath(match.ref)} onClick={onLeave}>{t(match.mine ? 'Open yours' : 'Open')}</ButtonLink>;
 
   return (
     <Dialog open size="md" title={tile ? t(tile.title) : t('What are you creating?')} onClose={onClose} closeLabel={t('Not now')}
       footer={<>
         <Button variant="ghost" onClick={onClose}>{t('Not now')}</Button>
-        {oneClub && club ? <ButtonLink variant="primary" to={`/clubs/${club.id}`} onClick={onClose}>{t('Open {name}', { name: club.name })}</ButtonLink>
+        {oneClub && club ? <ButtonLink variant="primary" to={`/clubs/${club.id}`} onClick={onLeave}>{t('Open {name}', { name: club.name })}</ButtonLink>
           : <Button variant="primary" disabled={!ready} onClick={() => void submit()}>
           {busy ? <><Loader2 className="gk-spin" aria-hidden="true" />{t('Creating…')}</> : t(tile?.create ?? 'Create page')}
         </Button>}

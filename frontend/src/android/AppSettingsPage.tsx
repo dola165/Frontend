@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ThemePreference } from '../theme';
+import { themeForRoute, type ThemePreference } from '../theme';
 import { updateAndroidPreferences, type AndroidPreferences } from './preferences';
 
 export function AppSettingsPage({ theme }: { theme: ThemePreference }) {
@@ -20,9 +20,9 @@ export function AppSettingsPage({ theme }: { theme: ThemePreference }) {
         <fieldset className="space-y-3" disabled={busy}>
             <legend className="mb-3 font-semibold">{t('nav.appearance')}</legend>
             {([
-                ['map-light', t('nav.mapLightMode')], ['dark', t('nav.darkMode')], ['light', t('nav.lightMode')],
+                ['dark', t('nav.darkMode')], ['light', t('nav.lightMode')],
             ] as const).map(([value, label]) => <label key={value} className="flex min-h-14 items-center gap-3 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-surface)] px-4 py-3">
-                <input type="radio" name="appearance" value={value} checked={theme === value} onChange={() => void change({ theme: value })} />
+                <input type="radio" name="appearance" value={value} checked={themeForRoute(theme) === value} onChange={() => void change({ theme: value })} />
                 <span>{label}</span>
             </label>)}
         </fieldset>

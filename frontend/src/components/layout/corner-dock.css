@@ -1,0 +1,12 @@
+/* The app frame's one floating corner (`CornerDock`): above the page, under every dialog (4000) and the phone's tab bar (1500). */
+.gk.gk-corner { position: fixed; right: 20px; bottom: 20px; z-index: 1400; display: flex; flex-direction: column; align-items: flex-end; max-width: calc(100vw - 32px); pointer-events: none; }
+.gk.gk-corner > * { pointer-events: auto; }
+@media (max-width: 767px) { .gk.gk-corner { right: 12px; bottom: calc(var(--app-bottom-bar-height) + 12px); } }
+/* Over a map it sits above the map's credits, which must stay readable. */
+html:has(.maplibregl-ctrl-attrib) .gk.gk-corner { bottom: 48px; }
+@media (max-width: 767px) { html:has(.maplibregl-ctrl-attrib) .gk.gk-corner { bottom: calc(var(--app-bottom-bar-height) + 40px); } }
+
+/* One corner, one thing: it steps aside for any open dialog or sheet, Agent Dola's side panel and the page-creation fox. */
+html:has([aria-modal='true'], .dola-dock, .gk-pet-launcher, .gk-guide:not([hidden]):not([data-inline])) .gk.gk-corner { display: none; }
+/* Something else fixed stands in this corner (`CornerDock` looks): the dock gives it the corner. */
+.gk.gk-corner[data-yield] { visibility: hidden; }

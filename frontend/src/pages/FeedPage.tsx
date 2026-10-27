@@ -16,7 +16,6 @@ import type { NavigationCapabilities } from '../context/navigationCapabilities';
 import { isAndroidApp } from '../android/bridge';
 import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
-import { FirstWeek } from '../features/start/FirstWeek';
 import { WelcomeHost } from '../features/start/WelcomeHost';
 import { StaffClubCard } from '../features/clubOperations/leaving/StaffClubCard';
 import { NeedsResultCard } from '../features/actions/NeedsResultCard';
@@ -246,8 +245,6 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
      <summary><span>{copy('Your football', 'თქვენი ფეხბურთი')}</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || copy('Your shortcuts', 'მალსახმობები')}</span><ChevronDown size={16} aria-hidden="true" /></summary>
      <LeftSidebar user={user} embedded />
     </details>}
-
-   <FirstWeek />
 
    <PostComposer
     compact

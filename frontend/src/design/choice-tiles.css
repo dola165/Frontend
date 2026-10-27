@@ -41,3 +41,10 @@
 @media (max-width: 640px) {
   .gk .gk-tiles--act { grid-template-columns: minmax(0, 1fr); }
 }
+/* Following: a heart instead of the check, filled once chosen. */
+.gk .gk-tiles--heart .gk-tile > input { opacity: 0; }
+.gk .gk-tile__heart { position: absolute; top: var(--gk-2); right: var(--gk-2); width: 20px; height: 20px; color: var(--gk-text-3); pointer-events: none; transition: color .15s var(--gk-ease), transform .15s var(--gk-ease); }
+.gk .gk-tile:hover .gk-tile__heart { color: var(--gk-danger); }
+.gk .gk-tile[data-checked] .gk-tile__heart { color: var(--gk-danger); fill: currentColor; transform: scale(1.08); }
+.gk .gk-tiles--heart .gk-tile[data-checked] { border-color: color-mix(in srgb, var(--gk-danger) 45%, transparent); background: var(--gk-danger-soft); }
+@media (prefers-reduced-motion: reduce) { .gk .gk-tile__heart { transition: none; transform: none !important; } }

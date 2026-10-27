@@ -15,11 +15,16 @@ export function readThemePreference(storage?: Pick<Storage, 'getItem'>): ThemePr
     try {
         const source = storage ?? window.localStorage;
         const saved = source.getItem('theme-preference');
-        if (source.getItem(THEME_CHOSEN_KEY) === '1' && isThemePreference(saved)) return saved;
+        if (hasChosenTheme(source) && isThemePreference(saved)) return saved;
         return saved === 'dark' ? 'dark' : 'light';
     } catch {
         return 'light';
     }
+}
+
+/** Whether the person ever picked an appearance on this device. */
+export function hasChosenTheme(storage?: Pick<Storage, 'getItem'>) {
+    try { return (storage ?? window.localStorage).getItem(THEME_CHOSEN_KEY) === '1'; } catch { return false; }
 }
 
 /** The person picked an appearance: kept with its mark, and under the original key for older clients. */

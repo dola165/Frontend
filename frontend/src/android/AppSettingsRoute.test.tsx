@@ -17,7 +17,8 @@ it('opens app settings through the actual Android route layout', async () => {
     window.history.replaceState({}, '', '/app-settings');
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'App settings' })).toBeInTheDocument();
-    expect(screen.getAllByRole('radio')).toHaveLength(5);
+    // Appearance (dark, light; the map follows the theme) and language.
+    expect(screen.getAllByRole('radio')).toHaveLength(4);
     expect(screen.queryByText('We could not find that page')).not.toBeInTheDocument();
 });
 it('allows device preferences before sign-in without opening private account settings', async () => {

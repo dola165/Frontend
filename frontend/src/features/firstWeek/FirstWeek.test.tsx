@@ -7,6 +7,7 @@ import { CornerDock } from '../../components/layout/CornerDock';
 import i18n from '../../i18n';
 import { applyPreferencesUpdate, type Preferences } from '../preferences/preferencesStore';
 import { FirstWeek } from './FirstWeek';
+import { WorldWelcome } from './WorldWelcome';
 
 const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>() }));
 const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } }));
@@ -14,6 +15,7 @@ vi.mock('../../api/axiosConfig', async original => ({ ...(await original<object>
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated', bootstrapSession: async () => auth.user }) }));
 
 const week = () => (server.prefs.start as { welcome?: { week?: string[]; cardDismissed?: boolean } }).welcome;
+const greeted = () => (server.prefs.tutorials as { completed?: string[] } | undefined)?.completed ?? [];
 let nextUser = 8100;
 
 function Address() {
@@ -111,5 +113,39 @@ describe('your first week, in the corner', () => {
         mount();
         await new Promise(resolve => setTimeout(resolve, 50));
         expect(screen.queryByRole('button', { name: /Your first week/ })).toBeNull();
+    });
+});
+
+describe('GrassKickZ World, introduced by name', () => {
+    it('is a first-week step with its promise and Open World, done once World has been opened', async () => {
+        welcome('FOLLOW', { week: ['open'] });
+        mount();
+        const step = await screen.findByRole('link', { name: /Meet GrassKickZ World/ });
+        expect(step).toHaveAttribute('href', '/world');
+        expect(within(step).getByText('Every club, match and pitch near you, on one map.')).toBeInTheDocument();
+        expect(within(step).getByText('Open World')).toBeInTheDocument();
+        cleanup();
+        // "See matches near you", ticked before the step was renamed, counts as having opened World.
+        auth.user = { id: nextUser++, dob: '1985-05-02' };
+        welcome('FOLLOW', { week: ['open', 'matches'] });
+        mount();
+        expect(await screen.findByRole('link', { name: /Meet GrassKickZ World.*done/ })).toBeInTheDocument();
+    });
+
+    it('greets the person once in World, and opening World ticks the step', async () => {
+        const user = userEvent.setup();
+        welcome('FOLLOW');
+        render(<MemoryRouter><WorldWelcome /></MemoryRouter>);
+        const note = await screen.findByRole('note');
+        expect(within(note).getByText('GrassKickZ World')).toBeInTheDocument();
+        expect(within(note).getByText('Every club, match and pitch near you, on one map.')).toBeInTheDocument();
+        await waitFor(() => expect(greeted()).toEqual(['world']));
+        await waitFor(() => expect(week()?.week).toEqual(['world']));
+        await user.click(within(note).getByRole('button', { name: 'Close' }));
+        expect(screen.queryByRole('note')).toBeNull();
+        cleanup();
+        render(<MemoryRouter><WorldWelcome /></MemoryRouter>);
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('note')).toBeNull();
     });
 });

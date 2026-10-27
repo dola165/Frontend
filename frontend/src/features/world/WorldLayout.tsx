@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { GkRoot, PageFrame } from '../../design/primitives';
+import { WorldWelcome } from '../firstWeek/WorldWelcome';
 import { WorldStage } from './stage/WorldStage';
 import { WorldContextBar } from './WorldContextBar';
 import { WorldNav } from './WorldNav';
@@ -24,6 +25,7 @@ export function WorldLayout() {
     return (
         <GkRoot className="gk-page gk-world">
             <PageFrame>
+                <WorldWelcome />
                 <div className="gk-world-bar">
                     <WorldNav />
                     <WorldContextBar />

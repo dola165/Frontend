@@ -1,4 +1,5 @@
-import { Briefcase, Camera, Dumbbell, Hammer, Heart, MapPin, Search, Shield, Trophy, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { Briefcase, Camera, Dumbbell, Earth, Hammer, Heart, MapPin, Search, Shield, Trophy, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { WORLD_BRAND } from '../../components/brand/worldBrand';
 import type { WelcomeProgress } from '../preferences/preferencesStore';
 import type { Choice } from '../start/welcomeSteps';
 
@@ -7,7 +8,8 @@ import type { Choice } from '../start/welcomeSteps';
  * picker), otherwise the page where it is done.
  */
 export type StepOpen = { kind: 'link'; to: string } | { kind: 'action'; action: 'add_child'; fallback: string } | { kind: 'follow' } | { kind: 'photo' };
-export interface WeekStep { id: string; icon: LucideIcon; en: string; ka: string; open: StepOpen }
+/** `world`: the step that introduces GrassKickZ World by name, with its mark and promise. */
+export interface WeekStep { id: string; icon: LucideIcon; en: string; ka: string; open: StepOpen; world?: boolean }
 
 const link = (to: string): StepOpen => ({ kind: 'link', to });
 
@@ -32,7 +34,7 @@ export function stepsFor(choice: Choice, childAge: number | null | undefined): W
             { id: 'clubs', icon: MapPin, en: 'Find clubs near you', ka: 'იპოვეთ ახლომდებარე კლუბები', open: link('/world/clubs') },
             { id: 'tournaments', icon: Trophy, en: 'See tournaments', ka: 'ნახეთ ტურნირები', open: link('/world/tournaments') }];
         case 'follow': return [
-            follow, { id: 'matches', icon: Trophy, en: 'See matches near you', ka: 'ნახეთ ახლომდებარე მატჩები', open: link('/world/matches') }, photo];
+            follow, { id: 'world', icon: Earth, en: WORLD_BRAND.meet[0], ka: WORLD_BRAND.meet[1], open: link('/world'), world: true }, photo];
     }
 }
 
@@ -45,4 +47,11 @@ export const isUnfolded = (progress: WelcomeProgress | null | undefined) => Bool
 export const withUnfolded = (progress: WelcomeProgress | null | undefined, open: boolean): WelcomeProgress => {
     const week = (progress?.week ?? []).filter(step => step !== OPEN_MARK);
     return { ...progress, state: progress?.state ?? 'DONE', week: open ? [...week, OPEN_MARK] : week };
+};
+
+/** Steps done, by name; "See matches near you" (until 27 October 2026) counts as having opened World. */
+export const doneSteps = (progress: WelcomeProgress | null | undefined) => {
+    const done = new Set(progress?.week ?? []);
+    if (done.has('matches')) done.add('world');
+    return done;
 };

@@ -13,7 +13,9 @@ import { saveStart } from '../start/startApi';
 import { choiceFromStored, choicesFor, weekDone } from '../start/welcomeSteps';
 import { saveMyPhoto } from './api';
 import { ClubsNearYou } from './ClubsNearYou';
-import { isUnfolded, stepsFor, withUnfolded, type WeekStep } from './steps';
+import { WORLD_BRAND } from '../../components/brand/worldBrand';
+import { WorldMark } from '../../components/brand/WorldMark';
+import { doneSteps, isUnfolded, stepsFor, withUnfolded, type WeekStep } from './steps';
 import './first-week.css';
 
 /** How much of the week is done, as a small ring. */
@@ -62,7 +64,7 @@ export function FirstWeek() {
     const choice = stored && !choicesFor({ adult: isAdult(user?.dob) }).includes(stored) ? 'follow' : stored;
     if (!userId || !choice || progress?.state !== 'DONE' || progress.cardDismissed) return null;
     const steps = stepsFor(choice, start?.childAge);
-    const done = new Set(progress.week ?? []);
+    const done = doneSteps(progress);
     const count = steps.filter(step => done.has(step.id)).length;
     if (count === steps.length) return null;
     const setOpen = (value: boolean) => { toggled.current = true; record(current => withUnfolded(current, value)); };
@@ -71,12 +73,20 @@ export function FirstWeek() {
 
     const row = (step: WeekStep) => {
         const ticked = done.has(step.id);
-        const body = <>
+        // World introduces itself by name until it has been opened: its mark, its promise and "Open World".
+        const meet = step.world && !ticked;
+        const body = meet ? <>
+            <WorldMark size={30} />
+            <span className="gk-week__label">
+                {copy(step.en, step.ka)}<small className="gk-week__line">{copy(...WORLD_BRAND.tagline)}</small>
+                <span className="gk-week__go" aria-hidden="true">{copy(...WORLD_BRAND.open)}</span>
+            </span>
+        </> : <>
             <span className="gk-week__icon">{ticked ? <Check aria-hidden="true" /> : <step.icon aria-hidden="true" />}</span>
             <span className="gk-week__label">{copy(step.en, step.ka)}{ticked && <span className="gk-week__sr">{copy(' (done)', ' (შესრულებულია)')}</span>}</span>
             <ChevronRight aria-hidden="true" />
         </>;
-        const shared = { className: 'gk-week__row', 'data-done': ticked || undefined };
+        const shared = { className: `gk-week__row${meet ? ' gk-week__row--world' : ''}`, 'data-done': ticked || undefined };
         const button = (onClick: () => void) => <button type="button" {...shared} onClick={onClick}>{body}</button>;
         const { open: how } = step;
         // Steps that open over this page leave the list unfolded; a step on another page folds it out of the way.

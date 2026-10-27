@@ -1,5 +1,5 @@
 import i18n from '../i18n';
-import { isThemePreference, type ThemePreference } from '../theme';
+import { chooseThemePreference, isThemePreference, THEME_CHOSEN_KEY, type ThemePreference } from '../theme';
 import { decodeBody, nativeCall } from './bridge';
 
 export interface AndroidPreferences { theme: ThemePreference; language: 'en' | 'ka' }
@@ -12,7 +12,9 @@ export function isAndroidPreferences(value: unknown): value is AndroidPreference
 
 export async function applyAndroidPreferences(value: unknown) {
     if (!isAndroidPreferences(value)) return;
-    localStorage.setItem('theme-preference', value.theme);
+    // The app stores map-light (dark) until the person picks: only a picked dark or light counts as a choice.
+    if (value.theme === 'map-light') { localStorage.setItem('theme-preference', value.theme); localStorage.removeItem(THEME_CHOSEN_KEY); }
+    else chooseThemePreference(value.theme);
     window.dispatchEvent(new CustomEvent('grasskickz:appearance', { detail: value.theme }));
     if (i18n.resolvedLanguage !== value.language) await i18n.changeLanguage(value.language);
 }

@@ -4,7 +4,7 @@ import { MediaImage } from "../ui/MediaImage";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import type { ShortcutKind } from './ShortcutEmblem';
-import { BriefcaseBusiness, CalendarDays, Flag, Heart, MapPinned, Shield, UserCheck, Users } from 'lucide-react';
+import { BriefcaseBusiness, Flag, Heart, MapPinned, Shield, UserCheck, Users } from 'lucide-react';
 import { resolveMediaUrl } from "../../utils/resolveMediaUrl";
 import { capabilitiesKnown, hasConfirmedLinks, hasNavigationCapability, type NavigationCapabilities } from '../../context/navigationCapabilities';
 import { ConnectionsDialog } from "../profile/ConnectionsDialog";
@@ -37,7 +37,7 @@ const initialsFrom = (value: string) =>
     .join("")
     .toUpperCase() || "GK";
 
-const shortcutIcons = { family: Heart, squads: Users, schedule: CalendarDays, map: MapPinned, following: UserCheck, clubs: Shield, referee: Flag, agent: BriefcaseBusiness };
+const shortcutIcons = { family: Heart, squads: Users, map: MapPinned, following: UserCheck, clubs: Shield, referee: Flag, agent: BriefcaseBusiness };
 const HomeIcon = ({ kind }: { kind: ShortcutKind }) => {
   const Icon = shortcutIcons[kind as keyof typeof shortcutIcons] ?? Shield;
   return <span className={`home-nav-icon home-nav-icon--${kind}`}><Icon size={19} aria-hidden="true" /></span>;
@@ -52,7 +52,6 @@ export const LeftSidebar = ({ user, embedded = false }: LeftSidebarProps) => {
     ...(showSquadNavigation(capabilities) ? [{ to: '/squads', label: copy('My squads', 'ჩემი გუნდები'), description: copy('Coach updates, families and chat', 'მწვრთნელის სიახლეები, ოჯახები და ჩატი'), icon: 'squads' as const }] : []),
     ...(hasNavigationCapability(capabilities, 'referee.workspace') ? [{ to: '/referees/me', label: copy('Referee workspace', 'მსაჯის სივრცე'), description: copy('Your appointments and availability', 'დანიშვნები და ხელმისაწვდომობა'), icon: 'referee' as const }] : []),
     ...(hasNavigationCapability(capabilities, 'agent.hub') ? [{ to: '/agent', label: copy('Agent Hub', 'აგენტის სივრცე'), description: copy('Your players and opportunities', 'თქვენი მოთამაშეები და შესაძლებლობები'), icon: 'agent' as const }] : []),
-    { to: '/calendar?scope=personal', label: copy('My schedule', 'ჩემი განრიგი'), description: copy('Your personal calendar', 'თქვენი პირადი კალენდარი'), icon: 'schedule' },
   ];
   const shortcut = (item: typeof primary[number]) => <Link key={item.to} to={item.to} aria-label={`${item.label}. ${item.description}`} className="feed-side-link home-social-link">
     <HomeIcon kind={item.icon} /><span className="home-shortcut-copy"><span className="feed-side-link__title">{item.label}</span><span className="home-shortcut-description">{item.description}</span></span>
@@ -100,10 +99,11 @@ export const LeftSidebar = ({ user, embedded = false }: LeftSidebarProps) => {
         </div>
         {/* Someone with no page of their own is offered one; once they have a club or a page, the card goes. */}
         {capabilitiesKnown(capabilities) && !hasOwnPage(capabilities) && !isKnownMinor(user?.dob) && <CreateCard from="home" />}
-        <div className="home-shortcut-group home-rail-card" role="group" aria-label={copy('Your football', 'თქვენი ფეხბურთი')}>
+        {/* My schedule is not here: whoever wants it pins it (owner, 27 October 2026). */}
+        {primary.length > 0 && <div className="home-shortcut-group home-rail-card" role="group" aria-label={copy('Your football', 'თქვენი ფეხბურთი')}>
           <h2 className="home-shortcut-heading">{copy('Your football', 'თქვენი ფეხბურთი')}</h2>
           {primary.map(shortcut)}
-        </div>
+        </div>}
         {/* Someone nobody has linked to a club, squad or child yet keeps up through follows. */}
         {capabilitiesKnown(capabilities) && !hasConfirmedLinks(capabilities) && <div className="home-shortcut-group home-rail-card" role="group" aria-label={copy('Explore', 'აღმოაჩინეთ')}>
           <h2 className="home-shortcut-heading">{copy('Explore', 'აღმოაჩინეთ')}</h2>

@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../api/axiosConfig';
 import i18n from '../../i18n';
 import { applyPreferencesUpdate, type Preferences } from '../preferences/preferencesStore';
-import { FirstWeek } from './FirstWeek';
 import { WelcomeHost } from './WelcomeHost';
 import { stepFromParam } from './welcomeSteps';
 
@@ -37,7 +36,7 @@ function Address() {
 const address = () => screen.getByTestId('address').textContent;
 const mount = (entry: string) => render(<MemoryRouter initialEntries={[entry]}>
     <Routes>
-        <Route path="/home" element={<><WelcomeHost /><FirstWeek /><Address /></>} />
+        <Route path="/home" element={<><WelcomeHost /><Address /></>} />
         <Route path="*" element={<Address />} />
     </Routes>
 </MemoryRouter>);
@@ -118,30 +117,21 @@ describe('the welcome', () => {
         expect(within(box).getByRole('button', { name: /I’m here to follow football/ })).toBeInTheDocument();
     });
 
-    it('opens step 1 for a 17-year-old who follows an adult answer, and shows them the follower’s week', async () => {
+    it('opens step 1 for a 17-year-old who follows an adult answer', async () => {
         auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 17}-01-01` };
         mount('/home?welcome=work');
         const box = await dialog();
         expect(within(box).getByRole('heading', { name: 'What brings you to GrassKickZ?' })).toBeInTheDocument();
         expect(within(box).queryByRole('button', { name: 'Play football: For my child' })).toBeNull();
         expect(within(box).queryByRole('button', { name: /^Work or volunteer/ })).toBeNull();
-        cleanup();
-        // Another 17-year-old whose stored answer is an adult one.
-        auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 17}-01-01` };
-        server.prefs = { start: { welcome: { state: 'DONE', choice: 'CHILD', week: [], cardDismissed: false } } };
-        mount('/home');
-        expect(await screen.findByRole('link', { name: 'Follow clubs near you' })).toBeInTheDocument();
-        expect(screen.queryByRole('link', { name: 'Add your child' })).toBeNull();
     });
 
-    it('treats Skip as following football: the welcome ends and the first week offers following', async () => {
+    it('treats Skip as following football: the welcome ends', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=start');
         await user.click(within(await dialog()).getByRole('button', { name: 'Skip' }));
         expect(address()).toBe('/home');
         await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'FOLLOW' }));
-        expect(await screen.findByRole('heading', { name: 'Your first week' })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Follow clubs near you' })).toHaveAttribute('href', '/world/clubs');
     });
 
     it('ticks the three nearest clubs to follow, follows them and lands on Home', async () => {
@@ -341,20 +331,6 @@ describe('the welcome', () => {
         expect(await within(box).findByText('Nothing near you for that yet. Clubs who need help can still find you.')).toBeInTheDocument();
         await user.click(within(box).getByRole('button', { name: 'See all jobs' }));
         await waitFor(() => expect(address()).toBe('/jobs/all?category=MEDICAL'));
-    });
-
-    it('ticks a first-week step once opened and goes away when dismissed', async () => {
-        const user = userEvent.setup();
-        server.prefs = { start: { welcome: { state: 'DONE', choice: 'ME', week: [], cardDismissed: false } } };
-        mount('/home');
-        expect(await screen.findByText('0 of 3')).toBeInTheDocument();
-        await user.click(screen.getByRole('link', { name: 'Find a trial that fits you' }));
-        await waitFor(() => expect(start().welcome?.week).toEqual(['trials']));
-        cleanup();
-        mount('/home');
-        expect(await screen.findByText('1 of 3')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Dismiss' }));
-        await waitFor(() => expect(screen.queryByRole('heading', { name: 'Your first week' })).toBeNull());
     });
 
     it('does not come back over the create sheet a link asks for', async () => {

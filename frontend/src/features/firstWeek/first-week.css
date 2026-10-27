@@ -1,0 +1,51 @@
+/* "Your first week" in the app frame's corner (`CornerDock`): a raised chip that unfolds into the three steps. */
+.gk .gk-week-chip { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 44px; padding: 0 var(--gk-4) 0 var(--gk-3); border: 1px solid color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text); box-shadow: var(--gk-elevation); font: inherit; font-size: var(--gk-fs-md); white-space: nowrap; cursor: pointer; transition: transform .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .gk-week-chip:hover { border-color: var(--gk-accent); transform: translateY(-1px); }
+.gk .gk-week-chip strong { font-weight: 650; }
+.gk .gk-week-chip__count { color: var(--gk-text-2); font-variant-numeric: tabular-nums; }
+
+.gk .gk-week-ring { flex: none; width: 22px; height: 22px; }
+.gk .gk-week-ring__track, .gk .gk-week-ring__fill { fill: none; stroke-width: 3; }
+.gk .gk-week-ring__track { stroke: var(--gk-accent-soft); }
+.gk .gk-week-ring__fill { stroke: var(--gk-accent); stroke-linecap: round; transition: stroke-dashoffset .4s var(--gk-ease); }
+
+.gk .gk-week { display: flex; flex-direction: column; gap: var(--gk-2); width: min(340px, calc(100vw - 24px)); padding: var(--gk-2) var(--gk-2) var(--gk-3) var(--gk-3); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); box-shadow: var(--gk-elevation); animation: gk-week-rise .18s var(--gk-ease); }
+.gk .gk-week__head { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-week__head h2 { margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; }
+.gk .gk-week__count { margin-right: auto; color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-variant-numeric: tabular-nums; }
+.gk .gk-week__rows { display: flex; flex-direction: column; gap: var(--gk-1); margin: 0; padding: 0 var(--gk-1) 0 0; list-style: none; }
+.gk .gk-week__row { display: flex; align-items: center; gap: var(--gk-2); width: 100%; min-height: 44px; padding: var(--gk-1) var(--gk-2); border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text); font: inherit; font-size: var(--gk-fs-md); font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; transition: background-color .15s var(--gk-ease); }
+.gk .gk-week__row:hover { background: var(--gk-hover); }
+.gk .gk-week__row > svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .gk-week__row[data-done] { color: var(--gk-text-3); }
+.gk .gk-week__label { flex: 1; min-width: 0; }
+.gk .gk-week__icon { display: inline-grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-week__row[data-done] .gk-week__icon { background: var(--gk-accent); color: var(--gk-on-accent); }
+.gk .gk-week__icon svg { width: 15px; height: 15px; }
+/* GrassKickZ World introduces itself: its mark, the name, one line of promise, and "Open World". */
+.gk .gk-week__row--world { align-items: flex-start; padding-top: var(--gk-2); padding-bottom: var(--gk-3); background: var(--gk-accent-soft); }
+.gk .gk-week__row--world:hover { background: color-mix(in srgb, var(--gk-accent) 22%, transparent); }
+.gk .gk-week__row--world .gk-week__label { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-week__line { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 400; }
+.gk .gk-week__go { align-self: flex-start; margin-top: var(--gk-1); padding: 4px 12px; border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); font-size: var(--gk-fs-sm); font-weight: 650; white-space: nowrap; }
+.gk .gk-week__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* The clubs near you to follow, in their sheet. */
+.gk .gk-week-clubs { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-week-club { display: flex; align-items: center; gap: var(--gk-3); min-height: 48px; }
+.gk .gk-week-club__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gk .gk-week-club__text strong { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-week-club__text span { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+
+/* World's one-time greeting, in its own top area above the World navigation (`WorldWelcome`). */
+.gk .gk-world-hello { display: flex; align-items: center; gap: var(--gk-3); margin: var(--gk-3) 0; padding: var(--gk-2) var(--gk-2) var(--gk-2) var(--gk-3); border-radius: var(--gk-r-lg); background: var(--gk-accent-soft); color: var(--gk-text); }
+.gk .gk-world-hello p { display: flex; flex: 1; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-2); min-width: 0; margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
+.gk .gk-world-hello strong { font-weight: 650; }
+.gk .gk-world-hello span { color: var(--gk-text-2); }
+
+@keyframes gk-week-rise { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) {
+  .gk .gk-week { animation: none; }
+  .gk .gk-week-chip, .gk .gk-week-ring__fill { transition: none; }
+  .gk .gk-week-chip:hover { transform: none; }
+}

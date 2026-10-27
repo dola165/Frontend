@@ -27,7 +27,6 @@ vi.mock('../../components/feed/PostComposer', () => ({
 
 // The welcome popup and its "Finish setting up" card read the signed-in person and have their own tests.
 vi.mock('../../features/start/WelcomeHost', () => ({ WelcomeHost: () => null }));
-vi.mock('../../features/start/FirstWeek', () => ({ FirstWeek: () => null }));
 vi.mock('../../features/clubOperations/leaving/StaffClubCard', () => ({ StaffClubCard: () => null }));
 vi.mock('../../features/actions/NeedsResultCard', () => ({ NeedsResultCard: () => null }));
 

@@ -56,7 +56,9 @@ describe('account menu', () => {
         fireEvent.keyDown(menu, { key: 'Home' });
         expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus();
         fireEvent.keyDown(menu, { key: 'ArrowDown' });
-        expect(within(menu).getByRole('menuitem', { name: 'My schedule' })).toHaveFocus();
+        expect(within(menu).getAllByRole('menuitem')[1]).toHaveFocus();
+        // My schedule left the menu; whoever wants it pins it (owner, 27 October 2026).
+        expect(within(menu).queryByRole('menuitem', { name: 'My schedule' })).toBeNull();
         fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
         fireEvent.keyDown(trigger, { key: 'ArrowDown' });
         expect(within(screen.getByRole('menu')).getAllByRole('menuitem')[0]).toHaveFocus();

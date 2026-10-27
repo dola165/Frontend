@@ -18,7 +18,7 @@ import { useClubActions } from './useClubActions';
  * academy and its pro club, else its members), where the person stands with it, and the one main action for who is
  * looking (else Follow). Its name goes to the club page; a press elsewhere shows the club beside the list.
  */
-export function ClubRow({ club, distanceKm }: { club: ClubProfile; distanceKm?: number }) {
+export function ClubRow({ club, distanceKm, followOnly = false }: { club: ClubProfile; distanceKm?: number; followOnly?: boolean }) {
     const t = useWorldCopy();
     const actions = useClubActions(club);
     const { standing, linked, message, child } = actions;
@@ -35,6 +35,6 @@ export function ClubRow({ club, distanceKm }: { club: ClubProfile; distanceKm?: 
             mark={club.isOfficial ? <BadgeCheck className="gk-world-verified" aria-label={t('Verified club')} /> : undefined}
             lines={[where, fact, message && <span role={message.error ? 'alert' : 'status'} className={message.error ? 'gk-result-error' : 'gk-result-open'}>{message.text}</span>]}
             aside={standing && <Status tone={standing.tone}>{t(standing.label)}</Status>}
-            action={actions.enquiry || actions.canJoin || actions.propose ? <ClubMainAction club={club} actions={actions} variant="secondary" /> : <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />} />
+            action={!followOnly && (actions.enquiry || actions.canJoin || actions.propose) ? <ClubMainAction club={club} actions={actions} variant="secondary" /> : <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />} />
     );
 }

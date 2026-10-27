@@ -46,7 +46,7 @@ const fixed: Array<[RegExp, Words, PinIcon]> = [
     [/^\/clubs\/following$/, ['Followed clubs', 'მიყოლილი კლუბები'], 'club'],
     [/^\/admissions$/, ['Joining football', 'ფეხბურთში მონაწილეობა'], 'clipboard'],
     [/^\/my-organizations$/, ['My organizations', 'ჩემი ორგანიზაციები'], 'building'],
-    [/^\/club-operations$/, ['My club appointments', 'ჩემი კლუბური დანიშვნები'], 'clipboard'],
+    [/^\/requests$/, ['Inbox', 'შემოსულები'], 'clipboard'],
     [/^\/account\/roles$/, ['Football roles', 'საფეხბურთო როლები'], 'person'],
     [/^\/account$/, ['Account & settings', 'ანგარიში და პარამეტრები'], 'settings'],
     [/^\/admin$/, ['Administration', 'ადმინისტრირება'], 'admin'],

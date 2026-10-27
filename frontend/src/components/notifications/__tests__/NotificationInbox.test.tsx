@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { NotificationsPage } from '../../../pages/NotificationsPage';
+import { UpdatesInbox } from '../../../features/requests/UpdatesInbox';
 import type { NotificationItem, NotificationQueryOptions } from '../../../types/notifications';
 import '../../../i18n';
 
@@ -19,7 +19,7 @@ vi.mock('../SquadConversationNotificationTarget', () => ({ SquadConversationNoti
 const note = (id: number): NotificationItem => ({ id, type: 'TEST', scope: 'PERSONAL', title: `Synthetic notice ${id}`, body: '', createdAt: '2026-10-18T00:00:00Z', isRead: false });
 let rows: NotificationItem[];
 const matching = (options: NotificationQueryOptions = {}) => rows.filter(item => (!options.scope || options.scope === 'all' || item.scope.toLowerCase() === options.scope) && (options.clubId == null || item.clubId === options.clubId));
-const view = (path = '/notifications') => <MemoryRouter initialEntries={[path]}><NotificationsPage /></MemoryRouter>;
+const view = (path = '/requests?view=updates') => <MemoryRouter initialEntries={[path]}><UpdatesInbox /></MemoryRouter>;
 
 beforeEach(() => {
     vi.resetAllMocks(); auth.sessionId = 'one'; rows = [note(1)];
@@ -80,7 +80,7 @@ it('checks the login again before navigating an already read notice', async () =
 
 it('keeps personal notices unread when marking one club view as read', async () => {
     rows.push({ ...note(2), scope: 'CLUB', clubId: 7 });
-    render(view('/notifications?scope=club&clubId=7'));
+    render(view('/requests?view=updates&scope=club&clubId=7'));
     await screen.findByRole('button', { name: 'Synthetic notice 2 · unread' });
     fireEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
     await screen.findByRole('button', { name: 'Synthetic notice 2 · read' });
@@ -98,4 +98,12 @@ it('keeps loaded older pages and real read states after a refresh', async () => 
     await act(async () => { window.dispatchEvent(new CustomEvent('talanti:notifications-changed')); });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Synthetic notice 21 · read' })).toBeInTheDocument());
     expect(screen.getAllByRole('button', { name: /Synthetic notice/ })).toHaveLength(21);
+});
+
+function Address() { const location = useLocation(); return <output data-testid="inbox-address">{location.pathname}{location.search}</output>; }
+it('keeps Updates selected when switching the notification scope', async () => {
+    render(<MemoryRouter initialEntries={['/requests?view=updates']}><UpdatesInbox /><Address /></MemoryRouter>);
+    await screen.findByRole('button', { name: 'Synthetic notice 1 · unread' });
+    fireEvent.click(screen.getByRole('button', { name: /Personal/ }));
+    expect(screen.getByTestId('inbox-address')).toHaveTextContent('/requests?scope=personal&view=updates');
 });

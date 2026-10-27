@@ -54,7 +54,7 @@ export function PlanStart({ editor, familyHref, pendingPlace, onPendingDone }: {
                 action={<ButtonLink variant="primary" size="sm" to={familyHref}>Journeys shared with you</ButtonLink>}>
                 {editor.contextError || 'Coaches and staff with a travel or match responsibility plan journeys here. Journeys your club shares with you are one click away.'}
             </EmptyNote>
-            <Link className="gk-section__action" to="/club-operations">Review my club responsibilities</Link>
+            <Link className="gk-section__action" to="/requests">Review my club responsibilities</Link>
         </div>
     );
     const fixtures = context ? upcomingFixtures(context) : [];

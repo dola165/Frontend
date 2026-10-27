@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { RequestsCentre } from './RequestsCentre';
 import { requestDestination, eventDestination } from './api';
 import { apiClient } from '../../api/axiosConfig';
+vi.mock('../clubOperations/PersonalClubWork', () => ({ StaffAppointments: () => null }));
 const auth = vi.hoisted(() => ({ sessionId: 'one', user: { id: 1 }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
@@ -27,7 +28,7 @@ it('reviews terms before reusing the domain invitation command and refreshes cap
 it('warns when only part of the requests projection is available', async () => { vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, unavailableSources: ['family'] } }); render(<MemoryRouter><RequestsCentre /></MemoryRouter>); expect(await screen.findByRole('alert')).toHaveTextContent('Some request types are unavailable'); });
 it.each(['https://evil.test/requests', '//evil.test', '/account?next=https://evil.test', '/profile/1?representation=bad', '/account/%2e%2e', '/account?tab=profile&tab=security'])('rejects unsafe request destination %s', value => { expect(requestDestination(value)).toBeNull(); });
 it('accepts precise current-domain destinations and rejects malformed event destinations', () => {
-  expect(requestDestination('/notifications?venueId=2&bookingId=9')).toBe('/notifications?venueId=2&bookingId=9');
+  expect(requestDestination('/notifications?venueId=2&bookingId=9')).toBe('/requests?view=updates&venueId=2&bookingId=9');
   expect(requestDestination('/admin?tab=safety&itemId=7')).toBe('/admin?tab=safety&itemId=7');
   expect(requestDestination('/reports?itemId=7')).toBe('/reports?itemId=7');
   expect(requestDestination('/admin?tab=users&itemId=7')).toBeNull();
@@ -62,7 +63,7 @@ it('asks which invited club team enters a squad tournament and submits it', asyn
 });
 
 it.each(['/club-operations?appointmentId=7', '/map?plans=staff&plan=8', '/map?plans=family&plan=9'])('opens the domain request destination %s', value => {
-  expect(requestDestination(value)).toBe(value);
+  expect(requestDestination(value)).toBe(value.replace('/club-operations?', '/requests?'));
 });
 it.each(['/club-operations', '/club-operations?appointmentId=0', '/club-operations?appointmentId=7&appointmentId=8', '/club-operations?appointmentId=7&next=evil', '/club-operations?appointmentId=7#offer-1', '/map?plans=admin&plan=8', '/map?plans=staff&plan=8&next=evil', '/map?plans=staff&plan=8&plan=9', '/map?plans=family&plan=-1', '/map?plans=staff&plan=9007199254740992', '/account?appointmentId=7'])('rejects malformed or unrelated domain destination %s', value => {
   expect(requestDestination(value)).toBeNull();
@@ -71,5 +72,5 @@ it('offers an outcome link for a resolved personal staff appointment', async () 
   const receipt = { ...invitation, key: 'STAFF_APPOINTMENT:7', family: 'STAFF_APPOINTMENT', title: 'Historical appointment', status: 'ENDED', actionable: false, destination: '/club-operations?appointmentId=7', actionLabel: 'Review appointment' };
   vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [receipt], counts: { ...empty.counts, history: 1 }, total: 1 } });
   render(<MemoryRouter initialEntries={['/requests?view=HISTORY']}><RequestsCentre /></MemoryRouter>);
-  expect(await screen.findByRole('link', { name: 'View outcome' })).toHaveAttribute('href', '/club-operations?appointmentId=7');
+  expect(await screen.findByRole('link', { name: 'View outcome' })).toHaveAttribute('href', '/requests?appointmentId=7');
 });

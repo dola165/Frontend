@@ -98,7 +98,7 @@ export function PlayersPanel() {
                 {links[squad.id] && !failed && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`https://wa.me/?text=${encodeURIComponent(t('Add your child to {squad} at {page}: {url}', { squad: squad.name, page: page.identity.name, url: url(squad.id) }))}`} target="_blank" rel="noopener noreferrer" onClick={() => void shared()}><MessageCircle aria-hidden="true" />WhatsApp</a>}
               </span>} />
           ))}</List>
-          {page.clubId && <ButtonLink variant="ghost" to={`/clubs/${page.clubId}/squads${current ? `?squad=${current.id}` : ''}`}>{t('Manage squad roster')}</ButtonLink>}
+          {page.clubId && <ButtonLink variant="ghost" to={`/clubs/${page.clubId}?tab=teams${current ? `&squad=${current.id}` : ''}`}>{t('Manage squad roster')}</ButtonLink>}
         </div>}
     </SplitPanel>
   );

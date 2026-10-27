@@ -21,11 +21,11 @@ const notification = (overrides: Partial<NotificationItem>): NotificationItem =>
 
 describe('web / Android destination contract', () => {
     it('recovers old permission and appointment notifications using their typed identity', () => {
-        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'club_operation',entityId:8,linkPath:'/club-operations'}))).toBe('/club-operations?permissionId=8');
+        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'club_operation',entityId:8,linkPath:'/club-operations'}))).toBe('/parent?tab=connections&permissionId=8');
         expect(notificationActionLabel(notification({type:'CLUB_PERMISSION_REQUEST'}))).toBe('Review permission');
-        expect(buildNotificationDestination(notification({type:'CLUB_STAFF_APPOINTMENT',entityType:'club_staff_appointment',entityId:7,linkPath:'/club-operations'}))).toBe('/club-operations?appointmentId=7');
-        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'post',entityId:8}))).toBe('/notifications?itemId=1');
-        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'club_operation',entityId:0}))).toBe('/notifications?itemId=1');
+        expect(buildNotificationDestination(notification({type:'CLUB_STAFF_APPOINTMENT',entityType:'club_staff_appointment',entityId:7,linkPath:'/club-operations'}))).toBe('/requests?appointmentId=7');
+        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'post',entityId:8}))).toBe('/requests?view=updates&itemId=1');
+        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'club_operation',entityId:0}))).toBe('/requests?view=updates&itemId=1');
     });
     it.each(destinations)('$name', ({ notification: input, expected }) => {
         expect(buildNotificationDestination(notification(input as Partial<NotificationItem>))).toBe(expected);
@@ -40,15 +40,15 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
             .toBe('/clubs/5/workspace?tab=tryouts&applicationId=82');
     });
     it('shows a recorded outcome when a schedule identity is missing or has the wrong type', () => {
-        expect(buildNotificationDestination(notification({ type: 'SCHEDULE_EVENT_CANCELLED', entityType: 'post', entityId: 42 }))).toBe('/notifications?itemId=1');
-        expect(buildNotificationDestination(notification({ type: 'SCHEDULE_EVENT_CANCELLED' }))).toBe('/notifications?itemId=1');
+        expect(buildNotificationDestination(notification({ type: 'SCHEDULE_EVENT_CANCELLED', entityType: 'post', entityId: 42 }))).toBe('/requests?view=updates&itemId=1');
+        expect(buildNotificationDestination(notification({ type: 'SCHEDULE_EVENT_CANCELLED' }))).toBe('/requests?view=updates&itemId=1');
     });
     it.each(['https://evil.example', '//evil.example', '/\\evil.example', '/%2f%2fevil.example', 'javascript:alert(1)'])('rejects unsafe stored destinations: %s', linkPath => {
-        expect(buildNotificationDestination(notification({ type: 'OTHER', linkPath }))).toBe('/notifications?itemId=1');
+        expect(buildNotificationDestination(notification({ type: 'OTHER', linkPath }))).toBe('/requests?view=updates&itemId=1');
     });
     it('opens the exact announcement post and the recorded closure outcome', () => {
         expect(buildNotificationDestination(notification({ type: 'CLUB_ANNOUNCEMENT', entityType: 'post', entityId: 91, linkPath: '/clubs/5' }))).toBe('/posts/91');
-        expect(buildNotificationDestination(notification({ type: 'CLUB_DISSOLVED', entityType: 'club', entityId: 5, linkPath: '/clubs' }))).toBe('/notifications?itemId=1');
+        expect(buildNotificationDestination(notification({ type: 'CLUB_DISSOLVED', entityType: 'club', entityId: 5, linkPath: '/clubs' }))).toBe('/requests?view=updates&itemId=1');
     });
     it('rewrites the legacy ?manageClub=1&managementTab= query format to a workspace tab', () => {
         const destination = buildNotificationDestination(notification({
@@ -89,7 +89,7 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
             clubId: null,
             linkPath: null
         }));
-        expect(destination).toBe('/notifications');
+        expect(destination).toBe('/requests?view=updates');
     });
 
     it('keeps the club filter when a club id exists', () => {
@@ -109,7 +109,7 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
             clubId: 42,
             linkPath: '/clubs/42/workspace?tab=inbox',
         }));
-        expect(destination).toBe('/notifications');
+        expect(destination).toBe('/requests?view=updates');
     });
 
     it('does not offer an action into the frozen agent feature', () => {
@@ -120,7 +120,7 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
         expect(buildNotificationDestination(notification({
             type: 'MARKETPLACE_LISTING_CREATED',
             linkPath: '/marketplace',
-        }))).toBe('/notifications');
+        }))).toBe('/requests?view=updates');
         expect(notificationActionLabel(notification({
             type: 'MARKETPLACE_LISTING_CREATED',
             linkPath: '/marketplace',
@@ -194,6 +194,6 @@ describe('buildNotificationDestination — P1 W6 deep-link sweep (H7 + W4 types)
             clubId: 6,
             entityId: 12,
             linkPath: null
-        }))).toBe('/notifications?itemId=1');
+        }))).toBe('/requests?view=updates&itemId=1');
     });
 });

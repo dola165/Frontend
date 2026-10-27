@@ -125,7 +125,7 @@ function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; ti
                         </ul>)}
                     {preview.markAllFailed && <p className="gk-pop__note" role="alert">{copy('Could not mark updates as read. Try again.', 'სიახლეების წაკითხულად მონიშვნა ვერ მოხერხდა. სცადეთ ხელახლა.')}</p>}
                     <div className="gk-pop__foot">
-                        <Link to="/notifications" onClick={onNavigate}>{copy('All updates', 'ყველა სიახლე')}</Link>
+                        <Link to="/requests?view=updates" onClick={onNavigate}>{copy('All updates', 'ყველა სიახლე')}</Link>
                         <Button size="sm" variant="ghost" disabled={!counts.updates || preview.busy || preview.updates.status !== 'ready'} aria-busy={preview.busy} onClick={() => void preview.markAllRead()}>
                             <CheckCheck aria-hidden="true" />{copy('Mark all as read', 'ყველას წაკითხულად მონიშვნა')}
                         </Button>

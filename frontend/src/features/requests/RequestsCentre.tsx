@@ -1,6 +1,6 @@
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Inbox, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { requestDestination, requests, type RequestPage, type RequestItem } from './api';
@@ -9,6 +9,8 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import './requests.css';
+import { UpdatesInbox } from './UpdatesInbox';
+import { StaffAppointments } from '../clubOperations/PersonalClubWork';
 
 type Copy = ReturnType<typeof useJourneyCopy>;
 
@@ -34,13 +36,25 @@ function when(updatedAt: string, copy: Copy) {
 
 export function RequestsCentre() {
   const { sessionId, user } = useAuth();
-  return <Centre key={`${user?.id}:${sessionId}`} />;
+  const [params, setParams] = useSearchParams();
+  if (params.has('permissionId')) return <Navigate replace to={`/parent?tab=connections&permissionId=${encodeURIComponent(params.get('permissionId') ?? '')}`} />;
+  const updates = params.get('view') === 'updates';
+  const choose = (view: string) => { const next = new URLSearchParams(); next.set('view', view); setParams(next); };
+  return <div className="request-centre">
+    <h1>Inbox</h1>
+    <nav className="request-tabs" aria-label="Inbox views">
+      <button type="button" aria-current={!updates ? 'page' : undefined} onClick={() => choose('needs-you')}>Needs you</button>
+      <button type="button" aria-current={updates ? 'page' : undefined} onClick={() => choose('updates')}>Updates</button>
+    </nav>
+    {updates ? <UpdatesInbox /> : <Centre key={`${user?.id}:${sessionId}`} />}
+  </div>;
 }
 function Centre() {
   const { sessionId, refreshNavigationCapabilities } = useAuth();
   const copy = useJourneyCopy();
   const [params, setParams] = useSearchParams();
-  const view = ['INCOMING', 'OUTGOING', 'HISTORY'].includes(params.get('view') ?? '') ? params.get('view')! : 'INCOMING';
+  const selectedView = params.get('requestView') ?? params.get('view');
+  const view = ['INCOMING', 'OUTGOING', 'HISTORY'].includes(selectedView ?? '') ? selectedView! : 'INCOMING';
   const page = Math.min(10000, Math.max(0, Math.floor(Number(params.get('page')) || 0)));
   const [data, setData] = useState<RequestPage | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [revision, setRevision] = useState(0);
   const [review, setReview] = useState<RequestItem | null>(null), [busy, setBusy] = useState(false), [message, setMessage] = useState('');
@@ -86,10 +100,11 @@ function Centre() {
     window.addEventListener('focus', refresh); document.addEventListener('visibilitychange', refresh);
     return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
   }, [refreshNavigationCapabilities]);
-  const navigate = (next: string, n = 0) => setParams({ view: next, ...(n ? { page: String(n) } : {}) });
+  const navigate = (next: string, n = 0) => setParams({ view: 'needs-you', requestView: next, ...(n ? { page: String(n) } : {}) });
   const tabLabel = (key: string) => key === 'INCOMING' ? copy('Incoming', 'შემოსული') : key === 'OUTGOING' ? copy('Sent', 'გაგზავნილი') : copy('History', 'ისტორია');
-  return <main className="request-centre">
-    <header><div><h1>{copy('Requests', 'მოთხოვნები')}</h1><p>{copy('Invitations, applications and decisions that wait for you or your club.', 'მოწვევები, განაცხადები და გადაწყვეტილებები, რომლებიც თქვენ ან თქვენს კლუბს ელოდება.')}</p></div><button type="button" onClick={() => { setRevision(r => r + 1); void refreshNavigationCapabilities().catch(() => {}); }} disabled={loading}><RefreshCw size={16} />{copy('Refresh', 'განახლება')}</button></header>
+  return <section>
+    <header><div><h2>{copy('Needs you', 'თქვენ გელოდებათ')}</h2><p>{copy('Invitations, applications and decisions that wait for you or your club.', 'მოწვევები, განაცხადები და გადაწყვეტილებები, რომლებიც თქვენ ან თქვენს კლუბს ელოდება.')}</p></div><button type="button" onClick={() => { setRevision(r => r + 1); void refreshNavigationCapabilities().catch(() => {}); }} disabled={loading}><RefreshCw size={16} />{copy('Refresh', 'განახლება')}</button></header>
+    <StaffAppointments />
     <nav className="request-tabs" aria-label={copy('Request views', 'მოთხოვნების ხედები')}>{(['INCOMING', 'OUTGOING', 'HISTORY'] as const).map(key => <button type="button" key={key} aria-current={view === key ? 'page' : undefined} onClick={() => navigate(key)}>{tabLabel(key)}{data && <span>{data.counts[key.toLowerCase() as 'incoming' | 'outgoing' | 'history']}</span>}</button>)}</nav>
     <p className="request-help">{view === 'INCOMING' ? copy('Requests to you, or to a club you can manage.', 'მოთხოვნები თქვენთვის ან კლუბისთვის, რომელსაც მართავთ.') : view === 'OUTGOING' ? copy('Requests you sent, and invitations from the clubs you lead.', 'თქვენი გაგზავნილი მოთხოვნები და თქვენი კლუბის მოწვევები.') : copy('What was decided. Membership and permissions may have changed since.', 'რა გადაწყდა. წევრობა და უფლებები შეიძლება მას შემდეგ შეიცვალა.')}</p>
     {loading && <p role="status">{copy('Loading requests…', 'მოთხოვნები იტვირთება…')}</p>}
@@ -104,5 +119,5 @@ function Centre() {
       <div className="request-outcome"><span className="request-status" data-pending={item.actionable} data-status={item.status.toLowerCase()}>{statusWord(item.status, copy)}</span>{item.actionable && ['CLUB_INVITATION', 'TOURNAMENT_INVITATION'].includes(item.family) ? <button onClick={() => { setReview(item); setMessage(''); }}>{copy('Review invitation', 'მოწვევის განხილვა')}</button> : destination && <Link to={destination}>{item.actionable ? item.actionLabel : view === 'HISTORY' ? copy('View outcome', 'შედეგის ნახვა') : copy('Open request', 'მოთხოვნის გახსნა')}<ArrowUpRight size={16} /></Link>}</div>
     </article>; })}</div>
     {data && (page > 0 || data.hasMore) && <nav className="request-pagination" aria-label={copy('Request pages', 'მოთხოვნების გვერდები')}><button disabled={!page} onClick={() => navigate(view, page - 1)}>{copy('Previous', 'წინა')}</button><span>{copy(`Page ${page + 1} · ${data.total} requests`, `გვერდი ${page + 1} · ${data.total} მოთხოვნა`)}</span><button disabled={!data.hasMore} onClick={() => navigate(view, page + 1)}>{copy('Next', 'შემდეგი')}</button></nav>}
-  </main>;
+  </section>;
 }

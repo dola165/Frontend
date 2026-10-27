@@ -56,7 +56,7 @@ export function RecruitmentApplication({ applicationId, initial, onChanged }: {a
    {r.canOffer&&!offering&&<button type="button" disabled={busy} className="recruitment-primary" onClick={()=>setOffering(true)}>Prepare offer</button>}
    {r.canCancelOffer&&<button type="button" disabled={busy} onClick={()=>setConfirm('cancel')}>Cancel offer</button>}
    {r.canWithdraw&&<button type="button" disabled={busy} onClick={()=>setConfirm('withdraw')}>Withdraw application</button>}
-   {r.appointment&&<Link to="/club-operations">Manage appointment</Link>}
+   {r.appointment&&<Link to="/requests">Manage appointment</Link>}
    <Link to={`/clubs/${r.clubId}`}>View club</Link>
   </div>
   {confirm&&<section className="recruitment-confirm" aria-label="Confirm recruitment response"><h4>{confirm==='accept'?'Accept this responsibility and its listed access?':confirm==='decline'?'Decline this offer?':confirm==='cancel'?'Cancel this unanswered offer?':'Withdraw this application?'}</h4><p>{confirm==='accept'?'Your response will be recorded. Existing responsibilities remain in place.':'This ends this request without ending any existing club relationship.'}</p><div className="recruitment-actions"><button type="button" disabled={busy} className="recruitment-primary" onClick={()=>void run(()=>confirm==='withdraw'?apiClient.post(`/clubs/${r.clubId}/applications/${r.id}/cancel`):confirm==='cancel'?apiClient.post(`/recruitment/applications/${r.id}/cancel-offer`):apiClient.post(`/recruitment/applications/${r.id}/respond`,{accept:confirm==='accept'}))}>{busy?'Saving…':confirm==='accept'?'Accept offer':'Confirm'}</button><button type="button" disabled={busy} onClick={()=>setConfirm(null)}>Keep reviewing</button></div></section>}

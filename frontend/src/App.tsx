@@ -24,6 +24,7 @@ import { keepRegistrationTown } from './features/start/startApi';
 import { WELCOME_PARAM } from './features/start/welcomeSteps';
 import { useMediaQuery } from './features/world/useMediaQuery';
 
+import { LegacyCleanupRedirect } from './features/requests/LegacyCleanupRedirects';
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
 import { useBuildWatch } from './hooks/useBuildWatch';
@@ -71,7 +72,6 @@ const MySquadsPage = lazy(() => import('./pages/SquadCommunicationPage').then(mo
 const SquadCommunicationPage = lazy(() => import('./pages/SquadCommunicationPage').then(module => ({default: module.SquadCommunicationPage})));
 const ClubPublicProfileSettingsPage = lazy(() => import('./pages/ClubPublicProfileSettingsPage').then(module => ({default: module.ClubPublicProfileSettingsPage})));
 const ClubOperationsPage = lazy(() => import('./pages/ClubOperationsPage'));
-const MyClubOperationsPage = lazy(() => import('./pages/MyClubOperationsPage'));
 const ClubProfilePage = lazy(() => import('./features/clubs/profile/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
 const PersonProfilePage = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.PersonProfilePage})));
 const MyProfileRedirect = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.MyProfileRedirect})));
@@ -80,8 +80,6 @@ const LandingPage = lazy(() => import('./pages/LandingPage').then(module => ({de
 const MessagingPage = lazy(() => import('./pages/MessagingPage').then(module => ({default: module.MessagingPage})));
 const MyClubPage = lazy(() => import('./pages/MyClubPage').then(module => ({default: module.MyClubPage})));
 const CalendarRedirect = lazy(() => import('./features/schedule/personal/CalendarRedirect').then(module => ({default: module.CalendarRedirect})));
-const ClubSquadsPage = lazy(() => import('./pages/ClubSquadsPage').then(module => ({default: module.ClubSquadsPage})));
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(module => ({default: module.NotificationsPage})));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(module => ({default: module.OnboardingPage})));
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then(module => ({default: module.RegisterPage})));
 const ConsentPage = lazy(() => import('./pages/ConsentPage').then(module => ({default: module.ConsentPage})));
@@ -119,7 +117,6 @@ const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(
 const OrganizationWorkspacePage = lazy(() => import('./pages/OrganizationWorkspacePage').then(module => ({default: module.OrganizationWorkspacePage})));
 const ClubWorkspacePage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.default})));
 const CoachWorkspacePage = lazy(() => import('./pages/CoachWorkspacePage'));
-const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
 
@@ -373,9 +370,9 @@ export function MainLayout() {
             <Route path="/map" element={<WorldRedirect to="/world/map" />} />
             <Route path="/world/*" element={<WorldRoutes />} />
             <Route path="/clubs" element={<WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />} />
-            <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
+            <Route path="/clubs/following" element={<ProtectedRoute><WorldRedirect to="/world/clubs" set={{ view: 'following' }} /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarRedirect /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><LegacyCleanupRedirect kind="notifications" /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute>{isAndroidApp ? <PageBootSpinner label="Opening messages" /> : <MessagingPage />}</ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><RequestsCentre /></ProtectedRoute>} />
@@ -435,10 +432,10 @@ export function MainLayout() {
             <Route path="/campaigns/:id/manage/:tool" element={<ProtectedRoute><FundraiserManagePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />
-            <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
+            <Route path="/clubs/:id/squads" element={<ProtectedRoute><LegacyCleanupRedirect kind="squads" /></ProtectedRoute>} />
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/operations" element={<ProtectedRoute><ClubOperationsPage /></ProtectedRoute>} />
-            <Route path="/club-operations" element={<ProtectedRoute><MyClubOperationsPage /></ProtectedRoute>} />
+            <Route path="/club-operations" element={<ProtectedRoute><LegacyCleanupRedirect kind="connections" /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
             <Route path="/clubs/create" element={<ProtectedRoute><CreateRedirect kind="CLUB" /></ProtectedRoute>} />

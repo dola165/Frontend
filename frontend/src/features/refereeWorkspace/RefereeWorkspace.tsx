@@ -11,8 +11,6 @@ import { LoadState, Status } from '../matchExchange/shared';
 import { ExactRefereeAppointment, RefereeAppointmentHistory, RefereeOfferHistory } from '../matchExchange/RefereeOutcomeHistory';
 import { AppointmentCard } from '../matchExchange/AppointmentCard';
 import { OfficialOpportunities } from '../matchExchange/OfficialRequests';
-import { ExtensionSurface } from '../capabilities/ExtensionBoundary';
-import { TournamentRefereeInbox } from '../tournaments/components/TournamentRefereeInbox';
 import { CompetitionOfficialAssignments } from '../competitions/CompetitionOfficialAssignments';
 import { CompetitionRecoveryPanel } from '../competitions/CompetitionRecoveryPanel';
 import { CareerForm, CareerTimeline, ProfileEditor } from './ProfileTools';
@@ -73,7 +71,7 @@ function Workspace() {
       </section>
       {visited.includes('assignments') && <section hidden={section !== 'assignments'} className="rw-section" aria-label="My referee assignments"><header className="rw-section-heading"><div><h2>My assignments</h2><p>Respond, prepare, coordinate and finish your reports here.</p></div></header>
         <nav className="rw-segments" aria-label="Assignment views">{Object.entries(filterNames).map(([id,name]) => <Link key={id} to={'#'+id} aria-current={!exact && activeFilter === id ? 'page' : undefined}>{name}{id !== 'history' && <span>{grouped(id as keyof typeof filterNames).length}</span>}</Link>)}</nav>
-        <ExtensionSurface capability="tournamentRefereeManagement"><TournamentRefereeInbox/></ExtensionSurface>
+
         {/* Referee decisions are journalled per page; an interrupted one is confirmed here before a different answer. */}
         <CompetitionRecoveryPanel/>
         <CompetitionOfficialAssignments/>

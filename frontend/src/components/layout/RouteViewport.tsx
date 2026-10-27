@@ -16,11 +16,11 @@ const workspaceSurface = (pathname: string): string | undefined => {
     if (/^\/tournaments\/\d+\/workspace$/.test(pathname)) return 'tournament';
     if (/^\/squads(?:\/\d+)?$/.test(pathname)) return 'squad';
     if (pathname === '/referees/me') return 'referee';
-    if (pathname === '/agent' || pathname === '/agent/dashboard') return 'agent';
-    if (pathname === '/parent' || pathname === '/parent/enrollment') return 'family';
+    if (pathname === '/agent') return 'agent';
+    if (pathname === '/parent') return 'family';
     if (pathname === '/messages') return 'messages';
     if (pathname === '/admin') return 'admin';
-    if (['/club-operations', '/my-club', '/my-organizations', '/volunteering', '/event-venues'].includes(pathname)) return 'connections';
+    if (['/club-operations', '/my-club', '/my-organizations'].includes(pathname)) return 'connections';
     return undefined;
 };
 

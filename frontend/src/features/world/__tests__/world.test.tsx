@@ -17,7 +17,7 @@ import { clubsSource } from '../directories/clubSources';
 import { playerSource, specialistSource, staffSource } from '../directories/people/personSources';
 import { refereeSource } from '../directories/people/refereeSource';
 import { defaultRole } from '../front/roles';
-import { LegacyMatchesRedirect, TournamentSetupRedirect, TournamentsRedirect, WorldRedirect } from '../WorldRedirect';
+import { LegacyMatchesRedirect, TournamentsRedirect, WorldRedirect } from '../WorldRedirect';
 import { CARRIED, readQuery, useDirectoryState } from '../directory/useDirectoryState';
 import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
 
@@ -164,15 +164,10 @@ const visit = (path: string, element: ReactNode) => render(
 );
 
 it.each([
-    ['/matches', 'hub', '/world/matches'],
-    ['/matches?section=find&tab=mine', 'hub', '/world/matches?tab=mine'],
-    ['/matches?section=fixtures', 'hub', '/world/matches?period=HISTORY'],
     ['/match-exchange?format=SEVEN_A_SIDE', 'exchange', '/world/matches?format=SEVEN_A_SIDE&tab=exchange'],
     ['/match-exchange?lat=41.7&lng=44.8&radiusKm=50', 'exchange', '/world/matches?tab=exchange&around=41.7%2C44.8'],
     ['/match-exchange?tab=referees&q=gff', 'exchange', '/world/people?q=gff&tab=referees'],
     ['/match-history?clubId=1', 'history', '/world/matches?clubId=1&period=HISTORY'],
-    ['/matches?section=competitions&view=hosts&kind=CLUB&host=4', 'hub', '/world/tournaments?host=CLUB%3A4&tab=all'],
-    ['/matches?section=competitions&host=CLUB:3', 'hub', '/world/tournaments?host=CLUB%3A3&tab=all'],
     ['/tournaments?hostKind=CLUB&hostId=4', 'competitions', '/world/tournaments?host=CLUB%3A4&tab=all'],
     ['/tournaments?latitude=41.7&longitude=44.8&radiusKm=25', 'competitions', '/world/tournaments?around=41.7%2C44.8&tab=all'],
     ['/tournaments?view=invitations', 'competitions', '/world/tournaments?tab=mine'],
@@ -193,14 +188,6 @@ it.each([
     expect(screen.getByText(expected)).toBeInTheDocument();
 });
 
-it.each([
-    ['/tournaments/setup', '/world/tournaments?peek=draw-new'],
-    ['/tournaments/setup?organizer=901&family=LEAGUE', '/world/tournaments?peek=draw-o901.fLEAGUE'],
-    ['/tournaments/setup?organizer=abc&family=TRAMPOLINE', '/world/tournaments?peek=draw-new'],
-] as const)('opens the old setup page %s as the Draw room in World', (path, expected) => {
-    visit(path, <TournamentSetupRedirect />);
-    expect(screen.getByText(expected)).toBeInTheDocument();
-});
 
 it('renames old club directory keys and keeps the rest of the search', () => {
     visit('/clubs?search=dinamo&type=ACADEMY', <WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />);

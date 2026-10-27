@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Eye } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
@@ -14,15 +14,6 @@ import { StartDoors } from './StartDoors';
 import { WhatYouDo } from './WhatYouDo';
 import { useFootball } from './useFootball';
 import './football-profile.css';
-
-/** Older links name the sections of the page they replace. */
-const OLD_ANCHORS: Record<string, string> = { '#roles': '#where', '#professions': '#work' };
-
-/** `/account/roles` was "Roles and work": it now opens your football profile, keeping `next` and the section. */
-export function RolesRedirect() {
-    const { search, hash } = useLocation();
-    return <Navigate replace to={`/account/football${search}${OLD_ANCHORS[hash] ?? hash}`} />;
-}
 
 /**
  * `/account/football`, your football profile: where you are (filled from your links and jobs), your career, what you

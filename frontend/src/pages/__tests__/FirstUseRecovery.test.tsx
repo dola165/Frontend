@@ -40,7 +40,7 @@ it('starts fresh when onboarding belongs to a different account', async () => {
 });
 
 it('deduplicates password recovery requests and retains the private invitation destination', async () => {
-  rememberAuthFlow({ nextPath: '/join-squad#private-invite' });
+  rememberAuthFlow({ nextPath: '/team-work#private-invite' });
   let finish!: (value: unknown) => void;
   vi.mocked(apiClient.post).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   render(<MemoryRouter><ForgotPasswordPage /></MemoryRouter>);
@@ -51,7 +51,7 @@ it('deduplicates password recovery requests and retains the private invitation d
   await act(async () => finish({ data: { message: 'Check your email.' } }));
   expect(screen.getByRole('status')).toHaveTextContent('Check your email');
   expect(screen.getByRole('link')).toHaveAttribute('href', '/login');
-  expect(getAuthFlow().nextPath).toBe('/join-squad#private-invite');
+  expect(getAuthFlow().nextPath).toBe('/team-work#private-invite');
 });
 
 it('validates reset passwords before posting and prevents double submission', async () => {

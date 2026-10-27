@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { Button, EmptyNote, List, ListRow, Panel, Section, Skeleton, type BadgeTone } from '../../../design/primitives';
 import { label, moduleNames } from '../../clubOperations/api';
@@ -28,6 +29,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
     canManageOperations: boolean; tryoutPending: number; onOpen: OpenWorkspace;
     onOpenPlayers?: (status: 'ALL' | PlayerAffiliationStatus) => void; limit?: number; className?: string;
 }) {
+    const navigate = useNavigate();
     const copy = useCopy('clubOverview', clubOverviewEn);
     const now = useNow();
     const work = useOutstandingWork(roles || overview ? clubId : null, squads);
@@ -44,7 +46,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
         if (tryouts) items.push({ key: 'tryouts', title: copy('needTryouts', { count: tryouts }), meta: copy('needTryoutsMeta'), badge: copy('badgeDecide'), tone: 'warning', rank: 1, open: () => onOpen('tryouts') });
         if (trials) items.push({ key: 'trials', title: copy('needTrials', { count: trials }), meta: copy('needTrialsMeta'), badge: copy('badgeReview'), tone: 'neutral', rank: 3, open: () => openPlayers('TRIALIST') });
     }
-    if (roles?.invitations.length) items.push({ key: 'invitations', title: copy('needInvitations', { count: roles.invitations.length }), meta: roles.invitations.map(a => a.title).join(', '), badge: copy('badgeRespond'), tone: 'warning', rank: 1, open: () => onOpen('coach-hub', { hub: 'responsibilities' }) });
+    if (roles?.invitations.length) items.push({ key: 'invitations', title: copy('needInvitations', { count: roles.invitations.length }), meta: roles.invitations.map(a => a.title).join(', '), badge: copy('badgeRespond'), tone: 'warning', rank: 1, open: () => navigate('/my-squads?tab=coaches') });
     // Parent consent: up to three players by name, then the rest together. The check covers a bounded sample.
     const consentRows = consent.result?.players ?? [];
     consentRows.slice(0, 3).forEach(player => {

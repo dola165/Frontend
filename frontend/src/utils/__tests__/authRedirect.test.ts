@@ -48,8 +48,8 @@ describe('registration destination flow', () => {
         expect(buildLoginRedirectPath('/messages', '?conversationId=801')).toBe('/login');
         expect(getAuthFlow()).toEqual({ nextPath: undefined, email: undefined, newAccount: false, town: undefined });
         completeSignOutNavigation();
-        expect(buildLoginRedirectPath('/join-squad', '', '#new-invitation')).toBe('/login');
-        expect(getAuthFlow().nextPath).toBe('/join-squad#new-invitation');
+        expect(buildLoginRedirectPath('/team-work', '', '#new-invitation')).toBe('/login');
+        expect(getAuthFlow().nextPath).toBe('/team-work#new-invitation');
     });
 
     it('keeps a consent token only in session storage', () => {
@@ -83,7 +83,7 @@ describe('registration destination flow', () => {
 
     it('normalizes safe destinations while preserving their query and invitation fragment', () => {
         expect(sanitizeAuthRedirect('/clubs/../requests?tab=incoming')).toBe('/requests?tab=incoming');
-        expect(sanitizeAuthRedirect('/join-squad#private-invitation')).toBe('/join-squad#private-invitation');
+        expect(sanitizeAuthRedirect('/team-work#private-invitation')).toBe('/team-work#private-invitation');
         expect(publicContinuationPath('/requests?%74oken=secret')).toBeUndefined();
         expect(publicContinuationPath('/%63onsent?code=secret')).toBeUndefined();
         expect(publicContinuationPath('/requests#private-invitation')).toBeUndefined();
@@ -92,9 +92,9 @@ describe('registration destination flow', () => {
     it('keeps sign-in and recovery usable when session storage is blocked', () => {
         vi.stubGlobal('window', { get sessionStorage() { throw new Error('Storage is blocked'); } });
         clearAuthFlow();
-        expect(() => rememberAuthFlow({ nextPath: '/join-squad#keep-this-private', email: 'account@example.test' })).not.toThrow();
-        expect(buildSignupPath('/join-squad#keep-this-private')).toBe('/signup');
-        expect(resolvePostAuthRedirect(null)).toBe('/join-squad#keep-this-private');
+        expect(() => rememberAuthFlow({ nextPath: '/team-work#keep-this-private', email: 'account@example.test' })).not.toThrow();
+        expect(buildSignupPath('/team-work#keep-this-private')).toBe('/signup');
+        expect(resolvePostAuthRedirect(null)).toBe('/team-work#keep-this-private');
         clearAuthFlow(); expect(getAuthFlow()).toEqual({});
     });
 });

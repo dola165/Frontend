@@ -1,8 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hasNavigationCapability } from '../../context/navigationCapabilities';
-import type { Family } from '../competitions/api';
-import { drawPeek } from '../tournaments/create/drawDraft';
 
 const target = (pathname: string, params: URLSearchParams, hash = '') => {
     const search = params.toString();
@@ -52,14 +50,6 @@ function tournamentParams(params: URLSearchParams) {
     return params;
 }
 
-/** The old setup page (`/tournaments/setup?organizer=901&family=CUP`): the Draw room in World, with what the link chose. */
-export function TournamentSetupRedirect() {
-    const params = new URLSearchParams(useLocation().search);
-    const organizer = /^[1-9]\d*$/.test(params.get('organizer') ?? '') ? Number(params.get('organizer')) : undefined;
-    const family = params.get('family');
-    return <Navigate replace to={`/world/tournaments?peek=${drawPeek({ organizerId: organizer, family: family && ['LEAGUE', 'CUP', 'LADDER', 'FESTIVAL'].includes(family) ? family as Family : undefined })}`} />;
-}
-
 /** `/world/competitions` was renamed Tournaments. */
 export function TournamentsRedirect() {
     const location = useLocation();
@@ -75,16 +65,16 @@ function around(params: URLSearchParams, latKey: string, lngKey: string) {
 }
 
 /**
- * The old Matches & Competitions hub (`/matches?section=…`), Match exchange and Match history.
+ * Old Match exchange, Match history and Tournaments addresses.
  * Discovery now lives in World › Matches and Tournaments; a referee's own appointments
  * stay in the referee workspace.
  */
-export function LegacyMatchesRedirect({ kind }: { kind: 'hub' | 'exchange' | 'history' | 'competitions' }) {
+export function LegacyMatchesRedirect({ kind }: { kind: 'exchange' | 'history' | 'competitions' }) {
     const location = useLocation();
     const { user } = useAuth();
     const params = new URLSearchParams(location.search);
     const section = kind === 'history' ? 'fixtures' : kind === 'competitions' ? 'competitions'
-        : kind === 'exchange' ? (params.get('tab') === 'referees' ? 'officials' : 'find') : params.get('section') ?? 'overview';
+        : (params.get('tab') === 'referees' ? 'officials' : 'find');
     params.delete('section');
     if (section === 'competitions') {
         const view = params.get('view');

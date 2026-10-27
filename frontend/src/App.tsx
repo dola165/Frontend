@@ -16,7 +16,7 @@ import { isSystemAdmin } from './context/navigationCapabilities';
 import { AuthSessionBoundary } from './context/AuthSessionBoundary';
 import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, completeSignOutNavigation, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect, WAITING_FOR_PARENT_PATH } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
-import { applyDocumentTheme, readThemePreference, themeForRoute, isThemePreference, type ThemePreference } from './theme';
+import { applyDocumentTheme, chooseThemePreference, readThemePreference, themeForRoute, isThemePreference, type ThemePreference } from './theme';
 import { AppSettingsPage } from './android/AppSettingsPage';
 import { ExtensionRoute } from './features/capabilities/ExtensionBoundary';
 import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from './features/roles/routes';
@@ -248,7 +248,8 @@ export function MainLayout() {
         if (!isAndroidApp) return;
         const onAppearance = (event: Event) => {
             const value: unknown = (event as CustomEvent).detail;
-            if (typeof value === 'string' && isThemePreference(value)) setThemePreference(value);
+            // The app's setting is already stored, marked as chosen or not: read it as the web does.
+            if (typeof value === 'string' && isThemePreference(value)) setThemePreference(readThemePreference());
         };
         window.addEventListener('grasskickz:appearance', onAppearance);
         return () => window.removeEventListener('grasskickz:appearance', onAppearance);
@@ -281,13 +282,9 @@ export function MainLayout() {
 
     const effectiveTheme = themeForRoute(themePreference);
 
-    useLayoutEffect(() => {
-        applyDocumentTheme(effectiveTheme);
-        localStorage.setItem('theme-preference', themePreference);
-        // Retain the legacy value for older clients that only understand the
-        // original light/dark key.
-        localStorage.setItem('theme', themePreference === 'light' ? 'light' : 'dark');
-    }, [effectiveTheme, themePreference]);
+    // Only a choice is stored (`chooseTheme`): storing on every visit made the old dark default look chosen.
+    useLayoutEffect(() => { applyDocumentTheme(effectiveTheme); }, [effectiveTheme]);
+    const chooseTheme = (value: ThemePreference) => { chooseThemePreference(value); setThemePreference(value); };
 
     useEffect(() => {
         let active = true;
@@ -488,7 +485,7 @@ export function MainLayout() {
         >
             <RouteMetadata />
             {showsHeader && (
-                <AppHeader user={user} myClubId={myClubId} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={() => void handleLogout()} />
+                <AppHeader user={user} myClubId={myClubId} themePreference={themePreference} setThemePreference={chooseTheme} onLogout={() => void handleLogout()} />
             )}
             {showsHeader && <ParentApprovalBanner />}
 

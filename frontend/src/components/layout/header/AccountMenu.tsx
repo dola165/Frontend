@@ -89,7 +89,7 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
             <div className="gk-menu__sep" role="separator" />
             <p className="gk-menu__label" id={`${id}-theme`}>{copy('Appearance', 'იერსახე')}</p>
             <div className="gk-segment" role="group" aria-labelledby={`${id}-theme`}>
-                <button type="button" {...choice(dark)} className="gk-menu__item" onClick={select(() => setThemePreference('map-light'))}><Moon aria-hidden="true" />{copy('Dark', 'მუქი')}</button>
+                <button type="button" {...choice(dark)} className="gk-menu__item" onClick={select(() => setThemePreference('dark'))}><Moon aria-hidden="true" />{copy('Dark', 'მუქი')}</button>
                 <button type="button" {...choice(!dark)} className="gk-menu__item" onClick={select(() => setThemePreference('light'))}><Sun aria-hidden="true" />{copy('Light', 'ღია')}</button>
             </div>
             <p className="gk-menu__label" id={`${id}-language`}>{copy('Language', 'ენა')}</p>

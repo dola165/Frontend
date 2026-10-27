@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import i18n from '../i18n';
+import { readThemePreference } from '../theme';
 import { applyAndroidPreferences, updateAndroidPreferences } from './preferences';
 
 afterEach(async () => { localStorage.clear(); delete window.GrassKickZ; await i18n.changeLanguage('en'); });
@@ -36,4 +37,13 @@ it('ignores malformed broadcast preferences', async () => {
     await applyAndroidPreferences({ theme: 'unknown', language: 'ka' });
     expect(localStorage.getItem('theme-preference')).toBe('light');
     expect(i18n.resolvedLanguage).toBe('en');
+});
+
+it('counts only a picked theme as a choice: the app’s map-light default reads as light', async () => {
+    await applyAndroidPreferences({ theme: 'map-light', language: 'en' });
+    expect(readThemePreference()).toBe('light');
+    await applyAndroidPreferences({ theme: 'dark', language: 'en' });
+    expect(readThemePreference()).toBe('dark');
+    await applyAndroidPreferences({ theme: 'map-light', language: 'en' });
+    expect(readThemePreference()).toBe('light');
 });

@@ -5,13 +5,13 @@ import { useWorldCopy } from './copy';
 import { CARRIED } from './directory/useDirectoryState';
 
 /**
- * World's places, in the order people want them: the map first, then clubs, jobs and volunteering, matches,
+ * World's places, in the order people want them: the map first, then clubs, opportunities, matches,
  * tournaments and people. Venues and Journeys are out (journey planning still answers its own links at `/world/map?plans=`).
  */
 const DESTINATIONS = [
     { path: '/world', label: 'Map', Icon: MapIcon, end: true },
     { path: '/world/clubs', label: 'Clubs', Icon: Shield },
-    { path: '/world/opportunities', label: 'Jobs & volunteering', Icon: BriefcaseBusiness },
+    { path: '/world/opportunities', label: 'Opportunities', Icon: BriefcaseBusiness },
     { path: '/world/matches', label: 'Matches', Icon: CalendarDays },
     { path: '/world/tournaments', label: 'Tournaments', Icon: Trophy },
     { path: '/world/people', label: 'People', Icon: UsersRound },

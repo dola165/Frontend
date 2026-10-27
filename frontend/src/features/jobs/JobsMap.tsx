@@ -1,14 +1,14 @@
 import { ct, useCommerceCopy } from '../store/copy';
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Briefcase, ChevronDown, ChevronUp, Compass, Map as MapIcon, Plus, Search, UserCheck } from 'lucide-react';
+import { ArrowRight, Briefcase, ChevronDown, ChevronUp, Compass, Plus, Search, UserCheck } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote } from '../../design/primitives';
 import { WorldMap } from '../world/map/WorldMap';
 import { useMediaQuery } from '../world/useMediaQuery';
 import { CATEGORIES, HOURS, TERMS, type Job } from './api';
 import { JobRow, JobSkeletons } from './JobCard';
 import { filterListings, pinsOf } from './mapPins';
-import { JOBS_KEYS, jobsPath, jobsSearch, readJobs, worldJobsPath, type JobsSearch } from './query';
+import { JOBS_KEYS, jobsPath, jobsSearch, readJobs, type JobsSearch } from './query';
 
 /** One filter as a line: its name on the left, its value on the right; pressed, its choices open under it. */
 function Line({ label, value, options, onChoose }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChoose: (value: string) => void }) {
@@ -99,7 +99,6 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
                     <div className="gk-jobs-stage__foot">
                         <span className="gk-jobs-stage__count">{loading && !jobs.length ? ct("Loading…") : ct("{v0} on the map{v1}", { v0: placed, v1: shown.length - placed ? ` · ${shown.length - placed} without a place` : '' })}</span>
                         <Link className="gk-jobs-stage__list" to={listPath}>{ct("Show ")}{shown.length}{ct(" as a list")}<ArrowRight aria-hidden="true" /></Link>
-                        {!people && <Link className="gk-jobs-stage__list" to={worldJobsPath(query)}><MapIcon aria-hidden="true" />{ct("Full map in World")}</Link>}
                     </div>
                 </>} />
         </div>

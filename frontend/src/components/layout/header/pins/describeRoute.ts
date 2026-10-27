@@ -68,7 +68,7 @@ const fixed: Array<[RegExp, Words, PinIcon]> = [
 const worldSections: Record<string, [Words, PinIcon]> = {
     clubs: [['Clubs', 'კლუბები'], 'club'], people: [['People', 'ხალხი'], 'people'], venues: [['Venues', 'მოედნები'], 'venue'],
     matches: [['Matches', 'მატჩები'], 'goal'], tournaments: [['Tournaments', 'ტურნირები'], 'trophy'], competitions: [['Tournaments', 'ტურნირები'], 'trophy'],
-    opportunities: [['Jobs & volunteering', 'სამუშაო და მოხალისეობა'], 'briefcase'],
+    opportunities: [['Opportunities', 'შესაძლებლობები'], 'briefcase'],
 };
 const worldTabs: Record<string, Words> = {
     'matches:exchange': ['Open matches', 'ღია მატჩები'], 'matches:mine': ['My arrangements', 'ჩემი შეთანხმებები'], 'matches:events': ['Events', 'ღონისძიებები'],
@@ -96,7 +96,7 @@ function describeWorld(bare: string, params: URLSearchParams, copy: Copy): { lab
     const section = bare.split('/')[2];
     const known = section ? worldSections[section] : undefined;
     if (section && !known) return { label: null, icon: 'world' };
-    const tab = known ? worldTabs[`${section}:${params.get(section === 'opportunities' ? 'type' : 'tab')}`] : undefined;
+    const tab = known ? worldTabs[`${section}:${params.get('tab') ?? params.get('type')}`] : undefined;
     const words = tab ?? known?.[0] ?? ['World', 'მსოფლიო'];
     const name = copy(...words);
     const query = params.get('q');

@@ -9,7 +9,7 @@ import { eventSearch } from '../../requests/api';
 import { allTournaments, cardParams } from '../directories/tournaments/allSource';
 import { myTournaments } from '../directories/tournaments/mineSource';
 import { season } from '../directories/tournaments/seasonSource';
-import { groupsSource, jobs, trials } from '../directories/opportunitySources';
+import { groupsSource, trials } from '../directories/opportunitySources';
 import { fixtures } from '../directories/matches/fixturesSource';
 import { exchange } from '../directories/matches/exchangeSource';
 import { arrangements, events } from '../directories/matches/otherSources';
@@ -127,13 +127,13 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
     '/world/clubs': { sources: [clubsSource({ child })] },
     '/world/people': { sources: [refereeSource, specialistSource({ searchOnly: false }), staffSource({ searchOnly: false }), playerSource({ searchOnly: false })] },
     '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
-    '/world/opportunities': { sources: [jobs, trials, groupsSource([child])], alias: 'type' },
+    '/world/opportunities': { sources: [trials, groupsSource([child])], alias: 'type' },
     '/world/tournaments': { sources: [season, allTournaments, myTournaments] },
 };
 // Links into the directories with a tab and filters chosen (the first run's pins, Home, the old front page's fields).
 const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/tournaments?tab=all&registration=OPEN', '/world/tournaments?tab=all&status=ACTIVE',
     '/world/people?tab=specialists', '/world/clubs?type=ACADEMY&near=Tbilisi', '/world/clubs?open=true&near=Tbilisi',
-    '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER',
+    '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials',
     '/world/matches?tab=fixtures&period=UPCOMING&mine=true&squadId=103', '/world/matches?tab=fixtures&period=HISTORY', '/world/matches?tab=exchange&ageGroup=U14', '/world/people?tab=referees'];
 
 it.each(FIELD_LINKS)('the field link %s opens its intended tab and filters', to => {
@@ -195,11 +195,11 @@ it('renames old club directory keys and keeps the rest of the search', () => {
 });
 
 it('opens the role an old jobs link selected, and the jobs tab otherwise', () => {
-    const jobsRedirect = <WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ tab: 'jobs' }} detail={{ key: 'job', path: '/jobs' }} />;
+    const jobsRedirect = <WorldRedirect to="/jobs" rename={{ search: 'query' }} detail={{ key: 'job', path: '/jobs' }} />;
     visit('/jobs?job=5', jobsRedirect);
     expect(screen.getByText('/jobs/5')).toBeInTheDocument();
     visit('/roles?search=coach', jobsRedirect);
-    expect(screen.getByText('/world/opportunities?q=coach&tab=jobs')).toBeInTheDocument();
+    expect(screen.getByText('/jobs?query=coach')).toBeInTheDocument();
 });
 
 

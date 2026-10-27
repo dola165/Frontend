@@ -1,63 +1,54 @@
 import { useEffect, useState } from 'react';
-import { Link2, Loader2, Plus } from 'lucide-react';
-import { Button, SearchInput } from '../../../design/primitives';
-import { createHref } from '../../pages/create/entry';
+import { accessibleClubs } from '../../../components/layout/clubAccess';
+import { useAuth } from '../../../context/AuthContext';
+import { Button } from '../../../design/primitives';
+import { fetchMyPages, type MyPage } from '../../pages/api';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { ClubPicker } from '../ClubPicker';
-import { fetchClubsNearYou, searchClubs, type NearbyClub } from '../startApi';
-import { followClubs } from '../../actions/follow';
+import { Crest } from '../../world/Crest';
 import { WelcomeFrame, type WelcomeStepProps } from '../WelcomeFrame';
+import { FindClub, type FoundClub } from './club/FindClub';
+import { StartClub } from './club/StartClub';
+import './club/club-step.css';
 
-const HOME = { pathname: '/home', search: '' };
+interface YourClubInfo { id: number; name: string; crestUrl: string | null; draft: boolean }
 
 /**
- * Step 2 of A club: find your club, the nearest suggested and any found by name. Found: "Your club's admin adds you
- * with the staff link", and it is followed as the person opens it. Not found: Start your club, in the one create sheet.
- * Nobody asks to join as staff here (F2: staff join through the admin's link).
+ * Step 2 of A club (owner, 27 October): it is starting a club. Name, town (filled in) and colours, then Start my club.
+ * One grey line, "Already in a club?", turns it into a search by name with Join (an invite is accepted; otherwise the
+ * code from the admin's staff link). Someone who already has a club (a staff job there, or a club page of their own,
+ * a draft included) sees that club with Open.
  */
-export function ClubStep({ facts, land, back, close }: WelcomeStepProps) {
-    const copy = useJourneyCopy();
-    const [query, setQuery] = useState('');
-    const [near, setNear] = useState<NearbyClub[] | null>(null);
-    const [found, setFound] = useState<NearbyClub[] | null>(null);
-    const [chosen, setChosen] = useState<NearbyClub | null>(null);
-    const [busy, setBusy] = useState(false);
-    const [failed, setFailed] = useState(false);
-    const searching = query.trim().length >= 2;
-
+export function ClubStep(props: WelcomeStepProps) {
+    const { user } = useAuth();
+    // Staff means one club (release 7): a job there, not following or playing. A draft club the person started is
+    // theirs too, though it is not in the navigation yet, so their own pages are asked for as well.
+    const staffAt = accessibleClubs(user?.navigationCapabilities).find(club => club.relationships.some(relation => relation === 'Club staff' || relation === 'Club appointment')) ?? null;
+    const [pages, setPages] = useState<MyPage[] | null>(null);
     useEffect(() => {
         const controller = new AbortController();
-        fetchClubsNearYou(8, 'NEAREST', controller.signal).then(setNear).catch(() => { if (!controller.signal.aborted) setNear([]); });
+        fetchMyPages(controller.signal).then(setPages, () => { if (!controller.signal.aborted) setPages([]); });
         return () => controller.abort();
     }, []);
-    useEffect(() => {
-        if (!searching) return;
-        const controller = new AbortController();
-        const timer = window.setTimeout(() => { searchClubs(query.trim(), controller.signal).then(setFound).catch(() => { if (!controller.signal.aborted) setFound([]); }); }, 300);
-        return () => { window.clearTimeout(timer); controller.abort(); };
-    }, [query, searching]);
+    // What was typed carries over: the name searched for becomes the club to start, and the other way round.
+    const [mode, setMode] = useState<{ kind: 'start'; name: string } | { kind: 'find'; query: string; club: FoundClub | null }>({ kind: 'start', name: '' });
 
-    const shown = searching ? found : near;
-    const open = async () => {
-        if (!chosen) return;
-        setBusy(true); setFailed(false);
-        const missed = await followClubs([chosen]);
-        setBusy(false);
-        if (missed) setFailed(true); else land('club', `/clubs/${chosen.id}`);
-    };
-    return <WelcomeFrame position={2} onClose={close} back={back} title={copy('Find your club', 'იპოვეთ თქვენი კლუბი')}
-        footer={<>
-            {facts.adult && <Button variant="ghost" onClick={() => land('club', createHref(HOME, 'CLUB', 'start'))}><Plus aria-hidden="true" />{copy('Not here? Start your club', 'არ არის? დააარსეთ თქვენი კლუბი')}</Button>}
-            <Button variant="primary" disabled={!chosen || busy} onClick={() => void open()}>
-                {busy && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}{copy('Follow and open', 'გამოწერა და გახსნა')}
-            </Button>
-        </>}>
-        <SearchInput aria-label={copy('Club name', 'კლუბის სახელი')} placeholder={copy('Club name', 'კლუბის სახელი')} value={query}
-            onChange={event => { setQuery(event.target.value); if (event.target.value.trim().length < 2) setFound(null); }} />
-        <ClubPicker single clubs={shown} chosen={new Set(chosen ? [chosen.id] : [])} label={searching ? copy('Clubs found', 'ნაპოვნი კლუბები') : copy('Clubs near you', 'კლუბები თქვენთან ახლოს')}
-            onToggle={id => setChosen(shown?.find(club => club.id === id) ?? null)}
-            empty={searching ? copy('No club by that name yet.', 'ასეთი სახელის კლუბი ჯერ არ არის.') : copy('No clubs near you yet. Search by name.', 'თქვენთან ახლოს კლუბები ჯერ არ არის. მოძებნეთ სახელით.')} />
-        {chosen && <p className="gk-welcome__note" role="status"><Link2 aria-hidden="true" />{copy('Your club’s admin adds you with the staff link.', 'კლუბის ადმინი დაგამატებთ თანამშრომლების ბმულით.')}</p>}
-        {failed && <p role="alert" className="gk-notice gk-notice--warning">{copy('That follow did not go through. Try again.', 'გამოწერა ვერ შესრულდა. სცადეთ ხელახლა.')}</p>}
+    const page = pages?.find(item => item.kind === 'CLUB' && item.clubId != null);
+    const yours: YourClubInfo | null = page ? { id: page.clubId!, name: page.name, crestUrl: page.crestUrl, draft: page.status === 'DRAFT' }
+        : staffAt ? { id: staffAt.id, name: staffAt.name, crestUrl: null, draft: false } : null;
+    if (yours) return <YourClub club={yours} {...props} />;
+    return mode.kind === 'find'
+        ? <FindClub {...props} query={mode.query} chosen={mode.club} onStart={name => setMode({ kind: 'start', name })} />
+        : <StartClub {...props} name={mode.name} onFind={(query, club = null) => setMode({ kind: 'find', query, club })} />;
+}
+
+function YourClub({ club, land, back, close }: WelcomeStepProps & { club: YourClubInfo }) {
+    const copy = useJourneyCopy();
+    return <WelcomeFrame position={2} size="choose" onClose={close} back={back} title={copy('Your club', 'თქვენი კლუბი')}
+        footer={<Button variant="primary" onClick={() => land('club', `/clubs/${club.id}`)}>{copy('Open', 'გახსნა')}</Button>}>
+        <div className="gk-wjoin__row gk-wjoin__row--own">
+            <Crest src={club.crestUrl} name={club.name} size={56} />
+            <span className="gk-wjoin__text"><strong>{club.name}</strong>
+                <small>{club.draft ? copy('Draft · only you see it', 'მონახაზი · მხოლოდ თქვენ ხედავთ') : copy('You’re on the staff here.', 'აქ შტატში ხართ.')}</small></span>
+        </div>
     </WelcomeFrame>;
 }

@@ -1,0 +1,37 @@
+/* The welcome's Club step: start a club (crest, name, town), or find yours and join. Scoped under the welcome. */
+.gk .gk-wclub { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--gk-6); align-items: start; padding: var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg);
+  background: radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--gk-info) 14%, transparent), transparent 55%), var(--gk-surface); }
+.gk .gk-wclub__crest { display: flex; flex-direction: column; align-items: center; gap: var(--gk-3); width: 228px; }
+.gk .gk-wclub__crest img { width: 132px; height: 132px; filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--gk-shadow) 30%, transparent)); }
+.gk .gk-wclub__colours { display: grid; grid-template-columns: repeat(6, 32px); gap: var(--gk-2); }
+.gk .gk-wclub__colour { width: 32px; height: 32px; padding: 0; border: 1px solid var(--gk-line-strong); border-radius: 50%; background: linear-gradient(135deg, var(--c1) 50%, var(--c2) 50%); cursor: pointer;
+  transition: transform .15s var(--gk-ease); }
+.gk .gk-wclub__colour:hover { transform: scale(1.08); }
+.gk .gk-wclub__colour[aria-checked='true'] { box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+.gk .gk-wclub__colour:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-wclub__fields { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .gk-wclub__fields .gk-welcome__field:not(:first-child) { margin-top: var(--gk-2); }
+.gk .gk-wclub__name { min-height: 48px; font-size: var(--gk-fs-xl); }
+/* The one grey line under the step: "Already in a club?" / "Starting a new club instead?". */
+.gk .gk-welcome__quiet { align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-md); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.gk .gk-welcome__quiet:hover { color: var(--gk-text); }
+.gk .gk-welcome__quiet:focus-visible { outline: none; box-shadow: var(--gk-focus); border-radius: var(--gk-r-sm); }
+/* Clubs to join: crest, name and town, Join; the code field opens under the club. */
+.gk .gk-wjoin { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-wjoin__item { border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .gk-wjoin__row { display: flex; align-items: center; gap: var(--gk-3); min-height: 56px; padding: var(--gk-2) var(--gk-3); }
+.gk .gk-wjoin__row--own { padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .gk-wjoin__text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
+.gk .gk-wjoin__text strong { overflow: hidden; font-size: var(--gk-fs-lg); text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-wjoin__row--own .gk-wjoin__text strong { font-size: var(--gk-fs-2xl); }
+.gk .gk-wjoin__text small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .gk-wjoin__code { display: flex; flex-direction: column; gap: 4px; padding: 0 var(--gk-3) var(--gk-3) calc(40px + var(--gk-3) * 2); }
+.gk .gk-wjoin__coderow { display: flex; gap: var(--gk-2); }
+.gk .gk-wjoin__coderow .gk-input { flex: 1; min-width: 0; min-height: 44px; font-family: var(--gk-font); letter-spacing: .04em; }
+@media (prefers-reduced-motion: reduce) { .gk .gk-wclub__colour { transition: none; } .gk .gk-wclub__colour:hover { transform: none; } }
+@media (max-width: 640px) {
+  .gk .gk-wclub { grid-template-columns: minmax(0, 1fr); gap: var(--gk-4); padding: var(--gk-4); }
+  .gk .gk-wclub__crest { width: auto; }
+  .gk .gk-wclub__crest img { width: 96px; height: 96px; }
+  .gk .gk-wjoin__code { padding-left: var(--gk-3); }
+}

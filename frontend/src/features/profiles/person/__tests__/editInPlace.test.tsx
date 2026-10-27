@@ -38,6 +38,11 @@ describe('making your profile, in place', () => {
         expect(screen.getByRole('tab', { name: 'About me' })).toBeInTheDocument();
     });
 
+    it('offers a quiet way back into the welcome, at step 1', async () => {
+        serve(); mount();
+        expect(await screen.findByRole('link', { name: 'Change what brings you here' })).toHaveAttribute('href', '/home?welcome=start');
+    });
+
     it('writes About me where it is shown and keeps it after Done', async () => {
         serve(); mount();
         vi.mocked(apiClient.put).mockResolvedValue({ data: {} });

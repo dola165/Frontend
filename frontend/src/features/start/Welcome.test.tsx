@@ -16,10 +16,13 @@ const server = vi.hoisted(() => ({
     jobs: {} as Record<string, number>, clubsForAge: null as null | unknown[],
     professions: { items: [] as { id: number; title: string; detail: null; since: null; published: boolean; label: null }[], version: 0 },
     discovery: { openTo: [] as string[], licence: null, rate: null, version: 0 },
+    /** Staff jobs this person was invited to and has not answered (`/club-operations/mine`). */
+    invitedJobs: [] as unknown[],
+    posts: [] as { url: string; body: unknown }[], puts: [] as { url: string; body: unknown }[],
 }));
-const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } }));
+const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } as { id: number; dob: string; navigationCapabilities?: unknown } }));
 vi.mock('../../api/axiosConfig', async original => ({ ...(await original<object>()), apiClient: { get: vi.fn(), put: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated' }) }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated', refreshNavigationCapabilities: async () => undefined }) }));
 
 const club = (id: number, name: string, km: number) => ({ id, name, logoUrl: null, bannerUrl: null, cityName: 'Rustavi', km, followers: 3, following: false });
 const place = { name: 'Rustavi', latitude: 41.5495, longitude: 45.0012, countryCode: 'GE', countryName: 'Georgia', source: 'SAVED' };
@@ -48,8 +51,12 @@ beforeEach(async () => {
     server.professions = { items: [], version: 0 };
     server.discovery = { openTo: [], licence: null, rate: null, version: 0 };
     server.jobs = {}; server.clubsForAge = null;
+    server.invitedJobs = []; server.posts = []; server.puts = [];
     vi.mocked(apiClient.get).mockImplementation(async (url: string, config?: { params?: unknown }) => {
         server.gets.push(url);
+        if (url === '/club-operations/mine') return { data: { appointments: server.invitedJobs, permissions: [], clubs: [] } };
+        if (url === '/clubs/41/page') return { data: { identity: { version: 3 } } };
+        if (url === '/staff-invite/ABC123') return { data: { clubId: 9, clubName: 'Rustavi Juniors', clubLogoUrl: null, job: 'ASSISTANT_COACH', title: 'Assistant coach', clubWide: true, squads: [], invitedBy: null, status: 'ACTIVE', expiresAt: '2026-11-03T00:00:00Z' } };
         if (url === '/jobs/listings') return { data: { content: [], totalElements: server.jobs[String((config?.params as { category?: string } | undefined)?.category ?? 'ALL')] ?? 0 } };
         if (url.startsWith('/clubs?') && server.clubsForAge) return { data: { content: server.clubsForAge, pageNumber: 0, pageSize: 8, totalElements: 0, totalPages: 0 } };
         if (url.startsWith('/clubs?')) return { data: { content: [{ id: 9, name: 'Rustavi Juniors', cityName: 'Rustavi', followerCount: 3, isFollowedByMe: false, latitude: 41.5495, longitude: 45.0012, presentation: { profileKind: 'ACADEMY', revision: 1, canEdit: false, sponsors: [], affiliations: [], programmes: [
@@ -68,10 +75,17 @@ beforeEach(async () => {
             return { data: server.professions };
         }
         if (url === '/users/me/discovery') { server.discovery = { ...(body as typeof server.discovery), version: server.discovery.version + 1 }; return { data: server.discovery }; }
+        if (url.endsWith('/identity')) { server.puts.push({ url, body }); return { data: {} }; }
         server.prefs = applyPreferencesUpdate(server.prefs as Preferences, body as Preferences) as Record<string, unknown>;
         return { data: server.prefs };
     });
-    vi.mocked(apiClient.post).mockImplementation(async (url: string) => { server.followed.add(Number(url.split('/')[2])); return { data: { following: true } }; });
+    vi.mocked(apiClient.post).mockImplementation(async (url: string, body?: unknown) => {
+        server.posts.push({ url, body });
+        if (url === '/organizations/setup') return { data: { id: 40, clubId: 41, profilePath: '/clubs/41', workspacePath: '/clubs/41/workspace' } };
+        if (url === '/staff-invite/ABC123') return { data: { appointmentId: 90, clubId: 9, clubName: 'Rustavi Juniors', title: 'Assistant coach', squads: [], alreadyJoined: false } };
+        if (url.includes('/operations/appointments/')) return { data: {} };
+        server.followed.add(Number(url.split('/')[2])); return { data: { following: true } };
+    });
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 
@@ -170,23 +184,94 @@ describe('the welcome', () => {
         await waitFor(() => expect(address()).toBe('/world/clubs?near=Rustavi'));
     });
 
-    it('finds the club: the nearest is suggested, the staff link is explained, and the club opens followed', async () => {
+    it('starts a club from step 2: the town filled in, the colours chosen, and the new club opens', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=club');
         const box = await dialog();
-        expect(within(box).getByRole('heading', { name: 'Find your club' })).toBeInTheDocument();
-        await user.click(await within(box).findByRole('radio', { name: /Rustavi Steel/ }));
-        expect(within(box).getByText('Your club’s admin adds you with the staff link.')).toBeInTheDocument();
-        await user.click(within(box).getByRole('button', { name: 'Follow and open' }));
-        await waitFor(() => expect(address()).toBe('/clubs/6'));
-        expect(server.followed.has(6)).toBe(true);
+        expect(await within(box).findByRole('heading', { name: 'Start your club' })).toBeInTheDocument();
+        await waitFor(() => expect(within(box).getByRole('combobox', { name: 'Town' })).toHaveValue('Rustavi'));
+        await user.type(within(box).getByRole('textbox', { name: 'Club name' }), 'Rustavi Kites');
+        await user.click(within(box).getByRole('radio', { name: 'Navy, Gold' }));
+        await user.click(within(box).getByRole('button', { name: 'Start my club' }));
+        await waitFor(() => expect(address()).toBe('/clubs/41?edit=1&new=1'));
+        expect(server.posts.find(post => post.url === '/organizations/setup')?.body).toMatchObject({ displayName: 'Rustavi Kites', pageKind: 'CLUB', location: { city: 'Rustavi' } });
+        // The crest it showed is the crest the club keeps, saved before the page opens.
+        expect(server.puts).toEqual([{ url: '/clubs/41/page/identity', body: { version: 3, crest: { kind: 'generated', design: { shape: 'shield', primary: 'navy', secondary: 'gold', initials: 'RK' }, kept: true } } }]);
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CLUB' }));
     });
 
-    it('starts a club in the one create sheet when it is not found', async () => {
+    it('joins a club the person was invited to: Join accepts the invite and opens the club', async () => {
+        const user = userEvent.setup();
+        server.invitedJobs = [{ id: 77, club_id: 6, club_name: 'Rustavi Steel', user_id: auth.user.id, title: 'Assistant coach', specialisations: [], engagement: 'VOLUNTEER', squad_id: null, permissions: [], starts_on: '2026-10-27', ends_on: null, status: 'INVITED', effective_status: 'INVITED', revision: 2, published: true, club_wide: true }];
+        mount('/home?welcome=club');
+        const first = await dialog();
+        await user.click(await within(first).findByRole('button', { name: 'Already in a club?' }));
+        const box = await screen.findByRole('dialog', { name: 'Find your club' });
+        // The invite is there before anything is typed.
+        expect(await within(box).findByText('You’re invited')).toBeInTheDocument();
+        await user.click(within(box).getByRole('button', { name: 'Join Rustavi Steel' }));
+        await waitFor(() => expect(address()).toBe('/clubs/6/workspace'));
+        expect(server.posts).toContainEqual({ url: '/clubs/6/operations/appointments/77/transition', body: { status: 'ACTIVE', revision: 2 } });
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CLUB' }));
+    });
+
+    it('asks for the admin’s code at a club with no invite, and joins with the whole link pasted', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=club');
-        await user.click(within(await dialog()).getByRole('button', { name: 'Not here? Start your club' }));
-        expect(address()).toBe('/home?create=club&from=start');
+        const first = await dialog();
+        await user.type(await within(first).findByRole('textbox', { name: 'Club name' }), 'Rustavi');
+        await user.click(within(first).getByRole('button', { name: 'Already in a club?' }));
+        const box = await screen.findByRole('dialog', { name: 'Find your club' });
+        // What was typed is the search.
+        expect(within(box).getByRole('searchbox', { name: 'Club name' })).toHaveValue('Rustavi');
+        await user.click(await within(box).findByRole('button', { name: 'Join Rustavi Juniors' }));
+        await user.type(within(box).getByRole('textbox', { name: 'Enter the code your admin gave you' }), 'https://grasskickz.com/staff-invite/ABC123');
+        await user.click(within(box).getAllByRole('button', { name: 'Join' }).at(-1)!);
+        await waitFor(() => expect(address()).toBe('/clubs/9/workspace'));
+        expect(server.posts.map(post => post.url)).toEqual(['/staff-invite/ABC123']);
+    });
+
+    it('goes back to starting the club when no club has that name', async () => {
+        const user = userEvent.setup();
+        mount('/home?welcome=club');
+        const first = await dialog();
+        await user.click(await within(first).findByRole('button', { name: 'Already in a club?' }));
+        const box = await screen.findByRole('dialog', { name: 'Find your club' });
+        server.clubsForAge = [];
+        await user.type(within(box).getByRole('searchbox', { name: 'Club name' }), 'Gori Eagles');
+        await user.click(await within(box).findByRole('button', { name: 'Start Gori Eagles' }));
+        const again = await screen.findByRole('dialog', { name: 'Start your club' });
+        expect(within(again).getByRole('textbox', { name: 'Club name' })).toHaveValue('Gori Eagles');
+    });
+
+    it('shows someone already on a club’s staff their club with Open, not a new one', async () => {
+        const user = userEvent.setup();
+        auth.user = { ...auth.user, navigationCapabilities: { version: 1, workspaces: [{ id: 'club.workspace', context: { type: 'club', id: 3, label: 'Rustavi Lions' } }] } };
+        mount('/home?welcome=club');
+        const box = await dialog();
+        expect(within(box).getByRole('heading', { name: 'Your club' })).toBeInTheDocument();
+        expect(within(box).getByText('Rustavi Lions')).toBeInTheDocument();
+        expect(within(box).queryByRole('button', { name: 'Start my club' })).toBeNull();
+        await user.click(within(box).getByRole('button', { name: 'Open' }));
+        await waitFor(() => expect(address()).toBe('/clubs/3'));
+    });
+
+    it('stays open when the page beside it is clicked; only X or Skip close it', async () => {
+        const user = userEvent.setup();
+        mount('/home?welcome=start');
+        await dialog();
+        await user.click(document.querySelector('[data-dialog-backdrop]')!);
+        expect(screen.getByRole('dialog', { name: 'What brings you to GrassKickZ?' })).toBeInTheDocument();
+        expect(address()).toBe('/home?welcome=start');
+        expect(start().welcome?.state).not.toBe('DONE');
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        await waitFor(() => expect(address()).toBe('/home'));
+    });
+
+    it('opens again at step 1 after it was finished, from the profile’s link', async () => {
+        server.prefs = { start: { welcome: { state: 'DONE', choice: 'FOLLOW', week: [], cardDismissed: false } } };
+        mount('/home?welcome=start');
+        expect(within(await dialog()).getByRole('heading', { name: 'What brings you to GrassKickZ?' })).toBeInTheDocument();
     });
 
     it('opens page creation for the kind of business picked', async () => {

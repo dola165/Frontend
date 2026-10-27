@@ -55,14 +55,14 @@ export const cleanInitials = (value: string) => [...value.normalize('NFC')].filt
   .map(letter => (/[Ⴀ-ჿᲐ-Ჿ]/.test(letter) ? letter.toLowerCase() : letter.toUpperCase())).join('');
 
 /** Colour pairs clubs actually wear; a name always gets the same one, so the default never jumps between visits. */
-const PAIRS: readonly [CrestColour, CrestColour][] = [
+export const CREST_PAIRS: readonly [CrestColour, CrestColour][] = [
   ['green', 'white'], ['blue', 'white'], ['red', 'white'], ['navy', 'gold'], ['black', 'gold'], ['maroon', 'sky'],
   ['purple', 'white'], ['orange', 'black'], ['sky', 'navy'], ['forest', 'yellow'], ['red', 'black'], ['yellow', 'black'],
 ];
 const hash = (text: string) => [...text].reduce((value, letter) => (value * 31 + (letter.codePointAt(0) ?? 0)) >>> 0, 7);
 
 export function defaultCrest(name: string): CrestDesign {
-  const [primary, secondary] = PAIRS[hash(name.trim().toLowerCase()) % PAIRS.length];
+  const [primary, secondary] = CREST_PAIRS[hash(name.trim().toLowerCase()) % CREST_PAIRS.length];
   return { shape: 'shield', primary, secondary, initials: initialsFor(name) };
 }
 

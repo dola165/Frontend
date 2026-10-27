@@ -8,7 +8,8 @@ import { appLanguage } from '../../../utils/formatting';
 import { clearSetupRecovery, isRecord, isRequestId, readSetupRecovery, writeSetupRecovery } from '../../organizations/setup/setupRecovery';
 import type { Town } from '../../start/towns';
 import { useOtherClub } from '../../clubOperations/leaving/useOtherClub';
-import { createPage, type CreatedPage, type CreateRequest, type SimilarPage } from '../api';
+import { createPage, fetchPage, saveIdentity, type CreatedPage, type CreateRequest, type PageRef, type SimilarPage } from '../api';
+import type { CrestDesign } from '../model/crest';
 import { pt } from '../copy';
 import { DEFAULT_CLUB_CATEGORY, isPageKind, ORGANIZATION_TYPE, type BusinessKind, type PageKind } from '../model/kinds';
 
@@ -28,7 +29,14 @@ export type CreateOutcome = { kind: 'created'; created: CreatedPage } | { kind: 
  * the request is saved with its id before it is sent, and a retry with the same name reuses it, so two pages are
  * never created. Under-age accounts are refused here and by the server.
  */
-type CreateArgs = { kind: PageKind; name: string; town: Town | null; draw?: boolean; business?: BusinessKind | null };
+type CreateArgs = { kind: PageKind; name: string; town: Town | null; draw?: boolean; business?: BusinessKind | null; crest?: CrestDesign | null };
+
+/** The crest chosen while creating (the welcome's Club step), kept before the new page opens; the page stands without it. */
+const keepCrest = async (created: CreatedPage, design: CrestDesign) => {
+  const ref: PageRef = created.clubId ? { type: 'club', id: created.clubId } : { type: 'organization', id: created.id };
+  const page = await fetchPage(ref);
+  await saveIdentity(ref, page.identity.version, { crest: { kind: 'generated', design, kept: true } });
+};
 
 export function useCreatePage() {
   const { user, refreshNavigationCapabilities } = useAuth();
@@ -40,7 +48,7 @@ export function useCreatePage() {
   const other = useOtherClub();
   const again = useRef<((args: CreateArgs) => Promise<CreateOutcome>) | null>(null);
 
-  const create = useCallback(async ({ kind, name, town, draw = false, business = null }: CreateArgs): Promise<CreateOutcome> => {
+  const create = useCallback(async ({ kind, name, town, draw = false, business = null, crest = null }: CreateArgs): Promise<CreateOutcome> => {
     if (busy) return { kind: 'failed' };
     const displayName = name.trim().replace(/\s+/g, ' ');
     if (!isAdult(user?.dob)) { setError(pt('Pages are for adults. Ask an adult at your club to create it and invite you.')); return { kind: 'failed' }; }
@@ -55,6 +63,7 @@ export function useCreatePage() {
     try {
       const created = await createPage(request.body);
       clearSetupRecovery(user?.id, RECOVERY); setPending(null);
+      if (crest) await keepCrest(created, crest).catch(() => undefined);
       navigate(pageDestination(created, draw));
       void refreshNavigationCapabilities().catch(() => undefined);
       return { kind: 'created', created };
@@ -63,7 +72,7 @@ export function useCreatePage() {
       const settled = response?.status != null && response.status < 500;
       if (settled) { clearSetupRecovery(user?.id, RECOVERY); setPending(null); }
       if (response?.status === 409 && response.data?.code === 'PAGE_EXISTS' && response.data.match) return { kind: 'exists', match: response.data.match };
-      if (other.catchOther(failure, () => void again.current?.({ kind, name, town, draw, business }))) return { kind: 'failed' };
+      if (other.catchOther(failure, () => void again.current?.({ kind, name, town, draw, business, crest }))) return { kind: 'failed' };
       if (promptEmailConfirmation(failure)) return { kind: 'failed' };
       setError(extractApiErrorMessage(failure, pt(settled ? 'Could not create the page. Try again: nothing is lost.' : 'The last try was not answered. Try again with the same name; it never makes two pages.')));
       return { kind: 'failed' };

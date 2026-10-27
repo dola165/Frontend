@@ -15,7 +15,8 @@ import type { WelcomeStepProps } from './WelcomeFrame';
 
 /**
  * The welcome over Home (F7): step 1 "What brings you to GrassKickZ?", then one screen for the answer, then the person
- * lands where that answer leads. Skip, Escape and closing count as following football; nothing is forced.
+ * lands where that answer leads. Skip, Escape and X count as following football; nothing is forced. A click beside it
+ * never closes it, and the profile's "Change what brings you here" opens it again.
  */
 export function WelcomeDialog({ step: asked }: { step: Step }) {
     const navigate = useNavigate();
@@ -43,9 +44,11 @@ export function WelcomeDialog({ step: asked }: { step: Step }) {
         void saveStart(userId, current => ({ ...extra, welcome: finished(current.welcome as WelcomeProgress | null, choice) })).catch(() => undefined);
     const props: WelcomeStepProps = {
         facts,
+        finish: choice => finish(choice),
         land: (choice, to, extra) => { finish(choice, extra); navigate(to ?? address(null), { replace: true }); },
         back: () => navigate(address('start')),
-        close: () => { finish('follow'); navigate(address(null), { replace: true }); },
+        // X and Skip only (never a click beside it); Back brings the welcome back, and the profile reopens it any time.
+        close: () => { finish('follow'); navigate(address(null)); },
     };
 
     switch (step) {

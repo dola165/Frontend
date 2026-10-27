@@ -45,6 +45,26 @@ describe('pin store', () => {
         expect(readPins(user)).toEqual([pin(1), { path: '/store', label: 'Store', icon: 'bookmark' }]);
     });
 
+    it('migrates saved page links, removes retired pages and deduplicates their replacements', async () => {
+        const user = account();
+        const saved = ['/roles/704', '/people?tab=players', '/account/roles#professions', '/agents/7', '/agent/dashboard', '/clubs/following', '/my-squads', '/squads', '/join-squad', '/matches', '/tournament-series/2'];
+        server.docs.set(user, { pins: { pins: saved.map(path => ({ path, label: 'Saved page', icon: 'bookmark' })) } });
+        await loadPreferences(user);
+        expect(readPins(user).map(item => item.path)).toEqual(['/jobs/704', '/world/people?tab=players', '/account/football#work', '/profile/7?tab=career', '/agent', '/world/clubs?view=following', '/my-squads']);
+    });
+
+    it('migrates visit suggestions and cannot record a new visit to a retired page', () => {
+        const user = account(), now = Date.now();
+        localStorage.setItem(`gk-visits:v1:${user}`, JSON.stringify({
+            '/roles/704': { t: [now - 2000, now - 1000], label: 'Job' },
+            '/jobs/704': { t: [now - 500], label: 'Job' },
+            '/join-squad': { t: [now - 2000, now - 1000, now], label: 'Gone' },
+        }));
+        expect(readVisits(user)).toEqual({ '/jobs/704': { t: [now - 2000, now - 1000, now - 500], label: 'Job' } });
+        recordVisit(user, '/join-squad', 'bookmark', 'Gone');
+        expect(readVisits(user)['/join-squad']).toBeUndefined();
+    });
+
     it('treats an unreadable copy and storage that throws as no pins, and still works for the visit', () => {
         const broken = account();
         localStorage.setItem(`gk-prefs:v1:${broken}`, '{not json');

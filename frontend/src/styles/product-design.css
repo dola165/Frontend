@@ -199,7 +199,6 @@ html.product-design-active :is([role=menu], .app-popover, .workspace-picker) { a
   html.product-design-active .product-design-scope :is(.store-detail-grid, .store-checkout-layout) { gap: 24px; }
   html.product-design-active .tournament-directory .flex:has(> [aria-label="Results per page"]), html.product-design-active .tournament-directory .flex:has(> div > [aria-label="Results per page"]) { flex-wrap: wrap; }
   html.product-design-active .product-design-scope .store-purchase-row { flex-wrap: wrap; }
-  html.product-design-active .product-design-scope .sp-toolbar .sd-search { min-width: 0; }
 }
 @media (max-width:480px) {
   html.product-design-active .product-design-scope .event-filters { grid-template-columns: minmax(0, 1fr); }

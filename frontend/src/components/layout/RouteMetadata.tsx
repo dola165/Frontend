@@ -15,7 +15,7 @@ export const RouteMetadata = () => {
         if (pathname === '/parent') label = t('nav.parentHub', 'Parent Hub');
         else if (pathname === '/world' || pathname.startsWith('/world/')) label = WORLD_TITLES[pathname.split('/')[2] ?? ''] ?? 'World';
         else if (pathname === '/my-organizations' && new URLSearchParams(search).get('kind') === 'VENUE') label = t('experience.navigation.venues');
-        else if (pathname === '/requests') label = t('experience.navigation.requests');
+        else if (pathname === '/requests') label = 'Inbox';
         else if (pathname === '/reports') label = t('experience.navigation.reports');
         else if (pathname === '/events') label = t('experience.navigation.events');
         else if (pathname === '/tryouts' || pathname.startsWith('/tryouts/')) label = t('experience.navigation.tryouts');

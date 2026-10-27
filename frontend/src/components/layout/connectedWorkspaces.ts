@@ -6,7 +6,7 @@ const personal: Record<string, Pick<ConnectedWorkspace,'label'|'description'|'ac
   'referee.workspace': {label:'Referee workspace',description:'Your invitations, match preparation, reports and availability across clubs.',actions:[{label:'My assignments',path:'/referees/me#invitations'},{label:'Find matches',path:'/referees/me#open-requests'},{label:'Availability',path:'/referees/me#availability'}]},
   'parent.hub': {label:'Parent Hub',description:'Your children, family permissions and shared team activities.'},
   'agent.hub': {label:'Agent Hub',description:'Your representation, player portfolio and club engagements.'},
-  'club.work': {label:'My club appointments',description:'Review invitations, accepted appointments and the access agreed with each club.'},
+  'club.work': {label:'Inbox',description:'Review invitations, accepted appointments and the access agreed with each club.'},
   'admin.console': {label:'Administration',description:'The platform tools available to your account.'},
 };
 

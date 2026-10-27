@@ -25,7 +25,7 @@ export function myClub(capabilities: NavigationCapabilities | undefined, members
     return { ids, path: `/clubs/${club.id}` };
 }
 
-const discoveryRoute = /^\/(?:world|map|people|stadiums|matches|match-history|match-exchange|tournaments|tryouts|events|jobs|roles|store|campaigns|admissions\/opportunities)(?:\/|$)/;
+const discoveryRoute = /^\/(?:world|map|stadiums|match-history|match-exchange|tournaments|tryouts|events|jobs|roles|store|campaigns|admissions\/opportunities)(?:\/|$)/;
 
 /** Which primary tab a location belongs to. Work surfaces outside the three places return null. */
 export function primarySectionFor(pathname: string, ownClubIds: number[], search = ''): PrimarySection | null {

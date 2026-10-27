@@ -13,10 +13,10 @@ import { FamilyClubWork } from './FamilyClubWork';
 import { GuardianPermissions, type GuardianPermission } from './GuardianPermissions';
 
 interface Inbox { appointments:Appointment[]; permissions:GuardianPermission[]; clubs:(Choice & {canWork?:boolean})[] }
-export function StaffAppointments() { return <PersonalClubWork area="appointments" />; }
+export function StaffAppointments({ onChanged }: { onChanged?: () => void } = {}) { return <PersonalClubWork area="appointments" onChanged={onChanged} />; }
 export function GuardianClubWork() { return <PersonalClubWork area="family" />; }
-function PersonalClubWork({area}:{area:'appointments'|'family'}){const {user,sessionId}=useAuth();return <Work area={area} key={`${user?.id}-${sessionId}`}/>;}
-function Work({area}:{area:'appointments'|'family'}){
+function PersonalClubWork({area,onChanged}:{area:'appointments'|'family';onChanged?:()=>void}){const {user,sessionId}=useAuth();return <Work area={area} onChanged={onChanged} key={`${user?.id}-${sessionId}`}/>;}
+function Work({area,onChanged}:{area:'appointments'|'family';onChanged?:()=>void}){
   const {user,refreshNavigationCapabilities}=useAuth();
   const other=useOtherClub();
   const [params]=useSearchParams(), inFlight=useRef(false);
@@ -24,7 +24,7 @@ function Work({area}:{area:'appointments'|'family'}){
   const selectedAppointment=params.get('appointmentId');
   const appointmentId=selectedAppointment&&/^[1-9]\d*$/.test(selectedAppointment)&&Number.isSafeInteger(Number(selectedAppointment))?selectedAppointment:null;
   useEffect(()=>{const c=new AbortController();setData(null);void get<Inbox>(`/club-operations/mine${appointmentId?`?appointmentId=${appointmentId}`:''}`,c.signal).then(r=>{if(!c.signal.aborted)setData(r);}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load your club work.'));});return()=>c.abort();},[refresh,appointmentId]);
-  const act=async(club:number,id:number,revision:number,status:string,appointment=false)=>{if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');setMessage('');try{await post(`${root(club)}/${appointment?'appointments':'records'}/${id}/transition`,{revision,status,note:null});setMessage(appointment?'Appointment decision saved.':`Permission ${label(status).toLowerCase()} · decision saved.`);setRefresh(v=>v+1);if(appointment)await refreshNavigationCapabilities();}catch(e){if(!other.catchOther(e,()=>void act(club,id,revision,status,appointment))&&!promptEmailConfirmation(e))setError(extractApiErrorMessage(e,'Could not record your decision.'));}finally{inFlight.current=false;setBusy(false);}};
+  const act=async(club:number,id:number,revision:number,status:string,appointment=false)=>{if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');setMessage('');try{await post(`${root(club)}/${appointment?'appointments':'records'}/${id}/transition`,{revision,status,note:null});setMessage(appointment?'Appointment decision saved.':`Permission ${label(status).toLowerCase()} · decision saved.`);setRefresh(v=>v+1);if(appointment){await refreshNavigationCapabilities();onChanged?.();}}catch(e){if(!other.catchOther(e,()=>void act(club,id,revision,status,appointment))&&!promptEmailConfirmation(e))setError(extractApiErrorMessage(e,'Could not record your decision.'));}finally{inFlight.current=false;setBusy(false);}};
   const visibility=async(a:Appointment)=>{setBusy(true);setError("");try{await put(`${root(a.club_id)}/appointments/${a.id}/publication`,{published:!a.published,revision:a.revision});setRefresh(v=>v+1);}catch(e){setError(extractApiErrorMessage(e,"Could not update public visibility."));}finally{setBusy(false);}};
   return <section className="club-ops club-connections club-connections-embedded"><div className="connections-content">
     {error&&<p role="alert" className="ops-alert">{error}<button onClick={()=>{setError('');setRefresh(v=>v+1);}}>Refresh requests</button></p>}

@@ -102,9 +102,9 @@ function Centre() {
   }, [refreshNavigationCapabilities]);
   const navigate = (next: string, n = 0) => setParams({ view: 'needs-you', requestView: next, ...(n ? { page: String(n) } : {}) });
   const tabLabel = (key: string) => key === 'INCOMING' ? copy('Incoming', 'შემოსული') : key === 'OUTGOING' ? copy('Sent', 'გაგზავნილი') : copy('History', 'ისტორია');
-  return <section>
+  return <section className="request-needs">
     <header><div><h2>{copy('Needs you', 'თქვენ გელოდებათ')}</h2><p>{copy('Invitations, applications and decisions that wait for you or your club.', 'მოწვევები, განაცხადები და გადაწყვეტილებები, რომლებიც თქვენ ან თქვენს კლუბს ელოდება.')}</p></div><button type="button" onClick={() => { setRevision(r => r + 1); void refreshNavigationCapabilities().catch(() => {}); }} disabled={loading}><RefreshCw size={16} />{copy('Refresh', 'განახლება')}</button></header>
-    <StaffAppointments />
+    <StaffAppointments onChanged={() => setRevision(value => value + 1)} />
     <nav className="request-tabs" aria-label={copy('Request views', 'მოთხოვნების ხედები')}>{(['INCOMING', 'OUTGOING', 'HISTORY'] as const).map(key => <button type="button" key={key} aria-current={view === key ? 'page' : undefined} onClick={() => navigate(key)}>{tabLabel(key)}{data && <span>{data.counts[key.toLowerCase() as 'incoming' | 'outgoing' | 'history']}</span>}</button>)}</nav>
     <p className="request-help">{view === 'INCOMING' ? copy('Requests to you, or to a club you can manage.', 'მოთხოვნები თქვენთვის ან კლუბისთვის, რომელსაც მართავთ.') : view === 'OUTGOING' ? copy('Requests you sent, and invitations from the clubs you lead.', 'თქვენი გაგზავნილი მოთხოვნები და თქვენი კლუბის მოწვევები.') : copy('What was decided. Membership and permissions may have changed since.', 'რა გადაწყდა. წევრობა და უფლებები შეიძლება მას შემდეგ შეიცვალა.')}</p>
     {loading && <p role="status">{copy('Loading requests…', 'მოთხოვნები იტვირთება…')}</p>}

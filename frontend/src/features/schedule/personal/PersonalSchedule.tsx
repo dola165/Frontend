@@ -96,7 +96,7 @@ export function PersonalSchedule() {
     return <>
         <ScheduleBoard label="My schedule" range={range} entries={entries} loading={data.loading} error={data.error} onRetry={data.reload} onCreateAt={create}
             actions={<>
-                {data.squads.length > 0 && <ButtonLink size="sm" variant="ghost" to="/squads">Squad schedules</ButtonLink>}
+                {data.squads.length > 0 && <ButtonLink size="sm" variant="ghost" to="/my-squads">Squad schedules</ButtonLink>}
                 <Button size="sm" variant="primary" onClick={() => create()}><Plus aria-hidden="true" />New event</Button>
             </>}
             filters={<>

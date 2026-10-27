@@ -11,9 +11,9 @@ const appointment:Appointment={id:7,club_id:1,club_name:'FC Dinamo Tbilisi Acade
 beforeEach(()=>{vi.clearAllMocks();api.get.mockResolvedValue({data:{appointments:[appointment],permissions:[],clubs:[]}});api.post.mockResolvedValue({});api.refresh.mockResolvedValue(undefined);});
 afterEach(cleanup);
 it('shows all selected teams and requires a second action before accepting',async()=>{
- render(<MemoryRouter><StaffAppointments/></MemoryRouter>);await screen.findByText('Academy U12, Academy U16');
+ const changed=vi.fn();render(<MemoryRouter><StaffAppointments onChanged={changed}/></MemoryRouter>);await screen.findByText('Academy U12, Academy U16');
  fireEvent.click(screen.getByRole('button',{name:'Accept appointment'}));expect(api.post).not.toHaveBeenCalled();
- fireEvent.click(screen.getByRole('button',{name:'Confirm acceptance'}));await waitFor(()=>expect(api.post).toHaveBeenCalledExactlyOnceWith('/clubs/1/operations/appointments/7/transition',{revision:2,status:'ACTIVE',note:null}));
+ fireEvent.click(screen.getByRole('button',{name:'Confirm acceptance'}));await waitFor(()=>expect(api.post).toHaveBeenCalledExactlyOnceWith('/clubs/1/operations/appointments/7/transition',{revision:2,status:'ACTIVE',note:null}));await waitFor(()=>expect(changed).toHaveBeenCalledOnce());
 });
 it('retains unavailable invitation terms without offering acceptance',async()=>{
  api.get.mockResolvedValue({data:{appointments:[{...appointment,effective_status:'UNAVAILABLE',unavailable_reason:'Issuer authority ended.'}],permissions:[],clubs:[]}});

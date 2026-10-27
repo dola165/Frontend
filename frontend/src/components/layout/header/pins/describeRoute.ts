@@ -18,6 +18,10 @@ const notPinnable = /^\/(?:$|home$|feed$|login|signup|forgot-password|reset-pass
 /** One canonical address per destination, so the same page is never pinned twice. */
 export function normalizePath(pathname: string, search: string) {
     const params = new URLSearchParams(search);
+    if (pathname === '/clubs/following') { pathname = '/world/clubs'; params.set('view', 'following'); }
+    if (pathname === '/squads') pathname = '/my-squads';
+    if (pathname === '/club-operations') pathname = '/requests';
+    if (pathname === '/notifications') { pathname = '/requests'; params.set('view', 'updates'); }
     const kept = new URLSearchParams();
     const world = pathname === '/world' || pathname.startsWith('/world/');
     const keys = world ? [...new Set(params.keys())].filter(key => !droppedWorldParams.test(key)).sort() : meaningfulParams;
@@ -36,7 +40,7 @@ const capabilityLabel = (capabilities: NavigationCapabilities | undefined, id: s
 
 type Words = [english: string, georgian: string];
 const fixed: Array<[RegExp, Words, PinIcon]> = [
-    [/^\/squads$/, ['My squads', 'ჩემი გუნდები'], 'squad'],
+    [/^\/my-squads$/, ['My squads', 'ჩემი გუნდები'], 'squad'],
     [/^\/parent(?:\/|$)/, ['Parent Hub', 'მშობლის სივრცე'], 'family'],
     [/^\/referees\//, ['Referee workspace', 'მსაჯის სამუშაო სივრცე'], 'flag'],
     [/^\/agent(?:\/|$)/, ['Agent Hub', 'აგენტის სივრცე'], 'briefcase'],
@@ -47,15 +51,12 @@ const fixed: Array<[RegExp, Words, PinIcon]> = [
     [/^\/admissions$/, ['Joining football', 'ფეხბურთში მონაწილეობა'], 'clipboard'],
     [/^\/my-organizations$/, ['My organizations', 'ჩემი ორგანიზაციები'], 'building'],
     [/^\/requests$/, ['Inbox', 'შემოსულები'], 'clipboard'],
-    [/^\/account\/roles$/, ['Football roles', 'საფეხბურთო როლები'], 'person'],
     [/^\/account$/, ['Account & settings', 'ანგარიში და პარამეტრები'], 'settings'],
     [/^\/admin$/, ['Administration', 'ადმინისტრირება'], 'admin'],
     // Addresses from before World; they redirect there, but older pins may still hold them.
     [/^\/map$/, ['Map', 'რუკა'], 'map'],
     [/^\/clubs$/, ['Clubs', 'კლუბები'], 'club'],
-    [/^\/people$/, ['People', 'ხალხი'], 'people'],
     [/^\/stadiums$/, ['Venues', 'მოედნები'], 'venue'],
-    [/^\/matches$/, ['Matches', 'მატჩები'], 'goal'],
     [/^\/match-history$/, ['Results', 'შედეგები'], 'goal'],
     [/^\/tournaments$/, ['Tournaments', 'ტურნირები'], 'trophy'],
     [/^\/tryouts$/, ['Trials', 'გასინჯვები'], 'goal'],
@@ -79,8 +80,8 @@ const worldTabs: Record<string, Words> = {
 };
 
 const iconByPrefix: Array<[RegExp, PinIcon]> = [
-    [/^\/clubs\/\d+\/workspace/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/(?:tournaments|tournament-series)\//, 'trophy'],
-    [/^\/(?:match-exchange|matches)/, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
+    [/^\/clubs\/\d+\/workspace/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/tournaments\//, 'trophy'],
+    [/^\/match-exchange/, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
     [/^\/(?:jobs|roles)\//, 'briefcase'], [/^\/store\//, 'store'], [/^\/campaigns\//, 'family'], [/^\/tryouts\//, 'goal'],
     [/^\/admissions\//, 'clipboard'], [/^\/world\//, 'world'],
 ];
@@ -97,7 +98,7 @@ function describeWorld(bare: string, params: URLSearchParams, copy: Copy): { lab
     const known = section ? worldSections[section] : undefined;
     if (section && !known) return { label: null, icon: 'world' };
     const tab = known ? worldTabs[`${section}:${params.get('tab') ?? params.get('type')}`] : undefined;
-    const words = tab ?? known?.[0] ?? ['World', 'მსოფლიო'];
+    const words = section === 'clubs' && params.get('view') === 'following' ? ['Clubs you follow', 'გამოწერილი კლუბები'] as Words : tab ?? known?.[0] ?? ['World', 'მსოფლიო'];
     const name = copy(...words);
     const query = params.get('q');
     if (query) return { label: `${name}: ${query.slice(0, 32)}`, icon: known?.[1] ?? 'world' };

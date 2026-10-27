@@ -168,10 +168,7 @@
 .jobs-embedded .jobs-results-layout { grid-template-columns: minmax(0,1fr); }
 .jobs-embedded .job-preview, .jobs-embedded .job-preview-trigger { display: none; }
 
-.store-cart-page { max-width: 1200px; }.opportunity-nav-button { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:44px; padding:10px 16px; border:1px solid var(--op-border); border-radius:10px; background:var(--op-soft); color:var(--op-accent); font-size:13px; font-weight:650; line-height:1.4; text-decoration:none; }
-.opportunity-nav-button:hover { border-color:var(--op-accent); background:var(--theme-surface-strong); }
-.opportunity-nav-button svg { flex-shrink:0; }
-@media (max-width:600px) { .store-detail-top { flex-wrap:wrap; }.opportunity-nav-button { flex:1 1 180px; } }
+.store-cart-page { max-width: 1200px; }@media (max-width:600px) { .store-detail-top { flex-wrap:wrap; }}
 
 
 .store-checkout-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); gap: 32px; align-items: start; margin-top: 24px; }

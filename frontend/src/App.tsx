@@ -191,7 +191,7 @@ const SystemAdminRoute = ({ children }: { children: JSX.Element }) => {
     }
 
     if (!isSystemAdmin(user)) {
-        return <Navigate to="/feed" replace />;
+        return <Navigate to="/home" replace />;
     }
 
     return children;
@@ -423,7 +423,7 @@ export function MainLayout() {
             <Route path="/jobs/all" element={<JobsCataloguePage />} />
             <Route path="/jobs/new" element={<PostJobPage />} />
             <Route path="/clubs/:id/jobs" element={<ClubJobsPage />} />
-            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/jobs" rename={{ search: 'query' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
+            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/jobs" rename={{ search: 'query', engagement: 'terms' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
             {ROLE_DETAIL_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobDetailPage />} />)}
             <Route path="/campaigns" element={<FundraisingPage />} />
             <Route path="/campaigns/all" element={<FundraisingCataloguePage />} />

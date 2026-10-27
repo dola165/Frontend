@@ -7,7 +7,6 @@ html:not(.dark) .club-ops:not(.club-ops-embedded) { --fc-page-bg:var(--color-pag
 .club-ops button:disabled { opacity:.5;cursor:default; }
 .club-ops :focus-visible { outline:2px solid var(--fc-accent);outline-offset:3px; }
 .club-ops .ops-primary { background:var(--fc-accent);color:var(--fc-page-bg);border-color:var(--fc-accent); }
-.ops-kicker { font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fc-text-muted); }
 .ops-muted { color:var(--fc-text-secondary);font-size:13px;line-height:1.6; }
 .ops-toolbar { display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px; }
 .ops-toolbar h3 { font-size:17px;font-weight:650; }

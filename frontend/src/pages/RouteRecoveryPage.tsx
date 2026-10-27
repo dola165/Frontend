@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 
 export const RouteRecoveryPage = () => {
     const { id } = useParams<{ id: string }>();
-    const destination = id ? `/clubs/${id}` : '/clubs';
+    const destination = id ? `/clubs/${id}` : '/world/clubs';
     const destinationLabel = id ? 'Back to club' : 'Browse clubs';
 
     return (

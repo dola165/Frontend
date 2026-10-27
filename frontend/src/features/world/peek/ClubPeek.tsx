@@ -8,7 +8,8 @@ import { MediaImage } from '../../../components/ui/MediaImage';
 import { useAuth } from '../../../context/AuthContext';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { fetchClubProfile } from '../api';
-import { ClubMainAction, FollowClubButton } from '../cards/ClubActions';
+import { ClubMainAction } from '../cards/ClubActions';
+import { FollowButton } from '../../actions/FollowButton';
 import { useClubActions } from '../cards/useClubActions';
 import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
@@ -85,7 +86,7 @@ function ClubPane({ club, extras, retry }: { club: PaneClub; extras?: ClubExtras
                 </header>
                 <div className="gk-club-pane__actions">
                     <ClubMainAction club={club} actions={actions} />
-                    <FollowClubButton actions={actions} />
+                    <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />
                     {standing && <Status tone={standing.tone}>{t(standing.label)}</Status>}
                     <span className="gk-faint">{[plural(club.memberCount, 'member'), club.followerCount ? plural(club.followerCount, 'follower') : null].filter(Boolean).join(' · ')}</span>
                 </div>

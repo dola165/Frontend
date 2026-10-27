@@ -9,7 +9,7 @@ import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { MyClubInvitationsPanel } from '../features/invites/components/MyClubInvitationsPanel';
 import { usePagesCopy } from '../features/pages/copy';
 import { createHref } from '../features/pages/create/entry';
-import { useMayCreatePages } from '../features/pages/create/useMayCreatePages';
+import { useAction } from '../features/actions/useAction';
 import '../features/pages/pages.css';
 
 export const MyClubPage = () => <ClubAccessEntry><SingleClubPage /></ClubAccessEntry>;
@@ -20,7 +20,7 @@ export const MyClubPage = () => <ClubAccessEntry><SingleClubPage /></ClubAccessE
  */
 const SingleClubPage = () => {
     const t = usePagesCopy();
-    const adult = useMayCreatePages();
+    const mayStartClub = useAction('start_club').allowed;
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
@@ -57,7 +57,7 @@ const SingleClubPage = () => {
                         <span className="gk-ctile__icon"><Search aria-hidden="true" /></span>
                         <span className="gk-ctile__label">{t('Find your club')}</span><span className="gk-ctile__hint">{t('Clubs near you')}</span>
                     </Link>
-                    {adult && <Link to={createHref(location, 'CLUB', 'my-club')} className="gk-ctile" style={{ '--tile-photo': 'url(/football/ball-field.jpg)', '--tile': 'var(--gk-accent)' } as CSSProperties}>
+                    {mayStartClub && <Link to={createHref(location, 'CLUB', 'my-club')} className="gk-ctile" style={{ '--tile-photo': 'url(/football/ball-field.jpg)', '--tile': 'var(--gk-accent)' } as CSSProperties}>
                         <span className="gk-ctile__icon"><Shield aria-hidden="true" /></span>
                         <span className="gk-ctile__label">{t('Start your club')}</span><span className="gk-ctile__hint">{t('Your page in a minute')}</span>
                     </Link>}

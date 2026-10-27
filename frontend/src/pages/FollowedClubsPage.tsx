@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Loader2, MapPin, Search, Shield, Users } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
-import { setClubFollowing } from '../features/clubs/api';
+import { FollowButton } from '../features/actions/FollowButton';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
 interface FollowedClub {
@@ -26,7 +26,8 @@ export const FollowedClubsPage = () => {
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [busyClubId, setBusyClubId] = useState<number | null>(null);
+    // Unfollowing keeps the club in the list until the page is opened again, so Follow can undo it.
+    const [unfollowed, setUnfollowed] = useState<Set<number>>(() => new Set());
 
     const loadClubs = useCallback(async () => {
         setLoading(true);
@@ -52,18 +53,7 @@ export const FollowedClubsPage = () => {
         return clubs.filter((club) => `${club.name} ${club.cityName ?? ''} ${club.countryName ?? ''}`.toLowerCase().includes(query));
     }, [clubs, search]);
 
-    const unfollow = async (clubId: number) => {
-        setBusyClubId(clubId);
-        try {
-            await setClubFollowing(clubId, false);
-            setClubs((current) => current.filter((club) => club.id !== clubId));
-        } catch (requestError) {
-            console.error('Failed to unfollow club', requestError);
-            setError('That club could not be unfollowed. Please try again.');
-        } finally {
-            setBusyClubId(null);
-        }
-    };
+    const followChanged = (clubId: number, following: boolean) => setUnfollowed(current => { const next = new Set(current); if (following) next.delete(clubId); else next.add(clubId); return next; });
 
     return (
         <div className="mx-auto w-full max-w-5xl pb-10">
@@ -123,9 +113,7 @@ export const FollowedClubsPage = () => {
                                 </Link>
                                 <div className="flex shrink-0 items-center gap-2 sm:justify-end">
                                     <Link to={`/clubs/${club.id}`} className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-[var(--color-surface)] px-4 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--color-inset)] sm:flex-none">View club</Link>
-                                    <button type="button" onClick={() => void unfollow(club.id)} disabled={busyClubId === club.id} className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[color:var(--color-border)]/[0.1] px-4 text-xs font-bold text-[var(--color-muted)] hover:bg-[color:var(--color-ink)]/[0.04] disabled:opacity-50 sm:flex-none">
-                                        {busyClubId === club.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Following
-                                    </button>
+                                    <span className="gk"><FollowButton subject={{ kind: 'club', id: club.id }} following={!unfollowed.has(club.id)} name={club.name} size="sm" onChange={following => followChanged(club.id, following)} /></span>
                                 </div>
                             </article>
                         );

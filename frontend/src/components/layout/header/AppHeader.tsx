@@ -6,6 +6,7 @@ import { Earth, Heart, House, MessageSquare, Shield, Sparkles, Users } from 'luc
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
+import { ActionMenu } from '../../../features/actions/ActionMenu';
 import { DolaLink } from '../../../features/dola/DolaProvider';
 import { DolaContext } from '../../../features/dola/DolaContext';
 import { TEAM_WORK_DOLA_PATH, useDolaEntry } from '../../../features/dola/dolaEntry';
@@ -46,7 +47,7 @@ function currentPin(pins: Pin[], pathname: string, search: string) {
         .sort((a, b) => b.path.length - a.path.length)[0] ?? null;
 }
 
-/** One header row: brand and search on the left, Home · World · My squads · My Club and personal pins centred, then Dola, Inbox, Messages and the account. */
+/** One header row: brand and search on the left, Home · World · My squads · My Club and personal pins centred, then Dola, the "+" (what the person may start), Inbox, Messages and the account. */
 export function AppHeader(props: AppHeaderProps) {
     return props.user ? <SignedInHeader {...props} user={props.user} /> : <GuestHeader themePreference={props.themePreference} />;
 }
@@ -108,6 +109,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
                             aria-current={pathname === '/assistant' ? 'page' : undefined} data-open={dolaOpen || undefined}>
                             <Sparkles aria-hidden="true" /><span className="gk-hbtn__label">Agent Dola</span>
                         </DolaLink>}
+                        <ActionMenu />
                         <InboxButton />
                         <Link to="/messages" className="gk-hbtn gk-header__messages" aria-current={pathname === '/messages' ? 'page' : undefined} title={copy('Messages', 'მიმოწერა')}
                             aria-label={unread ? copy(`Messages, ${unread} unread conversations`, `მიმოწერა, ${unread} წაუკითხავი`) : copy('Messages', 'მიმოწერა')}>

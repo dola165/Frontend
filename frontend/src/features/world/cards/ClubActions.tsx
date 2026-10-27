@@ -1,19 +1,8 @@
-import { Check, Plus } from 'lucide-react';
 import { Button, ButtonLink } from '../../../design/primitives';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import { useArrangeLink } from '../compose/useArrangeLink';
 import { useWorldCopy } from '../copy';
 import type { ClubActions } from './useClubActions';
-
-/** Follow, or Following: a toggle that says which it is. */
-export function FollowClubButton({ actions }: { actions: ClubActions }) {
-    const t = useWorldCopy();
-    return (
-        <Button size="sm" aria-pressed={actions.following} disabled={actions.busy === 'follow'} onClick={actions.follow}>
-            {actions.following ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{actions.following ? t('Following') : t('Follow')}
-        </Button>
-    );
-}
 
 /**
  * The one main thing to do with a club for who is looking (ask about a place, join, apply, propose a match), or nothing.

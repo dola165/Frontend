@@ -14,6 +14,7 @@ import { useClubCrest } from '../../squadCommunication/useClubCrest';
 import type { AuthSessionId } from '../../../utils/authStorage';
 import { fetchJoiningChildren, type JoiningChild } from '../api';
 import { AddChild } from '../AddChild';
+import { ActionButton } from '../../actions/ActionButton';
 import { FamilyRelationships } from '../FamilyRelationships';
 import { FamilySchedule } from '../FamilySchedule';
 import { PlayerLinkCode } from '../PlayerLinkCode';
@@ -124,6 +125,7 @@ function ChildView({ child, sessionId, revision, onChanged }: { child: JoiningCh
             </Section>
             <OwnAccount key={`own-${child.playerId}`} child={child} onChanged={onChanged} />
             {!playing.length && <PlayerLinkCode key={child.playerId} child={child} onChanged={onChanged} />}
+            <ActionButton action="join_squad" look="row" hints={{ playerId: child.playerId }} hint={copy(`For ${first}, from the coach`, `${first}-სთვის, მწვრთნელისგან`)} />
             <Link className="ph-row ph-row--boxed" to={playerPath('/parent?tab=connections', child.playerId)}><span className="ph-row__icon" aria-hidden="true"><HeartHandshake /></span>
                 <span className="ph-row__text"><strong>{copy('Family & guardians', 'ოჯახი და მეურვეები')}</strong><small>{child.guardians?.length ? child.guardians.map(g => g.self ? copy('You', 'თქვენ') : g.name.split(' ')[0]).join(' · ') : copy('Who else looks after this card, club consent', 'ვინ უვლის ბარათს, კლუბის თანხმობა')}</small></span>{!!child.guardians?.length && <FaceStack people={child.guardians.map(g => ({ id: g.id, name: g.name }))} size={24} />}<ArrowRight aria-hidden="true" /></Link>
         </div>

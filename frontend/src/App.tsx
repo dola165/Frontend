@@ -1,4 +1,5 @@
 import { CreatePageHost } from './features/pages/create/CreatePageHost';
+import { ActionHost } from './features/actions/ActionHost';
 import { useTranslation } from 'react-i18next';
 import { isAndroidApp, nativeCall } from './android/bridge';
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type CSSProperties, type JSX } from 'react';
@@ -543,8 +544,9 @@ export function MainLayout() {
                     </div>
                 </div>
             )}
-            {/* The start sheet opens over whatever page says `?create=`. */}
+            {/* The start sheet opens over whatever page says `?create=`, an action's flow over whatever page says `?do=`. */}
             <CreatePageHost />
+            <ActionHost />
         </div>
     );
 }

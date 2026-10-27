@@ -20,14 +20,18 @@ const draftFor = (link?: StaffLink): JobDraft => link ? { job: link.job, title: 
 /**
  * Invite staff in bulk: pick one job (and, if it helps, squads), then one link and QR code for the group chat or the
  * staff room. 7 days or 10 uses; who joined shows underneath as they join, each with Remove. Never Admin: admins
- * are invited one by one. New link replaces the old one for the same job and where.
+ * are invited one by one. New link replaces the old one for the same job and where. `initial` is the job and where a door
+ * already chose (a squad's "Invite staff": Assistant coach for that squad).
  */
-export function StaffLinkDialog({ club, clubName, view, links, loading = false, loadError = '', onRetry, opened, onLinks, onClose, onChanged }: {
-    club: number; clubName: string; view: PeopleView; links: StaffLink[]; loading?: boolean; loadError?: string; onRetry?: () => void; opened?: number | null;
+export function StaffLinkDialog({ club, clubName, view, links, loading = false, loadError = '', onRetry, opened, initial, onLinks, onClose, onChanged }: {
+    club: number; clubName: string; view: PeopleView; links: StaffLink[]; loading?: boolean; loadError?: string; onRetry?: () => void; opened?: number | null; initial?: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>;
     onLinks: (links: StaffLink[]) => void; onClose: () => void; onChanged: (notice: string) => void;
 }) {
     const { copy, jobName, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
-    const [draft, setDraft] = useState<JobDraft>(() => draftFor(links.find(l => l.id === opened) ?? links[0]));
+    const [draft, setDraft] = useState<JobDraft>(() => {
+        const shown = links.find(l => l.id === opened);
+        return shown || !initial ? draftFor(shown ?? links[0]) : { ...draftFor(), ...initial };
+    });
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [removing, setRemoving] = useState<number | null>(null);
     const request = useRef<{ key: string; id: string } | null>(null);
     const [stale, setStale] = useState<StaffLink | null>(null);

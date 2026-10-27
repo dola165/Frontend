@@ -1,4 +1,5 @@
 import { Status } from '../../../../design/DataTable';
+import { ActionButton } from '../../../actions/ActionButton';
 import { useWorldCopy } from '../../copy';
 import { MatchRow } from '../../directory/MatchRow';
 import { peekOf } from '../../peek/usePeek';
@@ -16,7 +17,8 @@ const TONE: Record<WhenTone, 'danger' | 'accent' | 'neutral'> = { danger: 'dange
 /**
  * A fixture or result as a row: crests and the clubs (with their squads only when the two differ), my teams starred,
  * when and where under it, and at the end the score once it counts, else what is owed (a waiting item) or the state
- * worked out honestly (FT, Canc., On now by the schedule).
+ * worked out honestly (FT, Canc., On now by the schedule). A result of my own team offers "Play again": a new match with
+ * that opponent, from the same squad.
  */
 export function FixtureRow({ item: f }: { item: Fixture }) {
     const t = useWorldCopy();
@@ -37,8 +39,11 @@ export function FixtureRow({ item: f }: { item: Fixture }) {
     // Something owed is a waiting item (a dot, the word, an arrow); "in 2 h" is just said; a state in place of a time says itself.
     const aside = state.tag ? (state.code === 'before' ? <span className="gk-faint">{t(state.tag.word, state.tag.vars)}</span> : <WaitTag tone={state.tag.tone}>{t(state.tag.word, state.tag.vars)}</WaitTag>)
         : !('time' in state.when) && !state.score ? <Status tone={TONE[state.when.tone ?? 'muted']} title={state.when.spoken && t(state.when.spoken)}>{t(state.when.word)}</Status> : undefined;
+    const again = state.code === 'ft' && own ? { mine: endOf(m, f.mine.home ? 'home' : 'away'), them: endOf(m, f.mine.home ? 'away' : 'home') } : null;
+    const action = again?.them.clubId ? <ActionButton action="arrange_match" subject={again.mine.squadId ? { kind: 'squad', id: again.mine.squadId } : { kind: 'me' }}
+        hints={{ opponentId: again.them.clubId }} size="sm" variant="ghost" label={t('Play again')} /> : undefined;
     return (
         <MatchRow to={matchPagePath(m)} peek={peekOf('match', f.code)} title={[m.tournamentName, m.locationName].filter(Boolean).join(' · ') || undefined}
-            home={side('home')} away={side('away')} lines={[where, sameSquad ? m.homeSquadName : null]} aside={aside} />
+            home={side('home')} away={side('away')} lines={[where, sameSquad ? m.homeSquadName : null]} aside={aside} action={action} />
     );
 }

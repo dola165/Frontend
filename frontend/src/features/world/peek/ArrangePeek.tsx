@@ -7,15 +7,12 @@ import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { ArrangeMatchForm } from '../../matchExchange/arrange/ArrangeMatchForm';
 import { notifyWorldChanged } from '../cache';
-import { arrangeDraftKey, arrangePeek, arrangeSeed, parseArrangeSeed } from '../compose/arrangeSeed';
+import { arrangeDraftKey, arrangePeek, arrangeSeed, NEW_MATCH_LISTS, parseArrangeSeed } from '../compose/arrangeSeed';
 import { useWorldCopy } from '../copy';
 import { listingCode } from '../scoreboard/matchCode';
 import { useDrawerPlace } from './drawerContext';
 import { DrawerFrame } from './DrawerFrame';
 import { peekOf, usePeek } from './usePeek';
-
-/** Every list a new match shows in asks again once it is sent. */
-const NEW_MATCH_LISTS = ['arrangements:', 'listing:', 'history:', 'matchday:', 'my-seats:'];
 
 /** The switch pressed last: the frame opens again for the other mode and gives focus back to it. */
 let switched = false;

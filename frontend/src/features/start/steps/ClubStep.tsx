@@ -4,7 +4,8 @@ import { Button, SearchInput } from '../../../design/primitives';
 import { createHref } from '../../pages/create/entry';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { ClubPicker } from '../ClubPicker';
-import { fetchClubsNearYou, followClubs, searchClubs, type NearbyClub } from '../startApi';
+import { fetchClubsNearYou, searchClubs, type NearbyClub } from '../startApi';
+import { followClubs } from '../../actions/follow';
 import { WelcomeFrame, type WelcomeStepProps } from '../WelcomeFrame';
 
 const HOME = { pathname: '/home', search: '' };

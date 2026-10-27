@@ -6,7 +6,8 @@ import { Crest } from '../Crest';
 import { ResultRow } from '../directory/ResultRow';
 import { clubTypeLabel, distanceLabel } from '../format';
 import { peekOf } from '../peek/usePeek';
-import { ClubMainAction, FollowClubButton } from './ClubActions';
+import { ClubMainAction } from './ClubActions';
+import { FollowButton } from '../../actions/FollowButton';
 import { fittingProgrammes, publicProgrammes } from './programmes';
 import { ageOn } from '../players';
 import { useClubActions } from './useClubActions';
@@ -34,6 +35,6 @@ export function ClubRow({ club, distanceKm }: { club: ClubProfile; distanceKm?: 
             mark={club.isOfficial ? <BadgeCheck className="gk-world-verified" aria-label={t('Verified club')} /> : undefined}
             lines={[where, fact, message && <span role={message.error ? 'alert' : 'status'} className={message.error ? 'gk-result-error' : 'gk-result-open'}>{message.text}</span>]}
             aside={standing && <Status tone={standing.tone}>{t(standing.label)}</Status>}
-            action={actions.enquiry || actions.canJoin || actions.propose ? <ClubMainAction club={club} actions={actions} variant="secondary" /> : <FollowClubButton actions={actions} />} />
+            action={actions.enquiry || actions.canJoin || actions.propose ? <ClubMainAction club={club} actions={actions} variant="secondary" /> : <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />} />
     );
 }

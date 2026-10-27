@@ -43,3 +43,6 @@ export function arrangeDrafts(userId: number | string | undefined, sessionId: st
 
 /** Arrange a match as a link from anywhere: World's Matches with the frame open (Back closes it). */
 export const arrangePath = (seed: ArrangeSeed) => `/world/matches?tab=mine&peek=${arrangePeek(seed)}`;
+
+/** Every list a new match shows in asks again once it is sent. */
+export const NEW_MATCH_LISTS = ['arrangements:', 'listing:', 'history:', 'matchday:', 'my-seats:'];

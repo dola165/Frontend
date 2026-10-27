@@ -1,5 +1,6 @@
 // Registers every synthetic API domain. Order matters only for overlapping patterns.
 // Squad join links first (squad-page.mjs), then pages: a club created as a page answers ahead of the newcomer and club domains (see pages.mjs).
+import './access.mjs';
 import './campaign-management.mjs';
 import './squad-page.mjs';
 import './pages.mjs';

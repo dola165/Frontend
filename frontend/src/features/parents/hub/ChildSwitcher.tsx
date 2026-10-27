@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { useAdultOnly } from '../../../hooks/useAdultOnly';
+import { useAction } from '../../actions/useAction';
 import type { JoiningChild } from '../api';
 
 const age = (dateOfBirth: string | null) => {
@@ -19,7 +19,7 @@ const age = (dateOfBirth: string | null) => {
  */
 export function ChildSwitcher({ items, selectedId, onSelect, addTo }: { items: JoiningChild[]; selectedId?: number; onSelect: (id: number) => void; addTo: string }) {
     const copy = useJourneyCopy();
-    const guardian = useAdultOnly('guardian');
+    const guardian = useAction('add_child');
     const list = useRef<HTMLDivElement>(null);
     useEffect(() => { list.current?.querySelector('[aria-pressed=true]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); }, [selectedId]);
     return <nav className="ph-switch" aria-label={copy('Choose a child', 'აირჩიეთ ბავშვი')}>

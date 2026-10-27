@@ -48,5 +48,4 @@ export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'staffView
 /** Where another club's staff arrange a match against this club. The form lives in World. */
 export const proposeMatchPath = (clubId: number) => arrangePath({ mode: 'direct', opponentId: clubId });
 /** Where this club's own staff start a match: invite a club, or post an open challenge for any club to take. */
-export const arrangeOwnMatchPath = () => arrangePath({ mode: 'direct' });
 export const openChallengePath = () => arrangePath({ mode: 'open' });

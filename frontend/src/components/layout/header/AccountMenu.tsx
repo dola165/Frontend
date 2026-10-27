@@ -8,6 +8,7 @@ import { hasNavigationCapability } from '../../../context/navigationCapabilities
 import type { AuthUser } from '../../../context/AuthContext';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { CreateLink } from '../../../features/pages/create/CreateLink';
+import { ActionButton } from '../../../features/actions/ActionButton';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import type { ThemePreference } from '../../../theme';
 import { PinGlyph } from './pins/PinsPanel';
@@ -70,6 +71,7 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
             {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                 <Link role={item} to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>
             )}
+            <ActionButton action="add_child" look="menu" role={item} onClick={() => close()} />
             {createPage && !isKnownMinor(user.dob) && <CreateLink role={item} variant="menu" from="account" onClick={() => close()}>{copy('Create a page', 'გვერდის შექმნა')}</CreateLink>}
             {/* The phone's "You" sheet is a whole page, so it keeps a row for each workspace it does not show elsewhere. */}
             {!menu && workspaces.length > 0 && (

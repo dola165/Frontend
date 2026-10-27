@@ -46,13 +46,9 @@ export function usePersonProfile(id: number) {
     // Minors' birth dates never reach other viewers. Treat a player without one as a possible minor.
     const possibleMinor = !own && roles.includes('PLAYER') && !profile?.dateOfBirth;
 
-    const toggleFollow = async () => {
-        if (!profile) return;
-        const previous = profile;
-        setProfile(() => ({ ...profile, isFollowedByMe: !profile.isFollowedByMe, followerCount: Math.max(0, profile.followerCount + (profile.isFollowedByMe ? -1 : 1)) }));
-        try { await apiClient.post(`/users/${profile.id}/follow`); }
-        catch (error) { setProfile(() => previous); throw error; }
-    };
+    /** Follow (`FollowButton`) changed: the follower is counted at once and taken back if the server refused. */
+    const followChanged = (following: boolean) => setProfile(current => current && current.isFollowedByMe !== following
+        ? { ...current, isFollowedByMe: following, followerCount: Math.max(0, current.followerCount + (following ? 1 : -1)) } : current);
     const updateImage = async (field: 'banner' | 'avatar', url: string) => {
         if (!own) throw new Error('You can only change your own profile photos.');
         await apiClient.put('/users/me', field === 'avatar' ? { avatarUrl: url } : { bannerUrl: url });
@@ -66,7 +62,7 @@ export function usePersonProfile(id: number) {
         line: shownLine,
         professions: currentProfessions?.items ?? null,
         professionsFailed: currentProfessions?.failed ?? false,
-        reload: () => { setRevision(value => value + 1); football.reload(); }, toggleFollow, updateImage,
+        reload: () => { setRevision(value => value + 1); football.reload(); }, followChanged, updateImage,
     };
 }
 

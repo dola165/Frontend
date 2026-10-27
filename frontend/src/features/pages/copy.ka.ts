@@ -536,7 +536,7 @@ export const PAGES_KA: Record<string, string> = {
   'Asks to join {squad}': 'ითხოვს გაწევრიანებას: {squad}',
   'Send my request': 'მოთხოვნის გაგზავნა',
   'Your children': 'თქვენი შვილები',
-  'Child’s name': 'ბავშვის სახელი',
+  'Another child': 'სხვა შვილი',
   'Send for {name}': 'გაგზავნა: {name}',
   '{name} is already on the list': '{name} უკვე სიაშია',
   'We asked the parent who added {name} to confirm you. You will get a notice.': 'ვთხოვეთ მშობელს, რომელმაც {name} დაამატა, დაგადასტუროთ. შეტყობინებას მიიღებთ.',

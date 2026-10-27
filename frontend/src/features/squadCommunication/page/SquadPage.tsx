@@ -15,6 +15,7 @@ import { SquadScheduleTab } from './SquadScheduleTab';
 import { SquadPlayersTab } from './SquadPlayersTab';
 import { SquadGroundsTab } from './SquadGroundsTab';
 import { useViewerChildren } from './useViewerChildren';
+import { SquadDoors } from '../../actions/SquadDoors';
 import './squad-page.css';
 
 const TABS = ['updates', 'schedule', 'players', 'grounds'] as const;
@@ -75,6 +76,7 @@ export function SquadPage({ id, embedded = false }: { id: number; embedded?: boo
                 {!space.can_manage && <ButtonLink variant="primary" to={squadMessageUrl(space.id, true)}><Send aria-hidden="true" />{copy('Message the coaches', 'მისწერეთ მწვრთნელებს')}</ButtonLink>}
             </div>
         </header>
+        <SquadDoors squadId={space.id} clubId={space.club_id} clubName={space.academy_name} />
         <Tabs<SquadTab> label={copy('Squad page', 'გუნდის გვერდი')} value={tab} onChange={setTab} idBase="squad"
             items={[{ id: 'updates', label: copy('Updates', 'განახლებები') }, { id: 'schedule', label: copy('Schedule', 'განრიგი') }, { id: 'players', label: copy('Players', 'მოთამაშეები'), count: space.players.length }, { id: 'grounds', label: copy('Grounds', 'მოედნები') }]} />
         <div id={`squad-${tab}-panel`} role="tabpanel" aria-labelledby={`squad-${tab}`} className="sp-panel">

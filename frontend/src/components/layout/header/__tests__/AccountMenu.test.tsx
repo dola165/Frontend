@@ -7,6 +7,9 @@ import { normalizeNavigationCapabilities } from '../../../../context/navigationC
 import { AccountMenu } from '../AccountMenu';
 import type { WorkPlace } from '../pins/pinCatalog';
 
+/** The account menu's "Add my child" asks the rule-checker; its own tests are in features/actions. */
+vi.mock('../../../../features/actions/ActionButton', () => ({ ActionButton: () => null }));
+
 const coach = { id: 1, fullName: 'Luka Gelashvili', navigationCapabilities: normalizeNavigationCapabilities({ version: 1, workspaces: [] }, 1) } as unknown as AuthUser;
 const admin = { ...coach, navigationCapabilities: normalizeNavigationCapabilities({ version: 1, workspaces: [{ id: 'admin.console', context: { type: 'user', id: 1, label: 'Admin' } }] }, 1) } as unknown as AuthUser;
 const squads: WorkPlace[] = [{ path: '/squads/105', label: 'U16 Boys', icon: 'squad', kind: 'Squad' }, { path: '/tournaments/301/workspace', label: 'Tbilisi Cup', icon: 'trophy', kind: 'Tournament' }];

@@ -440,5 +440,5 @@ export const WORLD_KA: Record<string, string> = {
      'Agreed': 'შეთანხმებულია', 'Invitation declined': 'მოწვევა უარყოფილია',
     'Invitation for your club': 'მოწვევა თქვენი კლუბისთვის', 'Invitation sent': 'მოწვევა გაგზავნილია',
     'After opponent agreement': 'მეტოქესთან შეთანხმების შემდეგ', 'Checking…': 'მოწმდება…', 'Ready': 'მზადაა', 'Available in Messages': 'ხელმისაწვდომია შეტყობინებებში',
-    'Open the exact match conversation': 'ამ მატჩის მიმოწერის გახსნა', 'Open Messages to find this match conversation': 'შეტყობინებების გახსნა ამ მატჩის მიმოწერის მოსაძებნად',
+    'Open the exact match conversation': 'ამ მატჩის მიმოწერის გახსნა', 'Play again': 'ხელახლა თამაში', 'Open Messages to find this match conversation': 'შეტყობინებების გახსნა ამ მატჩის მიმოწერის მოსაძებნად',
 };

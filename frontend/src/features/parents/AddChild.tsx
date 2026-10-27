@@ -6,7 +6,7 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import { isCurrentAuthSession } from '../../utils/authStorage';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { useAdultOnly } from '../../hooks/useAdultOnly';
+import { useAction } from '../actions/useAction';
 import { AdultOnlyNote } from '../../components/access/AdultOnlyNote';
 import './add-child.css';
 import './parents.css';
@@ -18,7 +18,7 @@ type Props = { onCreated: (childId: number) => void; inline?: boolean };
 /** Adding a child; an under-18 account sees only the plain reason instead of the form. */
 export function AddChild(props: Props) {
     const { user, sessionId } = useAuth();
-    const guardian = useAdultOnly('guardian');
+    const guardian = useAction('add_child');
     if (!guardian.allowed) return <AdultOnlyNote adult={guardian} className="family-notice" />;
     return <ChildForm key={`${user?.id}:${sessionId}`} {...props} />;
 }

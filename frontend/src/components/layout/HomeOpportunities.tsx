@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { capabilitiesKnown } from '../../context/navigationCapabilities';
 import { usePagesCopy } from '../../features/pages/copy';
 import { createHref, hasOwnPage } from '../../features/pages/create/entry';
-import { useMayCreatePages } from '../../features/pages/create/useMayCreatePages';
+import { useAction } from '../../features/actions/useAction';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 
 /**
@@ -16,8 +16,8 @@ export function HomeOpportunities({ className = '', onNavigate }: { className?: 
     const t = usePagesCopy();
     const location = useLocation();
     const capabilities = useAuth().user?.navigationCapabilities;
-    const adult = useMayCreatePages();
-    const start = adult && capabilitiesKnown(capabilities) && !hasOwnPage(capabilities);
+    const mayStartClub = useAction('start_club').allowed;
+    const start = mayStartClub && capabilitiesKnown(capabilities) && !hasOwnPage(capabilities);
     const items = [
         { to: '/store', label: copy('Store', 'მაღაზია'), Icon: ShoppingBag, kind: 'store' },
         { to: '/jobs', label: copy('Jobs & volunteering', 'სამუშაო და მოხალისეობა'), Icon: Briefcase, kind: 'jobs' },

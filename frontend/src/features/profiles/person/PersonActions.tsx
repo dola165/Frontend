@@ -1,6 +1,7 @@
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
-import { Check, MessageCircle, Plus, Share2, Shirt } from 'lucide-react';
+import { MessageCircle, Share2, Shirt } from 'lucide-react';
 import { Button, ButtonLink } from '../../../design/primitives';
+import { FollowButton } from '../../actions/FollowButton';
 import { RepresentationShortcut } from '../../agents/RepresentationPanel';
 import { ReportControl } from '../../moderation/Reporting';
 import type { PersonProfile } from '../api';
@@ -9,8 +10,8 @@ import type { PersonProfile } from '../api';
  * Your own profile: everything is edited where it is shown; "Your football" opens your lines, jobs and the line under your name. Someone else's: follow (the one primary action), message,
  * representation when it applies, report or block, and share.
  */
-export function PersonActions({ profile, own, onFollow, onShare, onRepresentation }: {
-    profile: PersonProfile; own: boolean; onFollow: () => void; onShare: () => void; onRepresentation: () => void;
+export function PersonActions({ profile, own, onFollowChange, onShare, onRepresentation }: {
+    profile: PersonProfile; own: boolean; onFollowChange: (following: boolean) => void; onShare: () => void; onRepresentation: () => void;
 }) {
     const copy = useJourneyCopy();
     const share = <Button variant="ghost" iconOnly aria-label={copy('Share profile', 'პროფილის გაზიარება')} title={copy('Share profile', 'პროფილის გაზიარება')} onClick={onShare}><Share2 aria-hidden="true" /></Button>;
@@ -23,8 +24,6 @@ export function PersonActions({ profile, own, onFollow, onShare, onRepresentatio
         <ReportControl targetType="ACCOUNT" targetId={profile.id} personId={profile.id} className="gk-btn gk-btn--ghost" />
         <RepresentationShortcut profileId={profile.id} className="gk-btn gk-btn--secondary" onOpen={onRepresentation} />
         <ButtonLink to={`/messages?chatWith=${profile.id}`}><MessageCircle aria-hidden="true" />{copy('Message', 'მიწერა')}</ButtonLink>
-        <Button variant={profile.isFollowedByMe ? 'secondary' : 'primary'} aria-pressed={profile.isFollowedByMe} onClick={onFollow}>
-            {profile.isFollowedByMe ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{profile.isFollowedByMe ? copy('Following', 'გამოწერილია') : copy('Follow', 'გამოწერა')}
-        </Button>
+        <FollowButton subject={{ kind: 'person', id: profile.id }} following={profile.isFollowedByMe} primary onChange={onFollowChange} />
     </>;
 }

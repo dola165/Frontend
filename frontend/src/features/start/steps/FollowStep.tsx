@@ -3,7 +3,8 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '../../../design/primitives';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { ClubPicker } from '../ClubPicker';
-import { fetchClubsNearYou, followClubs, type NearbyClub } from '../startApi';
+import { fetchClubsNearYou, type NearbyClub } from '../startApi';
+import { followClubs } from '../../actions/follow';
 import { WelcomeFrame, type WelcomeStepProps } from '../WelcomeFrame';
 
 /** Step 2 of "I'm here to follow football": clubs near the person, the three nearest already ticked; then Home. */

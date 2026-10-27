@@ -3,9 +3,14 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '../../../design/primitives';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { ClubPicker } from '../ClubPicker';
-import { fetchClubsForAge, fetchClubsNearYou, followClubs, type NearbyClub } from '../startApi';
+import { fetchClubsForAge, fetchClubsNearYou, type NearbyClub } from '../startApi';
+import { followClubs } from '../../actions/follow';
 import { DEFAULT_TOWN, TOWNS, townByName } from '../towns';
 import { WelcomeFrame, type WelcomeStepProps } from '../WelcomeFrame';
+import { ActionButton } from '../../actions/ActionButton';
+
+/** Adding a child from the welcome opens over Home, where the welcome has closed. */
+const HOME = { pathname: '/home', search: '' };
 
 const THIS_YEAR = new Date().getFullYear();
 /** Birth years a parent can pick: children of 3 to 18. */
@@ -81,6 +86,8 @@ export function PlayStep({ who, facts, land, back, close }: WelcomeStepProps & {
                 </select>
             </label>
         </div>
+        {who === 'child' && <ActionButton action="add_child" look="row" at={HOME} hint={copy('Their player card, for joining a squad', 'მოთამაშის ბარათი გუნდში შესასვლელად')}
+            onClick={event => { event.preventDefault(); land('child', event.currentTarget.pathname + event.currentTarget.search, age != null ? { childAge: age } : {}); }} />}
         <ClubPicker clubs={clubs} chosen={chosen} onToggle={toggle} label={copy('Clubs to follow', 'გამოსაწერი კლუბები')}
             empty={who === 'child' && age == null ? copy('Pick the year to see clubs.', 'აირჩიეთ წელი, რომ კლუბები ნახოთ.') : copy('No clubs here yet. World shows more.', 'აქ კლუბები ჯერ არ არის. მეტს მსოფლიოში ნახავთ.')} />
         {failed && <p role="alert" className="gk-notice gk-notice--warning">{copy('Some follows did not go through. Try again.', 'ზოგი გამოწერა ვერ შესრულდა. სცადეთ ხელახლა.')}</p>}

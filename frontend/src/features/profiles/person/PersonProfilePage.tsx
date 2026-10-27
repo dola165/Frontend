@@ -1,14 +1,13 @@
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { useEffect, useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
-import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ConnectionsDialog } from '../../../components/profile/ConnectionsDialog';
 import { ErrorBoundary } from '../../../components/ErrorBoundary';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
-import { extractApiErrorMessage } from '../../../utils/apiError';
 import { isProfessionalRole } from '../../roles/domain';
 import { ProfileCareer } from '../../roles/ProfileCareer';
 import { PersonalSchedule } from '../../schedule/personal/PersonalSchedule';
@@ -45,9 +44,6 @@ export function PersonProfilePage() {
 }
 
 function PersonProfileView({ id }: { id: number }) {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { status } = useAuth();
     const [params, setParams] = useSearchParams();
     const view = usePersonProfile(id);
     const copy = useJourneyCopy();
@@ -98,11 +94,6 @@ function PersonProfileView({ id }: { id: number }) {
         if (kind) query.set('connections', kind); else query.delete('connections');
         return query;
     }, { replace: true, preventScrollReset: true });
-    const follow = async () => {
-        if (status !== 'authenticated') return navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
-        setNotice(null);
-        try { await view.toggleFollow(); } catch (error) { setNotice({ tone: 'danger', text: extractApiErrorMessage(error, copy('Following could not be saved. Please try again.', 'გამოწერა ვერ შეინახა. სცადეთ ხელახლა.')) }); }
-    };
     const share = async () => {
         if (!profile) return;
         const url = `${window.location.origin}/profile/${profile.id}`;
@@ -130,7 +121,7 @@ function PersonProfileView({ id }: { id: number }) {
             imageAction={own && !profile.avatarUrl ? <span hidden>{images.imageAction}</span> : images.imageAction}
             emptyImage={own ? <button ref={addPhoto} type="button" className="gk-profile__add-photo" disabled={!!images.busy} onClick={images.pickImage}><Camera aria-hidden="true" />{copy('Add photo', 'ფოტოს დამატება')}</button> : undefined}
             emptyCover={own && !hidden ? images.coverAction : undefined}
-            actions={<PersonActions profile={profile} own={own} onFollow={() => void follow()} onShare={() => void share()} onRepresentation={openRepresentation} />}
+            actions={<PersonActions profile={profile} own={own} onFollowChange={view.followChanged} onShare={() => void share()} onRepresentation={openRepresentation} />}
             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}
             tabs={tabs} tab={tab} onTab={setTab} tabsLabel={copy('Profile sections', 'პროფილის სექციები')}
             side={tab === 'schedule' ? undefined : <ErrorBoundary key={`side:${profile.id}`} fallback={<SectionFailed />}><PersonSide view={view} /></ErrorBoundary>} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>

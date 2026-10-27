@@ -105,7 +105,3 @@ export const searchClubs = (query: string, signal?: AbortSignal) => directoryClu
 /** Clubs in a town whose published programme takes this age (the server matches the age, as World's directory does). */
 export const fetchClubsForAge = (age: number, city: string, signal?: AbortSignal) => directoryClubs({ age: String(age), city }, signal, { town: townByName(city), age });
 
-export const followClub = (id: number) => apiClient.post(`/clubs/${id}/follow`);
-/** Follows each club not followed yet; resolves to how many did not go through. */
-export const followClubs = async (clubs: NearbyClub[]) =>
-    (await Promise.allSettled(clubs.filter(club => !club.following).map(club => followClub(club.id)))).filter(result => result.status === 'rejected').length;

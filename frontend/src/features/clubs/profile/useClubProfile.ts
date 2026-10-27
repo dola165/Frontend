@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { clubViewerRole } from '../../../components/club/clubViewerRole';
-import { fetchClubManagementOverview, fetchMyClubMembershipContext, setClubFollowing } from '../api';
+import { fetchClubManagementOverview, fetchMyClubMembershipContext } from '../api';
 import { canManageClubOperations, isLeadershipRole, type ClubMembershipRole } from '../domain';
 import { currentProgramme } from '../presentation';
 import type { ClubProfile } from './types';
@@ -95,20 +95,16 @@ export function useClubProfile(id: number) {
     };
 
     const refresh = useCallback(() => setRevision(value => value + 1), []);
-    const toggleFollow = async () => {
-        if (!club) return;
-        const previous = club;
-        setClub(() => ({ ...club, isFollowedByMe: !club.isFollowedByMe, followerCount: Math.max(0, club.followerCount + (club.isFollowedByMe ? -1 : 1)) }));
-        try { await setClubFollowing(id, !club.isFollowedByMe); refresh(); }
-        catch (error) { setClub(() => previous); throw error; }
-    };
+    /** Follow (`FollowButton`) changed: the page counts the follower at once and takes it back if the server refused. */
+    const followChanged = (following: boolean) => setClub(previous => previous && previous.isFollowedByMe !== following
+        ? { ...previous, isFollowedByMe: following, followerCount: Math.max(0, previous.followerCount + (following ? 1 : -1)) } : previous);
     // Leaving the club changes the membership as well as the club, so both are asked again.
     const leftClub = async () => { refresh(); };
     const updateImage = async (field: 'banner' | 'logo', url: string) => {
         await apiClient.put(`/clubs/${id}`, field === 'banner' ? { bannerUrl: url } : { logoUrl: url });
         refresh();
     };
-    return { club, loading, failed, permissions, refresh, toggleFollow, leftClub, updateImage };
+    return { club, loading, failed, permissions, refresh, followChanged, leftClub, updateImage };
 }
 
 export type ClubPermissions = ReturnType<typeof useClubProfile>['permissions'];

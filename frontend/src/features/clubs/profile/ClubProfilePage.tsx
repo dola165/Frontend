@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ClubManagementModal, type ClubManagementTab } from '../../../components/club/ClubManagementModal';
 import { ClubEnquiryModal } from '../../../components/club/ClubEnquiryModal';
-import { buildLoginRedirectPath } from '../../../utils/authRedirect';
-import { extractApiErrorMessage } from '../../../utils/apiError';
 import { playerPath, positivePlayerId } from '../../parents/playerSelection';
 import { ProfileMediaTab } from '../../profiles/ProfileMediaTab';
 import { useProfileImageControls } from '../../profiles/useProfileImageControls';
@@ -53,16 +51,14 @@ export function ClubProfilePage() {
 
 function ClubProfileView({ id }: { id: number }) {
     const navigate = useNavigate();
-    const location = useLocation();
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
-    const { club, loading, failed, permissions: can, refresh, toggleFollow, leftClub, updateImage } = useClubProfile(id);
+    const { club, loading, failed, permissions: can, refresh, followChanged, leftClub, updateImage } = useClubProfile(id);
     // The page under edit (identity, boxes, layout): absent on a backend without pages, and then nothing here changes.
     const edit = usePageEdit();
     const pt = usePagesCopy();
     const page = edit.page, editing = edit.editing;
     const [enquiry, setEnquiry] = useClubEnquiry(club);
-    const [notice, setNotice] = useState('');
     const [squadsRevision, setSquadsRevision] = useState(0);
     // Edits go to the page; the club record, its squads and its posts are read again the moment edit mode or the
     // share card closes, so Done shows the page exactly as visitors now see it, with no reload.
@@ -91,11 +87,6 @@ function ClubProfileView({ id }: { id: number }) {
         if (open && managementTab) query.set('managementTab', managementTab); else query.delete('managementTab');
         return query;
     }, { replace: true });
-    const follow = async () => {
-        if (status !== 'authenticated') return navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
-        setNotice('');
-        try { await toggleFollow(); } catch (error) { setNotice(extractApiErrorMessage(error, 'Following could not be saved. Please try again.')); }
-    };
     const join = () => navigate(playerPath(`/clubs/${id}?tab=teams`, player));
     const message = () => { if (club) setEnquiry({ name: club.name, path: `/clubs/${club.id}?tab=teams`, squadIds: [] }); };
 
@@ -124,8 +115,8 @@ function ClubProfileView({ id }: { id: number }) {
             banner={page ? page.identity.cover?.url ?? null : club.bannerUrl}
             bannerAction={editing ? <Button size="sm" onClick={() => edit.openPanel('cover')}><Camera aria-hidden="true" />{page?.identity.cover ? pt('Change cover') : pt('Add cover')}</Button> : images.coverAction}
             imageAction={editing ? <Button size="sm" iconOnly data-step="crest" aria-label={pt('Change crest')} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
-            actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
-            notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
+            actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollowChange={followChanged} onJoin={join} onMessage={message} />}
+            notice={<>{images.dialogs}<EditBar /></>}
             tabs={clubTabs.map(item => ({ ...item, label: typeof item.label === 'string' ? pt(item.label) : item.label }))} tab={tab} onTab={setTab} tabsLabel={pt('Club sections')}
             sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} tab={tab} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel={pt('Club information')}
             side={editing ? <PageColumn column="right" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel={pt('Get involved')}>

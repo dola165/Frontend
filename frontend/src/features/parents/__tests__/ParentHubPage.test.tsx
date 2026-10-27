@@ -6,6 +6,9 @@ import { fetchJoiningChildren } from '../api';
 import type { ChildDirectory, JoiningChild } from '../../joining-contract/types';
 const auth = vi.hoisted(() => ({ user: { id: 7, dob: '1988-04-12' }, sessionId: 'parent-session', isAuthenticated: true }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
+/** The doors ask the rule-checker (tested in features/actions); here the adult parent may add a child and join. */
+vi.mock('../../actions/useAction', () => ({ useAction: () => ({ allowed: true, loading: false, reason: null, needsBirthDate: false, askAdmin: false, href: '/parent?do=add_child' }) }));
+vi.mock('../../actions/ActionButton', () => ({ ActionButton: () => null }));
 vi.mock('../api', () => ({ fetchJoiningChildren: vi.fn() }));
 vi.mock('../FamilyRelationships', () => ({ FamilyRelationships: () => <p>Guardian tools</p> }));
 vi.mock('../AddChild', () => ({ AddChild: ({ onCreated }: { onCreated: (id: number) => void }) => <button onClick={() => onCreated(63)}>Create synthetic child</button> }));

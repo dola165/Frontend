@@ -1,19 +1,21 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Shield, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import { createHref } from '../../pages/create/entry';
-import { useMayCreatePages } from '../../pages/create/useMayCreatePages';
+import { useAction } from '../../actions/useAction';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
-/** Doors into the flows that already exist. Starting a club and adding a child are for adults. */
+/** Doors into the flows that already exist, each shown when the rule-checker allows it (starting a club, adding a child). */
 export function StartDoors() {
     const copy = useJourneyCopy();
     const location = useLocation();
-    const adult = useMayCreatePages();
+    const club = useAction('start_club'), child = useAction('add_child');
     const doors: { id: string; icon: LucideIcon; tone: string; label: string; hint: string; to: string }[] = [
         { id: 'squad', icon: Users, tone: 'training', label: copy('Join a squad', 'გუნდში გაწევრება'), hint: copy('With the coach’s link, or find one near you', 'მწვრთნელის ბმულით, ან იპოვეთ ახლოს'), to: '/world/opportunities?tab=groups' },
-        ...(adult ? [
+        ...(club.allowed ? [
             { id: 'club', icon: Shield, tone: 'match', label: copy('Start a club', 'კლუბის შექმნა'), hint: copy('Your club’s page in a minute', 'კლუბის გვერდი ერთ წუთში'), to: createHref(location, 'CLUB', 'profile') },
-            { id: 'child', icon: UserPlus, tone: 'event', label: copy('Add my child', 'ჩემი შვილის დამატება'), hint: copy('Their player card in Parent Hub', 'მოთამაშის ბარათი მშობლის სივრცეში'), to: '/parent?tab=children' },
+        ] : []),
+        ...(child.href ? [
+            { id: 'child', icon: UserPlus, tone: 'event', label: copy('Add my child', 'ჩემი შვილის დამატება'), hint: copy('Their player card in Parent Hub', 'მოთამაშის ბარათი მშობლის სივრცეში'), to: child.href },
         ] : []),
     ];
     return <ul className="gk-fp-doors" aria-label={copy('Start something', 'დაიწყეთ')}>

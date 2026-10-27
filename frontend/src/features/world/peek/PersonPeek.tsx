@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, MessageCircle, Plus } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
+import { FollowButton } from '../../actions/FollowButton';
 import { EmptyNote } from '../../../design/primitives';
 import { MediaImage } from '../../../components/ui/MediaImage';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
@@ -72,7 +73,8 @@ export default function PersonPeek({ id }: { id: string }) {
     const stated = (profile.roleProfiles ?? []).map(role => role.qualifications).filter((value): value is string => Boolean(value));
     const level = referee ? refereeLevel(refereeProfile.data?.qualifications) : null;
     const following = follow.following ?? (person.own ? undefined : profile.isFollowedByMe);
-    const toggleFollow = () => { void (follow.following !== undefined ? follow.toggle() : person.toggleFollow()).catch(() => undefined); };
+    // The page's own list of who is followed and the profile both learn the change.
+    const followChanged = (next: boolean) => { if (follow.following !== undefined) follow.set(next); person.followChanged(next); };
     // Their profile is public to everyone; its Career tab exists for football roles (a referee's career is there).
     const career = roles.some(isProfessionalRole) ? `/profile/${userId}?tab=career` : undefined;
     const headline = (profile.roleProfiles ?? []).find(role => role.headline)?.headline;
@@ -93,9 +95,7 @@ export default function PersonPeek({ id }: { id: string }) {
                 </header>
             </div>
             <div className="gk-peek-actions">
-                {!person.own && following !== undefined && <button type="button" className="gk-people-act" data-on={following || undefined} aria-pressed={following} onClick={toggleFollow}>
-                    {following ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{following ? t('Following') : t('Follow')}
-                </button>}
+                {!person.own && <FollowButton look="chip" subject={{ kind: 'person', id: userId }} following={following} name={name} onChange={followChanged} />}
                 {!person.own && <Link className="gk-people-act" to={`/messages?chatWith=${userId}`}><MessageCircle aria-hidden="true" />{t('Message')}</Link>}
             </div>
             {referee && refereeProfile.data && !person.own && (match ? <InviteStep referee={refereeProfile.data} matchId={match} /> : <InvitePick referee={refereeProfile.data} />)}

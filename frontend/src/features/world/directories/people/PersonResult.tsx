@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
-import { Check, MapPin, MessageCircle, Plus } from 'lucide-react';
+import { MapPin, MessageCircle } from 'lucide-react';
+import { FollowButton } from '../../../actions/FollowButton';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { ResultRow } from '../../directory/ResultRow';
@@ -13,16 +14,9 @@ import { jobOf, personWhere, playerLine, type PersonKind } from './personData';
 import '../../peek/peek.css';
 
 /** Follow, shown only when whether they are followed is known (it is a toggle on the server). */
-export function FollowButton({ id, name }: { id: number; name: string }) {
-    const t = useWorldCopy();
-    const { following, toggle } = useFollow(id);
-    if (following === undefined) return null;
-    return (
-        <button type="button" className="gk-people-act" data-on={following || undefined} aria-pressed={following} aria-label={following ? t('Following {name}', { name }) : t('Follow {name}', { name })}
-            onClick={() => { void toggle().catch(() => undefined); }}>
-            {following ? <Check aria-hidden="true" /> : <Plus aria-hidden="true" />}{following ? t('Following') : t('Follow')}
-        </button>
-    );
+function PersonFollow({ id, name }: { id: number; name: string }) {
+    const { following, set } = useFollow(id);
+    return <FollowButton look="chip" subject={{ kind: 'person', id }} following={following} name={name} onChange={set} />;
 }
 
 export function MessageLink({ id, name, primary }: { id: number; name: string; /** The row's main action (they take clients). */ primary?: boolean }) {
@@ -62,6 +56,6 @@ export function PersonResult({ item: person, kind }: { item: PersonItem; kind: P
                 open.length > 0 && <span className="gk-result-open">{open.join(' · ')}</span>,
             ]}
             aside={sells && person.rate ? <Price amount={person.rate.amount} currency={person.rate.currency} per={t('per session')} /> : undefined}
-            action={sells || kind === 'specialist' ? <MessageLink id={person.id} name={person.fullName} primary={sells} /> : <FollowButton id={person.id} name={person.fullName} />} />
+            action={sells || kind === 'specialist' ? <MessageLink id={person.id} name={person.fullName} primary={sells} /> : <PersonFollow id={person.id} name={person.fullName} />} />
     );
 }

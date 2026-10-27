@@ -3,17 +3,22 @@ import { apiClient } from './axiosConfig';
 
 /**
  * The one rule-checker (F3): "may this person do this action to this thing?", answered by the server from jobs, links,
- * age and GrassKickZ staff (fnd-access-b, `GET /access/clubs/{id}` and `/access/squads/{id}`). Screens only show or
- * hide buttons with it; the server checks again on every action.
+ * age and GrassKickZ staff (fnd-access-b, `GET /access/clubs/{id}` and `/access/squads/{id}`). `me` asks about the
+ * person anywhere (`GET /access/me`): starting a club, adding a child, joining, following, and arranging, reporting,
+ * inviting or suggesting in at least one club or squad. Screens only show or hide buttons with it; the server checks
+ * again on every action.
  */
-export type AccessSubject = `club:${number}` | `squad:${number}`;
+export type AccessSubject = 'me' | `club:${number}` | `squad:${number}`;
 export type AccessAction =
     | 'see_people' | 'invite_staff' | 'make_admin' | 'change_job' | 'end_job' | 'suggest_assistant' | 'confirm_assistant'
     | 'add_child' | 'arrange_match' | 'report_score' | 'start_club' | 'follow'
     | 'join_squad' | 'manage_join_link' | 'approve_join_requests' | 'link_parent'
     | 'leave_club' | 'hand_over' | 'close_club' | 'ask_handover';
-/** `pending`: the checker has not answered yet; the screen's own flag stands in, shown disabled. */
-export interface AccessDecision { allowed: boolean; reason?: string | null; askAdmin?: boolean; pending?: boolean }
+/**
+ * `pending`: the checker has not answered yet; the screen's own flag stands in, shown disabled. `code`: the refusal's
+ * reason (BIRTH_DATE_NEEDED, ADULTS_ONLY …), for a door that offers the fix.
+ */
+export interface AccessDecision { allowed: boolean; reason?: string | null; code?: string; askAdmin?: boolean; pending?: boolean }
 /** `admins`: who "Ask the admin" writes to, the Owner first (active accounts only). */
 export interface AccessRules { subject: AccessSubject; actions: Partial<Record<AccessAction, AccessDecision>>; admins?: { userId: number; name: string; owner?: boolean }[] }
 
@@ -26,6 +31,7 @@ interface AccessAnswer {
 const ADMIN_DECIDES = new Set(['ONLY_ADMINS', 'ONLY_ADMINS_AND_HEAD_COACHES', 'ONLY_HEAD_COACHES', 'ADMINS_INVITE_DIRECTLY', 'STAFF_BY_INVITATION', 'ONLY_SQUAD_COACHES', 'ONLY_SQUAD_MATCH_STAFF']);
 
 const path = (subject: AccessSubject) => {
+    if (subject === 'me') return '/access/me';
     const [kind, id] = subject.split(':');
     return kind === 'club' ? `/access/clubs/${id}` : `/access/squads/${id}`;
 };
@@ -36,7 +42,7 @@ export const fetchAccess = async (subject: AccessSubject, signal?: AbortSignal):
         const answer = (await apiClient.get<AccessAnswer>(path(subject), { signal })).data;
         const actions: AccessRules['actions'] = {};
         for (const action of answer.allowed ?? []) actions[action as AccessAction] = { allowed: true };
-        for (const refusal of answer.refused ?? []) actions[refusal.action as AccessAction] = { allowed: false, reason: refusal.message, askAdmin: ADMIN_DECIDES.has(refusal.reason) };
+        for (const refusal of answer.refused ?? []) actions[refusal.action as AccessAction] = { allowed: false, reason: refusal.message, code: refusal.reason, askAdmin: ADMIN_DECIDES.has(refusal.reason) };
         return { subject, actions, admins: answer.admins };
     } catch (failure) {
         if (isAxiosError(failure) && failure.response?.status === 404) return null;

@@ -10,6 +10,7 @@ import { eventSquadId } from '../fixtures';
 import { CancelSessionDialog } from './CancelSessionDialog';
 import { Status } from '../../../design/DataTable';
 import { ScoreDialog } from '../../scores/ScoreDialog';
+import { ActionButton } from '../../actions/ActionButton';
 import { isOpen, scoreState } from '../../scores/status';
 import { useResultCopy } from '../../matchHistory/copy';
 import { Crest } from '../../../design/visuals';
@@ -143,7 +144,7 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
         <div className="ch-card__actions">
             <ButtonLink size="sm" variant="primary" to={`/messages?squadId=${squad.id}`}><MessageCircle aria-hidden="true" />{copy('squadChat')}</ButtonLink>
             {/* Already seeded with this squad and the home ground: only the opponent and the day are left to choose. */}
-            <ButtonLink size="sm" variant="secondary" className="ch-card__arrange" to={data.link('matches', { squad: String(squad.id), arrange: '1' })}><Plus aria-hidden="true" />{copy('arrangeMatch')}</ButtonLink>
+            <ActionButton action="arrange_match" subject={{ kind: 'squad', id: squad.id, clubId: data.clubId }} size="sm" className="ch-card__arrange" label={copy('arrangeMatch')} />
         </div>
     </article></li>;
 }

@@ -114,3 +114,4 @@
 :is(.gk.sp, .gk .sp) .squad-ack { display: inline-flex; align-items: center; gap: 6px; color: var(--gk-text-3); font-weight: 600; }
 :is(.gk.sp, .gk .sp) .squad-ack svg { color: var(--gk-accent); }
 :is(.gk.sp, .gk .sp) .squad-empty { padding: var(--gk-5); border: 1px dashed var(--gk-line); border-radius: var(--gk-r-lg); text-align: center; }
+.gk .sp .gk-doors { padding-bottom: var(--gk-3); }

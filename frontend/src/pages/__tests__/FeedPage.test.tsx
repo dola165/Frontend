@@ -29,6 +29,7 @@ vi.mock('../../components/feed/PostComposer', () => ({
 vi.mock('../../features/start/WelcomeHost', () => ({ WelcomeHost: () => null }));
 vi.mock('../../features/start/FirstWeek', () => ({ FirstWeek: () => null }));
 vi.mock('../../features/clubOperations/leaving/StaffClubCard', () => ({ StaffClubCard: () => null }));
+vi.mock('../../features/actions/NeedsResultCard', () => ({ NeedsResultCard: () => null }));
 
 // "This week" and announcements above the feed load their own data and have their own tests.
 vi.mock('../../components/feed/FeedList', () => ({

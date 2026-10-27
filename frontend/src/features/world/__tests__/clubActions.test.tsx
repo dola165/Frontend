@@ -3,9 +3,11 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import type { Participant } from '../../admissions/types';
-import { createClubApplication, selfRegisterClubPlayer, setClubFollowing } from '../../clubs/api';
+import { setFollowing } from '../../actions/follow';
+import { FollowButton } from '../../actions/FollowButton';
+import { createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
 import type { ClubMembershipContext } from '../../clubs/domain';
-import { ClubMainAction, FollowClubButton } from '../cards/ClubActions';
+import { ClubMainAction } from '../cards/ClubActions';
 import { ClubRow } from '../cards/ClubRow';
 import { forgetClubChanges } from '../cards/clubState';
 import { useClubActions } from '../cards/useClubActions';
@@ -13,7 +15,10 @@ import { WorldSessionContext } from '../worldSession';
 
 const auth = vi.hoisted(() => ({ status: 'authenticated' as string }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: auth.status, sessionId: 'world', user: { id: 1 } }) }));
-vi.mock('../../clubs/api', () => ({ createClubApplication: vi.fn(), selfRegisterClubPlayer: vi.fn(), setClubFollowing: vi.fn() }));
+vi.mock('../../clubs/api', () => ({ createClubApplication: vi.fn(), selfRegisterClubPlayer: vi.fn() }));
+vi.mock('../../actions/follow', () => ({ setFollowing: vi.fn() }));
+/** The rule-checker is not asked here: each screen's own flag decides (as with an older server). */
+vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, decide: (_action: string, fallback: boolean) => ({ allowed: fallback }), admin: null }) }));
 /** The squads the person may arrange matches for (`GET /match-exchange/squads`): none unless a test says so. */
 const arranging = vi.hoisted(() => ({ squads: [] as { id: number; club_id: number; name: string; category: string; club_name: string }[] | undefined }));
 vi.mock('../compose/useArrangeableSquads', () => ({ useArrangeableSquads: () => arranging.squads }));
@@ -40,7 +45,7 @@ function Where() {
 function ClubActionsView({ club }: { club: ClubProfile }) {
     const actions = useClubActions(club);
     return <>
-        <FollowClubButton actions={actions} /><ClubMainAction club={club} actions={actions} />
+        <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} size="sm" onChange={actions.setFollowing} /><ClubMainAction club={club} actions={actions} />
         {actions.standing && <span>{actions.standing.label}</span>}
         {actions.message && <p role={actions.message.error ? 'alert' : 'status'}>{actions.message.text}</p>}
     </>;
@@ -66,28 +71,28 @@ beforeEach(() => {
 
 describe('following', () => {
     it('follows at once and keeps the change when the club confirms it', async () => {
-        vi.mocked(setClubFollowing).mockResolvedValue({ following: true });
+        vi.mocked(setFollowing).mockResolvedValue(true);
         show(club());
         fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
         expect(screen.getByRole('button', { name: 'Following' })).toHaveAttribute('aria-pressed', 'true');
-        await waitFor(() => expect(setClubFollowing).toHaveBeenCalledWith(4, true));
+        await waitFor(() => expect(setFollowing).toHaveBeenCalledWith({ kind: 'club', id: 4 }, true, 'world'));
         expect(screen.getByRole('button', { name: 'Following' })).toBeInTheDocument();
     });
 
-    it('puts the button back and says so when following fails', async () => {
-        vi.mocked(setClubFollowing).mockRejectedValue(new Error('offline'));
+    it('puts the button back when following fails', async () => {
+        vi.mocked(setFollowing).mockRejectedValue(new Error('offline'));
         show(club());
         fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
-        expect(await screen.findByRole('alert')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Follow' })).toHaveAttribute('aria-pressed', 'false');
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Follow' })).toHaveAttribute('aria-pressed', 'false'));
+        expect(screen.getByRole('button', { name: 'Follow' })).not.toBeDisabled();
     });
 
     it('sends a guest to sign in instead', () => {
-        auth.status = 'unauthenticated';
+        auth.status = 'anonymous';
         show(club());
-        fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
+        fireEvent.click(screen.getByRole('link', { name: 'Follow' }));
         expect(screen.getByTestId('where').textContent).toMatch(/^\/login/);
-        expect(setClubFollowing).not.toHaveBeenCalled();
+        expect(setFollowing).not.toHaveBeenCalled();
     });
 });
 

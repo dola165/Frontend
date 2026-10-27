@@ -1,0 +1,54 @@
+/* Actions everywhere (F5): the one button, the boxed row, the header "+", Home's "Needs a result" and the doors' row. */
+
+/* A compact button with a 44px touch target: the hit area reaches past the drawn edge. */
+.gk .gk-action { position: relative; }
+.gk .gk-action::after { content: ''; position: absolute; inset: -5px 0; }
+.gk .gk-action[aria-disabled='true'], .gk .gk-action-row[aria-disabled='true'], .gk .gk-action-item[aria-disabled='true'] { opacity: .6; pointer-events: none; }
+
+.gk .gk-action-row { display: flex; align-items: center; gap: var(--gk-3); min-height: 52px; padding: 0 var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); text-decoration: none; }
+.gk .gk-action-row:hover { border-color: var(--gk-line-strong); }
+.gk .gk-action-row:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+.gk .gk-action-row__icon { display: grid; flex: none; place-items: center; width: 32px; height: 32px; color: var(--gk-text-3); }
+.gk .gk-action-row__icon svg { width: 18px; height: 18px; }
+.gk .gk-action-row__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gk .gk-action-row__text strong { font-weight: 650; }
+.gk .gk-action-row__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
+
+/* The doors on a page: one wrapping row of quiet buttons under its header. */
+.gk .gk-doors { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-doors:empty { display: none; }
+
+/* A waiting score: the dot and the word, then the button. */
+.gk .gk-action-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); }
+
+/* Home: one finished match waiting for its score. */
+.gk .gk-needs-result { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); }
+.gk .gk-needs-result__icon { display: inline-grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-needs-result__icon svg { width: 20px; height: 20px; }
+.gk .gk-needs-result__text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-needs-result__text strong, .gk .gk-needs-result__text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-needs-result__text small { display: flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-2); }
+.gk .gk-needs-result__text small b { color: var(--gk-warning); font-weight: 600; }
+
+/* The header "+": an amber dot when a score is owed. */
+.gk .gk-hbtn__dot { position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border: 2px solid var(--gk-surface); border-radius: 50%; background: var(--gk-warning); box-sizing: content-box; }
+.gk .gk-hbtn--plus svg { width: 22px; height: 22px; }
+.gk .gk-pop--actions { width: 280px; padding: var(--gk-2); }
+.gk .gk-action-item .gk-action__icon { flex: none; width: 18px; height: 18px; color: var(--gk-text-2); }
+.gk .gk-action-item__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gk .gk-action-item__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
+
+/* Join with a code. */
+.gk .gk-join-code { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-join-code__row { display: flex; gap: var(--gk-2); }
+.gk .gk-join-code__row .gk-input { flex: 1; min-width: 0; min-height: 44px; }
+
+@media (max-width: 520px) {
+  .gk .gk-pop--actions { width: auto; }
+  .gk .gk-needs-result { flex-wrap: wrap; }
+  .gk .gk-needs-result__text { flex-basis: calc(100% - 56px); }
+}
+
+/* A door for a score that is owed: the amber dot before its words. */
+.gk .gk-action--owed::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); }
+.gk .gk-action-row__arrow { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }

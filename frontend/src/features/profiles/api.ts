@@ -84,6 +84,8 @@ export const fetchDiscoveryPreferences = async (signal?: AbortSignal) =>
 export const saveDiscoveryPreferences = async (value: Omit<DiscoveryPreferences, 'version'>, expectedVersion: number, requestId: string) =>
     (await apiClient.put<DiscoveryPreferences>('/users/me/discovery', { ...value, expectedVersion, requestId })).data;
 export const saveAbout = async (bio: string) => apiClient.put('/users/me', { bio });
+/** The person's own profile photo or cover. */
+export const saveMyImage = async (field: 'banner' | 'avatar', url: string) => apiClient.put('/users/me', field === 'avatar' ? { avatarUrl: url } : { bannerUrl: url });
 /** Gives an account its birth date, once (the server refuses to change it later). */
 export const saveBirthDate = async (dateOfBirth: string) => apiClient.put('/users/me', { dateOfBirth });
 

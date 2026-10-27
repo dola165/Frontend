@@ -7,8 +7,7 @@ import { Button } from '../../design/primitives';
 import { completeTutorial, loadPreferences } from '../preferences/preferencesStore';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { saveStart } from '../start/startApi';
-import { weekDone } from '../start/welcomeSteps';
-import { doneSteps } from './steps';
+import { doneSteps, markDone } from './steps';
 import './first-week.css';
 
 /** Kept with the person's finished guides once World has greeted them. */
@@ -30,7 +29,7 @@ export function WorldWelcome() {
             if (!live) return;
             const welcome = doc.start?.welcome;
             if (welcome?.state === 'DONE' && !welcome.cardDismissed && !doneSteps(welcome).has('world'))
-                void saveStart(userId, current => ({ welcome: weekDone(current.welcome, 'world') })).catch(() => undefined);
+                void saveStart(userId, current => ({ welcome: markDone(current.welcome, 'world') })).catch(() => undefined);
             if (doc.tutorials?.completed.includes(WORLD_GREETED)) return;
             setShown(true);
             completeTutorial(userId, WORLD_GREETED);

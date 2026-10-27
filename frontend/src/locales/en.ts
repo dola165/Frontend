@@ -49,7 +49,6 @@ const en = {
     lightMode: 'Light mode',
     darkMode: 'Dark mode',
     appearance: 'Appearance',
-    mapLightMode: 'Dark app + light Map',
     people: 'People',
     followedClubs: 'Followed clubs',
     parentHub: 'Parent Hub',

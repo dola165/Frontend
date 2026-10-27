@@ -4,12 +4,14 @@ const API_ERROR_COPY = {
     en: {
         fallback: 'Something went wrong.',
         rateLimit: 'Too many attempts. Please wait a moment and try again.',
-        providerLink: 'Sign in using your existing method, then open Account → Linked Accounts to connect Google.',
+        providerLink: 'This email already has an account. Sign in with your password and confirm your email; then Google works too.',
+        providerAlreadyLinked: 'This account is connected to a different Google account. Use that one, or sign in with your password.',
     },
     ka: {
         fallback: 'რაღაც ვერ შესრულდა.',
         rateLimit: 'მეტისმეტად ბევრი მცდელობაა. ცოტა ხანს მოიცადეთ და სცადეთ ხელახლა.',
-        providerLink: 'შედით არსებული მეთოდით, შემდეგ Google-ის დასაკავშირებლად გახსენით ანგარიში → დაკავშირებული ანგარიშები.',
+        providerLink: 'ამ ელფოსტით ანგარიში უკვე არსებობს. შედით პაროლით და დაადასტურეთ ელფოსტა; ამის შემდეგ Google-ითაც შეძლებთ შესვლას.',
+        providerAlreadyLinked: 'ეს ანგარიში სხვა Google ანგარიშთანაა დაკავშირებული. გამოიყენეთ ის ან შედით პაროლით.',
     },
 };
 const systemMessage = (key: keyof typeof API_ERROR_COPY.en) => API_ERROR_COPY[appLanguage()][key];
@@ -36,6 +38,9 @@ export const extractApiErrorMessage = (error: unknown, fallback = systemMessage(
         const fields = payload as Record<string, unknown>;
         if (fields.code === 'provider_link_required') {
             return systemMessage('providerLink');
+        }
+        if (fields.code === 'provider_already_linked') {
+            return systemMessage('providerAlreadyLinked');
         }
         // RFC Problem Details usually begins with `type: "about:blank"`.
         // Prefer its explanation, then the application's existing message shapes.

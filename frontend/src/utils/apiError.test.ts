@@ -52,8 +52,8 @@ describe('extractApiErrorMessage', () => {
         expect(extractApiErrorMessage(response({ type: 'about:blank', instance: '/api/events/1', code: 'E_CONFLICT', status: 409, path: '/api/events/1', timestamp: '2026-09-18' }), 'Please retry.')).toBe('Please retry.');
     });
     it.each([
-        ['en', 'Too many attempts. Please wait a moment and try again.', 'Sign in using your existing method, then open Account → Linked Accounts to connect Google.'],
-        ['ka-GE', 'მეტისმეტად ბევრი მცდელობაა. ცოტა ხანს მოიცადეთ და სცადეთ ხელახლა.', 'შედით არსებული მეთოდით, შემდეგ Google-ის დასაკავშირებლად გახსენით ანგარიში → დაკავშირებული ანგარიშები.'],
+        ['en', 'Too many attempts. Please wait a moment and try again.', 'This email already has an account. Sign in with your password and confirm your email; then Google works too.'],
+        ['ka-GE', 'მეტისმეტად ბევრი მცდელობაა. ცოტა ხანს მოიცადეთ და სცადეთ ხელახლა.', 'ამ ელფოსტით ანგარიში უკვე არსებობს. შედით პაროლით და დაადასტურეთ ელფოსტა; ამის შემდეგ Google-ითაც შეძლებთ შესვლას.'],
     ])('localizes owned guidance in %s while preserving status and code precedence', async (language, rateLimit, providerLink) => {
         await i18next.changeLanguage(language);
         const linked = response({ code: 'provider_link_required', detail: 'Account exists', message: 'Server message' });
@@ -61,13 +61,15 @@ describe('extractApiErrorMessage', () => {
         expect(extractApiErrorMessage(response('Raw limiter payload', 429))).toBe(rateLimit);
         expect(extractApiErrorMessage(linked, 'Explicit fallback')).toBe(providerLink);
         expect(extractApiErrorCode(linked)).toBe('provider_link_required');
+        expect(extractApiErrorMessage(response({ code: 'provider_already_linked', detail: 'Server message' })))
+            .toBe(language === 'en' ? 'This account is connected to a different Google account. Use that one, or sign in with your password.' : 'ეს ანგარიში სხვა Google ანგარიშთანაა დაკავშირებული. გამოიყენეთ ის ან შედით პაროლით.');
     });
     it('preserves server text and explicit fallbacks literally even when they collide with owned English copy', async () => {
         await i18next.changeLanguage('ka-GE');
         const collisions = [
             'Something went wrong.',
             'Too many attempts. Please wait a moment and try again.',
-            'Sign in using your existing method, then open Account → Linked Accounts to connect Google.',
+            'This email already has an account. Sign in with your password and confirm your email; then Google works too.',
         ];
         for (const literal of [...collisions, 'Unknown server explanation', '  Keep surrounding spaces.  ']) {
             expect(extractApiErrorMessage(response(literal))).toBe(literal);

@@ -64,11 +64,11 @@ it.each([LoginPage, RegisterPage])('requires the second factor for Google in the
     expect(apiClient.post).toHaveBeenLastCalledWith('/auth/google', { token: 'synthetic-google-proof', oneTimeCode: '123456' }, expect.anything());
 });
 
-it.each([LoginPage, RegisterPage])('explains the explicit account-linking requirement on the %s page without accepting credentials', async Page => {
+it.each([LoginPage, RegisterPage])('sends an unconfirmed existing account to password sign-in on the %s page without accepting credentials', async Page => {
     vi.mocked(apiClient.post).mockRejectedValue({ response: { status: 409, data: { code: 'provider_link_required' } } });
     render(<MemoryRouter><Page /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Test Google sign-in' }));
-    expect(await screen.findByText('Sign in using your existing method, then open Account → Linked Accounts to connect Google.')).toBeInTheDocument();
+    expect(await screen.findByText('This email already has an account. Sign in with your password and confirm your email; then Google works too.')).toBeInTheDocument();
     expect(login).not.toHaveBeenCalled();
 });
 

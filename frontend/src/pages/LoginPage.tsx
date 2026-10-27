@@ -2,9 +2,9 @@ import React, { lazy, Suspense, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, QrCode } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
 import { googleSignInConfigured } from '../components/auth/googleConfig';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
@@ -267,15 +267,9 @@ export const LoginPage = () => {
                             {t('auth.login.qr')}
                         </button>
 
-                        {!isAndroidApp && googleSignInConfigured() && <GoogleLogin
-                            theme="filled_black"
-                            size="large"
-                            width="100%"
-                            text="continue_with"
+                        {!isAndroidApp && googleSignInConfigured() && <GoogleSignInButton
                             onSuccess={handleGoogleSuccess}
-                            onError={() => {
-                                setError(t('auth.common.googleClosed'));
-                            }}
+                            onError={() => setError(t('auth.common.googleClosed'))}
                         />}
                     </div>}
                 </>

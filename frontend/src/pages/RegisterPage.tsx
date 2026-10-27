@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
 import { googleSignInConfigured } from '../components/auth/googleConfig';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { AlertCircle, Check, Eye, EyeOff, Loader2, LocateFixed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
@@ -247,11 +247,7 @@ export const RegisterPage = () => {
             {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); }} /> : (
                 <>
                     {!isAndroidApp && googleSignInConfigured() && <>
-                        <GoogleLogin
-                            theme="filled_black"
-                            size="large"
-                            width="100%"
-                            text="continue_with"
+                        <GoogleSignInButton
                             onSuccess={handleGoogleSuccess}
                             onError={() => setError(t('auth.common.googleClosed'))}
                         />

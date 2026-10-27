@@ -33,6 +33,10 @@
 .gk .gk-welcome__loading { display: flex; flex-direction: column; gap: var(--gk-2); }
 .gk .gk-welcome__hint { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
 .gk .gk-welcome__spin { width: 14px; height: 14px; animation: gk-welcome-spin 1s linear infinite; }
+/* The one quiet grey line under a step ("Already in a club?", "See all on the map"). */
+.gk .gk-welcome__quiet { align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-md); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.gk .gk-welcome__quiet:hover { color: var(--gk-text); }
+.gk .gk-welcome__quiet:focus-visible { outline: none; box-shadow: var(--gk-focus); border-radius: var(--gk-r-sm); }
 @keyframes gk-welcome-spin { to { transform: rotate(360deg); } }
 
 /* Step 1: size shows weight. Two large tiles, two medium ones under them, each drawn in its own colour (--wt). */
@@ -115,6 +119,15 @@
 .gk .gk-welcome__switch input { width: 18px; height: 18px; accent-color: var(--gk-accent); }
 .gk .gk-welcome__switch span { display: flex; flex-direction: column; gap: 1px; }
 .gk .gk-welcome__switch small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+/* Work: the listings near the person that match, as the chips are tapped. */
+.gk .gk-wjobs { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-wjobs__count { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-wjobs__count strong { color: var(--gk-text); font-size: var(--gk-fs-2xl); font-variant-numeric: tabular-nums; margin-right: 2px; }
+.gk .gk-wjobs__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-wjobs__row { display: flex; align-items: center; gap: var(--gk-3); min-height: 52px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .gk-wjobs__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gk .gk-wjobs__text strong { overflow: hidden; font-size: var(--gk-fs-md); text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-wjobs__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
 
 /* Home: "Your first week", three rows, one tap each. */
 .gk.gk-week { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); }

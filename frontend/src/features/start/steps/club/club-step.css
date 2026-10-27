@@ -12,10 +12,6 @@
 .gk .gk-wclub__fields { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
 .gk .gk-wclub__fields .gk-welcome__field:not(:first-child) { margin-top: var(--gk-2); }
 .gk .gk-wclub__name { min-height: 48px; font-size: var(--gk-fs-xl); }
-/* The one grey line under the step: "Already in a club?" / "Starting a new club instead?". */
-.gk .gk-welcome__quiet { align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-md); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.gk .gk-welcome__quiet:hover { color: var(--gk-text); }
-.gk .gk-welcome__quiet:focus-visible { outline: none; box-shadow: var(--gk-focus); border-radius: var(--gk-r-sm); }
 /* Clubs to join: crest, name and town, Join; the code field opens under the club. */
 .gk .gk-wjoin { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
 .gk .gk-wjoin__item { border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }

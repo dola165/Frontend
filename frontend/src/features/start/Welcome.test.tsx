@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,7 +22,8 @@ const server = vi.hoisted(() => ({
 }));
 const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } as { id: number; dob: string; navigationCapabilities?: unknown } }));
 vi.mock('../../api/axiosConfig', async original => ({ ...(await original<object>()), apiClient: { get: vi.fn(), put: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated', refreshNavigationCapabilities: async () => undefined }) }));
+vi.mock('../../utils/authStorage', async original => ({ ...(await original<object>()), isCurrentAuthSession: () => true }));
+vi.mock('../../context/AuthContext', () =>({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated', refreshNavigationCapabilities: async () => undefined }) }));
 
 const club = (id: number, name: string, km: number) => ({ id, name, logoUrl: null, bannerUrl: null, cityName: 'Rustavi', km, followers: 3, following: false });
 const place = { name: 'Rustavi', latitude: 41.5495, longitude: 45.0012, countryCode: 'GE', countryName: 'Georgia', source: 'SAVED' };
@@ -57,7 +58,11 @@ beforeEach(async () => {
         if (url === '/club-operations/mine') return { data: { appointments: server.invitedJobs, permissions: [], clubs: [] } };
         if (url === '/clubs/41/page') return { data: { identity: { version: 3 } } };
         if (url === '/staff-invite/ABC123') return { data: { clubId: 9, clubName: 'Rustavi Juniors', clubLogoUrl: null, job: 'ASSISTANT_COACH', title: 'Assistant coach', clubWide: true, squads: [], invitedBy: null, status: 'ACTIVE', expiresAt: '2026-11-03T00:00:00Z' } };
-        if (url === '/jobs/listings') return { data: { content: [], totalElements: server.jobs[String((config?.params as { category?: string } | undefined)?.category ?? 'ALL')] ?? 0 } };
+        if (url === '/jobs/listings') {
+            const category = String((config?.params as { category?: string } | undefined)?.category ?? 'ALL');
+            const total = server.jobs[category] ?? 0;
+            return { data: { content: total ? [{ id: 700 + total, title: `${category} help wanted`, clubName: 'Rustavi Juniors', clubCityName: 'Rustavi', distanceKm: 2 }] : [], totalElements: total } };
+        }
         if (url.startsWith('/clubs?') && server.clubsForAge) return { data: { content: server.clubsForAge, pageNumber: 0, pageSize: 8, totalElements: 0, totalPages: 0 } };
         if (url.startsWith('/clubs?')) return { data: { content: [{ id: 9, name: 'Rustavi Juniors', cityName: 'Rustavi', followerCount: 3, isFollowedByMe: false, latitude: 41.5495, longitude: 45.0012, presentation: { profileKind: 'ACADEMY', revision: 1, canEdit: false, sponsors: [], affiliations: [], programmes: [
             { name: 'U10 Development', ageMin: 8, ageMax: 10, sessionsPerWeek: 2, priceType: 'FIXED', amount: '80', currency: 'GEL', billingPeriod: 'MONTH', trialAmount: null, joiningFee: null, equipmentFee: null, details: null, published: true },
@@ -65,6 +70,7 @@ beforeEach(async () => {
         if (url === '/clubs/near-you') return { data: [club(5, 'Rustavi Lions', 1), club(6, 'Rustavi Steel', 2), club(7, 'Gardabani Youth', 18), club(8, 'Tbilisi Juniors', 25)] };
         const data: Record<string, unknown> = {
             '/users/me/preferences': server.prefs, '/users/me/place': place, '/users/me/professions': server.professions, '/users/me/discovery': server.discovery,
+            '/access/me': { allowed: ['add_child', 'start_club', 'follow'], refused: [] },
         };
         return { data: data[url] ?? [] };
     });
@@ -84,6 +90,7 @@ beforeEach(async () => {
         if (url === '/organizations/setup') return { data: { id: 40, clubId: 41, profilePath: '/clubs/41', workspacePath: '/clubs/41/workspace' } };
         if (url === '/staff-invite/ABC123') return { data: { appointmentId: 90, clubId: 9, clubName: 'Rustavi Juniors', title: 'Assistant coach', squads: [], alreadyJoined: false } };
         if (url.includes('/operations/appointments/')) return { data: {} };
+        if (url === '/family/children') return { data: { childId: 55, name: 'Luka Beridze' } };
         server.followed.add(Number(url.split('/')[2])); return { data: { following: true } };
     });
 });
@@ -152,7 +159,7 @@ describe('the welcome', () => {
         await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'FOLLOW' }));
     });
 
-    it('asks a parent only the birth year and town, keeps only the age, and lands on World’s clubs for that age', async () => {
+    it('shows a parent the clubs for the child’s age inside the welcome, then offers adding the child and opens Parent Hub', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=start');
         await user.click(within(await dialog()).getByRole('button', { name: 'Play football: For my child' }));
@@ -166,22 +173,49 @@ describe('the welcome', () => {
         expect(within(box).getByText('Ages 8–10 · 2× a week · 80 GEL / month')).toBeInTheDocument();
         expect(within(box).getByText('Rustavi · 0 km')).toBeInTheDocument();
         expect(server.gets.some(url => url.startsWith('/clubs?') && url.includes('age=9') && url.includes('city=Rustavi'))).toBe(true);
-        await user.click(within(box).getByRole('button', { name: 'Show clubs for this age' }));
-        // The same source as the list it showed: World's clubs for age 9 in Rustavi.
-        await waitFor(() => expect(address()).toBe('/world/clubs?near=Rustavi&age=9'));
-        await waitFor(() => expect(start().childAge).toBe(9));
-        expect(Object.keys(start())).not.toContain('child');
+        await user.click(within(box).getByRole('checkbox', { name: /Rustavi Juniors/ }));
+        await user.click(within(box).getByRole('button', { name: 'Follow and continue' }));
+        const add = await screen.findByRole('dialog', { name: 'Add your child' });
+        expect(server.followed.has(9)).toBe(true);
+        // The year already given: the date can only fall in it.
+        const born = add.querySelector('input[type=date]')!;
+        expect(born).toHaveAttribute('min', `${year}-01-01`);
+        expect(born).toHaveAttribute('max', `${year}-12-31`);
+        await user.type(within(add).getByRole('textbox', { name: 'Child’s full name' }), 'Luka Beridze');
+        fireEvent.change(born, { target: { value: `${year}-05-14` } });
+        await user.click(within(add).getByRole('checkbox', { name: /parent or legal guardian/ }));
+        await user.click(within(add).getByRole('button', { name: 'Create child profile' }));
+        await waitFor(() => expect(address()).toBe('/parent?player=55'));
+        expect(server.posts.find(post => post.url === '/family/children')?.body).toMatchObject({ fullName: 'Luka Beridze', dateOfBirth: `${year}-05-14`, responsible: true });
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CHILD' }));
+        expect(start().childAge).toBe(9);
     });
 
-    it('lands on the town’s clubs when none listed a programme for that age, never an empty list', async () => {
+    it('lands a parent who skips adding the child on Home, never on World', async () => {
         const user = userEvent.setup();
         server.clubsForAge = [];
         mount('/home?welcome=child');
         const box = await dialog();
         await user.selectOptions(within(box).getByRole('combobox', { name: 'Born in' }), String(new Date().getFullYear() - 5));
-        expect(await within(box).findByText('No clubs here yet. World shows more.')).toBeInTheDocument();
-        await user.click(within(box).getByRole('button', { name: 'Show clubs for this age' }));
-        await waitFor(() => expect(address()).toBe('/world/clubs?near=Rustavi'));
+        // No club lists a group for that age: the nearest clubs instead, and it says so.
+        expect(await within(box).findByText('None list a group for this age yet. These are the nearest.')).toBeInTheDocument();
+        expect(within(box).getByText('Rustavi Lions')).toBeInTheDocument();
+        await user.click(within(box).getByRole('button', { name: 'Continue' }));
+        await user.click(within(await screen.findByRole('dialog', { name: 'Add your child' })).getByRole('button', { name: 'Not now' }));
+        await waitFor(() => expect(address()).toBe('/home'));
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CHILD' }));
+    });
+
+    it('lets a player follow clubs near them with a heart and finish on Home', async () => {
+        const user = userEvent.setup();
+        mount('/home?welcome=me');
+        const box = await dialog();
+        expect(within(box).getByRole('button', { name: 'Finish' })).toBeInTheDocument();
+        await user.click(await within(box).findByRole('checkbox', { name: /Rustavi Juniors/ }));
+        await user.click(within(box).getByRole('button', { name: 'Follow and finish' }));
+        await waitFor(() => expect(address()).toBe('/home'));
+        expect(server.followed.has(9)).toBe(true);
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'ME' }));
     });
 
     it('starts a club from step 2: the town filled in, the colours chosen, and the new club opens', async () => {
@@ -278,40 +312,35 @@ describe('the welcome', () => {
         const user = userEvent.setup();
         mount('/home?welcome=business');
         await user.click(within(await dialog()).getByRole('button', { name: 'Sponsor' }));
-        expect(address()).toBe('/home?create=business&from=start&business=SPONSOR');
+        expect(address()).toBe('/home?create=business&from=welcome&business=SPONSOR');
         await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'BUSINESS' }));
     });
 
-    it('keeps what a person does and Open to work, then opens Jobs & volunteering on it', async () => {
+    it('shows the matching listings near the person as chips are tapped, keeps the answers and finishes on Home', async () => {
         const user = userEvent.setup();
+        server.jobs = { MEDICAL: 2, ALL: 5 };
         mount('/home?welcome=work');
         const box = await dialog();
-        server.jobs = { MEDICAL: 2, ALL: 5 };
+        expect(await within(box).findByText('5')).toBeInTheDocument();
         await user.click(within(box).getByRole('button', { name: 'Physio' }));
+        expect(await within(box).findByText('2')).toBeInTheDocument();
+        expect(within(box).getByText('MEDICAL help wanted')).toBeInTheDocument();
         expect(within(box).getByRole('switch', { name: /Open to work/ })).toBeChecked();
-        await user.click(within(box).getByRole('button', { name: 'Show jobs' }));
-        await waitFor(() => expect(address()).toBe('/jobs/all?category=MEDICAL'));
+        await user.click(within(box).getByRole('button', { name: 'Finish' }));
+        await waitFor(() => expect(address()).toBe('/home'));
         expect(server.professions.items.map(item => item.title)).toEqual(['Physio']);
         expect(server.discovery.openTo).toEqual(['WORK']);
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'WORK' }));
     });
 
-    it('opens jobs on an answer that has listings, or all listings, never an empty search', async () => {
+    it('says plainly when nothing matches and still finishes; See all jobs opens the same search', async () => {
         const user = userEvent.setup();
-        server.jobs = { COACHING: 3, ALL: 3 };
         mount('/home?welcome=work');
         const box = await dialog();
         await user.click(within(box).getByRole('button', { name: 'Physio' }));
-        await user.click(within(box).getByRole('button', { name: 'Coach' }));
-        await user.click(within(box).getByRole('button', { name: 'Show jobs' }));
-        await waitFor(() => expect(address()).toBe('/jobs/all?category=COACHING'));
-        cleanup();
-        auth.user = { id: nextUser++, dob: '1985-05-02' };
-        server.jobs = {};
-        mount('/home?welcome=work');
-        const again = await dialog();
-        await user.click(within(again).getByRole('button', { name: 'Physio' }));
-        await user.click(within(again).getByRole('button', { name: 'Show jobs' }));
-        await waitFor(() => expect(address()).toBe('/jobs/all'));
+        expect(await within(box).findByText('Nothing near you for that yet. Clubs who need help can still find you.')).toBeInTheDocument();
+        await user.click(within(box).getByRole('button', { name: 'See all jobs' }));
+        await waitFor(() => expect(address()).toBe('/jobs/all?category=MEDICAL'));
     });
 
     it('ticks a first-week step once opened and goes away when dismissed', async () => {

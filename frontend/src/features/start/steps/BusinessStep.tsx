@@ -16,12 +16,15 @@ const KINDS: { id: string; icon: LucideIcon; en: string; ka: string; kind: PageK
     { id: 'other', icon: MoreHorizontal, en: 'Other', ka: 'სხვა', kind: null },
 ];
 
-/** Step 2 of A business or organisation: what kind, one tap, and the page is being created. */
+/**
+ * Step 2 of A business or organisation: what kind, one tap, and the page-create sheet for it opens over Home. Not now
+ * in the sheet comes back here (`from=welcome`), so nobody is left on a page they did not pick.
+ */
 export function BusinessStep({ land, back, close }: WelcomeStepProps) {
     const copy = useJourneyCopy();
     const pick = (id: string) => {
         const item = KINDS.find(kind => kind.id === id);
-        if (item) land('business', createHref(HOME, item.kind, 'start', item.draw === true, item.business ?? null));
+        if (item) land('business', createHref(HOME, item.kind, 'welcome', item.draw === true, item.business ?? null));
     };
     return <WelcomeFrame position={2} size="choose" onClose={close} back={back} title={copy('What kind?', 'რა სახის?')} footer={null}>
         <ActionTiles label={copy('What kind?', 'რა სახის?')} onPick={pick}

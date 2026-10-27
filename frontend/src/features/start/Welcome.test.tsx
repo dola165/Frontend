@@ -6,7 +6,7 @@ import { apiClient } from '../../api/axiosConfig';
 import i18n from '../../i18n';
 import { applyPreferencesUpdate, type Preferences } from '../preferences/preferencesStore';
 import { WelcomeHost } from './WelcomeHost';
-import { stepFromParam } from './welcomeSteps';
+import { finished, stepFromParam, weekDone } from './welcomeSteps';
 
 // A fake server: preferences, where the person is, clubs near them and by age, follows, professions and discovery.
 const server = vi.hoisted(() => ({
@@ -17,6 +17,8 @@ const server = vi.hoisted(() => ({
     discovery: { openTo: [] as string[], licence: null, rate: null, version: 0 },
     /** Staff jobs this person was invited to and has not answered (`/club-operations/mine`). */
     invitedJobs: [] as unknown[],
+    /** `/pages/mine` fails (whether the person already has a club cannot be checked). */
+    pagesFail: false,
     posts: [] as { url: string; body: unknown }[], puts: [] as { url: string; body: unknown }[],
 }));
 const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } as { id: number; dob: string; navigationCapabilities?: unknown } }));
@@ -51,9 +53,11 @@ beforeEach(async () => {
     server.professions = { items: [], version: 0 };
     server.discovery = { openTo: [], licence: null, rate: null, version: 0 };
     server.jobs = {}; server.clubsForAge = null;
-    server.invitedJobs = []; server.posts = []; server.puts = [];
+    server.invitedJobs = []; server.posts = []; server.puts = []; server.pagesFail = false;
     vi.mocked(apiClient.get).mockImplementation(async (url: string, config?: { params?: unknown }) => {
         server.gets.push(url);
+        if (url === '/pages/mine' && server.pagesFail) throw new Error('Network Error');
+        if (url === '/staff-invite/NET') throw new Error('Network Error');
         if (url === '/club-operations/mine') return { data: { appointments: server.invitedJobs, permissions: [], clubs: [] } };
         if (url === '/clubs/41/page') return { data: { identity: { version: 3 } } };
         if (url === '/staff-invite/ABC123') return { data: { clubId: 9, clubName: 'Rustavi Juniors', clubLogoUrl: null, job: 'ASSISTANT_COACH', title: 'Assistant coach', clubWide: true, squads: [], invitedBy: null, status: 'ACTIVE', expiresAt: '2026-11-03T00:00:00Z' } };
@@ -165,8 +169,14 @@ describe('the welcome', () => {
         expect(server.gets.some(url => url.startsWith('/clubs?') && url.includes('age=9') && url.includes('city=Rustavi'))).toBe(true);
         await user.click(within(box).getByRole('checkbox', { name: /Rustavi Juniors/ }));
         await user.click(within(box).getByRole('button', { name: 'Follow and continue' }));
-        const add = await screen.findByRole('dialog', { name: 'Add your child' });
+        let add = await screen.findByRole('dialog', { name: 'Add your child' });
         expect(server.followed.has(9)).toBe(true);
+        // A screen of its own in the address: Back returns to the clubs, with the year kept.
+        expect(address()).toBe('/home?welcome=child&part=add');
+        await user.click(within(add).getByRole('button', { name: 'Back' }));
+        expect(within(await screen.findByRole('dialog', { name: 'Clubs for your child' })).getByRole('combobox', { name: 'Born in' })).toHaveValue(String(year));
+        await user.click(screen.getByRole('button', { name: 'Follow and continue' }));
+        add = await screen.findByRole('dialog', { name: 'Add your child' });
         // The year already given: the date can only fall in it.
         const born = add.querySelector('input[type=date]')!;
         expect(born).toHaveAttribute('min', `${year}-01-01`);
@@ -211,8 +221,8 @@ describe('the welcome', () => {
     it('starts a club from step 2: the town filled in, the colours chosen, and the new club opens', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=club');
-        const box = await dialog();
-        expect(await within(box).findByRole('heading', { name: 'Start your club' })).toBeInTheDocument();
+        // Whether the person already has a club is asked first; then the form.
+        const box = await screen.findByRole('dialog', { name: 'Start your club' }, { timeout: 10000 });
         await waitFor(() => expect(within(box).getByRole('combobox', { name: 'Town' })).toHaveValue('Rustavi'));
         await user.type(within(box).getByRole('textbox', { name: 'Club name' }), 'Rustavi Kites');
         await user.click(within(box).getByRole('radio', { name: 'Navy, Gold' }));
@@ -228,7 +238,7 @@ describe('the welcome', () => {
         const user = userEvent.setup();
         server.invitedJobs = [{ id: 77, club_id: 6, club_name: 'Rustavi Steel', user_id: auth.user.id, title: 'Assistant coach', specialisations: [], engagement: 'VOLUNTEER', squad_id: null, permissions: [], starts_on: '2026-10-27', ends_on: null, status: 'INVITED', effective_status: 'INVITED', revision: 2, published: true, club_wide: true }];
         mount('/home?welcome=club');
-        const first = await dialog();
+        const first = await screen.findByRole('dialog', { name: 'Start your club' }, { timeout: 10000 });
         await user.click(await within(first).findByRole('button', { name: 'Already in a club?' }));
         const box = await screen.findByRole('dialog', { name: 'Find your club' });
         // The invite is there before anything is typed.
@@ -242,13 +252,17 @@ describe('the welcome', () => {
     it('asks for the admin’s code at a club with no invite, and joins with the whole link pasted', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=club');
-        const first = await dialog();
+        const first = await screen.findByRole('dialog', { name: 'Start your club' }, { timeout: 10000 });
         await user.type(await within(first).findByRole('textbox', { name: 'Club name' }), 'Rustavi');
         await user.click(within(first).getByRole('button', { name: 'Already in a club?' }));
         const box = await screen.findByRole('dialog', { name: 'Find your club' });
         // What was typed is the search.
         expect(within(box).getByRole('searchbox', { name: 'Club name' })).toHaveValue('Rustavi');
+        expect(address()).toBe('/home?welcome=club&part=find');
         await user.click(await within(box).findByRole('button', { name: 'Join Rustavi Juniors' }));
+        // While the code field is open, the club's own Join turns into Cancel: one Join on screen for it.
+        expect(within(box).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+        expect(within(box).queryByRole('button', { name: 'Join Rustavi Juniors' })).toBeNull();
         await user.type(within(box).getByRole('textbox', { name: 'Enter the code your admin gave you' }), 'https://grasskickz.com/staff-invite/ABC123');
         await user.click(within(box).getAllByRole('button', { name: 'Join' }).at(-1)!);
         await waitFor(() => expect(address()).toBe('/clubs/9/workspace'));
@@ -258,7 +272,7 @@ describe('the welcome', () => {
     it('goes back to starting the club when no club has that name', async () => {
         const user = userEvent.setup();
         mount('/home?welcome=club');
-        const first = await dialog();
+        const first = await screen.findByRole('dialog', { name: 'Start your club' }, { timeout: 10000 });
         await user.click(await within(first).findByRole('button', { name: 'Already in a club?' }));
         const box = await screen.findByRole('dialog', { name: 'Find your club' });
         server.clubsForAge = [];
@@ -266,6 +280,7 @@ describe('the welcome', () => {
         await user.click(await within(box).findByRole('button', { name: 'Start Gori Eagles' }));
         const again = await screen.findByRole('dialog', { name: 'Start your club' });
         expect(within(again).getByRole('textbox', { name: 'Club name' })).toHaveValue('Gori Eagles');
+        expect(address()).toBe('/home?welcome=club');
     });
 
     it('shows someone already on a club’s staff their club with Open, not a new one', async () => {
@@ -290,6 +305,49 @@ describe('the welcome', () => {
         expect(start().welcome?.state).not.toBe('DONE');
         await user.click(screen.getByRole('button', { name: 'Close' }));
         await waitFor(() => expect(address()).toBe('/home'));
+    });
+
+    it('leaves a finished answer and its first week alone when the reopened welcome is closed', async () => {
+        const user = userEvent.setup();
+        const kept = { state: 'DONE', at: null, choice: 'CLUB', week: ['invite-staff'], cardDismissed: true };
+        server.prefs = { start: { welcome: kept } };
+        mount('/home?welcome=start');
+        await user.click(within(await dialog()).getByRole('button', { name: 'Skip' }));
+        await waitFor(() => expect(address()).toBe('/home'));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(start().welcome).toEqual(kept);
+    });
+
+    it('keeps the first week for the same answer, starts afresh for a new one, and never stores more than the server takes', () => {
+        const done = { state: 'DONE' as const, choice: 'CLUB' as const, week: ['invite-staff', 'Bad step!', 'crest'], cardDismissed: true };
+        expect(finished(done, 'club')).toMatchObject({ choice: 'CLUB', week: ['invite-staff', 'crest'], cardDismissed: true });
+        expect(finished(done, 'me')).toMatchObject({ choice: 'ME', week: [], cardDismissed: false });
+        const many = Array.from({ length: 12 }, (_, index) => `step-${String.fromCharCode(97 + index)}`);
+        expect(weekDone({ state: 'DONE', week: many }, 'last').week).toHaveLength(10);
+        expect(weekDone({ state: 'DONE', week: many }, 'last').week?.at(-1)).toBe('last');
+    });
+
+    it('asks whether the person already has a club before showing the form, and says so when it could not', async () => {
+        server.pagesFail = true;
+        mount('/home?welcome=club');
+        const box = await screen.findByRole('dialog', { name: 'Start your club' }, { timeout: 10000 });
+        expect(within(box).getByText('We couldn’t check whether you already have a club.')).toBeInTheDocument();
+        server.pagesFail = false;
+        await userEvent.setup().click(within(box).getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByRole('dialog', { name: 'Start your club' })).toBeInTheDocument();
+        await waitFor(() => expect(screen.queryByText('We couldn’t check whether you already have a club.')).toBeNull());
+    });
+
+    it('says it could not check a code when the check never arrived, not that the code is wrong', async () => {
+        const user = userEvent.setup();
+        mount('/home?welcome=club');
+        await user.click(within(await screen.findByRole('dialog', { name: 'Start your club' }, { timeout: 10000 })).getByRole('button', { name: 'Already in a club?' }));
+        const box = await screen.findByRole('dialog', { name: 'Find your club' });
+        await user.type(within(box).getByRole('searchbox', { name: 'Club name' }), 'Rustavi');
+        await user.click(await within(box).findByRole('button', { name: 'Join Rustavi Juniors' }));
+        await user.type(within(box).getByRole('textbox', { name: 'Enter the code your admin gave you' }), 'NET');
+        await user.click(within(box).getByRole('button', { name: 'Join' }));
+        expect(await within(box).findByText('Couldn’t check the code just now. Check your connection and try again.')).toBeInTheDocument();
     });
 
     it('opens again at step 1 after it was finished, from the profile’s link', async () => {

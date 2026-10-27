@@ -1,4 +1,4 @@
-import { useId, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button, ButtonLink } from '../../../../design/primitives';
 import { getAuthFlow } from '../../../../utils/authRedirect';
@@ -23,7 +23,11 @@ const COLOUR_WORDS: Record<CrestColour, [string, string]> = {
  * person's saved town, else the sign-up town) and the club's colours, drawn as its crest while they type. Start my club
  * creates it and opens its page; "Already in a club?" turns the step into a search.
  */
-export function StartClub({ facts, finish, back, close, name: typed, onFind }: WelcomeStepProps & { name: string; onFind: (query: string, club?: FoundClub | null) => void }) {
+export function StartClub({ facts, finish, back, close, name: typed, onFind, checkFailed }: WelcomeStepProps & {
+    name: string; onFind: (query: string, club?: FoundClub | null) => void;
+    /** Whether the person already has a club could not be checked: say so, with a retry (the server still refuses a second club). */
+    checkFailed: (() => void) | null;
+}) {
     const copy = useJourneyCopy();
     const nameId = useId(), townId = useId();
     const { create, busy, error, clearError, unanswered, otherClub } = useCreatePage();
@@ -50,6 +54,17 @@ export function StartClub({ facts, finish, back, close, name: typed, onFind }: W
     };
     const onKey = (event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter') { event.preventDefault(); void start(); } };
     const words = (colour: CrestColour) => copy(...COLOUR_WORDS[colour]);
+    // One radio group: one tab stop on the chosen colours, arrow keys move and choose (WAI-ARIA radio group).
+    const current = pair ?? Math.max(0, CREST_PAIRS.findIndex(([main, second]) => main === drawn.primary && second === drawn.secondary));
+    const swatches = useRef<HTMLDivElement>(null);
+    const onColourKey = (event: KeyboardEvent<HTMLDivElement>) => {
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? CREST_PAIRS.length - 1 : step != null ? (current + step + CREST_PAIRS.length) % CREST_PAIRS.length : null;
+        if (next == null) return;
+        event.preventDefault();
+        setPair(next);
+        swatches.current?.querySelectorAll<HTMLButtonElement>('[role=radio]')[next]?.focus();
+    };
 
     return <WelcomeFrame position={2} size="choose" onClose={close} back={back} title={copy('Start your club', 'დააარსეთ თქვენი კლუბი')}
         hint={copy('Its page is ready in a minute. You can change everything later.', 'გვერდი ერთ წუთში მზად იქნება. ყველაფრის შეცვლა მოგვიანებით შეგიძლიათ.')}
@@ -59,10 +74,10 @@ export function StartClub({ facts, finish, back, close, name: typed, onFind }: W
         <div className="gk-wclub">
             <div className="gk-wclub__crest">
                 <img src={crestDataUrl(design)} alt={copy('Your crest', 'თქვენი ემბლემა')} width={132} height={132} />
-                <div className="gk-wclub__colours" role="radiogroup" aria-label={copy('Club colours', 'კლუბის ფერები')}>
+                <div ref={swatches} className="gk-wclub__colours" role="radiogroup" aria-label={copy('Club colours', 'კლუბის ფერები')} onKeyDown={onColourKey}>
                     {CREST_PAIRS.map(([main, second], index) => {
-                        const chosen = pair == null ? main === drawn.primary && second === drawn.secondary : pair === index;
-                        return <button key={`${main}-${second}`} type="button" role="radio" aria-checked={chosen} className="gk-wclub__colour"
+                        const chosen = index === current;
+                        return <button key={`${main}-${second}`} type="button" role="radio" aria-checked={chosen} tabIndex={chosen ? 0 : -1} className="gk-wclub__colour"
                             style={{ '--c1': paint(main), '--c2': paint(second) } as CSSProperties} aria-label={`${words(main)}, ${words(second)}`} title={`${words(main)}, ${words(second)}`}
                             onClick={() => setPair(index)} />;
                     })}
@@ -82,6 +97,10 @@ export function StartClub({ facts, finish, back, close, name: typed, onFind }: W
                     {exists.ref.type === 'club'
                         ? <Button size="sm" onClick={() => onFind(exists.name, { id: exists.ref.id, name: exists.name, logoUrl: exists.crestUrl, cityName: exists.town })}>{copy('Join it', 'შეუერთდით')}</Button>
                         : <ButtonLink size="sm" to={pagePath(exists.ref)}>{copy('Open', 'გახსნა')}</ButtonLink>}
+                </div>}
+                {checkFailed && <div className="gk-notice" role="status">
+                    <span>{copy('We couldn’t check whether you already have a club.', 'ვერ შევამოწმეთ, უკვე გაქვთ თუ არა კლუბი.')}</span>
+                    <Button size="sm" onClick={checkFailed}>{copy('Try again', 'ხელახლა ცდა')}</Button>
                 </div>}
                 {otherClub}
                 {(error || unanswered) && <p className={`gk-notice${error ? ' gk-notice--warning' : ''}`} role="alert">

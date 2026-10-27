@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { isAxiosError } from 'axios';
 import { Loader2 } from 'lucide-react';
 import { promptEmailConfirmation } from '../../../../components/auth/emailConfirmationPrompt';
 import { useAuth } from '../../../../context/AuthContext';
@@ -6,10 +7,10 @@ import { Button, SearchInput, Skeleton } from '../../../../design/primitives';
 import { refreshAccess } from '../../../../hooks/useCan';
 import { extractApiErrorMessage } from '../../../../utils/apiError';
 import { useOtherClub } from '../../../clubOperations/leaving/useOtherClub';
-import { acceptClubInvite, joinStaffInvite, landingFor, previewStaffInvite, type LinkInvite } from '../../../clubOperations/people/inviteLinkApi';
+import { acceptClubInvite, joinStaffInvite, landingFor, previewStaffInvite, type StaffInvitePreview } from '../../../clubOperations/people/inviteLinkApi';
 import { useJourneyCopy } from '../../../squadCommunication/journeyCopy';
 import { Crest } from '../../../world/Crest';
-import { fetchPendingClubInvites, staffCodeFrom } from '../../clubJoin';
+import { fetchPendingClubInvites, staffCodeFrom, type PendingInvite } from '../../clubJoin';
 import { searchClubs } from '../../startApi';
 import { WelcomeFrame, type WelcomeStepProps } from '../../WelcomeFrame';
 import './club-step.css';
@@ -28,8 +29,8 @@ export function FindClub({ land, back, close, query: typed, chosen: given, onSta
     const [query, setQuery] = useState(typed);
     const [found, setFound] = useState<{ query: string; clubs: FoundClub[] } | null>(null);
     // The invites are asked for once, as the search opens; Join waits for them if they are still on their way.
-    const invites = useRef<Promise<LinkInvite[]> | null>(null);
-    const [invited, setInvited] = useState<LinkInvite[]>([]);
+    const invites = useRef<Promise<PendingInvite[]> | null>(null);
+    const [invited, setInvited] = useState<PendingInvite[]>([]);
     const [asking, setAsking] = useState<FoundClub | null>(null);
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState<number | null>(null);
@@ -84,33 +85,42 @@ export function FindClub({ land, back, close, query: typed, chosen: given, onSta
         if (!club || !entered || busy != null) return;
         setError(''); setBusy(club.id);
         try {
-            const preview = await previewStaffInvite(entered).catch(() => null);
-            const refusal = !preview ? copy('That code doesn’t work. Check it with your club’s admin.', 'ეს კოდი არ მუშაობს. გადაამოწმეთ კლუბის ადმინთან.')
-                : preview.clubId !== club.id ? copy(`That code is for ${preview.clubName}.`, `ეს კოდი ${preview.clubName}-ისთვისაა.`)
+            let preview: StaffInvitePreview;
+            try { preview = await previewStaffInvite(entered); } catch (failure) {
+                // The server said no to the code, or the check never arrived: two different things to tell the person.
+                const answered = isAxiosError(failure) && failure.response != null && failure.response.status < 500;
+                setError(answered ? copy('That code doesn’t work. Check it with your club’s admin.', 'ეს კოდი არ მუშაობს. გადაამოწმეთ კლუბის ადმინთან.')
+                    : copy('Couldn’t check the code just now. Check your connection and try again.', 'კოდის შემოწმება ახლა ვერ მოხერხდა. შეამოწმეთ ინტერნეტი და სცადეთ ხელახლა.'));
+                setBusy(null); return;
+            }
+            const refusal = preview.clubId !== club.id ? copy(`That code is for ${preview.clubName}.`, `ეს კოდი ${preview.clubName}-ისთვისაა.`)
                     : preview.status !== 'ACTIVE' ? copy('That code no longer works. Ask your club’s admin for a new one.', 'ეს კოდი აღარ მუშაობს. სთხოვეთ კლუბის ადმინს ახალი.') : null;
-            if (refusal || !preview) { setError(refusal ?? ''); setBusy(null); return; }
+            if (refusal) { setError(refusal); setBusy(null); return; }
             const joined = await joinStaffInvite(entered);
             await opened(!preview.clubWide && joined.squads.length ? '/my-squads' : `/clubs/${joined.clubId}/workspace`);
         } catch (failure) { failed(failure, () => void joinWithCode()); setBusy(null); }
     };
 
     const isInvited = (club: FoundClub) => invited.some(item => item.clubId === club.id);
-    const shown = searched.length >= 2 ? (found?.query === searched ? found.clubs : null) : invited.map(item => ({ id: item.clubId, name: item.clubName, logoUrl: item.clubLogoUrl, cityName: null }));
+    const shown = searched.length >= 2 ? (found?.query === searched ? found.clubs : null) : invited.map(item => ({ id: item.clubId, name: item.clubName, logoUrl: item.clubLogoUrl, cityName: item.clubCity }));
     const list = given && !shown?.some(club => club.id === given.id) && searched === typed ? [given, ...(shown ?? [])] : shown;
     const row = (club: FoundClub) => <li key={club.id} className="gk-wjoin__item">
         <div className="gk-wjoin__row">
             <Crest src={club.logoUrl} name={club.name} size={40} />
             <span className="gk-wjoin__text"><strong>{club.name}</strong>
                 <small>{[club.cityName, isInvited(club) ? copy('You’re invited', 'მოწვეული ხართ') : null].filter(Boolean).join(' · ')}</small></span>
-            <Button size="sm" variant={isInvited(club) ? 'primary' : 'secondary'} disabled={busy != null} aria-label={copy(`Join ${club.name}`, `შეუერთდით: ${club.name}`)} onClick={() => void join(club)}>
-                {busy === club.id && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}{copy('Join', 'შეერთება')}
-            </Button>
+            {asking?.id === club.id
+                // While its code field is open, the one Join is the code's; this one puts the field away.
+                ? <Button size="sm" variant="ghost" disabled={busy != null} onClick={() => { setAsking(null); setError(''); }}>{copy('Cancel', 'გაუქმება')}</Button>
+                : <Button size="sm" variant={isInvited(club) ? 'primary' : 'secondary'} disabled={busy != null} aria-label={copy(`Join ${club.name}`, `შეუერთდით: ${club.name}`)} onClick={() => void join(club)}>
+                    {busy === club.id && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}{copy('Join', 'შეერთება')}
+                </Button>}
         </div>
         {asking?.id === club.id && <form className="gk-wjoin__code" onSubmit={event => void joinWithCode(event)}>
             <label className="gk-welcome__field" htmlFor={codeId}>{copy('Enter the code your admin gave you', 'შეიყვანეთ კოდი, რომელიც ადმინმა მოგცათ')}</label>
             <span className="gk-wjoin__coderow">
                 <input id={codeId} className="gk-input" value={code} autoFocus autoComplete="off" spellCheck={false} onChange={event => { setCode(event.target.value); setError(''); }} />
-                <Button type="submit" variant="primary" disabled={!staffCodeFrom(code) || busy != null}>{copy('Join', 'შეერთება')}</Button>
+                <Button type="submit" variant="primary" disabled={!staffCodeFrom(code) || busy != null}>{busy === club.id && <Loader2 className="gk-welcome__spin" aria-hidden="true" />}{copy('Join', 'შეერთება')}</Button>
             </span>
         </form>}
     </li>;

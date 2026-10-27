@@ -26,9 +26,14 @@
 .gk .gk-welcome-dialog .gk-dialog__foot { flex-wrap: wrap; }
 .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__back,
 .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__follow { margin-right: auto; }
-.gk .gk-welcome__follow { min-height: 48px; text-align: left; }
-.gk .gk-welcome__follow > span { display: flex; flex-direction: column; gap: 1px; }
-.gk .gk-welcome__follow small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 500; }
+/* "I'm here to follow football": a real button with a heart, lighter than the tiles above it. */
+.gk .gk-welcome__follow { gap: var(--gk-3); min-height: 60px; padding: var(--gk-2) var(--gk-5) var(--gk-2) var(--gk-3); border: 1px solid color-mix(in srgb, var(--gk-danger) 30%, var(--gk-line)); border-radius: var(--gk-r-lg);
+  background: color-mix(in srgb, var(--gk-danger) 7%, var(--gk-surface)); text-align: left; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }
+.gk .gk-welcome__follow:hover { border-color: color-mix(in srgb, var(--gk-danger) 60%, var(--gk-line)); background: color-mix(in srgb, var(--gk-danger) 12%, var(--gk-surface)); }
+.gk .gk-welcome__follow-mark { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--gk-danger-soft); color: var(--gk-danger); }
+.gk .gk-welcome__follow-mark svg { width: 20px; height: 20px; fill: currentColor; }
+.gk .gk-welcome__follow > span:last-child { display: flex; flex-direction: column; gap: 2px; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
+.gk .gk-welcome__follow small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 500; }
 .gk .gk-welcome { display: flex; flex: 1; flex-direction: column; gap: var(--gk-3); min-width: 0; min-height: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
 .gk .gk-welcome__loading { display: flex; flex-direction: column; gap: var(--gk-2); }
 .gk .gk-welcome__hint { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
@@ -42,17 +47,17 @@
 /* Step 1: size shows weight. Two large tiles, two medium ones under them, each drawn in its own colour (--wt). */
 .gk .gk-wtiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-4); }
 .gk .gk-wtile { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gk-3); min-width: 0; padding: var(--gk-4);
-  border: 1px solid color-mix(in srgb, var(--wt) 26%, var(--gk-line)); border-radius: var(--gk-r-lg); color: var(--gk-text); font: inherit; text-align: left; overflow: hidden; isolation: isolate;
-  background: radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--wt) 20%, transparent), transparent 58%), linear-gradient(160deg, color-mix(in srgb, var(--wt) 13%, var(--gk-surface)), color-mix(in srgb, var(--wt) 4%, var(--gk-surface)));
+  border: 1px solid color-mix(in srgb, var(--wt) 36%, var(--gk-line)); border-radius: var(--gk-r-lg); color: var(--gk-text); font: inherit; text-align: left; overflow: hidden; isolation: isolate;
+  background: radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--wt) 30%, transparent), transparent 60%), linear-gradient(160deg, color-mix(in srgb, var(--wt) 20%, var(--gk-surface)), color-mix(in srgb, var(--wt) 8%, var(--gk-surface)));
   transition: transform .25s var(--gk-ease), box-shadow .25s var(--gk-ease), border-color .2s var(--gk-ease), opacity .2s var(--gk-ease), filter .2s var(--gk-ease); }
 .gk button.gk-wtile { cursor: pointer; }
 .gk button.gk-wtile:focus-visible, .gk .gk-wtile__half:focus-visible { outline: none; box-shadow: var(--gk-focus); }
 .gk .gk-wart { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; color: var(--wt); pointer-events: none; transition: transform .4s var(--gk-ease); }
-.gk .gk-wart__lines { fill: none; stroke: currentColor; stroke-width: 2; opacity: .2; }
-.gk .gk-wart__mark { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
+.gk .gk-wart__lines { fill: none; stroke: currentColor; stroke-width: 2.5; opacity: .34; }
+.gk .gk-wart__mark { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
 /* A soft scrim from the words up, so the drawing never fights the text. */
 .gk .gk-wtile::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to top, color-mix(in srgb, var(--gk-surface) 72%, transparent), transparent 62%); }
-.gk .gk-wart__fill { fill: currentColor; fill-opacity: .3; }
+.gk .gk-wart__fill { fill: currentColor; fill-opacity: .38; }
 .gk .gk-wart g.gk-wart__fill { stroke: none; }
 .gk .gk-wtile--large { min-height: 340px; padding: var(--gk-5); }
 .gk .gk-wtile--medium { min-height: 200px; }
@@ -106,8 +111,6 @@
 /* Step 2: a field or two, then tiles. */
 .gk .gk-welcome__fields { display: flex; flex-wrap: wrap; gap: var(--gk-3); }
 .gk .gk-welcome__field { display: flex; flex-direction: column; gap: 4px; min-width: 160px; color: var(--gk-text-3); font-size: var(--gk-fs-sm); font-weight: 600; }
-.gk .gk-welcome__note { display: flex; align-items: center; gap: var(--gk-2); margin: 0; padding: var(--gk-2) var(--gk-3); border-radius: var(--gk-r); background: var(--gk-accent-soft); font-size: var(--gk-fs-sm); }
-.gk .gk-welcome__note svg { flex: none; width: 16px; height: 16px; color: var(--gk-accent); }
 .gk .gk-welcome__mark { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
 .gk .gk-welcome__mark svg { width: 16px; height: 16px; }
 .gk .gk-welcome-chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }

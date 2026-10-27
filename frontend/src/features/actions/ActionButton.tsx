@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { ButtonLink } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { ACTIONS, type ActionHints, type ActionKey, type ActionSubject } from './registry';
+import { ACTIONS, OPENED_HERE, type ActionHints, type ActionKey, type ActionSubject } from './registry';
 import { useAction } from './useAction';
 import './actions.css';
 
@@ -26,11 +26,11 @@ export function ActionButton({ action, subject, hints, fallback, variant = 'seco
     const text = label ?? copy(...(short ? definition.short : definition.label));
     const icon = <Icon aria-hidden="true" className="gk-action__icon" style={definition.color && !(look === 'button' && variant === 'primary') ? { color: definition.color } : undefined} />;
     const busy = state.loading || undefined;
-    if (look === 'menu') return <Link role={role} to={state.href} className="gk-menu__item gk-action-item" aria-disabled={busy} onClick={onClick}>{icon}{text}</Link>;
-    if (look === 'row') return <Link to={state.href} className={`gk-action-row${className ? ` ${className}` : ''}`} aria-disabled={busy} onClick={onClick}>
+    if (look === 'menu') return <Link role={role} to={state.href} state={OPENED_HERE} className="gk-menu__item gk-action-item" aria-disabled={busy} onClick={onClick}>{icon}{text}</Link>;
+    if (look === 'row') return <Link to={state.href} state={OPENED_HERE} className={`gk-action-row${className ? ` ${className}` : ''}`} aria-disabled={busy} onClick={onClick}>
         <span className="gk-action-row__icon" aria-hidden="true">{icon}</span>
         <span className="gk-action-row__text"><strong>{text}</strong>{hint && <small>{hint}</small>}</span>
         <ArrowRight aria-hidden="true" className="gk-action-row__arrow" />
     </Link>;
-    return <ButtonLink to={state.href} variant={variant} size={size} className={`gk-action${className ? ` ${className}` : ''}`} aria-disabled={busy} onClick={onClick}>{icon}{text}</ButtonLink>;
+    return <ButtonLink to={state.href} state={OPENED_HERE} variant={variant} size={size} className={`gk-action${className ? ` ${className}` : ''}`} aria-disabled={busy} onClick={onClick}>{icon}{text}</ButtonLink>;
 }

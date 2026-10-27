@@ -114,3 +114,28 @@ it('an account under 18 joins only as itself: no "My child", and a child link ex
     expect(await screen.findByText(/Only a parent or guardian who is 18 or older can add a child/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Create the child’s card' })).not.toBeInTheDocument();
 });
+
+it('shows a child whose card has no birth date, and asks for it here instead of making a second card', async () => {
+    signIn('1985-04-02');
+    kids.list = [{ ...luka, identity: { fullName: 'Luka Beridze', dateOfBirth: null } }];
+    vi.mocked(sendJoin).mockResolvedValue(sent);
+    show(`/join/${code}?who=child`);
+    expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: 'Create the child’s card' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(screen.getByRole('button', { name: 'Send for Luka' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: '2015-05-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send for Luka' }));
+    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, expect.objectContaining({ childName: 'Luka Beridze', birthDate: '2015-05-01' })));
+});
+
+it('when the children cannot load, offers to try again rather than a new card', async () => {
+    signIn('1985-04-02');
+    vi.mocked(fetchJoiningChildren).mockRejectedValueOnce(new Error('offline'));
+    show(`/join/${code}?who=child`);
+    expect(await screen.findByText('Your children couldn’t load.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create the child’s card' })).not.toBeInTheDocument();
+    kids.list = [luka];
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
+});

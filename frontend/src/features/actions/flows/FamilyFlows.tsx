@@ -14,7 +14,7 @@ export function AddChildFlow({ onClose }: { onClose: () => void }) {
     const copy = useJourneyCopy();
     const navigate = useNavigate();
     return <Dialog open size="md" title={copy('Add my child', 'ჩემი შვილის დამატება')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}>
-        <AddChild inline onCreated={childId => { refreshAccess(); navigate(`/parent?player=${childId}`); }} />
+        <AddChild inline onCreated={childId => { refreshAccess(); navigate(`/parent?player=${childId}`, { replace: true }); }} />
     </Dialog>;
 }
 
@@ -31,7 +31,8 @@ export function JoinCodeFlow({ code = '', playerId, onClose }: { code?: string; 
     const open = () => {
         const target = joinTarget(value);
         if (!target) { setError(copy('That isn’t a join link or code. Copy it again from the coach.', 'ეს არ არის შესვლის ბმული ან კოდი. ხელახლა დააკოპირეთ მწვრთნელისგან.')); return; }
-        navigate(target.startsWith('/join/') && playerId ? `${target}?who=child&player=${playerId}` : target);
+        // The finished flow's address is replaced, so Back never opens it again.
+        navigate(target.startsWith('/join/') && playerId ? `${target}?who=child&player=${playerId}` : target, { replace: true });
     };
     return <Dialog open size="sm" title={copy('Join with a code', 'გუნდში შესვლა კოდით')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}>
         <form className="gk-join-code" onSubmit={event => { event.preventDefault(); open(); }}>

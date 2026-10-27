@@ -1,19 +1,20 @@
 import '../../../i18n';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../../api/axiosConfig';
 import { refreshAccess } from '../../../hooks/useCan';
 import { ActionButton } from '../ActionButton';
 import { ActionHost } from '../ActionHost';
 import { ActionMenu } from '../ActionMenu';
+import { FollowButton } from '../FollowButton';
 import { NeedsResultCard } from '../NeedsResultCard';
 import { SquadDoors } from '../SquadDoors';
 import { joinTarget } from '../flows/joinTarget';
 import { actionHref, withoutAction } from '../registry';
 import { refreshResultsWaiting } from '../useResultsWaiting';
 
-const auth = vi.hoisted(() => ({ status: 'authenticated', sessionId: 'f5', user: { id: 1, dob: '1985-04-02', navigationCapabilities: undefined as unknown } }));
+const auth = vi.hoisted(() => ({ status: 'authenticated', sessionId: 'f5', user: { id: 1, dob: '1985-04-02', navigationCapabilities: undefined as unknown } as { id: number; dob: string; navigationCapabilities: unknown } | null }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: { mediaBaseUrl: '' }, apiClient: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 /** Arranging falls back to the squads the person may arrange for; the rule-checker answers first in these tests. */
@@ -26,7 +27,8 @@ const owed = { kind: 'MATCH_EXCHANGE', id: 5820, title: 'U18 friendly', startsAt
 
 function Where() {
     const location = useLocation();
-    return <output data-testid="where">{location.pathname}{location.search}</output>;
+    const navigate = useNavigate();
+    return <><output data-testid="where">{location.pathname}{location.search}</output><button type="button" onClick={() => navigate(-1)}>Browser back</button></>;
 }
 const show = (node: React.ReactNode, at = '/home') => render(<MemoryRouter initialEntries={[at]}><Routes><Route path="*" element={<>{node}<ActionHost /><Where /></>} /></Routes></MemoryRouter>);
 const where = () => screen.getByTestId('where').textContent;
@@ -37,6 +39,8 @@ beforeEach(() => {
     server.squads = {};
     server.waiting = [];
     auth.status = 'authenticated';
+    auth.user = { id: 1, dob: '1985-04-02', navigationCapabilities: undefined };
+    vi.mocked(apiClient.get).mockClear();
     vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
         if (url === '/access/me') return server.me ? { data: server.me } : Promise.reject({ isAxiosError: true, response: { status: 404 } });
         const squad = url.match(/^\/access\/squads\/(\d+)$/);
@@ -98,6 +102,39 @@ describe('ActionHost', () => {
         expect(await screen.findByText('Only a parent or guardian who is 18 or older can add a child.')).toBeInTheDocument();
     });
 
+    it('ignores an address that names no action, such as an object’s own keys', async () => {
+        for (const key of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+            const view = show(<p>Page</p>, `/home?do=${key}`);
+            expect(await screen.findByText('Page')).toBeInTheDocument();
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
+    it('never comes back on Back: closing returns to the page, and a finished flow replaces its own address', async () => {
+        show(<ActionButton action="join_squad" />);
+        fireEvent.click(await screen.findByRole('link', { name: 'Join with a code' }));
+        fireEvent.click(within(await screen.findByRole('dialog', { name: 'Join with a code' })).getByRole('button', { name: 'Close' }));
+        await waitFor(() => expect(where()).toBe('/home'));
+        fireEvent.click(screen.getByRole('link', { name: 'Join with a code' }));
+        fireEvent.change(await screen.findByLabelText('The coach’s link or code'), { target: { value: 'k7Gm2xPq' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+        await waitFor(() => expect(where()).toBe('/join/k7Gm2xPq'));
+        fireEvent.click(screen.getByRole('button', { name: 'Browser back' }));
+        await waitFor(() => expect(where()).toBe('/home'));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('keeps a form the person is typing in when a refusal arrives late', async () => {
+        let answer: (value: unknown) => void = () => undefined;
+        vi.mocked(apiClient.get).mockImplementation((url: string) => url === '/access/me' ? new Promise(resolve => { answer = resolve; }) : Promise.resolve({ data: [] }));
+        show(null, '/home?do=join_squad');
+        fireEvent.input(await screen.findByLabelText('The coach’s link or code'), { target: { value: 'k7Gm' } });
+        answer({ data: { allowed: [], refused: [refusal('join_squad', 'ACCOUNT_SETUP_NEEDED', 'Finish setting up your account.')] } });
+        await new Promise(resolve => setTimeout(resolve, 20));
+        expect(screen.getByLabelText('The coach’s link or code')).toHaveValue('k7Gm');
+    });
+
     it('sends someone signed out to sign in and back', async () => {
         auth.status = 'anonymous';
         show(null, '/home?do=add_child');
@@ -131,6 +168,24 @@ describe('the header "+"', () => {
     });
 });
 
+describe('asking the rule-checker', () => {
+    it('asks about following once for the person, never per club', async () => {
+        show(<>{[4, 5, 6].map(id => <FollowButton key={id} subject={{ kind: 'club', id }} following={false} onChange={() => undefined} />)}</>);
+        await waitFor(() => expect(screen.getAllByRole('button', { name: 'Follow' })[0]).not.toBeDisabled());
+        const asked = vi.mocked(apiClient.get).mock.calls.map(([url]) => url);
+        expect(asked.filter(url => url.startsWith('/access/clubs/'))).toEqual([]);
+        expect(asked.filter(url => url === '/access/me')).toHaveLength(1);
+    });
+
+    it('asks nothing while signed out', async () => {
+        auth.status = 'anonymous';
+        auth.user = null;
+        show(<><FollowButton subject={{ kind: 'club', id: 4 }} following={false} onChange={() => undefined} /><ActionButton action="arrange_match" subject={{ kind: 'squad', id: 105 }} /></>);
+        expect(await screen.findByRole('link', { name: /Follow/ })).toHaveAttribute('href', expect.stringMatching(/^\/login/));
+        expect(vi.mocked(apiClient.get).mock.calls.filter(([url]) => url.startsWith('/access/'))).toEqual([]);
+    });
+});
+
 describe('the doors', () => {
     it('Home asks for the newest score owed, with one action', async () => {
         server.waiting = [owed, { ...owed, id: 5821 }];
@@ -151,6 +206,15 @@ describe('the doors', () => {
         expect(await screen.findByRole('button', { name: 'Follow FC Dinamo Tbilisi Academy' })).toBeInTheDocument();
         expect(screen.queryByRole('link', { name: 'Suggest an assistant' })).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: 'Join' })).not.toBeInTheDocument();
+    });
+
+    it('a squad page offers its own club’s people neither Join nor Follow', async () => {
+        auth.user = { id: 1, dob: '1985-04-02', navigationCapabilities: { workspaces: [{ id: 'club.workspace', context: { type: 'club', id: 1, label: 'FC Dinamo Tbilisi Academy' } }] } };
+        server.squads[107] = { allowed: ['arrange_match', 'join_squad', 'follow'], refused: [] };
+        show(<SquadDoors squadId={107} clubId={1} clubName="FC Dinamo Tbilisi Academy" />, '/squads/107');
+        expect(await screen.findByRole('link', { name: 'Arrange a match' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Join' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Follow/ })).not.toBeInTheDocument();
     });
 });
 

@@ -15,15 +15,19 @@ type Intent = { fullName: string; dateOfBirth: string; responsible: boolean; req
 /** `inline`: just the two fields and the promise, open at once (joining a group with no child yet). */
 type Props = { onCreated: (childId: number) => void; inline?: boolean };
 
-/** Adding a child; an under-18 account sees only the plain reason instead of the form. */
+/**
+ * Adding a child; an under-18 account sees only the plain reason instead of the form. Once the person has typed, a
+ * refusal that arrives late leaves the form where it is (the server refuses on saving anyway).
+ */
 export function AddChild(props: Props) {
     const { user, sessionId } = useAuth();
     const guardian = useAction('add_child');
-    if (!guardian.allowed) return <AdultOnlyNote adult={guardian} className="family-notice" />;
-    return <ChildForm key={`${user?.id}:${sessionId}`} {...props} />;
+    const [typed, setTyped] = useState(false);
+    if (!guardian.allowed && !typed) return <AdultOnlyNote adult={guardian} className="family-notice" />;
+    return <ChildForm key={`${user?.id}:${sessionId}`} {...props} onTyped={() => setTyped(true)} />;
 }
 
-function ChildForm({ onCreated, inline = false }: Props) {
+function ChildForm({ onCreated, inline = false, onTyped }: Props & { onTyped: () => void }) {
     const { user, sessionId, refreshNavigationCapabilities } = useAuth();
     const copy = useJourneyCopy();
     const key = `new-child:${user?.id}:${sessionId}`;
@@ -78,7 +82,7 @@ function ChildForm({ onCreated, inline = false }: Props) {
         } finally { saving.current = false; setBusy(false); }
     }
 
-    const form = <form id={inline ? undefined : 'add-child-form'} onSubmit={e => { e.preventDefault(); void save(); }} aria-busy={busy}>
+    const form = <form id={inline ? undefined : 'add-child-form'} onInput={onTyped} onSubmit={e => { e.preventDefault(); void save(); }} aria-busy={busy}>
             {!inline && <p className="parent-add-child-guidance"><ShieldCheck size={20} aria-hidden="true" /><span>{copy('Already has a profile? Ask their club or current guardian for an invitation. Create a new profile only for a child who is not registered yet.', 'უკვე აქვს პროფილი? სთხოვეთ კლუბს ან მეურვეს მოწვევა. ახალი პროფილი შექმენით მხოლოდ ჯერ დაურეგისტრირებელი ბავშვისთვის.')}</span></p>}
             <div className="parent-add-child-fields">
                 <label>{copy('Child’s full name', 'ბავშვის სრული სახელი')}<input ref={nameInput} name="child-name" autoComplete="off" required maxLength={150} value={name} disabled={Boolean(intent)} onChange={e => setName(e.target.value)} /></label>

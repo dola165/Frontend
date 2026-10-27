@@ -22,14 +22,12 @@ const WHO: Record<string, Who> = { child: 'PARENT', me: 'PLAYER' };
 const ageOn = (birthDate: string) => { const born = new Date(birthDate), now = new Date(); let age = now.getFullYear() - born.getFullYear(); if (now < new Date(now.getFullYear(), born.getMonth(), born.getDate())) age -= 1; return age; };
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? '';
 const today = () => new Date().toISOString().slice(0, 10);
-/** The join's child details, taken from one of the parent's children. */
-const filledWith = (kid: JoiningChild) => (current: { name: string; birthDate: string; consent: boolean }) => ({ ...current, name: kid.identity.fullName, birthDate: kid.identity.dateOfBirth ?? '' });
 
 /**
  * A squad's join link, shared in the parents' WhatsApp group or as a printed QR code. One question: "Who's joining?
  * Me · My child". The choice lives in the address (`who=me|child`), so signing in or up comes straight back to it.
  * "My child" picks one of the parent's children (the only one, or the one Parent Hub sent, already chosen) or makes the
- * child's card first with Add child; the server reuses the parent's own child with that name and birth date,
+ * child's card first with Add child (a child whose card has no birth date gets one asked here); the server reuses the parent's own child with that name and birth date,
  * and offers a child another parent already added ("Is this Luka…?") instead of making a second card. A grown-up
  * choosing "Me" for a youth squad is asked "Joining for your child?". The coach confirms; nothing is public.
  */
@@ -53,34 +51,37 @@ export function JoinPage() {
   const [error, setError] = useState('');
   const [sent, setSent] = useState<JoinSent | null>(null);
   const request = useRef<{ key: string; id: string } | null>(null);
-  // The parent's children who could join (null while asked), and the one to choose once they arrive: from the
-  // address (Parent Hub's "Join with a code"), or a card just made here.
-  const [kids, setKids] = useState<JoiningChild[] | null>(null);
+  // The parent's children who could join (null while asked; `failed` when they could not load, so a child who exists is
+  // never made again), the one chosen, and the one to choose once they arrive: from the address (Parent Hub's "Join with
+  // a code"), or a card just made here.
+  const [kids, setKids] = useState<{ list: JoiningChild[]; failed: boolean } | null>(null);
   const [kidsRound, setKidsRound] = useState(0);
   const [adding, setAdding] = useState(false);
+  const [chosenId, setChosenId] = useState<number | null>(null);
   const wanted = useRef<number | null>(Number(params.get('player')) || null);
-  const pick = (kid: JoiningChild) => setChild(filledWith(kid));
-  const chosen = kids?.find(kid => kid.identity.fullName === child.name && kid.identity.dateOfBirth === child.birthDate) ?? null;
+  const chosen = kids?.list.find(kid => kid.playerId === chosenId) ?? null;
+  const pick = (kid: JoiningChild) => { setChosenId(kid.playerId); setChild(current => ({ ...current, name: kid.identity.fullName, birthDate: kid.identity.dateOfBirth ?? '' })); };
   const id = useId();
   useEffect(() => {
     const controller = new AbortController();
     fetchJoinLink(code, controller.signal).then(found => { if (!controller.signal.aborted) setLink(found); }).catch(() => { if (!controller.signal.aborted) setFailed(t('This join link has expired. Ask the coach for a new one.')); });
     return () => controller.abort();
   }, [code, t]);
-  // The parent's own children not in this squad yet. One of them, or the one asked for, is chosen at once; when they
-  // cannot load, the parent adds the child's card instead.
+  // The parent's own children not in this squad yet. One of them, or the one asked for, is chosen at once.
   useEffect(() => {
     if (who !== 'PARENT' || !isAuthenticated || !link) return;
     const controller = new AbortController();
-    const settle = (found: JoiningChild[]) => {
+    fetchJoiningChildren(sessionId, controller.signal).then(found => {
       if (controller.signal.aborted) return;
-      setKids(found);
-      const choice = found.find(kid => kid.playerId === wanted.current) ?? (found.length === 1 ? found[0] : null);
-      if (choice) { wanted.current = null; setChild(filledWith(choice)); }
-    };
-    fetchJoiningChildren(sessionId, controller.signal)
-      .then(found => settle(found.children.filter(kid => kid.identity.dateOfBirth && !kid.clubs.some(club => club.clubId === link.page.ref.id && club.squadNames.includes(link.squad.name)))))
-      .catch(() => settle([]));
+      const list = found.children.filter(kid => !kid.clubs.some(club => club.clubId === link.page.ref.id && club.squadNames.includes(link.squad.name)));
+      setKids({ list, failed: false });
+      const choice = list.find(kid => kid.playerId === wanted.current) ?? (list.length === 1 ? list[0] : null);
+      if (choice) {
+        wanted.current = null;
+        setChosenId(choice.playerId);
+        setChild(current => ({ ...current, name: choice.identity.fullName, birthDate: choice.identity.dateOfBirth ?? '' }));
+      }
+    }).catch(() => { if (!controller.signal.aborted) setKids({ list: [], failed: true }); });
     return () => controller.abort();
   }, [who, isAuthenticated, sessionId, link, kidsRound]);
 
@@ -171,16 +172,19 @@ export function JoinPage() {
     : <Panel padded>
       {header}
       <div className="gk-boxedit gk-join__form">
-        {kids === null ? <Skeleton height={44} /> : kids.length > 0 && <div className="gk-ctowns" role="group" aria-label={t('Your children')}>
-          {kids.map(kid => <button key={kid.playerId} type="button" className="gk-chip" aria-pressed={chosen?.playerId === kid.playerId} onClick={() => { setAdding(false); pick(kid); }}><Avatar name={kid.identity.fullName} size={22} />{firstName(kid.identity.fullName)}</button>)}
-          <button type="button" className="gk-chip" aria-pressed={adding} onClick={() => { setAdding(true); setChild({ ...child, name: '', birthDate: '' }); }}><Plus aria-hidden="true" />{t('Another child')}</button>
+        {kids === null ? <Skeleton height={44} /> : kids.failed ? <div className="gk-notice gk-notice--warning" role="alert"><span>{t('Your children couldn’t load.')}</span>
+          <Button size="sm" onClick={() => { setKids(null); setKidsRound(round => round + 1); }}>{t('Try again')}</Button></div>
+          : kids.list.length > 0 && <div className="gk-ctowns" role="group" aria-label={t('Your children')}>
+          {kids.list.map(kid => <button key={kid.playerId} type="button" className="gk-chip" aria-pressed={chosen?.playerId === kid.playerId} onClick={() => { setAdding(false); pick(kid); }}><Avatar name={kid.identity.fullName} size={22} />{firstName(kid.identity.fullName)}</button>)}
+          <button type="button" className="gk-chip" aria-pressed={adding} onClick={() => { setAdding(true); setChosenId(null); }}><Plus aria-hidden="true" />{t('Another child')}</button>
         </div>}
         {/* A child not on the parent's list yet gets their card first (the same form as Parent Hub), then is chosen here. */}
-        {kids !== null && (adding || kids.length === 0) && <AddChild inline onCreated={childId => { wanted.current = childId; setAdding(false); setKidsRound(round => round + 1); }} />}
+        {kids !== null && !kids.failed && (adding || kids.list.length === 0) && <AddChild inline onCreated={childId => { wanted.current = childId; setAdding(false); setKidsRound(round => round + 1); }} />}
+        {chosen && !chosen.identity.dateOfBirth && <div><label className="gk-field__label" htmlFor={`${id}-dob`}>{t('Date of birth')}</label><input id={`${id}-dob`} className="gk-input gk-join__date" type="date" value={child.birthDate} max={today()} autoComplete="off" onChange={event => setChild({ ...child, birthDate: event.target.value })} /></div>}
         {chosen && <label className="gk-row gk-join__consent"><input type="checkbox" checked={child.consent} onChange={event => setChild({ ...child, consent: event.target.checked })} /><span>{t('I am the parent or guardian and I agree to the club keeping this card.')}</span></label>}
         {failure}
         <div className="gk-boxedit__foot">
-          {chosen && <Button variant="primary" disabled={busy || !child.consent} onClick={() => void sendChild()}>{spinner}{t('Send for {name}', { name: firstName(chosen.identity.fullName) })}</Button>}
+          {chosen && <Button variant="primary" disabled={busy || !child.consent || !child.birthDate} onClick={() => void sendChild()}>{spinner}{t('Send for {name}', { name: firstName(chosen.identity.fullName) })}</Button>}
           {back}
         </div>
       </div>

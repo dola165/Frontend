@@ -537,6 +537,7 @@ export const PAGES_KA: Record<string, string> = {
   'Send my request': 'მოთხოვნის გაგზავნა',
   'Your children': 'თქვენი შვილები',
   'Another child': 'სხვა შვილი',
+  'Your children couldn’t load.': 'თქვენი შვილები ვერ ჩაიტვირთა.',
   'Send for {name}': 'გაგზავნა: {name}',
   '{name} is already on the list': '{name} უკვე სიაშია',
   'We asked the parent who added {name} to confirm you. You will get a notice.': 'ვთხოვეთ მშობელს, რომელმაც {name} დაამატა, დაგადასტუროთ. შეტყობინებას მიიღებთ.',

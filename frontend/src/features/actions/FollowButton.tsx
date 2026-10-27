@@ -25,7 +25,8 @@ export function FollowButton({ subject, following, name, onChange, size = 'md', 
     const { sessionId, status } = useAuth();
     const location = useLocation();
     const [busy, setBusy] = useState(false);
-    const allowed = useAction('follow', subject.kind === 'club' ? { kind: 'club', id: subject.id } : { kind: 'person', id: subject.id });
+    // Following is asked of the person once (`me`), never per club row.
+    const allowed = useAction('follow', subject.kind === 'person' ? { kind: 'person', id: subject.id } : { kind: 'me' });
     if (following === undefined) return null;
     // Signed out, Follow is the way in: sign in, and come back to the same page.
     if (status === 'anonymous') return <ButtonLink size={size} variant={primary ? 'primary' : 'secondary'} className={`gk-action${className ? ` ${className}` : ''}`}

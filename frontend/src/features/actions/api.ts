@@ -10,6 +10,8 @@ export interface ResultWaiting {
     squadId: number | null;
     squadName: string | null;
     opponentName: string | null;
+    /** The side to report for: the person's squad (HOME or AWAY), or REFEREE. */
+    reportAs?: 'HOME' | 'AWAY' | 'REFEREE' | null;
 }
 
 export const fetchResultsWaiting = async (signal?: AbortSignal) =>

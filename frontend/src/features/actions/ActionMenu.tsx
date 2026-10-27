@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { moveMenuFocus, openMenuFromKey, usePopover } from '../../components/layout/header/usePopover';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { ACTIONS } from './registry';
+import { ACTIONS, OPENED_HERE } from './registry';
 import { useMenuActions } from './useMenuActions';
 import './actions.css';
 
@@ -27,7 +27,7 @@ export function ActionMenu() {
                     {actions.map(action => {
                         const definition = ACTIONS[action.key];
                         const Icon = definition.icon;
-                        return <Link key={action.key} role="menuitem" to={action.href} className="gk-menu__item gk-action-item" onClick={() => close(false)}>
+                        return <Link key={action.key} role="menuitem" to={action.href} state={OPENED_HERE} className="gk-menu__item gk-action-item" onClick={() => close(false)}>
                             <Icon aria-hidden="true" className="gk-action__icon" style={definition.color ? { color: definition.color } : undefined} />
                             <span className="gk-action-item__text"><span>{copy(...definition.label)}</span>{action.hint && <small>{action.hint}</small>}</span>
                             {action.waiting && <span className="gk-action-dot" aria-label={copy('Waiting', 'ელოდება')} />}

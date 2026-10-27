@@ -64,8 +64,10 @@ export function useAction(key: ActionKey, subject: ActionSubject = { kind: 'me' 
 } = {}): ActionState {
     const here = useLocation();
     const location = at ?? here;
+    const { status } = useAuth();
     const own = useFallback(key, subject);
-    const can = useCan(accessSubjectOf(subject));
+    // Signed out, nothing is asked: the server would answer 401 and end the session; the old flags decide.
+    const can = useCan(status === 'authenticated' ? accessSubjectOf(subject) : null);
     const decision = can.decide(key, fallback ?? own.allowed);
     const reason = decision.allowed ? null : decision.reason ?? (decision.code ? null : own.reason);
     const needsBirthDate = !decision.allowed && (decision.code ? decision.code === 'BIRTH_DATE_NEEDED' : own.needsBirthDate);

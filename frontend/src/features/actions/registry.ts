@@ -81,7 +81,14 @@ export const ACTIONS: Record<ActionKey, ActionDefinition> = {
 };
 
 export const ACTION_KEYS = Object.keys(ACTIONS) as ActionKey[];
-export const isActionKey = (value: string | null): value is ActionKey => value !== null && value in ACTIONS;
+export const isActionKey = (value: string | null): value is ActionKey => value !== null && Object.hasOwn(ACTIONS, value);
+
+/**
+ * The link state of a flow opened by a button on this page: closing it goes back one step, so Back never reopens it.
+ * A flow opened from a shared link or a notification has none, and closing replaces its address instead.
+ */
+export const OPENED_HERE = { actionOpenedHere: true } as const;
+export const openedHere = (state: unknown) => Boolean((state as { actionOpenedHere?: boolean } | null)?.actionOpenedHere);
 
 /** The address key that opens a flow, and the prefix of its answers. */
 export const DO_PARAM = 'do';

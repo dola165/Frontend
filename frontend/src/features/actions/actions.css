@@ -1,8 +1,11 @@
 /* Actions everywhere (F5): the one button, the boxed row, the header "+", Home's "Needs a result" and the doors' row. */
 
+/* The flow's host wraps only portals: it takes no room. */
+.gk-action-host { display: contents; }
+
 /* A compact button with a 44px touch target: the hit area reaches past the drawn edge. */
 .gk .gk-action { position: relative; }
-.gk .gk-action::after { content: ''; position: absolute; inset: -5px 0; }
+.gk .gk-action::after { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: max(44px, 100%); transform: translateY(-50%); }
 .gk .gk-action[aria-disabled='true'], .gk .gk-action-row[aria-disabled='true'], .gk .gk-action-item[aria-disabled='true'] { opacity: .6; pointer-events: none; }
 
 .gk .gk-action-row { display: flex; align-items: center; gap: var(--gk-3); min-height: 52px; padding: 0 var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); text-decoration: none; }
@@ -15,7 +18,8 @@
 .gk .gk-action-row__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
 
 /* The doors on a page: one wrapping row of quiet buttons under its header. */
-.gk .gk-doors { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+/* Rows sit far enough apart that each door's 44px target stays its own. */
+.gk .gk-doors { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-4) var(--gk-2); }
 .gk .gk-doors:empty { display: none; }
 
 /* A waiting score: the dot and the word, then the button. */

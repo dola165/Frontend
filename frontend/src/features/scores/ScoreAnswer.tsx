@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Button } from '../../design/primitives';
 import { useResultCopy } from '../matchHistory/copy';
 import type { ScoreRecord, ScoreSettlement, ScoreWrite } from './api';
 import { emptyGoals, goalsFrom, goalsReady, type GoalsDraft } from './goals';
 import { ScoreInputs, type Team } from './ScoreInputs';
+import { ReportAsContext } from './reportAs';
 import { goals, partyName } from './status';
 
 type Send = (write: ScoreWrite, done: string) => Promise<boolean>;
@@ -35,8 +36,9 @@ export function ScoreAnswer({ record, home, away, busy, send }: { record: ScoreR
 function ReportForm({ record, home, away, busy, send }: { record: ScoreRecord; home: Team; away: Team; busy: boolean; send: Send }) {
   const { copy } = useResultCopy();
   const [value, setValue] = useState(emptyGoals);
-  const [side, setSide] = useState(record.permissions.report[0]);
   const sides = record.permissions.report;
+  const reportAs = useContext(ReportAsContext);
+  const [side, setSide] = useState(sides.find(item => item === reportAs) ?? sides[0]);
   const submit = async () => {
     if (!goalsReady(value)) return;
     const done = await send({ action: 'report', body: { ...stamp(record), ...numbers(value), side } }, record.oneSided

@@ -7,6 +7,7 @@ import { CornerDock } from '../../components/layout/CornerDock';
 import i18n from '../../i18n';
 import { applyPreferencesUpdate, type Preferences } from '../preferences/preferencesStore';
 import { FirstWeek } from './FirstWeek';
+import { markDone, withUnfolded } from './steps';
 import { WorldWelcome } from './WorldWelcome';
 
 const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>() }));
@@ -56,19 +57,37 @@ describe('your first week, in the corner', () => {
         expect(await screen.findByRole('heading', { name: 'Your first week' })).toBeInTheDocument();
         await waitFor(() => expect(week()?.week).toEqual(['open']));
         cleanup();
-        mount('/world');
-        expect(await screen.findByRole('link', { name: 'Find a trial that fits you' })).toHaveAttribute('href', '/world/opportunities?tab=trials&forMe=true');
+        mount('/clubs/5');
+        expect(await screen.findByRole('link', { name: /Meet GrassKickZ World/ })).toHaveAttribute('href', '/world');
         await user.click(screen.getByRole('button', { name: 'Fold' }));
         expect(await screen.findByRole('button', { name: /Your first week/ })).toHaveFocus();
+    });
+
+    it('meets GrassKickZ World in every answer’s week, three steps each', async () => {
+        for (const choice of ['ME', 'CHILD', 'CLUB', 'WORK', 'BUSINESS', 'FOLLOW']) {
+            auth.user = { id: nextUser++, dob: '1985-05-02' };
+            welcome(choice, { week: ['open'] });
+            mount();
+            expect(await screen.findByRole('link', { name: /Meet GrassKickZ World/ })).toBeInTheDocument();
+            expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(3);
+            cleanup();
+        }
     });
 
     it('ticks a step on another page and folds out of its way', async () => {
         const user = userEvent.setup();
         welcome('ME', { week: ['open'] });
         mount();
-        await user.click(await screen.findByRole('link', { name: 'Find a trial that fits you' }));
-        await waitFor(() => expect(week()?.week).toEqual(['trials']));
+        await user.click(await screen.findByRole('link', { name: /Meet GrassKickZ World/ }));
+        await waitFor(() => expect(week()?.week).toEqual(['world']));
         expect(await screen.findByRole('button', { name: /Your first week · 1 of 3/ })).toBeInTheDocument();
+    });
+
+    it('never writes a step twice or more than the server keeps', () => {
+        const full = { state: 'DONE' as const, week: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'open'] };
+        expect(markDone(full, 'world').week).toEqual(['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'open', 'world']);
+        expect(markDone({ state: 'DONE', week: ['world'] }, 'world').week).toEqual(['world']);
+        expect(withUnfolded({ state: 'DONE', week: ['open', 'open', 'BAD!', 'world'] }, true).week).toEqual(['world', 'open']);
     });
 
     it('follows clubs near you over the page and ticks the step', async () => {
@@ -91,13 +110,39 @@ describe('your first week, in the corner', () => {
         expect(screen.queryByRole('link', { name: 'Add your child' })).toBeNull();
     });
 
-    it('closes for good with X', async () => {
+    it('asks once before hiding for good, Keep goes back, and Escape folds', async () => {
         const user = userEvent.setup();
         welcome('ME', { week: ['open'] });
         mount();
-        await user.click(await screen.findByRole('button', { name: 'Close for good' }));
+        await user.click(await screen.findByRole('button', { name: 'Hide your first week' }));
+        expect(screen.getByText('Hide your first week?')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Keep' })).toHaveFocus();
+        await user.click(screen.getByRole('button', { name: 'Keep' }));
+        expect(await screen.findByRole('link', { name: /Meet GrassKickZ World/ })).toBeInTheDocument();
+        expect(week()?.cardDismissed).toBe(false);
+        await user.keyboard('{Escape}');
+        expect(await screen.findByRole('button', { name: /Your first week · 0 of 3/ })).toHaveFocus();
+        await user.click(screen.getByRole('button', { name: /Your first week/ }));
+        await user.click(await screen.findByRole('button', { name: 'Hide your first week' }));
+        await user.click(screen.getByRole('button', { name: 'Hide' }));
         await waitFor(() => expect(week()?.cardDismissed).toBe(true));
         expect(screen.queryByRole('heading', { name: 'Your first week' })).toBeNull();
+    });
+
+    it('gives the corner to anything else fixed that stands there', async () => {
+        const other = document.createElement('button');
+        other.style.position = 'fixed';
+        document.body.append(other);
+        const stub = vi.fn(() => [other]);
+        document.elementsFromPoint = stub;
+        welcome('ME');
+        const { container } = mount();
+        await waitFor(() => expect(container.querySelector('.gk-corner')).toHaveAttribute('data-yield'));
+        stub.mockReturnValue([]);
+        other.className = 'gone';
+        await waitFor(() => expect(container.querySelector('.gk-corner')).not.toHaveAttribute('data-yield'));
+        other.remove();
+        delete (document as { elementsFromPoint?: unknown }).elementsFromPoint;
     });
 
     it('stays out of the welcome, an action’s flow and the start sheet, and goes once all three are done', async () => {
@@ -109,7 +154,7 @@ describe('your first week, in the corner', () => {
             cleanup();
         }
         auth.user = { id: nextUser++, dob: '1985-05-02' };
-        welcome('ME', { week: ['trials', 'follow', 'photo'] });
+        welcome('ME', { week: ['world', 'follow', 'photo'] });
         mount();
         await new Promise(resolve => setTimeout(resolve, 50));
         expect(screen.queryByRole('button', { name: /Your first week/ })).toBeNull();

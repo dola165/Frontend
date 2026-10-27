@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { profileRoles } from '../../roles/domain';
-import { fetchPersonProfile, fetchProfessions, type PersonProfile, type Profession } from '../api';
+import { fetchPersonProfile, fetchProfessions, saveMyImage, type PersonProfile, type Profession } from '../api';
 import { useFootball } from '../football/useFootball';
 
 /**
@@ -51,7 +50,7 @@ export function usePersonProfile(id: number) {
         ? { ...current, isFollowedByMe: following, followerCount: Math.max(0, current.followerCount + (following ? 1 : -1)) } : current);
     const updateImage = async (field: 'banner' | 'avatar', url: string) => {
         if (!own) throw new Error('You can only change your own profile photos.');
-        await apiClient.put('/users/me', field === 'avatar' ? { avatarUrl: url } : { bannerUrl: url });
+        await saveMyImage(field, url);
         setProfile(current => current ? { ...current, [field === 'avatar' ? 'avatarUrl' : 'bannerUrl']: url } : current);
     };
 

@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../api/axiosConfig';
 import { fetchClubsNearYou, type NearbyClub } from '../start/startApi';
-
-/** The person's own profile photo (PUT /users/me), as the profile page saves it. */
-export const saveMyPhoto = (avatarUrl: string) => apiClient.put('/users/me', { avatarUrl });
 
 /**
  * Clubs in the person's country, nearest first, asked again on each attempt: null while loading, 'failed' when they

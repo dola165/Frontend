@@ -1,4 +1,4 @@
-/* The welcome over Home (two screens) and Home's "Your first week" card. Scoped under .gk; tokens only; compact like Home. */
+/* The welcome over Home (two screens). Scoped under .gk; tokens only; compact like Home. */
 .gk .gk-dialog.gk-welcome-dialog { min-width: 0; }
 /* Choosing (step 1, a business’s kind): wide and tall enough for big tiles. */
 .gk .gk-dialog.gk-welcome-dialog--choose { max-width: min(1040px, 94vw); max-height: min(94dvh, 980px); }
@@ -128,20 +128,3 @@
 .gk .gk-wjobs__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .gk .gk-wjobs__text strong { overflow: hidden; font-size: var(--gk-fs-md); text-overflow: ellipsis; white-space: nowrap; }
 .gk .gk-wjobs__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
-
-/* Home: "Your first week", three rows, one tap each. */
-.gk.gk-week { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); }
-.gk .gk-week__head { display: flex; align-items: center; gap: var(--gk-2); }
-.gk .gk-week__head h2 { margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; }
-.gk .gk-week__count { margin-right: auto; color: var(--gk-text-3); font-size: var(--gk-fs-xs); font-variant-numeric: tabular-nums; }
-.gk .gk-week__rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
-.gk .gk-week__row { display: flex; align-items: center; gap: var(--gk-2); min-height: 44px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); color: var(--gk-text); font-size: var(--gk-fs-sm); font-weight: 600; text-decoration: none; transition: border-color .15s var(--gk-ease); }
-.gk .gk-week__row:hover { border-color: var(--gk-line-strong); }
-.gk .gk-week__row:focus-visible { outline: none; box-shadow: var(--gk-focus); }
-.gk .gk-week__row > svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
-.gk .gk-week__row[data-done] { color: var(--gk-text-3); }
-.gk .gk-week__label { flex: 1; min-width: 0; }
-.gk .gk-week__icon { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .gk-week__row[data-done] .gk-week__icon { background: var(--gk-accent); color: var(--gk-on-accent); }
-.gk .gk-week__icon svg { width: 15px; height: 15px; }
-.gk .gk-week__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -11,6 +11,7 @@
 //     The server records follows itself. LESS demotes posts on that topic from that author for the person.
 import * as W from './world.mjs';
 import * as C from './world-club.mjs';
+import { profilePhone } from './profile-phones.mjs';
 
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
 /** A sandbox token in the JWT shape the app reads (`sub` is the account id). */
@@ -75,9 +76,10 @@ export const isNewcomer = headers => viewerId(headers) !== W.ME_ID;
 /**
  * Sandbox personas, all still Luka's account with other club access (set by /__mode/… on the server): `analyst` (a
  * few tools, two read-only), `member` (membership, no job), `headcoach` (head coach of U14 and U16, not an admin) and
- * `physio` (one job with only the medical tools, no membership). None: the Owner and head coach.
+ * `physio` (one job with only the medical tools, no membership) and `attendance` (a Custom job with only Attendance,
+ * no membership). None: the Owner and head coach.
  */
-export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio'];
+export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance'];
 export const personaOf = headers => { const found = /(?:^|;\s*)gk-sandbox-persona=([a-z]+)(?:;|$)/.exec(String(headers?.cookie ?? ''))?.[1]; return PERSONAS.includes(found) ? found : null; };
 /** Not the club's Owner or an Admin: every persona. */
 export const restrictedPersona = headers => personaOf(headers) !== null;
@@ -99,6 +101,8 @@ export const accountProfile = (a, viewer) => ({
   heightCm: null, weightKg: null, followerCount: 0, followingCount: 0, isFollowedByMe: false, careerHistory: [], avatarUrl: null, bannerUrl: null,
   dateOfBirth: viewer === a.id ? a.dateOfBirth : null, isPrivate: false, roleProfiles: a.roles.filter(r => r.published || viewer === a.id),
   footballProfile: { roles: a.roles.map(r => r.role), appointments: [], entries: [] },
+  // The phone added for colleagues, to the person only; never the phone they signed up with.
+  phone: viewer === a.id ? profilePhone(a.id) : null,
 });
 
 // ---------------------------------------------------------------- what the feed knows about a person

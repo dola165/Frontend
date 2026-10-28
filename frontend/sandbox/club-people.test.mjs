@@ -59,6 +59,16 @@ test('your own choice of what colleagues see is kept, and admins still see email
   const tamar = (await call('GET', '/clubs/1/people')).body.people.find(p => p.name === 'Tamar Lomidze');
   assert.equal(tamar.phone, null, 'nobody sees an invitee’s phone');
 });
+test('the phone you add on your profile is yours to read, and Staff shows it to colleagues', async () => {
+  const own = () => call('GET', '/clubs/1/people').then(staff => staff.body.people.find(p => p.userId === staff.body.viewer.userId));
+  assert.equal((await own()).phone, null, 'nobody’s phone shows until they add it');
+  assert.equal((await call('PUT', '/users/me', { phone: 'call me' })).status, 400);
+  const saved = await call('PUT', '/users/me', { phone: '+995 555 00 11 22' });
+  assert.equal(saved.body.phone, '+995 555 00 11 22');
+  assert.equal((await own()).phone, '+995 555 00 11 22');
+  assert.equal((await call('PUT', '/users/me', { phone: '' })).body.phone, null);
+  assert.equal((await own()).phone, null);
+});
 test('Staff shows today’s duty on the physio’s row and the club’s outside specialists', async () => {
   const staff = (await call('GET', '/clubs/1/people')).body;
   const duty = staff.people.flatMap(p => p.onDuty).find(d => d.title.startsWith('First aid cover · U14'));

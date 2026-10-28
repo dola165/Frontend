@@ -159,7 +159,7 @@ export function clubProfile(id) {
     playerJoinPolicy: clubPolicy.get(id), playerAffiliationStatus: null, relationshipState: mine ? 'ACTIVE' : 'NONE',
     pendingApplicationId: null, pendingApplicationRole: null, pendingApplicationJobId: null,
     addressText: c.address, cityName: c.city, countryName: 'Georgia', logoUrl: edits.logoUrl ?? c.logoUrl, bannerUrl: edits.bannerUrl ?? c.bannerUrl,
-    email: contacts[id]?.email ?? null, websiteUrl: contacts[id]?.websiteUrl ?? null, instagramUrl: contacts[id]?.instagramUrl ?? null,
+    email: contacts[id]?.email ?? null, websiteUrl: contacts[id]?.websiteUrl ?? null, instagramUrl: contacts[id]?.instagramUrl ?? null, facebookUrl: contacts[id]?.facebookUrl ?? null,
     whatsappNumber: contacts[id]?.whatsappNumber ?? null, facebookMessengerUrl: null, preferredCommunicationMethod: contacts[id]?.preferredCommunicationMethod ?? null,
     foundedYear: c.founded, level: levelLabel[c.type] ?? null, category: c.type, latitude: c.lat, longitude: c.lng,
     trustedByClubs: mine ? [{ clubId: 2, clubName: 'FC Dinamo Tbilisi' }, { clubId: 11, clubName: 'Kutaisi City Academy' }] : [],

@@ -33,7 +33,7 @@ const isOwnClub = id => Number(id) === CLUB;
 // and match preparation. `member`: club membership with no responsibilities at all. `headcoach`: the older Coach
 // membership and the head coach job on U14 and U16. `physio`: a job and no membership. None: the owner and head coach.
 const personaOf = V.personaOf;
-const personaRole = persona => (persona === 'analyst' || persona === 'headcoach' ? 'COACH' : persona === 'member' ? 'PLAYER' : persona === 'physio' ? null : 'OWNER');
+const personaRole = persona => (persona === 'analyst' || persona === 'headcoach' ? 'COACH' : persona === 'member' ? 'PLAYER' : persona === 'physio' || persona === 'attendance' ? null : 'OWNER');
 const ANALYST_ACCESS = { DEVELOPMENT: true, AVAILABILITY: false, READINESS: false }; // module → may write
 const analystSquads = () => [...C.myCoaching.squad_ids];
 const analystView = () => ({ id: 'analyst', label: 'Performance analyst', modules: Object.keys(ANALYST_ACCESS), squadIds: analystSquads(), clubWide: false, appointmentId: 990001, revision: 1 });
@@ -445,7 +445,7 @@ const admissionWorkspace = () => ({
   squads: C.squads.map(s => ({ id: s.id, name: s.name })), staff: C.activeStaffIds().map(id => ({ id, name: C.name(id) })), sessions: C.admissionSessions(),
 });
 // A physio's job and a plain membership don't run joining.
-get('/clubs/:id/admissions', ({ params, headers }) => isOwnClub(params.id) && !['physio', 'member'].includes(personaOf(headers)) ? admissionWorkspace() : reply(403, { status: 403, message: 'Joining arrangements are managed by club staff.' }));
+get('/clubs/:id/admissions', ({ params, headers }) => isOwnClub(params.id) && !['physio', 'attendance', 'member'].includes(personaOf(headers)) ? admissionWorkspace() : reply(403, { status: 403, message: 'Joining arrangements are managed by club staff.' }));
 get('/organizations/:oid/admissions', ({ params }) => Number(params.oid) === C.ORG_ID ? admissionWorkspace() : undefined);
 get('/organizations/:oid/admissions/legacy', ({ params }) => Number(params.oid) === C.ORG_ID ? [] : undefined);
 const caseEvent = (c, action, message) => { c.history.push({ id: C.nextId(), action, message: message ?? null, actorName: C.name(C.ME), createdAt: C.nowIso() }); c.version++; c.updatedAt = C.nowIso(); };

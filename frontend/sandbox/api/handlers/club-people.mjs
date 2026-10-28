@@ -1,9 +1,11 @@
 // Invented Staff fixtures for the local sandbox only. No private or production records.
-// Club office › Staff (step 2, 28 October 2026): everyone with a job reads it, with the email and phone each person
-// shares; admins change it. The viewer's own row follows the persona (Owner, head coach, physio, analyst).
+// Club office › Staff (step 2, 28 October 2026): everyone with a job reads it, with the email and the phone each person
+// added on their profile, unless they hid them; admins change it. The viewer's own row follows the persona (Owner, head
+// coach, physio, analyst) and its phone is the one added on their profile (none until they add it).
 import { get, post, put, del } from '../router.mjs';
 import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
+import { profilePhone } from '../profile-phones.mjs';
 import { scoped, denied, bad, missing, validateScope } from './workspace-context.mjs';
 import { jobs, moreJobs, tools } from '../club-people-jobs.mjs';
 const stores = new Map();
@@ -42,12 +44,13 @@ function ownRow(ctx) {
   const name = account?.fullName ?? C.name(ctx.actorId);
   const coached = ctx.coaching.length ? ctx.coaching : [...C.myCoaching.squad_ids];
   const held = ctx.persona === 'physio' ? [jobFor(ctx, 'PHYSIOTHERAPIST', 'Physio', [], 'ACTIVE', 96003)]
+    : ctx.persona === 'attendance' ? [{ ...jobFor(ctx, 'CUSTOM', 'Attendance helper', [], 'ACTIVE', 96006), tools: ['ATTENDANCE:WRITE'] }]
     : ctx.persona === 'analyst' ? [jobFor(ctx, 'ANALYST', 'Performance analyst', coached, 'ACTIVE', 96004)]
       : ctx.persona === 'headcoach' ? [jobFor(ctx, 'HEAD_COACH', 'Head coach', coached, 'ACTIVE', 96002)]
         : ctx.persona === 'member' ? []
           : ctx.role === 'OWNER' ? [leaderJob(ctx, 'OWNER', 96001), ...(ctx.coaching.length ? [jobFor(ctx, 'HEAD_COACH', 'Head coach', ctx.coaching, 'ACTIVE', 96002)] : [])]
             : ctx.leadership ? [leaderJob(ctx, 'ADMIN', 96005)] : [];
-  return person(ctx.actorId, name, account?.email ?? 'luka.gelashvili@example.test', account ? account.phone ?? null : '+995 555 00 11 22', held);
+  return person(ctx.actorId, name, account?.email ?? 'luka.gelashvili@example.test', profilePhone(ctx.actorId), held);
 }
 const rows = ctx => {
   const state = store(ctx);

@@ -9,6 +9,7 @@ import * as C from './world-club.mjs';
 import * as S from './world-social.mjs';
 import * as V from './viewer.mjs';
 import { pitchById, listedSeeds } from './pages-seed.mjs';
+import { instagramUrl, savedLink, shownLink } from './public-links.mjs';
 import { defaultLayout, normalizeLayout, setupState, goLiveCheck, isBoxKey, isPageKind, PAGE_MINIMUM_AGE, INVOLVED_PARTS, ORGANIZATION_TYPE, CLUB_CATEGORIES, BUSINESS_KINDS, DEFAULT_CLUB_CATEGORY } from '../../src/features/pages/model/kinds.ts';
 import { normalizeCrest, defaultCrest, crestSvg } from '../../src/features/pages/model/crest.ts';
 import { findSimilar, nameKey } from '../../src/features/pages/model/nameMatch.ts';
@@ -80,7 +81,7 @@ export function clubPage(clubId) {
     verification: club.verified ? 'VERIFIED' : 'NONE', verificationFor: [],
     identity: { version: 1, name: club.name, tagline: '', about: C.clubEdits.get(id)?.description ?? club.description ?? '', aboutAuto: false, town: townOf(club.city),
       crest: { kind: 'image', url: C.clubEdits.get(id)?.logoUrl ?? club.logoUrl, kept: true }, cover: club.bannerUrl ? { kind: 'image', url: C.clubEdits.get(id)?.bannerUrl ?? club.bannerUrl } : null,
-      contact: { phone: contact.whatsappNumber ?? '', email: contact.email ?? '' }, social: { website: contact.websiteUrl ?? '', instagram: contact.instagramUrl ?? '', facebook: '' },
+      contact: { phone: contact.whatsappNumber ?? '', email: contact.email ?? '' }, social: { website: contact.websiteUrl ?? '', instagram: savedLink('instagram', contact.instagramUrl ?? '').value ?? '', facebook: contact.facebookUrl ?? '' },
       businessKind: null, clubCategory: CATEGORY_OF_TYPE[club.type] ?? null },
     layout: { version: 1, ...defaultLayout('CLUB', extras) },
     boxes: { grounds: { version: 1, items: [], fromPage: false }, squads: { version: 1 }, fees: { version: 1, band: bandFromProgrammes(presentation?.programmes ?? []) }, staff: { version: 1, invites: [] },
@@ -332,12 +333,20 @@ export function syncClub(page) {
   club.logoUrl = crestUrlOf(page); club.bannerUrl = coverUrlOf(page);
   C.clubEdits.set(club.id, { ...edits, description: id.about, logoUrl: club.logoUrl, bannerUrl: club.bannerUrl ?? undefined });
   C.contacts[club.id] = { ...(C.contacts[club.id] ?? {}), email: id.contact.email || null, whatsappNumber: id.contact.phone || null,
-    websiteUrl: id.social.website || null, instagramUrl: id.social.instagram || null, preferredCommunicationMethod: id.contact.phone ? 'WHATSAPP' : id.contact.email ? 'EMAIL' : null };
+    websiteUrl: shownLink(id.social.website), instagramUrl: instagramUrl(id.social.instagram), facebookUrl: shownLink(id.social.facebook),
+    preferredCommunicationMethod: id.contact.phone ? 'WHATSAPP' : id.contact.email ? 'EMAIL' : null };
 }
 
-/** Identity fields a save may change, each cleaned. Unknown fields are ignored. */
+/** Identity fields a save may change, each cleaned. Unknown fields are ignored. Returns why a link is refused, if one is. */
 export function applyIdentity(page, patch) {
   const id = page.identity;
+  const links = {};
+  for (const key of ['website', 'instagram', 'facebook']) {
+    if (patch.social?.[key] === undefined) continue;
+    const saved = savedLink(key, text(patch.social[key], 300));
+    if (saved.error) return saved.error;
+    links[key] = saved.value;
+  }
   if (patch.name !== undefined) { const name = text(patch.name, 120); if (name.length >= 2) id.name = name; }
   if (patch.tagline !== undefined) id.tagline = text(patch.tagline, 80);
   if (patch.about !== undefined) id.about = String(patch.about ?? '').trim().slice(0, 600);
@@ -353,7 +362,7 @@ export function applyIdentity(page, patch) {
     else if (patch.cover.kind === 'image' && typeof patch.cover.url === 'string' && patch.cover.url.startsWith('/')) id.cover = { kind: 'image', url: patch.cover.url };
   }
   if (patch.contact) id.contact = { phone: patch.contact.phone !== undefined ? phoneText(patch.contact.phone) : id.contact.phone, email: patch.contact.email !== undefined ? text(patch.contact.email, 254) : id.contact.email };
-  if (patch.social) for (const key of ['website', 'instagram', 'facebook']) if (patch.social[key] !== undefined) id.social[key] = text(patch.social[key], 300);
+  Object.assign(id.social, links);
   if (patch.businessKind !== undefined && page.kind === 'BUSINESS' && BUSINESS_KINDS.includes(patch.businessKind)) id.businessKind = patch.businessKind;
   if (patch.clubCategory !== undefined && page.kind === 'CLUB' && CLUB_CATEGORIES.includes(patch.clubCategory)) id.clubCategory = patch.clubCategory;
   id.version++;

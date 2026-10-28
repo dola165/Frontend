@@ -54,7 +54,7 @@ post('/auth/logout', () => reply(204, undefined, { 'set-cookie': sessionCookies(
 
 // What the server would answer for each persona: Club office for the Owner and for a job with no page of its own yet
 // (the physio, the analyst); a head coach's own work is My squads, so no Club office tab. A physio coaches no squad.
-const clubCapabilities = persona => persona === 'physio' ? ['club.operations', 'club.member', 'club.office']
+const clubCapabilities = persona => persona === 'physio' || persona === 'attendance' ? ['club.operations', 'club.member', 'club.office']
   : persona === 'headcoach' ? ['club.workspace', 'club.operations', 'club.member']
     : persona === 'analyst' ? ['club.workspace', 'club.operations', 'club.member', 'club.office']
       : persona === 'member' ? ['club.workspace', 'club.operations'] : ['club.workspace', 'club.office', 'club.operations'];
@@ -64,7 +64,7 @@ export const meProjection = ({ headers } = {}) => ({
   dob: '1988-04-12', profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
   navigationCapabilities: { version: 1, workspaces: [
     ...clubCapabilities(V.personaOf(headers)).map(id => ({ id, context: { type: 'club', id: 1, label: clubs[0].name } })),
-    ...(V.personaOf(headers) === 'physio' ? [] : [
+    ...(['physio', 'attendance'].includes(V.personaOf(headers)) ? [] : [
       { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
       { id: 'squad.workspace', context: { type: 'squad', id: 103, label: 'U14 Boys' } }]),
     // Luka runs the league Dinamo hosts and coordinates the U16 cup (an ADMIN assignment on each).

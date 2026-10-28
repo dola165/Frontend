@@ -9,6 +9,7 @@ import { refreshAccess } from '../../../../hooks/useCan';
 import type { ClubPresentation, TrainingProgramme } from '../../presentation';
 import { ClubActions } from '../ClubActions';
 import { ClubAboutTab } from '../ClubAboutTab';
+import { ClubContactTab } from '../ClubInfoTabs';
 import { feeRange } from '../fees';
 import { ClubSide } from '../ClubSide';
 import { ClubTeamsTab } from '../ClubTeamsTab';
@@ -75,6 +76,23 @@ describe('club profile', () => {
         expect(about.compareDocumentPosition(post) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(post.compareDocumentPosition(coming) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(screen.getByText('Youth football')).toBeInTheDocument();
+    });
+
+    it('shows the web addresses in the club’s story as links that open in a new tab, and nothing else', () => {
+        page(<ClubAboutTab club={{ ...club, description: 'Fixtures on rustavi-lions.ge/fixtures. Write to info@rustavi-lions.ge.' }} can={visitor} />);
+        const link = screen.getByRole('link', { name: 'rustavi-lions.ge/fixtures' });
+        expect(link).toHaveAttribute('href', 'https://rustavi-lions.ge/fixtures');
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+        expect(screen.queryByRole('link', { name: /info@/ })).not.toBeInTheDocument();
+    });
+
+    it('lists the club’s website, Instagram and Facebook under Online, http(s) only', () => {
+        page(<ClubContactTab club={{ ...club, websiteUrl: 'https://rustavi-lions.ge', instagramUrl: 'https://www.instagram.com/rustavi.lions', facebookUrl: 'https://www.facebook.com/rustavilions', facebookMessengerUrl: 'javascript:alert(1)' }} />);
+        expect(screen.getByRole('link', { name: 'Website' })).toHaveAttribute('href', 'https://rustavi-lions.ge/');
+        expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/rustavi.lions');
+        expect(screen.getByRole('link', { name: 'Facebook' })).toHaveAttribute('href', 'https://www.facebook.com/rustavilions');
+        expect(screen.queryByRole('link', { name: 'Messenger' })).not.toBeInTheDocument();
     });
 
     it('lists the squads and the current published fees, and clears old or draft offers', async () => {

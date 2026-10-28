@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
+import { LinkedText } from '../../../design/LinkedText';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ClubManagementModal, type ClubManagementTab } from '../../../components/club/ClubManagementModal';
 import { ClubEnquiryModal } from '../../../components/club/ClubEnquiryModal';
@@ -97,6 +98,8 @@ function ClubProfileView({ id }: { id: number }) {
     // The academy and its club point at each other right under the name, not at the bottom of the page.
     const linked = club.presentation?.affiliations.find(a => a.status === 'ACTIVE');
     const place = club.addressText || [club.cityName, club.countryName].filter(Boolean).join(', ');
+    // The one-line About shows its web addresses as links, like the story.
+    const about = page?.identity.about || club.description || '';
     return <>
         <RearrangeFrame><ProfileLayout className="gk-club-page"
             identity={{
@@ -110,7 +113,7 @@ function ClubProfileView({ id }: { id: number }) {
                     <><strong>{club.followerCount.toLocaleString()}</strong>{pt(club.followerCount === 1 ? 'follower' : 'followers')}</>,
                     <><strong>{club.memberCount.toLocaleString()}</strong>{pt(club.memberCount === 1 ? 'member' : 'members')}</>,
                 ],
-                summary: page?.identity.about || club.description || undefined,
+                summary: about ? <LinkedText text={about} /> : undefined,
             }}
             banner={page ? page.identity.cover?.url ?? null : club.bannerUrl}
             bannerAction={editing ? <Button size="sm" onClick={() => edit.openPanel('cover')}><Camera aria-hidden="true" />{page?.identity.cover ? pt('Change cover') : pt('Add cover')}</Button> : images.coverAction}

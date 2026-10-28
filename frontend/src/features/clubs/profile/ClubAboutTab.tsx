@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, PenLine, Trophy } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, FixtureRow, List, ListRow, Panel, Section, Skeleton } from '../../../design/primitives';
+import { LinkedText } from '../../../design/LinkedText';
 import { Fact } from '../../../design/profile/ProfileLayout';
 import { dayLabel, kindOf, timeLabel } from '../../clubWorkspace/fixtures';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
@@ -37,7 +38,7 @@ export function ClubAboutTab({ club, can }: { club: ClubProfile; can: ClubPermis
         {lead === 'family' && <ClubFamilyWeek clubId={club.id} />}
         <Section boxed title="About" action={club.presentation?.canEdit ? { label: 'Edit', to: `/clubs/${club.id}?edit=1&panel=identity` } : undefined}>
             <Panel padded>
-                {club.description ? <p className="gk-club-story">{club.description}</p> : <p className="gk-muted">The club has not written its story yet.</p>}
+                {club.description ? <p className="gk-club-story"><LinkedText text={club.description} /></p> : <p className="gk-muted">The club has not written its story yet.</p>}
                 <dl className="gk-club-facts">
                     <Fact label="Type">{club.presentation ? profileKindLabel[club.presentation.profileKind] : club.type || 'Football club'}</Fact>
                     {club.foundedYear && <Fact label="Founded">{club.foundedYear}</Fact>}

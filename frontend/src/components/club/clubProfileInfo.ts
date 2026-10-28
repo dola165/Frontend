@@ -1,12 +1,6 @@
 import type { ClubProfile } from '../../features/clubs/profile/types';
 import './club-tones.css';
 
-export interface ClubProfileActionLink {
-    href: string;
-    label: string;
-    toneClassName: string;
-}
-
 export const toPhoneHref = (value?: string | null) => (value ? `tel:${value.replace(/\s+/g, '')}` : null);
 
 export const toWhatsappHref = (value?: string | null) => {
@@ -22,41 +16,6 @@ export const getDomainLabel = (value: string) => {
     } catch {
         return value;
     }
-};
-
-export const buildClubProfileLinks = (club: ClubProfile): ClubProfileActionLink[] => {
-    const links: ClubProfileActionLink[] = [];
-    const seen = new Set<string>();
-
-    const pushLink = (href: string | null | undefined, label: string, toneClassName: string) => {
-        if (!href || seen.has(href)) return;
-        seen.add(href);
-        links.push({ href, label, toneClassName });
-    };
-
-    pushLink(toWhatsappHref(club.whatsappNumber), 'WhatsApp', 'club-tone-green');
-    pushLink(club.facebookMessengerUrl, 'Facebook', 'club-tone-purple');
-    pushLink(club.websiteUrl, 'Website', 'club-tone-blue');
-    pushLink(club.instagramUrl, 'Instagram', 'club-tone-cyan');
-
-    club.opportunities
-        .filter((opportunity) => Boolean(opportunity.externalLink))
-        .slice(0, 4)
-        .forEach((opportunity) => {
-            const label =
-                opportunity.type === 'FUNDRAISING'
-                    ? 'Fundraising'
-                    : opportunity.type === 'JOB'
-                        ? 'Job'
-                        : opportunity.type === 'VOLUNTEER'
-                            ? 'Volunteer'
-                            : null;
-            if (label) {
-                pushLink(opportunity.externalLink, label, 'club-tone-blue');
-            }
-        });
-
-    return links;
 };
 
 export const summarizeClubTrust = (club: ClubProfile) => {

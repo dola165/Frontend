@@ -14,7 +14,7 @@ const areas = [{ id: 'coaching', name: 'Coaching' }, { id: 'analysis', name: 'An
 /** Compact structure from TabPeople before e95e2445: departments describe contributions, never reporting lines. */
 function Person({ person, area }: { person: PublicStaff; area: string }) {
     const t = usePagesCopy();
-    const appointments = person.responsibilities.filter(r => responsibilityAreas(r.specialisations).includes(area));
+    const appointments = person.responsibilities.filter(r => responsibilityAreas(r.specialisations, r.title).includes(area));
     const scope = (r: PublicResponsibility) => r.clubWide ? t('Across the club') : r.squadNames?.length ? r.squadNames.join(' · ') : r.squadName ?? t('Across the club');
     return <article className="gk-staff-person">
         <Crest src={person.avatarUrl} name={person.fullName} size={32} round />

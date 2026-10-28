@@ -156,7 +156,7 @@ export function ClubPeople({ clubId, clubName, members = [], onChanged }: {
                         action={!query && rights.invite ? <Button size="sm" onClick={() => open('link')}><QrCode aria-hidden="true" />{copy('Invite staff', 'პერსონალის მოწვევა')}</Button> : undefined}>
                         {query ? copy('Try a name, job or squad.', 'სცადეთ სახელი, სამუშაო ან გუნდი.') : copy('One link or QR code brings your coaches in.', 'ერთი ბმული ან QR კოდი და მწვრთნელები შემოვლენ.')}</EmptyNote></Panel>}
         </div>
-        {view && rights.invite && <InviteDialog open={inviting === 'person'} club={clubId} view={view} person={forPerson} allowAdmin={inviteAdmin} onClose={() => open(null)}
+        {view && rights.invite && inviting === 'person' && <InviteDialog open={inviting === 'person'} club={clubId} view={view} person={forPerson} allowAdmin={inviteAdmin} onClose={() => open(null)}
             onInvited={result => {
                 const added = Boolean(forPerson);
                 open(null);

@@ -8,3 +8,9 @@ it('finds a published coach in every appointed team but excludes unrelated teams
 it('retains explicit whole-club public responsibilities',()=>{
  expect(staffMatchesSquad({...person,responsibilities:[{...person.responsibilities[0],squadId:null,squadIds:[],clubWide:true}]},'13')).toBe(true);
 });
+
+it.each(['SPECIALIST_COACH', 'TRAVEL_COORDINATOR'])('keeps %s available as a contact for its appointed squad', code => {
+ const recoded = {...person, responsibilities: [{...person.responsibilities[0], specialisations: [code]}]};
+ expect(enquiryPriority(recoded, [12])).toBe(0);
+ expect(enquiryPriority(recoded, [13])).toBe(2);
+});

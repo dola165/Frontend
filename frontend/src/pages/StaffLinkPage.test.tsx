@@ -64,3 +64,10 @@ it('staff means one club: "Leave Saburtalo first", the leave flow, then the join
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/9/relationships/STAFF/leave', { requestId: expect.any(String), snapshot: 'snap' }));
     expect(await screen.findByText('My squads')).toBeInTheDocument();
 });
+
+it('shows the saved specialist title when joining through an older link', async () => {
+    api.get.mockResolvedValue({ data: { ...preview, job: 'SPECIALIST_COACH', title: 'Goalkeeper coach' } });
+    show();
+    expect(await screen.findByText('Luka invited you: Goalkeeper coach')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Join as Goalkeeper coach' })).toBeInTheDocument();
+});

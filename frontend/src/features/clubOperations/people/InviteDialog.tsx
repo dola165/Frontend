@@ -3,11 +3,11 @@ import { Button, Field } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
-import { invitePerson, MAIN_JOBS, type InviteResult, type JobDraft, type Person, type PeopleView } from './api';
+import { invitePerson, mainJobs, type InviteResult, type JobDraft, type Person, type PeopleView } from './api';
 import { JobPicker } from './JobPicker';
 import { useJobWords } from './jobWords';
 
-const blank = (): JobDraft => ({ job: 'HEAD_COACH', title: '', tools: [], clubWide: false, squadIds: [] });
+const blank = (view: PeopleView): JobDraft => ({ job: 'HEAD_COACH', title: '', tools: [], clubWide: false, squadIds: view.viewer.headCoachSquads.length === 1 ? view.viewer.headCoachSquads : [] });
 
 /**
  * Inviting one person (Owner and Admins): name, email, job, where. The only way to make an Admin; many coaches at
@@ -19,9 +19,9 @@ export function InviteDialog({ open, club, view, person, allowAdmin, onClose, on
 }) {
     const id = useId();
     const { copy } = useJobWords();
-    const [name, setName] = useState(''), [email, setEmail] = useState(''), [draft, setDraft] = useState<JobDraft>(() => blank());
+    const [name, setName] = useState(''), [email, setEmail] = useState(''), [draft, setDraft] = useState<JobDraft>(() => blank(view));
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
-    const close = () => { if (busy) return; setName(''); setEmail(''); setDraft(blank()); setError(''); onClose(); };
+    const close = () => { if (busy) return; setName(''); setEmail(''); setDraft(blank(view)); setError(''); onClose(); };
     const problem = !person && name.trim().length < 2 ? copy('Enter their name.', 'შეიყვანეთ სახელი.')
         : !person && !/^\S+@\S+\.\S+$/.test(email.trim()) ? copy('Enter their email.', 'შეიყვანეთ ელფოსტა.')
             : draft.job === 'CUSTOM' && (!draft.title.trim() || !draft.tools.length) ? copy('Name the custom job and tick at least one tool.', 'დაარქვით სამუშაოს სახელი და მონიშნეთ ერთი ხელსაწყო მაინც.')
@@ -31,7 +31,7 @@ export function InviteDialog({ open, club, view, person, allowAdmin, onClose, on
         setBusy(true); setError('');
         try {
             const result = await invitePerson(club, person ? { userId: person.userId } : { name: name.trim(), email: email.trim() }, draft);
-            setBusy(false); setName(''); setEmail(''); setDraft(blank());
+            setBusy(false); setName(''); setEmail(''); setDraft(blank(view));
             onInvited(result);
         } catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, copy('The invite couldn’t be sent.', 'მოწვევა ვერ გაიგზავნა.'))); setBusy(false); }
     };
@@ -44,7 +44,7 @@ export function InviteDialog({ open, club, view, person, allowAdmin, onClose, on
                 <Field label={copy('Name', 'სახელი')} htmlFor={`${id}-name`}><input id={`${id}-name`} className="gk-input" required aria-required="true" autoComplete="off" maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></Field>
                 <Field label={copy('Email', 'ელფოსტა')} htmlFor={`${id}-email`}><input id={`${id}-email`} className="gk-input" type="email" autoComplete="off" maxLength={254} value={email} disabled={busy} onChange={event => setEmail(event.target.value)} /></Field>
             </div>}
-            <JobPicker view={view} draft={draft} onChange={setDraft} choices={allowAdmin ? MAIN_JOBS : MAIN_JOBS.filter(job => job !== 'ADMIN')} extras disabled={busy} />
+            <JobPicker view={view} draft={draft} onChange={setDraft} choices={mainJobs(view).filter(job => allowAdmin || job !== 'ADMIN')} extras disabled={busy} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             <button type="submit" hidden />
         </form>

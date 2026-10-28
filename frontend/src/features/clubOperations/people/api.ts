@@ -26,7 +26,7 @@ export interface PersonJob {
 export interface JobEvent { at: string; byName: string; action: 'GIVEN' | 'SUGGESTED' | 'CONFIRMED' | 'DECLINED' | 'ACCEPTED' | 'CHANGED' | 'JOINED_BY_LINK' | 'ENDED'; summary: string | null }
 export interface Person { userId: number; name: string; email: string | null; avatarUrl: string | null; needsLink: boolean; jobs: PersonJob[] }
 export interface NameCheck { id: number; userId: number; invitedName: string; acceptedName: string; at: string }
-export interface JobChoice { key: string; title: string; description: string; tools: string[] }
+export interface JobChoice { key: string; title: string; description: string; tools: string[]; family?: string; home?: string; views?: string[]; titles?: string[] }
 export interface PeopleView {
     /** `leader`: the Owner or an Admin. */
     viewer: { userId: number; leader: boolean; owner: boolean; headCoachSquads: number[] };
@@ -34,6 +34,7 @@ export interface PeopleView {
 }
 /** A staff link: one job (never Admin), 7 days or 10 uses, and who joined through it. `code` and `path` only while ACTIVE. */
 export interface StaffLink {
+    tools?: string[];
     id: number; job: string; title: string; clubWide: boolean; squads: PeopleSquad[];
     status: 'ACTIVE' | 'EXPIRED' | 'USED_UP' | 'REVOKED'; code: string | null; path: string | null;
     uses: number; maxUses: number; expiresAt: string; createdAt: string; createdById: number | null; createdByName: string | null;
@@ -49,16 +50,24 @@ export interface SuggestionAnswer { appointmentId: number; outcome: 'CONFIRMED' 
 /** A job and where it applies, as the forms edit it. `job` is a main job, another bundle's key or CUSTOM. */
 export interface JobDraft { job: string; title: string; tools: string[]; clubWide: boolean; squadIds: number[] }
 
-export const MAIN_JOBS = ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'FEES', 'ADMIN'] as const;
-/** What a staff link can give: never Admin or Owner (admins are invited one by one). */
-export const LINK_JOBS = ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'FEES'] as const;
+export const mainJobs = (view: PeopleView) => view.jobs.map(job => job.key);
+export const linkJobs = (view: PeopleView) => mainJobs(view).filter(job => job !== 'ADMIN');
+/** Link identity includes the title; legacy Custom links also retain their exact tools. */
+export const staffLinkMatches = (link: StaffLink, draft: JobDraft, view: PeopleView) => {
+    const choice = [...view.jobs, ...view.moreJobs].find(job => job.key === draft.job);
+    const title = draft.title.trim() || choice?.titles?.[0] || choice?.title || '';
+    const sameTools = (a: string[], b: string[]) => a.every(t => b.includes(t)) && b.every(t => a.includes(t));
+    return link.job === draft.job && link.title === title && link.clubWide === draft.clubWide
+        && (link.clubWide || link.squads.length === draft.squadIds.length && link.squads.every(s => draft.squadIds.includes(s.id)))
+        && (draft.job !== 'CUSTOM' || sameTools(link.tools ?? [], draft.tools));
+};
 /** What a head coach may suggest, for their own squads only (an admin confirms). */
 export const HELPER_JOBS = ['ASSISTANT_COACH', 'TEAM_MANAGER'] as const;
 
 const base = (club: number) => `/clubs/${club}/people`;
-const where = (draft: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>) => draft.job === 'ADMIN' ? { clubWide: true, squadIds: [] }
+const where = (draft: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>) => ['ADMIN', 'HEAD_OF_COACHING'].includes(draft.job) ? { clubWide: true, squadIds: [] }
     : { clubWide: draft.clubWide, squadIds: draft.clubWide ? [] : [...draft.squadIds].sort((a, b) => a - b) };
-const custom = (draft: Pick<JobDraft, 'job' | 'title' | 'tools'>) => draft.job === 'CUSTOM' ? { title: draft.title.trim(), tools: draft.tools } : { title: null, tools: null };
+const custom = (draft: Pick<JobDraft, 'job' | 'title' | 'tools'>) => ({ title: draft.title.trim() || null, tools: draft.job === 'CUSTOM' || draft.tools.length ? draft.tools : null });
 
 export const fetchPeople = async (club: number, signal?: AbortSignal) => (await apiClient.get<PeopleView>(base(club), { signal })).data;
 
@@ -106,7 +115,7 @@ export const whatsAppUrl = (text: string) => `https://wa.me/?text=${encodeURICom
 
 /** The job a person holds or is invited to, as a draft the forms can change. */
 export const draftOf = (job: PersonJob): JobDraft => ({
-    job: job.job, title: job.job === 'CUSTOM' ? job.title : '', tools: job.job === 'CUSTOM' ? job.tools : [],
+    job: job.job, title: job.title, tools: job.job === 'CUSTOM' ? job.tools : [],
     clubWide: job.clubWide, squadIds: job.squads.map(s => s.id),
 });
 

@@ -91,7 +91,7 @@ it('invites staff in bulk with one link and QR code, never as Admin, and removes
     await screen.findByLabelText('Staff link');
     const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
     for (const job of ['Head coach', 'Assistant coach', 'Team manager', 'Fees']) expect(within(dialog).getByRole('button', { name: job })).toBeInTheDocument();
-    for (const other of ['Admin', 'Owner', 'More jobs', 'Custom']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
+    for (const other of ['Admin', 'Owner', 'Head of coaching', 'More jobs', 'Custom']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
     expect(within(dialog).getByTitle(/QR code/)).toBeInTheDocument();
     expect(within(dialog).getByText(/7 of 10 uses left/)).toBeInTheDocument();
@@ -103,7 +103,7 @@ it('invites staff in bulk with one link and QR code, never as Admin, and removes
 
     api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', uses: 0, joined: [] }) });
     fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', { requestId: expect.any(String), job: 'HEAD_COACH', title: null, tools: null, clubWide: true, squadIds: [] }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', { requestId: expect.any(String), job: 'HEAD_COACH', title: 'Head coach', tools: null, clubWide: true, squadIds: [] }));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/clubs/7/staff-links/70'));
     expect(await within(dialog).findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/newcode`);
 });
@@ -351,4 +351,23 @@ it('the handover list offers Try again when the club’s people fail to load', a
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Try again' }));
     expect(await within(dialog).findByRole('button', { name: /Mari Admin.*takes over at once/ })).toBeInTheDocument();
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+});
+
+
+it.each(['CUSTOM', 'SPECIALIST_COACH'])('renewing a %s link keeps its stored title and tools', async job => {
+    const old = staffLink({ job, title: 'Individual coaching', tools: ['ATTENDANCE:WRITE'] });
+    renderPeople(view(), { links: [old], url: '/?invite=link' });
+    await screen.findByLabelText('Staff link');
+    const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
+    api.post.mockResolvedValueOnce({ data: { ...old, id: 71, uses: 0, joined: [] } });
+    fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', expect.objectContaining({ job, title: old.title, tools: old.tools })));
+});
+
+it('an admin with no coached squads opens the existing link from Invite staff', async () => {
+    renderPeople(view({ owner: false, headCoachSquads: [] }), { links: [staffLink()] });
+    fireEvent.click(await screen.findByRole('button', { name: /^Invite staff/ }));
+    expect(await screen.findByLabelText('Staff link')).toHaveValue(window.location.origin + '/staff-invite/staffcode');
+    expect(screen.getByRole('button', { name: 'Whole club' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: /Make the link/ })).not.toBeInTheDocument();
 });

@@ -8,7 +8,7 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { formatDate } from '../../../utils/formatting';
 import { relativeTime } from '../../../utils/relativeTime';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
-import { HELPER_JOBS, invitePerson, linkJobs, mainJobs, makeStaffLink, removeJoined, staffLinkMatches, staffLinkUrl, stopStaffLink,
+import { invitePerson, linkJobs, mainJobs, makeStaffLink, removeJoined, staffLinkMatches, staffLinkUrl, stopStaffLink,
     type InviteResult, type JobDraft, type Person, type PeopleView, type StaffLink } from './api';
 import { JobPicker } from './JobPicker';
 import { useJobWords } from './jobWords';
@@ -24,11 +24,11 @@ const draftFor = (link: StaffLink): JobDraft => ({ job: link.job, title: link.ti
  * One invite (Club office, step 2, 28 October 2026): the job and where first, then how. "Send to one person" works for
  * every job, Admin included: they get a link that works once, or the invitation in the app. "Share a staff link" is
  * one link and QR code for Head coach, Assistant coach, Team manager or Fees, never Admin, since a link can be
- * forwarded: 7 days or 10 people, who joined listed underneath. A head coach gets the same dialog for the squads they
- * coach, sent as a suggestion an admin confirms. For someone already listed (`person`), only the job and where.
+ * forwarded: 7 days or 10 people, who joined listed underneath. For someone already listed (`person`), only the job and
+ * where. Admins give jobs; a head coach adds helpers to their sessions instead (step 3, 29 October 2026).
  */
-export function InviteStaffDialog({ club, clubName, view, person, suggest, allowAdmin, initial, how, onHow, links, linksLoading = false, linksError = '', onRetryLinks, openedLink, onLinks, onClose, onInvited, onChanged }: {
-    club: number; clubName: string; view: PeopleView; person?: Person; suggest: boolean; allowAdmin: boolean;
+export function InviteStaffDialog({ club, clubName, view, person, allowAdmin, initial, how, onHow, links, linksLoading = false, linksError = '', onRetryLinks, openedLink, onLinks, onClose, onInvited, onChanged }: {
+    club: number; clubName: string; view: PeopleView; person?: Person; allowAdmin: boolean;
     /** The job and where a door chose already (a squad's "Invite staff": Assistant coach for that squad). */
     initial?: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>;
     how: InviteHow; onHow: (how: InviteHow) => void;
@@ -37,16 +37,13 @@ export function InviteStaffDialog({ club, clubName, view, person, suggest, allow
 }) {
     const id = useId();
     const { copy, jobName } = useJobWords([...view.jobs, ...view.moreJobs]);
-    const own = view.viewer.headCoachSquads;
-    // A head coach suggests for the squads they coach; the picker only offers those.
-    const pickerView = suggest ? { ...view, squads: view.squads.filter(squad => own.includes(squad.id)) } : view;
     // A link named in the address opens with its job and where, and so does Share a staff link before anything is
     // chosen: the link for the job and where a door chose (a squad's "Invite staff"), or none; else the newest link.
-    const preset = (list: StaffLink[], way: InviteHow) => person || suggest ? undefined : list.find(link => link.id === openedLink)
+    const preset = (list: StaffLink[], way: InviteHow) => person ? undefined : list.find(link => link.id === openedLink)
         ?? (way !== 'link' ? undefined : initial ? list.find(link => staffLinkMatches(link, { title: '', tools: [], ...initial }, view)) : list[0]);
     const [draft, setDraft] = useState<JobDraft>(() => {
         const opened = preset(links, how);
-        return opened ? draftFor(opened) : { job: suggest ? HELPER_JOBS[0] : 'HEAD_COACH', title: '', tools: [], clubWide: false, squadIds: own.length === 1 ? own : [], ...initial };
+        return opened ? draftFor(opened) : { job: 'HEAD_COACH', title: '', tools: [], clubWide: false, squadIds: [], ...initial };
     });
     const [name, setName] = useState(''), [email, setEmail] = useState(''), [touched, setTouched] = useState(false);
     // The links often arrive after the dialog opens: the first ones set the job, unless one was chosen meanwhile.
@@ -60,9 +57,9 @@ export function InviteStaffDialog({ club, clubName, view, person, suggest, allow
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
     // A link for a job no longer offered for links (an older one) still shows, so it can be shared or switched off.
     const canMake = linkJobs(view).includes(draft.job);
-    const linkable = !suggest && !person && (canMake || links.some(link => staffLinkMatches(link, draft, view)));
+    const linkable = !person && (canMake || links.some(link => staffLinkMatches(link, draft, view)));
     const showLink = how === 'link' && linkable;
-    const choices = suggest ? [...HELPER_JOBS] : mainJobs(view).filter(job => allowAdmin || job !== 'ADMIN');
+    const choices = mainJobs(view).filter(job => allowAdmin || job !== 'ADMIN');
     const problem = !person && name.trim().length < 2 ? copy('Enter their name.', 'შეიყვანეთ სახელი.')
         : !person && !/^\S+@\S+\.\S+$/.test(email.trim()) ? copy('Enter their email.', 'შეიყვანეთ ელფოსტა.')
             : draft.job === 'CUSTOM' && (!draft.title.trim() || !draft.tools.length) ? copy('Name the custom job and tick at least one tool.', 'დაარქვით სამუშაოს სახელი და მონიშნეთ ერთი ხელსაწყო მაინც.')
@@ -71,21 +68,19 @@ export function InviteStaffDialog({ club, clubName, view, person, suggest, allow
         if (problem) { setError(problem); return; }
         setBusy(true); setError('');
         try {
-            // From a head coach an invite is a suggestion: it waits for an admin (SUGGESTED, no link yet).
             onInvited(await invitePerson(club, person ? { userId: person.userId } : { name: name.trim(), email: email.trim() }, draft));
-        } catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, suggest ? copy('The suggestion couldn’t be sent.', 'შეთავაზება ვერ გაიგზავნა.') : copy('The invite couldn’t be sent.', 'მოწვევა ვერ გაიგზავნა.'))); setBusy(false); }
+        } catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, copy('The invite couldn’t be sent.', 'მოწვევა ვერ გაიგზავნა.'))); setBusy(false); }
     };
     const linkHint = draft.job === 'ADMIN' ? copy('Never Admin: a link can be forwarded. Send it to one person.', 'ადმინი — არასოდეს: ბმული შეიძლება გადაიგზავნოს. გაუგზავნეთ ერთ ადამიანს.')
         : copy(`Only for ${LINK_JOBS.map(job => jobName(job)).join(', ')}`, `მხოლოდ: ${LINK_JOBS.map(job => jobName(job)).join(', ')}`);
-    const title = person ? copy(`Give ${person.name} a job`, `${person.name}: ახალი სამუშაო`) : suggest ? copy('Suggest a helper', 'დამხმარის შეთავაზება') : copy('Invite to a job', 'სამუშაოზე მოწვევა');
+    const title = person ? copy(`Give ${person.name} a job`, `${person.name}: ახალი სამუშაო`) : copy('Invite to a job', 'სამუშაოზე მოწვევა');
     return <Dialog open size="md" onClose={() => { if (!busy) onClose(); }} title={title}
-        description={suggest ? copy('For a squad you coach. An admin confirms it; you’ll be told.', 'გუნდისთვის, რომელსაც წვრთნით. ადმინი დაადასტურებს; შეგატყობინებთ.') : undefined}
         footer={showLink ? <Button variant="ghost" disabled={busy} onClick={onClose}>{copy('Done', 'მზადაა')}</Button>
             : <><Button variant="ghost" disabled={busy} onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button>
-                <Button variant="primary" disabled={busy} onClick={() => void send()}>{busy ? copy('Sending…', 'იგზავნება…') : suggest ? copy('Send suggestion', 'შეთავაზების გაგზავნა') : copy('Send invite', 'მოწვევის გაგზავნა')}</Button></>}>
+                <Button variant="primary" disabled={busy} onClick={() => void send()}>{busy ? copy('Sending…', 'იგზავნება…') : copy('Send invite', 'მოწვევის გაგზავნა')}</Button></>}>
         <form className="pp-form" onSubmit={event => { event.preventDefault(); if (!showLink) void send(); }}>
-            <JobPicker view={pickerView} draft={draft} onChange={next => { setDraft(next); setTouched(true); setError(''); }} choices={choices} extras={!suggest} clubWide={!suggest} disabled={busy} />
-            {!suggest && !person && <fieldset className="pp-how" disabled={busy}>
+            <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setTouched(true); setError(''); }} choices={choices} extras clubWide disabled={busy} />
+            {!person && <fieldset className="pp-how" disabled={busy}>
                 <legend className="gk-field__label">{copy('How', 'როგორ')}</legend>
                 <div className="cw-options pp-how__options" role="radiogroup" aria-label={copy('How', 'როგორ')}>
                     <button type="button" role="radio" aria-checked={!showLink} className="cw-option" onClick={() => chooseHow('person')}>

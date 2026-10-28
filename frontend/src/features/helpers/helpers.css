@@ -1,0 +1,35 @@
+/* Helpers on sessions (decision 3): the helper's Home card and register, the coach's list on a session, Staff's list.
+   Scoped under `.gk`; tokens only. */
+
+.gk .hp-note { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .hp-chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+
+/* ---------------------------------------------------------------- Home: You're helping today */
+.gk .hp-card { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4); }
+.gk .hp-card__top { display: flex; align-items: center; gap: var(--gk-3); }
+.gk .hp-card__title { display: flex; flex-direction: column; min-width: 0; }
+.gk .hp-card__title strong { font-size: var(--gk-fs-lg, 16px); font-weight: 650; }
+.gk .hp-card__coming { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); }
+.gk .hp-card__stop { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .hp-card__stop:hover { color: var(--gk-danger); text-decoration: underline; }
+.gk .hp-register { margin: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); list-style: none; overflow: hidden; }
+.gk .hp-register li + li { border-top: 1px solid var(--gk-line); }
+.gk .hp-register__row { display: flex; align-items: center; gap: var(--gk-3); min-height: 44px; padding: 0 var(--gk-3); cursor: pointer; }
+.gk .hp-register__row:hover { background: var(--gk-hover); }
+.gk .hp-register__row input { width: 18px; height: 18px; accent-color: var(--gk-accent); }
+.gk .hp-register__name { flex: 1; min-width: 0; }
+.gk .hp-register__tick { width: 16px; height: 16px; color: var(--gk-accent); }
+
+/* ---------------------------------------------------------------- a session's helpers (My squads) */
+.gk .hp-session { display: flex; flex-direction: column; gap: var(--gk-2); margin-top: var(--gk-3); padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); }
+.gk .hp-session__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .hp-session__list { display: grid; gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .hp-session__list li { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .hp-session__who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+
+/* ---------------------------------------------------------------- Club office › Staff */
+.gk .hp-club { margin: 0; padding: 0; list-style: none; }
+.gk .hp-club li { display: flex; align-items: center; gap: var(--gk-3); min-height: 56px; padding: var(--gk-2) var(--gk-4); border-top: 1px solid var(--gk-line); }
+.gk .hp-club li:first-child { border-top: 0; }
+.gk .hp-club__who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gk .hp-club__who strong { font-weight: 600; }

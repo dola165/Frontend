@@ -16,7 +16,7 @@ const ScoreFlow = lazy(() => import('./flows/MatchFlows').then(module => ({ defa
 const AddChildFlow = lazy(() => import('./flows/FamilyFlows').then(module => ({ default: module.AddChildFlow })));
 const JoinCodeFlow = lazy(() => import('./flows/FamilyFlows').then(module => ({ default: module.JoinCodeFlow })));
 const InviteStaffFlow = lazy(() => import('./flows/StaffFlows').then(module => ({ default: module.InviteStaffFlow })));
-const SuggestFlow = lazy(() => import('./flows/StaffFlows').then(module => ({ default: module.SuggestFlow })));
+
 
 /**
  * Mounted once in the app shell beside the start sheet: opens an action's flow over the current page when the address
@@ -40,7 +40,7 @@ function OpenAction({ action }: { action: ActionKey }) {
     const params = new URLSearchParams(location.search);
     const squadId = actionNumber(params, 'squad');
     const club = actionNumber(params, 'club') ?? ownClub(user?.navigationCapabilities)?.id;
-    const subject: ActionSubject = squadId ? { kind: 'squad', id: squadId, clubId: club } : club && (action === 'invite_staff' || action === 'suggest_assistant') ? { kind: 'club', id: club } : { kind: 'me' };
+    const subject: ActionSubject = squadId ? { kind: 'squad', id: squadId, clubId: club } : club && action === 'invite_staff' ? { kind: 'club', id: club } : { kind: 'me' };
     const state = useAction(action, subject);
     // Once the person has typed in the flow, a refusal that arrives late never takes the form away: the server refuses on submit.
     const [typed, setTyped] = useState(false);
@@ -61,7 +61,7 @@ function OpenAction({ action }: { action: ActionKey }) {
         : action === 'add_child' ? <AddChildFlow onClose={close} />
         : action === 'join_squad' ? <JoinCodeFlow code={actionText(params, 'code')} playerId={actionNumber(params, 'player')} onClose={close} />
         : action === 'invite_staff' && club ? <InviteStaffFlow club={club} clubName={clubName} squadId={squadId} job={actionText(params, 'job')} onClose={close} />
-        : action === 'suggest_assistant' && club ? <SuggestFlow club={club} squadId={squadId} onClose={close} />
+
         : null;
     // Input inside the flow's dialog bubbles here through the portal.
     return <div className="gk-action-host" onInput={() => setTyped(true)}><Suspense fallback={null}>{flow}</Suspense></div>;

@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BadgeCheck, ChevronRight, Crown, Landmark, ListChecks, Map as MapIcon, Upload, UserPlus, Users, type LucideIcon } from 'lucide-react';
-import { Avatar, Button, ButtonLink, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
+import { Button, ButtonLink, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
+import { Crest } from '../../design/visuals';
 import { useCan } from '../../hooks/useCan';
 import type { Bootstrap } from '../clubOperations/api';
 import { OperationsSettings } from '../clubOperations/OperationsSettings';
@@ -15,6 +16,7 @@ import { JoiningPolicy } from '../clubWorkspace/settings/JoiningPolicy';
 import { ClubPresentationSettings } from '../clubWorkspace/settings/presentation/ClubPresentationSettings';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { officePath } from './officeLinks';
+import './office.css';
 
 const SECTIONS = ['joining', 'details', 'profile', 'activities', 'facilities', 'imports'] as const;
 type Section = typeof SECTIONS[number];
@@ -24,8 +26,8 @@ type Section = typeof SECTIONS[number];
  * verification, the ownership, the club's details and the tools it uses. Each row opens its editor here, in the
  * address as `section`, with the way back to the list.
  */
-export function OfficeSettings({ clubId, clubName, overview, boot, onRefresh }: {
-    clubId: number; clubName: string; overview: ClubManagementOverview | null; boot: Bootstrap | null; onRefresh: () => Promise<void>;
+export function OfficeSettings({ clubId, clubName, crest = null, overview, boot, onRefresh }: {
+    clubId: number; clubName: string; crest?: string | null; overview: ClubManagementOverview | null; boot: Bootstrap | null; onRefresh: () => Promise<void>;
 }) {
     const copy = useJourneyCopy();
     const navigate = useNavigate();
@@ -67,7 +69,7 @@ export function OfficeSettings({ clubId, clubName, overview, boot, onRefresh }: 
             <OwnershipPanel clubId={clubId} clubName={clubName} canAsk={can.decide('ask_handover', false).allowed} onChanged={changed} />
             <Panel flush><ul className="office-settings__list" aria-label={copy('Settings', 'პარამეტრები')}>
                 {row(null, copy('The club page', 'კლუბის გვერდი'), copy('Name, crest, contacts, grounds, teams', 'სახელი, ემბლემა, კონტაქტები, მოედნები, გუნდები'),
-                    { label: copy('Edit the page', 'გვერდის რედაქტირება'), to: `/clubs/${clubId}?edit=1` }, <Avatar name={clubName} size={32} square />)}
+                    { label: copy('Edit the page', 'გვერდის რედაქტირება'), to: `/clubs/${clubId}?edit=1` }, <Crest src={crest} name={clubName} size={32} />)}
                 {row(UserPlus, copy('How players join', 'როგორ უერთდებიან მოთამაშეები'), copy('New players: the squad’s coaches or any admin approve; the first answer counts', 'ახალ მოთამაშეებს ადასტურებს გუნდის მწვრთნელი ან ნებისმიერი ადმინი; ითვლება პირველი პასუხი'), { onClick: () => open('joining') })}
                 {row(BadgeCheck, copy('Verification', 'ვერიფიკაცია'), copy('A verified club unlocks the store and fundraising', 'ვერიფიცირებული კლუბისთვის იხსნება მაღაზია და შემოწირულობები'),
                     { label: copy('Open', 'გახსნა'), to: `/clubs/${clubId}?verify=1` })}

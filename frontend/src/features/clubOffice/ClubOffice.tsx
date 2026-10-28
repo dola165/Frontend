@@ -1,10 +1,10 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarDays, LayoutGrid, Settings, ShieldCheck, Users } from 'lucide-react';
 import { WorkspaceShell, type WorkspaceNavItem } from '../../design/workspace/WorkspaceShell';
 import { Button, ButtonLink, EmptyNote, PageFrame, Skeleton } from '../../design/primitives';
 import { useAuth } from '../../context/AuthContext';
-import { useCan } from '../../hooks/useCan';
+import { refreshAccess, useCan } from '../../hooks/useCan';
 import type { AuthSessionId } from '../../utils/authStorage';
 import { useClubAdmissions } from '../admissions/club/useClubAdmissions';
 import { useClubOperations } from '../clubOperations/useClubOperations';
@@ -17,6 +17,7 @@ import { ClubCalendar } from '../clubWorkspace/calendar/ClubCalendar';
 import { useClubOverview } from '../clubWorkspace/useClubOverview';
 import { SquadsPage } from '../clubWorkspace/squads/SquadsPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { WorkspaceNotices } from '../clubWorkspace/WorkspaceNotices';
 import { MoreTools } from './MoreTools';
 import { OfficeSettings } from './OfficeSettings';
 import { OfficeTool } from './OfficeTool';
@@ -41,6 +42,7 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     const workspaceRoles = useWorkspaceRoles(clubId, 'all', user?.id ?? null);
     const roles = workspaceRoles.data;
     const can = useCan(`club:${clubId}`);
+    const [squadNotice, setSquadNotice] = useState<{ error: string | null; success: string | null }>({ error: null, success: null });
     const role = club.overview?.currentUserRole;
     const leader = can.decide('invite_staff', isLeadershipRole(role) || Boolean(operations.boot?.leadership)).allowed;
     const staff = can.decide('see_staff', leader || Boolean(roles?.views.length)).allowed;
@@ -68,10 +70,14 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     if (ownSquad) return <Navigate replace to={`/my-squads?${new URLSearchParams({ clubId: String(clubId), squad: squad! })}`} />;
 
     const go = (to: string) => guardWorkspaceNavigation(() => navigate(to));
-    const clubName = club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`;
+    // While nothing is known yet the side bar waits quietly rather than naming a made-up club.
+    const clubName = club.clubName ?? operations.boot?.clubName ?? (known ? copy('Club', 'კლუბი') : '…');
     const jobs = focusableViews(roles?.views ?? []).map(view => view.label);
     // Someone without a job here has no job line.
-    const job = isLeadershipRole(role) ? clubRoleLabel(role) : jobs.join(', ') || (staff ? copy('Club staff', 'კლუბის პერსონალი') : undefined);
+    const job = !known ? undefined : isLeadershipRole(role) ? clubRoleLabel(role) : jobs.join(', ') || (staff ? copy('Club staff', 'კლუბის პერსონალი') : undefined);
+    // A failed load is never "not for you": when neither the access check nor the jobs answered, say so and retry.
+    const failed = known && can.failed && !roles && Boolean(workspaceRoles.error) && !club.forbidden;
+    const retry = () => { refreshAccess(); workspaceRoles.refresh(); void club.reload(); void operations.refresh(); };
     const primary: WorkspaceNavItem[] = [
         { id: 'staff', label: copy('Staff', 'პერსონალი'), icon: Users },
         ...(leader ? [{ id: 'squads', label: copy('Squads', 'გუნდები'), icon: ShieldCheck }, { id: 'settings', label: copy('Settings', 'პარამეტრები'), icon: Settings }] : []),
@@ -83,11 +89,19 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     let content: ReactNode;
     if (!known && !roles && !club.overview) content = <PageFrame className="cw-page"><div className="cw-loading" role="status" aria-label={copy('Loading Club office', 'კლუბის ოფისი იტვირთება')}>
         <Skeleton height={34} width="30%" /><Skeleton height={96} /><Skeleton height={280} /></div></PageFrame>;
+    else if (failed) content = <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert">
+        <span className="cw-notices__text">{workspaceRoles.error || club.error || copy('Club office didn’t load.', 'კლუბის ოფისი ვერ ჩაიტვირთა.')}</span>
+        <Button size="sm" onClick={retry}>{copy('Try again', 'თავიდან')}</Button></div></PageFrame>;
     else if (known && !staff) content = <PageFrame className="cw-page"><EmptyNote title={copy('Club office is for the club’s staff', 'კლუბის ოფისი კლუბის პერსონალისთვისაა')}
         action={<ButtonLink to={`/clubs/${clubId}`}>{copy('Club page', 'კლუბის გვერდი')}</ButtonLink>}>{copy('The club page shows its teams, news and how to get involved.', 'კლუბის გვერდზე ჩანს გუნდები, სიახლეები და როგორ ჩაერთოთ.')}</EmptyNote></PageFrame>;
-    else if (place === 'squads') content = <SquadsPage key={clubId} clubId={clubId} overview={club.overview} setParentError={() => undefined} setParentSuccess={() => undefined}
-        workspace={roles ? { data: roles, boot: operations.boot, onOpen: (next, context) => go(isOfficeTool(next) ? officeToolPath(clubId, next, context) : officePath(clubId)) } : undefined} />;
-    else if (place === 'settings') content = <OfficeSettings clubId={clubId} clubName={clubName} overview={club.overview} boot={operations.boot} onRefresh={operations.refresh} />;
+    else if (place === 'squads') content = <>
+        <WorkspaceNotices error={squadNotice.error} success={squadNotice.success} rolesError={null} onRetryRoles={workspaceRoles.refresh}
+            onDismissError={() => setSquadNotice(notice => ({ ...notice, error: null }))} onDismissSuccess={() => setSquadNotice(notice => ({ ...notice, success: null }))} />
+        <SquadsPage key={clubId} clubId={clubId} overview={club.overview}
+            setParentError={error => setSquadNotice(notice => ({ ...notice, error }))} setParentSuccess={success => setSquadNotice(notice => ({ ...notice, success }))}
+            workspace={roles ? { data: roles, boot: operations.boot, onOpen: (next, context = {}) => go(isOfficeTool(next) ? officeToolPath(clubId, next, { ...context, return: 'squads' }) : officePath(clubId, 'squads', context)) } : undefined} />
+    </>;
+    else if (place === 'settings') content = <OfficeSettings clubId={clubId} clubName={clubName} crest={club.clubLogoUrl} overview={club.overview} boot={operations.boot} onRefresh={operations.refresh} />;
     else if (place === 'calendar') content = <ClubCalendar clubId={clubId} clubName={clubName} canManage={leader || Boolean(roles?.squads.length)} />;
     else if (place === 'tools' && tool) content = <OfficeTool clubId={clubId} tool={tool} state={states.get(tool)} sessionId={sessionId} overview={club.overview} reloadOverview={club.reload}
         boot={operations.boot} bootLoading={operations.loading} bootError={operations.error} refreshBoot={operations.refresh} roles={roles} refreshRoles={workspaceRoles.refresh}

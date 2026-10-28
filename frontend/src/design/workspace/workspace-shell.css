@@ -87,5 +87,7 @@
   .gk .gk-ws__bar-title { display: flex; flex-direction: column; min-width: 0; }
   .gk .gk-ws__bar-title strong { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gk .gk-ws__bar-title span { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A canvas page (Club office) starts right under its menu bar, as My squads does, with no gap above the title. */
+  .gk.gk-ws[data-canvas] .gk-ws__main > .gk-frame { padding-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .gk .gk-ws__rail, .gk .gk-ws__rail[data-open] { transition: none; } }

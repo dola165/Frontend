@@ -206,7 +206,7 @@ it('keeps leadership setup visible in Needs our action when the family owes the 
 
 it('opens the canonical setup link and returns to its exact enquiry context',async()=>{
  const data=workspace();const state={data,loading:false,error:'',reload:vi.fn(),setData:vi.fn()} as unknown as ReturnType<typeof useClubAdmissions>;
- render(<MemoryRouter initialEntries={['/clubs/1/workspace?tab=admissions&inquiryId=81&joiningSetup=1']}><ClubAdmissionWorkspace state={state} sessionId={null} onOpen={vi.fn()} onRosterChanged={vi.fn()}/></MemoryRouter>);
+ render(<MemoryRouter initialEntries={['/clubs/1/office?tab=tools&tool=admissions&inquiryId=81&joiningSetup=1']}><ClubAdmissionWorkspace state={state} sessionId={null} onOpen={vi.fn()} onRosterChanged={vi.fn()}/></MemoryRouter>);
  await screen.findByLabelText('Intake');expect(api.setup).toHaveBeenCalledWith(81,null,expect.any(AbortSignal));fireEvent.click(screen.getByRole('button',{name:'Return to enquiry'}));
  expect(screen.queryByLabelText('Intake')).not.toBeInTheDocument();expect(screen.getByText('Synthetic child')).toBeVisible();expect(screen.getByText('Synthetic child').closest('article')).toHaveAttribute('data-selected','true');
 });

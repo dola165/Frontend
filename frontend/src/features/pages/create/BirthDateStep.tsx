@@ -11,9 +11,10 @@ import { usePagesCopy } from '../copy';
 /**
  * Pages are for adults, and an account without a birth date is not counted as one: before the create sheet, it is
  * asked for the date once. Saving refreshes the account; the host then shows the sheet or "Pages are for adults".
- * `reason` says why something else asks (the phone for colleagues, 28 October 2026).
+ * `reason` says why something else asks (the phone for colleagues, Club office, 28 October 2026); `onSaved` tells a host
+ * that decides from something other than the account (Club office's access check) to look again.
  */
-export function BirthDateStep({ onClose, reason }: { onClose: () => void; reason?: string }) {
+export function BirthDateStep({ onClose, onSaved, reason }: { onClose: () => void; onSaved?: () => void; reason?: string }) {
   const t = usePagesCopy();
   const { bootstrapSession } = useAuth();
   const [dob, setDob] = useState('');
@@ -22,7 +23,7 @@ export function BirthDateStep({ onClose, reason }: { onClose: () => void; reason
   const save = async () => {
     if (!dob || dob > todayIso() || busy) { setError(t('Enter your date of birth.')); return; }
     setBusy(true); setError('');
-    try { await saveBirthDate(dob); await bootstrapSession(); }
+    try { await saveBirthDate(dob); await bootstrapSession(); onSaved?.(); }
     catch (failure) { setError(extractApiErrorMessage(failure, t('Not saved. Check your connection and try again.'))); }
     finally { setBusy(false); }
   };

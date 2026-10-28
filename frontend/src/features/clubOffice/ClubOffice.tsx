@@ -18,6 +18,7 @@ import { useClubOverview } from '../clubWorkspace/useClubOverview';
 import { SquadsPage } from '../clubWorkspace/squads/SquadsPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { WorkspaceNotices } from '../clubWorkspace/WorkspaceNotices';
+import { BirthDateStep } from '../pages/create/BirthDateStep';
 import { MoreTools } from './MoreTools';
 import { OfficeSettings } from './OfficeSettings';
 import { OfficeTool } from './OfficeTool';
@@ -43,9 +44,14 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     const roles = workspaceRoles.data;
     const can = useCan(`club:${clubId}`);
     const [squadNotice, setSquadNotice] = useState<{ error: string | null; success: string | null }>({ error: null, success: null });
+    const [askBirthDate, setAskBirthDate] = useState(true);
     const role = club.overview?.currentUserRole;
     const leader = can.decide('invite_staff', isLeadershipRole(role) || Boolean(operations.boot?.leadership)).allowed;
-    const staff = can.decide('see_staff', leader || Boolean(roles?.views.length)).allowed;
+    const seeStaff = can.decide('see_staff', leader || Boolean(roles?.views.length));
+    const staff = seeStaff.allowed;
+    // Club staff work needs a known adult (the server's BIRTH_DATE_NEEDED): an account without a birth date gives it here
+    // once, through the profile's step, and then Staff loads.
+    const birthDateFirst = !staff && seeStaff.code === 'BIRTH_DATE_NEEDED';
     const rawTool = params.get('tool');
     const tool: Tool | null = isOfficeTool(rawTool) ? rawTool : null;
     const requested: OfficePlace = tool ? 'tools' : OFFICE_PLACES.find(place => place === params.get('tab')) ?? 'staff';
@@ -79,6 +85,7 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     // The management overview refuses everyone without a staff membership (a physio's job), so it decides nothing here.
     const failed = known && can.failed && !roles && Boolean(workspaceRoles.error);
     const retry = () => { refreshAccess(); workspaceRoles.refresh(); void club.reload(); void operations.refresh(); };
+    const adultsOnly = copy('Club office is for adults, so we ask once.', 'კლუბის ოფისი სრულწლოვნებისთვისაა, ამიტომ ერთხელ გეკითხებით.');
     const primary: WorkspaceNavItem[] = [
         { id: 'staff', label: copy('Staff', 'პერსონალი'), icon: Users },
         ...(leader ? [{ id: 'squads', label: copy('Squads', 'გუნდები'), icon: ShieldCheck }, { id: 'settings', label: copy('Settings', 'პარამეტრები'), icon: Settings }] : []),
@@ -92,6 +99,11 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     else if (failed) content = <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert">
         <span className="cw-notices__text">{workspaceRoles.error || club.error || copy('Club office didn’t load.', 'კლუბის ოფისი ვერ ჩაიტვირთა.')}</span>
         <Button size="sm" onClick={retry}>{copy('Try again', 'თავიდან')}</Button></div></PageFrame>;
+    else if (known && birthDateFirst) content = <PageFrame className="cw-page">
+        <EmptyNote title={copy('Your date of birth first', 'ჯერ დაბადების თარიღი')}
+            action={<Button variant="primary" onClick={() => setAskBirthDate(true)}>{copy('Add your date of birth', 'დაბადების თარიღის დამატება')}</Button>}>{adultsOnly}</EmptyNote>
+        {askBirthDate && <BirthDateStep reason={adultsOnly} onClose={() => setAskBirthDate(false)} onSaved={() => { setAskBirthDate(false); retry(); }} />}
+    </PageFrame>;
     else if (known && !staff) content = <PageFrame className="cw-page"><EmptyNote title={copy('Club office is for the club’s staff', 'კლუბის ოფისი კლუბის პერსონალისთვისაა')}
         action={<ButtonLink to={`/clubs/${clubId}`}>{copy('Club page', 'კლუბის გვერდი')}</ButtonLink>}>{copy('The club page shows its teams, news and how to get involved.', 'კლუბის გვერდზე ჩანს გუნდები, სიახლეები და როგორ ჩაერთოთ.')}</EmptyNote></PageFrame>;
     else if (place === 'squads') content = <>

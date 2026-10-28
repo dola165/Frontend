@@ -7,10 +7,11 @@ import { useJobWords } from './jobWords';
 
 /**
  * Which job and where: the main jobs first (`choices`), then, with `extras`, the club's other bundles under More jobs
- * and single tools under Custom. Admin always applies to the whole club.
+ * and single tools under Custom. Admin always applies to the whole club. Without `clubWide` only squads are offered
+ * (a head coach's suggestion is for the squads they coach).
  */
-export function JobPicker({ view, draft, onChange, choices, extras, disabled }: {
-    view: PeopleView; draft: JobDraft; onChange: (draft: JobDraft) => void; choices: readonly string[]; extras: boolean; disabled?: boolean;
+export function JobPicker({ view, draft, onChange, choices, extras, clubWide = true, disabled }: {
+    view: PeopleView; draft: JobDraft; onChange: (draft: JobDraft) => void; choices: readonly string[]; extras: boolean; clubWide?: boolean; disabled?: boolean;
 }) {
     const id = useId();
     const [titleFocused, setTitleFocused] = useState(false);
@@ -67,7 +68,7 @@ export function JobPicker({ view, draft, onChange, choices, extras, disabled }: 
         </>}
         {draft.job === 'HEAD_OF_COACHING' ? <p className="gk-field__hint">{copy('Whole club', 'მთელი კლუბი')}</p> : draft.job === 'ADMIN'
             ? <p className="gk-field__hint">{copy('Admin applies to the whole club: every tool, its settings and its people.', 'ადმინი მთელ კლუბზე ვრცელდება: ყველა ხელსაწყო, პარამეტრები და ხალხი.')}</p>
-            : <ScopeChips squads={view.squads} allowClubWide keepSelected disabled={disabled || (!extras && !choices.includes(draft.job))} legend={copy('Where', 'სად')}
+            : <ScopeChips squads={view.squads} allowClubWide={clubWide} keepSelected disabled={disabled || (!extras && !choices.includes(draft.job))} legend={copy('Where', 'სად')}
                 value={{ clubWide: draft.clubWide, squadIds: draft.squadIds }} onChange={scope => set(scope)} />}
     </div>;
 }

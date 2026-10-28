@@ -137,8 +137,6 @@ export const fetchArrivals = (ref: PageRef, signal?: AbortSignal) => apiClient.g
 export const decideArrival = (ref: PageRef, id: number, body: { requestId: string; expectedVersion: number; action: 'APPROVE' | 'REVIEW' | 'DECLINE'; groupId?: number; groupVersion?: number }) =>
   apiClient.post<{ page: PageView; outcome: 'PLACE_OFFERED' | 'REVIEW_REQUIRED' | 'DECLINED'; destination: string }>(`${pageBase(ref)}/arrivals/${id}`, body).then(r => r.data);
 export const ensureJoinLinks = (ref: PageRef, signal?: AbortSignal) => apiClient.post<PageView>(`${pageBase(ref)}/players/links`, {}, { signal }).then(r => r.data);
-export const fetchStaffCandidates = (ref: PageRef, q: string, signal?: AbortSignal) => apiClient.get<{ id: number; name: string }[]>(`${pageBase(ref)}/staff-candidates`, { params: { q }, signal }).then(r => r.data);
-export const inviteStaff = (ref: PageRef, body: { requestId: string; userId: number; role: StaffRole; squadId: number | null; engagement: string; startsOn: string }) => apiClient.post<PageView>(`${pageBase(ref)}/staff-invitations`, body).then(r => r.data);
 export const fetchJoinLink = (code: string, signal?: AbortSignal) => apiClient.get<JoinLink>(`/join/${encodeURIComponent(code)}`, { signal }).then(r => r.data);
 /**
  * "Who's joining? Me · My child". PARENT names the child and birth date (the server reuses the parent's own child with

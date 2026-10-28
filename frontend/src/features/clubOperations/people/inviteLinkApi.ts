@@ -23,7 +23,7 @@ export const signInAfterClaim = async (email: string, password: string) => {
 
 /** Where accepted jobs land: a squad job in My squads, anything else in the club's workspace. */
 export const landingFor = (accepted: LinkInvite[]) => accepted.some(i => i.kind === 'APPOINTMENT' && !i.clubWide) ? '/my-squads'
-    : accepted.length ? `/clubs/${accepted[0].clubId}/workspace` : '/home';
+    : accepted.length ? `/clubs/${accepted[0].clubId}/office` : '/home';
 
 /** Accepts one job the normal, signed-in way: the appointment's own accept, or the club invitation's. */
 export const acceptClubInvite = async (invite: LinkInvite) => {

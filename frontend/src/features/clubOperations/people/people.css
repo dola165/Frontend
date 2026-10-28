@@ -1,4 +1,4 @@
-/* The club's People screen and its invite. Scoped under `.gk .pp-*`; tokens only. */
+/* Club office's Staff and its invite. Scoped under `.gk .pp-*`; tokens only. */
 .gk .pp-list { list-style: none; margin: 0; padding: 0; }
 /* One row: who · their jobs and where · what can be done for the person. Panels (link, change) span the row. */
 .gk .pp-person { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0, 1fr) auto; grid-template-areas: 'who jobs actions'; align-items: start; gap: var(--gk-2) var(--gk-5); padding: var(--gk-3) var(--gk-5); }
@@ -7,7 +7,28 @@
 .gk .pp-person__head { grid-area: who; display: flex; align-items: center; gap: var(--gk-3); min-width: 0; min-height: 44px; }
 .gk .pp-person__who { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .gk .pp-person__name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); font-weight: 600; overflow-wrap: anywhere; }
-.gk .pp-person__email { font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
+.gk .pp-person__sub { font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
+/* How colleagues reach someone: their email and phone, quiet links under the name. */
+.gk .pp-contacts { display: flex; flex-wrap: wrap; gap: 0 var(--gk-3); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .pp-contacts a { display: inline-flex; align-items: center; gap: var(--gk-1); min-height: 28px; color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.gk .pp-contacts a:hover { color: var(--gk-text); text-decoration: underline; }
+.gk .pp-contacts svg { width: 14px; height: 14px; flex: none; color: var(--gk-text-3); }
+.gk .pp-duty { font-size: var(--gk-fs-sm); }
+.gk .pp-duty a { color: inherit; }
+/* Your own row: what colleagues see of you. */
+.gk .pp-share { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-5); margin: 0; padding: 0 0 0 calc(40px + var(--gk-3)); border: 0; font-size: var(--gk-fs-sm); }
+.gk .pp-share legend { float: left; padding: 0; margin-right: var(--gk-2); }
+.gk .pp-share__choice { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 44px; cursor: pointer; }
+/* Rows without jobs of their own: older invitations and outside specialists. */
+.gk .pp-caption { padding: var(--gk-3) var(--gk-5) var(--gk-1); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gk-text-3); }
+.gk .pp-caption + .pp-person { border-top: 0; }
+.gk .pp-person--plain .pp-jobs { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 var(--gk-3); min-height: 44px; font-size: var(--gk-fs-sm); }
+.gk .pp-person--plain .pp-jobs a { color: var(--gk-text-2); }
+.gk .pp-toolbar-link { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--gk-2); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .pp-toolbar-link:hover { color: var(--gk-text); }
+/* The invite's two ways. */
+.gk .pp-how { margin: 0; padding: 0; border: 0; min-width: 0; }
+.gk .pp-how__options { border: 1px solid var(--gk-line); border-radius: var(--gk-r); overflow: hidden; }
 .gk .pp-person__actions { grid-area: actions; display: flex; flex-wrap: wrap; gap: var(--gk-2); justify-content: flex-end; align-items: center; min-height: 44px; }
 .gk .pp-person__actions:empty { display: none; }
 .gk .pp-jobs { grid-area: jobs; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -45,6 +66,7 @@
 }
 @media (max-width: 760px) {
   .gk .pp-person { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'who' 'jobs' 'actions'; padding: var(--gk-3) var(--gk-4); }
+  .gk .pp-share { padding-left: 0; }
   .gk .pp-jobs { padding-left: 0; }
   .gk .pp-person__actions { justify-content: flex-start; }
   .gk .pp-person .pp-link, .gk .pp-edit { padding: var(--gk-3); }

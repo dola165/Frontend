@@ -8,8 +8,8 @@ import { PlayersPanel } from '../panels/PlayersPanel';
 import { JoinPage } from '../../links/JoinPage';
 import { InvitePage } from '../../links/InvitePage';
 
-const calls = vi.hoisted(() => ({ candidates: vi.fn(), invite: vi.fn(), links: vi.fn(), arrivals: vi.fn(), decide: vi.fn(), joinLink: vi.fn(), join: vi.fn(), kids: vi.fn(), fetchInvite: vi.fn(), accept: vi.fn(), navigate: vi.fn(), refresh: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), fetchStaffCandidates: calls.candidates, inviteStaff: calls.invite, ensureJoinLinks: calls.links, fetchArrivals: calls.arrivals, decideArrival: calls.decide, fetchJoinLink: calls.joinLink, sendJoin: calls.join, fetchInvite: calls.fetchInvite, acceptInvite: calls.accept }));
+const calls = vi.hoisted(() => ({ links: vi.fn(), arrivals: vi.fn(), decide: vi.fn(), joinLink: vi.fn(), join: vi.fn(), kids: vi.fn(), fetchInvite: vi.fn(), accept: vi.fn(), navigate: vi.fn(), refresh: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), ensureJoinLinks: calls.links, fetchArrivals: calls.arrivals, decideArrival: calls.decide, fetchJoinLink: calls.joinLink, sendJoin: calls.join, fetchInvite: calls.fetchInvite, acceptInvite: calls.accept }));
 vi.mock('../../../parents/api', () => ({ fetchJoiningChildren: calls.kids }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'test-session', isAuthenticated: true, isBootstrapping: false, refreshNavigationCapabilities: calls.refresh }) }));
 vi.mock('react-router-dom', async original => ({ ...await original<typeof import('react-router-dom')>(), useNavigate: () => calls.navigate }));
@@ -28,27 +28,18 @@ function panel(element: React.ReactNode, value = page()) {
 const link = { code: 'durable-join-code', page: { ref: { type: 'club', id: 10 }, name: 'Test FC', town: 'Tbilisi', crestUrl: null, profilePath: '/clubs/10', live: true }, squad: { id: 91, name: 'U12 mixed', ageGroup: 'U12', gender: 'MIXED' } };
 beforeEach(() => {
   Object.values(calls).forEach(fn => fn.mockReset()); calls.refresh.mockResolvedValue(undefined);
-  calls.candidates.mockResolvedValue([{ id: 50, name: 'Coach Sample' }]); calls.invite.mockResolvedValue(page());
   calls.links.mockResolvedValue(page()); calls.arrivals.mockResolvedValue([]); calls.joinLink.mockResolvedValue(link); calls.kids.mockResolvedValue({ children: [] });
 });
 
-it('targets the selected real account and retains one request ID and all fields after an invitation failure', async () => {
-  calls.invite.mockRejectedValueOnce(new Error('Offline')).mockResolvedValueOnce(page()); panel(<StaffPanel />);
-  fireEvent.change(screen.getByRole('textbox', { name: 'Find their account' }), { target: { value: 'Coach' } });
-  fireEvent.click(await screen.findByRole('button', { name: 'Coach Sample' }));
-  fireEvent.change(screen.getByRole('combobox', { name: 'Engagement' }), { target: { value: 'VOLUNTEER' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Make the invitation' }));
-  await screen.findByRole('alert');expect(screen.getByRole('textbox', { name: 'Find their account' })).toHaveValue('Coach Sample');
-  fireEvent.click(screen.getByRole('button', { name: 'Make the invitation' }));
-  await waitFor(() => expect(calls.invite).toHaveBeenCalledTimes(2));
-  expect(calls.invite.mock.calls[0][1]).toMatchObject({ userId: 50, role: 'COACH', squadId: 91, engagement: 'VOLUNTEER' });
-  expect(calls.invite.mock.calls[1][1].requestId).toBe(calls.invite.mock.calls[0][1].requestId);
-});
-it('never creates an invitation from an arbitrary typed name', async () => {
-  calls.candidates.mockResolvedValue([]);panel(<StaffPanel />);
-  fireEvent.change(screen.getByRole('textbox', { name: 'Find their account' }), { target: { value: 'Nobody registered' } });
-  await screen.findByText(/No eligible account found/);
-  expect(screen.getByRole('button', { name: 'Make the invitation' })).toBeDisabled();expect(calls.invite).not.toHaveBeenCalled();
+it('sends staff invitations to Club office and makes no codes of its own, keeping codes already sent', () => {
+  const value = page();
+  value.boxes.staff.invites = [{ id: 7, name: 'Nino', phone: '', role: 'COACH', squadId: 91, status: 'INVITED', code: 'sent-code' }] as typeof value.boxes.staff.invites;
+  panel(<StaffPanel />, value);
+  expect(screen.getByRole('link', { name: /Invite in Club office/ })).toHaveAttribute('href', '/clubs/10/office?invite=1');
+  expect(screen.getByRole('link', { name: 'Open Staff' })).toHaveAttribute('href', '/clubs/10/office');
+  expect(screen.queryByRole('textbox', { name: 'Find their account' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Make the invitation' })).not.toBeInTheDocument();
+  expect(decodeURIComponent(screen.getByRole('link', { name: /WhatsApp/ }).getAttribute('href')!)).toContain('/invite/sent-code');
 });
 it('shows a failed arrivals read as an error instead of claiming nobody joined', async () => {
   calls.arrivals.mockRejectedValue(new Error('Offline'));panel(<PlayersPanel />);

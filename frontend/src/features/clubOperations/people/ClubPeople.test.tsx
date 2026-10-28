@@ -41,16 +41,16 @@ const staffLink = (over: Partial<StaffLink> = {}): StaffLink => ({ id: 70, job: 
 const suggested = { userId: 30, name: 'Dato Kvaratskhelia', email: 'dato@example.test', avatarUrl: null, needsLink: true,
     jobs: [job({ id: 55, job: 'ASSISTANT_COACH', title: 'Assistant coach', status: 'SUGGESTED', revision: 3, suggestedById: 4, suggestedByName: 'Giorgi', canConfirm: true })] };
 
-/** The People view, the staff links and the rule-checker (an old server without it unless `access` is given). */
-const renderPeople = (data: PeopleView, { links = [] as StaffLink[], access = null as unknown, url = '/', ownership = null as unknown } = {}) => {
+/** Staff, the staff links and the rule-checker (an old server without it unless `access` is given). */
+const renderPeople = (data: PeopleView, { links = [] as StaffLink[], access = null as unknown, url = '/', tools = {} } = {}) => {
     api.get.mockImplementation(async (path: string) => {
         if (path.startsWith('/access/')) { if (access) return { data: access }; throw new Error('no rule-checker'); }
         if (path.endsWith('/staff-links')) return { data: links };
-        if (path.endsWith('/ownership')) { if (ownership) return { data: ownership }; throw new Error('settled'); }
         return { data };
     });
-    return render(<MemoryRouter initialEntries={[url]}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
+    return render(<MemoryRouter initialEntries={[url]}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" tools={tools} /></MemoryRouter>);
 };
+const row = (name: string) => screen.getByText(name).closest('li.pp-person') as HTMLElement;
 
 beforeEach(() => { vi.clearAllMocks(); refreshAccess(); auth.user = { id: 1, dob: '1985-01-01' }; api.post.mockResolvedValue({ data: {} }); api.put.mockResolvedValue({ data: {} }); api.delete.mockResolvedValue({ data: {} }); });
 afterEach(cleanup);
@@ -69,29 +69,30 @@ it('lists each person with their jobs and where, and invited people with a new l
     expect(whatsapp.getAttribute('href')).toMatch(/^https:\/\/wa\.me\/\?text=.*club-invite%3Ftoken%3Dabc.def/);
 });
 
-it('an admin invites one person, Admin included, and gets the link to send', async () => {
+it('an admin invites one person to any job, Admin included, and gets the link to send', async () => {
     renderPeople(view());
-    fireEvent.click(await screen.findByRole('button', { name: /Invite one person/ }));
-    const dialog = screen.getByRole('dialog');
+    fireEvent.click(await screen.findByRole('button', { name: 'Invite' }));
+    const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
     expect(within(dialog).getByRole('button', { name: 'Admin' })).toBeInTheDocument();
-    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Tamar Lomidze' } });
-    fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'tamar@example.test' } });
+    expect(within(dialog).getByRole('radio', { name: /Send to one person/ })).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Assistant coach' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'U14' }));
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Tamar Lomidze' } });
+    fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'tamar@example.test' } });
     api.post.mockResolvedValueOnce({ data: { userId: 8, name: 'Tamar Lomidze', inApp: false, status: 'INVITED', link: { token: 'tok', expiresAt: '2026-10-30T12:00:00' } } });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Invite' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Send invite' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/invites', {
         name: 'Tamar Lomidze', email: 'tamar@example.test', job: 'ASSISTANT_COACH', title: null, tools: null, clubWide: false, squadIds: [6],
     }));
     expect(await screen.findByLabelText('Invite link for Tamar Lomidze')).toHaveValue(`${window.location.origin}/club-invite?token=tok`);
 });
 
-it('invites staff in bulk with one link and QR code, never as Admin, and removes someone who joined', async () => {
+it('shares a staff link and QR code, never for Admin, and removes someone who joined', async () => {
     renderPeople(view(), { links: [staffLink(), staffLink({ id: 60, status: 'EXPIRED', code: null, path: null })], url: '/?invite=link' });
     await screen.findByLabelText('Staff link');
-    const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
-    for (const job of ['Head coach', 'Assistant coach', 'Team manager', 'Fees']) expect(within(dialog).getByRole('button', { name: job })).toBeInTheDocument();
-    for (const other of ['Admin', 'Owner', 'Head of coaching', 'More jobs', 'Custom']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
+    expect(within(dialog).getByRole('radio', { name: /Share a staff link/ })).toHaveAttribute('aria-checked', 'true');
+    expect(within(dialog).getByRole('button', { name: 'Head coach' })).toHaveAttribute('aria-pressed', 'true');
     expect(within(dialog).getByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
     expect(within(dialog).getByTitle(/QR code/)).toBeInTheDocument();
     expect(within(dialog).getByText(/7 of 10 uses left/)).toBeInTheDocument();
@@ -106,17 +107,22 @@ it('invites staff in bulk with one link and QR code, never as Admin, and removes
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', { requestId: expect.any(String), job: 'HEAD_COACH', title: 'Head coach', tools: null, clubWide: true, squadIds: [] }));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/clubs/7/staff-links/70'));
     expect(await within(dialog).findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/newcode`);
+
+    // Admin is sent to one person only: the link way closes.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Admin' }));
+    expect(within(dialog).getByRole('radio', { name: /Share a staff link/ })).toBeDisabled();
+    expect(within(dialog).queryByLabelText('Staff link')).not.toBeInTheDocument();
 });
 
 it('an admin changes a job at once, sees where it came from, and can end an Admin but never the Owner', async () => {
     renderPeople(view());
-    expect(await screen.findByText('Accepted by Giga, not Luka.')).toBeInTheDocument();
-    const giga = screen.getByText('Giga Kapanadze').closest('li') as HTMLElement;
+    expect(await screen.findByText('The invite for Luka was accepted by Giga')).toBeInTheDocument();
+    const giga = row('Giga Kapanadze');
     expect(within(giga).getByText(/Changed by Nino/)).toBeInTheDocument();
     fireEvent.click(within(giga).getByRole('button', { name: /History/ }));
     expect(within(giga).getByText('Changed · Team manager: Assistant coach → Team manager · U12')).toBeInTheDocument();
 
-    fireEvent.click(within(giga).getByRole('button', { name: /Change/ }));
+    fireEvent.click(within(giga).getByRole('button', { name: 'Change' }));
     const form = within(giga).getByRole('form');
     expect(within(form).queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument();
     fireEvent.click(within(form).getByRole('button', { name: 'Head coach' }));
@@ -126,54 +132,98 @@ it('an admin changes a job at once, sees where it came from, and can end an Admi
     }));
     expect(await screen.findByText('Giga Kapanadze: Head coach · U12. Changed now.')).toBeInTheDocument();
 
-    const owner = screen.getByText('Nino Owner').closest('li') as HTMLElement;
-    expect(within(owner).queryByRole('button', { name: /Remove|End job/ })).not.toBeInTheDocument();
-    const mari = screen.getByText('Mari Admin').closest('li') as HTMLElement;
-    fireEvent.click(within(mari).getByRole('button', { name: 'Remove' }));
+    expect(within(row('Nino Owner')).queryByRole('button', { name: /Remove|End job/ })).not.toBeInTheDocument();
+    fireEvent.click(within(row('Mari Admin')).getByRole('button', { name: 'Remove' }));
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'End job' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/admins/4/end'));
 });
 
-it('a head coach suggests an assistant for their own squad and changes nobody’s job', async () => {
+it('a head coach suggests a helper for their own squad through the same Invite, and changes nobody’s job', async () => {
     renderPeople(view({ userId: 4, leader: false, owner: false, headCoachSquads: [5] }));
     expect(await screen.findByText('Luka Beridze')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Invite staff|Invite one person/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Change/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Suggest an assistant/ }));
-    const dialog = screen.getByRole('dialog', { name: 'Suggest an assistant' });
-    expect(within(dialog).getByText(/A helper for U12/)).toBeInTheDocument();
-    for (const other of ['Head coach', 'Fees', 'Admin']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
+    for (const name of [/^Change$/, /Post a job/, /Add job/]) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Invite' }));
+    const dialog = screen.getByRole('dialog', { name: 'Suggest a helper' });
+    expect(within(dialog).getByText(/For a squad you coach/)).toBeInTheDocument();
+    for (const other of ['Head coach', 'Fees', 'Admin', 'U14']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Team manager' }));
     fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Dato Kvaratskhelia' } });
     fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'dato@example.test' } });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Suggest' }));
+    api.post.mockResolvedValueOnce({ data: { userId: null, name: 'Dato Kvaratskhelia', inApp: true, link: null, status: 'SUGGESTED' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Send suggestion' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/invites', {
         name: 'Dato Kvaratskhelia', email: 'dato@example.test', job: 'TEAM_MANAGER', title: null, tools: null, clubWide: false, squadIds: [5],
     }));
     expect(await screen.findByText(/An admin confirms or declines it/)).toBeInTheDocument();
 });
 
-it('an admin confirms a suggested assistant and gets the link to send', async () => {
+it('an admin confirms a suggested helper from Needs you and gets the link to send', async () => {
     renderPeople(view({}, [suggested]));
-    const waiting = await screen.findByRole('list', { name: 'Suggested assistants' });
-    expect(within(waiting).getByText(/Suggested by Giorgi/)).toBeInTheDocument();
-    expect(screen.queryByRole('list', { name: 'People' }) && within(screen.getByRole('list', { name: 'People' })).queryByText('Dato Kvaratskhelia')).toBeNull();
+    const needs = await screen.findByRole('list', { name: 'Needs you' });
+    expect(within(needs).getByText('Giorgi suggests Dato Kvaratskhelia')).toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Staff' })).queryByText('Dato Kvaratskhelia')).toBeNull();
     api.post.mockResolvedValueOnce({ data: { appointmentId: 55, outcome: 'CONFIRMED', answeredBy: 'Nino Owner', link: { token: 'dato.tok', expiresAt: '2026-11-02T12:00:00' } } });
-    fireEvent.click(within(waiting).getByRole('button', { name: 'Confirm' }));
+    fireEvent.click(within(needs).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/suggestions/55', { confirm: true, revision: 3 }));
     expect(await screen.findByLabelText('Invite link for Dato Kvaratskhelia')).toBeInTheDocument();
 });
 
-it('follows the rule-checker: a refused button is hidden and its plain reason shows', async () => {
+it('gives a colleague Staff to read: who, which job, where, and nothing to change', async () => {
     renderPeople(view({ userId: 4, leader: false, owner: false, headCoachSquads: [] }), {
-        access: { clubId: 7, squadId: null, allowed: ['see_people', 'follow'], admins: [{ userId: 1, name: 'Nino Owner' }], refused: [
+        access: { clubId: 7, squadId: null, allowed: ['see_staff', 'follow'], admins: [{ userId: 1, name: 'Nino Owner' }], refused: [
             { action: 'invite_staff', allowed: false, reason: 'ONLY_ADMINS', message: 'Only the club’s admins can do this.', because: null },
             { action: 'suggest_assistant', allowed: false, reason: 'ONLY_HEAD_COACHES', message: 'Only head coaches can do this.', because: null }] },
     });
-    expect(await screen.findByText('Only the club’s admins can do this.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Ask the admin/ })).toHaveAttribute('href', '/messages?chatWith=1');
-    expect(screen.queryByRole('button', { name: /Invite staff|Suggest an assistant/ })).not.toBeInTheDocument();
-    expect(api.get).toHaveBeenCalledWith('/access/clubs/7', expect.anything());
+    expect(within(await screen.findByRole('list', { name: 'Staff' })).getByText('Team manager')).toBeInTheDocument();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/access/clubs/7', expect.anything()));
+    for (const name of [/^Invite$/, /Post a job/, /^Change$/, /End job/, /^Remove$/, /Add job/, /New link/]) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Needs you' })).not.toBeInTheDocument();
+    // No explanations: Staff is read-only for colleagues, so nothing says what they may not do.
+    expect(screen.queryByText('Only the club’s admins can do this.')).not.toBeInTheDocument();
+});
+
+it('shows each colleague’s shared email and phone, and your own switches on your row only', async () => {
+    const data = view({ userId: 3, leader: false, owner: false, hidePhone: true });
+    data.people[1] = { ...data.people[1], phone: '+995 555 12 34 56' };
+    auth.user = { id: 3, dob: '1985-01-01' };
+    renderPeople(data);
+    const luka = (await screen.findByText('Luka Beridze')).closest('li.pp-person') as HTMLElement;
+    expect(within(luka).getByRole('link', { name: 'luka@example.test' })).toHaveAttribute('href', 'mailto:luka@example.test');
+    expect(within(luka).getByRole('link', { name: '+995 555 12 34 56' })).toHaveAttribute('href', 'tel:+995555123456');
+    expect(within(luka).queryByRole('switch')).not.toBeInTheDocument();
+    const me = row('Giga Kapanadze');
+    expect(within(me).getByRole('switch', { name: 'My email' })).toBeChecked();
+    expect(within(me).getByRole('switch', { name: 'My phone' })).not.toBeChecked();
+    fireEvent.click(within(me).getByRole('switch', { name: 'My email' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/clubs/7/people/me/contact', { hideEmail: true, hidePhone: true }));
+    expect(await screen.findByText('Saved. Colleagues see what you share.')).toBeInTheDocument();
+});
+
+it('shows who is on duty today and the club’s outside specialists, opening Duties and Specialists for those who use them', async () => {
+    const data = view();
+    data.people[2] = { ...data.people[2], onDuty: [{ id: 81, title: 'First aid', startsAt: '2026-10-28T16:00:00', endsAt: '2026-10-28T18:00:00', location: 'Pitch 1' }] };
+    data.specialists = [{ id: 91, name: 'Eka Beridze', specialisation: 'Sports psychologist', contact: 'eka@example.test', startsAt: '2026-09-01', endsAt: null }];
+    renderPeople(data, { tools: { duties: true, specialists: true } });
+    const duty = within(await screen.findByText('Giga Kapanadze').then(() => row('Giga Kapanadze'))).getByRole('link', { name: /On duty today.*Pitch 1/ });
+    expect(duty).toHaveAttribute('href', '/clubs/7/office?tab=tools&tool=staff-duties&record=81');
+    expect(screen.getByRole('link', { name: 'Eka Beridze' })).toHaveAttribute('href', '/clubs/7/office?tab=tools&tool=specialists&record=91');
+    expect(screen.getByText('Sports psychologist · outside specialist')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'eka@example.test' })).toHaveAttribute('href', 'mailto:eka@example.test');
+});
+
+it('lists older club invitations nobody answered as Waiting, with Cancel for admins', async () => {
+    api.get.mockImplementation(async (path: string) => {
+        if (path.startsWith('/access/')) throw new Error('no rule-checker');
+        if (path.endsWith('/staff-links')) return { data: [] };
+        return { data: view() };
+    });
+    const invitation = { id: 501, userId: 40, username: 'sandro', fullName: 'Sandro Gelashvili', role: 'PLAYER', status: 'PENDING', createdAt: '2026-10-20T09:00:00' };
+    render(<MemoryRouter><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" invitations={[invitation] as never} /></MemoryRouter>);
+    const sandro = (await screen.findByText('Sandro Gelashvili')).closest('li.pp-person') as HTMLElement;
+    expect(within(sandro).getByText('Waiting')).toBeInTheDocument();
+    fireEvent.click(within(sandro).getByRole('button', { name: 'Cancel the invitation for Sandro Gelashvili' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel invitation' }));
+    await waitFor(() => expect(api.delete.mock.calls.length + api.post.mock.calls.length).toBeGreaterThan(0));
 });
 
 it('asks to confirm the email first when the server refuses an invite for it', async () => {
@@ -183,12 +233,12 @@ it('asks to confirm the email first when the server refuses an invite for it', a
     fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'tamar@example.test' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'U12' }));
     api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 403, data: { code: 'EMAIL_CONFIRMATION_REQUIRED', action: 'INVITE', message: 'Confirm your email first.' } } });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Invite' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Send invite' }));
     await waitFor(() => expect(toast.warning).toHaveBeenCalledWith('Confirm your email first', expect.objectContaining({ action: expect.objectContaining({ label: 'Resend' }) })));
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
 });
 
-it('opens Invite staff even when the links fail to load, with Try again', async () => {
+it('opens the staff link even when the links fail to load, with Try again', async () => {
     let fail = true;
     api.get.mockImplementation(async (path: string) => {
         if (path.startsWith('/access/')) throw new Error('no rule-checker');
@@ -196,7 +246,7 @@ it('opens Invite staff even when the links fail to load, with Try again', async 
         return { data: view() };
     });
     render(<MemoryRouter initialEntries={['/?invite=link']}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
-    const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
+    const dialog = await screen.findByRole('dialog', { name: 'Invite to a job' });
     expect(within(dialog).queryByRole('button', { name: /Make the link/ })).not.toBeInTheDocument();
     fail = false;
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Try again' }));
@@ -206,7 +256,7 @@ it('opens Invite staff even when the links fail to load, with Try again', async 
 it('New link shows the new link even if switching off the old one fails, and offers Switch off for it', async () => {
     renderPeople(view(), { links: [staffLink()], url: '/?invite=link' });
     await screen.findByLabelText('Staff link');
-    const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
+    const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
     api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', uses: 0, joined: [] }) });
     api.delete.mockRejectedValueOnce(new Error('down'));
     fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
@@ -224,9 +274,9 @@ it('keeps the buttons disabled while the rule-checker answers, so none appears a
     api.get.mockImplementation((path: string) => path.startsWith('/access/') ? new Promise(resolve => { answer = resolve; })
         : Promise.resolve({ data: path.endsWith('/staff-links') ? [] : view() }));
     render(<MemoryRouter><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
-    expect(await screen.findByRole('button', { name: /Invite staff/ })).toBeDisabled();
-    answer({ data: { clubId: 7, squadId: null, allowed: ['invite_staff', 'make_admin', 'change_job', 'end_job'], refused: [] } });
-    await waitFor(() => expect(screen.getByRole('button', { name: /Invite staff/ })).toBeEnabled());
+    expect(await screen.findByRole('button', { name: 'Invite' })).toBeDisabled();
+    answer({ data: { clubId: 7, squadId: null, allowed: ['see_staff', 'invite_staff', 'make_admin', 'change_job', 'end_job'], refused: [] } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Invite' })).toBeEnabled());
 });
 
 it('says plainly when a person has their own account and so gets no link', async () => {
@@ -238,22 +288,24 @@ it('says plainly when a person has their own account and so gets no link', async
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
-it('shows emails to admins only, and no Ask the admin link when no admin is named', async () => {
-    renderPeople(view({ userId: 4, leader: false, owner: false, headCoachSquads: [] }), {
-        access: { clubId: 7, squadId: null, allowed: ['see_people'], admins: [], refused: [
-            { action: 'invite_staff', allowed: false, reason: 'ONLY_ADMINS', message: 'Only the club’s admins can do this.', because: null }] },
+it('Post a job opens the club’s jobs inside Staff, with the way back', async () => {
+    api.get.mockImplementation(async (path: string) => {
+        if (path.startsWith('/access/')) throw new Error('no rule-checker');
+        return { data: path === '/clubs/7/people' ? view() : [] };
     });
-    expect(await screen.findByText('Only the club’s admins can do this.')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Ask the admin/ })).not.toBeInTheDocument();
-    expect(screen.queryByText('luka@example.test')).not.toBeInTheDocument();
+    render(<MemoryRouter><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
+    const post = await screen.findByRole('button', { name: /Post a job/ });
+    await waitFor(() => expect(post).toBeEnabled());
+    fireEvent.click(post);
+    fireEvent.click(await screen.findByRole('button', { name: 'Staff' }));
+    expect(await screen.findByRole('list', { name: 'Staff' })).toBeInTheDocument();
 });
 
-const showAt = (data: PeopleView, me: number, extra: { ownership?: unknown; access?: unknown } = {}) => {
+const showAt = (data: PeopleView, me: number) => {
     auth.user = { id: me, dob: '1985-01-01' };
     api.get.mockImplementation(async (path: string) => {
-        if (path.startsWith('/access/')) { if (extra.access) return { data: extra.access }; throw new Error('no rule-checker'); }
+        if (path.startsWith('/access/')) throw new Error('no rule-checker');
         if (path.endsWith('/staff-links')) return { data: [] };
-        if (path.endsWith('/ownership')) { if (extra.ownership) return { data: extra.ownership }; throw new Error('settled'); }
         if (path === '/me/club-relationships') return { data: [{ clubId: 7, departureSnapshots: { STAFF: 'snap' } }] };
         return { data };
     });
@@ -288,11 +340,8 @@ it('the Owner hands the club over to an Admin at once, then may leave', async ()
 it('the last staff member closes the club after a plain confirmation of what is kept', async () => {
     showAt(view(), 1);
     await screen.findByText('Nino Owner');
-    const luka = screen.getByText('Luka Beridze').closest('li') as HTMLElement;
-    expect(luka).toBeInTheDocument();
     api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { code: 'OWNER_MUST_HAND_OVER', lastStaff: true } } });
-    const owner = screen.getByText('Nino Owner').closest('li') as HTMLElement;
-    fireEvent.click(within(owner).getByRole('button', { name: /Hand the club over/ }));
+    fireEvent.click(within(row('Nino Owner')).getByRole('button', { name: /Hand the club over/ }));
     const handover = await screen.findByRole('dialog', { name: 'Hand FC Dinamo Tbilisi Academy over' });
     fireEvent.click(within(handover).getByRole('button', { name: 'Not now' }));
     // Leaving as the Owner with nobody else answers OWNER_MUST_HAND_OVER lastStaff: closing is offered.
@@ -306,23 +355,6 @@ it('the last staff member closes the club after a plain confirmation of what is 
     fireEvent.click(within(close).getByRole('button', { name: /Close the club/ }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/dissolve'));
     expect(await screen.findByText('Home page')).toBeInTheDocument();
-});
-
-it('someone offered the club takes it over, and an Admin can ask GrassKickZ when the Owner vanished', async () => {
-    const { unmount } = showAt(view({ userId: 4, leader: true, owner: false }), 4, {
-        ownership: { ownerId: 1, ownerName: 'Nino Owner', handover: { id: 3, toUserId: 4, toName: 'Mari Admin', status: 'PENDING', createdAt: '2026-10-26T10:00:00' }, reclaim: null } });
-    api.post.mockResolvedValueOnce({ data: { outcome: 'TRANSFERRED' } });
-    fireEvent.click(await screen.findByRole('button', { name: /Take over/ }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/ownership/handover/3/answer', { accept: true }));
-    unmount();
-    refreshAccess();
-    showAt(view({ userId: 4, leader: true, owner: false }), 4, {
-        ownership: { ownerId: 1, ownerName: 'Nino Owner', handover: null, reclaim: null },
-        access: { clubId: 7, squadId: null, allowed: ['see_people', 'invite_staff', 'ask_handover'], refused: [], admins: [] } });
-    api.post.mockResolvedValueOnce({ data: { reclaimId: 8, dueAt: '2026-11-26T10:00:00' } });
-    fireEvent.click(await screen.findByRole('button', { name: /Ask GrassKickZ to hand it over/ }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/ownership/reclaim'));
-    expect(await screen.findByText(/Nino Owner is told and can object until/)).toBeInTheDocument();
 });
 
 it('opens only the leave dialog for the club named in the address', async () => {
@@ -353,20 +385,21 @@ it('the handover list offers Try again when the club’s people fail to load', a
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
 });
 
-
-it.each(['CUSTOM', 'SPECIALIST_COACH'])('renewing a %s link keeps its stored title and tools', async job => {
+it.each(['CUSTOM', 'SPECIALIST_COACH'])('an older %s link opens with its own job, to share or switch off but never renew', async job => {
     const old = staffLink({ job, title: 'Individual coaching', tools: ['ATTENDANCE:WRITE'] });
     renderPeople(view(), { links: [old], url: '/?invite=link' });
-    await screen.findByLabelText('Staff link');
-    const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
-    api.post.mockResolvedValueOnce({ data: { ...old, id: 71, uses: 0, joined: [] } });
-    fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', expect.objectContaining({ job, title: old.title, tools: old.tools })));
+    expect(await screen.findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
+    const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
+    expect(within(dialog).queryByRole('button', { name: /New link/ })).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: /Switch off/ }));
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/clubs/7/staff-links/70'));
+    expect(api.post).not.toHaveBeenCalledWith('/clubs/7/staff-links', expect.anything());
 });
 
-it('an admin with no coached squads opens the existing link from Invite staff', async () => {
+it('Share a staff link opens the newest link with its job and where, ready to share', async () => {
     renderPeople(view({ owner: false, headCoachSquads: [] }), { links: [staffLink()] });
-    fireEvent.click(await screen.findByRole('button', { name: /^Invite staff/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Invite' }));
+    fireEvent.click(screen.getByRole('radio', { name: /Share a staff link/ }));
     expect(await screen.findByLabelText('Staff link')).toHaveValue(window.location.origin + '/staff-invite/staffcode');
     expect(screen.getByRole('button', { name: 'Whole club' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: /Make the link/ })).not.toBeInTheDocument();

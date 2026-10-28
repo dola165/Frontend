@@ -50,7 +50,7 @@ export function InviteStaffFlow({ club, clubName, squadId, job, onClose }: { clu
     if (!people.view) return <Waiting title={title} error={people.error} retry={people.retry} onClose={onClose} />;
     const squad = people.view.squads.some(item => item.id === squadId) ? squadId : undefined;
     const linkJob = linkJobs(people.view).includes(job ?? '') ? job! : squad ? 'ASSISTANT_COACH' : 'HEAD_COACH';
-    return <InviteStaffDialog key={staff.links ? 'loaded' : 'waiting'} club={club} clubName={clubName} view={people.view} suggest={false} allowAdmin={people.view.viewer.leader}
+    return <InviteStaffDialog club={club} clubName={clubName} view={people.view} suggest={false} allowAdmin={people.view.viewer.leader}
         initial={{ job: linkJob, clubWide: false, squadIds: squad ? [squad] : people.view.viewer.headCoachSquads.length === 1 ? people.view.viewer.headCoachSquads : [] }}
         how={how} onHow={setHow} links={staff.links ?? []} linksLoading={staff.links === null && !staff.error} linksError={staff.error} onRetryLinks={staff.reload}
         onLinks={staff.setLinks} onClose={onClose} onChanged={notice => { refreshAccess(); toast.success(notice); }}

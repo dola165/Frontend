@@ -5,6 +5,7 @@ import { Status } from '../../../design/DataTable';
 import type { ClubMembershipInvite } from '../../clubs/domain';
 import { formatDate } from '../../../utils/formatting';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
+import { useNow } from '../../clubWorkspace/useNow';
 import type { NameCheck, Specialist, Suggestion } from './api';
 import { useJobWords } from './jobWords';
 
@@ -71,15 +72,19 @@ export function InvitationRow({ invite, canCancel, busy, onCancel }: { invite: C
 /** An outside specialist the club works with now, listed in Staff with their own job; the record opens in Specialists. */
 export function SpecialistRow({ specialist, href }: { specialist: Specialist; href: string | null }) {
     const { copy } = useJobWords();
+    const now = useNow();
     const until = specialist.endsAt ? formatDate(specialist.endsAt, { day: 'numeric', month: 'short' }) : null;
-    const contact = specialist.contact;
+    // An engagement that starts later says when ("from 4 Nov").
+    const from = specialist.startsAt && new Date(specialist.startsAt).getTime() > now ? formatDate(specialist.startsAt, { day: 'numeric', month: 'short' }) : null;
+    const contact = specialist.contact?.trim() || null;
+    const email = contact && /^[^\s@<>()"]+@[^\s@<>()"]+\.[^\s@<>()"]+$/.test(contact) ? contact : null;
     return <li className="pp-person pp-person--plain">
         <div className="pp-person__head">
             <Avatar name={specialist.name} size={40} />
             <div className="pp-person__who"><strong className="pp-person__name">{href ? <Link to={href}>{specialist.name}</Link> : specialist.name}</strong>
                 <span className="gk-muted pp-person__sub">{[specialist.specialisation ?? copy('Specialist', 'სპეციალისტი'), copy('outside specialist', 'გარე სპეციალისტი')].join(' · ')}</span></div>
         </div>
-        <div className="pp-jobs pp-contacts">{contact && (contact.includes('@') ? <a href={`mailto:${contact}`}>{contact}</a> : contact.match(/^[+\d][\d\s()-]{5,}$/) ? <a href={`tel:${contact.replace(/[^+\d]/g, '')}`}>{contact}</a> : <span>{contact}</span>)}
-            {until && <span className="gk-faint">{copy(`until ${until}`, `${until}-მდე`)}</span>}</div>
+        <div className="pp-jobs pp-contacts">{contact && (email ? <a href={`mailto:${encodeURIComponent(email).replace('%40', '@')}`}>{email}</a> : /^[+\d][\d\s()-]{5,}$/.test(contact) ? <a href={`tel:${contact.replace(/[^+\d]/g, '')}`}>{contact}</a> : <span>{contact}</span>)}
+            {from ? <span className="gk-faint">{copy(`from ${from}`, `${from}-დან`)}</span> : until && <span className="gk-faint">{copy(`until ${until}`, `${until}-მდე`)}</span>}</div>
     </li>;
 }

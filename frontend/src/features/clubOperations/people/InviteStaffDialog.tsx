@@ -12,6 +12,7 @@ import { HELPER_JOBS, invitePerson, linkJobs, mainJobs, makeStaffLink, removeJoi
     type InviteResult, type JobDraft, type Person, type PeopleView, type StaffLink } from './api';
 import { JobPicker } from './JobPicker';
 import { useJobWords } from './jobWords';
+import { useNow } from '../../clubWorkspace/useNow';
 
 export type InviteHow = 'person' | 'link';
 
@@ -40,8 +41,9 @@ export function InviteStaffDialog({ club, clubName, view, person, suggest, allow
     // A head coach suggests for the squads they coach; the picker only offers those.
     const pickerView = suggest ? { ...view, squads: view.squads.filter(squad => own.includes(squad.id)) } : view;
     // A link named in the address opens with its job and where, and so does Share a staff link before anything is
-    // chosen: the newest link, ready to share.
-    const preset = (list: StaffLink[], way: InviteHow) => person || suggest ? undefined : list.find(link => link.id === openedLink) ?? (way === 'link' ? list[0] : undefined);
+    // chosen: the link for the job and where a door chose (a squad's "Invite staff"), or none; else the newest link.
+    const preset = (list: StaffLink[], way: InviteHow) => person || suggest ? undefined : list.find(link => link.id === openedLink)
+        ?? (way !== 'link' ? undefined : initial ? list.find(link => staffLinkMatches(link, { title: '', tools: [], ...initial }, view)) : list[0]);
     const [draft, setDraft] = useState<JobDraft>(() => {
         const opened = preset(links, how);
         return opened ? draftFor(opened) : { job: suggest ? HELPER_JOBS[0] : 'HEAD_COACH', title: '', tools: [], clubWide: false, squadIds: own.length === 1 ? own : [], ...initial };
@@ -103,7 +105,8 @@ export function InviteStaffDialog({ club, clubName, view, person, suggest, allow
                 <Field label={copy('Email', 'ელფოსტა')} htmlFor={`${id}-email`}><input id={`${id}-email`} className="gk-input" type="email" autoComplete="off" maxLength={254} value={email} disabled={busy} onChange={event => setEmail(event.target.value)} /></Field>
             </div>}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
-            {showLink && <StaffLinkPanel club={club} clubName={clubName} view={view} draft={draft} canMake={canMake} links={links} loading={linksLoading} loadError={linksError} onRetry={onRetryLinks} onLinks={onLinks} onChanged={onChanged} />}
+            {showLink && <StaffLinkPanel club={club} clubName={clubName} view={view} draft={draft} canMake={canMake} links={links} loading={linksLoading} loadError={linksError} onRetry={onRetryLinks} onLinks={onLinks} onChanged={onChanged}
+                onPick={picked => { setDraft(draftFor(picked)); setTouched(true); setError(''); }} />}
             <button type="submit" hidden />
         </form>
     </Dialog>;
@@ -112,13 +115,15 @@ export function InviteStaffDialog({ club, clubName, view, person, suggest, allow
 /**
  * The staff link for the chosen job and where: one link and QR code for the group chat or the staff room, 7 days or
  * 10 uses, who joined underneath as they join, each with Remove. New link replaces the old one for the same job,
- * title and scope (and tools for Custom).
+ * title and scope (and tools for Custom). Underneath, every link the club has working, older ones included, each
+ * with Show and Switch off, so what is live is in view without picking a link's exact terms (28 October 2026).
  */
-function StaffLinkPanel({ club, clubName, view, draft, canMake, links, loading, loadError, onRetry, onLinks, onChanged }: {
+function StaffLinkPanel({ club, clubName, view, draft, canMake, links, loading, loadError, onRetry, onLinks, onChanged, onPick }: {
     club: number; clubName: string; view: PeopleView; draft: JobDraft; canMake: boolean; links: StaffLink[]; loading: boolean; loadError: string; onRetry?: () => void;
-    onLinks: (links: StaffLink[]) => void; onChanged: (notice: string) => void;
+    onLinks: (links: StaffLink[]) => void; onChanged: (notice: string) => void; onPick: (link: StaffLink) => void;
 }) {
     const { copy, jobLabel, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
+    const now = useNow();
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [removing, setRemoving] = useState<number | null>(null);
     const request = useRef<{ key: string; id: string } | null>(null);
     const [stale, setStale] = useState<StaffLink | null>(null);
@@ -202,5 +207,22 @@ function StaffLinkPanel({ club, clubName, view, draft, canMake, links, loading, 
             <Button variant="primary" disabled={busy} onClick={make}><QrCode aria-hidden="true" />{busy ? copy('Making…', 'იქმნება…') : copy('Make the link', 'ბმულის შექმნა')}</Button>
             <span className="gk-faint">{copy('Works for 7 days or 10 people.', 'მოქმედებს 7 დღე ან 10 ადამიანზე.')}</span>
         </div>}
+        {links.length > 0 && <section className="pp-links" aria-label={copy('Working links', 'მოქმედი ბმულები')}>
+            <h3 className="pp-joined__title">{copy('Working links', 'მოქმედი ბმულები')} <span className="gk-faint">{links.length}</span></h3>
+            <ul className="pp-links__list">{links.map(item => {
+                const usesLeft = Math.max(0, item.maxUses - item.uses);
+                // Never more than the link's own life, even when it is newer than the clock this list read.
+                const expires = new Date(item.expiresAt).getTime(), days = Math.max(0, Math.min(Math.ceil((expires - now) / 864e5), Math.ceil((expires - new Date(item.createdAt).getTime()) / 864e5)));
+                const where = item.clubWide ? copy('Whole club', 'მთელი კლუბი') : whereLabel(item);
+                return <li key={item.id} className="pp-links__row" aria-current={item.id === link?.id || undefined}>
+                    <span className="pp-links__what"><strong>{jobLabel(item)}</strong><small className="gk-muted">{where}</small></span>
+                    <small className="gk-faint pp-links__left">{copy(`${usesLeft} of ${item.maxUses} left · ${days === 1 ? '1 day' : `${days} days`} left`, `დარჩა ${usesLeft} / ${item.maxUses} · ${days} დღე`)}</small>
+                    <span className="gk-row">
+                        {item.id !== link?.id && <Button size="sm" variant="ghost" disabled={busy} aria-label={copy(`Show ${jobLabel(item)} · ${where}`, `ჩვენება: ${jobLabel(item)} · ${where}`)} onClick={() => onPick(item)}>{copy('Show', 'ჩვენება')}</Button>}
+                        <Button size="sm" variant="ghost" className="pp-danger" disabled={busy} aria-label={copy(`Switch off ${jobLabel(item)} · ${where}`, `გათიშვა: ${jobLabel(item)} · ${where}`)} onClick={() => stop(item)}><Link2Off aria-hidden="true" />{copy('Switch off', 'გათიშვა')}</Button>
+                    </span>
+                </li>;
+            })}</ul>
+        </section>}
     </div>;
 }

@@ -1,4 +1,4 @@
-import { trimUrl, URL_PATTERN } from '../../utils/webLinks';
+import { linkHref, trimUrl, URL_PATTERN } from '../../utils/webLinks';
 import type { ChatPerson, ChatTaskRef } from './api';
 
 /** A message's text in pieces: plain words, links, Team work task keys and mentions. */
@@ -39,9 +39,9 @@ export function parts(text: string, mentioned: ChatPerson[], tasks: ChatTaskRef[
         end = start + found.length;
         if (match[1]) {
             const url = trimUrl(found);
-            let parsed: URL | null = null;
-            try { parsed = new URL(url); } catch { /* Not a link after all. */ }
-            if (parsed && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+            // The one check for every link: http(s) only, never with a user name in the address.
+            const href = linkHref(url), parsed = href ? new URL(href) : null;
+            if (parsed) {
                 out.push({
                     kind: 'url', text: url, href: parsed.href,
                     internal: parsed.origin === origin && !parsed.pathname.startsWith('//') ? `${parsed.pathname}${parsed.search}${parsed.hash}` : null,

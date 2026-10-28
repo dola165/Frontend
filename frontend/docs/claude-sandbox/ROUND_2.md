@@ -615,4 +615,4 @@ This branch is the real frontend code on fake data, so what is built here ships 
 
 World Clubs now has the URL view `/world/clubs?view=following`, using the existing followed-clubs API and row actions. Jobs and volunteering stay at `/jobs`; World Opportunities opens Trials and retains Groups, with a Jobs link. Old World jobs URLs forward to Jobs. Existing page links retain their context.
 
-Before release: the current World map has no mounted venue directory, and personal venue booking history has no mounted page. The page-cleanup task records these gaps rather than adding new pages. Browser and review evidence is recorded in `HANDOFF_PAGE_CLEANUP_RESULT.md` at the repository root.
+Before release: the current World map has no mounted venue directory, and personal venue booking history has no mounted page. The page-cleanup task records these gaps rather than adding new pages.

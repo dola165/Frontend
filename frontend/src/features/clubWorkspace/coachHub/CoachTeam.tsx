@@ -1,30 +1,30 @@
 import { useState } from 'react';
 import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
-import { ChevronRight, MessageCircle, UserPlus } from 'lucide-react';
-import { Avatar, Button, ButtonLink, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
+import { ChevronRight, MessageCircle } from 'lucide-react';
+import { Avatar, ButtonLink, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import { operationTab } from '../../clubOperations/workspaceNavigation';
 import { focusableViews } from '../../clubOperations/workspaceStructure';
 import { label as words } from '../../clubOperations/api';
 import { dueWords } from '../fixtures';
 import { viewSquads } from './coachData';
-import { SuggestFlow } from '../../actions/flows/StaffFlows';
-import { useCan } from '../../../hooks/useCan';
+
 import * as squadApi from '../../squadCommunication/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { SquadSwitch } from './CoachVisuals';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
-interface Coach { id: number; name: string; squads: string[]; head: string[] }
+interface Coach { id: number; name: string; squads: string[]; head: string[]; title: string | null }
 
 /**
- * The people I coach with, as faces a message away; the jobs shared out for my squads (cover, kit, match day),
- * each with who has it; and my own responsibilities. A head coach suggests an assistant here; the admins confirm it.
+ * Everyone who works on my squads, as faces a message away with their job (head and assistant coaches, the team
+ * manager, specialist coaches); the jobs shared out for my squads (cover, kit, match day), each with who has it; and
+ * my own responsibilities. Admins give jobs in Club office; a head coach adds helpers to sessions.
  */
 export function CoachTeam({ data }: { data: CoachData }) {
     const copy = useCopy('coachHub', coachHubEn);
-    const [suggesting, setSuggesting] = useState(false), [sent, setSent] = useState(''), [assigning, setAssigning] = useState<number | null>(null), [error, setError] = useState('');
+    const [assigning, setAssigning] = useState<number | null>(null), [error, setError] = useState('');
     // Each squad's head coach, chosen from the club's coaches by whoever may assign it.
     const assign = async (squad: number, coach: string) => {
         setAssigning(squad); setError('');
@@ -37,7 +37,7 @@ export function CoachTeam({ data }: { data: CoachData }) {
     for (const squad of data.squads ?? []) {
         if (!data.shown.includes(squad.id)) continue;
         for (const coach of squad.overview?.coaches ?? []) {
-            const entry = coaches.get(coach.user_id) ?? { id: coach.user_id, name: coach.full_name, squads: [], head: [] };
+            const entry = coaches.get(coach.user_id) ?? { id: coach.user_id, name: coach.full_name, squads: [], head: [], title: coach.title ?? null };
             const name = names.get(squad.id) ?? '';
             entry.squads.push(name);
             if (squad.overview?.head_coach_id === coach.user_id) entry.head.push(name);
@@ -47,12 +47,9 @@ export function CoachTeam({ data }: { data: CoachData }) {
     const duties = data.records.rows.filter(record => record.module === 'STAFF' && record.squad_id !== null && data.shown.includes(record.squad_id));
     const staffName = (id: number | null) => data.boot?.staff.find(person => person.id === id)?.name ?? null;
     const responsibilities = focusableViews(roles.views);
-    const ownSquads = roles.squads.filter(squad => roles.headCoachSquads?.includes(squad.id));
-    const access = useCan(`club:${data.clubId}`);
-    const suggest = access.decide('suggest_assistant', ownSquads.length > 0).allowed && ownSquads.length > 0;
 
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title={copy('coaches')} actions={suggest ? <Button disabled={access.pending} onClick={() => setSuggesting(true)}><UserPlus aria-hidden="true" />{copy('suggestAssistant')}</Button> : undefined} />
+        <PageHeader title={copy('coaches')} />
         <SquadSwitch data={data} />
         <div className="gk-stack">
             {!data.squads ? <Skeleton height={150} />
@@ -61,12 +58,12 @@ export function CoachTeam({ data }: { data: CoachData }) {
                     return <li key={coach.id} className="ch-coach">
                         <Avatar name={coach.name} size={60} />
                         <strong>{me ? copy('nameYou', { name: coach.name }) : coach.name}</strong>
-                        <span className="ch-coach__role">{coach.head.length ? copy('headCoach') : copy('coach')}</span>
+                        <span className="ch-coach__role">{coach.head.length ? copy('headCoach') : coach.title ?? copy('coach')}</span>
                         <span className="ch-quiet">{coach.squads.join(', ')}</span>
                         {!me && <ButtonLink size="sm" to={`/messages?chatWith=${coach.id}`}><MessageCircle aria-hidden="true" />{copy('message')}</ButtonLink>}
                     </li>;
                 })}</ul>}
-            {sent && <div className="gk-notice cw-notices__success" role="status">{sent}</div>}
+
             {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
             <Section boxed title={copy('headCoachEach')}>
                 <Panel>{(data.squads ?? []).filter(squad => data.shown.includes(squad.id) && squad.overview).map(squad => <label key={squad.id} className="ch-headcoach">
@@ -95,6 +92,6 @@ export function CoachTeam({ data }: { data: CoachData }) {
                 </Section>
             </div>
         </div>
-        {suggesting && <SuggestFlow club={data.clubId} squadId={ownSquads.length === 1 ? ownSquads[0].id : undefined} onClose={() => setSuggesting(false)} onSent={message => { setSuggesting(false); setSent(message); }} />}
+
     </PageFrame>;
 }

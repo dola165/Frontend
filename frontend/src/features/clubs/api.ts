@@ -130,7 +130,7 @@ export const createClubApplication = async (
     clubId: number,
     role: Extract<ClubMembershipRole, 'COACH' | 'PLAYER'>,
     message?: string | null,
-    extra?: { position?: string | null; ageGroup?: string | null; jobId?: number | null },
+    extra?: { position?: string | null; ageGroup?: string | null; jobId?: number | null; squadId?: number | null },
     config?: AuthSessionRequestConfig
 ) => {
     const response = await apiClient.post<{ applicationId: number }>(`/clubs/${clubId}/applications`, {
@@ -139,6 +139,7 @@ export const createClubApplication = async (
         position: extra?.position ?? null,
         ageGroup: extra?.ageGroup ?? null,
         jobId: extra?.jobId ?? null,
+        squadId: extra?.squadId ?? null,
     }, config);
     return response.data;
 };

@@ -16,6 +16,8 @@ import { Status } from '../../../design/DataTable';
 import { ScoreDialog } from '../../scores/ScoreDialog';
 import { isOfficial, isOpen, scoreState } from '../../scores/status';
 import { useResultCopy } from '../../matchHistory/copy';
+import { NextMatchCard } from './NextMatchCard';
+import { useCan } from '../../../hooks/useCan';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -23,9 +25,10 @@ const friendly = (match: HistoryMatch) => /friendly/i.test(match.title) ? 'FRIEN
 const waitingKeys: Record<string, 'waitingOpponent' | 'openToAnyClub' | 'cancelled'> = { PENDING: 'waitingOpponent', PROPOSED: 'waitingOpponent', INVITED: 'waitingOpponent', OPEN: 'openToAnyClub', CANCELLED: 'cancelled' };
 
 /**
- * My squads' matches, all on this page: arrange one in a dialog (the same form as World and the club page,
- * already on this squad), what is coming up, and what was played with the score, or its open score step (report,
- * confirm or dispute, settle) in the same score dialog as everywhere. Nothing here leaves the page.
+ * My squads' matches, all on this page: the next match card on top (the same card for everyone on the squad, step 3),
+ * arrange one in a dialog (the same form as World and the club page, already on this squad), what is coming up, and
+ * what was played with the score, or its open score step (report, confirm or dispute, settle) in the same score dialog
+ * as everywhere.
  */
 export function CoachMatches({ data }: { data: CoachData }) {
     const copy = useCopy('coachHub', coachHubEn);
@@ -56,6 +59,11 @@ export function CoachMatches({ data }: { data: CoachData }) {
     const upcoming = (items ?? []).filter(match => time(match) >= data.now && match.fixtureStatus !== 'CANCELLED').sort((a, b) => time(a) - time(b));
     const played = (items ?? []).filter(match => time(match) < data.now).sort((a, b) => time(b) - time(a));
     const squadForMatch = data.focus ?? data.mine[0]?.id ?? 0;
+    // Arranging is match management (head coaches, team managers); everyone on the squad reads its matches.
+    const access = useCan(squadForMatch ? `squad:${squadForMatch}` : null);
+    const canArrange = access.decide('arrange_match', false).allowed;
+    const nextCards = data.shown.map(id => data.cards?.get(id)).filter(card => card?.match)
+        .sort((a, b) => a!.match!.starts_at_iso.localeCompare(b!.match!.starts_at_iso));
     // "+ Arrange a match" anywhere opens the form in a dialog here; `arrange=1` in the address does the same on arrival.
     const setArranging = (open: boolean) => { const next = new URLSearchParams(params); if (open) next.set('arrange', '1'); else next.delete('arrange'); setParams(next, { replace: !open }); };
 
@@ -83,20 +91,21 @@ export function CoachMatches({ data }: { data: CoachData }) {
     const loading = items === null;
 
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title={copy('matches')} actions={<Button variant="primary" onClick={() => setArranging(true)}><Plus aria-hidden="true" />{copy('arrangeMatch')}</Button>} />
+        <PageHeader title={copy('matches')} actions={canArrange ? <Button variant="primary" onClick={() => setArranging(true)}><Plus aria-hidden="true" />{copy('arrangeMatch')}</Button> : undefined} />
         <SquadSwitch data={data} />
         {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
+        {nextCards.map(card => <NextMatchCard key={card!.squadId} card={card!} data={data} onChanged={data.refresh} />)}
         <div className="gk-stack">
             <Section boxed title={copy('comingUp')} hint={upcoming.length ? `${upcoming.length}` : undefined}>
                 <Panel flush>{loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('comingUp')}>{[0, 1].map(i => <Skeleton key={i} height={48} />)}</div>
                     : upcoming.length ? <List label={copy('comingUp')}>{upcoming.map(match => row(match, false))}</List>
-                        : <EmptyNote title={copy('noMatchesSoon')} action={<Button size="sm" onClick={() => setArranging(true)}>+ {copy('arrangeMatch')}</Button>}>{copy('noMatchesSoonHint')}</EmptyNote>}</Panel>
+                        : <EmptyNote title={copy('noMatchesSoon')} action={canArrange ? <Button size="sm" onClick={() => setArranging(true)}>+ {copy('arrangeMatch')}</Button> : undefined}>{copy('noMatchesSoonHint')}</EmptyNote>}</Panel>
             </Section>
             {/* One green-edged box between what is coming and what was played: the question, and the one button. */}
-            <div className="ch-arrange-box">
+            {canArrange && <div className="ch-arrange-box">
                 <span className="ch-arrange-box__ask">{copy('arrangeAsk')}</span>
                 <Button variant="primary" onClick={() => setArranging(true)}><Plus aria-hidden="true" />{copy('arrangeMatch')}</Button>
-            </div>
+            </div>}
             <Section boxed title={copy('played')} hint={played.length ? `${played.length}` : undefined}>
                 <Panel flush>{loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('played')}>{[0, 1, 2].map(i => <Skeleton key={i} height={48} />)}</div>
                     : played.length ? <List label={copy('played')}>{played.map(match => row(match, true))}</List>

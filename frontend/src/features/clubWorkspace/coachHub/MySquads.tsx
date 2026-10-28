@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { CalendarDays, Camera, ChevronRight, MessageCircle, Megaphone, Plus, Trophy, Users, X } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CalendarDays, Camera, ChevronRight, MessageCircle, Megaphone, MessagesSquare, Plus, Trophy, Users, X } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { PostComposer } from '../../../components/feed/PostComposer';
@@ -22,7 +22,11 @@ import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import { DayAgenda, type DayAgendaItem } from '../DayAgenda';
 import { dayLabel, timeLabel } from '../fixtures';
 import { coachEvents, type CoachEvent } from './coachEvents';
-import { coachNeeds, type CoachNeed } from './coachNeeds';
+import { coachNeeds, squadNeeds, type CoachNeed } from './coachNeeds';
+import { NextMatchCard } from './NextMatchCard';
+import { openStaffRoom } from './squadApi';
+import { mySquadsEn } from '../../../locales/mySquadsDesign';
+import { extractApiErrorMessage } from '../../../utils/apiError';
 import { kindNames, opponentOf, sessionKind, upcoming } from './useCoachData';
 import { ActivityBadge } from './CoachVisuals';
 import { ActivitySummary } from './ActivitySummary';
@@ -49,12 +53,16 @@ export function MySquads({ data }: { data: CoachData }) {
     const activityKey = params.get('activity');
     const activity = activityKey && data.squads ? coachEvents(data).find(event => event.key === activityKey) : undefined;
     const setActivity = (key: string | null) => { const next = new URLSearchParams(params); if (key) next.set('activity', key); else next.delete('activity'); setParams(next, { replace: !key }); };
-    const needs =(data.squads ? coachNeeds({ club: data.clubId, squads: data.squads, names: data.names, now: data.now, person: data.person,
-        records: data.records.rows.filter(record => record.squad_id !== null && data.shown.includes(record.squad_id)), mine: data.records.mine, link: data.link }) : []).filter(need => need.kind !== 'reply');
+    // Needs you is personal: what waits on this person's jobs first (joining to decide, call-ups to chase), then the squads' own.
+    const needs = [...squadNeeds({ joining: data.joining.items, cards: data.cards, names: data.names, now: data.now, link: data.link }),
+        ...(data.squads ? coachNeeds({ club: data.clubId, squads: data.squads, names: data.names, now: data.now, person: data.person,
+            records: data.records.rows.filter(record => record.squad_id !== null && data.shown.includes(record.squad_id)), mine: data.records.mine, link: data.link }) : [])].filter(need => need.kind !== 'reply');
+    // Posting updates and photos is coaching; staff on a squad who don't coach read it.
+    const coaches = Boolean(data.squads?.some(squad => squad.overview?.can_manage));
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('mySquads')} subtitle={formatDate(new Date(data.now), { weekday: 'long', day: 'numeric', month: 'long' })}
-            actions={<><Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>
-                <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink></>} />
+            actions={coaches ? <><Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>
+                <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink></> : undefined} />
         <ul className="ch-cards" aria-label={copy('mySquads')}>
             {data.mine.map(squad => <SquadCard key={squad.id} squad={squad} data={data} need={needs.find(need => need.squad === squad.id) ?? null} onCancel={session => setCancelling({ squad: squad.id, session })} />)}
             <li><Link className="ch-card ch-card--ask" to={data.link('coaches')}><Plus aria-hidden="true" />{copy('askSquad')}</Link></li>
@@ -102,11 +110,26 @@ function ResultsToAdd({ data }: { data: CoachData }) {
     </>;
 }
 
-/** A squad as the coach sees it: crest and name, the next session, what waits, the chat and a match to arrange. */
+/**
+ * A squad as everyone on it sees it: crest and name, the next session, the next match, what waits on this person, the
+ * chat, the staff room and a match to arrange (for those whose job arranges them).
+ */
 function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squads'][number]; data: CoachData; need: CoachNeed | null; onCancel: (session: SquadSession) => void }) {
     const copy = useCopy('coachHub', coachHubEn);
+    const words = useCopy('mySquads', mySquadsEn);
+    const navigate = useNavigate();
+    const [roomError, setRoomError] = useState('');
+    const card = data.cards?.get(squad.id);
+    const openRoom = async () => {
+        setRoomError('');
+        try { const room = await openStaffRoom(squad.id); navigate(`/messages?conversationId=${room.conversationId}`); }
+        catch (error) { setRoomError(extractApiErrorMessage(error, words('staffRoomFailed'))); }
+    };
     const space = data.squads?.find(item => item.id === squad.id);
-    const next = space ? upcoming(space, data.now)[0] : undefined;
+    // The next match has its own line, so the first line is the next other thing: the same fixture is never shown twice.
+    const sameFixture = (session: SquadSession) => Boolean(card?.match) && sessionKind(session) !== 'TRAINING'
+        && Math.abs(new Date(session.starts_at).getTime() - new Date(card!.match!.starts_at_iso).getTime()) < 60_000;
+    const next = space ? upcoming(space, data.now).find(session => !sameFixture(session)) : undefined;
     const kind = next ? sessionKind(next) : null;
     const opponent = next ? opponentOf(next, squad.id, data.events, data.clubName) : null;
     const week = data.link('calendar', { squad: String(squad.id) });
@@ -135,6 +158,7 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
                     </button>
                     : noPlayers ? <Link className="ch-card__line" to={data.link('players', { squad: String(squad.id), roster: '1' })}><span className="ch-card__line-icon"><Users aria-hidden="true" /></span><span className="ch-card__line-text ch-card__line-text--action">{copy('addPlayers')}</span></Link>
                         : <Link className="ch-card__line" to={week}><span className="ch-card__line-icon"><CalendarDays aria-hidden="true" /></span><span className="ch-card__line-text ch-card__line-text--action">{copy('whenTrain')}</span></Link>}
+            {card?.match && <NextMatchCard card={card} data={data} compact onChanged={data.refresh} />}
             {need && <Link className="ch-card__line" to={need.to}>
                 <span className="ch-card__line-icon"><span className={`cw-dot cw-dot--${need.tone}`} aria-hidden="true" /></span>
                 <span className="ch-card__line-text">{need.title}</span>
@@ -143,9 +167,11 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
         </div>
         <div className="ch-card__actions">
             <ButtonLink size="sm" variant="primary" to={`/messages?squadId=${squad.id}`}><MessageCircle aria-hidden="true" />{copy('squadChat')}</ButtonLink>
+            <Button size="sm" onClick={() => void openRoom()}><MessagesSquare aria-hidden="true" />{words('staffRoom')}</Button>
             {/* Already seeded with this squad and the home ground: only the opponent and the day are left to choose. */}
             <ActionButton action="arrange_match" subject={{ kind: 'squad', id: squad.id, clubId: data.clubId }} size="sm" className="ch-card__arrange" label={copy('arrangeMatch')} />
         </div>
+        {roomError && <p className="gk-notice gk-notice--danger ch-card__error" role="alert">{roomError}</p>}
     </article></li>;
 }
 

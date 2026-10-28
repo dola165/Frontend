@@ -20,6 +20,7 @@ import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { PlayerCard } from '../squads/PlayerCard';
 import { dueWords } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
+import { WantToJoin } from './WantToJoin';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -34,9 +35,10 @@ const FILTERS: { id: string; label: 'filterEveryone' | 'filterRestricted' | 'fil
 ];
 
 /**
- * My squads' players as football cards, by position: photo, shirt number, position, age and the signs a coach
- * plans around (a restriction, consent waiting on a parent, a development review). Who's coming belongs to a
- * planned session, so it is shown there, not here. A card opens the player's notes and tools.
+ * My squads' players: who wants to join on top (for those who decide it, step 3), then the squad as football cards, by
+ * position: photo, shirt number, position, age and the signs a coach plans around (a restriction, consent waiting on a
+ * parent, a development review). Who's coming belongs to a planned session, so it is shown there, not here. A card
+ * opens the player's notes and tools.
  */
 export function CoachPlayers({ data }: { data: CoachData }) {
     const { t } = useTranslation();
@@ -123,6 +125,7 @@ export function CoachPlayers({ data }: { data: CoachData }) {
         <PageHeader title={copy('players')} subtitle={copy('playersIn', { count: rows.length, where: several ? copy('inYourSquads') : data.names.get(data.shown[0]) ?? '' })} />
         <SquadSwitch data={data} />
         <div className="gk-stack">
+            {data.joining.items && data.joining.items.length > 0 && <WantToJoin items={data.joining.items} data={data} onChanged={data.refresh} />}
             {errors.length > 0 && <div className="gk-notice gk-notice--danger" role="alert">{errors[0]}</div>}
             <div className="gk-stack gk-stack--tight">
                 <ViewTabs label={copy('show')} value={filter.id} onChange={id => set({ view: id === 'all' ? null : id })} views={FILTERS.map(item => ({ id: item.id, label: copy(item.label), count: rows.filter(item.test).length }))} />

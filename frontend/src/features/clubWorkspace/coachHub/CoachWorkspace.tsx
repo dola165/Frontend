@@ -13,8 +13,10 @@ import { guardWorkspaceNavigation } from '../../clubOperations/workspaceGuard';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
 import { useClubOverview } from '../useClubOverview';
 import { useNow } from '../useNow';
-import { coachTrainingContext, mySquadIds, personName } from './coachData';
+import { coachTrainingContext, jobsOn, mySquadIds, personName } from './coachData';
 import { useCoachRecords, useCoachSquads, useSquadRosters, type CoachSquad, type SquadRoster } from './useCoachData';
+import { useMatchCards, useWantToJoin, type WantToJoinItem } from './useSquadCards';
+import type { MatchCard } from './squadApi';
 import { MySquads } from './MySquads';
 import { CoachCalendar } from './CoachCalendar';
 import { CoachPlayers } from './CoachPlayers';
@@ -44,6 +46,10 @@ export interface CoachData {
     /** Reads a squad's parts again after some failed (`CoachSquad.failed`); `retrying` holds the squads being read. */
     retrySquad: (squad: number) => void; retrying: number[]; revision: number; records: ReturnType<typeof useCoachRecords>; events: ScheduleEventOccurrence[];
     roleOf: (squad: number) => string; person: (id: number | null) => string | null;
+    /** Each squad's next match card (`null` when it could not be read); the same card for everyone on the squad. */
+    cards: Map<number, MatchCard | null> | null;
+    /** Want to join for the squads shown: only those who decide get any (decision 2). */
+    joining: { items: WantToJoinItem[] | null; failed: boolean; refresh: () => void };
     /** A My squads page, keeping the squad picked in the switcher. */
     link: (tab: string, extra?: Record<string, string>) => string;
     openWork: OpenWorkspace; workHref: (tab: string, context?: Record<string, string>) => string; openEvent: (event: ScheduleEventOccurrence) => void;
@@ -52,10 +58,11 @@ export interface CoachData {
 }
 
 /**
- * My squads: the coach's own workspace, separate from the club's. It gathers the squads a person coaches,
- * their calendar and who's coming, players, updates to parents and the coaching team, and opens club tools
- * in Club office's More tools when a task needs them; Staff is at the bottom. It owns nothing: every item opens the
- * same squad spaces and records the club uses. One squad switcher at the top narrows every page.
+ * My squads: one page for everyone on a squad (step 3, 29 October 2026). Head and assistant coaches, team managers,
+ * specialist coaches and travel coordinators see the same places, the same week and the same next match; the head of
+ * coaching is on every squad. A job decides which squads someone is on and which buttons work, never what the page
+ * looks like; Needs you is personal. It owns nothing: every item opens the same squad spaces and records the club uses.
+ * One squad switcher at the top narrows every page.
  */
 export function CoachWorkspace({ clubId }: { clubId: number }) {
     const navigate = useNavigate();
@@ -72,11 +79,14 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     const { squads, retry: retrySquad, retrying } = useCoachSquads(squadIds, revision);
     const records = useCoachRecords(clubId, squadIds, operations.boot, revision);
     const rosters = useSquadRosters(clubId, squadIds, revision);
+    const matchCards = useMatchCards(squadIds, revision);
 
     // Older links named the schedule and the team differently.
     const raw = params.get('tab'), tab: CoachTab = raw === 'schedule' ? 'calendar' : raw === 'team' ? 'coaches' : TABS.find(item => item === raw) ?? 'overview';
     // On the first page a chosen squad opens its own page; on the others the switcher narrows the list.
     const focus = squadIds.find(id => String(id) === params.get('squad')) ?? null;
+    const joining = useWantToJoin(clubId, focus ? [focus] : squadIds, !focus, revision);
+    const toDecide = joining.items?.filter(item => item.state === 'DECIDE').length ?? 0;
     // The first tab always returns to all squads; the other tabs keep the squad picked in the switcher.
     const coachHref = (context: Record<string, string> = {}) => {
         const query = new URLSearchParams({ ...context, ...(params.has('clubId') ? { clubId: String(clubId) } : {}) }).toString();
@@ -94,7 +104,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     const unread = squads?.reduce((total, squad) => total + (squad.overview?.threads.reduce((sum, thread) => sum + thread.unread_count, 0) ?? 0), 0) ?? 0;
     const primary: WorkspaceNavItem[] = [
         { id: 'overview', label: copy('mySquads'), icon: ShieldCheck },
-        { id: 'players', label: copy('players'), icon: Users },
+        { id: 'players', label: copy('players'), icon: Users, count: toDecide || undefined },
         { id: 'updates', label: copy('updates'), icon: Megaphone, count: unread || undefined },
         { id: 'coaches', label: copy('coaches'), icon: UsersRound },
         { id: 'matches', label: copy('matches'), icon: Trophy },
@@ -111,8 +121,8 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
         const data: CoachData = {
             clubId, clubName, clubLogo: club.clubLogoUrl, roles, boot: operations.boot, now, mine, names: new Map(roles.squads.map(squad => [squad.id, squad.name])),
             focus, shown: focus ? [focus] : squadIds, squads, rosters, retrySquad, retrying, revision, records, events: club.schedule.events,
-            roleOf: squad => responsibilities.filter(view => !view.clubWide && view.squadIds.includes(squad)).map(view => view.label).join(', '),
-            person: id => personName(roles, operations.boot, id),
+            roleOf: squad => jobsOn(roles.views, squad).join(', '),
+            person: id => personName(roles, operations.boot, id), cards: matchCards.cards, joining,
             link: (target, extra = {}) => coachHref({ ...(target === 'overview' ? {} : { tab: target }), ...(focus ? { squad: String(focus) } : {}), ...extra }),
             openWork: (target, context) => go(workHref(target, context)), workHref,
             openEvent: event => go(`/calendar?clubId=${clubId}&date=${event.startsAt.slice(0, 10)}&eventId=${event.eventId}`),

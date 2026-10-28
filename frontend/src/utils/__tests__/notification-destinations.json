@@ -51,7 +51,7 @@
       "type": "MATCH_EXCHANGE_UPDATED",
       "scope": "PERSONAL"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "match id mismatch",
@@ -63,7 +63,7 @@
       "entityId": 42,
       "linkPath": "/match-exchange/41"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "match zero",
@@ -74,7 +74,7 @@
       "entityType": "match_exchange",
       "entityId": 0
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "match missing segment",
@@ -85,7 +85,7 @@
       "entityId": 41,
       "linkPath": "/match-exchange/"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "match invalid target",
@@ -97,7 +97,7 @@
       "entityId": 41,
       "linkPath": "https://evil.test/match-exchange/41"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "match generic link",
@@ -109,7 +109,7 @@
       "entityId": 41,
       "linkPath": "/calendar"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "SCHEDULE_EVENT_CREATED",
@@ -178,7 +178,7 @@
       "type": "SCHEDULE_EVENT_UPDATED",
       "scope": "PERSONAL"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "schedule wrong identity",
@@ -189,7 +189,7 @@
       "entityType": "post",
       "entityId": 41
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "booking /notifications?venueId=7&bookingId=81",
@@ -201,7 +201,7 @@
       "entityId": 81,
       "linkPath": "/notifications?venueId=7&bookingId=81"
     },
-    "expected": "/notifications?venueId=7&bookingId=81"
+    "expected": "/requests?view=updates&venueId=7&bookingId=81"
   },
   {
     "name": "booking /stadiums/7?bookingId=81",
@@ -213,7 +213,7 @@
       "entityId": 81,
       "linkPath": "/stadiums/7?bookingId=81"
     },
-    "expected": "/notifications?venueId=7&bookingId=81"
+    "expected": "/requests?view=updates&venueId=7&bookingId=81"
   },
   {
     "name": "booking /stadiums/7/manage",
@@ -225,7 +225,7 @@
       "entityId": 81,
       "linkPath": "/stadiums/7/manage"
     },
-    "expected": "/notifications?venueId=7&bookingId=81"
+    "expected": "/requests?view=updates&venueId=7&bookingId=81"
   },
   {
     "name": "booking update",
@@ -237,7 +237,7 @@
       "entityId": 81,
       "linkPath": "/notifications?venueId=7&bookingId=81"
     },
-    "expected": "/notifications?venueId=7&bookingId=81"
+    "expected": "/requests?view=updates&venueId=7&bookingId=81"
   },
   {
     "name": "booking canonical identity without entity",
@@ -247,7 +247,7 @@
       "scope": "PERSONAL",
       "linkPath": "/notifications?venueId=7&bookingId=81"
     },
-    "expected": "/notifications?venueId=7&bookingId=81"
+    "expected": "/requests?view=updates&venueId=7&bookingId=81"
   },
   {
     "name": "booking without venue",
@@ -258,7 +258,7 @@
       "entityType": "venue_booking",
       "entityId": 81
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "booking without id",
@@ -268,7 +268,7 @@
       "scope": "PERSONAL",
       "linkPath": "/stadiums/7/manage"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "booking mismatch",
@@ -279,7 +279,7 @@
       "entityId": 82,
       "linkPath": "/stadiums/7?bookingId=81"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "booking incomplete canonical",
@@ -290,7 +290,7 @@
       "entityId": 81,
       "linkPath": "/notifications?bookingId=81"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "tournament /tournaments/9",
@@ -350,7 +350,7 @@
       "entityId": 5,
       "linkPath": "/squads/5?tab=chat"
     },
-    "expected": "/notifications?squadId=5&channel=chat"
+    "expected": "/requests?view=updates&squadId=5&channel=chat"
   },
   {
     "name": "squad /squads/5?thread=12",
@@ -362,7 +362,7 @@
       "entityId": 5,
       "linkPath": "/squads/5?thread=12"
     },
-    "expected": "/notifications?squadId=5&channel=coach&thread=12"
+    "expected": "/requests?view=updates&squadId=5&channel=coach&thread=12"
   },
   {
     "name": "squad /squads/5?tab=sessions",
@@ -422,7 +422,7 @@
       "scope": "PERSONAL",
       "linkPath": "/account"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "CLUB_APPLICATION_DECLINED",
@@ -432,7 +432,7 @@
       "scope": "PERSONAL",
       "linkPath": "/account"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "CLUB_DISSOLVED",
@@ -442,7 +442,7 @@
       "scope": "PERSONAL",
       "linkPath": "/account"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "conversation typed",
@@ -465,7 +465,7 @@
       "entityType": "conversation",
       "linkPath": "/messages"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "conversation invalid id",
@@ -476,7 +476,7 @@
       "entityType": "conversation",
       "entityId": -1
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "match chat ready",
@@ -506,7 +506,7 @@
       "scope": "PERSONAL",
       "linkPath": "https://evil.test/squads/5"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject //evil.test/squads/5",
@@ -516,7 +516,7 @@
       "scope": "PERSONAL",
       "linkPath": "//evil.test/squads/5"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /\\evil.test",
@@ -526,7 +526,7 @@
       "scope": "PERSONAL",
       "linkPath": "/\\evil.test"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/../account",
@@ -536,7 +536,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/../account"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/%2e%2e/account",
@@ -546,7 +546,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/%2e%2e/account"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/%252e%252e/account",
@@ -556,7 +556,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/%252e%252e/account"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5%2f6",
@@ -566,7 +566,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5%2f6"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5?thread=0",
@@ -576,7 +576,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5?thread=0"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5?thread=4&thread=5",
@@ -586,7 +586,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5?thread=4&thread=5"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5#squad-update-0",
@@ -596,7 +596,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5#squad-update-0"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /notifications?venueId=7&bookingId=0",
@@ -606,7 +606,7 @@
       "scope": "PERSONAL",
       "linkPath": "/notifications?venueId=7&bookingId=0"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /notifications?venueId=7&bookingId=81&itemId=1",
@@ -616,7 +616,7 @@
       "scope": "PERSONAL",
       "linkPath": "/notifications?venueId=7&bookingId=81&itemId=1"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /messages?conversationId=9007199254740992",
@@ -626,7 +626,7 @@
       "scope": "PERSONAL",
       "linkPath": "/messages?conversationId=9007199254740992"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /match-exchange/9007199254740992",
@@ -636,7 +636,7 @@
       "scope": "PERSONAL",
       "linkPath": "/match-exchange/9007199254740992"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /tournaments/9/delete",
@@ -646,7 +646,7 @@
       "scope": "PERSONAL",
       "linkPath": "/tournaments/9/delete"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /event-venues",
@@ -656,7 +656,7 @@
       "scope": "PERSONAL",
       "linkPath": "/event-venues"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /parent/enrollment",
@@ -666,7 +666,7 @@
       "scope": "PERSONAL",
       "linkPath": "/parent/enrollment"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5?redirect=https%3A%2F%2Fevil.test",
@@ -676,7 +676,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5?redirect=https%3A%2F%2Fevil.test"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5?tab=%00",
@@ -686,7 +686,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5?tab=%00"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5?tab=%",
@@ -696,7 +696,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5?tab=%"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /squads/5\n",
@@ -706,7 +706,7 @@
       "scope": "PERSONAL",
       "linkPath": "/squads/5\n"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "legacy match conversation typed",
@@ -740,7 +740,7 @@
       "entityId": 5,
       "linkPath": "/notifications?squadId=5&channel=coach&thread=12"
     },
-    "expected": "/notifications?squadId=5&channel=coach&thread=12"
+    "expected": "/requests?view=updates&squadId=5&channel=coach&thread=12"
   },
   {
     "name": "squad mismatch",
@@ -752,7 +752,7 @@
       "entityId": 6,
       "linkPath": "/squads/5?thread=12"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /notifications?squadId=5",
@@ -762,7 +762,7 @@
       "scope": "PERSONAL",
       "linkPath": "/notifications?squadId=5"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /notifications?squadId=5&channel=coach",
@@ -772,7 +772,7 @@
       "scope": "PERSONAL",
       "linkPath": "/notifications?squadId=5&channel=coach"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /notifications?squadId=5&channel=chat&thread=12",
@@ -782,7 +782,7 @@
       "scope": "PERSONAL",
       "linkPath": "/notifications?squadId=5&channel=chat&thread=12"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /notifications?squadId=5&channel=chat&bookingId=81&venueId=7",
@@ -792,7 +792,7 @@
       "scope": "PERSONAL",
       "linkPath": "/notifications?squadId=5&channel=chat&bookingId=81&venueId=7"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   },
   {
     "name": "reject /messages?chat=91&conversationId=92",
@@ -802,6 +802,6 @@
       "scope": "PERSONAL",
       "linkPath": "/messages?chat=91&conversationId=92"
     },
-    "expected": "/notifications?itemId=1"
+    "expected": "/requests?view=updates&itemId=1"
   }
 ]

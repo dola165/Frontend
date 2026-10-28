@@ -34,7 +34,7 @@ describe('guest header', () => {
         const menu = screen.getByRole('menu', { name: 'Explore GrassKickZ' });
         const links = within(menu).getAllByRole('menuitem').map(item => [item.textContent, item.getAttribute('href')]);
         expect(links).toEqual([
-            ['Clubs', '/world/clubs'], ['Jobs & volunteering', '/world/opportunities'], ['Matches', '/world/matches'],
+            ['Clubs', '/world/clubs'], ['Opportunities', '/world/opportunities'], ['Matches', '/world/matches'],
             ['Tournaments', '/world/tournaments'], ['People', '/world/people'],
             ['Store', '/store'], ['Campaigns', '/campaigns'],
         ]);

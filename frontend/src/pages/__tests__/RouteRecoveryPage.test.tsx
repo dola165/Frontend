@@ -12,7 +12,7 @@ describe('RouteRecoveryPage', () => {
         );
 
         expect(screen.getByRole('heading', { name: 'We could not find that page' })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Browse clubs/ })).toHaveAttribute('href', '/clubs');
+        expect(screen.getByRole('link', { name: /Browse clubs/ })).toHaveAttribute('href', '/world/clubs');
         expect(screen.getByRole('link', { name: /Explore the map/ })).toHaveAttribute('href', '/world');
     });
 

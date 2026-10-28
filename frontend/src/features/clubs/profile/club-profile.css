@@ -86,10 +86,7 @@
 .gk .gk-club-involved__title .gk-muted { font-size: var(--gk-fs-sm); }
 /* The open part of Get involved is marked in the right column. */
 .gk.gk-club-page .gk-profile-side .gk-list-row[aria-current='true'] { background: color-mix(in srgb, var(--side-tone) 10%, transparent); box-shadow: inset 3px 0 0 var(--side-tone); }
-.gk .gk-club-involved .store-page { padding: 0; }
-.gk .gk-club-involved .store-page > nav[aria-label='Opportunities'], .gk .gk-club-involved .store-heading, .gk .gk-club-involved .opportunity-navigation { display: none; }
-
-/* Legacy club tab content (the squad and programme pages) sits inside the design-system main column. */
+.gk .gk-club-involved .store-page { padding: 0; }/* Legacy club tab content (the squad and programme pages) sits inside the design-system main column. */
 .gk .gk-profile__main > .club-public, .gk .gk-profile__main > section { min-width: 0; }
 .gk .gk-profile__main .club-public h2 { font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); letter-spacing: -0.01em; }
 .gk .gk-profile__main .club-public .cp-heading { margin-bottom: var(--gk-5); }

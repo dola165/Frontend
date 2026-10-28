@@ -4,7 +4,7 @@ import type { Participant } from '../../admissions/types';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import type { ClubLocationItem } from '../../../components/discovery/clubLocationTypes';
 import { distanceKm } from '../../../components/map/walkingGraph';
-import { fetchClubDirectory } from '../api';
+import { fetchClubDirectory, fetchFollowedClubs } from '../api';
 import { ClubRow } from '../cards/ClubRow';
 import { first, rangeOf, type DirectoryQuery, type DirectorySource, type FilterOption } from '../directory/types';
 import { wt } from '../copy';
@@ -45,22 +45,23 @@ export function placeOptions(locations: ClubLocationItem[] = []): { countries: F
  * (chosen in the World bar), only clubs with a programme for the child's age are asked for, and each card shows
  * what fits. On the map each club is its own pin. `locations` (every club's country and city) fill the place choices.
  */
-export function clubsSource({ child, centre, locations }: { child?: Participant; centre?: { lat: number; lng: number } | null; locations?: ClubLocationItem[] } = {}): DirectorySource<ClubProfile> {
+export function clubsSource({ child, centre, locations, following = false }: { following?: boolean; child?: Participant; centre?: { lat: number; lng: number } | null; locations?: ClubLocationItem[] } = {}): DirectorySource<ClubProfile> {
     const distance = (club: ClubProfile) => centre && club.latitude != null && club.longitude != null ? distanceKm([centre.lng, centre.lat], [club.longitude, club.latitude]) : undefined;
     const places = placeOptions(locations);
     return {
         id: 'clubs',
-        label: 'Clubs',
+        label: following ? 'Clubs you follow' : 'Clubs',
         noun: ['club', 'clubs'],
         searchLabel: 'Search clubs',
         searchPlaceholder: 'Search clubs by name or area',
         pageSize: PAGE,
-        area: true,
-        version: String(child?.id ?? ''),
-        forWhom: childLabel(child),
+        area: !following,
+        signInReason: following ? 'Sign in to see clubs you follow.' : undefined,
+        version: `${following}:${child?.id ?? ''}`,
+        forWhom: following ? undefined : childLabel(child),
         // The list is narrowed to the chosen child's age: its heading says so ("Clubs for Nino (8)").
-        heading: child ? () => wt('Clubs for {name}', { name: childLabel(child)! }) : undefined,
-        filters: [
+        heading: !following && child ? () => wt('Clubs for {name}', { name: childLabel(child)! }) : undefined,
+        filters: following ? [] : [
             { kind: 'choice', key: 'type', label: 'Club type', primary: true, multi: true, options: [
                 { value: 'ACADEMY', label: 'Academies' }, { value: 'SCHOOL', label: 'Football schools' }, { value: 'COMMUNITY', label: 'Community clubs' }, { value: 'PRO', label: 'Pro clubs' },
             ] },
@@ -78,9 +79,16 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             JOIN_POLICY_FILTER,
         ],
         sorts: [{ value: 'MEMBER_COUNT', label: 'Most members' }, { value: 'NAME', label: 'Name A–Z' }, { value: 'NEWEST', label: 'Newest' }],
-        defaults: ({ role }): Record<string, string[]> => role === 'player' ? { open: ['true'] }
+        defaults: ({ role }): Record<string, string[]> => following ? {} : role === 'player' ? { open: ['true'] }
             : role === 'academy-director' || role === 'analyst' || role === 'agent' ? { type: ['ACADEMY'] } : {},
         async load(query, page, { signal, area }) {
+            if (following) {
+                const clubs = await fetchFollowedClubs(signal);
+                const q = query.q.trim().toLocaleLowerCase();
+                const matched = clubs.filter(club => !q || `${club.name} ${club.cityName ?? ''} ${club.countryName ?? ''}`.toLocaleLowerCase().includes(q));
+                matched.sort((a, b) => query.sort === 'MEMBER_COUNT' ? (b.memberCount ?? 0) - (a.memberCount ?? 0) : a.name.localeCompare(b.name));
+                return { items: matched.slice(page * PAGE, (page + 1) * PAGE).map(club => ({ ...club, isFollowedByMe: true })), total: matched.length, hasMore: (page + 1) * PAGE < matched.length };
+            }
             const params = new URLSearchParams();
             clubTypes(query).forEach(value => params.append('type', value));
             joinPolicies(query).forEach(value => params.append('joinPolicy', value));
@@ -102,7 +110,7 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             return { items: result.content, total: result.totalElements, hasMore: page + 1 < result.totalPages };
         },
         key: club => String(club.id),
-        Item: ({ item }) => <ClubRow club={item} distanceKm={distance(item)} />,
+        Item: ({ item }) => <ClubRow club={item} distanceKm={distance(item)} followOnly={following} />,
         line: club => {
             const km = distance(club);
             return {
@@ -117,6 +125,6 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             const known = club.latitude != null && club.longitude != null ? { lat: club.latitude, lng: club.longitude } : places.club(club.id);
             return known ? { lat: known.lat, lng: known.lng, tone: 'club', noun: ['club', 'clubs'], label: club.name, meta: [wt(clubTypeLabel(club.type)), club.cityName].filter(Boolean).join(' · '), to: `/clubs/${club.id}` } : null;
         },
-        empty: { title: 'No clubs listed yet', body: 'Clubs appear here when they publish their profile.', action: <CreateLink kind="CLUB" from="world-clubs" size="sm">{pt('Is your club missing? Add it')}</CreateLink> },
+        empty: { title: following ? 'No followed clubs yet' : 'No clubs listed yet', body: following ? 'Follow clubs to keep their profiles and updates here.' : 'Clubs appear here when they publish their profile.', action: <CreateLink kind="CLUB" from="world-clubs" size="sm">{pt('Is your club missing? Add it')}</CreateLink> },
     };
 }

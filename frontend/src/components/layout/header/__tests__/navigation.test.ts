@@ -34,7 +34,7 @@ describe('primary tabs', () => {
     });
 
     it('marks discovery as World and the person’s own club as My Club', () => {
-        for (const path of ['/world', '/map', '/clubs', '/clubs/3', '/stadiums/202', '/people', '/matches', '/tournaments/301', '/jobs', '/roles', '/events', '/tryouts', '/admissions/opportunities', '/match-exchange/4', '/store', '/campaigns']) {
+        for (const path of ['/world', '/map', '/clubs', '/clubs/3', '/stadiums/202', '/tournaments/301', '/jobs', '/roles', '/events', '/tryouts', '/admissions/opportunities', '/match-exchange/4', '/store', '/campaigns']) {
             expect(primarySectionFor(path, [1])).toBe('world');
         }
         for (const path of ['/clubs/1', '/clubs/1/workspace', '/my-club']) expect(primarySectionFor(path, [1])).toBe('my-club');
@@ -62,7 +62,7 @@ describe('pin labels', () => {
         expect(describeRoute('/squads/105', '', context)).toMatchObject({ label: 'U16 Boys', icon: 'squad', pinnable: true });
         expect(describeRoute('/profile/1', '', context)).toMatchObject({ label: 'My profile', icon: 'person' });
         expect(describeRoute('/calendar', '', context)).toMatchObject({ label: 'My schedule', icon: 'calendar' });
-        expect(describeRoute('/matches', '?section=fixtures', context).label).toBe('Matches · Fixtures');
+        expect(describeRoute('/world/matches', '?period=HISTORY', context).label).toContain('Matches');
         expect(describeRoute('/world', '?q=u10%20academy', context)).toMatchObject({ label: 'World: u10 academy', pinnable: true });
         expect(describeRoute('/clubs/1/workspace', '?tab=attendance', context)).toMatchObject({ label: null, icon: 'workspace' });
         expect(describeRoute('/tournaments/301', '', context)).toMatchObject({ label: null, icon: 'trophy' });
@@ -120,14 +120,14 @@ describe('work and explore catalogues', () => {
 
     it('keeps the rest of the person’s work in "Your work"', () => {
         const paths = workDestinations(director, '/clubs/1/workspace').map(item => item.path);
-        expect(paths).toEqual(expect.arrayContaining(['/clubs/1', '/squads', '/calendar', '/squads/105']));
+        expect(paths).toEqual(expect.arrayContaining(['/clubs/1', '/my-squads', '/calendar', '/squads/105']));
         expect(paths).not.toContain('/admissions');
         expect(paths).not.toContain('/clubs/1/workspace');
     });
 
     it('names explore destinations exactly as their pins are named, and marks sign-in-only ones', () => {
         for (const item of exploreDestinations(georgian)) expect(pinLabel(item.path, undefined, { myClubPath: null, copy: georgian })).toBe(item.label);
-        expect(exploreDestinations().filter(item => item.signedIn).map(item => item.path)).toEqual(['/clubs/following']);
-        expect(exploreDestinations().filter(item => item.group === 'support').map(item => item.label)).toEqual(['Store', 'Campaigns', 'Followed clubs']);
+        expect(exploreDestinations().filter(item => item.signedIn).map(item => item.path)).toEqual(['/world/clubs?view=following']);
+        expect(exploreDestinations().filter(item => item.group === 'support').map(item => item.label)).toEqual(['Store', 'Campaigns', 'Clubs you follow']);
     });
 });

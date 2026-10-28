@@ -55,7 +55,7 @@ export function PersonSide({ view }: { view: PersonView }) {
         {own && <SideBlock title={copy('Your account', 'თქვენი ანგარიში')}>
             <List label={copy('Account links', 'ანგარიშის ბმულები')}>
                 <ListRow to="/account?tab=profile" lead={<Settings size={18} aria-hidden="true" />} title={copy('Account settings', 'ანგარიშის პარამეტრები')} meta={copy('Name, photos, privacy and sign-in', 'სახელი, ფოტოები, კონფიდენციალურობა და შესვლა')} />
-                <ListRow to="/notifications?scope=personal" lead={<BellRing size={18} aria-hidden="true" />} title={copy('Notifications', 'შეტყობინებები')} />
+                <ListRow to="/requests?view=updates&scope=personal" lead={<BellRing size={18} aria-hidden="true" />} title={copy('Notifications', 'შეტყობინებები')} />
                 <ListRow to="/reports" lead={<Flag size={18} aria-hidden="true" />} title={copy('Reports and safety', 'საჩივრები და უსაფრთხოება')} />
             </List>
         </SideBlock>}
@@ -78,7 +78,7 @@ function FollowedClubs() {
             .catch(() => { if (!controller.signal.aborted) setResult({ revision, clubs: [], failed: true }); });
         return () => controller.abort();
     }, [revision]);
-    return <SideBlock title={copy('Clubs you follow', 'გამოწერილი კლუბები')} action={clubs?.length ? <Link className="gk-section__action" to="/clubs/following">{copy('See all', 'ყველა')}</Link> : undefined}>
+    return <SideBlock title={copy('Clubs you follow', 'გამოწერილი კლუბები')} action={clubs?.length ? <Link className="gk-section__action" to="/world/clubs?view=following">{copy('See all', 'ყველა')}</Link> : undefined}>
         {current?.failed ? <><p role="alert">{copy('Followed clubs couldn’t load.', 'გამოწერილი კლუბები ვერ ჩაიტვირთა.')}</p><Button size="sm" onClick={() => setRevision(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></>
             : clubs === null ? <p role="status">{copy('Loading…', 'იტვირთება…')}</p> : clubs.length ? <List label={copy('Followed clubs', 'გამოწერილი კლუბები')}>{clubs.slice(0, 5).map(club => <ListRow key={club.id} to={`/clubs/${club.id}`}
             lead={<Crest src={club.logoUrl} name={club.name} size={36} />} title={club.name} meta={[club.cityName, club.countryName].filter(Boolean).join(', ')} />)}</List>

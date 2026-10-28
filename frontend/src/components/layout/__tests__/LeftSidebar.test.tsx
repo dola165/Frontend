@@ -49,7 +49,7 @@ describe("LeftSidebar", () => {
 
   it('keeps general navigation on old responses without deriving workspaces from labels', () => {
     render(<MemoryRouter><LeftSidebar user={{ id: 9 }} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: /My squads/ })).toHaveAttribute('href', '/squads');
+    expect(screen.getByRole('link', { name: /My squads/ })).toHaveAttribute('href', '/my-squads');
     expect(screen.queryByRole('link', { name: 'Referee workspace' })).not.toBeInTheDocument();
     // Unknown links are never shown as "no links": Explore waits for the server's answer.
     expect(screen.queryByRole('button', { name: /Following/ })).not.toBeInTheDocument();
@@ -68,7 +68,7 @@ describe("LeftSidebar", () => {
     expect(screen.getByRole("dialog", { name: "Following" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog", { name: "Following" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: clubs })).toHaveAttribute("href", "/clubs/following");
+    expect(screen.getByRole("link", { name: clubs })).toHaveAttribute("href", "/world/clubs?view=following");
     expect(screen.queryByRole("link", { name: /Map.*Find football near you/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: new RegExp(schedule) })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Match Exchange/ })).not.toBeInTheDocument();

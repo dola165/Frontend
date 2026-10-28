@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import MyClubOperationsPage from '../../pages/MyClubOperationsPage';
+import { GuardianClubWork } from './PersonalClubWork';
 import type { GuardianPermission } from './GuardianPermissions';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), refresh: vi.fn() }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: api }));
@@ -11,7 +11,7 @@ const permission: GuardianPermission = { id: 8, club_id: 3, child_name: 'Ana Dol
 beforeEach(() => { vi.clearAllMocks(); api.get.mockImplementation((url: string) => Promise.resolve({ data: url === '/club-operations/mine' ? { appointments: [], permissions: [permission], clubs: [] } : url === '/map/plans/family' ? [] : { connections: [] } })); api.post.mockResolvedValue({}); });
 afterEach(cleanup);
 it('opens the exact notification request without making a decision and records the explicit current revision', async () => {
-    render(<MemoryRouter initialEntries={['/club-operations?permissionId=8']}><MyClubOperationsPage /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/parent?tab=connections&permissionId=8']}><GuardianClubWork /></MemoryRouter>);
     await screen.findByRole('button', { name: 'Give permission' });
     expect(screen.getByText(permission.data.wording)).toBeVisible();
     expect(api.post).not.toHaveBeenCalled();
@@ -21,7 +21,7 @@ it('opens the exact notification request without making a decision and records t
 it('keeps failed decisions readable and blocks repeated clicks while the request is in flight', async () => {
     let reject!: (error: Error) => void;
     api.post.mockImplementation(() => new Promise((_, no) => { reject = no; }));
-    render(<MemoryRouter initialEntries={['/club-operations?permissionId=8']}><MyClubOperationsPage /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/parent?tab=connections&permissionId=8']}><GuardianClubWork /></MemoryRouter>);
     const button = await screen.findByRole('button', { name: 'Give permission' });
     fireEvent.click(button); fireEvent.click(button);
     expect(api.post).toHaveBeenCalledTimes(1);
@@ -32,7 +32,7 @@ it('keeps failed decisions readable and blocks repeated clicks while the request
     expect(screen.queryByText(/decision saved/)).not.toBeInTheDocument();
 });
 it('reports an inaccessible notification target without deciding for it', async () => {
-    render(<MemoryRouter initialEntries={['/club-operations?permissionId=99']}><MyClubOperationsPage /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/parent?tab=connections&permissionId=99']}><GuardianClubWork /></MemoryRouter>);
     await screen.findByText(/no longer available to your account/);
     expect(screen.queryByRole('button', { name: 'Give permission' })).not.toBeInTheDocument();
     expect(api.post).not.toHaveBeenCalled();

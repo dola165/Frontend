@@ -8,7 +8,7 @@ it('uses the result event metadata rather than mistaking the audit ID for a matc
   expect(buildNotificationDestination({ ...item, entityType: 'match_result' })).toBe('/match-exchange/12#result');
 });
 it('rejects mismatched event metadata while retaining safe legacy result links and rejecting unsafe anchors', () => {
-  expect(buildNotificationDestination({ ...item, eventId: 13 })).toBe('/notifications?itemId=9');
+  expect(buildNotificationDestination({ ...item, eventId: 13 })).toBe('/requests?view=updates&itemId=9');
   expect(buildNotificationDestination({ ...item, eventId: undefined })).toBe('/match-exchange/12#result');
   expect(safeNotificationLink('/match-exchange/12#unsafe')).toBeNull();
 });

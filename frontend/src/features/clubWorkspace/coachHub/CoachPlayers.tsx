@@ -18,8 +18,6 @@ import { WorkspacePlayerPanel } from '../../clubOperations/WorkspacePlayerPanel'
 import { withoutScope } from '../../clubOperations/scopedParams';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { PlayerCard } from '../squads/PlayerCard';
-import { SquadEnrollmentManager } from '../../squadEnrollment/SquadEnrollment';
-import { ExtensionSurface } from '../../capabilities/ExtensionBoundary';
 import { dueWords } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
 import type { CoachData } from './CoachWorkspace';
@@ -134,7 +132,6 @@ export function CoachPlayers({ data }: { data: CoachData }) {
                 </ListToolbar>
             </div>
             {body}
-            {data.focus && <ExtensionSurface capability="squadEnrollment"><SquadEnrollmentManager key={data.focus} squad={data.focus} /></ExtensionSurface>}
         </div>
         {panel}
         {roster && <RosterDialog data={data} open onClose={() => setRoster(false)} />}

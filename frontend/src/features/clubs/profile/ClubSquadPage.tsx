@@ -1,3 +1,4 @@
+import { ClubSquadRoster } from './ClubSquadRoster';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CalendarDays, MapPin, Navigation, Shield, Users } from 'lucide-react';
@@ -46,7 +47,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
     // Without a programme, a club with a page still says what training costs: the fee band its owner set.
     const band = feeBandText(usePageEditIfAny()?.page?.boxes.fees.band ?? null);
     const enquiry: ClubEnquiryContext = { name: squad.name, path: trainingPath(club.id, { squad: squad.id }), squadIds: [squad.id] };
-    const roster = `/clubs/${club.id}/squads?squad=${squad.id}`;
+    const roster = `/clubs/${club.id}/workspace?tab=squads&squad=${squad.id}`;
     const fact = (label: string, value: React.ReactNode) => <div className="gk-club-squad__fact"><dt>{label}</dt><dd>{value}</dd></div>;
 
     return <>
@@ -59,7 +60,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
                     <div className="gk-club-squad__actions">
                         {canManage ? <>
                             <ButtonLink to={`/squads/${squad.id}`}>{copy('Squad page', 'გუნდის გვერდი')}</ButtonLink><ButtonLink to={`/squads/${squad.id}?tab=schedule&setup=training`}>{copy('Set up training', 'ვარჯიშის დაგეგმვა')}</ButtonLink>
-                            <ButtonLink variant="primary" to={roster}><Users aria-hidden="true" />{copy('Players', 'მოთამაშეები')}</ButtonLink>
+                            <ButtonLink variant="primary" to={roster}><Users aria-hidden="true" />{copy('Manage roster', 'შემადგენლობის მართვა')}</ButtonLink>
                         </> : <>
                             <Button onClick={() => onContact({ ...enquiry, intent: 'question' })}>{copy('Ask a question', 'კითხვის დასმა')}</Button>
                             <Button variant="primary" onClick={() => onContact({ ...enquiry, intent: 'visit' })}>{copy('Arrange a first visit', 'პირველი ვიზიტის დაგეგმვა')}<ArrowRight aria-hidden="true" /></Button>
@@ -108,9 +109,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
             </Panel>
         </Section>}
 
-        <Section boxed icon={Users} tone="info" title={copy('Players', 'მოთამაშეები')}>
-            <Panel flush><List label={copy('Players', 'მოთამაშეები')}><ListRow to={roster} lead={<span className="gk-club-icon gk-club-icon--info"><Users aria-hidden="true" /></span>} title={copy('See the squad', 'გუნდის ნახვა')} meta={isAuthenticated ? copy('Players, positions and squad profiles', 'მოთამაშეები, პოზიციები და გუნდის პროფილები') : copy('Sign in to see player profiles', 'მოთამაშეთა პროფილების სანახავად შედით')} trail={<ArrowRight aria-hidden="true" className="gk-faint" size={16} />} /></List></Panel>
-        </Section>
+        <ClubSquadRoster clubId={club.id} squadId={squad.id} />
         {directions && <FacilityDirections clubId={club.id} facilityId={directions.id} title={directions.title} address={directions.details.address || directions.linkedVenue?.address} onClose={() => setDirections(null)} />}
     </>;
 }

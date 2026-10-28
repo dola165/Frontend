@@ -9,7 +9,7 @@ import { eventSearch } from '../../requests/api';
 import { allTournaments, cardParams } from '../directories/tournaments/allSource';
 import { myTournaments } from '../directories/tournaments/mineSource';
 import { season } from '../directories/tournaments/seasonSource';
-import { groupsSource, jobs, trials } from '../directories/opportunitySources';
+import { groupsSource, trials } from '../directories/opportunitySources';
 import { fixtures } from '../directories/matches/fixturesSource';
 import { exchange } from '../directories/matches/exchangeSource';
 import { arrangements, events } from '../directories/matches/otherSources';
@@ -17,7 +17,7 @@ import { clubsSource } from '../directories/clubSources';
 import { playerSource, specialistSource, staffSource } from '../directories/people/personSources';
 import { refereeSource } from '../directories/people/refereeSource';
 import { defaultRole } from '../front/roles';
-import { LegacyMatchesRedirect, TournamentSetupRedirect, TournamentsRedirect, WorldRedirect } from '../WorldRedirect';
+import { LegacyMatchesRedirect, TournamentsRedirect, WorldRedirect } from '../WorldRedirect';
 import { CARRIED, readQuery, useDirectoryState } from '../directory/useDirectoryState';
 import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
 
@@ -127,13 +127,13 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
     '/world/clubs': { sources: [clubsSource({ child })] },
     '/world/people': { sources: [refereeSource, specialistSource({ searchOnly: false }), staffSource({ searchOnly: false }), playerSource({ searchOnly: false })] },
     '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
-    '/world/opportunities': { sources: [jobs, trials, groupsSource([child])], alias: 'type' },
+    '/world/opportunities': { sources: [trials, groupsSource([child])], alias: 'type' },
     '/world/tournaments': { sources: [season, allTournaments, myTournaments] },
 };
 // Links into the directories with a tab and filters chosen (the first run's pins, Home, the old front page's fields).
 const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/tournaments?tab=all&registration=OPEN', '/world/tournaments?tab=all&status=ACTIVE',
     '/world/people?tab=specialists', '/world/clubs?type=ACADEMY&near=Tbilisi', '/world/clubs?open=true&near=Tbilisi',
-    '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER',
+    '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials',
     '/world/matches?tab=fixtures&period=UPCOMING&mine=true&squadId=103', '/world/matches?tab=fixtures&period=HISTORY', '/world/matches?tab=exchange&ageGroup=U14', '/world/people?tab=referees'];
 
 it.each(FIELD_LINKS)('the field link %s opens its intended tab and filters', to => {
@@ -164,15 +164,10 @@ const visit = (path: string, element: ReactNode) => render(
 );
 
 it.each([
-    ['/matches', 'hub', '/world/matches'],
-    ['/matches?section=find&tab=mine', 'hub', '/world/matches?tab=mine'],
-    ['/matches?section=fixtures', 'hub', '/world/matches?period=HISTORY'],
     ['/match-exchange?format=SEVEN_A_SIDE', 'exchange', '/world/matches?format=SEVEN_A_SIDE&tab=exchange'],
     ['/match-exchange?lat=41.7&lng=44.8&radiusKm=50', 'exchange', '/world/matches?tab=exchange&around=41.7%2C44.8'],
     ['/match-exchange?tab=referees&q=gff', 'exchange', '/world/people?q=gff&tab=referees'],
     ['/match-history?clubId=1', 'history', '/world/matches?clubId=1&period=HISTORY'],
-    ['/matches?section=competitions&view=hosts&kind=CLUB&host=4', 'hub', '/world/tournaments?host=CLUB%3A4&tab=all'],
-    ['/matches?section=competitions&host=CLUB:3', 'hub', '/world/tournaments?host=CLUB%3A3&tab=all'],
     ['/tournaments?hostKind=CLUB&hostId=4', 'competitions', '/world/tournaments?host=CLUB%3A4&tab=all'],
     ['/tournaments?latitude=41.7&longitude=44.8&radiusKm=25', 'competitions', '/world/tournaments?around=41.7%2C44.8&tab=all'],
     ['/tournaments?view=invitations', 'competitions', '/world/tournaments?tab=mine'],
@@ -193,14 +188,6 @@ it.each([
     expect(screen.getByText(expected)).toBeInTheDocument();
 });
 
-it.each([
-    ['/tournaments/setup', '/world/tournaments?peek=draw-new'],
-    ['/tournaments/setup?organizer=901&family=LEAGUE', '/world/tournaments?peek=draw-o901.fLEAGUE'],
-    ['/tournaments/setup?organizer=abc&family=TRAMPOLINE', '/world/tournaments?peek=draw-new'],
-] as const)('opens the old setup page %s as the Draw room in World', (path, expected) => {
-    visit(path, <TournamentSetupRedirect />);
-    expect(screen.getByText(expected)).toBeInTheDocument();
-});
 
 it('renames old club directory keys and keeps the rest of the search', () => {
     visit('/clubs?search=dinamo&type=ACADEMY', <WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />);
@@ -208,11 +195,11 @@ it('renames old club directory keys and keeps the rest of the search', () => {
 });
 
 it('opens the role an old jobs link selected, and the jobs tab otherwise', () => {
-    const jobsRedirect = <WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ tab: 'jobs' }} detail={{ key: 'job', path: '/jobs' }} />;
+    const jobsRedirect = <WorldRedirect to="/jobs" rename={{ search: 'query' }} detail={{ key: 'job', path: '/jobs' }} />;
     visit('/jobs?job=5', jobsRedirect);
     expect(screen.getByText('/jobs/5')).toBeInTheDocument();
     visit('/roles?search=coach', jobsRedirect);
-    expect(screen.getByText('/world/opportunities?q=coach&tab=jobs')).toBeInTheDocument();
+    expect(screen.getByText('/jobs?query=coach')).toBeInTheDocument();
 });
 
 

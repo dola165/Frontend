@@ -148,7 +148,7 @@ export const ClubManagementModal = ({
         navigate(`/clubs/${clubId}/workspace${tab ? `?tab=${tab}` : ''}`);
     };
     const goWorkspaceInbox = () => { onClose(); navigate(`/clubs/${clubId}/workspace?tab=inbox`); };
-    const goSquads = () => { onClose(); navigate(`/clubs/${clubId}/squads`); };
+    const goSquads = () => { onClose(); navigate(`/clubs/${clubId}?tab=teams`); };
 
     const memberCount = overview?.members.length ?? 0;
     const inviteCount = overview?.pendingInvitations.length ?? 0;

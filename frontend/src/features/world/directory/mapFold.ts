@@ -29,7 +29,7 @@ export function useMapFold() {
         setParams(current => {
             const copy = new URLSearchParams(current);
             copy.set('map', next);
-            copy.delete('view');
+            if (['split', 'map', 'list'].includes(copy.get('view') ?? '')) copy.delete('view');
             return copy;
         }, { replace: true, preventScrollReset: true });
     };

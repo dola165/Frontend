@@ -49,7 +49,7 @@ export const LeftSidebar = ({ user, embedded = false }: LeftSidebarProps) => {
   const capabilities = user?.navigationCapabilities;
   const primary: { to: string; label: string; description: string; icon: ShortcutKind }[] = [
     ...(hasNavigationCapability(capabilities, 'parent.hub') || hasNavigationCapability(capabilities, 'club.family') ? [{ to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), description: copy('Your children and their football', 'თქვენი შვილები და მათი ფეხბურთი'), icon: 'family' as const }] : []),
-    ...(showSquadNavigation(capabilities) ? [{ to: '/squads', label: copy('My squads', 'ჩემი გუნდები'), description: copy('Coach updates, families and chat', 'მწვრთნელის სიახლეები, ოჯახები და ჩატი'), icon: 'squads' as const }] : []),
+    ...(showSquadNavigation(capabilities) ? [{ to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), description: copy('Coach updates, families and chat', 'მწვრთნელის სიახლეები, ოჯახები და ჩატი'), icon: 'squads' as const }] : []),
     ...(hasNavigationCapability(capabilities, 'referee.workspace') ? [{ to: '/referees/me', label: copy('Referee workspace', 'მსაჯის სივრცე'), description: copy('Your appointments and availability', 'დანიშვნები და ხელმისაწვდომობა'), icon: 'referee' as const }] : []),
     ...(hasNavigationCapability(capabilities, 'agent.hub') ? [{ to: '/agent', label: copy('Agent Hub', 'აგენტის სივრცე'), description: copy('Your players and opportunities', 'თქვენი მოთამაშეები და შესაძლებლობები'), icon: 'agent' as const }] : []),
   ];
@@ -110,7 +110,7 @@ export const LeftSidebar = ({ user, embedded = false }: LeftSidebarProps) => {
           <button type="button" onClick={() => setShowFollowing(true)} aria-label={copy('Following. People you keep up with', 'გამოწერილი. ადამიანები, ვისაც ადევნებთ თვალს')} className="feed-side-link home-social-link w-full text-left">
             <HomeIcon kind="following" /><span className="home-shortcut-copy"><span className="feed-side-link__title">{copy('Following', 'გამოწერილი')}</span><span className="home-shortcut-description">{copy('People you keep up with', 'ადამიანები, ვისაც ადევნებთ თვალს')}</span></span>
           </button>
-          {shortcut({ to: '/clubs/following', label: copy('Followed clubs', 'გამოწერილი კლუბები'), description: copy('Clubs you keep up with', 'კლუბები, რომლებსაც ადევნებთ თვალს'), icon: 'clubs' })}
+          {shortcut({ to: '/world/clubs?view=following', label: copy('Followed clubs', 'გამოწერილი კლუბები'), description: copy('Clubs you keep up with', 'კლუბები, რომლებსაც ადევნებთ თვალს'), icon: 'clubs' })}
         </div>}
       </nav>
       {showFollowing && user?.id && (

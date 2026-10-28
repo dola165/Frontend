@@ -1,3 +1,4 @@
+import { safeNotificationLink } from '../../utils/notificationDestinations';
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import type { AuthSessionId } from '../../utils/authStorage';
 
@@ -11,7 +12,7 @@ export const eventSearch = (params: Record<string, string | number | undefined>,
   apiClient.get<EventPage>('/tournaments/discovery', { params, signal, _authSessionId: sessionId } as AuthSessionRequestConfig).then(r => r.data);
 
 // This read projection has its own narrow route contract. Notification links keep their existing allowlist.
-export function requestDestination(value: string): string | null {
+function wireRequestDestination(value: string): string | null {
   if (!value || /[\\\s%]/.test(value) || value.startsWith('//')) return null;
   const match = /^\/(?:club-operations|map|account|my-organizations|parent|reports|admin|referees\/me|profile\/[1-9]\d*|agent|notifications|clubs\/[1-9]\d*\/workspace|tryouts\/[1-9]\d*|tournaments\/[1-9]\d*|match-exchange\/[1-9]\d*)(?:[?#].*)?$/.test(value);
   if (!match) return null;
@@ -39,6 +40,17 @@ export function requestDestination(value: string): string | null {
   }
   if (url.hash && !/^#(?:appointment|offer)-[1-9]\d*$/.test(url.hash)) return null;
   return value;
+}
+export function requestDestination(value: string): string | null {
+  if (value.startsWith('/requests') || value.startsWith('/parent?tab=connections&permissionId=')) {
+    const safe = safeNotificationLink(value);
+    return safe ? safe.pathname + safe.search + safe.hash : null;
+  }
+  const destination = wireRequestDestination(value);
+  if (!destination) return null;
+  if (destination.startsWith('/club-operations?appointmentId=')) return destination.replace('/club-operations?', '/requests?');
+  if (destination.startsWith('/notifications')) return destination.replace('/notifications', '/requests?view=updates').replace('updates?', 'updates&');
+  return destination;
 }
 export function eventDestination(item: EventItem): string | null {
   const patterns = { TOURNAMENT: /^\/tournaments\/[1-9]\d*$/, SCHEDULE: /^\/(?:calendar\?eventId=[1-9]\d*|match-exchange\/[1-9]\d*)$/, SESSION: /^\/clubs\/[1-9]\d*\?tab=teams&squad=[1-9]\d*$/, TRYOUT: /^\/clubs\/[1-9]\d*\?tab=tryouts$/ };

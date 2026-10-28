@@ -12,7 +12,7 @@ describe('journey notification destinations', () => {
     it('opens the exact own offer and scoped officials discussion', () => {
         const offer = { ...notification('/referees/me#offer-91', 'referee_offer', 91), type: 'REFEREE_OFFER_UPDATED' };
         expect(buildNotificationDestination(offer)).toBe('/referees/me#offer-91');
-        expect(buildNotificationDestination({ ...offer, linkPath: '/referees/me#offer-92' })).toBe('/notifications?itemId=7');
+        expect(buildNotificationDestination({ ...offer, linkPath: '/referees/me#offer-92' })).toBe('/requests?view=updates&itemId=7');
         expect(buildNotificationDestination({ ...notification('/match-exchange/12#coordination', 'match_coordination_message', 91), type: 'MATCH_COORDINATION_MESSAGE' })).toBe('/match-exchange/12#coordination');
     });
     it.each([
@@ -46,7 +46,7 @@ describe('journey notification destinations', () => {
     });
     it('retains the appointment anchor while validating the match identity', () => {
         expect(buildNotificationDestination(notification('/match-exchange/12#appointment-91'))).toBe('/match-exchange/12#appointment-91');
-        expect(buildNotificationDestination(notification('/match-exchange/13#appointment-91'))).toBe('/notifications?itemId=7');
+        expect(buildNotificationDestination(notification('/match-exchange/13#appointment-91'))).toBe('/requests?view=updates&itemId=7');
     });
     it.each(['0', '-1', '1.5', '01', '9007199254740992', '91#extra', '91/extra'])('rejects an invalid appointment identity: %s', id => {
         expect(safeNotificationLink(`/match-exchange/12#appointment-${id}`)).toBeNull();

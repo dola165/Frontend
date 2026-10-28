@@ -70,7 +70,7 @@ export const isSensitiveAuthDestination = (value?: string | null) => {
     if (!destination) return false;
     const url = new URL(destination, 'https://grasskickz.invalid');
     const pathname = decodeURIComponent(url.pathname).toLowerCase();
-    return pathname.startsWith('/consent') || pathname.startsWith('/join-squad') || Boolean(url.hash)
+    return pathname.startsWith('/consent') || Boolean(url.hash)
         || [...url.searchParams.keys()].some(key => key.toLowerCase() === 'token');
 };
 

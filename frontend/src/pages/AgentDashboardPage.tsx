@@ -23,7 +23,7 @@ export const AgentDashboardPage = () => {
     const { user, status, sessionId } = useAuth();
 
     if (status !== 'authenticated' || !user) return null;
-    if (user.role !== 'AGENT' && !hasNavigationCapability(user.navigationCapabilities, 'agent.hub')) return <Navigate to="/feed" replace />;
+    if (user.role !== 'AGENT' && !hasNavigationCapability(user.navigationCapabilities, 'agent.hub')) return <Navigate to="/home" replace />;
 
     return (
         <AgentDashboardContent

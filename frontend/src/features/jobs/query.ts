@@ -30,19 +30,8 @@ export function jobsSearch(query: Partial<JobsSearch>): URLSearchParams {
 const withSearch = (path: string, params: URLSearchParams) => { const search = params.toString(); return search ? `${path}?${search}` : path; };
 export const jobsPath = (query: Partial<JobsSearch> = {}) => withSearch('/jobs/all', jobsSearch(query));
 export const clubJobsPath = (clubId: number, query: Partial<JobsSearch> = {}) => withSearch(`/clubs/${clubId}/jobs`, jobsSearch({ ...query, clubId: undefined }));
-/** The same search on World's map (its Jobs tab reads `q`, `category`, `engagement`, `city`). */
-export const worldJobsPath = (query: JobsSearch) => {
-    const params = new URLSearchParams({ tab: "jobs" });
-    if (query.query) params.set('q', query.query);
-    if (query.category) params.set('category', query.category);
-    if (query.direction) params.set('direction', query.direction);
-    if (query.poster) params.set('poster', query.poster);
-    if (query.hours) params.set('hours', query.hours);
-    if (query.terms) params.set('engagement', query.terms);
-    if (query.city) params.set('city', query.city);
-    if (query.posted) params.set('posted', query.posted);
-    return `/world/opportunities?${params}`;
-};
+/** The same search on the Jobs map. */
+export const jobsMapPath = (query: Partial<JobsSearch> = {}) => withSearch('/jobs', jobsSearch({ ...query, page: 0, job: undefined }));
 
 export function jobsHeading(query: JobsSearch, clubName?: string | null): { title: string; hint?: string } {
     const people = query.direction === 'OFFERING';

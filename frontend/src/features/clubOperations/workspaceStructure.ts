@@ -43,8 +43,8 @@ export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
  * Coach Hub and the older personal tabs left the club workspace for My squads, the coach's own workspace.
  * Their links keep working: each opens the matching My squads page.
  */
-const personalPages: Partial<Record<WorkspaceTab, string>> = { 'coach-hub': '', 'my-day': '', 'my-squads': '', 'my-people': 'players', 'my-role': 'coaches' };
-export function personalWorkspaceTarget(tab: WorkspaceTab | null, hub: string | null) {
+const personalPages: Record<string, string> = { 'coach-hub': '', 'my-day': '', 'my-squads': '', 'my-people': 'players', 'my-role': 'coaches' };
+export function personalWorkspaceTarget(tab: string | null, hub: string | null) {
   if (!tab || personalPages[tab] === undefined) return null;
   const page = tab === 'coach-hub' ? ({ players: 'players', responsibilities: 'coaches' } as Record<string, string>)[hub ?? ''] ?? '' : personalPages[tab];
   return `/my-squads${page ? `?tab=${page}` : ''}`;

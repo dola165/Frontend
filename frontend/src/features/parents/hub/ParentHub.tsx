@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CalendarDays, HeartHandshake } from 'lucide-react';
 import { Button, EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
 import { FaceStack } from '../../../design/visuals';
@@ -28,6 +28,7 @@ import { ApproveAccount } from './ApproveAccount';
 import { OwnAccount } from './OwnAccount';
 import { useChildSquads } from './useChildSquads';
 import './parent-hub.css';
+import { GuardianClubWork } from '../../clubOperations/PersonalClubWork';
 
 /**
  * Parent Hub, phone first (F34): which child, their next session with "coming / can't come", the latest coach
@@ -38,7 +39,9 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
     const copy = useJourneyCopy();
     const hub = useAdmissionData(useCallback(signal => fetchJoiningChildren(sessionId, signal), [sessionId]), sessionId);
     const { requestedPlayerId, selectPlayer } = usePlayerSelection();
-    const tab = useAdmissionTab(['overview', 'children', 'connections']);
+    const requestedTab = useAdmissionTab(['overview', 'children', 'connections']);
+    const [params] = useSearchParams();
+    const tab = params.has('permissionId') ? 'connections' : requestedTab;
     const [revision, setRevision] = useState(0);
     const refresh = () => { hub.refresh(); setRevision(v => v + 1); };
     useEffect(() => {
@@ -53,7 +56,7 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
     const back = <Link className="ph-back" to={playerPath('/parent', selected?.playerId)}><ArrowLeft aria-hidden="true" />{copy('Parent Hub', 'მშობლის სივრცე')}</Link>;
     let body;
     if (tab === 'children') body = <>{back}<section className="ph-start"><h2>{copy('Add a child', 'ბავშვის დამატება')}</h2><AddChild inline onCreated={id => { selectPlayer(id); refresh(); }} /></section></>;
-    else if (tab === 'connections') body = <>{back}<FamilyRelationships selectedChildId={selected?.playerId} revision={revision} onChanged={refresh} />{selected && <PlayerLinkCode key={selected.playerId} child={selected} onChanged={() => setRevision(v => v + 1)} />}</>;
+    else if (tab === 'connections') body = <>{back}<GuardianClubWork /><FamilyRelationships selectedChildId={selected?.playerId} revision={revision} onChanged={refresh} />{selected && <PlayerLinkCode key={selected.playerId} child={selected} onChanged={() => setRevision(v => v + 1)} />}</>;
     else if (!hub.data && hub.loading) body = <div className="ph-stack" role="status"><Skeleton height={52} /><Skeleton height={140} /><Skeleton height={110} /></div>;
     else if (hub.error) body = <div role="alert"><EmptyNote title={hub.error} action={<button type="button" className="ph-link" onClick={refresh}>{copy('Try again', 'ხელახლა ცდა')}</button>} /></div>;
     else if (!selected) body = <section className="ph-start"><HeartHandshake aria-hidden="true" /><h2>{copy('Add your child', 'დაამატეთ ბავშვი')}</h2>

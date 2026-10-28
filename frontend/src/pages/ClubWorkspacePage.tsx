@@ -72,8 +72,8 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     // The URL decides the open tool; until access is known, the requested one is shown as loading.
     const parsedTab = parseWorkspaceTab(searchParams.get('tab'));
     // An old "my squads" link that named a squad opens that squad here; Coach Hub and the other old personal tabs open My squads.
-    const squadLink = parsedTab === 'my-squads' && Boolean(searchParams.get('squad'));
-    const personal = squadLink ? null : personalWorkspaceTarget(parsedTab, searchParams.get('hub'));
+    const squadLink = searchParams.get('tab') === 'my-squads' && Boolean(searchParams.get('squad'));
+    const personal = squadLink ? null : personalWorkspaceTarget(searchParams.get('tab'), searchParams.get('hub'));
     const requestedTab = (squadLink ? 'squads' : parsedTab) ?? 'overview';
     const admissions = useClubAdmissions(clubId, sessionId, requestedTab === 'admissions');
 

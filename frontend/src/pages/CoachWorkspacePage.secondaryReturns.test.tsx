@@ -7,7 +7,7 @@ import type { Bootstrap, OperationRecord } from '../features/clubOperations/api'
 import type { RolesWorkspace } from '../features/clubOperations/useWorkspaceRoles';
 import type { CoachData } from '../features/clubWorkspace/coachHub/CoachWorkspace';
 import CoachWorkspacePage from './CoachWorkspacePage';
-import ClubWorkspacePage from './ClubWorkspacePage';
+import ClubOfficePage from './ClubOfficePage';
 import '../i18n';
 
 const fixture = vi.hoisted(() => ({ selectedFirst: false, kind: 'update' as 'update' | 'record', access: true, assigned: true, readClubs: [] as number[] }));
@@ -22,10 +22,10 @@ vi.mock('../features/clubOperations/useWorkspaceRoles', async original => ({ ...
 } }));
 vi.mock('../features/clubWorkspace/useClubOverview', () => ({ useClubOverview: (club: number) => ({ overview: { currentUserRole: 'COACH', pendingInvitations: [], pendingApplications: [] }, clubName: club === 400 ? 'Assigned club' : 'Other club', loading: false, error: null, schedule: { events: [] }, reload: vi.fn() }) }));
 vi.mock('../features/clubWorkspace/useClubMembership', () => ({ useClubMembership: () => ({ tryouts: { applicants: [], pendingCount: 0 }, errorMessage: null, successMessage: null, setErrorMessage: vi.fn(), setSuccessMessage: vi.fn() }) }));
-vi.mock('../features/clubWorkspace/useClubInbox', () => ({ useClubInbox: () => ({ unreadCount: 0 }) }));
 vi.mock('../features/admissions/club/useClubAdmissions', () => ({ useClubAdmissions: () => ({ data: null }) }));
 vi.mock('../features/clubWorkspace/ClubDecisionDialogs', () => ({ ClubDecisionDialogs: () => null }));
 vi.mock('../features/clubWorkspace/WorkspaceGuide', () => ({ WorkspaceGuide: () => null }));
+vi.mock('../hooks/useCan', () => ({ refreshAccess: vi.fn(), useCan: () => ({ pending: false, admin: null, decide: (action: string) => ({ allowed: action === 'see_staff' }) }) }));
 vi.mock('../features/clubWorkspace/coachHub/CoachUpdates', () => ({ CoachUpdates: ({ data }: { data: CoachData }) => <p data-testid="updates">Updates club{data.clubId} squad{data.focus}</p> }));
 const boot: Bootstrap = { clubId: 400, actorId: 9500, clubName: 'Assigned club', leadership: false, definitions: [{ module: 'AVAILABILITY', kind: 'RESTRICTION', label: 'Participation restriction', fields: [], states: [] }], specialisations: [], permissions: [],
     settings: { setting: 'ACADEMY', playing_level: 'AMATEUR', enabled_modules: ['AVAILABILITY'], revision: 0 }, modules: [{ id: 'AVAILABILITY', writable: false, globalWrite: false, writeSquads: [], readSquads: [401], globalRead: false }],
@@ -40,7 +40,7 @@ const overview = { id: 401, club_id: 400, viewer_id: 9500, academy_name: 'Assign
 const update = { id: 88, author_id: 9500, author_name: 'Confirmed coach', thread_user_id: null, kind: 'ANNOUNCEMENT', title: 'Matchday: Fixture opposition', body: 'Fixture update', important: true, created_at: '2026-10-17T09:00:00Z', acknowledgement_requested: true, acknowledged_at: null, acknowledged_by: [], expires_at: '2099-01-01T00:00:00Z' };
 function Location() { const value = useLocation(); return <output data-testid="location">{value.pathname + value.search}</output>; }
 function Harness({ initial = '/my-squads?clubId=400' }: { initial?: string }) { return <MemoryRouter initialEntries={[initial]}><Location /><Routes>
-    <Route path="/my-squads" element={<CoachWorkspacePage />} /><Route path="/clubs/:id/workspace" element={<ClubWorkspacePage />} />
+    <Route path="/my-squads" element={<CoachWorkspacePage />} /><Route path="/clubs/:id/office" element={<ClubOfficePage />} />
 </Routes></MemoryRouter>; }
 const location = () => new URL(screen.getByTestId('location').textContent!, 'http://fixture.invalid');
 async function needLink(kind: 'update' | 'record') {

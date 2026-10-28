@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, ClipboardList } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Avatar, SearchInput } from '../../../design/primitives';
 import { DataTable, EMPTY_CELL, FilterSelect, ListToolbar, PrimaryCell, Status, ViewTabs, type Column, type RowGroup } from '../../../design/DataTable';
 import { sortRows, type TableSort } from '../../../design/tableSort';
 import { formatDate } from '../../../utils/formatting';
-import { label, moduleNames, type Bootstrap, type Definition, type OperationRecord } from '../api';
-import { operationTabs } from '../workspaceNavigation';
+import { label, type Bootstrap, type Definition, type OperationRecord } from '../api';
 import { useNow } from '../../clubWorkspace/useNow';
 import { daysFromToday, dueWords } from '../../clubWorkspace/fixtures';
 import { isFinished, statusTone } from './recordStatus';
@@ -17,7 +16,6 @@ import { useCopy } from '../../../locales/useCopy';
 export type RecordView = 'all' | 'open' | 'mine';
 
 const dateOf = (record: OperationRecord) => record.attentionDate ?? record.due_on;
-const moduleIcon = (module: string) => operationTabs.find(tab => tab.module === module)?.icon ?? ClipboardList;
 
 /** Open work by how soon it is due, then finished records; the order inside each group is the list's sort. */
 const GROUPS = [
@@ -44,8 +42,8 @@ function DueCell({ value, now, finished }: { value: string | null | undefined; n
  * the status and the next date. Open work is grouped by urgency; finished records follow. Each title is a link to the
  * record, and a click anywhere on the row opens it too.
  */
-export function RecordTable({ records, boot, home, sort, onSort, hrefFor, onOpen, footer }: {
-    records: OperationRecord[]; boot: Bootstrap; home: boolean; sort: TableSort | null; onSort: (by: string) => void;
+export function RecordTable({ records, boot, sort, onSort, hrefFor, onOpen, footer }: {
+    records: OperationRecord[]; boot: Bootstrap; sort: TableSort | null; onSort: (by: string) => void;
     hrefFor: (record: OperationRecord) => string; onOpen: (record: OperationRecord) => void; footer?: ReactNode;
 }) {
     const now = useNow();
@@ -53,14 +51,11 @@ export function RecordTable({ records, boot, home, sort, onSort, hrefFor, onOpen
     const squad = (record: OperationRecord) => record.squad_id ? boot.squads.find(s => s.id === record.squad_id)?.name ?? `Squad #${record.squad_id}` : null;
     const responsible = (record: OperationRecord) => boot.staff.find(s => s.id === record.assigned_user_id)?.name ?? boot.guardians.find(g => g.id === record.assigned_user_id)?.name ?? null;
     const kinds = new Set(records.map(record => record.kind));
-    const subtitle = (record: OperationRecord) => home ? moduleNames[record.module] : kinds.size > 1 ? boot.definitions.find(d => d.kind === record.kind)?.label : undefined;
+    const subtitle = (record: OperationRecord) => kinds.size > 1 ? boot.definitions.find(d => d.kind === record.kind)?.label : undefined;
 
     const columns: Column<OperationRecord>[] = [
-        { id: 'title', label: copy('colRecord'), width: 'minmax(240px, 3fr)', sortable: true, render: record => {
-            const Icon = moduleIcon(record.module);
-            return <PrimaryCell lead={home ? <span className="gk-dt-icon"><Icon aria-hidden="true" /></span> : undefined}
-                title={<Link className="gk-dt-primary__title" to={hrefFor(record)}>{record.title}</Link>} subtitle={subtitle(record)} />;
-        } },
+        { id: 'title', label: copy('colRecord'), width: 'minmax(240px, 3fr)', sortable: true, render: record => <PrimaryCell
+            title={<Link className="gk-dt-primary__title" to={hrefFor(record)}>{record.title}</Link>} subtitle={subtitle(record)} /> },
         { id: 'squad', label: copy('colSquad'), width: 'minmax(110px, 1fr)', sortable: true, render: record => squad(record) ?? <span className="gk-dt-muted">{copy('clubWide')}</span> },
         { id: 'responsible', label: copy('colResponsible'), width: 'minmax(150px, 1.3fr)', sortable: true, render: record => {
             const name = responsible(record);
@@ -71,7 +66,7 @@ export function RecordTable({ records, boot, home, sort, onSort, hrefFor, onOpen
         </Status> },
         // Lists without deadlines (attendance, inventory) show when each record last changed instead.
         records.some(dateOf)
-            ? { id: 'due', label: home ? copy('colDue') : copy('colNextDate'), width: '120px', sortable: true, render: record => <DueCell value={dateOf(record)} now={now} finished={isFinished(record.status)} /> }
+            ? { id: 'due', label: copy('colNextDate'), width: '120px', sortable: true, render: record => <DueCell value={dateOf(record)} now={now} finished={isFinished(record.status)} /> }
             : { id: 'updated', label: copy('colUpdated'), width: '120px', sortable: true, render: record => <span className="gk-dt-date" title={formatDate(record.updated_at, { dateStyle: 'full', timeStyle: 'short' })}>{formatDate(record.updated_at, { day: 'numeric', month: 'short' })}</span> },
     ];
     const value = (record: OperationRecord, by: string) => by === 'title' ? record.title.toLowerCase() : by === 'squad' ? squad(record) ?? ''
@@ -91,19 +86,17 @@ export function RecordToolbar({ boot, module, definitions, view, filters, count,
     onView: (view: RecordView) => void; onChange: (key: string, value: string) => void; onClear: () => void;
 }) {
     const copy = useCopy('clubRecords', clubRecordsEn);
-    const home = module === 'HOME', permission = boot.modules.find(m => m.id === module);
-    const squads = boot.squads.filter(s => home ? boot.modules.some(m => m.globalRead || m.readSquads?.includes(s.id)) : permission?.globalRead || permission?.readSquads?.includes(s.id));
-    // The work queue gathers every tool, so its types are grouped by the tool they belong to.
-    const types = home ? boot.definitions.filter(d => boot.modules.some(m => m.id === d.module)) : definitions;
-    const views: { id: RecordView; label: string }[] = [{ id: 'all', label: copy('viewAll') }, ...(home ? [] : [{ id: 'open' as const, label: copy('viewOpen') }]), { id: 'mine', label: copy('viewMine') }];
+    const permission = boot.modules.find(m => m.id === module);
+    const squads = boot.squads.filter(s => permission?.globalRead || permission?.readSquads?.includes(s.id));
+    const views: { id: RecordView; label: string }[] = [{ id: 'all', label: copy('viewAll') }, { id: 'open', label: copy('viewOpen') }, { id: 'mine', label: copy('viewMine') }];
     const counted = page ? copy('showing', { from: page * 100 + 1, to: page * 100 + count }) : copy('count', { count });
     return <div className="gk-stack gk-stack--tight">
         <ViewTabs label={copy('show')} views={views} value={view} onChange={id => onView(id as RecordView)} />
         <ListToolbar count={loading ? copy('updating') : counted} onClear={filters.search || filters.squad || filters.kind ? onClear : undefined}>
             <SearchInput aria-label={copy('search')} value={filters.search} maxLength={160} onChange={e => onChange('q', e.target.value)} placeholder={copy('search')} />
             <FilterSelect label={copy('filterSquad')} allLabel={copy('filterAll')} value={filters.squad} onChange={value => onChange('squad', value)} options={squads.map(s => ({ value: String(s.id), label: s.name }))} />
-            {types.length > 1 && <FilterSelect label={copy('filterType')} allLabel={copy('filterAll')} value={filters.kind} onChange={value => onChange('kind', value)}
-                options={types.map(d => ({ value: d.kind, label: d.label, group: home ? moduleNames[d.module] : undefined }))} />}
+            {definitions.length > 1 && <FilterSelect label={copy('filterType')} allLabel={copy('filterAll')} value={filters.kind} onChange={value => onChange('kind', value)}
+                options={definitions.map(d => ({ value: d.kind, label: d.label }))} />}
         </ListToolbar>
     </div>;
 }

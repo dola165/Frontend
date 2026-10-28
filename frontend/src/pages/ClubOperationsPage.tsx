@@ -1,17 +1,14 @@
-import { useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { legacyWorkspaceTarget } from '../features/clubOffice/officeLinks';
 import { operationTab } from '../features/clubOperations/workspaceNavigation';
 
-/** Preserve existing notification and challenge links in the unified workspace. */
+/** Older notification and challenge links named a club tool by its module: they open that tool in Club office. */
 export default function ClubOperationsPage() {
   const { id } = useParams();
   const [params] = useSearchParams();
-  const navigate = useNavigate();
-  const valid = Boolean(id && Number.isSafeInteger(Number(id)) && Number(id) > 0);
+  const club = Number(id);
+  if (!Number.isSafeInteger(club) || club <= 0) return <p>Club not found.</p>;
   const next = new URLSearchParams(params);
   next.set('tab', operationTab(params.get('module')));
-  next.delete('module');
-  const destination = `/clubs/${id}/workspace?${next}`;
-  useEffect(() => { if (valid) navigate(destination, { replace: true }); }, [valid, destination, navigate]);
-  return valid ? null : <p>Club not found.</p>;
+  return <Navigate replace to={legacyWorkspaceTarget(club, next)} />;
 }

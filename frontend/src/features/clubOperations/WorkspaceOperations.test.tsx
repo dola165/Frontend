@@ -5,7 +5,7 @@ import { apiClient } from '../../api/axiosConfig';
 import ClubOperationsPage from '../../pages/ClubOperationsPage';
 import { WorkspaceOperations } from './WorkspaceOperations';
 import { RecordForm } from './records/RecordForm';
-import { operationModule, availableOperationTabs } from './workspaceNavigation';
+import { operationModule } from './workspaceNavigation';
 import type { Bootstrap, Definition } from './api';
 
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }));
@@ -17,18 +17,18 @@ const boot: Bootstrap = { clubId: 12, clubName: 'School football', actorId: 1, l
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(apiClient.get).mockResolvedValue({ data: [] }); vi.mocked(apiClient.post).mockResolvedValue({ data: { id: 4 } }); });
 afterEach(cleanup);
 
-it('keeps old operations record links and unrelated parameters when redirecting into the workspace', async () => {
+it('keeps old operations record links and unrelated parameters, opening the tool in Club office', async () => {
   function Destination() { return <p>{window.location.pathname}</p>; }
-  render(<MemoryRouter initialEntries={['/clubs/12/operations?module=EQUIPMENT&record=18&from=match']}><Routes><Route path="/clubs/:id/operations" element={<ClubOperationsPage />} /><Route path="/clubs/:id/workspace" element={<Destination />} /></Routes><Location /></MemoryRouter>);
-  await screen.findByText('/clubs/12/workspace?record=18&from=match&tab=equipment');
+  render(<MemoryRouter initialEntries={['/clubs/12/operations?module=EQUIPMENT&record=18&from=match']}><Routes><Route path="/clubs/:id/operations" element={<ClubOperationsPage />} /><Route path="/clubs/:id/office" element={<Destination />} /></Routes><Location /></MemoryRouter>);
+  await screen.findByText('/clubs/12/office?tab=tools&tool=equipment&record=18&from=match');
 });
 
 import { useLocation } from 'react-router-dom';
 function Location() { const location = useLocation(); return <output>{location.pathname}{location.search}</output>; }
 
-it('offers only the appointed sections and keeps private care/settings unavailable', () => {
-  expect(availableOperationTabs(boot).map(t => t.id)).toEqual(['actions', 'equipment']);
+it('names each tool by its module', () => {
   expect(operationModule('equipment')).toBe('EQUIPMENT');
+  expect(operationModule('actions')).toBeUndefined();
 });
 
 it('keeps API failures distinct from an empty club list', async () => {

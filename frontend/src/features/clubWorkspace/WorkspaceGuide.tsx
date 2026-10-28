@@ -25,13 +25,13 @@ const writable = (boot: Bootstrap, module: string, squad: number | null) => {
 };
 
 interface WorkspaceGuideProps {
-  boot: Bootstrap; roles: RolesWorkspace; mode: 'club' | 'coach'; onRefresh: () => Promise<void> | void; suspended?: boolean;
+  boot: Bootstrap; roles: RolesWorkspace; onRefresh: () => Promise<void> | void; suspended?: boolean;
   training?: CoachTrainingContext; onOpenSchedule?: (next?: NonNullable<CoachTrainingContext['next']>) => void;
 }
 export function WorkspaceGuide(props: WorkspaceGuideProps) {
-  return <OperationalFlow key={`${props.mode}:${props.boot.clubId}:${props.boot.actorId}:${getAuthSessionId()}`} {...props} />;
+  return <OperationalFlow key={`coach:${props.boot.clubId}:${props.boot.actorId}:${getAuthSessionId()}`} {...props} />;
 }
-function OperationalFlow({ boot, roles, mode, onRefresh, suspended = false, training, onOpenSchedule }: WorkspaceGuideProps) {
+function OperationalFlow({ boot, roles, onRefresh, suspended = false, training, onOpenSchedule }: WorkspaceGuideProps) {
   const id = useId(), ka = appLanguage() === 'ka';
   const t = (en: string, ge: string) => ka ? ge : en;
   const [authSessionId] = useState(getAuthSessionId);
@@ -53,17 +53,16 @@ function OperationalFlow({ boot, roles, mode, onRefresh, suspended = false, trai
     return control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement ? control.value : fallback;
   };
   const coachingIds = roles.views.filter(v => !v.clubWide).flatMap(v => v.squadIds);
-  const squads = mode === 'coach' ? roles.requestSquads.filter(s => coachingIds.includes(s.id)) : boot.squads;
+  const squads = roles.requestSquads.filter(s => coachingIds.includes(s.id));
   const trainingAccess = boot.modules.find(module => module.id === 'ATTENDANCE');
   const canPlanTraining = (squadId: number) => boot.leadership || roles.views.some(view => view.id === 'coaching' && view.squadIds.includes(squadId)) || Boolean(trainingAccess?.writable && (trainingAccess.globalWrite || trainingAccess.writeSquads.includes(squadId)));
   const trainingSquads = squads.filter(squad => canPlanTraining(squad.id));
   const dutySquads = squads.filter(squad => writable(boot, 'STAFF', squad.id));
-  const wholeDuty = mode === 'club' && writable(boot, 'STAFF', null);
   const attendanceSessions = boot.sessions.filter(s => squads.some(q => q.id === s.squad_id) && writable(boot, 'ATTENDANCE', s.squad_id ?? null));
   const sessions = attendanceSessions.filter(s => roles.people.some(person => person.squad_id === s.squad_id));
   const [squad, setSquad] = useState(String(squads[0]?.id ?? ''));
   const trainingSquad = trainingSquads.some(item => String(item.id) === squad) ? squad : String(trainingSquads[0]?.id ?? '');
-  const dutySquad = wholeDuty && !squad ? '' : dutySquads.some(item => String(item.id) === squad) ? squad : String(dutySquads[0]?.id ?? '');
+  const dutySquad = dutySquads.some(item => String(item.id) === squad) ? squad : String(dutySquads[0]?.id ?? '');
   const [starts, setStarts] = useState(localTime), [ground, setGround] = useState('');
   const [minutes, setMinutes] = useState('90'), [dutyTitle, setDutyTitle] = useState(t('Training cover', 'ვარჯიშზე ჩანაცვლება'));
   const [assignee, setAssignee] = useState(String(boot.staff.find(p => p.id === boot.actorId)?.id ?? boot.staff[0]?.id ?? ''));
@@ -101,14 +100,14 @@ function OperationalFlow({ boot, roles, mode, onRefresh, suspended = false, trai
     if (!message) return false;
     setReceipt(message); return true;
   };
-  const scope = <Field label={t('Squad', 'გუნდი')} htmlFor={`${id}-squad`}><select id={`${id}-squad`} className="gk-input" value={dutySquad} onChange={e => setSquad(e.target.value)} required={!wholeDuty}>
-    {wholeDuty && <option value="">{t('Whole club', 'მთელი კლუბი')}</option>}{dutySquads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+  const scope = <Field label={t('Squad', 'გუნდი')} htmlFor={`${id}-squad`}><select id={`${id}-squad`} className="gk-input" value={dutySquad} onChange={e => setSquad(e.target.value)} required>
+    {dutySquads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
   </select></Field>;
   const trainingScope = <Field label={t('Squad', 'გუნდი')} htmlFor={`${id}-squad`}><select id={`${id}-squad`} className="gk-input" value={trainingSquad} onChange={e => setSquad(e.target.value)} required>{trainingSquads.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>;
   const when = <Field label={t('Starts', 'დაწყება')} htmlFor={`${id}-starts`}><input id={`${id}-starts`} className="gk-input" type="datetime-local" required value={starts} onChange={e => setStarts(e.target.value)} /></Field>;
   const where = <Field label={t('Ground or meeting place', 'მოედანი ან შეხვედრის ადგილი')} htmlFor={`${id}-ground`}><input id={`${id}-ground`} className="gk-input" value={ground} maxLength={160} onChange={e => setGround(e.target.value)} /></Field>;
   let tasks: GuideTask[] = [];
-  if (mode === 'coach' && (trainingSquads.length || canReviewTraining)) tasks = [...tasks, {
+  if (trainingSquads.length || canReviewTraining) tasks = [...tasks, {
     id: 'training', title: trainingForm ? t('Plan one training session', 'დაგეგმეთ ერთი ვარჯიში') : nextTraining ? t('Your upcoming training', 'თქვენი მომავალი ვარჯიში') : t('Check your training', 'შეამოწმეთ ვარჯიშები'),
     description: trainingForm ? t('Confirm the squad, time and ground. Weekly training is set on the squad page.', 'დაადასტურეთ გუნდი, დრო და მოედანი. ყოველკვირეული ვარჯიში გუნდის გვერდზე ირჩევა.') : undefined,
     nextLabel: trainingForm ? undefined : nextTraining ? t('Open session', 'ვარჯიშის გახსნა') : t('Open calendar', 'კალენდრის გახსნა'),
@@ -162,7 +161,7 @@ function OperationalFlow({ boot, roles, mode, onRefresh, suspended = false, trai
       return acknowledge('responsibility', t('Request sent for approval.', 'მოთხოვნა გაგზავნილია დასამტკიცებლად.'));
     },
   }];
-  if ((wholeDuty || dutySquads.length > 0) && boot.staff.length) tasks = [...tasks, {
+  if (dutySquads.length > 0 && boot.staff.length) tasks = [...tasks, {
     id: 'staff-duty', title: t('Give a staff member a task', 'მიეცით თანამშრომელს დავალება'),
     disabled: dutyCreation.blocked || !writable(boot, 'STAFF', dutySquad ? Number(dutySquad) : null),
     content: <div className="cw-guide-fields">{dutyCreation.message && <p role="status">{dutyCreation.message}</p>}<fieldset disabled={completed.includes('staff-duty') || dutyCreation.uncertain || dutyCreation.blocked}>
@@ -178,7 +177,7 @@ function OperationalFlow({ boot, roles, mode, onRefresh, suspended = false, trai
       return acknowledge('staff-duty', t(`Saved: ${savedRecord.title} · #${savedRecord.id}`, `შენახულია: ${savedRecord.title} · #${savedRecord.id}`));
     },
   }];
-  if (mode === 'coach' && sessions.length) tasks = [...tasks, {
+  if (sessions.length) tasks = [...tasks, {
     id: 'attendance', title: t('Record attendance, if you use it', 'აღრიცხეთ დასწრება, თუ იყენებთ'),
     disabled: attendanceCreation.blocked,
     description: t('Optional. Choose one player and their actual attendance.', 'სურვილისამებრ. აირჩიეთ ერთი მოთამაშე და მისი რეალური დასწრება.'),
@@ -208,10 +207,10 @@ function OperationalFlow({ boot, roles, mode, onRefresh, suspended = false, trai
     },
   }];
   return <>{receipt && <div className="gk-notice cw-guide-receipt" role="status">{receipt}</div>}
-    {!suspended && mode === 'coach' && !trainingForm && (unresolvedTraining || trainingUncertain) && <p className="gk-notice cw-guide-receipt" role="status">{unresolvedTraining ? unresolvedTrainingMessage : t('Training may already be saved. Keep this page open and review the calendar.', 'ვარჯიში შეიძლება უკვე შენახული იყოს. დატოვეთ ეს გვერდი ღია და შეამოწმეთ კალენდარი.')}</p>}
-    {!suspended && mode === 'coach' && attendanceSessions.length > 0 && sessions.length === 0 && <p className="gk-notice cw-guide-receipt" role="status">{t('Attendance is available once players are added to your squad.', 'დასწრების აღრიცხვა ხელმისაწვდომი იქნება, როცა თქვენს გუნდს მოთამაშეები დაემატებიან.')}</p>}
+    {!suspended && !trainingForm && (unresolvedTraining || trainingUncertain) && <p className="gk-notice cw-guide-receipt" role="status">{unresolvedTraining ? unresolvedTrainingMessage : t('Training may already be saved. Keep this page open and review the calendar.', 'ვარჯიში შეიძლება უკვე შენახული იყოს. დატოვეთ ეს გვერდი ღია და შეამოწმეთ კალენდარი.')}</p>}
+    {!suspended && attendanceSessions.length > 0 && sessions.length === 0 && <p className="gk-notice cw-guide-receipt" role="status">{t('Attendance is available once players are added to your squad.', 'დასწრების აღრიცხვა ხელმისაწვდომი იქნება, როცა თქვენს გუნდს მოთამაშეები დაემატებიან.')}</p>}
     {refreshError && <div className="gk-notice gk-notice--warning cw-guide-receipt" role="alert">{refreshError}<Button size="sm" disabled={retrying} onClick={() => { setRetrying(true); void refresh().finally(() => setRetrying(false)); }}>{t('Refresh page', 'გვერდის განახლება')}</Button></div>}
-    <GuidedFlow flowId={`workspace:${mode}:${boot.actorId}:${boot.clubId}`} title={mode === 'club' ? t('Club work', 'კლუბის საქმეები') : t('My squads', 'ჩემი გუნდები')} tasks={tasks} suspended={suspended} />
+    <GuidedFlow flowId={`workspace:coach:${boot.actorId}:${boot.clubId}`} title={t('My squads', 'ჩემი გუნდები')} tasks={tasks} suspended={suspended} />
   </>;
 }
 

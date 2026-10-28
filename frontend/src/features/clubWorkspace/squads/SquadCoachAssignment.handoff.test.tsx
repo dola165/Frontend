@@ -37,7 +37,7 @@ afterEach(() => { cleanup(); localStorage.clear(); sessionStorage.clear(); });
 
 it('takes an empty confirmed leader through explicit first assignment to confirmed My squads projection', async () => {
   render(<MemoryRouter initialEntries={['/my-squads']}><Routes>
-    <Route path="/clubs/:id/workspace" element={<SquadsPage clubId={400} overview={{ currentUserRole: 'OWNER', activePlayerCount: 0 } as never} setParentError={vi.fn()} setParentSuccess={vi.fn()} workspace={{ data: roles(), boot, onOpen: vi.fn() }} />} />
+    <Route path="/clubs/:id/office" element={<SquadsPage clubId={400} overview={{ currentUserRole: 'OWNER', activePlayerCount: 0 } as never} setParentError={vi.fn()} setParentSuccess={vi.fn()} workspace={{ data: roles(), boot, onOpen: vi.fn() }} />} />
     <Route path="/my-squads" element={<CoachWorkspacePage />} />
   </Routes></MemoryRouter>);
   expect(fixture.assigned).toBe(false); fireEvent.click(await screen.findByRole('link', { name: 'Open squad lists' }));

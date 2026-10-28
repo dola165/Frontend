@@ -1,32 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
-import { Button, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
+import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { nextSort, type TableSort } from '../../design/tableSort';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { get, root, moduleNames, type Bootstrap, type OperationRecord } from './api';
 import { RecordDetail } from './RecordDetail';
 import { OperationsSettings } from './OperationsSettings';
 import { FinanceSummary } from './FinanceSummary';
-import { AppointmentActions } from './AppointmentActions';
 import { SessionRegister } from './SessionRegister';
-import { operationDescriptions, operationTabs } from './workspaceNavigation';
+import { operationDescriptions, operationTabs, toolLabel } from './workspaceNavigation';
 import { RecordForm } from './records/RecordForm';
 import { RecordTable, RecordToolbar, type RecordView } from './records/RecordList';
 import { SessionRegisters } from './records/SessionRegisters';
 import { useScopedSearchParams } from './scopedParams';
-import { navLabel } from '../clubWorkspace/clubTabs';
 import { clubRecordsEn } from '../../locales/clubRecords';
 import { translate, useCopy } from '../../locales/useCopy';
 import { appLanguage } from '../../utils/formatting';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
-/** One club tool (staff duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
+/** One club tool (duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
 export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: {
   boot: Bootstrap; module: string; onRefresh: () => Promise<void>;
   /** Opened inside another page (a drawer beside a player): its URL parameters live under this prefix. */
   scope?: string;
-  /** Where the person came from (Coach Hub, the overview, a squad): the way back, when they did not open this tool from the rail. */
+  /** Where the person came from (More tools, My squads, a squad): the way back, when they did not open a record from this list. */
   origin?: { label: string; onBack: () => void };
 }) {
   const copy = useCopy('clubRecords', clubRecordsEn);
@@ -37,7 +35,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const [savedRecord, setSavedRecord] = useState<{ clubId: number; actorId: number; id: number; title: string } | null>(null);
   const [refresh, setRefresh] = useState(0);
   const page = Math.max(0, Number(params.get('page')) || 0), search = params.get('q') ?? '', kind = params.get('kind') ?? '', squad = params.get('squad') ?? '', session = params.get('session') ?? '', person = params.get('person') ?? '';
-  const view: RecordView = params.get('mine') === 'true' ? 'mine' : params.get('state') === 'open' && module !== 'HOME' ? 'open' : 'all';
+  const view: RecordView = params.get('mine') === 'true' ? 'mine' : params.get('state') === 'open' ? 'open' : 'all';
   // Sorting orders the loaded page; the server keeps its own order across pages until it accepts `sort` and `dir`.
   const sortBy = params.get('sort'), sort: TableSort | null = sortBy ? { by: sortBy, descending: params.get('dir') === 'desc' } : null;
   const [selected, setSelected] = useState<OperationRecord | null>(null), [editing, setEditing] = useState(false), [newKind, setNewKind] = useState(''), [choosing, setChoosing] = useState(false);
@@ -108,7 +106,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   };
   const create = (value: string) => { setNewKind(value); setEditing(true); setSelected(null); setChoosing(false); };
   const tool = operationTabs.find(t => t.module === module);
-  const title = module === 'HOME' ? copy('workQueue') : tool ? navLabel(tool.id) : moduleNames[module];
+  const title = tool ? toolLabel(tool.id) : moduleNames[module];
   const listLabel = copy('backTo', { name: title.toLowerCase() });
   const toOrigin = Boolean(origin) && params.get('from') !== 'list';
   const backLabel = toOrigin ? origin!.label : listLabel;
@@ -118,7 +116,6 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const empty = narrowed ? { title: copy('noMatching'), body: copy('noMatchingHint') }
     : view === 'mine' ? { title: copy('nothingMine'), body: copy('nothingMineHint') }
     : view === 'open' ? { title: copy('nothingOpen'), body: copy('nothingOpenHint') }
-    : module === 'HOME' ? { title: copy('upToDate'), body: copy('upToDateHint') }
     : { title: copy('noneYetNamed', { name: title.toLowerCase() }), body: canCreate ? operationDescriptions[module] : copy('sharedHint') };
   const openRegister = (s: Bootstrap['sessions'][number]) => {
     const next = new URLSearchParams(params);
@@ -161,9 +158,8 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
         <div className="rec-choices">{definitions.map(d => <button type="button" className="rec-choice" key={d.kind} onClick={() => create(d.kind)}><strong>{d.label}</strong></button>)}</div>
       </Panel>}
       {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={reload}>{copy('tryAgain')}</Button></div>}
-      {module !== 'HOME' && !enabled && <div className="gk-notice" role="status">{copy('toolOff')}</div>}
-      {module === 'STAFF' && <div className="gk-notice" role="status"><span className="cw-notices__text">{copy('staffNotice')}</span><Button size="sm" onClick={() => { const next = new URLSearchParams(); next.set('tab', 'personnel'); setParams(next); }}>{copy('openStaff')}</Button></div>}
-      {module === 'HOME' && boot.modules.some(m => m.id === 'STAFF') && <AppointmentActions club={club} onOpen={() => { const next = new URLSearchParams(params); next.set('tab', 'staff-duties'); next.delete('record'); setParams(next); }} />}
+      {!enabled && <div className="gk-notice" role="status">{copy('toolOff')}</div>}
+      {module === 'STAFF' && <div className="gk-notice" role="status"><span className="cw-notices__text">{copy('staffNotice')}</span><ButtonLink size="sm" to={`/clubs/${club}/office`}>{copy('openStaff')}</ButtonLink></div>}
       {module === 'FINANCE' && <FinanceSummary club={club} revision={boot} />}
       {(session || person) && <div className="gk-notice"><span className="cw-notices__text"><strong>{contextName}</strong>{squad ? ` · ${boot.squads.find(s => String(s.id) === squad)?.name ?? `Squad #${squad}`}` : ''}{selectedSession ? ` · ${new Date(selectedSession.starts_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}` : ''}</span>
         <Button size="sm" onClick={() => { const next = new URLSearchParams(params); next.delete('session'); next.delete('person'); next.delete('page'); setParams(next); }}>{copy('clear')}</Button></div>}
@@ -175,7 +171,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
           onView={chooseView} onChange={filter} onClear={clearFilters} />
         {loading && !result ? <Panel><div className="cw-skeleton-rows" role="status" aria-label={copy('loading')}>{[0, 1, 2, 3].map(i => <Skeleton key={i} height={44} />)}</div></Panel>
           : records.length ? <div inert={loading} data-updating={loading || undefined}>
-            <RecordTable records={records} boot={boot} home={module === 'HOME'} sort={sort} onSort={changeSort} hrefFor={hrefFor} onOpen={open} footer={pager} />
+            <RecordTable records={records} boot={boot} sort={sort} onSort={changeSort} hrefFor={hrefFor} onOpen={open} footer={pager} />
           </div>
             : !error && <Panel>
               <EmptyNote title={empty.title} action={canCreate && !filtered && definitions.length ? <Button size="sm" onClick={() => definitions.length <= 2 ? create(definitions[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{definitions.length <= 2 ? addOne(definitions[0].label) : addLabel}</Button>

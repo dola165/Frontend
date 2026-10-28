@@ -2,48 +2,40 @@ import { useNavigate } from 'react-router-dom';
 import { ClubAdmissionWorkspace } from '../admissions/club/ClubAdmissionWorkspace';
 import type { useClubAdmissions } from '../admissions/club/useClubAdmissions';
 import { ClubApproachesPanel } from '../agents/ClubApproachesPanel';
-import { ClubPeople } from '../clubOperations/people/ClubPeople';
-import { SentInvitations } from '../clubOperations/people/SentInvitations';
 import type { Bootstrap } from '../clubOperations/api';
 import type { RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
 import type { OpenWorkspace } from '../clubOperations/workspaceStructure';
 import type { ClubManagementOverview, PlayerAffiliationStatus } from '../clubs/domain';
 import type { WorkspaceTab } from '../../components/workspace/types';
 import type { AuthSessionId } from '../../utils/authStorage';
-import { InboxTab } from '../../components/workspace/tabs/InboxTab';
 import { Button, PageFrame } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
 import { ClubCampaignsPage } from './commerce/ClubCampaignsPage';
-import { OpenRolesPage } from './commerce/OpenRolesPage';
 import { StoreProductsPage } from './commerce/StoreProductsPage';
 import { PlayersPage } from './players/PlayersPage';
-import { PlayerCardsPage } from './players/PlayerCardsPage';
 import { ApplicationsPage } from './recruitment/ApplicationsPage';
 import { TryoutsPage } from './recruitment/TryoutsPage';
-import type { useClubInbox } from './useClubInbox';
 import './club-workspace.css';
 
 export interface ClubToolsContext {
-    tab: WorkspaceTab; clubId: number; sessionId: AuthSessionId; currentUserId: number | null;
+    tab: WorkspaceTab; clubId: number; sessionId: AuthSessionId;
     overview: ClubManagementOverview | null; reloadOverview: () => Promise<void>;
     roles: RolesWorkspace | null; refreshRoles: () => void; boot: Bootstrap | null; refreshBoot: () => void;
     admissions: ReturnType<typeof useClubAdmissions>; admissionCopy: (key: 'loading' | 'revoked') => string;
-    membership: ClubMembership; inbox: ReturnType<typeof useClubInbox>;
+    membership: ClubMembership;
     can: { leadership: boolean; operations: boolean; playerStatus: boolean; owner: boolean };
     allowed: (tab: WorkspaceTab) => boolean;
     focusedApplicationId: number | null; clearApplicationFocus: () => void;
     switchTab: (tab: WorkspaceTab) => void; openWork: OpenWorkspace; openPlayers: (status?: 'ALL' | PlayerAffiliationStatus) => void;
 }
 
-/** The club tools that keep their own page layout for now, each inside the shared workspace frame. */
+/** The older club tools that keep their own page layout, opened in Club office's More tools. */
 export function ClubTools(ctx: ClubToolsContext) {
     const navigate = useNavigate();
     const { tab, clubId, overview, membership: m, can } = ctx;
     const players = m.players, apps = m.applications;
     const focusNote = (text: string) => <PageFrame className="cw-focus-note"><div className="gk-notice" role="status"><span className="cw-notices__text">{text}</span><Button size="sm" onClick={ctx.clearApplicationFocus}>Show all applications</Button></div></PageFrame>;
     switch (tab) {
-        case 'personnel': return <ClubPeople key={clubId} clubId={clubId} clubName={ctx.boot?.clubName ?? ''} members={overview?.members}
-            onChanged={() => { void ctx.reloadOverview(); ctx.refreshBoot(); ctx.refreshRoles(); }} />;
         case 'players': return <PlayersPage
             playerDirectory={players.directory} playerLoading={players.loading} playerError={players.error} playerStatusFilter={players.filter}
             playerCounts={overview ? {
@@ -62,8 +54,6 @@ export function ClubTools(ctx: ClubToolsContext) {
             onTrialEndsChange={m.actions.trialEndsChange} onRetry={() => { void players.reload(); }} onPageChange={players.setPage}
             onMessagePlayer={userId => navigate(`/messages?chatWith=${userId}`)} onSendConsentEmail={m.actions.sendConsentEmail}
             onTabChange={next => next === 'admissions' ? ctx.openWork('admissions', { intake: '1' }) : ctx.switchTab(next)} />;
-        case 'invites': return <SentInvitations overview={overview} pendingKey={m.pendingKey} onCancelInvite={m.actions.cancelInvite}
-                onOpenPeople={ctx.allowed('personnel') ? () => ctx.switchTab('personnel') : undefined} />;
         case 'admissions': return <ClubAdmissionWorkspace state={ctx.admissions} sessionId={ctx.sessionId} existingPeople={ctx.roles?.people} onOpen={ctx.openWork}
             onRosterChanged={() => { players.invalidate(); void ctx.reloadOverview(); ctx.refreshRoles(); }} />;
         case 'applications': return <>
@@ -79,19 +69,14 @@ export function ClubTools(ctx: ClubToolsContext) {
                 onOpenPlayers={ctx.allowed('players') ? () => ctx.openPlayers() : undefined} />
         </>;
         case 'club-approaches': return can.leadership ? <ClubApproachesPanel mode="club" clubId={clubId} /> : null;
-        case 'jobs': return <OpenRolesPage clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
         case 'store': return can.leadership ? <StoreProductsPage key={clubId} clubId={clubId} /> : null;
         case 'campaigns': return can.leadership ? <ClubCampaignsPage key={clubId} clubId={clubId} /> : null;
-        case 'player-cards': return <PlayerCardsPage clubId={clubId} canRemove={can.leadership} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
         case 'tryouts': return <>
             {ctx.focusedApplicationId != null && focusNote(!m.tryouts.loading && !m.tryouts.applicants.some(a => a.id === ctx.focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.')}
             <TryoutsPage clubId={clubId} tryoutApplicants={ctx.focusedApplicationId != null ? m.tryouts.applicants.filter(a => a.id === ctx.focusedApplicationId) : m.tryouts.applicants}
                 tryoutsLoading={m.tryouts.loading} pendingKey={m.pendingKey} onTryoutStatus={can.leadership ? m.actions.tryoutStatus : undefined}
                 onOpenPlayers={ctx.allowed('players') ? () => ctx.openPlayers() : undefined} />
         </>;
-        case 'inbox': return <InboxTab notifications={ctx.inbox.notifications} loading={ctx.inbox.loading} loadingMore={ctx.inbox.loadingMore} busyId={ctx.inbox.busyId}
-            hasMore={ctx.inbox.hasMore} unreadCount={ctx.inbox.unreadCount} error={ctx.inbox.error} onOpen={ctx.inbox.open} onLoadMore={ctx.inbox.loadMore}
-            onMarkAllRead={ctx.inbox.markAllRead} onRetry={ctx.inbox.retry} />;
         default: return null;
     }
 }

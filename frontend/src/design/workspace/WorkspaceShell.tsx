@@ -2,7 +2,7 @@ import './workspace-shell.css';
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowLeft, ChevronDown, Eye, Menu, MoreHorizontal, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { ArrowLeft, Eye, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { Avatar, GkRoot } from '../primitives';
 import { useDialogFocus } from '../../components/workspace/useDialogFocus';
 import { useCopy } from '../../locales/useCopy';
@@ -10,21 +10,16 @@ import { workspaceShellEn } from '../../locales/workspaceDesign';
 
 /** `view` marks a destination the person can read but not change; the rail shows it as a small eye. */
 export interface WorkspaceNavItem { id: string; label: string; icon: LucideIcon; count?: number; view?: boolean }
-export interface WorkspaceNavGroup { id: string; label: string; icon?: LucideIcon; items: WorkspaceNavItem[] }
 export interface WorkspaceContext { name: string; crest?: string | null; role?: ReactNode; back?: { label: string; to: string } }
 
 interface WorkspaceShellProps {
     /** Accessible name of the workspace, for example "Club workspace". */
     label: string;
     context: WorkspaceContext;
-    /** Always-visible destinations at the top of the rail. */
+    /** The workspace's places, at the top of the rail. */
     primary: WorkspaceNavItem[];
-    /** Personal shortcuts, chosen by the person. */
-    pinned?: WorkspaceNavItem[];
-    /** Sections shown first, usually the ones the person's responsibilities need. */
-    groups: WorkspaceNavGroup[];
-    /** Everything else, one disclosure away. */
-    more?: WorkspaceNavGroup[];
+    /** Quieter places under a thin line, such as Club office's More tools. */
+    quiet?: WorkspaceNavItem[];
     footer?: WorkspaceNavItem[];
     active: string;
     onSelect: (id: string) => void;
@@ -41,7 +36,7 @@ interface WorkspaceShellProps {
     guard?: (proceed: () => void) => void;
     /** The page is a full canvas under the app header (no padded page frame around it), so the shell fills it all. */
     canvas?: boolean;
-    /** Small actions at the top right of every page of this workspace (settings, shaping the rail). */
+    /** Small actions at the top right of every page of this workspace. */
     actions?: ReactNode;
     children: ReactNode;
 }
@@ -51,11 +46,11 @@ const countLabel = (count?: number) => (count ? (count > 99 ? '99+' : String(cou
 const plainClick = (event: MouseEvent<HTMLAnchorElement>) => !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 
 /**
- * One layout for every workspace: a left rail with the context, primary destinations,
- * pins and grouped sections (collapsible to icons), and a content area. On phones the
- * rail becomes a drawer behind a header that names the current section.
+ * One frame for every job page (owner, 28 October 2026): a left rail with the way back, the crest and the person's
+ * job, the page's places, quieter places under a thin line and the calendar at the bottom (collapsible to icons),
+ * then the content. On phones the rail becomes a drawer behind a header that names the current place.
  */
-export function WorkspaceShell({ label, context, primary, pinned = [], groups, more = [], footer = [], active, onSelect, hrefFor, sectionTitle, storageKey, guard, canvas, actions, children }: WorkspaceShellProps) {
+export function WorkspaceShell({ label, context, primary, quiet = [], footer = [], active, onSelect, hrefFor, sectionTitle, storageKey, guard, canvas, actions, children }: WorkspaceShellProps) {
     const copy = useCopy('workspaceShell', workspaceShellEn);
     const navigate = useNavigate();
     const collapseKey = `gk-ws-collapsed:${storageKey}`;
@@ -65,20 +60,10 @@ export function WorkspaceShell({ label, context, primary, pinned = [], groups, m
     const closeRef = useRef<HTMLButtonElement>(null);
     useDialogFocus(drawerOpen, railRef, () => setDrawerOpen(false), closeRef);
 
-    // Short navigation stays fully open; long navigation opens the section you are in.
-    // A section the person opens or closes keeps that choice.
-    const activeGroup = [...groups, ...more].find(group => group.items.some(item => item.id === active))?.id;
-    const autoOpen = groups.reduce((total, group) => total + group.items.length, 0) <= 14;
-    const [toggled, setToggled] = useState<Record<string, boolean>>({});
-    // The first area starts open, so the rail shows real tools on arrival; the rest open on a press or when current.
-    const isOpen = (id: string) => toggled[id] ?? (autoOpen || id === activeGroup || id === groups[0]?.id);
-    const moreOpen = toggled['gk-ws-more'] ?? more.some(group => group.id === activeGroup);
-
     const toggleCollapsed = () => setCollapsed(value => {
         try { localStorage.setItem(collapseKey, value ? '0' : '1'); } catch { /* The rail still works without a saved preference. */ }
         return !value;
     });
-    const toggleGroup = (id: string, open: boolean) => setToggled(previous => ({ ...previous, [id]: !open }));
     const select = (id: string) => { onSelect(id); setDrawerOpen(false); };
 
     const renderItem = (item: WorkspaceNavItem) => {
@@ -95,16 +80,6 @@ export function WorkspaceShell({ label, context, primary, pinned = [], groups, m
             return <li key={item.id}><a {...common} href={hrefFor(item.id)} onClick={onClick}>{body}</a></li>;
         }
         return <li key={item.id}><button type="button" {...common} onClick={() => select(item.id)}>{body}</button></li>;
-    };
-    const renderGroup = (group: WorkspaceNavGroup, scope: string) => {
-        const open = collapsed || isOpen(group.id);
-        const listId = `gk-ws-${scope}-${group.id}`;
-        return <div className="gk-ws__group" key={group.id}>
-            <button type="button" className="gk-ws__group-toggle" aria-expanded={open} aria-controls={listId} onClick={() => toggleGroup(group.id, open)}>
-                {group.icon && <group.icon aria-hidden="true" className="gk-ws__group-icon" />}<span>{group.label}</span><ChevronDown aria-hidden="true" className="gk-ws__chevron" />
-            </button>
-            <ul id={listId} className="gk-ws__items" hidden={!open} aria-label={group.label}>{group.items.map(renderItem)}</ul>
-        </div>;
     };
 
     const back = context.back;
@@ -129,17 +104,7 @@ export function WorkspaceShell({ label, context, primary, pinned = [], groups, m
             </div>
             <nav className="gk-ws__nav" aria-label={copy('sections', { name: label })}>
                 <ul className="gk-ws__items gk-ws__items--primary">{primary.map(renderItem)}</ul>
-                {pinned.length > 0 && <div className="gk-ws__group"><p className="gk-ws__caption">{copy('pinned')}</p><ul className="gk-ws__items" aria-label={copy('pinned')}>{pinned.map(renderItem)}</ul></div>}
-                {groups.map(group => renderGroup(group, 'main'))}
-                {more.length > 0 && !collapsed && <div className="gk-ws__more">
-                    <button type="button" className="gk-ws__group-toggle" aria-expanded={moreOpen} aria-controls={`gk-ws-more-${storageKey}`} onClick={() => toggleGroup('gk-ws-more', moreOpen)}>
-                        <span>{copy('moreTools')}</span><ChevronDown aria-hidden="true" />
-                    </button>
-                    <div id={`gk-ws-more-${storageKey}`} hidden={!moreOpen}>{more.map(group => renderGroup(group, 'more'))}</div>
-                </div>}
-                {/* Collapsed to icons, the rest of the tools are one tap away: it opens the rail at "More tools". */}
-                {more.length > 0 && collapsed && <ul className="gk-ws__items"><li><button type="button" className="gk-ws__item" title={copy('moreTools')}
-                    onClick={() => { toggleCollapsed(); setToggled(previous => ({ ...previous, 'gk-ws-more': true })); }}><MoreHorizontal aria-hidden="true" /><span className="gk-ws__item-label">{copy('moreTools')}</span></button></li></ul>}
+                {quiet.length > 0 && <ul className="gk-ws__items gk-ws__items--quiet">{quiet.map(renderItem)}</ul>}
             </nav>
             {/* Outside the scrolling part, so the way out is always on screen whatever is open above. */}
             {footer.length > 0 && <ul className="gk-ws__items gk-ws__items--footer" aria-label={copy('sections', { name: label })}>{footer.map(renderItem)}</ul>}

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Field, PageHeader, Panel } from '../../design/primitives';
+import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { label, moduleNames, moduleGroups, put, root, type Bootstrap } from './api';
 import { operationDescriptions } from './workspaceNavigation';
@@ -9,8 +10,9 @@ import '../clubWorkspace/club-workspace.css';
 const SETTINGS = ['UNSPECIFIED', 'SCHOOL', 'COMMUNITY', 'INDEPENDENT_ACADEMY', 'CLUB_ACADEMY', 'CLUB', 'OTHER'];
 const LEVELS = ['UNSPECIFIED', 'RECREATIONAL', 'AMATEUR', 'SEMI_PROFESSIONAL', 'PROFESSIONAL', 'MIXED'];
 
-/** Workspace setup: what kind of club this is, its region, and which tools the whole club uses. */
+/** Club details and tools (Club office › Settings): what kind of club this is, its region, and which tools the whole club uses. */
 export function OperationsSettings({ boot, onSaved }: { boot: Bootstrap; onSaved: () => Promise<void> }) {
+  const copy = useJourneyCopy();
   const [settings, setSettings] = useState(boot.settings), [busy, setBusy] = useState(false), [error, setError] = useState(''), [saved, setSaved] = useState(false);
   const set = (value: Partial<typeof settings>) => { setSettings(current => ({ ...current, ...value })); setSaved(false); };
   const dirty = JSON.stringify(settings) !== JSON.stringify(boot.settings);
@@ -24,7 +26,7 @@ export function OperationsSettings({ boot, onSaved }: { boot: Bootstrap; onSaved
   };
   const toggle = (module: string, on: boolean) => set({ enabled_modules: on ? [...settings.enabled_modules, module] : settings.enabled_modules.filter(value => value !== module) });
   return <form className="rec-page" onSubmit={e => { void submit(e); }}>
-    <PageHeader title="Workspace settings" subtitle="Club details and the tools your club uses. Each person’s responsibilities decide what they see first." />
+    <PageHeader title={copy('Club details and tools', 'კლუბის მონაცემები და ინსტრუმენტები')} subtitle={copy('A tool switched off leaves More tools for everyone.', 'გამორთული ინსტრუმენტი ყველასთვის ქრება სხვა ინსტრუმენტებიდან.')} />
     <fieldset disabled={busy} className="rec-form rec-form--wide">
       {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
       {saved && <div className="gk-notice cw-notices__success" role="status">Settings saved.</div>}

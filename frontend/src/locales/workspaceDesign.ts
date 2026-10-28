@@ -4,8 +4,6 @@ export const workspaceShellEn = {
     navigation: '{{name}} navigation',
     sections: '{{name}} sections',
     closeNavigation: 'Close navigation',
-    pinned: 'Pinned',
-    moreTools: 'More tools',
     collapse: 'Collapse',
     expand: 'Expand',
     expandNavigation: 'Expand navigation',
@@ -20,8 +18,6 @@ export const workspaceShellKa: Record<keyof typeof workspaceShellEn, string> = {
     navigation: '{{name}}: ნავიგაცია',
     sections: '{{name}}: განყოფილებები',
     closeNavigation: 'ნავიგაციის დახურვა',
-    pinned: 'მიმაგრებული',
-    moreTools: 'სხვა ინსტრუმენტები',
     collapse: 'ჩაკეცვა',
     expand: 'გაშლა',
     expandNavigation: 'ნავიგაციის გაშლა',
@@ -33,46 +29,29 @@ export const workspaceShellKa: Record<keyof typeof workspaceShellEn, string> = {
 };
 
 /** Club workspace destinations and areas, keyed by tab or area id. */
+/** The club's tools by their id, as More tools and each tool's page name them, and the view-only line above a tool. */
 export const workspaceNavEn = {
-    workspace: 'Club workspace', clubPage: 'Club page', clubStaff: 'Club staff', backTo: 'Back to {{name}}',
-    'area-squads': 'Squads', 'area-players': 'Players', 'area-staff': 'Staff', 'area-joining': 'Joining', 'area-club': 'Club', 'area-settings': 'Settings',
-    overview: 'Today', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools', calendar: 'Calendar',
-    personnel: 'People', players: 'Players', invites: 'Invitations', applications: 'Applications', 'club-approaches': 'Agent approaches',
-    jobs: 'Hiring', programmes: 'Programmes & fees', store: 'Store', campaigns: 'Fundraising', settings: 'Club settings', squads: 'Squads',
-    'player-cards': 'Player cards', tryouts: 'Tryouts',
+    players: 'Players', admissions: 'Player admission', applications: 'Applications', 'club-approaches': 'Agent approaches',
+    programmes: 'Programmes & fees', store: 'Store', campaigns: 'Fundraising', tryouts: 'Tryouts',
     'staff-duties': 'Duties', credentials: 'Credentials', specialists: 'Specialists', guardians: 'Guardians & permissions', attendance: 'Attendance & collection',
     registration: 'Registration', departures: 'Departures', development: 'Development', education: 'Education', facilities: 'Grounds & facilities',
     preparation: 'Match preparation', equipment: 'Equipment', finance: 'Finance', travel: 'Travel', restrictions: 'Restrictions',
-    medical: 'Medical', welfare: 'Welfare', 'workspace-settings': 'Workspace settings',
-    customize: 'Edit tabs', editTabsTitle: 'Your tabs', editTabsHint: 'Hide what you do not use; it waits under More tools. The essentials stay.',
-    toolsFirstFor: 'Tools first for', alwaysShown: 'Always shown', showTool: 'Show {{name}}', hideTool: 'Hide {{name}}', showArea: 'Show {{name}}', hideArea: 'Hide {{name}}',
-    resetTabs: 'Show everything again', done: 'Done', accessFrom: 'Access to a tool comes from the club, never from here.', askAccess: 'Ask the admin',
-    profileRoles: 'What you do in football, for your profile, is in', rolesAndWork: 'Your football profile',
-    notInAccess: 'Not in your access', notInAccessHint: 'Tools the club uses for other jobs. The admin gives jobs.',
-    viewOnly: 'View only', viewOnlyNote: 'View only: you can read these records, not change them.',
+    medical: 'Medical', welfare: 'Welfare', 'workspace-settings': 'Club details and tools',
+    askAccess: 'Ask the admin', viewOnlyNote: 'View only: you can read these records, not change them.',
 };
 
 export const workspaceNavKa: Record<keyof typeof workspaceNavEn, string> = {
-    workspace: 'კლუბის სამუშაო სივრცე', clubPage: 'კლუბის გვერდი', clubStaff: 'კლუბის პერსონალი', backTo: 'უკან: {{name}}',
-    'area-squads': 'გუნდები', 'area-players': 'მოთამაშეები', 'area-staff': 'პერსონალი', 'area-joining': 'გაწევრიანება', 'area-club': 'კლუბი', 'area-settings': 'პარამეტრები',
-    overview: 'დღეს', inbox: 'კლუბის სიახლეები', actions: 'სამუშაო რიგი', tools: 'ყველა ინსტრუმენტი', calendar: 'კალენდარი',
-    personnel: 'ხალხი', players: 'მოთამაშეები', invites: 'მოწვევები', applications: 'განაცხადები', 'club-approaches': 'აგენტების მიმართვები',
-    jobs: 'დაქირავება', programmes: 'პროგრამები და საფასური', store: 'მაღაზია', campaigns: 'შემოწირულობები', settings: 'კლუბის პარამეტრები', squads: 'შემადგენლობები',
-    'player-cards': 'მოთამაშის ბარათები', tryouts: 'სინჯები',
+    players: 'მოთამაშეები', admissions: 'მოთამაშის მიღება', applications: 'განაცხადები', 'club-approaches': 'აგენტების მიმართვები',
+    programmes: 'პროგრამები და საფასური', store: 'მაღაზია', campaigns: 'შემოწირულობები', tryouts: 'სინჯები',
     'staff-duties': 'მოვალეობები', credentials: 'კვალიფიკაციები', specialists: 'სპეციალისტები', guardians: 'მეურვეები და ნებართვები', attendance: 'დასწრება და წაყვანა',
     registration: 'რეგისტრაცია', departures: 'წასვლები', development: 'განვითარება', education: 'განათლება', facilities: 'მოედნები და ინფრასტრუქტურა',
     preparation: 'მატჩისთვის მომზადება', equipment: 'ინვენტარი', finance: 'ფინანსები', travel: 'მგზავრობა', restrictions: 'შეზღუდვები',
-    medical: 'სამედიცინო', welfare: 'კეთილდღეობა', 'workspace-settings': 'სამუშაო სივრცის პარამეტრები',
-    customize: 'ჩანართების რედაქტირება', editTabsTitle: 'თქვენი ჩანართები', editTabsHint: 'დამალეთ, რასაც არ იყენებთ; ის „სხვა ინსტრუმენტებში“ დაგელოდებათ. მთავარი რჩება.',
-    toolsFirstFor: 'ინსტრუმენტები პირველ რიგში', alwaysShown: 'ყოველთვის ჩანს', showTool: '{{name}}: ჩვენება', hideTool: '{{name}}: დამალვა', showArea: '{{name}}: ჩვენება', hideArea: '{{name}}: დამალვა',
-    resetTabs: 'ყველაფრის დაბრუნება', done: 'მზადაა', accessFrom: 'ინსტრუმენტზე წვდომას კლუბი იძლევა, არა ეს ფანჯარა.', askAccess: 'ადმინთან მიწერა',
-    profileRoles: 'რას აკეთებთ ფეხბურთში (პროფილისთვის), იხილეთ:', rolesAndWork: 'თქვენი საფეხბურთო პროფილი',
-    notInAccess: 'თქვენი წვდომის გარეთ', notInAccessHint: 'ინსტრუმენტები კლუბის სხვა სამუშაოებისთვის. სამუშაოს ადმინი გასცემს.',
-    viewOnly: 'მხოლოდ ნახვა', viewOnlyNote: 'მხოლოდ ნახვა: ამ ჩანაწერების წაკითხვა შეგიძლიათ, შეცვლა — არა.',
+    medical: 'სამედიცინო', welfare: 'კეთილდღეობა', 'workspace-settings': 'კლუბის მონაცემები და ინსტრუმენტები',
+    askAccess: 'ადმინთან მიწერა', viewOnlyNote: 'მხოლოდ ნახვა: ამ ჩანაწერების წაკითხვა შეგიძლიათ, შეცვლა — არა.',
 };
 
 export const coachHubEn = {
-    title: 'Coach Hub', yourSquads: 'Your squads', openSquad: 'Open squad', clubUpdates: 'Club updates', clubPage: 'Club page', clubWorkspace: 'Club workspace', families: 'Families', clubAdministration: 'Club administration', emptySubtitle: 'Take on a responsibility to fill your hub.',
+    title: 'Coach Hub', yourSquads: 'Your squads', openSquad: 'Open squad', clubUpdates: 'Club updates', clubPage: 'Club page', staff: 'Staff', families: 'Families', clubAdministration: 'Club administration', emptySubtitle: 'Take on a responsibility to fill your hub.',
     calendar: 'Calendar', openCalendar: 'Open calendar', takeAttendance: 'Take attendance',
     tabWeek: 'My week', tabPlayers: 'My players', tabResponsibilities: 'Responsibilities',
     today: 'Today', thisWeek: 'This week', nextSevenDays: 'Next 7 days',
@@ -114,7 +93,7 @@ export const coachHubEn = {
 };
 
 export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
-    title: 'მწვრთნელის პანელი', yourSquads: 'თქვენი გუნდები', openSquad: 'გუნდის გახსნა', clubUpdates: 'კლუბის სიახლეები', clubPage: 'კლუბის გვერდი', clubWorkspace: 'კლუბის სამუშაო სივრცე', families: 'ოჯახები', clubAdministration: 'კლუბის ადმინისტრირება', emptySubtitle: 'აიღეთ პასუხისმგებლობა, რომ პანელი შეივსოს.',
+    title: 'მწვრთნელის პანელი', yourSquads: 'თქვენი გუნდები', openSquad: 'გუნდის გახსნა', clubUpdates: 'კლუბის სიახლეები', clubPage: 'კლუბის გვერდი', staff: 'პერსონალი', families: 'ოჯახები', clubAdministration: 'კლუბის ადმინისტრირება', emptySubtitle: 'აიღეთ პასუხისმგებლობა, რომ პანელი შეივსოს.',
     calendar: 'კალენდარი', openCalendar: 'კალენდრის გახსნა', takeAttendance: 'დასწრების აღრიცხვა',
     tabWeek: 'ჩემი კვირა', tabPlayers: 'ჩემი მოთამაშეები', tabResponsibilities: 'პასუხისმგებლობები',
     today: 'დღეს', thisWeek: 'ეს კვირა', nextSevenDays: 'მომდევნო 7 დღე',

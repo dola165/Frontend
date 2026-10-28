@@ -87,11 +87,11 @@ it('an admin invites one person, Admin included, and gets the link to send', asy
 });
 
 it('invites staff in bulk with one link and QR code, never as Admin, and removes someone who joined', async () => {
-    renderPeople(view(), { links: [staffLink(), staffLink({ id: 60, status: 'EXPIRED', code: null, path: null })], url: '/?invite=link' });
+    renderPeople(view(), { links: [staffLink(), staffLink({ id: 60, status: 'EXPIRED', code: null, path: null })], url: '/?invite=link&link=70' });
     await screen.findByLabelText('Staff link');
     const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
     for (const job of ['Head coach', 'Assistant coach', 'Team manager', 'Fees']) expect(within(dialog).getByRole('button', { name: job })).toBeInTheDocument();
-    for (const other of ['Admin', 'Owner', 'More jobs', 'Custom']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
+    for (const other of ['Admin', 'Owner']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
     expect(within(dialog).getByTitle(/QR code/)).toBeInTheDocument();
     expect(within(dialog).getByText(/7 of 10 uses left/)).toBeInTheDocument();
@@ -103,7 +103,7 @@ it('invites staff in bulk with one link and QR code, never as Admin, and removes
 
     api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', uses: 0, joined: [] }) });
     fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', { requestId: expect.any(String), job: 'HEAD_COACH', title: null, tools: null, clubWide: true, squadIds: [] }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', { requestId: expect.any(String), job: 'HEAD_COACH', title: 'Head coach', tools: null, clubWide: true, squadIds: [] }));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/clubs/7/staff-links/70'));
     expect(await within(dialog).findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/newcode`);
 });
@@ -195,7 +195,7 @@ it('opens Invite staff even when the links fail to load, with Try again', async 
         if (path.endsWith('/staff-links')) { if (fail) throw new Error('down'); return { data: [staffLink()] }; }
         return { data: view() };
     });
-    render(<MemoryRouter initialEntries={['/?invite=link']}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/?invite=link&link=70']}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
     const dialog = await screen.findByRole('dialog', { name: 'Invite staff' });
     expect(within(dialog).queryByRole('button', { name: /Make the link/ })).not.toBeInTheDocument();
     fail = false;
@@ -204,7 +204,7 @@ it('opens Invite staff even when the links fail to load, with Try again', async 
 });
 
 it('New link shows the new link even if switching off the old one fails, and offers Switch off for it', async () => {
-    renderPeople(view(), { links: [staffLink()], url: '/?invite=link' });
+    renderPeople(view(), { links: [staffLink()], url: '/?invite=link&link=70' });
     await screen.findByLabelText('Staff link');
     const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
     api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', uses: 0, joined: [] }) });
@@ -351,4 +351,15 @@ it('the handover list offers Try again when the club’s people fail to load', a
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Try again' }));
     expect(await within(dialog).findByRole('button', { name: /Mari Admin.*takes over at once/ })).toBeInTheDocument();
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+});
+
+
+it.each(['CUSTOM', 'SPECIALIST_COACH'])('renewing a %s link keeps its stored title and tools', async job => {
+    const old = staffLink({ job, title: 'Individual coaching', tools: ['ATTENDANCE:WRITE'] });
+    renderPeople(view(), { links: [old], url: '/?invite=link&link=70' });
+    await screen.findByLabelText('Staff link');
+    const dialog = screen.getByRole('dialog', { name: 'Invite staff' });
+    api.post.mockResolvedValueOnce({ data: { ...old, id: 71, uses: 0, joined: [] } });
+    fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', expect.objectContaining({ job, title: old.title, tools: old.tools })));
 });

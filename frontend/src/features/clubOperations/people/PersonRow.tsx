@@ -5,7 +5,7 @@ import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { relativeTime } from '../../../utils/relativeTime';
 import type { ClubManagedMember } from '../../clubs/domain';
-import { changeJob, draftOf, MAIN_JOBS, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
+import { changeJob, draftOf, mainJobs, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteLinkBox } from './InviteLinkBox';
 import { JobPicker } from './JobPicker';
 import { StaffPublicProfile } from './StaffPublicProfile';
@@ -15,7 +15,7 @@ import { useJobWords } from './jobWords';
 /** `pending`: the rule-checker has not answered yet; the buttons show, disabled, until it has. */
 export interface PeopleRights { change: boolean; end: boolean; invite: boolean; pending?: boolean }
 /** A squad job changes into another job in place; making someone an Admin is Add job (an invitation of its own). */
-const CHANGE_JOBS = MAIN_JOBS.filter(job => job !== 'ADMIN');
+
 
 /**
  * One person: their jobs and where. The Owner and Admins change or end anyone's job in place (never the Owner's); the
@@ -100,7 +100,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
         {link && <InviteLinkBox name={person.name} link={link} onClose={onHideLink}
             message={copy(`You’re invited to ${clubName}: ${jobsText}. Choose your password here:`, `მოწვეული ხართ ${clubName}-ში: ${jobsText}. აირჩიეთ პაროლი აქ:`)} />}
         {editing && draft && <form className="pp-edit" aria-label={copy(`Change ${jobLabel(editing)}`, `შეცვლა: ${jobLabel(editing)}`)} onSubmit={event => { event.preventDefault(); void save(); }}>
-            <JobPicker view={view} draft={draft} onChange={setDraft} choices={CHANGE_JOBS} extras disabled={saving} />
+            <JobPicker view={view} draft={draft} onChange={setDraft} choices={mainJobs(view).filter(job => job !== 'ADMIN')} extras disabled={saving} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             <div className="gk-row pp-edit__actions">
                 <Button type="submit" size="sm" variant="primary" disabled={saving}>{saving ? copy('Saving…', 'ინახება…') : copy('Save', 'შენახვა')}</Button>

@@ -4,7 +4,7 @@ import { Dialog } from '../../../design/Dialog';
 import { Button, Skeleton } from '../../../design/primitives';
 import { refreshAccess } from '../../../hooks/useCan';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { fetchPeople, LINK_JOBS, type PeopleView } from '../../clubOperations/people/api';
+import { fetchPeople, linkJobs, type PeopleView } from '../../clubOperations/people/api';
 import { StaffLinkDialog } from '../../clubOperations/people/StaffLinkDialog';
 import { SuggestAssistantDialog } from '../../clubOperations/people/SuggestAssistantDialog';
 import { useStaffLinks } from '../../clubOperations/people/useStaffLinks';
@@ -42,10 +42,10 @@ export function InviteStaffFlow({ club, clubName, squadId, job, onClose }: { clu
     const title = copy('Invite staff', 'პერსონალის მოწვევა');
     if (!people.view) return <Waiting title={title} error={people.error} retry={people.retry} onClose={onClose} />;
     const squad = people.view.squads.some(item => item.id === squadId) ? squadId : undefined;
-    const linkJob = (LINK_JOBS as readonly string[]).includes(job ?? '') ? job! : squad ? 'ASSISTANT_COACH' : 'HEAD_COACH';
+    const linkJob = linkJobs(people.view).includes(job ?? '') ? job! : squad ? 'ASSISTANT_COACH' : 'HEAD_COACH';
     return <StaffLinkDialog key={staff.links ? 'loaded' : 'waiting'} club={club} clubName={clubName} view={people.view} links={staff.links ?? []}
         loading={staff.links === null && !staff.error} loadError={staff.error} onRetry={staff.reload}
-        initial={{ job: linkJob, clubWide: !squad, squadIds: squad ? [squad] : [] }}
+        initial={{ job: linkJob, clubWide: false, squadIds: squad ? [squad] : people.view.viewer.headCoachSquads.length === 1 ? people.view.viewer.headCoachSquads : [] }}
         onLinks={staff.setLinks} onClose={onClose} onChanged={notice => { refreshAccess(); toast.success(notice); }} />;
 }
 

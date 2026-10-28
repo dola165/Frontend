@@ -9,13 +9,13 @@ import { formatDate } from '../../../utils/formatting';
 import { relativeTime } from '../../../utils/relativeTime';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { JobPicker } from './JobPicker';
-import { LINK_JOBS, makeStaffLink, removeJoined, staffLinkUrl, stopStaffLink, type JobDraft, type PeopleView, type StaffLink } from './api';
+import { linkJobs, makeStaffLink, removeJoined, staffLinkUrl, stopStaffLink, type JobDraft, type PeopleView, type StaffLink } from './api';
 import { useJobWords } from './jobWords';
 
 const sameWhere = (link: StaffLink, draft: JobDraft) => link.clubWide ? draft.clubWide
     : !draft.clubWide && link.squads.length === draft.squadIds.length && link.squads.every(s => draft.squadIds.includes(s.id));
-const draftFor = (link?: StaffLink): JobDraft => link ? { job: link.job, title: '', tools: [], clubWide: link.clubWide, squadIds: link.squads.map(s => s.id) }
-    : { job: 'HEAD_COACH', title: '', tools: [], clubWide: true, squadIds: [] };
+const draftFor = (link?: StaffLink): JobDraft => link ? { job: link.job, title: link.title, tools: link.tools ?? [], clubWide: link.clubWide, squadIds: link.squads.map(s => s.id) }
+    : { job: 'HEAD_COACH', title: '', tools: [], clubWide: false, squadIds: [] };
 
 /**
  * Invite staff in bulk: pick one job (and, if it helps, squads), then one link and QR code for the group chat or the
@@ -30,7 +30,7 @@ export function StaffLinkDialog({ club, clubName, view, links, loading = false, 
     const { copy, jobName, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
     const [draft, setDraft] = useState<JobDraft>(() => {
         const shown = links.find(l => l.id === opened);
-        return shown || !initial ? draftFor(shown ?? links[0]) : { ...draftFor(), ...initial };
+        return shown ? draftFor(shown) : { ...draftFor(), squadIds: view.viewer.headCoachSquads.length === 1 ? view.viewer.headCoachSquads : [], ...initial };
     });
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [removing, setRemoving] = useState<number | null>(null);
     const request = useRef<{ key: string; id: string } | null>(null);
@@ -81,7 +81,7 @@ export function StaffLinkDialog({ club, clubName, view, links, loading = false, 
     return <Dialog open size="md" onClose={() => { if (!busy) onClose(); }} title={copy('Invite staff', 'პერსონალის მოწვევა')}
         description={copy('One link for many people. Admins are invited one by one.', 'ერთი ბმული ბევრისთვის. ადმინებს სათითაოდ იწვევთ.')}>
         <div className="pp-staff-link">
-            <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setError(''); }} choices={LINK_JOBS} extras={false} disabled={busy} />
+            <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setError(''); }} choices={linkJobs(view)} extras disabled={busy} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             {stale && <div className="gk-notice gk-notice--warning pp-check" role="alert">
                 <span className="cw-notices__text">{copy('The old link is still on.', 'ძველი ბმული ჯერ კიდევ მუშაობს.')}</span>

@@ -236,7 +236,7 @@ export const PAGES_KA: Record<string, string> = {
   'Bookings': 'ჯავშნები',
   // Boxes
   'Contact saved': 'კონტაქტი შენახულია',
-  'Phone and email': 'ტელეფონი და ელფოსტა',
+  'Phone, email and links': 'ტელეფონი, ელფოსტა და ბმულები',
   'Contact details': 'საკონტაქტო მონაცემები',
   'Phone and WhatsApp': 'ტელეფონი და WhatsApp',
   'Email': 'ელფოსტა',

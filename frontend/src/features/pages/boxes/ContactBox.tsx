@@ -1,14 +1,13 @@
 import { useId, useState, type KeyboardEvent } from 'react';
-import { Check, Facebook, Globe, Instagram, Mail, Phone } from 'lucide-react';
-import { Button, List } from '../../../design/primitives';
+import { Check } from 'lucide-react';
+import { Button } from '../../../design/primitives';
 import { SideBlock } from '../../../design/profile/ProfileLayout';
 import { usePagesCopy } from '../copy';
 import { EditPencil } from '../edit/EditPencil';
 import { usePageEdit } from '../edit/context';
 import type { BoxProps } from '../edit/boxRegistry';
 import { useKeepOnLeave } from '../edit/useKeepOnLeave';
-import { phoneDisplay } from '../model/phone';
-import { safePublicUrl } from '../../clubs/presentation';
+import { ContactRows } from './ContactRows';
 import '../edit/edit.css';
 
 const digits = (value: string) => value.replace(/[^\d+]/g, '');
@@ -25,17 +24,10 @@ export function ContactBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const { phone, email } = page.identity.contact, { website, instagram } = page.identity.social, facebook = page.identity.social.facebook ?? '';
   const persist = (next: Draft) => saveIdentity({ contact: { phone: next.phone.trim(), email: next.email.trim() }, social: { ...page.identity.social, website: next.website.trim(), instagram: handle(next.instagram.trim()), facebook: next.facebook.trim() } }, { label: t('Contact saved') });
   const save = async (next: Draft) => { if (await persist(next)) onClose(); };
-  const web = safePublicUrl(website), fb = safePublicUrl(facebook);
   return (
-    <SideBlock title={t('Contact')} hint={t('Phone and email')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
+    <SideBlock title={t('Contact')} hint={t('Phone, email and links')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
       {open ? <ContactEditor initial={{ phone, email, website, instagram, facebook }} suggestions={page.suggestions} onSave={save} onKeep={next => void persist(next)} onCancel={onClose} />
-        : <List label={t('Contact details')}>
-          {phone && <li><a className="gk-list-row" href={`https://wa.me/${digits(phone).replace('+', '')}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Phone aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{phoneDisplay(phone)}</span><span className="gk-list-row__meta">{t('Phone and WhatsApp')}</span></span></a></li>}
-          {email && <li><a className="gk-list-row" href={`mailto:${email}`}><span className="gk-list-row__lead"><span className="gk-club-icon"><Mail aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title gk-club-email">{email}</span><span className="gk-list-row__meta">{t('Email')}</span></span></a></li>}
-          {web && <li><a className="gk-list-row" href={web} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Globe aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{website.replace(/^https?:\/\/(www\.)?/, '')}</span><span className="gk-list-row__meta">{t('Website')}</span></span></a></li>}
-          {instagram && <li><a className="gk-list-row" href={`https://www.instagram.com/${encodeURIComponent(handle(instagram))}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Instagram aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">@{handle(instagram)}</span><span className="gk-list-row__meta">Instagram</span></span></a></li>}
-          {fb && <li><a className="gk-list-row" href={fb} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Facebook aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{facebook.replace(/^https?:\/\/(www\.)?/, '')}</span><span className="gk-list-row__meta">Facebook</span></span></a></li>}
-        </List>}
+        : <ContactRows phone={phone} email={email} website={website} instagram={instagram} facebook={facebook} />}
     </SideBlock>
   );
 }

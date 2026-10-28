@@ -10,6 +10,7 @@ import type { ClubPresentation, TrainingProgramme } from '../../presentation';
 import { ClubActions } from '../ClubActions';
 import { ClubAboutTab } from '../ClubAboutTab';
 import { ClubContactTab } from '../ClubInfoTabs';
+import { ClubInfo } from '../ClubInfo';
 import { feeRange } from '../fees';
 import { ClubSide } from '../ClubSide';
 import { ClubTeamsTab } from '../ClubTeamsTab';
@@ -93,6 +94,17 @@ describe('club profile', () => {
         expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/rustavi.lions');
         expect(screen.getByRole('link', { name: 'Facebook' })).toHaveAttribute('href', 'https://www.facebook.com/rustavilions');
         expect(screen.queryByRole('link', { name: 'Messenger' })).not.toBeInTheDocument();
+    });
+
+    it('shows visitors the same contact rows as the editor: a call with +995, email, website, Instagram and Facebook', () => {
+        page(<ClubInfo club={{ ...club, whatsappNumber: '599 12 34 56', email: 'hello@rustavi-lions.ge', websiteUrl: 'https://rustavi-lions.ge',
+            instagramUrl: 'https://www.instagram.com/rustavi.lions', facebookUrl: 'https://www.facebook.com/rustavilions' }} />);
+        const rows = within(screen.getByRole('list', { name: 'Contact details' }));
+        expect(rows.getByRole('link', { name: /\+995 599 12 34 56/ })).toHaveAttribute('href', 'tel:+995599123456');
+        expect(rows.getByRole('link', { name: /hello@rustavi-lions\.ge/ })).toHaveAttribute('href', 'mailto:hello@rustavi-lions.ge');
+        expect(rows.getByRole('link', { name: /rustavi-lions\.ge.*Website/ })).toHaveAttribute('href', 'https://rustavi-lions.ge/');
+        expect(rows.getByRole('link', { name: /@rustavi\.lions/ })).toHaveAttribute('href', 'https://www.instagram.com/rustavi.lions');
+        expect(rows.getByRole('link', { name: /facebook\.com\/rustavilions/ })).toHaveAttribute('href', 'https://www.facebook.com/rustavilions');
     });
 
     it('lists the squads and the current published fees, and clears old or draft offers', async () => {

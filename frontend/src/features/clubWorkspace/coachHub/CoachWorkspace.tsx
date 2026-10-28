@@ -8,7 +8,7 @@ import type { Bootstrap } from '../../clubOperations/api';
 import { useClubOperations } from '../../clubOperations/useClubOperations';
 import { useWorkspaceRoles, type RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import { focusableViews, type OpenWorkspace } from '../../clubOperations/workspaceStructure';
-import { isOfficeTool, officePath, officeToolPath } from '../../clubOffice/officeLinks';
+import { isOfficeTool, legacyWorkspaceTarget, officePath, officeToolPath } from '../../clubOffice/officeLinks';
 import { guardWorkspaceNavigation } from '../../clubOperations/workspaceGuard';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
 import { useClubOverview } from '../useClubOverview';
@@ -83,8 +83,10 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
         return `/my-squads${query ? `?${query}` : ''}`;
     };
     const href = (id: string) => id === 'staff' ? officePath(clubId) : coachHref(id === 'overview' ? {} : { tab: id, ...(focus ? { squad: String(focus) } : {}) });
-    // A club tool opens in Club office's More tools; anything else in Club office itself.
-    const workHref = (target: string, context: Record<string, string> = {}) => isOfficeTool(target) ? officeToolPath(clubId, target, context) : officePath(clubId);
+    // A club tool opens in Club office's More tools; anything else where it lives now (the calendar on its date, a
+    // squad the person coaches in My squads), as an old club workspace address would.
+    const workHref = (target: string, context: Record<string, string> = {}) => isOfficeTool(target) ? officeToolPath(clubId, target, context)
+        : legacyWorkspaceTarget(clubId, new URLSearchParams({ tab: target, ...context }), user?.navigationCapabilities);
     const go = (to: string) => guardWorkspaceNavigation(() => navigate(to));
 
     const mine = roles?.squads.filter(squad => squadIds.includes(squad.id)) ?? [];

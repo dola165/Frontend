@@ -42,7 +42,12 @@ export function CoachPlayers({ data }: { data: CoachData }) {
     const { t } = useTranslation();
     const copy = useCopy('coachHub', coachHubEn);
     const [params, setParams] = useSearchParams();
-    const [roster, setRoster] = useState(false);
+    // "Add your players" on a squad with nobody yet opens the roster straight away (roster=1).
+    const [roster, setRosterOpen] = useState(params.get('roster') === '1');
+    const setRoster = (open: boolean) => {
+        setRosterOpen(open);
+        if (!open && params.has('roster')) setParams(current => { const next = new URLSearchParams(current); next.delete('roster'); return next; }, { replace: true });
+    };
     const [removing, setRemoving] = useState<number | null>(null);
     const query = params.get('q') ?? '';
     const filter = FILTERS.find(item => item.id === params.get('view')) ?? FILTERS[0];

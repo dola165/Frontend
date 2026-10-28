@@ -6,6 +6,7 @@ import type { Bootstrap } from '../clubOperations/api';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { officeToolPath, type OfficeTool } from './officeLinks';
 import { moreToolGroups, toolIcon, toolName, type ToolState } from './officeTools';
+import './office.css';
 
 /**
  * More tools: every tool with no page of its own yet, grouped by the page it will move to. Admins see every group;
@@ -25,7 +26,7 @@ export function MoreTools({ clubId, states, boot, leader, admin }: {
             <h2 id={`office-tools-${group.id}`} className="office-tools__page">{copy(group.page[0], group.page[1])}</h2>
             <ul className="office-tools__list">{group.tools.map(tool => {
                 const state = states.get(tool), Icon = toolIcon(tool), name = toolName(tool);
-                return <li key={tool}>{state === 'open' || state === 'view'
+                return <li key={tool}>{state !== 'locked'
                     ? <Link className="office-tool" to={officeToolPath(clubId, tool)}><Icon aria-hidden="true" /><span>{name}</span>
                         {state === 'view' && <Eye className="office-tool__mark" role="img" aria-label={copy('View only', 'მხოლოდ ნახვა')} />}</Link>
                     : <span className="office-tool" aria-disabled="true" title={locked(tool)}><Icon aria-hidden="true" /><span>{name}</span>

@@ -44,7 +44,8 @@ export function usePins(userId: number | undefined, capabilities: NavigationCapa
     useEffect(() => { if (userId) void loadPreferences(userId).catch(() => undefined); }, [userId]);
     const context = useMemo(() => ({ capabilities, userId, tabPath, copy }), [capabilities, userId, tabPath, copy]);
 
-    const pins = useMemo(() => stored.map(pin => ({ ...pin, label: pinLabel(pin.path, pin.label, context) ?? pin.label })), [stored, context]);
+    // A pin the top bar already holds as a tab (Club office) isn't shown twice.
+    const pins = useMemo(() => stored.filter(pin => pin.path !== tabPath).map(pin => ({ ...pin, label: pinLabel(pin.path, pin.label, context) ?? pin.label })), [stored, context, tabPath]);
 
     const suggestions = useMemo<Suggestion[]>(() => {
         const pinned = (path: string) => stored.some(pin => pin.path === path);

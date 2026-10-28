@@ -1,4 +1,4 @@
-import { CheckCircle2, Handshake, HeartHandshake, ReceiptText, ShoppingBag, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, Handshake, HeartHandshake, IdCard, ReceiptText, ShoppingBag, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import type { Bootstrap } from '../clubOperations/api';
 import { operationModule, operationTabs, toolLabel } from '../clubOperations/workspaceNavigation';
 import { canManageClubOperations, isLeadershipRole } from '../clubs/domain';
@@ -12,7 +12,7 @@ import { MORE_TOOLS, OFFICE_TOOLS, type OfficeTool } from './officeLinks';
 export type ToolState = 'open' | 'view' | 'locked';
 
 const BESPOKE: Partial<Record<OfficeTool, LucideIcon>> = {
-    admissions: UserPlus, applications: CheckCircle2, players: Users, campaigns: HeartHandshake,
+    admissions: UserPlus, applications: CheckCircle2, players: Users, 'player-cards': IdCard, campaigns: HeartHandshake,
     programmes: ReceiptText, store: ShoppingBag, tryouts: CheckCircle2, 'club-approaches': Handshake,
 };
 export const toolIcon = (tool: OfficeTool): LucideIcon => BESPOKE[tool] ?? operationTabs.find(tab => tab.id === tool)?.icon ?? Users;
@@ -42,7 +42,7 @@ export function toolStates({ boot, role, admissions }: ToolAccessInput): Map<Off
             continue;
         }
         const allowed = tool === 'admissions' ? admissions
-            : ['players', 'applications', 'tryouts'].includes(tool) ? canManageClubOperations(role)
+            : ['players', 'player-cards', 'applications', 'tryouts'].includes(tool) ? canManageClubOperations(role)
                 : leader;
         if (allowed) states.set(tool, 'open');
     }

@@ -133,7 +133,7 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
                         <span className="ch-card__line-text">{copy('sessionsFailed')}</span>
                         <span className="cw-status cw-status--warning">{data.retrying.includes(squad.id) ? copy('retrying') : copy('retry')}</span>
                     </button>
-                    : noPlayers ? <Link className="ch-card__line" to={data.workHref('squads', { squad: String(squad.id) })}><span className="ch-card__line-icon"><Users aria-hidden="true" /></span><span className="ch-card__line-text ch-card__line-text--action">{copy('addPlayers')}</span></Link>
+                    : noPlayers ? <Link className="ch-card__line" to={data.link('players', { squad: String(squad.id), roster: '1' })}><span className="ch-card__line-icon"><Users aria-hidden="true" /></span><span className="ch-card__line-text ch-card__line-text--action">{copy('addPlayers')}</span></Link>
                         : <Link className="ch-card__line" to={week}><span className="ch-card__line-icon"><CalendarDays aria-hidden="true" /></span><span className="ch-card__line-text ch-card__line-text--action">{copy('whenTrain')}</span></Link>}
             {need && <Link className="ch-card__line" to={need.to}>
                 <span className="ch-card__line-icon"><span className={`cw-dot cw-dot--${need.tone}`} aria-hidden="true" /></span>

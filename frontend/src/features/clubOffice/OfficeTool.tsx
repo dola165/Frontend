@@ -20,8 +20,9 @@ import { useClubMembership } from '../clubWorkspace/useClubMembership';
 import { ViewOnlyNote } from '../clubWorkspace/ViewOnlyNote';
 import { WorkspaceNotices } from '../clubWorkspace/WorkspaceNotices';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { isOfficeTool, officePath, officeToolPath, type OfficeTool as Tool } from './officeLinks';
+import { isOfficeTool, legacyWorkspaceTarget, officePath, officeToolPath, type OfficeTool as Tool } from './officeLinks';
 import type { ToolState } from './officeTools';
+import './office.css';
 
 const positive = (value: string | null) => value && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) ? Number(value) : null;
 
@@ -48,21 +49,25 @@ export function OfficeTool({ clubId, tool, state, sessionId, overview, reloadOve
     const go = (to: string) => guardWorkspaceNavigation(() => navigate(to));
     const coach = boot && roles ? coachOriginTarget(params, clubId, focusableViews(roles.views).filter(view => !view.clubWide).flatMap(view => view.squadIds)) : null;
     const origin = coach ? { label: copy('Back to My squads', 'უკან: ჩემი გუნდები'), onBack: () => go(coach) } : undefined;
+    const squad = params.get('squad');
+    // Opened from Squads, the way back leads to that squad (as the club workspace's return did).
+    const toSquads = params.get('return') === 'squads' ? { label: copy('Squads', 'გუნდები'), onBack: () => go(officePath(clubId, 'squads', squad ? { squad } : {})) } : null;
     const toTools = { label: copy('More tools', 'სხვა ინსტრუმენტები'), onBack: () => go(officePath(clubId, 'tools')) };
     const askAdmin = admin ? () => navigate(askAdminPath(admin)) : undefined;
     const module = operationModule(tool);
-    const way = origin ?? toTools;
+    const way = origin ?? toSquads ?? toTools;
     const back = <div className="office-back"><Button variant="ghost" size="sm" onClick={way.onBack}><ArrowLeft aria-hidden="true" />{way.label}</Button></div>;
 
+    // A records tool whose club data failed to load says so, with Try again, never "not your job".
+    if (module && !boot && !bootLoading) return <PageFrame className="cw-page">{back}<div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{bootError || copy('This tool is unavailable right now.', 'ინსტრუმენტი ახლა მიუწვდომელია.')}</span>
+        <Button size="sm" onClick={() => { void refreshBoot(); }}>{copy('Try again', 'თავიდან')}</Button></div></PageFrame>;
     if (state === undefined && (bootLoading || (tool === 'admissions' && admissions.loading)))
         return <PageFrame className="cw-page"><div className="cw-loading" role="status" aria-label={copy('Opening the tool', 'ინსტრუმენტი იხსნება')}><Skeleton height={34} width="40%" /><Skeleton height={240} /></div></PageFrame>;
     if (state === undefined || state === 'locked') return <PageFrame className="cw-page">{back}
         <EmptyNote title={state === 'locked' ? copy('Only the job that holds this tool opens it', 'ამ ინსტრუმენტს მხოლოდ ის სამუშაო ხსნის, რომელსაც ის აქვს') : copy('This tool isn’t part of your job here', 'ეს ინსტრუმენტი თქვენი სამუშაოს ნაწილი არ არის')}
             action={!leader && admin ? <ButtonLink size="sm" to={askAdminPath(admin)}>{copy('Ask the admin', 'ადმინთან მიწერა')}</ButtonLink> : undefined}>
             {copy('The admin gives jobs and their tools.', 'სამუშაოს და მის ინსტრუმენტებს ადმინი გასცემს.')}</EmptyNote></PageFrame>;
-    if (module) {
-        if (!boot) return <PageFrame className="cw-page">{back}<div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{bootError || copy('This tool is unavailable right now.', 'ინსტრუმენტი ახლა მიუწვდომელია.')}</span>
-            <Button size="sm" onClick={() => { void refreshBoot(); }}>{copy('Try again', 'თავიდან')}</Button></div></PageFrame>;
+    if (module && boot) {
         return <>
             {!origin && !params.get('record') && back}
             {state === 'view' && <ViewOnlyNote onAsk={askAdmin} />}
@@ -70,7 +75,8 @@ export function OfficeTool({ clubId, tool, state, sessionId, overview, reloadOve
                 boot={{ ...boot, peopleBySquad: roles?.people }} module={module} onRefresh={refreshBoot} origin={origin} />
         </>;
     }
-    const open = (next: string, context: Record<string, string> = {}) => go(isOfficeTool(next) ? officeToolPath(clubId, next, context) : officePath(clubId));
+    // The older screens name the club workspace's tabs: each opens where it lives now (Manage squads opens Squads).
+    const open = (next: string, context: Record<string, string> = {}) => go(isOfficeTool(next) ? officeToolPath(clubId, next, context) : legacyWorkspaceTarget(clubId, new URLSearchParams({ tab: next, ...context })));
     return <>
         {back}
         <WorkspaceNotices error={membership.errorMessage} success={membership.successMessage} rolesError={null}

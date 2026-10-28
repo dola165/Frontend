@@ -52,15 +52,21 @@ post('/auth/login', ({ body }) => {
 });
 post('/auth/logout', () => reply(204, undefined, { 'set-cookie': sessionCookies(V.clearedCookie) }));
 
+// What the server would answer for each persona: Club office for the Owner and for a job with no page of its own yet
+// (the physio, the analyst); a head coach's own work is My squads, so no Club office tab. A physio coaches no squad.
+const clubCapabilities = persona => persona === 'physio' ? ['club.operations', 'club.member', 'club.office']
+  : persona === 'headcoach' ? ['club.workspace', 'club.operations', 'club.member']
+    : persona === 'analyst' ? ['club.workspace', 'club.operations', 'club.member', 'club.office']
+      : persona === 'member' ? ['club.workspace', 'club.operations'] : ['club.workspace', 'club.office', 'club.operations'];
 // The parent view (family cookie) also makes Luka a parent, so Parent Hub joins his tabs.
 export const meProjection = ({ headers } = {}) => ({
   id: me.id, username: 'coach.luka', email: me.email, role: 'USER', fullName: me.fullName, name: me.fullName, avatarUrl: me.avatarUrl,
   dob: '1988-04-12', profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
   navigationCapabilities: { version: 1, workspaces: [
-    { id: 'club.workspace', context: { type: 'club', id: 1, label: clubs[0].name } },
-    { id: 'club.operations', context: { type: 'club', id: 1, label: clubs[0].name } },
-    { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
-    { id: 'squad.workspace', context: { type: 'squad', id: 103, label: 'U14 Boys' } },
+    ...clubCapabilities(V.personaOf(headers)).map(id => ({ id, context: { type: 'club', id: 1, label: clubs[0].name } })),
+    ...(V.personaOf(headers) === 'physio' ? [] : [
+      { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
+      { id: 'squad.workspace', context: { type: 'squad', id: 103, label: 'U14 Boys' } }]),
     // Luka runs the league Dinamo hosts and coordinates the U16 cup (an ADMIN assignment on each).
     { id: 'tournament.workspace', context: { type: 'tournament', id: 301, label: 'Tbilisi Community League' } },
     { id: 'tournament.workspace', context: { type: 'tournament', id: 306, label: 'Georgian Youth Cup U16' } },

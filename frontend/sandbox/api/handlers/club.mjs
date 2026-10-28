@@ -28,11 +28,12 @@ const page = (items, q, defSize = 20) => {
 const isOwnClub = id => Number(id) === CLUB;
 
 // ---------------------------------------------------------------- sandbox personas
-// Still Luka's account; only his club access changes (set by /__mode/analyst and /__mode/member on the server).
+// Still Luka's account; only his club access changes (set by /__mode/… on the server, see viewer.mjs).
 // `analyst`: a performance analyst on the U14 and U16 Boys who may write development notes but only read restrictions
-// and match preparation. `member`: club membership with no responsibilities at all. Anything else: the owner and head coach.
-const personaOf = headers => (String(headers?.cookie ?? '').match(/(?:^|;\s*)gk-sandbox-persona=(analyst|member)(?:;|$)/) || [])[1] ?? null;
-const personaRole = persona => (persona === 'analyst' ? 'COACH' : persona === 'member' ? 'PLAYER' : 'OWNER');
+// and match preparation. `member`: club membership with no responsibilities at all. `headcoach`: the older Coach
+// membership and the head coach job on U14 and U16. `physio`: a job and no membership. None: the owner and head coach.
+const personaOf = V.personaOf;
+const personaRole = persona => (persona === 'analyst' || persona === 'headcoach' ? 'COACH' : persona === 'member' ? 'PLAYER' : persona === 'physio' ? null : 'OWNER');
 const ANALYST_ACCESS = { DEVELOPMENT: true, AVAILABILITY: false, READINESS: false }; // module → may write
 const analystSquads = () => [...C.myCoaching.squad_ids];
 const analystView = () => ({ id: 'analyst', label: 'Performance analyst', modules: Object.keys(ANALYST_ACCESS), squadIds: analystSquads(), clubWide: false, appointmentId: 990001, revision: 1 });
@@ -45,7 +46,8 @@ export const SEASON = '2026/27';
 export const sectionOf = squad => /first team/i.test(squad.name) ? 'First team' : /girls|women/i.test(squad.name) ? 'Girls' : 'Academy';
 
 // ================================================================ directory & profile
-get('/clubs/my-membership-context', ({ headers }) => ({ hasClubMembership: true, canCreateClub: true, clubId: CLUB, clubName: C.club.name, myRole: personaRole(personaOf(headers)) }));
+get('/clubs/my-membership-context', ({ headers }) => personaRole(personaOf(headers)) ? { hasClubMembership: true, canCreateClub: true, clubId: CLUB, clubName: C.club.name, myRole: personaRole(personaOf(headers)) }
+  : { hasClubMembership: false, canCreateClub: false, clubId: null, clubName: null, myRole: null });
 get('/clubs/my-club', () => C.clubProfile(CLUB));
 get('/clubs/followed', () => [...C.followed].map(id => C.directoryItem(id)));
 get('/clubs/search', ({ query }) => {
@@ -198,7 +200,7 @@ del('/clubs/:id/calendar/:eid', () => ({ message: 'Event removed.' }));
 post('/clubs/:id/dissolve', () => reply(409, { status: 409, message: 'The academy hosts active competitions and cannot be dissolved here.' }));
 
 // ================================================================ membership (personal)
-get('/club-memberships/me', ({ headers }) => [{ clubId: CLUB, clubName: C.club.name, role: personaRole(personaOf(headers)), status: 'ACTIVE', primary: true, logoUrl: C.club.logoUrl }]);
+get('/club-memberships/me', ({ headers }) => personaRole(personaOf(headers)) ? [{ clubId: CLUB, clubName: C.club.name, role: personaRole(personaOf(headers)), status: 'ACTIVE', primary: true, logoUrl: C.club.logoUrl }] : []);
 get('/club-memberships/invites/me', () => []);
 post('/club-memberships/invites/:iid/accept', () => ({ status: 'ACCEPTED' }));
 post('/club-memberships/invites/:iid/decline', () => ({ status: 'DECLINED' }));
@@ -214,7 +216,8 @@ const managedMember = m => { const p = personById(m.userId); return { userId: m.
 const appView = a => ({ ...a });
 const countBy = status => C.affiliations.filter(a => a.status === status).length;
 get('/clubs/:id/management', ({ params, headers }) => {
-  if (!isOwnClub(params.id)) return reply(403, { status: 403, message: 'You do not manage this club.' });
+  // A job without a staff membership (the physio) doesn't read the club's management, as on the server.
+  if (!isOwnClub(params.id) || !personaRole(personaOf(headers))) return reply(403, { status: 403, message: 'You do not manage this club.' });
   const overdue = C.affiliations.filter(a => a.status === 'TRIALIST' && a.trialEndsOn && a.trialEndsOn < C.date(0)).length;
   return {
     currentUserRole: personaRole(personaOf(headers)), assignableInviteRoles: ['CLUB_ADMIN', 'COACH', 'PLAYER'], assignableStaffRoles: ['CLUB_ADMIN', 'COACH'],
@@ -441,7 +444,8 @@ const admissionWorkspace = () => ({
   groups: C.admissionGroups(), cases: C.admissionCases, inquiries: C.admissionInquiries,
   squads: C.squads.map(s => ({ id: s.id, name: s.name })), staff: C.activeStaffIds().map(id => ({ id, name: C.name(id) })), sessions: C.admissionSessions(),
 });
-get('/clubs/:id/admissions', ({ params }) => isOwnClub(params.id) ? admissionWorkspace() : reply(403, { status: 403, message: 'Joining arrangements are managed by club staff.' }));
+// A physio's job and a plain membership don't run joining.
+get('/clubs/:id/admissions', ({ params, headers }) => isOwnClub(params.id) && !['physio', 'member'].includes(personaOf(headers)) ? admissionWorkspace() : reply(403, { status: 403, message: 'Joining arrangements are managed by club staff.' }));
 get('/organizations/:oid/admissions', ({ params }) => Number(params.oid) === C.ORG_ID ? admissionWorkspace() : undefined);
 get('/organizations/:oid/admissions/legacy', ({ params }) => Number(params.oid) === C.ORG_ID ? [] : undefined);
 const caseEvent = (c, action, message) => { c.history.push({ id: C.nextId(), action, message: message ?? null, actorName: C.name(C.ME), createdAt: C.nowIso() }); c.version++; c.updatedAt = C.nowIso(); };

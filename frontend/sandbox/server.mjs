@@ -52,16 +52,17 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
       return res.end(await readFile(path.join(here, 'guide.html')));
     }
-    if (/^\/__mode\/(parent|coach|analyst|member)$/.test(url.pathname)) {
+    if (/^\/__mode\/(parent|coach|analyst|member|headcoach|physio)$/.test(url.pathname)) {
       // Sandbox personas, all still Luka's account: `parent` makes him also a parent of two children (the family cookie);
-      // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only) and `member` plain
-      // club membership with no tools at all, so the workspace's layers can be judged; `coach` is the owner and head coach again.
+      // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only), `member` plain
+      // club membership with no tools at all, `headcoach` a head coach who is not an admin and `physio` a job with only
+      // the medical tools, so Club office's layers can be judged; `coach` is the owner and head coach again.
       const mode = url.pathname.slice('/__mode/'.length);
       const to = (url.searchParams.get('to') || '/home');
       const safe = to.startsWith('/') && !to.startsWith('//') ? to : '/home';
       const cookies = [
         mode === 'parent' ? 'gk-sandbox-family=1; Path=/' : 'gk-sandbox-family=; Path=/; Max-Age=0',
-        mode === 'analyst' || mode === 'member' ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
+        ['analyst', 'member', 'headcoach', 'physio'].includes(mode) ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
       ];
       res.writeHead(302, { location: safe, 'set-cookie': cookies, 'cache-control': 'no-store' });
       return res.end();

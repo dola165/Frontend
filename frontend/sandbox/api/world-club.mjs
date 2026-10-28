@@ -427,6 +427,8 @@ cred(STAFF.scout, 'SAFEGUARDING', 'GFF Safeguarding Programme', 'Child safeguard
 const sat = (() => { const d = day(0); return (6 - d.getDay() + 7) % 7 || 7; })();
 addRecord({ kind: 'DUTY', title: 'Match-day supervisor · home fixtures', status: 'ASSIGNED', assigned: STAFF.teamManager, due: sat, created: -5, data: { duty: 'MATCH_DAY_SUPERVISOR', startsAt: at(sat, 9, 30), endsAt: at(sat, 15), location: 'Dinamo Academy Training Centre, Gate 2', instructions: 'Open the changing rooms, collect team sheets, brief stewards.' } });
 addRecord({ kind: 'DUTY', title: 'First aid cover · U12 and U14 Girls home games', status: 'CONFIRMED', assigned: STAFF.physio, due: 1, created: -7, data: { duty: 'FIRST_AID', startsAt: at(1, 10), endsAt: at(1, 14), location: 'Pitch 2 and Pitch 3' } });
+// Today's duty, so Staff shows who is on duty.
+addRecord({ kind: 'DUTY', title: 'First aid cover · U14 Boys training', status: 'CONFIRMED', assigned: STAFF.physio, squad: 103, due: 0, created: -2, data: { duty: 'FIRST_AID', startsAt: at(0, 17), endsAt: at(0, 19), location: 'Pitch 1' } });
 addRecord({ kind: 'DUTY', title: 'Session cover · U16 Girls Wednesday', status: 'ASSIGNED', squad: 106, assigned: STAFF.fitness, due: 4, created: -2, data: { duty: 'SESSION_COVER', startsAt: at(4, 18), endsAt: at(4, 19, 30), location: 'Pitch 2', cover: `Covering for ${name(STAFF.youthCoach)} (coaching course)` } });
 addRecord({ kind: 'DUTY', title: 'Kit check before the Kutaisi trip', status: 'ASSIGNED', squad: 105, assigned: STAFF.kit, due: 8, created: -1, data: { duty: 'KIT', startsAt: at(8, 17), location: 'Kit room' } });
 addRecord({ kind: 'STAFF_AVAILABILITY', title: `${name(STAFF.youthCoach)} · UEFA B course`, status: 'RECORDED', assigned: STAFF.youthCoach, due: 3, created: -10, data: { availability: 'AWAY', startsOn: date(3), endsOn: date(5), cover: `${name(STAFF.fitness)} covers U16 Girls` } });
@@ -534,6 +536,8 @@ export const settings = { setting: 'CLUB_ACADEMY', playing_level: 'MIXED', curre
 const all = (access, mods) => mods.map(m => `${m}:${access}`);
 export const SPECIALISATIONS = ['HEAD_COACH', 'ASSISTANT_COACH', 'GOALKEEPER_COACH', 'FITNESS_COACH', 'PERFORMANCE_ANALYST', 'NUTRITIONIST', 'PHYSIOTHERAPIST', 'DOCTOR', 'PSYCHOLOGIST', 'WELFARE_OFFICER', 'TEAM_MANAGER', 'KIT_MANAGER', 'CLUB_SECRETARY', 'SCOUT', 'REFEREE', 'DRIVER', 'OTHER'];
 const coachPerms = [...all('WRITE', ['ATTENDANCE', 'DEVELOPMENT', 'READINESS']), ...all('READ', ['AVAILABILITY', 'GUARDIANS', 'EDUCATION', 'EQUIPMENT', 'TRAVEL'])];
+// Head coaches also read their squads' registration (V231, 28 October 2026).
+const headCoachPerms = [...coachPerms, 'REGISTRATION:READ'];
 let apptSeq = 7100;
 export const appointments = [];
 export function addAppointment({ user, title, specialisations, squads: sq = [], engagement = 'EMPLOYEE', permissions = [], starts = -400, ends = null, status = 'ACTIVE', published = true, expires = null, provenance = 'CLUB_APPOINTMENT' }) {
@@ -544,8 +548,8 @@ export function addAppointment({ user, title, specialisations, squads: sq = [], 
     expires_at: expires == null ? undefined : at(expires, 23, 59), provenance, unavailable_reason: null };
   appointments.push(a); return a;
 }
-export const myCoaching = addAppointment({ user: ME, title: 'Head of Coaching · U14 & U16 Boys', specialisations: ['HEAD_COACH'], squads: [103, 105], permissions: coachPerms, starts: -760 });
-addAppointment({ user: STAFF.headCoach, title: 'Head coach · First Team', specialisations: ['HEAD_COACH'], squads: [101], permissions: coachPerms, starts: -540 });
+export const myCoaching = addAppointment({ user: ME, title: 'Head of Coaching · U14 & U16 Boys', specialisations: ['HEAD_COACH'], squads: [103, 105], permissions: headCoachPerms, starts: -760 });
+addAppointment({ user: STAFF.headCoach, title: 'Head coach · First Team', specialisations: ['HEAD_COACH'], squads: [101], permissions: headCoachPerms, starts: -540 });
 addAppointment({ user: STAFF.assistant, title: 'Assistant coach · U18 & Youth A', specialisations: ['ASSISTANT_COACH'], squads: [107, 108], permissions: coachPerms, starts: -300 });
 addAppointment({ user: STAFF.goalkeeper, title: 'Goalkeeper coach · U12 Mixed lead', specialisations: ['GOALKEEPER_COACH', 'HEAD_COACH'], squads: [102, 103, 104, 105, 106, 107], permissions: coachPerms, starts: -420, engagement: 'CONTRACTOR' });
 addAppointment({ user: STAFF.fitness, title: 'Fitness coach', specialisations: ['FITNESS_COACH'], squads: [], permissions: [...all('WRITE', ['DEVELOPMENT', 'EQUIPMENT']), ...all('READ', ['AVAILABILITY', 'ATTENDANCE'])], starts: -365 });

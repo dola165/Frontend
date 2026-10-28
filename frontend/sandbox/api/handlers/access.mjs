@@ -9,6 +9,7 @@ import { get } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as V from '../viewer.mjs';
 import * as F from '../world-football.mjs';
+import * as C from '../world-club.mjs';
 
 const refusal = (action, reason, message) => ({ action, allowed: false, reason, message, because: null });
 const answer = (allowed, refused = []) => ({ allowed, refused });
@@ -25,11 +26,22 @@ get('/access/me', ({ headers }) => {
     [refusal('start_club', 'STAFF_OF_ANOTHER_CLUB', 'You are staff at FC Dinamo Tbilisi Academy. One club at a time.')]);
 });
 
-const CLUB_ACTIONS = ['see_people', 'invite_staff', 'make_admin', 'change_job', 'end_job', 'suggest_assistant', 'confirm_assistant', 'add_child', 'arrange_match', 'report_score', 'follow'];
+const CLUB_ACTIONS = ['see_people', 'see_staff', 'invite_staff', 'make_admin', 'change_job', 'end_job', 'hand_over', 'suggest_assistant', 'confirm_assistant', 'add_child', 'arrange_match', 'report_score', 'follow'];
+// Every job holder reads Staff; only admins change it. A head coach suggests helpers and runs their squads' matches.
+const PERSONA_ACTIONS = { headcoach: ['see_people', 'see_staff', 'suggest_assistant', 'add_child', 'arrange_match', 'report_score', 'follow'],
+  physio: ['see_people', 'see_staff', 'add_child', 'follow'], analyst: ['see_people', 'see_staff', 'add_child', 'follow'], member: ['add_child', 'follow'] };
+const refusedReason = action => action === 'see_staff' ? refusal(action, 'ONLY_CLUB_STAFF', 'Staff is for the club’s staff.')
+  : action === 'suggest_assistant' ? refusal(action, 'ONLY_HEAD_COACHES', 'Only a head coach suggests an assistant.')
+    : ['arrange_match', 'report_score'].includes(action) ? refusal(action, 'ONLY_SQUAD_MATCH_STAFF', 'Only a squad’s coaches arrange its matches.')
+      : refusal(action, 'ONLY_ADMINS', 'Only the club’s admins can do this.');
 get('/access/clubs/:id', ({ params, headers }) => {
   const club = W.clubs.find(item => item.id === Number(params.id));
   if (!club) return undefined;
   const own = !V.isNewcomer(headers) && F.isMineClub(club.id);
+  const persona = own ? PERSONA_ACTIONS[V.personaOf(headers)] : undefined;
+  // In a persona Luka isn't an admin: the academy director runs the club.
+  if (persona) return { clubId: club.id, squadId: null, ...answer(persona, CLUB_ACTIONS.filter(action => !persona.includes(action)).map(refusedReason)),
+    admins: [{ userId: C.STAFF.director, name: C.name(C.STAFF.director), owner: true }] };
   if (own) return { clubId: club.id, squadId: null, ...answer(CLUB_ACTIONS), admins: [{ userId: W.ME_ID, name: 'Luka Gelashvili', owner: true }] };
   return { clubId: club.id, squadId: null, ...answer(['add_child', 'follow'], CLUB_ACTIONS.filter(action => !['add_child', 'follow'].includes(action))
     .map(action => refusal(action, 'ONLY_ADMINS', 'Only the club’s admins can do this.'))), admins: [] };
@@ -39,7 +51,8 @@ const SQUAD_ACTIONS = ['join_squad', 'add_child', 'manage_join_link', 'approve_j
 get('/access/squads/:id', ({ params, headers }) => {
   const squad = F.sq(params.id);
   if (!squad) return undefined;
-  const coach = !V.isNewcomer(headers) && F.isMineClub(squad.clubId);
+  // A physio or a plain member coaches no squad.
+  const coach = !V.isNewcomer(headers) && F.isMineClub(squad.clubId) && !['physio', 'member'].includes(V.personaOf(headers));
   const leads = coach && squad.headCoachId === W.ME_ID;
   // A coach is in the squad already, so joining is a parent's (for a child not in it yet).
   const allowed = coach ? SQUAD_ACTIONS.filter(action => action !== 'join_squad' && (leads || action !== 'suggest_assistant')) : ['join_squad', 'add_child', 'follow'];

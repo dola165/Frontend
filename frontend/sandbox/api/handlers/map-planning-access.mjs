@@ -9,7 +9,7 @@ import { stateFor } from './workspace-context.mjs';
 const COACH_WRITE = new Set(['ATTENDANCE', 'DEVELOPMENT', 'READINESS', 'MATCHES']);
 const COACH_READ = new Set(['AVAILABILITY', 'FACILITIES', 'TRAVEL', 'EDUCATION', 'REGISTRATION', 'GUARDIANS']);
 const day = () => new Intl.DateTimeFormat('en-CA', { timeZone: C.TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-const persona = headers => /(?:^|;\s*)gk-sandbox-persona=(analyst|member)(?:;|$)/.exec(headers?.cookie ?? '')?.[1];
+const persona = headers => V.personaOf(headers);
 const current = appointment => appointment.status === 'ACTIVE' && (!appointment.starts_on || appointment.starts_on <= day()) && (!appointment.ends_on || appointment.ends_on >= day());
 
 /** Rebuild from confirmed current records on every request; a described role or another actor's demo cookie grants nothing. */

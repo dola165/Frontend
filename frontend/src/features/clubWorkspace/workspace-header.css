@@ -1,5 +1,0 @@
-.cw-header-actions { display: flex; gap: 8px; min-width: 0; max-width: 100%; }
-@media (max-width: 640px) {
-  .cw-header-actions .gk-btn { min-width: 44px; min-height: 44px; padding: 8px; }
-  .cw-header-actions .gk-btn > span { display: none; }
-}

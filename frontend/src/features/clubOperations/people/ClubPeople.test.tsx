@@ -184,19 +184,34 @@ it('gives a colleague Staff to read: who, which job, where, and nothing to chang
 
 it('shows each colleague’s shared email and phone, and your own switches on your row only', async () => {
     const data = view({ userId: 3, leader: false, owner: false, hidePhone: true });
-    data.people[1] = { ...data.people[1], phone: '+995 555 12 34 56' };
+    data.people[1] = { ...data.people[1], phone: '555123456' };
     auth.user = { id: 3, dob: '1985-01-01' };
     renderPeople(data);
     const luka = (await screen.findByText('Luka Beridze')).closest('li.pp-person') as HTMLElement;
     expect(within(luka).getByRole('link', { name: 'luka@example.test' })).toHaveAttribute('href', 'mailto:luka@example.test');
-    expect(within(luka).getByRole('link', { name: '+995 555 12 34 56' })).toHaveAttribute('href', 'tel:+995555123456');
+    expect(within(luka).getByRole('link', { name: '+995 555 12 34 56' })).toHaveAttribute('href', 'tel:555123456');
     expect(within(luka).queryByRole('switch')).not.toBeInTheDocument();
+    // No phone yet: it is added on your profile, where Staff's link opens it.
     const me = row('Giga Kapanadze');
     expect(within(me).getByRole('switch', { name: 'My email' })).toBeChecked();
-    expect(within(me).getByRole('switch', { name: 'My phone' })).not.toBeChecked();
+    expect(within(me).queryByRole('switch', { name: 'My phone' })).not.toBeInTheDocument();
+    expect(within(me).getByRole('link', { name: 'Add your phone on your profile' })).toHaveAttribute('href', '/profile/3?edit=phone');
     fireEvent.click(within(me).getByRole('switch', { name: 'My email' }));
     await waitFor(() => expect(api.put).toHaveBeenCalledWith('/clubs/7/people/me/contact', { hideEmail: true, hidePhone: true }));
     expect(await screen.findByText('Saved. Colleagues see what you share.')).toBeInTheDocument();
+});
+
+it('lets you show or hide the phone you added on your profile', async () => {
+    const data = view({ userId: 3, leader: false, owner: false, hidePhone: true });
+    data.people[2] = { ...data.people[2], phone: '+995 599 00 11 22' };
+    auth.user = { id: 3, dob: '1985-01-01' };
+    renderPeople(data);
+    await screen.findByText('Giga Kapanadze');
+    const me = row('Giga Kapanadze');
+    expect(within(me).queryByRole('link', { name: /Add your phone/ })).not.toBeInTheDocument();
+    fireEvent.click(within(me).getByRole('switch', { name: 'My phone' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/clubs/7/people/me/contact', { hideEmail: false, hidePhone: false }));
+    expect(await within(row('Giga Kapanadze')).findByRole('switch', { name: 'My phone' })).toBeChecked();
 });
 
 it('shows who is on duty today and the club’s outside specialists, opening Duties and Specialists for those who use them', async () => {
@@ -391,7 +406,7 @@ it.each(['CUSTOM', 'SPECIALIST_COACH'])('an older %s link opens with its own job
     expect(await screen.findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
     const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
     expect(within(dialog).queryByRole('button', { name: /New link/ })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('button', { name: /Switch off/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Switch off' }));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/clubs/7/staff-links/70'));
     expect(api.post).not.toHaveBeenCalledWith('/clubs/7/staff-links', expect.anything());
 });

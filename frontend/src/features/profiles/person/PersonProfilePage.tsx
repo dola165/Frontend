@@ -54,7 +54,7 @@ function PersonProfileView({ id }: { id: number }) {
     const tabs = personTabs({ own, hidden, career }, copy);
     const tab = personTabFrom(params.get('tab'), tabs);
     const connections = params.get('connections');
-    // `?edit=photo|about|work` (from "Your first week") is a one-time request to open that part of your own profile: it
+    // `?edit=photo|about|work|phone` (from "Your first week" and Staff) is a one-time request to open that part of your own profile: it
     // is taken when it appears (also while the page is open), then removed from the address without a history entry.
     const requested = own ? params.get('edit') : null;
     const [taken, setTaken] = useState<string | null>(null);
@@ -124,7 +124,7 @@ function PersonProfileView({ id }: { id: number }) {
             actions={<PersonActions profile={profile} own={own} onFollowChange={view.followChanged} onShare={() => void share()} onRepresentation={openRepresentation} />}
             notice={<>{notice && <p className={`gk-notice${notice.tone === 'danger' ? ' gk-notice--danger' : ''}`} role={notice.tone === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}{images.dialogs}</>}
             tabs={tabs} tab={tab} onTab={setTab} tabsLabel={copy('Profile sections', 'პროფილის სექციები')}
-            side={tab === 'schedule' ? undefined : <ErrorBoundary key={`side:${profile.id}`} fallback={<SectionFailed />}><PersonSide view={view} /></ErrorBoundary>} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>
+            side={tab === 'schedule' ? undefined : <ErrorBoundary key={`side:${profile.id}`} fallback={<SectionFailed />}><PersonSide view={view} edit={own ? edit : null} /></ErrorBoundary>} sideLabel={copy(`About ${name}`, `${name} — შესახებ`)}>
             <ErrorBoundary key={`${tab}:${profile.id}`} fallback={<SectionFailed />}>
             {tab === 'overview' && <PersonOverviewTab view={view} edit={own ? edit : null} />}
             {tab === 'posts' && <PersonPostsTab view={view} />}

@@ -91,8 +91,11 @@ export const changeJob = async (club: number, job: PersonJob, draft: JobDraft) =
 
 export const newInviteLink = async (club: number, userId: number) => (await apiClient.post<InviteLink>(`${base(club)}/${userId}/link`)).data;
 
-/** Your own choice of what fellow staff see of you, in every club you work at. Admins still see emails. */
-export const setContactSharing = async (club: number, choice: { hideEmail: boolean; hidePhone: boolean }) => {
+/** What you share with fellow staff: whether they see your email and the phone you added on your profile. */
+export interface ContactChoice { hideEmail: boolean; hidePhone: boolean }
+
+/** Your own choice, in every club you work at, sent whole each time. Admins still see emails. */
+export const setContactSharing = async (club: number, choice: ContactChoice) => {
     await apiClient.put(`${base(club)}/me/contact`, choice);
 };
 

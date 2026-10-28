@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { phoneDisplay } from '../../pages/model/phone';
 import { Crown, DoorOpen, History, Link2, Mail, Pencil, Phone, Plus, UserRound } from 'lucide-react';
 import { Avatar, Badge, Button } from '../../../design/primitives';
 import { Status } from '../../../design/DataTable';
@@ -8,7 +9,7 @@ import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { relativeTime } from '../../../utils/relativeTime';
 import type { ClubManagedMember } from '../../clubs/domain';
-import { changeJob, draftOf, mainJobs, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
+import { changeJob, draftOf, mainJobs, type ContactChoice, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteLinkBox } from './InviteLinkBox';
 import { JobPicker } from './JobPicker';
 import { StaffPublicProfile } from './StaffPublicProfile';
@@ -28,7 +29,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
     club: number; clubName: string; view: PeopleView; person: Person; member?: ClubManagedMember; link?: InviteLink; busy: boolean; rights: PeopleRights;
     /** Where a duty's record opens, for someone who can open Duties. */
     dutyHref?: (record: number) => string;
-    onShare: (choice: { hideEmail: boolean; hidePhone: boolean }) => void;
+    onShare: (choice: ContactChoice) => void;
     onNewLink: () => void; onHideLink: () => void; onAddJob: () => void; onEnd: (job: PersonJob) => void; onLeave: (step: 'leave' | 'handover') => void; onChanged: (notice: string) => void;
 }) {
     const { copy, jobLabel, whereLabel, statusLabel, eventLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
@@ -51,6 +52,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
     const endText = (job: PersonJob) => job.kind === 'ADMIN_INVITE' || job.kind === 'COACH_INVITE' || job.status === 'INVITED' || job.status === 'EXPIRED'
         ? copy('Cancel invite', 'მოწვევის გაუქმება') : job.kind === 'APPOINTMENT' ? copy('End job', 'დასრულება') : copy('Remove', 'მოხსნა');
     const jobsText = person.jobs.map(job => `${jobLabel(job)} · ${whereLabel(job)}`).join('; ');
+    // Your own row: the phone colleagues may call is the one you add on your profile; nobody's shows until they add it.
     const hideEmail = Boolean(view.viewer.hideEmail), hidePhone = Boolean(view.viewer.hidePhone);
     const time = (value: string) => formatDate(value, { hour: '2-digit', minute: '2-digit' });
     const duties = person.onDuty ?? [];
@@ -76,7 +78,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
                 <strong className="pp-person__name">{person.name}{self && <Badge tone="info">{copy('You', 'თქვენ')}</Badge>}</strong>
                 {(person.email || person.phone) && <span className="pp-contacts">
                     {person.email && <a href={`mailto:${person.email}`}><Mail aria-hidden="true" />{person.email}</a>}
-                    {person.phone && <a href={`tel:${person.phone.replace(/[^+\d]/g, '')}`}><Phone aria-hidden="true" />{person.phone}</a>}
+                    {person.phone && <a href={`tel:${person.phone.replace(/[^+\d]/g, '')}`}><Phone aria-hidden="true" />{phoneDisplay(person.phone)}</a>}
                 </span>}
                 {duties.map(duty => { const text = [copy('On duty today', 'დღეს მორიგეობს'), `${time(duty.startsAt)}${duty.endsAt ? `–${time(duty.endsAt)}` : ''}`, duty.location].filter(Boolean).join(' · ');
                     return <span key={duty.id} className="pp-duty"><Status tone="accent" title={duty.title}>{dutyHref ? <Link to={dutyHref(duty.id)}>{text}</Link> : text}</Status></span>; })}
@@ -107,7 +109,9 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
         {self && <fieldset className="pp-share" disabled={busy}>
             <legend className="gk-faint">{copy('Colleagues see', 'კოლეგები ხედავენ')}</legend>
             <label className="pp-share__choice"><input type="checkbox" role="switch" className="gk-switch" checked={!hideEmail} onChange={event => onShare({ hideEmail: !event.target.checked, hidePhone })} />{copy('My email', 'ჩემს ელფოსტას')}</label>
-            <label className="pp-share__choice"><input type="checkbox" role="switch" className="gk-switch" checked={!hidePhone} onChange={event => onShare({ hideEmail, hidePhone: !event.target.checked })} />{copy('My phone', 'ჩემს ტელეფონს')}</label>
+            {person.phone
+                ? <label className="pp-share__choice"><input type="checkbox" role="switch" className="gk-switch" checked={!hidePhone} onChange={event => onShare({ hideEmail, hidePhone: !event.target.checked })} />{copy('My phone', 'ჩემს ტელეფონს')}</label>
+                : <Link className="pp-share__add" to={`/profile/${person.userId}?edit=phone`}><Phone aria-hidden="true" />{copy('Add your phone on your profile', 'დაამატეთ ტელეფონი თქვენს პროფილზე')}</Link>}
         </fieldset>}
         {story && <ol className="pp-history" aria-label={copy(`${person.name}: history`, `${person.name}: ისტორია`)}>{history.map(({ job, ...event }, index) => <li key={`${event.at}-${index}`}>
             <span>{eventLabel(event.action)} · {jobLabel(job)}{event.summary ? `: ${event.summary}` : ''}</span><small className="gk-faint">{event.byName} · {relativeTime(event.at)}</small>

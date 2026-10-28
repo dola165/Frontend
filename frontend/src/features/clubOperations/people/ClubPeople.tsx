@@ -11,7 +11,7 @@ import { cancelClubInvitation } from '../../clubs/api';
 import type { ClubManagedMember, ClubMembershipInvite } from '../../clubs/domain';
 import { OpenRolesPage } from '../../clubWorkspace/commerce/OpenRolesPage';
 import { officeToolPath } from '../../clubOffice/officeLinks';
-import { answerSuggestion, endJob, fetchPeople, isOwnAccount, newInviteLink, setContactSharing, settleNameCheck, suggestionsIn,
+import { answerSuggestion, endJob, fetchPeople, isOwnAccount, newInviteLink, setContactSharing, settleNameCheck, suggestionsIn, type ContactChoice,
     type InviteLink, type InviteResult, type NameCheck, type Person, type PersonJob, type PeopleView, type Suggestion } from './api';
 import { InviteLinkBox } from './InviteLinkBox';
 import { InviteStaffDialog, type InviteHow } from './InviteStaffDialog';
@@ -23,6 +23,7 @@ import { LeaveClubDialog } from '../leaving/LeaveClubDialog';
 import { useLeaveStep } from '../leaving/useLeaveStep';
 import '../../clubWorkspace/club-workspace.css';
 import './people.css';
+import '../../clubOffice/office.css';
 
 const waiting = (job: PersonJob) => job.status === 'INVITED' || job.status === 'EXPIRED' || job.kind.endsWith('INVITE');
 
@@ -134,7 +135,7 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
         void run(async () => { await cancelClubInvitation(clubId, target.id); setCancelling(null); refresh(copy('Invitation cancelled.', 'მოწვევა გაუქმდა.')); },
             copy('The invitation couldn’t be cancelled.', 'მოწვევა ვერ გაუქმდა.'));
     };
-    const share = (choice: { hideEmail: boolean; hidePhone: boolean }) => void run(async () => {
+    const share = (choice: ContactChoice) => void run(async () => {
         await setContactSharing(clubId, choice);
         setView(current => current && { ...current, viewer: { ...current.viewer, ...choice } });
         setNotice(copy('Saved. Colleagues see what you share.', 'შენახულია. კოლეგები ხედავენ იმას, რასაც აზიარებთ.'));

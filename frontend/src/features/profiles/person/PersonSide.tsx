@@ -12,12 +12,18 @@ import { Fact, SideBlock } from '../../../design/profile/ProfileLayout';
 import { Crest } from '../../world/Crest';
 import { RepresentationPanel } from '../../agents/RepresentationPanel';
 import { ClubApproachesPanel } from '../../agents/ClubApproachesPanel';
+import { isAdult } from '../../../utils/age';
+import type { EditRequest } from './PersonProfilePage';
+import { PhoneInPlace } from './PhoneInPlace';
 import type { PersonView } from './usePersonProfile';
 
 interface FollowedClub { id: number; name: string; logoUrl?: string | null; cityName?: string | null; countryName?: string | null }
 
-/** Side facts for a person: about, playing details for players, and for yourself your clubs and account links. */
-export function PersonSide({ view }: { view: PersonView }) {
+/**
+ * Side facts for a person: about, playing details for players, and for yourself your phone for colleagues, your clubs
+ * and account links. `edit` (`?edit=phone`) opens the phone in place.
+ */
+export function PersonSide({ view, edit = null }: { view: PersonView; edit?: EditRequest | null }) {
     const { profile, own, roles, hidden, possibleMinor } = view;
     const copy = useJourneyCopy();
     const { user } = useAuth();
@@ -48,6 +54,8 @@ export function PersonSide({ view }: { view: PersonView }) {
                 <p className="gk-faint">{copy('Recorded by the clubs.', 'კლუბების ჩანაწერი.')}</p>
             </>}
         </SideBlock>}
+        {own && isAdult(user?.dob) && <PhoneInPlace key={`phone:${edit?.counts.phone ?? 0}`} phone={profile.phone ?? null} open={edit?.part === 'phone'}
+            onSaved={phone => view.setProfile(current => current ? { ...current, phone } : current)} />}
         {own && <FollowedClubs />}
         {own && user?.navigationCapabilities !== undefined && !hasOwnPage(user.navigationCapabilities) && <SideBlock title={pt('Your club')}><CreateLink kind="CLUB" from="profile" size="sm">{pt('Add your club')}</CreateLink></SideBlock>}
         {(roles.includes('AGENT') || (roles.includes('PLAYER') && !possibleMinor)) && <RepresentationPanel profileId={profile.id} own={own} roles={roles} />}

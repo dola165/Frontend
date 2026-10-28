@@ -51,9 +51,12 @@ const groupRequests = squad => C.admissionCases.filter(c => c.stage === 'REQUEST
 get('/squad-communication/:id/join-requests', ({ params, headers }) => {
   const squad = coachable(params.id); if (!squad) return undefined;
   if (!squadAccess(squad, headers)?.canManage) return reply(403, { status: 403, message: 'Only the squad staff review requests.' });
+  // The real shape (SquadJoinLinkModels.Request): the squad's joining groups to route into, and where joining is set up.
+  const groups = F.admissionGroups.filter(g => g.squadId === squad.id).map(g => ({ id: g.id, version: g.version, name: g.name, method: g.method }));
+  const shape = row => ({ version: 1, playerId: row.playerId ?? 0, message: null, destination: `/my-squads?squad=${squad.id}&tab=players`, groups, setup: { canConfigure: true, destination: groups.length ? null : '/admissions/manage' }, possibleDuplicateOf: null, ...row });
   return [
-    ...arrivals.filter(a => a.squadId === squad.id && a.status === 'WAITING').map(a => ({ id: a.id, source: 'LINK', childName: `${a.childFirstName} ${a.childLastName}`.trim(), birthYear: Number(a.birthDate.slice(0, 4)), guardianName: a.guardianName, createdAt: a.createdAt, caseId: null })),
-    ...groupRequests(squad).map(c => ({ id: c.id, source: 'GROUP', childName: c.playerName, birthYear: Number(String(c.dateOfBirth).slice(0, 4)) || null, guardianName: c.history[0]?.actorName ?? null, createdAt: c.submittedAt, caseId: c.id })),
+    ...arrivals.filter(a => a.squadId === squad.id && a.status === 'WAITING').map(a => shape({ id: a.id, source: 'LINK', playerId: a.playerId, childName: `${a.childFirstName} ${a.childLastName}`.trim(), birthYear: Number(a.birthDate.slice(0, 4)), guardianName: a.guardianName, createdAt: a.createdAt, caseId: null })),
+    ...groupRequests(squad).map(c => shape({ id: c.id, source: 'ENQUIRY', childName: c.playerName, birthYear: Number(String(c.dateOfBirth).slice(0, 4)) || null, guardianName: c.history[0]?.actorName ?? null, createdAt: c.submittedAt, caseId: c.id })),
   ];
 });
 

@@ -4,6 +4,7 @@ import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
 import * as P from '../pages-data.mjs';
 import { reply } from '../router.mjs';
+import { STEP3_PERSONAS, personaModules, personaViews } from '../world-my-squads.mjs';
 
 export const denied = () => reply(403, { status: 403, message: 'This work is not in your club responsibilities.' });
 export const missing = () => reply(404, { status: 404, message: 'This record is unavailable or you no longer have access.' });
@@ -32,8 +33,10 @@ export function workspaceContext(params, headers) {
   const demo = clubId === C.CLUB_ID;
   const persona = demo ? V.personaOf(headers) : null;
   const page = P.pages.get(`club:${clubId}`);
-  // A physio's job comes without a club membership (JOB here, never a club role).
-  const role = demo && actorId === W.ME_ID ? { member: 'PLAYER', analyst: 'COACH', headcoach: 'COACH', physio: 'JOB', attendance: 'JOB' }[persona] ?? 'OWNER' : P.roleOf(page, actorId);
+  // A physio's job comes without a club membership (JOB here, never a club role); so do step 3's jobs. A helper has no
+  // job at all, so nothing of the club's work.
+  if (demo && persona === 'helper') return null;
+  const role = demo && actorId === W.ME_ID ? { member: 'PLAYER', analyst: 'COACH', headcoach: 'COACH', physio: 'JOB', attendance: 'JOB', teammanager: 'JOB', gkcoach: 'JOB', headofcoaching: 'JOB', kit: 'JOB' }[persona] ?? 'OWNER' : P.roleOf(page, actorId);
   if (!role) return null;
   const leadership = ['OWNER', 'ADMIN', 'CLUB_ADMIN'].includes(role), state = stateFor(clubId);
   const squads = W.squads.filter(s => s.clubId === clubId), allIds = squads.map(s => s.id);
@@ -50,6 +53,7 @@ export function workspaceContext(params, headers) {
   else if (persona === 'physio') modules = ['MEDICAL', 'AVAILABILITY'].map(id => ({ id, writable: true, globalWrite: true, writeSquads: allIds, globalRead: true, readSquads: allIds }));
   // A Custom job with only Attendance, for the whole club.
   else if (persona === 'attendance') modules = [{ id: 'ATTENDANCE', writable: true, globalWrite: true, writeSquads: allIds, globalRead: true, readSquads: allIds }];
+  else if (STEP3_PERSONAS.includes(persona)) modules = personaModules(persona, C.MODULES);
   else {
     modules = C.MODULES.flatMap(id => {
       const readable = active.filter(a => a.permissions.some(p => p === `${id}:READ` || p === `${id}:WRITE`));
@@ -108,11 +112,12 @@ export function bootstrap(ctx) {
 export const roleRequestView = (ctx, r) => ({ ...r, revision: r.revision ?? 1, name: choice(r.user_id).name, squad_id: r.squad_ids[0] ?? null, squad_name: ctx.squads.find(s => s.id === r.squad_ids[0])?.name ?? null,
   squad_names: r.squad_ids.map(id => ctx.squads.find(s => s.id === id)?.name ?? ''), clubWide: !r.squad_ids.length, permissions: C.catalog.find(c => c.key === r.role_key)?.permissions ?? [], created_at: r.created_at ?? C.at(r.created ?? 0) });
 export function rolesWorkspace(ctx, view) {
-  const clubView = { id: 'club', label: 'Club administration', modules: C.MODULES, squadIds: ctx.squads.map(s => s.id), clubWide: true, appointmentId: null, revision: null };
-  const coachingView = { id: 'coaching', label: 'Squad coach', modules: coachingModules, squadIds: ctx.coaching, clubWide: false, appointmentId: ctx.clubId === C.CLUB_ID ? C.myCoaching.id : null, revision: null };
+  const clubView = { id: 'club', label: 'Club administration', modules: C.MODULES, squadIds: ctx.squads.map(s => s.id), clubWide: true, appointmentId: null, revision: null, onSquads: false };
+  const coachingView = { id: 'coaching', label: 'Squad coach', modules: coachingModules, squadIds: ctx.coaching, clubWide: false, appointmentId: ctx.clubId === C.CLUB_ID ? C.myCoaching.id : null, revision: null, onSquads: true };
   const personal = { id: ctx.persona ?? 'all', label: ctx.persona === 'analyst' ? 'Performance analyst' : ctx.persona === 'physio' ? 'Physio' : ctx.persona === 'attendance' ? 'Attendance helper' : 'Your club workspace', modules: ctx.modules.map(m => m.id),
-    squadIds: [...new Set(ctx.modules.flatMap(m => m.readSquads))], clubWide: ctx.modules.some(m => m.globalRead), appointmentId: null, revision: null };
-  const views = [...(ctx.leadership ? [clubView] : []), ...(ctx.coaching.length ? [coachingView] : [])];
+    squadIds: [...new Set(ctx.modules.flatMap(m => m.readSquads))], clubWide: ctx.modules.some(m => m.globalRead), appointmentId: null, revision: null, onSquads: false };
+  const jobViews = STEP3_PERSONAS.includes(ctx.persona) ? personaViews(ctx.persona, job => [...new Set(job.tools.map(tool => tool.split(':')[0]))]) : [];
+  const views = [...(ctx.leadership ? [clubView] : []), ...(ctx.coaching.length ? [coachingView] : []), ...jobViews];
   if (!views.length) views.push(personal);
   const current = views.find(v => v.id === view) ?? (ctx.leadership ? { ...clubView, id: 'all', label: 'All my work' } : personal);
   const squads = ctx.squads.filter(s => current.clubWide || current.squadIds.includes(s.id));

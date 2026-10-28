@@ -91,17 +91,17 @@ test('Staff shows today’s duty on the physio’s row and the club’s outside 
   assert.ok(duty && duty.location === 'Pitch 1');
   assert.ok(staff.specialists.some(s => s.specialisation === 'Sports psychologist' && s.contact));
 });
-test('the physio’s job opens only the medical tools; a head coach suggests a helper an admin confirms', async () => {
+test('the physio’s job opens only the medical tools; a head coach adds helpers on sessions, not through Staff', async () => {
   const boot = (await call('GET', '/clubs/1/operations', null, as('physio'))).body;
   assert.deepEqual(boot.modules.map(m => m.id).sort(), ['AVAILABILITY', 'MEDICAL']);
   const access = (await call('GET', '/access/clubs/1', null, as('physio'))).body;
   assert.ok(access.allowed.includes('see_staff'));
   assert.ok(access.refused.some(r => r.action === 'invite_staff' && r.reason === 'ONLY_ADMINS'));
-  const suggestion = await call('POST', '/clubs/1/people/invites', { name: 'Synthetic helper', email: 'helper@example.test', job: 'TEAM_MANAGER', squadIds: [103] }, as('headcoach'));
-  assert.equal(suggestion.body.status, 'SUGGESTED');
-  assert.equal((await call('POST', '/clubs/1/people/invites', { name: 'Synthetic other', email: 'other@example.test', job: 'TEAM_MANAGER', squadIds: [101] }, as('headcoach'))).status, 400);
-  const waiting = (await call('GET', '/clubs/1/people')).body.people.find(p => p.name === 'Synthetic helper').jobs[0];
-  assert.equal(waiting.canConfirm, true);
-  const answer = await call('POST', `/clubs/1/people/suggestions/${waiting.id}`, { confirm: true, revision: waiting.revision });
-  assert.equal(answer.body.outcome, 'CONFIRMED');
+  // Jobs are the admins' (step 3): a head coach's Invite is refused, and their helpers are added on a session.
+  assert.equal((await call('POST', '/clubs/1/people/invites', { name: 'Synthetic helper', email: 'helper@example.test', job: 'TEAM_MANAGER', squadIds: [103] }, as('headcoach'))).status, 403);
+  const added = await call('POST', '/squad-communication/103/sessions/5623/helpers', { name: 'Synthetic helper', email: 'helper@example.test', repeating: false, requestId: 'b4d1c2a0-0000-4000-8000-000000000001' }, as('headcoach'));
+  assert.equal(added.body.name, 'Synthetic helper');
+  assert.ok(added.body.link);
+  assert.ok((await call('GET', '/clubs/1/helpers')).body.some(h => h.name === 'Synthetic helper' && h.squadId === 103));
+  assert.equal((await call('POST', '/squad-communication/103/sessions/5623/helpers', { name: 'Other', email: 'other@example.test', repeating: false }, as('gkcoach'))).status, 403);
 });

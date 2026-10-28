@@ -331,11 +331,11 @@ export function MainLayout() {
         location.pathname === '/requests' || location.pathname === '/events' ||
         location.pathname === '/tryouts' || location.pathname.startsWith('/tryouts/') ||
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||
-        location.pathname === '/club-operations' || location.pathname === '/me/staff-club' ||
+        location.pathname === '/me/staff-club' ||
         location.pathname === '/assistant' ||
         location.pathname === '/account/football' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns'].includes(location.pathname) ||
         location.pathname === '/parent' ||
         location.pathname.startsWith('/match-exchange') || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
         location.pathname === '/my-squads' || location.pathname === '/squads' || location.pathname.startsWith('/squads/') ||
@@ -370,9 +370,7 @@ export function MainLayout() {
             <Route path="/map" element={<WorldRedirect to="/world/map" />} />
             <Route path="/world/*" element={<WorldRoutes />} />
             <Route path="/clubs" element={<WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />} />
-            <Route path="/clubs/following" element={<ProtectedRoute><WorldRedirect to="/world/clubs" set={{ view: 'following' }} /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarRedirect /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><LegacyCleanupRedirect kind="notifications" /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute>{isAndroidApp ? <PageBootSpinner label="Opening messages" /> : <MessagingPage />}</ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><RequestsCentre /></ProtectedRoute>} />
@@ -425,6 +423,7 @@ export function MainLayout() {
             <Route path="/clubs/:id/jobs" element={<ClubJobsPage />} />
             {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/jobs" rename={{ search: 'query', engagement: 'terms' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
             {ROLE_DETAIL_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobDetailPage />} />)}
+            <Route path="/roles/:id" element={<LegacyCleanupRedirect kind="role" />} />
             <Route path="/campaigns" element={<FundraisingPage />} />
             <Route path="/campaigns/all" element={<FundraisingCataloguePage />} />
             <Route path="/campaigns/new" element={<ProtectedRoute><StartFundraiserPage /></ProtectedRoute>} />
@@ -435,7 +434,6 @@ export function MainLayout() {
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><LegacyCleanupRedirect kind="squads" /></ProtectedRoute>} />
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/operations" element={<ProtectedRoute><ClubOperationsPage /></ProtectedRoute>} />
-            <Route path="/club-operations" element={<ProtectedRoute><LegacyCleanupRedirect kind="connections" /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
             <Route path="/clubs/create" element={<ProtectedRoute><CreateRedirect kind="CLUB" /></ProtectedRoute>} />
@@ -510,6 +508,9 @@ export function MainLayout() {
                             <RouteViewport><Routes>
                                 <Route path="/home" element={<ProtectedRoute><FeedPage user={user} managedClubs={managedClubs} /></ProtectedRoute>} />
                                 <Route path="/feed" element={<Navigate to={`/home${location.search}`} replace />} />
+                                <Route path="/clubs/following" element={<ProtectedRoute><WorldRedirect to="/world/clubs" set={{ view: 'following' }} /></ProtectedRoute>} />
+                                <Route path="/notifications" element={<ProtectedRoute><LegacyCleanupRedirect kind="notifications" /></ProtectedRoute>} />
+                                <Route path="/club-operations" element={<ProtectedRoute><LegacyCleanupRedirect kind="connections" /></ProtectedRoute>} />
                                 <Route path="*" element={<RouteRecoveryPage />} />
                             </Routes></RouteViewport>
                         </main>

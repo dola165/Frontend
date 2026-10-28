@@ -15,7 +15,7 @@ const personal: Record<string, [english: string, georgian: string, PinIcon]> = {
     '/parent': ['Parent Hub', 'მშობლის სივრცე', 'family'],
     '/referees/me': ['Referee workspace', 'მსაჯის სამუშაო სივრცე', 'flag'],
     '/agent': ['Agent Hub', 'აგენტის სივრცე', 'briefcase'],
-    '/requests': ['Inbox', 'ჩემი კლუბური დანიშვნები', 'clipboard'],
+    '/requests': ['Inbox', 'შემოსულები', 'clipboard'],
 };
 
 function kindOf(item: ConnectedWorkspace, copy: Copy) {

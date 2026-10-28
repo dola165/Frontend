@@ -15,21 +15,19 @@ export const RouteMetadata = () => {
         if (pathname === '/parent') label = t('nav.parentHub', 'Parent Hub');
         else if (pathname === '/world' || pathname.startsWith('/world/')) label = WORLD_TITLES[pathname.split('/')[2] ?? ''] ?? 'World';
         else if (pathname === '/my-organizations' && new URLSearchParams(search).get('kind') === 'VENUE') label = t('experience.navigation.venues');
-        else if (pathname === '/requests') label = 'Inbox';
+        else if (pathname === '/requests') label = t('clubWorkspace.inbox');
         else if (pathname === '/reports') label = t('experience.navigation.reports');
         else if (pathname === '/events') label = t('experience.navigation.events');
         else if (pathname === '/tryouts' || pathname.startsWith('/tryouts/')) label = t('experience.navigation.tryouts');
         else if (pathname === '/agent' || pathname.startsWith('/agent/')) label = t('experience.navigation.agent');
         else if (pathname.startsWith('/referees/')) label = t('experience.navigation.referee');
         else if (pathname.startsWith('/organizations/')) label = t('nav.myOrganizations', 'My organizations');
-        else if (pathname === '/club-operations') label = 'My club work';
         else if (pathname === '/team-work/chat') label = i18n.language.startsWith('ka') ? 'გუნდის ჩატები' : 'Team chats';
         else if (/^\/clubs\/\d+\/operations$/.test(pathname)) label = 'Club operations';
         else if (pathname === '/match-history') label = i18n.language.startsWith('ka') ? 'შედეგები და ისტორია' : 'Results & history';
         // Football words: a match page is a match, not the exchange it was arranged through.
         else if (pathname.startsWith('/match-exchange')) label = i18n.language.startsWith('ka') ? (pathname === '/match-exchange' ? 'მატჩები' : 'მატჩი') : (pathname === '/match-exchange' ? 'Matches' : 'Match');
         else if (/^\/clubs\/\d+\/workspace$/.test(pathname)) label = t('clubWorkspace.workspace');
-        else if (pathname === '/clubs/following') label = t('nav.followedClubs');
         else if (/^\/clubs\/\d+\/store$/.test(pathname)) label = t('nav.store');
         else if (/^\/clubs\/\d+\/campaigns$/.test(pathname)) label = t('nav.campaigns');
         else {

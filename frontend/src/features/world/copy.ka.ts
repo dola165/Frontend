@@ -205,6 +205,7 @@ export const WORLD_KA: Record<string, string> = {
     'Include groups not taking players': 'ის ჯგუფებიც, რომლებიც არ იღებენ მოთამაშეებს', 'Include waiting lists': 'მოლოდინის სიების ჩათვლით',
     'No groups are taking players': 'ახლა არცერთი ჯგუფი არ იღებს მოთამაშეებს', 'Include waiting lists, or ask a club directly from its profile.': 'ჩართეთ მოლოდინის სიები ან ჰკითხეთ კლუბს პირდაპირ მის გვერდზე.',
     'Born {from}–{to}': 'დაბ. {from}–{to}', 'Boys': 'ბიჭები', 'Girls': 'გოგონები', 'Joining football': 'ფეხბურთში ჩართვა',
+    'Searching for': 'ვისთვის ეძებთ',
     'Goalkeeper': 'მეკარე', 'Defender': 'მცველი', 'Midfielder': 'ნახევარმცველი', 'Forward': 'თავდამსხმელი', 'Striker': 'თავდამსხმელი', 'Winger': 'ფლანგის მოთამაშე',
 
     // Club workspace links to the club's own matches

@@ -109,7 +109,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
             </Panel>
         </Section>}
 
-        <ClubSquadRoster clubId={club.id} squadId={squad.id} canManage={canManage} />
+        <ClubSquadRoster clubId={club.id} squadId={squad.id} />
         {directions && <FacilityDirections clubId={club.id} facilityId={directions.id} title={directions.title} address={directions.details.address || directions.linkedVenue?.address} onClose={() => setDirections(null)} />}
     </>;
 }

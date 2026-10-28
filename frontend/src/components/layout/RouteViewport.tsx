@@ -20,7 +20,7 @@ const workspaceSurface = (pathname: string): string | undefined => {
     if (pathname === '/parent') return 'family';
     if (pathname === '/messages') return 'messages';
     if (pathname === '/admin') return 'admin';
-    if (['/club-operations', '/my-club', '/my-organizations'].includes(pathname)) return 'connections';
+    if (['/my-club', '/my-organizations'].includes(pathname)) return 'connections';
     return undefined;
 };
 

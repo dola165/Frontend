@@ -1,5 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
-
+import { useMemo, useState, type ReactNode } from 'react';
 import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { useTranslation } from 'react-i18next';
@@ -133,7 +132,6 @@ export function CoachPlayers({ data }: { data: CoachData }) {
                 </ListToolbar>
             </div>
             {body}
-
         </div>
         {panel}
         {roster && <RosterDialog data={data} open onClose={() => setRoster(false)} />}

@@ -36,15 +36,16 @@ function when(updatedAt: string, copy: Copy) {
 
 export function RequestsCentre() {
   const { sessionId, user } = useAuth();
+  const copy = useJourneyCopy();
   const [params, setParams] = useSearchParams();
   if (params.has('permissionId')) return <Navigate replace to={`/parent?tab=connections&permissionId=${encodeURIComponent(params.get('permissionId') ?? '')}`} />;
   const updates = params.get('view') === 'updates';
   const choose = (view: string) => { const next = new URLSearchParams(); next.set('view', view); setParams(next); };
   return <div className="request-centre">
-    <h1>Inbox</h1>
-    <nav className="request-tabs" aria-label="Inbox views">
-      <button type="button" aria-current={!updates ? 'page' : undefined} onClick={() => choose('needs-you')}>Needs you</button>
-      <button type="button" aria-current={updates ? 'page' : undefined} onClick={() => choose('updates')}>Updates</button>
+    <h1>{copy('Inbox', 'შემოსულები')}</h1>
+    <nav className="request-tabs" aria-label={copy('Inbox views', 'შემოსულების ხედები')}>
+      <button type="button" aria-current={!updates ? 'page' : undefined} onClick={() => choose('needs-you')}>{copy('Needs you', 'თქვენ გელოდებათ')}</button>
+      <button type="button" aria-current={updates ? 'page' : undefined} onClick={() => choose('updates')}>{copy('Updates', 'სიახლეები')}</button>
     </nav>
     {updates ? <UpdatesInbox /> : <Centre key={`${user?.id}:${sessionId}`} />}
   </div>;

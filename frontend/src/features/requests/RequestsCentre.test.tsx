@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { RequestsCentre } from './RequestsCentre';
 import { requestDestination, eventDestination } from './api';
 import { apiClient } from '../../api/axiosConfig';
+import { RouteMetadata } from '../../components/layout/RouteMetadata';
+import i18n from '../../i18n';
 vi.mock('../clubOperations/PersonalClubWork', () => ({ StaffAppointments: () => null }));
 const auth = vi.hoisted(() => ({ sessionId: 'one', user: { id: 1 }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
@@ -11,7 +13,18 @@ vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn
 const empty = { items: [], counts: { incoming: 0, actionable: 0, outgoing: 0, history: 0 }, total: 0, hasMore: false, unavailableSources: [] };
 const invitation = { key: 'CLUB_INVITATION:7', id: 7, family: 'CLUB_INVITATION', title: 'Club invitation · Coach', context: 'Dinamo', status: 'PENDING', actionable: true, direction: 'INCOMING', destination: '/account?tab=profile', actionLabel: 'Review invitation' };
 beforeEach(() => { vi.clearAllMocks(); auth.sessionId = 'one'; auth.user = { id: 1 }; vi.mocked(apiClient.get).mockResolvedValue({ data: empty }); });
-afterEach(cleanup);
+afterEach(async () => { cleanup(); await i18n.changeLanguage('en'); });
+
+it('names Inbox and its two views in Georgian, including the document title', async () => {
+  await i18n.changeLanguage('ka');
+  render(<MemoryRouter initialEntries={['/requests']}><RouteMetadata /><RequestsCentre /></MemoryRouter>);
+  expect(screen.getByRole('heading', { name: 'შემოსულები', level: 1 })).toBeVisible();
+  expect(screen.getByRole('navigation', { name: 'შემოსულების ხედები' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'თქვენ გელოდებათ' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('button', { name: 'სიახლეები' })).toBeVisible();
+  expect(document.title).toBe('შემომავალი | GrassKickZ');
+  await screen.findByText('ყველაფერი განხილულია');
+});
 it('shows an honest empty state and does not invent a pending count', async () => { render(<MemoryRouter><RequestsCentre /></MemoryRouter>); expect(await screen.findByText('You’re up to date')).toBeVisible(); });
 it('preserves state and offers a safe retry after a read failure', async () => { vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('offline')); render(<MemoryRouter><RequestsCentre /></MemoryRouter>); await screen.findByRole('alert'); fireEvent.click(screen.getByRole('button', { name: 'Retry' })); expect(await screen.findByText('You’re up to date')).toBeVisible(); });
 it('does not paint a previous account response during an in-flight account switch', async () => {

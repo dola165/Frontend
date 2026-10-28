@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Outlet } from 'react-router-dom';
+import { MemoryRouter, Outlet, useLocation } from 'react-router-dom';
 import { MainLayout } from '../../App';
 import { LeftSidebar } from '../../components/layout/LeftSidebar';
 import { AccountItems } from '../../components/layout/header/AccountMenu';
@@ -48,6 +48,21 @@ const caps: NavigationCapabilities = { version: 1, workspaces: [
 ] };
 const user = (navigationCapabilities?: NavigationCapabilities): AuthUser => ({ id: 1, fullName: 'Synthetic user', dob: '1990-01-01', role: 'SYSTEM_ADMIN', profileComplete: true, emailVerified: true, onboardingRequired: false, mustChangePassword: false, navigationCapabilities });
 afterEach(cleanup);
+
+function Address() { const location = useLocation(); return <output data-testid="address">{location.pathname}{location.search}{location.hash}</output>; }
+
+it.each([
+    ['/roles/704?source=chat#job', '/jobs/704?source=chat#job'],
+    ['/club-operations?appointmentId=7#appointment', '/requests?appointmentId=7#appointment'],
+    ['/club-operations?permissionId=8', '/parent?permissionId=8&tab=connections'],
+    ['/notifications?itemId=1', '/requests?itemId=1&view=updates'],
+    ['/clubs/following?q=academy', '/world/clubs?q=academy&view=following'],
+])('keeps shared and bookmarked %s working through the real route partition', async (from, to) => {
+    auth.user = user(caps);
+    render(<MemoryRouter initialEntries={[from]}><MainLayout /><Address /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByTestId('address')).toHaveTextContent(to));
+    expect(screen.queryByTestId('missing-route')).not.toBeInTheDocument();
+});
 
 it('every menu, pin, shortcut, capability and notification destination has a mounted route', async () => {
     const destinations = new Set(exploreDestinations().map(item => item.path));

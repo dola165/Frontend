@@ -2,7 +2,9 @@
 // Club office › Staff (step 2, 28 October 2026): everyone with a job reads it, with the email and the phone each person
 // added on their profile, unless they hid them; admins change it. The viewer's own row follows the persona (Owner, head
 // coach, physio, analyst) and its phone is the one added on their profile (none until they add it).
-import { get, post, put, del } from '../router.mjs';
+import { get, post, put, del, reply } from '../router.mjs';
+import { ME_ID } from '../world.mjs';
+import { accountProfile } from '../world-social.mjs';
 import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
 import { profilePhone } from '../profile-phones.mjs';
@@ -19,6 +21,10 @@ const person = (userId, name, email, phone, jobs, extra = {}) => ({ userId, name
 const HELPERS = ['ASSISTANT_COACH', 'TEAM_MANAGER'];
 // Every job holder reads Staff (SEE_STAFF); a plain member doesn't.
 const staffOnly = ctx => ctx.persona === 'member' || !ctx.leadership && !ctx.coaching.length && !ctx.modules.length;
+// As the server: Staff is club staff work, which needs a known adult; Luka without a birth date (/__mode/nodob) is asked
+// for it first.
+const undated = ctx => ctx.actorId === ME_ID && !accountProfile.dob;
+const birthDateFirst = () => reply(403, { status: 403, code: 'BIRTH_DATE_NEEDED', message: 'Add your date of birth first.' });
 
 function store(ctx) {
   if (!stores.has(ctx.clubId)) {
@@ -95,6 +101,7 @@ function shown(ctx, p) {
 }
 get('/clubs/:id/people', scoped(({ ctx }) => {
   if (staffOnly(ctx)) return denied();
+  if (undated(ctx)) return birthDateFirst();
   const mine = store(ctx).sharing.get(ctx.actorId) ?? { hideEmail: false, hidePhone: false };
   return { viewer: { userId: ctx.actorId, leader: ctx.leadership, owner: ctx.role === 'OWNER', headCoachSquads: ctx.coaching, ...mine },
     people: rows(ctx).map(p => ({ ...p, jobs: shown(ctx, p) })).filter(p => p.jobs.length).map(p => ({ ...p, ...contacts(ctx, p), onDuty: dutiesOf(ctx, p.userId),
@@ -104,6 +111,7 @@ get('/clubs/:id/people', scoped(({ ctx }) => {
 }));
 put('/clubs/:id/people/me/contact', scoped(({ ctx, body = {} }) => {
   if (staffOnly(ctx)) return denied();
+  if (undated(ctx)) return birthDateFirst();
   store(ctx).sharing.set(ctx.actorId, { hideEmail: Boolean(body.hideEmail), hidePhone: Boolean(body.hidePhone) });
   return {};
 }));

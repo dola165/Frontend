@@ -49,6 +49,22 @@ test('every job holder reads Staff with what each colleague shares, and changes 
   assert.deepEqual(coach.viewer.headCoachSquads, [103, 105]);
   assert.ok(!coach.people.find(p => p.userId === 1).jobs.some(j => j.kind === 'OWNER'), 'in a persona Luka is not the Owner');
 });
+test('without a birth date Staff asks for it first, as on the server, and opens once it is given', async () => {
+  const { accountProfile } = await import('./api/world-social.mjs');
+  const dob = accountProfile.dob;
+  accountProfile.dob = null;
+  try {
+    const staff = await call('GET', '/clubs/1/people');
+    assert.equal(staff.status, 403);
+    assert.equal(staff.body.code, 'BIRTH_DATE_NEEDED');
+    const access = (await call('GET', '/access/clubs/1')).body;
+    assert.deepEqual(access.allowed, ['follow']);
+    assert.ok(access.refused.some(r => r.action === 'see_staff' && r.reason === 'BIRTH_DATE_NEEDED'));
+    assert.equal((await call('PUT', '/users/me', { dateOfBirth: '1988-04-12' })).status, 200);
+    assert.equal((await call('GET', '/clubs/1/people')).status, 200);
+    assert.ok((await call('GET', '/access/clubs/1')).body.allowed.includes('see_staff'));
+  } finally { accountProfile.dob = dob; }
+});
 test('your own choice of what colleagues see is kept, and admins still see emails', async () => {
   assert.equal((await call('PUT', '/clubs/1/people/me/contact', { hideEmail: true, hidePhone: false }, as('physio'))).status, 200);
   assert.equal((await call('GET', '/clubs/1/people', null, as('physio'))).body.viewer.hideEmail, true);

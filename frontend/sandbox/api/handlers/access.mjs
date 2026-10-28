@@ -10,6 +10,7 @@ import * as W from '../world.mjs';
 import * as V from '../viewer.mjs';
 import * as F from '../world-football.mjs';
 import * as C from '../world-club.mjs';
+import { accountProfile } from '../world-social.mjs';
 
 const refusal = (action, reason, message) => ({ action, allowed: false, reason, message, because: null });
 const answer = (allowed, refused = []) => ({ allowed, refused });
@@ -34,15 +35,19 @@ const refusedReason = action => action === 'see_staff' ? refusal(action, 'ONLY_C
   : action === 'suggest_assistant' ? refusal(action, 'ONLY_HEAD_COACHES', 'Only a head coach suggests an assistant.')
     : ['arrange_match', 'report_score'].includes(action) ? refusal(action, 'ONLY_SQUAD_MATCH_STAFF', 'Only a squad’s coaches arrange its matches.')
       : refusal(action, 'ONLY_ADMINS', 'Only the club’s admins can do this.');
+// As the server: club work needs a known adult, so Luka without a birth date (/__mode/nodob) is asked for it first and
+// may only follow.
+const dated = (allowed, refused) => accountProfile.dob ? answer(allowed, refused) : answer(allowed.filter(action => action === 'follow'),
+  [...allowed.filter(action => action !== 'follow').map(action => refusal(action, 'BIRTH_DATE_NEEDED', 'Add your date of birth first.')), ...refused]);
 get('/access/clubs/:id', ({ params, headers }) => {
   const club = W.clubs.find(item => item.id === Number(params.id));
   if (!club) return undefined;
   const own = !V.isNewcomer(headers) && F.isMineClub(club.id);
   const persona = own ? PERSONA_ACTIONS[V.personaOf(headers)] : undefined;
   // In a persona Luka isn't an admin: the academy director runs the club.
-  if (persona) return { clubId: club.id, squadId: null, ...answer(persona, CLUB_ACTIONS.filter(action => !persona.includes(action)).map(refusedReason)),
+  if (persona) return { clubId: club.id, squadId: null, ...dated(persona, CLUB_ACTIONS.filter(action => !persona.includes(action)).map(refusedReason)),
     admins: [{ userId: C.STAFF.director, name: C.name(C.STAFF.director), owner: true }] };
-  if (own) return { clubId: club.id, squadId: null, ...answer(CLUB_ACTIONS), admins: [{ userId: W.ME_ID, name: 'Luka Gelashvili', owner: true }] };
+  if (own) return { clubId: club.id, squadId: null, ...dated(CLUB_ACTIONS, []), admins: [{ userId: W.ME_ID, name: 'Luka Gelashvili', owner: true }] };
   return { clubId: club.id, squadId: null, ...answer(['add_child', 'follow'], CLUB_ACTIONS.filter(action => !['add_child', 'follow'].includes(action))
     .map(action => refusal(action, 'ONLY_ADMINS', 'Only the club’s admins can do this.'))), admins: [] };
 });

@@ -1,6 +1,7 @@
 import { appLocale, formatDate } from './formatting';
 import type { NotificationItem, NotificationListScope, NotificationScope } from '../types/notifications';
 import { notificationId, safeNotificationLink, venueBookingDestination } from './notificationDestinations';
+import { inClubOffice } from '../features/clubOffice/officeLinks';
 
 const NOTIFICATIONS_CHANGED_EVENT = 'talanti:notifications-changed';
 
@@ -134,7 +135,10 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
     return `/clubs/${Number(match[1])}/workspace?tab=${workspaceTabFor(notification.type)}`;
 };
 
-export const buildNotificationDestination = (notification: NotificationItem) => {
+/** The club workspace became Club office (step 2, 28 October 2026): its addresses land on the matching place or tool. */
+export const buildNotificationDestination = (notification: NotificationItem) => inClubOffice(clubWorkDestination(notification));
+
+const clubWorkDestination = (notification: NotificationItem) => {
     const outcome = `/requests?view=updates&itemId=${notification.id}`;
     const entityId = notificationId(notification.entityId);
     const link = safeNotificationLink(notification.linkPath);

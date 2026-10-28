@@ -84,7 +84,8 @@ for (const [type, base] of [['club', '/clubs/:id/page'], ['organization', '/orga
     if (!visible(page, viewer)) return notFound('Page not found.');
     if (!P.canEdit(page, viewer)) return forbidden();
     if (body?.version != null && Number(body.version) !== page.identity.version) return conflict(page, viewer);
-    P.applyIdentity(page, body ?? {});
+    const refused = P.applyIdentity(page, body ?? {});
+    if (refused) return bad(refused);
     return P.viewOf(page, viewer);
   });
   put(`${base}/boxes/:key`, ({ params, body, headers }) => {

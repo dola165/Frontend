@@ -10,7 +10,7 @@ vi.mock('./OfflineInquiry',()=>({OfflineInquiry:()=><h2>Group invitation</h2>}))
 vi.mock('react-i18next',()=>({useTranslation:()=>({i18n:{resolvedLanguage:'en'}})}));
 const record=(id:number,name:string,owner:'CLUB'|'APPLICANT'|'NONE',stage:AdmissionCase['stage']='REQUEST_RECEIVED'):AdmissionCase=>({id,version:1,playerId:1000+id,playerName:name,dateOfBirth:'2015-01-01',organizationId:1,organizationName:'Dinamo Academy',clubId:1,method:'INTRODUCTION',groupName:'Dinamo U12',groupId:2,intake:'2026',stage,responsible:null,nextAction:{owner,code:'CLUB_REVIEW',label:'Review next step',dueAt:null},requirements:[],sessions:[],offer:null,enrollment:null,history:[],actions:['MESSAGE'],primaryAffiliation:null,previousCaseId:null,submittedAt:'2026-10-04T00:00:00Z',updatedAt:'2026-10-04T00:00:00Z'});
 const data={organizationId:1,organizationName:'Dinamo Academy',clubId:1,canConfigure:false,groups:[],staff:[],squads:[],inquiries:[],cases:[record(91,'Player needing coach','CLUB'),record(92,'Player awaiting family','APPLICANT'),record(93,'Current player','NONE','ENROLLED')]} as AdmissionWorkspace;
-function open(path='/clubs/1/workspace?tab=admissions') {
+function open(path='/clubs/1/office?tab=tools&tool=admissions') {
   const state={data,loading:false,error:'',reload:vi.fn(),setData:vi.fn()} as unknown as ReturnType<typeof useClubAdmissions>;
   render(<MemoryRouter initialEntries={[path]}><ClubAdmissionWorkspace state={state} sessionId={null} onOpen={vi.fn()} onRosterChanged={vi.fn()}/></MemoryRouter>);
 }

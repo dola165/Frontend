@@ -4,7 +4,7 @@ import { AboutInPlace } from '../../football/AboutInPlace';
 import { apiClient } from '../../../../api/axiosConfig';
 import { PersonProfilePage } from '../PersonProfilePage';
 
-const auth = vi.hoisted(() => ({ user: { id: 7, dob: '1992-05-14' } as Record<string, unknown>, status: 'authenticated', sessionId: 'edit-in-place', refreshNavigationCapabilities: vi.fn(async () => undefined) }));
+const auth = vi.hoisted(() => ({ user: { id: 7, dob: '1992-05-14' } as Record<string, unknown>, status: 'authenticated', sessionId: 'edit-in-place', refreshNavigationCapabilities: vi.fn(async () => undefined), bootstrapSession: vi.fn(async () => undefined) }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../../agents/RepresentationPanel', () => ({ RepresentationPanel: () => null, RepresentationShortcut: () => null }));
 vi.mock('../../../agents/ClubApproachesPanel', () => ({ ClubApproachesPanel: () => null }));
@@ -25,6 +25,7 @@ function serve() {
 function Address() { const { search } = useLocation(); return <><output aria-label="address">{search}</output><Link to="/profile/7?edit=about">ask for about</Link></>; }
 const mount = (search = '') => render(<MemoryRouter initialEntries={[`/profile/7${search}`]}><Address /><Routes><Route path="/profile/:id" element={<PersonProfilePage />} /></Routes></MemoryRouter>);
 beforeAll(() => { Element.prototype.scrollIntoView = vi.fn(); });
+beforeEach(() => { auth.user = { id: 7, dob: '1992-05-14' }; });
 afterEach(() => { cleanup(); vi.mocked(apiClient.get).mockReset(); vi.mocked(apiClient.put).mockReset(); });
 
 describe('making your profile, in place', () => {
@@ -70,6 +71,55 @@ describe('making your profile, in place', () => {
         fireEvent.click(screen.getByRole('link', { name: 'ask for about' }));
         expect(await screen.findByRole('textbox', { name: 'About me' })).toBeInTheDocument();
         await waitFor(() => expect(screen.getByLabelText('address')).toHaveTextContent(/^$/));
+    });
+
+    it('adds the phone colleagues see in Staff, in place, checks it and removes it', async () => {
+        serve(); mount();
+        vi.mocked(apiClient.put).mockImplementation(async (_path, body) => ({ data: { ...nino, phone: (body as { phone: string }).phone || null } }));
+        const box = within((await screen.findByRole('heading', { name: 'Phone' })).closest('section')!);
+        expect(box.getByText('Colleagues see it in Staff')).toBeInTheDocument();
+        fireEvent.click(box.getByRole('button', { name: 'Add your phone' }));
+        fireEvent.change(box.getByLabelText('Phone'), { target: { value: 'call me' } });
+        fireEvent.click(box.getByRole('button', { name: 'Done' }));
+        expect(box.getByRole('alert')).toHaveTextContent('Enter a number colleagues can call');
+        expect(apiClient.put).not.toHaveBeenCalled();
+        fireEvent.change(box.getByLabelText('Phone'), { target: { value: '555123456' } });
+        fireEvent.click(box.getByRole('button', { name: 'Done' }));
+        await waitFor(() => expect(apiClient.put).toHaveBeenCalledWith('/users/me', { phone: '555123456' }));
+        // Shown as people write it, the same as a club page's phone.
+        expect(await box.findByText('+995 555 12 34 56')).toBeInTheDocument();
+        fireEvent.click(box.getByRole('button', { name: 'Edit your phone' }));
+        fireEvent.click(box.getByRole('button', { name: 'Remove' }));
+        await waitFor(() => expect(apiClient.put).toHaveBeenLastCalledWith('/users/me', { phone: '' }));
+        expect(await box.findByRole('button', { name: 'Add your phone' })).toBeInTheDocument();
+    });
+
+    it('asks an account without a birth date for it first, with the profile’s one-time step', async () => {
+        auth.user = { id: 7 };
+        serve(); mount();
+        vi.mocked(apiClient.put).mockResolvedValue({ data: {} });
+        const box = within((await screen.findByRole('heading', { name: 'Phone' })).closest('section')!);
+        fireEvent.click(box.getByRole('button', { name: 'Add your phone' }));
+        const dialog = await screen.findByRole('dialog', { name: 'Your date of birth' });
+        expect(dialog).toHaveTextContent('Only adults add a phone for colleagues, so we ask once.');
+        fireEvent.change(within(dialog).getByLabelText('Date of birth'), { target: { value: '1990-05-14' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
+        await waitFor(() => expect(apiClient.put).toHaveBeenCalledWith('/users/me', { dateOfBirth: '1990-05-14' }));
+    });
+
+    it('opens the phone from ?edit=phone (Staff’s link), and offers it only to adults on their own profile', async () => {
+        serve(); mount('?edit=phone');
+        expect(await screen.findByLabelText('Phone')).toHaveFocus();
+        cleanup();
+        auth.user = { id: 7, dob: '2012-03-01' };
+        serve(); mount();
+        expect(await screen.findByRole('button', { name: 'Write about you' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Phone' })).not.toBeInTheDocument();
+        cleanup();
+        auth.user = { id: 9, dob: '1990-01-01' };
+        serve(); mount();
+        expect(await screen.findByRole('heading', { name: 'Nino Beridze' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Phone' })).not.toBeInTheDocument();
     });
 
     it('offers Try again after a failed save, also where the box is always open', async () => {

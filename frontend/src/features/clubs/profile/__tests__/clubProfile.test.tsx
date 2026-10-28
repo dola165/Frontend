@@ -9,6 +9,8 @@ import { refreshAccess } from '../../../../hooks/useCan';
 import type { ClubPresentation, TrainingProgramme } from '../../presentation';
 import { ClubActions } from '../ClubActions';
 import { ClubAboutTab } from '../ClubAboutTab';
+import { ClubContactTab } from '../ClubInfoTabs';
+import { ClubInfo } from '../ClubInfo';
 import { feeRange } from '../fees';
 import { ClubSide } from '../ClubSide';
 import { ClubTeamsTab } from '../ClubTeamsTab';
@@ -77,6 +79,34 @@ describe('club profile', () => {
         expect(screen.getByText('Youth football')).toBeInTheDocument();
     });
 
+    it('shows the web addresses in the club’s story as links that open in a new tab, and nothing else', () => {
+        page(<ClubAboutTab club={{ ...club, description: 'Fixtures on rustavi-lions.ge/fixtures. Write to info@rustavi-lions.ge.' }} can={visitor} />);
+        const link = screen.getByRole('link', { name: 'rustavi-lions.ge/fixtures' });
+        expect(link).toHaveAttribute('href', 'https://rustavi-lions.ge/fixtures');
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+        expect(screen.queryByRole('link', { name: /info@/ })).not.toBeInTheDocument();
+    });
+
+    it('lists the club’s website, Instagram and Facebook under Online, http(s) only', () => {
+        page(<ClubContactTab club={{ ...club, websiteUrl: 'https://rustavi-lions.ge', instagramUrl: 'https://www.instagram.com/rustavi.lions', facebookUrl: 'https://www.facebook.com/rustavilions', facebookMessengerUrl: 'javascript:alert(1)' }} />);
+        expect(screen.getByRole('link', { name: 'Website' })).toHaveAttribute('href', 'https://rustavi-lions.ge/');
+        expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/rustavi.lions');
+        expect(screen.getByRole('link', { name: 'Facebook' })).toHaveAttribute('href', 'https://www.facebook.com/rustavilions');
+        expect(screen.queryByRole('link', { name: 'Messenger' })).not.toBeInTheDocument();
+    });
+
+    it('shows visitors the same contact rows as the editor: a call with +995, email, website, Instagram and Facebook', () => {
+        page(<ClubInfo club={{ ...club, whatsappNumber: '599 12 34 56', email: 'hello@rustavi-lions.ge', websiteUrl: 'https://rustavi-lions.ge',
+            instagramUrl: 'https://www.instagram.com/rustavi.lions', facebookUrl: 'https://www.facebook.com/rustavilions' }} />);
+        const rows = within(screen.getByRole('list', { name: 'Contact details' }));
+        expect(rows.getByRole('link', { name: /\+995 599 12 34 56/ })).toHaveAttribute('href', 'tel:+995599123456');
+        expect(rows.getByRole('link', { name: /hello@rustavi-lions\.ge/ })).toHaveAttribute('href', 'mailto:hello@rustavi-lions.ge');
+        expect(rows.getByRole('link', { name: /rustavi-lions\.ge.*Website/ })).toHaveAttribute('href', 'https://rustavi-lions.ge/');
+        expect(rows.getByRole('link', { name: /@rustavi\.lions/ })).toHaveAttribute('href', 'https://www.instagram.com/rustavi.lions');
+        expect(rows.getByRole('link', { name: /facebook\.com\/rustavilions/ })).toHaveAttribute('href', 'https://www.facebook.com/rustavilions');
+    });
+
     it('lists the squads and the current published fees, and clears old or draft offers', async () => {
         vi.mocked(apiClient.get).mockImplementation(async (url: string) => url.startsWith('/clubs/10/squads') ? { data: [{ id: 3, name: 'U12 Boys', category: 'U12', gender: 'MALE' }] } : { data: [] });
         page(<ClubTeamsTab club={club} onContact={vi.fn()} isAuthenticated />);
@@ -94,7 +124,7 @@ describe('club profile', () => {
         // Arranging opens over the club page once the rule-checker allows it.
         expect(await screen.findByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/?do=arrange_match');
         expect(screen.getByRole('link', { name: 'Open challenge' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-open');
-        expect(screen.getByRole('link', { name: 'Open workspace' })).toHaveClass('gk-btn--primary');
+        expect(screen.getByRole('link', { name: 'Club office' })).toHaveClass('gk-btn--primary');
     });
 
     it('gives another club’s staff a way to propose a match, and everyone else one primary way in', () => {

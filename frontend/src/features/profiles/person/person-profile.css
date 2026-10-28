@@ -1,5 +1,9 @@
 /* Person profile: about, the three identity layers and the side facts. */
 .gk .gk-person-loading { display: grid; gap: var(--gk-4); padding-block: var(--gk-8); }
+/* The phone for colleagues, edited in place like a club page's Contact box. */
+.gk .gk-person-phone__form { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-person-phone__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--gk-2); }
+.gk .gk-person-phone__number { display: flex; align-items: center; gap: var(--gk-2); margin: 0; }
 .gk .gk-person-bio { white-space: pre-line; font-size: var(--gk-fs-lg); line-height: 1.6; color: var(--gk-text); max-width: 72ch; }
 .gk .gk-person-layers { display: flex; flex-direction: column; gap: var(--gk-8); }
 .gk .gk-person-layers .gk-list-row__meta { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }

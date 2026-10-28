@@ -53,6 +53,14 @@ describe('pin store', () => {
         expect(readPins(user).map(item => item.path)).toEqual(['/jobs/704', '/world/people?tab=players', '/account/football#work', '/profile/7?tab=career', '/agent', '/world/clubs?view=following', '/my-squads']);
     });
 
+    it('moves old club workspace pins to Club office, and drops the ones for the Inbox', async () => {
+        const user = account();
+        const saved = ['/clubs/7/workspace', '/clubs/7/workspace?tab=finance', '/clubs/7/workspace?tab=player-cards', '/clubs/7/workspace?tab=overview', '/clubs/7/workspace?tab=inbox'];
+        server.docs.set(user, { pins: { pins: saved.map(path => ({ path, label: 'Saved page', icon: 'bookmark' })) } });
+        await loadPreferences(user);
+        expect(readPins(user).map(item => item.path)).toEqual(['/clubs/7/office', '/clubs/7/office?tab=tools&tool=finance', '/clubs/7/office?tab=tools&tool=player-cards']);
+    });
+
     it('migrates visit suggestions and cannot record a new visit to a retired page', () => {
         const user = account(), now = Date.now();
         localStorage.setItem(`gk-visits:v1:${user}`, JSON.stringify({

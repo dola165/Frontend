@@ -20,8 +20,8 @@ export interface Suggestion extends Pin { visits: number | null; reason?: string
  * The person's own work, suggested from the start so nothing is lost: hubs that used to be tabs, and every squad,
  * tournament, organization and venue they work in. It only becomes a tab when the person pins it.
  */
-export function workSuggestions(capabilities: NavigationCapabilities | undefined, myClubPath: string | null, copy: Copy): Suggestion[] {
-    const places = workspaceDestinations(capabilities, myClubPath, copy).map(place => ({ path: place.path, label: place.label, icon: place.icon, visits: null, reason: place.kind }));
+export function workSuggestions(capabilities: NavigationCapabilities | undefined, tabPath: string | null, copy: Copy): Suggestion[] {
+    const places = workspaceDestinations(capabilities, tabPath, copy).map(place => ({ path: place.path, label: place.label, icon: place.icon, visits: null, reason: place.kind }));
     const venues = capabilities?.workspaces.filter(item => item.id === 'venue.workspace').length ?? 0;
     const organizations = capabilities?.workspaces.filter(item => item.id === 'organization.workspace').length ?? 0;
     // Several venues or organizations also get their overview page.
@@ -36,27 +36,28 @@ export function workSuggestions(capabilities: NavigationCapabilities | undefined
  * Personal pins next to the primary tabs. Nothing is ever pinned for the person: suggestions come from their own
  * work and their recent visits on this device, and wait for a tap. Labels follow the current language.
  */
-export function usePins(userId: number | undefined, capabilities: NavigationCapabilities | undefined, myClubPath: string | null = null) {
+export function usePins(userId: number | undefined, capabilities: NavigationCapabilities | undefined, tabPath: string | null = null) {
     const copy = useJourneyCopy();
     const stored = useSyncExternalStore(subscribePins, () => userId ? readPins(userId) : NO_PINS, () => NO_PINS);
     const visits = useSyncExternalStore(subscribePins, () => userId ? readVisits(userId) : NO_VISITS, () => NO_VISITS);
     // The header is on every signed-in page, so this is where a sign-in first reads its saved preferences.
     useEffect(() => { if (userId) void loadPreferences(userId).catch(() => undefined); }, [userId]);
-    const context = useMemo(() => ({ capabilities, userId, myClubPath, copy }), [capabilities, userId, myClubPath, copy]);
+    const context = useMemo(() => ({ capabilities, userId, tabPath, copy }), [capabilities, userId, tabPath, copy]);
 
-    const pins = useMemo(() => stored.map(pin => ({ ...pin, label: pinLabel(pin.path, pin.label, context) ?? pin.label })), [stored, context]);
+    // A pin the top bar already holds as a tab (Club office) isn't shown twice.
+    const pins = useMemo(() => stored.filter(pin => pin.path !== tabPath).map(pin => ({ ...pin, label: pinLabel(pin.path, pin.label, context) ?? pin.label })), [stored, context, tabPath]);
 
     const suggestions = useMemo<Suggestion[]>(() => {
         const pinned = (path: string) => stored.some(pin => pin.path === path);
-        const work = workSuggestions(capabilities, myClubPath, copy).filter(item => !pinned(item.path)).slice(0, MAX_WORK_SUGGESTIONS);
+        const work = workSuggestions(capabilities, tabPath, copy).filter(item => !pinned(item.path)).slice(0, MAX_WORK_SUGGESTIONS);
         const visited = Object.entries(visits)
             .map(([path, visit]) => ({ path, label: pinLabel(path, visit.label, context), icon: visit.icon ?? 'bookmark', visits: visit.t.length }))
             .filter((item): item is Suggestion & { label: string; visits: number } => item.visits >= SUGGEST_AFTER_VISITS && !!item.label)
-            .filter(item => !pinned(item.path) && !work.some(other => other.path === item.path) && item.path !== myClubPath)
+            .filter(item => !pinned(item.path) && !work.some(other => other.path === item.path) && item.path !== tabPath)
             .sort((a, b) => b.visits - a.visits)
             .slice(0, MAX_VISIT_SUGGESTIONS);
         return [...work, ...visited];
-    }, [visits, stored, capabilities, myClubPath, copy, context]);
+    }, [visits, stored, capabilities, tabPath, copy, context]);
 
     // Writes keep each pin's own stored label; only the display follows the language.
     const save = useCallback((next: Pin[]) => { if (userId) writePins(userId, next); }, [userId]);

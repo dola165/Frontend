@@ -1,3 +1,4 @@
+import { legacyWorkspaceTarget } from '../../../../features/clubOffice/officeLinks';
 import { readPreferences, subscribePreferences, updatePreferences, type Preferences } from '../../../../features/preferences/preferencesStore';
 import { isPinIcon, type PinIcon } from './pinIcons';
 
@@ -51,6 +52,13 @@ function cleanupPinPath(value: unknown): string | null {
     }
     if (path === '/notifications') { url.pathname = '/requests'; url.searchParams.set('view', 'updates'); }
     if (/^\/clubs\/[1-9]\d*\/squads$/.test(path)) { url.pathname = path.replace(/\/squads$/, ''); url.searchParams.set('tab', 'teams'); }
+    // The club workspace became Club office (step 2, 28 October 2026): a saved pin moves to where its tab lives now.
+    const workspace = /^\/clubs\/([1-9]\d*)\/workspace$/.exec(path);
+    if (workspace) {
+        const moved = new URL(legacyWorkspaceTarget(Number(workspace[1]), url.searchParams), url.origin);
+        if (moved.pathname === '/requests') return null;
+        url.pathname = moved.pathname; url.search = moved.search;
+    }
     if (path === '/roles' || path === '/world/opportunities' && (url.searchParams.get('tab') ?? url.searchParams.get('type')) === 'jobs') {
         url.pathname = '/jobs';
         for (const [from, into] of [['search', 'query'], ['q', 'query'], ['engagement', 'terms']]) {

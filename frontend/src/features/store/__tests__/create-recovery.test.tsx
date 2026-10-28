@@ -52,8 +52,8 @@ vi.mock('../../../api/axiosConfig', () => {
 });
 
 function Capture() { const value = useContext(CommerceDraftContext); useEffect(() => { f.context = value; }, [value]); return null; }
-const tree = (page: 'workspace' | 'public' = 'workspace', club = C.CLUB_ID) => <CommerceDraftScope clubId={club} feature="StoreTab"><Capture /><MemoryRouter initialEntries={[page === 'public' ? `/clubs/${club}/store?add=1` : `/clubs/${club}/workspace?tab=store`]}><AuthSessionBoundary><Routes>
-    <Route path="/clubs/:id/store" element={<ClubStorePage />} /><Route path="/clubs/:id/workspace" element={<StoreProductsPage clubId={club} />} />
+const tree = (page: 'workspace' | 'public' = 'workspace', club = C.CLUB_ID) => <CommerceDraftScope clubId={club} feature="StoreTab"><Capture /><MemoryRouter initialEntries={[page === 'public' ? `/clubs/${club}/store?add=1` : `/clubs/${club}/office?tab=tools&tool=store`]}><AuthSessionBoundary><Routes>
+    <Route path="/clubs/:id/store" element={<ClubStorePage />} /><Route path="/clubs/:id/office" element={<StoreProductsPage clubId={club} />} />
 </Routes></AuthSessionBoundary></MemoryRouter></CommerceDraftScope>;
 let seq = 0;
 // Prime the large fixture router outside the first retry's action assertion window.

@@ -1,4 +1,5 @@
 import { EmptyState } from '../components/ui/EmptyState';
+import { officePath } from '../features/clubOffice/officeLinks';
 import { Trophy } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -91,9 +92,10 @@ function WorkspaceContent({ id }: { id: string }) {
   if (workspace.clubId) {
     const requested = search.get('tab');
     if (requested === 'profile') return <Navigate replace to={`/clubs/${workspace.clubId}/profile-settings`} />;
-    const tab = requested === 'team' ? 'personnel' : ['settings', 'imports', 'facilities'].includes(requested ?? '') ? 'settings' : 'overview';
-    const section = requested === 'imports' ? '&section=imports' : requested === 'facilities' ? '&section=facilities' : '';
-    return <Navigate replace to={`/clubs/${workspace.clubId}/workspace${tab === 'overview' ? '' : `?tab=${tab}${section}`}`} />;
+    // A club's own organization is run from Club office: its team is Staff, its settings are Settings.
+    const settings = ['settings', 'imports', 'facilities'].includes(requested ?? '');
+    const section: Record<string, string> = requested === 'imports' || requested === 'facilities' ? { section: requested } : {};
+    return <Navigate replace to={settings ? officePath(workspace.clubId, 'settings', section) : officePath(workspace.clubId)} />;
   }
   const caps = workspace.capabilities;
   const hasFacilities = caps.venueAvailable || workspace.venueCount > 0;

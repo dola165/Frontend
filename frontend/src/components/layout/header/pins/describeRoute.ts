@@ -6,10 +6,11 @@ export type Copy = (english: string, georgian: string) => string;
 export const english: Copy = text => text;
 
 export interface RouteDescription { path: string; label: string | null; icon: PinIcon; pinnable: boolean }
-export interface RouteContext { capabilities?: NavigationCapabilities; userId?: number; myClubPath: string | null; copy?: Copy }
+/** `tabPath`: the place the header's own tab already holds (Club office), so it is never pinned as well. */
+export interface RouteContext { capabilities?: NavigationCapabilities; userId?: number; tabPath: string | null; copy?: Copy }
 
 // Query parameters that change what a page shows. Anything else (ids of open dialogs, drafts) is dropped.
-const meaningfulParams = ['tab', 'section', 'view', 'kind', 'scope', 'area', 'squad'];
+const meaningfulParams = ['tab', 'tool', 'section', 'view', 'kind', 'scope', 'area', 'squad'];
 // World keeps its search and filters, but never campaign tracking or context that follows the person around.
 const droppedWorldParams = /^(?:utm_.*|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid|igshid|_ga|near|player)$/;
 // Already one click away in the header, or not a destination at all.
@@ -30,8 +31,8 @@ export function normalizePath(pathname: string, search: string) {
         if (value) kept.set(key, value);
     }
     const trimmed = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-    // The workspace opens on its overview, so the overview tab is the workspace itself.
-    if (/^\/clubs\/\d+\/workspace$/.test(trimmed) && kept.get('tab') === 'overview') kept.delete('tab');
+    // Club office opens on Staff, so Staff is Club office itself.
+    if (/^\/clubs\/\d+\/office$/.test(trimmed) && kept.get('tab') === 'staff') kept.delete('tab');
     return kept.size ? `${trimmed}?${kept}` : trimmed;
 }
 
@@ -79,7 +80,7 @@ const worldTabs: Record<string, Words> = {
 };
 
 const iconByPrefix: Array<[RegExp, PinIcon]> = [
-    [/^\/clubs\/\d+\/workspace/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/tournaments\//, 'trophy'],
+    [/^\/clubs\/\d+\/office/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/tournaments\//, 'trophy'],
     [/^\/match-exchange/, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
     [/^\/(?:jobs|roles)\//, 'briefcase'], [/^\/store\//, 'store'], [/^\/campaigns\//, 'family'], [/^\/tryouts\//, 'goal'],
     [/^\/admissions\//, 'clipboard'], [/^\/world\//, 'world'],
@@ -111,15 +112,15 @@ export function describeRoute(pathname: string, search: string, context: RouteCo
     const path = normalizePath(pathname, search);
     const [bare, query = ''] = path.split('?');
     const params = new URLSearchParams(query);
-    const pinnable = !notPinnable.test(bare) && path !== context.myClubPath && path !== '/world';
+    const pinnable = !notPinnable.test(bare) && path !== context.tabPath && path !== '/world';
     const { capabilities } = context;
     const id = Number(/\/(\d+)(?:\/|$)/.exec(bare)?.[1]);
     const known = (value: string | null, icon: PinIcon) => ({ path, label: value, icon, pinnable });
     if (/^\/squads\/\d+$/.test(bare)) return known(capabilityLabel(capabilities, 'squad.workspace', id), 'squad');
-    if (/^\/clubs\/\d+\/workspace$/.test(bare)) {
-        const club = capabilityLabel(capabilities, 'club.workspace', id) ?? capabilityLabel(capabilities, 'club.operations', id);
+    if (/^\/clubs\/\d+\/office$/.test(bare)) {
+        const club = capabilityLabel(capabilities, 'club.office', id) ?? capabilityLabel(capabilities, 'club.workspace', id) ?? capabilityLabel(capabilities, 'club.operations', id) ?? capabilityLabel(capabilities, 'club.member', id);
         if (query) return known(null, 'workspace');
-        return known(club ? copy(`Workspace · ${club}`, `სამუშაო სივრცე · ${club}`) : copy('Club workspace', 'კლუბის სამუშაო სივრცე'), 'workspace');
+        return known(club ? copy(`Club office · ${club}`, `კლუბის ოფისი · ${club}`) : copy('Club office', 'კლუბის ოფისი'), 'workspace');
     }
     if (/^\/clubs\/\d+$/.test(bare) && !query) {
         const club = capabilities?.workspaces.find(item => item.context.type === 'club' && item.context.id === id)?.context.label;

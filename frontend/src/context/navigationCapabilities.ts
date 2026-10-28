@@ -17,8 +17,9 @@ export interface WorkspaceLink {
 }
 
 const destinations: Record<string, { type: string; title: string; path: (id: number) => string }> = {
-    'club.workspace': { type: 'club', title: 'Workspace', path: id => `/clubs/${id}/workspace` },
-    'club.operations': { type:'club',title:'Club responsibilities',path:id=>`/clubs/${id}/workspace` },
+    'club.workspace': { type: 'club', title: 'Club office', path: id => `/clubs/${id}/office` },
+    'club.operations': { type:'club',title:'Club office',path:id=>`/clubs/${id}/office` },
+    'club.office': { type: 'club', title: 'Club office', path: id => `/clubs/${id}/office` },
     'club.member': { type:'club',title:'Club appointment',path:id=>`/clubs/${id}` },
     'club.family': { type:'club',title:'Family football',path:()=>'/parent' },
     'club.agent': { type:'club',title:'Agent engagement',path:id=>`/clubs/${id}` },
@@ -79,7 +80,7 @@ export const capabilitiesKnown = (projection: NavigationCapabilities | undefined
 
 /** Links someone else confirmed: club staff, a squad's coach, a guardian with a child, a referee or an agent. */
 export const hasConfirmedLinks = (projection: NavigationCapabilities | undefined) =>
-    ['club.workspace', 'club.operations', 'club.member', 'club.player', 'club.family', 'squad.workspace', 'parent.hub', 'referee.workspace', 'agent.hub']
+    ['club.workspace', 'club.operations', 'club.office', 'club.member', 'club.player', 'club.family', 'squad.workspace', 'parent.hub', 'referee.workspace', 'agent.hub']
         .some(id => hasNavigationCapability(projection, id));
 
 /** Administration stays an account-level right (the one place the account role still decides anything). */

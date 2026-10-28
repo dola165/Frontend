@@ -80,7 +80,7 @@ describe('PlayerCardModal participation consent', () => {
     it('takes new players to connected intake rather than creating a duplicate identity or a placement', () => {
         vi.clearAllMocks();
         render(<MemoryRouter><PlayerCardModal clubId={7} squadId={11} isOpen onClose={vi.fn()} /></MemoryRouter>);
-        expect(screen.getByRole('link', {name:'Open player intake'})).toHaveAttribute('href','/clubs/7/workspace?tab=admissions&intake=1&squad=11');
+        expect(screen.getByRole('link', {name:'Open player intake'})).toHaveAttribute('href','/clubs/7/office?tab=tools&tool=admissions&intake=1&squad=11');
         expect(screen.queryByLabelText('Full Name')).not.toBeInTheDocument();
         expect(createPlayerCard).not.toHaveBeenCalled();expect(updatePlayerCard).not.toHaveBeenCalled();
     });

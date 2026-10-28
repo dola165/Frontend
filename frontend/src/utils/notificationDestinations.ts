@@ -11,9 +11,9 @@ export const notificationId = (value: unknown): string | null => {
 const id = '[1-9]\\d*';
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const reviewReceipt = new RegExp(`^/pages/requests/${uuid}$`);
-const route = new RegExp(`^/(?:account|my-organizations|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work/chat|calendar|notifications|requests|reports|parent|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:match-exchange|squads|posts|profile)/${id}|stadiums/${id}(?:/manage)?)$`);
+const route = new RegExp(`^/(?:account|my-organizations|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work/chat|calendar|notifications|requests|reports|parent|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|office|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:match-exchange|squads|posts|profile)/${id}|stadiums/${id}(?:/manage)?)$`);
 const numericKeys = new Set(['eventId', 'fixtureId', 'conversationId', 'message', 'chat','clubId', 'applicationId', 'bookingId', 'venueId', 'itemId', 'thread', 'squad', 'squadId', 'approach', 'representation', 'representationRecord', 'representationGeneration', 'permissionId', 'appointmentId', 'player', 'playerId', 'caseId', 'inquiryId']);
-const queryKeys = new Set([...numericKeys, 'tab', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'at', 'review']);
+const queryKeys = new Set([...numericKeys, 'tab', 'tool', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'at', 'review']);
 
 export const safeNotificationLink = (raw?: string | null): URL | null => {
     if (!raw || !raw.startsWith('/') || raw.startsWith('//') || Array.from(raw).some(char => char === '\\' || char.charCodeAt(0) <= 32 || char.charCodeAt(0) === 127)) return null;

@@ -121,6 +121,10 @@ describe('the words of a message', () => {
         expect(found.map(part => part.text).join('')).toBe('@gio beridze and @Gio: GK-12, GK-99 and https://example.com/a. Mail beqa@Gio.ge');
     });
 
+    it('never links an address with a user name in it, as the club page doesn’t either', () => {
+        expect(parts('sign in at https://google.com@evil.com/login', [], [], 'https://app.test').some(part => part.kind === 'url')).toBe(false);
+    });
+
     it('keeps the app’s own links inside the app', () => {
         expect(parts('see https://app.test/team-work?task=3', [], [], 'https://app.test')[1]).toMatchObject({ kind: 'url', internal: '/team-work?task=3' });
     });

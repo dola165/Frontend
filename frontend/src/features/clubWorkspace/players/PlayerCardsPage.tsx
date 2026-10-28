@@ -64,7 +64,7 @@ export function PlayerCardsPage({ clubId, canRemove = false, setParentError, set
         } catch (failure: unknown) { setParentError(failure instanceof Error ? failure.message : t('minors.playerCard.deleteFailed')); }
         finally { lock.current = false; setRemovingId(null); }
     };
-    const addPlayer = () => navigate(`/clubs/${clubId}/workspace?tab=admissions&intake=1`);
+    const addPlayer = () => navigate(`/clubs/${clubId}/office?tab=tools&tool=admissions&intake=1`);
 
     let body;
     if (loading) body = <Panel><div className="cw-skeleton-rows" role="status" aria-label={t('squadDesign.loadingCards', { defaultValue: 'Loading player cards…' })}>{[0, 1, 2].map(i => <Skeleton key={i} height={52} />)}</div></Panel>;

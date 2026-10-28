@@ -1,5 +1,4 @@
 import { squadDesignKa, squadsDesignKa } from './squadDesign';
-import { clubOverviewKa } from './clubOverview';
 import { clubRecordsKa } from './clubRecords';
 import { coachHubKa, fixtureCopyKa, workspaceNavKa, workspaceShellKa } from './workspaceDesign';
 import { recruitmentDesignKa } from './recruitmentDesign';
@@ -13,7 +12,6 @@ const ka = {
     eventNavigationFailed: 'ღონისძიების რედაქტორი ვერ გაიხსნა. პოსტის მონახაზი შენარჩუნებულია. სცადეთ ხელახლა.',
     you: 'თქვენ',
   },
-  clubOverview: clubOverviewKa,
   clubRecords: clubRecordsKa,
   workspaceShell: workspaceShellKa,
   workspaceNav: workspaceNavKa,

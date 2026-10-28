@@ -62,7 +62,7 @@ describe('your football profile', () => {
         expect(where.getByText('Follows Saburtalo')).toBeInTheDocument();
         // The job ends as a job and the squad place is left; a squad's head coach and the Owner have no Leave here.
         expect(where.getAllByRole('button', { name: 'Leave' })).toHaveLength(2);
-        expect(where.getAllByRole('link', { name: 'Manage' }).map(link => link.getAttribute('href'))).toEqual(['/clubs/9/workspace', '/parent?player=4']);
+        expect(where.getAllByRole('link', { name: 'Manage' }).map(link => link.getAttribute('href'))).toEqual(['/clubs/9/office', '/parent?player=4']);
         expect(screen.getByLabelText('Career in numbers')).toHaveTextContent('212 sessions coached3 matches refereed');
         expect(within(screen.getByRole('list', { name: 'Career' })).getByText('Assistant coach · U10')).toBeInTheDocument();
         expect(screen.queryByRole('checkbox', { name: /Player|Coach|Fan/ })).not.toBeInTheDocument();

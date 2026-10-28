@@ -108,7 +108,7 @@ export const StoreProductPage = () => {
                 </nav>
                 <div className="gk-store-club__actions" style={{ paddingTop: 12 }}>
                     <ButtonLink variant="ghost" size="sm" to={`${back.pathname}${back.search}`}><ArrowLeft aria-hidden="true" />{ct("Back to results")}</ButtonLink>
-                    {canManage && <ButtonLink variant="ghost" size="sm" style={{ minHeight: 44 }} to={`/clubs/${clubId}/workspace?tab=store`}>{ct("Manage store")}</ButtonLink>}
+                    {canManage && <ButtonLink variant="ghost" size="sm" style={{ minHeight: 44 }} to={`/clubs/${clubId}/office?tab=tools&tool=store`}>{ct("Manage store")}</ButtonLink>}
                     <ButtonLink size="sm" to="/store/cart" style={{ marginLeft: 'auto' }}><ShoppingBag aria-hidden="true" />{ct("Cart")}</ButtonLink>
                 </div>
                 {!valid || product.error ? <div className="gk-store-results__empty"><EmptyNote title={ct("This product is unavailable")} action={valid ? <Button size="sm" onClick={product.retry}>{ct("Retry")}</Button> : undefined}>{product.error || ct("The link does not point to a product.")}</EmptyNote></div>

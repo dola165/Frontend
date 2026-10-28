@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { inClubOffice } from '../../clubOffice/officeLinks';
 import { RefreshCw, UserPlus } from 'lucide-react';
 import type { AdmissionCase, AdmissionInquiry, Choice, Opportunity } from '../types';
 import type { AuthSessionId } from '../../../utils/authStorage';
@@ -96,7 +97,7 @@ export function ClubAdmissionWorkspace({ state, sessionId, onOpen, onRosterChang
             {inquiryId > 0 && !inquiries.some(row => row.id === inquiryId) && (state.loading ? <p role="status" className="gk-muted">{c('loading')}</p>
                 : <AdmissionError message={copy('This enquiry is unavailable with your current club access. Return to the queue or refresh your access.', 'ეს მიმართვა თქვენი მიმდინარე წვდომით მიუწვდომელია. დაბრუნდით რიგში ან განაახლეთ წვდომა.')} retry={copy('Return to joining queue', 'რიგში დაბრუნება')} onRetry={back} />)}
             {intakeOpen && <div className="adm-intake">
-                {workspace.clubId && <FamilyClubEnrollment key={`${sessionId}:${workspace.clubId}`} clubId={workspace.clubId} canContinueWithoutGroup onLinked={result => { void state.reload(); const destination = new URL(result.staffDestination, window.location.origin); setParams(destination.searchParams); setOffline(false); }} />}
+                {workspace.clubId && <FamilyClubEnrollment key={`${sessionId}:${workspace.clubId}`} clubId={workspace.clubId} canContinueWithoutGroup onLinked={result => { void state.reload(); const destination = new URL(inClubOffice(result.staffDestination), window.location.origin); setParams(destination.searchParams); setOffline(false); }} />}
                 {workspace.groups.some(group => group.canManage) && <OfflineInquiry workspace={workspace} people={existingPeople.filter((person, index, rows) => rows.findIndex(p => p.id === person.id) === index)} sessionId={sessionId} onClose={closeIntake} />}
             </div>}
             {state.error && <AdmissionError message={state.error} onRetry={() => void state.reload()} retry={c('retry')} />}

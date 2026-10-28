@@ -30,6 +30,8 @@ export interface Can {
     decide: (action: AccessAction, fallback: boolean) => AccessDecision;
     /** Who "Ask the admin" writes to, when the server named one. */
     admin: { userId: number; name: string } | null;
+    /** The check failed to load (the answers then follow each screen's fallback). */
+    failed: boolean;
 }
 
 /** "What can I do here?" for a club or a squad, in one place for every screen. `null` skips the check. */
@@ -54,5 +56,5 @@ export function useCan(subject: AccessSubject | null): Can {
     const pending = key !== null && rules === undefined;
     const decide = useCallback((action: AccessAction, fallback: boolean): AccessDecision =>
         rules ? rules.actions[action] ?? { allowed: false } : { allowed: fallback, pending }, [rules, pending]);
-    return { pending, decide, admin: rules?.admins?.[0] ?? null };
+    return { pending, decide, admin: rules?.admins?.[0] ?? null, failed: rules === null };
 }

@@ -52,16 +52,24 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
       return res.end(await readFile(path.join(here, 'guide.html')));
     }
-    if (/^\/__mode\/(parent|coach|analyst|member)$/.test(url.pathname)) {
+    if (url.pathname === '/__mode/nodob' || url.pathname === '/__mode/coach') {
+      // An account without a birth date (the profile asks for it once); the owner persona gives it back.
+      const { accountProfile } = await import('./api/world-social.mjs');
+      accountProfile.dob = url.pathname === '/__mode/nodob' ? null : accountProfile.dob ?? '1988-04-12';
+      if (url.pathname === '/__mode/nodob') { res.writeHead(302, { location: url.searchParams.get('to') || '/profile/1', 'cache-control': 'no-store' }); return res.end(); }
+    }
+    if (/^\/__mode\/(parent|coach|analyst|member|headcoach|physio|attendance)$/.test(url.pathname)) {
       // Sandbox personas, all still Luka's account: `parent` makes him also a parent of two children (the family cookie);
-      // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only) and `member` plain
-      // club membership with no tools at all, so the workspace's layers can be judged; `coach` is the owner and head coach again.
+      // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only), `member` plain
+      // club membership with no tools at all, `headcoach` a head coach who is not an admin and `physio` a job with only
+      // the medical tools and `attendance` a Custom job with only Attendance, so Club office's layers can be judged;
+      // `coach` is the owner and head coach again.
       const mode = url.pathname.slice('/__mode/'.length);
       const to = (url.searchParams.get('to') || '/home');
       const safe = to.startsWith('/') && !to.startsWith('//') ? to : '/home';
       const cookies = [
         mode === 'parent' ? 'gk-sandbox-family=1; Path=/' : 'gk-sandbox-family=; Path=/; Max-Age=0',
-        mode === 'analyst' || mode === 'member' ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
+        ['analyst', 'member', 'headcoach', 'physio', 'attendance'].includes(mode) ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
       ];
       res.writeHead(302, { location: safe, 'set-cookie': cookies, 'cache-control': 'no-store' });
       return res.end();

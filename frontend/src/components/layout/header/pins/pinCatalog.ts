@@ -24,29 +24,29 @@ function kindOf(item: ConnectedWorkspace, copy: Copy) {
         case 'Tournaments': return copy('Tournament', 'ტურნირი');
         case 'Organizations': return copy('Organization', 'ორგანიზაცია');
         case 'Venues': return copy('Venue', 'მოედანი');
-        case 'Clubs': return copy('Club workspace', 'კლუბის სამუშაო სივრცე');
+        case 'Clubs': return copy('Club office', 'კლუბის ოფისი');
         default: return copy('Your work', 'თქვენი საქმე');
     }
 }
 
 /**
  * Every workspace the person can open: squads, tournaments, organizations, venues, other clubs and their own hubs.
- * The My Club tab and Administration (in the account menu) already have a place, so they are left out.
+ * Club office when it is the person's tab, and Administration (in the account menu), already have a place, so they are left out.
  */
-export function workspaceDestinations(capabilities: NavigationCapabilities | undefined, myClubPath: string | null, copy: Copy = english): WorkPlace[] {
+export function workspaceDestinations(capabilities: NavigationCapabilities | undefined, tabPath: string | null, copy: Copy = english): WorkPlace[] {
     return connectedWorkspaces(capabilities)
-        .filter(item => item.path !== myClubPath && item.path !== '/admin')
+        .filter(item => item.path !== tabPath && item.path !== '/admin')
         .map(item => {
             const own = personal[item.path];
             if (own) return { path: item.path, label: copy(own[0], own[1]), icon: own[2], kind: copy('Your work', 'თქვენი საქმე') };
-            const label = item.group === 'Clubs' && item.path.endsWith('/workspace') ? copy(`Workspace · ${item.label}`, `სამუშაო სივრცე · ${item.label}`) : item.label;
+            const label = item.group === 'Clubs' && item.path.endsWith('/office') ? copy(`Club office · ${item.label}`, `კლუბის ოფისი · ${item.label}`) : item.label;
             return { path: item.path, label, icon: groupIcon[item.group], kind: kindOf(item, copy) };
         });
 }
 
 /** Everything a person can open from their own work, so nothing is lost when it is not a tab. */
-export function workDestinations(capabilities: NavigationCapabilities | undefined, myClubPath: string | null, copy: Copy = english): Pin[] {
-    const work: Pin[] = workspaceDestinations(capabilities, myClubPath, copy).map(({ path, label, icon }) => ({ path, label, icon }));
+export function workDestinations(capabilities: NavigationCapabilities | undefined, tabPath: string | null, copy: Copy = english): Pin[] {
+    const work: Pin[] = workspaceDestinations(capabilities, tabPath, copy).map(({ path, label, icon }) => ({ path, label, icon }));
     for (const club of accessibleClubs(capabilities)) {
         if (club.canOpenWorkspace) work.push({ path: `/clubs/${club.id}`, label: club.name, icon: 'club' });
     }
@@ -72,7 +72,7 @@ const explore: Array<[path: string, group: ExploreDestination['group'], signedIn
 export function exploreDestinations(copy: Copy = english): ExploreDestination[] {
     return explore.map(([path, group, signedIn]) => {
         const [pathname, search = ''] = path.split('?');
-        const { label, icon } = describeRoute(pathname, search && `?${search}`, { myClubPath: null, copy });
+        const { label, icon } = describeRoute(pathname, search && `?${search}`, { tabPath: null, copy });
         return { path, label: label ?? path, icon, group, ...(signedIn ? { signedIn } : {}) };
     });
 }

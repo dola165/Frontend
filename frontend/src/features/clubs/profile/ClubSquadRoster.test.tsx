@@ -31,7 +31,7 @@ it('keeps a single roster management link in the squad header', async () => {
     render(<MemoryRouter><ClubSquadPage club={club} squad={{ id: 12, name: 'Academy U12', category: 'U12' }} programmes={[]} onContact={() => undefined} isAuthenticated canManage /></MemoryRouter>);
     await screen.findByText('Synthetic player');
     expect(screen.getAllByRole('link', { name: 'Manage roster' })).toHaveLength(1);
-    expect(screen.getByRole('link', { name: 'Manage roster' })).toHaveAttribute('href', '/clubs/1/workspace?tab=squads&squad=12');
+    expect(screen.getByRole('link', { name: 'Manage roster' })).toHaveAttribute('href', '/clubs/1/office?tab=squads&squad=12');
 });
 
 it.each(['Roster', 'Cards'])('distinguishes no search/filter matches from an empty squad in %s view', async mode => {

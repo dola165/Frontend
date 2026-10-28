@@ -18,6 +18,6 @@ export function ScorePrivacyNote({ record, home, away }: { record: ScoreRecord; 
   const squads = clubId ? record.ageUnknownSquadIds ?? [] : [];
   return <p className="gk-score__private"><Lock aria-hidden="true" />
     <span>{copy('Only your club sees this. Set the squad’s age group (U12, Seniors…) to publish results.', 'ამას მხოლოდ თქვენი კლუბი ხედავს. შედეგების გამოსაქვეყნებლად მიუთითეთ გუნდის ასაკობრივი ჯგუფი (U12, უფროსები…).')}
-      {squads.map((squadId, index) => <Link key={squadId} to={`/clubs/${clubId}/workspace?tab=squads&squad=${squadId}&edit=1`}>
+      {squads.map((squadId, index) => <Link key={squadId} to={`/clubs/${clubId}/office?tab=squads&squad=${squadId}&edit=1`}>
         {squads.length > 1 ? copy(`Set age group ${index + 1}`, `ასაკობრივი ჯგუფი ${index + 1}`) : copy('Set the age group', 'ასაკობრივი ჯგუფის მითითება')}</Link>)}</span></p>;
 }

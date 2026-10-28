@@ -221,7 +221,7 @@ describe('person profile', () => {
         expect(calendarDestination('')).toBe('/profile/me?tab=schedule');
         expect(calendarDestination('?eventId=355&date=2026-10-12')).toBe('/profile/me?tab=schedule&eventId=355&date=2026-10-12');
         expect(calendarDestination('?scope=squad&squadId=105&sessionId=9')).toBe('/squads/105?tab=sessions&sessionId=9');
-        expect(calendarDestination('?clubId=1')).toBe('/clubs/1/workspace?tab=calendar');
+        expect(calendarDestination('?clubId=1')).toBe('/clubs/1/office?tab=calendar');
         expect(calendarDestination('?scope=personal')).toBe('/profile/me?tab=schedule');
         expect(calendarDestination('?scope=squad')).toBe('/my-squads?tab=calendar');
     });

@@ -14,7 +14,7 @@ const textFields = { title: 120, summary: 240, description: 5000, beneficiary: 2
 const moneyOk = (value, min) => value == null || (Number.isFinite(value) && value >= min && value <= 9999999999.99 && Math.abs(value * 100 - Math.round(value * 100)) < 0.0002);
 const manager = (clubId, headers) => {
   const viewer = V.viewerId(headers);
-  if (viewer === W.ME_ID && Number(clubId) === C.CLUB_ID && /gk-sandbox-persona=(analyst|member)(?:;|$)/.test(headers?.cookie ?? '')) return false;
+  if (viewer === W.ME_ID && Number(clubId) === C.CLUB_ID && V.restrictedPersona(headers)) return false;
   return ['OWNER', 'ADMIN'].includes(P.roleOf(P.clubPage(clubId), viewer));
 };
 const owned = (clubId, id) => C.campaigns.find(campaign => campaign.clubId === Number(clubId) && campaign.id === Number(id));

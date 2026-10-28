@@ -399,7 +399,7 @@
       "clubId": 7,
       "linkPath": "/account"
     },
-    "expected": "/clubs/7/workspace?tab=applications&applicationId=81"
+    "expected": "/clubs/7/office?tab=tools&tool=applications&applicationId=81"
   },
   {
     "name": "TRYOUT_APPLICATION_RECEIVED",
@@ -412,7 +412,7 @@
       "clubId": 7,
       "linkPath": "/account"
     },
-    "expected": "/clubs/7/workspace?tab=tryouts&applicationId=81"
+    "expected": "/clubs/7/office?tab=tools&tool=tryouts&applicationId=81"
   },
   {
     "name": "TRYOUT_APPLICATION_ACCEPTED",
@@ -496,7 +496,7 @@
       "scope": "PERSONAL",
       "linkPath": "/clubs/7?manageClub=1&managementTab=applications"
     },
-    "expected": "/clubs/7/workspace?tab=applications"
+    "expected": "/clubs/7/office?tab=tools&tool=applications"
   },
   {
     "name": "reject https://evil.test/squads/5",

@@ -3,8 +3,8 @@ import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy
 import type { PrimaryTab } from './sections';
 
 /**
- * Phone navigation at thumb reach (owner, 16 October): Home, World, the person's role tabs and My Club when they have
- * a club. Messages and "You" (the profile picture, holding pins and the account) sit in the top bar.
+ * Phone navigation at thumb reach (owner, 16 October): Home, World and the person's work tabs, Club office last.
+ * Messages and "You" (the profile picture, holding pins and the account) sit in the top bar.
  */
 export function PhoneTabBar({ tabs }: { tabs: PrimaryTab[] }) {
     const copy = useJourneyCopy();

@@ -24,20 +24,16 @@ export interface WelcomeProgress { state: 'OPEN' | 'DONE'; at?: WelcomeStep | nu
  */
 export interface StartPreferences { town?: PreferencesTown | null; welcome?: WelcomeProgress | null; childAge?: number | null; /** Said in the earlier setup: here as a business or sponsor. */ business?: boolean | null }
 export interface StoredPin { path: string; label: string; icon: string }
-export interface WorkspacePreferences { hiddenTabs?: string[]; hiddenAreas?: string[]; hiddenResponsibilities?: string[] }
 export interface Preferences {
     start?: StartPreferences;
     pins?: { pins: StoredPin[] };
-    /** Keyed by club id. */
-    workspaces?: Record<string, WorkspacePreferences>;
     tutorials?: { completed: string[] };
     updatedAt?: string | null;
 }
-/** Every section sent replaces the saved one; workspaces merge per club and per list, as on the server. */
+/** Every section sent replaces the saved one. */
 export type PreferencesUpdate = Omit<Preferences, 'updatedAt'>;
 
 export const PREFERENCES_KEY_PREFIX = 'gk-prefs:v1:';
-const WORKSPACE_LISTS = ['hiddenTabs', 'hiddenAreas', 'hiddenResponsibilities'] as const;
 const EMPTY: Preferences = {};
 
 interface Waiter { resolve: (doc: Preferences) => void; reject: (error: unknown) => void }
@@ -64,28 +60,12 @@ export function applyPreferencesUpdate(doc: Preferences, update: PreferencesUpda
     if (update.start) next.start = update.start;
     if (update.pins) next.pins = update.pins;
     if (update.tutorials) next.tutorials = update.tutorials;
-    if (update.workspaces) {
-        const all = { ...doc.workspaces };
-        for (const [club, workspace] of Object.entries(update.workspaces)) {
-            const merged: WorkspacePreferences = { ...all[club] };
-            for (const list of WORKSPACE_LISTS) if (workspace[list]) merged[list] = workspace[list];
-            if (WORKSPACE_LISTS.every(list => !merged[list]?.length)) delete all[club];
-            else all[club] = merged;
-        }
-        next.workspaces = all;
-    }
     return next;
 }
 
-/** Two unsent changes as one. Unlike a saved document, an emptied workspace list is kept: it is a reset to send. */
+/** Two unsent changes as one: the later section wins. */
 function mergeUpdates(first: PreferencesUpdate | null, second: PreferencesUpdate): PreferencesUpdate {
-    const merged: PreferencesUpdate = { ...first, ...second };
-    if (first?.workspaces && second.workspaces) {
-        const all = { ...first.workspaces };
-        for (const [club, workspace] of Object.entries(second.workspaces)) all[club] = { ...all[club], ...workspace };
-        merged.workspaces = all;
-    }
-    return merged;
+    return { ...first, ...second };
 }
 
 function storageRead(userId: number): Pick<Entry, 'doc' | 'pending'> {
@@ -227,14 +207,12 @@ export function completeTutorial(userId: number, name: string) {
 
 // ---------------------------------------------------------------- choices made before preferences were saved
 
-const WORKSPACE_TOKEN = /^[A-Za-z0-9][A-Za-z0-9_:.-]{0,59}$/;
 const PIN_ICON = /^[a-z][a-z-]{0,29}$/;
 const LEGACY_TUTORIAL_KEY = 'tutorial.calendar.completed';
 
 function readJson(key: string): unknown {
     try { return JSON.parse(window.localStorage.getItem(key) ?? 'null'); } catch { return null; }
 }
-const tokens = (value: unknown) => (Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && WORKSPACE_TOKEN.test(id)) : []);
 
 /**
  * Pins, workspace rails and the calendar tutorial used to live only on this device. The first load after the
@@ -256,20 +234,11 @@ function carryOverDeviceChoices(userId: number, server: Preferences): Preference
                 }).slice(0, 12),
             };
         }
-        const workspaces: Record<string, WorkspacePreferences> = {};
+        // The club workspace's hidden tabs left with it: this account's old device choices are only cleared.
         for (const key of Object.keys(window.localStorage)) {
-            const match = /^gk-ws-(layout|focus):v1:(\d+):(\d+)$/.exec(key);
-            if (!match || Number(match[3]) !== userId) continue;
-            used.push(key);
-            const club = match[2];
-            if (server.workspaces?.[club]) continue;
-            const value = readJson(key);
-            const workspace = workspaces[club] ?? (workspaces[club] = {});
-            if (match[1] === 'focus') workspace.hiddenResponsibilities = tokens(value);
-            else { workspace.hiddenTabs = tokens((value as { tabs?: unknown } | null)?.tabs); workspace.hiddenAreas = tokens((value as { areas?: unknown } | null)?.areas); }
+            const match = /^gk-ws-(?:layout|focus):v1:\d+:(\d+)$/.exec(key);
+            if (match && Number(match[1]) === userId) used.push(key);
         }
-        const kept = Object.entries(workspaces).filter(([, workspace]) => WORKSPACE_LISTS.some(list => workspace[list]?.length));
-        if (kept.length) update.workspaces = Object.fromEntries(kept);
         if (window.localStorage.getItem(LEGACY_TUTORIAL_KEY) === 'true') {
             used.push(LEGACY_TUTORIAL_KEY);
             if (!server.tutorials) update.tutorials = { completed: ['calendar'] };

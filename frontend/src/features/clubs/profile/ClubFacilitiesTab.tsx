@@ -38,7 +38,7 @@ export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdi
             {squad && <span className="gk-muted">{t('Includes club-wide grounds')}</span>}
             {canEdit && <a className="gk-section__action" href={page?.viewer.canEdit
                 ? `/clubs/${club.id}?edit=1&panel=grounds`
-                : `/clubs/${club.id}/workspace?tab=facilities`}>{t('Manage locations')}</a>}
+                : `/clubs/${club.id}/office?tab=tools&tool=facilities`}>{t('Manage locations')}</a>}
         </div>}
         {places.loading ? <Panel flush><div className="gk-panel--pad"><Skeleton height={160} /></div></Panel>
             : places.failed ? <Panel flush><EmptyNote title={t('The locations couldn’t load')} action={<Button size="sm" onClick={places.retry}>{t('Try again')}</Button>} /></Panel>

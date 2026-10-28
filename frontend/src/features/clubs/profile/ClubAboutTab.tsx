@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, PenLine, Trophy } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, FixtureRow, List, ListRow, Panel, Section, Skeleton } from '../../../design/primitives';
+import { LinkedText } from '../../../design/LinkedText';
 import { Fact } from '../../../design/profile/ProfileLayout';
 import { dayLabel, kindOf, timeLabel } from '../../clubWorkspace/fixtures';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
@@ -37,7 +38,7 @@ export function ClubAboutTab({ club, can }: { club: ClubProfile; can: ClubPermis
         {lead === 'family' && <ClubFamilyWeek clubId={club.id} />}
         <Section boxed title="About" action={club.presentation?.canEdit ? { label: 'Edit', to: `/clubs/${club.id}?edit=1&panel=identity` } : undefined}>
             <Panel padded>
-                {club.description ? <p className="gk-club-story">{club.description}</p> : <p className="gk-muted">The club has not written its story yet.</p>}
+                {club.description ? <p className="gk-club-story"><LinkedText text={club.description} /></p> : <p className="gk-muted">The club has not written its story yet.</p>}
                 <dl className="gk-club-facts">
                     <Fact label="Type">{club.presentation ? profileKindLabel[club.presentation.profileKind] : club.type || 'Football club'}</Fact>
                     {club.foundedYear && <Fact label="Founded">{club.foundedYear}</Fact>}
@@ -51,7 +52,7 @@ export function ClubAboutTab({ club, can }: { club: ClubProfile; can: ClubPermis
             <ClubPostStrip posts={feed.posts} loading={feed.pages.loading} allTo={tabLink(club.id, 'posts')}
                 empty={{ title: 'No posts yet', body: can.canPost ? 'Share the first update from the Posts tab. It appears here and in your followers’ Home feed.' : 'When the club shares news, photos and results, they appear here.' }} />
         </Section>
-        <Section boxed icon={CalendarDays} title="Coming up" hint="Next 30 days" action={can.canManage ? { label: 'Club calendar', to: `/clubs/${club.id}/workspace?tab=calendar` } : undefined}>
+        <Section boxed icon={CalendarDays} title="Coming up" hint="Next 30 days" action={can.canManage ? { label: 'Club calendar', to: `/clubs/${club.id}/office?tab=calendar` } : undefined}>
             <Fixtures club={club} source={schedule} canManage={can.canManage} />
         </Section>
         <Section boxed icon={Trophy} tone="warning" title="Honours" hint={honours.length ? `${honours.length} recorded` : undefined}>
@@ -66,7 +67,7 @@ function Fixtures({ club, source, canManage }: { club: ClubProfile; source: Sour
     const fixtures = overviewFixtures(source.data?.events ?? []).slice(0, 4);
     if (source.loading) return <Panel flush><div className="gk-panel--pad"><Skeleton height={56} /></div></Panel>;
     if (source.failed) return <Panel flush><EmptyNote title="The schedule couldn’t load" action={<Button size="sm" onClick={source.retry}>Try again</Button>} /></Panel>;
-    if (!fixtures.length) return <Panel flush><EmptyNote title="No public matches in the next 30 days" action={canManage ? <ButtonLink size="sm" to={`/clubs/${club.id}/workspace?tab=calendar`}>Open the club calendar</ButtonLink> : undefined}>Training times are under Teams & training.</EmptyNote></Panel>;
+    if (!fixtures.length) return <Panel flush><EmptyNote title="No public matches in the next 30 days" action={canManage ? <ButtonLink size="sm" to={`/clubs/${club.id}/office?tab=calendar`}>Open the club calendar</ButtonLink> : undefined}>Training times are under Teams & training.</EmptyNote></Panel>;
     return <Panel flush><List label="Upcoming matches">{fixtures.map(f => {
         const squad = f.clubId === club.id ? f.challengerSquadName : f.targetSquadName;
         const kind = kindOf({ eventType: f.eventType });

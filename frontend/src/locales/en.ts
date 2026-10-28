@@ -1,5 +1,4 @@
 import { squadDesignEn, squadsDesignEn } from './squadDesign';
-import { clubOverviewEn } from './clubOverview';
 import { clubRecordsEn } from './clubRecords';
 import { coachHubEn, fixtureCopyEn, workspaceNavEn, workspaceShellEn } from './workspaceDesign';
 import { recruitmentDesignEn } from './recruitmentDesign';
@@ -13,7 +12,6 @@ const en = {
     eventNavigationFailed: 'The event editor could not open. Your post draft is still here. Try again.',
     you: 'You',
   },
-  clubOverview: clubOverviewEn,
   clubRecords: clubRecordsEn,
   workspaceShell: workspaceShellEn,
   workspaceNav: workspaceNavEn,

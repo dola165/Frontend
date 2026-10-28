@@ -20,7 +20,7 @@ function manager(clubId, headers) {
   const club = W.clubById(Number(clubId)), actor = V.viewerId(headers), page = P.clubPage(Number(clubId));
   if (!club) return { error: problem(404, 'Club not found.') };
   if (club.status === 'DISSOLVED' || page?.status === 'DELETED') return { error: problem(409, 'This club is not operating.') };
-  const restrictedPersona = actor === W.ME_ID && Number(clubId) === C.CLUB_ID && /gk-sandbox-persona=(analyst|member)(?:;|$)/.test(headers?.cookie ?? '');
+  const restrictedPersona = actor === W.ME_ID && Number(clubId) === C.CLUB_ID && V.restrictedPersona(headers);
   if (restrictedPersona || !['OWNER', 'ADMIN', 'CLUB_ADMIN'].includes(P.roleOf(page, actor))) return { error: problem(403, 'Current owner or administrator access is required.') };
   return { club, actor };
 }

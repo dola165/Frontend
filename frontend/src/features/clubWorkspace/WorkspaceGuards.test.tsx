@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { getAuthSessionId, setStoredAccessToken } from '../../utils/authStorage';
-import { ClubSettingsPage } from './settings/ClubSettingsPages';
+import { OfficeSettings } from '../clubOffice/OfficeSettings';
 import { WorkspaceOperations } from '../clubOperations/WorkspaceOperations';
 import { RecordTable } from '../clubOperations/records/RecordList';
 import { RecordDetail } from '../clubOperations/RecordDetail';
@@ -33,18 +33,23 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 
-describe('unsaved work across workspace tabs', () => {
-    it('asks before a settings section switch drops public profile edits', async () => {
-        render(<MemoryRouter initialEntries={['/?section=profile']}><ClubSettingsPage clubId={1} busy={false} /></MemoryRouter>);
+describe('unsaved work across Club office settings', () => {
+    it('asks before going back to Settings drops public profile edits', async () => {
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+            if (url.startsWith('/access/') || url.endsWith('/ownership')) throw new Error('none');
+            return { data: url.includes('/presentation/manage') ? profile : {} };
+        });
+        render(<MemoryRouter initialEntries={['/clubs/1/office?tab=settings&section=profile']}>
+            <OfficeSettings clubId={1} clubName="Academy" overview={null} boot={null} onRefresh={async () => {}} />
+        </MemoryRouter>);
         fireEvent.change(await screen.findByLabelText('Profile purpose'), { target: { value: 'COMMUNITY' } });
-        fireEvent.click(screen.getByRole('tab', { name: 'Joining' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
         expect(screen.getByRole('group', { name: 'Discard edits' })).toBeInTheDocument();
-        expect(screen.getByRole('tab', { name: 'Public profile' })).toHaveAttribute('aria-selected', 'true');
         fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
         expect(screen.getByLabelText('Profile purpose')).toHaveValue('COMMUNITY');
-        fireEvent.click(screen.getByRole('tab', { name: 'Joining' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
         fireEvent.click(screen.getByRole('button', { name: 'Discard edits' }));
-        await waitFor(() => expect(screen.getByRole('tab', { name: 'Joining' })).toHaveAttribute('aria-selected', 'true'));
+        expect(await screen.findByText('How players join')).toBeInTheDocument();
     });
 });
 
@@ -59,7 +64,7 @@ describe('Coach Hub links', () => {
 
 describe('records', () => {
     it('never marks a closed record overdue', () => {
-        render(<MemoryRouter><RecordTable boot={boot} home={false} sort={null} onSort={vi.fn()} hrefFor={() => '#'} onOpen={vi.fn()} records={[
+        render(<MemoryRouter><RecordTable boot={boot} sort={null} onSort={vi.fn()} hrefFor={() => '#'} onOpen={vi.fn()} records={[
             record({ id: 1, title: 'Wrist fracture', status: 'CLEARED', due_on: '2020-09-28' }),
             record({ id: 2, title: 'Ankle sprain', status: 'ACTIVE', due_on: '2020-09-28' }),
         ]} /></MemoryRouter>);

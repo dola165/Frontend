@@ -17,11 +17,15 @@ describe('journey notification destinations', () => {
     });
     it.each([
         '/agent?tab=relationships&approach=31', '/profile/12?approach=31',
-        '/clubs/12/workspace?tab=club-approaches&approach=31',
         '/profile/12?representation=31', '/profile/12?representationRecord=31&representationGeneration=2',
     ])('retains exact relationship notification destinations: %s', path => {
         expect(safeNotificationLink(path)).not.toBeNull();
         expect(buildNotificationDestination({ ...notification(path, 'relationship_event', 91), type: 'CLUB_APPROACH_UPDATED' })).toBe(path);
+    });
+    it('opens a club approach in Club office’s Agent approaches', () => {
+        const path = '/clubs/12/workspace?tab=club-approaches&approach=31';
+        expect(safeNotificationLink(path)).not.toBeNull();
+        expect(buildNotificationDestination({ ...notification(path, 'relationship_event', 91), type: 'CLUB_APPROACH_UPDATED' })).toBe('/clubs/12/office?tab=tools&tool=club-approaches&approach=31');
     });
     it.each([
         '/match-exchange/12#offer-91', '/referees/me#offer-01', '/referees/me#offer-9007199254740992',

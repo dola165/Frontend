@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronRight, LayoutList, PenLine } from 'lucide-react';
 import { Button } from '../../../design/primitives';
 import { usePagesCopy } from '../copy';
@@ -23,7 +24,9 @@ export function EditBar() {
   const { page, editing, canEdit, setEditing, openStep, goLive, status, pendingCount, rearranging, setRearranging } = usePageEdit();
   // The steps drop down from the bar when the ring is pressed; they start folded, so the current step is the one thing in view.
   const [stepsOpen, setStepsOpen] = useState(false);
-  const [verificationOpen, setVerificationOpen] = useState(false);
+  // Club office's Settings opens the verification here (`?verify=1`), the one place it is asked for.
+  const [params] = useSearchParams();
+  const [verificationOpen, setVerificationOpen] = useState(() => params.get('verify') === '1');
   // On a phone a draft is set up one full-screen card per step; the current step opens its card.
   const phoneSteps = usePhoneSteps();
   if (!page || !canEdit) return null;

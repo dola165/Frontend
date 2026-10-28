@@ -10,7 +10,7 @@ import { apiClient } from './axiosConfig';
  */
 export type AccessSubject = 'me' | `club:${number}` | `squad:${number}`;
 export type AccessAction =
-    | 'see_people' | 'invite_staff' | 'make_admin' | 'change_job' | 'end_job' | 'suggest_assistant' | 'confirm_assistant'
+    | 'see_people' | 'see_staff' | 'invite_staff' | 'make_admin' | 'change_job' | 'end_job' | 'suggest_assistant' | 'confirm_assistant'
     | 'add_child' | 'arrange_match' | 'report_score' | 'start_club' | 'follow'
     | 'join_squad' | 'manage_join_link' | 'approve_join_requests' | 'link_parent'
     | 'leave_club' | 'hand_over' | 'close_club' | 'ask_handover';

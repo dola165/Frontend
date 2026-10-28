@@ -11,11 +11,13 @@ import { removePlayerFromSquad } from '../../clubs/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import type { CoachData } from './CoachWorkspace';
+import { officePath } from '../../clubOffice/officeLinks';
 import './coach-hub.css';
 
 /**
  * The squad's roster, managed right here: one list of players with Remove, and Add players from the club.
- * Small on purpose: everything else about a squad stays in the club workspace, one link away at the bottom.
+ * Small on purpose: everything else about the squad is one link away at the bottom (its page in My squads, or for
+ * admins its place in Club office's Squads).
  */
 export function RosterDialog({ data, open, onClose }: { data: CoachData; open: boolean; onClose: () => void }) {
     const copy = useCopy('coachHub', coachHubEn);
@@ -34,7 +36,7 @@ export function RosterDialog({ data, open, onClose }: { data: CoachData; open: b
     };
     return <>
         <Dialog open={open && !adding} size="md" title={copy('manageRoster')} description={squad ? copy('playersInSquad', { count: players.length, squad: squad.name }) : undefined} onClose={onClose}
-            footer={<><Link className="cw-text-button ch-roster__more" to={data.workHref('squads', squadId ? { squad: String(squadId) } : {})}>{copy('moreInWorkspace')}</Link>
+            footer={<><Link className="cw-text-button ch-roster__more" to={data.roles.leadership ? officePath(data.clubId, 'squads', squadId ? { squad: String(squadId) } : {}) : data.link('overview', squadId ? { squad: String(squadId) } : {})}>{copy('moreAboutSquad')}</Link>
                 <Button variant="primary" disabled={!squadId} onClick={() => setAdding(true)}><Plus aria-hidden="true" />{copy('addPlayers')}</Button></>}>
             <div className="gk-stack">
                 {data.mine.length > 1 && <div className="ch-switch" role="group" aria-label={copy('squad')}>{data.mine.map(item => <button key={item.id} type="button" className="ch-switch__item" aria-pressed={item.id === squadId} onClick={() => setPicked(item.id)}>

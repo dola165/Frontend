@@ -1,10 +1,10 @@
-import { BadgeCheck, BookOpen, Bus, CalendarCheck, ClipboardCheck, ClipboardList, HeartPulse, Landmark, MapPin, Package, Settings2, Shield, UserCheck, UserMinus, Users, Goal } from 'lucide-react';
-import type { Bootstrap } from './api';
+import { BadgeCheck, BookOpen, Bus, CalendarCheck, ClipboardCheck, HeartPulse, Landmark, MapPin, Package, Settings2, Shield, UserCheck, UserMinus, Users, Goal } from 'lucide-react';
 import { translate } from '../../locales/useCopy';
 import { clubRecordsEn } from '../../locales/clubRecords';
+import { workspaceNavEn } from '../../locales/workspaceDesign';
 
+/** The club's records tools by module. They open in Club office's More tools until each has a page of its own. */
 export const operationTabs = [
-  { id: 'actions', module: 'HOME', label: 'Outstanding actions', icon: ClipboardList, group: 'Club' },
   { id: 'staff-duties', module: 'STAFF', label: 'Staff duties', icon: Users, group: 'Staff' },
   { id: 'credentials', module: 'CREDENTIALS', label: 'Credentials', icon: BadgeCheck, group: 'Staff' },
   { id: 'specialists', module: 'SPECIALISTS', label: 'Specialists', icon: UserCheck, group: 'Staff' },
@@ -26,9 +26,10 @@ export const operationTabs = [
 ] as const;
 export type OperationTab = typeof operationTabs[number]['id'];
 export const operationModule = (tab: string) => operationTabs.find(item => item.id === tab)?.module;
-export const operationTab = (module: string | null) => operationTabs.find(item => item.module === module)?.id ?? 'actions';
-export const staffTabs = new Set<string>(['personnel', 'staff-duties', 'credentials', 'specialists']);
-export const availableOperationTabs = (boot: Bootstrap) => operationTabs.filter(item => item.module === 'HOME' || item.module === 'SETTINGS' && boot.leadership || boot.modules.some(m => m.id === item.module));
-const DESCRIBED = ['HOME', 'STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'REGISTRATION', 'DEVELOPMENT', 'EDUCATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'DEPARTURES', 'AVAILABILITY', 'MEDICAL', 'WELFARE'] as const;
+/** The tool of a module; an unknown one (the retired work queue's HOME) is the club's old overview, now the Inbox. */
+export const operationTab = (module: string | null) => operationTabs.find(item => item.module === module)?.id ?? 'overview';
+/** The translated name of a club tool, as More tools and the tool's own page show it. */
+export const toolLabel = (id: string) => (id in workspaceNavEn ? translate('workspaceNav', workspaceNavEn, id as keyof typeof workspaceNavEn) : id);
+const DESCRIBED = ['STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'REGISTRATION', 'DEVELOPMENT', 'EDUCATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'DEPARTURES', 'AVAILABILITY', 'MEDICAL', 'WELFARE'] as const;
 /** What each tool is for, in one line, in the person's language. */
 export const operationDescriptions: Record<string, string> = Object.defineProperties({}, Object.fromEntries(DESCRIBED.map(id => [id, { enumerable: true, get: () => translate('clubRecords', clubRecordsEn, `describe_${id}`) }])));

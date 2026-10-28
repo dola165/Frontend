@@ -244,7 +244,7 @@ describe('the welcome', () => {
         // The invite is there before anything is typed.
         expect(await within(box).findByText('You’re invited')).toBeInTheDocument();
         await user.click(within(box).getByRole('button', { name: 'Join Rustavi Steel' }));
-        await waitFor(() => expect(address()).toBe('/clubs/6/workspace'));
+        await waitFor(() => expect(address()).toBe('/clubs/6/office'));
         expect(server.posts).toContainEqual({ url: '/clubs/6/operations/appointments/77/transition', body: { status: 'ACTIVE', revision: 2 } });
         await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CLUB' }));
     });
@@ -265,7 +265,7 @@ describe('the welcome', () => {
         expect(within(box).queryByRole('button', { name: 'Join Rustavi Juniors' })).toBeNull();
         await user.type(within(box).getByRole('textbox', { name: 'Enter the code your admin gave you' }), 'https://grasskickz.com/staff-invite/ABC123');
         await user.click(within(box).getAllByRole('button', { name: 'Join' }).at(-1)!);
-        await waitFor(() => expect(address()).toBe('/clubs/9/workspace'));
+        await waitFor(() => expect(address()).toBe('/clubs/9/office'));
         expect(server.posts.map(post => post.url)).toEqual(['/staff-invite/ABC123']);
     });
 

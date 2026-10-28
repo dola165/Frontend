@@ -38,7 +38,7 @@ export const ClubStorePage = () => {
         onDone={product => { toast.success(product.active ? ct('Product added to your store') : ct('Product saved as a draft')); setAdding(false); setRevision(n => n + 1); }} onCancel={() => setAdding(false)} /></CommerceDraftScope>);
     const actions = <div className="gk-store-club__actions">
         {canAdd && <Button variant="primary" onClick={() => setAdding(true)}><Plus aria-hidden="true" />{ct("Add a product")}</Button>}
-        {canAdd && <ButtonLink variant="ghost" style={{ minHeight: 44 }} to={`/clubs/${clubId}/workspace?tab=store`}>{ct("Manage store")}</ButtonLink>}
+        {canAdd && <ButtonLink variant="ghost" style={{ minHeight: 44 }} to={`/clubs/${clubId}/office?tab=tools&tool=store`}>{ct("Manage store")}</ButtonLink>}
         {!embedded && <ButtonLink variant="ghost" to={`/clubs/${clubId}`}>{ct("Club page")}</ButtonLink>}
         <ButtonLink to="/store/cart"><ShoppingBag aria-hidden="true" />{ct("Cart")}</ButtonLink>
     </div>;

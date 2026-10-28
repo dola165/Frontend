@@ -8,7 +8,7 @@ import { focusableViews } from '../../clubOperations/workspaceStructure';
 import { label as words } from '../../clubOperations/api';
 import { dueWords } from '../fixtures';
 import { viewSquads } from './coachData';
-import { SuggestAssistantDialog } from '../../clubOperations/people/SuggestAssistantDialog';
+import { SuggestFlow } from '../../actions/flows/StaffFlows';
 import { useCan } from '../../../hooks/useCan';
 import * as squadApi from '../../squadCommunication/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
@@ -95,6 +95,6 @@ export function CoachTeam({ data }: { data: CoachData }) {
                 </Section>
             </div>
         </div>
-        {suggesting && <SuggestAssistantDialog club={data.clubId} squads={ownSquads} onClose={() => setSuggesting(false)} onSent={message => { setSuggesting(false); setSent(message); }} />}
+        {suggesting && <SuggestFlow club={data.clubId} squadId={ownSquads.length === 1 ? ownSquads[0].id : undefined} onClose={() => setSuggesting(false)} onSent={message => { setSuggesting(false); setSent(message); }} />}
     </PageFrame>;
 }

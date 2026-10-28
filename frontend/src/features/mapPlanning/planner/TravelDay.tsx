@@ -17,7 +17,7 @@ export function TravelDay({ plan, busy, command }: { plan: Plan; busy: boolean; 
     const travel = plan.rights.travel;
     return (
         <Section title="On the day" hint={plan.trip ? `Trip ${plan.trip.status.toLowerCase().replaceAll('_', ' ')}` : undefined}
-            action={plan.trip ? { label: 'Open the travel record', to: `/clubs/${plan.club_id}/workspace?tab=travel&record=${plan.trip.id}` } : undefined}>
+            action={plan.trip ? { label: 'Open the travel record', to: `/clubs/${plan.club_id}/office?tab=tools&tool=travel&record=${plan.trip.id}` } : undefined}>
             {!plan.trip ? (
                 <EmptyNote title="Travel records not connected" action={travel ? <Button size="sm" disabled={busy} onClick={() => void command('connect-trip')}>Connect travel records</Button> : undefined}>
                     Connect the published itinerary to a trip so boarding and arrival can be recorded on the day.

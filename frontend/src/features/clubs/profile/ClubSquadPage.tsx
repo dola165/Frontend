@@ -47,7 +47,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
     // Without a programme, a club with a page still says what training costs: the fee band its owner set.
     const band = feeBandText(usePageEditIfAny()?.page?.boxes.fees.band ?? null);
     const enquiry: ClubEnquiryContext = { name: squad.name, path: trainingPath(club.id, { squad: squad.id }), squadIds: [squad.id] };
-    const roster = `/clubs/${club.id}/workspace?tab=squads&squad=${squad.id}`;
+    const roster = `/clubs/${club.id}/office?tab=squads&squad=${squad.id}`;
     const fact = (label: string, value: React.ReactNode) => <div className="gk-club-squad__fact"><dt>{label}</dt><dd>{value}</dd></div>;
 
     return <>

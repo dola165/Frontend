@@ -35,8 +35,8 @@ function roles(club = 400) {
 }
 const overview = () => ({ id: 401, club_id: 400, viewer_id: 9500, academy_name: 'Assigned club', name: squad.name, category: 'U12', can_manage: true, unread_count: 0, member_count: 1, notify_chat: true, head_coach_id: fixture.assigned ? 9500 : null, can_assign_coach: true, available_coaches: [coach], coaches: fixture.assigned ? [coach] : [], players: [], threads: [] });
 function Location() { const value = useLocation(); return <output data-testid="location">{value.pathname + value.search}</output>; }
-function mount(path = '/clubs/400/workspace?tab=squads&squad=401') { return render(<MemoryRouter initialEntries={[path]}><Location /><Routes>
-    <Route path="/clubs/:id/workspace" element={<SquadsPage clubId={400} overview={{ currentUserRole: 'OWNER', activePlayerCount: 0 } as never} setParentError={vi.fn()} setParentSuccess={vi.fn()} workspace={{ data: roles(), boot, onOpen: vi.fn() }} />} />
+function mount(path = '/clubs/400/office?tab=squads&squad=401') { return render(<MemoryRouter initialEntries={[path]}><Location /><Routes>
+    <Route path="/clubs/:id/office" element={<SquadsPage clubId={400} overview={{ currentUserRole: 'OWNER', activePlayerCount: 0 } as never} setParentError={vi.fn()} setParentSuccess={vi.fn()} workspace={{ data: roles(), boot, onOpen: vi.fn() }} />} />
     <Route path="/my-squads" element={<CoachWorkspacePage />} />
 </Routes></MemoryRouter>); }
 async function assign() {
@@ -81,9 +81,9 @@ describe('assigned club handoff', () => {
         expect(fixture.readClubs.length).toBeGreaterThan(0); expect(fixture.readClubs.every(club => club === 400)).toBe(true); expect(apiClient.put).toHaveBeenCalledOnce();
     });
     it("opens the linked squad's editor once from a private score's age-group link", async () => {
-        mount('/clubs/400/workspace?tab=squads&squad=401&edit=1');
+        mount('/clubs/400/office?tab=squads&squad=401&edit=1');
         expect(await screen.findByRole('dialog', { name: 'Edit squad' })).toBeInTheDocument();
-        await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/clubs/400/workspace?tab=squads&squad=401'));
+        await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/clubs/400/office?tab=squads&squad=401'));
     });
     it('removes the saved handoff when its captured login retires before navigation', async () => {
         mount(); await assign(); act(() => setStoredAccessToken('replacement-club-handoff-fixture'));

@@ -9,8 +9,8 @@ import type { ClubProfile } from './types';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
 /**
- * The header actions, chosen from the viewer's verified relationship: staff open the workspace and start matches
- * from here (club settings live in the workspace), another club's staff propose a match, and everyone else can follow or join. One primary action.
+ * The header actions, chosen from the viewer's verified relationship: staff open Club office and start matches
+ * from here (club settings live in Club office), another club's staff propose a match, and everyone else can follow or join. One primary action.
  */
 export function ClubActions({ club, can, onFollowChange, onJoin, onMessage }: {
     club: ClubProfile; can: ClubPermissions;
@@ -24,7 +24,7 @@ export function ClubActions({ club, can, onFollowChange, onJoin, onMessage }: {
             <ButtonLink to={openChallengePath()}><Megaphone aria-hidden="true" />{t("Open challenge")}</ButtonLink>
             <ActionButton action="arrange_match" subject={{ kind: 'club', id: club.id }} label={t('Arrange a match')} />
         </>}
-        <ButtonLink variant="primary" to={`/clubs/${club.id}/workspace`}><LayoutGrid aria-hidden="true" />{t(can.invitationOnly ? 'Review invitation' : 'Open workspace')}</ButtonLink>
+        <ButtonLink variant="primary" to={can.invitationOnly ? '/requests' : `/clubs/${club.id}/office`}><LayoutGrid aria-hidden="true" />{t(can.invitationOnly ? 'Review invitation' : 'Club office')}</ButtonLink>
     </>;
     const primary: 'match' | 'join' | 'follow' | null = can.canChallenge ? 'match' : can.canJoin ? 'join' : can.canFollow && !following ? 'follow' : null;
     return <>

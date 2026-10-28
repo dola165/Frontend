@@ -8,6 +8,7 @@ import * as S from '../world-social.mjs';
 import * as P from '../world-profile.mjs';
 import * as F from '../world-football.mjs';
 import * as V from '../viewer.mjs';
+import { profilePhone, setProfilePhone } from '../profile-phones.mjs';
 import { familyRequest } from '../world-family.mjs';
 import { canReadSquadSession, canSelectSessionPlayer, squadAccess } from '../squad-access.mjs';
 import { squadSessionDto as sessionDto, sessionResponseOf as responseOf, projectSquadSession } from '../squad-session-dto.mjs';
@@ -327,6 +328,8 @@ function profileDto(p) {
     careerHistory: careerHistory(p), avatarUrl: p.avatarUrl, bannerUrl: p.id === ME ? S.accountProfile.bannerUrl : `/sandbox-media/photo/profile-banner-${p.id}.svg`,
     dateOfBirth: adult ? S.birthDate(p) : null, isPrivate: false,
     roleProfiles: rolesOf(p).filter(r => r.published || p.id === ME), footballProfile: footballProfileOf(p),
+    // The phone colleagues may call is the person's own: only they get it back here.
+    phone: p.id === ME ? profilePhone(ME) : null,
   };
 }
 const userParam = params => /^\d+$/.test(params.id) ? person(params.id) : undefined;
@@ -379,7 +382,18 @@ put('/users/me', ({ body }) => {
   if (body?.bio != null) S.accountProfile.bio = String(body.bio);
   if (body?.avatarUrl) p.avatarUrl = body.avatarUrl;
   if (body?.bannerUrl) S.accountProfile.bannerUrl = body.bannerUrl;
-  return accountDto();
+  // A birth date is given once, as on the server; a different one later is refused.
+  if (body?.dateOfBirth) {
+    if (S.accountProfile.dob && S.accountProfile.dob !== String(body.dateOfBirth)) return reply(409, { status: 409, message: 'Date of birth is locked after registration. Contact support to correct it.' });
+    S.accountProfile.dob = String(body.dateOfBirth);
+  }
+  if (body?.phone != null) {
+    if (String(body.phone).trim() && !S.accountProfile.dob) return reply(403, { status: 403, message: 'Only adult accounts can add a phone.' });
+    if (String(body.phone).trim() && S.isMinor(p)) return reply(403, { status: 403, message: 'Only adult accounts can add a phone.' });
+    const saved = setProfilePhone(ME, body.phone);
+    if (saved.error) return badRequest(saved.error);
+  }
+  return { ...accountDto(), phone: profilePhone(ME) };
 });
 put('/users/me/profile', ({ body }) => { if (body?.bio != null) S.accountProfile.bio = String(body.bio); return accountDto(); });
 get('/users/me/roles', () => S.roleProfiles.get(ME));

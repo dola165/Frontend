@@ -10,7 +10,7 @@ import { GroundsBox, HonoursBox, InvolvedBox, SponsorsBox, SquadsBox, StaffBox }
  * view with its own (the Home chat's blocks) while keeping these ghosts and editors.
  */
 export const defaultBoxes: BoxRenderers = {
-  contact: { View: ContactBox, icon: Phone, words: 'How to reach you', hint: 'Phone, WhatsApp, email', filled: page => Boolean(page.identity.contact.phone || page.identity.contact.email || page.identity.social.website || page.identity.social.instagram) },
+  contact: { View: ContactBox, icon: Phone, words: 'How to reach you', hint: 'Phone, WhatsApp, email', filled: page => Boolean(page.identity.contact.phone || page.identity.contact.email || page.identity.social.website || page.identity.social.instagram || page.identity.social.facebook) },
   fees: { View: FeesBox, icon: Coins, words: 'What does it cost?', hint: 'From – to a month, or free', filled: page => page.boxes.fees.band !== null },
   grounds: { View: GroundsBox, icon: MapPin, words: 'Where do you play?', hint: 'Pick a pitch on the map', panel: 'grounds', filled: page => page.boxes.grounds.items.length > 0 },
   squads: { View: SquadsBox, icon: Users, words: 'Which teams?', hint: 'Boys, girls or both, by birth year', panel: 'squads', filled: page => page.boxes.squads.items.length > 0 },

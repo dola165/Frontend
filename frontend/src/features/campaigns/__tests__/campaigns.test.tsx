@@ -1,9 +1,6 @@
 vi.mock('../../paymentPreview/config', () => ({ paymentPreviewEnabled: () => false }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated' }) }));
 import type { ImgHTMLAttributes } from 'react';
-import { ShoppingBag, HeartHandshake, Briefcase } from 'lucide-react';
-import { WorkspaceShell } from '../../../design/workspace/WorkspaceShell';
-import { clubNavigation } from '../../clubWorkspace/clubTabs';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
@@ -135,11 +132,5 @@ describe('The club’s own fundraisers (workspace)', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('This campaign changed');
         expect(api.editCampaign).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 2, title: 'Our new pitch' }), expect.any(String));
         expect(screen.getByLabelText('Campaign title')).toHaveValue('Our new pitch');
-    });
-    it('makes Store, Campaigns and Roles reachable in the workspace navigation', () => {
-        const onSelect = vi.fn();
-        const nav = clubNavigation([{ id: 'store', label: 'Store', icon: ShoppingBag }, { id: 'campaigns', label: 'Campaigns', icon: HeartHandshake }, { id: 'jobs', label: 'Roles', icon: Briefcase }], { focus: 'all', pins: [], inbox: { allowed: false, unread: 0 } });
-        render(<MemoryRouter><WorkspaceShell label="Club workspace" storageKey="test" context={{ name: 'Test FC' }} {...nav} active="campaigns" onSelect={onSelect} sectionTitle="Campaigns"><p>Content</p></WorkspaceShell></MemoryRouter>);
-        for (const [name, id] of [['Store', 'store'], ['Campaigns', 'campaigns'], ['Roles', 'jobs']]) { fireEvent.click(screen.getByRole('button', { name })); expect(onSelect).toHaveBeenLastCalledWith(id); }
     });
 });

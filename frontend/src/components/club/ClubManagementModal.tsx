@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDialogFocus } from '../workspace/useDialogFocus';
+import { legacyWorkspaceTarget, officePath } from '../../features/clubOffice/officeLinks';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { useClubPanelMotion } from '../../features/clubs/useClubPanelMotion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -56,6 +58,7 @@ export const ClubManagementModal = ({
     onClose,
 }: ClubManagementModalProps) => {
     const navigate = useNavigate();
+    const copy = useJourneyCopy();
 
     const canManageLeadership = isLeadershipRole(currentRole);
     const canManageTryouts = canReviewTryouts(currentRole);
@@ -143,11 +146,12 @@ export const ClubManagementModal = ({
     }, [clubId, canManageTryouts]);
 
     // ── navigation ──
+    // The club workspace became Club office (step 2): each old tab lands where it lives now; the club's updates are in the Inbox.
     const goWorkspace = (tab?: ClubManagementTab) => {
         onClose();
-        navigate(`/clubs/${clubId}/workspace${tab ? `?tab=${tab}` : ''}`);
+        navigate(tab ? legacyWorkspaceTarget(clubId, new URLSearchParams({ tab })) : officePath(clubId));
     };
-    const goWorkspaceInbox = () => { onClose(); navigate(`/clubs/${clubId}/workspace?tab=inbox`); };
+    const goWorkspaceInbox = () => { onClose(); navigate('/requests?view=updates'); };
     const goSquads = () => { onClose(); navigate(`/clubs/${clubId}?tab=teams`); };
 
     const memberCount = overview?.members.length ?? 0;
@@ -231,7 +235,7 @@ export const ClubManagementModal = ({
                         onClick={() => goWorkspace()}
                         className="flex w-full items-center justify-between rounded-[2px] border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-4 py-3 text-left text-sm font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)] transition-colors"
                     >
-                        <span>Open Club Workspace</span>
+                        <span>{copy('Open Club office', 'კლუბის ოფისის გახსნა')}</span>
                         <ArrowRight className="h-4 w-4" />
                     </button>
 

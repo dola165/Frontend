@@ -30,6 +30,8 @@ export interface PersonProfile {
     /** Withheld by the server for minors and for anyone who keeps it private. */
     dateOfBirth?: string | null;
     isPrivate?: boolean;
+    /** Only on your own profile: the phone you added for colleagues (they see it in Club office › Staff). */
+    phone?: string | null;
 }
 
 // Counts, flags and lists can be missing from older API answers; a gap must not take the page down.
@@ -84,6 +86,8 @@ export const fetchDiscoveryPreferences = async (signal?: AbortSignal) =>
 export const saveDiscoveryPreferences = async (value: Omit<DiscoveryPreferences, 'version'>, expectedVersion: number, requestId: string) =>
     (await apiClient.put<DiscoveryPreferences>('/users/me/discovery', { ...value, expectedVersion, requestId })).data;
 export const saveAbout = async (bio: string) => apiClient.put('/users/me', { bio });
+/** The phone colleagues may call, on your own profile; an empty one removes it. Adults only. */
+export const saveMyPhone = async (phone: string) => (await apiClient.put<PersonProfile>('/users/me', { phone })).data;
 /** The person's own profile photo or cover. */
 export const saveMyImage = async (field: 'banner' | 'avatar', url: string) => apiClient.put('/users/me', field === 'avatar' ? { avatarUrl: url } : { bannerUrl: url });
 /** Gives an account its birth date, once (the server refuses to change it later). */

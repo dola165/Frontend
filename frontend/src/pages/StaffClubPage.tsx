@@ -47,7 +47,7 @@ export function StaffClubPage() {
     const suggested = choice?.clubs.find(c => c.clubId === choice.suggestedClubId);
     const body = done ? <Panel padded>
         <EmptyNote title={copy(`You’re staff at ${done.club}.`, `${done.club}-ის თანამშრომელი ხართ.`)}
-            action={<ButtonLink variant="primary" to={`/clubs/${done.clubId}/workspace`}>{copy(`Open ${done.club}`, `${done.club}-ის გახსნა`)}</ButtonLink>}>
+            action={<ButtonLink variant="primary" to={`/clubs/${done.clubId}/office`}>{copy(`Open ${done.club}`, `${done.club}-ის გახსნა`)}</ButtonLink>}>
             {done.ended.length ? copy(`Your jobs at ${done.ended.join(', ')} ended and stay in your career. Their admins are told.`, `${done.ended.join(', ')}-ში სამუშაოები დასრულდა და კარიერაში რჩება. მათ ადმინებს ეცნობათ.`) : null}
         </EmptyNote></Panel>
         : error ? <Panel><EmptyNote title={error} action={<Button onClick={reload}>{copy('Try again', 'თავიდან')}</Button>} /></Panel>

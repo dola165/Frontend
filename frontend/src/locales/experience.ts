@@ -4,9 +4,9 @@ export const experienceEn = {
     referee: 'Referee workspace', agent: 'Agent Hub', venues: 'My Venues',
   },
   clubs: {
-    // Only for someone still connected to several clubs; navigation always says "My Club".
-    title: 'Your clubs', profile: 'View profile', workspace: 'Open workspace',
-    description: 'Choose a club to view its profile or open the workspace for your responsibilities.',
+    // Only for someone still connected to several clubs; Home's left side says "My club".
+    title: 'Your clubs', profile: 'View profile', workspace: 'Club office',
+    description: 'Choose a club to view its page or open its Club office.',
   },
   workspace: {
     title: '{{type}} workspace', responsibility: 'Your responsibility: {{role}}', back: 'My organizations', backVenues: 'My venues',
@@ -60,8 +60,8 @@ export const experienceKa = {
     referee: 'მსაჯის სამუშაო სივრცე', agent: 'აგენტის სივრცე', venues: 'ჩემი მოედნები',
   },
   clubs: {
-    title: 'თქვენი კლუბები', profile: 'პროფილის ნახვა', workspace: 'სამუშაო სივრცის გახსნა',
-    description: 'აირჩიეთ კლუბი მისი პროფილის ან თქვენი უფლებების შესაბამისი სამუშაო სივრცის გასახსნელად.',
+    title: 'თქვენი კლუბები', profile: 'პროფილის ნახვა', workspace: 'კლუბის ოფისი',
+    description: 'აირჩიეთ კლუბი მისი გვერდის ან კლუბის ოფისის გასახსნელად.',
   },
   workspace: {
     title: '{{type}} — სამუშაო სივრცე', responsibility: 'თქვენი პასუხისმგებლობა: {{role}}', back: 'ჩემი ორგანიზაციები', backVenues: 'ჩემი მოედნები',

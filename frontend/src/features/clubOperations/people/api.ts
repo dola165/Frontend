@@ -2,7 +2,7 @@ import { apiClient } from '../../../api/axiosConfig';
 import { cancelClubInvitation, removeClubMember } from '../../clubs/api';
 import { extractApiErrorCode } from '../../../utils/apiError';
 
-/** The club's People screen: person → jobs → where (backend `ClubPeopleController`, fnd-access-b, 26 October 2026). */
+/** Club office's Staff: person → jobs → where, with contacts and today's duties (backend `ClubPeopleController`; step 2, 28 October 2026). */
 export interface PeopleSquad { id: number; name: string }
 export type JobKind = 'APPOINTMENT' | 'OWNER' | 'ADMIN' | 'COACH' | 'ADMIN_INVITE' | 'COACH_INVITE';
 /** SUGGESTED: a head coach's suggestion waiting for an admin. */
@@ -24,13 +24,22 @@ export interface PersonJob {
     changedByName?: string | null; changedAt?: string | null; history?: JobEvent[];
 }
 export interface JobEvent { at: string; byName: string; action: 'GIVEN' | 'SUGGESTED' | 'CONFIRMED' | 'DECLINED' | 'ACCEPTED' | 'CHANGED' | 'JOINED_BY_LINK' | 'ENDED'; summary: string | null }
-export interface Person { userId: number; name: string; email: string | null; avatarUrl: string | null; needsLink: boolean; jobs: PersonJob[] }
+/** A duty someone has today, from Staff duties. */
+export interface Duty { id: number; title: string; startsAt: string; endsAt: string | null; location: string | null }
+/**
+ * `email` and `phone`: how fellow staff reach them, null when they hid it or it isn't the viewer's to see (admins
+ * always see emails; nobody sees an invitee's phone). `onDuty`: their duties today.
+ */
+export interface Person { userId: number; name: string; email: string | null; phone?: string | null; avatarUrl: string | null; needsLink: boolean; jobs: PersonJob[]; onDuty?: Duty[] }
+/** An outside specialist the club works with now, from Specialists. */
+export interface Specialist { id: number; name: string; specialisation: string | null; contact: string | null; startsAt: string | null; endsAt: string | null }
 export interface NameCheck { id: number; userId: number; invitedName: string; acceptedName: string; at: string }
 export interface JobChoice { key: string; title: string; description: string; tools: string[]; family?: string; home?: string; views?: string[]; titles?: string[] }
 export interface PeopleView {
-    /** `leader`: the Owner or an Admin. */
-    viewer: { userId: number; leader: boolean; owner: boolean; headCoachSquads: number[] };
+    /** `leader`: the Owner or an Admin. `hideEmail`, `hidePhone`: the viewer's own choice of what fellow staff see. */
+    viewer: { userId: number; leader: boolean; owner: boolean; headCoachSquads: number[]; hideEmail?: boolean; hidePhone?: boolean };
     people: Person[]; nameChecks: NameCheck[]; squads: PeopleSquad[]; jobs: JobChoice[]; moreJobs: JobChoice[]; tools: string[];
+    specialists?: Specialist[];
 }
 /** A staff link: one job (never Admin), 7 days or 10 uses, and who joined through it. `code` and `path` only while ACTIVE. */
 export interface StaffLink {
@@ -81,6 +90,14 @@ export const changeJob = async (club: number, job: PersonJob, draft: JobDraft) =
 };
 
 export const newInviteLink = async (club: number, userId: number) => (await apiClient.post<InviteLink>(`${base(club)}/${userId}/link`)).data;
+
+/** What you share with fellow staff: whether they see your email and the phone you added on your profile. */
+export interface ContactChoice { hideEmail: boolean; hidePhone: boolean }
+
+/** Your own choice, in every club you work at, sent whole each time. Admins still see emails. */
+export const setContactSharing = async (club: number, choice: ContactChoice) => {
+    await apiClient.put(`${base(club)}/me/contact`, choice);
+};
 
 export const settleNameCheck = async (club: number, check: number, outcome: 'keep' | 'undo') => {
     await apiClient.post(`${base(club)}/name-checks/${check}/${outcome}`);

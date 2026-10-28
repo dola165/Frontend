@@ -135,7 +135,7 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
 };
 
 export const buildNotificationDestination = (notification: NotificationItem) => {
-    const outcome = `/notifications?itemId=${notification.id}`;
+    const outcome = `/requests?view=updates&itemId=${notification.id}`;
     const entityId = notificationId(notification.entityId);
     const link = safeNotificationLink(notification.linkPath);
     const path = link ? link.pathname + link.search + link.hash : null;
@@ -171,11 +171,11 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     if (notification.entityType === 'admission_governance') return entityId && (path === '/admissions' || path === '/parent') ? `${path}?player=${entityId}` : outcome;
     if (notification.type === 'CLUB_PERMISSION_REQUEST') {
         return notification.entityType === 'club_operation' && entityId
-            ? `/club-operations?permissionId=${entityId}` : outcome;
+            ? `/parent?tab=connections&permissionId=${entityId}` : outcome;
     }
     if (notification.type === 'CLUB_STAFF_APPOINTMENT') {
         return notification.entityType === 'club_staff_appointment' && entityId
-            ? `/club-operations?appointmentId=${entityId}` : outcome;
+            ? `/requests?appointmentId=${entityId}` : outcome;
     }
     if (notification.entityType === 'match_result' || notification.entityType === 'match_result_suggestion') {
         const match = link?.pathname.match(/^\/match-exchange\/([1-9]\d*)$/);
@@ -203,7 +203,7 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     if (notification.type.startsWith('VENUE_BOOKING_') || notification.entityType === 'venue_booking') {
         if (!link) return outcome;
         const venueId = link.pathname.match(/^\/stadiums\/([1-9]\d*)(?:\/manage)?$/)?.[1]
-            ?? (link.pathname === '/notifications' ? link.searchParams.get('venueId') : null);
+            ?? (link.pathname === '/requests' ? link.searchParams.get('venueId') : null);
         const linkedBooking = link.searchParams.get('bookingId');
         if (!venueId || (notification.entityId != null && !entityId) || (entityId && linkedBooking && entityId !== linkedBooking)) return outcome;
         const bookingId = linkedBooking ?? entityId;
@@ -249,7 +249,7 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     // but cannot reopen the retired workspace or API surface.
     if (notification.type === 'AGENT_ENGAGEMENT_RECEIVED'
         || notification.type === 'MARKETPLACE_LISTING_CREATED') {
-        return '/notifications';
+        return '/requests?view=updates';
     }
 
     if (notification.linkPath) {
@@ -269,7 +269,7 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
             return `/clubs/${notification.clubId}/workspace?tab=invites`;
         }
         if (notification.type === 'SQUAD_ASSIGNMENT' && notification.entityId != null) {
-            return `/clubs/${notification.clubId}/squads?squad=${notification.entityId}`;
+            return `/clubs/${notification.clubId}?tab=teams&squad=${notification.entityId}`;
         }
         return `/clubs/${notification.clubId}`;
     }
@@ -278,10 +278,10 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     // Aug 17 (P2.5): a club-scoped item without a club id cannot land on a
     // meaningful club filter — plain notifications list instead of ?scope=club.
     if (fallbackScope === 'club' && notification.clubId == null) {
-        return '/notifications';
+        return '/requests?view=updates';
     }
     const search = createNotificationSearch(fallbackScope, notification.clubId ?? null, notification.clubName ?? null);
-    return search ? `/notifications?${search}` : '/notifications';
+    return search ? `/requests?view=updates&${search}` : '/requests?view=updates';
 };
 
 export const notificationActionLabel = (notification: NotificationItem) => {

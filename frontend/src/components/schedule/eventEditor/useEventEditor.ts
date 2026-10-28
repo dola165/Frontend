@@ -366,8 +366,8 @@ export function useEventEditor({
         mapOpen, minutes, mode, motion, navigateStep, next, onClose, overnightEnabled, privacyText, readOnly,
         readableDate, recurring, requestClose, saveLabel, savedSeries, selectMode, sessionDates,
         setCancelConfirm, setDiscard, setForm, setMapOpen, showIssue, squadClubId, squadError, squadName,
-        squads, start, startedSeries, step, stepHeading, subjectLabel, submitting, surface, t, targetEventId,
-        targetEventStartsAt, titleId, titleInput, update,
+        squads, start, startedSeries, step, stepHeading, subjectLabel, submitting, surface, t,
+        titleId, titleInput, update,
     };
 }
 

@@ -1,6 +1,3 @@
-import { HOURS, posterOf, type Job } from '../../jobs/api';
-import { fetchOpenJobDirectory, type ClubJob } from '../../clubs/api';
-import { CATEGORIES } from '../../clubs/jobLabels';
 import { searchTryouts, type TryoutPosting } from '../../tryouts/api';
 import { fetchOpportunity, searchOpportunities } from '../../admissions/api';
 import type { DiscoveryQuery, Participant } from '../../admissions/types';
@@ -8,67 +5,13 @@ import { postingLabel } from '../../tryouts/tryoutCopy';
 import { availabilityCopy } from '../../admissions/applicant/copy';
 import { wt } from '../copy';
 import { first, type DirectoryQuery, type DirectorySource, type FilterDef, type FilterOption, type RememberedChoice } from '../directory/types';
-import { bilingual, calendarDaysUntil, codeLabel, ENGAGEMENT, factTone, fixtureDay, fixtureTime, postedLabel } from '../format';
-import { peekOf } from '../peek/usePeek';
-import { JobItem, TrainingItem, TrialItem, type GroupResult } from './opportunityItems';
+import { bilingual, calendarDaysUntil, codeLabel, fixtureDay, fixtureTime } from '../format';
+import { TrainingItem, TrialItem, type GroupResult } from './opportunityItems';
 import { firstName } from '../players';
 import { ChildSwitch } from './ChildSwitch';
 import { clubScope } from './scopes';
 
 const PAGE = 20;
-export const jobs: DirectorySource<ClubJob> = {
-    id: 'jobs',
-    label: 'Jobs & volunteering',
-    noun: ['job', 'jobs'],
-    searchLabel: 'Search jobs and volunteering',
-    searchPlaceholder: 'Search roles, clubs or skills',
-    pageSize: PAGE,
-    filters: [
-        { kind: 'choice', key: 'direction', label: 'Listing type', allLabel: 'All listings', options: [{ value: 'HIRING', label: 'Jobs' }, { value: 'OFFERING', label: 'People available' }] },
-        { kind: 'choice', key: 'poster', label: 'Posted by', allLabel: 'Everyone', options: [{ value: 'clubs', label: 'Clubs' }, { value: 'people', label: 'People' }] },
-        { kind: 'choice', key: 'hours', label: 'Hours', allLabel: 'Any hours', options: HOURS },
-        { kind: 'choice', key: 'engagement', label: 'Terms', primary: true, allLabel: 'All roles', options: [{ value: 'PAID', label: 'Paid' }, { value: 'VOLUNTEER', label: 'Volunteering' }, { value: 'FLEXIBLE', label: 'Paid or volunteer' }] },
-        clubScope('clubId'),
-        { kind: 'choice', key: 'category', label: 'Football role', allLabel: 'Any football role', options: CATEGORIES.filter(item => item.value !== 'ALL').map(({ value, label }) => ({ value, label })) },
-        { kind: 'text', key: 'country', label: 'Country', placeholder: 'Any country' },
-        { kind: 'text', key: 'city', label: 'City', placeholder: 'Any city' },
-        { kind: 'text', key: 'ageGroup', label: 'Age group', placeholder: 'For example U12' },
-        { kind: 'text', key: 'level', label: 'Level', placeholder: 'Any level' },
-        { kind: 'choice', key: 'posted', label: 'Posted', allLabel: 'Any time', options: [{ value: '7D', label: 'Past 7 days' }, { value: '30D', label: 'Past 30 days' }] },
-    ],
-    sorts: [{ value: 'NEWEST', label: 'Newest first' }, { value: 'OLDEST', label: 'Oldest first' }],
-    async load(query, page, { signal, country }) {
-        const params = new URLSearchParams({ page: String(page), size: String(PAGE) });
-        if (query.q) params.set('q', query.q);
-        for (const key of ['direction', 'poster', 'hours', 'engagement', 'category', 'clubId', 'country', 'city', 'ageGroup', 'level', 'posted']) {
-            const value = first(query, key);
-            if (value) params.set(key, value);
-        }
-        // The person's own country unless a club or a place is named.
-        if (country && !['clubId', 'country', 'city'].some(key => first(query, key))) params.set('countryCode', country);
-        if (query.sort) params.set('sort', query.sort);
-        const result = await fetchOpenJobDirectory(params, signal);
-        return { items: result.content, total: result.totalElements, hasMore: (page + 1) * PAGE < result.totalElements };
-    },
-    key: job => String(job.id),
-    Item: JobItem,
-    line: job => {
-        const poster = posterOf(job as Job);
-        const terms = ENGAGEMENT[job.engagementType ?? 'UNSPECIFIED'] ?? ENGAGEMENT.UNSPECIFIED;
-        return { title: job.title, to: `/jobs/${job.id}`, action: wt('Open job'), crest: { src: poster.avatarUrl, name: poster.name }, peek: peekOf('job', job.id),
-            detail: [poster.name, poster.city, postedLabel(job.createdAt)].filter(Boolean).join(' · '), fact: wt(terms.label), factTone: factTone(terms.tone) };
-    },
-    // Roles are counted on their club's pin ("3 roles").
-    placeKinds: ['CLUB'],
-    place: (job, places) => {
-        const listing = job as Job, poster = posterOf(listing);
-        if (poster.kind === 'PERSON') return listing.place ? { ...listing.place, tone: 'person', approximate: 'area', label: poster.city ?? wt('Town'), pin: `job-area:${poster.city}`, noun: ['job', 'jobs'], to: `/jobs/${job.id}`, action: wt('Open job') } : null;
-        const club = places.club(job.clubId);
-        return club ? { lat: club.lat, lng: club.lng, tone: 'club', pin: `club:${job.clubId}`, label: job.clubName ?? club.name, noun: ['job', 'jobs'], to: `/clubs/${job.clubId}`, action: wt('Open club') } : null;
-    },
-    empty: { title: 'No open roles right now', body: 'Clubs and people post jobs and availability here.' },
-};
-
 export const trials: DirectorySource<TryoutPosting> = {
     id: 'trials',
     label: 'Trials',

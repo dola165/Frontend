@@ -10,7 +10,7 @@ import { operationModule } from '../clubOperations/workspaceNavigation';
 export const toolPath = (club: number, tab: WorkspaceTab) => `/clubs/${club}/workspace?tab=${tab}`;
 
 const iconFor = (tab: WorkspaceTab): PinIcon => {
-    if (tab === 'squads' || tab === 'coach-hub') return 'squad';
+    if (tab === 'squads') return 'squad';
     if (['players', 'personnel', 'invites'].includes(tab)) return 'people';
     if (['store'].includes(tab)) return 'store';
     if (['campaigns'].includes(tab)) return 'family';

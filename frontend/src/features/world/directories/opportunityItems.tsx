@@ -1,39 +1,17 @@
-import { posterOf, type Job } from '../../jobs/api';
-import { MapPin } from 'lucide-react';
 import { Status } from '../../../design/DataTable';
-import type { ClubJob } from '../../clubs/api';
-import { labelForCategory } from '../../clubs/jobLabels';
 import type { TryoutPosting } from '../../tryouts/api';
 import { postingLabel } from '../../tryouts/tryoutCopy';
 import type { Opportunity } from '../../admissions/types';
 import { useAdmissionCopy } from '../../admissions/applicant/copy';
-import { plural, useWorldCopy } from '../copy';
+import { useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
 import { DateLead, ResultRow } from '../directory/ResultRow';
-import { bilingual, codeLabel, ENGAGEMENT, fixtureDay, fixtureTime, postedLabel } from '../format';
+import { bilingual, codeLabel, fixtureDay, fixtureTime } from '../format';
 import { peekOf } from '../peek/usePeek';
 import { groupFor, groupTone } from './groupFacts';
 
 export interface GroupResult { group: Opportunity; player?: number }
 
-/**
- * An open role as LinkedIn lists jobs: the club's crest, the role as the link, the club and where, what kind of role,
- * when it was posted and how many applied; its terms (paid, volunteer) at the end. It opens beside the list.
- */
-export function JobItem({ item: job }: { item: ClubJob }) {
-    const t = useWorldCopy();
-    const terms = ENGAGEMENT[job.engagementType ?? 'UNSPECIFIED'] ?? ENGAGEMENT.UNSPECIFIED;
-    const poster = posterOf(job as Job);
-    const place = [poster.city, job.clubCountryName].filter(Boolean).join(', ');
-    return (
-        <ResultRow lead={<Crest src={poster.avatarUrl} name={poster.name} round={poster.kind === 'PERSON'} size={40} />} title={job.title} to={`/jobs/${job.id}`} peek={peekOf('job', job.id)}
-            lines={[
-                <>{poster.name}{place && <><span aria-hidden="true">·</span><span className="gk-result__where"><MapPin aria-hidden="true" />{place}</span></>}</>,
-                [job.category ? t(labelForCategory(job.category)) : null, postedLabel(job.createdAt), job.applicationCount ? plural(job.applicationCount, 'applicant') : null].filter(Boolean).join(' · '),
-            ]}
-            aside={<Status tone={terms.tone}>{t(terms.label)}</Status>} />
-    );
-}
 /** A trial as a row: its time and day where a crest would be, its title (to its page), the club and who it is for, where, and whether applications are open. It shows beside the list. */
 export function TrialItem({ item: trial }: { item: TryoutPosting }) {
     useWorldCopy();

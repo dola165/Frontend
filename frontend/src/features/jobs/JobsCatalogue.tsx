@@ -7,7 +7,7 @@ import { useMediaQuery } from '../world/useMediaQuery';
 import { CATEGORIES, DIRECTIONS, HOURS, TERMS, type JobSort } from './api';
 import { JobRow, JobSkeletons } from './JobCard';
 import { JobDetail } from './JobDetail';
-import { activeFilters, PAGE_SIZE, readJobs, SORTS, withoutFilter, worldJobsPath, type JobsSearch } from './query';
+import { activeFilters, PAGE_SIZE, readJobs, SORTS, withoutFilter, jobsMapPath, type JobsSearch } from './query';
 import { useJobsList } from './useJobsList';
 
 function Option({ pressed, onPress, children }: { pressed: boolean; onPress: () => void; children: ReactNode }) {
@@ -104,7 +104,7 @@ export function JobsCatalogue({ fixedClubId, revision = 0, embedded = false, emp
                     <SearchBox value={query.query} onCommit={value => update({ ...query, query: value, page: 0, job: undefined })} />
                     <span className="gk-store-toolbar__count" role="status">{loading && !jobs.length ? ct("Loading…") : total ? `${total} ${total === 1 ? 'listing' : 'listings'}` : ct("No listings")}</span>
                     <label className="gk-store-toolbar__sort" htmlFor={`${id}-sort`}>{ct("Sort")}<select id={`${id}-sort`} className="gk-input" value={query.sort} onChange={event => update({ ...query, sort: event.target.value as JobSort, page: 0, job: undefined })}>{SORTS.map(sort => <option key={sort.value} value={sort.value}>{ct(sort.label)}</option>)}</select></label>
-                    {!fixedClubId && query.direction !== 'OFFERING' && <ButtonLink variant="ghost" size="sm" to={worldJobsPath(query)}><Map aria-hidden="true" />{ct("Show on map")}</ButtonLink>}
+                    {!fixedClubId && query.direction !== 'OFFERING' && <ButtonLink variant="ghost" size="sm" to={jobsMapPath(query)}><Map aria-hidden="true" />{ct("Show on map")}</ButtonLink>}
                     <Pages page={query.page} pages={pages} onPage={page => update({ ...query, page, job: undefined })} />
                 </div>
                 <div className="gk-store-shortcuts gk-chips" role="group" aria-label={ct("Lines of work")}>

@@ -32,7 +32,7 @@ export const AccountPage = () => {
     const securityExtensions = import.meta.env.VITE_ACCOUNT_SECURITY_EXTENSIONS === 'true';
 
     const activeTab = normalizeAccountTab(searchParams.get('tab'));
-    const profileHref = user?.id ? `/profile/${user.id}` : '/feed';
+    const profileHref = user?.id ? `/profile/${user.id}` : '/home';
     const bannerPreview = useMemo(
         () =>
             resolveMediaUrl(form?.bannerUrl) ||

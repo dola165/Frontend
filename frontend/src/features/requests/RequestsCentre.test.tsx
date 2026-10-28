@@ -4,13 +4,27 @@ import { MemoryRouter } from 'react-router-dom';
 import { RequestsCentre } from './RequestsCentre';
 import { requestDestination, eventDestination } from './api';
 import { apiClient } from '../../api/axiosConfig';
+import { RouteMetadata } from '../../components/layout/RouteMetadata';
+import i18n from '../../i18n';
+vi.mock('../clubOperations/PersonalClubWork', () => ({ StaffAppointments: () => null }));
 const auth = vi.hoisted(() => ({ sessionId: 'one', user: { id: 1 }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
 const empty = { items: [], counts: { incoming: 0, actionable: 0, outgoing: 0, history: 0 }, total: 0, hasMore: false, unavailableSources: [] };
 const invitation = { key: 'CLUB_INVITATION:7', id: 7, family: 'CLUB_INVITATION', title: 'Club invitation · Coach', context: 'Dinamo', status: 'PENDING', actionable: true, direction: 'INCOMING', destination: '/account?tab=profile', actionLabel: 'Review invitation' };
 beforeEach(() => { vi.clearAllMocks(); auth.sessionId = 'one'; auth.user = { id: 1 }; vi.mocked(apiClient.get).mockResolvedValue({ data: empty }); });
-afterEach(cleanup);
+afterEach(async () => { cleanup(); await i18n.changeLanguage('en'); });
+
+it('names Inbox and its two views in Georgian, including the document title', async () => {
+  await i18n.changeLanguage('ka');
+  render(<MemoryRouter initialEntries={['/requests']}><RouteMetadata /><RequestsCentre /></MemoryRouter>);
+  expect(screen.getByRole('heading', { name: 'შემოსულები', level: 1 })).toBeVisible();
+  expect(screen.getByRole('navigation', { name: 'შემოსულების ხედები' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'თქვენ გელოდებათ' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('button', { name: 'სიახლეები' })).toBeVisible();
+  expect(document.title).toBe('შემომავალი | GrassKickZ');
+  await screen.findByText('ყველაფერი განხილულია');
+});
 it('shows an honest empty state and does not invent a pending count', async () => { render(<MemoryRouter><RequestsCentre /></MemoryRouter>); expect(await screen.findByText('You’re up to date')).toBeVisible(); });
 it('preserves state and offers a safe retry after a read failure', async () => { vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('offline')); render(<MemoryRouter><RequestsCentre /></MemoryRouter>); await screen.findByRole('alert'); fireEvent.click(screen.getByRole('button', { name: 'Retry' })); expect(await screen.findByText('You’re up to date')).toBeVisible(); });
 it('does not paint a previous account response during an in-flight account switch', async () => {
@@ -27,7 +41,7 @@ it('reviews terms before reusing the domain invitation command and refreshes cap
 it('warns when only part of the requests projection is available', async () => { vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, unavailableSources: ['family'] } }); render(<MemoryRouter><RequestsCentre /></MemoryRouter>); expect(await screen.findByRole('alert')).toHaveTextContent('Some request types are unavailable'); });
 it.each(['https://evil.test/requests', '//evil.test', '/account?next=https://evil.test', '/profile/1?representation=bad', '/account/%2e%2e', '/account?tab=profile&tab=security'])('rejects unsafe request destination %s', value => { expect(requestDestination(value)).toBeNull(); });
 it('accepts precise current-domain destinations and rejects malformed event destinations', () => {
-  expect(requestDestination('/notifications?venueId=2&bookingId=9')).toBe('/notifications?venueId=2&bookingId=9');
+  expect(requestDestination('/notifications?venueId=2&bookingId=9')).toBe('/requests?view=updates&venueId=2&bookingId=9');
   expect(requestDestination('/admin?tab=safety&itemId=7')).toBe('/admin?tab=safety&itemId=7');
   expect(requestDestination('/reports?itemId=7')).toBe('/reports?itemId=7');
   expect(requestDestination('/admin?tab=users&itemId=7')).toBeNull();
@@ -62,7 +76,7 @@ it('asks which invited club team enters a squad tournament and submits it', asyn
 });
 
 it.each(['/club-operations?appointmentId=7', '/map?plans=staff&plan=8', '/map?plans=family&plan=9'])('opens the domain request destination %s', value => {
-  expect(requestDestination(value)).toBe(value);
+  expect(requestDestination(value)).toBe(value.replace('/club-operations?', '/requests?'));
 });
 it.each(['/club-operations', '/club-operations?appointmentId=0', '/club-operations?appointmentId=7&appointmentId=8', '/club-operations?appointmentId=7&next=evil', '/club-operations?appointmentId=7#offer-1', '/map?plans=admin&plan=8', '/map?plans=staff&plan=8&next=evil', '/map?plans=staff&plan=8&plan=9', '/map?plans=family&plan=-1', '/map?plans=staff&plan=9007199254740992', '/account?appointmentId=7'])('rejects malformed or unrelated domain destination %s', value => {
   expect(requestDestination(value)).toBeNull();
@@ -71,5 +85,5 @@ it('offers an outcome link for a resolved personal staff appointment', async () 
   const receipt = { ...invitation, key: 'STAFF_APPOINTMENT:7', family: 'STAFF_APPOINTMENT', title: 'Historical appointment', status: 'ENDED', actionable: false, destination: '/club-operations?appointmentId=7', actionLabel: 'Review appointment' };
   vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [receipt], counts: { ...empty.counts, history: 1 }, total: 1 } });
   render(<MemoryRouter initialEntries={['/requests?view=HISTORY']}><RequestsCentre /></MemoryRouter>);
-  expect(await screen.findByRole('link', { name: 'View outcome' })).toHaveAttribute('href', '/club-operations?appointmentId=7');
+  expect(await screen.findByRole('link', { name: 'View outcome' })).toHaveAttribute('href', '/requests?appointmentId=7');
 });

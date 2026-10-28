@@ -18,13 +18,13 @@ import { beginExplicitSignOut, buildLoginRedirectPath, clearAuthFlow, completedA
 import { fetchMyClubMembershipContext } from './features/clubs/api';
 import { applyDocumentTheme, chooseThemePreference, readThemePreference, themeForRoute, isThemePreference, type ThemePreference } from './theme';
 import { AppSettingsPage } from './android/AppSettingsPage';
-import { ExtensionRoute } from './features/capabilities/ExtensionBoundary';
 import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from './features/roles/routes';
-import { LegacyMatchesRedirect, TournamentSetupRedirect, WorldRedirect } from './features/world/WorldRedirect';
+import { LegacyMatchesRedirect, WorldRedirect } from './features/world/WorldRedirect';
 import { keepRegistrationTown } from './features/start/startApi';
 import { WELCOME_PARAM } from './features/start/welcomeSteps';
 import { useMediaQuery } from './features/world/useMediaQuery';
 
+import { LegacyCleanupRedirect } from './features/requests/LegacyCleanupRedirects';
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
 import { useBuildWatch } from './hooks/useBuildWatch';
@@ -68,27 +68,18 @@ const AdmissionCasePage = lazy(() => import('./features/admissions/applicant/Adm
 const AdmissionGroupSchedulePage = lazy(() => import('./features/admissions/applicant/AdmissionGroupSchedulePage').then(module => ({default: module.AdmissionGroupSchedulePage})));
 const GeneralAdmissionInquiryPage = lazy(() => import('./features/admissions/applicant/AdmissionInquiryPage').then(module => ({default: module.GeneralAdmissionInquiryPage})));
 const AdmissionInquiryPage = lazy(() => import('./features/admissions/applicant/AdmissionInquiryPage').then(module => ({default: module.AdmissionInquiryPage})));
-const SquadJoinPage = lazy(() => import('./features/squadEnrollment/SquadEnrollment').then(module => ({default: module.SquadJoinPage})));
-const FamilyEnrollmentPage = lazy(() => import('./features/squadEnrollment/SquadEnrollment').then(module => ({default: module.FamilyEnrollmentPage})));
-const TournamentSeriesPage = lazy(() => import('./features/tournamentSeries/TournamentSeriesPage').then(module => ({default: module.TournamentSeriesPage})));
-const VolunteerPage = lazy(() => import('./pages/VolunteerPage').then(module => ({default: module.VolunteerPage})));
-const EventVenuePage = lazy(() => import('./pages/EventVenuePage').then(module => ({default: module.EventVenuePage})));
 const MySquadsPage = lazy(() => import('./pages/SquadCommunicationPage').then(module => ({default: module.MySquadsPage})));
 const SquadCommunicationPage = lazy(() => import('./pages/SquadCommunicationPage').then(module => ({default: module.SquadCommunicationPage})));
 const ClubPublicProfileSettingsPage = lazy(() => import('./pages/ClubPublicProfileSettingsPage').then(module => ({default: module.ClubPublicProfileSettingsPage})));
 const ClubOperationsPage = lazy(() => import('./pages/ClubOperationsPage'));
-const MyClubOperationsPage = lazy(() => import('./pages/MyClubOperationsPage'));
 const ClubProfilePage = lazy(() => import('./features/clubs/profile/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
 const PersonProfilePage = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.PersonProfilePage})));
 const MyProfileRedirect = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.MyProfileRedirect})));
-const AgentProfilePage = lazy(() => import('./pages/AgentProfilePage').then(module => ({default: module.AgentProfilePage})));
 const FeedPage = lazy(() => import('./pages/FeedPage').then(module => ({default: module.FeedPage})));
 const LandingPage = lazy(() => import('./pages/LandingPage').then(module => ({default: module.LandingPage})));
 const MessagingPage = lazy(() => import('./pages/MessagingPage').then(module => ({default: module.MessagingPage})));
 const MyClubPage = lazy(() => import('./pages/MyClubPage').then(module => ({default: module.MyClubPage})));
 const CalendarRedirect = lazy(() => import('./features/schedule/personal/CalendarRedirect').then(module => ({default: module.CalendarRedirect})));
-const ClubSquadsPage = lazy(() => import('./pages/ClubSquadsPage').then(module => ({default: module.ClubSquadsPage})));
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(module => ({default: module.NotificationsPage})));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(module => ({default: module.OnboardingPage})));
 const RegisterPage = lazy(() => import('./pages/RegisterPage').then(module => ({default: module.RegisterPage})));
 const ConsentPage = lazy(() => import('./pages/ConsentPage').then(module => ({default: module.ConsentPage})));
@@ -120,14 +111,12 @@ const InvitePage = lazy(() => import('./features/pages/links/InvitePage').then(m
 const CreateRedirect = lazy(() => import('./features/pages/create/CreateRedirect').then(module => ({ default: module.CreateRedirect })));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage').then(module => ({default: module.OrganizationProfilePage})));
 const FootballProfilePage = lazy(() => import('./features/profiles/football/FootballProfilePage').then(module => ({default: module.FootballProfilePage})));
-const RolesRedirect = lazy(() => import('./features/profiles/football/FootballProfilePage').then(module => ({default: module.RolesRedirect})));
 const MatchDetailPage = lazy(() => import('./pages/MatchDetailPage').then(module => ({default: module.MatchDetailPage})));
 const RefereePage = lazy(() => import('./pages/RefereePage').then(module => ({default: module.RefereePage})));
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(module => ({default: module.AgentDashboardPage})));
 const OrganizationWorkspacePage = lazy(() => import('./pages/OrganizationWorkspacePage').then(module => ({default: module.OrganizationWorkspacePage})));
 const ClubWorkspacePage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.default})));
 const CoachWorkspacePage = lazy(() => import('./pages/CoachWorkspacePage'));
-const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
 
@@ -202,7 +191,7 @@ const SystemAdminRoute = ({ children }: { children: JSX.Element }) => {
     }
 
     if (!isSystemAdmin(user)) {
-        return <Navigate to="/feed" replace />;
+        return <Navigate to="/home" replace />;
     }
 
     return children;
@@ -342,15 +331,13 @@ export function MainLayout() {
         location.pathname === '/requests' || location.pathname === '/events' ||
         location.pathname === '/tryouts' || location.pathname.startsWith('/tryouts/') ||
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||
-        location.pathname === '/club-operations' || location.pathname === '/me/staff-club' ||
+        location.pathname === '/me/staff-club' ||
         location.pathname === '/assistant' ||
         location.pathname === '/account/football' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
-        location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
-        location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
-        location.pathname.startsWith('/tournament-series/') ||
-        location.pathname === '/matches' || location.pathname.startsWith('/match-exchange') || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
+        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns'].includes(location.pathname) ||
+        location.pathname === '/parent' ||
+        location.pathname.startsWith('/match-exchange') || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
         location.pathname === '/my-squads' || location.pathname === '/squads' || location.pathname.startsWith('/squads/') ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/posts/') ||
@@ -379,14 +366,11 @@ export function MainLayout() {
 
     const fullScreenRoutes = (
         <RouteViewport><Routes>
-            <Route path="/workspaces" element={<Navigate to="/home" replace />} />
             <Route path="/assistant" element={<ProtectedRoute><AgentDolaPage /></ProtectedRoute>} />
             <Route path="/map" element={<WorldRedirect to="/world/map" />} />
             <Route path="/world/*" element={<WorldRoutes />} />
             <Route path="/clubs" element={<WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />} />
-            <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarRedirect /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute>{isAndroidApp ? <PageBootSpinner label="Opening messages" /> : <MessagingPage />}</ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><RequestsCentre /></ProtectedRoute>} />
@@ -402,24 +386,16 @@ export function MainLayout() {
             <Route path="/admissions/inquiries/:inquiryId" element={<ProtectedRoute><AdmissionInquiryPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ReportReceipts /></ProtectedRoute>} />
             <Route path="/account/football" element={<ProtectedRoute><FootballProfilePage /></ProtectedRoute>} />
-            <Route path="/account/roles" element={<RolesRedirect />} />
-            <Route path="/matches" element={<LegacyMatchesRedirect kind="hub" />} />
             <Route path="/match-exchange" element={<LegacyMatchesRedirect kind="exchange" />} />
             <Route path="/match-history" element={<LegacyMatchesRedirect kind="history" />} />
             <Route path="/match-exchange/:eventId" element={<ProtectedRoute><MatchDetailPage /></ProtectedRoute>} />
             <Route path="/referees/:refereeId" element={<ProtectedRoute><RefereePage /></ProtectedRoute>} />
             <Route path="/parent" element={<ProtectedRoute><ParentHubPage /></ProtectedRoute>} />
-            <Route path="/join-squad" element={<ExtensionRoute capability="squadEnrollment"><ProtectedRoute><SquadJoinPage /></ProtectedRoute></ExtensionRoute>} />
-            <Route path="/parent/enrollment" element={<ExtensionRoute capability="squadEnrollment"><ProtectedRoute><FamilyEnrollmentPage /></ProtectedRoute></ExtensionRoute>} />
-            <Route path="/tournament-series/:seriesId" element={<ExtensionRoute capability="tournamentSeries"><TournamentSeriesPage /></ExtensionRoute>} />
-            <Route path="/volunteering" element={<ExtensionRoute capability="volunteerShifts"><ProtectedRoute><VolunteerPage /></ProtectedRoute></ExtensionRoute>} />
-            <Route path="/event-venues" element={<ExtensionRoute capability="eventVenueAttachment"><ProtectedRoute><EventVenuePage /></ProtectedRoute></ExtensionRoute>} />
             <Route path="/my-squads" element={<ProtectedRoute><CoachWorkspacePage /></ProtectedRoute>} />
             <Route path="/squads" element={<ProtectedRoute><MySquadsPage /></ProtectedRoute>} />
             <Route path="/squads/:squadId" element={<ProtectedRoute><SquadCommunicationPage /></ProtectedRoute>} />
             {isAndroidApp && <Route path="/app-settings" element={<AppSettingsPage theme={themePreference} />} />}
             <Route path="/tournaments" element={<LegacyMatchesRedirect kind="competitions" />} />
-            <Route path="/tournaments/setup" element={<TournamentSetupRedirect />} />
             <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
             <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
             <Route path="/organizations/create" element={<ProtectedRoute><CreateRedirect /></ProtectedRoute>} />
@@ -432,10 +408,8 @@ export function MainLayout() {
             <Route path="/pages/requests/:reviewId" element={<ProtectedRoute><PageReviewReceipt /></ProtectedRoute>} />
             <Route path="/profile/me" element={<ProtectedRoute><MyProfileRedirect /></ProtectedRoute>} />
             <Route path="/profile/:id" element={<PersonProfilePage />} />
-            <Route path="/agents/:id" element={<AgentProfilePage />} />
             <Route path="/posts/:postId" element={<PostPage />} />
             <Route path="/agent" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
-            <Route path="/agent/dashboard" element={<Navigate to="/agent" replace />} />
             <Route path="/store" element={<StorePage />} />
             <Route path="/store/all" element={<StoreCataloguePage />} />
             <Route path="/stadiums" element={<WorldRedirect to="/world/venues" />} />
@@ -447,20 +421,19 @@ export function MainLayout() {
             <Route path="/jobs/all" element={<JobsCataloguePage />} />
             <Route path="/jobs/new" element={<PostJobPage />} />
             <Route path="/clubs/:id/jobs" element={<ClubJobsPage />} />
-            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ tab: 'jobs' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
+            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/jobs" rename={{ search: 'query', engagement: 'terms' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
             {ROLE_DETAIL_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobDetailPage />} />)}
+            <Route path="/roles/:id" element={<LegacyCleanupRedirect kind="role" />} />
             <Route path="/campaigns" element={<FundraisingPage />} />
             <Route path="/campaigns/all" element={<FundraisingCataloguePage />} />
             <Route path="/campaigns/new" element={<ProtectedRoute><StartFundraiserPage /></ProtectedRoute>} />
             <Route path="/campaigns/:id" element={<FundraiserPage />} />
             <Route path="/campaigns/:id/manage/:tool" element={<ProtectedRoute><FundraiserManagePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} />
-            <Route path="/people" element={<WorldRedirect to="/world/people" />} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />
-            <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
+            <Route path="/clubs/:id/squads" element={<ProtectedRoute><LegacyCleanupRedirect kind="squads" /></ProtectedRoute>} />
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/operations" element={<ProtectedRoute><ClubOperationsPage /></ProtectedRoute>} />
-            <Route path="/club-operations" element={<ProtectedRoute><MyClubOperationsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
             <Route path="/clubs/create" element={<ProtectedRoute><CreateRedirect kind="CLUB" /></ProtectedRoute>} />
@@ -535,6 +508,9 @@ export function MainLayout() {
                             <RouteViewport><Routes>
                                 <Route path="/home" element={<ProtectedRoute><FeedPage user={user} managedClubs={managedClubs} /></ProtectedRoute>} />
                                 <Route path="/feed" element={<Navigate to={`/home${location.search}`} replace />} />
+                                <Route path="/clubs/following" element={<ProtectedRoute><WorldRedirect to="/world/clubs" set={{ view: 'following' }} /></ProtectedRoute>} />
+                                <Route path="/notifications" element={<ProtectedRoute><LegacyCleanupRedirect kind="notifications" /></ProtectedRoute>} />
+                                <Route path="/club-operations" element={<ProtectedRoute><LegacyCleanupRedirect kind="connections" /></ProtectedRoute>} />
                                 <Route path="*" element={<RouteRecoveryPage />} />
                             </Routes></RouteViewport>
                         </main>

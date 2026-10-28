@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { apiClient } from '../../../../api/axiosConfig';
-import { FootballProfilePage, RolesRedirect } from '../FootballProfilePage';
+import { FootballProfilePage } from '../FootballProfilePage';
 import { readFootball, type PersonFootballProfile, type ServerLine } from '../api';
 
 const auth = vi.hoisted(() => ({
@@ -42,7 +42,6 @@ function serve(data = profile) {
 }
 const mount = (path = '/account/football') => render(<MemoryRouter initialEntries={[path]}><Routes>
     <Route path="/account/football" element={<FootballProfilePage />} />
-    <Route path="/account/roles" element={<RolesRedirect />} />
 </Routes></MemoryRouter>);
 
 afterEach(() => { cleanup(); vi.mocked(apiClient.get).mockReset(); vi.mocked(apiClient.post).mockReset(); vi.mocked(apiClient.put).mockReset(); auth.user.dob = '1990-04-02'; });
@@ -121,10 +120,6 @@ describe('your football profile', () => {
         expect(doors.queryByRole('link', { name: /Add my child/ })).not.toBeInTheDocument();
     });
 
-    it('opens the old Roles and work link here', async () => {
-        serve(); mount('/account/roles#professions');
-        expect(await screen.findByRole('heading', { name: 'What you do' })).toBeInTheDocument();
-    });
 });
 
 describe('someone else’s football', () => {

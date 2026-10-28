@@ -23,14 +23,53 @@ const EMPTY_PINS: Pin[] = [];
 export const isSafePath = (value: unknown): value is string =>
     typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && value.length <= 300 && !/[\\\s]/.test(value);
 
+/** Old saved destinations must not bring a retired page back through a pin or suggestion. */
+function cleanupPinPath(value: unknown): string | null {
+    if (!isSafePath(value)) return null;
+    const url = new URL(value, 'https://pins.invalid');
+    const path = url.pathname;
+    if (['/workspaces', '/matches', '/tournaments/setup', '/join-squad', '/parent/enrollment', '/volunteering', '/event-venues', '/map-workspace-demo.html'].includes(path)
+        || path.startsWith('/tournament-series/')) return null;
+    if (path.startsWith('/roles/') || path.startsWith('/agents/')) {
+        const id = /^\/(?:roles|agents)\/([1-9]\d*)$/.exec(path)?.[1];
+        if (!id || !Number.isSafeInteger(Number(id))) return null;
+        url.pathname = path.startsWith('/roles/') ? `/jobs/${id}` : `/profile/${id}`;
+        if (path.startsWith('/agents/')) url.searchParams.set('tab', 'career');
+    }
+    if (path === '/account/roles') {
+        url.pathname = '/account/football';
+        if (url.hash === '#roles') url.hash = '#where';
+        if (url.hash === '#professions') url.hash = '#work';
+    }
+    if (path === '/people') url.pathname = '/world/people';
+    if (path === '/agent/dashboard') url.pathname = '/agent';
+    if (path === '/squads') url.pathname = '/my-squads';
+    if (path === '/clubs/following') { url.pathname = '/world/clubs'; url.searchParams.set('view', 'following'); }
+    if (path === '/club-operations') {
+        url.pathname = url.searchParams.has('permissionId') ? '/parent' : '/requests';
+        if (url.pathname === '/parent') url.searchParams.set('tab', 'connections');
+    }
+    if (path === '/notifications') { url.pathname = '/requests'; url.searchParams.set('view', 'updates'); }
+    if (/^\/clubs\/[1-9]\d*\/squads$/.test(path)) { url.pathname = path.replace(/\/squads$/, ''); url.searchParams.set('tab', 'teams'); }
+    if (path === '/roles' || path === '/world/opportunities' && (url.searchParams.get('tab') ?? url.searchParams.get('type')) === 'jobs') {
+        url.pathname = '/jobs';
+        for (const [from, into] of [['search', 'query'], ['q', 'query'], ['engagement', 'terms']]) {
+            if (url.searchParams.has(from)) { url.searchParams.set(into, url.searchParams.get(from)!); url.searchParams.delete(from); }
+        }
+        url.searchParams.delete('tab'); url.searchParams.delete('type');
+    }
+    return url.pathname + url.search + url.hash;
+}
+
 /** Saved as `{ pins: [...] }`. Anything malformed is dropped item by item rather than discarding the rest. */
 function parsePins(raw: unknown): Pin[] {
     if (!raw || typeof raw !== 'object' || !Array.isArray((raw as { pins?: unknown }).pins)) return EMPTY_PINS;
     const pins: Pin[] = [];
     for (const item of (raw as { pins: unknown[] }).pins) {
         if (!item || typeof item !== 'object') continue;
-        const { path, label, icon } = item as Record<string, unknown>;
-        if (!isSafePath(path) || typeof label !== 'string' || !label.trim() || pins.some(pin => pin.path === path)) continue;
+        const { label, icon } = item as Record<string, unknown>;
+        const path = cleanupPinPath((item as Record<string, unknown>).path);
+        if (!path || typeof label !== 'string' || !label.trim() || pins.some(pin => pin.path === path)) continue;
         pins.push({ path, label: label.trim().slice(0, 60), icon: isPinIcon(icon) ? icon : 'bookmark' });
     }
     return pins.slice(0, MAX_PINS);
@@ -41,12 +80,14 @@ function parseVisits(raw: unknown): Visits {
     if (!raw || typeof raw !== 'object') return EMPTY_VISITS;
     const since = Date.now() - VISIT_WINDOW_MS;
     const visits: Visits = {};
-    for (const [path, value] of Object.entries(raw as Record<string, unknown>)) {
-        if (!isSafePath(path) || !value || typeof value !== 'object') continue;
+    for (const [savedPath, value] of Object.entries(raw as Record<string, unknown>)) {
+        const path = cleanupPinPath(savedPath);
+        if (!path || !value || typeof value !== 'object') continue;
         const { t, label, icon } = value as Record<string, unknown>;
         if (!Array.isArray(t)) continue;
         visits[path] = {
-            t: t.filter((stamp): stamp is number => Number.isFinite(stamp) && stamp > since).slice(-20),
+            ...visits[path],
+            t: [...new Set([...(visits[path]?.t ?? []), ...t.filter((stamp): stamp is number => Number.isFinite(stamp) && stamp > since)])].sort((a, b) => a - b).slice(-20),
             ...(typeof label === 'string' && label.trim() ? { label: label.trim().slice(0, 60) } : {}),
             ...(isPinIcon(icon) ? { icon } : {}),
         };
@@ -100,7 +141,7 @@ export function readPins(userId: number) {
 export const readVisits = (userId: number) => read(visitKey(userId), parseVisits);
 /** Shows the new pins at once and keeps them for the person on every device. */
 export function writePins(userId: number, pins: Pin[]) {
-    void updatePreferences(userId, { pins: { pins: pins.slice(0, MAX_PINS) } }).catch(() => undefined);
+    void updatePreferences(userId, { pins: { pins: parsePins({ pins }) } }).catch(() => undefined);
 }
 
 /**
@@ -108,6 +149,9 @@ export function writePins(userId: number, pins: Pin[]) {
  * is stored without a label (it is named in the current language when shown); others keep their visible title.
  */
 export function recordVisit(userId: number, path: string, icon: PinIcon, label: string | null) {
+    const cleaned = cleanupPinPath(path);
+    if (!cleaned) return;
+    path = cleaned;
     const now = Date.now();
     const current = readVisits(userId);
     const previous = current[path];
@@ -126,6 +170,9 @@ export function recordVisit(userId: number, path: string, icon: PinIcon, label: 
 
 /** Remember a page's visible title for suggestions, once it has rendered. */
 export function nameVisit(userId: number, path: string, label: string) {
+    const cleaned = cleanupPinPath(path);
+    if (!cleaned) return;
+    path = cleaned;
     const current = readVisits(userId);
     const visit = current[path];
     if (!visit || visit.label === label) return;

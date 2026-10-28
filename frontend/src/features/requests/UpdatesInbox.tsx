@@ -1,15 +1,13 @@
+import { NotificationDestinations } from '../../components/notifications/NotificationDestinations';
 import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, BellRing, Building2, CheckCheck, Inbox, Loader2, UserRound, X } from 'lucide-react';
-import { NotificationListItem } from '../components/notifications/NotificationListItem';
-import { NotificationTarget } from '../components/notifications/NotificationTarget';
-import { BookingNotificationTarget } from '../components/notifications/BookingNotificationTarget';
-import { SquadConversationNotificationTarget } from '../components/notifications/SquadConversationNotificationTarget';
-import { useNotificationInbox } from '../components/notifications/useNotificationInbox';
-import type { NotificationItem, NotificationListScope } from '../types/notifications';
-import { buildNotificationDestination, createNotificationSearch, readNotificationFilterFromSearchParams } from '../utils/notifications';
-import { useAuth } from '../context/AuthContext';
-import { isSystemAdmin } from '../context/navigationCapabilities';
+import { NotificationListItem } from '../../components/notifications/NotificationListItem';
+import { useNotificationInbox } from '../../components/notifications/useNotificationInbox';
+import type { NotificationItem, NotificationListScope } from '../../types/notifications';
+import { buildNotificationDestination, createNotificationSearch, readNotificationFilterFromSearchParams } from '../../utils/notifications';
+import { useAuth } from '../../context/AuthContext';
+import { isSystemAdmin } from '../../context/navigationCapabilities';
 
 const scopeTabs: Array<{ id: NotificationListScope; label: string; description: string }> = [
     { id: 'all', label: 'All', description: 'Every accessible notification in one stream.' },
@@ -17,7 +15,7 @@ const scopeTabs: Array<{ id: NotificationListScope; label: string; description: 
     { id: 'club', label: 'Club', description: 'Operational notifications for clubs you currently manage.' }
 ];
 
-export const NotificationsPage = () => {
+export const UpdatesInbox = () => {
     const { sessionId } = useAuth();
     const [params] = useSearchParams();
     const filter = readNotificationFilterFromSearchParams(params);
@@ -50,7 +48,8 @@ const NotificationsContent = () => {
 
     const updateScopeSearch = (scope: NotificationListScope, clubId?: number | null, clubName?: string | null) => {
         const search = createNotificationSearch(scope, clubId ?? null, clubName ?? null);
-        setSearchParams(search ? new URLSearchParams(search) : new URLSearchParams());
+        const next = new URLSearchParams(search); next.set('view', 'updates');
+        setSearchParams(next);
     };
     const handleOpenNotification = async (notification: NotificationItem) => {
         if (await markRead(notification) && isCurrent()) navigate(buildNotificationDestination(notification));
@@ -91,28 +90,10 @@ const NotificationsContent = () => {
     return (
         <div className="notifications-page theme-page min-h-full [--accent-primary:var(--color-accent)] [--accent-primary-soft:var(--color-accent-soft)] dark:[--accent-primary:var(--color-accent)] dark:[--accent-primary-soft:var(--color-accent-soft)]">
             <div className="flex w-full flex-col gap-6">
-                {searchParams.has('squadId') && <SquadConversationNotificationTarget key={user?.id} squadId={searchParams.get('squadId') ?? ''} channel={searchParams.get('channel') ?? ''} thread={searchParams.get('thread')} onClose={() => {
-                    const next = new URLSearchParams(searchParams); next.delete('squadId'); next.delete('channel'); next.delete('thread'); setSearchParams(next);
-                }} />}
-                {(searchParams.has('bookingId') || searchParams.has('venueId')) && <BookingNotificationTarget key={user?.id} venueId={searchParams.get('venueId') ?? ''} bookingId={searchParams.get('bookingId') ?? ''} onClose={() => {
-                    const next = new URLSearchParams(searchParams); next.delete('venueId'); next.delete('bookingId'); setSearchParams(next);
-                }} />}
-                {searchParams.has('itemId') && <NotificationTarget kind="outcome" id={searchParams.get('itemId') ?? ''} onClose={() => {
-                    const next = new URLSearchParams(searchParams); next.delete('itemId'); setSearchParams(next);
-                }} />}
+                <NotificationDestinations />
                 <header className="border-b theme-border pb-6">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl">
-                            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent-primary)]">
-                                <Inbox className="h-4 w-4" />
-                                Activity inbox
-                            </div>
-                            <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] text-primary sm:text-5xl">Notifications</h1>
-                            <p className="mt-3 text-sm leading-6 text-secondary sm:text-base">
-                                Invites, decisions, match reminders, and club updates—kept in one place and ordered by what happened most recently.
-                            </p>
-                        </div>
-
+                        <h2 className="text-xl font-bold">Updates</h2>
                         <div className="flex flex-wrap items-center gap-4 sm:gap-5">
                             <div className="border-l-2 border-[var(--accent-primary)] pl-3">
                                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">Unread in this view</p>
@@ -195,7 +176,7 @@ const NotificationsContent = () => {
                         </div>
                     </aside>
 
-                    <main className="min-w-0">
+                    <section className="min-w-0">
                         <div className="mb-4 flex flex-col gap-3 border-b theme-border pb-4 sm:flex-row sm:items-end sm:justify-between">
                             <div>
                                 <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +222,7 @@ const NotificationsContent = () => {
                                                 Open My Club
                                             </Link>
                                         ) : (
-                                            <Link to="/clubs" className="border-b-2 border-[var(--accent-primary)] px-1 py-2 text-sm font-bold text-[var(--accent-primary)]">
+                                            <Link to="/world/clubs" className="border-b-2 border-[var(--accent-primary)] px-1 py-2 text-sm font-bold text-[var(--accent-primary)]">
                                                 Browse Clubs
                                             </Link>
                                         )}
@@ -282,7 +263,7 @@ const NotificationsContent = () => {
                                 </Link>
                             ))}
                         </div>
-                    </main>
+                    </section>
                 </div>
             </div>
         </div>

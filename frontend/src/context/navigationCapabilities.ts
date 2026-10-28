@@ -22,7 +22,7 @@ const destinations: Record<string, { type: string; title: string; path: (id: num
     'club.member': { type:'club',title:'Club appointment',path:id=>`/clubs/${id}` },
     'club.family': { type:'club',title:'Family football',path:()=>'/parent' },
     'club.agent': { type:'club',title:'Agent engagement',path:id=>`/clubs/${id}` },
-    'club.work': { type:'user',title:'My club work',path:()=>'/club-operations' },
+    'club.work': { type:'user',title:'Inbox',path:()=>'/requests' },
     'club.player': { type: 'club', title: 'My club', path: id => `/clubs/${id}` },
     'parent.hub': { type: 'user', title: 'Parent Hub', path: () => '/parent' },
     'referee.workspace': { type: 'user', title: 'Referee workspace', path: () => '/referees/me' },

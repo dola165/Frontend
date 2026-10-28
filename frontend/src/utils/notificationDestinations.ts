@@ -11,7 +11,7 @@ export const notificationId = (value: unknown): string | null => {
 const id = '[1-9]\\d*';
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const reviewReceipt = new RegExp(`^/pages/requests/${uuid}$`);
-const route = new RegExp(`^/(?:account|my-organizations|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work/chat|calendar|notifications|reports|parent|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:match-exchange|squads|posts|profile)/${id}|stadiums/${id}(?:/manage)?)$`);
+const route = new RegExp(`^/(?:account|my-organizations|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work/chat|calendar|notifications|requests|reports|parent|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:match-exchange|squads|posts|profile)/${id}|stadiums/${id}(?:/manage)?)$`);
 const numericKeys = new Set(['eventId', 'fixtureId', 'conversationId', 'message', 'chat','clubId', 'applicationId', 'bookingId', 'venueId', 'itemId', 'thread', 'squad', 'squadId', 'approach', 'representation', 'representationRecord', 'representationGeneration', 'permissionId', 'appointmentId', 'player', 'playerId', 'caseId', 'inquiryId']);
 const queryKeys = new Set([...numericKeys, 'tab', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'at', 'review']);
 
@@ -57,8 +57,18 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             if (url.pathname !== '/admin/page-reviews' || url.hash || keys.length !== 1 || !new RegExp(`^${uuid}$`).test(url.searchParams.get('review') ?? '')) return null;
         }
         if (reviewReceipt.test(url.pathname) && (url.search || url.hash)) return null;
-        if (keys.some(key => ['permissionId', 'appointmentId'].includes(key))
-            && (url.pathname !== '/club-operations' || keys.length !== 1 || url.hash)) return null;
+        if (url.searchParams.has('permissionId')) {
+            const legacy = url.pathname === '/club-operations' && keys.length === 1;
+            const parent = url.pathname === '/parent' && keys.length === 2 && url.searchParams.get('tab') === 'connections';
+            if (url.hash || !(legacy || parent)) return null;
+        }
+        if (url.searchParams.has('appointmentId')) {
+            const legacy = url.pathname === '/club-operations' && keys.length === 1;
+            const inbox = url.pathname === '/requests' && keys.every(key => key === 'appointmentId' || key === 'view')
+                && (!url.searchParams.has('view') || url.searchParams.get('view') === 'needs-you');
+            if (url.hash || !(legacy || inbox)) return null;
+        }
+        if (url.pathname === '/requests' && url.searchParams.has('view') && !['updates', 'needs-you'].includes(url.searchParams.get('view')!)) return null;
         if (url.pathname === '/reports' && (url.hash || !(keys.length === 0 || keys.length === 1 && (url.searchParams.has('itemId') || url.searchParams.get('view') === 'notices')))) return null;
         if (url.searchParams.has('approach')) {
             const profile = /^\/profile\/[1-9]\d*$/.test(url.pathname) && keys.length === 1;
@@ -79,7 +89,7 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
                 || Array.from(url.searchParams.keys()).some(key => !['tab', 'sessionId', 'at'].includes(key))
                 || !sessionNavigation(url.searchParams).initialSessionId) return null;
         }
-        if (url.pathname === '/notifications' && (url.searchParams.has('bookingId') || url.searchParams.has('venueId'))
+        if (['/notifications', '/requests'].includes(url.pathname) && (url.searchParams.has('bookingId') || url.searchParams.has('venueId'))
             && (!url.searchParams.has('bookingId') || !url.searchParams.has('venueId') || url.searchParams.has('itemId') || url.searchParams.has('squadId'))) return null;
         const squad = url.pathname.match(/^\/squads\/([1-9]\d*)$/)?.[1];
         if (squad && (url.searchParams.has('thread') || ['chat', 'coach'].includes(url.searchParams.get('tab') ?? ''))) {
@@ -87,7 +97,7 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             if (url.searchParams.get('tab') === 'coach' && !thread) return null;
             return safeNotificationLink(squadConversationDestination(squad, thread));
         }
-        if (url.pathname === '/notifications' && url.searchParams.has('squadId')) {
+        if (['/notifications', '/requests'].includes(url.pathname) && url.searchParams.has('squadId')) {
             const channel = url.searchParams.get('channel');
             if (!['chat', 'coach'].includes(channel ?? '') || url.searchParams.has('itemId')
                 || (channel === 'coach') !== url.searchParams.has('thread')) return null;
@@ -97,12 +107,18 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             if (url.searchParams.has('conversationId') && url.searchParams.get('conversationId') !== chat) return null;
             url.searchParams.delete('chat'); url.searchParams.set('conversationId', chat);
         }
+        if (url.pathname === '/notifications') { url.pathname = '/requests'; url.search = `view=updates${url.search ? '&' + url.search.slice(1) : ''}`; }
+        if (url.pathname === '/club-operations') {
+            url.pathname = url.searchParams.has('permissionId') ? '/parent' : '/requests';
+            if (url.searchParams.has('permissionId')) url.searchParams.set('tab', 'connections');
+        }
+        if (/^\/clubs\/[1-9]\d*\/squads$/.test(url.pathname)) { url.pathname = url.pathname.replace(/\/squads$/, ''); url.searchParams.set('tab', 'teams'); }
         return url;
     } catch { return null; }
 };
 
 export const venueBookingDestination = (venueId: string, bookingId: string) =>
-    `/notifications?venueId=${venueId}&bookingId=${bookingId}`;
+    `/requests?view=updates&venueId=${venueId}&bookingId=${bookingId}`;
 
 export const squadConversationDestination = (squadId: string, thread: string | null) =>
-    `/notifications?squadId=${squadId}${thread ? `&channel=coach&thread=${thread}` : '&channel=chat'}`;
+    `/requests?view=updates&squadId=${squadId}${thread ? `&channel=coach&thread=${thread}` : '&channel=chat'}`;

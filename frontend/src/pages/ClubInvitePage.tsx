@@ -60,7 +60,7 @@ function ClubInvite({ token }: { token: string }) {
             const accessToken = await signInAfterClaim(email, password)
                 .then(async found => { if (found) await loginWithAccessToken(found); return found; })
                 .catch(() => null);
-            if (!accessToken) { navigate(buildLoginPath('/notifications'), { replace: true }); return; }
+            if (!accessToken) { navigate(buildLoginPath('/requests?view=updates'), { replace: true }); return; }
             await acceptAll(preview.invites.filter(i => !i.unavailableReason));
         } catch (failure) {
             setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
@@ -81,7 +81,7 @@ function ClubInvite({ token }: { token: string }) {
                 else failures.push(`${jobLabel(invite)}: ${extractApiErrorMessage(failure, copy('it couldn’t be accepted.', 'ვერ მიიღეს.'))}`);
             }
         }
-        const next = !accepted.length && (waitsOnEmail || other) ? '/notifications' : landingFor(accepted);
+        const next = !accepted.length && (waitsOnEmail || other) ? '/requests?view=updates' : landingFor(accepted);
         if (failures.length || waitsOnEmail || other) setStage({ kind: 'partly', failures, next, waitsOnEmail, other, blocked });
         else navigate(next, { replace: true });
     };
@@ -98,7 +98,7 @@ function ClubInvite({ token }: { token: string }) {
     if (stage.kind === 'broken') return card(<>
         <h1 className="ci-title">{copy('This link can’t be used', 'ამ ბმულის გამოყენება შეუძლებელია')}</h1>
         <p role="alert" className="gk-notice gk-notice--danger">{stage.message}</p>
-        <Link className="gk-btn gk-btn--secondary" to={buildLoginPath('/notifications')}>{copy('Sign in', 'შესვლა')}</Link>
+        <Link className="gk-btn gk-btn--secondary" to={buildLoginPath('/requests?view=updates')}>{copy('Sign in', 'შესვლა')}</Link>
     </>);
     if (stage.kind === 'declined') return card(<>
         <h1 className="ci-title">{copy('You declined', 'უარი თქვით')}</h1>
@@ -131,7 +131,7 @@ function ClubInvite({ token }: { token: string }) {
         {!preview.invites.length && <p className="gk-notice">{copy('Nothing is waiting for you here any more. Ask the club to invite you again.', 'აქ აღარაფერი გელოდებათ. სთხოვეთ კლუბს ხელახლა მოწვევა.')}</p>}
         {preview.hasPassword ? <>
             <p className="gk-muted">{copy('You already have an account. Sign in and answer the invitation in your notifications.', 'ანგარიში უკვე გაქვთ. შედით და უპასუხეთ მოწვევას შეტყობინებებში.')}</p>
-            <Link className="gk-btn gk-btn--primary" to={buildLoginPath('/notifications')}>{copy('Sign in', 'შესვლა')}</Link>
+            <Link className="gk-btn gk-btn--primary" to={buildLoginPath('/requests?view=updates')}>{copy('Sign in', 'შესვლა')}</Link>
         </> : preview.invites.length > 0 && !allBlocked && <form className="ci-form" onSubmit={event => { event.preventDefault(); void accept(preview); }}>
             <p className="gk-faint ci-email">{copy(`Your account: ${preview.email}`, `თქვენი ანგარიში: ${preview.email}`)}</p>
             <Field label={copy('Your name', 'თქვენი სახელი')} htmlFor={`${id}-name`}><input id={`${id}-name`} className="gk-input" autoComplete="name" maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></Field>

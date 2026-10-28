@@ -31,9 +31,6 @@ import { TournamentEntry } from '../features/world/peek/tournament/TournamentEnt
 import { extractApiErrorMessage } from '../utils/apiError';
 import { TournamentBracketBoard } from '../features/tournaments/components/TournamentBracketBoard';
 import { StandingsTable } from '../features/tournaments/components/StandingsTable';
-import { TournamentSeriesPanel } from '../features/tournamentSeries/TournamentSeriesPanel';
-import { ExtensionSurface } from '../features/capabilities/ExtensionBoundary';
-import { isExtensionCapabilityAvailable } from '../features/capabilities/extensions';
 import { downloadTournamentCalendar } from '../features/tournaments/tournament-calendar';
 import { tournamentPublicCopy } from '../locales/tournamentPublic';
 import { TournamentTieBlockerBanner, TournamentTieResolution } from '../features/tournaments/components/TournamentTieResolution';
@@ -381,8 +378,7 @@ const TournamentDetailContent = () => {
                 </> : null}
                 {activeTab === 'about' ? <div className="tp-about-grid">
                     <div className="tp-about-stack">
-                        <ExtensionSurface capability="tournamentSeries"><TournamentSeriesPanel tournamentId={tournament.id}/></ExtensionSurface>
-                        {isExtensionCapabilityAvailable('volunteerShifts') && <Link to={`/volunteering?tournamentId=${tournament.id}`}>Volunteer at this tournament →</Link>}
+
                         <Section icon={<Trophy className="h-5 w-5" />} title={t('tournaments.public.aboutTitle')}>
                             <p className="whitespace-pre-wrap text-sm leading-6 text-[color:var(--color-muted)]">{tournament.description || t('tournaments.public.noDescriptionLong')}</p>
                         </Section>

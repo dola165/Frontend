@@ -12,7 +12,7 @@ export default function TryoutDetailPage() {
   const { user, sessionId, status } = useAuth();
   const copy = useTryoutCopy();
   const id = Number(tryoutId);
-  if (!/^[1-9]\d*$/.test(tryoutId || '') || !Number.isSafeInteger(id)) return <main className="tryout-page"><h1>{copy('Tryout not available', 'სინჯი მიუწვდომელია')}</h1><Link to="/tryouts">{copy('Browse tryouts', 'სინჯების მოძებნა')}</Link></main>;
+  if (!/^[1-9]\d*$/.test(tryoutId || '') || !Number.isSafeInteger(id)) return <main className="tryout-page"><h1>{copy('Tryout not available', 'სინჯი მიუწვდომელია')}</h1><Link to="/world/opportunities?tab=trials">{copy('Browse tryouts', 'სინჯების მოძებნა')}</Link></main>;
   return <TryoutDetail key={`${id}:${user?.id}:${sessionId}:${status}`} id={id} />;
 }
 function TryoutDetail({ id }: { id: number }) {
@@ -27,7 +27,7 @@ function TryoutDetail({ id }: { id: number }) {
     return () => { request.abort(); window.removeEventListener('focus', refresh); };
   }, [id, retry]);
   return <main className="tryout-page">
-    <Link className="tryout-back" to="/tryouts"><ArrowLeft size={16} />{copy('All tryouts', 'ყველა სინჯი')}</Link>
+    <Link className="tryout-back" to="/world/opportunities?tab=trials"><ArrowLeft size={16} />{copy('All tryouts', 'ყველა სინჯი')}</Link>
     {!data && !error && <p role="status">{copy('Loading tryout…', 'სინჯი იტვირთება…')}</p>}
     {error && <section className="tryout-panel"><h1>{missing ? copy('Tryout not available', 'სინჯი მიუწვდომელია') : copy('Tryout could not load', 'სინჯი ვერ ჩაიტვირთა')}</h1><p>{copy('The posting may no longer be public. Your own application receipt remains separate.', 'განცხადება შესაძლოა აღარ იყოს საჯარო. თქვენი განაცხადის ჩანაწერი ცალკე ინახება.')}</p><button type="button" onClick={() => setRetry(n => n + 1)}>{copy('Retry', 'ხელახლა ცდა')}</button></section>}
     {data && <>

@@ -3,9 +3,14 @@
  * keeps a noun singular after a number, so counts use the singular entries ("3 კლუბი").
  */
 export const WORLD_KA: Record<string, string> = {
-    'Listing type': 'განცხადების ტიპი', 'All listings': 'ყველა განცხადება',
-    'People available': 'ხელმისაწვდომი სპეციალისტები', 'Any hours': 'ნებისმიერი საათები',
-    'Clubs and people post jobs and availability here.': 'კლუბები და ადამიანები აქ აქვეყნებენ ვაკანსიებსა და ხელმისაწვდომობას.',
+    'Trials and places to train': 'სინჯები და სავარჯიშო ჯგუფები',
+    'Clubs you follow': 'გამოწერილი კლუბები',
+    'The clubs you follow, everywhere': 'ყველა კლუბი, რომელსაც ადევნებთ თვალს',
+    'All clubs': 'ყველა კლუბი',
+    'Sign in to see clubs you follow.': 'გამოწერილი კლუბების სანახავად შედით.',
+    'No followed clubs yet': 'გამოწერილი კლუბები ჯერ არ არის',
+    'Follow clubs to keep their profiles and updates here.': 'გამოიწერეთ კლუბები მათი გვერდებისა და სიახლეების აქ სანახავად.',
+    'People available': 'ხელმისაწვდომი სპეციალისტები',
 
     'Kept while you browse. Reloading clears this draft.': 'გვერდებზე გადასვლისას მონახაზი ინახება. ხელახლა ჩატვირთვისას წაიშლება.',
     'Discard draft': 'მონახაზის წაშლა',
@@ -95,7 +100,6 @@ export const WORLD_KA: Record<string, string> = {
     'Browse matches': 'მატჩების დათვალიერება', 'Clubs and organisers publish matches, trials and competitions here.': 'კლუბები და ორგანიზატორები აქ აქვეყნებენ მატჩებს, გასინჯვებსა და ტურნირებს.',
     'Around {city}': 'ქალაქი {city} და მიდამოები', 'Clubs and venues around {city}': 'კლუბები და მოედნები — {city}', '{clubs} and {venues} within 25 km': '{clubs} და {venues} 25 კმ-ის რადიუსში',
     'Finding clubs and venues…': 'კლუბებისა და მოედნების ძიება…', 'Clubs near you': 'კლუბები თქვენთან ახლოს', 'Clubs near you for {name}': 'კლუბები თქვენთან ახლოს — {name}',
-    'All clubs': 'ყველა კლუბი', 'No clubs listed in {city} yet': '{city}-ში კლუბები ჯერ არ არის', 'Browse all clubs': 'ყველა კლუბის დათვალიერება',
     'Try another area or browse every club.': 'სცადეთ სხვა ადგილი ან დაათვალიერეთ ყველა კლუბი.', 'Open for entries': 'რეგისტრაცია ღიაა', 'All competitions': 'ყველა ტურნირი',
     'No competitions are taking entries': 'ახლა არცერთ ტურნირზე რეგისტრაცია არ მიმდინარეობს', 'Browse competitions': 'ტურნირების დათვალიერება',
     'New leagues and cups appear here when entries open.': 'ახალი ლიგები და თასები აქ გამოჩნდება, როცა რეგისტრაცია გაიხსნება.', 'All opportunities': 'ყველა შესაძლებლობა',
@@ -111,7 +115,6 @@ export const WORLD_KA: Record<string, string> = {
     'How to join': 'გაწევრიანების წესი', 'Open trials': 'ღია გასინჯვა', 'Apply to join': 'გაწევრიანება განაცხადით', 'Invite only': 'მხოლოდ მოწვევით', 'City': 'ქალაქი', 'Country': 'ქვეყანა',
     'Any city': 'ნებისმიერი ქალაქი', 'Any country': 'ნებისმიერი ქვეყანა', 'Most members': 'ყველაზე მეტი წევრი', 'Name A–Z': 'სახელი ა–ჰ', 'Newest': 'უახლესი',
     'No clubs listed yet': 'კლუბები ჯერ არ არის', 'Clubs appear here when they publish their profile.': 'კლუბები აქ გამოჩნდება, როცა პროფილს გამოაქვეყნებენ.',
-    'Clubs you follow': 'გამოწერილი კლუბები', 'Create a club': 'კლუბის შექმნა', 'Searching for': 'ვისთვის ეძებთ',
     'Professional club': 'პროფესიული კლუბი', 'Semi-professional club': 'ნახევრად პროფესიული კლუბი', 'Amateur club': 'სამოყვარულო კლუბი', 'Grassroots club': 'მასობრივი ფეხბურთის კლუბი',
     'Academy': 'აკადემია', 'Football school': 'საფეხბურთო სკოლა', 'Football club': 'საფეხბურთო კლუბი', 'Location not published': 'მდებარეობა არ არის მითითებული',
     'Member': 'წევრი', 'Application pending': 'განაცხადი განიხილება', 'Invited': 'მოწვეული', 'Trialist': 'გასინჯვაზე', 'Verified club': 'დადასტურებული კლუბი',
@@ -186,10 +189,9 @@ export const WORLD_KA: Record<string, string> = {
     'Strength & conditioning coach': 'ფიზიკური მომზადების მწვრთნელი', 'Team doctor': 'გუნდის ექიმი', 'Football photographer': 'საფეხბურთო ფოტოგრაფი', 'Sports lawyer': 'სპორტის იურისტი',
 
     // Opportunities
-    'Jobs and volunteering': 'სამუშაო და მოხალისეობა', 'Search jobs and volunteering': 'სამუშაოსა და მოხალისეობის ძიება', 'Search roles, clubs or skills': 'მოძებნეთ როლები, კლუბები ან უნარები',
-    'Terms': 'პირობები', 'All roles': 'ყველა როლი', 'Paid or volunteer': 'ანაზღაურებადი ან მოხალისეობრივი', 'Football role': 'საფეხბურთო როლი', 'Any football role': 'ნებისმიერი საფეხბურთო როლი',
-    'For example U12': 'მაგალითად, U12', 'Posted': 'გამოქვეყნდა', 'Any time': 'ნებისმიერ დროს', 'Past 7 days': 'ბოლო 7 დღე', 'Past 30 days': 'ბოლო 30 დღე', 'Newest first': 'ჯერ უახლესი',
-    'Oldest first': 'ჯერ ძველი', 'No open roles right now': 'ახლა ღია როლები არ არის', 'Clubs post coaching, matchday and volunteer roles here.': 'კლუბები აქ აქვეყნებენ სამწვრთნელო, მატჩის დღისა და მოხალისეობრივ როლებს.',
+    'Jobs and volunteering': 'სამუშაო და მოხალისეობა',
+    'Terms': 'პირობები', 'All roles': 'ყველა როლი', 'Paid or volunteer': 'ანაზღაურებადი ან მოხალისეობრივი', 'Football role': 'საფეხბურთო როლი', 'Posted': 'გამოქვეყნდა', 'Any time': 'ნებისმიერ დროს', 'Past 7 days': 'ბოლო 7 დღე', 'Past 30 days': 'ბოლო 30 დღე', 'Newest first': 'ჯერ უახლესი',
+    'Oldest first': 'ჯერ ძველი', 'Clubs post coaching, matchday and volunteer roles here.': 'კლუბები აქ აქვეყნებენ სამწვრთნელო, მატჩის დღისა და მოხალისეობრივ როლებს.',
     'Terms to discuss': 'პირობები შესათანხმებელია', 'Recently posted': 'ახლახან გამოქვეყნდა', 'Posted today': 'გამოქვეყნდა დღეს', 'Posted yesterday': 'გამოქვეყნდა გუშინ', 'Posted {days} days ago': 'გამოქვეყნდა {days} დღის წინ',
     'Coaching': 'მწვრთნელობა', 'Football operations': 'საფეხბურთო ოპერაციები', 'Administration': 'ადმინისტრაცია', 'Media & communications': 'მედია და კომუნიკაცია', 'Facilities & maintenance': 'ინფრასტრუქტურა და მოვლა',
     'Medical & wellbeing': 'სამედიცინო და კეთილდღეობა', 'Matchday staff': 'მატჩის დღის პერსონალი', 'Other club roles': 'კლუბის სხვა როლები', 'Other club role': 'კლუბის სხვა როლი',
@@ -203,6 +205,7 @@ export const WORLD_KA: Record<string, string> = {
     'Include groups not taking players': 'ის ჯგუფებიც, რომლებიც არ იღებენ მოთამაშეებს', 'Include waiting lists': 'მოლოდინის სიების ჩათვლით',
     'No groups are taking players': 'ახლა არცერთი ჯგუფი არ იღებს მოთამაშეებს', 'Include waiting lists, or ask a club directly from its profile.': 'ჩართეთ მოლოდინის სიები ან ჰკითხეთ კლუბს პირდაპირ მის გვერდზე.',
     'Born {from}–{to}': 'დაბ. {from}–{to}', 'Boys': 'ბიჭები', 'Girls': 'გოგონები', 'Joining football': 'ფეხბურთში ჩართვა',
+    'Searching for': 'ვისთვის ეძებთ',
     'Goalkeeper': 'მეკარე', 'Defender': 'მცველი', 'Midfielder': 'ნახევარმცველი', 'Forward': 'თავდამსხმელი', 'Striker': 'თავდამსხმელი', 'Winger': 'ფლანგის მოთამაშე',
 
     // Club workspace links to the club's own matches

@@ -15,7 +15,7 @@ const personal: Record<string, [english: string, georgian: string, PinIcon]> = {
     '/parent': ['Parent Hub', 'მშობლის სივრცე', 'family'],
     '/referees/me': ['Referee workspace', 'მსაჯის სამუშაო სივრცე', 'flag'],
     '/agent': ['Agent Hub', 'აგენტის სივრცე', 'briefcase'],
-    '/club-operations': ['My club appointments', 'ჩემი კლუბური დანიშვნები', 'clipboard'],
+    '/requests': ['Inbox', 'შემოსულები', 'clipboard'],
 };
 
 function kindOf(item: ConnectedWorkspace, copy: Copy) {
@@ -50,7 +50,7 @@ export function workDestinations(capabilities: NavigationCapabilities | undefine
     for (const club of accessibleClubs(capabilities)) {
         if (club.canOpenWorkspace) work.push({ path: `/clubs/${club.id}`, label: club.name, icon: 'club' });
     }
-    if (capabilities === undefined || hasNavigationCapability(capabilities, 'squad.workspace')) work.push({ path: '/squads', label: copy('My squads', 'ჩემი გუნდები'), icon: 'squad' });
+    if (capabilities === undefined || hasNavigationCapability(capabilities, 'squad.workspace')) work.push({ path: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: 'squad' });
     work.push({ path: '/calendar', label: copy('My schedule', 'ჩემი განრიგი'), icon: 'calendar' });
     if (hasNavigationCapability(capabilities, 'team.work')) work.push({ path: '/team-work', label: copy('Team work', 'გუნდის სამუშაო'), icon: 'clipboard' });
     return work.filter((item, index, all) => all.findIndex(other => other.path === item.path) === index);
@@ -62,7 +62,7 @@ const explore: Array<[path: string, group: ExploreDestination['group'], signedIn
     ['/world/clubs', 'world'], ['/world/opportunities', 'world'], ['/world/matches', 'world'],
     ['/world/tournaments', 'world'], ['/world/people', 'world'],
     ['/world/opportunities?type=trials', 'more'], ['/world/matches?tab=events', 'more'],
-    ['/store', 'support'], ['/campaigns', 'support'], ['/clubs/following', 'support', true],
+    ['/store', 'support'], ['/campaigns', 'support'], ['/world/clubs?view=following', 'support', true],
 ];
 
 /**

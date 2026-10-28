@@ -101,7 +101,7 @@ export function FootballLines({ lines, follows = [], own, label, onChanged }: { 
                     <strong>{copy(follows.length === 1 ? `Follows ${follows[0].name}` : `Follows ${follows.length} clubs`, follows.length === 1 ? `გამოწერილი: ${follows[0].name}` : `გამოწერილია ${follows.length} კლუბი`)}</strong>
                     <span>{copy('Their posts on Home', 'მათი პოსტები მთავარზე')}</span>
                 </div>
-                {own && <div className="gk-fp-line__actions"><ButtonLink size="sm" variant="ghost" to="/clubs/following">{copy('See all', 'ყველა')}</ButtonLink></div>}
+                {own && <div className="gk-fp-line__actions"><ButtonLink size="sm" variant="ghost" to="/world/clubs?view=following">{copy('See all', 'ყველა')}</ButtonLink></div>}
             </li>}
         </ul>
         {leaving?.leave && <LeaveDialog line={leaving} onClose={() => setLeaving(null)} onLeft={() => { setLeaving(null); onChanged?.(); }} />}

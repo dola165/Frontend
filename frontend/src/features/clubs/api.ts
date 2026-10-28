@@ -181,9 +181,6 @@ export interface ClubJobPayload {
     status?: 'OPEN' | 'CLOSED';
 }
 
-export const fetchOpenJobDirectory = async (params: URLSearchParams, signal?: AbortSignal) =>
-    (await apiClient.get<PageResult<ClubJob>>(`/jobs/listings?${params}`, { signal })).data;
-
 export interface ClubStaffProfilePayload {
     publicTitle?: string | null;
     clubBio?: string | null;

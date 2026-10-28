@@ -12,11 +12,11 @@ describe('organization invitation destinations', () => {
         expect(buildNotificationDestination(notice(path))).toBe('/my-organizations?itemId=9');
     });
     it.each(['/account?tab=profile&itemId=10', '/my-organizations?itemId=10', '/invite/org-10', '/invite/org-9?itemId=9', '/my-organizations?itemId=9&tab=team', '/my-organizations?itemId=9&itemId=9', '/my-organizations?itemId=9#receipt', '//evil.test/my-organizations?itemId=9', '/clubs/9/workspace'])('keeps mismatched or unsafe %s on its notification receipt', path => {
-        expect(buildNotificationDestination(notice(path))).toBe('/notifications?itemId=72');
+        expect(buildNotificationDestination(notice(path))).toBe('/requests?view=updates&itemId=72');
     });
     it('does not confuse a notification ID, invitation ID, or unrelated entity', () => {
-        expect(buildNotificationDestination({ ...notice(null), entityId: null })).toBe('/notifications?itemId=72');
-        expect(buildNotificationDestination({ ...notice(null), entityType: 'other' })).toBe('/notifications?itemId=72');
+        expect(buildNotificationDestination({ ...notice(null), entityId: null })).toBe('/requests?view=updates&itemId=72');
+        expect(buildNotificationDestination({ ...notice(null), entityType: 'other' })).toBe('/requests?view=updates&itemId=72');
     });
     it('permits the same exact receipt in notifications and requests', () => {
         expect(safeNotificationLink('/my-organizations?itemId=9')?.pathname).toBe('/my-organizations');
@@ -41,15 +41,15 @@ describe('page review destinations', () => {
         expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_DECIDED', decided))).toBe(decided);
     });
     it.each([null, '/admin/page-reviews', '/admin/page-reviews?review=42', `/admin/page-reviews?review=${review}&review=${review}`, `/admin/page-reviews?review=${review}&tab=team`, `${requested}#evidence`, `/account?review=${review}`])('rejects malformed reviewer destination %s', path => {
-        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_REQUESTED', path))).toBe('/notifications?itemId=72');
+        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_REQUESTED', path))).toBe('/requests?view=updates&itemId=72');
     });
     it.each([`${decided}?review=${review}`, `${decided}#evidence`, '/pages/requests/42'])('rejects malformed claimant destination %s', path => {
         expect(safeNotificationLink(path)).toBeNull();
     });
     it('does not map requester updates onto admin actions or infer a UUID from a delivery ID', () => {
-        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_DECIDED', requested))).toBe('/notifications?itemId=72');
-        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_REQUESTED', decided))).toBe('/notifications?itemId=72');
-        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_DECIDED', null))).toBe('/notifications?itemId=72');
+        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_DECIDED', requested))).toBe('/requests?view=updates&itemId=72');
+        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_REQUESTED', decided))).toBe('/requests?view=updates&itemId=72');
+        expect(buildNotificationDestination(reviewNotice('PAGE_REVIEW_DECIDED', null))).toBe('/requests?view=updates&itemId=72');
     });
 });
 

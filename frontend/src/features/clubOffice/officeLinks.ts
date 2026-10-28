@@ -11,10 +11,11 @@ export type OfficePlace = typeof OFFICE_PLACES[number];
 /**
  * Every tool that has no page of its own yet waits in More tools, grouped by the page it will move to. As each page
  * is built, its group leaves. `page` names that page in English and Georgian. Whatever someone opens today is
- * listed, so a job whose only tools are attendance or duties still finds them (review, 28 October 2026).
+ * listed, so a job whose only tools are duties still finds them (review, 28 October 2026). My squads' group left with
+ * step 3 (29 October 2026, see MOVED_TOOLS); equipment waits in a group of its own until Kit has a page.
  */
 export const MORE_TOOLS = [
-    { id: 'my-squads', page: ['My squads', 'ჩემი გუნდები'], tools: ['admissions', 'applications', 'equipment', 'attendance', 'preparation'] },
+    { id: 'kit', page: ['Kit', 'ეკიპირება'], tools: ['equipment'] },
     { id: 'staff', page: ['Staff', 'პერსონალი'], tools: ['staff-duties', 'specialists'] },
     { id: 'projects', page: ['Projects', 'პროექტები'], tools: ['campaigns'] },
     { id: 'registration', page: ['Registration', 'რეგისტრაცია'], tools: ['players', 'player-cards', 'registration', 'departures', 'credentials'] },
@@ -26,9 +27,26 @@ export const MORE_TOOLS = [
     { id: 'travel', page: ['Travel', 'მგზავრობა'], tools: ['travel'] },
 ] as const;
 
-export type OfficeTool = typeof MORE_TOOLS[number]['tools'][number];
-export const OFFICE_TOOLS: readonly OfficeTool[] = MORE_TOOLS.flatMap(group => group.tools);
+/**
+ * The tools that moved into My squads (step 3): joining is Players' Want to join, attendance the session's register,
+ * preparation the next match card. For someone on a squad their old links land there; a link to one of their records
+ * still opens it here. Someone on no squad (a Custom job with only Attendance) has no My squads, so for them the tools
+ * stay in More tools, in MOVED_GROUP.
+ */
+export const MOVED_TOOLS = { admissions: 'players', applications: 'players', attendance: 'calendar', preparation: 'matches' } as const;
+export type MovedTool = keyof typeof MOVED_TOOLS;
+export const isMovedTool = (value: string | null | undefined): value is MovedTool => value != null && value in MOVED_TOOLS;
+export const MOVED_GROUP = { id: 'my-squads', page: ['My squads', 'ჩემი გუნდები'], tools: Object.keys(MOVED_TOOLS) as MovedTool[] } as const;
+
+export type OfficeTool = typeof MORE_TOOLS[number]['tools'][number] | MovedTool;
+/** Every tool Club office opens: those More tools lists, and the moved ones for links to their records. */
+export const OFFICE_TOOLS: readonly OfficeTool[] = [...MORE_TOOLS.flatMap(group => group.tools), ...Object.keys(MOVED_TOOLS) as MovedTool[]];
 export const isOfficeTool = (value: string | null | undefined): value is OfficeTool => OFFICE_TOOLS.includes(value as OfficeTool);
+
+/** A record, case or application named in a link: the moved tool still opens it in Club office. */
+const RECORD_KEYS = ['record', 'caseId', 'case', 'applicationId', 'person', 'intake'];
+export const namesARecord = (context: Record<string, string> | URLSearchParams) =>
+    RECORD_KEYS.some(key => context instanceof URLSearchParams ? context.has(key) : key in context);
 
 const query = (values: Record<string, string>) => { const text = new URLSearchParams(values).toString(); return text ? `?${text}` : ''; };
 
@@ -40,9 +58,15 @@ export const officePath = (club: number, place: OfficePlace = 'staff', context: 
 export const officeToolPath = (club: number, tool: OfficeTool, context: Record<string, string> = {}) =>
     officePath(club, 'tools', { tool, ...context });
 
+/** Where a moved tool lives now: its place in My squads, on the squad the link named. */
+export const movedToolPath = (club: number, tool: MovedTool, context: Record<string, string> = {}) =>
+    `/my-squads${query({ clubId: String(club), tab: MOVED_TOOLS[tool], ...(context.squad ? { squad: context.squad } : {}) })}`;
+
 /** A squad the person coaches, from the server's navigation hints: its own page is My squads. */
 const coaches = (capabilities: NavigationCapabilities | undefined, squad: string | null) =>
     squad !== null && (capabilities?.workspaces ?? []).some(item => item.id === 'squad.workspace' && String(item.context.id) === squad);
+/** Whether the person is on any squad, so has My squads; unknown hints leave it to Club office, which knows. */
+const onASquad = (capabilities: NavigationCapabilities | undefined) => (capabilities?.workspaces ?? []).some(item => item.id === 'squad.workspace');
 
 /**
  * Where an old club workspace address lands (notifications already sent, saved pins, bookmarks): Club office itself
@@ -70,7 +94,8 @@ export function legacyWorkspaceTarget(club: number, search: URLSearchParams, cap
         case 'workspace-settings': return officePath(club, 'settings', { section: 'details', ...context });
         case 'calendar': return officePath(club, 'calendar', context);
         case 'tools': return officePath(club, 'tools');
-        default: return isOfficeTool(tab) ? officeToolPath(club, tab, context) : officePath(club);
+        default: return isMovedTool(tab) && !namesARecord(context) && onASquad(capabilities) ? movedToolPath(club, tab, context)
+            : isOfficeTool(tab) ? officeToolPath(club, tab, context) : officePath(club);
     }
 }
 

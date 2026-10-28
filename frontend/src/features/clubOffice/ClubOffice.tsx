@@ -22,7 +22,7 @@ import { BirthDateStep } from '../pages/create/BirthDateStep';
 import { MoreTools } from './MoreTools';
 import { OfficeSettings } from './OfficeSettings';
 import { OfficeTool } from './OfficeTool';
-import { isOfficeTool, OFFICE_PLACES, officePath, officeToolPath, type OfficePlace, type OfficeTool as Tool } from './officeLinks';
+import { isMovedTool, isOfficeTool, movedToolPath, namesARecord, OFFICE_PLACES, officePath, officeToolPath, type OfficePlace, type OfficeTool as Tool } from './officeLinks';
 import { toolStates } from './officeTools';
 import '../clubWorkspace/club-workspace.css';
 import './office.css';
@@ -57,6 +57,8 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     const requested: OfficePlace = tool ? 'tools' : OFFICE_PLACES.find(place => place === params.get('tab')) ?? 'staff';
     const admissions = useClubAdmissions(clubId, sessionId, tool === 'admissions');
     const states = toolStates({ boot: operations.boot, role, admissions: Boolean(admissions.data) });
+    // On a squad, joining, attendance and preparation live in My squads; someone on no squad keeps them here.
+    const onSquads = Boolean(roles?.views.some(view => view.onSquads));
     const anyTool = leader || [...states.values()].some(state => state !== 'locked');
     const opens = (tool: Tool) => states.get(tool) === 'open' || states.get(tool) === 'view';
     const allowed = (next: OfficePlace) => next === 'staff' || next === 'calendar' || (next === 'tools' ? anyTool : leader);
@@ -74,6 +76,8 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
 
     if (!Number.isSafeInteger(clubId) || clubId <= 0) return <PageFrame><EmptyNote title={copy('This club office does not exist', 'კლუბის ოფისი ვერ მოიძებნა')} /></PageFrame>;
     if (ownSquad) return <Navigate replace to={`/my-squads?${new URLSearchParams({ clubId: String(clubId), squad: squad! })}`} />;
+    // Joining, attendance and preparation moved into My squads (step 3): their tool lands there, a record still opens here.
+    if (known && onSquads && tool && isMovedTool(tool) && !namesARecord(params)) return <Navigate replace to={movedToolPath(clubId, tool, Object.fromEntries(params))} />;
 
     const go = (to: string) => guardWorkspaceNavigation(() => navigate(to));
     // While nothing is known yet the side bar waits quietly rather than naming a made-up club.
@@ -118,7 +122,7 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     else if (place === 'tools' && tool) content = <OfficeTool clubId={clubId} tool={tool} state={states.get(tool)} sessionId={sessionId} overview={club.overview} reloadOverview={club.reload}
         boot={operations.boot} bootLoading={operations.loading} bootError={operations.error} refreshBoot={operations.refresh} roles={roles} refreshRoles={workspaceRoles.refresh}
         admissions={admissions} leader={leader} admin={can.admin} />;
-    else if (place === 'tools') content = <MoreTools clubId={clubId} states={states} boot={operations.boot} leader={leader} admin={can.admin} />;
+    else if (place === 'tools') content = <MoreTools clubId={clubId} states={states} boot={operations.boot} leader={leader} onSquads={onSquads} admin={can.admin} />;
     else content = <ClubPeople key={clubId} clubId={clubId} clubName={clubName} members={club.overview?.members} invitations={club.overview?.pendingInvitations}
         tools={{ duties: opens('staff-duties'), specialists: opens('specialists') }}
         onChanged={() => { void club.reload(); void operations.refresh(); workspaceRoles.refresh(); }} />;

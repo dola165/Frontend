@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { AccessAction, AccessDecision } from '../../api/access';
 import type { AuthSessionId } from '../../utils/authStorage';
@@ -22,10 +22,13 @@ vi.mock('../clubOperations/useClubOperations', () => ({ useClubOperations: () =>
 vi.mock('../clubOperations/useWorkspaceRoles', () => ({ useWorkspaceRoles: () => loads.roles }));
 vi.mock('../admissions/club/useClubAdmissions', () => ({ useClubAdmissions: () => ({ data: null, loading: false, error: '' }) }));
 vi.mock('../clubOperations/people/ClubPeople', () => ({ ClubPeople: () => <h1>Staff</h1> }));
+vi.mock('./OfficeTool', () => ({ OfficeTool: ({ tool }: { tool: string }) => <h1>Tool {tool}</h1> }));
 
 afterEach(cleanup);
-const mount = () => render(<MemoryRouter initialEntries={['/clubs/7/office']}><Routes>
+function MySquads() { const { search } = useLocation(); return <h1>My squads{search}</h1>; }
+const mount = (at = '/clubs/7/office') => render(<MemoryRouter initialEntries={[at]}><Routes>
     <Route path="/clubs/:id/office" element={<ClubOffice clubId={7} sessionId={'fixture' as AuthSessionId} />} />
+    <Route path="/my-squads" element={<MySquads />} />
 </Routes></MemoryRouter>);
 
 it('says a failed load and offers Try again, even when the overview refuses a job holder', () => {
@@ -42,6 +45,21 @@ it('names the place in the phone bar, whatever section is open', () => {
     mount();
     expect(document.querySelector('.gk-ws__bar-title strong')).toHaveTextContent('Club office');
     expect(screen.getByRole('heading', { name: 'Staff' })).toBeInTheDocument();
+});
+
+it('opens an old attendance link in My squads for someone on a squad; a record, or someone on no squad, stays here', () => {
+    loads.can = { pending: false, failed: false, decide: () => ({ allowed: true }) };
+    const job = (onSquads: boolean) => ({ data: { views: [{ id: 'job', label: 'Team manager', modules: ['ATTENDANCE'], squadIds: [105], clubWide: false, onSquads }] } as unknown, loading: false, error: null, refresh: vi.fn() });
+    loads.roles = job(true);
+    mount('/clubs/7/office?tab=tools&tool=attendance&squad=105');
+    expect(screen.getByRole('heading', { name: 'My squads?clubId=7&tab=calendar&squad=105' })).toBeInTheDocument();
+    cleanup();
+    mount('/clubs/7/office?tab=tools&tool=attendance&record=12');
+    expect(screen.getByRole('heading', { name: 'Tool attendance' })).toBeInTheDocument();
+    cleanup();
+    loads.roles = job(false);
+    mount('/clubs/7/office?tab=tools&tool=attendance');
+    expect(screen.getByRole('heading', { name: 'Tool attendance' })).toBeInTheDocument();
 });
 
 it('asks a staff member without a birth date for it once, then loads Staff', async () => {

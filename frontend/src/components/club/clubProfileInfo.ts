@@ -1,5 +1,4 @@
 import type { ClubProfile } from '../../features/clubs/profile/types';
-import './club-tones.css';
 
 export const toPhoneHref = (value?: string | null) => (value ? `tel:${value.replace(/\s+/g, '')}` : null);
 

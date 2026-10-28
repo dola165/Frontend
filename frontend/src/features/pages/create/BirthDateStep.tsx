@@ -11,8 +11,9 @@ import { usePagesCopy } from '../copy';
 /**
  * Pages are for adults, and an account without a birth date is not counted as one: before the create sheet, it is
  * asked for the date once. Saving refreshes the account; the host then shows the sheet or "Pages are for adults".
+ * `reason` says why something else asks (the phone for colleagues, 28 October 2026).
  */
-export function BirthDateStep({ onClose }: { onClose: () => void }) {
+export function BirthDateStep({ onClose, reason }: { onClose: () => void; reason?: string }) {
   const t = usePagesCopy();
   const { bootstrapSession } = useAuth();
   const [dob, setDob] = useState('');
@@ -25,7 +26,7 @@ export function BirthDateStep({ onClose }: { onClose: () => void }) {
     catch (failure) { setError(extractApiErrorMessage(failure, t('Not saved. Check your connection and try again.'))); }
     finally { setBusy(false); }
   };
-  return <Dialog open size="sm" title={t('Your date of birth')} description={t('Pages are for adults, so we ask once.')} onClose={onClose}
+  return <Dialog open size="sm" title={t('Your date of birth')} description={reason ?? t('Pages are for adults, so we ask once.')} onClose={onClose}
     footer={<>
       <Button variant="ghost" onClick={onClose}>{t('Close')}</Button>
       <Button variant="primary" disabled={busy} onClick={() => void save()}>{busy && <Loader2 className="gk-spin" aria-hidden="true" />}{t('Continue')}</Button>

@@ -54,8 +54,9 @@ export function PersonSide({ view, edit = null }: { view: PersonView; edit?: Edi
                 <p className="gk-faint">{copy('Recorded by the clubs.', 'კლუბების ჩანაწერი.')}</p>
             </>}
         </SideBlock>}
-        {own && isAdult(user?.dob) && <PhoneInPlace key={`phone:${edit?.counts.phone ?? 0}`} phone={profile.phone ?? null} open={edit?.part === 'phone'}
-            onSaved={phone => view.setProfile(current => current ? { ...current, phone } : current)} />}
+        {/* Adults only: an account without a birth date is asked for it first; a child sees no phone box. */}
+        {own && (isAdult(user?.dob) || !user?.dob) && <PhoneInPlace key={`phone:${edit?.counts.phone ?? 0}`} phone={profile.phone ?? null} open={edit?.part === 'phone'}
+            needsBirthDate={!user?.dob} onSaved={phone => view.setProfile(current => current ? { ...current, phone } : current)} />}
         {own && <FollowedClubs />}
         {own && user?.navigationCapabilities !== undefined && !hasOwnPage(user.navigationCapabilities) && <SideBlock title={pt('Your club')}><CreateLink kind="CLUB" from="profile" size="sm">{pt('Add your club')}</CreateLink></SideBlock>}
         {(roles.includes('AGENT') || (roles.includes('PLAYER') && !possibleMinor)) && <RepresentationPanel profileId={profile.id} own={own} roles={roles} />}

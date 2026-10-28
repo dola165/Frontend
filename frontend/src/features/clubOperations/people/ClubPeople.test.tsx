@@ -189,7 +189,8 @@ it('shows each colleague’s shared email and phone, and your own switches on yo
     renderPeople(data);
     const luka = (await screen.findByText('Luka Beridze')).closest('li.pp-person') as HTMLElement;
     expect(within(luka).getByRole('link', { name: 'luka@example.test' })).toHaveAttribute('href', 'mailto:luka@example.test');
-    expect(within(luka).getByRole('link', { name: '+995 555 12 34 56' })).toHaveAttribute('href', 'tel:555123456');
+    // The call link carries the number as shown, with the country code.
+    expect(within(luka).getByRole('link', { name: '+995 555 12 34 56' })).toHaveAttribute('href', 'tel:+995555123456');
     expect(within(luka).queryByRole('switch')).not.toBeInTheDocument();
     // No phone yet: it is added on your profile, where Staff's link opens it.
     const me = row('Giga Kapanadze');

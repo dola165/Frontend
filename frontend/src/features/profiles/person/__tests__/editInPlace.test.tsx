@@ -4,7 +4,7 @@ import { AboutInPlace } from '../../football/AboutInPlace';
 import { apiClient } from '../../../../api/axiosConfig';
 import { PersonProfilePage } from '../PersonProfilePage';
 
-const auth = vi.hoisted(() => ({ user: { id: 7, dob: '1992-05-14' } as Record<string, unknown>, status: 'authenticated', sessionId: 'edit-in-place', refreshNavigationCapabilities: vi.fn(async () => undefined) }));
+const auth = vi.hoisted(() => ({ user: { id: 7, dob: '1992-05-14' } as Record<string, unknown>, status: 'authenticated', sessionId: 'edit-in-place', refreshNavigationCapabilities: vi.fn(async () => undefined), bootstrapSession: vi.fn(async () => undefined) }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../../agents/RepresentationPanel', () => ({ RepresentationPanel: () => null, RepresentationShortcut: () => null }));
 vi.mock('../../../agents/ClubApproachesPanel', () => ({ ClubApproachesPanel: () => null }));
@@ -92,6 +92,19 @@ describe('making your profile, in place', () => {
         fireEvent.click(box.getByRole('button', { name: 'Remove' }));
         await waitFor(() => expect(apiClient.put).toHaveBeenLastCalledWith('/users/me', { phone: '' }));
         expect(await box.findByRole('button', { name: 'Add your phone' })).toBeInTheDocument();
+    });
+
+    it('asks an account without a birth date for it first, with the profile’s one-time step', async () => {
+        auth.user = { id: 7 };
+        serve(); mount();
+        vi.mocked(apiClient.put).mockResolvedValue({ data: {} });
+        const box = within((await screen.findByRole('heading', { name: 'Phone' })).closest('section')!);
+        fireEvent.click(box.getByRole('button', { name: 'Add your phone' }));
+        const dialog = await screen.findByRole('dialog', { name: 'Your date of birth' });
+        expect(dialog).toHaveTextContent('Only adults add a phone for colleagues, so we ask once.');
+        fireEvent.change(within(dialog).getByLabelText('Date of birth'), { target: { value: '1990-05-14' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
+        await waitFor(() => expect(apiClient.put).toHaveBeenCalledWith('/users/me', { dateOfBirth: '1990-05-14' }));
     });
 
     it('opens the phone from ?edit=phone (Staff’s link), and offers it only to adults on their own profile', async () => {

@@ -76,7 +76,8 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     // Someone without a job here has no job line.
     const job = !known ? undefined : isLeadershipRole(role) ? clubRoleLabel(role) : jobs.join(', ') || (staff ? copy('Club staff', 'კლუბის პერსონალი') : undefined);
     // A failed load is never "not for you": when neither the access check nor the jobs answered, say so and retry.
-    const failed = known && can.failed && !roles && Boolean(workspaceRoles.error) && !club.forbidden;
+    // The management overview refuses everyone without a staff membership (a physio's job), so it decides nothing here.
+    const failed = known && can.failed && !roles && Boolean(workspaceRoles.error);
     const retry = () => { refreshAccess(); workspaceRoles.refresh(); void club.reload(); void operations.refresh(); };
     const primary: WorkspaceNavItem[] = [
         { id: 'staff', label: copy('Staff', 'პერსონალი'), icon: Users },
@@ -84,7 +85,6 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     ];
     const quiet: WorkspaceNavItem[] = anyTool ? [{ id: 'tools', label: copy('More tools', 'სხვა ინსტრუმენტები'), icon: LayoutGrid }] : [];
     const footer: WorkspaceNavItem[] = [{ id: 'calendar', label: copy('Calendar', 'კალენდარი'), icon: CalendarDays }];
-    const titles = [...primary, ...quiet, ...footer];
 
     let content: ReactNode;
     if (!known && !roles && !club.overview) content = <PageFrame className="cw-page"><div className="cw-loading" role="status" aria-label={copy('Loading Club office', 'კლუბის ოფისი იტვირთება')}>
@@ -114,7 +114,7 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     return <WorkspaceShell label={copy('Club office', 'კლუბის ოფისი')} storageKey={`office-${clubId}`} guard={guardWorkspaceNavigation} canvas
         context={{ name: clubName, crest: club.clubLogoUrl, role: job, back: { label: copy('Club page', 'კლუბის გვერდი'), to: `/clubs/${clubId}` } }}
         primary={primary} quiet={quiet} footer={footer} active={place} onSelect={id => go(officePath(clubId, id as OfficePlace))}
-        hrefFor={id => officePath(clubId, id as OfficePlace)} sectionTitle={titles.find(item => item.id === place)?.label ?? copy('Club office', 'კლუბის ოფისი')}>
+        hrefFor={id => officePath(clubId, id as OfficePlace)} sectionTitle={copy('Club office', 'კლუბის ოფისი')}>
         {workspaceRoles.error && roles && <div className="gk-notice gk-notice--warning" role="alert"><span className="cw-notices__text">{workspaceRoles.error}</span>
             <Button size="sm" onClick={workspaceRoles.refresh}>{copy('Try again', 'თავიდან')}</Button></div>}
         {content}

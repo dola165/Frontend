@@ -3,6 +3,7 @@ import { Phone } from 'lucide-react';
 import { Button } from '../../../design/primitives';
 import { SideBlock } from '../../../design/profile/ProfileLayout';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { BirthDateStep } from '../../pages/create/BirthDateStep';
 import { EditPencil } from '../../pages/edit/EditPencil';
 import { phoneDisplay } from '../../pages/model/phone';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
@@ -14,12 +15,18 @@ const callable = (typed: string) => { const digits = typed.replace(/\D/g, '').le
 /**
  * The phone colleagues may call (the owner, 28 October 2026), added, changed or removed on your own profile and edited
  * in place like a club page's Contact box: the same input and the same display. Only you see it here; fellow staff see
- * it in Club office › Staff unless you hide it there. Visitors never do, and only adults add one.
+ * it in Club office › Staff unless you hide it there. Visitors never do, and only adults add one: an account without a
+ * birth date gives it first, once (`needsBirthDate`), and the box opens when it shows an adult.
  */
-export function PhoneInPlace({ phone, open = false, onSaved }: { phone: string | null; open?: boolean; onSaved: (phone: string | null) => void }) {
+export function PhoneInPlace({ phone, open = false, needsBirthDate = false, onSaved }: {
+    phone: string | null; open?: boolean; needsBirthDate?: boolean; onSaved: (phone: string | null) => void;
+}) {
     const copy = useJourneyCopy();
     const id = useId();
-    const [editing, setEditing] = useState(open);
+    const [wanted, setWanted] = useState(open);
+    // Asked for, the box opens as soon as the account has a birth date.
+    const editing = wanted && !needsBirthDate;
+    const setEditing = setWanted;
     const [draft, setDraft] = useState(phone ?? '');
     const [saving, setSaving] = useState(false), [error, setError] = useState('');
     const close = () => { setEditing(false); setDraft(phone ?? ''); setError(''); };
@@ -38,6 +45,8 @@ export function PhoneInPlace({ phone, open = false, onSaved }: { phone: string |
     return <SideBlock title={copy('Phone', 'ტელეფონი')} hint={copy('Colleagues see it in Staff', 'კოლეგები მას პერსონალში ხედავენ')}
         action={!editing && phone ? <EditPencil onClick={() => setEditing(true)} label={copy('Edit your phone', 'ტელეფონის შეცვლა')} /> : undefined}>
         <div id="phone" className="gk-person-phone">
+            {wanted && needsBirthDate && <BirthDateStep onClose={() => setWanted(false)}
+                reason={copy('Only adults add a phone for colleagues, so we ask once.', 'კოლეგებისთვის ტელეფონს მხოლოდ სრულწლოვანი ამატებს, ამიტომ ერთხელ გეკითხებით.')} />}
             {editing ? <form className="gk-person-phone__form" onKeyDown={onKey} onSubmit={event => { event.preventDefault(); void save(draft); }}>
                 <input id={`${id}-phone`} aria-label={copy('Phone', 'ტელეფონი')} className="gk-input" type="tel" inputMode="tel" autoComplete="tel" autoFocus value={draft} placeholder="+995 5__ __ __ __" maxLength={20}
                     aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} disabled={saving} onChange={event => { setDraft(event.target.value); setError(''); }} />

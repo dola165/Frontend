@@ -78,7 +78,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
                 <strong className="pp-person__name">{person.name}{self && <Badge tone="info">{copy('You', 'თქვენ')}</Badge>}</strong>
                 {(person.email || person.phone) && <span className="pp-contacts">
                     {person.email && <a href={`mailto:${person.email}`}><Mail aria-hidden="true" />{person.email}</a>}
-                    {person.phone && <a href={`tel:${person.phone.replace(/[^+\d]/g, '')}`}><Phone aria-hidden="true" />{phoneDisplay(person.phone)}</a>}
+                    {person.phone && <a href={`tel:${phoneDisplay(person.phone).replace(/[^+\d]/g, '')}`}><Phone aria-hidden="true" />{phoneDisplay(person.phone)}</a>}
                 </span>}
                 {duties.map(duty => { const text = [copy('On duty today', 'დღეს მორიგეობს'), `${time(duty.startsAt)}${duty.endsAt ? `–${time(duty.endsAt)}` : ''}`, duty.location].filter(Boolean).join(' · ');
                     return <span key={duty.id} className="pp-duty"><Status tone="accent" title={duty.title}>{dutyHref ? <Link to={dutyHref(duty.id)}>{text}</Link> : text}</Status></span>; })}

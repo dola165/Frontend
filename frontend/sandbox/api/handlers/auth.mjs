@@ -4,6 +4,7 @@ import { get, post, put, reply } from '../router.mjs';
 import { me, clubs } from '../world.mjs';
 import { familyRequest, hasFamily } from '../world-family.mjs';
 import * as V from '../viewer.mjs';
+import { accountProfile } from '../world-social.mjs';
 
 const bad = message => reply(400, { status: 400, message });
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,7 +62,7 @@ const clubCapabilities = persona => persona === 'physio' || persona === 'attenda
 // The parent view (family cookie) also makes Luka a parent, so Parent Hub joins his tabs.
 export const meProjection = ({ headers } = {}) => ({
   id: me.id, username: 'coach.luka', email: me.email, role: 'USER', fullName: me.fullName, name: me.fullName, avatarUrl: me.avatarUrl,
-  dob: '1988-04-12', profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
+  dob: accountProfile.dob, profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
   navigationCapabilities: { version: 1, workspaces: [
     ...clubCapabilities(V.personaOf(headers)).map(id => ({ id, context: { type: 'club', id: 1, label: clubs[0].name } })),
     ...(['physio', 'attendance'].includes(V.personaOf(headers)) ? [] : [

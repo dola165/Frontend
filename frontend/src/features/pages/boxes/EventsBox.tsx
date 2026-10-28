@@ -24,7 +24,7 @@ export function EventsBox({ page, editing }: BoxProps) {
   const events = [...(schedule.data?.events ?? [])].sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(0, 3);
   // Visitors never see an empty box; the owner sees where the calendar's entries will show.
   if (!editing && !schedule.loading && events.length === 0) return null;
-  const calendar = page.clubId ? `/clubs/${page.clubId}/workspace?tab=calendar` : undefined;
+  const calendar = page.clubId ? `/clubs/${page.clubId}/office?tab=calendar` : undefined;
   return (
     <SideBlock title={t('Coming up')} hint={t('The next sessions and matches')} action={editing && calendar ? <ButtonLink size="sm" variant="ghost" to={calendar}>{t('Plan')}</ButtonLink> : undefined}>
       {schedule.loading ? <Skeleton height={44} /> : events.length === 0 ? <p className="gk-muted">{t('Nothing planned in the next 30 days.')}</p>

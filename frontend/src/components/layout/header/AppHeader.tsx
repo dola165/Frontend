@@ -2,7 +2,7 @@ import './header.css';
 import { useContext, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Earth, Heart, House, MessageSquare, Shield, Sparkles, Users } from 'lucide-react';
+import { Building2, Earth, Heart, House, MessageSquare, Sparkles, Users } from 'lucide-react';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
@@ -25,7 +25,7 @@ import { workDestinations, workspaceDestinations } from './pins/pinCatalog';
 import { PinsBar } from './pins/PinsBar';
 import { usePins, type Pin } from './pins/usePins';
 import { useVisitRecorder } from './pins/useVisitRecorder';
-import { myClub, primarySectionFor, type PrimaryTab } from './sections';
+import { clubOffice, myClub, primarySectionFor, type PrimaryTab } from './sections';
 import { useUnreadMessages } from './useUnreadMessages';
 
 interface AppHeaderProps {
@@ -48,7 +48,7 @@ function currentPin(pins: Pin[], pathname: string, search: string) {
         .sort((a, b) => b.path.length - a.path.length)[0] ?? null;
 }
 
-/** One header row: brand and search on the left, Home · World · My squads · My Club and personal pins centred, then Dola, the "+" (what the person may start), Inbox, Messages and the account. */
+/** One header row: brand and search on the left, Home · World · My squads · Club office · Parent Hub and personal pins centred, then Dola, the "+" (what the person may start), Inbox, Messages and the account. */
 export function AppHeader(props: AppHeaderProps) {
     return props.user ? <SignedInHeader {...props} user={props.user} /> : <GuestHeader themePreference={props.themePreference} />;
 }
@@ -58,29 +58,30 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const { pathname, search } = useLocation();
     const capabilities = user.navigationCapabilities;
     const club = useMemo(() => myClub(capabilities, myClubId), [capabilities, myClubId]);
-    const pins = usePins(user.id, capabilities, club.path);
+    const office = useMemo(() => clubOffice(capabilities), [capabilities]), tabPath = office?.path ?? null;
+    const pins = usePins(user.id, capabilities, tabPath);
     const [crowded, setCrowded] = useState(false);
-    useVisitRecorder(user.id, capabilities, club.path);
+    useVisitRecorder(user.id, capabilities, tabPath);
     const unread = useUnreadMessages();
-    const work = useMemo(() => workDestinations(capabilities, club.path, copy), [capabilities, club.path, copy]);
-    const workspaces = useMemo(() => workspaceDestinations(capabilities, club.path, copy), [capabilities, club.path, copy]);
-    const page = describeRoute(pathname, search, { capabilities, userId: user.id, myClubPath: club.path, copy });
+    const work = useMemo(() => workDestinations(capabilities, tabPath, copy), [capabilities, tabPath, copy]);
+    const workspaces = useMemo(() => workspaceDestinations(capabilities, tabPath, copy), [capabilities, tabPath, copy]);
+    const page = describeRoute(pathname, search, { capabilities, userId: user.id, tabPath, copy });
     const pinned = currentPin(pins.pins, pathname, search);
     const section = pinned ? null : primarySectionFor(pathname, club.ids, search);
     const tabs: PrimaryTab[] = [
         { id: 'home', to: '/home', label: copy('Home', 'მთავარი'), icon: House, current: section === 'home' },
         { id: 'world', to: '/world', label: copy(...WORLD_BRAND.short), icon: Earth, current: section === 'world' },
-        // Role tabs come from relationships: coaching a squad gives My squads (first: the coach's own work comes before
-        // the club), a linked child gives Parent Hub. Later hubs (referee, organiser) are one more line here.
+        // Work tabs come from jobs and links: coaching a squad gives My squads (the coach's own work), running the club or
+        // a job with no page of its own yet gives Club office, a linked child gives Parent Hub. The club page itself is
+        // on Home's left side (owner, 28 October 2026), so the top bar holds only work places.
         ...(hasNavigationCapability(capabilities, 'squad.workspace') ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
-        // Without a club the tab stays: it offers Find your club · Start your club instead of disappearing.
-        ...(club.path || capabilities !== undefined ? [{ id: 'my-club' as const, to: club.path ?? '/my-club', label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
+        ...(office ? [{ id: 'club-office' as const, to: office.path, label: copy('Club office', 'კლუბის ოფისი'), icon: Building2, current: section === 'club-office' }] : []),
         ...(hasNavigationCapability(capabilities, 'parent.hub') || hasNavigationCapability(capabilities, 'club.family') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
     ];
-    // Phones (owner, 16 October): Home, World, the role tabs, then My Club only for someone who has a club; without one,
-    // finding or starting a club lives in You. Messages and You (the profile picture) are in the top bar.
+    // Phones (owner, 16 October): Home, World, then the work tabs, Club office last; finding or starting a club lives in
+    // You. Messages and You (the profile picture) are in the top bar.
     const byId = (id: PrimaryTab['id']) => tabs.filter(tab => tab.id === id);
-    const phoneTabs = [...byId('home'), ...byId('world'), ...byId('my-squads'), ...byId('parent-hub'), ...(club.path ? byId('my-club') : [])];
+    const phoneTabs = [...byId('home'), ...byId('world'), ...byId('my-squads'), ...byId('parent-hub'), ...byId('club-office')];
     const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);
     const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);

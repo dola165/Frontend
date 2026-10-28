@@ -124,8 +124,9 @@ describe('phone navigation', () => {
         { name: 'a new person who calls themselves a coach', role: 'COACH', links: [], paths: ['/home', '/world'] },
         { name: 'a confirmed squad coach without club-wide access', role: 'FAN', links: ['squad.workspace'], paths: ['/home', '/world', '/my-squads'] },
         { name: 'confirmed family access without personal club membership', role: 'FAN', links: ['club.family'], paths: ['/home', '/world', '/parent'] },
-        { name: 'a club administrator with no coached squad', role: 'COACH', links: ['club.workspace'], paths: ['/home', '/world', '/clubs/21'] },
-        { name: 'a coach and parent with one club', role: 'FAN', links: ['club.workspace', 'squad.workspace', 'parent.hub'], paths: ['/home', '/world', '/my-squads', '/parent', '/clubs/21'] },
+        { name: 'a club administrator with no coached squad', role: 'COACH', links: ['club.workspace', 'club.office'], paths: ['/home', '/world', '/clubs/21/office'] },
+        { name: 'a coach and parent with one club', role: 'FAN', links: ['club.workspace', 'squad.workspace', 'parent.hub'], paths: ['/home', '/world', '/my-squads', '/parent'] },
+        { name: 'an admin who coaches and is a parent', role: 'FAN', links: ['club.office', 'squad.workspace', 'parent.hub'], paths: ['/home', '/world', '/my-squads', '/parent', '/clubs/21/office'] },
         { name: 'an agent serving a club', role: 'AGENT', links: ['club.agent'], paths: ['/home', '/world'] },
     ])('gives $name the phone destinations their links confirm', ({ role, links, paths }) => {
         const capabilities = normalizeNavigationCapabilities({ version: 1, workspaces: links.map(id => ({ id, context: { type: id.startsWith('club.') ? 'club' : id.startsWith('squad.') ? 'squad' : 'user', id: id.startsWith('club.') || id.startsWith('squad.') ? 21 : 1, label: 'Football' } })) }, 1);

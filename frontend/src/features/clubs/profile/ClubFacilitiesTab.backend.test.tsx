@@ -27,7 +27,7 @@ afterEach(cleanup);
 
 it('opens the real facilities workspace when the backend has no page-editor protocol', () => {
     show();
-    expect(screen.getByRole('link', { name: 'Manage locations' })).toHaveAttribute('href', '/clubs/1/workspace?tab=facilities');
+    expect(screen.getByRole('link', { name: 'Manage locations' })).toHaveAttribute('href', '/clubs/1/office?tab=tools&tool=facilities');
 });
 it('preserves the grounds editor when the current page confirms editing authority', () => {
     state.page = makePage({ kind: 'CLUB', ref: { type: 'club', id: 1 }, clubId: 1 });
@@ -37,7 +37,7 @@ it('preserves the grounds editor when the current page confirms editing authorit
 it('keeps a facilities appointment in its operational workspace when page editing is unavailable', () => {
     state.page = makePage({ viewer: { role: 'COACH', canEdit: false, editable: [] } });
     show();
-    expect(screen.getByRole('link', { name: 'Manage locations' })).toHaveAttribute('href', '/clubs/1/workspace?tab=facilities');
+    expect(screen.getByRole('link', { name: 'Manage locations' })).toHaveAttribute('href', '/clubs/1/office?tab=tools&tool=facilities');
 });
 it('does not offer management without the current server-confirmed facilities capability', () => {
     show(false);
@@ -46,6 +46,6 @@ it('does not offer management without the current server-confirmed facilities ca
 it('also connects the sidebar facility edit action to the real workspace', () => {
     render(<MemoryRouter><ClubInfo club={club} canEdit /></MemoryRouter>);
     const edits = screen.getAllByRole('link', { name: 'Edit' }).map(link => link.getAttribute('href'));
-    expect(edits).toContain('/clubs/1/workspace?tab=facilities');
+    expect(edits).toContain('/clubs/1/office?tab=tools&tool=facilities');
     expect(edits).not.toContain('/clubs/1?edit=1&panel=grounds');
 });

@@ -12,7 +12,7 @@ describe('WorkspaceShortcuts', () => {
         ] }, 7);
         const { rerender } = render(<MemoryRouter><WorkspaceShortcuts navigationCapabilities={navigationCapabilities} /></MemoryRouter>);
         expect(screen.getAllByRole('link')).toHaveLength(1);
-        expect(screen.getByRole('link', { name: 'Club workspace' })).toHaveAttribute('href', '/clubs/21/workspace');
+        expect(screen.getByRole('link', { name: 'Club office' })).toHaveAttribute('href', '/clubs/21/office');
         rerender(<MemoryRouter><WorkspaceShortcuts navigationCapabilities={{ version: 1, workspaces: [] }} clubs={[{ clubId: 21, clubName: 'Stale club' }]} /></MemoryRouter>);
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
@@ -22,11 +22,11 @@ describe('WorkspaceShortcuts', () => {
     });
     it('opens the single managed club directly', () => {
         render(<MemoryRouter><WorkspaceShortcuts clubs={[{ clubId: 7, clubName: 'Academy' }]} /></MemoryRouter>);
-        expect(screen.getByRole('link', { name: 'Club workspace' })).toHaveAttribute('href', '/clubs/7/workspace');
+        expect(screen.getByRole('link', { name: 'Club office' })).toHaveAttribute('href', '/clubs/7/office');
     });
     it('keeps one shortcut for the current managed club', () => {
         render(<MemoryRouter><WorkspaceShortcuts clubs={[{ clubId: 7, clubName: 'Academy' }, { clubId: 8, clubName: 'First Team' }]} /></MemoryRouter>);
         expect(screen.getAllByRole('link')).toHaveLength(1);
-        expect(screen.getByRole('link')).toHaveAttribute('href', '/clubs/7/workspace');
+        expect(screen.getByRole('link')).toHaveAttribute('href', '/clubs/7/office');
     });
 });

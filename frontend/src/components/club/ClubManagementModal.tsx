@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDialogFocus } from '../workspace/useDialogFocus';
+import { legacyWorkspaceTarget, officePath } from '../../features/clubOffice/officeLinks';
 import { useClubPanelMotion } from '../../features/clubs/useClubPanelMotion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -143,11 +144,12 @@ export const ClubManagementModal = ({
     }, [clubId, canManageTryouts]);
 
     // ── navigation ──
+    // The club workspace became Club office (step 2): each old tab lands where it lives now; the club's updates are in the Inbox.
     const goWorkspace = (tab?: ClubManagementTab) => {
         onClose();
-        navigate(`/clubs/${clubId}/workspace${tab ? `?tab=${tab}` : ''}`);
+        navigate(tab ? legacyWorkspaceTarget(clubId, new URLSearchParams({ tab })) : officePath(clubId));
     };
-    const goWorkspaceInbox = () => { onClose(); navigate(`/clubs/${clubId}/workspace?tab=inbox`); };
+    const goWorkspaceInbox = () => { onClose(); navigate('/requests?view=updates'); };
     const goSquads = () => { onClose(); navigate(`/clubs/${clubId}?tab=teams`); };
 
     const memberCount = overview?.members.length ?? 0;

@@ -123,7 +123,7 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
     ];
     return <WorkspaceShell label={copy('Tournament workspace', 'ტურნირის სამუშაო სივრცე')} storageKey="tournament" sectionTitle={sections.find(item => item.id === tab)?.label ?? ''}
         context={{ name: tournament.name, role: tournamentStatusLabel(tournament.status, t), back: { label: copy('Tournament page', 'ტურნირის გვერდი'), to: `/tournaments/${id}` } }}
-        primary={sections} groups={[]} active={tab} onSelect={next => setTab(next as Tab)}>
+        primary={sections} active={tab} onSelect={next => setTab(next as Tab)}>
     <PageFrame className="tws-page">
         <TournamentWorkspaceHeader tournament={tournament} timezone={profile?.rules?.timezone} canEdit={permissions.canEditSettings} legacy={profile ? profile.legacy : null} busy={busy} refreshing={refreshing}
             finishBlocked={Boolean(tieState?.blocked)} startBlockers={startBlockers} onRefresh={() => void refresh().catch(() => {})} onEdit={() => setEditing(true)}

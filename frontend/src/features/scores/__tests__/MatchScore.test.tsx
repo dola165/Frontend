@@ -119,7 +119,7 @@ it('tells the clubs’ staff why a score is private, and links an unknown age gr
   vi.mocked(getScoreRecord).mockResolvedValue({ ...privateFinal, hiddenReason: 'AGE_UNKNOWN', ageUnknownSquadIds: [41], permissions: { parties: ['AWAY'], report: [], respond: [], settle: [], correct: [] } });
   const { unmount } = render(<MemoryRouter><MatchScore eventId={12} home={{ name: 'Dinamo', clubId: 1 }} away={{ name: 'Saburtalo', clubId: 7 }} /></MemoryRouter>);
   expect(await screen.findByText(/Only your club sees this/)).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Set the age group' })).toHaveAttribute('href', '/clubs/7/workspace?tab=squads&squad=41&edit=1');
+  expect(screen.getByRole('link', { name: 'Set the age group' })).toHaveAttribute('href', '/clubs/7/office?tab=squads&squad=41&edit=1');
   unmount();
   vi.mocked(getScoreRecord).mockResolvedValue({ ...privateFinal, hiddenReason: 'UNDER_ELEVEN', ageUnknownSquadIds: [] });
   render(<MemoryRouter><MatchScore eventId={12} {...teams} /></MemoryRouter>);

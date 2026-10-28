@@ -25,9 +25,9 @@ it('lets someone still connected to several clubs choose, saying "Your clubs" ra
   expect(screen.queryByText(/My clubs/i)).not.toBeInTheDocument();
   expect(screen.getAllByRole('link', { name: 'View profile' })).toHaveLength(2);
 });
-it('provides workspace links only for approved workspace access', () => {
+it('provides Club office links only for approved staff access', () => {
   auth.user.navigationCapabilities.workspaces = [club(1), club(121, 'club.player')]; open();
-  expect(screen.getAllByRole('link', { name: 'Open workspace' })).toHaveLength(1);
+  expect(screen.getAllByRole('link', { name: 'Club office' }).map(link => link.getAttribute('href'))).toEqual(['/clubs/1/office']);
 });
 it('renders the Georgian chooser heading', async () => {
   await i18n.changeLanguage('ka');

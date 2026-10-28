@@ -50,7 +50,7 @@ export function StoreProductCreate({ clubId, defaultActive = false, draftHint, o
             : ct('Save checks the original request first. Changed answers stay here until that save is confirmed.')}</p>
         {attempt.product && <p>{attempt.product.name} · #{attempt.product.id} · {formatStorePrice(attempt.product.price ?? 0, attempt.product.currency)} · {attempt.product.active ? ct('Published') : ct('Draft')}</p>}
         {recovery.blocked && (onReview ? <Button variant="ghost" onClick={() => { prepareReview(); onReview(); }}>{ct('Review saved products')}</Button>
-            : <ButtonLink variant="ghost" to={`/clubs/${clubId}/workspace?tab=store`} onClick={prepareReview}>{ct('Review saved products')}</ButtonLink>)}
+            : <ButtonLink variant="ghost" to={`/clubs/${clubId}/office?tab=tools&tool=store`} onClick={prepareReview}>{ct('Review saved products')}</ButtonLink>)}
         {canSeparate && <Button variant="ghost" disabled={recovery.pending} onClick={() => setDiscard(true)}>{ct('Start a separate product')}</Button>}
     </div>;
     return <>

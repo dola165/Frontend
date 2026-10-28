@@ -94,7 +94,7 @@ describe('club profile', () => {
         // Arranging opens over the club page once the rule-checker allows it.
         expect(await screen.findByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/?do=arrange_match');
         expect(screen.getByRole('link', { name: 'Open challenge' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-open');
-        expect(screen.getByRole('link', { name: 'Open workspace' })).toHaveClass('gk-btn--primary');
+        expect(screen.getByRole('link', { name: 'Club office' })).toHaveClass('gk-btn--primary');
     });
 
     it('gives another club’s staff a way to propose a match, and everyone else one primary way in', () => {

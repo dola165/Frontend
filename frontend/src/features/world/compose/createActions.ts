@@ -34,7 +34,7 @@ export function useCreateActions(): CreateAction[] | undefined {
         adult && { id: 'create-page', label: 'Create a page', icon: Shield, group: 'Page', to: createHref(location, onClubs ? 'CLUB' : null, onClubs ? 'world-clubs' : 'world') },
         canArrange && { id: 'arrange', label: 'Arrange a match', icon: CalendarPlus, group: 'Matches', peek: arrangePeek({ mode: 'direct' }) },
         canArrange && { id: 'open-match', label: 'Post an open match', icon: Megaphone, group: 'Matches', peek: arrangePeek({ mode: 'open' }) },
-        clubId != null && canManageClubOperations(membership?.myRole) && { id: 'post-job', label: 'Post a job', icon: Briefcase, group: 'Club', to: `/clubs/${clubId}/workspace?tab=jobs` },
+        clubId != null && canManageClubOperations(membership?.myRole) && { id: 'post-job', label: 'Post a job', icon: Briefcase, group: 'Club', to: `/clubs/${clubId}/office?view=jobs` },
         { id: 'create-tournament', label: 'Create a tournament', icon: Trophy, group: 'Tournaments', peek: drawPeek() },
     ];
     return offered.filter((action): action is CreateAction => Boolean(action));

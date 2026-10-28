@@ -5,6 +5,7 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import type { MyTryoutApplication } from '../../api/tryouts';
 import type { NotificationItem } from '../../types/notifications';
 import { safeNotificationLink } from '../../utils/notificationDestinations';
+import { inClubOffice } from '../clubOffice/officeLinks';
 import { postingLabel, useTryoutCopy } from './tryoutCopy';
 
 export function TryoutNotificationReceipt({ notification }: { notification: NotificationItem }) {
@@ -15,9 +16,11 @@ function Receipt({ notification }: { notification: NotificationItem }) {
   const { sessionId } = useAuth();
   const copy = useTryoutCopy();
   const [application, setApplication] = useState<MyTryoutApplication | null>(null), [failed, setFailed] = useState(false), [retry, setRetry] = useState(0);
-  const clubLink = safeNotificationLink(notification.linkPath);
-  const staff = notification.scope === 'CLUB' && clubLink?.pathname === `/clubs/${notification.clubId}/workspace`
-    && clubLink.searchParams.get('tab') === 'tryouts' && clubLink.searchParams.get('applicationId') === String(notification.entityId);
+  // Older rows name the club workspace's Tryouts, which is in Club office's More tools now.
+  const link = safeNotificationLink(notification.linkPath);
+  const clubLink = link ? new URL(inClubOffice(link.pathname + link.search), link.origin) : null;
+  const staff = notification.scope === 'CLUB' && clubLink?.pathname === `/clubs/${notification.clubId}/office`
+    && clubLink.searchParams.get('tool') === 'tryouts' && clubLink.searchParams.get('applicationId') === String(notification.entityId);
   useEffect(() => {
     if (staff) return;
     const request = new AbortController();

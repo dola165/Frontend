@@ -84,7 +84,7 @@ export const FundraiserManagePage = () => {
     const from = (location.state ?? {}) as { back?: string; backState?: unknown };
     const hint = Number(params.get("club"));
     const hintClubId = Number.isSafeInteger(hint) && hint > 0 ? hint : undefined;
-    const back = from.back ?? (hintClubId ? `/clubs/${hintClubId}/workspace?tab=campaigns` : `/campaigns/${campaignId}`);
+    const back = from.back ?? (hintClubId ? `/clubs/${hintClubId}/office?tab=tools&tool=campaigns` : `/campaigns/${campaignId}`);
     const backLabel = back.startsWith(`/campaigns/${campaignId}`) ? ct("Back to the fundraiser") : ct("Back to fundraisers");
     const shown = useWorldData(valid && !hintClubId ? `fundraiser:${campaignId}` : null, signal => fetchCampaign(campaignId, signal), ct("This fundraiser is unavailable or could not be loaded."));
     const clubId = hintClubId ?? shown.data?.clubId;

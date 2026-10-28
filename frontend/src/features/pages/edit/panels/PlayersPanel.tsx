@@ -85,7 +85,7 @@ export function PlayersPanel() {
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void decide(arrival, 'DECLINE')}>{t('Decline')}</Button>
           </li>
         ))}</List>}
-        {arrivals && page.boxes.players.waiting > arrivals.length && <ButtonLink size="sm" to={`/clubs/${page.clubId}/workspace?tab=admissions`}>{t('View all joining requests')}</ButtonLink>}
+        {arrivals && page.boxes.players.waiting > arrivals.length && <ButtonLink size="sm" to={`/clubs/${page.clubId}/office?tab=tools&tool=admissions`}>{t('View all joining requests')}</ButtonLink>}
       </div> : undefined}>
       {squads.length === 0
         ? <EmptyNote title={t('Add your teams first')} action={<Button size="sm" variant="primary" onClick={() => openPanel('squads')}>{t('Which teams?')}</Button>}>{t('Each team gets its own join link.')}</EmptyNote>

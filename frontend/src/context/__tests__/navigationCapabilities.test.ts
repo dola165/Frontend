@@ -34,7 +34,7 @@ describe('server navigation contract', () => {
             entry('referee.workspace', 'user'), entry('tournament.create', 'organization', 35),
         ] }, 7);
         const links = workspaceLinks(projection);
-        expect(links.map(link => link.path)).toEqual(['/parent', '/clubs/21/workspace', '/clubs/22/workspace', '/referees/me', '/world/tournaments?peek=draw-o35']);
+        expect(links.map(link => link.path)).toEqual(['/parent', '/clubs/21/office', '/clubs/22/office', '/referees/me', '/world/tournaments?peek=draw-o35']);
         expect(new Set(links.map(link => link.key)).size).toBe(5);
     });
 
@@ -46,13 +46,13 @@ describe('server navigation contract', () => {
             entry('club.workspace', 'club', 1.5), entry('club.workspace', 'club', Number.MAX_SAFE_INTEGER + 1),
             entry('future.workspace', 'club'), entry('__proto__', 'club'), null,
         ] }, 7);
-        expect(workspaceLinks(projection).map(link => link.path)).toEqual(['/clubs/21/workspace']);
+        expect(workspaceLinks(projection).map(link => link.path)).toEqual(['/clubs/21/office']);
     });
 
     it('uses only known destinations, never a supplied URL or role label', () => {
         const projection = normalizeNavigationCapabilities({ version: 1, role: 'SYSTEM_ADMIN', workspaces: [
             { ...entry('club.workspace', 'club'), path: 'https://attacker.invalid', context: { type: 'club', id: 7, label: 'SYSTEM_ADMIN' } },
         ] }, 7);
-        expect(workspaceLinks(projection)).toEqual([{ key: 'club.workspace:club:7', capability: 'club.workspace', path: '/clubs/7/workspace', label: 'Workspace — SYSTEM_ADMIN' }]);
+        expect(workspaceLinks(projection)).toEqual([{ key: 'club.workspace:club:7', capability: 'club.workspace', path: '/clubs/7/office', label: 'Club office — SYSTEM_ADMIN' }]);
     });
 });

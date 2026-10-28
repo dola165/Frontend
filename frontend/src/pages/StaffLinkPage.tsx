@@ -50,7 +50,7 @@ function StaffLink({ code }: { code: string }) {
             const joined = await joinStaffInvite(code);
             refreshAccess();
             await refreshNavigationCapabilities().catch(() => undefined);
-            navigate(!preview.clubWide && joined.squads.length ? '/my-squads' : `/clubs/${joined.clubId}/workspace`, { replace: true });
+            navigate(!preview.clubWide && joined.squads.length ? '/my-squads' : `/clubs/${joined.clubId}/office`, { replace: true });
         } catch (failure) {
             // "Confirm your email to start as Assistant coach", with Resend, when the server waits on the email.
             // Staff means one club: "Leave {club} first", then Join again.

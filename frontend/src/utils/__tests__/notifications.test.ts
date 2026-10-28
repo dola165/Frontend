@@ -35,9 +35,9 @@ describe('web / Android destination contract', () => {
 describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () => {
     it('selects the exact application using typed identity instead of a stale destination', () => {
         expect(buildNotificationDestination(notification({ type: 'CLUB_APPLICATION_RECEIVED', clubId: 5, entityType: 'club_membership_application', entityId: 81, linkPath: '/account' })))
-            .toBe('/clubs/5/workspace?tab=applications&applicationId=81');
+            .toBe('/clubs/5/office?tab=tools&tool=applications&applicationId=81');
         expect(buildNotificationDestination(notification({ type: 'TRYOUT_APPLICATION_RECEIVED', clubId: 5, entityType: 'tryout_application', entityId: 82 })))
-            .toBe('/clubs/5/workspace?tab=tryouts&applicationId=82');
+            .toBe('/clubs/5/office?tab=tools&tool=tryouts&applicationId=82');
     });
     it('shows a recorded outcome when a schedule identity is missing or has the wrong type', () => {
         expect(buildNotificationDestination(notification({ type: 'SCHEDULE_EVENT_CANCELLED', entityType: 'post', entityId: 42 }))).toBe('/requests?view=updates&itemId=1');
@@ -50,28 +50,28 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
         expect(buildNotificationDestination(notification({ type: 'CLUB_ANNOUNCEMENT', entityType: 'post', entityId: 91, linkPath: '/clubs/5' }))).toBe('/posts/91');
         expect(buildNotificationDestination(notification({ type: 'CLUB_DISSOLVED', entityType: 'club', entityId: 5, linkPath: '/clubs' }))).toBe('/requests?view=updates&itemId=1');
     });
-    it('rewrites the legacy ?manageClub=1&managementTab= query format to a workspace tab', () => {
+    it('rewrites the legacy ?manageClub=1&managementTab= query format to its Club office place', () => {
         const destination = buildNotificationDestination(notification({
             type: 'CLUB_APPLICATION_RECEIVED',
             linkPath: '/clubs/125?manageClub=1&managementTab=applications'
         }));
-        expect(destination).toBe('/clubs/125/workspace?tab=applications');
+        expect(destination).toBe('/clubs/125/office?tab=tools&tool=applications');
     });
 
-    it('rewrites the legacy management path format to a workspace tab', () => {
+    it('rewrites the legacy management path format to its Club office place', () => {
         const destination = buildNotificationDestination(notification({
             type: 'CLUB_INVITATION_ACCEPTED',
             linkPath: '/clubs/125/management?tab=invites'
         }));
-        expect(destination).toBe('/clubs/125/workspace?tab=invites');
+        expect(destination).toBe('/clubs/125/office');
     });
 
-    it('passes the new workspace linkPath format through untouched', () => {
+    it('moves the club workspace linkPath format to Club office', () => {
         const destination = buildNotificationDestination(notification({
             type: 'TRYOUT_APPLICATION_RECEIVED',
             linkPath: '/clubs/126/workspace?tab=tryouts'
         }));
-        expect(destination).toBe('/clubs/126/workspace?tab=tryouts');
+        expect(destination).toBe('/clubs/126/office?tab=tools&tool=tryouts');
     });
 
     it('maps TRIALIST_OVERDUE legacy links to the players tab', () => {
@@ -79,7 +79,7 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
             type: 'TRIALIST_OVERDUE',
             linkPath: '/clubs/7?manageClub=1&managementTab=players'
         }));
-        expect(destination).toBe('/clubs/7/workspace?tab=players');
+        expect(destination).toBe('/clubs/7/office?tab=tools&tool=players');
     });
 
     it('lands a club-scoped notification without a club id on the plain list', () => {
@@ -127,13 +127,13 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
         }))).toBeNull();
     });
 
-    it('uses the type-based workspace mapping when no linkPath is present', () => {
+    it('uses the type-based Club office mapping when no linkPath is present', () => {
         const destination = buildNotificationDestination(notification({
             type: 'TRYOUT_APPLICATION_RECEIVED',
             clubId: 3,
             linkPath: null
         }));
-        expect(destination).toBe('/clubs/3/workspace?tab=tryouts');
+        expect(destination).toBe('/clubs/3/office?tab=tools&tool=tryouts');
     });
 });
 
@@ -178,17 +178,17 @@ describe('buildNotificationDestination — P1 W6 deep-link sweep (H7 + W4 types)
         }))).toBe('/account');
     });
 
-    it('keeps the review-marked-valid club workspace mappings intact', () => {
+    it('keeps the review-marked-valid club mappings, now in Club office', () => {
         expect(buildNotificationDestination(notification({
             type: 'CLUB_APPLICATION_RECEIVED',
             clubId: 3,
             linkPath: null
-        }))).toBe('/clubs/3/workspace?tab=applications');
+        }))).toBe('/clubs/3/office?tab=tools&tool=applications');
         expect(buildNotificationDestination(notification({
             type: 'CLUB_INVITATION_DECLINED',
             clubId: 5,
             linkPath: null
-        }))).toBe('/clubs/5/workspace?tab=invites');
+        }))).toBe('/clubs/5/office');
         expect(buildNotificationDestination(notification({
             type: 'SQUAD_ASSIGNMENT',
             clubId: 6,

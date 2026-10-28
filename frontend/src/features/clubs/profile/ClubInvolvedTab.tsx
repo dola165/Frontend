@@ -1,3 +1,4 @@
+import { officePath, officeToolPath } from '../../clubOffice/officeLinks';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { ClubStorePage } from '../../../pages/ClubStorePage';
@@ -28,7 +29,7 @@ export function ClubInvolvedTab({ club, canEdit = false }: { club: ClubProfile; 
         <div className="gk-club-involved__bar">
             <div className="gk-club-involved__title"><h2>{current.label}</h2><span className="gk-muted">{current.hint}</span></div>
             <div className="gk-row">
-                {canEdit && <EditLink to={`/clubs/${club.id}/workspace?tab=${kind === 'jobs' ? 'jobs' : kind === 'fundraising' ? 'campaigns' : 'store'}`} />}
+                {canEdit && <EditLink to={kind === 'jobs' ? officePath(club.id, 'staff', { view: 'jobs' }) : officeToolPath(club.id, kind === 'fundraising' ? 'campaigns' : 'store')} />}
                 <button type="button" className="gk-btn gk-btn--secondary gk-btn--sm" aria-pressed={wide} onClick={toggleWide}>{wide ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}{wide ? 'Show club info' : 'Hide club info'}</button>
                 <Link className="gk-section__action gk-row" to={current.global}>{current.all}<ArrowUpRight size={14} aria-hidden="true" /></Link>
             </div>

@@ -97,7 +97,7 @@ export function FindClub({ land, back, close, query: typed, chosen: given, onSta
                     : preview.status !== 'ACTIVE' ? copy('That code no longer works. Ask your club’s admin for a new one.', 'ეს კოდი აღარ მუშაობს. სთხოვეთ კლუბის ადმინს ახალი.') : null;
             if (refusal) { setError(refusal); setBusy(null); return; }
             const joined = await joinStaffInvite(entered);
-            await opened(!preview.clubWide && joined.squads.length ? '/my-squads' : `/clubs/${joined.clubId}/workspace`);
+            await opened(!preview.clubWide && joined.squads.length ? '/my-squads' : `/clubs/${joined.clubId}/office`);
         } catch (failure) { failed(failure, () => void joinWithCode()); setBusy(null); }
     };
 

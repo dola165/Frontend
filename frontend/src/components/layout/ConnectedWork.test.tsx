@@ -11,7 +11,7 @@ const full:NavigationCapabilities={version:1,workspaces:[cap('club.operations','
 
 it('keeps staff, family, agent, organizer, venue and tournament destinations together without elevating club access',()=>{
  const work=connectedWorkspaces(full);
- expect(work.filter(w=>w.group==='Clubs').map(w=>w.path).sort()).toEqual(['/clubs/121/workspace','/clubs/2']);
+ expect(work.filter(w=>w.group==='Clubs').map(w=>w.path).sort()).toEqual(['/clubs/121/office','/clubs/2']);
  expect(work.map(w=>w.path)).toEqual(expect.arrayContaining(['/parent','/agent','/referees/me','/organizations/30/workspace','/stadiums/31/manage','/tournaments/40/workspace','/squads/10']));
 });
 

@@ -13,13 +13,13 @@ const georgian = (_english: string, ka: string) => ka;
 const english = (en: string) => en;
 
 describe('primary tabs', () => {
-    it('sends staff to their club workspace and members to the club page', () => {
+    it('opens the club page for staff and members alike', () => {
         expect(myClub(coach, 1)).toEqual({ ids: [1], path: '/clubs/1' });
         const player = normalizeNavigationCapabilities({ version: 1, workspaces: [{ id: 'club.player', context: { type: 'club', id: 7, label: 'Riverside' } }] }, 2);
         expect(myClub(player, null)).toEqual({ ids: [7], path: '/clubs/7' });
     });
 
-    it('keeps the workspace as My Club when a membership elsewhere loads later, so the tab never changes target', () => {
+    it('keeps the club a person works at when a membership elsewhere loads later, so Home’s club row never changes target', () => {
         const staffAndMember = normalizeNavigationCapabilities({ version: 1, workspaces: [
             { id: 'club.workspace', context: { type: 'club', id: 1, label: 'Dinamo' } },
             { id: 'club.player', context: { type: 'club', id: 7, label: 'Riverside' } },
@@ -28,16 +28,17 @@ describe('primary tabs', () => {
         expect(myClub(staffAndMember, 7).path).toBe('/clubs/1');
     });
 
-    it('keeps My Club for a membership the capability list does not describe, and hides it without a club', () => {
+    it('keeps the club of a membership the capability list does not describe, and none without a club', () => {
         expect(myClub(normalizeNavigationCapabilities({ version: 1, workspaces: [] }, 3), 9)).toEqual({ ids: [9], path: '/clubs/9' });
         expect(myClub(normalizeNavigationCapabilities({ version: 1, workspaces: [] }, 3), null).path).toBeNull();
     });
 
-    it('marks discovery as World and the person’s own club as My Club', () => {
+    it('marks discovery as World and Club office as its tab, and leaves the person’s own club page to Home', () => {
         for (const path of ['/world', '/map', '/clubs', '/clubs/3', '/stadiums/202', '/tournaments/301', '/jobs', '/roles', '/events', '/tryouts', '/admissions/opportunities', '/match-exchange/4', '/store', '/campaigns']) {
             expect(primarySectionFor(path, [1])).toBe('world');
         }
-        for (const path of ['/clubs/1', '/clubs/1/workspace', '/my-club']) expect(primarySectionFor(path, [1])).toBe('my-club');
+        for (const path of ['/clubs/1/office', '/clubs/1/office/']) expect(primarySectionFor(path, [1])).toBe('club-office');
+        for (const path of ['/clubs/1', '/my-club']) expect(primarySectionFor(path, [1])).toBeNull();
         for (const path of ['/my-squads', '/squads', '/squads/105']) expect(primarySectionFor(path, [1])).toBe('my-squads');
         // A parent on the shared squad page, arriving from Parent Hub with the child in the address.
         expect(primarySectionFor('/squads/105', [1], '?player=4')).toBe('parent-hub');
@@ -48,10 +49,12 @@ describe('primary tabs', () => {
 });
 
 describe('pin labels', () => {
-    const context = { capabilities: coach, userId: 1, myClubPath: '/clubs/1/workspace' };
+    // A coach has no Club office tab; an admin has, and it holds Club office.
+    const context = { capabilities: coach, userId: 1, tabPath: null };
+    const admin = { ...context, tabPath: '/clubs/1/office' };
 
     it('keeps only the query values that change what a page shows', () => {
-        expect(normalizePath('/clubs/1/workspace/', '?tab=attendance&dialog=open')).toBe('/clubs/1/workspace?tab=attendance');
+        expect(normalizePath('/clubs/1/office/', '?tab=tools&tool=attendance&dialog=open')).toBe('/clubs/1/office?tab=tools&tool=attendance');
     });
 
     it('drops tracking and carried context from World addresses but keeps searches and filters', () => {
@@ -64,7 +67,8 @@ describe('pin labels', () => {
         expect(describeRoute('/calendar', '', context)).toMatchObject({ label: 'My schedule', icon: 'calendar' });
         expect(describeRoute('/world/matches', '?period=HISTORY', context).label).toContain('Matches');
         expect(describeRoute('/world', '?q=u10%20academy', context)).toMatchObject({ label: 'World: u10 academy', pinnable: true });
-        expect(describeRoute('/clubs/1/workspace', '?tab=attendance', context)).toMatchObject({ label: null, icon: 'workspace' });
+        expect(describeRoute('/clubs/1/office', '?tab=tools&tool=attendance', context)).toMatchObject({ label: null, icon: 'workspace' });
+        expect(describeRoute('/clubs/1/office', '', context)).toMatchObject({ label: 'Club office · FC Dinamo Tbilisi Academy', icon: 'workspace' });
         expect(describeRoute('/tournaments/301', '', context)).toMatchObject({ label: null, icon: 'trophy' });
     });
 
@@ -84,29 +88,34 @@ describe('pin labels', () => {
 
     it('resolves labels in the current language when shown, whatever language they were pinned in', () => {
         expect(describeRoute('/calendar', '', { ...context, copy: georgian }).label).toBe('ჩემი განრიგი');
-        expect(pinLabel('/world/opportunities?type=trials', 'Trials', { myClubPath: null, copy: georgian })).toBe('გასინჯვები');
+        expect(pinLabel('/world/opportunities?type=trials', 'Trials', { tabPath: null, copy: georgian })).toBe('გასინჯვები');
         // A page named from its title keeps the title it was pinned with.
-        expect(pinLabel('/tournaments/301', 'Tbilisi Cup', { myClubPath: null, copy: georgian })).toBe('Tbilisi Cup');
+        expect(pinLabel('/tournaments/301', 'Tbilisi Cup', { tabPath: null, copy: georgian })).toBe('Tbilisi Cup');
     });
 
     it('does not offer to pin what the header already holds', () => {
-        for (const path of ['/home', '/world', '/messages', '/requests', '/notifications', '/clubs/1/workspace']) expect(describeRoute(path, '', context).pinnable).toBe(false);
-        // The workspace overview is the My Club tab itself.
-        expect(describeRoute('/clubs/1/workspace', '?tab=overview', context).pinnable).toBe(false);
+        for (const path of ['/home', '/world', '/messages', '/requests', '/notifications']) expect(describeRoute(path, '', context).pinnable).toBe(false);
+        // Club office is the admin's tab, and Staff is Club office itself; a coach, who has no such tab, may pin it.
+        expect(describeRoute('/clubs/1/office', '', admin).pinnable).toBe(false);
+        expect(describeRoute('/clubs/1/office', '?tab=staff', admin).pinnable).toBe(false);
+        expect(describeRoute('/clubs/1/office', '', context).pinnable).toBe(true);
+        // The club page left the top bar for Home's left side, so it may be pinned.
+        expect(describeRoute('/clubs/1', '', admin).pinnable).toBe(true);
     });
 });
 
 describe('work and explore catalogues', () => {
     const director = normalizeNavigationCapabilities({ version: 1, workspaces: [
         { id: 'club.workspace', context: { type: 'club', id: 1, label: 'Dinamo' } },
+        { id: 'club.office', context: { type: 'club', id: 1, label: 'Dinamo' } },
         { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
         { id: 'tournament.workspace', context: { type: 'tournament', id: 301, label: 'Tbilisi Cup' } },
         { id: 'organization.workspace', context: { type: 'organization', id: 77, label: 'GFF East' } },
         { id: 'admin.console', context: { type: 'user', id: 9, label: 'Admin' } },
     ] }, 9);
 
-    it('lists every workspace except the My Club tab and Administration, which have their own places', () => {
-        expect(workspaceDestinations(director, '/clubs/1/workspace').map(place => [place.path, place.label, place.kind])).toEqual([
+    it('lists every workspace except the Club office tab and Administration, which have their own places', () => {
+        expect(workspaceDestinations(director, '/clubs/1/office').map(place => [place.path, place.label, place.kind])).toEqual([
             ['/squads/105', 'U16 Boys', 'Squad'],
             ['/tournaments/301/workspace', 'Tbilisi Cup', 'Tournament'],
             ['/organizations/77/workspace', 'GFF East', 'Organization'],
@@ -114,19 +123,19 @@ describe('work and explore catalogues', () => {
     });
 
     it('suggests squads, tournaments and organizations from the start, without pinning anything', () => {
-        expect(workSuggestions(director, '/clubs/1/workspace', english).map(item => item.path)).toEqual(['/squads/105', '/tournaments/301/workspace', '/organizations/77/workspace']);
-        expect(workSuggestions(director, '/clubs/1/workspace', english).every(item => item.visits === null && item.reason)).toBe(true);
+        expect(workSuggestions(director, '/clubs/1/office', english).map(item => item.path)).toEqual(['/squads/105', '/tournaments/301/workspace', '/organizations/77/workspace']);
+        expect(workSuggestions(director, '/clubs/1/office', english).every(item => item.visits === null && item.reason)).toBe(true);
     });
 
     it('keeps the rest of the person’s work in "Your work"', () => {
-        const paths = workDestinations(director, '/clubs/1/workspace').map(item => item.path);
+        const paths = workDestinations(director, '/clubs/1/office').map(item => item.path);
         expect(paths).toEqual(expect.arrayContaining(['/clubs/1', '/my-squads', '/calendar', '/squads/105']));
         expect(paths).not.toContain('/admissions');
-        expect(paths).not.toContain('/clubs/1/workspace');
+        expect(paths).not.toContain('/clubs/1/office');
     });
 
     it('names explore destinations exactly as their pins are named, and marks sign-in-only ones', () => {
-        for (const item of exploreDestinations(georgian)) expect(pinLabel(item.path, undefined, { myClubPath: null, copy: georgian })).toBe(item.label);
+        for (const item of exploreDestinations(georgian)) expect(pinLabel(item.path, undefined, { tabPath: null, copy: georgian })).toBe(item.label);
         expect(exploreDestinations().filter(item => item.signedIn).map(item => item.path)).toEqual(['/world/clubs?view=following']);
         expect(exploreDestinations().filter(item => item.group === 'support').map(item => item.label)).toEqual(['Store', 'Campaigns', 'Clubs you follow']);
     });

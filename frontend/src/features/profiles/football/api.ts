@@ -108,9 +108,9 @@ function manageOf(line: ServerLine): string | null {
         case 'JOB': case 'COACH': {
             const coaching = COACHING.test(line.title) && (line.squads?.length ?? 0) > 0;
             if (coaching && (allowed(line, 'manage_squad') || allowed(line, 'manage_club'))) return '/my-squads';
-            return club && allowed(line, 'manage_club') ? `/clubs/${club}/workspace` : null;
+            return club && allowed(line, 'manage_club') ? `/clubs/${club}/office` : null;
         }
-        case 'OWNER': case 'ADMIN': return club && allowed(line, 'manage_club') ? `/clubs/${club}/workspace` : null;
+        case 'OWNER': case 'ADMIN': return club && allowed(line, 'manage_club') ? `/clubs/${club}/office` : null;
         default: return null;
     }
 }

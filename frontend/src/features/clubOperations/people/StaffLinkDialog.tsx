@@ -9,39 +9,39 @@ import { formatDate } from '../../../utils/formatting';
 import { relativeTime } from '../../../utils/relativeTime';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { JobPicker } from './JobPicker';
-import { linkJobs, makeStaffLink, removeJoined, staffLinkUrl, stopStaffLink, type JobDraft, type PeopleView, type StaffLink } from './api';
+import { linkJobs, staffLinkMatches, makeStaffLink, removeJoined, staffLinkUrl, stopStaffLink, type JobDraft, type PeopleView, type StaffLink } from './api';
 import { useJobWords } from './jobWords';
 
-const sameWhere = (link: StaffLink, draft: JobDraft) => link.clubWide ? draft.clubWide
-    : !draft.clubWide && link.squads.length === draft.squadIds.length && link.squads.every(s => draft.squadIds.includes(s.id));
 const draftFor = (link?: StaffLink): JobDraft => link ? { job: link.job, title: link.title, tools: link.tools ?? [], clubWide: link.clubWide, squadIds: link.squads.map(s => s.id) }
     : { job: 'HEAD_COACH', title: '', tools: [], clubWide: false, squadIds: [] };
 
 /**
  * Invite staff in bulk: pick one job (and, if it helps, squads), then one link and QR code for the group chat or the
  * staff room. 7 days or 10 uses; who joined shows underneath as they join, each with Remove. Never Admin: admins
- * are invited one by one. New link replaces the old one for the same job and where. `initial` is the job and where a door
+ * are invited one by one. New link replaces the old one for the same job, title and scope (and tools for Custom). `initial` is the job and where a door
  * already chose (a squad's "Invite staff": Assistant coach for that squad).
  */
 export function StaffLinkDialog({ club, clubName, view, links, loading = false, loadError = '', onRetry, opened, initial, onLinks, onClose, onChanged }: {
     club: number; clubName: string; view: PeopleView; links: StaffLink[]; loading?: boolean; loadError?: string; onRetry?: () => void; opened?: number | null; initial?: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>;
     onLinks: (links: StaffLink[]) => void; onClose: () => void; onChanged: (notice: string) => void;
 }) {
-    const { copy, jobName, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
+    const { copy, jobLabel, whereLabel } = useJobWords([...view.jobs, ...view.moreJobs]);
     const [draft, setDraft] = useState<JobDraft>(() => {
-        const shown = links.find(l => l.id === opened);
+        const shown = links.find(l => l.id === opened) ?? (initial ? undefined : links[0]);
         return shown ? draftFor(shown) : { ...draftFor(), squadIds: view.viewer.headCoachSquads.length === 1 ? view.viewer.headCoachSquads : [], ...initial };
     });
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [removing, setRemoving] = useState<number | null>(null);
     const request = useRef<{ key: string; id: string } | null>(null);
     const [stale, setStale] = useState<StaffLink | null>(null);
-    const link = links.find(l => l.job === draft.job && sameWhere(l, draft));
+    const link = links.find(l => staffLinkMatches(l, draft, view));
+    const mayMake = linkJobs(view).includes(draft.job) || Boolean(link);
     const run = async (work: () => Promise<void>, fallback: string) => {
         if (busy) return;
         setBusy(true); setError('');
         try { await work(); } catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
     };
     const make = () => {
+        if (!mayMake) return;
         if (!draft.clubWide && !draft.squadIds.length) { setError(copy('Choose the whole club or at least one squad.', 'აირჩიეთ მთელი კლუბი ან ერთი გუნდი მაინც.')); return; }
         // A retry after a failure sends the same request id, so the server never makes two links for one tap.
         const key = JSON.stringify([draft, link?.id ?? null]);
@@ -50,7 +50,7 @@ export function StaffLinkDialog({ club, clubName, view, links, loading = false, 
         void run(async () => {
             const made = await makeStaffLink(club, draft, requestId);
             request.current = null;
-            // New link replaces the old one for the same job and where. The new one shows at once; the old one is then
+            // New link replaces the old one for the same job, title and scope (and tools for Custom). The new one shows at once; the old one is then
             // switched off, and if that fails it is named with its own Switch off, so a retry never makes a third link.
             const old = link;
             onLinks([made, ...links]);
@@ -74,14 +74,14 @@ export function StaffLinkDialog({ club, clubName, view, links, loading = false, 
         onLinks(links.map(l => l.id === target.id ? { ...l, joined: l.joined.filter(j => j.appointmentId !== person.appointmentId) } : l));
         onChanged(copy(`${person.name} removed. Their job here has ended.`, `${person.name} მოიხსნა. მისი სამუშაო აქ დასრულდა.`));
     }, copy('They couldn’t be removed.', 'ვერ მოიხსნა.'));
-    const title = `${jobName(draft.job)} · ${draft.clubWide ? copy('Whole club', 'მთელი კლუბი') : whereLabel({ clubWide: false, squads: view.squads.filter(s => draft.squadIds.includes(s.id)) })}`;
+    const title = `${jobLabel(link ?? draft)} · ${draft.clubWide ? copy('Whole club', 'მთელი კლუბი') : whereLabel({ clubWide: false, squads: view.squads.filter(s => draft.squadIds.includes(s.id)) })}`;
     const left = link ? Math.max(0, link.maxUses - link.uses) : 0;
     const joined = link?.joined.filter(person => person.status !== 'ENDED') ?? [];
 
     return <Dialog open size="md" onClose={() => { if (!busy) onClose(); }} title={copy('Invite staff', 'პერსონალის მოწვევა')}
         description={copy('One link for many people. Admins are invited one by one.', 'ერთი ბმული ბევრისთვის. ადმინებს სათითაოდ იწვევთ.')}>
         <div className="pp-staff-link">
-            <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setError(''); }} choices={linkJobs(view)} extras disabled={busy} />
+            <JobPicker view={view} draft={draft} onChange={next => { setDraft(next); setError(''); }} choices={linkJobs(view)} extras={false} disabled={busy} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             {stale && <div className="gk-notice gk-notice--warning pp-check" role="alert">
                 <span className="cw-notices__text">{copy('The old link is still on.', 'ძველი ბმული ჯერ კიდევ მუშაობს.')}</span>
@@ -99,7 +99,7 @@ export function StaffLinkDialog({ club, clubName, view, links, loading = false, 
                     <span className="gk-muted">{copy(`Until ${formatDate(link.expiresAt, { day: 'numeric', month: 'short' })} · ${left} of ${link.maxUses} uses left`,
                         `${formatDate(link.expiresAt, { day: 'numeric', month: 'short' })}-მდე · დარჩა ${left} / ${link.maxUses}`)}</span>
                     <span className="gk-row">
-                        <Button size="sm" variant="ghost" disabled={busy} onClick={make}><RefreshCw aria-hidden="true" />{copy('New link', 'ახალი ბმული')}</Button>
+                        <Button size="sm" variant="ghost" disabled={busy || !mayMake} onClick={make}><RefreshCw aria-hidden="true" />{copy('New link', 'ახალი ბმული')}</Button>
                         <Button size="sm" variant="ghost" className="pp-danger" disabled={busy} onClick={() => stop(link)}><Link2Off aria-hidden="true" />{copy('Switch off', 'გათიშვა')}</Button>
                     </span>
                 </div>

@@ -14,9 +14,6 @@ import { useJobWords } from './jobWords';
 /** What the viewer may do to other people's jobs, from the rule-checker (or the People view's flags on older servers). */
 /** `pending`: the rule-checker has not answered yet; the buttons show, disabled, until it has. */
 export interface PeopleRights { change: boolean; end: boolean; invite: boolean; pending?: boolean }
-/** A squad job changes into another job in place; making someone an Admin is Add job (an invitation of its own). */
-
-
 /**
  * One person: their jobs and where. The Owner and Admins change or end anyone's job in place (never the Owner's); the
  * change applies at once and its line says who made it, with the whole story under History. Someone invited shows

@@ -2,247 +2,70 @@ import { useCallback } from 'react';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import type { JobChoice, JobStatus, PersonJob } from './api';
 
+const JOB_TITLES: Record<string, readonly [string, string]> = {
+    HEAD_COACH: ["Head coach","მთავარი მწვრთნელი"],
+    ASSISTANT_COACH: ["Assistant coach","მწვრთნელის ასისტენტი"],
+    TEAM_MANAGER: ["Team manager","გუნდის მენეჯერი"],
+    FEES: ["Fees","გადასახადები"],
+    ADMIN: ["Admin","ადმინი"],
+    OWNER: ["Owner","მფლობელი"],
+    CUSTOM: ["Custom","საკუთარი"],
+    CLUB_SECRETARY: ["Club secretary","კლუბის მდივანი"],
+    MEDIA_OFFICER: ["Media officer","მედიაზე პასუხისმგებელი"],
+    COMMERCIAL: ["Commercial and sponsorship","კომერცია და სპონსორობა"],
+    FACILITIES_COORDINATOR: ["Facilities coordinator","ინფრასტრუქტურის კოორდინატორი"],
+    HEAD_OF_COACHING: ["Head of coaching","სამწვრთნელო მიმართულების ხელმძღვანელი"],
+    SPECIALIST_COACH: ["Specialist coach","სპეციალიზებული მწვრთნელი"],
+    EQUIPMENT_MANAGER: ["Equipment manager","ინვენტარის მენეჯერი"],
+    TRAVEL_COORDINATOR: ["Travel coordinator","მგზავრობის კოორდინატორი"],
+    ANALYST: ["Analyst","ანალიტიკოსი"],
+    SPORTS_SCIENTIST: ["Sports scientist","სპორტის მეცნიერი"],
+    PHYSIOTHERAPIST: ["Physio","ფიზიოთერაპევტი"],
+    MEDICAL_PROFESSIONAL: ["Doctor","ექიმი"],
+    REHABILITATION_COACH: ["Rehabilitation coach","რეაბილიტაციის მწვრთნელი"],
+    NUTRITIONIST: ["Nutritionist","ნუტრიციოლოგი"],
+    PSYCHOLOGIST: ["Psychologist","ფსიქოლოგი"],
+    EDUCATION_OFFICER: ["Education officer","განათლებაზე პასუხისმგებელი"],
+    SCOUT: ["Scout","სკაუტი"],
+    WELFARE_OFFICER: ["Welfare officer","კეთილდღეობაზე პასუხისმგებელი"],
+    REFEREE: ["Club referee","კლუბის მსაჯი"],
+    GOALKEEPER_COACH: ["Goalkeeper coach","მეკარეების მწვრთნელი"],
+    STRENGTH_CONDITIONING: ["Gym & conditioning coach","ფიზმომზადების მწვრთნელი"],
+    CONDITIONING_COACH: ["Conditioning coach","ფიზმომზადების მწვრთნელი"],
+    TECHNICAL_COACH: ["Technical coach","ტექნიკის მწვრთნელი"],
+    TACTICAL_COACH: ["Tactical coach","ტაქტიკის მწვრთნელი"],
+    SET_PIECE_COACH: ["Set-piece coach","სტანდარტული სიტუაციების მწვრთნელი"],
+    PERFORMANCE_ANALYST: ["Performance analyst","შესრულების ანალიტიკოსი"],
+    OPPOSITION_ANALYST: ["Opposition analyst","მეტოქის ანალიტიკოსი"],
+    VIDEO_ANALYST: ["Video analyst","ვიდეოანალიტიკოსი"],
+    FINANCE_OFFICER: ["Fees","გადასახადები"],
+};
 export const JOB_WORDS: Record<string, readonly [string, string]> = {
-    "HEAD_COACH": [
-        "Head coach",
-        "მთავარი მწვრთნელი"
-    ],
-    "ASSISTANT_COACH": [
-        "Assistant coach",
-        "მწვრთნელის ასისტენტი"
-    ],
-    "TEAM_MANAGER": [
-        "Team manager",
-        "გუნდის მენეჯერი"
-    ],
-    "FEES": [
-        "Fees",
-        "გადასახადები"
-    ],
-    "ADMIN": [
-        "Admin",
-        "ადმინი"
-    ],
-    "OWNER": [
-        "Owner",
-        "მფლობელი"
-    ],
-    "COACH": [
-        "Coach",
-        "მწვრთნელი"
-    ],
-    "CUSTOM": [
-        "Custom",
-        "საკუთარი"
-    ],
-    "CLUB_SECRETARY": [
-        "Club secretary",
-        "კლუბის მდივანი"
-    ],
-    "MEDIA_OFFICER": [
-        "Media officer",
-        "მედიაზე პასუხისმგებელი"
-    ],
-    "COMMERCIAL": [
-        "Commercial and sponsorship",
-        "კომერცია და სპონსორობა"
-    ],
-    "FACILITIES_COORDINATOR": [
-        "Facilities coordinator",
-        "ინფრასტრუქტურის კოორდინატორი"
-    ],
-    "HEAD_OF_COACHING": [
-        "Head of coaching",
-        "სამწვრთნელო მიმართულების ხელმძღვანელი"
-    ],
-    "SPECIALIST_COACH": [
-        "Specialist coach",
-        "სპეციალიზებული მწვრთნელი"
-    ],
-    "EQUIPMENT_MANAGER": [
-        "Equipment manager",
-        "ინვენტარის მენეჯერი"
-    ],
-    "TRAVEL_COORDINATOR": [
-        "Travel coordinator",
-        "მგზავრობის კოორდინატორი"
-    ],
-    "ANALYST": [
-        "Analyst",
-        "ანალიტიკოსი"
-    ],
-    "SPORTS_SCIENTIST": [
-        "Sports scientist",
-        "სპორტის მეცნიერი"
-    ],
-    "PHYSIOTHERAPIST": [
-        "Physio",
-        "ფიზიოთერაპევტი"
-    ],
-    "MEDICAL_PROFESSIONAL": [
-        "Doctor",
-        "ექიმი"
-    ],
-    "REHABILITATION_COACH": [
-        "Rehabilitation coach",
-        "რეაბილიტაციის მწვრთნელი"
-    ],
-    "NUTRITIONIST": [
-        "Nutritionist",
-        "ნუტრიციოლოგი"
-    ],
-    "PSYCHOLOGIST": [
-        "Psychologist",
-        "ფსიქოლოგი"
-    ],
-    "EDUCATION_OFFICER": [
-        "Education officer",
-        "განათლებაზე პასუხისმგებელი"
-    ],
-    "SCOUT": [
-        "Scout",
-        "სკაუტი"
-    ],
-    "WELFARE_OFFICER": [
-        "Welfare officer",
-        "კეთილდღეობაზე პასუხისმგებელი"
-    ],
-    "REFEREE": [
-        "Club referee",
-        "კლუბის მსაჯი"
-    ],
-    "GOALKEEPER_COACH": [
-        "Goalkeeper coach",
-        "მეკარეების მწვრთნელი"
-    ],
-    "STRENGTH_CONDITIONING": [
-        "Gym & conditioning coach",
-        "ფიზმომზადების მწვრთნელი"
-    ],
-    "CONDITIONING_COACH": [
-        "Conditioning coach",
-        "ფიზმომზადების მწვრთნელი"
-    ],
-    "TECHNICAL_COACH": [
-        "Technical coach",
-        "ტექნიკის მწვრთნელი"
-    ],
-    "TACTICAL_COACH": [
-        "Tactical coach",
-        "ტაქტიკის მწვრთნელი"
-    ],
-    "SET_PIECE_COACH": [
-        "Set-piece coach",
-        "სტანდარტული სიტუაციების მწვრთნელი"
-    ],
-    "PERFORMANCE_ANALYST": [
-        "Performance analyst",
-        "შესრულების ანალიტიკოსი"
-    ],
-    "OPPOSITION_ANALYST": [
-        "Opposition analyst",
-        "მეტოქის ანალიტიკოსი"
-    ],
-    "VIDEO_ANALYST": [
-        "Video analyst",
-        "ვიდეოანალიტიკოსი"
-    ],
-    "FINANCE_OFFICER": [
-        "Fees",
-        "გადასახადები"
-    ],
-    "CLUB": [
-        "Running the club",
-        "კლუბის მართვა"
-    ],
-    "COACHING": [
-        "Coaching",
-        "წვრთნა"
-    ],
-    "MATCHDAY": [
-        "Matchday and logistics",
-        "მატჩის დღე და ლოგისტიკა"
-    ],
-    "PERFORMANCE": [
-        "Performance and health",
-        "შესრულება და ჯანმრთელობა"
-    ],
-    "SCOUTING": [
-        "Finding players",
-        "მოთამაშეების მოძიება"
-    ],
-    "SAFETY": [
-        "Safety",
-        "უსაფრთხოება"
-    ],
-    "ELSEWHERE": [
-        "Elsewhere",
-        "სხვაგან"
-    ],
-    "CLUB_OFFICE": [
-        "Club office",
-        "კლუბის ოფისი"
-    ],
-    "MY_SQUADS": [
-        "My squads",
-        "ჩემი გუნდები"
-    ],
-    "PLAYER_FILE": [
-        "Player file",
-        "მოთამაშის საქმე"
-    ],
-    "SAFEGUARDING": [
-        "Safeguarding",
-        "დაცვა და უსაფრთხოება"
-    ],
-    "REGISTRATION": [
-        "Registration",
-        "რეგისტრაცია"
-    ],
-    "MONEY": [
-        "Money",
-        "ფინანსები"
-    ],
-    "PROJECTS": [
-        "Projects",
-        "პროექტები"
-    ],
-    "MEDIA": [
-        "Media",
-        "მედია"
-    ],
-    "TRAVEL": [
-        "Travel",
-        "მგზავრობა"
-    ],
-    "MY_MATCHES": [
-        "My matches",
-        "ჩემი მატჩები"
-    ],
-    "SHARED": [
-        "Shared",
-        "საერთო"
-    ],
-    "ALL_SQUADS": [
-        "All squads",
-        "ყველა გუნდი"
-    ],
-    "GROUP": [
-        "Their group",
-        "საკუთარი ჯგუფი"
-    ],
-    "KIT": [
-        "Kit",
-        "ეკიპირება"
-    ],
-    "BODY": [
-        "Body",
-        "სხეული"
-    ],
-    "LIFE": [
-        "Life",
-        "ცხოვრება"
-    ]
+    ...JOB_TITLES,
+    COACH: ["Coach","მწვრთნელი"],
+    CLUB: ["Running the club","კლუბის მართვა"],
+    COACHING: ["Coaching","წვრთნა"],
+    MATCHDAY: ["Matchday and logistics","მატჩის დღე და ლოგისტიკა"],
+    PERFORMANCE: ["Performance and health","შესრულება და ჯანმრთელობა"],
+    SCOUTING: ["Finding players","მოთამაშეების მოძიება"],
+    SAFETY: ["Safety","უსაფრთხოება"],
+    ELSEWHERE: ["Elsewhere","სხვაგან"],
+    CLUB_OFFICE: ["Club office","კლუბის ოფისი"],
+    MY_SQUADS: ["My squads","ჩემი გუნდები"],
+    PLAYER_FILE: ["Player file","მოთამაშის საქმე"],
+    SAFEGUARDING: ["Safeguarding","დაცვა და უსაფრთხოება"],
+    REGISTRATION: ["Registration","რეგისტრაცია"],
+    MONEY: ["Money","ფინანსები"],
+    PROJECTS: ["Projects","პროექტები"],
+    MEDIA: ["Media","მედია"],
+    TRAVEL: ["Travel","მგზავრობა"],
+    MY_MATCHES: ["My matches","ჩემი მატჩები"],
+    SHARED: ["Shared","საერთო"],
+    ALL_SQUADS: ["All squads","ყველა გუნდი"],
+    GROUP: ["Their group","საკუთარი ჯგუფი"],
+    KIT: ["Kit","ეკიპირება"],
+    BODY: ["Body","სხეული"],
+    LIFE: ["Life","ცხოვრება"],
 };
 
 export const HOME_WORDS: Record<string, readonly [string, string]> = { ...JOB_WORDS, SCOUTING: ['Scouting', 'სკაუტინგი'] };
@@ -253,7 +76,7 @@ export function useJobWords(choices: JobChoice[] = []) {
     const copy = useJourneyCopy();
     const jobName = useCallback((key: string, fallback?: string) => JOB_WORDS[key] ? copy(...JOB_WORDS[key]) : choices.find(c => c.key === key)?.title ?? fallback ?? key, [copy, choices]);
     const titleName = useCallback((title: string) => {
-        const word = Object.values(JOB_WORDS).find(([en]) => en === title);
+        const word = Object.values(JOB_TITLES).find(([en]) => en === title);
         return word ? copy(...word) : title;
     }, [copy]);
     const jobLabel = useCallback((job: Pick<PersonJob, 'job' | 'title'>) => {

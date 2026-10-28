@@ -32,7 +32,7 @@ function StaffLink({ code }: { code: string }) {
     const navigate = useNavigate();
     const location = useLocation();
     const { isAuthenticated, isBootstrapping, refreshNavigationCapabilities } = useAuth();
-    const { copy, jobName } = useJobWords();
+    const { copy, jobLabel } = useJobWords();
     const adult = useAdultOnly('job');
     const other = useOtherClub();
     const [stage, setStage] = useState<Stage>({ kind: 'loading' });
@@ -68,7 +68,7 @@ function StaffLink({ code }: { code: string }) {
         <Link to="/home">{copy('Go to GrassKickZ', 'GrassKickZ-ზე გადასვლა')}</Link>
     </>);
     const { preview } = stage;
-    const job = preview.job === 'CUSTOM' ? preview.title : jobName(preview.job, preview.title);
+    const job = jobLabel(preview);
     const where = preview.clubWide ? copy('Whole club', 'მთელი კლუბი') : preview.squads.join(', ');
     const closed = preview.status === 'EXPIRED' ? copy('This link has expired. Ask the club’s admin for a new one.', 'ბმულს ვადა გაუვიდა. სთხოვეთ კლუბის ადმინს ახალი.')
         : preview.status === 'USED_UP' ? copy('This link has been used by 10 people. Ask the club’s admin for a new one.', 'ბმული 10-მა ადამიანმა გამოიყენა. სთხოვეთ კლუბის ადმინს ახალი.')

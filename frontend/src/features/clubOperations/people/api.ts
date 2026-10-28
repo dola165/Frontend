@@ -52,6 +52,15 @@ export interface JobDraft { job: string; title: string; tools: string[]; clubWid
 
 export const mainJobs = (view: PeopleView) => view.jobs.map(job => job.key);
 export const linkJobs = (view: PeopleView) => mainJobs(view).filter(job => job !== 'ADMIN');
+/** Link identity includes the title; legacy Custom links also retain their exact tools. */
+export const staffLinkMatches = (link: StaffLink, draft: JobDraft, view: PeopleView) => {
+    const choice = [...view.jobs, ...view.moreJobs].find(job => job.key === draft.job);
+    const title = draft.title.trim() || choice?.titles?.[0] || choice?.title || '';
+    const sameTools = (a: string[], b: string[]) => a.every(t => b.includes(t)) && b.every(t => a.includes(t));
+    return link.job === draft.job && link.title === title && link.clubWide === draft.clubWide
+        && (link.clubWide || link.squads.length === draft.squadIds.length && link.squads.every(s => draft.squadIds.includes(s.id)))
+        && (draft.job !== 'CUSTOM' || sameTools(link.tools ?? [], draft.tools));
+};
 /** What a head coach may suggest, for their own squads only (an admin confirms). */
 export const HELPER_JOBS = ['ASSISTANT_COACH', 'TEAM_MANAGER'] as const;
 

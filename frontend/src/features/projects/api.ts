@@ -26,7 +26,9 @@ export interface WaitingStep { projectId: number; project: string; stepId: numbe
 export interface ProjectClub { id: number; name: string; crestUrl: string | null }
 /** What a project or a step can be given to: the club's squads and the people on its staff. */
 export interface ProjectChoices { squads: ProjectSquad[]; people: ProjectPerson[] }
-export interface ProjectBoard { club: ProjectClub; needsYou: WaitingStep[]; projects: ProjectSummary[]; canStart: boolean; choices: ProjectChoices | null }
+/** Who the person is at the club, for the side bar: their club role and open jobs; neither for someone only on a project. */
+export interface ProjectYou { role: string | null; jobs: string[] }
+export interface ProjectBoard { club: ProjectClub; needsYou: WaitingStep[]; projects: ProjectSummary[]; canStart: boolean; choices: ProjectChoices | null; you?: ProjectYou }
 /** A club where this person has projects, or may start one. */
 export interface MyProjects { club: ProjectClub; open: number; waitingOnMe: number; canStart: boolean }
 
@@ -49,6 +51,7 @@ export interface ProjectDetail {
     fundraiser: ProjectFundraiser | null; can: ProjectCan; club: ProjectClub | null;
     /** For those who change the project: what it and its steps can be given to. */
     choices: ProjectChoices | null;
+    you?: ProjectYou;
 }
 
 export interface NewProject { goal: string; kind?: ProjectKind; squadId?: number | null; dueOn?: string | null; purpose?: string | null; status?: Exclude<ProjectStatus, 'DONE'>; steps?: string[]; language?: 'en' | 'ka' }

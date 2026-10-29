@@ -4,7 +4,8 @@ import { CalendarDays, CheckCircle2, FolderKanban, Lightbulb, Users } from 'luci
 import { WorkspaceShell, type WorkspaceNavItem } from '../../design/workspace/WorkspaceShell';
 import { Button, ButtonLink, EmptyNote, PageFrame, Skeleton } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import type { MyProjects } from './api';
+import { clubRoleLabel, isLeadershipRole } from '../clubs/domain';
+import type { MyProjects, ProjectYou } from './api';
 import { ProjectList } from './ProjectList';
 import { ProjectView } from './ProjectView';
 import { PROJECTS_PLACES, placeOf, projectsPath, type ProjectsPlace } from './projectWords';
@@ -40,6 +41,9 @@ export function ProjectsPage({ projectId }: { projectId?: number }) {
     }, [projectId, clubId, mine.data, setParams]);
 
     const club = board.data?.club ?? project.data?.club ?? mine.data?.find(entry => entry.club.id === clubId)?.club ?? null;
+    // The side bar names the person's job, as Club office does; someone only on a project is "On a project".
+    const jobLine = (you?: ProjectYou) => !you ? undefined : isLeadershipRole(you.role) ? clubRoleLabel(you.role)
+        : you.jobs.join(', ') || (you.role ? clubRoleLabel(you.role) : copy('On a project', 'პროექტში'));
     const projects = board.data?.projects ?? [];
     const primary: WorkspaceNavItem[] = [
         { id: 'projects', label: copy('Projects', 'პროექტები'), icon: FolderKanban, count: board.data?.needsYou.length },
@@ -80,7 +84,7 @@ export function ProjectsPage({ projectId }: { projectId?: number }) {
         onStarted={detail => { board.reload(); navigate(`/projects/${detail.summary.id}`); }} />;
 
     return <WorkspaceShell label={copy('Projects', 'პროექტები')} storageKey="projects" canvas
-        context={{ name: club?.name ?? '…', crest: club?.crestUrl, role: copy('Projects', 'პროექტები'), back: club ? { label: copy('Club page', 'კლუბის გვერდი'), to: `/clubs/${club.id}` } : undefined }}
+        context={{ name: club?.name ?? '…', crest: club?.crestUrl, role: jobLine(board.data?.you ?? project.data?.you), back: club ? { label: copy('Club page', 'კლუბის გვერდი'), to: `/clubs/${club.id}` } : undefined }}
         primary={primary} footer={footer} active={place} onSelect={select} hrefFor={hrefFor} sectionTitle={title}>
         {content}
     </WorkspaceShell>;

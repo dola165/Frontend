@@ -30,6 +30,14 @@ const LIVE = ['PUBLISHED', 'PAUSED'];
 // CampaignService.move: a draft is published; a published one paused or closed; a paused one published again or closed.
 const MOVES = { DRAFT: ['PUBLISHED'], PUBLISHED: ['PAUSED', 'CLOSED'], PAUSED: ['PUBLISHED', 'CLOSED'] };
 const blank = value => !String(value ?? '').trim();
+// The steps that wait on someone now (ProjectViews.waitingNow): their earliest open step in the project, and any of
+// theirs with a day within a week or past. Their later ones say "Your step" on the project only.
+const soon = () => new Date(W.NOW.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+const waitingNow = (project, viewer) => project.steps.filter(step => !step.done && step.personId === viewer)
+    .filter((step, index) => index === 0 || (step.day && step.day <= soon()));
+// Who the person is at the club, for the side bar: their club role and open jobs (none for someone only on a project).
+const JOBS = { commercial: [null, ['Commercial and sponsorship']], facilities: [null, ['Facilities coordinator']], projectcoach: ['COACH', ['Head coach']], kitparent: [null, []] };
+const you = (headers, clubId) => { const [role, jobs] = JOBS[V.personaOf(headers)] ?? [Number(clubId) === J.CLUB_ID ? 'OWNER' : 'CLUB_ADMIN', []]; return { role, jobs }; };
 const GOFUNDME = /^https:\/\/([a-z0-9-]+\.)*gofundme\.com(\/\S*)?$/i;
 
 const person = id => { const p = W.personById(id); return p ? { id: p.id, name: p.fullName, avatarUrl: p.avatarUrl ?? null } : null; };
@@ -49,7 +57,7 @@ function summary(project, headers) {
     return {
         id: project.id, goal: project.goal, status: project.status, squad: squad(project.squadId), dueOn: project.dueOn, target: project.target, raised,
         progress, progressFromMoney: fromMoney, stepsDone: done, stepsTotal: project.steps.length, nextStep: project.steps.find(step => !step.done)?.title ?? null,
-        people: people(project), waitingOnMe: project.steps.filter(step => !step.done && step.personId === me(headers)).length,
+        people: people(project), waitingOnMe: waitingNow(project, me(headers)).length,
         fundraiserStatus: project.fundraiser?.status ?? null, updatedAt: project.updatedAt,
     };
 }
@@ -60,7 +68,8 @@ function detail(project, headers) {
     return {
         summary: summary(project, headers), purpose: project.purpose, version: project.version, startedBy: person(project.createdBy),
         steps: project.steps.map(step => ({ id: step.id, title: step.title, done: step.done, person: person(step.personId), day: step.day, mine: step.personId === viewer, canChange: runs || step.personId === viewer, version: step.version })),
-        talk: project.talk.map(c => ({ id: c.id, author: person(c.authorId), body: c.body, createdAt: c.createdAt, editedAt: c.editedAt, canEdit: c.authorId === viewer || admin(headers) })),
+        talk: project.talk.map(c => ({ id: c.id, author: person(c.authorId), body: c.body, createdAt: c.createdAt, editedAt: c.editedAt,
+            canEdit: c.authorId === viewer, canDelete: c.authorId === viewer || everyProject(headers, project.clubId) })),
         files: project.files.map(file => ({ ...file, uploadedBy: person(file.uploadedBy), canDelete: file.uploadedBy === viewer || runs })),
         history: project.history.map(line => ({ at: line.at, by: person(line.by), byDola: false, text: line.text })),
         fundraiser: f && { id: f.id, status: f.status, phase: f.phase, donateUrl: f.donateUrl, goal: project.target, reportedAmount: f.reportedAmount, reportedNote: f.reportedNote,
@@ -69,7 +78,7 @@ function detail(project, headers) {
             currency: f.currency, summary: f.summary, description: f.description, beneficiary: f.beneficiary, useOfFunds: f.useOfFunds, category: f.category,
             startsOn: f.startsOn, endsOn: f.endsOn, images: f.images ?? [] },
         can: { change: runs, addPeople: runs, talk: true, startFundraiser: runs && !f, publish: publishes(headers, project.clubId) && Boolean(f) },
-        club: club(project.clubId), choices: runs ? choices(project.clubId) : null,
+        club: club(project.clubId), choices: runs ? choices(project.clubId) : null, you: you(headers, project.clubId),
     };
 }
 
@@ -85,9 +94,10 @@ get('/clubs/:id/projects', ({ params, headers }) => {
     const mine = J.projects.filter(project => project.clubId === clubId && sees(project, headers));
     if (!mine.length && !onStaff(headers, clubId)) return missing();
     const viewer = me(headers);
-    const needsYou = mine.filter(p => p.status !== 'DONE').flatMap(p => p.steps.filter(step => !step.done && step.personId === viewer)
-        .map(step => ({ projectId: p.id, project: p.goal, stepId: step.id, step: step.title, day: step.day })));
-    return { club: club(clubId), needsYou, projects: mine.map(project => summary(project, headers)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), canStart: onStaff(headers, clubId), choices: onStaff(headers, clubId) ? choices(clubId) : null };
+    const needsYou = mine.filter(p => p.status !== 'DONE').flatMap(p => waitingNow(p, viewer)
+        .map(step => ({ projectId: p.id, project: p.goal, stepId: step.id, step: step.title, day: step.day })))
+        .sort((a, b) => (a.day ?? '9999').localeCompare(b.day ?? '9999'));
+    return { club: club(clubId), needsYou, projects: mine.map(project => summary(project, headers)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), canStart: onStaff(headers, clubId), choices: onStaff(headers, clubId) ? choices(clubId) : null, you: you(headers, clubId) };
 });
 
 // The doors across clubs: the clubs where the person has projects, a project by id alone, a fundraiser's project.
@@ -97,7 +107,7 @@ get('/projects/mine', ({ headers }) => {
         const mine = J.projects.filter(project => project.clubId === clubId && sees(project, headers));
         if (!mine.length && !onStaff(headers, clubId)) return [];
         return [{ club: club(clubId), open: mine.filter(p => p.status === 'NOW' || p.status === 'LATER').length,
-            waitingOnMe: mine.filter(p => p.status !== 'DONE').flatMap(p => p.steps).filter(step => !step.done && step.personId === viewer).length, canStart: onStaff(headers, clubId) }];
+            waitingOnMe: mine.filter(p => p.status !== 'DONE').flatMap(p => waitingNow(p, viewer)).length, canStart: onStaff(headers, clubId) }];
     }).sort((a, b) => b.waitingOnMe - a.waitingOnMe);
 });
 get('/projects/fundraisers/:cid', ({ params, headers }) => {
@@ -332,7 +342,7 @@ patch('/clubs/:id/projects/:pid/talk/:cid', ({ params, body, headers }) => {
     const project = find(params, headers);
     const comment = project?.talk.find(c => c.id === Number(params.cid));
     if (!comment) return missing();
-    if (comment.authorId !== me(headers) && !admin(headers)) return problem(403, 'Only the author changes their message.');
+    if (comment.authorId !== me(headers)) return problem(403, 'Only the author edits their message.');
     if (blank(body?.body)) return problem(400, 'Write something first.');
     Object.assign(comment, { body: String(body.body).trim(), editedAt: new Date().toISOString() });
     return detail(project, headers);
@@ -341,7 +351,7 @@ del('/clubs/:id/projects/:pid/talk/:cid', ({ params, headers }) => {
     const project = find(params, headers);
     const index = project?.talk.findIndex(c => c.id === Number(params.cid)) ?? -1;
     if (index < 0) return missing();
-    if (project.talk[index].authorId !== me(headers) && !admin(headers)) return problem(403, 'Only the author changes their message.');
+    if (project.talk[index].authorId !== me(headers) && !everyProject(headers, project.clubId)) return problem(403, 'Only the author, or those who run the club\'s projects, remove a message.');
     project.talk.splice(index, 1);
     return detail(project, headers);
 });

@@ -87,3 +87,18 @@ test('fundraisers move and go public as the backend does, and the public record 
   assert.equal(shown.title, 'New kit for U12');
   assert.equal('reportedBy' in shown || 'publishedBy' in shown || 'projectId' in shown, false);
 });
+
+test('only the next step and steps due soon wait on someone; only the author edits their words', async () => {
+  const commercial = await board('commercial');
+  const sponsor = commercial.needsYou.filter(n => n.project.startsWith('Sponsor'));
+  assert.deepEqual(sponsor.map(n => n.step), ['Send an offer']);
+  assert.ok(!commercial.needsYou.some(n => n.step === 'Thank the givers'));
+  assert.deepEqual(commercial.you, { role: null, jobs: ['Commercial and sponsorship'] });
+  const kit = commercial.projects.find(p => p.goal === 'New kit for U12');
+  const talk = (await request(null, 'GET', `/clubs/1/projects/${kit.id}`)).body.talk;
+  const nanas = talk.find(c => c.author.name === 'Nana Beridze');
+  assert.equal(nanas.canEdit, false);
+  assert.equal(nanas.canDelete, true);
+  assert.equal((await request(null, 'PATCH', `/clubs/1/projects/${kit.id}/talk/${nanas.id}`, { body: 'x' })).status, 403);
+  assert.equal((await request('projectcoach', 'DELETE', `/clubs/1/projects/${kit.id}/talk/${nanas.id}`)).status, 403);
+});

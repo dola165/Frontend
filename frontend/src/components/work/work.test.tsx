@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { MentionText } from './MentionInput';
 import { PasteFrame } from './PasteFrame';
 import type { WorkMedia } from './types';
+import { WorkComments } from './WorkComments';
 import { WorkMediaList } from './WorkMedia';
 
 vi.mock('../../hooks/useMediaSource', () => ({ useMediaSource: (url: string) => url }));
@@ -34,5 +35,14 @@ describe('The planner’s shared parts', () => {
         await waitFor(() => expect(screen.getByText('Nothing to change')).toBeInTheDocument());
         expect(onApplied).not.toHaveBeenCalled();
         expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    });
+
+    it('lets the author edit their words and a moderator only remove them', () => {
+        const actions = { add: vi.fn(), edit: vi.fn(), remove: vi.fn() };
+        render(<WorkComments team={[]} actions={actions} onChanged={vi.fn()} comments={[
+            { id: 1, author: { id: 3, name: 'Nana' }, body: 'Quote B', createdAt: '2026-10-29T10:00:00Z', editedAt: null, canEdit: false, canDelete: true },
+            { id: 2, author: { id: 1, name: 'Luka' }, body: 'Agreed', createdAt: '2026-10-29T11:00:00Z', editedAt: null, canEdit: true, canDelete: true }]} />);
+        expect(screen.getAllByRole('button', { name: 'Edit' })).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2);
     });
 });

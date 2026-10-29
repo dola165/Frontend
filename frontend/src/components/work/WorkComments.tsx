@@ -9,7 +9,7 @@ import './work.css';
 
 /**
  * A flat thread, under a task, a person's Now note or a club's project: name and time on each, "@" tags a colleague. Each comment's
- * author edits or deletes it (`canEdit` says who may).
+ * author edits or deletes it (`canEdit` says who may; `canDelete`, when given, who removes it, as on a club's project).
  */
 export function WorkComments({ comments, team, me, actions, label, placeholder, onChanged }: {
     comments: WorkComment[]; team: Person[]; me?: number | null; actions: CommentActions; label?: string; placeholder?: string; onChanged: (comments: WorkComment[]) => void;
@@ -36,9 +36,9 @@ export function WorkComments({ comments, team, me, actions, label, placeholder, 
                         <span className="work-row-actions"><Button size="sm" variant="primary" type="submit" disabled={busy}>{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setEditing(null)}>{copy('Cancel', 'გაუქმება')}</Button></span>
                     </form>
                     : <p><MentionText text={comment.body} team={team} me={me} /></p>}
-                {comment.canEdit && editing?.id !== comment.id && <span className="work-row-actions">
-                    <button type="button" className="work-link-button" onClick={() => setEditing({ id: comment.id, body: comment.body })}>{copy('Edit', 'რედაქტირება')}</button>
-                    <button type="button" className="work-link-button" disabled={busy} onClick={() => void run(() => actions.remove(comment.id), () => undefined)}>{copy('Delete', 'წაშლა')}</button>
+                {(comment.canEdit || comment.canDelete) && editing?.id !== comment.id && <span className="work-row-actions">
+                    {comment.canEdit && <button type="button" className="work-link-button" onClick={() => setEditing({ id: comment.id, body: comment.body })}>{copy('Edit', 'რედაქტირება')}</button>}
+                    {(comment.canDelete ?? comment.canEdit) && <button type="button" className="work-link-button" disabled={busy} onClick={() => void run(() => actions.remove(comment.id), () => undefined)}>{copy('Delete', 'წაშლა')}</button>}
                 </span>}
             </div>
         </li>)}</ol>}

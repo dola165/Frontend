@@ -80,6 +80,8 @@ function detail(project, headers) {
             startsOn: f.startsOn, endsOn: f.endsOn, images: f.images ?? [] },
         can: { change: runs, addPeople: runs, talk: true, startFundraiser: runs && !f, publish: publishes(headers, project.clubId) && Boolean(f) },
         club: club(project.clubId), choices: runs ? choices(project.clubId) : null, you: you(headers, project.clubId),
+        // Helpers who haven't accepted: the typed name only, never a photo or an id.
+        waitingHelpers: (project.waiting ?? []).map(helper => ({ name: helper.name, ref: helper.ref })),
     };
 }
 
@@ -332,20 +334,44 @@ post('/clubs/:id/projects/:pid/helpers', ({ params, body, headers }) => {
     const key = `${me(headers)}:${body?.requestId}`;
     const earlier = helperRequests.get(key);
     if (earlier) return reply(201, { ...earlier, project: detail(project, headers) });
+    // Every helper waits, by the typed name only, until they accept (claiming their link, or Accept on Home).
     const person = J.newHelper(name);
-    if (!project.added.includes(person.id)) project.added.push(person.id);
+    (project.waiting ??= []).push({ name, ref: crypto.randomUUID(), userId: person.id, addedBy: me(headers) });
     touched(project, headers, `Added ${name} to the project`);
-    const added = { userId: person.id, name, link: `sandbox-claim-${person.id}`, linkExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), invitationPending: false };
+    const added = { userId: null, name, link: `sandbox-claim-${person.id}`, linkExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), invitationPending: false };
     helperRequests.set(key, added);
     return reply(201, { ...added, project: detail(project, headers) });
 });
-// Their Home card: the projects they help on (they are on them and not on the club's staff), with what waits on them.
+del('/clubs/:id/projects/:pid/helpers/:ref', ({ params, headers }) => {
+    const project = find(params, headers);
+    if (!project) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects take people off.');
+    const index = (project.waiting ?? []).findIndex(helper => helper.ref === params.ref);
+    if (index < 0) return problem(404, 'That helper is not waiting here.');
+    const [helper] = project.waiting.splice(index, 1);
+    touched(project, headers, `Took ${helper.name} off the project`);
+    return detail(project, headers);
+});
+// Their Home card: first what waits for their answer, then the projects they help on, with what waits on them.
 get('/projects/helping', ({ headers }) => {
     const viewer = me(headers);
     if (J.STAFF_IDS.includes(viewer) && V.personaOf(headers) !== 'kitparent') return [];
-    return J.projects.filter(p => ['NOW', 'LATER'].includes(p.status) && p.added.includes(viewer))
-        .map(p => ({ projectId: p.id, goal: p.goal, club: club(p.clubId), steps: waitingNow(p, viewer).map(step => ({ projectId: p.id, project: p.goal, stepId: step.id, step: step.title, day: step.day })) }));
+    const open = J.projects.filter(p => ['NOW', 'LATER'].includes(p.status));
+    const asks = open.flatMap(p => (p.waiting ?? []).filter(helper => helper.userId === viewer)
+        .map(helper => ({ projectId: p.id, goal: p.goal, club: club(p.clubId), steps: [], pending: true, addedBy: person(helper.addedBy)?.name ?? null })));
+    return [...asks, ...open.filter(p => p.added.includes(viewer))
+        .map(p => ({ projectId: p.id, goal: p.goal, club: club(p.clubId), steps: waitingNow(p, viewer).map(step => ({ projectId: p.id, project: p.goal, stepId: step.id, step: step.title, day: step.day })), pending: false, addedBy: null }))];
 });
+const answerHelping = yes => ({ params, headers }) => {
+    const viewer = me(headers), project = J.projects.find(p => p.id === Number(params.pid));
+    const index = (project?.waiting ?? []).findIndex(helper => helper.userId === viewer);
+    if (index < 0) return missing();
+    project.waiting.splice(index, 1);
+    if (yes) { project.added.push(viewer); touched(project, headers, 'Accepted helping on the project'); }
+    return reply(204);
+};
+post('/projects/:pid/helping/accept', answerHelping(true));
+post('/projects/:pid/helping/decline', answerHelping(false));
 
 // Photos and files are kept as invented addresses; the sandbox stores no bytes.
 const addMedia = (kind, name) => ({ params, query, headers }) => {

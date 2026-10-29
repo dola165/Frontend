@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ClipboardPaste, Pencil, UserPlus } from 'lucide-react';
+import { ArrowLeft, ClipboardPaste, Clock, Pencil, UserPlus, X } from 'lucide-react';
 import { Avatar, Button, PageFrame } from '../../design/primitives';
 import { WorkComments } from '../../components/work/WorkComments';
 import { AttachButton, WorkMediaList } from '../../components/work/WorkMedia';
@@ -9,7 +9,7 @@ import { useUploads } from '../../components/work/useUploads';
 import { ago, madeBy } from '../../components/work/workWords';
 import { useAuth } from '../../context/AuthContext';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { addFile, addPicture, editTalk, pastePlan, PASTE_PLAN_EXAMPLE, removeFile, removeTalk, talk, type ProjectDetail } from './api';
+import { addFile, addPicture, editTalk, pastePlan, PASTE_PLAN_EXAMPLE, removeFile, removeTalk, removeWaitingHelper, talk, type ProjectDetail } from './api';
 import { AddHelperDialog } from './AddHelperDialog';
 import { ProjectEditDialog } from './ProjectEditDialog';
 import { ProjectMoney } from './ProjectMoney';
@@ -78,7 +78,13 @@ export function ProjectView({ project, onChanged }: { project: ProjectDetail; on
                 </section>
                 <section className="pj-block" aria-labelledby="pj-people">
                     <h2 className="pj-label" id="pj-people">{copy('People', 'ხალხი')}</h2>
-                    <ul className="pj-people">{summary.people.map(person => <li key={person.id}><Avatar src={person.avatarUrl} name={person.name} size={26} /><span>{person.name}</span></li>)}</ul>
+                    <ul className="pj-people">{summary.people.map(person => <li key={person.id}><Avatar src={person.avatarUrl} name={person.name} size={26} /><span>{person.name}</span></li>)}
+                        {/* A helper who hasn't accepted yet: the typed name only, never a photo (a child's address looks the same). */}
+                        {(project.waitingHelpers ?? []).map(helper => <li key={helper.ref} className="pj-person-waiting">
+                            <span className="pj-waiting-face" aria-hidden="true"><Clock /></span><span>{helper.name}</span><span className="pj-quiet">{copy('waiting', 'ელოდება')}</span>
+                            {can.addPeople && <button type="button" className="pj-waiting-remove" aria-label={copy(`Take ${helper.name} off`, `${helper.name}-ის მოხსნა`)}
+                                onClick={() => void removeWaitingHelper(clubId, summary.id, helper.ref).then(onChanged).catch(() => undefined)}><X aria-hidden="true" /></button>}
+                        </li>)}</ul>
                     {/* Parents and volunteers join one project by name and email (phase B2), as a squad's helpers do. */}
                     {can.addPeople && <button type="button" className="work-link-button" onClick={() => setAddingHelper(true)}><UserPlus aria-hidden="true" />{copy('Add a parent or volunteer', 'მშობლის ან მოხალისის დამატება')}</button>}
                 </section>

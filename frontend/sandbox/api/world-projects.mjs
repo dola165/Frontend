@@ -42,6 +42,8 @@ export const projects = [
     {
         id: newId(), clubId: CLUB_ID, goal: 'New kit for U12', purpose: '22 sets before the winter league.', status: 'NOW', squadId: u12?.id ?? null, dueOn: day(28),
         target: { amount: 2000, currency: 'GEL' }, createdBy: irakli.id, added: [nana.id], updatedAt: at(5), version: 3,
+        // A helper who hasn't accepted yet: the typed name only (fix round 4).
+        waiting: [{ name: 'Maka Lomidze', ref: '6f1c2a40-0000-4000-8000-000000000001', userId: null, addedBy: irakli.id }],
         steps: [step('Ask families for sizes', nana.id, true), step('Start the fundraiser', irakli.id, true), step('Choose a quote', irakli.id, false, 2),
             step('Order and pay', giorgi.id, false), step('Hand out at training', W.ME_ID, false, 24)],
         talk: [{ id: newId(), authorId: nana.id, body: 'Sport House can do 22 sets by 20 November. Quote B.', createdAt: at(30), editedAt: null },
@@ -65,6 +67,8 @@ export const projects = [
     },
     {
         id: newId(), clubId: CLUB_ID, goal: 'Goals for Pitch 2', purpose: 'Two 5 × 2 m goals for the small-sided games.', status: 'NOW', squadId: null, dueOn: null, target: null, createdBy: levan.id, added: [], updatedAt: at(50), version: 1,
+        // Nana was added by her address and answers on Home: Accept / Not for me.
+        waiting: [{ name: 'Nana Beridze', ref: '6f1c2a40-0000-4000-8000-000000000002', userId: nana.id, addedBy: levan.id }],
         steps: [step('Get quotes', levan.id, false, 5), step('Choose one', levan.id, false), step('Pay', giorgi.id, false), step('Hand out', levan.id, false)],
         talk: [{ id: newId(), authorId: levan.id, body: 'Waiting on a second quote from Arena Sport.', createdAt: at(50), editedAt: null }], files: [], history: [{ at: at(52), by: levan.id, text: 'Started' }], fundraiser: null,
     },

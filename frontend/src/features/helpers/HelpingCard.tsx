@@ -10,7 +10,7 @@ import { formatDate, formatTime } from '../../utils/formatting';
 import { useCopy } from '../../locales/useCopy';
 import { mySquadsEn } from '../../locales/mySquadsDesign';
 import { ActivityBadge } from '../clubWorkspace/coachHub/CoachVisuals';
-import { helping, register, saveRegister, stopHelping, type Helping, type HelpingPlayer } from './api';
+import { acceptHelping, helperInvitations, helping, register, saveRegister, stopHelping, type Helping, type HelperInvitation, type HelpingPlayer } from './api';
 import './helpers.css';
 
 const TONE: Record<string, Face['tone']> = { GOING: 'accent', NOT_GOING: 'danger', UNANSWERED: 'warning', UNSURE: 'info' };
@@ -28,9 +28,11 @@ const namesOf = (players: HelpingPlayer[]) => new Map(players.map(p => [p.id,
 export function HelpingCard() {
     const copy = useCopy('mySquads', mySquadsEn);
     const [sessions, setSessions] = useState<Helping[]>([]);
+    const [invitations, setInvitations] = useState<HelperInvitation[]>([]);
     const [revision, setRevision] = useState(0), [failed, setFailed] = useState(false), [emailWait, setEmailWait] = useState(false);
     useEffect(() => {
         const controller = new AbortController();
+        void helperInvitations(controller.signal).then(rows => { if (!controller.signal.aborted) setInvitations(rows); }).catch(() => undefined);
         void helping(controller.signal).then(rows => { if (!controller.signal.aborted) { setSessions(rows); setFailed(false); } })
             .catch(error => {
                 if (controller.signal.aborted) return;
@@ -41,10 +43,36 @@ export function HelpingCard() {
     }, [revision]);
     const reload = () => setRevision(value => value + 1);
     const next = sessions[0];
+    const asks = invitations.map(invitation => <HelperAsk key={invitation.helperId} invitation={invitation} onAnswered={reload} />);
     if (emailWait) return <GkRoot><HelperEmailWait what={null} session next="/home" /></GkRoot>;
-    if (failed && !next) return <GkRoot><LoadFailed text={copy('helpingFailed')} retry={copy('tryAgain')} onRetry={reload} /></GkRoot>;
-    if (!next) return null;
-    return <GkRoot><HelpingSession key={`${next.helperId}-${next.sessionId}`} session={next} onStopped={reload} /></GkRoot>;
+    if (failed && !next) return <GkRoot>{asks}<LoadFailed text={copy('helpingFailed')} retry={copy('tryAgain')} onRetry={reload} /></GkRoot>;
+    if (!next) return asks.length ? <GkRoot>{asks}</GkRoot> : null;
+    return <GkRoot>{asks}<HelpingSession key={`${next.helperId}-${next.sessionId}`} session={next} onStopped={reload} /></GkRoot>;
+}
+
+/** "Koba added you as a helper: U12 Mixed, Tue 17:00 · Accept / Not for me": nothing opens before Accept. */
+function HelperAsk({ invitation, onAnswered }: { invitation: HelperInvitation; onAnswered: () => void }) {
+    const copy = useCopy('mySquads', mySquadsEn);
+    const [busy, setBusy] = useState(false), [error, setError] = useState('');
+    const when = invitation.startsAt ? new Date(invitation.startsAt) : null;
+    const answer = async (yes: boolean) => {
+        setBusy(true); setError('');
+        try { await (yes ? acceptHelping(invitation.helperId) : stopHelping(invitation.helperId)); onAnswered(); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('answerFailed'))); setBusy(false); }
+    };
+    const where = [invitation.squadName, when ? `${formatDate(when, { weekday: 'short' })} ${formatTime(when)}` : null].filter(Boolean).join(', ');
+    return <section className="gk-panel hp-ask" aria-label={copy('invitedHelper', { name: invitation.addedBy ?? invitation.clubName })}>
+        <ActivityBadge kind="TRAINING" size={36} />
+        <span className="hp-card__title">
+            <strong>{copy('invitedHelper', { name: invitation.addedBy ?? invitation.clubName })}</strong>
+            <span className="hp-quiet">{[where, invitation.title, invitation.clubName].filter(Boolean).join(' · ')}</span>
+        </span>
+        <span className="hp-ask__actions">
+            <Button variant="primary" size="sm" disabled={busy} onClick={() => void answer(true)}>{copy('accept')}</Button>
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => void answer(false)}>{copy('notForMe')}</Button>
+        </span>
+        {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+    </section>;
 }
 
 function HelpingSession({ session, onStopped }: { session: Helping; onStopped: () => void }) {

@@ -118,10 +118,19 @@ test('B2: the Projects tab follows the job, a parent joins one project by name a
   assert.equal(added.status, 201);
   assert.ok(added.body.link);
   assert.equal((await request(null, 'POST', `/clubs/1/projects/${kit.id}/helpers`, body)).body.link, added.body.link);
-  assert.ok(added.body.project.summary.people.some(p => p.name === 'Tamar Lomidze'));
+  // Until they accept: the typed name only, waiting, no id.
+  assert.equal(added.body.userId, null);
+  assert.ok(!added.body.project.summary.people.some(p => p.name === 'Tamar Lomidze'));
+  const waiting = added.body.project.waitingHelpers.find(h => h.name === 'Tamar Lomidze');
+  assert.deepEqual(Object.keys(waiting).sort(), ['name', 'ref']);
+  const off = await request(null, 'DELETE', `/clubs/1/projects/${kit.id}/helpers/${waiting.ref}`);
+  assert.ok(!off.body.waitingHelpers.some(h => h.name === 'Tamar Lomidze'));
 
+  // Nana answers on Home first; Accept puts her on the project.
   const home = (await request('kitparent', 'GET', '/projects/helping')).body;
-  assert.deepEqual(home.map(p => p.goal), ['New kit for U12']);
+  assert.deepEqual(home.map(p => [p.goal, Boolean(p.pending)]), [['Goals for Pitch 2', true], ['New kit for U12', false]]);
+  assert.equal((await request('kitparent', 'POST', `/projects/${home[0].projectId}/helping/accept`)).status, 204);
+  assert.deepEqual((await request('kitparent', 'GET', '/projects/helping')).body.map(p => p.pending), [false, false]);
   assert.deepEqual((await request(null, 'GET', '/projects/helping')).body, []);
 });
 

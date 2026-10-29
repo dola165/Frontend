@@ -25,15 +25,13 @@ export function AddHelperDialog({ project, onClose, onAdded }: { project: Projec
         catch (failure) { setError(extractApiErrorMessage(failure, copy('They couldn’t be added. Try again.', 'ვერ დაემატა. სცადეთ თავიდან.'))); }
         finally { setBusy(false); }
     };
-    if (added) return <Dialog open size="md" title={copy(`${added.name} is on the project`, `${added.name} პროექტშია`)} onClose={onClose}
+    if (added) return <Dialog open size="md" title={copy(`${added.name} was added`, `${added.name} დაემატა`)} onClose={onClose}
         footer={<Button variant="primary" onClick={onClose}>{copy('Done', 'მზადაა')}</Button>}>
         {added.link
             ? <InviteLinkBox name={added.name} link={{ token: added.link, expiresAt: added.linkExpiresAt ?? new Date().toISOString() }}
                 message={copy(`You're helping with “${project.summary.goal}” at ${project.club?.name ?? 'the club'}. Open this link to see it:`, `თქვენ ეხმარებით „${project.summary.goal}“-ს, ${project.club?.name ?? 'კლუბში'}. გახსენით ბმული:`)} />
-            // Someone already invited keeps that invitation: no new link replaces it.
-            : <p className="pj-quiet">{added.invitationPending
-                ? copy(`${added.name} already has an invitation waiting. Once they open it, they'll see the project on Home.`, `${added.name}-ს მოწვევა უკვე ელოდება. გახსნის შემდეგ პროექტს მთავარ გვერდზე დაინახავს.`)
-                : copy(`${added.name} sees the project on Home, with the steps you give them.`, `${added.name} პროექტს მთავარ გვერდზე ხედავს, თქვენ მიერ მიცემული ნაბიჯებით.`)}</p>}
+            // Every existing address gets the same answer: they wait here by this name until they accept.
+            : <p className="pj-quiet">{copy(`${added.name} waits here until they accept on Home. Then you can give them steps.`, `${added.name} აქ ელოდება, სანამ მთავარ გვერდზე არ დაეთანხმება. შემდეგ შეძლებთ ნაბიჯების მიცემას.`)}</p>}
     </Dialog>;
     return <Dialog open size="md" title={copy('Add a parent or volunteer', 'მშობლის ან მოხალისის დამატება')} description={project.summary.goal} onClose={onClose}
         footer={<><Button onClick={onClose}>{copy('Cancel', 'გაუქმება')}</Button><Button variant="primary" type="submit" form={id} disabled={busy}>{copy('Add', 'დამატება')}</Button></>}>

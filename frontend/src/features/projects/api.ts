@@ -52,7 +52,10 @@ export interface ProjectDetail {
     /** For those who change the project: what it and its steps can be given to. */
     choices: ProjectChoices | null;
     you?: ProjectYou;
+    /** Helpers who haven't accepted yet: the typed name only, never a photo or an id; `ref` takes one off. */
+    waitingHelpers?: WaitingHelper[];
 }
+export interface WaitingHelper { name: string; ref: string }
 
 export interface NewProject { goal: string; kind?: ProjectKind; squadId?: number | null; dueOn?: string | null; purpose?: string | null; status?: Exclude<ProjectStatus, 'DONE'>; steps?: string[]; language?: 'en' | 'ka' }
 /** Absent fields stay as they are; the clear flags empty one. */
@@ -106,7 +109,11 @@ export interface HelperAdded { userId: number | null; name: string; link: string
 export const addHelper = (clubId: number, id: number, helper: { name: string; email: string; requestId: string }) =>
     command<HelperAdded>(`${base(clubId)}/${id}/helpers`, helper);
 /** A project a parent or volunteer helps on, with the steps waiting on them: their Home card. */
-export interface HelpingProject { projectId: number; goal: string; club: ProjectClub | null; steps: WaitingStep[] }
+/** `pending`: added and not answered yet, with who added them, for Accept / Not for me. */
+export interface HelpingProject { projectId: number; goal: string; club: ProjectClub | null; steps: WaitingStep[]; pending?: boolean; addedBy?: string | null }
+export const acceptHelpingProject = async (id: number) => { await apiClient.post(`/projects/${id}/helping/accept`); };
+export const declineHelpingProject = async (id: number) => { await apiClient.post(`/projects/${id}/helping/decline`); };
+export const removeWaitingHelper = (clubId: number, id: number, ref: string) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/helpers/${ref}`));
 export const fetchHelping = (signal?: AbortSignal) => data(apiClient.get<HelpingProject[]>('/projects/helping', { signal }));
 export const removePerson = (clubId: number, id: number, userId: number) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/people/${userId}`));
 /** talk */

@@ -92,10 +92,12 @@ function MediaItem({ item, tools, playLink, onOpen, onRemove, removeLabel }: {
         item.kind === 'IMAGE' && tools.edit && { key: 'edit', label: copy('Edit picture', 'სურათის რედაქტირება'), icon: PencilLine, onSelect: () => tools.edit?.(item) },
         item.canDelete && { key: 'remove', label: removeLabel, icon: Trash2, danger: true, separated: true, onSelect: onRemove },
     ], { label: name });
-    return <li className={`gk-cm-target${item.kind === 'VIDEO' ? ' work-media__video' : item.kind === 'FILE' ? ' work-media__file' : ''}`} {...menu.bind}>
-        {item.kind === 'VIDEO' && playLink ? <Player media={item} playLink={playLink} /> : item.kind === 'FILE' ? <FileRow media={item} /> : <Thumb media={item} onOpen={onOpen} />}
+    // A video plays where there is a way to play it; elsewhere it is a file to save, never a picture.
+    const asFile = item.kind === 'FILE' || (item.kind === 'VIDEO' && !playLink);
+    return <li className={`gk-cm-target${asFile ? ' work-media__file' : item.kind === 'VIDEO' ? ' work-media__video' : ''}`} {...menu.bind}>
+        {asFile ? <FileRow media={item} /> : item.kind === 'VIDEO' && playLink ? <Player media={item} playLink={playLink} /> : <Thumb media={item} onOpen={onOpen} />}
         {item.kind === 'IMAGE' && tools.note?.(item)}
-        {item.title && item.kind !== 'FILE' && <span className="work-media__title" title={item.name ?? undefined}>{item.title}</span>}
+        {item.title && !asFile && <span className="work-media__title" title={item.name ?? undefined}>{item.title}</span>}
         {tools.tags?.(item)}
         <span className="work-media__meta">
             {item.kind === 'VIDEO' && <Video aria-hidden="true" />}

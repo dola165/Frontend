@@ -109,7 +109,7 @@ export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false
                     : <ul className="gk-store-grid gk-fund-grid" aria-busy={loading} aria-label={ct("Fundraisers")}>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} />
                         {/* On the club page the money is one tap away: GoFundMe takes it. */}
                         {fixedClubId && campaign.donateUrl && <a className="gk-fund-give-link" href={campaign.donateUrl} target="_blank" rel="noopener noreferrer">{ct("Give on GoFundMe")}<ArrowUpRight aria-hidden="true" /></a>}
-                        {manage && <FundraiserProjectLink campaign={campaign} known />}</li>)}</ul>}
+                        {manage && <FundraiserProjectLink campaign={campaign} />}</li>)}</ul>}
                 {pages > 1 && <div className="gk-store-results__foot"><Pages page={query.page} pages={pages} onPage={page => { update({ ...query, page }); window.scrollTo({ top: 0 }); }} /></div>}
             </div>
             <Dialog open={sheet} title={ct("Filters")} size="sheet" onClose={() => setSheet(false)} footer={<Button variant="primary" onClick={() => setSheet(false)}>{ct("Show ")}{total} {total === 1 ? 'fundraiser' : 'fundraisers'}</Button>}>

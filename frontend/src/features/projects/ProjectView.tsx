@@ -90,6 +90,7 @@ export function ProjectView({ project, onChanged }: { project: ProjectDetail; on
         {pasting && <PasteFrame title={copy('Paste a plan', 'გეგმის ჩასმა')} example={PASTE_PLAN_EXAMPLE} onClose={() => setPasting(false)}
             description={copy('One step a line, from WhatsApp or anywhere; a name and a day after “|”. You see the steps before they are added.', 'თითო ნაბიჯი თითო ხაზზე, WhatsApp-იდან ან სხვაგან; სახელი და დღე „|“-ის შემდეგ. დამატებამდე ნახავთ ნაბიჯებს.')}
             read={(text, apply) => pastePlan(clubId, summary.id, text, apply)} changes={result => result.steps.length}
+            applied={result => Boolean(result.project)}
             onApplied={result => { setPasting(false); if (result.project) onChanged(result.project); }}
             preview={result => <>
                 <p className="work-paste__summary"><strong>{copy(`${result.steps.length} ${result.steps.length === 1 ? 'step' : 'steps'} to add`, `${result.steps.length} ნაბიჯი დაემატება`)}</strong></p>

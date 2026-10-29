@@ -3,17 +3,16 @@ import { useAuth } from '../../context/AuthContext';
 import { ButtonLink } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { projectPath } from './projectWords';
-import { useMyProjects } from './useProjects';
+import { useFundraiserPlace } from './useProjects';
 
 /**
- * Where the club's people run a fundraiser: its project. Shown on a fundraiser to someone who works with its club
- * (`known` when the page already knows); the project page then decides what they may change.
+ * Where the club's people run a fundraiser: its project. The public fundraiser never says which project it is; the
+ * server answers that only to someone who sees the project, so the link shows for them alone.
  */
-export function FundraiserProjectLink({ campaign, known }: { campaign: { clubId: number; projectId?: number | null }; known?: boolean }) {
+export function FundraiserProjectLink({ campaign }: { campaign: { id: number } }) {
     const copy = useJourneyCopy();
     const { isAuthenticated } = useAuth();
-    const mine = useMyProjects(known === undefined && isAuthenticated && Boolean(campaign.projectId));
-    const works = known ?? (Array.isArray(mine.data) && mine.data.some(entry => entry.club?.id === campaign.clubId));
-    if (!works || !campaign.projectId) return null;
-    return <ButtonLink size="sm" variant="ghost" to={projectPath(campaign.projectId)}><FolderKanban aria-hidden="true" />{copy('Open its project', 'პროექტის გახსნა')}</ButtonLink>;
+    const place = useFundraiserPlace(isAuthenticated ? campaign.id : null);
+    if (!place.data?.projectId) return null;
+    return <ButtonLink size="sm" variant="ghost" to={projectPath(place.data.projectId)}><FolderKanban aria-hidden="true" />{copy('Open its project', 'პროექტის გახსნა')}</ButtonLink>;
 }

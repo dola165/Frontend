@@ -9,8 +9,10 @@ import './work.css';
  * Plain text pasted in (from an AI, a WhatsApp list, anyone) turned into work: a preview of what it would do first,
  * then apply. Team work's "Paste from AI" and a club's "Paste a plan" are this dialog with their own reading of the
  * text: `read` asks the server, `preview` draws its answer, and `changes` says how much applying would change.
+ * `applied` says whether applying changed anything: when it didn't (a teammate applied it first), the dialog shows
+ * the fresh answer instead of closing.
  */
-export function PasteFrame<R>({ title, description, example, format, read, preview, changes, onClose, onApplied }: {
+export function PasteFrame<R>({ title, description, example, format, read, preview, changes, applied, onClose, onApplied }: {
     title: string;
     description: string;
     example: string;
@@ -18,6 +20,7 @@ export function PasteFrame<R>({ title, description, example, format, read, previ
     read: (text: string, apply: boolean) => Promise<R>;
     preview: (result: R) => ReactNode;
     changes: (result: R) => number;
+    applied: (result: R) => boolean;
     onClose: () => void;
     onApplied: (result: R) => void;
 }) {
@@ -31,7 +34,7 @@ export function PasteFrame<R>({ title, description, example, format, read, previ
         setBusy(true); setError('');
         try {
             const answer = await read(text, apply);
-            if (apply) onApplied(answer); else setResult(answer);
+            if (apply && applied(answer)) onApplied(answer); else setResult(answer);
         } catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be read.', 'ვერ წავიკითხეთ.'))); }
         finally { setBusy(false); }
     };

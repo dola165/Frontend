@@ -6,6 +6,7 @@ import { readFile, stat, mkdir, appendFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleApi } from './api/router.mjs';
+import { PERSONAS } from './api/viewer.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(here, 'dist');
@@ -58,7 +59,7 @@ const server = http.createServer(async (req, res) => {
       accountProfile.dob = url.pathname === '/__mode/nodob' ? null : accountProfile.dob ?? '1988-04-12';
       if (url.pathname === '/__mode/nodob') { res.writeHead(302, { location: url.searchParams.get('to') || '/profile/1', 'cache-control': 'no-store' }); return res.end(); }
     }
-    if (/^\/__mode\/(parent|coach|analyst|member|headcoach|physio|attendance|commercial|facilities|projectcoach|kitparent)$/.test(url.pathname)) {
+    if (url.pathname.startsWith('/__mode/') && ['parent', 'coach', ...PERSONAS].includes(url.pathname.slice('/__mode/'.length))) {
       // Sandbox personas, all still Luka's account: `parent` makes him also a parent of two children (the family cookie);
       // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only), `member` plain
       // club membership with no tools at all, `headcoach` a head coach who is not an admin and `physio` a job with only
@@ -69,7 +70,7 @@ const server = http.createServer(async (req, res) => {
       const safe = to.startsWith('/') && !to.startsWith('//') ? to : '/home';
       const cookies = [
         mode === 'parent' ? 'gk-sandbox-family=1; Path=/' : 'gk-sandbox-family=; Path=/; Max-Age=0',
-        ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'commercial', 'facilities', 'projectcoach', 'kitparent'].includes(mode) ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
+        PERSONAS.includes(mode) ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
       ];
       res.writeHead(302, { location: safe, 'set-cookie': cookies, 'cache-control': 'no-store' });
       return res.end();

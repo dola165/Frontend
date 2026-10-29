@@ -3,7 +3,9 @@ import { Dialog } from '../../design/Dialog';
 import { Button } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changeFundraiser, postFundraiserUpdate, reportAmount, startFundraiser, type ProjectDetail } from './api';
+import { changeFundraiser, postFundraiserUpdate, reportAmount, startFundraiser, type Currency, type ProjectDetail } from './api';
+
+const CURRENCIES: Currency[] = ['GEL', 'EUR', 'GBP', 'USD'];
 
 const CATEGORIES: [string, string, string][] = [
     ['EQUIPMENT', 'Equipment and kit', 'აღჭურვილობა და ფორმა'], ['FACILITIES', 'Pitches and facilities', 'მოედნები და ინფრასტრუქტურა'],
@@ -47,12 +49,15 @@ export function AmountDialog({ project, onClose, onSaved }: { project: ProjectDe
     const f = project.fundraiser!;
     const [amount, setAmount] = useState(f.reportedAmount?.toString() ?? '');
     const [note, setNote] = useState('');
+    const [currency, setCurrency] = useState<Currency>(f.currency);
     const { busy, error, save } = useSave(onSaved);
     const value = Number(amount), ready = amount.trim() !== '' && Number.isFinite(value) && value >= 0;
     return <Frame title={copy('Update amount', 'თანხის განახლება')} busy={busy} ready={ready} saveLabel={copy('Save', 'შენახვა')} error={error} onClose={onClose}
-        onSave={() => void save(() => reportAmount(project.club!.id, project.summary.id, f.version, value, note.trim() || undefined))}>
-        <Line label={copy('Raised so far', 'შეგროვდა ჯერჯერობით')} hint={copy('Supporters see it as reported by the club.', 'მხარდამჭერები ხედავენ, როგორც კლუბის ცნობას.')}>
-            {id => <input id={id} className="gk-input" inputMode="decimal" autoFocus value={amount} onChange={event => setAmount(event.target.value)} />}</Line>
+        onSave={() => void save(() => reportAmount(project.club!.id, project.summary.id, f.version, value, note.trim() || undefined, currency === f.currency ? undefined : currency))}>
+        <Line label={copy('Raised so far', 'შეგროვდა ჯერჯერობით')} hint={currency === f.currency ? copy('Supporters see it as reported by the club.', 'მხარდამჭერები ხედავენ, როგორც კლუბის ცნობას.')
+            : copy(`The fundraiser and its target move to ${currency} with this amount.`, `შეგროვება და მისი მიზანი ამ თანხასთან ერთად ${currency}-ზე გადადის.`)}>
+            {id => <span className="pj-money-input"><input id={id} className="gk-input" inputMode="decimal" autoFocus value={amount} onChange={event => setAmount(event.target.value)} />
+                <select className="gk-input" aria-label={copy('Currency', 'ვალუტა')} value={currency} onChange={event => setCurrency(event.target.value as Currency)}>{CURRENCIES.map(code => <option key={code}>{code}</option>)}</select></span>}</Line>
         <Line label={copy('Note (optional)', 'შენიშვნა (არასავალდებულო)')}>{id => <input id={id} className="gk-input" maxLength={1000} value={note} placeholder={copy('Counted on GoFundMe on Friday', 'დათვლილია GoFundMe-ზე პარასკევს')} onChange={event => setNote(event.target.value)} />}</Line>
     </Frame>;
 }
@@ -61,23 +66,23 @@ export function AmountDialog({ project, onClose, onSaved }: { project: ProjectDe
 export function FundraiserDialog({ project, onClose, onSaved }: { project: ProjectDetail; onClose: () => void; onSaved: (next: ProjectDetail) => void }) {
     const copy = useJourneyCopy();
     const f = project.fundraiser;
-    const [words, setWords] = useState({ summary: '', description: '', beneficiary: '', useOfFunds: '', category: f ? '' : 'OTHER', donateUrl: f?.donateUrl ?? '' });
+    const [words, setWords] = useState({ summary: f?.summary ?? '', description: f?.description ?? '', beneficiary: f?.beneficiary ?? '', useOfFunds: f?.useOfFunds ?? '', category: f?.category ?? 'OTHER', donateUrl: f?.donateUrl ?? '' });
     const { busy, error, save } = useSave(onSaved);
     const set = (key: keyof typeof words) => (value: string) => setWords(current => ({ ...current, [key]: value }));
-    // Only what was typed is sent: the rest of the fundraiser's words stay as they are.
-    const sent = Object.fromEntries(Object.entries(words).filter(([key, value]) => value.trim() !== '' || (key === 'donateUrl' && f?.donateUrl)).map(([key, value]) => [key, value.trim()]));
+    // The editor starts from the fundraiser's words as they are, so all of them go back.
+    const sent = Object.fromEntries(Object.entries(words).map(([key, value]) => [key, value.trim()]));
     const action = () => f ? changeFundraiser(project.club!.id, project.summary.id, { ...sent, version: f.version }) : startFundraiser(project.club!.id, project.summary.id, sent);
     return <Frame title={f ? copy('Edit fundraiser', 'შეგროვების რედაქტირება') : copy('Start a fundraiser', 'შეგროვების დაწყება')} busy={busy} ready
         saveLabel={f ? copy('Save', 'შენახვა') : copy('Start as a draft', 'მონახაზად დაწყება')} error={error} onClose={onClose} onSave={() => void save(action)}>
         <p className="pj-quiet">{copy(`Named “${project.summary.goal}”, its goal the project’s target. Publishing needs a summary, what it is for and who it helps.`, `სახელი „${project.summary.goal}“, მიზანი — პროექტის თანხა. გამოსაქვეყნებლად საჭიროა მოკლე აღწერა, რისთვისაა და ვის ეხმარება.`)}</p>
         <Line label={copy('GoFundMe page', 'GoFundMe გვერდი')} hint={copy('The money is given there: https://www.gofundme.com/…', 'თანხა იქ გაიცემა: https://www.gofundme.com/…')}>
             {id => <input id={id} className="gk-input" type="url" maxLength={500} value={words.donateUrl} placeholder="https://www.gofundme.com/f/…" onChange={event => set('donateUrl')(event.target.value)} />}</Line>
-        <Line label={copy('In one line', 'ერთი წინადადებით')}>{id => <input id={id} className="gk-input" maxLength={240} value={words.summary} placeholder={f ? copy('Keep as it is', 'დატოვეთ როგორც არის') : ''} onChange={event => set('summary')(event.target.value)} />}</Line>
-        <Line label={copy('What it is for', 'რისთვისაა')}>{id => <textarea id={id} className="gk-input" rows={3} maxLength={5000} value={words.description} placeholder={f ? copy('Keep as it is', 'დატოვეთ როგორც არის') : ''} onChange={event => set('description')(event.target.value)} />}</Line>
-        <Line label={copy('Who it helps', 'ვის ეხმარება')}>{id => <input id={id} className="gk-input" maxLength={240} value={words.beneficiary} placeholder={f ? copy('Keep as it is', 'დატოვეთ როგორც არის') : ''} onChange={event => set('beneficiary')(event.target.value)} />}</Line>
-        <Line label={copy('How the money is used', 'როგორ დაიხარჯება')}>{id => <input id={id} className="gk-input" maxLength={2000} value={words.useOfFunds} placeholder={f ? copy('Keep as it is', 'დატოვეთ როგორც არის') : ''} onChange={event => set('useOfFunds')(event.target.value)} />}</Line>
+        <Line label={copy('In one line', 'ერთი წინადადებით')}>{id => <input id={id} className="gk-input" maxLength={240} value={words.summary} onChange={event => set('summary')(event.target.value)} />}</Line>
+        <Line label={copy('What it is for', 'რისთვისაა')}>{id => <textarea id={id} className="gk-input" rows={3} maxLength={5000} value={words.description} onChange={event => set('description')(event.target.value)} />}</Line>
+        <Line label={copy('Who it helps', 'ვის ეხმარება')}>{id => <input id={id} className="gk-input" maxLength={240} value={words.beneficiary} onChange={event => set('beneficiary')(event.target.value)} />}</Line>
+        <Line label={copy('How the money is used', 'როგორ დაიხარჯება')}>{id => <input id={id} className="gk-input" maxLength={2000} value={words.useOfFunds} onChange={event => set('useOfFunds')(event.target.value)} />}</Line>
         <Line label={copy('Kind', 'სახეობა')}>{id => <select id={id} className="gk-input" value={words.category} onChange={event => set('category')(event.target.value)}>
-            {f && <option value="">{copy('Keep as it is', 'დატოვეთ როგორც არის')}</option>}{CATEGORIES.map(([value, en, ka]) => <option key={value} value={value}>{copy(en, ka)}</option>)}</select>}</Line>
+            {CATEGORIES.map(([value, en, ka]) => <option key={value} value={value}>{copy(en, ka)}</option>)}</select>}</Line>
     </Frame>;
 }
 

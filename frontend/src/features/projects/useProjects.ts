@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import { fetchMyProjects, fetchProjectById, fetchProjects, type MyProjects, type ProjectBoard, type ProjectDetail } from './api';
+import { fetchFundraiserPlace, fetchMyProjects, fetchProjectById, fetchProjects, type MyProjects, type ProjectBoard, type ProjectDetail } from './api';
 
 /** One read with its loading and failure kept apart, and a way to replace it with a fresher answer. */
 export interface Loaded<T> { data: T | null; loading: boolean; error: string; notFound: boolean; reload: () => void; put: (next: T) => void }
@@ -34,5 +34,7 @@ function useLoaded<T>(key: string | null, load: (signal: AbortSignal) => Promise
 export const useMyProjects = (enabled = true) => useLoaded<MyProjects[]>(enabled ? 'mine' : null, fetchMyProjects);
 /** One club's Projects page. */
 export const useBoard = (clubId: number | null) => useLoaded<ProjectBoard>(clubId ? `board:${clubId}` : null, signal => fetchProjects(clubId!, signal));
+/** Where a fundraiser's project is, for someone who sees it (a 404 for anyone else). */
+export const useFundraiserPlace = (campaignId: number | null) => useLoaded<{ clubId: number; projectId: number }>(campaignId ? `place:${campaignId}` : null, signal => fetchFundraiserPlace(campaignId!, signal));
 /** One project, by its id alone. */
 export const useProject = (id: number | null) => useLoaded<ProjectDetail>(id ? `project:${id}` : null, signal => fetchProjectById(id!, signal));

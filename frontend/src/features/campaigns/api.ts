@@ -46,12 +46,6 @@ export interface Campaign {
     updates: CampaignUpdate[];
     /** The club's GoFundMe page, where donations are taken (an https address on gofundme.com). */
     donateUrl?: string | null;
-    /** The project this fundraiser is the money part of, and its squad (the project's); step 4. */
-    projectId?: number;
-    squadId?: number | null;
-    /** Who last reported the amount, and who published first (the first one counts). */
-    reportedBy?: number | null;
-    publishedBy?: number | null;
     /** How many people have given. Backend field to add. */
     donations?: number | null;
     /** How far the club is from the area the list was asked for; only lists carry it. */

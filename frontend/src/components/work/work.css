@@ -5,6 +5,10 @@
 .gk .work-icon-button svg { width: 16px; height: 16px; }
 .gk .work-link-button { padding: 0; border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
 .gk .work-link-button:hover { color: var(--gk-text); text-decoration: underline; }
+.gk .work-link-button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+/* Tags: "@" offers the people; a tag stands out, more when it is you. */
+.gk .work-tag { color: var(--gk-info); font-weight: 600; }
+.gk .work-tag[data-me] { padding: 0 3px; border-radius: 4px; background: color-mix(in srgb, var(--gk-info) 16%, transparent); }
 .gk .work-attach { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
 .gk .work-file { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text); text-decoration: none; }
 .gk .work-file:hover { border-color: var(--gk-line-strong); }

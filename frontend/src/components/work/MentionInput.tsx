@@ -52,5 +52,5 @@ export function MentionText({ text, team, me }: { text: string; team: Person[]; 
     const pattern = mentionPattern(team);
     if (!pattern) return <>{text}</>;
     return <>{text.split(pattern).map((step, index) => index % 2 === 0 ? step
-        : <span key={index} className="tw-tag" data-me={team.find(person => person.name === step)?.id === me || undefined}>@{step}</span>)}</>;
+        : <span key={index} className="work-tag" data-me={team.find(person => person.name === step)?.id === me || undefined}>@{step}</span>)}</>;
 }

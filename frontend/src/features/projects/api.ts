@@ -38,6 +38,9 @@ export interface ProjectFundraiser {
     id: number; status: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED'; phase: string; donateUrl: string | null;
     goal: Money | null; reportedAmount: number | null; reportedNote: string; reportedBy: ProjectPerson | null; reportedAt: string | null;
     publishedBy: ProjectPerson | null; publishedAt: string | null; clubVerified: boolean; publicNow: boolean; version: number;
+    /** What the editor changes, as it is now. */
+    currency: Currency; summary: string; description: string; beneficiary: string; useOfFunds: string; category: string;
+    startsOn: string | null; endsOn: string | null; images: string[];
 }
 
 export interface ProjectDetail {
@@ -64,6 +67,17 @@ export interface FundraiserInput {
 
 const base = (clubId: number) => `/clubs/${clubId}/projects`;
 const data = <T>(request: Promise<{ data: T }>) => request.then(response => response.data);
+// A command sent twice with the same words within a few seconds (a double click, a retry after a lost answer) carries
+// the same Idempotency-Key, so the server does it once and answers both with the project as it is.
+const recent = new Map<string, { key: string; at: number }>();
+const once = (url: string, body: unknown) => {
+    const what = `${url} ${JSON.stringify(body)}`, now = Date.now();
+    for (const [sent, { at }] of recent) if (now - at > 10_000) recent.delete(sent);
+    const key = recent.get(what)?.key ?? crypto.randomUUID();
+    recent.set(what, { key, at: recent.get(what)?.at ?? now });
+    return { headers: { 'Idempotency-Key': key } };
+};
+const command = <T>(url: string, body: unknown, method: 'post' | 'put' = 'post') => data(apiClient[method]<T>(url, body, once(url, body)));
 
 export const fetchMyProjects = (signal?: AbortSignal) => data(apiClient.get<MyProjects[]>('/projects/mine', { signal }));
 /** A project by its id alone, as the Inbox opens it. */
@@ -73,11 +87,11 @@ export const fetchFundraiserPlace = (campaignId: number, signal?: AbortSignal) =
 export const fetchProjects = (clubId: number, signal?: AbortSignal) => data(apiClient.get<ProjectBoard>(base(clubId), { signal }));
 export const fetchProject = (clubId: number, id: number, signal?: AbortSignal) => data(apiClient.get<ProjectDetail>(`${base(clubId)}/${id}`, { signal }));
 /** start_project */
-export const startProject = (clubId: number, request: NewProject) => data(apiClient.post<ProjectDetail>(base(clubId), request));
+export const startProject = (clubId: number, request: NewProject) => command<ProjectDetail>(base(clubId), request);
 /** change_project */
 export const changeProject = (clubId: number, id: number, change: ProjectChange) => data(apiClient.patch<ProjectDetail>(`${base(clubId)}/${id}`, change));
 /** add_step */
-export const addStep = (clubId: number, id: number, step: { title: string; personId?: number | null; day?: string | null }) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/steps`, step));
+export const addStep = (clubId: number, id: number, step: { title: string; personId?: number | null; day?: string | null }) => command<ProjectDetail>(`${base(clubId)}/${id}/steps`, step);
 /** change_step, finish_step */
 export const changeStep = (clubId: number, id: number, stepId: number, change: StepChange) => data(apiClient.patch<ProjectDetail>(`${base(clubId)}/${id}/steps/${stepId}`, change));
 export const removeStep = (clubId: number, id: number, stepId: number) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/steps/${stepId}`));
@@ -85,7 +99,7 @@ export const orderSteps = (clubId: number, id: number, order: number[]) => data(
 export const addPerson = (clubId: number, id: number, userId: number) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/people`, { userId }));
 export const removePerson = (clubId: number, id: number, userId: number) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/people/${userId}`));
 /** talk */
-export const talk = (clubId: number, id: number, body: string) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/talk`, { body }));
+export const talk = (clubId: number, id: number, body: string) => command<ProjectDetail>(`${base(clubId)}/${id}/talk`, { body });
 export const editTalk = (clubId: number, id: number, commentId: number, body: string) => data(apiClient.patch<ProjectDetail>(`${base(clubId)}/${id}/talk/${commentId}`, { body }));
 export const removeTalk = (clubId: number, id: number, commentId: number) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/talk/${commentId}`));
 export const addPicture = (clubId: number, id: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/pictures`, form)); };
@@ -95,17 +109,19 @@ export const addFile = (clubId: number, id: number, file: File, onProgress?: (sh
 }));
 export const removeFile = (clubId: number, id: number, fileId: number) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/files/${fileId}`));
 /** paste_plan: `apply: false` previews. */
-export const pastePlan = (clubId: number, id: number, text: string, apply: boolean) => data(apiClient.post<PasteResult>(`${base(clubId)}/${id}/paste`, { text, apply }));
+export const pastePlan = (clubId: number, id: number, text: string, apply: boolean) => apply
+    ? command<PasteResult>(`${base(clubId)}/${id}/paste`, { text, apply }) : data(apiClient.post<PasteResult>(`${base(clubId)}/${id}/paste`, { text, apply }));
 /** start_fundraiser */
-export const startFundraiser = (clubId: number, id: number, input: FundraiserInput) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/fundraiser`, input));
+export const startFundraiser = (clubId: number, id: number, input: FundraiserInput) => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser`, input);
 /** change_fundraiser */
-export const changeFundraiser = (clubId: number, id: number, input: FundraiserInput & { version: number }) => data(apiClient.put<ProjectDetail>(`${base(clubId)}/${id}/fundraiser`, input));
-/** report_amount */
-export const reportAmount = (clubId: number, id: number, version: number, amount: number, note?: string) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/amount`, { version, amount, note }));
+export const changeFundraiser = (clubId: number, id: number, input: FundraiserInput & { version: number }) => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser`, input, 'put');
+/** report_amount; a new currency changes the fundraiser's (and the target's) with it. */
+export const reportAmount = (clubId: number, id: number, version: number, amount: number, note?: string, currency?: Currency) =>
+    command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/amount`, { version, amount, note, currency });
 /** post_fundraiser_update: news for the supporters on the public page. */
-export const postFundraiserUpdate = (clubId: number, id: number, version: number, title: string, body: string) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/updates`, { version, title, body }));
+export const postFundraiserUpdate = (clubId: number, id: number, version: number, title: string, body: string) => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/updates`, { version, title, body });
 /** publish_fundraiser, or pause or close it. */
-export const moveFundraiser = (clubId: number, id: number, version: number, status: 'PUBLISHED' | 'PAUSED' | 'CLOSED') => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/state`, { version, status }));
+export const moveFundraiser = (clubId: number, id: number, version: number, status: 'PUBLISHED' | 'PAUSED' | 'CLOSED') => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/state`, { version, status });
 
 /** The example "Paste a plan" offers: one step a line, a person and a day after "|". */
 export const PASTE_PLAN_EXAMPLE = `- Ask families for sizes | Nana

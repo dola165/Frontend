@@ -70,10 +70,6 @@
     .gk .tw-finding__toggle { display: none; }
 }
 
-/* Tags: "@" offers the team; a tag stands out, more when it is you. */
-.gk .tw-tag { color: var(--gk-info); font-weight: 600; }
-.gk .tw-tag[data-me] { padding: 0 3px; border-radius: 4px; background: color-mix(in srgb, var(--gk-info) 16%, transparent); }
-
 /* On desktop the side bar starts at the logo's edge: the app's page frame adds 32px before this page's own gutter. */
 @media (min-width: 901px) { .gk .tw-page { padding-inline-start: max(0px, calc(var(--gk-gutter) - 32px)); } }
 
@@ -116,7 +112,7 @@
 .gk .tw-main { animation: tw-fade .22s var(--gk-ease) both; }
 .gk .tw-task__step, .gk .tw-finding__open, .gk .tw-state__fold { animation: tw-rise .2s var(--gk-ease) both; }
 .gk .tw-menu__list, .gk .work-mention__list { animation: tw-rise .14s var(--gk-ease) both; transform-origin: top; }
-.gk .tw-side button, .gk .work-link-button, .gk .tw-back, .gk .tw-steps button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk .tw-side button, .gk .tw-back, .gk .tw-steps button, .gk .tw-plan-rows button { transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
 .gk .tw-order__bar > span { transition: width .35s var(--gk-ease); }
 @media (prefers-reduced-motion: reduce) {
     .gk .tw-shell *, .gk .tw-main { animation: none !important; transition: none !important; transform: none !important; }

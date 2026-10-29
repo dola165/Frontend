@@ -15,6 +15,7 @@ export function PasteDialog({ planId, elsewhere, onClose, onApplied }: { planId:
         description={copy('One task per line; two spaces before the dash make it a step. You see what changes before anything is saved.', 'თითო საქმე თითო ხაზზე; ტირემდე ორი გამოტოვება ნაბიჯია. შენახვამდე ნახავთ, რა შეიცვლება.')}
         read={(text, apply) => pasteIntoPlan(planId, text, apply)}
         changes={preview => preview.created + preview.updated + preview.moved + (preview.deleted ?? 0)}
+        applied={result => Boolean(result.view)}
         onApplied={result => { if (result.view) onApplied(result.view); }}
         format={<details className="tw-fold work-paste__format">
             <summary className="tw-section__title">{copy('Format', 'ფორმატი')}</summary>

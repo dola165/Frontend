@@ -20,6 +20,15 @@ const session: Helping = { helperId: 4, sessionId: 5640, squadId: 101, squadName
     ] };
 const failure = (status: number, message = 'Request failed', code?: string) => ({ isAxiosError: true, response: { status, data: { message, code } } });
 
+it('tells a new helper whose email waits to confirm it, with Resend, instead of an empty Home', async () => {
+    api.get.mockRejectedValue({ isAxiosError: true, response: { status: 403, data: { code: 'EMAIL_CONFIRMATION_REQUIRED', confirmFor: 'HELP' } } });
+    api.post.mockResolvedValue({ data: {} });
+    render(<MemoryRouter><HelpingCard /></MemoryRouter>);
+    expect(await screen.findByText('Confirm your email to see your session')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification', { continuationPath: '/home' }));
+});
+
 it('brings a helper today’s session on Home with its register, the likely answer ticked, and saves who came', async () => {
     api.get.mockResolvedValue({ data: [session] });
     api.put.mockResolvedValue({ data: { revision: 'r2', players: session.players.map(player => ({ ...player, register: player.id === 3 || player.id === 1 ? 'ARRIVED' : 'ABSENT' })) } });

@@ -1,0 +1,3 @@
+.gk .email-wait { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-3); }
+.gk .email-wait > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .email-wait small { color: var(--gk-text-2); }

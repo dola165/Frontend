@@ -15,7 +15,7 @@ export const previewClubInvite = async (token: string, signal?: AbortSignal) =>
     (await apiClient.post<ClubInvitePreview>('/auth/club-invite/preview', { token }, { signal })).data;
 
 export const claimClubInvite = async (claim: { token: string; name: string; dateOfBirth: string; password: string }) =>
-    (await apiClient.post<{ email: string }>('/auth/club-invite/claim', claim)).data;
+    (await apiClient.post<{ email: string; confirmationSent: boolean }>('/auth/club-invite/claim', claim)).data;
 
 export const declineClubInvite = async (token: string) => (await apiClient.post<{ declined: number }>('/auth/club-invite/decline', { token })).data;
 

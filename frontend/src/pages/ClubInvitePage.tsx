@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { isMinor } from '../utils/age';
 import { otherClubOf } from '../features/clubOperations/leaving/api';
 import { OtherClubNotice } from '../features/clubOperations/leaving/OtherClubNotice';
-import { confirmationJobTitle, needsConfirmedEmail, sendEmailConfirmation } from '../components/auth/emailConfirmation';
+import { confirmationJobTitle, needsConfirmedEmail } from '../components/auth/emailConfirmation';
+import { EmailWait, HelperEmailWait } from '../components/auth/EmailWait';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
 import { acceptClubInvite, claimClubInvite, declineClubInvite, landingFor, previewClubInvite, signInAfterClaim, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
@@ -14,7 +15,10 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { buildLoginPath } from '../utils/authRedirect';
 import '../features/clubOperations/people/club-invite.css';
 
-type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' } | { kind: 'partly'; failures: string[]; next: string; waitsOnEmail: string | null; other: { clubId: number; name: string } | null; blocked: LinkInvite[] };
+/** `helping`: what a new helper sees once their email is confirmed (a project by name, or their session). */
+type HelpingWait = { what: string | null; session: boolean; next: string };
+type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' }
+    | { kind: 'partly'; failures: string[]; next: string; waitsOnEmail: string | null; helping: HelpingWait | null; other: { clubId: number; name: string } | null; blocked: LinkInvite[] };
 
 /**
  * The page a club invite link opens: "Nino invited you: Assistant coach · U12" with the club's crest. The person
@@ -61,13 +65,16 @@ function ClubInvite({ token }: { token: string }) {
                 .then(async found => { if (found) await loginWithAccessToken(found); return found; })
                 .catch(() => null);
             if (!accessToken) { navigate(buildLoginPath('/requests?view=updates'), { replace: true }); return; }
-            await acceptAll(preview.invites.filter(i => !i.unavailableReason));
+            await acceptAll(preview.invites.filter(i => !i.unavailableReason), true);
         } catch (failure) {
             setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
         } finally { sending.current = false; setBusy(false); }
     };
-    /** Accepts each job the normal way; also the retry once the person has left the club they were staff at. */
-    const acceptAll = async (invites: LinkInvite[]) => {
+    /**
+     * Accepts each job the normal way; also the retry once the person has left the club they were staff at. Right after
+     * claiming, a helper's project or session waits on the email the claim sent (claiming confirms nothing).
+     */
+    const acceptAll = async (invites: LinkInvite[], claimed = false) => {
         const failures: string[] = [], accepted: LinkInvite[] = [], blocked: LinkInvite[] = [];
         let waitsOnEmail: string | null = null, other: { clubId: number; name: string } | null = null;
         for (const invite of invites) {
@@ -81,8 +88,12 @@ function ClubInvite({ token }: { token: string }) {
                 else failures.push(`${jobLabel(invite)}: ${extractApiErrorMessage(failure, copy('it couldn’t be accepted.', 'ვერ მიიღეს.'))}`);
             }
         }
+        const helped = accepted.filter(i => i.kind === 'HELPER' || i.kind === 'PROJECT_HELPER');
+        const projects = helped.filter(i => i.kind === 'PROJECT_HELPER');
+        const helping = claimed && helped.length ? { what: projects.length === 1 && helped.length === 1 ? projects[0].title : null,
+            session: !projects.length, next: landingFor(helped) } : null;
         const next = !accepted.length && (waitsOnEmail || other) ? '/requests?view=updates' : landingFor(accepted);
-        if (failures.length || waitsOnEmail || other) setStage({ kind: 'partly', failures, next, waitsOnEmail, other, blocked });
+        if (failures.length || waitsOnEmail || helping || other) setStage({ kind: 'partly', failures, next, waitsOnEmail, helping, other, blocked });
         else navigate(next, { replace: true });
     };
     const decline = async () => {
@@ -107,7 +118,10 @@ function ClubInvite({ token }: { token: string }) {
     if (stage.kind === 'partly') return card(<>
         <h1 className="ci-title">{copy('Your account is ready', 'თქვენი ანგარიში მზადაა')}</h1>
         {stage.other && <OtherClubNotice club={stage.other} onLeft={() => void acceptAll(stage.blocked)} />}
-        {stage.waitsOnEmail && <EmailWait job={stage.waitsOnEmail} />}
+        {stage.waitsOnEmail && <EmailWait title={copy(`Confirm your email to start as ${stage.waitsOnEmail}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${stage.waitsOnEmail}`)}
+            hint={copy('Open the link we sent, then accept the job in your notifications.', 'გახსენით გამოგზავნილი ბმული და მიიღეთ სამუშაო შეტყობინებებში.')}
+            sentHint={copy('Sent. Open the link, then accept the job in your notifications.', 'გაიგზავნა. გახსენით ბმული და მიიღეთ სამუშაო შეტყობინებებში.')} next="/requests?view=updates" />}
+        {stage.helping && <HelperEmailWait what={stage.helping.what} session={stage.helping.session} next={stage.helping.next} />}
         {stage.failures.length > 0 && <div role="alert" className="gk-notice gk-notice--warning"><ul className="ci-failures">{stage.failures.map(f => <li key={f}>{f}</li>)}</ul></div>}
         <Button variant="primary" onClick={() => navigate(stage.next, { replace: true })}>{copy('Continue', 'გაგრძელება')}</Button>
     </>);
@@ -156,16 +170,3 @@ function ClubInvite({ token }: { token: string }) {
     </>);
 }
 
-/** "Confirm your email to start as Assistant coach", with Resend: a new account confirms before its job starts. */
-function EmailWait({ job }: { job: string }) {
-    const { copy } = useJobWords();
-    const [sent, setSent] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
-    const resend = () => { setSent('sending'); sendEmailConfirmation().then(() => setSent('sent'), () => setSent('failed')); };
-    return <div role="status" className="gk-notice gk-notice--warning ci-email-wait">
-        <span><strong>{copy(`Confirm your email to start as ${job}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${job}`)}</strong>
-            <small>{sent === 'sent' ? copy('Sent. Open the link, then accept the job in your notifications.', 'გაიგზავნა. გახსენით ბმული და მიიღეთ სამუშაო შეტყობინებებში.')
-                : sent === 'failed' ? copy('That did not send. Try again.', 'ვერ გაიგზავნა. სცადეთ ხელახლა.')
-                    : copy('Open the link we sent, then accept the job in your notifications.', 'გახსენით გამოგზავნილი ბმული და მიიღეთ სამუშაო შეტყობინებებში.')}</small></span>
-        {sent !== 'sent' && <Button size="sm" disabled={sent === 'sending'} onClick={resend}>{copy('Resend', 'ხელახლა გაგზავნა')}</Button>}
-    </div>;
-}

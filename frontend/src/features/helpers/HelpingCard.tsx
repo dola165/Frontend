@@ -4,6 +4,8 @@ import { Check } from 'lucide-react';
 import { Button, GkRoot, LoadFailed } from '../../design/primitives';
 import { FaceStack, type Face } from '../../design/visuals';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { HelperEmailWait } from '../../components/auth/EmailWait';
+import { needsConfirmedEmail } from '../../components/auth/emailConfirmation';
 import { formatDate, formatTime } from '../../utils/formatting';
 import { useCopy } from '../../locales/useCopy';
 import { mySquadsEn } from '../../locales/mySquadsDesign';
@@ -20,20 +22,26 @@ const namesOf = (players: HelpingPlayer[]) => new Map(players.map(p => [p.id,
 /**
  * Home for a helper (decision 3): the session they help at, its place and coach, who's coming by first name (no photos,
  * no contacts), and its register with Save who came. Nothing else of the club: no other days or places, no My squads.
- * Someone who helps nowhere sees nothing; a Home that couldn't ask says so, with Try again.
+ * Someone who helps nowhere sees nothing; a Home that couldn't ask says so, with Try again. A new helper whose email
+ * waits sees "Confirm your email to see your session" with Resend (claiming their link confirms nothing).
  */
 export function HelpingCard() {
     const copy = useCopy('mySquads', mySquadsEn);
     const [sessions, setSessions] = useState<Helping[]>([]);
-    const [revision, setRevision] = useState(0), [failed, setFailed] = useState(false);
+    const [revision, setRevision] = useState(0), [failed, setFailed] = useState(false), [emailWait, setEmailWait] = useState(false);
     useEffect(() => {
         const controller = new AbortController();
         void helping(controller.signal).then(rows => { if (!controller.signal.aborted) { setSessions(rows); setFailed(false); } })
-            .catch(error => { if (!controller.signal.aborted) setFailed(!(isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0))); });
+            .catch(error => {
+                if (controller.signal.aborted) return;
+                setEmailWait(needsConfirmedEmail(error));
+                setFailed(!(isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0)));
+            });
         return () => controller.abort();
     }, [revision]);
     const reload = () => setRevision(value => value + 1);
     const next = sessions[0];
+    if (emailWait) return <GkRoot><HelperEmailWait what={null} session next="/home" /></GkRoot>;
     if (failed && !next) return <GkRoot><LoadFailed text={copy('helpingFailed')} retry={copy('tryAgain')} onRetry={reload} /></GkRoot>;
     if (!next) return null;
     return <GkRoot><HelpingSession key={`${next.helperId}-${next.sessionId}`} session={next} onStopped={reload} /></GkRoot>;

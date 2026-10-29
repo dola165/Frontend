@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarDays, CheckCircle2, FolderKanban, Lightbulb, Users } from 'lucide-react';
 import { WorkspaceShell, type WorkspaceNavItem } from '../../design/workspace/WorkspaceShell';
 import { Button, ButtonLink, EmptyNote, PageFrame, Skeleton } from '../../design/primitives';
+import { HelperEmailWait } from '../../components/auth/EmailWait';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { clubRoleLabel, isLeadershipRole } from '../clubs/domain';
 import type { MyProjects, ProjectYou } from './api';
@@ -70,6 +71,7 @@ export function ProjectsPage({ projectId }: { projectId?: number }) {
         action={<ButtonLink to="/projects">{copy('Your projects', 'თქვენი პროექტები')}</ButtonLink>}>{copy('It may have been removed, or it is for the people on it only.', 'შეიძლება წაიშალა, ან მხოლოდ მასში ჩართულებისთვისაა.')}</EmptyNote></PageFrame>;
     if (projectId) {
         if (project.notFound) content = notHere;
+        else if (project.emailWait) content = <PageFrame className="pj-page"><HelperEmailWait what={project.emailWait.what} next={`/projects/${projectId}`} /></PageFrame>;
         else if (project.error && !project.data) content = failed(project.error, project.reload);
         else if (!project.data) content = loadingNote;
         else content = <ProjectView project={project.data} onChanged={next => { project.put(next); board.reload(); }} />;

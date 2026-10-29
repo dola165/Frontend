@@ -7,6 +7,7 @@ import type { Pins } from './usePins';
 import { TaskView, type PlaceOnPlan } from './TaskView';
 import { KeyChip, StatusDot } from './WorkBits';
 import { DiscussButton } from '../teamChat/DiscussButton';
+import '../../components/work/work.css';
 
 export interface TaskActions {
     open: number | null; team: Person[]; me: number | null;
@@ -49,7 +50,7 @@ export function TaskDialog({ node, plan, actions, pins, onOpenPlan }: { node: Wo
         description={<span className="tw-task-dialog__bar">
             <PinButton pins={pins} target={{ itemId: item.id }} name={item.title} withLabel />
             <DiscussButton task={item} />
-            {plan && onOpenPlan && <button type="button" className="tw-link-button" onClick={() => onOpenPlan(plan.id)}><Folder aria-hidden="true" />{plan.name}</button>}
+            {plan && onOpenPlan && <button type="button" className="work-link-button" onClick={() => onOpenPlan(plan.id)}><Folder aria-hidden="true" />{plan.name}</button>}
             {pins.error && <span className="gk-notice gk-notice--danger" role="alert">{pins.error}</span>}
         </span>}>
         <TaskBody node={node} plan={plan} actions={actions} framed onClose={close} />

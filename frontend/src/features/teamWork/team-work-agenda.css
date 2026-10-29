@@ -91,7 +91,7 @@
 .gk .tw-task-dialog__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); }
 .gk .tw-task-dialog__bar .gk-notice { margin: 0; }
 .gk .tw-task-dialog .tw-detail { margin: 0; }
-.gk .tw-task-dialog__bar .tw-link-button { display: inline-flex; align-items: center; gap: 2px; min-height: 32px; }
+.gk .tw-task-dialog__bar .work-link-button { display: inline-flex; align-items: center; gap: 2px; min-height: 32px; }
 
 @media (max-width: 640px) {
     .gk .tw-overview { gap: var(--gk-4); }

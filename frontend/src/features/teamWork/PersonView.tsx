@@ -7,7 +7,7 @@ import { addNowComment, deleteNowComment, editNowComment, fetchNow, writeNow, ty
 import { needsYou } from './needsYou';
 import { TaskGroups } from './NowLists';
 import { ago } from './teamWorkWords';
-import { WorkComments } from './WorkComments';
+import { WorkComments } from '../../components/work/WorkComments';
 import './team-work-now.css';
 
 /**
@@ -43,13 +43,13 @@ export function NowNoteCard({ person, team, me }: { person: Person & { id: numbe
         <div className="tw-now-note__head">
             <h3 className="tw-now-note__title">{copy('Now', 'ახლა')}</h3>
             {note.updatedAt && <span className="gk-faint">{copy(`updated ${ago(copy, note.updatedAt)}`, `განახლდა ${ago(copy, note.updatedAt)}`)}</span>}
-            {note.canEdit && note.body && !editing && <button type="button" className="tw-icon-button" aria-label={copy('Change your Now note', 'შეცვალეთ თქვენი „ახლა“')} onClick={start}><Pencil aria-hidden="true" /></button>}
+            {note.canEdit && note.body && !editing && <button type="button" className="work-icon-button" aria-label={copy('Change your Now note', 'შეცვალეთ თქვენი „ახლა“')} onClick={start}><Pencil aria-hidden="true" /></button>}
         </div>
         {editing ? <form className="tw-purpose__edit" onSubmit={event => { event.preventDefault(); void save(); }}>
             <label htmlFor={id} className="gk-visually-hidden">{copy('What you’re doing now', 'რას აკეთებთ ახლა')}</label>
             <textarea id={id} className="gk-input" autoFocus rows={3} maxLength={1000} value={text} placeholder={copy('Working on branding ideas on the side while finishing registration and roles', 'გვერდით ბრენდინგის იდეებზე ვმუშაობ, თან რეგისტრაციას და როლებს ვასრულებ')}
                 onChange={event => setText(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setEditing(false); }} />
-            <span className="tw-row-actions"><Button size="sm" variant="primary" type="submit" disabled={busy}>{busy ? copy('Saving…', 'ინახება…') : copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setEditing(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
+            <span className="work-row-actions"><Button size="sm" variant="primary" type="submit" disabled={busy}>{busy ? copy('Saving…', 'ინახება…') : copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setEditing(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
         </form> : note.body ? <p className="tw-now-note__body">{note.body}</p>
             : note.canEdit ? <button type="button" className="tw-purpose__prompt" onClick={start}><Pencil aria-hidden="true" />{copy('Write what you’re doing now, in a few sentences', 'დაწერეთ, რას აკეთებთ ახლა, რამდენიმე წინადადებით')}</button>
             : <p className="gk-faint tw-now-note__none">{copy(`${first} hasn’t written what they’re doing yet.`, `${first}-ს ჯერ არ დაუწერია, რას აკეთებს.`)}</p>}

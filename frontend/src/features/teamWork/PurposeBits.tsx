@@ -5,6 +5,7 @@ import { Button } from '../../design/primitives';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { PurposeChange } from './api';
 import { ago, madeBy, shortDate } from './teamWorkWords';
+import '../../components/work/work.css';
 
 /**
  * What a plan or a task is for. Empty, it is a clear prompt to write it; pressed (or the pencil), it becomes a box to
@@ -23,12 +24,12 @@ export function PurposeLine({ purpose, prompt, label, as: Tag = 'h1', busy = fal
         <label htmlFor={id} className="gk-visually-hidden">{label}</label>
         <textarea id={id} className="gk-input" autoFocus rows={2} maxLength={400} value={text} placeholder={prompt} onChange={event => setText(event.target.value)}
             onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void save(); } if (event.key === 'Escape') setEditing(false); }} />
-        <span className="tw-row-actions"><Button size="sm" variant="primary" type="submit" disabled={busy}>{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setEditing(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
+        <span className="work-row-actions"><Button size="sm" variant="primary" type="submit" disabled={busy}>{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setEditing(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
     </form>;
     if (!purpose) return <button type="button" className="tw-purpose__prompt" onClick={start}><Pencil aria-hidden="true" />{prompt}</button>;
     return <div className="tw-purpose__line">
         <Tag className="tw-purpose__text">{purpose}</Tag>
-        <button type="button" className="tw-icon-button tw-purpose__pencil" aria-label={copy(`Change ${label.toLowerCase()}`, `${label} შეცვლა`)} onClick={start}><Pencil aria-hidden="true" /></button>
+        <button type="button" className="work-icon-button tw-purpose__pencil" aria-label={copy(`Change ${label.toLowerCase()}`, `${label} შეცვლა`)} onClick={start}><Pencil aria-hidden="true" /></button>
     </div>;
 }
 
@@ -47,7 +48,7 @@ export function PurposeChanged({ changes, what }: { changes: PurposeChange[]; wh
         <span className="tw-purpose__arrow" aria-hidden="true"> → </span>
         <span className="tw-purpose__was-label">{copy('now:', 'ახლა:')}</span> <span>{latest.purpose ?? copy('nothing', 'არაფერი')}</span>
         <span className="gk-faint"> · {copy(`changed ${when} by ${madeBy(copy, latest.author?.name, latest.byDola)}`, `შეიცვალა ${when}, ${madeBy(copy, latest.author?.name, latest.byDola)}`)}</span>
-        {changes.length > 1 && <> · <button type="button" className="tw-link-button" onClick={() => setHistory(true)}>{copy(`All ${changes.length} changes`, `ყველა ${changes.length} ცვლილება`)}</button></>}
+        {changes.length > 1 && <> · <button type="button" className="work-link-button" onClick={() => setHistory(true)}>{copy(`All ${changes.length} changes`, `ყველა ${changes.length} ცვლილება`)}</button></>}
         {history && <PurposeHistoryDialog changes={changes} what={what} onClose={() => setHistory(false)} />}
     </p>;
 }

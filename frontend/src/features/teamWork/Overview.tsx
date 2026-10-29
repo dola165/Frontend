@@ -19,6 +19,7 @@ import { TaskDialog, type TaskActions } from './TaskDialog';
 import { statusName } from './teamWorkWords';
 import './team-work-agenda.css';
 import './team-work-now.css';
+import '../../components/work/work.css';
 
 /**
  * The filters folded to one small line that says what they are set to ("All plans · Everyone · By day"); pressed, the
@@ -39,7 +40,7 @@ function FilterLine({ plans, team, lines, filter, layout, onChange, onLayout, on
             <button type="button" className="tw-filters__toggle" aria-expanded={open} aria-controls={id} aria-label={copy(`Filters: ${summary}`, `ფილტრები: ${summary}`)} onClick={() => setOpen(value => !value)}>
                 <SlidersHorizontal aria-hidden="true" /><span>{summary}</span><ChevronDown aria-hidden="true" />
             </button>
-            <button type="button" className="tw-link-button tw-work-bar__live" onClick={onSeeLive}><Rocket aria-hidden="true" />{copy('See what’s live', 'ნახეთ, რა არის ლაივზე')}</button>
+            <button type="button" className="work-link-button tw-work-bar__live" onClick={onSeeLive}><Rocket aria-hidden="true" />{copy('See what’s live', 'ნახეთ, რა არის ლაივზე')}</button>
         </div>
         {open && <div id={id} className="tw-work-bar">
             <LayoutSwitch layout={layout} onChange={onLayout} />
@@ -86,7 +87,7 @@ export function Overview({ items, findings, plans, views, planOf, team, lines, m
     if (plans.length === 0 && nodes.size === 0) return <>{header}<Panel flush><EmptyNote title={copy('No tasks yet', 'საქმეები ჯერ არ არის')}
         action={<div className="tw-empty-actions">
             <Button variant="primary" size="sm" onClick={onAddTask}><Plus aria-hidden="true" />{copy('Add task', 'საქმის დამატება')}</Button>
-            <button type="button" className="tw-link-button" disabled={starting} onClick={onLoadStarter}>{starting ? copy('Loading…', 'იტვირთება…') : copy('or load this week’s work', 'ან ამ კვირის საქმეების ჩატვირთვა')}</button>
+            <button type="button" className="work-link-button" disabled={starting} onClick={onLoadStarter}>{starting ? copy('Loading…', 'იტვირთება…') : copy('or load this week’s work', 'ან ამ კვირის საქმეების ჩატვირთვა')}</button>
         </div>} />
     </Panel></>;
 

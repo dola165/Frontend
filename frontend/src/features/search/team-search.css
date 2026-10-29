@@ -30,7 +30,7 @@
 .gk .tw-search-dialog__asking svg { width: 14px; height: 14px; color: var(--gk-accent); }
 .gk .tw-search-dialog__list, .gk .tw-search-group ul { list-style: none; margin: 0; padding: 0; }
 .gk .tw-search-dialog__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
-.gk .tw-search-dialog__foot .tw-link-button { min-height: 32px; }
+.gk .tw-search-dialog__foot .work-link-button { min-height: 32px; }
 .gk .tw-search-dialog__missed { margin-left: auto; color: var(--gk-text-3); }
 .gk .tw-search-dialog__deleted { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; color: var(--gk-text-2); cursor: pointer; }
 .gk .tw-search-dialog__kept { color: var(--gk-text-2); }

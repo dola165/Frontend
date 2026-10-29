@@ -8,9 +8,9 @@ import { askQuestion, changeWork, createWork, deleteWork, fetchDetail, itemComme
 import { PurposeChanged, PurposeLine } from './PurposeBits';
 import { QuestionRow } from './QuestionRow';
 import { EndPick, Field, KeyChip, NameField, PeoplePick, PersonPick, PriorityPick, ProgressPick, QuickEdit, SmallChip, SmallPick, StatusDot, StatusMenu } from './WorkBits';
-import { WorkComments } from './WorkComments';
+import { WorkComments } from '../../components/work/WorkComments';
 import { AttachButton, WorkMediaList } from './WorkMedia';
-import { useUploads } from './useUploads';
+import { useTaskUploads } from './useUploads';
 import { ReportDialog } from './ReportDialog';
 import { DiscussButton } from '../teamChat/DiscussButton';
 import { ago, day, endWords, madeBy, priorityName, progressWords, shortDate, statusName } from './teamWorkWords';
@@ -73,8 +73,8 @@ function Questions({ questions, itemId, onPut }: { questions: WorkQuestion[]; it
             <input id={textId} className="gk-input" autoFocus maxLength={1000} value={text} onChange={event => setText(event.target.value)} /></div>
         <div className="tw-field"><label htmlFor={optionsId}>{copy('Quick answers, separated by | (none means yes/no)', 'სწრაფი პასუხები, | -ით გაყოფილი (თუ არა — კი/არა)')}</label>
             <input id={optionsId} className="gk-input" maxLength={400} value={options} placeholder="10 | 30" onChange={event => setOptions(event.target.value)} /></div>
-        <span className="tw-row-actions"><Button size="sm" variant="primary" type="submit" disabled={busy || !text.trim()}>{copy('Ask', 'კითხვა')}</Button><Button size="sm" variant="ghost" onClick={() => setAsking(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
-    </form> : <button type="button" className="tw-link-button tw-ask" onClick={() => setAsking(true)}><Plus aria-hidden="true" />{copy('Ask Beqa', 'კითხვა ბექას')}</button>;
+        <span className="work-row-actions"><Button size="sm" variant="primary" type="submit" disabled={busy || !text.trim()}>{copy('Ask', 'კითხვა')}</Button><Button size="sm" variant="ghost" onClick={() => setAsking(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
+    </form> : <button type="button" className="work-link-button tw-ask" onClick={() => setAsking(true)}><Plus aria-hidden="true" />{copy('Ask Beqa', 'კითხვა ბექას')}</button>;
     if (!questions.length) return <div className="tw-questions tw-questions--empty">{ask}{error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}</div>;
     return <section className="tw-section tw-questions" aria-label={copy('Questions for Beqa', 'კითხვები ბექასთვის')}>
         <h3 className="tw-section__title">{copy('Questions for Beqa', 'კითხვები ბექასთვის')} {open.length > 0 && <span className="gk-count">{open.length}</span>}</h3>
@@ -123,7 +123,7 @@ function Links({ item, candidates, onPut, onSaved }: { item: WorkItem; candidate
         {item.links.length > 0 && <ul className="tw-linked__list">{item.links.map(link => <li key={`${link.kind}-${link.task.id}`}>
             <span className="tw-linked__kind">{copy(...KINDS[link.kind])}</span>
             <StatusDot status={link.task.status} /><KeyChip value={link.task.key} /><span className="tw-linked__name">{link.task.title}</span>
-            <button type="button" className="tw-icon-button" aria-label={copy(`Remove the link to ${link.task.key}`, `${link.task.key}-ზე ბმულის წაშლა`)} disabled={busy} onClick={() => void set(link.kind, link.task.id, false)}><X aria-hidden="true" /></button>
+            <button type="button" className="work-icon-button" aria-label={copy(`Remove the link to ${link.task.key}`, `${link.task.key}-ზე ბმულის წაშლა`)} disabled={busy} onClick={() => void set(link.kind, link.task.id, false)}><X aria-hidden="true" /></button>
         </li>)}</ul>}
         {adding ? <form className="tw-linked__add" onSubmit={event => { event.preventDefault(); if (other) void set(kind, Number(other), true); }}>
             <label htmlFor={kindId} className="gk-visually-hidden">{copy('How', 'როგორ')}</label>
@@ -181,7 +181,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
     const item = detail?.item;
     const put = (next: Detail) => { setDetail(next); setDraft(current => ({ ...draftOf(next.item), update: current?.update ?? '' })); };
     const patch = (part: Partial<Draft>) => setDraft(current => current && { ...current, ...part });
-    const uploads = useUploads(id, next => { put(next); onSaved(); });
+    const uploads = useTaskUploads(id, next => { put(next); onSaved(); });
     const changes = (): WorkChange | null => {
         if (!item || !draft) return null;
         const before = draftOf(item), result: WorkChange = { version: item.version };
@@ -238,11 +238,11 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
             </section>
 
             <section className="tw-done" aria-label={copy('Done means', 'მზადაა, როცა')}>
-                <h3 className="tw-section__title">{copy('Done means', 'მზადაა, როცა')}{item.doneMeans && !doneEditing && <button type="button" className="tw-icon-button" aria-label={copy('Change what done means', 'შეცვალეთ, რას ნიშნავს მზადაა')} onClick={() => { setDoneText(item.doneMeans ?? ''); setDoneEditing(true); }}><Pencil aria-hidden="true" /></button>}</h3>
+                <h3 className="tw-section__title">{copy('Done means', 'მზადაა, როცა')}{item.doneMeans && !doneEditing && <button type="button" className="work-icon-button" aria-label={copy('Change what done means', 'შეცვალეთ, რას ნიშნავს მზადაა')} onClick={() => { setDoneText(item.doneMeans ?? ''); setDoneEditing(true); }}><Pencil aria-hidden="true" /></button>}</h3>
                 {doneEditing ? <form className="tw-purpose__edit" onSubmit={event => { event.preventDefault(); setDoneEditing(false); if (doneText.trim() !== (item.doneMeans ?? '')) void saveNow({ doneMeans: doneText.trim() }); }}>
                     <label htmlFor={doneId} className="gk-visually-hidden">{copy('Done means', 'მზადაა, როცა')}</label>
                     <textarea id={doneId} className="gk-input" autoFocus rows={3} maxLength={2000} value={doneText} placeholder={copy('What has to be true for this to be done', 'რა უნდა იყოს ასე, რომ ეს მზად იყოს')} onChange={event => setDoneText(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setDoneEditing(false); }} />
-                    <span className="tw-row-actions"><Button size="sm" variant="primary" type="submit" disabled={saving}>{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setDoneEditing(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
+                    <span className="work-row-actions"><Button size="sm" variant="primary" type="submit" disabled={saving}>{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setDoneEditing(false)}>{copy('Cancel', 'გაუქმება')}</Button></span>
                 </form> : item.doneMeans ? <p className="tw-done__text">{item.doneMeans}</p>
                     : <button type="button" className="tw-purpose__prompt tw-purpose__prompt--small" onClick={() => { setDoneText(''); setDoneEditing(true); }}><Pencil aria-hidden="true" />{copy('Write what done means', 'დაწერეთ, რას ნიშნავს მზადაა')}</button>}
                 {item.step && <p className="tw-detail__step"><span className="gk-faint">{copy('Current step', 'მიმდინარე ნაბიჯი')}: </span>{item.step}</p>}

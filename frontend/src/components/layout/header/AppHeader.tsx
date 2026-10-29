@@ -2,7 +2,7 @@ import './header.css';
 import { useContext, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Building2, Earth, Heart, House, MessageSquare, Sparkles, Users } from 'lucide-react';
+import { Building2, Earth, FolderKanban, Heart, House, MessageSquare, Sparkles, Users } from 'lucide-react';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
@@ -25,7 +25,7 @@ import { workDestinations, workspaceDestinations } from './pins/pinCatalog';
 import { PinsBar } from './pins/PinsBar';
 import { usePins, type Pin } from './pins/usePins';
 import { useVisitRecorder } from './pins/useVisitRecorder';
-import { clubOffice, myClub, primarySectionFor, type PrimaryTab } from './sections';
+import { clubOffice, clubProjects, myClub, primarySectionFor, type PrimaryTab } from './sections';
 import { useUnreadMessages } from './useUnreadMessages';
 
 interface AppHeaderProps {
@@ -59,6 +59,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const capabilities = user.navigationCapabilities;
     const club = useMemo(() => myClub(capabilities, myClubId), [capabilities, myClubId]);
     const office = useMemo(() => clubOffice(capabilities), [capabilities]), tabPath = office?.path ?? null;
+    const projects = useMemo(() => clubProjects(capabilities), [capabilities]);
     const pins = usePins(user.id, capabilities, tabPath);
     const [crowded, setCrowded] = useState(false);
     useVisitRecorder(user.id, capabilities, tabPath);
@@ -75,13 +76,14 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         // a job with no page of its own yet gives Club office, a linked child gives Parent Hub. The club page itself is
         // on Home's left side (owner, 28 October 2026), so the top bar holds only work places.
         ...(hasNavigationCapability(capabilities, 'squad.workspace') ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
+        ...(projects ? [{ id: 'projects' as const, to: projects.path, label: copy('Projects', 'პროექტები'), icon: FolderKanban, current: section === 'projects' }] : []),
         ...(office ? [{ id: 'club-office' as const, to: office.path, label: copy('Club office', 'კლუბის ოფისი'), icon: Building2, current: section === 'club-office' }] : []),
         ...(hasNavigationCapability(capabilities, 'parent.hub') || hasNavigationCapability(capabilities, 'club.family') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
     ];
     // Phones (owner, 16 October): Home, World, then the work tabs, Club office last; finding or starting a club lives in
     // You. Messages and You (the profile picture) are in the top bar.
     const byId = (id: PrimaryTab['id']) => tabs.filter(tab => tab.id === id);
-    const phoneTabs = [...byId('home'), ...byId('world'), ...byId('my-squads'), ...byId('parent-hub'), ...byId('club-office')];
+    const phoneTabs = [...byId('home'), ...byId('world'), ...byId('my-squads'), ...byId('projects'), ...byId('parent-hub'), ...byId('club-office')];
     const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);
     const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);

@@ -19,6 +19,9 @@ import { appLanguage } from '../../utils/formatting';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
+
+/** Record kinds no new record starts as: a purchase request is a project now (step 4). */
+const RETIRED_KINDS = new Set(['PURCHASE']);
 /** One club tool (duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
 export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: {
   boot: Bootstrap; module: string; onRefresh: () => Promise<void>;
@@ -43,6 +46,8 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const selectRequest = useRef(0);
   const club = boot.clubId, linked = params.get('record');
   const definitions = boot.definitions.filter(d => d.module === module), permission = boot.modules.find(m => m.id === module);
+  // Buying something for the club is a project now (step 4): older purchase requests stay readable here, no new one starts.
+  const newKinds = definitions.filter(d => !RETIRED_KINDS.has(d.kind));
   const definition = boot.definitions.find(d => d.kind === (newKind || selected?.kind));
   const enabled = boot.settings.enabled_modules.includes(module), canCreate = permission?.writable && enabled && (!squad || permission.globalWrite || permission.writeSquads.includes(Number(squad)));
   const filter = (key: string, value: string) => {
@@ -125,7 +130,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   };
   const changePage = (to: number) => { const next = new URLSearchParams(params); next.set('page', String(to)); setParams(next); };
   const addOne = (what: string) => copy('add', { what: what.toLowerCase() });
-  const addLabel = definitions.length === 1 ? addOne(definitions[0].label) : copy('addRecord');
+  const addLabel = newKinds.length === 1 ? addOne(newKinds[0].label) : copy('addRecord');
   const receipt = savedRecord?.clubId === club && savedRecord.actorId === boot.actorId ? savedRecord : null;
   const ka = appLanguage() === 'ka';
   const savedNotice = receipt && <div className="gk-notice cw-notices__success" role="status">
@@ -149,13 +154,13 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   return <PageFrame className="rec-page" aria-label={title}>
     {originBack}
     <PageHeader title={title} subtitle={operationDescriptions[module]}
-      actions={canCreate && definitions.length > 0 && (definitions.length <= 2
-        ? <>{definitions.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>{addOne(d.label)}</Button>)}<Button variant="primary" onClick={() => create(definitions[0].kind)}><Plus aria-hidden="true" />{addOne(definitions[0].label)}</Button></>
+      actions={canCreate && newKinds.length > 0 && (newKinds.length <= 2
+        ? <>{newKinds.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>{addOne(d.label)}</Button>)}<Button variant="primary" onClick={() => create(newKinds[0].kind)}><Plus aria-hidden="true" />{addOne(newKinds[0].label)}</Button></>
         : <Button variant="primary" aria-expanded={choosing} onClick={() => setChoosing(v => !v)}><Plus aria-hidden="true" />{addLabel}</Button>)} />
     <div className="gk-stack">
       {savedNotice}
       {choosing && <Panel flush title={copy('whatToAdd')} action={<Button size="sm" variant="ghost" iconOnly aria-label={copy('closeChoices')} onClick={() => setChoosing(false)}><X aria-hidden="true" /></Button>}>
-        <div className="rec-choices">{definitions.map(d => <button type="button" className="rec-choice" key={d.kind} onClick={() => create(d.kind)}><strong>{d.label}</strong></button>)}</div>
+        <div className="rec-choices">{newKinds.map(d => <button type="button" className="rec-choice" key={d.kind} onClick={() => create(d.kind)}><strong>{d.label}</strong></button>)}</div>
       </Panel>}
       {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={reload}>{copy('tryAgain')}</Button></div>}
       {!enabled && <div className="gk-notice" role="status">{copy('toolOff')}</div>}
@@ -174,7 +179,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
             <RecordTable records={records} boot={boot} sort={sort} onSort={changeSort} hrefFor={hrefFor} onOpen={open} footer={pager} />
           </div>
             : !error && <Panel>
-              <EmptyNote title={empty.title} action={canCreate && !filtered && definitions.length ? <Button size="sm" onClick={() => definitions.length <= 2 ? create(definitions[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{definitions.length <= 2 ? addOne(definitions[0].label) : addLabel}</Button>
+              <EmptyNote title={empty.title} action={canCreate && !filtered && newKinds.length ? <Button size="sm" onClick={() => newKinds.length <= 2 ? create(newKinds[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{newKinds.length <= 2 ? addOne(newKinds[0].label) : addLabel}</Button>
                 : view === 'open' && !narrowed ? <Button size="sm" onClick={() => chooseView('all')}>{copy('showAll')}</Button> : undefined}>{empty.body}</EmptyNote>
               {pager && <div className="rec-pager">{pager}</div>}
             </Panel>}

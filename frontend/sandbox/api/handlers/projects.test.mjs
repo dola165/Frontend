@@ -54,7 +54,8 @@ test('outside Projects each persona is its own person with its job’s tabs; the
   const commercial = (await request('commercial', 'GET', '/users/me')).body;
   assert.equal(commercial.fullName, 'Irakli Kapanadze');
   const tabs = me => me.navigationCapabilities.workspaces.map(w => w.id);
-  assert.ok(tabs(commercial).includes('club.office'));
+  // Phase B2: Projects is Commercial's page.
+  assert.ok(tabs(commercial).includes('club.projects'));
   assert.ok(!tabs(commercial).includes('squad.workspace'));
   const parent = (await request('kitparent', 'GET', '/users/me')).body;
   assert.equal(parent.fullName, 'Nana Beridze');
@@ -101,4 +102,25 @@ test('only the next step and steps due soon wait on someone; only the author edi
   assert.equal(nanas.canDelete, true);
   assert.equal((await request(null, 'PATCH', `/clubs/1/projects/${kit.id}/talk/${nanas.id}`, { body: 'x' })).status, 403);
   assert.equal((await request('projectcoach', 'DELETE', `/clubs/1/projects/${kit.id}/talk/${nanas.id}`)).status, 403);
+});
+
+test('B2: the Projects tab follows the job, a parent joins one project by name and email and sees it on Home', async () => {
+  const tabs = async persona => (await request(persona, 'GET', '/users/me')).body.navigationCapabilities.workspaces.map(w => w.id);
+  assert.ok((await tabs('commercial')).includes('club.projects'));
+  assert.ok(!(await tabs('commercial')).includes('club.office'));
+  assert.ok((await tabs('facilities')).includes('club.office'));
+  assert.ok((await tabs(null)).includes('club.projects'));
+  assert.ok(!(await tabs('kitparent')).includes('club.projects'));
+
+  const kit = (await board(null)).projects.find(p => p.goal === 'New kit for U12');
+  const body = { name: 'Tamar Lomidze', email: 'tamar@example.test', requestId: 'b2-request' };
+  const added = await request(null, 'POST', `/clubs/1/projects/${kit.id}/helpers`, body);
+  assert.equal(added.status, 201);
+  assert.ok(added.body.link);
+  assert.equal((await request(null, 'POST', `/clubs/1/projects/${kit.id}/helpers`, body)).body.link, added.body.link);
+  assert.ok(added.body.project.summary.people.some(p => p.name === 'Tamar Lomidze'));
+
+  const home = (await request('kitparent', 'GET', '/projects/helping')).body;
+  assert.deepEqual(home.map(p => p.goal), ['New kit for U12']);
+  assert.deepEqual((await request(null, 'GET', '/projects/helping')).body, []);
 });

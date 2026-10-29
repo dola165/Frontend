@@ -1,4 +1,4 @@
-import { CheckCircle2, Handshake, HeartHandshake, IdCard, ReceiptText, ShoppingBag, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, Handshake, IdCard, ReceiptText, ShoppingBag, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import type { Bootstrap } from '../clubOperations/api';
 import { operationModule, operationTabs, toolLabel } from '../clubOperations/workspaceNavigation';
 import { canManageClubOperations, isLeadershipRole } from '../clubs/domain';
@@ -12,7 +12,7 @@ import { MORE_TOOLS, MOVED_GROUP, OFFICE_TOOLS, type OfficeTool } from './office
 export type ToolState = 'open' | 'view' | 'locked';
 
 const BESPOKE: Partial<Record<OfficeTool, LucideIcon>> = {
-    admissions: UserPlus, applications: CheckCircle2, players: Users, 'player-cards': IdCard, campaigns: HeartHandshake,
+    admissions: UserPlus, applications: CheckCircle2, players: Users, 'player-cards': IdCard,
     programmes: ReceiptText, store: ShoppingBag, tryouts: CheckCircle2, 'club-approaches': Handshake,
 };
 export const toolIcon = (tool: OfficeTool): LucideIcon => BESPOKE[tool] ?? operationTabs.find(tab => tab.id === tool)?.icon ?? Users;

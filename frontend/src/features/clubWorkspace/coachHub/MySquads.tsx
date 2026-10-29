@@ -31,6 +31,9 @@ import { kindNames, opponentOf, sessionKind, upcoming } from './useCoachData';
 import { ActivityBadge } from './CoachVisuals';
 import { ActivitySummary } from './ActivitySummary';
 import type { CoachData } from './CoachWorkspace';
+import { RaiseMoneyForSquad, SquadProjectsLine } from '../../projects/SquadProjects';
+import { useBoard } from '../../projects/useProjects';
+import type { ProjectBoard } from '../../projects/api';
 import './coach-hub.css';
 
 const sessionLink = (data: CoachData, squad: number, session: { id: number; starts_at: string }) => data.link('calendar', { squad: String(squad), date: isoDay(new Date(session.starts_at)), session: `${squad}:${session.id}` });
@@ -59,12 +62,14 @@ export function MySquads({ data }: { data: CoachData }) {
             records: data.records.rows.filter(record => record.squad_id !== null && data.shown.includes(record.squad_id)), mine: data.records.mine, link: data.link }) : [])].filter(need => need.kind !== 'reply');
     // Posting updates and photos is coaching; staff on a squad who don't coach read it.
     const coaches = Boolean(data.squads?.some(squad => squad.overview?.can_manage));
+    // The club's projects, read once for every card: each squad's one quiet line, and Raise money (step 4).
+    const projects = useBoard(data.clubId).data;
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('mySquads')} subtitle={formatDate(new Date(data.now), { weekday: 'long', day: 'numeric', month: 'long' })}
             actions={coaches ? <><Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>
                 <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink></> : undefined} />
         <ul className="ch-cards" aria-label={copy('mySquads')}>
-            {data.mine.map(squad => <SquadCard key={squad.id} squad={squad} data={data} need={needs.find(need => need.squad === squad.id) ?? null} onCancel={session => setCancelling({ squad: squad.id, session })} />)}
+            {data.mine.map(squad => <SquadCard key={squad.id} squad={squad} data={data} projects={projects} need={needs.find(need => need.squad === squad.id) ?? null} onCancel={session => setCancelling({ squad: squad.id, session })} />)}
             <li><Link className="ch-card ch-card--ask" to={data.link('coaches')}><Plus aria-hidden="true" />{copy('askSquad')}</Link></li>
         </ul>
         <ResultsToAdd data={data} />
@@ -114,7 +119,7 @@ function ResultsToAdd({ data }: { data: CoachData }) {
  * A squad as everyone on it sees it: crest and name, the next session, the next match, what waits on this person, the
  * chat, the staff room and a match to arrange (for those whose job arranges them).
  */
-function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squads'][number]; data: CoachData; need: CoachNeed | null; onCancel: (session: SquadSession) => void }) {
+function SquadCard({ squad, data, projects, need, onCancel }: { squad: RolesWorkspace['squads'][number]; data: CoachData; projects: ProjectBoard | null; need: CoachNeed | null; onCancel: (session: SquadSession) => void }) {
     const copy = useCopy('coachHub', coachHubEn);
     const words = useCopy('mySquads', mySquadsEn);
     const navigate = useNavigate();
@@ -170,12 +175,14 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
                 <span className="ch-card__line-text">{need.title}</span>
                 <span className={`cw-status cw-status--${need.tone}`}>{need.status}</span><ChevronRight className="cw-chevron" aria-hidden="true" />
             </Link>}
+            <SquadProjectsLine board={projects} squadId={squad.id} />
         </div>
         <div className="ch-card__actions">
             <ButtonLink size="sm" variant="primary" to={`/messages?squadId=${squad.id}`}><MessageCircle aria-hidden="true" />{copy('squadChat')}</ButtonLink>
             <Button size="sm" onClick={() => void openRoom()}><MessagesSquare aria-hidden="true" />{words('staffRoom')}</Button>
             {/* Already seeded with this squad and the home ground: only the opponent and the day are left to choose. */}
             <ActionButton action="arrange_match" subject={{ kind: 'squad', id: squad.id, clubId: data.clubId }} size="sm" className="ch-card__arrange" label={copy('arrangeMatch')} />
+            <RaiseMoneyForSquad board={projects} squadId={squad.id} />
         </div>
         {roomError && <p className="gk-notice gk-notice--danger ch-card__error" role="alert">{roomError}</p>}
     </article></li>;

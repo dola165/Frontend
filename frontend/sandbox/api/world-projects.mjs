@@ -22,6 +22,10 @@ const at = hours => new Date(W.NOW.getTime() - hours * 3600000).toISOString();
 
 let nextId = 8800;
 export const newId = () => ++nextId;
+/** A parent or volunteer added to a project by name (phase B2): a new sandbox person. */
+export const newHelper = name => { const [first, ...rest] = String(name).trim().split(/\s+/); return ensurePerson({ id: newId(), first, last: rest.join(' ') || '', role: 'PARENT' }); };
+/** The club's staff in the sandbox: whoever else is on a project helps on it (a parent or volunteer). */
+export const STAFF_IDS = [W.ME_ID, 7401, 7402, 7404];
 const step = (title, personId, done, dayOffset = null) => ({ id: newId(), title, personId, done, day: dayOffset == null ? null : day(dayOffset), version: done ? 1 : 0 });
 // A seeded public fundraiser as a project's: who reported its amount and who published it.
 const fundraiserOf = (id, reportedBy, publishedBy) => Object.assign(F.campaignById(id), { reportedBy, publishedBy });

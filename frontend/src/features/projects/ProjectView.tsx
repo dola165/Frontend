@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ClipboardPaste, Pencil } from 'lucide-react';
+import { ArrowLeft, ClipboardPaste, Pencil, UserPlus } from 'lucide-react';
 import { Avatar, Button, PageFrame } from '../../design/primitives';
 import { WorkComments } from '../../components/work/WorkComments';
 import { AttachButton, WorkMediaList } from '../../components/work/WorkMedia';
@@ -10,6 +10,7 @@ import { ago, madeBy } from '../../components/work/workWords';
 import { useAuth } from '../../context/AuthContext';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addFile, addPicture, editTalk, pastePlan, PASTE_PLAN_EXAMPLE, removeFile, removeTalk, talk, type ProjectDetail } from './api';
+import { AddHelperDialog } from './AddHelperDialog';
 import { ProjectEditDialog } from './ProjectEditDialog';
 import { ProjectMoney } from './ProjectMoney';
 import { ProjectSteps } from './ProjectSteps';
@@ -25,6 +26,7 @@ export function ProjectView({ project, onChanged }: { project: ProjectDetail; on
     const { user } = useAuth();
     const [editing, setEditing] = useState(false);
     const [pasting, setPasting] = useState(false);
+    const [addingHelper, setAddingHelper] = useState(false);
     const { summary, can } = project;
     const clubId = project.club?.id ?? 0;
     const uploads = useUploads<ProjectDetail>({
@@ -77,6 +79,8 @@ export function ProjectView({ project, onChanged }: { project: ProjectDetail; on
                 <section className="pj-block" aria-labelledby="pj-people">
                     <h2 className="pj-label" id="pj-people">{copy('People', 'ხალხი')}</h2>
                     <ul className="pj-people">{summary.people.map(person => <li key={person.id}><Avatar src={person.avatarUrl} name={person.name} size={26} /><span>{person.name}</span></li>)}</ul>
+                    {/* Parents and volunteers join one project by name and email (phase B2), as a squad's helpers do. */}
+                    {can.addPeople && <button type="button" className="work-link-button" onClick={() => setAddingHelper(true)}><UserPlus aria-hidden="true" />{copy('Add a parent or volunteer', 'მშობლის ან მოხალისის დამატება')}</button>}
                 </section>
                 {project.history.length > 0 && <details className="pj-block pj-history">
                     <summary className="pj-label">{copy('History', 'ისტორია')}</summary>
@@ -87,6 +91,7 @@ export function ProjectView({ project, onChanged }: { project: ProjectDetail; on
         </div>
 
         {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} onSaved={next => { setEditing(false); onChanged(next); }} />}
+        {addingHelper && <AddHelperDialog project={project} onClose={() => setAddingHelper(false)} onAdded={onChanged} />}
         {pasting && <PasteFrame title={copy('Paste a plan', 'გეგმის ჩასმა')} example={PASTE_PLAN_EXAMPLE} onClose={() => setPasting(false)}
             description={copy('One step a line, from WhatsApp or anywhere; a name and a day after “|”. You see the steps before they are added.', 'თითო ნაბიჯი თითო ხაზზე, WhatsApp-იდან ან სხვაგან; სახელი და დღე „|“-ის შემდეგ. დამატებამდე ნახავთ ნაბიჯებს.')}
             read={(text, apply) => pastePlan(clubId, summary.id, text, apply)} changes={result => result.steps.length}

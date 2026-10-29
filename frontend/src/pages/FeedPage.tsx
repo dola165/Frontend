@@ -20,6 +20,7 @@ import { WelcomeHost } from '../features/start/WelcomeHost';
 import { StaffClubCard } from '../features/clubOperations/leaving/StaffClubCard';
 import { NeedsResultCard } from '../features/actions/NeedsResultCard';
 import { HelpingCard } from '../features/helpers/HelpingCard';
+import { HelpingProjectsCard } from '../features/projects/HelpingProjectsCard';
 
 type FeedView = 'for-you' | 'following';
 type FeedCursor = { cursor: number; cursorTime?: string };
@@ -242,6 +243,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    <StaffClubCard />
    <NeedsResultCard />
    <HelpingCard />
+   <HelpingProjectsCard />
    {isAndroidApp ? <div className="lg:hidden"><WorkspaceShortcuts clubs={managedClubs} navigationCapabilities={user?.navigationCapabilities} /></div> :
     <details className="home-mobile-shortcuts">
      <summary><span>{copy('Your football', 'თქვენი ფეხბურთი')}</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || copy('Your shortcuts', 'მალსახმობები')}</span><ChevronDown size={16} aria-hidden="true" /></summary>

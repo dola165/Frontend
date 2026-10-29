@@ -20,6 +20,8 @@ const PLACES: Record<string, string> = {
     squads: '/clubs/7/office?tab=squads&record=5', settings: '/clubs/7/office?tab=settings&record=5',
     'workspace-settings': '/clubs/7/office?tab=settings&section=details&record=5', calendar: '/clubs/7/office?tab=calendar&record=5', tools: '/clubs/7/office?tab=tools',
     'coach-hub': '/my-squads', 'my-day': '/my-squads', 'my-squads': '/my-squads', 'my-people': '/my-squads?tab=players', 'my-role': '/my-squads?tab=coaches',
+    // The campaigns manager is Projects (step 4).
+    campaigns: '/projects?club=7',
 };
 const expected = (tab: string) => PLACES[tab] ?? `/clubs/7/office?tab=tools&tool=${tab}&record=5`;
 
@@ -165,5 +167,14 @@ describe('More tools for each person', () => {
     it('doesn\'t lock an admin\'s tools before the club\'s tools have loaded', () => {
         const states = toolStates({ boot: null, role: 'CLUB_ADMIN', admissions: false });
         expect([...states.values()].includes('locked')).toBe(false);
+    });
+});
+
+describe('Projects (step 4)', () => {
+    it('takes the campaigns manager out of More tools and lands its old links in Projects', () => {
+        expect(MORE_TOOLS.flatMap(group => group.tools)).not.toContain('campaigns');
+        expect(isOfficeTool('campaigns')).toBe(false);
+        expect(legacyWorkspaceTarget(4, new URLSearchParams('tab=campaigns&campaign=9'))).toBe('/projects?club=4');
+        expect(inClubOffice('/clubs/4/workspace?tab=campaigns')).toBe('/projects?club=4');
     });
 });

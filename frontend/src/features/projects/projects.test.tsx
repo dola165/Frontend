@@ -78,3 +78,15 @@ describe('Steps', () => {
         expect(screen.getByPlaceholderText('Add a step')).toBeInTheDocument();
     });
 });
+
+describe('A squad in My squads (phase B2)', () => {
+    it('shows its one open project quietly, and Raise money with the squad chosen for whoever may start one', async () => {
+        const { RaiseMoneyForSquad, SquadProjectsLine } = await import('./SquadProjects');
+        const { unmount } = render(<MemoryRouter><SquadProjectsLine board={board()} squadId={7} /><RaiseMoneyForSquad board={board()} squadId={7} /></MemoryRouter>);
+        expect(screen.getByRole('link', { name: /New kit for U12/ })).toHaveAttribute('href', '/projects/1');
+        expect(screen.getByRole('link', { name: /Raise money/ })).toHaveAttribute('href', '/projects?club=1&new=RAISE_MONEY&squad=7');
+        unmount();
+        render(<MemoryRouter><SquadProjectsLine board={board()} squadId={99} /><RaiseMoneyForSquad board={board({ canStart: false })} squadId={99} /></MemoryRouter>);
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+});

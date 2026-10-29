@@ -21,17 +21,36 @@ const identity = (projection, person) => ({
 });
 const refusal = (action, reason, message) => ({ action, allowed: false, reason, message, because: null });
 
+// Projects' tab (phase B2), as NavigationCapabilityService gives it: the jobs that run every project (Commercial only
+// Projects; the facilities coordinator keeps Club office for Facilities), and other staff while on an open project.
+const INNER = 'x-sandbox-inner';
+const onOpenProject = viewer => J.projects.some(p => p.clubId === J.CLUB_ID && ['NOW', 'LATER'].includes(p.status)
+    && (p.createdBy === viewer || p.added.includes(viewer) || p.steps.some(step => step.personId === viewer)));
+const withProjectsTab = (me, persona, viewer) => {
+  const tab = ['commercial', 'facilities'].includes(persona) || onOpenProject(viewer);
+  const others = me.navigationCapabilities.workspaces.filter(w => w.id !== 'club.projects' && !(persona === 'commercial' && w.id === 'club.office'));
+  return { ...me, navigationCapabilities: { ...me.navigationCapabilities, workspaces: tab
+    ? [...others, { id: 'club.projects', context: { type: 'club', id: J.CLUB_ID, label: 'FC Dinamo Tbilisi Academy' } }] : others } };
+};
+
 // Who is signed in: their own name; their tabs are their job's (or, for the kit parent, Parent Hub alone).
 first('GET', '/users/me', async req => {
+  if (req.headers?.[INNER]) return undefined;
   const persona = V.personaOf(req.headers);
-  if (!WHO[persona] && !ACTS_AS[persona]) return undefined;
+  const inner = asWho => handleApi({ ...req, headers: { ...(asWho === undefined ? req.headers : asPersona(req.headers, asWho)), [INNER]: '1' } }).then(answer => answer?.body);
   if (persona === 'kitparent') {
-    const me = (await handleApi({ ...req, headers: asPersona(req.headers, '') })).body;
+    const me = await inner('');
     return { ...identity(me, J.nana), navigationCapabilities: { version: 1, workspaces: [
       { id: 'parent.hub', context: { type: 'user', id: J.nana.id, label: J.nana.fullName } }] } };
   }
-  const me = (await handleApi({ ...req, headers: asPersona(req.headers, ACTS_AS[persona]) })).body;
-  return WHO[persona] ? identity(me, WHO[persona]) : me;
+  if (WHO[persona] || ACTS_AS[persona]) {
+    const me = withProjectsTab(await inner(ACTS_AS[persona]), persona, WHO[persona]?.id ?? V.viewerId(req.headers));
+    return WHO[persona] ? identity(me, WHO[persona]) : me;
+  }
+  // Luka himself, as the owner: on an open project, so the tab shows; other personas are left as they are.
+  if (persona || V.isNewcomer(req.headers)) return undefined;
+  const me = await inner(undefined);
+  return me ? withProjectsTab(me, null, V.viewerId(req.headers)) : undefined;
 });
 
 // A parent belongs to no club: no membership, and at a club only what any adult may do there.
@@ -54,7 +73,7 @@ first('GET', '/access/squads/:id', ({ params, headers }) => V.personaOf(headers)
 for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
   first(method, '/.*', async req => {
     const persona = V.personaOf(req.headers);
-    if (OWN_PERSONA.test(req.path) || req.path === '/users/me') return undefined;
+    if (OWN_PERSONA.test(req.path) || req.path === '/users/me' || req.headers?.[INNER]) return undefined;
     if (persona === 'kitparent' && /^\/(clubs\/\d+\/(workspace|office|operations|management)|squads\/\d+\/workspace)/.test(req.path))
       return reply(404, { message: 'Not found' });
     if (!ACTS_AS[persona]) return undefined;

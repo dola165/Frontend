@@ -140,3 +140,16 @@ describe('work and explore catalogues', () => {
         expect(exploreDestinations().filter(item => item.group === 'support').map(item => item.label)).toEqual(['Store', 'Campaigns', 'Clubs you follow']);
     });
 });
+
+describe('the Projects tab (step 4)', () => {
+    it('opens the club\'s Projects for a job that runs them, or anyone on an open project, and marks /projects as its own', async () => {
+        const { clubProjects } = await import('../sections');
+        const commercial = normalizeNavigationCapabilities({ version: 1, workspaces: [
+            { id: 'club.projects', context: { type: 'club', id: 1, label: 'FC Dinamo Tbilisi Academy' } },
+        ] }, 1);
+        expect(clubProjects(commercial)).toEqual({ id: 1, path: '/projects?club=1' });
+        expect(clubProjects(coach)).toBeNull();
+        expect(primarySectionFor('/projects', [1], '?club=1')).toBe('projects');
+        expect(primarySectionFor('/projects/12', [1])).toBe('projects');
+    });
+});

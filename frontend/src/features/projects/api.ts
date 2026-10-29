@@ -100,6 +100,14 @@ export const changeStep = (clubId: number, id: number, stepId: number, change: S
 export const removeStep = (clubId: number, id: number, stepId: number) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/steps/${stepId}`));
 export const orderSteps = (clubId: number, id: number, order: number[]) => data(apiClient.put<ProjectDetail>(`${base(clubId)}/${id}/steps/order`, { order }));
 export const addPerson = (clubId: number, id: number, userId: number) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/people`, { userId }));
+/** A parent or volunteer just added: a claim link for an account this request made (the same on a retry), or none. */
+export interface HelperAdded { userId: number | null; name: string; link: string | null; linkExpiresAt: string | null; invitationPending: boolean; project: ProjectDetail }
+/** add_helper: a parent or volunteer on this project, by name and email, as a squad's session helpers are added. */
+export const addHelper = (clubId: number, id: number, helper: { name: string; email: string; requestId: string }) =>
+    command<HelperAdded>(`${base(clubId)}/${id}/helpers`, helper);
+/** A project a parent or volunteer helps on, with the steps waiting on them: their Home card. */
+export interface HelpingProject { projectId: number; goal: string; club: ProjectClub | null; steps: WaitingStep[] }
+export const fetchHelping = (signal?: AbortSignal) => data(apiClient.get<HelpingProject[]>('/projects/helping', { signal }));
 export const removePerson = (clubId: number, id: number, userId: number) => data(apiClient.delete<ProjectDetail>(`${base(clubId)}/${id}/people/${userId}`));
 /** talk */
 export const talk = (clubId: number, id: number, body: string) => command<ProjectDetail>(`${base(clubId)}/${id}/talk`, { body });

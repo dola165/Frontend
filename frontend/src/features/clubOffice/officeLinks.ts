@@ -1,5 +1,6 @@
 import type { NavigationCapabilities } from '../../context/navigationCapabilities';
 import { personalWorkspaceTarget } from '../clubOperations/workspaceStructure';
+import { projectsPath } from '../projects/projectWords';
 
 /**
  * Club office (step 2 of the club plan, owner, 28 October 2026): Staff, Squads and Settings, the quiet More tools
@@ -14,11 +15,11 @@ export type OfficePlace = typeof OFFICE_PLACES[number];
  * listed, so a job whose only tools are duties still finds them (review, 28 October 2026). My squads' group left with
  * step 3 (29 October 2026, see MOVED_TOOLS); equipment waits in a group of its own until Kit has a page. Joining's
  * setup (groups, terms, visitors, history) stays here: My squads answers requests, Admissions sets up how they join.
+ * Projects' group left with step 4: fundraisers are a project's money part ({@link PROJECTS_TOOLS}).
  */
 export const MORE_TOOLS = [
     { id: 'kit', page: ['Kit', 'ეკიპირება'], tools: ['equipment'] },
     { id: 'staff', page: ['Staff', 'პერსონალი'], tools: ['staff-duties', 'specialists'] },
-    { id: 'projects', page: ['Projects', 'პროექტები'], tools: ['campaigns'] },
     { id: 'joining', page: ['Joining', 'გაწევრიანება'], tools: ['admissions'] },
     { id: 'registration', page: ['Registration', 'რეგისტრაცია'], tools: ['players', 'player-cards', 'registration', 'departures', 'credentials'] },
     { id: 'player-file', page: ['Player file', 'მოთამაშის საქმე'], tools: ['development', 'restrictions', 'medical', 'education'] },
@@ -41,6 +42,10 @@ export const MOVED_TOOLS = { applications: 'players', attendance: 'calendar', pr
 export type MovedTool = keyof typeof MOVED_TOOLS;
 export const isMovedTool = (value: string | null | undefined): value is MovedTool => value != null && value in MOVED_TOOLS;
 export const MOVED_GROUP = { id: 'my-squads', page: ['My squads', 'ჩემი გუნდები'], tools: Object.keys(MOVED_TOOLS) as MovedTool[] } as const;
+
+/** The old tools whose links land in Projects (step 4): the campaigns manager. */
+export const PROJECTS_TOOLS = ['campaigns'] as const;
+export const isProjectsTool = (value: string | null | undefined) => value != null && (PROJECTS_TOOLS as readonly string[]).includes(value);
 
 export type OfficeTool = typeof MORE_TOOLS[number]['tools'][number] | MovedTool;
 /** Every tool Club office opens: those More tools lists, and the moved ones for links to their records. */
@@ -88,6 +93,7 @@ export function legacyWorkspaceTarget(club: number, search: URLSearchParams, cap
     // My squads' old tabs inside the workspace, and an old "my squads" link naming one of the person's squads.
     if (tab === 'my-squads' && squad) return `/my-squads${query({ clubId: String(club), squad })}`;
     if (tab === null) return officePath(club, 'staff', context);
+    if (isProjectsTool(tab)) return projectsPath(club);
     const personal = personalWorkspaceTarget(tab, search.get('hub'));
     if (personal) return personal;
     switch (tab) {

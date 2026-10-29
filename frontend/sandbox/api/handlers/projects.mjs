@@ -114,7 +114,7 @@ get('/projects/fundraisers/:cid', ({ params, headers }) => {
     const project = J.projects.find(p => p.fundraiser?.id === Number(params.cid));
     return project && sees(project, headers) ? { clubId: project.clubId, projectId: project.id } : missing();
 });
-get('/projects/:pid', ({ params, headers }) => { const project = find({ pid: params.pid }, headers); return project ? detail(project, headers) : missing(); });
+get('/projects/:pid', ({ params, headers }) => { if (!/^\d+$/.test(params.pid)) return undefined; const project = find({ pid: params.pid }, headers); return project ? detail(project, headers) : missing(); });
 
 get('/clubs/:id/projects/:pid', ({ params, headers }) => { const project = find(params, headers); return project ? detail(project, headers) : missing(); });
 
@@ -316,6 +316,32 @@ put('/clubs/:id/projects/:pid/fundraiser', ({ params, body, headers }) => {
     project.fundraiser.version += 1;
     touched(project, headers);
     return detail(project, headers);
+});
+
+// Parents and volunteers on one project (phase B2): by name and email, at once; someone new gets a one-time link.
+const helperRequests = new Map();
+post('/clubs/:id/projects/:pid/helpers', ({ params, body, headers }) => {
+    const project = find(params, headers);
+    if (!project) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects add people.');
+    const name = String(body?.name ?? '').trim(), email = String(body?.email ?? '').trim();
+    if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return problem(400, 'Give their name and email.');
+    const key = `${me(headers)}:${body?.requestId}`;
+    const earlier = helperRequests.get(key);
+    if (earlier) return reply(201, { ...earlier, project: detail(project, headers) });
+    const person = J.newHelper(name);
+    if (!project.added.includes(person.id)) project.added.push(person.id);
+    touched(project, headers, `Added ${name} to the project`);
+    const added = { userId: person.id, name, link: `sandbox-claim-${person.id}`, linkExpiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), invitationPending: false };
+    helperRequests.set(key, added);
+    return reply(201, { ...added, project: detail(project, headers) });
+});
+// Their Home card: the projects they help on (they are on them and not on the club's staff), with what waits on them.
+get('/projects/helping', ({ headers }) => {
+    const viewer = me(headers);
+    if (J.STAFF_IDS.includes(viewer) && V.personaOf(headers) !== 'kitparent') return [];
+    return J.projects.filter(p => ['NOW', 'LATER'].includes(p.status) && p.added.includes(viewer))
+        .map(p => ({ projectId: p.id, goal: p.goal, club: club(p.clubId), steps: waitingNow(p, viewer).map(step => ({ projectId: p.id, project: p.goal, stepId: step.id, step: step.title, day: step.day })) }));
 });
 
 // Photos and files are kept as invented addresses; the sandbox stores no bytes.

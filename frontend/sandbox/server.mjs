@@ -58,7 +58,7 @@ const server = http.createServer(async (req, res) => {
       accountProfile.dob = url.pathname === '/__mode/nodob' ? null : accountProfile.dob ?? '1988-04-12';
       if (url.pathname === '/__mode/nodob') { res.writeHead(302, { location: url.searchParams.get('to') || '/profile/1', 'cache-control': 'no-store' }); return res.end(); }
     }
-    if (/^\/__mode\/(parent|coach|analyst|member|headcoach|physio|attendance)$/.test(url.pathname)) {
+    if (/^\/__mode\/(parent|coach|analyst|member|headcoach|physio|attendance|commercial|facilities|projectcoach|kitparent)$/.test(url.pathname)) {
       // Sandbox personas, all still Luka's account: `parent` makes him also a parent of two children (the family cookie);
       // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only), `member` plain
       // club membership with no tools at all, `headcoach` a head coach who is not an admin and `physio` a job with only

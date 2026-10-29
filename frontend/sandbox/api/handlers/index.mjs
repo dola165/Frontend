@@ -2,6 +2,7 @@
 // Squad join links first (squad-page.mjs), then pages: a club created as a page answers ahead of the newcomer and club domains (see pages.mjs).
 import './access.mjs';
 import './campaign-management.mjs';
+import './projects.mjs';
 import './squad-page.mjs';
 import './pages.mjs';
 import './club-people.mjs';

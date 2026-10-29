@@ -498,6 +498,12 @@ This branch is the real frontend code on fake data, so what is built here ships 
 
 **Backend work is listed in one place: `BACKEND_NEEDS.md`** (checked against the real backend on 11 October; several older items below turned out to exist already and are now frontend fixes there).
 
+- **Projects (step 4 of the club plan, 29 October 2026), phase A:** web on `claude/projects-f`, backend on `claude/projects-b` (V240, renumbered after step 3's last migration before merging). Built: the planner's owner and the wall between our team and each club, the project API on `/api/clubs/{id}/projects`, fundraisers joined to projects (`donateUrl`, who reported, who published; public only for a verified club), and Team work's comment, mention, photo-and-file, upload and paste pieces moved into `components/work/`. Still to do (phase B, after release 15):
+  - The Projects page on `WorkspaceShell` (Projects, Ideas, Done, then Calendar and Staff), its tab for Commercial and the Facilities coordinator (`PROJECTS` a built home), the doors (+ menu, a squad's "Raise money", the club page's fundraising box, Club office's side bar) and the step's Inbox link (`/projects/{id}`, refused by `requestDestination` until the route exists).
+  - Parents and volunteers on one project through step 3's helper invite; Commercial and Facilities recognised by a Projects tool rather than their saved job code.
+  - Campaigns and new purchase requests leave More tools; the old campaigns manager page, its route, tests and sandbox mocks are deleted.
+  - Georgian review of the four kinds' first steps and the new strings (`projects-georgian-strings.md` in the step 4 notes).
+  - Sandbox personas: `/__mode/commercial`, `/__mode/facilities`, `/__mode/projectcoach` (a head coach on one project), `/__mode/kitparent` (a U12 parent on the kit committee).
 - **Club office (step 2 of the club plan, 28 October 2026):** web on `claude/club-office-f`, backend on `claude/club-office-b` (V231). Still to do:
   - Release the web with or before the backend: the backend's new notices link to `/clubs/{id}/office`, which older web builds do not have. The web alone works on the older backend (its `club.workspace` opens Club office; only the top-bar tab waits for `club.office`).
   - Georgian review of the new strings (listed in the step 2 report); counts on the rail (Staff waiting, Squads) are not built.

@@ -125,7 +125,8 @@ function ClubInvite({ token }: { token: string }) {
             </div>
         </header>
         <ul className="ci-jobs">{preview.invites.map(invite => <li key={`${invite.kind}-${invite.id}`} className="ci-job">
-            <strong>{invite.kind === 'HELPER' ? `${copy('Helper', 'დამხმარე')} · ${invite.title}` : jobLabel(invite)} · {whereLabel({ clubWide: invite.clubWide, squads: invite.squads.map((squad, index) => ({ id: index, name: squad })) })}</strong>
+            <strong>{invite.kind === 'PROJECT_HELPER' ? `${copy('On a project', 'პროექტში')} · ${invite.title}`
+                : <>{invite.kind === 'HELPER' ? `${copy('Helper', 'დამხმარე')} · ${invite.title}` : jobLabel(invite)} · {whereLabel({ clubWide: invite.clubWide, squads: invite.squads.map((squad, index) => ({ id: index, name: squad })) })}</>}</strong>
             {invite.unavailableReason && <span className="gk-faint">{invite.unavailableReason}</span>}
         </li>)}</ul>
         {!preview.invites.length && <p className="gk-notice">{copy('Nothing is waiting for you here any more. Ask the club to invite you again.', 'აქ აღარაფერი გელოდებათ. სთხოვეთ კლუბს ხელახლა მოწვევა.')}</p>}

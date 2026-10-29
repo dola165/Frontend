@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { Button } from '../../design/primitives';
+import { Dialog } from '../../design/Dialog';
 import { ago } from '../../components/work/workWords';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
@@ -9,7 +10,7 @@ import { AmountDialog, FundraiserDialog, UpdateDialog } from './FundraiserDialog
 import { ProgressBar } from './ProgressBar';
 import { amount, money } from './projectWords';
 
-type Open = 'amount' | 'start' | 'edit' | 'update' | null;
+type Open = 'amount' | 'start' | 'edit' | 'update' | 'archive' | null;
 
 /**
  * The project's money: the target, what was raised as the club reports it (who and when), and the fundraiser's
@@ -27,7 +28,7 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
     if (!summary.target && !f) return null;
     const currency = summary.target?.currency ?? f?.goal?.currency ?? 'GEL';
     const raised = f?.reportedAmount ?? null;
-    const move = async (status: 'PUBLISHED' | 'PAUSED' | 'CLOSED') => {
+    const move = async (status: 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED') => {
         if (!f) return;
         setBusy(true); setError('');
         try { onChanged(await moveFundraiser(clubId, summary.id, f.version, status)); }
@@ -57,11 +58,17 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
             {f && (seen ? can.publish : can.change) && <Button size="sm" variant="ghost" onClick={() => setOpen('edit')}>{copy('Edit fundraiser', 'შეგროვების რედაქტირება')}</Button>}
             {f && can.change && f.status === 'PUBLISHED' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('PAUSED')}>{copy('Pause', 'შეჩერება')}</Button>}
             {f && can.publish && (f.status === 'PUBLISHED' || f.status === 'PAUSED') && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('CLOSED')}>{copy('Close', 'დახურვა')}</Button>}
+            {/* Published by mistake, or done with: those who publish take it off every public page. */}
+            {f && can.publish && seen && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen('archive')}>{copy('Take off the site', 'საიტიდან მოხსნა')}</Button>}
         </div>
         {f && !f.clubVerified && <p className="pj-quiet">{copy('A fundraiser goes public once the club is verified.', 'შეგროვება საჯარო ხდება კლუბის ვერიფიკაციის შემდეგ.')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {open === 'amount' && f && <AmountDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}
         {(open === 'start' || open === 'edit') && <FundraiserDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}
+        {open === 'archive' && f && <Dialog open size="sm" title={copy('Take the fundraiser off the site?', 'მოიხსნას შეგროვება საიტიდან?')} onClose={() => setOpen(null)}
+            footer={<><Button onClick={() => setOpen(null)}>{copy('Keep it', 'დატოვება')}</Button><Button variant="danger" disabled={busy} onClick={() => { setOpen(null); void move('ARCHIVED'); }}>{copy('Take it off', 'მოხსნა')}</Button></>}>
+            <p>{copy('It leaves the club page and every public list. The project and its history stay.', 'ის ქრება კლუბის გვერდიდან და ყველა საჯარო სიიდან. პროექტი და მისი ისტორია რჩება.')}</p>
+        </Dialog>}
         {open === 'update' && f && <UpdateDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}
     </section>;
 }

@@ -132,7 +132,7 @@ export const reportAmount = (clubId: number, id: number, version: number, amount
 /** post_fundraiser_update: news for the supporters on the public page. */
 export const postFundraiserUpdate = (clubId: number, id: number, version: number, title: string, body: string) => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/updates`, { version, title, body });
 /** publish_fundraiser, or pause or close it. */
-export const moveFundraiser = (clubId: number, id: number, version: number, status: 'PUBLISHED' | 'PAUSED' | 'CLOSED') => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/state`, { version, status });
+export const moveFundraiser = (clubId: number, id: number, version: number, status: 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED') => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/state`, { version, status });
 
 /** The example "Paste a plan" offers: one step a line, a person and a day after "|". */
 export const PASTE_PLAN_EXAMPLE = `- Ask families for sizes | Nana

@@ -256,12 +256,12 @@ post('/clubs/:id/projects/:pid/fundraiser/state', ({ params, body, headers }) =>
         if (!publishes(headers, project.clubId)) return problem(403, 'An admin or the commercial lead publishes a fundraiser.');
         if (f.status === 'PUBLISHED') return detail(project, headers); // The first one counts.
         if (!verified(project.clubId)) return problem(409, 'A fundraiser goes public once the club is verified.');
-    } else if (body?.status === 'CLOSED' && seen(f) ? !publishes(headers, project.clubId) : !changes(project, headers)) return problem(403, 'An admin or the commercial lead closes a fundraiser the public has seen.');
+    } else if (body?.status === 'ARCHIVED' || body?.status === 'CLOSED' && seen(f) ? !publishes(headers, project.clubId) : !changes(project, headers)) return problem(403, 'An admin or the commercial lead closes a fundraiser the public has seen, or takes one off the site.');
     if (body?.version !== f.version) return conflict('fundraiser');
-    if (!(MOVES[f.status] ?? []).includes(body.status)) return problem(409, 'This fundraiser can\'t move there from where it is now.');
+    if (body.status !== 'ARCHIVED' && !(MOVES[f.status] ?? []).includes(body.status)) return problem(409, 'This fundraiser can\'t move there from where it is now.');
     if (body.status === 'PUBLISHED' && !f.publishedAt) Object.assign(f, { publishedAt: new Date().toISOString(), publishedBy: me(headers) });
     Object.assign(f, { status: body.status, phase: body.status === 'PUBLISHED' ? 'ACTIVE' : body.status, version: f.version + 1 });
-    touched(project, headers, body.status === 'PUBLISHED' ? 'Published the fundraiser' : body.status === 'PAUSED' ? 'Paused the fundraiser' : 'Closed the fundraiser');
+    touched(project, headers, body.status === 'PUBLISHED' ? 'Published the fundraiser' : body.status === 'PAUSED' ? 'Paused the fundraiser' : body.status === 'ARCHIVED' ? 'Took the fundraiser off the site' : 'Closed the fundraiser');
     return detail(project, headers);
 });
 

@@ -124,3 +124,11 @@ test('B2: the Projects tab follows the job, a parent joins one project by name a
   assert.deepEqual(home.map(p => p.goal), ['New kit for U12']);
   assert.deepEqual((await request(null, 'GET', '/projects/helping')).body, []);
 });
+
+test('fix round 3: those who publish take a fundraiser off the site, and it leaves the public pages', async () => {
+  const kit = (await board(null)).projects.find(p => p.goal === 'New kit for U12');
+  const f = (await request(null, 'GET', `/clubs/1/projects/${kit.id}`)).body.fundraiser;
+  assert.equal((await request('facilities', 'POST', `/clubs/1/projects/${kit.id}/fundraiser/state`, { version: f.version, status: 'ARCHIVED' })).status, 403);
+  assert.equal((await request(null, 'POST', `/clubs/1/projects/${kit.id}/fundraiser/state`, { version: f.version, status: 'ARCHIVED' })).status, 200);
+  assert.equal((await request(null, 'GET', `/campaigns/${f.id}`)).status, 404);
+});

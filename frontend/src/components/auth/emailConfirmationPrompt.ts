@@ -6,13 +6,14 @@ const say = (en: string, ka: string) => (appLanguage() === 'ka' ? ka : en);
 
 /** "Confirm your email to publish": what was pressed, from the server's `confirmFor`; the job by name when known. */
 function title(error: unknown) {
-    const job = confirmationJobTitle(error);
+    const job = confirmationFor(error) === 'HELP' ? null : confirmationJobTitle(error);
     if (job) return say(`Confirm your email to start as ${job}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${job}`);
     switch (confirmationFor(error)) {
         case 'INVITE': return say('Confirm your email to invite people', 'მოსაწვევად ჯერ დაადასტურეთ ელფოსტა');
         case 'PUBLISH': return say('Confirm your email to publish', 'გამოსაქვეყნებლად ჯერ დაადასტურეთ ელფოსტა');
         case 'MONEY': return say('Confirm your email to take payments', 'გადახდების მისაღებად ჯერ დაადასტურეთ ელფოსტა');
         case 'JOB': return say('Confirm your email to start this job', 'ამ სამუშაოს დასაწყებად ჯერ დაადასტურეთ ელფოსტა');
+        case 'HELP': return say('Confirm your email to see what you were added to', 'დაადასტურეთ ელფოსტა, რომ ნახოთ, სად დაგამატეს');
         default: return say('Confirm your email first', 'ჯერ დაადასტურეთ ელფოსტა');
     }
 }

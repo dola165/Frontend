@@ -8,7 +8,7 @@ import { apiClient } from '../../api/axiosConfig';
 export interface SessionHelper { id: number; name: string; repeating: boolean; since: string; waiting: boolean }
 /**
  * `link`: the claim link of an account this request made, which the coach sends by email or WhatsApp; null when the
- * person has an account. `invitationPending`: the address already has an invitation waiting, which stays as it is.
+ * person has an account. Every helper waits (`waiting`) until they accept, by the typed name only.
  */
 export interface AddedHelper { id: number | null; name: string; link: string | null; linkExpiresAt: string | null; invitationPending: boolean }
 /** `lastInitial`: the last name's first letter, for telling two players with the same first name apart. */
@@ -30,6 +30,13 @@ export const addHelper = async (squad: number, session: number, body: { name: st
 export const removeHelper = async (squad: number, helper: number) => { await apiClient.delete(`${squadRoot(squad)}/helpers/${helper}`); };
 
 export const helping = async (signal?: AbortSignal) => (await apiClient.get<Helping[]>('/me/helping', { signal })).data;
+/**
+ * A session someone was added to and hasn't answered: "Koba added you as a helper: U12 Mixed, Tue 17:00" with Accept /
+ * Not for me (Not for me is stopHelping, which tells the coach). `title` and `startsAt` are its next date, if any.
+ */
+export interface HelperInvitation { helperId: number; squadId: number; squadName: string; clubName: string; title: string | null; startsAt: string | null; repeating: boolean; addedBy: string | null }
+export const helperInvitations = async (signal?: AbortSignal) => (await apiClient.get<HelperInvitation[]>('/me/helping/invitations', { signal })).data;
+export const acceptHelping = async (helper: number) => { await apiClient.post(`/me/helping/${helper}/accept`); };
 export const register = async (session: number) => (await apiClient.get<RegisterView>(`/me/helping/sessions/${session}/register`)).data;
 export const saveRegister = async (session: number, body: { came: number[]; requestId: string; revision: string }) =>
     (await apiClient.put<RegisterView>(`/me/helping/sessions/${session}/register`, body)).data;

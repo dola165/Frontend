@@ -8,12 +8,10 @@ import { FundraisingPage } from '../../../pages/FundraisingPage';
 import { FundraisingCataloguePage } from '../../../pages/FundraisingCataloguePage';
 import { ClubFundraisingPage } from '../../../pages/ClubFundraisingPage';
 import { FundraiserPage } from '../../../pages/FundraiserPage';
-import { StartFundraiserPage } from '../../../pages/StartFundraiserPage';
-import { ClubCampaignsPage } from '../../clubWorkspace/commerce/ClubCampaignsPage';
 import { activeFilters, fundraisingHeading, fundraisingPath, readFundraising } from '../query';
 import * as api from '../api';
 import * as clubs from '../../clubs/api';
-vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), fetchCampaigns: vi.fn(), fetchCampaign: vi.fn(), fetchCampaignLocations: vi.fn(), fetchFundraisingFront: vi.fn(), fetchManagedCampaigns: vi.fn(), fetchManagedCampaign: vi.fn(), createCampaign: vi.fn(), editCampaign: vi.fn(), changeCampaignState: vi.fn(), postCampaignUpdate: vi.fn() }));
+vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), fetchCampaigns: vi.fn(), fetchCampaign: vi.fn(), fetchCampaignLocations: vi.fn(), fetchFundraisingFront: vi.fn() }));
 vi.mock('../../clubs/api', async original => ({ ...await original<typeof import('../../clubs/api')>(), fetchMyClubMembershipContext: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost:8080' }, apiClient: { get: vi.fn(async () => ({ data: { id: 10, name: 'Alpha FC', myRole: 'OWNER' } })) } }));
 vi.mock('../../../components/ui/MediaImage', () => ({ MediaImage: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} /> }));
@@ -61,8 +59,16 @@ describe('Front, catalogue and the fundraiser', () => {
         expect(screen.getAllByRole('link').find(link => link.getAttribute('href') === '/campaigns/1')).toHaveTextContent('A pitch for everyone');
         fireEvent.click(screen.getAllByRole('button', { name: 'Next page' })[0]);
         await waitFor(() => expect(api.fetchCampaigns).toHaveBeenLastCalledWith(expect.objectContaining({ clubId: 10, page: 1 }), expect.any(AbortSignal)));
-        expect(screen.getByRole('link', { name: 'Start a fundraiser' })).toHaveAttribute('href', '/campaigns/new');
+        expect(screen.getByRole('link', { name: 'Start a fundraiser' })).toHaveAttribute('href', '/projects?club=10&new=RAISE_MONEY');
     });
+    it('offers Give on GoFundMe on the club page only while a fundraiser is open', async () => {
+        vi.mocked(api.fetchCampaigns).mockResolvedValue({ content: [campaign, { ...campaign, id: 2, title: 'Paused pitch', status: 'PAUSED', phase: 'PAUSED' },
+            { ...campaign, id: 3, title: 'Closed pitch', status: 'CLOSED', phase: 'ENDED' }], totalElements: 3 });
+        render(<MemoryRouter initialEntries={['/clubs/10/campaigns?state=ALL']}><Routes><Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} /></Routes></MemoryRouter>);
+        expect(await screen.findByText('Closed pitch')).toBeInTheDocument();
+        expect(screen.getAllByRole('link', { name: /Give on GoFundMe/ })).toHaveLength(1);
+    });
+
     it('clears a dependent city when the country changes', async () => {
         render(<MemoryRouter initialEntries={['/campaigns/all?country=Georgia&city=Tbilisi']}><Routes><Route path="/campaigns/all" element={<FundraisingCataloguePage />} /></Routes></MemoryRouter>);
         await screen.findByRole('option', { name: 'France' });
@@ -74,7 +80,7 @@ describe('Front, catalogue and the fundraiser', () => {
         render(<MemoryRouter initialEntries={['/campaigns/1']}><Routes><Route path="/campaigns/:id" element={<FundraiserPage />} /></Routes></MemoryRouter>);
         await screen.findByRole('heading', { name: campaign.title });
         expect(screen.getByRole('link', { name: 'Donate on GoFundMe' })).toHaveAttribute('href', 'https://www.gofundme.com/f/a-pitch');
-        expect(screen.getByText('31 donations')).toBeInTheDocument();
+        expect(screen.getByText(/Reported by the club · 31 donations/)).toBeInTheDocument();
         expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25');
         expect(screen.getByText(/reported by Alpha FC/)).toBeInTheDocument();
     });
@@ -86,51 +92,5 @@ describe('Front, catalogue and the fundraiser', () => {
         vi.mocked(api.fetchCampaign).mockResolvedValue({ ...campaign, phase: 'ENDED', status: 'CLOSED' });
         render(<MemoryRouter initialEntries={['/campaigns/1']}><Routes><Route path="/campaigns/:id" element={<FundraiserPage />} /></Routes></MemoryRouter>);
         expect(await screen.findByRole('button', { name: 'Ended' })).toBeDisabled();
-    });
-});
-
-describe('Starting a fundraiser', () => {
-    const start = () => render(<MemoryRouter initialEntries={['/campaigns/new']}><Routes><Route path="/campaigns/new" element={<StartFundraiserPage />} /><Route path="/campaigns/:id" element={<h1>Published page</h1>} /></Routes></MemoryRouter>);
-    it('needs a club', async () => {
-        vi.mocked(clubs.fetchMyClubMembershipContext).mockResolvedValue({ hasClubMembership: false, canCreateClub: true, clubId: null });
-        start();
-        expect(await screen.findByText('You need a club to start a fundraiser')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Start your club' })).toHaveAttribute('href', '/campaigns/new?create=club&from=fundraising');
-    });
-    it('publishes in three screens with the club’s GoFundMe link', async () => {
-        vi.mocked(api.createCampaign).mockImplementation(async (_club, input) => ({ ...campaign, ...input, id: 9, version: 1, status: 'DRAFT', phase: 'DRAFT' }));
-        vi.mocked(api.changeCampaignState).mockImplementation(async (_club, current) => ({ ...current, version: current.version + 1, status: 'PUBLISHED', phase: 'ACTIVE' }));
-        start();
-        fireEvent.click(await screen.findByRole('button', { name: /Travel & competitions/ }));
-        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-        // The goal chips are formatted in the app's locale; the third chip is the 5,000 one whatever the separators.
-        fireEvent.click(document.querySelectorAll<HTMLButtonElement>('.gk-fund-start__chips button')[2]);
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Girls to the Black Sea Cup' } });
-        fireEvent.change(screen.getByLabelText('Your story'), { target: { value: 'Travel and two nights for 18 players.' } });
-        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-        fireEvent.change(screen.getByLabelText('Where the money goes'), { target: { value: 'Travel and accommodation' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-        fireEvent.change(screen.getByLabelText('GoFundMe link'), { target: { value: 'https://example.com/not' } });
-        expect(screen.getByRole('button', { name: 'Publish fundraiser' })).toBeDisabled();
-        fireEvent.change(screen.getByLabelText('GoFundMe link'), { target: { value: 'https://www.gofundme.com/f/black-sea' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Publish fundraiser' }));
-        await screen.findByRole('heading', { name: 'Published page' });
-        expect(api.createCampaign).toHaveBeenCalledWith(10, expect.objectContaining({ title: 'Girls to the Black Sea Cup', category: 'TRAVEL', goalAmount: 5000, currency: 'GEL', useOfFunds: 'Travel and accommodation', images: [], donateUrl: 'https://www.gofundme.com/f/black-sea' }), expect.stringMatching(/^[\da-f-]{36}$/i));
-        expect(api.changeCampaignState).toHaveBeenCalledWith(10, expect.objectContaining({ id: 9, version: 1, title: 'Girls to the Black Sea Cup', goalAmount: 5000 }), 'PUBLISHED');
-    });
-});
-
-describe('The club’s own fundraisers (workspace)', () => {
-    beforeEach(() => { vi.mocked(api.fetchManagedCampaigns).mockResolvedValue([campaign]); });
-    it('keeps a stale edit and its original version on save failure', async () => {
-        vi.mocked(api.editCampaign).mockRejectedValue({ response: { data: { error: 'This campaign changed. Reload its latest version.' } } });
-        render(<MemoryRouter><ClubCampaignsPage clubId={10} /></MemoryRouter>);
-        fireEvent.click(await screen.findByRole('button', { name: 'Edit A pitch for everyone' }));
-        fireEvent.change(screen.getByLabelText('Campaign title'), { target: { value: 'Our new pitch' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Save campaign' }));
-        expect(await screen.findByRole('alert')).toHaveTextContent('This campaign changed');
-        expect(api.editCampaign).toHaveBeenCalledWith(10, 1, expect.objectContaining({ version: 2, title: 'Our new pitch' }), expect.any(String));
-        expect(screen.getByLabelText('Campaign title')).toHaveValue('Our new pitch');
     });
 });

@@ -10,7 +10,7 @@ import { addComment, addPicture, addVideo, changePlan, changeWork, createPlan, c
 import { useDayTitle } from './useDayTitle';
 import { FindingRow } from './FindingRow';
 import { IDEAS, NOTE, WAITING } from './findings';
-import { MentionInput } from './MentionInput';
+import { MentionInput } from '../../components/work/MentionInput';
 import { NameField } from './WorkBits';
 import { useFresh } from './useFresh';
 import './team-work-agenda.css';
@@ -88,7 +88,7 @@ function DropZone({ team, ensureIdeas, onDropped }: { team: Person[]; ensureIdea
             : <form className="tw-drop__form" onSubmit={event => { event.preventDefault(); void send(); }}>
                 <ul className="tw-drop__files">
                     {files.map((file, index) => <li key={`${file.name}-${index}`}><FilePreview file={file} />
-                        <button type="button" className="tw-icon-button tw-drop__remove" disabled={progress !== null} aria-label={copy(`Take out ${file.name}`, `${file.name} — ამოღება`)}
+                        <button type="button" className="work-icon-button tw-drop__remove" disabled={progress !== null} aria-label={copy(`Take out ${file.name}`, `${file.name} — ამოღება`)}
                             onClick={() => setFiles(current => current.filter((_, at) => at !== index))}><X aria-hidden="true" /></button></li>)}
                     <li><button type="button" className="tw-drop__more" disabled={progress !== null} onClick={() => input.current?.click()} aria-label={copy('Add more files', 'მეტი ფაილის დამატება')}><Plus aria-hidden="true" /></button></li>
                 </ul>

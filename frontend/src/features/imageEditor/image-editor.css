@@ -45,4 +45,4 @@
 .gk .ie-note.tc-lightbox__edited { margin-right: auto; min-width: 0; }
 .gk .ie-note.tc-gallery__edited { padding: 2px 2px 0; }
 /* A task's picture tiles are narrow: the words wrap beside the pencil rather than below it. */
-.gk .tw-media__list .ie-note__text { flex: 1 1 0; }
+.gk .work-media__list .ie-note__text { flex: 1 1 0; }

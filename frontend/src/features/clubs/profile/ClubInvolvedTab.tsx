@@ -6,6 +6,7 @@ import { ClubFundraisingPage } from '../../../pages/ClubFundraisingPage';
 import { ClubJobsPage } from '../../../pages/ClubJobsPage';
 import { involvedKindFrom, isWide, type InvolvedKind } from './clubTabs';
 import type { ClubProfile } from './types';
+import { projectsPath } from '../../projects/projectWords';
 import { EditLink } from './ClubInfo';
 
 const kinds: Record<InvolvedKind, { label: string; hint: string; all: string; global: string }> = {
@@ -29,7 +30,7 @@ export function ClubInvolvedTab({ club, canEdit = false }: { club: ClubProfile; 
         <div className="gk-club-involved__bar">
             <div className="gk-club-involved__title"><h2>{current.label}</h2><span className="gk-muted">{current.hint}</span></div>
             <div className="gk-row">
-                {canEdit && <EditLink to={kind === 'jobs' ? officePath(club.id, 'staff', { view: 'jobs' }) : officeToolPath(club.id, kind === 'fundraising' ? 'campaigns' : 'store')} />}
+                {canEdit && <EditLink to={kind === 'jobs' ? officePath(club.id, 'staff', { view: 'jobs' }) : kind === 'fundraising' ? projectsPath(club.id) : officeToolPath(club.id, 'store')} />}
                 <button type="button" className="gk-btn gk-btn--secondary gk-btn--sm" aria-pressed={wide} onClick={toggleWide}>{wide ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}{wide ? 'Show club info' : 'Hide club info'}</button>
                 <Link className="gk-section__action gk-row" to={current.global}>{current.all}<ArrowUpRight size={14} aria-hidden="true" /></Link>
             </div>

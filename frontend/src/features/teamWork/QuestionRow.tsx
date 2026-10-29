@@ -5,6 +5,7 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { answerQuestion, deleteQuestion, type Detail, type WorkQuestion } from './api';
 import { ago } from './teamWorkWords';
+import '../../components/work/work.css';
 
 /**
  * One question for Beqa, the same on the task and in Needs you: the question, who asked and when, its quick answers
@@ -32,7 +33,7 @@ export function QuestionRow({ question, removable = false, onDone }: { question:
         {answered ? <div className="tw-question__answer">
             <strong>{question.answer}</strong>
             <span className="gk-faint">{[question.answeredBy?.name, question.answeredAt && ago(copy, question.answeredAt)].filter(Boolean).join(' · ')}</span>
-            <button type="button" className="tw-link-button" disabled={busy} onClick={() => answer('')}>{copy('Take back', 'უკან წაღება')}</button>
+            <button type="button" className="work-link-button" disabled={busy} onClick={() => answer('')}>{copy('Take back', 'უკან წაღება')}</button>
         </div> : <div className="tw-question__answers" role="group" aria-label={copy(`Answer: ${question.text}`, `პასუხი: ${question.text}`)}>
             {options.map(([value, label]) => <Button key={value} size="sm" disabled={busy} onClick={() => answer(value)}>{label}</Button>)}
             {free === null ? <Button size="sm" variant="ghost" disabled={busy} onClick={() => setFree('')}>{copy('Other…', 'სხვა…')}</Button>
@@ -41,7 +42,7 @@ export function QuestionRow({ question, removable = false, onDone }: { question:
                     <input id={id} className="gk-input" autoFocus maxLength={2000} value={free} onChange={event => setFree(event.target.value)} />
                     <Button size="sm" variant="primary" type="submit" disabled={busy || !free.trim()}>{copy('Answer', 'პასუხი')}</Button>
                 </form>}
-            {removable && <button type="button" className="tw-icon-button tw-question__delete" aria-label={copy('Remove the question', 'კითხვის წაშლა')} disabled={busy} onClick={() => void run(() => deleteQuestion(question.id))}><X aria-hidden="true" /></button>}
+            {removable && <button type="button" className="work-icon-button tw-question__delete" aria-label={copy('Remove the question', 'კითხვის წაშლა')} disabled={busy} onClick={() => void run(() => deleteQuestion(question.id))}><X aria-hidden="true" /></button>}
         </div>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </li>;

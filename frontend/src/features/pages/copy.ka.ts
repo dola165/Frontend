@@ -728,6 +728,7 @@ export const PAGES_KA: Record<string, string> = {
   "No facilities published yet": "ინფრასტრუქტურა ჯერ არ გამოქვეყნებულა",
   "Address on the facility page": "მისამართი ადგილის გვერდზეა",
   "Currently unavailable": "ამჟამად მიუწვდომელია",
+  "Start a fundraiser": "თანხის შეგროვების დაწყება",
   "Academy profile": "აკადემიის გვერდი",
   "Manage {name} profile": "{name} — გვერდის მართვა",
   "product": "ნივთი",

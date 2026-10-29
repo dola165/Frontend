@@ -46,8 +46,8 @@ const FundraisingPage = lazy(() => import('./pages/FundraisingPage').then(module
 const FundraisingCataloguePage = lazy(() => import('./pages/FundraisingCataloguePage').then(module => ({default: module.FundraisingCataloguePage})));
 const ClubFundraisingPage = lazy(() => import('./pages/ClubFundraisingPage').then(module => ({default: module.ClubFundraisingPage})));
 const FundraiserPage = lazy(() => import('./pages/FundraiserPage').then(module => ({default: module.FundraiserPage})));
-const FundraiserManagePage = lazy(() => import('./pages/FundraiserManagePage').then(module => ({default: module.FundraiserManagePage})));
-const StartFundraiserPage = lazy(() => import('./pages/StartFundraiserPage').then(module => ({default: module.StartFundraiserPage})));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const FundraiserToProject = lazy(() => import('./pages/ProjectsPage').then(module => ({default: module.FundraiserToProject})));
 const JobDetailPage = lazy(() => import('./pages/JobDetailPage').then(module => ({default: module.JobDetailPage})));
 const JobsPage = lazy(() => import('./pages/JobsPage').then(module => ({default: module.JobsPage})));
 const JobsCataloguePage = lazy(() => import('./pages/JobsCataloguePage').then(module => ({default: module.JobsCataloguePage})));
@@ -350,6 +350,7 @@ export function MainLayout() {
         location.pathname.startsWith('/join/') || location.pathname.startsWith('/invite/') || location.pathname.startsWith('/staff-invite/') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
+        location.pathname === '/projects' || location.pathname.startsWith('/projects/') ||
         isClubSurfaceRoute;
     const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname) || isWorldMap;
     // W6 â€” one shell: browse/list/destination pages share a single App-level
@@ -360,6 +361,7 @@ export function MainLayout() {
         /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
         canvasWorkspacePages.has(location.pathname) || isWorldMap ||
         /^\/clubs\/\d+\/office$/.test(location.pathname) ||
+        location.pathname === '/projects' || /^\/projects\/\d+$/.test(location.pathname) ||
         /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
     const hasProductNavigation = !isAndroidApp && !isLandingPage && !isAuthPage;
     const showsHeader = hasProductNavigation;
@@ -427,9 +429,11 @@ export function MainLayout() {
             <Route path="/roles/:id" element={<LegacyCleanupRedirect kind="role" />} />
             <Route path="/campaigns" element={<FundraisingPage />} />
             <Route path="/campaigns/all" element={<FundraisingCataloguePage />} />
-            <Route path="/campaigns/new" element={<ProtectedRoute><StartFundraiserPage /></ProtectedRoute>} />
+            <Route path="/campaigns/new" element={<ProtectedRoute><FundraiserToProject /></ProtectedRoute>} />
             <Route path="/campaigns/:id" element={<FundraiserPage />} />
-            <Route path="/campaigns/:id/manage/:tool" element={<ProtectedRoute><FundraiserManagePage /></ProtectedRoute>} />
+            <Route path="/campaigns/:id/manage/:tool" element={<ProtectedRoute><FundraiserToProject /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+            <Route path="/projects/:id" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><LegacyCleanupRedirect kind="squads" /></ProtectedRoute>} />

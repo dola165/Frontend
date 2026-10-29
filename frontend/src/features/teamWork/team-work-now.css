@@ -66,7 +66,6 @@
 .gk .tw-name-field__count { font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); }
 .gk .tw-name-field[data-long] .tw-name-field__count { color: var(--gk-warning); font-weight: 650; }
 .gk .tw-name-field__hint { margin: 0; font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
-.gk .tw-paste__long { flex: none; padding: 0 6px; border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--gk-warning) 14%, transparent); font-size: var(--gk-fs-xs); font-weight: 650; color: var(--gk-text); }
 
 /* What one person is doing: their line, their Now note with comments, then their open tasks. */
 .gk .tw-person { display: flex; flex-direction: column; gap: var(--gk-3); }
@@ -77,7 +76,7 @@
 .gk .tw-now-note__title { margin: 0; font-size: var(--gk-fs-sm); font-weight: 700; color: var(--gk-text-2); }
 .gk .tw-now-note__body { margin: 0; max-width: 72ch; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); white-space: pre-wrap; overflow-wrap: anywhere; }
 .gk .tw-now-note__none { margin: 0; font-size: var(--gk-fs-md); }
-.gk .tw-now-note .tw-comments { padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+.gk .tw-now-note .work-comments { padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
 
 /* The Team page: each person's Now note, one line, beside what they look after. */
 .gk .tw-team__now { display: flex; align-items: baseline; gap: 4px; min-width: 0; padding: 0 2px; font-size: var(--gk-fs-sm); color: var(--gk-text-2); text-decoration: none; }

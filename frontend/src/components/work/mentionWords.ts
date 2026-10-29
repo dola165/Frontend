@@ -1,4 +1,4 @@
-import type { Person } from './api';
+import type { Person } from './types';
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

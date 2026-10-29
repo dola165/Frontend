@@ -15,6 +15,7 @@ import { comparedWithLive, headline, liveSourceLine, newSince, standing, webBuil
 import { ago } from './teamWorkWords';
 import './team-work-agenda.css';
 import './team-work-changes.css';
+import '../../components/work/work.css';
 
 const NAMES: Record<RepoKey, [string, string]> = { backend: ['Backend', 'ბექენდი'], web: ['Web app', 'ვებ-აპი'] };
 /** Each repository's symbol colour, so a row shows at a glance which one changed. */
@@ -178,7 +179,7 @@ export function WhatChangedPage() {
 
         <details className="tw-section tw-fold">
             <summary className="tw-section__title">{copy('The update message', 'განახლების ტექსტი')}</summary>
-            <textarea className="gk-input tw-paste__text" readOnly rows={12} value={prompt} aria-label={copy('The message for Claude or Codex', 'ტექსტი Claude-სთვის ან Codex-ისთვის')} onFocus={event => event.target.select()} />
+            <textarea className="gk-input work-paste__text" readOnly rows={12} value={prompt} aria-label={copy('The message for Claude or Codex', 'ტექსტი Claude-სთვის ან Codex-ისთვის')} onFocus={event => event.target.select()} />
         </details>
     </div>;
 }

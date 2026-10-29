@@ -21,7 +21,9 @@ export type EndUnit = 'DAYS' | 'WEEKS' | 'MONTHS';
 
 /** When a task is expected to end: an exact day, about N units from the start, possibly a month, or not known. */
 export interface WorkEnd { kind: EndKind; date?: string | null; amount?: number | null; unit?: EndUnit | null }
-export interface Person { id: number | null; name: string | null }
+import type { CommentActions, Person, WorkComment, WorkMedia } from '../../components/work/types';
+export type { CommentActions, Person, WorkComment, WorkMedia } from '../../components/work/types';
+export { FILE_EXTENSIONS, FILE_LIMIT_MB, VIDEO_LIMIT_MB, VIDEO_TYPES } from '../../components/work/types';
 /** Another task named from this one. */
 export interface WorkRef { id: number; key: string; title: string; status: WorkStatus }
 export interface WorkLink { kind: LinkKind; task: WorkRef }
@@ -47,12 +49,6 @@ export interface WorkUpdate {
     /** Done by Agent Dola for the author, after they approved its preview. */
     byDola?: boolean;
 }
-/** A picture, a video or any other file; `name` is the file's own name (files only); `title` and `tags` what people named and tagged it. */
-export interface WorkMedia {
-    id: number; kind: 'IMAGE' | 'VIDEO' | 'FILE'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean;
-    name?: string | null; title?: string | null; tags?: string[]; labelledBy?: Person | null; labelledAt?: string | null;
-}
-export interface WorkComment { id: number; author: Person | null; body: string; createdAt: string; editedAt: string | null; canEdit: boolean; byDola?: boolean }
 export interface WorkSwitch { itemId: number; title: string; at: string }
 /** Every task, the trail, and the team with each person's responsibility. */
 export interface Board { items: WorkItem[]; trail: WorkSwitch[]; canManageTeam: boolean; team: Member[] }
@@ -129,8 +125,6 @@ export const deleteQuestion = (questionId: number) => data(apiClient.delete<Deta
 export const addComment = (itemId: number, body: string) => data(apiClient.post<WorkComment[]>(`${base}/items/${itemId}/comments`, { body }));
 export const editComment = (id: number, body: string) => data(apiClient.patch<WorkComment[]>(`${base}/comments/${id}`, { body }));
 export const deleteComment = (id: number) => data(apiClient.delete<WorkComment[]>(`${base}/comments/${id}`));
-/** Where a thread of comments saves (a task's, a Now note's); each call answers with the whole thread. */
-export interface CommentActions { add: (body: string) => Promise<WorkComment[]>; edit: (id: number, body: string) => Promise<WorkComment[]>; remove: (id: number) => Promise<WorkComment[]> }
 /** The thread under a task. */
 export const itemComments = (itemId: number): CommentActions => ({ add: body => addComment(itemId, body), edit: editComment, remove: deleteComment });
 export const addPicture = (itemId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<Detail>(`${base}/items/${itemId}/pictures`, form)); };
@@ -171,12 +165,6 @@ export const writeNow = (userId: number, body: string) => data(apiClient.put<Now
 export const addNowComment = (userId: number, body: string) => data(apiClient.post<NowNote>(`${base}/team/${userId}/now/comments`, { body }));
 export const editNowComment = (id: number, body: string) => data(apiClient.patch<NowNote>(`${base}/now-comments/${id}`, { body }));
 export const deleteNowComment = (id: number) => data(apiClient.delete<NowNote>(`${base}/now-comments/${id}`));
-
-export const VIDEO_LIMIT_MB = 90;
-export const VIDEO_TYPES = ['video/mp4', 'video/webm'];
-export const FILE_LIMIT_MB = 25;
-/** What "Add file" takes besides pictures and videos, by extension. */
-export const FILE_EXTENSIONS = ['pdf', 'txt', 'md', 'csv', 'log', 'json', 'zip', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 
 /** What the paste box accepts, shown as its example. */
 export const PASTE_EXAMPLE = `plan: Registration and roles

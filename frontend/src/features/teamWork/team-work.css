@@ -1,13 +1,8 @@
 /* Team work: plans as a tree with a time strip. Status is only a dot; one key line explains the colours. */
 .gk .tw-page { display: flex; flex-direction: column; gap: var(--gk-4); padding-block: var(--gk-6) var(--gk-12); }
 .gk .tw-page .gk-page-header { margin: 0; }
-.gk .tw-actions, .gk .tw-empty-actions, .gk .tw-row-actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .tw-actions, .gk .tw-empty-actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 .gk .tw-empty-actions { justify-content: center; }
-.gk .tw-icon-button { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text-3); cursor: pointer; }
-.gk .tw-icon-button:hover { background: var(--gk-hover); color: var(--gk-text); }
-.gk .tw-icon-button svg { width: 16px; height: 16px; }
-.gk .tw-link-button { padding: 0; border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
-.gk .tw-link-button:hover { color: var(--gk-text); text-decoration: underline; }
 
 /* The pipeline's colours: planned grey, in progress blue, needs your look amber, accepted blue-green, live green, blocked red. */
 .gk [data-status='PLANNED'] { --tw-tone: var(--gk-text-3); }
@@ -80,15 +75,8 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-state__fold { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-raised) 55%, var(--gk-surface)); }
 .gk .tw-questions--empty { display: flex; }
 .gk .tw-ask { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; }
-.gk .tw-ask svg { margin: 0; }
 /* Files: one obvious button, the list under it; a drop anywhere on the page shows where it lands. */
 .gk .tw-files { gap: var(--gk-3); }
-.gk .tw-attach { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
-.gk .tw-file { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text); text-decoration: none; }
-.gk .tw-file:hover { border-color: var(--gk-line-strong); }
-.gk .tw-file[aria-disabled] { opacity: .6; pointer-events: none; }
-.gk .tw-file svg { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); }
-.gk .tw-file__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .gk .tw-detail[data-dragging] { outline: 2px dashed var(--gk-accent); outline-offset: 6px; }
 .gk .tw-drop-overlay { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-accent) 10%, var(--gk-surface)); font-size: var(--gk-fs-lg); font-weight: 650; color: var(--gk-text); pointer-events: none; }
 .gk .tw-drop-overlay svg { width: 22px; height: 22px; color: var(--gk-accent); }
@@ -111,7 +99,7 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
     .gk .tw-question > .gk-notice { flex-basis: 100%; }
 }
 .gk .tw-questions__ask { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--gk-3); align-items: end; }
-.gk .tw-questions__ask .tw-row-actions { grid-column: 1 / -1; }
+.gk .tw-questions__ask .work-row-actions { grid-column: 1 / -1; }
 .gk .tw-linked__list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); min-height: 32px; }
 .gk .tw-linked__kind { flex: none; min-width: 84px; font-size: var(--gk-fs-xs); font-weight: 650; color: var(--gk-text-3); text-transform: uppercase; letter-spacing: .04em; }
 .gk .tw-linked__name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -130,7 +118,6 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-commits svg { width: 14px; height: 14px; color: var(--gk-text-3); }
 .gk .tw-task__ask { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 0 6px; border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--gk-warning) 18%, var(--gk-surface)); font-size: var(--gk-fs-xs); font-weight: 700; color: var(--gk-text); }
 .gk .tw-task__ask svg { width: 12px; height: 12px; }
-.gk .tw-paste__detail { flex-basis: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 640px) { .gk .tw-questions__ask { grid-template-columns: minmax(0, 1fr); } }
 .gk .tw-detail { position: relative; display: flex; flex-direction: column; gap: var(--gk-4); margin: 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-md); }
 /* In the task dialog the dialog is the frame: no box inside the box. */
@@ -178,35 +165,6 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-links svg { width: 14px; height: 14px; }
 .gk .tw-links a { color: var(--gk-accent); font-weight: 600; }
 
-/* Videos and pictures. */
-.gk .tw-media { display: flex; flex-direction: column; gap: var(--gk-2); }
-.gk .tw-media__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--gk-3); }
-.gk .tw-media__list li { display: flex; flex-direction: column; gap: 4px; width: 148px; }
-.gk .tw-media__list li.tw-media__video { width: min(360px, 100%); }
-.gk .tw-thumb { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; padding: 0; overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text-2); cursor: zoom-in; }
-.gk .tw-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.gk .tw-thumb--video { aspect-ratio: 16 / 9; gap: 4px; align-content: center; cursor: pointer; font-size: var(--gk-fs-xs); }
-.gk .tw-thumb--video svg { width: 28px; height: 28px; color: var(--gk-text); }
-.gk .tw-thumb__error { color: var(--gk-danger); }
-.gk .tw-video { width: 100%; aspect-ratio: 16 / 9; border-radius: var(--gk-r); background: var(--gk-raised); }
-.gk .tw-media__meta { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
-.gk .tw-media__meta > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gk .tw-media__meta > svg { width: 13px; height: 13px; }
-.gk .tw-media__add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
-.gk .tw-lightbox__img { display: block; max-width: 100%; max-height: 72vh; margin: 0 auto; border-radius: var(--gk-r); }
-
-/* Comments. */
-.gk .tw-comments { display: flex; flex-direction: column; gap: var(--gk-3); }
-.gk .tw-comments__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-3); }
-.gk .tw-comments__list > li { display: flex; gap: var(--gk-3); }
-.gk .tw-comments__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.gk .tw-comments__body p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.gk .tw-comments__who { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .tw-comments__who strong { color: var(--gk-text); font-weight: 600; }
-.gk .tw-comments__edit { display: flex; flex-direction: column; gap: var(--gk-2); }
-.gk .tw-comments__add { display: flex; align-items: flex-end; gap: var(--gk-2); }
-.gk .tw-comments__add textarea { flex: 1; min-width: 0; resize: vertical; }
-
 /* History. */
 .gk .tw-history-box summary { cursor: pointer; }
 .gk .tw-history { list-style: none; margin: var(--gk-2) 0 0; padding: 0; display: flex; flex-direction: column; }
@@ -215,20 +173,6 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-history__who { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .tw-history__moves { font-size: var(--gk-fs-sm); font-weight: 600; }
 .gk .tw-history__message { flex-basis: 100%; color: var(--gk-text); }
-
-/* Paste from AI. */
-.gk .tw-paste__text { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: var(--gk-fs-sm); resize: vertical; }
-.gk .tw-paste__help { margin: 0; font-size: var(--gk-fs-sm); }
-.gk .tw-paste__tools { margin: 0; }
-.gk .tw-paste__summary { margin: 0; }
-.gk .tw-paste__lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.gk .tw-paste__lines li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--gk-3); padding: 6px 0; border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
-.gk .tw-paste__lines li:first-child { border-top: 0; }
-.gk .tw-paste__action { flex: none; min-width: 76px; font-weight: 650; color: var(--gk-text-3); }
-.gk .tw-paste__lines li[data-action='NEW'] .tw-paste__action { color: var(--gk-accent); }
-.gk .tw-paste__lines li[data-action='UPDATED'] .tw-paste__action, .gk .tw-paste__lines li[data-action='MOVED'] .tw-paste__action { color: var(--gk-info); }
-.gk .tw-paste__title { color: var(--gk-text); }
-.gk .tw-paste__problems { margin: 0; padding-left: var(--gk-6); font-size: var(--gk-fs-sm); }
 
 /* The team: each person, what they look after (written in place), and a way to see what they are doing. */
 .gk .tw-team__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -325,9 +269,6 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
     .gk .tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); }
     .gk .tw-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--gk-3); }
     .gk .tw-order__detach { opacity: 1; }
-    .gk .tw-media__list li { width: calc(50% - var(--gk-3) / 2); }
-    .gk .tw-media__list li.tw-media__video { width: 100%; }
-    .gk .tw-comments__add { flex-direction: column; align-items: stretch; }
     .gk .tw-invite__row { flex-wrap: wrap; }
     .gk .tw-invite__row .gk-input { flex-basis: 100%; }
     .gk .tw-team__doing { flex: 1 1 100%; }

@@ -5,8 +5,8 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { changeWork, itemComments, type Detail, type Person, type WorkItem } from './api';
 import { acknowledgedBy, droppedBy, isNewFor, namesOf, NOTE, seenOnlyBy, waitingOn } from './findings';
-import { MentionText } from './MentionInput';
-import { WorkComments } from './WorkComments';
+import { MentionText } from '../../components/work/MentionInput';
+import { WorkComments } from '../../components/work/WorkComments';
 import { WorkMediaList } from './WorkMedia';
 import { ago } from './teamWorkWords';
 import { taskAsText } from './planAsText';
@@ -29,12 +29,12 @@ function About({ detail, onPut }: { detail: Detail; onPut: (detail: Detail) => v
         <h3 className="tw-finding__title">{detail.item.title}</h3>
         {draft === null ? <>
             {detail.item.description ? <p className="tw-finding__purpose">{detail.item.description}</p> : <p className="gk-faint tw-finding__purpose">{copy('Nobody has written what it’s for yet.', 'რისთვისაა, ჯერ არავის დაუწერია.')}</p>}
-            <span className="tw-row-actions"><button type="button" className="tw-link-button" onClick={() => setDraft(detail.item.description ?? '')}>{detail.item.description ? copy('Edit', 'რედაქტირება') : copy('Write what it’s for', 'დაწერეთ რისთვისაა')}</button>
-                <button type="button" className="tw-link-button" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, window.location.href)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</button></span>
+            <span className="work-row-actions"><button type="button" className="work-link-button" onClick={() => setDraft(detail.item.description ?? '')}>{detail.item.description ? copy('Edit', 'რედაქტირება') : copy('Write what it’s for', 'დაწერეთ რისთვისაა')}</button>
+                <button type="button" className="work-link-button" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, window.location.href)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</button></span>
         </> : <form className="tw-field" onSubmit={event => { event.preventDefault(); void save(); }}>
             <label htmlFor={id}>{copy('What it’s for', 'რისთვისაა')}</label>
             <textarea id={id} className="gk-input" rows={3} maxLength={400} autoFocus value={draft} onChange={event => setDraft(event.target.value)} />
-            <span className="tw-row-actions"><Button size="sm" variant="primary" type="submit">{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setDraft(null)}>{copy('Cancel', 'გაუქმება')}</Button></span>
+            <span className="work-row-actions"><Button size="sm" variant="primary" type="submit">{copy('Save', 'შენახვა')}</Button><Button size="sm" variant="ghost" onClick={() => setDraft(null)}>{copy('Cancel', 'გაუქმება')}</Button></span>
         </form>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </div>;
@@ -105,7 +105,7 @@ export function FindingRow({ item, detail, team, me, open, time, day, state, lin
             trail={<span className="tw-finding__trail">
                 <span className="tw-finding__state">{by?.name && <span className="tw-finding__by">{by.name} · </span>}<span className="tw-finding__words" data-me={mine(waiting) || undefined}>{words}</span></span>
                 {yours ? <Button size="sm" disabled={busy} title={copy('I’ll keep it in mind', 'გავითვალისწინებ')} onClick={() => void note(NOTE.acknowledged)}><Check aria-hidden="true" />{copy('Acknowledge', 'გავითვალისწინე')}</Button> : next}
-                <button type="button" className="tw-icon-button tw-finding__toggle" tabIndex={-1} aria-hidden="true" onClick={toggle}>{open ? <ChevronDown /> : <ChevronRight />}</button>
+                <button type="button" className="work-icon-button tw-finding__toggle" tabIndex={-1} aria-hidden="true" onClick={toggle}>{open ? <ChevronDown /> : <ChevronRight />}</button>
             </span>}
             onClick={toggle} label={`${item.title}. ${words}`} />
         {error && <li className="tw-finding__error"><p className="gk-notice gk-notice--danger" role="alert">{error}</p></li>}
@@ -116,7 +116,7 @@ export function FindingRow({ item, detail, team, me, open, time, day, state, lin
                     <span>{[by?.name, ago(copy, item.createdAt)].filter(Boolean).join(' · ')}</span>
                     {acknowledged.length > 0 && <span className="tw-finding__ok"><Check aria-hidden="true" />{copy(`Acknowledged by ${namesOf(copy, acknowledged, me)}`, `გაითვალისწინა: ${namesOf(copy, acknowledged, me)}`)}</span>}
                     {seen.length > 0 && <span><Eye aria-hidden="true" />{copy(`Seen by ${namesOf(copy, seen, me)}`, `ნახა: ${namesOf(copy, seen, me)}`)}</span>}
-                    <span className="tw-row-actions tw-finding__actions">
+                    <span className="work-row-actions tw-finding__actions">
                         {!mine(acknowledged) && !mine(seen) && by?.id !== me && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void note(NOTE.seen)}><Eye aria-hidden="true" />{copy('Seen', 'ვნახე')}</Button>}
                         {!mine(acknowledged) && !yours && <Button size="sm" variant="ghost" disabled={busy} title={copy('I’ll keep it in mind', 'გავითვალისწინებ')} onClick={() => void note(NOTE.acknowledged)}><Check aria-hidden="true" />{copy('Acknowledge', 'გავითვალისწინე')}</Button>}
                     </span>

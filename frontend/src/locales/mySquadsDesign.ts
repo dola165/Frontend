@@ -37,6 +37,7 @@ export const mySquadsEn = {
     saveWhoCame: 'Save who came', cameShort: 'came', absentShort: 'absent', registerSaved_one: 'Saved: {{count}} came.', registerSaved_other: 'Saved: {{count}} came.',
     registerFailed: 'The register could not be saved.', registerChanged: 'Someone saved this register meanwhile. Check the ticks and save again.', stopHelping: 'Stop helping', stopHelpingConfirm: 'Stop helping at {{squad}}? The coach is told.',
     stopHelpingFailed: 'That didn’t work. Try again.', helpingFailed: 'The session you help at couldn’t load',
+    invitedHelper: '{{name}} added you as a helper', notForMe: 'Not for me',
     // The staff room and the session's register in My squads
     staffRoom: 'Staff room', staffRoomFailed: 'The staff room could not open.', staffRoomName: '{{squad}} · staff', whoCame: 'Who came',
 };
@@ -73,5 +74,6 @@ export const mySquadsKa: Record<keyof typeof mySquadsEn, string> = {
     saveWhoCame: 'დასწრების შენახვა', cameShort: 'მოვიდა', absentShort: 'არ მოსულა', registerSaved_one: 'შენახულია: {{count}} მოვიდა.', registerSaved_other: 'შენახულია: {{count}} მოვიდა.',
     registerFailed: 'დასწრება ვერ შეინახა.', registerChanged: 'ამასობაში დასწრება სხვამ შეინახა. გადაამოწმეთ მონიშვნები და ისევ შეინახეთ.', stopHelping: 'დახმარების შეწყვეტა', stopHelpingConfirm: 'შეწყვეტთ {{squad}}-ის დახმარებას? მწვრთნელს ვაცნობებთ.',
     stopHelpingFailed: 'ვერ მოხერხდა. სცადეთ თავიდან.', helpingFailed: 'ვარჯიში, რომელსაც ეხმარებით, ვერ ჩაიტვირთა',
+    invitedHelper: '{{name}} დაგამატათ დამხმარედ', notForMe: 'ჩემთვის არაა',
     staffRoom: 'შტაბის ჩატი', staffRoomFailed: 'შტაბის ჩატი ვერ გაიხსნა.', staffRoomName: '{{squad}} · შტაბი', whoCame: 'ვინ მოვიდა',
 };

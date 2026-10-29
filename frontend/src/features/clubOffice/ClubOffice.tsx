@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarDays, LayoutGrid, Settings, ShieldCheck, Users } from 'lucide-react';
+import { CalendarDays, FolderKanban, LayoutGrid, Settings, ShieldCheck, Users } from 'lucide-react';
 import { WorkspaceShell, type WorkspaceNavItem } from '../../design/workspace/WorkspaceShell';
 import { Button, ButtonLink, EmptyNote, PageFrame, Skeleton } from '../../design/primitives';
 import { useAuth } from '../../context/AuthContext';
@@ -22,7 +22,8 @@ import { BirthDateStep } from '../pages/create/BirthDateStep';
 import { MoreTools } from './MoreTools';
 import { OfficeSettings } from './OfficeSettings';
 import { OfficeTool } from './OfficeTool';
-import { bareLink, isMovedTool, isOfficeTool, movedToolPath, OFFICE_PLACES, officePath, officeToolPath, type OfficePlace, type OfficeTool as Tool } from './officeLinks';
+import { bareLink, isMovedTool, isOfficeTool, isProjectsTool, movedToolPath, OFFICE_PLACES, officePath, officeToolPath, type OfficePlace, type OfficeTool as Tool } from './officeLinks';
+import { projectsPath } from '../projects/projectWords';
 import { toolStates } from './officeTools';
 import '../clubWorkspace/club-workspace.css';
 import './office.css';
@@ -78,6 +79,8 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
 
     if (!Number.isSafeInteger(clubId) || clubId <= 0) return <PageFrame><EmptyNote title={copy('This club office does not exist', 'კლუბის ოფისი ვერ მოიძებნა')} /></PageFrame>;
     if (ownSquad) return <Navigate replace to={`/my-squads?${new URLSearchParams({ clubId: String(clubId), squad: squad! })}`} />;
+    // The campaigns manager is Projects now (step 4): its old links land there.
+    if (isProjectsTool(rawTool)) return <Navigate replace to={projectsPath(clubId)} />;
     // Applications, attendance and preparation moved into My squads (step 3): a bare link to one of the person's squads
     // lands there; a record, a session, another squad or an owner's or admin's link opens the tool here.
     if (known && !leader && tool && isMovedTool(tool) && bareLink(params) && inMySquads(squad)) return <Navigate replace to={movedToolPath(clubId, tool, Object.fromEntries(params))} />;
@@ -98,7 +101,10 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
         ...(leader ? [{ id: 'squads', label: copy('Squads', 'გუნდები'), icon: ShieldCheck }, { id: 'settings', label: copy('Settings', 'პარამეტრები'), icon: Settings }] : []),
     ];
     const quiet: WorkspaceNavItem[] = anyTool ? [{ id: 'tools', label: copy('More tools', 'სხვა ინსტრუმენტები'), icon: LayoutGrid }] : [];
-    const footer: WorkspaceNavItem[] = [{ id: 'calendar', label: copy('Calendar', 'კალენდარი'), icon: CalendarDays }];
+    // Projects (step 4) is a page of its own; owners and admins reach it from here too.
+    const footer: WorkspaceNavItem[] = [{ id: 'calendar', label: copy('Calendar', 'კალენდარი'), icon: CalendarDays },
+        ...(leader ? [{ id: 'projects', label: copy('Projects', 'პროექტები'), icon: FolderKanban }] : [])];
+    const pathOf = (id: string) => id === 'projects' ? projectsPath(clubId) : officePath(clubId, id as OfficePlace);
 
     let content: ReactNode;
     if (!known && !roles && !club.overview) content = <PageFrame className="cw-page"><div className="cw-loading" role="status" aria-label={copy('Loading Club office', 'კლუბის ოფისი იტვირთება')}>
@@ -132,8 +138,8 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
 
     return <WorkspaceShell label={copy('Club office', 'კლუბის ოფისი')} storageKey={`office-${clubId}`} guard={guardWorkspaceNavigation} canvas
         context={{ name: clubName, crest: club.clubLogoUrl, role: job, back: { label: copy('Club page', 'კლუბის გვერდი'), to: `/clubs/${clubId}` } }}
-        primary={primary} quiet={quiet} footer={footer} active={place} onSelect={id => go(officePath(clubId, id as OfficePlace))}
-        hrefFor={id => officePath(clubId, id as OfficePlace)} sectionTitle={copy('Club office', 'კლუბის ოფისი')}>
+        primary={primary} quiet={quiet} footer={footer} active={place} onSelect={id => go(pathOf(id))}
+        hrefFor={pathOf} sectionTitle={copy('Club office', 'კლუბის ოფისი')}>
         {workspaceRoles.error && roles && <div className="gk-notice gk-notice--warning" role="alert"><span className="cw-notices__text">{workspaceRoles.error}</span>
             <Button size="sm" onClick={workspaceRoles.refresh}>{copy('Try again', 'თავიდან')}</Button></div>}
         {content}

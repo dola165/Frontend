@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { moveMenuFocus, openMenuFromKey, usePopover } from '../../components/layout/header/usePopover';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { ACTIONS, OPENED_HERE } from './registry';
+import { OPENED_HERE } from './registry';
 import { useMenuActions } from './useMenuActions';
 import './actions.css';
 
@@ -25,11 +25,10 @@ export function ActionMenu() {
             {open && (
                 <div ref={panelRef} id={id} role="menu" tabIndex={-1} aria-label={copy('Start something', 'დაწყება')} className="gk-pop gk-pop--actions" onKeyDown={moveMenuFocus}>
                     {actions.map(action => {
-                        const definition = ACTIONS[action.key];
-                        const Icon = definition.icon;
+                        const Icon = action.icon;
                         return <Link key={action.key} role="menuitem" to={action.href} state={OPENED_HERE} className="gk-menu__item gk-action-item" onClick={() => close(false)}>
-                            <Icon aria-hidden="true" className="gk-action__icon" style={definition.color ? { color: definition.color } : undefined} />
-                            <span className="gk-action-item__text"><span>{copy(...definition.label)}</span>{action.hint && <small>{action.hint}</small>}</span>
+                            <Icon aria-hidden="true" className="gk-action__icon" style={action.color ? { color: action.color } : undefined} />
+                            <span className="gk-action-item__text"><span>{copy(...action.label)}</span>{action.hint && <small>{action.hint}</small>}</span>
                             {action.waiting && <span className="gk-action-dot" aria-label={copy('Waiting', 'ელოდება')} />}
                         </Link>;
                     })}

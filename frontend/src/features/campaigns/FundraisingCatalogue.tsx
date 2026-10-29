@@ -1,12 +1,12 @@
 import { ct, useCommerceCopy } from '../store/copy';
 import { useId, useState, type ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowUpRight, ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button, Chip, EmptyNote, Field, SearchInput } from '../../design/primitives';
 import { useWorldData } from '../world/useWorldData';
 import { CAMPAIGN_CATEGORIES, fetchCampaignLocations, type CampaignSort } from './api';
 import { FundraiserCard, FundraiserSkeletons } from './FundraiserCard';
-import { ManageFundraiser } from './manage/ManageFundraiser';
+import { FundraiserProjectLink } from '../projects/FundraiserProjectLink';
 import { activeFilters, PAGE_SIZE, readFundraising, SORTS, STATES, withoutFilter, type FundraisingQuery } from './query';
 import { useFundraising } from './useFundraising';
 
@@ -79,7 +79,7 @@ function SearchBox({ value, onCommit }: { value: string; onCommit: (value: strin
 }
 
 /** The fundraising catalogue in the store's frame: filter column (a sheet on phones and inside the club page), toolbar, category pills, grid. */
-export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false, empty }: { fixedClubId?: number; revision?: number; /** The viewer runs the club's fundraisers: each card gets its Manage entrance. */ manage?: boolean; empty?: ReactNode }) {
+export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false, empty }: { fixedClubId?: number; revision?: number; /** The viewer works with the club: each card opens its project. */ manage?: boolean; empty?: ReactNode }) {
     useCommerceCopy();
     const id = useId();
     const { query, update, campaigns, total, loading, error, retry } = useFundraising(fixedClubId, revision);
@@ -106,7 +106,10 @@ export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false
                 {error ? <div className="gk-store-results__empty"><EmptyNote title={ct("Fundraisers could not load")} action={<Button size="sm" onClick={retry}>{ct("Retry")}</Button>}>{error}</EmptyNote></div>
                     : loading && !campaigns.length ? <ul className="gk-store-grid gk-fund-grid" aria-busy="true" aria-label={ct("Loading fundraisers")}><FundraiserSkeletons count={6} /></ul>
                     : !campaigns.length ? <div className="gk-store-results__empty"><EmptyNote title={query.query ? ct("Nothing matches “{v0}”", { v0: query.query }) : ct("No fundraisers match these filters")} action={(filters.length > 0 || query.query) && <Button size="sm" onClick={() => update(readFundraising(new URLSearchParams(), fixedClubId))}>{ct("Clear search and filters")}</Button>}>{ct("Try another word or fewer filters, or include ended fundraisers.")}</EmptyNote></div>
-                    : <ul className="gk-store-grid gk-fund-grid" aria-busy={loading} aria-label={ct("Fundraisers")}>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} />{manage && <ManageFundraiser campaign={campaign} allowed onChanged={retry} compact />}</li>)}</ul>}
+                    : <ul className="gk-store-grid gk-fund-grid" aria-busy={loading} aria-label={ct("Fundraisers")}>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} />
+                        {/* On the club page the money is one tap away while it is open: GoFundMe takes it (never on paused, closed or ended ones). */}
+                        {fixedClubId && campaign.donateUrl && campaign.status === 'PUBLISHED' && campaign.phase === 'ACTIVE' && <a className="gk-fund-give-link" href={campaign.donateUrl} target="_blank" rel="noopener noreferrer">{ct("Give on GoFundMe")}<ArrowUpRight aria-hidden="true" /></a>}
+                        {manage && <FundraiserProjectLink campaign={campaign} />}</li>)}</ul>}
                 {pages > 1 && <div className="gk-store-results__foot"><Pages page={query.page} pages={pages} onPage={page => { update({ ...query, page }); window.scrollTo({ top: 0 }); }} /></div>}
             </div>
             <Dialog open={sheet} title={ct("Filters")} size="sheet" onClose={() => setSheet(false)} footer={<Button variant="primary" onClick={() => setSheet(false)}>{ct("Show ")}{total} {total === 1 ? 'fundraiser' : 'fundraisers'}</Button>}>

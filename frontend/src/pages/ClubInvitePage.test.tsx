@@ -103,6 +103,24 @@ it('after claiming, a job that waits on the email says "Confirm your email to st
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
     expect(await screen.findByText('Confirm your email to start as Assistant coach')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification'));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification', { continuationPath: '/requests?view=updates' }));
     expect(await screen.findByText(/Sent. Open the link/)).toBeInTheDocument();
+});
+
+it('after claiming a project helper’s link, says "Confirm your email to see …" with Resend, not an empty project', async () => {
+    const helper = { ...preview, invites: [{ ...preview.invites[0], kind: 'PROJECT_HELPER', id: 12, revision: null, job: 'PROJECT_HELPER', title: 'New kit for U12', squads: [] }] };
+    api.post.mockImplementation(async (url: string) => {
+        if (url === '/auth/club-invite/preview') return { data: helper };
+        if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test', confirmationSent: true } };
+        if (url === '/auth/login') return { data: { accessToken: 'token' } };
+        return { data: {} };
+    });
+    open();
+    expect(await screen.findByText('On a project · New kit for U12')).toBeInTheDocument();
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    expect(await screen.findByText('Confirm your email to see New kit for U12')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
+    // The new email's link opens the project once confirmed.
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification', { continuationPath: '/projects/12' }));
 });

@@ -168,7 +168,9 @@ post('/recruitment/applications/:id/offer', answer('OFFERED'));
 const U12 = 102;
 const helpers = [{ id: 9701, clubId: C.CLUB_ID, squadId: U12, sessionKey: 'u12-wednesdays', repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(U12).headCoachId, since: C.at(-12), active: true },
   // A parent who helps at U14 Boys' training every week: the squad's staff all see her there.
-  { id: 9702, clubId: C.CLUB_ID, squadId: 103, repeating: true, userId: 9706, name: 'Nino Abashidze', addedBy: W.squadById(103).headCoachId, since: C.at(-5), active: true }];
+  { id: 9702, clubId: C.CLUB_ID, squadId: 103, repeating: true, userId: 9706, name: 'Nino Abashidze', addedBy: W.squadById(103).headCoachId, since: C.at(-5), active: true },
+  // The helper persona was also added to U14 Boys by address and answers on Home: Accept / Not for me (fix round 4).
+  { id: 9703, clubId: C.CLUB_ID, squadId: 103, repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(103).headCoachId, since: C.at(-1), active: true, waiting: true }];
 // session id -> { revision, rows: Map(player id -> { status, by }) }: the attendance records of the session, the
 // coaches' and the helper's alike, and a version that changes with every saved change. The register's revision is
 // that version with the session's player list, as a string (the server's is a digest of both).
@@ -203,14 +205,17 @@ post('/squad-communication/:sid/sessions/:eid/helpers', ({ params, headers, body
   if (!M.addsHelpers(persona(headers), Number(params.sid))) return denied('Only this squad’s head coach can add a helper.');
   const name = String(body?.name ?? '').trim(), email = String(body?.email ?? '').trim().toLowerCase();
   if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return reply(400, { status: 400, message: 'Enter their name and email.' });
+  // The team's test addresses are never invited (the server refuses them too).
+  if (/^admin\.[^@]*@talanti\.ge$/i.test(email)) return reply(400, { status: 400, message: 'Addresses like admin.…@talanti.ge are the team’s test accounts and can’t be invited.' });
   // A retry shows the same helper and the same link.
   const earlier = helpers.find(h => h.requestId && h.requestId === body?.requestId);
   if (earlier) return earlier.answer;
   // Synthetic: an address at invited.example already has an invitation waiting from a club, which stays as it is.
+  // Every helper waits until they accept, and every existing address gets the same answer (no id, no link).
   const known = [...W.people].find(person => person.email === email), pending = !known && email.endsWith('@invited.example');
-  const helper = { id: W.newId(), clubId: C.CLUB_ID, squadId: Number(params.sid), sessionId: body?.repeating ? null : Number(params.eid), repeating: Boolean(body?.repeating), userId: known?.id ?? W.newId(), name, addedBy: W.ME_ID, since: new Date().toISOString(), active: true, waiting: !known, requestId: body?.requestId ?? null };
+  const helper = { id: W.newId(), clubId: C.CLUB_ID, squadId: Number(params.sid), sessionId: body?.repeating ? null : Number(params.eid), repeating: Boolean(body?.repeating), userId: known?.id ?? W.newId(), name, addedBy: W.ME_ID, since: new Date().toISOString(), active: true, waiting: true, requestId: body?.requestId ?? null };
   const fresh = !known && !pending;
-  helper.answer = { id: helper.id, name, link: fresh ? `sandbox-helper-${helper.id}` : null, linkExpiresAt: fresh ? new Date(Date.now() + 7 * 864e5).toISOString() : null, invitationPending: pending };
+  helper.answer = { id: fresh ? helper.id : null, name, link: fresh ? `sandbox-helper-${helper.id}` : null, linkExpiresAt: fresh ? new Date(Date.now() + 7 * 864e5).toISOString() : null, invitationPending: false };
   helpers.push(helper);
   return helper.answer;
 });
@@ -219,6 +224,17 @@ del('/squad-communication/:sid/helpers/:hid', ({ params, headers }) => {
   const helper = helpers.find(h => h.id === Number(params.hid) && h.active && h.squadId === Number(params.sid));
   if (!helper) return reply(404, { status: 404, message: 'That helper was not found.' });
   helper.active = false; return reply(204);
+});
+get('/me/helping/invitations', ({ headers }) => {
+  if (persona(headers) !== 'helper') return [];
+  const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(17, 0, 0, 0);
+  return helpers.filter(h => h.active && h.waiting && h.userId === 9705).map(h => ({ helperId: h.id, squadId: h.squadId, squadName: C.squadName(h.squadId), clubName: C.club.name,
+    title: 'Training', startsAt: start.toISOString(), repeating: h.repeating, addedBy: C.name(h.addedBy) }));
+});
+post('/me/helping/:hid/accept', ({ params, headers }) => {
+  const helper = helpers.find(h => h.id === Number(params.hid) && h.active && h.waiting && persona(headers) === 'helper' && h.userId === 9705);
+  if (!helper) return reply(404, { status: 404, message: 'That helper was not found.' });
+  helper.waiting = false; return reply(204);
 });
 get('/me/helping', ({ headers }) => {
   if (persona(headers) !== 'helper' || !helpers.some(h => h.id === 9701 && h.active)) return [];

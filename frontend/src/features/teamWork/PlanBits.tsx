@@ -10,6 +10,7 @@ import { ancestorsOf } from './planSteps';
 import { useClickAway } from './useClickAway';
 import { StatusDot } from './WorkBits';
 import { ago, endWords, madeBy } from './teamWorkWords';
+import '../../components/work/work.css';
 
 /**
  * The plan step by step: the plans that are its steps first (each with what it is for and its progress, complete
@@ -40,7 +41,7 @@ export function OrderStrip({ nodes, steps = [], numbers, onOpen, onOpenPlan, onD
                         <span className="tw-order__bar"><span style={{ width: `${plan.percent}%` }} /></span>
                         <span className="tw-order__when">{plan.live ? copy('live', 'ლაივზეა') : copy(`plan · ${openCount(plan)} open`, `გეგმა · ${openCount(plan)} ღია`)}</span>
                     </button>
-                    {onDetach && <button type="button" className="tw-icon-button tw-order__detach" aria-label={copy(`Take the plan ${plan.name} out`, `გეგმის ${plan.name} ამოღება`)} title={copy('Take out of this plan', 'ამ გეგმიდან ამოღება')} onClick={() => onDetach(plan)}><X aria-hidden="true" /></button>}
+                    {onDetach && <button type="button" className="work-icon-button tw-order__detach" aria-label={copy(`Take the plan ${plan.name} out`, `გეგმის ${plan.name} ამოღება`)} title={copy('Take out of this plan', 'ამ გეგმიდან ამოღება')} onClick={() => onDetach(plan)}><X aria-hidden="true" /></button>}
                 </li>;
             })}
             {nodes.map(node => {
@@ -147,7 +148,7 @@ export function CopyForAiDialog({ view, onClose }: { view: PlanView; onClose: ()
         footer={<><Button variant="ghost" onClick={onClose}>{copy('Close', 'დახურვა')}</Button>
             <Button variant="primary" disabled={!text} onClick={() => { if (text) void navigator.clipboard?.writeText(text).then(() => setCopied(true)); }}>{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy', 'კოპირება')}</Button></>}>
         <label htmlFor={id} className="gk-visually-hidden">{copy('The plan as text', 'გეგმა ტექსტად')}</label>
-        <textarea id={id} className="gk-input tw-paste__text" readOnly rows={14} value={text ?? copy('Gathering the plan…', 'გეგმა გროვდება…')} onFocus={event => event.target.select()} />
+        <textarea id={id} className="gk-input work-paste__text" readOnly rows={14} value={text ?? copy('Gathering the plan…', 'გეგმა გროვდება…')} onFocus={event => event.target.select()} />
     </Dialog>;
 }
 

@@ -25,6 +25,10 @@
 .gk .hp-register__name { flex: 1; min-width: 0; }
 .gk .hp-register__tick { width: 16px; height: 16px; color: var(--gk-accent); }
 
+.gk .hp-ask { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); margin-bottom: var(--gk-3); }
+.gk .hp-ask .hp-card__title { flex: 1 1 220px; }
+.gk .hp-ask__actions { display: flex; gap: var(--gk-2); margin-left: auto; }
+
 /* ---------------------------------------------------------------- a session's helpers (My squads) */
 .gk .hp-session { display: flex; flex-direction: column; gap: var(--gk-2); margin-top: var(--gk-3); padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); }
 .gk .hp-session__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); }

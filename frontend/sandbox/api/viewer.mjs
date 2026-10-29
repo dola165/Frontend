@@ -77,9 +77,10 @@ export const isNewcomer = headers => viewerId(headers) !== W.ME_ID;
  * Sandbox personas, all still Luka's account with other club access (set by /__mode/… on the server): `analyst` (a
  * few tools, two read-only), `member` (membership, no job), `headcoach` (head coach of U14 and U16, not an admin) and
  * `physio` (one job with only the medical tools, no membership) and `attendance` (a Custom job with only Attendance,
- * no membership). None: the Owner and head coach.
+ * no membership); for Projects (handlers/projects.mjs) `commercial`, `facilities`, `projectcoach` and `kitparent`.
+ * None: the Owner and head coach.
  */
-export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'teammanager', 'gkcoach', 'headofcoaching', 'kit', 'helper'];
+export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'teammanager', 'gkcoach', 'headofcoaching', 'kit', 'helper', 'commercial', 'facilities', 'projectcoach', 'kitparent'];
 export const personaOf = headers => { const found = /(?:^|;\s*)gk-sandbox-persona=([a-z]+)(?:;|$)/.exec(String(headers?.cookie ?? ''))?.[1]; return PERSONAS.includes(found) ? found : null; };
 /** Not the club's Owner or an Admin: every persona. */
 export const restrictedPersona = headers => personaOf(headers) !== null;

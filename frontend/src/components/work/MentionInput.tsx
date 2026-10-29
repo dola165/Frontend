@@ -1,7 +1,8 @@
 import { useId, useRef, useState } from 'react';
-import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import type { Person } from './api';
+import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
+import type { Person } from './types';
 import { mentionPattern } from './mentionWords';
+import './work.css';
 
 /** A comment box where "@" offers the team's names; arrows choose, Enter or Tab puts the name in. */
 export function MentionInput({ id, value, team, rows = 2, placeholder, label, onChange }: {
@@ -27,7 +28,7 @@ export function MentionInput({ id, value, team, rows = 2, placeholder, label, on
         setQuery(null);
         requestAnimationFrame(() => { box.current?.focus(); box.current?.setSelectionRange(at, at); });
     };
-    return <div className="tw-mention">
+    return <div className="work-mention">
         <textarea ref={box} id={id} className="gk-input" rows={rows} maxLength={2000} value={value} placeholder={placeholder} aria-label={label}
             role="combobox" aria-autocomplete="list" aria-expanded={matches.length > 0} aria-controls={listId}
             aria-activedescendant={matches.length ? `${listId}-${active}` : undefined}
@@ -39,7 +40,7 @@ export function MentionInput({ id, value, team, rows = 2, placeholder, label, on
                 else if (event.key === 'Escape') setQuery(null);
             }}
             onBlur={() => setQuery(null)} />
-        {matches.length > 0 && <ul id={listId} role="listbox" className="tw-mention__list" aria-label={copy('Tag someone', 'მონიშნეთ ვინმე')}>
+        {matches.length > 0 && <ul id={listId} role="listbox" className="work-mention__list" aria-label={copy('Tag someone', 'მონიშნეთ ვინმე')}>
             {matches.map((person, index) => <li key={person.id ?? person.name} id={`${listId}-${index}`} role="option" aria-selected={index === active}
                 onMouseDown={event => { event.preventDefault(); pick(person); }}>@{person.name}</li>)}
         </ul>}
@@ -51,5 +52,5 @@ export function MentionText({ text, team, me }: { text: string; team: Person[]; 
     const pattern = mentionPattern(team);
     if (!pattern) return <>{text}</>;
     return <>{text.split(pattern).map((step, index) => index % 2 === 0 ? step
-        : <span key={index} className="tw-tag" data-me={team.find(person => person.name === step)?.id === me || undefined}>@{step}</span>)}</>;
+        : <span key={index} className="work-tag" data-me={team.find(person => person.name === step)?.id === me || undefined}>@{step}</span>)}</>;
 }

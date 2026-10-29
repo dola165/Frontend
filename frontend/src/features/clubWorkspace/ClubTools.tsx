@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { ClubAdmissionWorkspace } from '../admissions/club/ClubAdmissionWorkspace';
 import type { useClubAdmissions } from '../admissions/club/useClubAdmissions';
 import { ClubApproachesPanel } from '../agents/ClubApproachesPanel';
@@ -10,8 +10,8 @@ import type { WorkspaceTab } from '../../components/workspace/types';
 import type { AuthSessionId } from '../../utils/authStorage';
 import { Button, PageFrame } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
-import { ClubCampaignsPage } from './commerce/ClubCampaignsPage';
 import { StoreProductsPage } from './commerce/StoreProductsPage';
+import { projectsPath } from '../projects/projectWords';
 import { PlayersPage } from './players/PlayersPage';
 import { PlayerCardsPage } from './players/PlayerCardsPage';
 import { ApplicationsPage } from './recruitment/ApplicationsPage';
@@ -72,7 +72,8 @@ export function ClubTools(ctx: ClubToolsContext) {
         case 'player-cards': return <PlayerCardsPage clubId={clubId} canRemove={can.leadership} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
         case 'club-approaches': return can.leadership ? <ClubApproachesPanel mode="club" clubId={clubId} /> : null;
         case 'store': return can.leadership ? <StoreProductsPage key={clubId} clubId={clubId} /> : null;
-        case 'campaigns': return can.leadership ? <ClubCampaignsPage key={clubId} clubId={clubId} /> : null;
+        // Fundraisers are a project's money part now (step 4): the old tool opens Projects.
+        case 'campaigns': return <Navigate replace to={projectsPath(clubId)} />;
         case 'tryouts': return <>
             {ctx.focusedApplicationId != null && focusNote(!m.tryouts.loading && !m.tryouts.applicants.some(a => a.id === ctx.focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.')}
             <TryoutsPage clubId={clubId} tryoutApplicants={ctx.focusedApplicationId != null ? m.tryouts.applicants.filter(a => a.id === ctx.focusedApplicationId) : m.tryouts.applicants}

@@ -78,17 +78,12 @@
 .gk .gk-fund-start__tile:hover { transform: translateY(-2px); border-color: var(--gk-line-strong); box-shadow: var(--gk-store-lift); }
 .gk .gk-fund-start__tile[aria-pressed='true'] { border-color: var(--gk-accent); background: var(--gk-accent-soft); }
 .gk .gk-fund-start__tile[aria-pressed='true'] svg { color: var(--gk-accent); }
-.gk .gk-fund-start__goal { display: flex; align-items: center; gap: var(--gk-2); }
-.gk .gk-fund-start__goal input { font-size: 24px; font-weight: 600; min-height: 52px; }
-.gk .gk-fund-start__goal select { width: auto; min-height: 52px; }
 .gk .gk-fund-start__chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 .gk .gk-fund-start__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); padding-top: var(--gk-2); }
 .gk .gk-fund-start__foot .gk-btn--primary { min-width: 160px; min-height: 44px; font-size: var(--gk-fs-lg); }
 .gk .gk-fund-start__club { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
 .gk .gk-fund-start__club strong { font-weight: 600; }
 .gk .gk-fund-start__club small { display: block; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
-.gk .gk-fund-start__preview { display: flex; gap: var(--gk-4); align-items: center; padding: var(--gk-4); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); }
-.gk .gk-fund-start__preview .gk-fund__pic { width: 160px; flex: none; }
 .gk .gk-fund-start textarea.gk-input { min-height: 120px; padding: var(--gk-3); line-height: var(--gk-lh-lg); }
 
 @media (max-width: 900px) {
@@ -110,13 +105,12 @@
 .gk .gk-fund__pic { aspect-ratio: 16 / 9; border-radius: var(--gk-r); }
 
 /* The organiser's entrance to one fundraiser: a quiet row, its two common tools in view and the rest behind More. */
-.gk .gk-fund-manage { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); margin-left: auto; }
-.gk .gk-fund-manage[data-compact] { margin-left: 0; padding-top: var(--gk-2); }
-.gk .gk-fund-manage__label { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
-.gk .gk-fund-manage__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
-.gk .gk-fund-manage__error { flex-basis: 100%; font-size: var(--gk-fs-sm); color: var(--gk-danger); }
 .gk .gk-fund-grid > li { display: flex; flex-direction: column; }
 /* A manager's tool opened for one fundraiser: inside the page frame, without a second frame's margins. */
 .gk .gk-fund-tool > .cm-page { padding: var(--gk-4) 0 0; max-width: none; }
 .gk .gk-fund-tool[data-tool="report"] { max-width: 720px; }
-@media (max-width: 900px) { .gk .gk-fund-manage { margin-left: 0; flex-basis: 100%; } }
+
+/* On the club page, a fundraiser's GoFundMe page sits under its card. */
+.gk .gk-fund-give-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; color: var(--gk-accent); font-size: var(--gk-fs-sm); font-weight: 650; text-decoration: none; }
+.gk .gk-fund-give-link:hover { text-decoration: underline; }
+.gk .gk-fund-give-link svg { width: 14px; height: 14px; }

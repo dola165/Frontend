@@ -22,7 +22,7 @@ export function Progress({ campaign, large }: { campaign: Campaign; large?: bool
             {raised === null
                 ? <p className="gk-fund-progress__amounts"><strong>{ct("Not reported yet")}</strong>{goal !== null && <span className="gk-fund-progress__goal">{ct(" · goal ")}{campaignMoney(goal, campaign.currency)}</span>}</p>
                 : <p className="gk-fund-progress__amounts"><strong className="gk-num">{campaignMoney(raised, campaign.currency)}</strong>{goal !== null && <span className="gk-fund-progress__goal">{ct(" raised of ")}{campaignMoney(goal, campaign.currency)}</span>}</p>}
-            <p className="gk-fund-progress__facts">{[donations != null ? commerceCount(donations, 'donation') : null, reached ? ct("Goal reached") : left === null ? null : left === 0 ? ct("Ended") : ct("{v0} {v1} left", { v0: left, v1: ct(left === 1 ? 'day' : 'days') })].filter(Boolean).join(' · ')}</p>
+            <p className="gk-fund-progress__facts">{[raised !== null ? ct("Reported by the club") : null, donations != null ? commerceCount(donations, 'donation') : null, reached ? ct("Goal reached") : left === null ? null : left === 0 ? ct("Ended") : ct("{v0} {v1} left", { v0: left, v1: ct(left === 1 ? 'day' : 'days') })].filter(Boolean).join(' · ')}</p>
         </div>
     );
 }

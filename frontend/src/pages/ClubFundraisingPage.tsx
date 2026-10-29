@@ -4,6 +4,8 @@ import { Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ButtonLink, EmptyNote, GkRoot, PageFrame } from '../design/primitives';
 import { isLeadershipRole } from '../features/clubs/domain';
+import { projectsPath } from '../features/projects/projectWords';
+import { useMyProjects } from '../features/projects/useProjects';
 import { FundraisingCatalogue } from '../features/campaigns/FundraisingCatalogue';
 import { fetchStoreClub } from '../features/store/api';
 import { Crest } from '../features/world/Crest';
@@ -11,7 +13,10 @@ import { useWorldData } from '../features/world/useWorldData';
 import '../features/store/store.css';
 import '../features/campaigns/campaigns.css';
 
-/** A club's fundraising: the catalogue fixed to the club, with its crest over it; inside the club page only the catalogue shows. Staff start a fundraiser from here. */
+/**
+ * A club's fundraising: the catalogue fixed to the club, with its crest over it; inside the club page only the catalogue
+ * shows. Anyone on the club's staff starts one here: a Raise money project, whose fundraiser is its money part.
+ */
 export const ClubFundraisingPage = () => {
     useCommerceCopy();
     const { id } = useParams();
@@ -21,11 +26,12 @@ export const ClubFundraisingPage = () => {
     const embedded = !/\/campaigns$/.test(location.pathname);
     const club = useWorldData(valid ? `store-club:${clubId}` : null, signal => fetchStoreClub(clubId, signal));
     const { status } = useAuth();
-    const canStart = valid && status === 'authenticated' && isLeadershipRole(club.data?.myRole);
+    const mine = useMyProjects(valid && status === 'authenticated');
+    const canStart = valid && status === 'authenticated' && (isLeadershipRole(club.data?.myRole) || (Array.isArray(mine.data) && mine.data.some(entry => entry.club?.id === clubId && entry.canStart)));
     const frame = (children: React.ReactNode) => embedded ? <GkRoot className="gk-store gk-store--embedded" data-market="fundraising">{children}</GkRoot> : <GkRoot className="gk-store gk-page" data-market="fundraising"><PageFrame>{children}</PageFrame></GkRoot>;
     if (!valid) return frame(<EmptyNote title={ct("This club could not be found.")} action={<ButtonLink to="/campaigns">{ct("Back to fundraising")}</ButtonLink>} />);
     const actions = <div className="gk-store-club__actions">
-        {canStart && <ButtonLink variant="primary" to="/campaigns/new"><Plus aria-hidden="true" />{ct("Start a fundraiser")}</ButtonLink>}
+        {canStart && <ButtonLink variant="primary" to={projectsPath(clubId, 'projects', { new: 'RAISE_MONEY' })}><Plus aria-hidden="true" />{ct("Start a fundraiser")}</ButtonLink>}
         {!embedded && <ButtonLink variant="ghost" to={`/clubs/${clubId}`}>{ct("Club page")}</ButtonLink>}
     </div>;
     return frame(<>

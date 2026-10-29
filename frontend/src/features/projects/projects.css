@@ -84,6 +84,8 @@
 }
 @media (max-width: 640px) {
     .gk .pj-head { flex-wrap: wrap; }
+    /* A title keeps its words; the switch and New project go under it. */
+    .gk .pj-head__title { min-width: 10ch; }
     .gk .pj-kinds { grid-template-columns: minmax(0, 1fr); }
     .gk .pj-step { flex-wrap: wrap; }
     .gk .pj-step__edit { width: 100%; padding-left: 34px; }

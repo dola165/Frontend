@@ -37,6 +37,7 @@ first('GET', '/users/me', async req => {
 // A parent belongs to no club: no membership, and at a club only what any adult may do there.
 first('GET', '/clubs/my-membership-context', ({ headers }) => V.personaOf(headers) === 'kitparent'
   ? { hasClubMembership: false, canCreateClub: true, clubId: null, clubName: null, myRole: null } : undefined);
+first('GET', '/me/results-waiting', ({ headers }) => V.personaOf(headers) === 'kitparent' ? [] : undefined);
 first('GET', '/access/me', ({ headers }) => V.personaOf(headers) === 'kitparent'
   ? { allowed: ['start_club', 'add_child', 'join_squad', 'follow'], refused: [
     refusal('arrange_match', 'ONLY_SQUAD_MATCH_STAFF', 'Only a squad’s coaches arrange its matches.'),

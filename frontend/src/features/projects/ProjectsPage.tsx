@@ -75,12 +75,13 @@ export function ProjectsPage({ projectId }: { projectId?: number }) {
     else if (board.notFound) content = notHere;
     else if (board.error && !board.data) content = failed(board.error, board.reload);
     else if (!board.data) content = loadingNote;
-    else content = <ProjectList board={board.data} place={place} onStarted={detail => { board.reload(); navigate(`/projects/${detail.summary.id}`); }} />;
+    else content = <ProjectList board={board.data} place={place}
+        switcher={(mine.data?.length ?? 0) > 1 ? <ClubSwitch mine={mine.data!} clubId={clubId} onPick={id => navigate(projectsPath(id, place))} /> : undefined}
+        onStarted={detail => { board.reload(); navigate(`/projects/${detail.summary.id}`); }} />;
 
     return <WorkspaceShell label={copy('Projects', 'პროექტები')} storageKey="projects" canvas
         context={{ name: club?.name ?? '…', crest: club?.crestUrl, role: copy('Projects', 'პროექტები'), back: club ? { label: copy('Club page', 'კლუბის გვერდი'), to: `/clubs/${club.id}` } : undefined }}
-        primary={primary} footer={footer} active={place} onSelect={select} hrefFor={hrefFor} sectionTitle={title}
-        actions={!projectId && (mine.data?.length ?? 0) > 1 ? <ClubSwitch mine={mine.data!} clubId={clubId} onPick={id => navigate(projectsPath(id, place))} /> : undefined}>
+        primary={primary} footer={footer} active={place} onSelect={select} hrefFor={hrefFor} sectionTitle={title}>
         {content}
     </WorkspaceShell>;
 }

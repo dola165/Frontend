@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronRight, Plus } from 'lucide-react';
 import { Button, EmptyNote, List, ListRow, PageFrame } from '../../design/primitives';
@@ -24,7 +25,7 @@ function ProjectRow({ project }: { project: ProjectSummary }) {
  * is a project. Done: what the club finished, with its photos. "New project" opens from the address (`new`, with the
  * kind and squad already chosen when a door asked for them).
  */
-export function ProjectList({ board, place, onStarted }: { board: ProjectBoard; place: ProjectsPlace; onStarted: (detail: ProjectDetail) => void }) {
+export function ProjectList({ board, place, switcher, onStarted }: { board: ProjectBoard; place: ProjectsPlace; switcher?: ReactNode; onStarted: (detail: ProjectDetail) => void }) {
     const copy = useJourneyCopy();
     const [params, setParams] = useSearchParams();
     const opening = params.get('new');
@@ -40,7 +41,10 @@ export function ProjectList({ board, place, onStarted }: { board: ProjectBoard; 
     return <PageFrame className="pj-page">
         <header className="pj-head">
             <h1 className="pj-head__title">{heading}</h1>
-            {board.canStart && place !== 'done' && <Button variant="primary" size="sm" onClick={() => open({ new: place === 'ideas' ? 'IDEA' : '1' })}><Plus aria-hidden="true" />{startLabel}</Button>}
+            <div className="pj-head__actions">
+                {switcher}
+                {board.canStart && place !== 'done' && <Button variant="primary" size="sm" onClick={() => open({ new: place === 'ideas' ? 'IDEA' : '1' })}><Plus aria-hidden="true" />{startLabel}</Button>}
+            </div>
         </header>
 
         {place === 'projects' && board.needsYou.length > 0 && <section className="pj-block" aria-labelledby="pj-needs">

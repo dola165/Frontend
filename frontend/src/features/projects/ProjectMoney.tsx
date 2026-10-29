@@ -21,6 +21,8 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const { summary, fundraiser: f, can } = project;
+    // Once the public has seen it (published, then maybe paused or closed), its public details are the publishers'.
+    const seen = Boolean(f?.publishedAt) && f?.status !== 'ARCHIVED';
     const clubId = project.club?.id ?? 0;
     if (!summary.target && !f) return null;
     const currency = summary.target?.currency ?? f?.goal?.currency ?? 'GEL';
@@ -46,15 +48,15 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
                 ? copy(`reported by the club${f.reportedBy ? `, ${f.reportedBy.name}` : ''}, ${ago(copy, f.reportedAt)}`, `კლუბის ცნობით${f.reportedBy ? `, ${f.reportedBy.name}` : ''}, ${ago(copy, f.reportedAt)}`)
                 : copy('nothing reported yet', 'ჯერ არაფერი უცნობებიათ')}</span>}
         </p>
-        {f?.donateUrl && <a className="pj-give" href={f.donateUrl} target="_blank" rel="noopener noreferrer">{copy('Give on GoFundMe', 'შეწირვა GoFundMe-ზე')}<ArrowUpRight aria-hidden="true" /></a>}
+        {f?.donateUrl && f.status === 'PUBLISHED' && f.phase === 'ACTIVE' && <a className="pj-give" href={f.donateUrl} target="_blank" rel="noopener noreferrer">{copy('Give on GoFundMe', 'შეწირვა GoFundMe-ზე')}<ArrowUpRight aria-hidden="true" /></a>}
         <div className="pj-actions">
             {!f && can.startFundraiser && <Button size="sm" variant="primary" onClick={() => setOpen('start')}>{copy('Start a fundraiser', 'შეგროვების დაწყება')}</Button>}
             {f && can.change && <Button size="sm" variant="primary" onClick={() => setOpen('amount')}>{copy('Update amount', 'თანხის განახლება')}</Button>}
             {f && can.publish && f.status !== 'PUBLISHED' && f.status !== 'CLOSED' && <Button size="sm" disabled={busy} onClick={() => void move('PUBLISHED')}>{copy('Publish', 'გამოქვეყნება')}</Button>}
-            {f && can.change && f.status === 'PUBLISHED' && <Button size="sm" variant="ghost" onClick={() => setOpen('update')}>{copy('Post an update', 'სიახლის გამოქვეყნება')}</Button>}
-            {f && can.change && <Button size="sm" variant="ghost" onClick={() => setOpen('edit')}>{copy('Edit fundraiser', 'შეგროვების რედაქტირება')}</Button>}
+            {f && can.publish && f.status === 'PUBLISHED' && <Button size="sm" variant="ghost" onClick={() => setOpen('update')}>{copy('Post an update', 'სიახლის გამოქვეყნება')}</Button>}
+            {f && (seen ? can.publish : can.change) && <Button size="sm" variant="ghost" onClick={() => setOpen('edit')}>{copy('Edit fundraiser', 'შეგროვების რედაქტირება')}</Button>}
             {f && can.change && f.status === 'PUBLISHED' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('PAUSED')}>{copy('Pause', 'შეჩერება')}</Button>}
-            {f && can.change && (f.status === 'PUBLISHED' || f.status === 'PAUSED') && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('CLOSED')}>{copy('Close', 'დახურვა')}</Button>}
+            {f && can.publish && (f.status === 'PUBLISHED' || f.status === 'PAUSED') && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('CLOSED')}>{copy('Close', 'დახურვა')}</Button>}
         </div>
         {f && !f.clubVerified && <p className="pj-quiet">{copy('A fundraiser goes public once the club is verified.', 'შეგროვება საჯარო ხდება კლუბის ვერიფიკაციის შემდეგ.')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

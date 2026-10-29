@@ -127,8 +127,8 @@ export const startFundraiser = (clubId: number, id: number, input: FundraiserInp
 /** change_fundraiser */
 export const changeFundraiser = (clubId: number, id: number, input: FundraiserInput & { version: number }) => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser`, input, 'put');
 /** report_amount; a new currency changes the fundraiser's (and the target's) with it. */
-export const reportAmount = (clubId: number, id: number, version: number, amount: number, note?: string, currency?: Currency) =>
-    command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/amount`, { version, amount, note, currency });
+export const reportAmount = (clubId: number, id: number, version: number, amount: number, note?: string, currency?: Currency, target?: number) =>
+    command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/amount`, { version, amount, note, currency, target });
 /** post_fundraiser_update: news for the supporters on the public page. */
 export const postFundraiserUpdate = (clubId: number, id: number, version: number, title: string, body: string) => command<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/updates`, { version, title, body });
 /** publish_fundraiser, or pause or close it. */

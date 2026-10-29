@@ -107,8 +107,8 @@ export function FundraisingCatalogue({ fixedClubId, revision = 0, manage = false
                     : loading && !campaigns.length ? <ul className="gk-store-grid gk-fund-grid" aria-busy="true" aria-label={ct("Loading fundraisers")}><FundraiserSkeletons count={6} /></ul>
                     : !campaigns.length ? <div className="gk-store-results__empty"><EmptyNote title={query.query ? ct("Nothing matches “{v0}”", { v0: query.query }) : ct("No fundraisers match these filters")} action={(filters.length > 0 || query.query) && <Button size="sm" onClick={() => update(readFundraising(new URLSearchParams(), fixedClubId))}>{ct("Clear search and filters")}</Button>}>{ct("Try another word or fewer filters, or include ended fundraisers.")}</EmptyNote></div>
                     : <ul className="gk-store-grid gk-fund-grid" aria-busy={loading} aria-label={ct("Fundraisers")}>{campaigns.map(campaign => <li key={campaign.id}><FundraiserCard campaign={campaign} />
-                        {/* On the club page the money is one tap away: GoFundMe takes it. */}
-                        {fixedClubId && campaign.donateUrl && <a className="gk-fund-give-link" href={campaign.donateUrl} target="_blank" rel="noopener noreferrer">{ct("Give on GoFundMe")}<ArrowUpRight aria-hidden="true" /></a>}
+                        {/* On the club page the money is one tap away while it is open: GoFundMe takes it (never on paused, closed or ended ones). */}
+                        {fixedClubId && campaign.donateUrl && campaign.status === 'PUBLISHED' && campaign.phase === 'ACTIVE' && <a className="gk-fund-give-link" href={campaign.donateUrl} target="_blank" rel="noopener noreferrer">{ct("Give on GoFundMe")}<ArrowUpRight aria-hidden="true" /></a>}
                         {manage && <FundraiserProjectLink campaign={campaign} />}</li>)}</ul>}
                 {pages > 1 && <div className="gk-store-results__foot"><Pages page={query.page} pages={pages} onPage={page => { update({ ...query, page }); window.scrollTo({ top: 0 }); }} /></div>}
             </div>

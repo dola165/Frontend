@@ -26,7 +26,8 @@ const isOn = (project, id) => project.createdBy === id || project.added.includes
 const sees = (project, headers) => everyProject(headers, project.clubId) || isOn(project, me(headers));
 const changes = (project, headers) => everyProject(headers, project.clubId) || (project.createdBy === me(headers) && onStaff(headers, project.clubId));
 const verified = clubId => Boolean(W.clubById(clubId)?.verified);
-const LIVE = ['PUBLISHED', 'PAUSED'];
+// Once the public has seen it (published, then maybe paused or closed) and it isn't archived, its public details are the publishers'.
+const seen = f => Boolean(f?.publishedAt) && f.status !== 'ARCHIVED';
 // CampaignService.move: a draft is published; a published one paused or closed; a paused one published again or closed.
 const MOVES = { DRAFT: ['PUBLISHED'], PUBLISHED: ['PAUSED', 'CLOSED'], PAUSED: ['PUBLISHED', 'CLOSED'] };
 const blank = value => !String(value ?? '').trim();
@@ -150,7 +151,7 @@ patch('/clubs/:id/projects/:pid', ({ params, body, headers }) => {
     const f = project.fundraiser;
     // The goal and target are the fundraiser's title and goal: public ones are the publishers'; a reported amount keeps its currency.
     if (f && (goal !== project.goal || JSON.stringify(target) !== JSON.stringify(project.target))) {
-        if (LIVE.includes(f.status) && !publishes(headers, project.clubId)) return problem(403, 'Its fundraiser is public: only an admin or the commercial lead changes the goal or the target now.');
+        if (seen(f) && !publishes(headers, project.clubId)) return problem(403, 'Its fundraiser is public: only an admin or the commercial lead changes the goal or the target now.');
         if (f.reportedAmount != null && target && target.currency !== f.currency) return problem(409, `The amount raised is reported in ${f.currency}. Update the amount raised in ${target.currency} first, then change the target's currency.`);
     }
     project.goal = goal;
@@ -238,8 +239,10 @@ post('/clubs/:id/projects/:pid/fundraiser/amount', ({ params, body, headers }) =
     if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects change its fundraiser.');
     if (body?.version !== project.fundraiser.version) return conflict('fundraiser');
     const f = project.fundraiser, currency = body.currency && body.currency !== f.currency ? body.currency : null;
-    if (currency && LIVE.includes(f.status) && !publishes(headers, project.clubId)) return problem(403, 'This fundraiser is public: only an admin or the commercial lead changes it now.');
-    if (currency) { f.currency = currency; if (project.target) project.target = { ...project.target, currency }; }
+    if (currency && seen(f) && !publishes(headers, project.clubId)) return problem(403, 'This fundraiser is public: only an admin or the commercial lead changes it now.');
+    // Amounts are never converted: a new currency needs the target entered again in it.
+    if (currency && project.target && !(Number(body.target) > 0)) return problem(400, `Enter the target in ${currency} too: amounts aren't converted.`);
+    if (currency) { f.currency = currency; if (project.target) { project.target = { amount: Number(body.target), currency }; f.goalAmount = project.target.amount; } }
     Object.assign(f, { reportedAmount: Number(body.amount), reportedNote: body.note || 'Reported by the club', reportedBy: me(headers), reportedAt: new Date().toISOString(), version: f.version + 1 });
     touched(project, headers, currency ? `Updated the amount raised, now in ${currency}` : 'Updated the amount raised');
     return detail(project, headers);
@@ -253,7 +256,7 @@ post('/clubs/:id/projects/:pid/fundraiser/state', ({ params, body, headers }) =>
         if (!publishes(headers, project.clubId)) return problem(403, 'An admin or the commercial lead publishes a fundraiser.');
         if (f.status === 'PUBLISHED') return detail(project, headers); // The first one counts.
         if (!verified(project.clubId)) return problem(409, 'A fundraiser goes public once the club is verified.');
-    } else if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects change its fundraiser.');
+    } else if (body?.status === 'CLOSED' && seen(f) ? !publishes(headers, project.clubId) : !changes(project, headers)) return problem(403, 'An admin or the commercial lead closes a fundraiser the public has seen.');
     if (body?.version !== f.version) return conflict('fundraiser');
     if (!(MOVES[f.status] ?? []).includes(body.status)) return problem(409, 'This fundraiser can\'t move there from where it is now.');
     if (body.status === 'PUBLISHED' && !f.publishedAt) Object.assign(f, { publishedAt: new Date().toISOString(), publishedBy: me(headers) });
@@ -266,7 +269,7 @@ post('/clubs/:id/projects/:pid/fundraiser/updates', ({ params, body, headers }) 
     const project = find(params, headers);
     const f = project?.fundraiser;
     if (!f) return missing();
-    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects change its fundraiser.');
+    if (!publishes(headers, project.clubId)) return problem(403, 'An admin or the commercial lead posts the fundraiser\'s public news.');
     if (body?.version !== f.version) return conflict('fundraiser');
     if (f.status !== 'PUBLISHED') return problem(409, 'Publish the campaign before posting an update.');
     if (blank(body?.title) || blank(body?.body)) return problem(400, 'An update needs a title and a few words.');
@@ -309,7 +312,7 @@ put('/clubs/:id/projects/:pid/fundraiser', ({ params, body, headers }) => {
     const project = find(params, headers);
     if (!project?.fundraiser) return missing();
     if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects change its fundraiser.');
-    if (LIVE.includes(project.fundraiser.status) && !publishes(headers, project.clubId)) return problem(403, 'This fundraiser is public: only an admin or the commercial lead changes it now.');
+    if (seen(project.fundraiser) && !publishes(headers, project.clubId)) return problem(403, 'This fundraiser is public: only an admin or the commercial lead changes it now.');
     if (body?.version !== project.fundraiser.version) return conflict('fundraiser');
     const wrong = fundraiserWords(project, body);
     if (wrong) return problem(400, wrong);

@@ -50,14 +50,20 @@ export function AmountDialog({ project, onClose, onSaved }: { project: ProjectDe
     const [amount, setAmount] = useState(f.reportedAmount?.toString() ?? '');
     const [note, setNote] = useState('');
     const [currency, setCurrency] = useState<Currency>(f.currency);
+    // Amounts are never converted: a new currency needs the target entered again in it.
+    const [target, setTarget] = useState('');
+    const needsTarget = currency !== f.currency && project.summary.target != null;
+    const targetValue = Number(target), targetReady = !needsTarget || (target.trim() !== '' && Number.isFinite(targetValue) && targetValue > 0);
     const { busy, error, save } = useSave(onSaved);
-    const value = Number(amount), ready = amount.trim() !== '' && Number.isFinite(value) && value >= 0;
+    const value = Number(amount), ready = amount.trim() !== '' && Number.isFinite(value) && value >= 0 && targetReady;
     return <Frame title={copy('Update amount', 'თანხის განახლება')} busy={busy} ready={ready} saveLabel={copy('Save', 'შენახვა')} error={error} onClose={onClose}
-        onSave={() => void save(() => reportAmount(project.club!.id, project.summary.id, f.version, value, note.trim() || undefined, currency === f.currency ? undefined : currency))}>
+        onSave={() => void save(() => reportAmount(project.club!.id, project.summary.id, f.version, value, note.trim() || undefined, currency === f.currency ? undefined : currency, needsTarget ? targetValue : undefined))}>
         <Line label={copy('Raised so far', 'შეგროვდა ჯერჯერობით')} hint={currency === f.currency ? copy('Supporters see it as reported by the club.', 'მხარდამჭერები ხედავენ, როგორც კლუბის ცნობას.')
             : copy(`The fundraiser and its target move to ${currency} with this amount.`, `შეგროვება და მისი მიზანი ამ თანხასთან ერთად ${currency}-ზე გადადის.`)}>
             {id => <span className="pj-money-input"><input id={id} className="gk-input" inputMode="decimal" autoFocus value={amount} onChange={event => setAmount(event.target.value)} />
                 <select className="gk-input" aria-label={copy('Currency', 'ვალუტა')} value={currency} onChange={event => setCurrency(event.target.value as Currency)}>{CURRENCIES.map(code => <option key={code}>{code}</option>)}</select></span>}</Line>
+        {needsTarget && <Line label={copy(`Target in ${currency}`, `მიზანი ${currency}-ში`)} hint={copy('Amounts aren’t converted: enter the target again.', 'თანხები არ გადაიყვანება: მიზანი თავიდან შეიყვანეთ.')}>
+            {id => <input id={id} className="gk-input" inputMode="decimal" value={target} onChange={event => setTarget(event.target.value)} />}</Line>}
         <Line label={copy('Note (optional)', 'შენიშვნა (არასავალდებულო)')}>{id => <input id={id} className="gk-input" maxLength={1000} value={note} placeholder={copy('Counted on GoFundMe on Friday', 'დათვლილია GoFundMe-ზე პარასკევს')} onChange={event => setNote(event.target.value)} />}</Line>
     </Frame>;
 }

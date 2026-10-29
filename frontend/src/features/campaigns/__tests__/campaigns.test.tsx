@@ -61,6 +61,14 @@ describe('Front, catalogue and the fundraiser', () => {
         await waitFor(() => expect(api.fetchCampaigns).toHaveBeenLastCalledWith(expect.objectContaining({ clubId: 10, page: 1 }), expect.any(AbortSignal)));
         expect(screen.getByRole('link', { name: 'Start a fundraiser' })).toHaveAttribute('href', '/projects?club=10&new=RAISE_MONEY');
     });
+    it('offers Give on GoFundMe on the club page only while a fundraiser is open', async () => {
+        vi.mocked(api.fetchCampaigns).mockResolvedValue({ content: [campaign, { ...campaign, id: 2, title: 'Paused pitch', status: 'PAUSED', phase: 'PAUSED' },
+            { ...campaign, id: 3, title: 'Closed pitch', status: 'CLOSED', phase: 'ENDED' }], totalElements: 3 });
+        render(<MemoryRouter initialEntries={['/clubs/10/campaigns?state=ALL']}><Routes><Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} /></Routes></MemoryRouter>);
+        expect(await screen.findByText('Closed pitch')).toBeInTheDocument();
+        expect(screen.getAllByRole('link', { name: /Give on GoFundMe/ })).toHaveLength(1);
+    });
+
     it('clears a dependent city when the country changes', async () => {
         render(<MemoryRouter initialEntries={['/campaigns/all?country=Georgia&city=Tbilisi']}><Routes><Route path="/campaigns/all" element={<FundraisingCataloguePage />} /></Routes></MemoryRouter>);
         await screen.findByRole('option', { name: 'France' });

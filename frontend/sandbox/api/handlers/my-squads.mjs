@@ -205,6 +205,8 @@ post('/squad-communication/:sid/sessions/:eid/helpers', ({ params, headers, body
   if (!M.addsHelpers(persona(headers), Number(params.sid))) return denied('Only this squad’s head coach can add a helper.');
   const name = String(body?.name ?? '').trim(), email = String(body?.email ?? '').trim().toLowerCase();
   if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return reply(400, { status: 400, message: 'Enter their name and email.' });
+  // The team's test addresses are never invited (the server refuses them too).
+  if (/^admin\.[^@]*@talanti\.ge$/i.test(email)) return reply(400, { status: 400, message: 'Addresses like admin.…@talanti.ge are the team’s test accounts and can’t be invited.' });
   // A retry shows the same helper and the same link.
   const earlier = helpers.find(h => h.requestId && h.requestId === body?.requestId);
   if (earlier) return earlier.answer;

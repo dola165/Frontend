@@ -331,6 +331,8 @@ post('/clubs/:id/projects/:pid/helpers', ({ params, body, headers }) => {
     if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects add people.');
     const name = String(body?.name ?? '').trim(), email = String(body?.email ?? '').trim();
     if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return problem(400, 'Give their name and email.');
+    // The team's test addresses are never invited (the server refuses them too).
+    if (/^admin\.[^@]*@talanti\.ge$/i.test(email)) return problem(400, 'Addresses like admin.…@talanti.ge are the team’s test accounts and can’t be invited.');
     const key = `${me(headers)}:${body?.requestId}`;
     const earlier = helperRequests.get(key);
     if (earlier) return reply(201, { ...earlier, project: detail(project, headers) });

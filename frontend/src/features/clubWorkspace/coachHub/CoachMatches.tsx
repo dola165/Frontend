@@ -67,10 +67,11 @@ export function CoachMatches({ data }: { data: CoachData }) {
     const upcoming = (items ?? []).filter(match => time(match) >= data.now && match.fixtureStatus !== 'CANCELLED' && !carded(match)).sort((a, b) => time(a) - time(b));
     const played = (items ?? []).filter(match => time(match) < data.now).sort((a, b) => time(b) - time(a));
     // Arranging is match management (head coaches, team managers) on any squad shown; everyone on the squad reads its
-    // matches. The form opens on the squad picked in the switcher, or the first where this person arranges matches.
+    // matches. The form opens only once that answer is in, on the first squad shown where this person arranges matches
+    // (the one picked in the switcher), so it never opens on one squad's draft and then moves to another.
     const arranger = useFirstAllowed(data.shown.map(id => `squad:${id}` as const), 'arrange_match');
-    const canArrange = arranger.subject !== null;
-    const squadForMatch = data.focus ?? (arranger.subject ? Number(arranger.subject.split(':')[1]) : data.mine[0]?.id ?? 0);
+    const squadForMatch = arranger.subject ? Number(arranger.subject.split(':')[1]) : null;
+    const canArrange = squadForMatch !== null;
     // "+ Arrange a match" anywhere opens the form in a dialog here; `arrange=1` in the address does the same on arrival.
     const setArranging = (open: boolean) => { const next = new URLSearchParams(params); if (open) next.set('arrange', '1'); else next.delete('arrange'); setParams(next, { replace: !open }); };
 
@@ -120,7 +121,7 @@ export function CoachMatches({ data }: { data: CoachData }) {
                         : <EmptyNote title={copy('noMatchesPlayed')}>{copy('noMatchesPlayedHint')}</EmptyNote>}</Panel>
             </Section>
         </div>
-        {arranging && user && <Dialog open size="lg" title={copy('arrangeMatch')} description={data.names.get(squadForMatch)} onClose={() => setArranging(false)}>
+        {arranging && user && squadForMatch !== null && <Dialog open size="lg" title={copy('arrangeMatch')} description={data.names.get(squadForMatch)} onClose={() => setArranging(false)}>
             <div className="ch-arrange"><ArrangeMatchForm key={squadForMatch} mode="direct" squadId={squadForMatch} storageKey={arrangeDraftKey(user.id, sessionId, `coach-${squadForMatch}`)}
                 onSent={() => { setArranging(false); setRevision(value => value + 1); data.refresh(); }} /></div>
         </Dialog>}

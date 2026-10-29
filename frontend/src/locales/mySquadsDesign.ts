@@ -31,11 +31,11 @@ export const mySquadsEn = {
     helperInvitationPending: '{{name}} already has an invitation waiting. They’ll see this session on Home once they set up their account.',
     notSetUpYet: 'hasn’t set up their account yet', noHelpers: 'No helpers on this session.', removeHelper: 'Remove {{name}}', removeHelperConfirm: 'Take {{name}} off this date?',
     removeHelperEveryWeekConfirm: 'Take {{name}} off every week of this session?', removeHelperFailed: 'The helper could not be removed.',
-    helpersFailed: 'The helpers could not be loaded.', addedBy: 'added by {{name}}', remove: 'Remove',
+    addedBy: 'added by {{name}}', remove: 'Remove',
     // A helper's Home
     helpingToday: 'You’re helping today · {{time}}', helpingOn: 'You’re helping on {{day}} · {{time}}', withCoach: 'with {{name}}', register: 'Register',
     saveWhoCame: 'Save who came', cameShort: 'came', absentShort: 'absent', registerSaved_one: 'Saved: {{count}} came.', registerSaved_other: 'Saved: {{count}} came.',
-    registerFailed: 'The register could not be saved.', stopHelping: 'Stop helping', stopHelpingConfirm: 'Stop helping at {{squad}}? The coach is told.',
+    registerFailed: 'The register could not be saved.', registerChanged: 'Someone saved this register meanwhile. Check the ticks and save again.', stopHelping: 'Stop helping', stopHelpingConfirm: 'Stop helping at {{squad}}? The coach is told.',
     stopHelpingFailed: 'That didn’t work. Try again.', helpingFailed: 'The session you help at couldn’t load',
     // The staff room and the session's register in My squads
     staffRoom: 'Staff room', staffRoomFailed: 'The staff room could not open.', staffRoomName: '{{squad}} · staff', whoCame: 'Who came',
@@ -68,10 +68,10 @@ export const mySquadsKa: Record<keyof typeof mySquadsEn, string> = {
     helperInvitationPending: '{{name}}-ს მოწვევა უკვე აქვს. ამ ვარჯიშს მთავარ გვერდზე ანგარიშის შექმნის შემდეგ ნახავს.',
     notSetUpYet: 'ანგარიში ჯერ არ შეუქმნია', noHelpers: 'ამ ვარჯიშს დამხმარე არ ჰყავს.', removeHelper: '{{name}}-ის მოხსნა', removeHelperConfirm: 'მოეხსნას {{name}} ამ დღეს?',
     removeHelperEveryWeekConfirm: 'მოეხსნას {{name}} ამ ვარჯიშს ყოველ კვირა?', removeHelperFailed: 'დამხმარე ვერ მოიხსნა.',
-    helpersFailed: 'დამხმარეები ვერ ჩაიტვირთა.', addedBy: 'დაამატა {{name}}', remove: 'მოხსნა',
+    addedBy: 'დაამატა {{name}}', remove: 'მოხსნა',
     helpingToday: 'დღეს ეხმარებით · {{time}}', helpingOn: 'ეხმარებით: {{day}} · {{time}}', withCoach: 'მწვრთნელი {{name}}', register: 'დასწრება',
     saveWhoCame: 'დასწრების შენახვა', cameShort: 'მოვიდა', absentShort: 'არ მოსულა', registerSaved_one: 'შენახულია: {{count}} მოვიდა.', registerSaved_other: 'შენახულია: {{count}} მოვიდა.',
-    registerFailed: 'დასწრება ვერ შეინახა.', stopHelping: 'დახმარების შეწყვეტა', stopHelpingConfirm: 'შეწყვეტთ {{squad}}-ის დახმარებას? მწვრთნელს ვაცნობებთ.',
+    registerFailed: 'დასწრება ვერ შეინახა.', registerChanged: 'ამასობაში დასწრება სხვამ შეინახა. გადაამოწმეთ მონიშვნები და ისევ შეინახეთ.', stopHelping: 'დახმარების შეწყვეტა', stopHelpingConfirm: 'შეწყვეტთ {{squad}}-ის დახმარებას? მწვრთნელს ვაცნობებთ.',
     stopHelpingFailed: 'ვერ მოხერხდა. სცადეთ თავიდან.', helpingFailed: 'ვარჯიში, რომელსაც ეხმარებით, ვერ ჩაიტვირთა',
     staffRoom: 'შტაბის ჩატი', staffRoomFailed: 'შტაბის ჩატი ვერ გაიხსნა.', staffRoomName: '{{squad}} · შტაბი', whoCame: 'ვინ მოვიდა',
 };

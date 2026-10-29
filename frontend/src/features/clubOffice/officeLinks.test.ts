@@ -94,7 +94,7 @@ describe('tools that moved into My squads (step 3)', () => {
         // another), so the old address goes there whatever the navigation hints say.
         const target = legacyWorkspaceTarget(7, new URLSearchParams({ tab, squad: '105' }), coach);
         expect(target).toBe(`/clubs/7/office?tab=tools&tool=${tab}&squad=105`);
-        expect(bareLink(tab as MovedTool, at(target).searchParams)).toBe(true);
+        expect(bareLink(at(target).searchParams)).toBe(true);
         expect(movedToolPath(7, tab as MovedTool, { squad: '105' })).toBe(`/my-squads?clubId=7&tab=${place}&squad=105`);
         expect(lands(movedToolPath(7, tab as MovedTool))).toBe(true);
     });
@@ -111,14 +111,15 @@ describe('tools that moved into My squads (step 3)', () => {
     });
 
     it('sends only a bare link on: anything it names more opens the tool here', () => {
-        expect(bareLink('applications', new URLSearchParams('tab=tools&tool=applications&squad=105'))).toBe(true);
-        expect(bareLink('applications', new URLSearchParams('tab=tools&tool=applications&applicationId=3'))).toBe(false);
-        expect(bareLink('attendance', { tool: 'attendance', record: '12' })).toBe(false);
-        expect(bareLink('attendance', { tool: 'attendance', person: '40' })).toBe(false);
-        expect(bareLink('preparation', { tool: 'preparation', session: '7' })).toBe(false);
-        // An old attendance link with its session opens that session's register on My squads.
-        expect(bareLink('attendance', { tool: 'attendance', squad: '105', session: '7' })).toBe(true);
-        expect(movedToolPath(7, 'attendance', { squad: '105', session: '7' })).toBe('/my-squads?clubId=7&activity=s-7');
+        expect(bareLink(new URLSearchParams('tab=tools&tool=applications&squad=105'))).toBe(true);
+        expect(bareLink(new URLSearchParams('tab=tools&tool=applications&applicationId=3'))).toBe(false);
+        expect(bareLink({ tool: 'attendance', record: '12' })).toBe(false);
+        expect(bareLink({ tool: 'attendance', person: '40' })).toBe(false);
+        // A session's register stays in the tool (My squads finds only its own squads' sessions of the coming weeks),
+        // and Squads' way back to itself is Club office's own.
+        expect(bareLink({ tool: 'attendance', squad: '105', session: '7' })).toBe(false);
+        expect(bareLink({ tool: 'attendance', squad: '105', return: 'squads' })).toBe(false);
+        expect(legacyWorkspaceTarget(7, new URLSearchParams('tab=attendance&squad=105&session=7'), coach)).toBe('/clubs/7/office?tab=tools&tool=attendance&squad=105&session=7');
         expect(legacyWorkspaceTarget(7, new URLSearchParams('tab=attendance&record=12'), coach)).toBe('/clubs/7/office?tab=tools&tool=attendance&record=12');
     });
 });

@@ -15,10 +15,10 @@ export interface AddedHelper { id: number | null; name: string; link: string | n
 export interface HelpingPlayer { id: number; firstName: string; lastInitial: string | null; response: string; register: string | null }
 export interface Helping {
     helperId: number; sessionId: number; squadId: number; squadName: string; clubId: number; clubName: string; title: string; kind: string;
-    startsAt: string; endsAt: string; location: string | null; coach: string | null; registerOpen: boolean; registerRevision: number; players: HelpingPlayer[];
+    startsAt: string; endsAt: string; location: string | null; coach: string | null; registerOpen: boolean; registerRevision: string; players: HelpingPlayer[];
 }
 /** A session's register and its revision, which a save sends back unchanged (409 REGISTER_CHANGED otherwise). */
-export interface RegisterView { revision: number; players: HelpingPlayer[] }
+export interface RegisterView { revision: string; players: HelpingPlayer[] }
 export interface ClubHelper { id: number; name: string; squadId: number; squadName: string; session: string | null; startsAt: string | null; repeating: boolean; addedBy: string; since: string }
 
 const squadRoot = (squad: number) => `/squad-communication/${squad}`;
@@ -31,7 +31,7 @@ export const removeHelper = async (squad: number, helper: number) => { await api
 
 export const helping = async (signal?: AbortSignal) => (await apiClient.get<Helping[]>('/me/helping', { signal })).data;
 export const register = async (session: number) => (await apiClient.get<RegisterView>(`/me/helping/sessions/${session}/register`)).data;
-export const saveRegister = async (session: number, body: { came: number[]; requestId: string; revision: number }) =>
+export const saveRegister = async (session: number, body: { came: number[]; requestId: string; revision: string }) =>
     (await apiClient.put<RegisterView>(`/me/helping/sessions/${session}/register`, body)).data;
 export const stopHelping = async (helper: number) => { await apiClient.delete(`/me/helping/${helper}`); };
 

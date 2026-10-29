@@ -13,16 +13,16 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
 const today = new Date(); today.setHours(18, 0, 0, 0);
 const session: Helping = { helperId: 4, sessionId: 5640, squadId: 101, squadName: 'U12 Mixed', clubId: 1, clubName: 'FC Dinamo Tbilisi Academy', title: 'Training', kind: 'TRAINING',
-    startsAt: today.toISOString(), endsAt: today.toISOString(), location: 'Pitch 2', coach: 'Koba Gvazava', registerOpen: true, registerRevision: 3, players: [
+    startsAt: today.toISOString(), endsAt: today.toISOString(), location: 'Pitch 2', coach: 'Koba Gvazava', registerOpen: true, registerRevision: 'r1', players: [
         { id: 1, firstName: 'Nana', lastInitial: 'B', response: 'GOING', register: null },
         { id: 2, firstName: 'Gabriel', lastInitial: 'K', response: 'NOT_GOING', register: null },
         { id: 3, firstName: 'Ilia', lastInitial: 'T', response: 'UNANSWERED', register: null },
     ] };
-const failure = (status: number, message = 'Request failed') => ({ isAxiosError: true, response: { status, data: { message } } });
+const failure = (status: number, message = 'Request failed', code?: string) => ({ isAxiosError: true, response: { status, data: { message, code } } });
 
 it('brings a helper today’s session on Home with its register, the likely answer ticked, and saves who came', async () => {
     api.get.mockResolvedValue({ data: [session] });
-    api.put.mockResolvedValue({ data: { revision: 5, players: session.players.map(player => ({ ...player, register: player.id === 3 || player.id === 1 ? 'ARRIVED' : 'ABSENT' })) } });
+    api.put.mockResolvedValue({ data: { revision: 'r2', players: session.players.map(player => ({ ...player, register: player.id === 3 || player.id === 1 ? 'ARRIVED' : 'ABSENT' })) } });
     render(<MemoryRouter><HelpingCard /></MemoryRouter>);
     expect(await screen.findByText(/You’re helping today/)).toBeInTheDocument();
     expect(screen.getByText(/with Koba Gvazava/)).toBeInTheDocument();
@@ -32,8 +32,26 @@ it('brings a helper today’s session on Home with its register, the likely answ
     fireEvent.click(screen.getByRole('checkbox', { name: /Ilia/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Save who came' }));
     // The save carries the register's revision the helper saw.
-    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/me/helping/sessions/5640/register', expect.objectContaining({ came: [1, 3], revision: 3 })));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/me/helping/sessions/5640/register', expect.objectContaining({ came: [1, 3], revision: 'r1' })));
     expect(await screen.findByText('Saved: 2 came.')).toBeInTheDocument();
+});
+
+it('treats a changed tick as a new save, and shows the register as the server saved it', async () => {
+    api.get.mockResolvedValue({ data: [session] });
+    // The first save's answer is lost; the server's answer to the second has the coach's tick for Gabriel.
+    api.put.mockRejectedValueOnce({ isAxiosError: true, message: 'Network Error' })
+        .mockResolvedValueOnce({ data: { revision: 'r2', players: session.players.map(player => ({ ...player, register: player.id === 3 ? 'ABSENT' : 'ARRIVED' })) } });
+    render(<MemoryRouter><HelpingCard /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Save who came' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Ilia/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save who came' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalledTimes(2));
+    const [first, second] = api.put.mock.calls.map(call => call[1].requestId);
+    expect(second).not.toBe(first);
+    expect(await screen.findByText('Saved: 2 came.')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Gabriel/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Ilia/ })).not.toBeChecked();
 });
 
 it('tells two players with the same first name apart by the last name’s initial', async () => {
@@ -50,15 +68,15 @@ it('tells two players with the same first name apart by the last name’s initia
 
 it('shows the register as it is now when someone saved in between, the coach’s ticks added, to save again', async () => {
     api.get.mockImplementation(async (url: string) => url === '/me/helping' ? { data: [session] }
-        : { data: { revision: 4, players: session.players.map(player => ({ ...player, register: player.id === 2 ? 'ARRIVED' : null })) } });
-    api.put.mockRejectedValueOnce(failure(409, 'The register changed since you opened it. Check it and save again.'));
+        : { data: { revision: 'r4', players: session.players.map(player => ({ ...player, register: player.id === 2 ? 'ARRIVED' : null })) } });
+    api.put.mockRejectedValueOnce(failure(409, 'The register changed since you opened it. Check it and save again.', 'REGISTER_CHANGED'));
     render(<MemoryRouter><HelpingCard /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: 'Save who came' }));
-    expect(await screen.findByText('The register changed since you opened it. Check it and save again.')).toBeInTheDocument();
+    expect(await screen.findByText('Someone saved this register meanwhile. Check the ticks and save again.')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /Gabriel/ })).toBeChecked());
-    api.put.mockResolvedValue({ data: { revision: 6, players: session.players } });
+    api.put.mockResolvedValue({ data: { revision: 'r6', players: session.players } });
     fireEvent.click(screen.getByRole('button', { name: 'Save who came' }));
-    await waitFor(() => expect(api.put).toHaveBeenLastCalledWith('/me/helping/sessions/5640/register', expect.objectContaining({ revision: 4 })));
+    await waitFor(() => expect(api.put).toHaveBeenLastCalledWith('/me/helping/sessions/5640/register', expect.objectContaining({ revision: 'r4' })));
 });
 
 it('shows nothing on Home to someone who helps nowhere, and says so when Home couldn’t ask', async () => {
@@ -109,6 +127,20 @@ it('shows a session’s helpers to everyone on the squad, Add and Remove only to
     expect(screen.queryByRole('button', { name: 'Remove Dato' })).not.toBeInTheDocument();
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)); });
     expect(api.get).toHaveBeenCalledTimes(1);
+});
+
+it('shows everyone on the squad the same block from the start, and nothing to someone it refuses', async () => {
+    let answer: (value: unknown) => void = () => undefined;
+    api.get.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
+    render(<MemoryRouter><SessionHelpers squad={103} squadName="U14 Boys" session={lesson} canManage={false} /></MemoryRouter>);
+    expect(screen.getByText('Helpers')).toBeInTheDocument();
+    answer({ data: [] });
+    expect(await screen.findByText('No helpers on this session.')).toBeInTheDocument();
+    cleanup();
+    api.get.mockRejectedValueOnce(failure(404));
+    const { container } = render(<MemoryRouter><SessionHelpers squad={103} squadName="U14 Boys" session={lesson} canManage={false} /></MemoryRouter>);
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
 });
 
 it('says Remove takes a weekly helper off every week, and a list that couldn’t load says so', async () => {

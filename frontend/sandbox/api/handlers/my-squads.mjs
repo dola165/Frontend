@@ -170,7 +170,8 @@ const helpers = [{ id: 9701, clubId: C.CLUB_ID, squadId: U12, sessionKey: 'u12-w
   // A parent who helps at U14 Boys' training every week: the squad's staff all see her there.
   { id: 9702, clubId: C.CLUB_ID, squadId: 103, repeating: true, userId: 9706, name: 'Nino Abashidze', addedBy: W.squadById(103).headCoachId, since: C.at(-5), active: true }];
 // session id -> { revision, rows: Map(player id -> { status, by }) }: the attendance records of the session, the
-// coaches' and the helper's alike, and a revision that changes with every saved change.
+// coaches' and the helper's alike, and a version that changes with every saved change. The register's revision is
+// that version with the session's player list, as a string (the server's is a digest of both).
 const registers = new Map();
 const saves = new Map(); // `${helper}:${requestId}` -> session id, so a retried save saves nothing again
 const registerOf = id => { if (!registers.has(id)) registers.set(id, { revision: 0, rows: new Map() }); return registers.get(id); };
@@ -181,10 +182,14 @@ const helperSession = () => {
 };
 const sessionPlayers = session => {
   const squad = W.squadById(session.squadId), rows = registerOf(session.id).rows;
-  return squad.playerIds.map((id, i) => ({ id, firstName: W.personById(id)?.firstName ?? 'Player', lastInitial: W.personById(id)?.lastName?.[0]?.toUpperCase() ?? null,
+  const first = id => W.personById(id)?.firstName ?? 'Player';
+  // The last name's initial only where two first names repeat in this register.
+  const repeated = name => squad.playerIds.filter(id => first(id) === name).length > 1;
+  return squad.playerIds.map((id, i) => ({ id, firstName: first(id), lastInitial: repeated(first(id)) ? W.personById(id)?.lastName?.[0]?.toUpperCase() ?? null : null,
     response: i === 3 ? 'NOT_GOING' : i === 7 ? 'UNANSWERED' : 'GOING', register: rows.get(id)?.status ?? null }));
 };
-const registerView = session => ({ revision: registerOf(session.id).revision, players: sessionPlayers(session) });
+const revisionOf = session => `${registerOf(session.id).revision}:${W.squadById(session.squadId).playerIds.join(',')}`;
+const registerView = session => ({ revision: revisionOf(session), players: sessionPlayers(session) });
 // The head coach ticked the squad's first player in the coaches' register before the helper arrived.
 { const s = helperSession(); registerOf(s.id).rows.set(W.squadById(U12).playerIds[0], { status: 'ARRIVED', by: W.squadById(U12).headCoachId }); registerOf(s.id).revision = 1; }
 // Everyone on the squad sees who helps; adding and removing follow the job.
@@ -219,7 +224,7 @@ get('/me/helping', ({ headers }) => {
   if (persona(headers) !== 'helper' || !helpers.some(h => h.id === 9701 && h.active)) return [];
   const s = helperSession(), squad = W.squadById(s.squadId);
   return [{ helperId: 9701, sessionId: s.id, squadId: s.squadId, squadName: squad.name, clubId: C.CLUB_ID, clubName: C.club.name, title: s.title, kind: 'TRAINING',
-    startsAt: s.start.toISOString(), endsAt: s.end.toISOString(), location: s.location, coach: C.name(squad.headCoachId), registerOpen: true, registerRevision: registerOf(s.id).revision, players: sessionPlayers(s) }];
+    startsAt: s.start.toISOString(), endsAt: s.end.toISOString(), location: s.location, coach: C.name(squad.headCoachId), registerOpen: true, registerRevision: revisionOf(s), players: sessionPlayers(s) }];
 });
 const helping = (params, headers) => { const s = helperSession(); return persona(headers) === 'helper' && Number(params.eid) === s.id ? s : null; };
 get('/me/helping/sessions/:eid/register', ({ params, headers }) => {
@@ -233,7 +238,7 @@ put('/me/helping/sessions/:eid/register', ({ params, headers, body }) => {
   if (!s) return reply(404, { status: 404, message: 'The register opens on the day of the session you help at.' });
   const key = `${V.viewerId(headers)}:${body?.requestId}`, register = registerOf(s.id);
   if (saves.has(key)) return registerView(s);
-  if (Number(body?.revision) !== register.revision) return reply(409, { status: 409, code: 'REGISTER_CHANGED', message: 'The register changed since you opened it. Check it and save again.' });
+  if (String(body?.revision) !== revisionOf(s)) return reply(409, { status: 409, code: 'REGISTER_CHANGED', message: 'The register changed since you opened it. Check it and save again.' });
   const ids = new Set(sessionPlayers(s).map(player => player.id)), came = new Set((body?.came ?? []).map(Number));
   if ([...came].some(id => !ids.has(id))) return reply(400, { status: 400, message: 'Choose players of this session.' });
   saves.set(key, s.id);

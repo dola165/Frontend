@@ -59,6 +59,9 @@ test('a helper’s save writes only what changed, keeps the coach’s ticks, ref
   const first = session.players[0].id, second = session.players[1].id;
   assert.equal(session.players[0].register, 'ARRIVED', 'the head coach ticked the first player');
   assert.ok(session.players.every(player => 'lastInitial' in player));
+  // The initial only where two first names repeat in the register.
+  assert.ok(session.players.every(player => !player.lastInitial || session.players.filter(other => other.firstName === player.firstName).length > 1));
+  assert.ok(session.players.some(player => player.lastInitial));
   const save = (came, requestId, revision) => call('PUT', `/me/helping/sessions/${session.sessionId}/register`, { came, requestId, revision }, as('helper'));
   const saved = await save([second], 'retry-1', session.registerRevision);
   assert.equal(saved.status, 200);

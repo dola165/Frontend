@@ -53,16 +53,23 @@ function HelpingSession({ session, onStopped }: { session: Helping; onStopped: (
     const count = (response: string) => players.filter(p => p.response === response).length;
     const cant = count('NOT_GOING'), waiting = count('UNANSWERED');
     const summary = [copy('coming', { count: count('GOING') }), cant ? copy('cant', { count: cant }) : '', waiting ? copy('notAnswered', { count: waiting }) : ''].filter(Boolean).join(' · ');
-    const toggle = (id: number) => setCame(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+    // A changed tick is a new save: only a repeat of the very same save is a retry, which the server saves once.
+    const toggle = (id: number) => {
+        requestId.current = crypto.randomUUID();
+        setCame(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+    };
     const save = async () => {
         setBusy(true); setNotice(null);
         try {
             const saved = await saveRegister(session.sessionId, { came: [...came], requestId: requestId.current, revision });
-            setPlayers(saved.players); setRevision(saved.revision);
+            // The ticks and the count are the register as the server keeps it (a coach's arrivals included).
+            const arrived = saved.players.filter(p => p.register === 'ARRIVED').map(p => p.id);
+            setPlayers(saved.players); setRevision(saved.revision); setCame(new Set(arrived));
             requestId.current = crypto.randomUUID();
-            setNotice({ tone: 'success', text: copy('registerSaved', { count: came.size }) });
+            setNotice({ tone: 'success', text: copy('registerSaved', { count: arrived.length }) });
         } catch (error) {
-            setNotice({ tone: 'danger', text: extractApiErrorMessage(error, copy('registerFailed')) });
+            const changed = isAxiosError(error) && error.response?.status === 409 && error.response.data?.code === 'REGISTER_CHANGED';
+            setNotice({ tone: 'danger', text: changed ? copy('registerChanged') : extractApiErrorMessage(error, copy('registerFailed')) });
             // Someone saved in between: show the register as it is now, the coach's ticks added to the helper's, to save again.
             if (isAxiosError(error) && error.response?.status === 409) {
                 requestId.current = crypto.randomUUID();

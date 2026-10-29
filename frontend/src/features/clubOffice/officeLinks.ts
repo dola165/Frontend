@@ -31,9 +31,11 @@ export const MORE_TOOLS = [
 
 /**
  * The tools that moved into My squads (step 3): applications are Players' Want to join, attendance the session's
- * register, preparation the next match card. For someone on a squad at the link's club a bare link lands there; a link
- * that names anything more (a record, an application, a person) still opens it here. Someone on no squad (a Custom job
- * with only Attendance) has no My squads, so for them the tools stay in More tools, in MOVED_GROUP.
+ * register, preparation the next match card. A bare link lands there for someone on the link's squad in My squads (any
+ * of theirs when it names none); a link that names anything more (a record, an application, a person, a session)
+ * still opens the tool here, and so does every link for the club's owners and admins, who keep these tools in More
+ * tools. Someone on no squad (a Custom job with only Attendance) has no My squads, so for them the tools stay in More
+ * tools too, in MOVED_GROUP.
  */
 export const MOVED_TOOLS = { applications: 'players', attendance: 'calendar', preparation: 'matches' } as const;
 export type MovedTool = keyof typeof MOVED_TOOLS;
@@ -46,14 +48,13 @@ export const OFFICE_TOOLS: readonly OfficeTool[] = [...MORE_TOOLS.flatMap(group 
 export const isOfficeTool = (value: string | null | undefined): value is OfficeTool => OFFICE_TOOLS.includes(value as OfficeTool);
 
 /**
- * A bare link to a moved tool, which My squads shows: it names only the club, the squad, the place and, for
- * attendance, the session (whose register opens there). Anything else (a record, an application, a person, a filter)
- * is something only the tool shows, so that link opens the tool here.
+ * A bare link to a moved tool, which My squads shows: it names only the club, the squad and the place. Anything else (a
+ * record, an application, a person, a session's register, a filter, the way back to Squads) is something only the
+ * tool shows, so that link opens the tool here.
  */
-const BARE_KEYS = ['tab', 'tool', 'module', 'clubId', 'squad', 'return'];
-export const bareLink = (tool: MovedTool, context: Record<string, string> | URLSearchParams) =>
-    [...(context instanceof URLSearchParams ? context.keys() : Object.keys(context))]
-        .every(key => BARE_KEYS.includes(key) || (tool === 'attendance' && key === 'session'));
+const BARE_KEYS = ['tab', 'tool', 'module', 'clubId', 'squad'];
+export const bareLink = (context: Record<string, string> | URLSearchParams) =>
+    [...(context instanceof URLSearchParams ? context.keys() : Object.keys(context))].every(key => BARE_KEYS.includes(key));
 
 const query = (values: Record<string, string>) => { const text = new URLSearchParams(values).toString(); return text ? `?${text}` : ''; };
 
@@ -65,15 +66,9 @@ export const officePath = (club: number, place: OfficePlace = 'staff', context: 
 export const officeToolPath = (club: number, tool: OfficeTool, context: Record<string, string> = {}) =>
     officePath(club, 'tools', { tool, ...context });
 
-/**
- * Where a moved tool lives now: its place in My squads, on the squad the link named. A session's register opens on My
- * squads' first page, as the session's summary (`activity`), which a squad's own page doesn't show.
- */
-export function movedToolPath(club: number, tool: MovedTool, context: Record<string, string> = {}) {
-    const squad: Record<string, string> = context.squad ? { squad: context.squad } : {};
-    if (tool === 'attendance' && context.session) return `/my-squads${query({ clubId: String(club), activity: `s-${context.session}` })}`;
-    return `/my-squads${query({ clubId: String(club), tab: MOVED_TOOLS[tool], ...squad })}`;
-}
+/** Where a moved tool lives now: its place in My squads, on the squad the link named. */
+export const movedToolPath = (club: number, tool: MovedTool, context: Record<string, string> = {}) =>
+    `/my-squads${query({ clubId: String(club), tab: MOVED_TOOLS[tool], ...(context.squad ? { squad: context.squad } : {}) })}`;
 
 /** A squad the person coaches, from the server's navigation hints: its own page is My squads. */
 const coaches = (capabilities: NavigationCapabilities | undefined, squad: string | null) =>

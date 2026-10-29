@@ -10,6 +10,7 @@ import * as V from '../viewer.mjs';
 import { profilePhone } from '../profile-phones.mjs';
 import { scoped, denied, bad, missing, validateScope } from './workspace-context.mjs';
 import { jobs, moreJobs, tools } from '../club-people-jobs.mjs';
+import { PERSONA_JOBS } from '../world-my-squads.mjs';
 const stores = new Map();
 let nextId = 97000;
 const squadsOf = (ctx, ids) => ctx.squads.filter(s => ids.includes(s.id)).map(({ id, name }) => ({ id, name }));
@@ -18,7 +19,7 @@ const jobFor = (ctx, job, title, squadIds = [], status = 'ACTIVE', id = nextId++
   addedById: 1, addedByName: C.name(1), tools: [...jobs, ...moreJobs].find(j => j.key === job)?.tools ?? [], canChange: true, canEnd: true });
 const leaderJob = (ctx, kind, id) => ({ ...jobFor(ctx, kind, kind === 'OWNER' ? 'Owner' : 'Admin', [], 'ACTIVE', id), kind, canChange: false, canEnd: false });
 const person = (userId, name, email, phone, jobs, extra = {}) => ({ userId, name, email, phone, avatarUrl: null, needsLink: false, jobs, ...extra });
-const HELPERS = ['ASSISTANT_COACH', 'TEAM_MANAGER'];
+
 // Every job holder reads Staff (SEE_STAFF); a plain member doesn't.
 const staffOnly = ctx => ctx.persona === 'member' || !ctx.leadership && !ctx.coaching.length && !ctx.modules.length;
 // As the server: Staff is club staff work, which needs a known adult; Luka without a birth date (/__mode/nodob) is asked
@@ -53,6 +54,8 @@ function ownRow(ctx) {
     : ctx.persona === 'attendance' ? [{ ...jobFor(ctx, 'CUSTOM', 'Attendance helper', [], 'ACTIVE', 96006), tools: ['ATTENDANCE:WRITE'] }]
     : ctx.persona === 'analyst' ? [jobFor(ctx, 'ANALYST', 'Performance analyst', coached, 'ACTIVE', 96004)]
       : ctx.persona === 'headcoach' ? [jobFor(ctx, 'HEAD_COACH', 'Head coach', coached, 'ACTIVE', 96002)]
+        // Step 3's personas hold the jobs world-my-squads.mjs gives them.
+        : PERSONA_JOBS[ctx.persona] ? PERSONA_JOBS[ctx.persona].map(job => jobFor(ctx, job.key, job.title, job.squads, 'ACTIVE', job.id))
         : ctx.persona === 'member' ? []
           : ctx.role === 'OWNER' ? [leaderJob(ctx, 'OWNER', 96001), ...(ctx.coaching.length ? [jobFor(ctx, 'HEAD_COACH', 'Head coach', ctx.coaching, 'ACTIVE', 96002)] : [])]
             : ctx.leadership ? [leaderJob(ctx, 'ADMIN', 96005)] : [];
@@ -170,22 +173,20 @@ del('/clubs/:id/staff-links/:link', scoped(({ ctx, params }) => {
   state.links = state.links.filter(l => l !== link); return { ...link, status: 'REVOKED', code: null, path: null };
 }));
 post('/clubs/:id/people/invites', scoped(({ ctx, body = {} }) => {
-  const suggestion = !ctx.leadership && ctx.coaching.length > 0;
-  if (!ctx.leadership && !suggestion) return denied();
+  // Admins give jobs; head coaches add helpers to their sessions instead (step 3, 29 October 2026).
+  if (!ctx.leadership) return reply(403, { status: 403, code: 'ONLY_ADMINS', message: 'Staff are invited by a club’s admins.' });
   const selected = [...jobs, ...moreJobs].find(j => j.key === body.job);
   if (!selected && body.job !== 'CUSTOM') return bad('Choose a job.');
   if (!body.name?.trim() || !body.email?.includes('@')) return bad('Enter a name and email.');
-  // A head coach suggests a helper for a squad they coach; an admin confirms it.
-  if (suggestion && (!HELPERS.includes(body.job) || !body.squadIds?.length || body.squadIds.some(id => !ctx.coaching.includes(Number(id))))) return bad('Suggest an assistant coach or a team manager for a squad you coach.');
+
   if (body.job === 'CUSTOM' && (!body.title?.trim() || !body.tools?.length || body.tools.some(t => !tools.includes(t)))) return bad('Name the job and choose its tools.');
   const whole = body.clubWide || ['ADMIN', 'HEAD_OF_COACHING'].includes(body.job);
   const invalid = validateScope(ctx, body); if (invalid) return invalid;
   if (!whole && !body.squadIds?.length) return bad('Choose the whole club or at least one squad.');
   const title = body.title?.trim() || selected?.titles[0] || selected?.title;
-  const job = jobFor(ctx, body.job, title, whole ? [] : body.squadIds, suggestion ? 'SUGGESTED' : 'INVITED');
-  if (suggestion) Object.assign(job, { suggestedById: ctx.actorId, suggestedByName: C.name(ctx.actorId), revision: 1 });
+  const job = jobFor(ctx, body.job, title, whole ? [] : body.squadIds, 'INVITED');
   if (body.job === 'CUSTOM') job.tools = body.tools;
-  const added = { userId: nextId++, name: body.name.trim(), email: body.email, phone: null, avatarUrl: null, needsLink: !suggestion, jobs: [job] };
+  const added = { userId: nextId++, name: body.name.trim(), email: body.email, phone: null, avatarUrl: null, needsLink: true, jobs: [job] };
   store(ctx).people.push(added);
-  return { userId: suggestion ? null : added.userId, name: added.name, inApp: true, link: null, status: suggestion ? 'SUGGESTED' : 'INVITED' };
+  return { userId: added.userId, name: added.name, inApp: true, link: null, status: 'INVITED' };
 }));

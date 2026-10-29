@@ -2,6 +2,7 @@ import { squadDesignKa, squadsDesignKa } from './squadDesign';
 import { clubRecordsKa } from './clubRecords';
 import { coachHubKa, fixtureCopyKa, workspaceNavKa, workspaceShellKa } from './workspaceDesign';
 import { recruitmentDesignKa } from './recruitmentDesign';
+import { mySquadsKa } from './mySquadsDesign';
 
 const ka = {
   androidFeedComposer: {
@@ -16,6 +17,7 @@ const ka = {
   workspaceShell: workspaceShellKa,
   workspaceNav: workspaceNavKa,
   coachHub: coachHubKa,
+  mySquads: mySquadsKa,
   fixtureCopy: fixtureCopyKa,
   recruitmentDesign: recruitmentDesignKa,
 
@@ -595,6 +597,7 @@ const ka = {
     playerRoute: 'თქვენი შესვლის ვარიანტი',
     preferredPosition: 'სასურველი პოზიცია',
     ageGroup: 'ასაკობრივი ჯგუფი',
+    squadToJoin: 'გუნდი',
     notSure: 'ჯერ არ ვიცი',
     aboutYou: 'მოგვიყევით ცოტა თქვენს შესახებ.',
     joinTrainingCta: 'ვარჯიშზე შემოსვლა',

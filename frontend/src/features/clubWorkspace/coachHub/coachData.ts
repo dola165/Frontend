@@ -1,6 +1,5 @@
 import type { Bootstrap } from '../../clubOperations/api';
 import type { RoleView, RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
-import { focusableViews } from '../../clubOperations/workspaceStructure';
 import { upcoming, type CoachSquad } from './useCoachData';
 import type { SquadSession } from '../../squadCommunication/api';
 
@@ -20,10 +19,17 @@ export function coachTrainingContext(clubId: number, actorId: number, assigned: 
     return { clubId, actorId, state: reads.some(({ read }) => !read || read.failed.includes('sessions')) ? 'unavailable' : 'ready', next: candidates[0] ?? null };
 }
 
-/** Squads named in some squad-level responsibilities: by default all of a person's own, or the ones switched on in Responsibilities. */
+/**
+ * The squads a person is on: those of the jobs that put someone on squads (a squad job, the old head-coach link), a
+ * club-wide one included, so the head of coaching has every squad (step 3, 29 October 2026). An equipment manager's
+ * or a physio's club-wide tools put nobody on a squad.
+ */
 export function mySquadIds(views: RoleView[]) {
-    return [...new Set(focusableViews(views).filter(view => !view.clubWide).flatMap(view => view.squadIds))];
+    return [...new Set(views.filter(view => view.onSquads).flatMap(view => view.squadIds))];
 }
+
+/** The person's jobs on this squad, by name ("Head coach", "Team manager"), for its card. */
+export const jobsOn = (views: RoleView[], squad: number) => views.filter(view => view.onSquads && view.squadIds.includes(squad)).map(view => view.label);
 
 export function personName(roles: RolesWorkspace, boot: Bootstrap | null, id: number | null) {
     if (id === null) return null;

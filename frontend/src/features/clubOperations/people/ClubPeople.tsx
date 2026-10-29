@@ -20,6 +20,7 @@ import { InvitationRow, SpecialistRow, StaffNeeds } from './StaffRows';
 import { useJobWords } from './jobWords';
 import { useStaffLinks } from './useStaffLinks';
 import { LeaveClubDialog } from '../leaving/LeaveClubDialog';
+import { ClubHelpers } from '../../helpers/ClubHelpers';
 import { useLeaveStep } from '../leaving/useLeaveStep';
 import '../../clubWorkspace/club-workspace.css';
 import './people.css';
@@ -31,9 +32,10 @@ const waiting = (job: PersonJob) => job.status === 'INVITED' || job.status === '
  * Club office › Staff (the People screen until step 2, 28 October 2026): everyone with a job here, where, and how to
  * reach them. Everyone on the staff reads it; each person hides their own email or phone from their row. Admins see
  * what needs them first, invite with one Invite (one person, or a staff link), post a job, and change or end anyone's
- * job but the Owner's; invites nobody has answered are Waiting rows. A head coach suggests a helper for their own
- * squad. Who is on duty today shows on their row, and outside specialists are listed with their own job. Which
- * buttons show is the rule-checker's answer; the view, search, filter and the open dialog live in the address.
+ * job but the Owner's; invites nobody has answered are Waiting rows, and the helpers head coaches added to sessions
+ * are listed with Remove (step 3). Suggestions made before helpers replaced them still wait for an admin's answer. Who
+ * is on duty today shows on their row, and outside specialists are listed with their own job. Which buttons show is
+ * the rule-checker's answer; the view, search, filter and the open dialog live in the address.
  */
 export function ClubPeople({ clubId, clubName, members = [], invitations = [], tools = {}, onChanged }: {
     clubId: number; clubName: string; members?: ClubManagedMember[]; invitations?: ClubMembershipInvite[];
@@ -63,10 +65,9 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
     const openInvite = (open: boolean, extra: Record<string, string | null> = {}) => setParam({ invite: open ? '1' : null, how: null, link: null, for: null, ...extra });
 
     const can = useCan(`club:${clubId}`);
-    const leader = Boolean(view?.viewer.leader), headCoachSquads = view?.viewer.headCoachSquads ?? [];
+    const leader = Boolean(view?.viewer.leader);
     const rights: PeopleRights = { pending: can.pending, invite: can.decide('invite_staff', leader).allowed, change: can.decide('change_job', leader).allowed, end: can.decide('end_job', leader).allowed };
     const inviteAdmin = can.decide('make_admin', leader).allowed;
-    const suggest = can.decide('suggest_assistant', !leader && headCoachSquads.length > 0);
     const staff = useStaffLinks(clubId, Boolean(view) && rights.invite, inviting && how === 'link', copy('Could not load the staff links.', 'პერსონალის ბმულები ვერ ჩაიტვირთა.'));
 
     useEffect(() => {
@@ -141,9 +142,6 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
         setNotice(copy('Saved. Colleagues see what you share.', 'შენახულია. კოლეგები ხედავენ იმას, რასაც აზიარებთ.'));
     }, copy('Your choice wasn’t saved.', 'არჩევანი ვერ შეინახა.'));
     const invited = ending && (ending.job.status === 'INVITED' || ending.job.kind.endsWith('INVITE'));
-    const ownSquads = view?.squads.filter(s => headCoachSquads.includes(s.id)) ?? [];
-    // A suggestion is always for a squad the person leads: no squad, no button (as in Coach team).
-    const canSuggest = suggest.allowed && ownSquads.length > 0;
     const suggestions = view ? suggestionsIn(view.people).filter(s => leader || s.job.suggestedById === view.viewer.userId) : [];
     const dutyHref = tools.duties ? (record: number) => officeToolPath(clubId, 'staff-duties', { record: String(record) }) : undefined;
 
@@ -156,7 +154,7 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
         <PageHeader title={copy('Staff', 'პერსონალი')}
             actions={<>
                 {rights.invite && <Button variant="ghost" disabled={can.pending} onClick={() => setParam({ view: 'jobs' }, false)}><Briefcase aria-hidden="true" />{copy('Post a job', 'ვაკანსიის გამოქვეყნება')}</Button>}
-                {(rights.invite || canSuggest) && <Button variant="primary" disabled={can.pending} onClick={() => openInvite(true)}><UserPlus aria-hidden="true" />{copy('Invite', 'მოწვევა')}</Button>}
+                {rights.invite && <Button variant="primary" disabled={can.pending} onClick={() => openInvite(true)}><UserPlus aria-hidden="true" />{copy('Invite', 'მოწვევა')}</Button>}
             </>} />
         <div className="gk-stack">
             {notice && <p role="status" className="gk-notice cw-notices__success">{notice}</p>}
@@ -191,8 +189,9 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
                         action={!query && !jobFilter && rights.invite ? <Button size="sm" onClick={() => openInvite(true)}><UserPlus aria-hidden="true" />{copy('Invite', 'მოწვევა')}</Button> : undefined}>
                         {query || jobFilter ? copy('Try a name, job or squad.', 'სცადეთ სახელი, სამუშაო ან გუნდი.') : copy('Invite your coaches with one link or QR code.', 'მოიწვიეთ მწვრთნელები ერთი ბმულით ან QR კოდით.')}</EmptyNote></Panel>}
         </div>
-        {view && inviting && (rights.invite || canSuggest) && <InviteStaffDialog club={clubId} clubName={clubName} view={view} person={forPerson}
-            suggest={!rights.invite} allowAdmin={inviteAdmin} how={how} onHow={next => setParam({ how: next === 'link' ? 'link' : null })}
+        {view && leader && showing === 'all' && !query && !jobFilter && <ClubHelpers clubId={clubId} />}
+        {view && inviting && rights.invite && <InviteStaffDialog club={clubId} clubName={clubName} view={view} person={forPerson}
+            allowAdmin={inviteAdmin} how={how} onHow={next => setParam({ how: next === 'link' ? 'link' : null })}
             links={staff.links ?? []} linksLoading={staff.links === null && !staff.error} linksError={staff.error} onRetryLinks={staff.reload}
             openedLink={Number(params.get('link')) || null} onLinks={staff.setLinks} onClose={() => openInvite(false)} onChanged={message => refresh(message)}
             onInvited={result => {
@@ -200,8 +199,7 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
                 openInvite(false);
                 showInvite(result);
                 // Never say whether the address already had an account: with a link, send it; without, they find it on signing in.
-                refresh(result.status === 'SUGGESTED' ? copy(`Suggested ${result.name}. An admin confirms or declines it; you’ll be told.`, `${result.name} შეთავაზებულია. ადმინი დაადასტურებს ან უარყოფს; შეგატყობინებთ.`)
-                    : result.link ? (added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`))
+                refresh(result.link ? (added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`))
                         : copy(`Invited ${result.name}. They’ll find the invitation when they sign in.`, `${result.name} მოწვეულია. მოწვევას შესვლისას ნახავს.`));
             }} />}
         {/* Leaving: someone who left goes to the club's page (Staff is for its staff); a closed club to Home. */}

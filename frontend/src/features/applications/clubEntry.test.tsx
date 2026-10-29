@@ -7,7 +7,7 @@ import type { EntryDecision } from './clubEntry';
 const state = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), create: vi.fn(), trial: vi.fn(), cancel: vi.fn(), session: 'account-a', listeners: new Set<() => void>(), language: 'en' }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: state.get, post: state.post } }));
 vi.mock('../../utils/authStorage', () => ({ getAuthSessionId: () => state.session, subscribeAuthSession: (fn: () => void) => { state.listeners.add(fn); return () => state.listeners.delete(fn); } }));
-vi.mock('../clubs/api', () => ({ createClubApplication: state.create, selfRegisterClubPlayer: state.trial, cancelClubApplication: state.cancel }));
+vi.mock('../clubs/api', () => ({ createClubApplication: state.create, selfRegisterClubPlayer: state.trial, cancelClubApplication: state.cancel, publicSquads: async () => [] }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: state.language } }) }));
 
 const allowed: EntryDecision = { allowed: true, reason: null, message: null, pendingApplicationId: null, pendingInvitationId: null, eligibleFrom: null };

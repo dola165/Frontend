@@ -203,6 +203,7 @@
 .gk .gk-notice { display: flex; align-items: flex-start; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-info-soft); color: var(--gk-text); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
 .gk .gk-notice--warning { background: var(--gk-warning-soft); }
 .gk .gk-notice--danger { background: var(--gk-danger-soft); }
+.gk .gk-load-failed { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); margin: 0; padding: var(--gk-2) var(--gk-3); color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
 .gk .gk-skeleton { border-radius: var(--gk-r-sm); background: linear-gradient(90deg, var(--gk-raised), var(--gk-hover), var(--gk-raised)); background-size: 200% 100%; animation: gk-shimmer 1.4s linear infinite; }
 @keyframes gk-shimmer { to { background-position: -200% 0; } }
 

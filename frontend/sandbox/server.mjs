@@ -64,7 +64,8 @@ const server = http.createServer(async (req, res) => {
       // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only), `member` plain
       // club membership with no tools at all, `headcoach` a head coach who is not an admin and `physio` a job with only
       // the medical tools and `attendance` a Custom job with only Attendance, so Club office's layers can be judged;
-      // `coach` is the owner and head coach again.
+      // `coach` is the owner and head coach again. My squads, step 3: `teammanager`, `gkcoach` (goalkeeper coach),
+      // `headofcoaching`, `kit` (equipment manager) and `helper` (no job; one session on Home), see world-my-squads.mjs.
       const mode = url.pathname.slice('/__mode/'.length);
       const to = (url.searchParams.get('to') || '/home');
       const safe = to.startsWith('/') && !to.startsWith('//') ? to : '/home';

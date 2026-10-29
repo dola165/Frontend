@@ -11,6 +11,7 @@ import * as V from '../viewer.mjs';
 import * as F from '../world-football.mjs';
 import * as C from '../world-club.mjs';
 import { accountProfile } from '../world-social.mjs';
+import * as M from '../world-my-squads.mjs';
 
 const refusal = (action, reason, message) => ({ action, allowed: false, reason, message, because: null });
 const answer = (allowed, refused = []) => ({ allowed, refused });
@@ -20,19 +21,22 @@ get('/access/me', ({ headers }) => {
     refusal('arrange_match', 'ONLY_SQUAD_MATCH_STAFF', 'Only a squad’s coaches arrange its matches.'),
     refusal('report_score', 'ONLY_SQUAD_MATCH_STAFF', 'Only a squad’s coaches report its scores.'),
     refusal('invite_staff', 'ONLY_ADMINS', 'Only the club’s admins invite staff.'),
-    refusal('suggest_assistant', 'ONLY_HEAD_COACHES', 'Only a head coach suggests an assistant.'),
+    refusal('add_helper', 'ONLY_HEAD_COACHES', 'Helpers are added by a squad’s head coach.'),
   ]);
   // Staff at a club cannot start another one; everything else is open to Luka.
-  return answer(['add_child', 'join_squad', 'follow', 'arrange_match', 'report_score', 'invite_staff', 'suggest_assistant'],
+  return answer(['add_child', 'join_squad', 'follow', 'arrange_match', 'report_score', 'invite_staff', 'add_helper'],
     [refusal('start_club', 'STAFF_OF_ANOTHER_CLUB', 'You are staff at FC Dinamo Tbilisi Academy. One club at a time.')]);
 });
 
-const CLUB_ACTIONS = ['see_people', 'see_staff', 'invite_staff', 'make_admin', 'change_job', 'end_job', 'hand_over', 'suggest_assistant', 'confirm_assistant', 'add_child', 'arrange_match', 'report_score', 'follow'];
-// Every job holder reads Staff; only admins change it. A head coach suggests helpers and runs their squads' matches.
-const PERSONA_ACTIONS = { headcoach: ['see_people', 'see_staff', 'suggest_assistant', 'add_child', 'arrange_match', 'report_score', 'follow'],
-  physio: ['see_people', 'see_staff', 'add_child', 'follow'], attendance: ['see_people', 'see_staff', 'add_child', 'follow'], analyst: ['see_people', 'see_staff', 'add_child', 'follow'], member: ['add_child', 'follow'] };
+const CLUB_ACTIONS = ['see_people', 'see_staff', 'invite_staff', 'make_admin', 'change_job', 'end_job', 'hand_over', 'add_helper', 'confirm_assistant', 'add_child', 'arrange_match', 'report_score', 'follow'];
+// Every job holder reads Staff; only admins change it. A head coach adds helpers and runs their squads' matches; a team
+// manager runs matches; the head of coaching does a head coach's work in every squad (step 3). A helper has no job.
+const PERSONA_ACTIONS = { headcoach: ['see_people', 'see_staff', 'add_helper', 'add_child', 'arrange_match', 'report_score', 'follow'],
+  physio: ['see_people', 'see_staff', 'add_child', 'follow'], attendance: ['see_people', 'see_staff', 'add_child', 'follow'], analyst: ['see_people', 'see_staff', 'add_child', 'follow'], member: ['add_child', 'follow'],
+  teammanager: ['see_staff', 'add_child', 'arrange_match', 'report_score', 'follow'], gkcoach: ['see_staff', 'add_child', 'follow'],
+  headofcoaching: ['see_people', 'see_staff', 'add_helper', 'add_child', 'arrange_match', 'report_score', 'follow'], kit: ['see_staff', 'add_child', 'follow'], helper: ['add_child', 'follow'] };
 const refusedReason = action => action === 'see_staff' ? refusal(action, 'ONLY_CLUB_STAFF', 'Staff is for the club’s staff.')
-  : action === 'suggest_assistant' ? refusal(action, 'ONLY_HEAD_COACHES', 'Only a head coach suggests an assistant.')
+  : action === 'add_helper' ? refusal(action, 'ONLY_HEAD_COACHES', 'Only this squad’s head coach can add a helper.')
     : ['arrange_match', 'report_score'].includes(action) ? refusal(action, 'ONLY_SQUAD_MATCH_STAFF', 'Only a squad’s coaches arrange its matches.')
       : refusal(action, 'ONLY_ADMINS', 'Only the club’s admins can do this.');
 // As the server: club work needs a known adult, so Luka without a birth date (/__mode/nodob) is asked for it first and
@@ -52,17 +56,26 @@ get('/access/clubs/:id', ({ params, headers }) => {
     .map(action => refusal(action, 'ONLY_ADMINS', 'Only the club’s admins can do this.'))), admins: [] };
 });
 
-const SQUAD_ACTIONS = ['join_squad', 'add_child', 'manage_join_link', 'approve_join_requests', 'link_parent', 'suggest_assistant', 'invite_staff', 'arrange_match', 'report_score', 'follow'];
+const SQUAD_ACTIONS = ['join_squad', 'add_child', 'manage_join_link', 'approve_join_requests', 'link_parent', 'add_helper', 'invite_staff', 'arrange_match', 'report_score', 'follow'];
+const step3Squad = (persona, squad) => {
+  if (!M.squadRoles(persona).has(squad.id)) return ['join_squad', 'add_child', 'follow'];
+  return ['add_child', 'follow', ...(M.decidesJoining(persona, squad.id) ? ['manage_join_link', 'approve_join_requests', 'link_parent'] : []),
+    ...(M.addsHelpers(persona, squad.id) ? ['add_helper'] : []), ...(M.can(persona, squad.id, 'MATCHES') ? ['arrange_match', 'report_score'] : [])];
+};
 get('/access/squads/:id', ({ params, headers }) => {
   const squad = F.sq(params.id);
   if (!squad) return undefined;
   // A physio, an attendance helper or a plain member coaches no squad.
   const coach = !V.isNewcomer(headers) && F.isMineClub(squad.clubId) && !['physio', 'attendance', 'member'].includes(V.personaOf(headers));
   const leads = coach && squad.headCoachId === W.ME_ID;
-  // A coach is in the squad already, so joining is a parent's (for a child not in it yet).
-  const allowed = coach ? SQUAD_ACTIONS.filter(action => action !== 'join_squad' && (leads || action !== 'suggest_assistant')) : ['join_squad', 'add_child', 'follow'];
+  // A coach is in the squad already, so joining is a parent's (for a child not in it yet). The Owner adds helpers anywhere.
+  const persona = V.personaOf(headers);
+  const allowed = !V.isNewcomer(headers) && F.isMineClub(squad.clubId) && M.STEP3_PERSONAS.includes(persona) ? step3Squad(persona, squad)
+    : coach ? SQUAD_ACTIONS.filter(action => action !== 'join_squad' && (leads || !persona || action !== 'add_helper')) : ['join_squad', 'add_child', 'follow'];
   return { clubId: squad.clubId, squadId: squad.id, ...answer(allowed, SQUAD_ACTIONS.filter(action => !allowed.includes(action))
-    .map(action => action === 'join_squad' ? refusal(action, 'ALREADY_IN_SQUAD', 'You are already in this squad.') : refusal(action, 'ONLY_SQUAD_COACHES', 'Only this squad’s coaches can do this.'))) };
+    .map(action => action === 'join_squad' ? refusal(action, 'ALREADY_IN_SQUAD', 'You are already in this squad.')
+      : action === 'add_helper' ? refusal(action, 'ONLY_HEAD_COACHES', 'Only this squad’s head coach can add a helper.')
+        : refusal(action, 'ONLY_SQUAD_COACHES', 'Only this squad’s head coach or assistant coach can do this.'))) };
 });
 
 // Agreed exchange matches of Luka's club that have ended without a score; the newest is the one Home asks about.

@@ -70,8 +70,6 @@ export const staffLinkMatches = (link: StaffLink, draft: JobDraft, view: PeopleV
         && (link.clubWide || link.squads.length === draft.squadIds.length && link.squads.every(s => draft.squadIds.includes(s.id)))
         && (draft.job !== 'CUSTOM' || sameTools(link.tools ?? [], draft.tools));
 };
-/** What a head coach may suggest, for their own squads only (an admin confirms). */
-export const HELPER_JOBS = ['ASSISTANT_COACH', 'TEAM_MANAGER'] as const;
 
 const base = (club: number) => `/clubs/${club}/people`;
 const where = (draft: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>) => ['ADMIN', 'HEAD_OF_COACHING'].includes(draft.job) ? { clubWide: true, squadIds: [] }

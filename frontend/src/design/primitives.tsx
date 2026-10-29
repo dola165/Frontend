@@ -194,6 +194,11 @@ export function EmptyNote({ title, children, action }: { title: ReactNode; child
     );
 }
 
+/** A part of a page that didn't load: one quiet line and Try again. A failed load is never "not for you". */
+export function LoadFailed({ text, retry, onRetry }: { text: string; retry: string; onRetry: () => void }) {
+    return <p className="gk-load-failed" role="status"><span>{text}</span><span aria-hidden="true">·</span><Button size="sm" variant="ghost" onClick={onRetry}>{retry}</Button></p>;
+}
+
 export function Skeleton({ height = 16, width = '100%' }: { height?: number; width?: number | string }) {
     return <span className="gk-skeleton" style={{ display: 'block', height, width }} aria-hidden="true" />;
 }

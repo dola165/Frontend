@@ -138,23 +138,11 @@ it('an admin changes a job at once, sees where it came from, and can end an Admi
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/admins/4/end'));
 });
 
-it('a head coach suggests a helper for their own squad through the same Invite, and changes nobody’s job', async () => {
+it('gives a head coach no Invite in Staff: jobs are the admins’, and helpers are added on the coach’s sessions', async () => {
     renderPeople(view({ userId: 4, leader: false, owner: false, headCoachSquads: [5] }));
     expect(await screen.findByText('Luka Beridze')).toBeInTheDocument();
-    for (const name of [/^Change$/, /Post a job/, /Add job/]) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Invite' }));
-    const dialog = screen.getByRole('dialog', { name: 'Suggest a helper' });
-    expect(within(dialog).getByText(/For a squad you coach/)).toBeInTheDocument();
-    for (const other of ['Head coach', 'Fees', 'Admin', 'U14']) expect(within(dialog).queryByRole('button', { name: other })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Team manager' }));
-    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Dato Kvaratskhelia' } });
-    fireEvent.change(within(dialog).getByLabelText('Email'), { target: { value: 'dato@example.test' } });
-    api.post.mockResolvedValueOnce({ data: { userId: null, name: 'Dato Kvaratskhelia', inApp: true, link: null, status: 'SUGGESTED' } });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Send suggestion' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/invites', {
-        name: 'Dato Kvaratskhelia', email: 'dato@example.test', job: 'TEAM_MANAGER', title: null, tools: null, clubWide: false, squadIds: [5],
-    }));
-    expect(await screen.findByText(/An admin confirms or declines it/)).toBeInTheDocument();
+    for (const name of [/^Invite$/, /^Change$/, /Post a job/, /Add job/]) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
 });
 
 it('an admin confirms a suggested helper from Needs you and gets the link to send', async () => {
@@ -171,8 +159,7 @@ it('an admin confirms a suggested helper from Needs you and gets the link to sen
 it('gives a colleague Staff to read: who, which job, where, and nothing to change', async () => {
     renderPeople(view({ userId: 4, leader: false, owner: false, headCoachSquads: [] }), {
         access: { clubId: 7, squadId: null, allowed: ['see_staff', 'follow'], admins: [{ userId: 1, name: 'Nino Owner' }], refused: [
-            { action: 'invite_staff', allowed: false, reason: 'ONLY_ADMINS', message: 'Only the club’s admins can do this.', because: null },
-            { action: 'suggest_assistant', allowed: false, reason: 'ONLY_HEAD_COACHES', message: 'Only head coaches can do this.', because: null }] },
+            { action: 'invite_staff', allowed: false, reason: 'ONLY_ADMINS', message: 'Only the club’s admins can do this.', because: null }] },
     });
     expect(within(await screen.findByRole('list', { name: 'Staff' })).getByText('Team manager')).toBeInTheDocument();
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/access/clubs/7', expect.anything()));

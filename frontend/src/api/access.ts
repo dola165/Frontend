@@ -5,12 +5,12 @@ import { apiClient } from './axiosConfig';
  * The one rule-checker (F3): "may this person do this action to this thing?", answered by the server from jobs, links,
  * age and GrassKickZ staff (fnd-access-b, `GET /access/clubs/{id}` and `/access/squads/{id}`). `me` asks about the
  * person anywhere (`GET /access/me`): starting a club, adding a child, joining, following, and arranging, reporting,
- * inviting or suggesting in at least one club or squad. Screens only show or hide buttons with it; the server checks
+ * inviting or adding a helper in at least one club or squad. Screens only show or hide buttons with it; the server checks
  * again on every action.
  */
 export type AccessSubject = 'me' | `club:${number}` | `squad:${number}`;
 export type AccessAction =
-    | 'see_people' | 'see_staff' | 'invite_staff' | 'make_admin' | 'change_job' | 'end_job' | 'suggest_assistant' | 'confirm_assistant'
+    | 'see_people' | 'see_staff' | 'invite_staff' | 'make_admin' | 'change_job' | 'end_job' | 'add_helper' | 'confirm_assistant'
     | 'add_child' | 'arrange_match' | 'report_score' | 'start_club' | 'follow'
     | 'join_squad' | 'manage_join_link' | 'approve_join_requests' | 'link_parent'
     | 'leave_club' | 'hand_over' | 'close_club' | 'ask_handover';

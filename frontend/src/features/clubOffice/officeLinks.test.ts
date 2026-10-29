@@ -2,7 +2,7 @@ import { matchPath } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import type { Bootstrap } from '../clubOperations/api';
 import { operationModule } from '../clubOperations/workspaceNavigation';
-import { inClubOffice, isOfficeTool, legacyWorkspaceTarget, MORE_TOOLS, OFFICE_PLACES, OFFICE_TOOLS } from './officeLinks';
+import { bareLink, inClubOffice, isMovedTool, isOfficeTool, legacyWorkspaceTarget, MORE_TOOLS, MOVED_TOOLS, movedToolPath, OFFICE_PLACES, OFFICE_TOOLS, type MovedTool } from './officeLinks';
 import { moreToolGroups, toolStates } from './officeTools';
 import app from '../../App.tsx?raw';
 
@@ -77,12 +77,50 @@ describe('old club workspace addresses', () => {
 
     it('opens every More tools entry as a tool screen', () => {
         for (const tool of OFFICE_TOOLS) expect(Boolean(operationModule(tool)) || SCREENS.includes(tool), tool).toBe(true);
-        // Whatever a job opens today is listed: attendance and preparation wait for My squads, duties and specialists
-        // for Staff.
+        // Whatever a job opens today is listed: duties and specialists wait for Staff, equipment for Kit. Applications,
+        // attendance and preparation moved into My squads (step 3); setting up joining stays here.
         const group = (id: string) => MORE_TOOLS.find(item => item.id === id)?.tools;
-        expect(group('my-squads')).toEqual(expect.arrayContaining(['attendance', 'preparation']));
+        expect(group('kit')).toEqual(['equipment']);
         expect(group('staff')).toEqual(['staff-duties', 'specialists']);
+        expect(group('joining')).toEqual(['admissions']);
         expect(group('registration')).toEqual(expect.arrayContaining(['players', 'player-cards']));
+        for (const tool of Object.keys(MOVED_TOOLS)) expect(MORE_TOOLS.flatMap(item => item.tools as readonly string[])).not.toContain(tool);
+    });
+});
+
+describe('tools that moved into My squads (step 3)', () => {
+    it.each(Object.entries(MOVED_TOOLS))('?tab=%s opens in Club office, which sends a bare link on to My squads › %s', (tab, place) => {
+        // Only Club office knows whether the person is on a squad at this club (a coach at one club may be an admin at
+        // another), so the old address goes there whatever the navigation hints say.
+        const target = legacyWorkspaceTarget(7, new URLSearchParams({ tab, squad: '105' }), coach);
+        expect(target).toBe(`/clubs/7/office?tab=tools&tool=${tab}&squad=105`);
+        expect(bareLink(at(target).searchParams)).toBe(true);
+        expect(movedToolPath(7, tab as MovedTool, { squad: '105' })).toBe(`/my-squads?clubId=7&tab=${place}&squad=105`);
+        expect(lands(movedToolPath(7, tab as MovedTool))).toBe(true);
+    });
+
+    it('opens every backend admissions link in Club office with its request, case, group or setup', () => {
+        const to = (query: string) => inClubOffice(`/clubs/7/workspace?${query}`);
+        expect(isMovedTool('admissions')).toBe(false);
+        // JoiningService's staff destination, AdmissionInquiries' request and setup links, AdmissionCaseViews' group.
+        expect(to('tab=admissions')).toBe('/clubs/7/office?tab=tools&tool=admissions');
+        expect(to('tab=admissions&inquiryId=9')).toBe('/clubs/7/office?tab=tools&tool=admissions&inquiryId=9');
+        expect(to('tab=admissions&caseId=3')).toBe('/clubs/7/office?tab=tools&tool=admissions&caseId=3');
+        expect(to('tab=admissions&inquiryId=9&joiningSetup=1')).toBe('/clubs/7/office?tab=tools&tool=admissions&inquiryId=9&joiningSetup=1');
+        expect(to('tab=admissions&admissionView=groups&group=4')).toBe('/clubs/7/office?tab=tools&tool=admissions&admissionView=groups&group=4');
+    });
+
+    it('sends only a bare link on: anything it names more opens the tool here', () => {
+        expect(bareLink(new URLSearchParams('tab=tools&tool=applications&squad=105'))).toBe(true);
+        expect(bareLink(new URLSearchParams('tab=tools&tool=applications&applicationId=3'))).toBe(false);
+        expect(bareLink({ tool: 'attendance', record: '12' })).toBe(false);
+        expect(bareLink({ tool: 'attendance', person: '40' })).toBe(false);
+        // A session's register stays in the tool (My squads finds only its own squads' sessions of the coming weeks),
+        // and Squads' way back to itself is Club office's own.
+        expect(bareLink({ tool: 'attendance', squad: '105', session: '7' })).toBe(false);
+        expect(bareLink({ tool: 'attendance', squad: '105', return: 'squads' })).toBe(false);
+        expect(legacyWorkspaceTarget(7, new URLSearchParams('tab=attendance&squad=105&session=7'), coach)).toBe('/clubs/7/office?tab=tools&tool=attendance&squad=105&session=7');
+        expect(legacyWorkspaceTarget(7, new URLSearchParams('tab=attendance&record=12'), coach)).toBe('/clubs/7/office?tab=tools&tool=attendance&record=12');
     });
 });
 
@@ -107,7 +145,7 @@ describe('More tools for each person', () => {
         expect(states.get('admissions')).toBe('open');
         // A tool the club switched off leaves the list (its old links still open it).
         expect(moreToolGroups(states, boot([], true), true).flatMap(group => group.tools)).not.toContain('equipment');
-        expect(moreToolGroups(states, boot([], true), true).map(group => group.id)).toContain('money');
+        expect(moreToolGroups(states, boot([], true), true).map(group => group.id)).toEqual(expect.arrayContaining(['money', 'joining']));
     });
 
     it('keeps an older coach membership’s players and their cards, applications and tryouts', () => {
@@ -115,11 +153,13 @@ describe('More tools for each person', () => {
         expect([...states.keys()].sort()).toEqual(['applications', 'player-cards', 'players', 'tryouts']);
     });
 
-    it('lists only Attendance for a Custom job with only Attendance', () => {
+    it('keeps Attendance in More tools for a Custom job with only Attendance, which is on no squad', () => {
         const states = toolStates({ boot: boot([module('ATTENDANCE')]), role: null, admissions: false });
         expect([...states.entries()]).toEqual([['attendance', 'open']]);
-        const shown = moreToolGroups(states, { ...boot([]), settings: { ...boot([]).settings, enabled_modules: ['ATTENDANCE'] } }, false);
-        expect(shown.map(item => [item.id, item.tools])).toEqual([['my-squads', ['attendance']]]);
+        const club = { ...boot([]), settings: { ...boot([]).settings, enabled_modules: ['ATTENDANCE'] } };
+        expect(moreToolGroups(states, club, false, false).map(item => [item.id, item.tools])).toEqual([['my-squads', ['attendance']]]);
+        // On a squad, attendance is the session's register in My squads.
+        expect(moreToolGroups(states, club, false, true)).toEqual([]);
     });
 
     it('doesn\'t lock an admin\'s tools before the club\'s tools have loaded', () => {

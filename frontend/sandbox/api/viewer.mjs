@@ -80,7 +80,7 @@ export const isNewcomer = headers => viewerId(headers) !== W.ME_ID;
  * no membership); for Projects (handlers/projects.mjs) `commercial`, `facilities`, `projectcoach` and `kitparent`.
  * None: the Owner and head coach.
  */
-export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'commercial', 'facilities', 'projectcoach', 'kitparent'];
+export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'teammanager', 'gkcoach', 'headofcoaching', 'kit', 'helper', 'commercial', 'facilities', 'projectcoach', 'kitparent'];
 export const personaOf = headers => { const found = /(?:^|;\s*)gk-sandbox-persona=([a-z]+)(?:;|$)/.exec(String(headers?.cookie ?? ''))?.[1]; return PERSONAS.includes(found) ? found : null; };
 /** Not the club's Owner or an Admin: every persona. */
 export const restrictedPersona = headers => personaOf(headers) !== null;

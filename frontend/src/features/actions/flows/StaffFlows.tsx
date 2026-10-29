@@ -33,10 +33,9 @@ function Waiting({ title, error, retry, onClose }: { title: string; error: strin
     </Dialog>;
 }
 
-/** What an invite or suggestion became, said once; whether the address had an account is never said. */
+/** What an invite became, said once; whether the address had an account is never said. */
 function invitedNotice(result: InviteResult, copy: ReturnType<typeof useJourneyCopy>) {
-    return result.status === 'SUGGESTED' ? copy(`Suggested ${result.name}. An admin confirms or declines it; you’ll be told.`, `${result.name} შეთავაზებულია. ადმინი დაადასტურებს ან უარყოფს; შეგატყობინებთ.`)
-        : result.link ? copy(`Invited ${result.name}. Send them the link from Staff.`, `${result.name} მოწვეულია. ბმული პერსონალის გვერდიდან გაუგზავნეთ.`)
+    return result.link ? copy(`Invited ${result.name}. Send them the link from Staff.`, `${result.name} მოწვეულია. ბმული პერსონალის გვერდიდან გაუგზავნეთ.`)
             : copy(`Invited ${result.name}. They’ll find the invitation when they sign in.`, `${result.name} მოწვეულია. მოწვევას შესვლისას ნახავს.`);
 }
 
@@ -50,25 +49,9 @@ export function InviteStaffFlow({ club, clubName, squadId, job, onClose }: { clu
     if (!people.view) return <Waiting title={title} error={people.error} retry={people.retry} onClose={onClose} />;
     const squad = people.view.squads.some(item => item.id === squadId) ? squadId : undefined;
     const linkJob = linkJobs(people.view).includes(job ?? '') ? job! : squad ? 'ASSISTANT_COACH' : 'HEAD_COACH';
-    return <InviteStaffDialog club={club} clubName={clubName} view={people.view} suggest={false} allowAdmin={people.view.viewer.leader}
+    return <InviteStaffDialog club={club} clubName={clubName} view={people.view} allowAdmin={people.view.viewer.leader}
         initial={{ job: linkJob, clubWide: false, squadIds: squad ? [squad] : people.view.viewer.headCoachSquads.length === 1 ? people.view.viewer.headCoachSquads : [] }}
         how={how} onHow={setHow} links={staff.links ?? []} linksLoading={staff.links === null && !staff.error} linksError={staff.error} onRetryLinks={staff.reload}
         onLinks={staff.setLinks} onClose={onClose} onChanged={notice => { refreshAccess(); toast.success(notice); }}
         onInvited={result => { refreshAccess(); toast.success(invitedNotice(result, copy)); onClose(); }} />;
-}
-
-/** Suggest a helper over any page: the one invite for the squads the person leads (the door's squad when it named one). */
-export function SuggestFlow({ club, squadId, onClose, onSent }: { club: number; squadId?: number; onClose: () => void; onSent?: (notice: string) => void }) {
-    const copy = useJourneyCopy();
-    const people = usePeopleView(club);
-    const title = copy('Suggest a helper', 'დამხმარის შეთავაზება');
-    if (!people.view) return <Waiting title={title} error={people.error} retry={people.retry} onClose={onClose} />;
-    const led = people.view.squads.filter(squad => people.view!.viewer.headCoachSquads.includes(squad.id));
-    if (!led.length) return <Dialog open size="sm" title={title} onClose={onClose}
-        description={copy('A head coach suggests helpers for the squads they lead.', 'მთავარი მწვრთნელი დამხმარეს თავისი გუნდებისთვის სთავაზობს.')}
-        footer={<Button variant="primary" onClick={onClose}>{copy('Close', 'დახურვა')}</Button>} />;
-    const squads = led.some(squad => squad.id === squadId) ? [squadId!] : led.length === 1 ? [led[0].id] : [];
-    return <InviteStaffDialog club={club} clubName="" view={people.view} suggest allowAdmin={false} initial={{ job: 'ASSISTANT_COACH', clubWide: false, squadIds: squads }}
-        how="person" onHow={() => undefined} links={[]} onLinks={() => undefined} onClose={onClose} onChanged={notice => toast.success(notice)}
-        onInvited={result => { const notice = invitedNotice(result, copy); if (onSent) onSent(notice); else toast.success(notice); onClose(); }} />;
 }

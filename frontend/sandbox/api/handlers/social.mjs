@@ -13,6 +13,7 @@ import { familyRequest } from '../world-family.mjs';
 import { canReadSquadSession, canSelectSessionPlayer, squadAccess } from '../squad-access.mjs';
 import { squadSessionDto as sessionDto, sessionResponseOf as responseOf, projectSquadSession } from '../squad-session-dto.mjs';
 import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
+import { squadStaffOn } from '../world-my-squads.mjs';
 import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs, createPage, viewerAge as pageAge } from '../pages-data.mjs';
 import { ORGANIZATION_TYPE, PAGE_MINIMUM_AGE } from '../../../src/features/pages/model/kinds.ts';
 
@@ -633,7 +634,8 @@ function overviewDto(s, headers) {
     ...spaceDto(s, headers), viewer_id: access.viewer, member_count: s.playerIds.length + families.filter(id => !s.playerIds.includes(id)).length + coaches.length,
     notify_chat: S.squadNotify.get(access.viewer === ME ? s.id : `${s.id}:${access.viewer}`) ?? true, head_coach_id: s.headCoachId, can_assign_coach: access.canAssignCoach,
     available_coaches: access.canAssignCoach ? availableCoaches(s).map(x => ({ user_id: x.personId, full_name: displayName(x.personId) })) : [],
-    coaches: coaches.map(id => ({ user_id: id, full_name: displayName(id) })),
+    // Everyone who works on the squad (step 3): its coaches, then the other jobs on it with their titles.
+    coaches: [...coaches.map(id => ({ user_id: id, full_name: displayName(id), role: 'COACH', title: null })), ...(s.clubId === 1 ? squadStaffOn(s.id) : [])],
     // Only what the roster shows about another child: name, shirt number, position, photo (refinement 4).
     players: s.playerIds.map(id => ({ id, name: displayName(id), number: person(id)?.shirtNumber ?? null, position: person(id)?.position ?? null, photo_url: person(id)?.avatarUrl ?? null })),
     threads: (access.canManage ? families : [access.viewer]).map(id => ({ user_id: id, full_name: person(id)?.role === 'PARENT' ? `${displayName(id)} (${person(S.childOf(id))?.firstName ?? 'family'})` : displayName(id), unread_count: S.squadUnread.get(s.id)?.get(id) ?? 0 })),

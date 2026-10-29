@@ -10,7 +10,7 @@ import { coachOriginTarget } from '../clubOperations/coachOrigin';
 import type { RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
 import { WorkspaceOperations } from '../clubOperations/WorkspaceOperations';
 import { operationModule } from '../clubOperations/workspaceNavigation';
-import { focusableViews } from '../clubOperations/workspaceStructure';
+import { mySquadIds } from '../clubWorkspace/coachHub/coachData';
 import { guardWorkspaceNavigation } from '../clubOperations/workspaceGuard';
 import { canManageClubOperations, canManagePlayerStatuses, isLeadershipRole, type ClubManagementOverview, type PlayerAffiliationStatus } from '../clubs/domain';
 import { ClubDecisionDialogs } from '../clubWorkspace/ClubDecisionDialogs';
@@ -47,7 +47,7 @@ export function OfficeTool({ clubId, tool, state, sessionId, overview, reloadOve
     // Players, applications and tryouts load only while their tool is open.
     const membership = useClubMembership({ clubId, activeTab: tool, overview, reloadOverview, canChangePlayerStatus: canManagePlayerStatuses(role), focusedApplicationId });
     const go = (to: string) => guardWorkspaceNavigation(() => navigate(to));
-    const coach = boot && roles ? coachOriginTarget(params, clubId, focusableViews(roles.views).filter(view => !view.clubWide).flatMap(view => view.squadIds)) : null;
+    const coach = boot && roles ? coachOriginTarget(params, clubId, mySquadIds(roles.views)) : null;
     const origin = coach ? { label: copy('Back to My squads', 'უკან: ჩემი გუნდები'), onBack: () => go(coach) } : undefined;
     const squad = params.get('squad');
     // Opened from Squads, the way back leads to that squad (as the club workspace's return did).

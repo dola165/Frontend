@@ -1,4 +1,4 @@
-import { Handshake, Heart, ListChecks, QrCode, Shield, Ticket, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { Handshake, Heart, ListChecks, QrCode, Shield, Ticket, Users, type LucideIcon } from 'lucide-react';
 import type { AccessAction } from '../../api/access';
 import { activityColors } from '../schedule/activityIcons';
 
@@ -7,7 +7,7 @@ import { activityColors } from '../schedule/activityIcons';
  * button: `ActionButton` shows it only when the rule-checker allows it, and its link opens the flow over the page
  * (`?do=<key>&do-…`, read by `ActionHost`), with the likely answer already chosen by `guess`.
  */
-export type ActionKey = Extract<AccessAction, 'join_squad' | 'invite_staff' | 'suggest_assistant' | 'add_child' | 'arrange_match' | 'report_score' | 'start_club' | 'follow'>;
+export type ActionKey = Extract<AccessAction, 'join_squad' | 'invite_staff' | 'add_child' | 'arrange_match' | 'report_score' | 'start_club' | 'follow'>;
 
 /** What an action is about. A match is a finished one waiting for its score; `vs` a club to play. */
 export type ActionSubject =
@@ -63,11 +63,6 @@ export const ACTIONS: Record<ActionKey, ActionDefinition> = {
         subjects: ['club', 'squad', 'me'],
         // For a squad the likely helper is an assistant coach; for the club a head coach (the link's own default).
         guess: (subject, hints) => ({ club: clubOf(subject), squad: squadOf(subject), job: hints.job ?? (subject.kind === 'squad' ? 'ASSISTANT_COACH' : null) }),
-    },
-    suggest_assistant: {
-        key: 'suggest_assistant', label: ['Suggest an assistant', 'ასისტენტის შეთავაზება'], short: ['Suggest', 'შეთავაზება'], icon: UserPlus,
-        subjects: ['squad', 'club'],
-        guess: subject => ({ club: clubOf(subject), squad: squadOf(subject) }),
     },
     start_club: {
         key: 'start_club', label: ['Start a club', 'კლუბის შექმნა'], short: ['Start', 'შექმნა'], icon: Shield,

@@ -12,11 +12,11 @@ import './office.css';
  * More tools: every tool with no page of its own yet, grouped by the page it will move to. Admins see every group;
  * everyone else only the tools they open today, with Ask the admin for more. A locked drawer shows its lock.
  */
-export function MoreTools({ clubId, states, boot, leader, admin }: {
-    clubId: number; states: Map<OfficeTool, ToolState>; boot: Bootstrap | null; leader: boolean; admin: { userId: number; name: string } | null;
+export function MoreTools({ clubId, states, boot, leader, onSquads, admin }: {
+    clubId: number; states: Map<OfficeTool, ToolState>; boot: Bootstrap | null; leader: boolean; onSquads: boolean; admin: { userId: number; name: string } | null;
 }) {
     const copy = useJourneyCopy();
-    const groups = moreToolGroups(states, boot, leader);
+    const groups = moreToolGroups(states, boot, leader, onSquads);
     const locked = (tool: OfficeTool) => tool === 'medical' ? copy('Only the club’s medical staff open this', 'ამას მხოლოდ კლუბის სამედიცინო პერსონალი ხსნის')
         : tool === 'welfare' ? copy('Only the welfare officer opens this', 'ამას მხოლოდ ბავშვთა დაცვის ოფიცერი ხსნის')
             : copy('Not open for your job', 'თქვენი სამუშაოსთვის დახურულია');

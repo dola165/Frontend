@@ -32,7 +32,7 @@ const boot: Bootstrap = { clubId: 400, actorId: 9500, clubName: 'Assigned club',
     squads: [{ id: 401, name: 'Assigned U12' }], people: [{ id: 8, name: 'Fixture player' }], staff: [], guardians: [], events: [], sessions: [], venues: [], links: [] };
 function roles(club: number): RolesWorkspace {
     const owned = club === 400, current = { id: 'all', label: 'All', clubWide: false, squadIds: owned ? [401] : [], modules: ['AVAILABILITY'], appointmentId: null, revision: null };
-    return { leadership: false, actorId: 9500, catalog: [], current, views: owned && fixture.assigned ? [{ ...current, id: 'coaching', label: 'Squad coach' }] : [],
+    return { leadership: false, actorId: 9500, catalog: [], current, views: owned && fixture.assigned ? [{ ...current, id: 'coaching', label: 'Squad coach', onSquads: true }] : [],
         squads: owned ? [{ id: 401, name: 'Assigned U12', player_count: 1 }] : [], requestSquads: owned ? [{ id: 401, name: 'Assigned U12' }] : [], people: [], sessions: [], requests: [], invitations: [] };
 }
 const record: OperationRecord = { id: 70116, club_id: 400, module: 'AVAILABILITY', kind: 'RESTRICTION', title: 'Fixture participation limit', status: 'ACTIVE', revision: 2, squad_id: 401, subject_user_id: 8, assigned_user_id: null, event_id: null, session_id: null, related_record_id: null, due_on: null, data: {}, canEdit: false, transitions: [], created_at: '', updated_at: '' };

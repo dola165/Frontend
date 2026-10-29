@@ -23,7 +23,7 @@ const boot = { clubId: 400, actorId: 9500, clubName: 'Fixture academy', leadersh
 function roles() {
   const club = { id: 'club', label: 'Club administration', modules: [], squadIds: [401], clubWide: true, appointmentId: null, revision: null };
   // Approved read-projection fixture: leadership alone has no personal coaching view.
-  return { leadership: true, actorId: 9500, catalog: [], current: club, views: [club, ...(fixture.assigned ? [{ ...club, id: 'coaching', label: 'Squad coach', clubWide: false }] : [])], squads: [{ id: 401, name: 'Review U12', player_count: 0 }], requestSquads: [squad], people: [], sessions: [], requests: [], invitations: [] };
+  return { leadership: true, actorId: 9500, catalog: [], current: club, views: [club, ...(fixture.assigned ? [{ ...club, id: 'coaching', label: 'Squad coach', clubWide: false, onSquads: true }] : [])], squads: [{ id: 401, name: 'Review U12', player_count: 0 }], requestSquads: [squad], people: [], sessions: [], requests: [], invitations: [] };
 }
 const overview = () => ({ id: 401, club_id: 400, viewer_id: 9500, academy_name: 'Fixture academy', name: squad.name, category: 'U12', can_manage: true, unread_count: 0, member_count: 1, notify_chat: true, head_coach_id: fixture.assigned ? 9500 : null, can_assign_coach: true, available_coaches: [{ user_id: 9500, full_name: 'Confirmed club coach' }], coaches: fixture.assigned ? [{ user_id: 9500, full_name: 'Confirmed club coach' }] : [], players: [], threads: [] });
 beforeEach(() => {

@@ -17,7 +17,7 @@ export interface ConversationDto {
     id: number;
     name: string | null;
     /** TEAM: the team chat (Team work's list); it opens with its own view (features/teamChat). */
-    contextType: 'DIRECT' | 'GROUP' | 'MATCH_CHALLENGE' | 'TEAM';
+    contextType: 'DIRECT' | 'GROUP' | 'MATCH_CHALLENGE' | 'TEAM' | 'SQUAD_STAFF';
     contextId: number | null;
     lastMessage: string | null;
     lastMessageSenderId: number | null;

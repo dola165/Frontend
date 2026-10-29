@@ -58,3 +58,28 @@ export function useCan(subject: AccessSubject | null): Can {
         rules ? rules.actions[action] ?? { allowed: false } : { allowed: fallback, pending }, [rules, pending]);
     return { pending, decide, admin: rules?.admins?.[0] ?? null, failed: rules === null };
 }
+
+/**
+ * The first of these subjects (a person's squads, in order) where the action is allowed, for a button that works on
+ * any of them; `null` when none allows it or the check failed, and while the answers are on their way (`pending`).
+ */
+export function useFirstAllowed(subjects: readonly AccessSubject[], action: AccessAction): { pending: boolean; subject: AccessSubject | null } {
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    const list = subjects.join(',');
+    const key = `${session ?? ''}|${list}|${action}`;
+    const [state, setState] = useState<{ key: string; subject: AccessSubject | null } | null>(null);
+    const [round, setRound] = useState(0);
+    useEffect(() => {
+        const bump = () => setRound(value => value + 1);
+        listeners.add(bump);
+        return () => { listeners.delete(bump); };
+    }, []);
+    useEffect(() => {
+        let live = true;
+        const all = (list ? list.split(',') : []) as AccessSubject[];
+        void Promise.all(all.map(subject => load(`${session ?? ''}:${subject}`, subject).catch(() => null)))
+            .then(answers => { if (live) setState({ key, subject: all.find((_, index) => answers[index]?.actions[action]?.allowed) ?? null }); });
+        return () => { live = false; };
+    }, [key, list, session, action, round]);
+    return { pending: state?.key !== key, subject: state?.key === key ? state.subject : null };
+}

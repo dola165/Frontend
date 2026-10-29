@@ -2,6 +2,7 @@ import { squadDesignEn, squadsDesignEn } from './squadDesign';
 import { clubRecordsEn } from './clubRecords';
 import { coachHubEn, fixtureCopyEn, workspaceNavEn, workspaceShellEn } from './workspaceDesign';
 import { recruitmentDesignEn } from './recruitmentDesign';
+import { mySquadsEn } from './mySquadsDesign';
 
 const en = {
   androidFeedComposer: {
@@ -16,6 +17,7 @@ const en = {
   workspaceShell: workspaceShellEn,
   workspaceNav: workspaceNavEn,
   coachHub: coachHubEn,
+  mySquads: mySquadsEn,
   fixtureCopy: fixtureCopyEn,
   recruitmentDesign: recruitmentDesignEn,
 
@@ -595,6 +597,7 @@ const en = {
     playerRoute: 'Your entry option',
     preferredPosition: 'Preferred Position',
     ageGroup: 'Age Group',
+    squadToJoin: 'Squad',
     notSure: 'Not sure yet',
     aboutYou: 'Tell the club a little about yourself.',
     joinTrainingCta: 'Join Training',

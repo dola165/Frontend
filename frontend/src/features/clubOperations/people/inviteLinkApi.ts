@@ -2,7 +2,8 @@ import { apiClient } from '../../../api/axiosConfig';
 
 /** The club invite link page (backend `ClubInviteLinkController`, open without signing in; the token goes in the body). */
 export interface LinkInvite {
-    kind: 'APPOINTMENT' | 'MEMBERSHIP'; id: number; revision: number | null; clubId: number; clubName: string; clubLogoUrl: string | null;
+    /** HELPER: added to a session (step 3); nothing to accept, the session waits on Home once the account is set up. */
+    kind: 'APPOINTMENT' | 'MEMBERSHIP' | 'HELPER'; id: number; revision: number | null; clubId: number; clubName: string; clubLogoUrl: string | null;
     invitedBy: string | null; job: string; title: string; clubWide: boolean; squads: string[]; unavailableReason: string | null;
 }
 export interface ClubInvitePreview { email: string; invitedName: string | null; hasPassword: boolean; invites: LinkInvite[] }
@@ -23,10 +24,11 @@ export const signInAfterClaim = async (email: string, password: string) => {
 
 /** Where accepted jobs land: a squad job in My squads, anything else in the club's workspace. */
 export const landingFor = (accepted: LinkInvite[]) => accepted.some(i => i.kind === 'APPOINTMENT' && !i.clubWide) ? '/my-squads'
-    : accepted.length ? `/clubs/${accepted[0].clubId}/office` : '/home';
+    : accepted.some(i => i.kind !== 'HELPER') ? `/clubs/${accepted[0].clubId}/office` : '/home';
 
 /** Accepts one job the normal, signed-in way: the appointment's own accept, or the club invitation's. */
 export const acceptClubInvite = async (invite: LinkInvite) => {
+    if (invite.kind === 'HELPER') return;
     if (invite.kind === 'APPOINTMENT') await apiClient.post(`/clubs/${invite.clubId}/operations/appointments/${invite.id}/transition`, { status: 'ACTIVE', revision: invite.revision });
     else await apiClient.post(`/club-memberships/invites/${invite.id}/accept`);
 };

@@ -198,7 +198,7 @@ describe('the doors', () => {
 
     it('a squad page offers what this squad allows: its score, a match, staff, and following the club', async () => {
         server.waiting = [owed];
-        server.squads[107] = { allowed: ['arrange_match', 'report_score', 'invite_staff', 'follow'], refused: [refusal('suggest_assistant', 'ONLY_HEAD_COACHES', 'Only a head coach.'), refusal('join_squad', 'ALREADY_IN_SQUAD', 'Already in.')] };
+        server.squads[107] = { allowed: ['arrange_match', 'report_score', 'invite_staff', 'follow'], refused: [refusal('join_squad', 'ALREADY_IN_SQUAD', 'Already in.')] };
         show(<SquadDoors squadId={107} clubId={1} clubName="FC Dinamo Tbilisi Academy" />, '/squads/107');
         expect(await screen.findByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/squads/107?do=arrange_match&do-squad=107');
         expect(await screen.findByRole('link', { name: 'Invite staff' })).toHaveAttribute('href', '/squads/107?do=invite_staff&do-club=1&do-squad=107&do-job=ASSISTANT_COACH');

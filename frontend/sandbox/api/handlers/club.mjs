@@ -33,7 +33,9 @@ const isOwnClub = id => Number(id) === CLUB;
 // and match preparation. `member`: club membership with no responsibilities at all. `headcoach`: the older Coach
 // membership and the head coach job on U14 and U16. `physio`: a job and no membership. None: the owner and head coach.
 const personaOf = V.personaOf;
-const personaRole = persona => (persona === 'analyst' || persona === 'headcoach' ? 'COACH' : persona === 'member' ? 'PLAYER' : persona === 'physio' || persona === 'attendance' ? null : 'OWNER');
+// Coaches are the club's coaches; the other jobs (and a helper, who has none) hold no club role, like the physio (step 3).
+const personaRole = persona => (['analyst', 'headcoach', 'gkcoach', 'headofcoaching'].includes(persona) ? 'COACH' : persona === 'member' ? 'PLAYER'
+  : ['physio', 'attendance', 'teammanager', 'kit', 'helper'].includes(persona) ? null : 'OWNER');
 const ANALYST_ACCESS = { DEVELOPMENT: true, AVAILABILITY: false, READINESS: false }; // module → may write
 const analystSquads = () => [...C.myCoaching.squad_ids];
 const analystView = () => ({ id: 'analyst', label: 'Performance analyst', modules: Object.keys(ANALYST_ACCESS), squadIds: analystSquads(), clubWide: false, appointmentId: 990001, revision: 1 });

@@ -2,7 +2,7 @@ import { CheckCircle2, Handshake, HeartHandshake, IdCard, ReceiptText, ShoppingB
 import type { Bootstrap } from '../clubOperations/api';
 import { operationModule, operationTabs, toolLabel } from '../clubOperations/workspaceNavigation';
 import { canManageClubOperations, isLeadershipRole } from '../clubs/domain';
-import { MORE_TOOLS, OFFICE_TOOLS, type OfficeTool } from './officeLinks';
+import { MORE_TOOLS, MOVED_GROUP, OFFICE_TOOLS, type OfficeTool } from './officeLinks';
 
 /**
  * What a person can do with a tool in More tools: open it, only read it (`view`), or see that it's a locked drawer
@@ -51,10 +51,12 @@ export function toolStates({ boot, role, admissions }: ToolAccessInput): Map<Off
 
 /**
  * More tools as this person sees it: admins every group, everyone else only the tools they can open. A tool the club
- * switched off in Settings is left out of the list (its old links still open it).
+ * switched off in Settings is left out of the list (its old links still open it). The tools that moved into My squads
+ * are listed only for someone on no squad, who has no My squads.
  */
-export function moreToolGroups(states: Map<OfficeTool, ToolState>, boot: Bootstrap | null, everything: boolean) {
+export function moreToolGroups(states: Map<OfficeTool, ToolState>, boot: Bootstrap | null, everything: boolean, onSquads = true) {
     const on = (tool: OfficeTool) => { const module = operationModule(tool); return !module || !boot || boot.settings.enabled_modules.includes(module); };
-    return MORE_TOOLS.map(group => ({ ...group, tools: group.tools.filter(tool => on(tool) && (everything || states.get(tool) === 'open' || states.get(tool) === 'view')) }))
+    const groups: readonly { id: string; page: readonly [string, string]; tools: readonly OfficeTool[] }[] = onSquads ? MORE_TOOLS : [MOVED_GROUP, ...MORE_TOOLS];
+    return groups.map(group => ({ ...group, tools: group.tools.filter(tool => on(tool) && (everything || states.get(tool) === 'open' || states.get(tool) === 'view')) }))
         .filter(group => group.tools.length);
 }

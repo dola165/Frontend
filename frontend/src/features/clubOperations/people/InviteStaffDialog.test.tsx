@@ -22,7 +22,7 @@ it('matches title and squads, and matches the exact tool set for legacy Custom l
 });
 function Harness() {
     const [links, setLinks] = useState([goalkeeper, conditioning]);
-    return <InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={view} suggest={false} allowAdmin how="link" onHow={() => {}} links={links} openedLink={71} onLinks={setLinks}
+    return <InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={view} allowAdmin how="link" onHow={() => {}} links={links} openedLink={71} onLinks={setLinks}
         onClose={() => {}} onChanged={() => {}} onInvited={() => {}} />;
 }
 it('shares an older specialist link with its saved title, and never makes a new one for that job', async () => {
@@ -40,7 +40,7 @@ it('shares an older specialist link with its saved title, and never makes a new 
 it('never makes a staff link for Head of coaching, More jobs or Custom: only the four main jobs', () => {
     const all: PeopleView = { ...view, jobs: ['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'FEES', 'ADMIN'].map(key => ({ key, title: key === 'FEES' ? 'Fees' : key === 'ADMIN' ? 'Admin' : key.charAt(0) + key.slice(1).toLowerCase().replace('_', ' '), tools: [], description: '' })),
         moreJobs: [{ key: 'HEAD_OF_COACHING', title: 'Head of coaching', tools: [], description: '', family: 'COACHING' }, { key: 'GOALKEEPER_COACH', title: 'Goalkeeper coach', tools: [], description: '', family: 'COACHING' }] };
-    render(<InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={all} suggest={false} allowAdmin how="link" onHow={() => {}} links={[]} onLinks={() => {}}
+    render(<InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={all} allowAdmin how="link" onHow={() => {}} links={[]} onLinks={() => {}}
         onClose={() => {}} onChanged={() => {}} onInvited={() => {}} />);
     const linkWay = () => screen.getByRole('radio', { name: /Share a staff link/ });
     expect(linkWay()).toBeEnabled();
@@ -64,7 +64,7 @@ it('never makes a staff link for Head of coaching, More jobs or Custom: only the
 it('opens a squad door\'s Invite on the link for that job and squad, or on none', () => {
     const helper = { ...link(80, 'Assistant coach'), job: 'ASSISTANT_COACH', tools: [] }, newest = { ...link(81, 'Head coach'), job: 'HEAD_COACH', tools: [], clubWide: true, squads: [] };
     const jobs: PeopleView = { ...view, jobs: [...view.jobs, { key: 'ASSISTANT_COACH', title: 'Assistant coach', tools: [], description: '' }] };
-    const open = (links: StaffLink[]) => render(<InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={jobs} suggest={false} allowAdmin how="link" onHow={() => {}} links={links} onLinks={() => {}}
+    const open = (links: StaffLink[]) => render(<InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={jobs} allowAdmin how="link" onHow={() => {}} links={links} onLinks={() => {}}
         initial={{ job: 'ASSISTANT_COACH', clubWide: false, squadIds: [5] }} onClose={() => {}} onChanged={() => {}} onInvited={() => {}} />);
     open([newest, helper]);
     expect(screen.getByLabelText('Staff link')).toHaveValue(window.location.origin + '/staff-invite/code80');
@@ -97,7 +97,7 @@ it('lists every working link, older ones included, each with Show and Switch off
 
 it('chooses the job first: a staff link never makes an Admin, sending to one person does', () => {
     const admin: PeopleView = { ...view, jobs: [...view.jobs, { key: 'ADMIN', title: 'Admin', tools: [], description: '' }] };
-    render(<InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={admin} suggest={false} allowAdmin how="person" onHow={() => {}} links={[]} onLinks={() => {}}
+    render(<InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={admin} allowAdmin how="person" onHow={() => {}} links={[]} onLinks={() => {}}
         onClose={() => {}} onChanged={() => {}} onInvited={() => {}} />);
     expect(screen.getByRole('radio', { name: /Share a staff link/ })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Admin' }));
@@ -107,19 +107,3 @@ it('chooses the job first: a staff link never makes an Admin, sending to one per
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
 });
 
-it('lets a head coach suggest a helper only for the squads they coach, with no link', async () => {
-    api.post.mockResolvedValue({ data: { userId: null, name: 'Nika', inApp: true, link: null, status: 'SUGGESTED' } });
-    const coach: PeopleView = { ...view, viewer: { ...view.viewer, leader: false, owner: false, headCoachSquads: [5] }, squads: [{ id: 5, name: 'U12' }, { id: 6, name: 'U14' }],
-        jobs: [{ key: 'ASSISTANT_COACH', title: 'Assistant coach', tools: [], description: '' }, { key: 'TEAM_MANAGER', title: 'Team manager', tools: [], description: '' }] };
-    const invited = vi.fn();
-    render(<InviteStaffDialog club={1} clubName="FC Dinamo Tbilisi Academy" view={coach} suggest allowAdmin={false} how="person" onHow={() => {}} links={[]} onLinks={() => {}}
-        onClose={() => {}} onChanged={() => {}} onInvited={invited} />);
-    expect(screen.queryByRole('radio', { name: /Share a staff link/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'U14' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Whole club' })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Nika' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nika@example.test' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Send suggestion' }));
-    await waitFor(() => expect(invited).toHaveBeenCalled());
-    expect(api.post).toHaveBeenCalledWith('/clubs/1/people/invites', expect.objectContaining({ job: 'ASSISTANT_COACH', clubWide: false, squadIds: [5] }));
-});

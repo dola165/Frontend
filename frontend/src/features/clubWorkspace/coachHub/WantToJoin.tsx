@@ -43,11 +43,11 @@ export function WantToJoin({ items, failed = false, onRetry, data, onChanged }: 
         item.source === 'WORLD' ? copy('appliedWhen', { when: relativeTime(item.createdAt) }) : item.source === 'LINK' ? copy('askedWithCode') : copy('askedTheClub'),
         several && item.squadId ? data.names.get(item.squadId) : null].filter(Boolean).join(' · ');
     const steps = (item: WantToJoinItem) => {
-        if (item.state === 'TRIAL') return <span className="cw-status cw-status--warning"><span className="cw-dot cw-dot--warning" aria-hidden="true" />{copy('afterTrial')}</span>;
-        if (item.state === 'ANSWERED') return <span className="ch-quiet">{item.answeredBy ? copy('answeredBy', { name: item.answeredBy }) : copy('answered')}</span>;
+        if (item.state === 'TRIAL') return <span className="cw-status cw-status--warning ch-join__state"><span className="cw-dot cw-dot--warning" aria-hidden="true" />{copy('afterTrial')}</span>;
+        if (item.state === 'ANSWERED') return <span className="ch-quiet ch-join__state">{item.answeredBy ? copy('answeredBy', { name: item.answeredBy }) : copy('answered')}</span>;
         // A request through the join code or an admission goes into the squad's joining group; without one, set it up first.
         const groupless = item.kind === 'REQUEST' && item.request!.groups.length !== 1;
-        if (groupless && item.request!.setup.destination) return <ButtonLink size="sm" variant="ghost" to={item.request!.setup.destination}>{copy('setUpJoining')}</ButtonLink>;
+        if (groupless && item.request!.setup.destination) return <ButtonLink size="sm" variant="ghost" className="ch-join__state" to={item.request!.setup.destination}>{copy('setUpJoining')}</ButtonLink>;
         return <span className="ch-join__steps">
             {item.kind === 'REQUEST' && !groupless && <Button size="sm" variant="primary" disabled={busy === item.key} onClick={() => void act(item, 'ACCEPT')}>{copy('accept')}</Button>}
             {!groupless && <Button size="sm" disabled={busy === item.key} onClick={() => void act(item, 'TRIAL')}>{copy('inviteToTrial')}</Button>}

@@ -45,7 +45,6 @@
   .gk .ch-match__grid { grid-template-columns: minmax(0, 1fr); }
   .gk .ch-match__actions { margin-left: 0; }
   .gk .ch-join__row { grid-template-columns: auto minmax(0, 1fr); }
-  .gk .ch-join__decide, .gk .ch-join__steps { grid-column: 2; justify-content: flex-start; }
-
+  .gk .ch-join__decide, .gk .ch-join__steps, .gk .ch-join__state { grid-column: 2; justify-content: flex-start; justify-self: start; }
 }
 .gk .ch-card__error { margin: 0 var(--gk-4) var(--gk-3); }

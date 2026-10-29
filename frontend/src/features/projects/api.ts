@@ -23,7 +23,12 @@ export interface ProjectSummary {
     waitingOnMe: number; fundraiserStatus: string | null; updatedAt: string;
 }
 export interface WaitingStep { projectId: number; project: string; stepId: number; step: string; day: string | null }
-export interface ProjectBoard { needsYou: WaitingStep[]; projects: ProjectSummary[]; canStart: boolean }
+export interface ProjectClub { id: number; name: string; crestUrl: string | null }
+/** What a project or a step can be given to: the club's squads and the people on its staff. */
+export interface ProjectChoices { squads: ProjectSquad[]; people: ProjectPerson[] }
+export interface ProjectBoard { club: ProjectClub; needsYou: WaitingStep[]; projects: ProjectSummary[]; canStart: boolean; choices: ProjectChoices | null }
+/** A club where this person has projects, or may start one. */
+export interface MyProjects { club: ProjectClub; open: number; waitingOnMe: number; canStart: boolean }
 
 export interface ProjectStep { id: number; title: string; done: boolean; person: ProjectPerson | null; day: string | null; mine: boolean; canChange: boolean; version: number }
 export interface HistoryLine { at: string; by: ProjectPerson | null; byDola: boolean; text: string }
@@ -38,7 +43,9 @@ export interface ProjectFundraiser {
 export interface ProjectDetail {
     summary: ProjectSummary; purpose: string | null; version: number; startedBy: ProjectPerson | null;
     steps: ProjectStep[]; talk: WorkComment[]; files: WorkMedia[]; history: HistoryLine[];
-    fundraiser: ProjectFundraiser | null; can: ProjectCan;
+    fundraiser: ProjectFundraiser | null; can: ProjectCan; club: ProjectClub | null;
+    /** For those who change the project: what it and its steps can be given to. */
+    choices: ProjectChoices | null;
 }
 
 export interface NewProject { goal: string; kind?: ProjectKind; squadId?: number | null; dueOn?: string | null; purpose?: string | null; status?: Exclude<ProjectStatus, 'DONE'>; steps?: string[]; language?: 'en' | 'ka' }
@@ -58,6 +65,11 @@ export interface FundraiserInput {
 const base = (clubId: number) => `/clubs/${clubId}/projects`;
 const data = <T>(request: Promise<{ data: T }>) => request.then(response => response.data);
 
+export const fetchMyProjects = (signal?: AbortSignal) => data(apiClient.get<MyProjects[]>('/projects/mine', { signal }));
+/** A project by its id alone, as the Inbox opens it. */
+export const fetchProjectById = (id: number, signal?: AbortSignal) => data(apiClient.get<ProjectDetail>(`/projects/${id}`, { signal }));
+/** Where a fundraiser's project is, for its old manager links. */
+export const fetchFundraiserPlace = (campaignId: number, signal?: AbortSignal) => data(apiClient.get<{ clubId: number; projectId: number }>(`/projects/fundraisers/${campaignId}`, { signal }));
 export const fetchProjects = (clubId: number, signal?: AbortSignal) => data(apiClient.get<ProjectBoard>(base(clubId), { signal }));
 export const fetchProject = (clubId: number, id: number, signal?: AbortSignal) => data(apiClient.get<ProjectDetail>(`${base(clubId)}/${id}`, { signal }));
 /** start_project */
@@ -90,6 +102,8 @@ export const startFundraiser = (clubId: number, id: number, input: FundraiserInp
 export const changeFundraiser = (clubId: number, id: number, input: FundraiserInput & { version: number }) => data(apiClient.put<ProjectDetail>(`${base(clubId)}/${id}/fundraiser`, input));
 /** report_amount */
 export const reportAmount = (clubId: number, id: number, version: number, amount: number, note?: string) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/amount`, { version, amount, note }));
+/** post_fundraiser_update: news for the supporters on the public page. */
+export const postFundraiserUpdate = (clubId: number, id: number, version: number, title: string, body: string) => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/updates`, { version, title, body }));
 /** publish_fundraiser, or pause or close it. */
 export const moveFundraiser = (clubId: number, id: number, version: number, status: 'PUBLISHED' | 'PAUSED' | 'CLOSED') => data(apiClient.post<ProjectDetail>(`${base(clubId)}/${id}/fundraiser/state`, { version, status }));
 

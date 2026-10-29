@@ -23,6 +23,10 @@ const changes = (project, headers) => everyProject(headers) || (project.createdB
 
 const person = id => { const p = W.personById(id); return p ? { id: p.id, name: p.fullName, avatarUrl: p.avatarUrl ?? null } : null; };
 const squad = id => { const s = W.squadById(id); return s ? { id: s.id, name: s.name } : null; };
+const club = () => { const c = W.clubById(J.CLUB_ID); return { id: c.id, name: c.name, crestUrl: c.logoUrl ?? null }; };
+// What a project or step can be given to: the club's squads and the people on its staff.
+const choices = () => ({ squads: W.squads.filter(s => s.clubId === J.CLUB_ID).map(s => ({ id: s.id, name: s.name })),
+    people: [W.me, J.irakli, J.levan, J.giorgi, ...W.staff.filter(s => s.clubId === J.CLUB_ID && s.personId !== W.ME_ID).slice(0, 6).map(s => W.personById(s.personId))].map(p => person(p.id)) });
 const people = project => [...new Set([project.createdBy, ...project.added, ...project.steps.map(step => step.personId).filter(Boolean)])].map(person).filter(Boolean);
 
 function summary(project, headers) {
@@ -52,6 +56,7 @@ function detail(project, headers) {
             reportedBy: person(f.reportedBy), reportedAt: f.reportedAt, publishedBy: person(f.publishedBy), publishedAt: f.publishedAt, clubVerified: true,
             publicNow: ['PUBLISHED', 'PAUSED', 'CLOSED'].includes(f.status), version: f.version },
         can: { change: runs, addPeople: runs, talk: true, startFundraiser: runs && !f, publish: publishes(headers) && Boolean(f) },
+        club: club(), choices: runs ? choices() : null,
     };
 }
 
@@ -68,8 +73,22 @@ get('/clubs/:id/projects', ({ params, headers }) => {
     const viewer = me(headers);
     const needsYou = mine.filter(p => p.status !== 'DONE').flatMap(p => p.steps.filter(step => !step.done && step.personId === viewer)
         .map(step => ({ projectId: p.id, project: p.goal, stepId: step.id, step: step.title, day: step.day })));
-    return { needsYou, projects: mine.map(project => summary(project, headers)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), canStart: onStaff(headers) };
+    return { club: club(), needsYou, projects: mine.map(project => summary(project, headers)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), canStart: onStaff(headers), choices: onStaff(headers) ? choices() : null };
 });
+
+// The doors across clubs: the clubs where the person has projects, a project by id alone, a fundraiser's project.
+get('/projects/mine', ({ headers }) => {
+    const mine = J.projects.filter(project => sees(project, headers));
+    if (!mine.length && !onStaff(headers)) return [];
+    const viewer = me(headers);
+    return [{ club: club(), open: mine.filter(p => p.status === 'NOW' || p.status === 'LATER').length,
+        waitingOnMe: mine.filter(p => p.status !== 'DONE').flatMap(p => p.steps).filter(step => !step.done && step.personId === viewer).length, canStart: onStaff(headers) }];
+});
+get('/projects/fundraisers/:cid', ({ params, headers }) => {
+    const project = J.projects.find(p => p.fundraiser?.id === Number(params.cid));
+    return project && sees(project, headers) ? { clubId: J.CLUB_ID, projectId: project.id } : missing();
+});
+get('/projects/:pid', ({ params, headers }) => { const project = find({ id: J.CLUB_ID, pid: params.pid }, headers); return project ? detail(project, headers) : missing(); });
 
 get('/clubs/:id/projects/:pid', ({ params, headers }) => { const project = find(params, headers); return project ? detail(project, headers) : missing(); });
 
@@ -198,5 +217,103 @@ post('/clubs/:id/projects/:pid/fundraiser/state', ({ params, body, headers }) =>
     return detail(project, headers);
 });
 
-// Files, people and the fundraiser's words answer as the real API does once phase B draws them.
-put('/clubs/:id/projects/:pid/fundraiser', ({ params, headers }) => find(params, headers) ? problem(501, 'Not in the sandbox yet.') : missing());
+post('/clubs/:id/projects/:pid/fundraiser/updates', ({ params, body, headers }) => {
+    const project = find(params, headers);
+    const f = project?.fundraiser;
+    if (!f) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects change its fundraiser.');
+    if (body?.version !== f.version) return conflict('fundraiser');
+    if (f.status !== 'PUBLISHED') return problem(409, 'Publish the campaign before posting an update.');
+    f.version += 1;
+    touched(project, headers, `Posted a fundraiser update: ${String(body.title ?? '').trim()}`);
+    return reply(201, detail(project, headers));
+});
+
+// The fundraiser's words and GoFundMe page: kept in memory; the sandbox checks only the address.
+const fundraiserWords = (project, body) => {
+    if (body?.donateUrl && !/^https:\/\/([a-z0-9-]+\.)*gofundme\.com(\/\S*)?$/i.test(body.donateUrl)) return 'Use the fundraiser\'s GoFundMe address, https://www.gofundme.com/…';
+    if (body?.donateUrl !== undefined) project.fundraiser.donateUrl = body.donateUrl || null;
+    return null;
+};
+post('/clubs/:id/projects/:pid/fundraiser', ({ params, body, headers }) => {
+    const project = find(params, headers);
+    if (!project) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects start its fundraiser.');
+    if (project.fundraiser) return problem(409, 'This project already has its fundraiser.');
+    project.fundraiser = { id: J.newId(), status: 'DRAFT', phase: 'DRAFT', donateUrl: null, reportedAmount: null, reportedNote: '', reportedBy: null, reportedAt: null, publishedBy: null, publishedAt: null, version: 0 };
+    const wrong = fundraiserWords(project, body);
+    if (wrong) { project.fundraiser = null; return problem(400, wrong); }
+    touched(project, headers, 'Started the fundraiser');
+    return reply(201, detail(project, headers));
+});
+put('/clubs/:id/projects/:pid/fundraiser', ({ params, body, headers }) => {
+    const project = find(params, headers);
+    if (!project?.fundraiser) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects change its fundraiser.');
+    if (body?.version !== project.fundraiser.version) return conflict('fundraiser');
+    const wrong = fundraiserWords(project, body);
+    if (wrong) return problem(400, wrong);
+    project.fundraiser.version += 1;
+    touched(project, headers);
+    return detail(project, headers);
+});
+
+// Photos and files are kept as invented addresses; the sandbox stores no bytes.
+const addMedia = (kind, name) => ({ params, query, headers }) => {
+    const project = find(params, headers);
+    if (!project) return missing();
+    const id = J.newId();
+    project.files.push({ id, kind, url: kind === 'IMAGE' ? `/sandbox-media/photo/upload-PROJECT-${id}.svg` : `/sandbox-media/file/upload-${id}.pdf`,
+        name: kind === 'FILE' ? (query?.get?.('name') ?? name) : null, contentType: kind === 'IMAGE' ? 'image/jpeg' : 'application/pdf', sizeBytes: 140000, uploadedBy: me(headers), createdAt: new Date().toISOString() });
+    touched(project, headers, kind === 'IMAGE' ? 'Added a photo' : 'Added a file');
+    return reply(201, detail(project, headers));
+};
+post('/clubs/:id/projects/:pid/pictures', addMedia('IMAGE', null));
+post('/clubs/:id/projects/:pid/files', addMedia('FILE', 'file.pdf'));
+del('/clubs/:id/projects/:pid/files/:fid', ({ params, headers }) => {
+    const project = find(params, headers);
+    const index = project?.files.findIndex(file => file.id === Number(params.fid)) ?? -1;
+    if (index < 0) return missing();
+    if (project.files[index].uploadedBy !== me(headers) && !changes(project, headers)) return problem(403, 'Only the person who added a file, or whoever runs the project, removes it.');
+    project.files.splice(index, 1);
+    return detail(project, headers);
+});
+patch('/clubs/:id/projects/:pid/talk/:cid', ({ params, body, headers }) => {
+    const project = find(params, headers);
+    const comment = project?.talk.find(c => c.id === Number(params.cid));
+    if (!comment) return missing();
+    if (comment.authorId !== me(headers) && !admin(headers)) return problem(403, 'Only the author changes their message.');
+    Object.assign(comment, { body: String(body?.body ?? '').trim(), editedAt: new Date().toISOString() });
+    return detail(project, headers);
+});
+del('/clubs/:id/projects/:pid/talk/:cid', ({ params, headers }) => {
+    const project = find(params, headers);
+    const index = project?.talk.findIndex(c => c.id === Number(params.cid)) ?? -1;
+    if (index < 0) return missing();
+    if (project.talk[index].authorId !== me(headers) && !admin(headers)) return problem(403, 'Only the author changes their message.');
+    project.talk.splice(index, 1);
+    return detail(project, headers);
+});
+post('/clubs/:id/projects/:pid/people', ({ params, body, headers }) => {
+    const project = find(params, headers);
+    if (!project) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects add people.');
+    if (!project.added.includes(Number(body?.userId))) project.added.push(Number(body?.userId));
+    touched(project, headers, 'Added someone to the project');
+    return detail(project, headers);
+});
+del('/clubs/:id/projects/:pid/people/:uid', ({ params, headers }) => {
+    const project = find(params, headers);
+    if (!project) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects take people off.');
+    project.added = project.added.filter(id => id !== Number(params.uid));
+    return detail(project, headers);
+});
+put('/clubs/:id/projects/:pid/steps/order', ({ params, body, headers }) => {
+    const project = find(params, headers);
+    if (!project) return missing();
+    if (!changes(project, headers)) return problem(403, 'Only the people who run the club\'s projects order the steps.');
+    const order = (body?.order ?? []).map(Number);
+    project.steps.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    return detail(project, headers);
+});

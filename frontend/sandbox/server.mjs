@@ -69,7 +69,7 @@ const server = http.createServer(async (req, res) => {
       const safe = to.startsWith('/') && !to.startsWith('//') ? to : '/home';
       const cookies = [
         mode === 'parent' ? 'gk-sandbox-family=1; Path=/' : 'gk-sandbox-family=; Path=/; Max-Age=0',
-        ['analyst', 'member', 'headcoach', 'physio', 'attendance'].includes(mode) ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
+        ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'commercial', 'facilities', 'projectcoach', 'kitparent'].includes(mode) ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
       ];
       res.writeHead(302, { location: safe, 'set-cookie': cookies, 'cache-control': 'no-store' });
       return res.end();

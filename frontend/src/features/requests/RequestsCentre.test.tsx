@@ -44,6 +44,8 @@ it('accepts precise current-domain destinations and rejects malformed event dest
   expect(requestDestination('/notifications?venueId=2&bookingId=9')).toBe('/requests?view=updates&venueId=2&bookingId=9');
   expect(requestDestination('/admin?tab=safety&itemId=7')).toBe('/admin?tab=safety&itemId=7');
   expect(requestDestination('/reports?itemId=7')).toBe('/reports?itemId=7');
+  expect(requestDestination('/projects/12')).toBe('/projects/12');
+  expect(requestDestination('/projects/12?club=3')).toBeNull();
   expect(requestDestination('/admin?tab=users&itemId=7')).toBeNull();
   expect(requestDestination('/admin?tab=safety&itemId=7&next=evil')).toBeNull();
   expect(eventDestination({ kind: 'SESSION', destination: '/clubs/1?tab=teams&squad=7' } as Parameters<typeof eventDestination>[0])).toBe('/clubs/1?tab=teams&squad=7');

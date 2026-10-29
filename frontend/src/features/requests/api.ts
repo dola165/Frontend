@@ -14,10 +14,12 @@ export const eventSearch = (params: Record<string, string | number | undefined>,
 // This read projection has its own narrow route contract. Notification links keep their existing allowlist.
 function wireRequestDestination(value: string): string | null {
   if (!value || /[\\\s%]/.test(value) || value.startsWith('//')) return null;
-  const match = /^\/(?:club-operations|map|account|my-organizations|parent|reports|admin|referees\/me|profile\/[1-9]\d*|agent|notifications|clubs\/[1-9]\d*\/workspace|tryouts\/[1-9]\d*|tournaments\/[1-9]\d*|match-exchange\/[1-9]\d*)(?:[?#].*)?$/.test(value);
+  const match = /^\/(?:club-operations|map|account|my-organizations|parent|reports|admin|referees\/me|profile\/[1-9]\d*|agent|notifications|clubs\/[1-9]\d*\/workspace|tryouts\/[1-9]\d*|tournaments\/[1-9]\d*|match-exchange\/[1-9]\d*|projects\/[1-9]\d*)(?:[?#].*)?$/.test(value);
   if (!match) return null;
   const url = new URL(value, 'https://requests.invalid');
   if (url.origin !== 'https://requests.invalid' || value.split(/[?#]/)[0] !== url.pathname) return null;
+  // A project step waiting on the person (PROJECT_STEP) opens its project, and nothing else.
+  if (url.pathname.startsWith('/projects/')) return !url.search && !url.hash ? value : null;
   if (url.pathname === '/my-organizations') {
     return !url.hash && /^\?itemId=[1-9]\d*$/.test(url.search)
       && Number.isSafeInteger(Number(url.searchParams.get('itemId'))) ? value : null;

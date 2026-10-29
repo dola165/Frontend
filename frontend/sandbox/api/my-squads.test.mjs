@@ -41,3 +41,15 @@ test('a helper sees only the session they help at, and job holders carry no club
   for (const persona of ['teammanager', 'kit', 'helper'])
     assert.deepEqual((await call('GET', '/club-memberships/me', null, as(persona))).body, []);
 });
+
+test('the first answer to a join request counts; a second is told who answered and when', async () => {
+  const code = (await call('GET', '/squad-communication/103/join-link', null, as('headcoach'))).body.code;
+  const made = await call('POST', `/join/${code}`, { childFirstName: 'Saba', childLastName: 'Test', birthDate: '2013-05-01' });
+  assert.equal(made.status, 201);
+  const decide = () => call('POST', `/squad-communication/103/join-requests/${made.body.id}`, { action: 'DECLINE', expectedVersion: 1 }, as('headcoach'));
+  assert.equal((await decide()).body.status, 'DECLINED');
+  const second = await decide();
+  assert.equal(second.status, 409);
+  assert.equal(second.body.code, 'ALREADY_ANSWERED');
+  assert.match(second.body.message, /already answered this request at \d\d:\d\d on \d+ \w+\./);
+});

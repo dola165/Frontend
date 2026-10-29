@@ -64,11 +64,17 @@ post('/squad-communication/:id/join-requests/:rid', ({ params, body, headers }) 
   const squad = coachable(params.id); if (!squad) return undefined;
   if (!squadAccess(squad, headers)?.canManage) return reply(403, { status: 403, message: 'Only the squad staff decide requests.' });
   const approve = body?.action === 'APPROVE', rid = Number(params.rid);
+  // The first answer counts: a later one is told who answered and when, as on the server.
+  const answered = arrivals.find(a => a.id === rid && a.squadId === squad.id && a.status !== 'WAITING' && a.answeredBy);
+  if (answered) return reply(409, { status: 409, code: 'ALREADY_ANSWERED', message: `${answered.answeredBy} already answered this request at ${answered.answeredAt}.` });
   const arrival = arrivals.find(a => a.id === rid && a.squadId === squad.id && a.status === 'WAITING');
   const request = !arrival && groupRequests(squad).find(c => c.id === rid);
   if (!arrival && !request) return reply(404, { status: 404, message: 'This request was already answered.' });
   if (arrival) {
     arrival.status = approve ? 'APPROVED' : 'DECLINED';
+    arrival.answeredBy = W.personById(V.viewerId(headers))?.fullName ?? W.me.fullName;
+    arrival.answeredAt = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', hour: '2-digit', minute: '2-digit', hour12: false })
+      + ' on ' + new Date().toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'long' });
     if (approve) {
       // The card is the family's; joining puts it in the squad.
       const id = arrival.playerId ?? 96000 + arrival.id % 1000;

@@ -54,12 +54,32 @@ it('opens an old attendance link in My squads for someone on a squad; a record, 
     mount('/clubs/7/office?tab=tools&tool=attendance&squad=105');
     expect(screen.getByRole('heading', { name: 'My squads?clubId=7&tab=calendar&squad=105' })).toBeInTheDocument();
     cleanup();
+    // A case's attendance link keeps its session: the session's register opens on My squads.
+    mount('/clubs/7/office?tab=tools&tool=attendance&squad=105&session=33');
+    expect(screen.getByRole('heading', { name: 'My squads?clubId=7&activity=s-33' })).toBeInTheDocument();
+    cleanup();
     mount('/clubs/7/office?tab=tools&tool=attendance&record=12');
     expect(screen.getByRole('heading', { name: 'Tool attendance' })).toBeInTheDocument();
+    cleanup();
+    mount('/clubs/7/office?tab=tools&tool=applications');
+    expect(screen.getByRole('heading', { name: 'My squads?clubId=7&tab=players' })).toBeInTheDocument();
+    cleanup();
+    mount('/clubs/7/office?tab=tools&tool=applications&applicationId=3');
+    expect(screen.getByRole('heading', { name: 'Tool applications' })).toBeInTheDocument();
     cleanup();
     loads.roles = job(false);
     mount('/clubs/7/office?tab=tools&tool=attendance');
     expect(screen.getByRole('heading', { name: 'Tool attendance' })).toBeInTheDocument();
+});
+
+it('keeps setting up joining here: every admissions link opens the tool, for someone on a squad too', () => {
+    loads.can = { pending: false, failed: false, decide: () => ({ allowed: true }) };
+    loads.roles = { data: { views: [{ id: 'job', label: 'Head coach', modules: [], squadIds: [105], clubWide: false, onSquads: true }] } as unknown, loading: false, error: null, refresh: vi.fn() };
+    for (const query of ['', '&inquiryId=9', '&caseId=3', '&inquiryId=9&joiningSetup=1', '&admissionView=groups&group=4']) {
+        mount(`/clubs/7/office?tab=tools&tool=admissions${query}`);
+        expect(screen.getByRole('heading', { name: 'Tool admissions' }), query).toBeInTheDocument();
+        cleanup();
+    }
 });
 
 it('asks a staff member without a birth date for it once, then loads Staff', async () => {

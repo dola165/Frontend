@@ -68,7 +68,6 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
     const leader = Boolean(view?.viewer.leader);
     const rights: PeopleRights = { pending: can.pending, invite: can.decide('invite_staff', leader).allowed, change: can.decide('change_job', leader).allowed, end: can.decide('end_job', leader).allowed };
     const inviteAdmin = can.decide('make_admin', leader).allowed;
-
     const staff = useStaffLinks(clubId, Boolean(view) && rights.invite, inviting && how === 'link', copy('Could not load the staff links.', 'პერსონალის ბმულები ვერ ჩაიტვირთა.'));
 
     useEffect(() => {

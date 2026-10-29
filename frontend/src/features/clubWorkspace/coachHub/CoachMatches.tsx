@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronRight, Plus } from 'lucide-react';
-import { Button, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
+import { Button, EmptyNote, List, ListRow, LoadFailed, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { useAuth } from '../../../context/AuthContext';
 import { getMatchHistory, type HistoryMatch } from '../../matchHistory/api';
@@ -9,6 +9,7 @@ import { ArrangeMatchForm } from '../../matchExchange/arrange/ArrangeMatchForm';
 import { arrangeDraftKey } from '../../world/compose/arrangeSeed';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { coachHubEn } from '../../../locales/workspaceDesign';
+import { mySquadsEn } from '../../../locales/mySquadsDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { dayLabel, timeLabel } from '../fixtures';
 import { ActivityBadge, SquadSwitch } from './CoachVisuals';
@@ -17,7 +18,7 @@ import { ScoreDialog } from '../../scores/ScoreDialog';
 import { isOfficial, isOpen, scoreState } from '../../scores/status';
 import { useResultCopy } from '../../matchHistory/copy';
 import { NextMatchCard } from './NextMatchCard';
-import { useCan } from '../../../hooks/useCan';
+import { useFirstAllowed } from '../../../hooks/useCan';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -32,6 +33,7 @@ const waitingKeys: Record<string, 'waitingOpponent' | 'openToAnyClub' | 'cancell
  */
 export function CoachMatches({ data }: { data: CoachData }) {
     const copy = useCopy('coachHub', coachHubEn);
+    const words = useCopy('mySquads', mySquadsEn);
     const { copy: result } = useResultCopy();
     const { user, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
@@ -56,14 +58,19 @@ export function CoachMatches({ data }: { data: CoachData }) {
     const squadOf = (match: HistoryMatch) => data.names.get(match.homeSquadId ?? -1) ?? data.names.get(match.awaySquadId ?? -1) ?? match.homeSquadName ?? match.awaySquadName ?? '';
     const items = page?.key === key ? page.items.filter(mineMatch) : null;
     const time = (match: HistoryMatch) => match.startsAt ? new Date(match.startsAt).getTime() : 0;
-    const upcoming = (items ?? []).filter(match => time(match) >= data.now && match.fixtureStatus !== 'CANCELLED').sort((a, b) => time(a) - time(b));
-    const played = (items ?? []).filter(match => time(match) < data.now).sort((a, b) => time(b) - time(a));
-    const squadForMatch = data.focus ?? data.mine[0]?.id ?? 0;
-    // Arranging is match management (head coaches, team managers); everyone on the squad reads its matches.
-    const access = useCan(squadForMatch ? `squad:${squadForMatch}` : null);
-    const canArrange = access.decide('arrange_match', false).allowed;
     const nextCards = data.shown.map(id => data.cards?.get(id)).filter(card => card?.match)
         .sort((a, b) => a!.match!.starts_at_iso.localeCompare(b!.match!.starts_at_iso));
+    const cardsFailed = data.shown.some(id => data.cardsFailed.includes(id));
+    // The next match has its card on top, so Coming up leaves it out: the same fixture is never shown twice.
+    const carded = (match: HistoryMatch) => nextCards.some(card => match.detailPath === `/match-exchange/${card!.match!.event_id}`
+        || ([match.homeSquadId, match.awaySquadId].includes(card!.squadId) && Math.abs(time(match) - new Date(card!.match!.starts_at_iso).getTime()) < 60_000));
+    const upcoming = (items ?? []).filter(match => time(match) >= data.now && match.fixtureStatus !== 'CANCELLED' && !carded(match)).sort((a, b) => time(a) - time(b));
+    const played = (items ?? []).filter(match => time(match) < data.now).sort((a, b) => time(b) - time(a));
+    // Arranging is match management (head coaches, team managers) on any squad shown; everyone on the squad reads its
+    // matches. The form opens on the squad picked in the switcher, or the first where this person arranges matches.
+    const arranger = useFirstAllowed(data.shown.map(id => `squad:${id}` as const), 'arrange_match');
+    const canArrange = arranger.subject !== null;
+    const squadForMatch = data.focus ?? (arranger.subject ? Number(arranger.subject.split(':')[1]) : data.mine[0]?.id ?? 0);
     // "+ Arrange a match" anywhere opens the form in a dialog here; `arrange=1` in the address does the same on arrival.
     const setArranging = (open: boolean) => { const next = new URLSearchParams(params); if (open) next.set('arrange', '1'); else next.delete('arrange'); setParams(next, { replace: !open }); };
 
@@ -95,6 +102,7 @@ export function CoachMatches({ data }: { data: CoachData }) {
         <SquadSwitch data={data} />
         {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
         {nextCards.map(card => <NextMatchCard key={card!.squadId} card={card!} data={data} onChanged={data.refresh} />)}
+        {cardsFailed && <LoadFailed text={`${words('nextMatch')} · ${words('couldntLoad')}`} retry={words('tryAgain')} onRetry={data.retryCards} />}
         <div className="gk-stack">
             <Section boxed title={copy('comingUp')} hint={upcoming.length ? `${upcoming.length}` : undefined}>
                 <Panel flush>{loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('comingUp')}>{[0, 1].map(i => <Skeleton key={i} height={48} />)}</div>

@@ -159,8 +159,7 @@ it('an admin confirms a suggested helper from Needs you and gets the link to sen
 it('gives a colleague Staff to read: who, which job, where, and nothing to change', async () => {
     renderPeople(view({ userId: 4, leader: false, owner: false, headCoachSquads: [] }), {
         access: { clubId: 7, squadId: null, allowed: ['see_staff', 'follow'], admins: [{ userId: 1, name: 'Nino Owner' }], refused: [
-            { action: 'invite_staff', allowed: false, reason: 'ONLY_ADMINS', message: 'Only the club’s admins can do this.', because: null },
-            { action: 'suggest_assistant', allowed: false, reason: 'ONLY_HEAD_COACHES', message: 'Only head coaches can do this.', because: null }] },
+            { action: 'invite_staff', allowed: false, reason: 'ONLY_ADMINS', message: 'Only the club’s admins can do this.', because: null }] },
     });
     expect(within(await screen.findByRole('list', { name: 'Staff' })).getByText('Team manager')).toBeInTheDocument();
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/access/clubs/7', expect.anything()));

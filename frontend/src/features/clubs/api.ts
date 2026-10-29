@@ -1,4 +1,5 @@
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
+import type { PublicSquad } from './publicJourney';
 import type {
     BulkApplicationDecisionRequestPayload,
     BulkApplicationDecisionResponse,
@@ -233,6 +234,10 @@ export const selfRegisterClubPlayer = async (clubId: number, config?: AuthSessio
     const response = await apiClient.post<ClubPlayerAffiliation>(`/clubs/${clubId}/players/self-register`, undefined, config);
     return response.data;
 };
+
+/** A club's squads as the public sees them (name, age group, training days), for choosing one when applying. */
+export const publicSquads = async (clubId: number, signal?: AbortSignal) =>
+    (await apiClient.get<PublicSquad[]>(`/clubs/${clubId}/squads`, { signal })).data;
 
 export const cancelClubApplication = async (clubId: number, applicationId: number, config?: AuthSessionRequestConfig) => {
     const response = await apiClient.post<{ status: string }>(`/clubs/${clubId}/applications/${applicationId}/cancel`, undefined, config);

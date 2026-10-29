@@ -7,7 +7,7 @@
 //   GET  /recruitment/applications/waiting?clubId&squadId      Want to join, the applications this person decides
 //   POST /recruitment/applications/:id/decline | /offer         Not now | Invite to a trial (409 ALREADY_ANSWERED)
 //   GET|POST /squad-communication/:sid/sessions/:eid/helpers  DELETE /squad-communication/:sid/helpers/:hid
-//   GET  /me/helping   PUT /me/helping/sessions/:eid/register   DELETE /me/helping/:hid
+//   GET  /me/helping   GET|PUT /me/helping/sessions/:eid/register (409 REGISTER_CHANGED)   DELETE /me/helping/:hid
 //   GET  /clubs/:id/helpers   DELETE /clubs/:id/helpers/:hid    (admins, in Staff)
 // Personas narrow the squad space (team managers read without coaching; kit and helpers see no squad). See
 // ../world-my-squads.mjs.
@@ -166,20 +166,30 @@ post('/recruitment/applications/:id/offer', answer('OFFERED'));
 
 // ---------------------------------------------------------------- helpers
 const U12 = 102;
-const helpers = [{ id: 9701, clubId: C.CLUB_ID, squadId: U12, sessionKey: 'u12-wednesdays', repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(U12).headCoachId, since: C.at(-12), active: true }];
-const registers = new Map(); // session id -> Set(player ids who came)
+const helpers = [{ id: 9701, clubId: C.CLUB_ID, squadId: U12, sessionKey: 'u12-wednesdays', repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(U12).headCoachId, since: C.at(-12), active: true },
+  // A parent who helps at U14 Boys' training every week: the squad's staff all see her there.
+  { id: 9702, clubId: C.CLUB_ID, squadId: 103, repeating: true, userId: 9706, name: 'Nino Abashidze', addedBy: W.squadById(103).headCoachId, since: C.at(-5), active: true }];
+// session id -> { revision, rows: Map(player id -> { status, by }) }: the attendance records of the session, the
+// coaches' and the helper's alike, and a revision that changes with every saved change.
+const registers = new Map();
+const saves = new Map(); // `${helper}:${requestId}` -> session id, so a retried save saves nothing again
+const registerOf = id => { if (!registers.has(id)) registers.set(id, { revision: 0, rows: new Map() }); return registers.get(id); };
 /** Today's U12 Mixed session at 18:00, the one the helper persona helps at. */
 const helperSession = () => {
   const start = new Date(); start.setHours(18, 0, 0, 0);
   return { id: 77002, squadId: U12, title: 'Training', start, end: new Date(start.getTime() + 90 * 60e3), location: 'Pitch 2' };
 };
 const sessionPlayers = session => {
-  const squad = W.squadById(session.squadId), came = registers.get(session.id);
-  return squad.playerIds.map((id, i) => ({ id, firstName: W.personById(id)?.firstName ?? 'Player', response: i === 3 ? 'NOT_GOING' : i === 7 ? 'UNANSWERED' : 'GOING',
-    register: came ? (came.has(id) ? 'ARRIVED' : 'ABSENT') : null }));
+  const squad = W.squadById(session.squadId), rows = registerOf(session.id).rows;
+  return squad.playerIds.map((id, i) => ({ id, firstName: W.personById(id)?.firstName ?? 'Player', lastInitial: W.personById(id)?.lastName?.[0]?.toUpperCase() ?? null,
+    response: i === 3 ? 'NOT_GOING' : i === 7 ? 'UNANSWERED' : 'GOING', register: rows.get(id)?.status ?? null }));
 };
+const registerView = session => ({ revision: registerOf(session.id).revision, players: sessionPlayers(session) });
+// The head coach ticked the squad's first player in the coaches' register before the helper arrived.
+{ const s = helperSession(); registerOf(s.id).rows.set(W.squadById(U12).playerIds[0], { status: 'ARRIVED', by: W.squadById(U12).headCoachId }); registerOf(s.id).revision = 1; }
+// Everyone on the squad sees who helps; adding and removing follow the job.
 get('/squad-communication/:sid/sessions/:eid/helpers', ({ params, headers }) => {
-  if (!M.addsHelpers(persona(headers), Number(params.sid))) return denied('Only this squad’s head coach can add a helper.');
+  if (roleIn(headers, params.sid) === null || persona(headers) === 'newcomer') return missing();
   // A repeating helper is on every session of the squad (the sandbox has no series); one date on that session only.
   return helpers.filter(h => h.active && h.squadId === Number(params.sid) && (h.repeating || h.sessionId === Number(params.eid)))
     .map(h => ({ id: h.id, name: h.name, repeating: h.repeating, since: h.since, waiting: Boolean(h.waiting) }));
@@ -188,10 +198,16 @@ post('/squad-communication/:sid/sessions/:eid/helpers', ({ params, headers, body
   if (!M.addsHelpers(persona(headers), Number(params.sid))) return denied('Only this squad’s head coach can add a helper.');
   const name = String(body?.name ?? '').trim(), email = String(body?.email ?? '').trim().toLowerCase();
   if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return reply(400, { status: 400, message: 'Enter their name and email.' });
-  const known = [...W.people].find(person => person.email === email);
-  const helper = { id: W.newId(), clubId: C.CLUB_ID, squadId: Number(params.sid), sessionId: body?.repeating ? null : Number(params.eid), repeating: Boolean(body?.repeating), userId: known?.id ?? W.newId(), name, addedBy: W.ME_ID, since: new Date().toISOString(), active: true, waiting: !known };
+  // A retry shows the same helper and the same link.
+  const earlier = helpers.find(h => h.requestId && h.requestId === body?.requestId);
+  if (earlier) return earlier.answer;
+  // Synthetic: an address at invited.example already has an invitation waiting from a club, which stays as it is.
+  const known = [...W.people].find(person => person.email === email), pending = !known && email.endsWith('@invited.example');
+  const helper = { id: W.newId(), clubId: C.CLUB_ID, squadId: Number(params.sid), sessionId: body?.repeating ? null : Number(params.eid), repeating: Boolean(body?.repeating), userId: known?.id ?? W.newId(), name, addedBy: W.ME_ID, since: new Date().toISOString(), active: true, waiting: !known, requestId: body?.requestId ?? null };
+  const fresh = !known && !pending;
+  helper.answer = { id: helper.id, name, link: fresh ? `sandbox-helper-${helper.id}` : null, linkExpiresAt: fresh ? new Date(Date.now() + 7 * 864e5).toISOString() : null, invitationPending: pending };
   helpers.push(helper);
-  return { id: helper.id, name, link: known ? null : `sandbox-helper-${helper.id}`, linkExpiresAt: known ? null : new Date(Date.now() + 7 * 864e5).toISOString() };
+  return helper.answer;
 });
 del('/squad-communication/:sid/helpers/:hid', ({ params, headers }) => {
   if (!M.addsHelpers(persona(headers), Number(params.sid))) return denied('Only this squad’s head coach can add a helper.');
@@ -203,15 +219,31 @@ get('/me/helping', ({ headers }) => {
   if (persona(headers) !== 'helper' || !helpers.some(h => h.id === 9701 && h.active)) return [];
   const s = helperSession(), squad = W.squadById(s.squadId);
   return [{ helperId: 9701, sessionId: s.id, squadId: s.squadId, squadName: squad.name, clubId: C.CLUB_ID, clubName: C.club.name, title: s.title, kind: 'TRAINING',
-    startsAt: s.start.toISOString(), endsAt: s.end.toISOString(), location: s.location, coach: C.name(squad.headCoachId), registerOpen: true, players: sessionPlayers(s) }];
+    startsAt: s.start.toISOString(), endsAt: s.end.toISOString(), location: s.location, coach: C.name(squad.headCoachId), registerOpen: true, registerRevision: registerOf(s.id).revision, players: sessionPlayers(s) }];
 });
+const helping = (params, headers) => { const s = helperSession(); return persona(headers) === 'helper' && Number(params.eid) === s.id ? s : null; };
+get('/me/helping/sessions/:eid/register', ({ params, headers }) => {
+  const s = helping(params, headers);
+  return s ? registerView(s) : reply(404, { status: 404, message: 'The register opens on the day of the session you help at.' });
+});
+// As SquadHelperService.saveRegister: only what changed is written, a coach's Arrived is never taken back, a save made
+// on an older register is refused, and a retry of a save that went through saves nothing again.
 put('/me/helping/sessions/:eid/register', ({ params, headers, body }) => {
-  const s = helperSession();
-  if (persona(headers) !== 'helper' || Number(params.eid) !== s.id) return reply(404, { status: 404, message: 'The register opens on the day of the session you help at.' });
-  const ids = new Set(sessionPlayers(s).map(player => player.id)), came = (body?.came ?? []).map(Number);
-  if (came.some(id => !ids.has(id))) return reply(400, { status: 400, message: 'Choose players of this session.' });
-  registers.set(s.id, new Set(came));
-  return sessionPlayers(s);
+  const s = helping(params, headers);
+  if (!s) return reply(404, { status: 404, message: 'The register opens on the day of the session you help at.' });
+  const key = `${V.viewerId(headers)}:${body?.requestId}`, register = registerOf(s.id);
+  if (saves.has(key)) return registerView(s);
+  if (Number(body?.revision) !== register.revision) return reply(409, { status: 409, code: 'REGISTER_CHANGED', message: 'The register changed since you opened it. Check it and save again.' });
+  const ids = new Set(sessionPlayers(s).map(player => player.id)), came = new Set((body?.came ?? []).map(Number));
+  if ([...came].some(id => !ids.has(id))) return reply(400, { status: 400, message: 'Choose players of this session.' });
+  saves.set(key, s.id);
+  const me = V.viewerId(headers);
+  for (const id of ids) {
+    const next = came.has(id) ? 'ARRIVED' : 'ABSENT', now = register.rows.get(id);
+    if (now?.status === next || now?.status === 'ARRIVED' && now.by !== me) continue;
+    register.rows.set(id, { status: next, by: me }); register.revision += 1;
+  }
+  return registerView(s);
 });
 del('/me/helping/:hid', ({ params }) => { const helper = helpers.find(h => h.id === Number(params.hid) && h.active); if (!helper) return reply(404, { status: 404, message: 'That helper was not found.' }); helper.active = false; return reply(204); });
 get('/clubs/:id/helpers', ({ params, headers }) => {

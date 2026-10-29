@@ -8,7 +8,6 @@ export interface RoleRequest {id:number;user_id:number;name:string;role_key:stri
 /** `season` and each squad's `section` (first team, academy, girls…) are backend fields to add; the sandbox fakes them. */
 export interface RolesWorkspace {leadership:boolean;actorId:number;headCoachSquads?:number[];catalog:StaffRole[];views:RoleView[];current:RoleView;season?:string|null;requestSquads:Choice[];squads:(Choice&{player_count:number;section?:string|null})[];people:(Choice&{squad_id:number;squad_name:string})[];sessions:{id:number;title:string;starts_at:string;squad_id:number;squad_name:string}[];requests:RoleRequest[];invitations:Appointment[]}
 export const rolesRoot=(club:number)=>`/clubs/${club}/workspace-roles`;
-
 export function useWorkspaceRoles(club:number, view:string|null, actorId:number|null=null) {
  const [revision, setRevision] = useState(0);
  const [result, setResult] = useState<{key:string;scope:string;data:RolesWorkspace|null;error:string}|null>(null);
@@ -35,4 +34,3 @@ export function useWorkspaceRoles(club:number, view:string|null, actorId:number|
  const refresh = useCallback(() => setRevision(value => value + 1), []);
  return {data:result?.scope === scope ? result.data : null, loading:result?.key !== key, error:result?.key === key ? result.error : '', refresh};
 }
-

@@ -46,8 +46,11 @@ export interface CoachData {
     /** Reads a squad's parts again after some failed (`CoachSquad.failed`); `retrying` holds the squads being read. */
     retrySquad: (squad: number) => void; retrying: number[]; revision: number; records: ReturnType<typeof useCoachRecords>; events: ScheduleEventOccurrence[];
     roleOf: (squad: number) => string; person: (id: number | null) => string | null;
-    /** Each squad's next match card (`null` when it could not be read); the same card for everyone on the squad. */
-    cards: Map<number, MatchCard | null> | null;
+    /**
+     * Each squad's next match card (`null` when there is none for this person); the same card for everyone on the squad.
+     * `cardsFailed`: squads whose card failed to load, with `retryCards`.
+     */
+    cards: Map<number, MatchCard | null> | null; cardsFailed: number[]; retryCards: () => void;
     /** Want to join for the squads shown: only those who decide get any (decision 2). */
     joining: { items: WantToJoinItem[] | null; failed: boolean; refresh: () => void };
     /** A My squads page, keeping the squad picked in the switcher. */
@@ -122,7 +125,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
             clubId, clubName, clubLogo: club.clubLogoUrl, roles, boot: operations.boot, now, mine, names: new Map(roles.squads.map(squad => [squad.id, squad.name])),
             focus, shown: focus ? [focus] : squadIds, squads, rosters, retrySquad, retrying, revision, records, events: club.schedule.events,
             roleOf: squad => jobsOn(roles.views, squad).join(', '),
-            person: id => personName(roles, operations.boot, id), cards: matchCards.cards, joining,
+            person: id => personName(roles, operations.boot, id), cards: matchCards.cards, cardsFailed: matchCards.failed, retryCards: matchCards.refresh, joining,
             link: (target, extra = {}) => coachHref({ ...(target === 'overview' ? {} : { tab: target }), ...(focus ? { squad: String(focus) } : {}), ...extra }),
             openWork: (target, context) => go(workHref(target, context)), workHref,
             openEvent: event => go(`/calendar?clubId=${clubId}&date=${event.startsAt.slice(0, 10)}&eventId=${event.eventId}`),

@@ -22,6 +22,9 @@ const PASS = 'x-sandbox-join-pass'; // set once the chosen child is checked as t
 const arrivals = []; // { id, squadId, childFirstName, childLastName, birthDate, gender, guardianName, playerId, createdAt, status }
 let nextArrival = 88001;
 const year = new Date().getFullYear();
+// A join-code request the assistant coach said Not now to yesterday: Want to join keeps it for two weeks, saying so.
+arrivals.push({ id: nextArrival++, squadId: 105, childFirstName: 'Luka', childLastName: 'Chkheidze', birthDate: `${year - 15}-04-02`, gender: 'MALE', guardianName: 'Tamar Chkheidze', playerId: null,
+  createdAt: C.at(-3, 19, 40), status: 'DECLINED', answeredBy: C.name(C.STAFF.assistant), answeredAt: '11:05 yesterday', answeredIso: C.at(-1, 11, 5) });
 
 get('/squad-communication/:id/join-link', ({ params, headers }) => {
   const squad = coachable(params.id);
@@ -48,7 +51,7 @@ post('/join/:code', ({ params, body, headers }) => {
 
 // Waiting children: link arrivals plus requests sent through a group tied to this squad.
 const groupRequests = squad => C.admissionCases.filter(c => c.stage === 'REQUEST_RECEIVED' && F.groupById(c.groupId)?.squadId === squad.id);
-get('/squad-communication/:id/join-requests', ({ params, headers }) => {
+get('/squad-communication/:id/join-requests', ({ params, headers, query }) => {
   const squad = coachable(params.id); if (!squad) return undefined;
   if (!squadAccess(squad, headers)?.canManage) return reply(403, { status: 403, message: 'Only the squad staff review requests.' });
   // The real shape (SquadJoinLinkModels.Request): the squad's joining groups to route into, and where joining is set up.
@@ -57,6 +60,10 @@ get('/squad-communication/:id/join-requests', ({ params, headers }) => {
   return [
     ...arrivals.filter(a => a.squadId === squad.id && a.status === 'WAITING').map(a => shape({ id: a.id, source: 'LINK', playerId: a.playerId, childName: `${a.childFirstName} ${a.childLastName}`.trim(), birthYear: Number(a.birthDate.slice(0, 4)), guardianName: a.guardianName, createdAt: a.createdAt, caseId: null })),
     ...groupRequests(squad).map(c => shape({ id: c.id, source: 'ENQUIRY', childName: c.playerName, birthYear: Number(String(c.dateOfBirth).slice(0, 4)) || null, guardianName: c.history[0]?.actorName ?? null, createdAt: c.submittedAt, caseId: c.id })),
+    // With `answered`, those answered in the last two weeks, with who answered first and when, and nothing to do.
+    ...(query.get('answered') === 'true' ? arrivals.filter(a => a.squadId === squad.id && a.status !== 'WAITING' && a.answeredIso && Date.now() - new Date(a.answeredIso).getTime() < 14 * 864e5)
+      .map(a => shape({ id: a.id, source: 'LINK', playerId: a.playerId, childName: `${a.childFirstName} ${a.childLastName}`.trim(), birthYear: Number(a.birthDate.slice(0, 4)), guardianName: a.guardianName, createdAt: a.createdAt, caseId: null,
+        groups: [], answeredBy: a.answeredBy, answeredAt: a.answeredIso })) : []),
   ];
 });
 
@@ -75,6 +82,7 @@ post('/squad-communication/:id/join-requests/:rid', ({ params, body, headers }) 
     arrival.answeredBy = W.personById(V.viewerId(headers))?.fullName ?? W.me.fullName;
     arrival.answeredAt = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', hour: '2-digit', minute: '2-digit', hour12: false })
       + ' on ' + new Date().toLocaleString('en-GB', { timeZone: 'Asia/Tbilisi', day: 'numeric', month: 'long' });
+    arrival.answeredIso = new Date().toISOString();
     if (approve) {
       // The card is the family's; joining puts it in the squad.
       const id = arrival.playerId ?? 96000 + arrival.id % 1000;

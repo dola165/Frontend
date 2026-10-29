@@ -53,3 +53,29 @@ test('the first answer to a join request counts; a second is told who answered a
   assert.equal(second.body.code, 'ALREADY_ANSWERED');
   assert.match(second.body.message, /already answered this request at \d\d:\d\d on \d+ \w+\./);
 });
+
+test('a helper’s save writes only what changed, keeps the coach’s ticks, refuses an older register and saves a retry once', async () => {
+  const [session] = (await call('GET', '/me/helping', null, as('helper'))).body;
+  const first = session.players[0].id, second = session.players[1].id;
+  assert.equal(session.players[0].register, 'ARRIVED', 'the head coach ticked the first player');
+  assert.ok(session.players.every(player => 'lastInitial' in player));
+  const save = (came, requestId, revision) => call('PUT', `/me/helping/sessions/${session.sessionId}/register`, { came, requestId, revision }, as('helper'));
+  const saved = await save([second], 'retry-1', session.registerRevision);
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.players.find(player => player.id === first).register, 'ARRIVED', 'never taken back');
+  assert.equal(saved.body.players.find(player => player.id === second).register, 'ARRIVED');
+  assert.deepEqual((await save([], 'retry-1', session.registerRevision)).body, saved.body, 'a retry saves nothing again');
+  const stale = await save([], 'retry-2', session.registerRevision);
+  assert.equal(stale.status, 409);
+  assert.equal(stale.body.code, 'REGISTER_CHANGED');
+  assert.equal((await call('GET', `/me/helping/sessions/${session.sessionId}/register`, null, as('helper'))).body.revision, saved.body.revision);
+});
+
+test('Want to join keeps a join-code request answered lately, saying who answered', async () => {
+  const waiting = (await call('GET', '/squad-communication/105/join-requests', null, as('headcoach'))).body;
+  assert.ok(waiting.every(row => !row.answeredAt), 'only those waiting by default');
+  const all = (await call('GET', '/squad-communication/105/join-requests', null, as('headcoach'), 'answered=true')).body;
+  const luka = all.find(row => row.childName === 'Luka Chkheidze');
+  assert.ok(luka?.answeredBy && luka.answeredAt);
+  assert.deepEqual(luka.groups, []);
+});

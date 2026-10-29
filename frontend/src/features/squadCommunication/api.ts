@@ -86,7 +86,8 @@ export const attendance=async(id:number,sessionId:number,playerId:number,respons
 export type SquadJoinLinkStatus='NONE'|'ACTIVE'|'EXPIRED'|'DISABLED';
 export interface SquadJoinLink { squadId:number; squadName:string; status:SquadJoinLinkStatus; code:string|null; path:string|null; createdAt:string|null; createdBy:number|null; createdByName:string|null; expiresAt:string|null; disabledAt:string|null }
 export interface SquadJoinGroup { id:number; version:number; name:string; method:'DIRECT'|'INTRODUCTION'|'SELECTIVE' }
-export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null } }
+/** `answeredBy`/`answeredAt`: who answered first and when, on a request answered lately (`answered`). */
+export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null }; answeredBy?:string|null; answeredAt?:string|null }
 /** `REVIEW`: invite to a trial, the request going on into the joining group's admission (step 3). */
 export interface SquadJoinDecision { requestId:string; expectedVersion:number; action:'APPROVE'|'REVIEW'|'DECLINE'; groupId?:number|null; groupVersion?:number|null }
 export interface SquadJoinOutcome { inquiryId:number; outcome:'PLACE_OFFERED'|'REVIEW_REQUIRED'|'DECLINED'; destination:string|null }
@@ -94,7 +95,8 @@ export const joinLink=async(id:number,signal?:AbortSignal)=>(await apiClient.get
 /** Creates the link, or replaces its code so the old one stops working at once. Same requestId: same link. */
 export const createJoinLink=async(id:number,body:{requestId:string;expiresInDays?:number|null})=>(await apiClient.post<SquadJoinLink>(`${root}/${id}/join-link`,body)).data;
 export const disableJoinLink=async(id:number)=>(await apiClient.delete<SquadJoinLink>(`${root}/${id}/join-link`)).data;
-export const joinRequests=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal})).data;
+/** The requests waiting; with `answered`, those answered in the last two weeks follow. */
+export const joinRequests=async(id:number,signal?:AbortSignal,answered=false)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal,params:answered?{answered:true}:undefined})).data;
 export const decideJoinRequest=async(id:number,inquiryId:number,body:SquadJoinDecision)=>(await apiClient.post<SquadJoinOutcome>(`${root}/${id}/join-requests/${inquiryId}`,body)).data;
 /**
  * "Approve all" from the coach's one squad notice: exactly the requests the coach saw (with the versions seen), each

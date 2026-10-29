@@ -3,19 +3,31 @@ import { isAxiosError } from 'axios';
 import * as squadApi from '../../squadCommunication/api';
 import { nextMatch, waitingApplications, type MatchCard, type WaitingApplication } from './squadApi';
 
-/** Each squad's next match card; a squad whose card could not be read has none (`null`), never an invented one. */
+/** The server's "not yours" (refused, or nothing there for this person): never shown as a failure. */
+const refused = (error: unknown) => isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0);
+
+/**
+ * Each squad's next match card; a squad whose card the server refused has none (`null`), never an invented one, and a
+ * squad whose card failed to load is in `failed`, so the page says so and tries again. While a change reloads them the
+ * earlier cards stay, so a notice on a card (Remind) survives the reload.
+ */
 export function useMatchCards(squadIds: number[], revision: number) {
-    const key = `${squadIds.join(',')}:${revision}`;
-    const [state, setState] = useState<{ key: string; cards: Map<number, MatchCard | null> } | null>(null);
+    const scope = squadIds.join(',');
     const [attempt, setAttempt] = useState(0);
+    const key = `${scope}:${revision}:${attempt}`;
+    const [state, setState] = useState<{ scope: string; cards: Map<number, MatchCard | null>; failed: number[] } | null>(null);
     useEffect(() => {
-        const controller = new AbortController(), ids = key.split(':')[0].split(',').filter(Boolean).map(Number);
-        void Promise.all(ids.map(id => nextMatch(id, controller.signal).then(card => [id, card] as const, () => [id, null] as const)))
-            .then(entries => { if (!controller.signal.aborted) setState({ key, cards: new Map(entries) }); });
+        const controller = new AbortController(), ids = scope.split(',').filter(Boolean).map(Number);
+        void Promise.all(ids.map(id => nextMatch(id, controller.signal).then(card => [id, card] as const, error => [id, refused(error) ? null : undefined] as const)))
+            .then(entries => {
+                if (controller.signal.aborted) return;
+                setState({ scope, cards: new Map(entries.map(([id, card]) => [id, card ?? null])), failed: entries.filter(([, card]) => card === undefined).map(([id]) => id) });
+            });
         return () => controller.abort();
-    }, [key, attempt]);
+    }, [scope, key]);
     const refresh = useCallback(() => setAttempt(value => value + 1), []);
-    return { cards: state?.key === key ? state.cards : null, refresh };
+    const current = state?.scope === scope ? state : null;
+    return { cards: current?.cards ?? null, failed: current?.failed ?? [], refresh };
 }
 
 /**
@@ -35,35 +47,36 @@ const applicationItem = (a: WaitingApplication): WantToJoinItem => ({
 });
 const requestItem = (squad: number, r: squadApi.SquadJoinRequest): WantToJoinItem => ({
     key: `request-${r.id}`, kind: 'REQUEST', id: r.id, squadId: squad, name: r.childName, age: r.birthYear ? new Date().getFullYear() - r.birthYear : null, position: null,
-    createdAt: r.createdAt, source: r.source === 'LINK' ? 'LINK' : 'ENQUIRY', state: 'DECIDE', answeredBy: null, request: r,
+    createdAt: r.createdAt, source: r.source === 'LINK' ? 'LINK' : 'ENQUIRY', state: r.answeredAt ? 'ANSWERED' : 'DECIDE', answeredBy: r.answeredBy ?? null, request: r,
 });
 
 /**
- * Want to join, one list for the squads shown, newest first. Only those who decide get anything: the server answers
- * the others with an empty list or a refusal, which is taken as "not yours", not as an error. Applications without a
- * squad are in the all-squads list only.
+ * Want to join, one list for the squads shown, newest first, with those answered lately and who answered them. Only
+ * those who decide get anything: the server answers the others with an empty list or a refusal, which is taken as
+ * "not yours", not as an error; any other failure is `failed`. Applications without a squad are in the all-squads list
+ * only. While a change reloads the list the earlier items stay, so the notice after an answer survives.
  */
 export function useWantToJoin(clubId: number, squadIds: number[], all: boolean, revision: number) {
-    const key = `${clubId}|${squadIds.join(',')}|${all}|${revision}`;
-    const [state, setState] = useState<{ key: string; items: WantToJoinItem[]; failed: boolean } | null>(null);
+    const scope = `${clubId}|${squadIds.join(',')}|${all}`;
     const [attempt, setAttempt] = useState(0);
+    const key = `${scope}|${revision}|${attempt}`;
+    const [state, setState] = useState<{ scope: string; items: WantToJoinItem[]; failed: boolean } | null>(null);
     useEffect(() => {
-        const controller = new AbortController(), ids = key.split('|')[1].split(',').filter(Boolean).map(Number);
-        const refused = (error: unknown) => isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0);
+        const controller = new AbortController(), [club, list, everything] = scope.split('|'), ids = list.split(',').filter(Boolean).map(Number);
         let failed = false;
         const quietly = <T,>(load: Promise<T[]>) => load.catch(error => { if (!refused(error)) failed = true; return [] as T[]; });
         void Promise.all([
-            quietly(waitingApplications(clubId, null, controller.signal)),
-            ...ids.map(id => quietly(squadApi.joinRequests(id, controller.signal)).then(rows => rows.map(row => requestItem(id, row)))),
+            quietly(waitingApplications(Number(club), null, controller.signal)),
+            ...ids.map(id => quietly(squadApi.joinRequests(id, controller.signal, true)).then(rows => rows.map(row => requestItem(id, row)))),
         ]).then(([applications, ...requests]) => {
             if (controller.signal.aborted) return;
-            const shown = (applications as WaitingApplication[]).filter(a => a.squadId === null ? key.split('|')[2] === 'true' : ids.includes(a.squadId)).map(applicationItem);
+            const shown = (applications as WaitingApplication[]).filter(a => a.squadId === null ? everything === 'true' : ids.includes(a.squadId)).map(applicationItem);
             const items = [...shown, ...(requests as WantToJoinItem[][]).flat()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-            setState({ key, items, failed });
+            setState({ scope, items, failed });
         });
         return () => controller.abort();
-    }, [clubId, key, attempt]);
+    }, [scope, key]);
     const refresh = useCallback(() => setAttempt(value => value + 1), []);
-    const current = state?.key === key ? state : null;
+    const current = state?.scope === scope ? state : null;
     return { items: current?.items ?? null, failed: current?.failed ?? false, refresh };
 }

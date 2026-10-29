@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, ButtonLink, Panel, Section } from '../../../design/primitives';
+import { Avatar, Button, ButtonLink, LoadFailed, Panel, Section } from '../../../design/primitives';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { relativeTime } from '../../../utils/relativeTime';
 import { squadLabel } from '../../../components/squads/squadLabels';
@@ -18,9 +18,10 @@ type Step = 'ACCEPT' | 'TRIAL' | 'NOT_NOW';
 /**
  * Want to join, at the top of Players (decision 2): applications, admission requests and join-code requests in one
  * list, newest first, each with its next step. Only the squad's head and assistant coaches, the head of coaching and
- * admins get it. The first answer counts; a later one is told who answered, and the list shows it.
+ * admins get it. The first answer counts; a later one is told who answered, and the list shows it. A list that failed
+ * to load says so (`failed`), with Try again.
  */
-export function WantToJoin({ items, data, onChanged }: { items: WantToJoinItem[]; data: CoachData; onChanged: () => void }) {
+export function WantToJoin({ items, failed = false, onRetry, data, onChanged }: { items: WantToJoinItem[]; failed?: boolean; onRetry?: () => void; data: CoachData; onChanged: () => void }) {
     const copy = useCopy('mySquads', mySquadsEn);
     const { t } = useTranslation();
     const [busy, setBusy] = useState<string | null>(null), [notice, setNotice] = useState<{ tone: 'danger' | 'success'; text: string } | null>(null);
@@ -56,12 +57,13 @@ export function WantToJoin({ items, data, onChanged }: { items: WantToJoinItem[]
     const waiting = items.filter(item => item.state === 'DECIDE').length;
     return <Section boxed title={copy('wantToJoin')} hint={waiting ? copy('waitingCount', { count: waiting }) : undefined}>
         <Panel flush>
-            <ul className="ch-join" aria-label={copy('wantToJoin')}>{items.map(item => <li key={item.key} className="ch-join__row" data-state={item.state}>
+            {items.length > 0 && <ul className="ch-join" aria-label={copy('wantToJoin')}>{items.map(item => <li key={item.key} className="ch-join__row" data-state={item.state}>
                 <Avatar name={item.name} size={34} />
                 <span className="ch-join__who"><strong>{item.name}</strong><span className="ch-quiet">{meta(item)}</span></span>
                 {item.state === 'DECIDE' && <span className="cw-status cw-status--warning ch-join__decide"><span className="cw-dot cw-dot--warning" aria-hidden="true" />{copy('decide')}</span>}
                 {steps(item)}
-            </li>)}</ul>
+            </li>)}</ul>}
+            {failed && onRetry && <LoadFailed text={copy('couldntLoad')} retry={copy('tryAgain')} onRetry={onRetry} />}
             {notice && <p className={`gk-notice ${notice.tone === 'danger' ? 'gk-notice--danger' : 'cw-notices__success'} ch-join__notice`} role="status">{notice.text}</p>}
         </Panel>
     </Section>;

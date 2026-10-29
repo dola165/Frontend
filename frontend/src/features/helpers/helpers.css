@@ -2,6 +2,10 @@
    Scoped under `.gk`; tokens only. */
 
 .gk .hp-note { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .hp-quiet { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .hp-status { color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; white-space: nowrap; }
+.gk .hp-status--danger { color: var(--gk-danger); }
+.gk .hp-notice--success { background: var(--gk-accent-soft); }
 .gk .hp-chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 
 /* ---------------------------------------------------------------- Home: You're helping today */
@@ -10,7 +14,8 @@
 .gk .hp-card__title { display: flex; flex-direction: column; min-width: 0; }
 .gk .hp-card__title strong { font-size: var(--gk-fs-lg, 16px); font-weight: 650; }
 .gk .hp-card__coming { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); }
-.gk .hp-card__stop { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .hp-card__stop { align-self: flex-start; min-height: 44px; margin: calc(-1 * var(--gk-2)) 0 calc(-1 * var(--gk-2)) calc(-1 * var(--gk-2)); padding: 0 var(--gk-2);
+    border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }
 .gk .hp-card__stop:hover { color: var(--gk-danger); text-decoration: underline; }
 .gk .hp-register { margin: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); list-style: none; overflow: hidden; }
 .gk .hp-register li + li { border-top: 1px solid var(--gk-line); }

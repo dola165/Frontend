@@ -22,7 +22,7 @@ import { BirthDateStep } from '../pages/create/BirthDateStep';
 import { MoreTools } from './MoreTools';
 import { OfficeSettings } from './OfficeSettings';
 import { OfficeTool } from './OfficeTool';
-import { isMovedTool, isOfficeTool, movedToolPath, namesARecord, OFFICE_PLACES, officePath, officeToolPath, type OfficePlace, type OfficeTool as Tool } from './officeLinks';
+import { bareLink, isMovedTool, isOfficeTool, movedToolPath, OFFICE_PLACES, officePath, officeToolPath, type OfficePlace, type OfficeTool as Tool } from './officeLinks';
 import { toolStates } from './officeTools';
 import '../clubWorkspace/club-workspace.css';
 import './office.css';
@@ -76,8 +76,8 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
 
     if (!Number.isSafeInteger(clubId) || clubId <= 0) return <PageFrame><EmptyNote title={copy('This club office does not exist', 'კლუბის ოფისი ვერ მოიძებნა')} /></PageFrame>;
     if (ownSquad) return <Navigate replace to={`/my-squads?${new URLSearchParams({ clubId: String(clubId), squad: squad! })}`} />;
-    // Joining, attendance and preparation moved into My squads (step 3): their tool lands there, a record still opens here.
-    if (known && onSquads && tool && isMovedTool(tool) && !namesARecord(params)) return <Navigate replace to={movedToolPath(clubId, tool, Object.fromEntries(params))} />;
+    // Applications, attendance and preparation moved into My squads (step 3): a bare link lands there, a record still opens here.
+    if (known && onSquads && tool && isMovedTool(tool) && bareLink(tool, params)) return <Navigate replace to={movedToolPath(clubId, tool, Object.fromEntries(params))} />;
 
     const go = (to: string) => guardWorkspaceNavigation(() => navigate(to));
     // While nothing is known yet the side bar waits quietly rather than naming a made-up club.

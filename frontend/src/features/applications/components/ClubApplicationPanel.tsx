@@ -4,8 +4,7 @@ import { getAuthSessionId, subscribeAuthSession } from '../../../utils/authStora
 import { useClubEntryEligibility, useEntryCopy } from '../clubEntry';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ClipboardCheck, Loader2, Sparkles, UserPlus, X, XCircle } from 'lucide-react';
-import { cancelClubApplication, createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
-import { apiClient } from '../../../api/axiosConfig';
+import { cancelClubApplication, createClubApplication, publicSquads, selfRegisterClubPlayer } from '../../clubs/api';
 import type { PublicSquad } from '../../clubs/publicJourney';
 import {
   clubApplicationStatusLabel,
@@ -69,7 +68,7 @@ const ClubApplicationBody = ({
   const [squads, setSquads] = useState<PublicSquad[] | null>(null), [playerSquad, setPlayerSquad] = useState('');
   useEffect(() => {
     const controller = new AbortController();
-    void apiClient.get<PublicSquad[]>(`/clubs/${clubId}/squads`, { signal: controller.signal }).then(r => { if (!controller.signal.aborted) setSquads(r.data); }).catch(() => { if (!controller.signal.aborted) setSquads([]); });
+    void publicSquads(clubId, controller.signal).then(rows => { if (!controller.signal.aborted) setSquads(rows); }).catch(() => { if (!controller.signal.aborted) setSquads([]); });
     return () => controller.abort();
   }, [clubId]);
   const [pendingKey, setPendingKey] = useState<'player' | 'cancel' | null>(null);

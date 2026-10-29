@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { useTranslation } from 'react-i18next';
@@ -125,7 +125,7 @@ export function CoachPlayers({ data }: { data: CoachData }) {
         <PageHeader title={copy('players')} subtitle={copy('playersIn', { count: rows.length, where: several ? copy('inYourSquads') : data.names.get(data.shown[0]) ?? '' })} />
         <SquadSwitch data={data} />
         <div className="gk-stack">
-            {data.joining.items && data.joining.items.length > 0 && <WantToJoin items={data.joining.items} data={data} onChanged={data.refresh} />}
+            {(Boolean(data.joining.items?.length) || data.joining.failed) && <WantToJoin items={data.joining.items ?? []} failed={data.joining.failed} onRetry={data.joining.refresh} data={data} onChanged={data.refresh} />}
             {errors.length > 0 && <div className="gk-notice gk-notice--danger" role="alert">{errors[0]}</div>}
             <div className="gk-stack gk-stack--tight">
                 <ViewTabs label={copy('show')} value={filter.id} onChange={id => set({ view: id === 'all' ? null : id })} views={FILTERS.map(item => ({ id: item.id, label: copy(item.label), count: rows.filter(item.test).length }))} />

@@ -56,3 +56,11 @@ it('asks to set up joining first when a request has no joining group to go into'
     expect(screen.getByRole('link', { name: 'Set up joining first' })).toHaveAttribute('href', '/admissions/manage');
     expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
 });
+
+it('says the list couldn’t load, with Try again, rather than showing nothing', () => {
+    const retry = vi.fn();
+    render(<MemoryRouter><WantToJoin items={[]} failed onRetry={retry} data={data} onChanged={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByText('Couldn’t load')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retry).toHaveBeenCalled();
+});

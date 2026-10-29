@@ -8,7 +8,6 @@ import { focusableViews } from '../../clubOperations/workspaceStructure';
 import { label as words } from '../../clubOperations/api';
 import { dueWords } from '../fixtures';
 import { viewSquads } from './coachData';
-
 import * as squadApi from '../../squadCommunication/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { SquadSwitch } from './CoachVisuals';
@@ -63,7 +62,6 @@ export function CoachTeam({ data }: { data: CoachData }) {
                         {!me && <ButtonLink size="sm" to={`/messages?chatWith=${coach.id}`}><MessageCircle aria-hidden="true" />{copy('message')}</ButtonLink>}
                     </li>;
                 })}</ul>}
-
             {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
             <Section boxed title={copy('headCoachEach')}>
                 <Panel>{(data.squads ?? []).filter(squad => data.shown.includes(squad.id) && squad.overview).map(squad => <label key={squad.id} className="ch-headcoach">
@@ -92,6 +90,5 @@ export function CoachTeam({ data }: { data: CoachData }) {
                 </Section>
             </div>
         </div>
-
     </PageFrame>;
 }

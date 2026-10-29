@@ -64,7 +64,6 @@ export const ACTIONS: Record<ActionKey, ActionDefinition> = {
         // For a squad the likely helper is an assistant coach; for the club a head coach (the link's own default).
         guess: (subject, hints) => ({ club: clubOf(subject), squad: squadOf(subject), job: hints.job ?? (subject.kind === 'squad' ? 'ASSISTANT_COACH' : null) }),
     },
-
     start_club: {
         key: 'start_club', label: ['Start a club', 'კლუბის შექმნა'], short: ['Start', 'შექმნა'], icon: Shield,
         subjects: ['me'], guess: () => ({}),

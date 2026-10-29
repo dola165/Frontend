@@ -17,7 +17,6 @@ const AddChildFlow = lazy(() => import('./flows/FamilyFlows').then(module => ({ 
 const JoinCodeFlow = lazy(() => import('./flows/FamilyFlows').then(module => ({ default: module.JoinCodeFlow })));
 const InviteStaffFlow = lazy(() => import('./flows/StaffFlows').then(module => ({ default: module.InviteStaffFlow })));
 
-
 /**
  * Mounted once in the app shell beside the start sheet: opens an action's flow over the current page when the address
  * says `?do=<key>` (from a button, a link someone shared, a notification), with its answers in `do-…`. Closing drops
@@ -61,7 +60,6 @@ function OpenAction({ action }: { action: ActionKey }) {
         : action === 'add_child' ? <AddChildFlow onClose={close} />
         : action === 'join_squad' ? <JoinCodeFlow code={actionText(params, 'code')} playerId={actionNumber(params, 'player')} onClose={close} />
         : action === 'invite_staff' && club ? <InviteStaffFlow club={club} clubName={clubName} squadId={squadId} job={actionText(params, 'job')} onClose={close} />
-
         : null;
     // Input inside the flow's dialog bubbles here through the portal.
     return <div className="gk-action-host" onInput={() => setTyped(true)}><Suspense fallback={null}>{flow}</Suspense></div>;

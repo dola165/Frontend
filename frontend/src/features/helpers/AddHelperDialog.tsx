@@ -34,7 +34,8 @@ export function AddHelperDialog({ squad, squadName, session, onClose, onAdded }:
     if (added) return <Dialog open size="md" title={copy('helperAdded', { name: added.name })} onClose={onClose} footer={<Button variant="primary" onClick={onClose}>{copy('done')}</Button>}>
         {added.link
             ? <InviteLinkBox name={added.name} link={{ token: added.link, expiresAt: added.linkExpiresAt ?? new Date().toISOString() }} message={copy('helperLinkMessage', { squad: squadName, time: `${weekday} ${time}` })} />
-            : <p className="hp-note">{copy('helperSeesHome', { name: added.name })}</p>}
+            // Someone already invited (by this club or another) keeps that invitation: no new link replaces it.
+            : <p className="hp-note">{copy(added.invitationPending ? 'helperInvitationPending' : 'helperSeesHome', { name: added.name })}</p>}
     </Dialog>;
     return <Dialog open size="md" title={copy('addHelper')} description={`${session.title} · ${squadName}`} onClose={onClose}
         footer={<><Button onClick={onClose}>{copy('cancel')}</Button><Button variant="primary" type="submit" form={id} disabled={busy}>{copy('addHelper')}</Button></>}>

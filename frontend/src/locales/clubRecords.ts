@@ -77,4 +77,6 @@ export const recordWordsKa: Record<string, string> = {
     EXPIRED: 'ვადაგასული', ENDED: 'დასრულდა', PUBLISHED: 'გამოქვეყნებული', BOARDED: 'ჩაჯდა', REQUESTED: 'მოთხოვნილი', SCHEDULED: 'დაგეგმილი',
     VERIFIED: 'დადასტურებული', REJECTED: 'უარყოფილი', UPCOMING: 'მომავალი', REPORTED: 'შეტყობინებული', REVIEWED: 'განხილული', RESOLVED: 'გადაწყვეტილი',
     BOOKED: 'დაჯავშნილი', ORDERED: 'შეკვეთილი', RECEIVED: 'მიღებული', LOST: 'დაკარგული', DAMAGED: 'დაზიანებული', AVAILABLE: 'ხელმისაწვდომი',
+    // A registration the club's Owner approved alone (2 November 2026).
+    PREPARED_AND_APPROVED_BY_THE_SAME_PERSON: 'მოამზადა და დაამტკიცა ერთმა ადამიანმა',
 };

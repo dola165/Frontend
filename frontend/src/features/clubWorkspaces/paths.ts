@@ -5,12 +5,15 @@ export const jobWorkspacePath = (club: number, workspace?: string, context = new
     return `/clubs/${club}/work${workspace ? `/${encodeURIComponent(workspace)}` : ''}${search ? `?${search}` : ''}`;
 };
 
-/** Keep person/session/squad and source/return tokens. A different tool starts without the previous tool's record or filters. */
-export function workspaceSectionPath(club: number, workspace: JobWorkspace, section: string, context: URLSearchParams) {
+/**
+ * Keep person/session/squad and source/return tokens. A different tool starts without the previous tool's record or
+ * filters; no tool (`null`) is the workspace's start, its main tool.
+ */
+export function workspaceSectionPath(club: number, workspace: JobWorkspace, section: string | null, context: URLSearchParams) {
     const next = new URLSearchParams(context);
     ['tool', 'deskTab', 'record', 'from', 'new', 'care', 'kind', 'q', 'page', 'sort', 'dir', 'state', 'mine', 'registration', 'prospect', 'view', 'travelPlan', 'travelTab'].forEach(key => next.delete(key));
     if (section === 'tools') next.set('deskTab', 'tools');
-    else if (section !== 'overview') next.set('tool', section);
+    else if (section) next.set('tool', section);
     return jobWorkspacePath(club, workspace.key, next);
 }
 

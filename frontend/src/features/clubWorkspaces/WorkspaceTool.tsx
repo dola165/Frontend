@@ -15,16 +15,11 @@ import { Scouting } from '../scouting/Scouting';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { JobWorkspaceManifest, JobWorkspace } from './types';
 import type { DeskTool } from './registry';
-import { workspaceSectionPath } from './paths';
 import { scopeBootstrap } from './scopeBootstrap';
-import { WorkspaceLink } from './WorkspaceLink';
 import { workspaceLoadError } from './copy';
 
 export function WorkspaceTool({ manifest, workspace, tool, session }: { manifest: JobWorkspaceManifest; workspace: JobWorkspace; tool: DeskTool; session: AuthSessionId }) {
-    const copy = useJourneyCopy();
-    const [params] = useSearchParams();
-    if (tool.module === 'SCOUTING') return <><div className="job-workspaces__back"><WorkspaceLink to={workspaceSectionPath(manifest.clubId, workspace, 'overview', params)}><ArrowLeft aria-hidden="true" />{copy('Back to overview', 'უკან: მიმოხილვა')}</WorkspaceLink></div>
-        <Scouting key={`${session}:${manifest.clubId}`} clubId={manifest.clubId} sessionId={session} /></>;
+    if (tool.module === 'SCOUTING') return <Scouting key={`${session}:${manifest.clubId}`} clubId={manifest.clubId} sessionId={session} />;
     return <OperationTool manifest={manifest} workspace={workspace} tool={tool} />;
 }
 
@@ -42,16 +37,17 @@ function OperationTool({ manifest, workspace, tool }: { manifest: JobWorkspaceMa
     const boot = scopeBootstrap(operations.boot, workspace, roles.data, tool.module);
     const permission = boot.modules.find(item => item.id === tool.module);
     if (!permission || !permission.globalRead && !permission.readSquads?.length) return <PageFrame><EmptyNote title={copy('This tool is no longer available in your current scope', 'თქვენი მიმდინარე უფლებებით ეს ინსტრუმენტი აღარ არის ხელმისაწვდომი')} action={<Button onClick={retry}>{copy('Reload current access', 'მიმდინარე უფლებების თავიდან ჩატვირთვა')}</Button>} /></PageFrame>;
+    // The rail holds the job's tools, so the only way back a tool offers is to the coach's own page it came from.
     const coach = coachOriginTarget(params, manifest.clubId, mySquadIds(roles.data.views));
-    const overview = workspaceSectionPath(manifest.clubId, workspace, 'overview', params);
-    const origin = { label: coach ? copy('Back to My squads', 'უკან: ჩემი გუნდები') : copy('Back to overview', 'უკან: მიმოხილვა'), onBack: () => guardWorkspaceNavigation(() => navigate(coach ?? overview)) };
+    const origin = coach ? { label: copy('Back to My squads', 'უკან: ჩემი გუნდები'), onBack: () => guardWorkspaceNavigation(() => navigate(coach)) } : undefined;
+    const back = origin && <div className="job-workspaces__back"><Button variant="ghost" onClick={origin.onBack}><ArrowLeft aria-hidden="true" />{origin.label}</Button></div>;
     const direct = ['record', 'new', 'person', 'player', 'session', 'scope'].some(key => params.has(key));
     // The canonical travel coordinator is for actual writers; legacy/read-only records still open unchanged.
-    if (tool.module === 'TRAVEL' && permission.writable && !direct) return <PageFrame><div className="job-workspaces__back"><Button variant="ghost" onClick={origin.onBack}><ArrowLeft aria-hidden="true" />{origin.label}</Button></div>
+    if (tool.module === 'TRAVEL' && permission.writable && !direct) return <PageFrame>{back}
         <TravelWorkspace clubId={manifest.clubId} squadId={params.has('squad') ? Number(params.get('squad')) : undefined} /></PageFrame>;
     const content = <WorkspaceOperations boot={boot} module={tool.module} onRefresh={operations.refresh} origin={origin} />;
     // Eligibility and private care are compact panels; lists and direct record details supply their own frame/back.
     const compact = tool.module === 'REGISTRATION' && !params.has('record') && params.get('registration') !== 'records'
         || ['MEDICAL', 'WELLBEING'].includes(tool.module) && (!params.has('record') || params.has('person'));
-    return compact ? <PageFrame><div className="job-workspaces__back"><Button variant="ghost" onClick={origin.onBack}><ArrowLeft aria-hidden="true" />{origin.label}</Button></div>{content}</PageFrame> : content;
+    return compact ? <PageFrame>{back}{content}</PageFrame> : content;
 }

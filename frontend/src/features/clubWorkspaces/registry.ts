@@ -1,8 +1,9 @@
-import { Binoculars, Home, Inbox, LayoutGrid, type LucideIcon } from 'lucide-react';
+import { Binoculars, Briefcase, Inbox, LayoutGrid, type LucideIcon } from 'lucide-react';
 import { operationDescriptions, operationTabs, toolLabel } from '../clubOperations/workspaceNavigation';
 import type { JobWorkspace, ModuleScope } from './types';
 import type { WorkspaceCopy } from './copy';
 
+/** Each desk's own modules, its main tool first: the workspace opens on the first one the person holds. */
 const deskModules: Partial<Record<JobWorkspace['key'], readonly string[]>> = {
     registration: ['REGISTRATION', 'GUARDIANS', 'DEPARTURES', 'CREDENTIALS'], money: ['FINANCE'], kit: ['EQUIPMENT'], travel: ['TRAVEL'],
     facilities: ['FACILITIES', 'READINESS'], scouting: ['SCOUTING'],
@@ -24,6 +25,20 @@ export function workspaceTools(workspace: JobWorkspace, copy: WorkspaceCopy = en
     });
 }
 
-export const overviewItem = { id: 'overview', label: 'Overview', icon: Home };
+/** The tool a workspace opens on: its desk's first module the person holds (Money opens Finance), else the first tool. */
+export function mainTool(workspace: JobWorkspace, tools: DeskTool[]): DeskTool | undefined {
+    return deskModules[workspace.key]?.map(module => tools.find(tool => tool.module === module)).find(Boolean) ?? tools[0];
+}
+
+/** Media and match work have no tool of their own here: they open where that work already happens. */
+export const workElsewhere: Partial<Record<JobWorkspace['key'], (club: number) => string>> = {
+    media: club => `/clubs/${club}`, matches: () => '/world/matches',
+};
+
+/** Tools whose open records may wait in the job's row: never private care, concerns or scouting, only in the current squad. */
+export const waitingTools = (tools: DeskTool[], squad: number | null) =>
+    tools.filter(tool => !privateModules.has(tool.module) && tool.module !== 'SCOUTING' && canReadScope(tool.scope, squad)).slice(0, 3);
+
+export const indexItem = { id: 'index', label: 'Workspaces', icon: Briefcase };
 export const toolsItem = { id: 'tools', label: 'All tools', icon: LayoutGrid };
 export const inboxItem = { id: 'inbox', label: 'Inbox', icon: Inbox };

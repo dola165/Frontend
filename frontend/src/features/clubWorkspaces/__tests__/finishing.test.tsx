@@ -16,6 +16,7 @@ vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../clubOperations/useClubOperations', () => ({ useClubOperations: () => ({ boot: mocks.boot, loading: false, error: '', refresh: async () => undefined }) }));
 vi.mock('../../clubOperations/useWorkspaceRoles', () => ({ useWorkspaceRoles: () => ({ data: mocks.roles, loading: false, error: '', refresh: () => undefined }) }));
 vi.mock('../../clubOperations/WorkspaceOperations', () => ({ WorkspaceOperations: (props: Parameters<typeof WorkspaceOperations>[0]) => <Tool {...props} /> }));
+vi.mock('../../scouting/Scouting', () => ({ Scouting: () => <div>Canonical scouting records</div> }));
 
 function Tool({ origin }: Parameters<typeof WorkspaceOperations>[0]) {
     const [draft, setDraft] = useState('');
@@ -26,6 +27,8 @@ function App({ path = '/clubs/7/work' }: { path?: string }) {
     return <MemoryRouter initialEntries={[path]}><OtherClub /><Routes>
         <Route path="/clubs/:id/work/:workspace?" element={<ClubJobWorkspacePage />} />
         <Route path="/clubs/:id/office" element={<h1>Canonical Staff</h1>} />
+        <Route path="/clubs/:id" element={<h1>Canonical club page</h1>} />
+        <Route path="/world/matches" element={<h1>Canonical matches</h1>} />
     </Routes></MemoryRouter>;
 }
 let response: JobWorkspaceManifest, generation = 0;
@@ -67,14 +70,13 @@ it.each([
 
 it('uses shared Georgian operation labels and preserves authored source record titles', async () => {
     await i18n.changeLanguage('ka'); render(<App path="/clubs/7/work/money?squad=2&session=6&person=4" />);
-    await screen.findByRole('heading', { name: 'ფინანსები' });
-    expect(screen.getByRole('link', { name: workspaceNavKa.finance })).not.toHaveAttribute('aria-current');
-    const current = await screen.findByRole('link', { name: /Alex: Money – გადასახადი/ });
+    await screen.findByLabelText('Actor draft');
+    expect(screen.getByRole('link', { name: workspaceNavKa.finance })).toHaveAttribute('aria-current', 'page');
+    const waiting = await screen.findByRole('region', { name: 'თქვენ გელოდებათ' });
+    const current = within(waiting).getByRole('link', { name: /Alex: Money – გადასახადი/ });
     expect(current).toHaveAttribute('href', '/clubs/7/work/money?squad=2&session=6&person=4&tool=finance&record=18');
-    expect(screen.getByText('მიმდინარე საქმეები · ფინანსები')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'ინსტრუმენტის გახსნა' })).toBeInTheDocument();
-    expect(screen.getByText(/^ვადა:/)).toBeInTheDocument();
-    expect(screen.getByText(/ნაჩვენებია მაქსიმუმ ხუთი/)).toBeInTheDocument();
+    expect(screen.queryByText(/მიმდინარე საქმეები/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ნაჩვენებია მაქსიმუმ ხუთი/)).not.toBeInTheDocument();
 });
 
 it('switches language without refetching authority, changing tool context or losing a draft', async () => {
@@ -82,29 +84,24 @@ it('switches language without refetching authority, changing tool context or los
     await screen.findByLabelText('Actor draft'); fireEvent.change(screen.getByLabelText('Actor draft'), { target: { value: 'Money – Alex-ის მონახაზი' } });
     const before = mocks.get.mock.calls.length;
     await act(async () => { await i18n.changeLanguage('ka'); });
-    expect(screen.getByRole('button', { name: 'უკან: მიმოხილვა' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'უკან: მიმოხილვა' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Actor draft')).toHaveValue('Money – Alex-ის მონახაზი');
     expect(mocks.get.mock.calls).toHaveLength(before);
     expect(screen.getByRole('link', { name: workspaceNavKa.finance })).toHaveAttribute('aria-current', 'page');
-    fireEvent.click(screen.getByRole('button', { name: 'უკან: მიმოხილვა' }));
-    await screen.findByRole('heading', { name: 'ფინანსები' });
 });
 
-it('localizes the new scouting label, description and overview note', async () => {
+it('opens Scouting on its own records, in Georgian, without a shared work request', async () => {
     await i18n.changeLanguage('ka'); response = manifest([desk('scouting', [moduleScope('SCOUTING')])]);
     render(<App path="/clubs/7/work/scouting" />);
-    await screen.findByRole('heading', { name: 'სკაუტინგი' });
-    expect(screen.getByText('გახსენით სკაუტინგის მიმდინარე ჩანაწერები და თქვენთვის ხელმისაწვდომი მოთამაშეთა წყაროები.')).toBeInTheDocument();
-    expect(screen.getByText(/სკაუტინგში ნახავთ დაკვირვების მიმდინარე/)).toBeInTheDocument();
+    await screen.findByText('Canonical scouting records');
+    expect(screen.getByRole('link', { name: 'სკაუტინგი' })).toHaveAttribute('aria-current', 'page');
     expect(mocks.get.mock.calls.some(([url]) => String(url).includes('workspace-roles/work'))).toBe(false);
 });
 
-it.each(['media', 'matches'] as const)('localizes the %s prototype and preserves the existing source destinations', async key => {
+it.each([['media', 'Canonical club page'], ['matches', 'Canonical matches']] as const)('%s opens where that work already happens, with no Overview of links', async (key, heading) => {
     await i18n.changeLanguage('ka'); response = manifest([desk(key, [moduleScope('MATCHES')])]); render(<App path={`/clubs/7/work/${key}`} />);
-    await screen.findByText('სამუშაო სივრცის საცდელი ვერსია · ინსტრუმენტებზე არსებული უფლებები მოქმედებს');
-    expect(screen.getByRole('link', { name: 'კლუბის გვერდი და პოსტები' })).toHaveAttribute('href', '/clubs/7');
-    expect(screen.getByRole('link', { name: 'მატჩები და შეჯიბრებები' })).toHaveAttribute('href', '/world/matches');
-    expect(screen.queryByText('Publishing remains subject to your current permission.')).not.toBeInTheDocument();
+    await screen.findByRole('heading', { name: heading });
+    expect(screen.queryByText('სამუშაო სივრცის საცდელი ვერსია · ინსტრუმენტებზე არსებული უფლებები მოქმედებს')).not.toBeInTheDocument();
 });
 
 it('localizes fallback failures and invalid destinations without translating server-authored explanations', async () => {

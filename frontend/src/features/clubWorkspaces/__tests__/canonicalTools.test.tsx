@@ -41,7 +41,7 @@ it('registration uses the real eligibility panel with the selected player and sq
     render(<MemoryRouter initialEntries={['/clubs/7/work/registration?tool=registration&person=4&squad=2']}><WorkspaceTool manifest={manifest([workspace])} workspace={workspace} tool={workspaceTools(workspace)[0]} session="canonical-desk" /></MemoryRouter>);
     await screen.findByText('Eligibility unknown');
     expect(mocks.get).toHaveBeenCalledWith('/clubs/7/registration/people/4', expect.objectContaining({ params: { squad: 2 }, _authSessionId: 'canonical-desk' }));
-    expect(screen.getByRole('button', { name: 'Back to overview' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back to overview' })).not.toBeInTheDocument();
 });
 
 it('travel uses the real event-based coordinator without creating a second event', async () => {

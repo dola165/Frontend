@@ -26,9 +26,3 @@ export interface JobWorkspaceManifest {
     actorId: number;
     workspaces: JobWorkspace[];
 }
-
-/** Integration seam for a later, authorized shared-work projection. No task status is inferred from the manifest. */
-export interface JobWorkContext {
-    manifest: JobWorkspaceManifest;
-    workspace: JobWorkspace;
-}

@@ -59,7 +59,7 @@ it('keeps prototype destinations in a closed explicit preview and multiple jobs 
     expect(preview.getByText('Fees officer')).toBeInTheDocument(); expect(preview.getByText('Treasurer')).toBeInTheDocument();
     fireEvent.click(summary);
     fireEvent.click(screen.getByRole('link', { name: /Money Fees officer.*Treasurer/ }));
-    await screen.findByRole('heading', { name: 'Money' });
+    await screen.findByRole('heading', { name: 'Canonical FINANCE' });
     expect(await screen.findByText('Recorded training fee')).toBeInTheDocument();
     expect(mocks.get).toHaveBeenCalledWith('/clubs/7/job-workspaces', expect.objectContaining({ _authSessionId: 'desk-session' }));
 });
@@ -82,15 +82,18 @@ it('does not expose a tool from the URL, job title or a different desk', async (
 });
 
 it.each([
-    ['money', 'FINANCE', 'finance'], ['registration', 'REGISTRATION', 'registration'], ['kit', 'EQUIPMENT', 'equipment'], ['facilities', 'FACILITIES', 'facilities'],
-] as const)('%s mounts the canonical tool with its exact module and deep source context', async (key, module, tool) => {
+    ['money', 'FINANCE', 'finance', 'Finance'], ['registration', 'REGISTRATION', 'registration', 'Registration'], ['kit', 'EQUIPMENT', 'equipment', 'Equipment'], ['facilities', 'FACILITIES', 'facilities', 'Grounds & facilities'],
+] as const)('%s mounts the canonical tool with its exact module and deep source context', async (key, module, tool, name) => {
     response = manifest([desk(key, [moduleScope(module)])]); start(`/clubs/7/work/${key}?tool=${tool}&record=18&squad=2&session=6&person=4&source=fixture`);
     await screen.findByRole('heading', { name: `Canonical ${module}` });
     const props = mocks.tool.mock.calls.at(-1)![0] as Parameters<typeof WorkspaceOperations>[0];
     expect(props.boot.modules.find(m => m.id === module)).toMatchObject({ globalRead: false, globalWrite: false, readSquads: [2], writeSquads: [2] });
     expect(screen.getByText('record=18 session=6 person=4')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Back to overview' }));
-    await screen.findByRole('heading', { name: response.workspaces[0].title });
+    // An open record is its own page: no waiting row above it, and no way "back" to an overview that no longer exists.
+    expect(screen.queryByRole('region', { name: 'Waiting on you' })).not.toBeInTheDocument();
+    expect(props.origin).toBeUndefined();
+    fireEvent.click(within(screen.getByRole('navigation', { name: `${response.workspaces[0].title} sections` })).getByRole('link', { name }));
+    await screen.findByRole('heading', { name: `Canonical ${module}` });
     expect(screen.getByTestId('location')).toHaveTextContent('session=6');
     expect(screen.getByTestId('location')).toHaveTextContent('source=fixture');
     expect(screen.getByTestId('location')).not.toHaveTextContent('record=18');
@@ -117,16 +120,17 @@ it('canonical links and the shell respect unsaved edits before navigating', asyn
     await screen.findByRole('group', { name: 'Discard edits' });
     fireEvent.click(screen.getByRole('button', { name: /Keep editing/ }));
     expect(screen.getByLabelText('Draft')).toHaveValue('An unfinished record');
-    fireEvent.click(screen.getByRole('button', { name: 'Back to overview' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Your club work' }));
     await screen.findByRole('group', { name: 'Discard edits' }); fireEvent.click(screen.getByRole('button', { name: /Discard/ }));
-    await screen.findByRole('heading', { name: 'Money' });
+    await screen.findByRole('heading', { name: 'Your club work' });
 });
 
 it('does not aggregate private care or send another module’s squad scope to it', async () => {
     response = manifest([desk('shared', [moduleScope('FINANCE', { globalRead: true }), moduleScope('MEDICAL')])]); start('/clubs/7/work/shared');
-    await screen.findByText('Private care and concerns open in their own permitted tool. They are not included in the shared overview.');
+    await screen.findByRole('heading', { name: 'Canonical FINANCE' });
+    expect(await screen.findByRole('region', { name: 'Waiting on you' })).toHaveTextContent('Recorded training fee');
     expect(mocks.get.mock.calls.filter(([url]) => String(url).includes('module=MEDICAL'))).toHaveLength(0);
-    cleanup(); start('/clubs/7/work/shared?tool=medical&squad=3'); await screen.findByText('This squad is outside this tool’s current scope');
+    cleanup(); mocks.tool.mockClear(); start('/clubs/7/work/shared?tool=medical&squad=3'); await screen.findByText('This squad is outside this tool’s current scope');
     expect(mocks.tool).not.toHaveBeenCalled();
 });
 
@@ -185,12 +189,61 @@ it('storage changes hide the desk while AuthContext is still resolving the next 
     expect(screen.queryByLabelText('Draft')).not.toBeInTheDocument();
 });
 
-it('rejects source rows from another club and leaves current work retryable', async () => {
+it('rejects source rows from another club and leaves what is waiting retryable', async () => {
     mocks.get.mockImplementation(async (url: string) => ({ data: url.endsWith('/job-workspaces') ? response : [{ ...record(), club_id: 8, title: 'Other club record' }] }));
-    start('/clubs/7/work/money'); await screen.findByText('Could not load current work.');
+    start('/clubs/7/work/money'); await screen.findByText(/Could not load what is waiting\./);
     expect(screen.queryByText('Other club record')).not.toBeInTheDocument();
     mocks.get.mockResolvedValue({ data: [record()] }); fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findByText('Recorded training fee');
+});
+
+it('opens a workspace on its main tool, with what waits in one row above it and no Overview', async () => {
+    start('/clubs/7/work/money');
+    await screen.findByRole('heading', { name: 'Canonical FINANCE' });
+    const rail = within(screen.getByRole('navigation', { name: 'Money sections' }));
+    expect(rail.getByRole('link', { name: 'Finance' })).toHaveAttribute('aria-current', 'page');
+    expect(rail.queryByRole('link', { name: 'Overview' })).not.toBeInTheDocument();
+    const waiting = await screen.findByRole('region', { name: 'Waiting on you' });
+    expect(within(waiting).getByRole('link', { name: /Recorded training fee/ })).toHaveAttribute('href', '/clubs/7/work/money?tool=finance&record=18&squad=2');
+    expect(waiting).toHaveTextContent('Due');
+    expect(screen.queryByText(/Current work/)).not.toBeInTheDocument();
+});
+
+it('shows the waiting row only when something waits, and only on the main tool', async () => {
+    mocks.get.mockImplementation(async (url: string) => ({ data: url.endsWith('/job-workspaces') ? response : [] }));
+    start('/clubs/7/work/money'); await screen.findByRole('heading', { name: 'Canonical FINANCE' });
+    await waitFor(() => expect(mocks.get.mock.calls.some(([url]) => String(url).includes('workspace-roles/work?module=FINANCE'))).toBe(true));
+    expect(screen.queryByRole('region', { name: 'Waiting on you' })).not.toBeInTheDocument();
+    cleanup(); mocks.get.mockImplementation(async (url: string) => ({ data: url.endsWith('/job-workspaces') ? response : [record()] }));
+    response = manifest([desk('registration', [moduleScope('CREDENTIALS'), moduleScope('REGISTRATION')])]);
+    start('/clubs/7/work/registration?tool=credentials'); await screen.findByRole('heading', { name: 'Canonical CREDENTIALS' });
+    expect(screen.queryByRole('region', { name: 'Waiting on you' })).not.toBeInTheDocument();
+});
+
+it('opens Registration on Registration even when the server lists another of its tools first', async () => {
+    response = manifest([desk('registration', [moduleScope('CREDENTIALS'), moduleScope('REGISTRATION')])]);
+    mocks.get.mockImplementation(async (url: string) => ({ data: url.endsWith('/job-workspaces') ? response : [] }));
+    start('/clubs/7/work/registration');
+    await screen.findByRole('heading', { name: 'Canonical REGISTRATION' });
+    expect(within(screen.getByRole('navigation', { name: 'registration sections' })).getByRole('link', { name: 'Registration' })).toHaveAttribute('aria-current', 'page');
+});
+
+it('keeps the waiting row to one line until asked, marks overdue work and never shows more than five', async () => {
+    const rows = [{ ...record(), id: 21, title: 'Kit invoice', due_on: '2026-01-05' }, ...[22, 23, 24, 25, 26].map(id => ({ ...record(), id, title: `Fee ${id}`, due_on: '2099-01-01' }))];
+    mocks.get.mockImplementation(async (url: string) => ({ data: url.endsWith('/job-workspaces') ? response : rows }));
+    start('/clubs/7/work/money');
+    const waiting = await screen.findByRole('region', { name: 'Waiting on you' });
+    expect(within(waiting).getAllByRole('link')).toHaveLength(1);
+    expect(within(waiting).getByRole('link', { name: /Kit invoice/ }).closest('li')).toHaveAttribute('data-urgent');
+    fireEvent.click(within(waiting).getByRole('button', { name: '+ 4 more' }));
+    expect(within(waiting).getAllByRole('link')).toHaveLength(5);
+    expect(within(waiting).getByRole('link', { name: /Fee 22/ }).closest('li')).not.toHaveAttribute('data-urgent');
+    expect(within(waiting).queryByText('Fee 26')).not.toBeInTheDocument();
+});
+
+it.each([['media', '/clubs/7'], ['matches', '/world/matches']] as const)('%s, with no tool of its own here, opens where that work happens', async (key, path) => {
+    response = manifest([desk(key, [moduleScope('MATCHES')])]); start(`/clubs/7/work/${key}`);
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(new RegExp(`^${path}$`)));
 });
 
 it('keeps a verified coach-origin record’s canonical return destination', async () => {

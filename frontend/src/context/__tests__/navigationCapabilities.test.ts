@@ -3,6 +3,14 @@ import { normalizeNavigationCapabilities, workspaceLinks } from '../navigationCa
 const entry = (id: string, type: string, contextId: unknown = 7) => ({ id, context: { type, id: contextId, label: 'Academy' } });
 
 describe('server navigation contract', () => {
+    it('keeps the job workspace chooser scoped to each club without accepting a supplied destination', () => {
+        const projection = normalizeNavigationCapabilities({ version: 1, workspaces: [
+            { ...entry('club.job-workspaces', 'club', 21), path: '/clubs/99/work' },
+            entry('club.job-workspaces', 'club', 22), entry('club.job-workspaces', 'user'),
+            entry('club.job-workspaces', 'club', 21), entry('club.job-workspaces', 'club', -1),
+        ] }, 7);
+        expect(workspaceLinks(projection).map(link => link.path)).toEqual(['/clubs/21/work', '/clubs/22/work']);
+    });
     it('keeps organization settings reachable in their explicit authorized context', () => {
         const projection = normalizeNavigationCapabilities({ version: 1, workspaces: [
             entry('organization.settings', 'organization', 35), entry('organization.settings', 'user'),

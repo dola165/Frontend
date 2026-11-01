@@ -56,7 +56,7 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     const rawTool = params.get('tool');
     const tool: Tool | null = isOfficeTool(rawTool) ? rawTool : null;
     const requested: OfficePlace = tool ? 'tools' : OFFICE_PLACES.find(place => place === params.get('tab')) ?? 'staff';
-    const admissions = useClubAdmissions(clubId, sessionId, tool === 'admissions');
+    const admissions = useClubAdmissions(clubId, sessionId, tool === 'admissions', tool === null || tool === 'admissions');
     const states = toolStates({ boot: operations.boot, role, admissions: Boolean(admissions.data) });
     // On a squad, applications, attendance and preparation live in My squads; owners, admins and someone on no squad
     // keep them here. `inMySquads`: the squad is one of theirs in My squads (any of theirs when the link names none).

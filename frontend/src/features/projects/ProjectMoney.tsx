@@ -20,19 +20,20 @@ type Open = 'amount' | 'start' | 'edit' | 'update' | 'archive' | null;
 export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; onChanged: (next: ProjectDetail) => void }) {
     const copy = useJourneyCopy();
     const [open, setOpen] = useState<Open>(null);
+    const [archiveVersion, setArchiveVersion] = useState<number | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const { summary, fundraiser: f, can } = project;
     // Once the public has seen it (published, then maybe paused or closed), its public details are the publishers'.
     const seen = Boolean(f?.publishedAt) && f?.status !== 'ARCHIVED';
     const clubId = project.club?.id ?? 0;
-    if (!summary.target && !f) return null;
+    if (!summary.target && !f && open === null) return null;
     const currency = f?.currency ?? 'GEL';
     const raised = f?.reportedAmount ?? null;
-    const move = async (status: 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED') => {
-        if (!f) return;
+    const move = async (status: 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED', version = f?.version) => {
+        if (!f || version === undefined) return;
         setBusy(true); setError('');
-        try { onChanged(await moveFundraiser(clubId, summary.id, f.version, status)); }
+        try { onChanged(await moveFundraiser(clubId, summary.id, version, status)); }
         catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be saved.', 'ვერ შეინახა.'))); }
         finally { setBusy(false); }
     };
@@ -60,14 +61,14 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
             {f && can.change && f.status === 'PUBLISHED' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('PAUSED')}>{copy('Pause', 'შეჩერება')}</Button>}
             {f && can.publish && (f.status === 'PUBLISHED' || f.status === 'PAUSED') && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('CLOSED')}>{copy('Close', 'დახურვა')}</Button>}
             {/* Published by mistake, or done with: those who publish take it off every public page. */}
-            {f && can.publish && seen && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen('archive')}>{copy('Take off the site', 'საიტიდან მოხსნა')}</Button>}
+            {f && can.publish && seen && <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setArchiveVersion(f.version); setOpen('archive'); }}>{copy('Take off the site', 'საიტიდან მოხსნა')}</Button>}
         </div>
         {f && !f.clubVerified && <p className="pj-quiet">{copy('A fundraiser goes public once the club is verified.', 'შეგროვება საჯარო ხდება კლუბის ვერიფიკაციის შემდეგ.')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {open === 'amount' && f && <AmountDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}
         {(open === 'start' || open === 'edit') && <FundraiserDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}
         {open === 'archive' && f && <Dialog open size="sm" title={copy('Take the fundraiser off the site?', 'მოიხსნას შეგროვება საიტიდან?')} onClose={() => setOpen(null)}
-            footer={<><Button onClick={() => setOpen(null)}>{copy('Keep it', 'დატოვება')}</Button><Button variant="danger" disabled={busy} onClick={() => { setOpen(null); void move('ARCHIVED'); }}>{copy('Take it off', 'მოხსნა')}</Button></>}>
+            footer={<><Button onClick={() => setOpen(null)}>{copy('Keep it', 'დატოვება')}</Button><Button variant="danger" disabled={busy} onClick={() => { setOpen(null); if (archiveVersion !== null) void move('ARCHIVED', archiveVersion); }}>{copy('Take it off', 'მოხსნა')}</Button></>}>
             <p>{copy('It leaves the club page and every public list. The project and its history stay.', 'ის ქრება კლუბის გვერდიდან და ყველა საჯარო სიიდან. პროექტი და მისი ისტორია რჩება.')}</p>
         </Dialog>}
         {open === 'update' && f && <UpdateDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}

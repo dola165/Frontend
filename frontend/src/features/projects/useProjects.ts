@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { confirmationJobTitle, needsConfirmedEmail } from '../../components/auth/emailConfirmation';
 import { fetchFundraiserPlace, fetchMyProjects, fetchProjectById, fetchProjects, type MyProjects, type ProjectBoard, type ProjectDetail } from './api';
+import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../../utils/authStorage';
 
 /**
  * One read with its loading and failure kept apart, and a way to replace it with a fresher answer. `emailWait`: a new
@@ -10,6 +11,9 @@ import { fetchFundraiserPlace, fetchMyProjects, fetchProjectById, fetchProjects,
 export interface Loaded<T> { data: T | null; loading: boolean; error: string; notFound: boolean; emailWait: { what: string | null } | null; reload: () => void; put: (next: T) => void }
 
 function useLoaded<T>(key: string | null, load: (signal: AbortSignal) => Promise<T>): Loaded<T> {
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId, getAuthSessionId);
+    const owner = `${session}:${key}`;
+    const [loadedOwner, setLoadedOwner] = useState(owner);
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(key !== null);
     const [error, setError] = useState('');
@@ -19,11 +23,14 @@ function useLoaded<T>(key: string | null, load: (signal: AbortSignal) => Promise
     useEffect(() => {
         if (key === null) { setLoading(false); return; }
         const controller = new AbortController();
+        if (loadedOwner !== owner) setData(null);
+        setLoadedOwner(owner);
         setLoading(true); setError(''); setNotFound(false); setEmailWait(null);
-        load(controller.signal).then(answer => { if (!controller.signal.aborted) setData(answer); })
+        load(controller.signal).then(answer => { if (!controller.signal.aborted && isCurrentAuthSession(session)) { setLoadedOwner(owner); setData(answer); } })
             .catch(failure => {
-                if (controller.signal.aborted) return;
+                if (controller.signal.aborted || !isCurrentAuthSession(session)) return;
                 const status = (failure as { response?: { status?: number } })?.response?.status;
+                if (status === 401 || status === 403) setData(null);
                 if (status === 404) { setNotFound(true); setData(null); }
                 else if (needsConfirmedEmail(failure)) { setEmailWait({ what: confirmationJobTitle(failure) }); setData(null); }
                 else setError(extractApiErrorMessage(failure, 'This could not load.'));
@@ -32,9 +39,17 @@ function useLoaded<T>(key: string | null, load: (signal: AbortSignal) => Promise
         return () => controller.abort();
         // The key names the read; `load` changes with it.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [key, round]);
+    }, [key, owner, round, session]);
     const reload = useCallback(() => setRound(value => value + 1), []);
-    return { data, loading, error, notFound, emailWait, reload, put: setData };
+    useEffect(() => {
+        const refresh = () => { if (document.visibilityState === 'visible') reload(); };
+        window.addEventListener('focus', refresh);
+        document.addEventListener('visibilitychange', refresh);
+        return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
+    }, [reload]);
+    const put = (next: T) => { if (isCurrentAuthSession(session)) { setLoadedOwner(owner); setData(next); } };
+    return { data: key !== null && loadedOwner === owner ? data : null, loading, error: loadedOwner === owner ? error : '',
+        notFound: loadedOwner === owner && notFound, emailWait: loadedOwner === owner ? emailWait : null, reload, put };
 }
 
 /** The clubs where the person has projects or may start one. */

@@ -48,7 +48,7 @@ function Waiting({ session }: { session: AuthSessionId }) {
                 {item.family === 'SQUAD_JOIN_REQUESTS' ? <HomeJoinActions squad={item.id} session={session} changed={changed} />
                     : item.family === 'MATCH_RESULT' ? <HomeResultAction item={item} session={session} changed={changed} />
                         : ['SESSION_HELPER', 'PROJECT_HELPER'].includes(item.family) ? <HelperAnswer item={item} session={session} changed={changed} />
-                            : requestDestination(item.destination) && <Link to={requestDestination(item.destination)!}>{copy('Open', 'გახსნა')}</Link>}
+                            : requestDestination(item.destination, item.family) && <Link to={requestDestination(item.destination, item.family)!}>{copy('Open', 'გახსნა')}</Link>}
             </div>
         </li>)}</ul>
         {!all && (data?.items.length ?? 0) > 1 && <button type="button" aria-expanded={false} onClick={() => setExpanded(true)}>{copy(`+ ${data!.items.length - 1} more`, `+ კიდევ ${data!.items.length - 1}`)}</button>}

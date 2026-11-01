@@ -16,6 +16,7 @@ import { ProjectMoney } from './ProjectMoney';
 import { ProjectSteps } from './ProjectSteps';
 import { ProjectMark } from './ProjectMark';
 import { dayWord, placeOf, projectsPath, statusWords } from './projectWords';
+import { ProjectFacilityOutcome } from './ProjectFacilityOutcome';
 
 /**
  * One project, the same for everyone on it: its goal, the money (when it raises any), the steps with who does each,
@@ -54,6 +55,7 @@ export function ProjectView({ project, onChanged }: { project: ProjectDetail; on
 
         <div className="pj-grid">
             <div className="pj-col">
+                <ProjectFacilityOutcome key={`${clubId}:${summary.id}`} club={clubId} project={summary.id} version={project.version} />
                 <ProjectMoney project={project} onChanged={onChanged} />
                 <ProjectSteps project={project} onChanged={onChanged} />
             </div>

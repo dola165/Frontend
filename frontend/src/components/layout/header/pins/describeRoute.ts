@@ -10,7 +10,7 @@ export interface RouteDescription { path: string; label: string | null; icon: Pi
 export interface RouteContext { capabilities?: NavigationCapabilities; userId?: number; tabPath: string | null; copy?: Copy }
 
 // Query parameters that change what a page shows. Anything else (ids of open dialogs, drafts) is dropped.
-const meaningfulParams = ['tab', 'tool', 'section', 'view', 'kind', 'scope', 'area', 'squad'];
+const meaningfulParams = ['tab', 'tool', 'deskTab', 'section', 'view', 'kind', 'scope', 'area', 'squad'];
 // World keeps its search and filters, but never campaign tracking or context that follows the person around.
 const droppedWorldParams = /^(?:utm_.*|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid|igshid|_ga|near|player)$/;
 // Already one click away in the header, or not a destination at all.
@@ -82,6 +82,7 @@ const worldTabs: Record<string, Words> = {
 };
 
 const iconByPrefix: Array<[RegExp, PinIcon]> = [
+    [/^\/clubs\/\d+\/work(?:\/|$)/, 'workspace'],
     [/^\/clubs\/\d+\/office/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/tournaments\//, 'trophy'],
     [/^\/match(?:es|-exchange)\//, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
     [/^\/(?:jobs|roles)\//, 'briefcase'], [/^\/store\//, 'store'], [/^\/campaigns\//, 'family'], [/^\/tryouts\//, 'goal'],
@@ -119,6 +120,10 @@ export function describeRoute(pathname: string, search: string, context: RouteCo
     const id = Number(/\/(\d+)(?:\/|$)/.exec(bare)?.[1]);
     const known = (value: string | null, icon: PinIcon) => ({ path, label: value, icon, pinnable });
     if (/^\/squads\/\d+$/.test(bare)) return known(capabilityLabel(capabilities, 'squad.workspace', id), 'squad');
+    if (/^\/clubs\/\d+\/work$/.test(bare) && !query) {
+        const club = capabilityLabel(capabilities, 'club.job-workspaces', id);
+        return known(club ? copy(`Your club work · ${club}`, `თქვენი სამუშაო · ${club}`) : copy('Your club work', 'თქვენი სამუშაო'), 'workspace');
+    }
     if (/^\/clubs\/\d+\/office$/.test(bare)) {
         const club = capabilityLabel(capabilities, 'club.office', id) ?? capabilityLabel(capabilities, 'club.workspace', id) ?? capabilityLabel(capabilities, 'club.operations', id) ?? capabilityLabel(capabilities, 'club.member', id);
         if (query) return known(null, 'workspace');

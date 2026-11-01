@@ -1,6 +1,6 @@
 import { PrivateCarePanel } from './care/PrivateCarePanel';
 import { RegistrationPanel } from './registration/RegistrationPanel';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { nextSort, type TableSort } from '../../design/tableSort';
@@ -19,7 +19,10 @@ import { useScopedSearchParams } from './scopedParams';
 import { clubRecordsEn } from '../../locales/clubRecords';
 import { translate, useCopy } from '../../locales/useCopy';
 import { appLanguage } from '../../utils/formatting';
-import { assertCurrentAuthSession, getAuthSessionId } from '../../utils/authStorage';
+import { assertCurrentAuthSession, getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
+import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { AdmissionHandoffStart } from './admissionHandoff/AdmissionHandoffStart';
+import { admissionHandoffFromParams, withoutAdmissionHandoff } from './admissionHandoff/routeContext';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
@@ -28,7 +31,20 @@ import '../clubWorkspace/club-workspace.css';
 const RETIRED_KINDS = new Set(['PURCHASE']);
 /** One club tool (duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
 export function WorkspaceOperations(props: Parameters<typeof OperationsRecords>[0]) {
-  const [context] = useScopedSearchParams(props.scope);
+  const [context, setContext] = useScopedSearchParams(props.scope);
+  const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+  const copy = useJourneyCopy();
+  const handoff = admissionHandoffFromParams(context, props.boot, session);
+  const closeHandoff = () => setContext(withoutAdmissionHandoff(context));
+  if (handoff.state !== 'absent') {
+    if (handoff.state === 'invalid' || (props.module !== 'FINANCE' && props.module !== 'EQUIPMENT')) return <Panel>
+      <p role="alert">{copy('This follow-up link is invalid for this tool.', 'ეს გადმოცემული ბმული ამ ხელსაწყოსთვის არასწორია.')}</p>
+      <Button onClick={closeHandoff}>{copy('Return to this tool', 'ამ ხელსაწყოზე დაბრუნება')}</Button>
+    </Panel>;
+    return <AdmissionHandoffStart scope={handoff.scope} target={props.module} onClose={closeHandoff} onOpenRecord={id => {
+      const next = withoutAdmissionHandoff(context); next.set('record', String(id)); setContext(next);
+    }} />;
+  }
   const directRecord = context.has('record') && !context.has('person');
   if (props.module === 'REGISTRATION' && !context.has('record') && context.get('registration') !== 'records') return <RegistrationPanel boot={props.boot} scope={props.scope} />;
   return ['MEDICAL', 'WELLBEING'].includes(props.module) && !directRecord ? <PrivateCarePanel {...props} /> : <OperationsRecords {...props} />;

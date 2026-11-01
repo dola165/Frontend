@@ -13,7 +13,7 @@ const preview = {
 };
 const open = () => render(<MemoryRouter initialEntries={['/club-invite?token=abc.def']}><Routes>
     <Route path="/club-invite" element={<ClubInvitePage />} />
-    <Route path="/my-squads" element={<p>My squads page</p>} />
+    <Route path="/clubs/7/work" element={<p>Your club workspaces</p>} />
     <Route path="/login" element={<p>Sign-in page</p>} />
 </Routes></MemoryRouter>);
 const fill = (birth: string) => {
@@ -25,7 +25,7 @@ const fill = (birth: string) => {
 beforeEach(() => { vi.clearAllMocks(); api.login.mockResolvedValue({ id: 2 }); });
 afterEach(cleanup);
 
-it('shows who invited them to which job, and accepting sets the account up and lands in My squads', async () => {
+it('shows who invited them to which job, and accepting sets the account up and opens their club workspaces', async () => {
     api.post.mockImplementation(async (url: string) => {
         if (url === '/auth/club-invite/preview') return { data: preview };
         if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test' } };
@@ -40,7 +40,7 @@ it('shows who invited them to which job, and accepting sets the account up and l
 
     fill('1994-04-04');
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-    expect(await screen.findByText('My squads page')).toBeInTheDocument();
+    expect(await screen.findByText('Your club workspaces')).toBeInTheDocument();
     expect(api.post).toHaveBeenCalledWith('/auth/club-invite/claim', { token: 'abc.def', name: 'Luka Beridze', dateOfBirth: '1994-04-04', password: 'Secret123' });
     expect(api.login).toHaveBeenCalledWith('jwt');
     expect(api.post).toHaveBeenCalledWith('/clubs/7/operations/appointments/9/transition', { status: 'ACTIVE', revision: 3 });

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { Match } from '../../matchExchange/api';
@@ -77,4 +77,58 @@ it('shows genuine review and restriction counts separately from neutral players'
     value.fitness = { fit: 1, doubtful: 1, out: 1, notAssessed: 2, players: [] };
     show(value);
     for (const text of ['1 fit', '1 doubtful', '1 out', 'No participation information · 2']) expect(screen.getByText(text)).toBeInTheDocument();
+});
+
+const preparationCard = (status: string): MatchCard => ({
+    ...card(nothing),
+    match: { ...match, referee_status: 'NEEDED', external_referee_name: null, venue_status: 'NEEDS_ATTENTION' } as unknown as Match,
+    preparation: { recordId: 501, status, revision: 3, referees: 'A saved referee note', pitch: 'The old pitch', medical: 'Mariam', bring: ['Blue kit'] },
+});
+
+it.each(['DRAFT', 'REVIEW_DUE', 'UNKNOWN'])('does not present saved %s preparation text as completed arrangements', status => {
+    show(preparationCard(status));
+    const steps = within(screen.getByRole('list', { name: 'Checklist' })).getAllByRole('listitem');
+    for (const step of steps.slice(1)) expect(step).toHaveAttribute('data-state', 'todo');
+    expect(screen.queryByText('First-aider: Mariam')).not.toBeInTheDocument();
+    expect(screen.getByText('Checklist notes (not confirmed)')).toBeInTheDocument();
+    expect(screen.getByText('Blue kit')).toBeInTheDocument();
+});
+
+it('keeps actual match confirmations when a preparation checklist needs review', () => {
+    const value = preparationCard('REVIEW_DUE');
+    value.match = match;
+    show(value);
+    const steps = within(screen.getByRole('list', { name: 'Checklist' })).getAllByRole('listitem');
+    expect(steps[1]).toHaveAttribute('data-state', 'done');
+    expect(steps[2]).toHaveAttribute('data-state', 'done');
+    expect(steps[3]).toHaveAttribute('data-state', 'todo');
+    expect(screen.getByText('Checklist needs review')).toBeInTheDocument();
+});
+
+it('does not turn even ready free-text notes into a confirmed referee or pitch reservation', () => {
+    show(preparationCard('READY'));
+    const steps = within(screen.getByRole('list', { name: 'Checklist' })).getAllByRole('listitem');
+    expect(steps[1]).toHaveAttribute('data-state', 'todo');
+    expect(steps[2]).toHaveAttribute('data-state', 'todo');
+    expect(steps[3]).toHaveAttribute('data-state', 'done');
+    expect(screen.getByText('First-aider: Mariam')).toBeInTheDocument();
+    expect(screen.getByText('Bring')).toBeInTheDocument();
+});
+
+it('gives an authorized preparer the canonical review action without asking players to confirm attendance', () => {
+    const value = preparationCard('REVIEW_DUE');
+    value.can = { ...nothing, checklist: true };
+    show(value);
+    const link = screen.getByRole('link', { name: 'Review preparation' });
+    const url = new URL(link.getAttribute('href')!, 'http://localhost');
+    expect(url.pathname).toBe('/clubs/1/office');
+    for (const [key, expected] of Object.entries({ tool: 'preparation', record: '501', squad: '105', coachReturn: 'my-squads', coachClub: '1' }))
+        expect(url.searchParams.get(key)).toBe(expected);
+    expect(screen.queryByRole('button', { name: /coming|remind/i })).not.toBeInTheDocument();
+});
+
+it('does not offer preparation review to a reader without the checklist action', () => {
+    show(preparationCard('REVIEW_DUE'));
+    expect(screen.getByText('Checklist needs review')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Review preparation' })).not.toBeInTheDocument();
 });

@@ -58,7 +58,12 @@ function wireRequestDestination(value: string): string | null {
   if (url.hash && !/^#(?:appointment|offer)-[1-9]\d*$/.test(url.hash)) return null;
   return value;
 }
-export function requestDestination(value: string): string | null {
+export function requestDestination(value: string, family?: RequestItem['family']): string | null {
+  // Sealed officer work links only to its canonical record. The source still enforces officer scope.
+  if (family === 'WELFARE_WORK') {
+    const welfare = /^\/clubs\/([1-9]\d*)\/office\?tab=tools&tool=welfare&record=([1-9]\d*)(?:&squad=([1-9]\d*))?$/.exec(value);
+    if (welfare && welfare[0] === value && welfare.slice(1).filter(Boolean).every(id => Number.isSafeInteger(Number(id)))) return value;
+  }
   if (value.startsWith('/jobs')) {
     const safe = safeNotificationLink(value);
     return safe ? safe.pathname : null;

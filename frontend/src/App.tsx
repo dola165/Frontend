@@ -120,6 +120,7 @@ const RefereePage = lazy(() => import('./pages/RefereePage').then(module => ({de
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(module => ({default: module.AgentDashboardPage})));
 const OrganizationWorkspacePage = lazy(() => import('./pages/OrganizationWorkspacePage').then(module => ({default: module.OrganizationWorkspacePage})));
 const ClubOfficePage = lazy(() => import('./pages/ClubOfficePage'));
+const ClubJobWorkspacePage = lazy(() => import('./pages/ClubJobWorkspacePage'));
 const ClubWorkspaceRedirect = lazy(() => import('./pages/ClubWorkspaceRedirect'));
 const CoachWorkspacePage = lazy(() => import('./pages/CoachWorkspacePage'));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
@@ -324,7 +325,8 @@ export function MainLayout() {
     const isWorldMap = location.pathname === '/world/map';
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
-    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/office|\/operations|\/profile-settings|\/store|\/campaigns|\/jobs)?$/.test(location.pathname);
+    const isJobWorkspaceRoute = /^\/clubs\/\d+\/work(?:\/[a-z-]+)?$/.test(location.pathname);
+    const isClubSurfaceRoute = isJobWorkspaceRoute || /^\/clubs\/\d+(\/squads|\/workspace|\/office|\/operations|\/profile-settings|\/store|\/campaigns|\/jobs)?$/.test(location.pathname);
     // Public destination pages with full-bleed heroes (banner + tab bars) render
     // edge-to-edge; everything else keeps the bounded wide frame.
     const isBleedDestinationPage =
@@ -364,6 +366,7 @@ export function MainLayout() {
     // schedule and the management workspaces stay full-width canvases.
     const canvasWorkspacePages = new Set(['/map', '/messages', '/team-work/chat', '/onboarding', '/set-password']);
     const isImmersiveCanvasPage =
+        isJobWorkspaceRoute ||
         /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
         canvasWorkspacePages.has(location.pathname) || isWorldMap ||
         /^\/clubs\/\d+\/office$/.test(location.pathname) ||
@@ -451,6 +454,8 @@ export function MainLayout() {
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/operations" element={<ProtectedRoute><ClubOperationsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/office" element={<ProtectedRoute><ClubOfficePage /></ProtectedRoute>} />
+            <Route path="/clubs/:id/work" element={<ProtectedRoute><ClubJobWorkspacePage /></ProtectedRoute>} />
+            <Route path="/clubs/:id/work/:workspace" element={<ProtectedRoute><ClubJobWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspaceRedirect /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
             <Route path="/clubs/create" element={<ProtectedRoute><CreateRedirect kind="CLUB" /></ProtectedRoute>} />

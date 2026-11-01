@@ -6,6 +6,7 @@ import { Crest, FaceStack, type Face } from '../../../design/visuals';
 import { useCopy } from '../../../locales/useCopy';
 import { mySquadsEn } from '../../../locales/mySquadsDesign';
 import { officeToolPath } from '../../clubOffice/officeLinks';
+import { coachRecordHref } from '../../clubOperations/coachOrigin';
 import { opponentName } from '../../matchExchange/api';
 import { notComing } from '../../matchExchange/callUps';
 import { groundState, refereeState } from '../../matchExchange/detail/matchState';
@@ -58,11 +59,13 @@ export function NextMatchCard({ card, data, compact = false, onChanged }: { card
     </Link>;
 
     const prep = card.preparation, referee = refereeState(m), ground = groundState(m), can = card.can;
+    const preparationReady = prep?.status === 'READY';
+    // Preparation notes never appoint an official or confirm a ground. Those facts belong to the match.
     const steps: { key: string; label: string; state: 'done' | 'now' | 'todo' }[] = [
         { key: 'callups', label: counts.called ? copy('stepCallUps') : copy('stepNoCallUps'), state: counts.called ? 'done' : 'now' },
-        { key: 'referee', label: referee.tone === 'neutral' ? copy('stepNoReferee') : referee.tone === 'accent' || prep?.referees ? copy('stepRefereeDone') : copy('stepReferee'), state: referee.tone === 'accent' || referee.tone === 'neutral' || prep?.referees ? 'done' : 'todo' },
-        { key: 'pitch', label: ground.tone === 'accent' || prep?.pitch ? copy('stepPitchDone') : copy('stepPitch'), state: ground.tone === 'accent' || prep?.pitch ? 'done' : 'todo' },
-        { key: 'firstaid', label: prep?.medical ? copy('stepFirstAidDone', { name: prep.medical }) : copy('stepFirstAid'), state: prep?.medical ? 'done' : 'todo' },
+        { key: 'referee', label: referee.tone === 'neutral' ? copy('stepNoReferee') : referee.tone === 'accent' ? copy('stepRefereeDone') : copy('stepReferee'), state: referee.tone === 'accent' || referee.tone === 'neutral' ? 'done' : 'todo' },
+        { key: 'pitch', label: ground.tone === 'accent' ? copy('stepPitchDone') : copy('stepPitch'), state: ground.tone === 'accent' ? 'done' : 'todo' },
+        { key: 'firstaid', label: preparationReady && prep.medical ? copy('stepFirstAidDone', { name: prep.medical }) : copy('stepFirstAid'), state: preparationReady && prep.medical ? 'done' : 'todo' },
     ];
     const fit = card.fitness;
     const day = [
@@ -89,6 +92,10 @@ export function NextMatchCard({ card, data, compact = false, onChanged }: { card
         <ul className="ch-match__steps" aria-label={copy('checklist')}>
             {steps.map(step => <li key={step.key} data-state={step.state}>{step.label}</li>)}
         </ul>
+        {prep && !preparationReady && <p className="ch-quiet" role="status">
+            {copy(prep.status === 'DRAFT' ? 'preparationDraft' : prep.status === 'REVIEW_DUE' ? 'preparationReviewDue' : 'preparationUnconfirmed')}
+            {can?.checklist && <> · <ButtonLink size="sm" variant="ghost" to={coachRecordHref(data.clubId, { id: prep.recordId, module: 'READINESS', squad_id: card.squadId })}>{copy('reviewPreparation')}</ButtonLink></>}
+        </p>}
         <div className="ch-match__grid">
             <div className="ch-match__part">
                 <small>{copy('whoComing')}</small>
@@ -107,7 +114,7 @@ export function NextMatchCard({ card, data, compact = false, onChanged }: { card
             </div>
         </div>
         {(prep?.bring.length ?? 0) > 0 && <div className="ch-match__part">
-            <small>{copy('bring')}</small>
+            <small>{copy(preparationReady ? 'bring' : 'bringUnconfirmed')}</small>
             <ul className="ch-match__bring">{prep!.bring.map(item => <li key={item}>{item}</li>)}</ul>
         </div>}
         {checking && <MatchChecklistDialog card={card} data={data} opponent={opponent} onClose={() => setChecking(false)} onSaved={() => { setChecking(false); onChanged(); }} />}

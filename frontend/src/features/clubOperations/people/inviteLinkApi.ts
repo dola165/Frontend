@@ -25,10 +25,14 @@ export const signInAfterClaim = async (email: string, password: string) => {
     return response.data?.twoFactorRequired || typeof response.data?.accessToken !== 'string' ? null : response.data.accessToken;
 };
 
-/** Where accepted jobs land: a squad job in My squads, anything else in the club's workspace. */
-export const landingFor = (accepted: LinkInvite[]) => accepted.some(i => i.kind === 'APPOINTMENT' && !i.clubWide) ? '/my-squads'
-    : accepted.some(i => i.kind === 'APPOINTMENT' || i.kind === 'MEMBERSHIP') ? `/clubs/${accepted[0].clubId}/office`
-        : accepted.length === 1 && accepted[0].kind === 'PROJECT_HELPER' ? `/projects/${accepted[0].id}` : '/home';
+/** Current server permissions choose job destinations; a scoped appointment need not be a coaching job. */
+export const landingFor = (accepted: LinkInvite[]) => {
+    const jobs = accepted.filter(invite => invite.kind === 'APPOINTMENT' || invite.kind === 'MEMBERSHIP');
+    const clubs = [...new Set(jobs.map(invite => invite.clubId))];
+    if (clubs.length > 1) return '/workspaces';
+    if (clubs.length === 1) return `/clubs/${clubs[0]}/${jobs.some(invite => invite.kind === 'APPOINTMENT') ? 'work' : 'office'}`;
+    return accepted.length === 1 && accepted[0].kind === 'PROJECT_HELPER' ? `/projects/${accepted[0].id}` : '/home';
+};
 
 /** Accepts one job the normal, signed-in way: the appointment's own accept, or the club invitation's. */
 export const acceptClubInvite = async (invite: LinkInvite) => {

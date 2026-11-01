@@ -40,6 +40,61 @@ it('reviews terms before reusing the domain invitation command and refreshes cap
 });
 it('warns when only part of the requests projection is available', async () => { vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, unavailableSources: ['family'] } }); render(<MemoryRouter><RequestsCentre /></MemoryRouter>); expect(await screen.findByRole('alert')).toHaveTextContent('Some request types are unavailable'); });
 it.each(['https://evil.test/requests', '//evil.test', '/account?next=https://evil.test', '/profile/1?representation=bad', '/account/%2e%2e', '/account?tab=profile&tab=security'])('rejects unsafe request destination %s', value => { expect(requestDestination(value)).toBeNull(); });
+it.each([
+  '/clubs/1/office?tab=tools&tool=staff-duties&record=12',
+  '/clubs/1/office?tab=tools&tool=facilities&record=14&squad=3',
+])('opens the canonical ordinary-work record %s', value => {
+  expect(requestDestination(value)).toBe(value);
+});
+it.each([
+  '/clubs/1/office?tab=tools&tool=medical&record=12',
+  '/clubs/1/office?tab=tools&tool=facilities&record=0',
+  '/clubs/1/office?tab=tools&tool=facilities&record=12&squad=0',
+  '/clubs/1/office?tab=tools&tool=facilities&record=12&record=13',
+  '/clubs/1/office?tab=tools&tool=staff-duties&record=12&next=https://evil.test',
+  '/clubs/9007199254740992/office?tab=tools&tool=facilities&record=12',
+  '/clubs/1/office?tab=tools&tool=facilities&record=9007199254740992',
+  '/clubs/1/office?tab=tools&tool=facilities&record=12#private',
+])('rejects unrelated or malformed ordinary-work destination %s', value => {
+  expect(requestDestination(value)).toBeNull();
+});
+it('opens an assigned club task in its source without inventing an acceptance action', async () => {
+  const work = { ...invitation, key: 'CLUB_OPERATION_WORK:14', family: 'CLUB_OPERATION_WORK', id: 14,
+    title: 'Repair the gate', context: 'Dinamo · Ground work · Scheduled',
+    destination: '/clubs/1/office?tab=tools&tool=facilities&record=14&squad=3', actionLabel: 'Open work' };
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [work], counts: { ...empty.counts, incoming: 1, actionable: 1 }, total: 1 } });
+  render(<MemoryRouter><RequestsCentre /></MemoryRouter>);
+  expect(await screen.findByRole('link', { name: 'Open work' })).toHaveAttribute('href', work.destination);
+  expect(screen.queryByRole('button', { name: 'Accept invitation' })).toBeNull();
+  expect(apiClient.post).not.toHaveBeenCalled();
+});
+it.each(['WELFARE_WORK', 'CLUB_OPERATION_WORK', 'UNKNOWN', ''])('uses the actual %s family for a sealed work link in Requests', async family => {
+  const work = { ...invitation, key: `${family}:14`, family, id: 14,
+    title: 'Welfare work', context: 'Dinamo · Welfare · Scheduled',
+    destination: '/clubs/1/office?tab=tools&tool=welfare&record=14&squad=3', actionLabel: 'Open work' };
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [work], total: 1 } });
+  render(<MemoryRouter><RequestsCentre /></MemoryRouter>);
+  await screen.findByRole('heading', { name: work.title });
+  if (family === 'WELFARE_WORK') {
+    const link = screen.getByRole('link', { name: 'Open work' });
+    expect(link).toHaveAttribute('href', work.destination);
+    fireEvent.click(link);
+  } else expect(screen.queryByRole('link', { name: 'Open work' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /invitation/i })).toBeNull();
+  expect(apiClient.post).not.toHaveBeenCalled();
+});
+it('removes sealed work when a refreshed Requests read is denied', async () => {
+  const work = { ...invitation, key: 'WELFARE_WORK:14', family: 'WELFARE_WORK', title: 'Welfare work',
+    destination: '/clubs/1/office?tab=tools&tool=welfare&record=14', actionLabel: 'Open work' };
+  vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { ...empty, items: [work], total: 1 } })
+    .mockRejectedValue({ response: { status: 403 } });
+  render(<MemoryRouter><RequestsCentre /></MemoryRouter>);
+  await screen.findByRole('link', { name: 'Open work' });
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Requests could not load');
+  expect(screen.queryByText(work.title)).toBeNull();
+  expect(apiClient.post).not.toHaveBeenCalled();
+});
 it('accepts precise current-domain destinations and rejects malformed event destinations', () => {
   expect(requestDestination('/notifications?venueId=2&bookingId=9')).toBe('/requests?view=updates&venueId=2&bookingId=9');
   expect(requestDestination('/admin?tab=safety&itemId=7')).toBe('/admin?tab=safety&itemId=7');

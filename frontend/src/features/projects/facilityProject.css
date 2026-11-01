@@ -1,0 +1,5 @@
+.gk .pj-facility { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r); overflow-wrap: anywhere; }
+.gk .pj-facility h2, .gk .pj-facility p { margin: 0; }
+.gk .pj-facility h2 { font-size: var(--gk-fs-md); }
+.gk .pj-facility a, .gk .pj-facility button { min-height: 44px; max-width: 100%; white-space: normal; }
+.gk .pj-facility-action a, .gk .pj-facility-action button { align-self: flex-start; min-height: 44px; max-width: 100%; white-space: normal; }

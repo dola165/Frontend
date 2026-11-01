@@ -15,6 +15,8 @@ import { RegistrationRecordActions } from './registration/RegistrationRecordActi
 import './records/records.css';
 import { appLanguage, formatDate } from '../../utils/formatting';
 import { assertCurrentAuthSession, getAuthSessionId } from '../../utils/authStorage';
+import { FacilityProjectAction } from '../projects/FacilityProjectAction';
+import { useClubEditorClose } from './useClubEditorClose';
 
 /** One record: its facts, the actions its current status allows, supporting documents and history. */
 type DetailProps = { club: number; boot: Bootstrap; record: OperationRecord; definition: Definition; backLabel: string; onEdit: () => void; onChanged: (record?: Pick<OperationRecord, 'id' | 'title'>) => Promise<void>; onReload?: () => Promise<OperationRecord>; onClose: () => void };
@@ -29,6 +31,7 @@ function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit
   const busyRef = useRef(false), savedRevision = useRef<number | null>(null), active = useRef(true);
   useLayoutEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const confirmed = saved !== null && saved.revision === record.revision;
+  const projectLeave = useClubEditorClose(record.kind === 'FACILITY_TASK' && !confirmed && note.trim().length > 0, record.kind === 'FACILITY_TASK' && busy, onClose);
   const ka = appLanguage() === 'ka';
   const receipt = { id: record.id, title: record.title };
   const transitions = record.kind === 'INSTALMENT' ? record.transitions.filter(state => state === 'CANCELLED') : record.transitions;
@@ -93,6 +96,7 @@ function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit
         {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
         {record.kind === 'INSTALMENT' && <MoneyFacts club={club} id={record.id} revision={record.revision} onChanged={() => onChanged(receipt)} />}
         <Panel flush title="Details"><dl className="rec-facts">{facts.map(([name, value, wide]) => <div key={name} className={wide ? 'rec-wide' : undefined}><dt>{name}</dt><dd>{value}</dd></div>)}</dl></Panel>
+        {record.kind === 'FACILITY_TASK' && !record.summaryOnly && !record.subject_user_id && <FacilityProjectAction key={`${club}:${record.id}`} club={club} task={record.id} />}
         {['REGISTRATION', 'CREDENTIAL'].includes(record.kind) && record.subject_user_id && <RegistrationRecordActions key={`${record.id}:${record.revision}`} boot={boot} record={record} onSaved={onChanged} />}
         {!record.summaryOnly && <Panel flush><RecordDocuments club={club} record={record.id} canUpload={record.canEdit && !busy && !confirmed} /></Panel>}
       </div>
@@ -112,6 +116,7 @@ function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit
         </details></Panel>}
       </div>
     </div>
+    {projectLeave.confirmation}
     <Dialog open={confirming !== null} role="alertdialog" size="sm" onClose={() => setConfirming(null)}
       title={confirming ? `${transitionLabel(record.kind, confirming)}?` : ''} description={`“${record.title}” changes to “${confirming ? label(confirming) : ''}”${note.trim() ? ', with your note' : ''}. The change is kept in the record history.`}
       footer={<><Button variant="ghost" onClick={() => setConfirming(null)}>Keep as it is</Button>

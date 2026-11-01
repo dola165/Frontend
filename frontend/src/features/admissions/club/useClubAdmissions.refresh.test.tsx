@@ -25,3 +25,31 @@ it('a manual refresh after an action supersedes an older background response',as
  await act(async()=>{await result.current.reload()});expect(result.current.data?.inquiries?.[0].playerName).toBe('Newest');
  await act(async()=>old(data('Stale')));expect(result.current.data?.inquiries?.[0].playerName).toBe('Newest');unmount();
 });
+
+it('does not read or refresh the private workspace while its consumer is disabled', async () => {
+ mocks.fetch.mockResolvedValue(data('Visible only at source'));
+ const { result, rerender, unmount } = renderHook(({ enabled }) => useClubAdmissions(1, null, true, enabled), { initialProps: { enabled: false } });
+ expect(result.current.data).toBeNull(); expect(result.current.loading).toBe(false);
+ await act(async () => { await result.current.reload(); emitNotificationsChanged(); });
+ expect(mocks.fetch).not.toHaveBeenCalled();
+ rerender({ enabled: true });
+ await waitFor(() => expect(result.current.data?.inquiries?.[0].playerName).toBe('Visible only at source'));
+ expect(mocks.fetch).toHaveBeenCalledTimes(1);
+ rerender({ enabled: false }); expect(result.current.data).toBeNull();
+ await act(async () => { await result.current.reload(); emitNotificationsChanged(); });
+ expect(mocks.fetch).toHaveBeenCalledTimes(1); unmount();
+});
+
+it('retires a late source response when disabled and fetches fresh authority when reopened', async () => {
+ let old!: (value: unknown) => void;
+ mocks.fetch.mockImplementationOnce(() => new Promise(resolve => { old = resolve; }));
+ const { result, rerender, unmount } = renderHook(({ enabled }) => useClubAdmissions(1, null, false, enabled), { initialProps: { enabled: true } });
+ await waitFor(() => expect(old).toBeTypeOf('function'));
+ rerender({ enabled: false });
+ await act(async () => old(data('Private stale response')));
+ expect(result.current.data).toBeNull(); expect(result.current.loading).toBe(false);
+ mocks.fetch.mockResolvedValueOnce(data('Current source authority')); rerender({ enabled: true });
+ expect(result.current.data).toBeNull();
+ await waitFor(() => expect(result.current.data?.inquiries?.[0].playerName).toBe('Current source authority'));
+ expect(mocks.fetch).toHaveBeenCalledTimes(2); unmount();
+});

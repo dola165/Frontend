@@ -7,6 +7,7 @@ import { WaitingOnYou } from './WaitingOnYou';
 import { HomeJoinActions } from './HomeJoinActions';
 import { HomeResultAction } from './HomeResultAction';
 import { requests, type RequestItem } from '../requests/api';
+import { apiClient } from '../../api/axiosConfig';
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', sessionId: 'home-login' }) }));
 vi.mock('../squadCommunication/journeyCopy', () => ({ useJourneyCopy: () => (en: string) => en }));
@@ -14,11 +15,46 @@ const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
 beforeEach(() => { localStorage.clear(); sessionStorage.clear(); localStorage.setItem('gk-session-id', 'home-login'); localStorage.setItem('userId', '1'); });
-afterEach(() => { cleanup(); server.resetHandlers(); });
+afterEach(() => { cleanup(); server.resetHandlers(); vi.restoreAllMocks(); });
 const item = (id: number, values: Partial<RequestItem> = {}): RequestItem => ({ key: `PROJECT_STEP:${id}`, family: 'PROJECT_STEP', id, title: `Step ${id}`, context: 'Dinamo', status: 'PENDING', direction: 'INCOMING', actionable: true, updatedAt: `2026-10-${10 + id}T08:00:00Z`, destination: `/projects/${id}`, actionLabel: 'Open', ...values });
 const page = (items: RequestItem[], hasMore = false, unavailableSources: string[] = []) => ({ items, hasMore, unavailableSources, complete: true, total: items.length, counts: { incoming: items.length, actionable: items.length, outgoing: 0, history: 0 } });
 function Location() { return <output data-testid="location">{useLocation().search}</output>; }
 const mount = () => render(<MemoryRouter><WaitingOnYou /><Location /></MemoryRouter>);
+
+it.each(['WELFARE_WORK', 'CLUB_OPERATION_WORK', 'UNKNOWN', ''])('uses the actual %s family for a sealed work link on Home', async family => {
+    const work = item(14, { key: `${family}:14`, family, title: 'Welfare work', context: 'Dinamo · Welfare · Scheduled',
+        destination: '/clubs/1/office?tab=tools&tool=welfare&record=14&squad=3' });
+    const post = vi.spyOn(apiClient, 'post');
+    server.use(http.get('*/requests/pending', () => HttpResponse.json(page([work]))));
+    mount(); await screen.findByText(work.title);
+    if (family === 'WELFARE_WORK') {
+        const link = screen.getByRole('link', { name: 'Open' });
+        expect(link).toHaveAttribute('href', work.destination);
+        fireEvent.click(link);
+        expect(screen.getByTestId('location')).toHaveTextContent('?tab=tools&tool=welfare&record=14&squad=3');
+    } else expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /accept|confirm|approve/i })).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+});
+
+it.each(['staff-duties', 'facilities'])('keeps the canonical ordinary %s work link on Home', async tool => {
+    const destination = `/clubs/1/office?tab=tools&tool=${tool}&record=14&squad=3`;
+    server.use(http.get('*/requests/pending', () => HttpResponse.json(page([item(14, { family: 'CLUB_OPERATION_WORK', destination })]))));
+    mount(); expect(await screen.findByRole('link', { name: 'Open' })).toHaveAttribute('href', destination);
+});
+
+it('clears sealed work when a refreshed Home read is denied', async () => {
+    let denied = false;
+    const work = item(14, { key: 'WELFARE_WORK:14', family: 'WELFARE_WORK', title: 'Welfare work',
+        destination: '/clubs/1/office?tab=tools&tool=welfare&record=14' });
+    server.use(http.get('*/requests/pending', () => denied ? new HttpResponse(null, { status: 403 }) : HttpResponse.json(page([work]))));
+    mount(); await screen.findByRole('link', { name: 'Open' });
+    denied = true;
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Some requests could not load');
+    expect(screen.queryByText(work.title)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
+});
 
 it('reads one complete canonical snapshot, shows the oldest work first, and expands the rest in place', async () => {
     const calls: string[] = [];

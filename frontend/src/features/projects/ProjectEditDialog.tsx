@@ -14,6 +14,8 @@ export function ProjectEditDialog({ project, onClose, onSaved }: { project: Proj
     const copy = useJourneyCopy();
     const ids = { goal: useId(), purpose: useId(), due: useId(), target: useId() };
     const { summary } = project;
+    // Conflict identity belongs to the fields loaded at open, even while current authority refreshes.
+    const [draftVersion] = useState(project.version);
     const [goal, setGoal] = useState(summary.goal);
     const [purpose, setPurpose] = useState(project.purpose ?? '');
     const [squad, setSquad] = useState<number | null>(summary.squad?.id ?? null);
@@ -26,7 +28,7 @@ export function ProjectEditDialog({ project, onClose, onSaved }: { project: Proj
     const amount = Number(target);
     const ready = goal.trim() !== '' && (target.trim() === '' || (Number.isFinite(amount) && amount > 0));
     const save = async () => {
-        const change: ProjectChange = { version: project.version, goal: goal.trim(), purpose: purpose.trim(), status };
+        const change: ProjectChange = { version: draftVersion, goal: goal.trim(), purpose: purpose.trim(), status };
         if (squad === null) change.clearSquad = true; else change.squadId = squad;
         if (due) change.dueOn = due; else change.clearDueOn = true;
         if (target.trim()) change.target = { amount, currency }; else change.clearTarget = true;

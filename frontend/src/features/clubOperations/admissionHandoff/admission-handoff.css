@@ -1,0 +1,9 @@
+.admission-handoff { display: grid; gap: var(--space-3, 12px); min-width: 0; }
+.admission-handoff fieldset { display: grid; gap: var(--space-3, 12px); border: 0; padding: 0; margin: 0; min-width: 0; }
+.admission-handoff p, .admission-handoff li { overflow-wrap: anywhere; }
+.admission-handoff__actions, .admission-handoff__records { display: flex; flex-wrap: wrap; gap: var(--space-2, 8px); }
+.admission-handoff button { min-height: 44px; white-space: normal; }
+.gk .admission-handoff button.gk-btn,
+.gk .admission-handoff input.gk-input,
+.gk .admission-handoff select.gk-input,
+.gk .admission-handoff textarea.gk-input { min-height: 44px; }

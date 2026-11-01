@@ -4,7 +4,8 @@ import { apiClient } from '../../api/axiosConfig';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../../utils/authStorage';
 import { extractApiErrorCode, extractApiErrorMessage } from '../../utils/apiError';
 
-export type PrimaryLoginProof = { kind: 'password'; email: string; password: string } | { kind: 'google'; token: string };
+/** `keepAccount`: keeps an account its owner closed in the last 30 days ("Keep my account"). */
+export type PrimaryLoginProof = ({ kind: 'password'; email: string; password: string } | { kind: 'google'; token: string }) & { keepAccount?: boolean };
 export type CompletedLogin = { accessToken: string; mustChangePassword?: boolean; newAccount?: boolean; accountState?: AccountState };
 
 export function secondFactorError(error: unknown, fallback: string) {
@@ -61,7 +62,7 @@ export function useSecondFactorLogin() {
         try {
             const response = await apiClient.post<CompletedLogin & { twoFactorRequired?: boolean }>(
                 proof.kind === 'password' ? '/auth/login' : '/auth/google',
-                { ...(proof.kind === 'password' ? { email: proof.email, password: proof.password } : { token: proof.token }), ...(code ? { oneTimeCode: code.trim() } : {}) },
+                { ...(proof.kind === 'password' ? { email: proof.email, password: proof.password } : { token: proof.token }), ...(proof.keepAccount ? { keepAccount: true } : {}), ...(code ? { oneTimeCode: code.trim() } : {}) },
                 { signal: controller.signal },
             );
             if (controller.signal.aborted || flow.current !== current || !isCurrentAuthSession(current.session)) return;

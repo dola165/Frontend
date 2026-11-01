@@ -56,7 +56,7 @@ export function useAccountClosure() {
         try {
             const receipt = await withSessionCredentialLock(controller.signal, () => closeAccount({ requestId, version: preview.version, currentPassword: password, acknowledged }, sessionId, controller.signal));
             if (!current()) return;
-            if (receipt.accountId !== user?.id || receipt.requestId !== requestId || receipt.outcome !== 'CLOSED' || !Number.isFinite(Date.parse(receipt.closedAt))) throw new Error('No valid closure receipt was received.');
+            if (receipt.accountId !== user?.id || receipt.requestId !== requestId || receipt.outcome !== 'CLOSED' || !Number.isFinite(Date.parse(receipt.closedAt)) || !Number.isFinite(Date.parse(receipt.keepUntil))) throw new Error('No valid closure receipt was received.');
             setPassword(''); setPreview(null);
             // Let the authenticated shell retire before installing the public receipt. Its
             // sign-out redirect would otherwise replace this navigation and lose the receipt.

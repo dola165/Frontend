@@ -1105,6 +1105,9 @@ const en = {
       errEmailRequired: 'Email is required.',
       errEmailInvalid: 'Enter a valid email address.',
       errPasswordRequired: 'Password is required.',
+      closingTitle: 'You closed this account',
+      closingBody: 'Nobody sees it now. Keep it and everything comes back as it was; otherwise it is erased on {{date}}.',
+      keepAccount: 'Keep my account',
     },
     forgot: {
       backToLogin: 'Back to Login',

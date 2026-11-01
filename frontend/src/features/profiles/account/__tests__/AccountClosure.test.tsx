@@ -27,7 +27,7 @@ beforeEach(() => {
     vi.resetAllMocks(); localStorage.clear(); clearStoredAuth(); setStoredAccessToken('synthetic-account');
     vi.mocked(useAuth).mockReturnValue({ user: { id: 7 }, sessionId: getAuthSessionId(), logout } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(apiClient.get).mockResolvedValue({ data: preview });
-    vi.mocked(apiClient.post).mockImplementation(async (_path, body) => ({ data: { accountId: 7, requestId: (body as CloseAccount).requestId, closedAt: '2026-10-30T00:00:00Z', outcome: 'CLOSED' } }));
+    vi.mocked(apiClient.post).mockImplementation(async (_path, body) => ({ data: { accountId: 7, requestId: (body as CloseAccount).requestId, closedAt: '2026-10-30T00:00:00Z', keepUntil: '2026-11-29T00:00:00Z', outcome: 'CLOSED' } }));
 });
 afterEach(() => { cleanup(); clearStoredAuth(); });
 
@@ -36,10 +36,10 @@ it('requires a loaded preview, current password and explicit acknowledgement', a
     show(); expect(screen.getByRole('status')).toHaveTextContent('Checking');
     expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
     await act(async () => read.resolve({ data: preview }));
-    expect(screen.getByRole('button', { name: 'Permanently close account' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Close account' })).toBeDisabled();
     expect(screen.getByText(/Shared club work/)).toBeVisible();
     fireEvent.change(screen.getByLabelText('Current password'), { target: { value: 'Synthetic1!' } });
-    expect(screen.getByRole('button', { name: 'Permanently close account' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Close account' })).toBeDisabled();
     expect(apiClient.post).not.toHaveBeenCalled();
 });
 
@@ -50,9 +50,19 @@ it('records one confirmation and shows only the matching server receipt after si
     const [path, body, config] = vi.mocked(apiClient.post).mock.calls[0];
     expect(path).toBe('/auth/account-closure'); expect(body).toMatchObject({ version: preview.version, currentPassword: 'Synthetic1!', acknowledged: true });
     expect(config).toMatchObject({ _authSessionId: getAuthSessionId(), _skipAuthRefresh: true });
-    await act(async () => write.resolve({ data: { accountId: 7, requestId: (body as CloseAccount).requestId, closedAt: '2026-10-30T00:00:00Z', outcome: 'CLOSED' } }));
+    await act(async () => write.resolve({ data: { accountId: 7, requestId: (body as CloseAccount).requestId, closedAt: '2026-10-30T00:00:00Z', keepUntil: '2026-11-29T00:00:00Z', outcome: 'CLOSED' } }));
     expect(await screen.findByText('Your account is closed.')).toBeVisible(); expect(logout).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/Receipt/)).toHaveTextContent((body as CloseAccount).requestId);
+    // The receipt says until when signing in again keeps it.
+    expect(screen.getByText(/Sign in before 29 November 2026 and choose Keep my account/)).toBeVisible();
+    expect(screen.queryByText(/cannot sign in or be recovered/)).not.toBeInTheDocument();
+});
+
+it('refuses a receipt without the date until which the account can be kept', async () => {
+    vi.mocked(apiClient.post).mockImplementation(async (_path, body) => ({ data: { accountId: 7, requestId: (body as CloseAccount).requestId, closedAt: '2026-10-30T00:00:00Z', outcome: 'CLOSED' } }));
+    show(); await acknowledge(); submit();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/No valid closure receipt|outcome is unknown/);
+    expect(logout).not.toHaveBeenCalled();
 });
 
 it.each([
@@ -69,7 +79,7 @@ it('keeps a provider-only account connected and offers existing password recover
     vi.mocked(apiClient.get).mockResolvedValue({ data: { ...preview, passwordRequired: false } });
     show(); expect(await screen.findByText(/Your account uses a linked sign-in provider/)).toBeVisible();
     expect(screen.getByRole('link', { name: 'Password recovery' })).toHaveAttribute('href', '/forgot-password?next=%2Faccount%3Ftab%3Ddanger');
-    expect(screen.queryByRole('button', { name: /Permanently close/ })).not.toBeInTheDocument(); expect(apiClient.post).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Close account' })).not.toBeInTheDocument(); expect(apiClient.post).not.toHaveBeenCalled();
 });
 
 it('preserves the password draft after failed proof and never reports closure', async () => {
@@ -104,7 +114,7 @@ it('retires a delayed close response when the account changes', async () => {
     vi.mocked(useAuth).mockReturnValue({ user: { id: 9 }, sessionId: getAuthSessionId(), logout } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(apiClient.get).mockResolvedValue({ data: { ...preview, accountId: 9 } });
     view.rerender(<MemoryRouter initialEntries={['/account?tab=danger']}><AccountDangerTab /></MemoryRouter>);
-    await act(async () => write.resolve({ data: { accountId: 7, requestId: (body as CloseAccount).requestId, closedAt: '2026-10-30T00:00:00Z', outcome: 'CLOSED' } }));
+    await act(async () => write.resolve({ data: { accountId: 7, requestId: (body as CloseAccount).requestId, closedAt: '2026-10-30T00:00:00Z', keepUntil: '2026-11-29T00:00:00Z', outcome: 'CLOSED' } }));
     expect(logout).not.toHaveBeenCalled(); expect(screen.queryByText('Your account is closed.')).not.toBeInTheDocument();
     expect(await screen.findByLabelText('Current password')).toHaveValue('');
 });
@@ -113,7 +123,7 @@ it('rejects a mismatched receipt and lets a failed preview retry without fabrica
     vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('offline'));
     show(); await screen.findByRole('alert'); expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Review again' })); await acknowledge();
-    vi.mocked(apiClient.post).mockResolvedValue({ data: { accountId: 9, requestId: 'wrong', closedAt: '2026-10-30T00:00:00Z', outcome: 'CLOSED' } });
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { accountId: 9, requestId: 'wrong', closedAt: '2026-10-30T00:00:00Z', keepUntil: '2026-11-29T00:00:00Z', outcome: 'CLOSED' } });
     submit(); await screen.findByRole('alert'); expect(logout).not.toHaveBeenCalled();
 });
 
@@ -143,6 +153,6 @@ it('cannot promise to keep an account by collapsing onboarding closure during it
     await acknowledge(); submit(); await waitFor(() => expect(apiClient.post).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('button', { name: 'Keep account' })).toBeDisabled();
     const body = vi.mocked(apiClient.post).mock.calls[0][1] as CloseAccount;
-    await act(async () => write.resolve({ data: { accountId: 7, requestId: body.requestId, closedAt: '2026-10-30T00:00:00Z', outcome: 'CLOSED' } }));
+    await act(async () => write.resolve({ data: { accountId: 7, requestId: body.requestId, closedAt: '2026-10-30T00:00:00Z', keepUntil: '2026-11-29T00:00:00Z', outcome: 'CLOSED' } }));
     expect(await screen.findByText('Your account is closed.')).toBeVisible();
 });

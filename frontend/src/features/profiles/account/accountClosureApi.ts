@@ -7,7 +7,8 @@ export type ClosurePreview = {
     blockers: { code: string; name: string; recoveryPath: string; action: string }[];
     consequences: string[];
 };
-export type ClosureReceipt = { accountId: number; requestId: string; closedAt: string; outcome: 'CLOSED' };
+/** `keepUntil`: signing in before it offers "Keep my account"; after it the account is erased. */
+export type ClosureReceipt = { accountId: number; requestId: string; closedAt: string; keepUntil: string; outcome: 'CLOSED' };
 export type CloseAccount = { requestId: string; version: string; currentPassword: string; acknowledged: boolean };
 
 export async function cancelPersonalBookingForClosure(venueId: number, bookingId: number, sessionId: AuthSessionId) {

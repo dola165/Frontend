@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { getHeritageStyle } from '../../../components/map/heritageStyle';
@@ -8,7 +8,7 @@ import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
 import { Crest } from '../Crest';
 import { useAppTheme } from './canvas/useMapTheme';
-import type { MapFocus, MapLine, MapReach } from '../stage/stageContext';
+import type { MapFocus, MapLine, MapReach, MapYou } from '../stage/stageContext';
 import { pinData, pinHover, pinLabel, shownCount } from './pins';
 import './world-map.css';
 
@@ -49,19 +49,26 @@ export function ContextPin({ point }: { point: WorldMapPoint }) {
     return <span className="gk-world-pin gk-world-pin--context" data-tone={point.tone} role="img" aria-label={pinLabel(point)}><span className="gk-world-pin__name">{point.label}</span></span>;
 }
 
-/** Positions-only sketch: used while the street map loads and whenever it cannot. */
-function MapSketch({ points, context = [], selectedId, highlightId, onSelect, onHover }: { points: WorldMapPoint[]; context?: WorldMapPoint[] } & PinEvents) {
-    const all = [...points, ...context];
-    const lats = all.map(p => p.lat), lngs = all.map(p => p.lng);
+/** Where things sit on the sketch, in percent of its box, and back: the points (and "You") centred in it. */
+interface SketchFrame { place: (spot: { lat: number; lng: number }) => { left: number; top: number }; spot: (left: number, top: number) => { lat: number; lng: number } }
+function sketchFrame(spots: { lat: number; lng: number }[]): SketchFrame {
+    const lats = spots.map(p => p.lat), lngs = spots.map(p => p.lng);
     // Centre the points; a lone point or a tight cluster sits in the middle rather than a corner.
     const midLat = (Math.min(...lats) + Math.max(...lats)) / 2, midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
     const spanLat = Math.max(Math.max(...lats) - Math.min(...lats), 0.02), spanLng = Math.max(Math.max(...lngs) - Math.min(...lngs), 0.02);
-    const place = (point: WorldMapPoint) => ({
-        left: `${50 + ((point.lng - midLng) / spanLng) * 84}%`,
-        top: `${50 - ((point.lat - midLat) / spanLat) * 60}%`,
-    });
+    return {
+        place: spot => ({ left: 50 + ((spot.lng - midLng) / spanLng) * 84, top: 50 - ((spot.lat - midLat) / spanLat) * 60 }),
+        spot: (left, top) => ({ lat: midLat - ((top - 50) / 60) * spanLat, lng: midLng + ((left - 50) / 84) * spanLng }),
+    };
+}
+const percent = ({ left, top }: { left: number; top: number }) => ({ left: `${left}%`, top: `${top}%` });
+
+/** Positions-only sketch: used while the street map loads and whenever it cannot, "You" included. */
+function MapSketch({ points, context = [], you, selectedId, highlightId, onSelect, onHover }: { points: WorldMapPoint[]; context?: WorldMapPoint[]; you?: MapYou } & PinEvents) {
+    const frame = sketchFrame([...points, ...context, ...(you ? [you] : [])]);
+    const place = (point: WorldMapPoint) => percent(frame.place(point));
     return (
-        <div className="gk-world-map__sketch" aria-hidden={points.length === 0}>
+        <div className="gk-world-map__sketch" aria-hidden={points.length === 0 && !you}>
             {points.map(point => (
                 <button key={point.id} type="button" className="gk-world-pin" {...pinData(point, point.id === selectedId || point.id === highlightId)}
                     style={place(point)} aria-label={pinLabel(point)} title={pinLabel(point)} onClick={() => onSelect(point.id)} {...pinHover(point.id, onHover)}>
@@ -69,15 +76,51 @@ function MapSketch({ points, context = [], selectedId, highlightId, onSelect, on
                 </button>
             ))}
             {context.map(point => <span key={point.id} className="gk-world-map__sketch-context" style={place(point)}><ContextPin point={point} /></span>)}
+            {you && <SketchYou you={you} frame={frame} />}
         </div>
     );
+}
+
+/** "You" on the sketch, as on the street map: dragged (or moved with the arrow keys) to search from another place. */
+function SketchYou({ you, frame }: { you: MapYou; frame: SketchFrame }) {
+    const t = useWorldCopy();
+    const [drag, setDrag] = useState<{ left: number; top: number } | null>(null);
+    const start = useRef<{ x: number; y: number; left: number; top: number; width: number; height: number } | null>(null);
+    const here = frame.place(you);
+    const grab = (event: PointerEvent<HTMLButtonElement>) => {
+        if (!you.onMove) return;
+        const box = event.currentTarget.parentElement!.getBoundingClientRect();
+        start.current = { x: event.clientX, y: event.clientY, ...here, width: box.width || 1, height: box.height || 1 };
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+    };
+    const follow = (event: PointerEvent<HTMLButtonElement>) => {
+        const from = start.current;
+        if (from) setDrag({ left: from.left + ((event.clientX - from.x) / from.width) * 100, top: from.top + ((event.clientY - from.y) / from.height) * 100 });
+    };
+    const drop = () => {
+        if (start.current && drag) { const spot = frame.spot(drag.left, drag.top); you.onMove?.(spot.lat, spot.lng); }
+        start.current = null; setDrag(null);
+    };
+    const nudge = (event: KeyboardEvent<HTMLButtonElement>) => {
+        const step = ({ ArrowLeft: [-4, 0], ArrowRight: [4, 0], ArrowUp: [0, -4], ArrowDown: [0, 4] } as Record<string, number[]>)[event.key];
+        if (!step || !you.onMove) return;
+        event.preventDefault();
+        const spot = frame.spot(here.left + step[0], here.top + step[1]);
+        you.onMove(spot.lat, spot.lng);
+    };
+    const hint = you.onMove ? t('Drag to search from another place') : undefined;
+    return <button type="button" className="gk-world-map__sketch-you" style={percent(drag ?? here)} data-dragging={drag ? true : undefined} data-guide="you-marker"
+        aria-label={hint ? `${you.label} · ${hint}` : you.label} title={hint ?? you.label}
+        onPointerDown={grab} onPointerMove={follow} onPointerUp={drop} onPointerCancel={() => { start.current = null; setDrag(null); }} onKeyDown={nudge}>
+        <span className="gk-world-you"><span className="gk-world-you__label">{you.label}</span><span className="gk-world-you__dot" aria-hidden="true" /></span>
+    </button>;
 }
 
 /**
  * A map of World results. Uses the street map when it can load, and otherwise shows the same points on a plain
  * sketch so results stay usable without map tiles. `hero` is the big glass look of World's overview and tabs.
  */
-export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, onView, className, footer, overlay, insetRight, insetLeft, insetTop, gestures, variant, cardActions, focus, frame, card = true, context, reach, away }: {
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, onView, className, footer, overlay, insetRight, insetLeft, insetTop, gestures, variant, cardActions, focus, frame, card = true, context, reach, away, you }: {
     points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
     onSelect?: (id?: string) => void; /** The pointer or focus is on a pin (or left it). */ onHover?: (id?: string) => void;
     /** The person panned or zoomed the map (framing the points does not count). */ onMoveEnd?: (bounds: MapBounds) => void;
@@ -93,6 +136,7 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
     /** False while the page shows the chosen result itself, so the card stays hidden. */ card?: boolean;
     /** Places that give the results context (see `StageMap.context`), and a stated reach to draw (`StageMap.reach`). */ context?: WorldMapPoint[]; reach?: MapReach;
     /** An away day to draw (`StageMap.away`). */ away?: MapLine;
+    /** The person's own place, draggable (`StageMap.you`). */ you?: MapYou;
 }) {
     const t = useWorldCopy();
     const theme = useAppTheme();
@@ -113,11 +157,11 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
         <div className={`gk-world-map${variant ? ` gk-world-map--${variant}` : ''}${className ? ` ${className}` : ''}`} role="region" aria-label={label}>
             <div className="gk-world-map__canvas" data-card={point ? true : undefined} data-chips={(live ? fewInView : points.length <= 12) || undefined}>
                 {live
-                    ? <Suspense fallback={<MapSketch points={points} context={context} {...pins} />}>
-                        <WorldLiveMap style={style.data!} points={points} context={context} reach={reach} away={away} {...pins} onMoveEnd={onMoveEnd} onView={onView} onFail={() => setLiveFailed(true)}
+                    ? <Suspense fallback={<MapSketch points={points} context={context} you={you} {...pins} />}>
+                        <WorldLiveMap style={style.data!} points={points} context={context} reach={reach} away={away} you={you} {...pins} onMoveEnd={onMoveEnd} onView={onView} onFail={() => setLiveFailed(true)}
                             insetRight={insetRight} insetLeft={insetLeft} insetTop={insetTop} gestures={gestures} focus={focus} frame={frame} onFewInView={setFewInView} />
                     </Suspense>
-                    : <MapSketch points={points} context={context} {...pins} />}
+                    : <MapSketch points={points} context={context} you={you} {...pins} />}
                 {(tones.length > 1 || approximate.length > 0) && (
                     <ul className="gk-world-map__legend" aria-label={t('Map key')}>
                         {tones.length > 1 && tones.map(tone => <li key={tone}><span className="gk-world-pin gk-world-pin--key" data-tone={tone} aria-hidden="true" />{t(TONE_LABEL[tone])}</li>)}

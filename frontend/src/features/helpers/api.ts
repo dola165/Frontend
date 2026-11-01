@@ -13,8 +13,12 @@ export interface SessionHelper { id: number; name: string; repeating: boolean; s
 export interface AddedHelper { id: number | null; name: string; link: string | null; linkExpiresAt: string | null; invitationPending: boolean }
 /** `lastInitial`: the last name's first letter, for telling two players with the same first name apart. */
 export interface HelpingPlayer { id: number; firstName: string; lastInitial: string | null; response: string; register: string | null }
+/**
+ * A session the person helps at, or (`eventId`, `sessionId` null) the match a session typed as a match became: its
+ * helper keeps helping there, with no register (who played replaces it) and no players.
+ */
 export interface Helping {
-    helperId: number; sessionId: number; squadId: number; squadName: string; clubId: number; clubName: string; title: string; kind: string;
+    helperId: number; sessionId: number | null; eventId?: number | null; squadId: number; squadName: string; clubId: number; clubName: string; title: string; kind: string;
     startsAt: string; endsAt: string; location: string | null; coach: string | null; registerOpen: boolean; registerRevision: string; players: HelpingPlayer[];
 }
 /** A session's register and its revision, which a save sends back unchanged (409 REGISTER_CHANGED otherwise). */

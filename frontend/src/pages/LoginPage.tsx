@@ -20,6 +20,7 @@ import {
 } from '../utils/authRedirect';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
+import { AccountClosureReceipt } from '../features/profiles/account/AccountClosureReceipt';
 import {
     authInputClass,
     authInputErrorClass,
@@ -176,6 +177,7 @@ export const LoginPage = () => {
                 </Suspense>
             ) : (
                 <>
+                    {location.state?.accountClosureReceipt && <AccountClosureReceipt receipt={location.state.accountClosureReceipt} />}
                     {error && (
                         <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                             <div className="flex items-center gap-2">

@@ -27,7 +27,7 @@
   margin: 8px 0;
 }
 .tw-workspace h2,
-.tw-dialog h2 {
+:where(.tw-modal-backdrop) .tw-dialog h2 {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -152,8 +152,8 @@
 }
 .tw-input,
 .tw-workspace select,
-.tw-dialog select,
-.tw-dialog input,
+:where(.tw-modal-backdrop) .tw-dialog select,
+:where(.tw-modal-backdrop) .tw-dialog input,
 .tw-workspace textarea {
   border: 1px solid var(--tw-line);
   border-radius: 9px;
@@ -496,7 +496,9 @@
   padding: 20px;
   color: var(--text-primary, var(--fc-text-primary));
 }
-.tw-dialog {
+/* Team work also uses tw-dialog and tw-field: every tournament dialog sits in .tw-modal-backdrop.
+   :where() keeps these selectors' specificity unchanged. */
+:where(.tw-modal-backdrop) .tw-dialog {
   background: var(--bg-surface, var(--fc-card-bg));
   border: 1px solid var(--border-strong, var(--fc-border));
   width: min(560px, 100%);
@@ -506,14 +508,14 @@
   border-radius: 18px;
   box-shadow: 0 24px 100px color-mix(in srgb, var(--overlay-surface) 60%, transparent);
 }
-.tw-dialog > p {
+:where(.tw-modal-backdrop) .tw-dialog > p {
   font-size: 13px;
   color: var(--text-secondary, var(--fc-text-secondary));
   margin: 12px 0 20px;
   line-height: 1.6;
 }
-.tw-dialog label,
-.tw-field {
+:where(.tw-modal-backdrop) .tw-dialog label,
+:where(.tw-workspace, .tournament-public-page, .tw-bracket, .tw-modal-backdrop) .tw-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -521,7 +523,7 @@
   font-weight: 600;
   margin-bottom: 16px;
 }
-.tw-dialog .tw-actions {
+:where(.tw-modal-backdrop) .tw-dialog .tw-actions {
   justify-content: flex-end;
   margin-top: 22px;
 }
@@ -648,7 +650,7 @@
   .tw-panel-pad {
     padding: 16px;
   }
-  .tw-dialog {
+  :where(.tw-modal-backdrop) .tw-dialog {
     padding: 20px;
     border-radius: 16px;
     max-height: calc(100dvh - 24px);

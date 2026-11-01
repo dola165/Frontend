@@ -20,7 +20,8 @@ export const operationTabs = [
   { id: 'finance', module: 'FINANCE', label: 'Finance', icon: Landmark, group: 'Administration' },
   { id: 'travel', module: 'TRAVEL', label: 'Travel', icon: Bus, group: 'Administration' },
   { id: 'restrictions', module: 'AVAILABILITY', label: 'Participation restrictions', icon: HeartPulse, group: 'Care' },
-  { id: 'medical', module: 'MEDICAL', label: 'Medical coordination', icon: HeartPulse, group: 'Care' },
+  { id: 'medical', module: 'MEDICAL', label: 'Body: private care', icon: HeartPulse, group: 'Care' },
+  { id: 'wellbeing', module: 'WELLBEING', label: 'Life: private wellbeing', icon: HeartPulse, group: 'Care' },
   { id: 'welfare', module: 'WELFARE', label: 'Confidential welfare', icon: Shield, group: 'Care' },
   { id: 'workspace-settings', module: 'SETTINGS', label: 'Workspace settings', icon: Settings2, group: 'Club' },
 ] as const;
@@ -30,6 +31,6 @@ export const operationModule = (tab: string) => operationTabs.find(item => item.
 export const operationTab = (module: string | null) => operationTabs.find(item => item.module === module)?.id ?? 'overview';
 /** The translated name of a club tool, as More tools and the tool's own page show it. */
 export const toolLabel = (id: string) => (id in workspaceNavEn ? translate('workspaceNav', workspaceNavEn, id as keyof typeof workspaceNavEn) : id);
-const DESCRIBED = ['STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'REGISTRATION', 'DEVELOPMENT', 'EDUCATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'DEPARTURES', 'AVAILABILITY', 'MEDICAL', 'WELFARE'] as const;
+const DESCRIBED = ['STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'REGISTRATION', 'DEVELOPMENT', 'EDUCATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'DEPARTURES', 'AVAILABILITY', 'MEDICAL', 'WELLBEING', 'WELFARE'] as const;
 /** What each tool is for, in one line, in the person's language. */
 export const operationDescriptions: Record<string, string> = Object.defineProperties({}, Object.fromEntries(DESCRIBED.map(id => [id, { enumerable: true, get: () => translate('clubRecords', clubRecordsEn, `describe_${id}`) }])));

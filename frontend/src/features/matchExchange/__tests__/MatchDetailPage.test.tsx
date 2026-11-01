@@ -1,6 +1,6 @@
 import { act, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { MatchDetailPage } from '../../../pages/MatchDetailPage';
+import { MatchPage as MatchDetailPage } from '../../matches/MatchPage';
 import { chatApi } from '../../../api/chat';
 import { useAction, useClock, useLoad } from '../hooks';
 import { getResultSuggestions, type Match } from '../api';
@@ -24,7 +24,7 @@ const match: Match = {
 
 function renderPage(value: Match = match) {
   vi.mocked(useLoad).mockImplementation((path: string) => path === '/match-exchange/12' ? { data: value, error: '', reload: vi.fn() } : { data: [], error: '', reload: vi.fn() });
-  return render(<MemoryRouter initialEntries={['/match-exchange/12']}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={['/matches/12']}><Routes><Route path="/matches/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
 }
 
 beforeEach(() => {
@@ -56,6 +56,17 @@ it('keeps both teams and the result in the fixture band ahead of readiness and s
   expect(fixture.compareDocumentPosition(readiness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
+it('shows a past match added afterwards as its result: who added it, nothing to plan', async () => {
+  vi.mocked(getScoreSummary).mockResolvedValue(summary({ status: 'FINAL', fixtureStatus: 'COMPLETED', revision: 1, homeScore: 3, awayScore: 1, official: true, oneSided: true }));
+  renderPage({ ...match, origin: 'PAST', can_arrange: false, can_manage: false, opponent_name: null, opponent_club_id: null, opponent_squad_name: null, target_squad_id: null, outside_opponent: 'Old Town FC',
+    starts_at_iso: '2098-09-20T10:00:00Z', ends_at_iso: '2098-09-20T12:00:00Z', event_status: 'COMPLETED' });
+  const fixture = screen.getByRole('region', { name: 'Fixture' });
+  expect(await within(fixture).findByText('Added by Alpha FC')).toBeInTheDocument();
+  expect(await within(fixture).findByText(/3–1/)).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Match readiness' })).toBeNull();
+  expect(screen.queryByText('Plan your match day')).toBeNull();
+});
+
 it('shows no score and no placeholder for a private under-11 result', async () => {
   vi.mocked(getScoreSummary).mockResolvedValue(summary({ status: 'FINAL', fixtureStatus: 'COMPLETED', revision: 3, official: true, scorePrivate: true }));
   renderPage({ ...match, can_arrange: false, starts_at_iso: '2098-09-20T10:00:00Z', ends_at_iso: '2098-09-20T12:00:00Z', score_private: true });
@@ -68,12 +79,12 @@ it('shows no score and no placeholder for a private under-11 result', async () =
 it('opens with the proposal form for an eligible visiting squad, before the match-day plan', async () => {
   const open = { ...match, can_arrange: false, opponent_name: null, opponent_club_id: null, listing_status: 'OPEN' as const };
   vi.mocked(useLoad).mockImplementation((path: string) => ({ data: path === '/match-exchange/12' ? open : path === '/match-exchange/squads' ? [{ id: 2, club_id: 11, club_name: 'Beta FC', name: 'U16' }] : [], error: '', reload: vi.fn() }));
-  render(<MemoryRouter initialEntries={['/match-exchange/12']}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/matches/12']}><Routes><Route path="/matches/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
   expect(await screen.findByText('Opponent to be agreed')).toBeInTheDocument();
-  const send = screen.getByRole('button', { name: 'Send proposal' });
+  const send = screen.getByRole('button', { name: 'Send our answer' });
   const plan = screen.getByRole('heading', { name: 'Plan your match day' });
   expect(send.compareDocumentPosition(plan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Propose to play' })).toHaveAttribute('href', '#match-proposal');
+  expect(screen.queryByRole('link', { name: 'Propose to play' })).not.toBeInTheDocument();
   expect(screen.queryByText('Broadcast and filming')).not.toBeInTheDocument();
 });
 

@@ -1,0 +1,15 @@
+.club-money { min-width: 0; }
+.club-money__balance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-3); margin: 0; }
+.club-money__balance dt { color: var(--gk-text-2); font-size: .85rem; }
+.club-money__balance dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.club-money__history { padding-inline-start: 22px; }
+.club-money__history li { margin-block: 14px; overflow-wrap: anywhere; }
+.club-money__history span { display: block; font-size: .85rem; }
+.club-money summary { cursor: pointer; min-height: 44px; padding-block: 10px; }
+.club-money fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.club-money .gk-input { width: 100%; min-width: 0; }
+.club-money > .gk-btn { align-self: flex-start; }
+.club-money__connections { display: flex; flex-wrap: wrap; gap: var(--gk-2); margin-block: var(--gk-3); }
+.gk .club-money__connections .gk-btn { min-height: 44px; white-space: normal; text-align: start; }
+
+.gk .club-money__refresh { align-self: flex-start; min-height: 44px; }

@@ -61,11 +61,14 @@
 .gk .gk-board__item[data-cancelled] .gk-board__title { text-decoration: line-through; color: var(--gk-text-2); }
 .gk .gk-board__when { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 600; color: var(--gk-text-2); }
 .gk .gk-board__when svg { flex: none; width: 14px; height: 14px; color: var(--gk-board-tone); }
+.gk .gk-board__when .gk-board__who { flex: none; width: 16px; height: 16px; font-size: 10px; font-weight: 700; line-height: 16px; }
 .gk .gk-board__when .gk-board__repeat { width: 13px; height: 13px; margin-left: auto; color: var(--gk-text-3); }
 .gk .gk-board__title { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .gk .gk-board__meta { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gk .gk-board__trail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 3px; font-size: var(--gk-fs-xs); }
 .gk .gk-board__trail .gk-badge { height: 20px; }
+/* A first visit a family booked: the trial colour (step 5). */
+.gk .gk-badge.gk-badge--visit { background: color-mix(in srgb, var(--color-pink) 14%, transparent); color: var(--color-pink); }
 
 /* Month: the same cards, smaller, under each day's number. */
 .gk .gk-board__month { border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }

@@ -1,19 +1,21 @@
 import { searchTryouts, type TryoutPosting } from '../../tryouts/api';
 import { fetchOpportunity, searchOpportunities } from '../../admissions/api';
-import type { DiscoveryQuery, Participant } from '../../admissions/types';
+import type { Participant } from '../../admissions/types';
 import { postingLabel } from '../../tryouts/tryoutCopy';
 import { availabilityCopy } from '../../admissions/applicant/copy';
 import { wt } from '../copy';
-import { first, type DirectoryQuery, type DirectorySource, type FilterDef, type FilterOption, type RememberedChoice } from '../directory/types';
+import { first, type DirectoryQuery, type DirectorySource, type FilterDef, type FilterOption } from '../directory/types';
 import { bilingual, calendarDaysUntil, codeLabel, fixtureDay, fixtureTime } from '../format';
 import { TrainingItem, TrialItem, type GroupResult } from './opportunityItems';
 import { firstName } from '../players';
-import { ChildSwitch } from './ChildSwitch';
+import { groupSearch, trialSearch, publicParams } from './opportunitySearch';
+import { searchSpec } from '../watches/api';
 import { clubScope } from './scopes';
 
 const PAGE = 20;
 export const trials: DirectorySource<TryoutPosting> = {
-    id: 'trials',
+    id: 'trials', area: true, forContext: true,
+    watch: (query, context) => { const params = publicParams(trialSearch(query, context)); return params.has('forMe') ? null : searchSpec('TRIALS', params); },
     label: 'Trials',
     noun: ['trial', 'trials'],
     searchLabel: 'Search trials',
@@ -22,7 +24,8 @@ export const trials: DirectorySource<TryoutPosting> = {
     filters: [
         { kind: 'choice', key: 'status', label: 'Applications', primary: true, fallback: 'OPEN', options: [{ value: 'OPEN', label: 'Open now' }, { value: 'ALL', label: 'All published' }] },
         clubScope('clubId'),
-        { kind: 'text', key: 'location', label: 'Place', placeholder: 'City or ground' },
+        { kind: 'scope', key: 'location', label: 'Place' },
+        { kind: 'scope', key: 'countryCode', label: 'Country' },
         { kind: 'date', key: 'from', label: 'From' },
         { kind: 'date', key: 'to', label: 'Until' },
         { kind: 'choice', key: 'closed', label: 'Show only', allLabel: 'Any state', when: query => first(query, 'status') === 'ALL', options: ['CLOSED', 'FILLED', 'EXPIRED', 'CANCELLED'].map(value => ({ value, label: postingLabel(value, en => en) })) },
@@ -31,11 +34,8 @@ export const trials: DirectorySource<TryoutPosting> = {
         { kind: 'toggle', key: 'forMe', label: 'Fits my age or my children’s', primary: true },
     ],
     defaults: ({ role, minor }): Record<string, string[]> => role === 'player' || role === 'parent' || minor ? { forMe: ['true'] } : {},
-    async load(query, page, { signal, country, authenticated }) {
-        const status = first(query, 'status') === 'ALL' ? first(query, 'closed') || 'ALL' : 'OPEN';
-        const clubId = first(query, 'clubId') || undefined, location = first(query, 'location');
-        const result = await searchTryouts({ q: query.q, location, status, clubId, from: first(query, 'from') || undefined, to: first(query, 'to') || undefined,
-            countryCode: country && !clubId && !location ? country : undefined, forMe: authenticated && first(query, 'forMe') === 'true' ? 'true' : undefined, page, size: PAGE }, signal);
+    async load(query, page, { signal, area, country, authenticated }) {
+        const result = await searchTryouts({ ...trialSearch(query, { area, country, authenticated }), page, size: PAGE }, signal);
         return { items: result.items, total: result.total, hasMore: result.hasMore };
     },
     key: trial => String(trial.id),
@@ -61,45 +61,43 @@ export const trials: DirectorySource<TryoutPosting> = {
 /** Trials as a guest sees them: without "fits my age", which needs to know who is looking. */
 export const guestTrials: DirectorySource<TryoutPosting> = { ...trials, filters: trials.filters.filter(filter => filter.key !== 'forMe'), defaults: undefined };
 
-const birthYearOf = (participant?: Participant) => participant?.dateOfBirth ? Number(participant.dateOfBirth.slice(0, 4)) : undefined;
 
 /**
  * Training groups taking players. A parent can search for one of their children: the child's
  * birth year and category then decide which groups fit, and the choice follows them to the group
- * and to other World pages (`remember`).
+ * and to other World pages through the shared resolved For context.
  */
-export function groupsSource(participants: Participant[], remember?: RememberedChoice, clubs?: FilterOption[]): DirectorySource<GroupResult> {
-    // Offered to parents: someone searching only for themselves needs no choice here.
-    const playerFilter = participants.some(p => p.minor)
-        ? [{ kind: 'choice' as const, key: 'player', label: 'Searching for', primary: true, allLabel: 'Anyone', remember, options: participants.map(p => ({ value: String(p.id), label: p.minor ? p.name : wt('{name} (you)', { name: p.name }) })) }]
-        : [];
-    const chosen = (value: string) => participants.find(p => String(p.id) === value);
-    const children = participants.filter(p => p.minor);
+export function groupsSource(participants: Participant[], resolvedChild?: Participant, clubs?: FilterOption[]): DirectorySource<GroupResult> {
+    const playerFilter: FilterDef[] = participants.some(person => person.minor && person.guardian) ? [{ kind: 'scope', key: 'player', label: 'For' }] : [];
+    const chosen = (value: string) => value ? participants.find(p => String(p.id) === value) : resolvedChild;
     const searchFilters: FilterDef[] = [
         { kind: 'toggle', key: 'beginner', label: 'Beginners welcome', primary: true },
-        { kind: 'choice', key: 'gender', label: 'Category', primary: true, allLabel: 'Everyone', when: query => !chosen(first(query, 'player'))?.gender, options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }] },
+        resolvedChild?.gender ? { kind: 'scope', key: 'gender', label: 'Category' } : { kind: 'choice', key: 'gender', label: 'Category', primary: true, allLabel: 'Everyone', options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }] },
         // With the list of clubs a person can pick one; until then a club from a link shows as a removable scope.
         clubs?.length ? { kind: 'choice' as const, key: 'club', label: 'Club', allLabel: 'Any club', options: clubs } : clubScope('club'),
         { kind: 'scope', key: 'organization', label: 'One organisation' },
-        { kind: 'text', key: 'birthYear', label: 'Player’s birth year', placeholder: 'For example 2015', when: query => !chosen(first(query, 'player')) },
+        { kind: 'scope', key: 'country', label: 'Country' },
+        { kind: 'scope', key: 'city', label: 'City' },
+        resolvedChild ? { kind: 'scope', key: 'birthYear', label: 'Player’s birth year' } : { kind: 'text', key: 'birthYear', label: 'Player’s birth year', placeholder: 'For example 2015' },
         { kind: 'choice', key: 'method', label: 'How to join', allLabel: 'Any way', options: [{ value: 'DIRECT', label: 'Join directly' }, { value: 'INTRODUCTION', label: 'Introductory session first' }, { value: 'SELECTIVE', label: 'Selection' }] },
         { kind: 'toggle', key: 'all', label: 'Include groups not taking players' },
         { kind: 'toggle', key: 'includeWaitlist', label: 'Include waiting lists' },
     ];
     return {
-        id: 'groups',
+        id: 'groups', area: true, forContext: true,
+        watch: (query, context) => first(query, 'group') ? null : searchSpec('GROUPS', publicParams(groupSearch(query, chosen(first(query, 'player')), context))),
         label: 'Places to train',
         noun: ['group', 'groups'],
         searchLabel: 'Search training groups',
         searchPlaceholder: 'Search groups or organisations',
         pageSize: PAGE,
-        version: participants.map(p => p.id).join(','),
+        version: participants.map(p => [p.id, p.dateOfBirth, p.gender].join(':')).join(','),
         filters: [
             ...playerFilter,
             { kind: 'scope', key: 'group', label: 'Training group', name: (value, signal) => fetchOpportunity(Number(value), signal).then(group => group.name) },
             ...searchFilters.map(filter => ({ ...filter, when: (query: DirectoryQuery) => !first(query, 'group') && (filter.when?.(query) ?? true) })),
         ],
-        async load(query, page, { signal, country }) {
+        async load(query, page, { signal, area, country }) {
             const participant = chosen(first(query, 'player'));
             // A link from a joining page reads that exact public group, even when it is no longer taking players.
             // Its actual venue must not be replaced by the club pin or lost beyond the first search page.
@@ -111,18 +109,7 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
                 const matches = !query.q || [group.name, group.organizationName].some(value => value.toLowerCase().includes(query.q.trim().toLowerCase()));
                 return { items: matches && page === 0 ? [{ group, player: participant?.id }] : [], total: matches ? 1 : 0, hasMore: false };
             }
-            const typedYear = Number(first(query, 'birthYear'));
-            const birthYear = birthYearOf(participant) ?? (typedYear >= 1900 && typedYear <= 2100 ? typedYear : undefined);
-            const id = (key: string) => Number(first(query, key)) > 0 ? Number(first(query, key)) : undefined;
-            const result = await searchOpportunities({
-                q: query.q || undefined, acceptingOnly: first(query, 'all') !== 'true', includeWaitlist: first(query, 'includeWaitlist') === 'true',
-                beginner: first(query, 'beginner') === 'true' ? true : undefined,
-                gender: (participant?.gender || first(query, 'gender') || undefined) as DiscoveryQuery['gender'],
-                method: (first(query, 'method') || undefined) as DiscoveryQuery['method'],
-                clubId: id('club'), organizationId: id('organization'), birthYear, page, size: PAGE,
-                // The person's own country unless a club or an organisation is named.
-                country: country && !id('club') && !id('organization') ? [country] : undefined,
-            }, signal);
+            const result = await searchOpportunities({ ...groupSearch(query, participant, { area, country }), page, size: PAGE }, signal);
             return { items: result.items.map(group => ({ group, player: participant?.id })), total: result.total, hasMore: result.hasMore };
         },
         key: ({ group }) => String(group.id),
@@ -141,7 +128,6 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
             const child = chosen(first(query, 'player'));
             return child?.minor ? wt('Training groups for {name}', { name: firstName(child.name) }) : wt('Training groups');
         },
-        HeadTools: children.length ? props => <ChildSwitch {...props} children={children} remember={remember} /> : undefined,
         empty: { title: 'No groups are taking players', body: 'Include waiting lists, or ask a club directly from its profile.' },
     };
 }

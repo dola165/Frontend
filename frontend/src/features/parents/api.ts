@@ -36,7 +36,7 @@ export interface ParentHub {
 }
 
 export { fetchJoiningChildren, createPlayerLinkCode } from '../joining-contract/api';
-export type { JoiningChild, ChildDirectory, ChildClub, ChildFees, OwnAccount } from '../joining-contract/types';
+export type { JoiningChild, ChildDirectory, ChildClub, ChildFees, ChildFeeLine, ChildSquad, SquadPrice, OwnAccount } from '../joining-contract/types';
 
 /** Sends the child the link to their own account (again, or to a corrected email); the card's birth date stands. */
 /** Approves a waiting (or grace-period) child's account, as the emailed link does. */

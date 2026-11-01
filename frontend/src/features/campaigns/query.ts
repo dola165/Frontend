@@ -6,7 +6,7 @@ export interface FundraisingQuery { query: string; category: string; state: 'ACT
 export const FUNDRAISING_KEYS = ['query', 'category', 'state', 'clubId', 'country', 'city', 'sort', 'page'] as const;
 export const PAGE_SIZE = 24;
 export const SORTS: Array<{ value: CampaignSort; label: string }> = [
-    { value: 'RELEVANCE', label: 'Relevance' }, { value: 'CLOSEST', label: 'Closest to goal' }, { value: 'NEWEST', label: 'Newest' }, { value: 'ENDING', label: 'Ending soon' }, { value: 'RAISED', label: 'Most raised' },
+    { value: 'RELEVANCE', label: 'Relevance' }, { value: 'CLOSEST', label: 'Closest to goal' }, { value: 'NEWEST', label: 'Newest' }, { value: 'ENDING', label: 'Ending soon' }, { value: 'RAISED', label: 'Reported total, by currency' },
 ];
 export const STATES: Array<{ value: FundraisingQuery['state']; label: string }> = [{ value: 'ACTIVE', label: 'Open now' }, { value: 'ENDED', label: 'Ended' }, { value: 'ALL', label: 'All' }];
 

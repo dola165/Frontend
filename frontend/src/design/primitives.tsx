@@ -146,6 +146,10 @@ export function Button({ variant = 'secondary', size = 'md', iconOnly = false, c
 export function ButtonLink({ variant = 'secondary', size = 'md', iconOnly = false, className, ...rest }: LinkProps & { variant?: ButtonVariant; size?: 'md' | 'sm'; iconOnly?: boolean }) {
     return <Link className={buttonClass(variant, size, iconOnly, className)} {...rest} />;
 }
+/** A button-looking link that leaves the app: a phone call, WhatsApp, the maps app, a calendar file. */
+export function ButtonAnchor({ variant = 'secondary', size = 'md', iconOnly = false, className, ...rest }: ComponentPropsWithoutRef<'a'> & { variant?: ButtonVariant; size?: 'md' | 'sm'; iconOnly?: boolean }) {
+    return <a className={buttonClass(variant, size, iconOnly, className)} {...rest} />;
+}
 
 export type BadgeTone = 'neutral' | 'accent' | 'warning' | 'danger' | 'info' | 'violet';
 export function Badge({ tone = 'neutral', children, className }: { tone?: BadgeTone; children: ReactNode; className?: string }) {

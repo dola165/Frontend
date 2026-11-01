@@ -24,6 +24,8 @@ export interface ClubProfile {
     isStaffMember?: boolean;
     latitude?: number | null;
     longitude?: number | null;
+    /** The club's one phone (its page's Contact), for Call and WhatsApp. */
+    whatsappNumber?: string | null;
 }
 
 export interface ClubDirectoryPageResult<T> {

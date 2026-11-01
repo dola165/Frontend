@@ -9,11 +9,11 @@ import { usePageEdit, type PageEdit } from '../context';
 
 const auth = vi.hoisted(() => ({ id: 1, session: 'owner-a' }));
 const api = vi.hoisted(() => ({ fetchPage: vi.fn(), goLive: vi.fn() }));
-const toasts = vi.hoisted(() => ({ calls: [] as { action?: { label: string; onClick: () => void } }[] }));
+const toasts = vi.hoisted(() => ({ calls: [] as { message: string; action?: { label: string; onClick: () => void } }[] }));
 vi.mock('../../api', async original => ({ ...await original<typeof import('../../api')>(), ...api }));
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: auth.id }, sessionId: auth.session, status: 'authenticated' }) }));
 vi.mock('sonner', () => {
-  const record = (_message: string, options?: { action?: { label: string; onClick: () => void } }) => toasts.calls.push(options ?? {});
+  const record = (message: string, options?: { action?: { label: string; onClick: () => void } }) => toasts.calls.push({ message, ...options });
   return { toast: Object.assign(record, { warning: record, error: record }) };
 });
 
@@ -71,6 +71,30 @@ it('uses the same receipt for an ordinary retry after an unknown reply', async (
   await act(async () => { await editor.goLive(); });
   expect(api.goLive.mock.calls[1]).toEqual(api.goLive.mock.calls[0]);
   expect(screen.getByTestId('panel')).toHaveTextContent('live');
+});
+
+it.each(['ordinary', 'toast'] as const)('keeps a later withdrawal private on an old %s retry and requires a fresh intent', async retryKind => {
+  api.goLive.mockRejectedValueOnce(new Error('committed reply lost'))
+    .mockImplementationOnce(async () => page('DRAFT'))
+    .mockImplementationOnce(async () => page('LIVE'));
+  render(tree()); await screen.findByText('Page A');
+  await act(async () => { expect(await editor.goLive()).toBe(false); });
+  const oldToast = toasts.calls.find(item => item.action?.label === 'Try again')!.action!;
+  await act(async () => { if (retryKind === 'toast') oldToast.onClick(); else expect(await editor.goLive()).toBe(false); });
+  expect(api.goLive.mock.calls[1]).toEqual(api.goLive.mock.calls[0]);
+  expect(editor.page?.status).toBe('DRAFT');
+  expect(screen.getByTestId('panel')).toBeEmptyDOMElement();
+  expect(toasts.calls.map(item => item.message)).toContain('This page is private. Review it before publishing again.');
+  expect(toasts.calls.map(item => item.message)).not.toContain('Your page is live');
+  await act(async () => { oldToast.onClick(); });
+  expect(api.goLive).toHaveBeenCalledTimes(2);
+  await act(async () => { expect(await editor.goLive()).toBe(true); });
+  expect(api.goLive).toHaveBeenCalledTimes(3);
+  expect(api.goLive.mock.calls[2][1]).not.toBe(api.goLive.mock.calls[0][1]);
+  expect(screen.getByTestId('panel')).toHaveTextContent('live');
+  expect(toasts.calls.map(item => item.message)).toContain('Your page is live');
+  await act(async () => { oldToast.onClick(); });
+  expect(api.goLive).toHaveBeenCalledTimes(3);
 });
 
 it('cannot retry an old publication as another account', async () => {

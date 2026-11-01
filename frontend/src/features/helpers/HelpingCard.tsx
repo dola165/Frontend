@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { Check } from 'lucide-react';
-import { Button, GkRoot, LoadFailed } from '../../design/primitives';
+import { Button, ButtonLink, GkRoot, LoadFailed } from '../../design/primitives';
 import { FaceStack, type Face } from '../../design/visuals';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { HelperEmailWait } from '../../components/auth/EmailWait';
@@ -9,6 +9,7 @@ import { needsConfirmedEmail } from '../../components/auth/emailConfirmation';
 import { formatDate, formatTime } from '../../utils/formatting';
 import { useCopy } from '../../locales/useCopy';
 import { mySquadsEn } from '../../locales/mySquadsDesign';
+import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { ActivityBadge } from '../clubWorkspace/coachHub/CoachVisuals';
 import { acceptHelping, helperInvitations, helping, register, saveRegister, stopHelping, type Helping, type HelperInvitation, type HelpingPlayer } from './api';
 import './helpers.css';
@@ -25,29 +26,32 @@ const namesOf = (players: HelpingPlayer[]) => new Map(players.map(p => [p.id,
  * Someone who helps nowhere sees nothing; a Home that couldn't ask says so, with Try again. A new helper whose email
  * waits sees "Confirm your email to see your session" with Resend (claiming their link confirms nothing).
  */
-export function HelpingCard() {
+export function HelpingCard({ helperId, sessionId }: { helperId?: number; sessionId?: number } = {}) {
     const copy = useCopy('mySquads', mySquadsEn);
+    const words = useJourneyCopy();
+    const [loaded, setLoaded] = useState(false);
     const [sessions, setSessions] = useState<Helping[]>([]);
     const [invitations, setInvitations] = useState<HelperInvitation[]>([]);
     const [revision, setRevision] = useState(0), [failed, setFailed] = useState(false), [emailWait, setEmailWait] = useState(false);
     useEffect(() => {
         const controller = new AbortController();
         void helperInvitations(controller.signal).then(rows => { if (!controller.signal.aborted) setInvitations(rows); }).catch(() => undefined);
-        void helping(controller.signal).then(rows => { if (!controller.signal.aborted) { setSessions(rows); setFailed(false); } })
+        void helping(controller.signal).then(rows => { if (!controller.signal.aborted) { setSessions(rows); setFailed(false); setEmailWait(false); setLoaded(true); } })
             .catch(error => {
                 if (controller.signal.aborted) return;
+                setSessions([]); setLoaded(true);
                 setEmailWait(needsConfirmedEmail(error));
                 setFailed(!(isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0)));
             });
         return () => controller.abort();
     }, [revision]);
     const reload = () => setRevision(value => value + 1);
-    const next = sessions[0];
-    const asks = invitations.map(invitation => <HelperAsk key={invitation.helperId} invitation={invitation} onAnswered={reload} />);
+    const next = sessions.find(session => (helperId == null || session.helperId === helperId) && (sessionId == null || session.sessionId === sessionId));
+    const asks = invitations.filter(invitation => sessionId == null && (helperId == null || invitation.helperId === helperId)).map(invitation => <HelperAsk key={invitation.helperId} invitation={invitation} onAnswered={reload} />);
     if (emailWait) return <GkRoot><HelperEmailWait what={null} session next="/home" /></GkRoot>;
     if (failed && !next) return <GkRoot>{asks}<LoadFailed text={copy('helpingFailed')} retry={copy('tryAgain')} onRetry={reload} /></GkRoot>;
-    if (!next) return asks.length ? <GkRoot>{asks}</GkRoot> : null;
-    return <GkRoot>{asks}<HelpingSession key={`${next.helperId}-${next.sessionId}`} session={next} onStopped={reload} /></GkRoot>;
+    if (!next) return asks.length ? <GkRoot>{asks}</GkRoot> : (helperId || sessionId) ? <p role="status">{loaded ? words('This session is no longer available to you.', 'ეს ვარჯიში თქვენთვის აღარ არის ხელმისაწვდომი.') : words('Loading your session…', 'თქვენი ვარჯიში იტვირთება…')}</p> : null;
+    return <GkRoot>{asks}<HelpingSession key={`${next.helperId}-${next.sessionId ?? `m${next.eventId}`}`} session={next} onStopped={reload} /></GkRoot>;
 }
 
 /** "Koba added you as a helper: U12 Mixed, Tue 17:00 · Accept / Not for me": nothing opens before Accept. */
@@ -94,22 +98,27 @@ function HelpingSession({ session, onStopped }: { session: Helping; onStopped: (
         requestId.current = crypto.randomUUID();
         setCame(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
     };
+    // A match the helper helps at (a session typed as a match became it): its page, no register.
+    const match = session.sessionId == null && session.eventId != null ? session.eventId : null;
     const save = async () => {
+        if (session.sessionId == null) return;
+        const sessionId = session.sessionId;
         setBusy(true); setNotice(null);
         try {
-            const saved = await saveRegister(session.sessionId, { came: [...came], requestId: requestId.current, revision });
+            const saved = await saveRegister(sessionId, { came: [...came], requestId: requestId.current, revision });
             // The ticks and the count are the register as the server keeps it (a coach's arrivals included).
             const arrived = saved.players.filter(p => p.register === 'ARRIVED').map(p => p.id);
             setPlayers(saved.players); setRevision(saved.revision); setCame(new Set(arrived));
             requestId.current = crypto.randomUUID();
             setNotice({ tone: 'success', text: copy('registerSaved', { count: arrived.length }) });
+            window.dispatchEvent(new Event('requests-updated'));
         } catch (error) {
             const changed = isAxiosError(error) && error.response?.status === 409 && error.response.data?.code === 'REGISTER_CHANGED';
             setNotice({ tone: 'danger', text: changed ? copy('registerChanged') : extractApiErrorMessage(error, copy('registerFailed')) });
             // Someone saved in between: show the register as it is now, the coach's ticks added to the helper's, to save again.
             if (isAxiosError(error) && error.response?.status === 409) {
                 requestId.current = crypto.randomUUID();
-                const fresh = await register(session.sessionId).catch(() => null);
+                const fresh = await register(sessionId).catch(() => null);
                 if (fresh) { setPlayers(fresh.players); setRevision(fresh.revision); setCame(current => new Set([...current, ...fresh.players.filter(p => p.register === 'ARRIVED').map(p => p.id)])); }
             }
         }
@@ -123,13 +132,14 @@ function HelpingSession({ session, onStopped }: { session: Helping; onStopped: (
     const faces: Face[] = players.map(p => ({ id: p.id, name: names.get(p.id) ?? p.firstName, tone: TONE[p.response] }));
     return <section className="gk-panel hp-card" aria-label={when}>
         <div className="hp-card__top">
-            <ActivityBadge kind="TRAINING" size={36} />
+            <ActivityBadge kind={match ? (session.kind === 'MATCH' ? 'MATCH' : 'FRIENDLY') : 'TRAINING'} size={36} />
             <span className="hp-card__title">
                 <strong>{when}</strong>
                 <span className="hp-quiet">{[session.squadName, session.title, session.location, session.coach ? copy('withCoach', { name: session.coach }) : null].filter(Boolean).join(' · ')}</span>
             </span>
         </div>
-        <span className="hp-card__coming"><FaceStack people={faces} max={8} size={26} label={summary} /><span className="hp-quiet">{summary}</span></span>
+        {match ? <ButtonLink to={`/matches/${match}`}>{copy('openMatch')}</ButtonLink>
+            : <span className="hp-card__coming"><FaceStack people={faces} max={8} size={26} label={summary} /><span className="hp-quiet">{summary}</span></span>}
         {session.registerOpen && <>
             <ul className="hp-register" aria-label={copy('register')}>{players.map(player => <li key={player.id}>
                 <label className="hp-register__row">

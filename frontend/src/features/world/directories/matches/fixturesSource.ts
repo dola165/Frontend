@@ -14,11 +14,10 @@ import { wt } from '../../copy';
 import { awayLine, farthest } from '../../map/away';
 import { rememberMatches } from '../../scoreboard/matchRegistry';
 import { fixturePlace, ownPlace } from './matchPlaces';
-import { FixtureTools } from './NeedsYouLine';
 
 /** The ends of the list beside the days (the latest results, everything to come, what still needs a result), as headings. */
 const PERIOD_HEADING: Record<string, string> = { HISTORY: 'Results', UPCOMING: 'Upcoming', NEEDS_RESULT: 'Needs a result' };
-const QUERY_KEYS = ['source', 'resultStatus', 'from', 'to', 'mine', 'clubId', 'squadId', 'tournamentId'];
+const QUERY_KEYS = ['city', 'birthYear', 'ageGroup', 'source', 'resultStatus', 'from', 'to', 'mine', 'clubId', 'squadId', 'tournamentId'];
 
 /** One page of an end of the list (Results newest first, Upcoming soonest first), with each row's day. */
 async function loadPeriod(query: DirectoryQuery, period: string, page: number, signal: AbortSignal, sessionId: Parameters<typeof getMatchHistory>[2], country?: string | null) {
@@ -59,7 +58,7 @@ async function loadDay(query: DirectoryQuery, day: string | null, signal: AbortS
  * friendlies and club fixtures), score lines inside, every state worked out honestly.
  */
 export const fixtures: DirectorySource<Fixture> = {
-    id: 'fixtures',
+    id: 'fixtures', area: true, forContext: true,
     label: 'Fixtures & results',
     noun: ['match', 'matches'],
     searchLabel: 'Search fixtures and results',
@@ -69,6 +68,8 @@ export const fixtures: DirectorySource<Fixture> = {
     // Today's scores and kick-off changes arrive without a reload; other days stay as they are.
     refreshMs: query => first(query, 'day') === isoDay(0) || first(query, 'period') === 'NEEDS_RESULT' ? 30_000 : undefined,
     filters: [
+        { kind: 'scope', key: 'city', label: 'City' },
+        { kind: 'scope', key: 'ageGroup', label: 'Age group' },
         // Where the list is: a day on the strip, or one of its ends. Links from elsewhere name an end (`period=HISTORY`).
         { kind: 'choice', key: 'period', label: 'When', nav: true, options: [{ value: 'UPCOMING', label: 'Upcoming' }, { value: 'HISTORY', label: 'Results' }, { value: 'NEEDS_RESULT', label: 'Needs a result', signedIn: true }] },
         { kind: 'date', key: 'day', label: 'Day', nav: true },
@@ -119,7 +120,6 @@ export const fixtures: DirectorySource<Fixture> = {
     Top: DayStrip,
     HeadTools: DayStep,
     Empty: DayEmpty,
-    Tools: FixtureTools,
     // Coaches and players open on their own teams' matches; parents' children are starred instead.
     defaults: ({ role }): Record<string, string[]> => COACHING_ROLES.has(role) || role === 'player' ? { mine: ['true'] } : {},
     empty: { title: 'No matches here yet', body: 'Matches appear when a team or competition organiser schedules or records them.' },

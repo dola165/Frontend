@@ -27,7 +27,7 @@ function destination(record: PlaceRecord, playerId?: number) {
     if (record.opportunity) return { label: wt('View joining arrangements'), to: playerPath(`/admissions/opportunities/${record.opportunity.id}`, playerId) };
     switch (record.entityType) {
         case 'STADIUM': return id ? { label: wt('View availability'), to: `/stadiums/${id}` } : null;
-        case 'MATCH': return record.marker?.scheduleEventId ? { label: wt('Open match'), to: `/match-exchange/${record.marker.scheduleEventId}` } : record.clubId ? { label: wt('Open club'), to: `/clubs/${record.clubId}` } : null;
+        case 'MATCH': return record.marker?.scheduleEventId ? { label: wt('Open match'), to: `/matches/${record.marker.scheduleEventId}?from=world` } : record.clubId ? { label: wt('Open club'), to: `/clubs/${record.clubId}` } : null;
         case 'TRYOUT': return id ? { label: wt('View trial and apply'), to: `/tryouts/${id}` } : null;
         case 'TOURNAMENT': return id ? { label: wt('Open competition'), to: `/tournaments/${id}` } : null;
         default: return record.clubId ? { label: wt('Open club'), to: playerPath(`/clubs/${record.clubId}`, playerId) } : null;

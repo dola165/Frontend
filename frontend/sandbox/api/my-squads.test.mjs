@@ -12,8 +12,13 @@ test('the next match card is the same for everyone on U16 Boys; only the buttons
   assert.equal(manager.match.event_id, keeper.match.event_id);
   assert.deepEqual(manager.callUps.map(p => [p.id, p.response]), keeper.callUps.map(p => [p.id, p.response]));
   assert.deepEqual(Object.keys(manager.fitness).sort(), ['doubtful', 'fit', 'out', 'players']);
-  assert.deepEqual(manager.can, { callUps: true, remind: true, checklist: true, bus: true });
-  assert.deepEqual(keeper.can, { callUps: false, remind: false, checklist: false, bus: false });
+  assert.deepEqual(manager.can, { callUps: true, checklist: true, bus: true });
+  assert.deepEqual(keeper.can, { callUps: false, checklist: false, bus: false });
+  // Step 6: called-up players are expected unless they can't come, and nobody is reminded to answer.
+  assert.equal(manager.expected + manager.notComing, manager.callUps.length);
+  assert.ok(manager.callUps.every(p => ['UNANSWERED', 'NOT_GOING'].includes(p.response)));
+  const remind = await call('POST', `/match-arrangements/${manager.match.event_id}/squads/105/remind`, null, as('teammanager'));
+  assert.ok(remind == null || remind.status === 404, 'there is no Remind any more');
   // Someone on no squad has no card.
   assert.equal((await call('GET', '/squad-communication/105/next-match', null, as('kit'))).status, 404);
 });

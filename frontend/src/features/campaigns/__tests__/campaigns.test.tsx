@@ -15,7 +15,7 @@ vi.mock('../api', async original => ({ ...await original<typeof import('../api')
 vi.mock('../../clubs/api', async original => ({ ...await original<typeof import('../../clubs/api')>(), fetchMyClubMembershipContext: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost:8080' }, apiClient: { get: vi.fn(async () => ({ data: { id: 10, name: 'Alpha FC', myRole: 'OWNER' } })) } }));
 vi.mock('../../../components/ui/MediaImage', () => ({ MediaImage: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} /> }));
-const campaign: api.Campaign = { id: 1, clubId: 10, clubName: 'Alpha FC', country: 'Georgia', city: 'Tbilisi', title: 'A pitch for everyone', summary: 'Bring youth football home', description: 'Create a safe place to play.', beneficiary: 'Youth teams', useOfFunds: 'Surface and fencing', category: 'FACILITIES', currency: 'GEL', goalAmount: 10000, reportedAmount: 2500, reportedNote: 'Treasurer', reportedAt: '2026-10-01T10:00:00Z', startsOn: null, endsOn: null, images: ['/photo.svg'], status: 'PUBLISHED', phase: 'ACTIVE', version: 2, updatedAt: '', publishedAt: '2026-09-20T10:00:00Z', updates: [], donateUrl: 'https://www.gofundme.com/f/a-pitch', donations: 31 };
+const campaign: api.Campaign = { id: 1, clubId: 10, clubName: 'Alpha FC', country: 'Georgia', city: 'Tbilisi', title: 'A pitch for everyone', summary: 'Bring youth football home', description: 'Create a safe place to play.', beneficiary: 'Youth teams', useOfFunds: 'Surface and fencing', category: 'FACILITIES', currency: 'GEL', goalAmount: 10000, reportedAmount: 2500, reportedNote: 'Treasurer', reportedAt: '2026-10-01T10:00:00Z', startsOn: null, endsOn: null, images: ['/photo.svg'], status: 'PUBLISHED', phase: 'ACTIVE', version: 2, updatedAt: '', publishedAt: '2026-09-20T10:00:00Z', updates: [], donateUrl: 'https://www.gofundme.com/f/a-pitch' };
 beforeEach(() => {
     vi.clearAllMocks(); sessionStorage.clear();
     vi.mocked(api.fetchCampaigns).mockResolvedValue({ content: [campaign], totalElements: 1 });
@@ -39,7 +39,7 @@ describe('The search in the address', () => {
 describe('Progress', () => {
     it('keeps an unreported amount unknown, never zero raised', () => {
         expect(api.progressOf({ ...campaign, reportedAmount: null })).toMatchObject({ raised: null, percent: null, donations: null, reached: false });
-        expect(api.progressOf({ ...campaign, reportedAmount: 0 })).toMatchObject({ raised: 0, percent: 0, donations: 31 });
+        expect(api.progressOf({ ...campaign, reportedAmount: 0 })).toMatchObject({ raised: 0, percent: 0, donations: null });
     });
 });
 
@@ -61,12 +61,12 @@ describe('Front, catalogue and the fundraiser', () => {
         await waitFor(() => expect(api.fetchCampaigns).toHaveBeenLastCalledWith(expect.objectContaining({ clubId: 10, page: 1 }), expect.any(AbortSignal)));
         expect(screen.getByRole('link', { name: 'Start a fundraiser' })).toHaveAttribute('href', '/projects?club=10&new=RAISE_MONEY');
     });
-    it('offers Give on GoFundMe on the club page only while a fundraiser is open', async () => {
+    it('offers View external fundraising page on the club page only while a fundraiser is open', async () => {
         vi.mocked(api.fetchCampaigns).mockResolvedValue({ content: [campaign, { ...campaign, id: 2, title: 'Paused pitch', status: 'PAUSED', phase: 'PAUSED' },
             { ...campaign, id: 3, title: 'Closed pitch', status: 'CLOSED', phase: 'ENDED' }], totalElements: 3 });
         render(<MemoryRouter initialEntries={['/clubs/10/campaigns?state=ALL']}><Routes><Route path="/clubs/:id/campaigns" element={<ClubFundraisingPage />} /></Routes></MemoryRouter>);
         expect(await screen.findByText('Closed pitch')).toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: /Give on GoFundMe/ })).toHaveLength(1);
+        expect(screen.getAllByRole('link', { name: /View external fundraising page/ })).toHaveLength(1);
     });
 
     it('clears a dependent city when the country changes', async () => {
@@ -79,15 +79,15 @@ describe('Front, catalogue and the fundraiser', () => {
         vi.mocked(api.fetchCampaign).mockResolvedValue(campaign);
         render(<MemoryRouter initialEntries={['/campaigns/1']}><Routes><Route path="/campaigns/:id" element={<FundraiserPage />} /></Routes></MemoryRouter>);
         await screen.findByRole('heading', { name: campaign.title });
-        expect(screen.getByRole('link', { name: 'Donate on GoFundMe' })).toHaveAttribute('href', 'https://www.gofundme.com/f/a-pitch');
-        expect(screen.getByText(/Reported by the club · 31 donations/)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'View external fundraising page' })).toHaveAttribute('href', 'https://www.gofundme.com/f/a-pitch');
+        expect(screen.getByText(/Reported by the organizer/)).toBeInTheDocument();
         expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25');
         expect(screen.getByText(/reported by Alpha FC/)).toBeInTheDocument();
     });
     it('asks the club how to give when there is no GoFundMe page, and disables an ended fundraiser', async () => {
         vi.mocked(api.fetchCampaign).mockResolvedValue({ ...campaign, donateUrl: null });
         const view = render(<MemoryRouter initialEntries={['/campaigns/1']}><Routes><Route path="/campaigns/:id" element={<FundraiserPage />} /></Routes></MemoryRouter>);
-        expect(await screen.findByRole('link', { name: 'Ask the club how to give' })).toHaveAttribute('href', '/clubs/10?tab=contact');
+        expect(await screen.findByRole('link', { name: 'Ask the organizer how to give' })).toHaveAttribute('href', '/clubs/10?tab=contact');
         view.unmount();
         vi.mocked(api.fetchCampaign).mockResolvedValue({ ...campaign, phase: 'ENDED', status: 'CLOSED' });
         render(<MemoryRouter initialEntries={['/campaigns/1']}><Routes><Route path="/campaigns/:id" element={<FundraiserPage />} /></Routes></MemoryRouter>);

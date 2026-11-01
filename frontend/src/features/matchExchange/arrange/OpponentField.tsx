@@ -11,10 +11,13 @@ import type { Opponent } from './matchPlan';
 
 interface Load<T> { data: T | undefined; loading: boolean; error: string; retry: () => void }
 
-/** The club to invite, found by name, then the squad of theirs we would like to play. */
-export function OpponentField({ opponent, onOpponent, ownClubId, squads, targetSquadId, onTargetSquad, suggestedSquadId, error }: {
-    opponent: Opponent | null; onOpponent: (value: Opponent | null) => void; ownClubId: number | null;
-    squads: Load<PublicSquad[]>; targetSquadId: number; onTargetSquad: (id: number) => void; suggestedSquadId: number; error?: string;
+/**
+ * The club to invite, found by name, then the squad of theirs we would like to play. A club that is not in GrassKickZ is
+ * typed by name instead: the match goes into our week at once, since nobody there can answer.
+ */
+export function OpponentField({ opponent, onOpponent, outside, onOutside, ownClubId, squads, targetSquadId, onTargetSquad, suggestedSquadId, error }: {
+    opponent: Opponent | null; onOpponent: (value: Opponent | null) => void; /** A typed club's name; null while searching. */ outside?: string | null; onOutside: (name: string | null) => void;
+    ownClubId: number | null; squads: Load<PublicSquad[]>; targetSquadId: number; onTargetSquad: (id: number) => void; suggestedSquadId: number; error?: string;
 }) {
     const t = useMatchCopy();
     const [query, setQuery] = useState('');
@@ -22,6 +25,15 @@ export function OpponentField({ opponent, onOpponent, ownClubId, squads, targetS
     const clubs = results.items.filter(club => club.id !== ownClubId);
     const city = (club: ClubSearchResult) => club.cityName ?? club.city ?? '';
 
+    if (!opponent && outside != null) return (
+        <Field label={t('Opponent')} htmlFor="arrange-outside" error={error && t(error)} hint={t('Not in GrassKickZ: the match goes into your week at once.')}>
+            <div className="gk-arrange__outside">
+                <input id="arrange-outside" className="gk-input" maxLength={160} value={outside} placeholder={t('Club name')} aria-invalid={Boolean(error) || undefined}
+                    onChange={event => onOutside(event.target.value)} />
+                <Button size="sm" variant="ghost" onClick={() => onOutside(null)}>{t('Search GrassKickZ')}</Button>
+            </div>
+        </Field>
+    );
     if (!opponent) return (
         <Field label={t('Opponent')} htmlFor="arrange-opponent" error={error && t(error)} hint={t("Type at least two letters of the club’s name or town.")}>
             <Combobox id="arrange-opponent" label={t("Clubs")} query={query} onQuery={setQuery} items={clubs} itemKey={club => club.id}
@@ -31,6 +43,7 @@ export function OpponentField({ opponent, onOpponent, ownClubId, squads, targetS
                     <span className="gk-arrange__option-text"><strong>{club.name}</strong>{city(club) && <span>{city(club)}</span>}</span>
                 </>}
                 onSelect={club => { onOpponent({ id: club.id, name: club.name, logoUrl: club.logoUrl, city: city(club) || null }); setQuery(''); }} />
+            <Button size="sm" variant="ghost" className="gk-arrange__not-here" onClick={() => onOutside(query.trim())}>{t('Not in GrassKickZ? Type its name')}</Button>
         </Field>
     );
 

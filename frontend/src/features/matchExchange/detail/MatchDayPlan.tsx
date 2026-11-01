@@ -7,7 +7,7 @@ import { journeyLabel } from '../journeyCopy';
 import { useWorldCopy } from '../../world/copy';
 import { appLanguage } from '../../../utils/formatting';
 import { useAction } from '../hooks';
-import { canUseReservation, endTime, groundState, holdsGround, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState } from './matchState';
+import { canUseReservation, endTime, groundState, holdsGround, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState, windowOf } from './matchState';
 
 const sideName = (squad: string, club: string | null, same: boolean) => same && club ? `${squad} (${club})` : squad;
 
@@ -28,14 +28,21 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
     const reservation = !m.booking ? null : m.booking.status === 'CONFIRMED' ? t('Reserved') : m.booking.status === 'PENDING' ? t('Reservation waiting for the venue')
         : holdsGround(m) ? t('Reservation request expired; the venue has not released it yet') : t('Reservation {status}', { status: journeyLabel(m.booking.status, language) });
     const canReserve = canUseReservation(m, active);
-    const appointed = m.appointments?.filter(a => ['ACCEPTED', 'INVITED'].includes(a.status)).map(a => a.full_name).filter(Boolean).join(', ');
+    // A competition match's referees are the competition's own appointments (fix round 1).
+    const competition = m.origin === 'COMPETITION';
+    const appointed = (competition ? m.competition_referees : m.appointments?.filter(a => ['ACCEPTED', 'INVITED'].includes(a.status)))
+        ?.map(a => a.full_name).filter(Boolean).join(', ');
+    const slot = windowOf(m);
+    const dayWords = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString(appLanguage() === 'ka' ? 'ka-GE' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
     return (
         <Section title={t('Plan your match day')} id="plan">
             <Panel flush>
                 <List label={t('Match day')}>
+                    {/* An open challenge's window: its days and hours; the answering squad picks the kick-off inside it. */}
                     <ListRow lead={<CalendarDays aria-hidden="true" className="gk-match-icon" />}
-                        title={<>{kickoffDay(m)} · <span className="gk-num">{kickoffTime(m)}–{endTime(m)}</span></>}
-                        meta={t('{minutes} minutes · {timezone}', { minutes: lengthMinutes(m), timezone: m.timezone })}
+                        title={slot ? <>{dayWords(slot.days[0])}{slot.days.length > 1 ? ` – ${dayWords(slot.days[slot.days.length - 1])}` : ''} · <span className="gk-num">{slot.from}–{slot.to}</span></>
+                            : <>{kickoffDay(m)} · <span className="gk-num">{kickoffTime(m)}–{endTime(m)}</span></>}
+                        meta={t('{minutes} minutes · {timezone}', { minutes: slot ? slot.minutes : lengthMinutes(m), timezone: m.timezone })}
                         trail={<ButtonLink size="sm" variant="ghost" to={`/calendar?scope=squad&squadId=${m.squad_id}`}>{t('Squad schedule')}</ButtonLink>} />
                     <ListRow lead={<MapPin aria-hidden="true" className="gk-match-icon" />}
                         title={named ? m.location_name : t('Ground to be arranged')}
@@ -49,9 +56,9 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
                                 {t(m.external_venue_confirmed ? 'Withdraw confirmation' : 'Confirm ground')}</Button>}
                         </>} />
                     <ListRow lead={<Shield aria-hidden="true" className="gk-match-icon" />}
-                        title={appointed || m.external_referee_name || t(m.referee_required ? 'Referee' : 'No referee needed')}
-                        meta={m.external_referee_name ? t('Arranged outside GrassKickZ by the coaching team') : m.referee_responsibility === 'OPPONENT' ? t('The visiting team arranges the referee') : m.referee_required ? t('The hosting team arranges the referee') : undefined}
-                        trail={<><Badge tone={referee.tone}>{t(referee.label)}</Badge>{m.referee_required && <a className="gk-btn gk-btn--ghost gk-btn--sm" href="#officials">{t('See officials')}</a>}</>} />
+                        title={appointed || m.external_referee_name || t(m.referee_required || competition ? 'Referee' : 'No referee needed')}
+                        meta={competition ? undefined : m.external_referee_name ? t('Arranged outside GrassKickZ by the coaching team') : m.referee_responsibility === 'OPPONENT' ? t('The visiting team arranges the referee') : m.referee_required ? t('The hosting team arranges the referee') : undefined}
+                        trail={<><Badge tone={referee.tone}>{t(referee.label)}</Badge>{(m.referee_required || competition) && <a className="gk-btn gk-btn--ghost gk-btn--sm" href="#officials">{t('See officials')}</a>}</>} />
                     <ListRow lead={<UsersRound aria-hidden="true" className="gk-match-icon" />}
                         title={<><Link className="gk-match-link" to={`/clubs/${m.club_id}?tab=teams&squad=${m.squad_id}`}>{sideName(m.squad_name, m.club_name, same)}</Link>{m.opponent_squad_name && <> v {m.opponent_club_id ? <Link className="gk-match-link" to={`/clubs/${m.opponent_club_id}?tab=teams${m.target_squad_id ? `&squad=${m.target_squad_id}` : ''}`}>{sideName(m.opponent_squad_name, m.opponent_name, same)}</Link> : sideName(m.opponent_squad_name, m.opponent_name, same)}</>}</>}
                         meta={m.coach_name ? <>{t('Host coach:')} {m.head_coach_id ? <Link className="gk-match-link" to={`/profile/${m.head_coach_id}`}>{m.coach_name}</Link> : m.coach_name}</> : t('{club} squads', { club: m.club_name })} />

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { CreateMenu } from '../compose/CreateMenu';
+import { ActionButton } from '../../actions/ActionButton';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { isoDay } from '../format';
@@ -11,15 +11,16 @@ import { useWorldRole } from '../front/useWorldRole';
 import { WorldLoading } from '../WorldLoading';
 import { useWorldSession } from '../worldSession';
 import { fixtures } from './matches/fixturesSource';
-import { loadWindow, NAMED_KEYS, openingDay } from './matches/matchday';
+import { loadWindow, openingDay, windowFilters } from './matches/matchday';
 import { useWorldArea } from '../useWorldArea';
+import { hasPublicCohort, useWorldFor } from '../searchContext';
+import { CARRIED, effectiveDirectoryQuery, readQuery } from '../directory/useDirectoryState';
 import { exchange } from './matches/exchangeSource';
-import { arrangements, events } from './matches/otherSources';
+import { events } from './matches/otherSources';
 
-const SOURCES = [fixtures, exchange, arrangements, events];
-/** The tab Matches opens on for each role, when the address names none: a referee looks for matches to officiate, a team manager at what needs arranging. */
-const OPENING: Partial<Record<WorldRole, string>> = { referee: 'exchange', 'team-manager': 'mine' };
-const WINDOW_KEYS = ['source', 'mine', 'clubId', 'squadId', 'tournamentId', 'resultStatus', 'q'];
+const SOURCES = [fixtures, exchange, events];
+/** The tab Matches opens on for each role, when the address names none: a referee looks for matches to officiate. */
+const OPENING: Partial<Record<WorldRole, string>> = { referee: 'exchange' };
 
 /**
  * Fixtures opens on a day: today when it has matches, else the next matchday (or the list of everything to come when
@@ -31,14 +32,14 @@ function useOpeningDay(opening: string, role: WorldRole) {
     const [params, setParams] = useSearchParams();
     const onFixtures = (params.get('tab') ?? opening) === 'fixtures';
     const { area } = useWorldArea();
-    const needed = status === 'authenticated' && onFixtures && area.ready && !params.has('day') && !params.has('period');
-    // The window as the list will ask for it, with the person's own teams when that is how the tab opens for them.
-    const filters = new URLSearchParams();
-    for (const key of WINDOW_KEYS) if (params.get(key)) filters.set(key, params.get(key)!);
-    if (!filters.has('mine') && [...filters.keys()].length === 0 && (COACHING_ROLES.has(role) || role === 'player')) filters.set('mine', 'true');
-    // Nothing searched or named: the person's own country, as the list asks for it.
-    if (area.country && !filters.has('q') && !NAMED_KEYS.some(name => filters.has(name))) filters.set('country', area.country);
-    const key = filters.toString();
+    const context = useWorldFor();
+    const requested = readQuery(fixtures, params).query;
+    const explicit = requested.q || params.has('selected') || fixtures.filters.some(filter => !filter.nav && !CARRIED.includes(filter.key) && params.has(filter.key));
+    if (!explicit && (COACHING_ROLES.has(role) || role === 'player')) requested.values.mine = ['true'];
+    const query = effectiveDirectoryQuery(fixtures, requested, context, area);
+    const needed = status === 'authenticated' && onFixtures && area.ready && !context.pending && !context.unavailable
+        && !(context.missingCohort && !hasPublicCohort(query)) && !params.has('day') && !params.has('period');
+    const key = windowFilters(query, area.country);
     useEffect(() => {
         if (!needed) return;
         let live = true;
@@ -59,7 +60,8 @@ function useOpeningDay(opening: string, role: WorldRole) {
 }
 
 /**
- * World › Matches: fixtures and results a day at a time, open matches, my arrangements and every published event.
+ * World › Matches, discovery only: fixtures and results a day at a time, open challenges and every published event. A
+ * club's own match work is in My squads › Matches.
  * Guests open on the published events, the one list they can see without signing in.
  */
 export default function MatchesDirectory() {
@@ -75,10 +77,11 @@ export default function MatchesDirectory() {
     return (
         <DirectoryPage
             title={t('Matches')}
-            subtitle={t('Fixtures, results and open matches')}
+            subtitle={t('Fixtures, results and open challenges')}
             sources={SOURCES}
             opening={opening}
-            actions={<CreateMenu face="arrange" />}
+            // Arranging is the one sheet; from World's matches it opens on posting an open challenge.
+            actions={<ActionButton action="arrange_match" variant="primary" hints={{ way: 'open' }} label={t('Post an open challenge')} />}
         />
     );
 }

@@ -37,6 +37,19 @@ beforeEach(() => {
     vi.mocked(chatApi.getPendingSuggestions).mockResolvedValue({ data: [] } as never);
 });
 afterEach(async () => { await i18n.changeLanguage('en'); });
+it('rechecks a listed conversation before exposing its cached history', async () => {
+    let resolveList!: (response: never) => void;
+    vi.mocked(chatApi.getConversations).mockReturnValueOnce(new Promise(resolve => { resolveList = resolve; }));
+    vi.mocked(chatApi.getConversation).mockRejectedValueOnce({ response: { status: 403 } });
+    render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('couldn’t load');
+    expect(screen.queryByPlaceholderText('Write a message…')).not.toBeInTheDocument();
+    expect(chatApi.getMessages).not.toHaveBeenCalled();
+    await act(async () => resolveList({ data: { content: [{ ...conversation, lastMessage: 'Revoked private preview' }] } } as never));
+    expect(screen.queryByText('Revoked private preview')).not.toBeInTheDocument();
+    expect(screen.queryByText('Peer')).not.toBeInTheDocument();
+});
+
 it('restores a lost-response draft after a reload and retries the same UUID once', async () => {
     const renderPage = () => render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
     const first = renderPage();
@@ -105,6 +118,7 @@ it('keeps the draft after a lost acknowledgement and shows it once after retry, 
 it('retains each conversation draft when switching', async () => {
     const second = { ...conversation, id: 8, participants: [conversation.participants[0], { ...conversation.participants[1], userId: 3, displayName: 'Other peer' }] };
     vi.mocked(chatApi.getConversations).mockResolvedValue({ data: { content: [conversation, second] } } as never);
+    vi.mocked(chatApi.getConversation).mockImplementation(async id => ({ data: id === 8 ? second : conversation }) as never);
     render(<MemoryRouter><MessagingPage /></MemoryRouter>);
     fireEvent.click(await screen.findByText('Peer'));
     fireEvent.change(await screen.findByPlaceholderText('Write a message…'), { target: { value: 'First draft' } });

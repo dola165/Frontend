@@ -3,29 +3,25 @@ import type { Match } from '../../matchExchange/api';
 
 /** A called-up player and the family's answer, as the match's participants list has them. */
 export interface CallUp { id: number; name: string; selected: boolean; response: string; revision: number; canRespond: boolean; waiting?: boolean }
-export type Fitness = 'FIT' | 'DOUBTFUL' | 'OUT';
+export type Fitness = 'FIT' | 'DOUBTFUL' | 'OUT' | 'NOT_ASSESSED';
 
 /**
  * A squad's next match, the same card for everyone on the squad (step 3, 29 October 2026): the fixture as its own page
- * shows it, call-ups with answers, the preparation record (the checklist and what to bring), the trip, and who's fit as
- * Fit, Doubtful or Out only. `can` holds the buttons this person's tools give. `match: null` when nothing is arranged.
+ * shows it, call-ups (expected unless a family said they can't come, step 6) with their counts, the preparation record
+ * (the checklist and what to bring), the trip, and recorded participation plus neutral Not assessed. `can` holds the buttons this
+ * person's tools give. `match: null` when nothing is arranged.
  */
 export interface MatchCard {
     squadId: number; squadName: string; match: Match | null;
-    callUps?: CallUp[];
-    fitness?: { fit: number; doubtful: number; out: number; players: { id: number; state: Fitness }[] };
+    callUps?: CallUp[]; expected?: number | null; notComing?: number | null;
+    fitness?: { fit: number; doubtful: number; out: number; notAssessed: number; players: { id: number; state: Fitness }[] };
     preparation?: { recordId: number; status: string; revision: number; referees: string | null; pitch: string | null; medical: string | null; bring: string[] } | null;
     trip?: { recordId: number; status: string; departsAt: string | null; meetingPoint: string | null; destination: string | null } | null;
-    lastReminder?: string | null;
-    can?: { callUps: boolean; remind: boolean; checklist: boolean; bus: boolean };
+    can?: { callUps: boolean; checklist: boolean; bus: boolean };
 }
 
 export const nextMatch = async (squad: number, signal?: AbortSignal) =>
     (await apiClient.get<MatchCard>(`/squad-communication/${squad}/next-match`, { signal })).data;
-
-/** Remind the families of called-up players who haven't answered; at most every two hours (REMINDED_RECENTLY). */
-export const remindCallUps = async (event: number, squad: number) =>
-    (await apiClient.post<{ reminded: number }>(`/match-arrangements/${event}/squads/${squad}/remind`)).data;
 
 /** The squad's staff room in the app's chats, made the first time someone on the squad opens it. */
 export const openStaffRoom = async (squad: number) =>

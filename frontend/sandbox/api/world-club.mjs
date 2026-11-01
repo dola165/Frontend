@@ -173,7 +173,9 @@ export function directoryItem(id) {
     isFollowedByMe: p.isFollowedByMe, addressText: p.addressText, cityName: p.cityName, countryName: p.countryName, logoUrl: p.logoUrl,
     // As the real directory sends it: the join policy under its own name, membership but no relationship state.
     playerJoinPolicy: p.playerJoinPolicy, isMember: p.isMember, isStaffMember: p.isStaffMember, relationshipState: null,
-    latitude: p.latitude, longitude: p.longitude, presentation: p.presentation, foundedYear: p.foundedYear };
+    latitude: p.latitude, longitude: p.longitude, presentation: p.presentation, foundedYear: p.foundedYear,
+    // The club's one phone, as the real list sends it (Parent Hub's Call and WhatsApp).
+    whatsappNumber: p.whatsappNumber ?? null };
 }
 
 // ---------------------------------------------------------------- player affiliations

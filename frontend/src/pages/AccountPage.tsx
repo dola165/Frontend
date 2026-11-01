@@ -70,7 +70,7 @@ export const AccountPage = () => {
     return (
         <div className="account-page workspace-page-shell min-h-full pb-10">
             <div className="flex w-full flex-col gap-5">
-                <AccountHeader account={account} profileHref={profileHref} avatarPreview={avatarPreview} initials={initials}
+                <AccountHeader account={account} profileHref={profileHref} avatarPreview={avatarPreview} initials={initials} compact={activeTab !== 'profile'}
                     tryoutApps={center.tryoutApps} showTryoutApps={center.showTryoutApps}
                     onSecurity={() => setSearchParams({ tab: 'security' })}
                     onToggleTryouts={() => { void center.loadTryoutApplications(); center.setShowTryoutApps((v) => !v); }} />

@@ -1,0 +1,8 @@
+.org-presence .gk-list { list-style: none; padding: 0; margin: 0; }
+.org-presence .gk-list-row { display: flex; gap: 12px; align-items: center; min-height: 44px; padding: 10px 0; text-decoration: none; }
+.org-presence .gk-list-row__main { display: grid; min-width: 0; overflow-wrap: anywhere; }
+.org-presence .gk-list-row__meta { color: var(--text-secondary, var(--color-secondary)); font-size: .875rem; }
+.org-business-home .org-setup-header > div:first-child { min-width: 0; }
+.org-business-home .org-setup-header h1 { font-size: clamp(1.45rem, 3vw, 1.9rem); overflow-wrap: anywhere; }
+.org-business-home .org-setup-header .org-setup-actions { flex-shrink: 0; }
+.org-business-home > a { display: inline-flex; align-items: center; min-height: 44px; }

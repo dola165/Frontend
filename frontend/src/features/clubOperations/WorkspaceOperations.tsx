@@ -1,3 +1,5 @@
+import { PrivateCarePanel } from './care/PrivateCarePanel';
+import { RegistrationPanel } from './registration/RegistrationPanel';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
@@ -7,6 +9,7 @@ import { get, root, moduleNames, type Bootstrap, type OperationRecord } from './
 import { RecordDetail } from './RecordDetail';
 import { OperationsSettings } from './OperationsSettings';
 import { FinanceSummary } from './FinanceSummary';
+import { KitStockPanel } from './KitStockPanel';
 import { SessionRegister } from './SessionRegister';
 import { operationDescriptions, operationTabs, toolLabel } from './workspaceNavigation';
 import { RecordForm } from './records/RecordForm';
@@ -16,6 +19,7 @@ import { useScopedSearchParams } from './scopedParams';
 import { clubRecordsEn } from '../../locales/clubRecords';
 import { translate, useCopy } from '../../locales/useCopy';
 import { appLanguage } from '../../utils/formatting';
+import { assertCurrentAuthSession, getAuthSessionId } from '../../utils/authStorage';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
@@ -23,7 +27,13 @@ import '../clubWorkspace/club-workspace.css';
 /** Record kinds no new record starts as: a purchase request is a project now (step 4). */
 const RETIRED_KINDS = new Set(['PURCHASE']);
 /** One club tool (duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
-export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: {
+export function WorkspaceOperations(props: Parameters<typeof OperationsRecords>[0]) {
+  const [context] = useScopedSearchParams(props.scope);
+  const directRecord = context.has('record') && !context.has('person');
+  if (props.module === 'REGISTRATION' && !context.has('record') && context.get('registration') !== 'records') return <RegistrationPanel boot={props.boot} scope={props.scope} />;
+  return ['MEDICAL', 'WELLBEING'].includes(props.module) && !directRecord ? <PrivateCarePanel {...props} /> : <OperationsRecords {...props} />;
+}
+function OperationsRecords({ boot, module, onRefresh, origin, scope }: {
   boot: Bootstrap; module: string; onRefresh: () => Promise<void>;
   /** Opened inside another page (a drawer beside a player): its URL parameters live under this prefix. */
   scope?: string;
@@ -109,6 +119,15 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     if (record) setSavedRecord({ clubId: club, actorId: boot.actorId, id: record.id, title: record.title });
     close(); reload();
   };
+  const reloadDetail = async () => {
+    if (!linked) throw new Error('No record is open.');
+    const request = selectRequest.current, session = getAuthSessionId();
+    const value = await get<OperationRecord>(`${root(club)}/records/${encodeURIComponent(linked)}`);
+    assertCurrentAuthSession(session);
+    if (request !== selectRequest.current) throw new Error('The selected record changed.');
+    setSelected(value); reload();
+    return value;
+  };
   const create = (value: string) => { setNewKind(value); setEditing(true); setSelected(null); setChoosing(false); };
   const tool = operationTabs.find(t => t.module === module);
   const title = tool ? toolLabel(tool.id) : moduleNames[module];
@@ -148,7 +167,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     {detailError ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{detailError}</span><Button size="sm" onClick={() => setDetailRevision(value => value + 1)}>{copy('tryAgain')}</Button></div> : <div className="cw-loading" role="status" aria-label={copy('opening')}><Skeleton height={34} width="40%" /><Skeleton height={200} /></div>}
   </PageFrame>;
   if (editing && definition) return <PageFrame><RecordForm key={`${newKind}-${selected?.id ?? 'new'}`} boot={editorBoot} definition={definition} record={selected ?? undefined} backLabel={listLabel} onSaved={changed} onCancel={close} /></PageFrame>;
-  if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onClose={back} /></PageFrame>;
+  if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onReload={reloadDetail} onClose={back} /></PageFrame>;
 
   const contextName = person ? (boot.people.find(p => String(p.id) === person)?.name ?? `Player #${person}`) : (selectedSession?.title ?? `Training session #${session}`);
   return <PageFrame className="rec-page" aria-label={title}>
@@ -166,6 +185,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
       {!enabled && <div className="gk-notice" role="status">{copy('toolOff')}</div>}
       {module === 'STAFF' && <div className="gk-notice" role="status"><span className="cw-notices__text">{copy('staffNotice')}</span><ButtonLink size="sm" to={`/clubs/${club}/office`}>{copy('openStaff')}</ButtonLink></div>}
       {module === 'FINANCE' && <FinanceSummary club={club} revision={boot} />}
+      {module === 'EQUIPMENT' && <KitStockPanel key={`${club}:${boot.actorId}`} club={club} revision={`${refresh}:${detailRevision}`} />}
       {(session || person) && <div className="gk-notice"><span className="cw-notices__text"><strong>{contextName}</strong>{squad ? ` · ${boot.squads.find(s => String(s.id) === squad)?.name ?? `Squad #${squad}`}` : ''}{selectedSession ? ` · ${new Date(selectedSession.starts_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}` : ''}</span>
         <Button size="sm" onClick={() => { const next = new URLSearchParams(params); next.delete('session'); next.delete('person'); next.delete('page'); setParams(next); }}>{copy('clear')}</Button></div>}
       {isRegister && <><SessionRegister boot={boot} session={Number(session)} squad={selectedSession!.squad_id!} onRecord={open} />

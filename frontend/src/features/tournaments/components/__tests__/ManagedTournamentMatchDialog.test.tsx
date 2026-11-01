@@ -3,13 +3,15 @@ import { MemoryRouter } from 'react-router-dom';
 import '../../../../i18n';
 import { ManagedTournamentMatchDialog } from '../ManagedTournamentMatchDialog';
 import { getDraw, operation, saveCompetitionResult } from '../../../competitions/api';
-import { fetchTournament } from '../../api';
+import { cancelFixture, fetchTournament } from '../../api';
 import type { TournamentDetail, TournamentFixtureDto } from '../../domain';
 import type { Profile } from '../../../competitions/api';
 
 vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 1 }, sessionId: 'session-one' }) }));
 vi.mock('../../../competitions/api', async original => ({ ...await original<typeof import('../../../competitions/api')>(), getDraw: vi.fn(), operation: vi.fn(), saveCompetitionResult: vi.fn() }));
 vi.mock('../../api', () => ({ fetchTournament: vi.fn(), cancelFixture: vi.fn() }));
+vi.mock('../../../competitions/CompetitionFixtureConcerns', () => ({ CompetitionFixtureConcerns: () => null }));
+vi.mock('../../../competitions/CompetitionQualificationRepair', () => ({ CompetitionQualificationRepair: () => null }));
 const fixture = { id: 4, stageId: 1, stageName: 'Cup', status: 'SCHEDULED', homeEntryId: 11, awayEntryId: 12, scheduledAt: '2026-01-10T13:00-05:00', locationId: null } as TournamentFixtureDto;
 const tournament = { id: 8, status: 'ACTIVE', startDate: '2026-01-10T10:00-05:00', endDate: '2026-01-10T20:00-05:00', entries: [{ id: 11, displayName: 'Home' }, { id: 12, displayName: 'Away' }], stages: [{ id: 1, stageType: 'KNOCKOUT' }], fixtures: [fixture] } as TournamentDetail;
 const profile = { rules: { timezone: 'America/New_York', matchMinutes: 1, pitches: 2 }, revision: 3, legacy: false } as Profile;
@@ -54,4 +56,31 @@ it('shows the safe allocation summary inside the managed match view', async () =
     open({ ...fixture, venueReservation: { venueId: 71, venueName: 'Synthetic ground', pitchName: 'Pitch A', status: 'CONFIRMED', startsAt: '2026-01-10T18:00:00Z', endsAt: '2026-01-10T18:01:00Z', timezone: 'America/New_York' } });
     expect(await screen.findByText('Pitch confirmed')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Synthetic ground · Pitch A' })).toHaveAttribute('href', '/stadiums/71');
+});
+
+it('sends changed-winner correction with a reason and leaves winner derivation to the server', async () => {
+    open({ ...fixture, status: 'COMPLETED', homeScore: 2, awayScore: 0, winnerEntryId: 11 });
+    fireEvent.change(screen.getAllByLabelText(/^Goals for/)[0], { target: { value: '0' } });
+    fireEvent.change(screen.getAllByLabelText(/^Goals for/)[1], { target: { value: '3' } });
+    expect(screen.getByRole('button', { name: 'Save score correction' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Reason or result note'), { target: { value: 'Organiser checked the disputed score sheet' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save score correction' }));
+    await waitFor(() => expect(saveCompetitionResult).toHaveBeenCalledWith(8, expect.objectContaining({ action: 'CORRECT', homeScore: 0, awayScore: 3, winnerEntryId: null, revision: 3, reason: 'Organiser checked the disputed score sheet' })));
+});
+
+it('cancels through the versioned receipt and preserves the reason after a lost response', async () => {
+    vi.mocked(saveCompetitionResult).mockRejectedValueOnce(new Error('Connection lost')).mockResolvedValue(tournament);
+    open();
+    expect(screen.getByRole('button', { name: 'Cancel fixture' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Reason or result note'), { target: { value: 'Ground closed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel fixture' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Confirm$/ }));
+    await waitFor(() => expect(saveCompetitionResult).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Confirm$/ })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: /^Confirm$/ }));
+    await waitFor(() => expect(saveCompetitionResult).toHaveBeenCalledTimes(2));
+    const calls = vi.mocked(saveCompetitionResult).mock.calls;
+    expect(calls[1][1]).toEqual(calls[0][1]);
+    expect(calls[0][1]).toEqual(expect.objectContaining({ action: 'CANCEL', homeScore: null, awayScore: null, reason: 'Ground closed', revision: 3 }));
+    expect(cancelFixture).not.toHaveBeenCalled();
 });

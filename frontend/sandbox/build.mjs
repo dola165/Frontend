@@ -69,6 +69,19 @@ const sandboxPlugin = {
       const code = result.outputFiles[0].text;
       return { contents: `const code = ${JSON.stringify(code)}; export default class InlineWorker { constructor() { return new Worker(URL.createObjectURL(new Blob([code], { type: 'text/javascript' }))); } }`, loader: 'js' };
     });
+    // Vite's `?worker&url` (MapLibre's tile worker, src/components/map/maplibreWorker.ts): ship the file, export its
+    // address. Without this esbuild drops the query and imports the worker module itself, so MapLibre is handed that
+    // module instead of an address and every map fails to start (`endsWith is not a function`).
+    build.onResolve({ filter: /\?worker&url$/ }, async args => {
+      const found = await build.resolve(args.path.replace(/\?.*$/, ''), { resolveDir: args.resolveDir, kind: args.kind });
+      return found.errors.length ? { errors: found.errors } : { path: found.path, namespace: 'worker-url' };
+    });
+    build.onLoad({ filter: /.*/, namespace: 'worker-url' }, async args => {
+      const name = path.basename(args.path);
+      await mkdir(path.join(out, 'assets'), { recursive: true });
+      await cp(args.path, path.join(out, 'assets', name));
+      return { contents: `export default ${JSON.stringify(`/assets/${name}`)};`, loader: 'js' };
+    });
     build.onResolve({ filter: /\?raw$/ }, args => ({ path: path.resolve(args.resolveDir, args.path.replace(/\?raw$/, '')), namespace: 'raw' }));
     build.onLoad({ filter: /.*/, namespace: 'raw' }, async args => ({ contents: `export default ${JSON.stringify(await readFile(args.path, 'utf8'))};`, loader: 'js' }));
     build.onLoad({ filter: /src[\\/]index\.css$/ }, async args => ({ contents: await tailwindCss(args.path), loader: 'css', resolveDir: path.dirname(args.path) }));

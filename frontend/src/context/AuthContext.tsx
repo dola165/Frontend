@@ -3,6 +3,7 @@ import { appLanguage } from '../utils/formatting';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { isAndroidApp, nativeCall, nativeSession } from '../android/bridge';
 import { normalizeNavigationCapabilities, type NavigationCapabilities } from './navigationCapabilities';
+import { announceAccessRefresh } from '../hooks/accessRefresh';
 import type { AccountState } from '../utils/authRedirect';
 import {
     apiClient,
@@ -123,7 +124,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await apiClient.get<Record<string, unknown>>('/users/me', config);
         assertCurrentAuthSession(sessionId);
         const normalizedUser = normalizeAuthUser(response.data);
-        if (request === currentUserRequestRef.current) applyAuthenticatedState(normalizedUser, sessionId);
+        if (request === currentUserRequestRef.current) {
+            applyAuthenticatedState(normalizedUser, sessionId);
+            announceAccessRefresh();
+        }
         return normalizedUser;
     }, [applyAuthenticatedState]);
 
@@ -138,10 +142,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const next = normalizeAuthUser(response.data);
             setUser(current => current?.id === next.id ? next
                 : current ? { ...current, navigationCapabilities: { version: 1, workspaces: [] } } : current);
+            // Jobs can change posting authority without changing any workspace shortcut.
+            announceAccessRefresh();
         } catch {
             if (!isCurrentAuthSession(session) || request !== currentUserRequestRef.current) return;
             // Retire stale shortcuts on failure without discarding the authenticated account.
             setUser(current => current ? { ...current, navigationCapabilities: { version: 1, workspaces: [] } } : current);
+            announceAccessRefresh();
         }
     }, [status, resolvedSessionId]);
 

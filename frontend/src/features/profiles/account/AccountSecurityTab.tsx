@@ -1,4 +1,5 @@
 import { BadgeCheck, KeyRound, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { TwoFactorSettings } from '../../twoFactor/TwoFactorSettings';
 import { useAccountCopy } from './accountCopy';
 import { Field, Section } from './AccountFields';
@@ -51,17 +52,18 @@ export const AccountSecurityTab = ({ account, passwordForm, setPasswordForm, cha
                     </div>
                 </div>
 
+                <Link className={`${btnSecondaryClass} mt-4 min-h-11`} to="/forgot-password?next=%2Faccount%3Ftab%3Dsecurity">{copy('Password recovery', 'პაროლის აღდგენა')}</Link>
                 {account.passwordLoginEnabled && (
                     <form onSubmit={changePassword} className="mt-4 grid gap-4">
                         <Field label={copy("Current Password")}>
-                            <input type="password" value={passwordForm.currentPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))} className={inputClass} />
+                            <input type="password" autoComplete="current-password" required maxLength={256} value={passwordForm.currentPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))} className={inputClass} />
                         </Field>
                         <div className="grid gap-4 md:grid-cols-2">
                             <Field label={copy("New Password")}>
-                                <input type="password" value={passwordForm.newPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))} className={inputClass} />
+                                <input type="password" autoComplete="new-password" required minLength={8} maxLength={256} value={passwordForm.newPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))} className={inputClass} />
                             </Field>
                             <Field label={copy("Confirm Password")}>
-                                <input type="password" value={passwordForm.confirmPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))} className={inputClass} />
+                                <input type="password" autoComplete="new-password" required maxLength={256} value={passwordForm.confirmPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))} className={inputClass} />
                             </Field>
                         </div>
                         <div className="flex justify-end">

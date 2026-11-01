@@ -240,9 +240,22 @@ export function PageEditProvider({ pageRef: ref, children }: { pageRef: PageRef;
     // One publish intent keeps its id after an unknown reply, for both the button and toast retry.
     if (!receipt) { receipt = { scope, requestId: crypto.randomUUID(), promise: null }; publication.current = receipt; }
     const requestId = receipt.requestId;
+    const intent = receipt;
     const promise = (async () => {
-      const ok = await run(() => goLiveCall(pageRef, requestId), { label: pt('Your page is live'), retry: () => { void publish(); } });
+      let returnedLive = false;
+      const ok = await run(async () => {
+        const next = await goLiveCall(pageRef, requestId);
+        returnedLive = next.status === 'LIVE';
+        return next;
+      }, { retry: () => { if (publication.current === intent) void publish(); } });
       if (!ok || !isActive(origin)) return false;
+      // A known result retires this intent. An old toast must never create a new publish request.
+      if (publication.current === intent) publication.current = null;
+      if (!returnedLive) {
+        toast(pt('This page is private. Review it before publishing again.'));
+        return false;
+      }
+      toast(pt('Your page is live'));
       openPanel('live');
       return true;
     })();

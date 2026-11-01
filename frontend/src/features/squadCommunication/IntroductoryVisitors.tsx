@@ -9,7 +9,7 @@ export function IntroductoryVisitors(props: VisitorAttendanceProps) {
         <h3>{copy('Introductory visitors','გაცნობითი სესიის სტუმრები')}</h3>
         <p>{copy('Record what happened at this introduction. Visitors have no regular squad membership or availability reply.','ჩაწერეთ ამ გაცნობით სესიაზე ფაქტობრივი დასწრება. სტუმრებს არ აქვთ გუნდის რეგულარული წევრობა ან ხელმისაწვდომობის პასუხი.')}</p>
         {rows.map(row=><article key={row.participationId}>
-            <strong>{row.name}</strong><p>{permission(row)}</p>
+            <strong>{row.name}</strong>{row.firstVisit&&<span className="introductory-visitors__first">{copy('First visit','პირველი ვიზიტი')}</span>}<p>{permission(row)}</p>
             {row.emergencyContact&&<p>{copy('Emergency contact','საგანგებო კონტაქტი')}: {row.emergencyContact}</p>}
             {row.status==='ATTENDED'||row.status==='NO_SHOW'?<p role="status">{row.status==='ATTENDED'?copy('Attended','დაესწრო'):copy('Did not attend','არ დაესწრო')}</p>:row.canRecord?<>
                 <label>{copy('Actual attendance for','ფაქტობრივი დასწრება მოთამაშისთვის')} {row.name}<select disabled={busy!==null||Boolean(pendingFor(row))} value={pendingFor(row)?.attendance??choice[row.participationId]??''} onChange={e=>select(row,e.target.value as 'ATTENDED'|'NO_SHOW')}>

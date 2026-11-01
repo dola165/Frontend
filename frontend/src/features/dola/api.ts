@@ -5,7 +5,7 @@ import type { DolaSubject } from './subject';
 
 export interface DolaStatus { name: string; available: boolean; mode: string; maxMessageLength: number; capabilities: string[] }
 /** `subject` is the record on screen (a squad, child or listing) and `page` the address to return to; both are hints the server checks. */
-export interface DolaRequest { conversationId?: string; requestId: string; message: string; includePersonalContext: boolean; timeZone?: string; workspaceContext?: string; venueId?: number; subject?: DolaSubject; page?: string }
+export interface DolaRequest { conversationId?: string; requestId: string; message: string; includePersonalContext: boolean; timeZone?: string; workspaceContext?: string; venueId?: number; projectId?: number; subject?: DolaSubject; page?: string }
 export interface DolaAnswer {
     conversationId: string; requestId: string; answer: string;
     destinations: { id: string; title: string; path: string }[];
@@ -15,11 +15,11 @@ export interface DolaAnswer {
     followUps?: string[];
 }
 export interface DolaAction {
-    id: string; kind: 'COACH_UPDATE' | 'ACKNOWLEDGE_UPDATE' | 'CANCEL_SESSION' | 'SESSION_RESPONSE' | 'OPEN_CHALLENGE' | 'REFEREE_DECISION' | 'REFEREE_AVAILABILITY' | 'MATCH_PROPOSAL' | 'MATCH_PROPOSAL_DECISION' | 'VENUE_BOOKING' | 'VENUE_DECISION' | 'PAGE_CREATE';
-    state: 'PENDING' | 'COMPLETED' | 'DISCARDED' | 'SUPERSEDED' | 'EXPIRED';
+    id: string; kind: 'PROJECT_STEP_DAY' | 'COACH_UPDATE' | 'ACKNOWLEDGE_UPDATE' | 'CANCEL_SESSION' | 'SESSION_RESPONSE' | 'OPEN_CHALLENGE' | 'REFEREE_DECISION' | 'REFEREE_AVAILABILITY' | 'MATCH_PROPOSAL' | 'MATCH_PROPOSAL_DECISION' | 'VENUE_BOOKING' | 'VENUE_DECISION' | 'PAGE_CREATE';
+    state: 'PENDING' | 'COMPLETED' | 'DISCARDED' | 'SUPERSEDED' | 'EXPIRED' | 'CONFLICT';
     title: string; body: string; details: { label: string; value: string }[];
     confirmLabel: string; expiresAt: string; receipt: string;
-    destination: DolaAnswer['destinations'][number];
+    destination: DolaAnswer['destinations'][number] | null;
 }
 export interface DolaTurn { question: string; result?: DolaAnswer; partial?: string }
 export interface DolaSnapshot { conversationId: string; expiresAt: string; turns: DolaTurn[] }
@@ -39,6 +39,12 @@ export const latestDola = async (sessionId: AuthSessionId, signal: AbortSignal):
 };
 export const resolveDolaAction = async (conversationId: string, actionId: string, decision: 'confirm' | 'discard', sessionId: AuthSessionId, signal: AbortSignal): Promise<DolaAction> =>
     (await apiClient.post<DolaAction>(`/assistant/dola/conversations/${encodeURIComponent(conversationId)}/actions/${encodeURIComponent(actionId)}/${decision}`, {}, config(sessionId, signal))).data;
+export interface DolaProjectOutcome {
+    operationId: string; state: DolaAction['state']; receipt: string;
+    context: DolaAction['details']; destination: DolaAnswer['destinations'][number] | null;
+}
+export const dolaProjectOutcome = async (operationId: string, conversationId: string, sessionId: AuthSessionId, signal: AbortSignal): Promise<DolaProjectOutcome> =>
+    (await apiClient.get<DolaProjectOutcome>(`/assistant/dola/project-operations/${encodeURIComponent(operationId)}`, { ...config(sessionId, signal), params: { conversationId } })).data;
 export async function streamDola(request: DolaRequest, sessionId: AuthSessionId, signal: AbortSignal, onEvent: (event: DolaStreamEvent) => void): Promise<DolaAnswer> {
     if (isAndroidApp) return askDola(request, sessionId, signal);
     const response = await apiClient.post<ReadableStream<Uint8Array>>('/assistant/dola/messages/stream', request,
@@ -75,6 +81,8 @@ const destinations: Record<string, string> = {
     stadiums: '/stadiums', tournaments: '/tournaments', jobs: '/jobs', account: '/account', football_roles: '/account/football', agent_hub: '/agent',
 };
 export const safeDolaDestination = (destination: DolaAnswer['destinations'][number]) => {
+    const project = /^project:([1-9][0-9]{0,14})$/.exec(destination.id);
+    if (project) return destination.path === `/projects/${project[1]}`;
     const venue = /^venue_workspace:([1-9][0-9]{0,14})$/.exec(destination.id);
     if (venue) return destination.path === `/stadiums/${venue[1]}/manage?view=calendar`;
     const organization = /^organization:([1-9][0-9]{0,14})$/.exec(destination.id);

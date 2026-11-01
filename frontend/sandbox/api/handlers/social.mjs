@@ -12,14 +12,19 @@ import { profilePhone, setProfilePhone } from '../profile-phones.mjs';
 import { familyRequest } from '../world-family.mjs';
 import { canReadSquadSession, canSelectSessionPlayer, squadAccess } from '../squad-access.mjs';
 import { squadSessionDto as sessionDto, sessionResponseOf as responseOf, projectSquadSession } from '../squad-session-dto.mjs';
-import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
-import { squadStaffOn } from '../world-my-squads.mjs';
-import { canPostForClub, canPostForOrganization, organizationAuthor, linkedPageClubs, createPage, viewerAge as pageAge } from '../pages-data.mjs';
+import { factsOf, rankFeed } from '../feed-rank.mjs';
+import * as H from '../world-home.mjs';
+import { homePending } from '../home-pending.mjs';
+import { squadStaffOn, decidesJoining, APPLICATION_SQUADS, can as canSquadWork } from '../world-my-squads.mjs';
+import { nana } from '../world-projects.mjs';
+import { canPostForOrganization, organizationAuthor, linkedPageClubs, createPage, viewerAge as pageAge } from '../pages-data.mjs';
 import { ORGANIZATION_TYPE, PAGE_MINIMUM_AGE } from '../../../src/features/pages/model/kinds.ts';
 
 const ME = W.ME_ID;
 /** Posts, reactions and follows belong to whoever asks: Luka, or an account registered in the sandbox. */
 const viewerOf = headers => V.viewerId(headers);
+/** Whom Home is read for: the kit parent persona is Nana, a U12 parent at Dinamo who follows nobody. */
+const feedViewerOf = headers => V.personaOf(headers) === 'kitparent' ? nana.id : viewerOf(headers);
 /** The club domain's live store (applications, tryouts, invitations, role requests, club inbox).
  * Loaded lazily so module load order is unaffected; decisions made in the club workspace then
  * show up in the requests centre and notifications. Absent store => this domain's own seeds. */
@@ -48,30 +53,40 @@ const footballRole = p => (['STAFF', 'SPECIALIST'].includes(p.role) ? 'CLUB_STAF
 const uploads = new Map(); // mediaId -> url
 let nextUploadId = 88001;
 
-/** A post as the feed sends it, for one reader: their reaction, whether they may edit, and its topic, place and reach. */
-function postDto(p, viewer = ME) {
+/**
+ * A post as the feed sends it, for one reader: their reaction, whether they may edit, its topic, place (a town only)
+ * and reach, the squad it is for, and the record a post the club's records wrote follows (world-home.mjs). A club's
+ * photos of children show only to its followers and its people.
+ */
+function postDto(p, viewer = ME, headers = {}) {
   const club = p.clubId ? W.clubById(p.clubId) : null;
   // A fan club, business or other page posts as itself (see pages-data.mjs).
   const page = p.organizationId ? organizationAuthor(p.organizationId) : null;
-  if (page) return { ...postDto({ ...p, organizationId: null }, viewer), authorName: page.name, authorAvatarUrl: page.crestUrl, organizationId: p.organizationId, organizationName: page.name };
+  if (page) return { ...postDto({ ...p, organizationId: null }, viewer, headers), authorName: page.name, authorAvatarUrl: page.crestUrl, organizationId: p.organizationId, organizationName: page.name };
   const counts = {};
   for (const type of p.reactions.values()) counts[type] = (counts[type] ?? 0) + 1;
   const mine = p.reactions.get(viewer) ?? null;
-  const { topic, tags, place, reach } = factsOf(p);
+  const { topic, place, reach } = factsOf(p);
+  const record = H.recordView(p, viewer, headers);
+  const photos = H.photosShown(p, viewer, readerProfile(viewer).linkedClubs, headers) ? p.mediaUrls : [];
   return {
     id: p.id, content: p.content, createdAt: iso(p.createdAt), authorId: p.authorId,
     authorName: p.authorId ? displayName(p.authorId) : club?.name ?? 'GrassKickZ',
     authorAvatarUrl: club ? club.logoUrl : avatarOf(p.authorId),
     clubId: p.clubId, clubName: club?.name ?? null,
+    squadId: p.squadId ?? null, squadName: p.squadId ? W.squads.find(s => s.id === p.squadId)?.name ?? null : null,
     myReaction: mine, reactionCount: p.reactions.size, reactionCounts: counts, likeCount: p.reactions.size, isLikedByMe: mine !== null,
-    commentCount: p.comments.length, image: p.mediaUrls[0], mediaUrls: p.mediaUrls, isPublic: p.isPublic,
-    canEdit: p.authorId === viewer, editedAt: p.editedAt ? iso(p.editedAt) : null,
+    commentCount: p.comments.length, image: photos[0], mediaUrls: photos, isPublic: p.isPublic,
+    // A club post is edited by whoever may post for it; a record's post is added to, never edited.
+    canEdit: record ? false : p.clubId ? H.mayPost(headers, p.clubId, p.squadId) : p.authorId === viewer, editedAt: p.editedAt ? iso(p.editedAt) : null,
     sharedPostId: p.sharedPostId, isReshare: p.sharedPostId != null, shareCount: p.shares,
-    topic, tags, place, reach,
+    topic, place: place ? { city: place.city } : null, reach, record,
   };
 }
-const visible = (p, viewer) => !p.hiddenBy.has(viewer) && (p.isPublic || p.authorId === viewer);
-const followsPost = (p, viewer) => (p.authorId && S.isFollowing(viewer, p.authorId)) || (p.clubId && V.clubFollowsOf(viewer).has(p.clubId));
+/** Hidden, a record's post shows only to whoever may change it; a record that is gone takes its post with it. */
+const visible = (p, viewer, headers = {}) => !p.hiddenBy.has(viewer) && (p.isPublic || p.authorId === viewer)
+  && (!p.record || (H.recordView(p, viewer, headers) !== null && (!p.record.hidden || H.mayPost(headers, p.clubId, p.squadId))));
+const followsPost = (p, viewer) => (p.authorId && !p.record && S.isFollowing(viewer, p.authorId)) || (p.clubId && V.clubFollowsOf(viewer).has(p.clubId));
 const newestFirst = (a, b) => b.createdAt - a.createdAt || b.id - a.id;
 const pageLimits = query => {
   const limit = num(query, 'limit', 20);
@@ -82,52 +97,84 @@ const pageLimits = query => {
 };
 
 /** Cursor feed, newest first: { posts, nextCursor } where nextCursor is the id of the last post returned. */
-function feedPage(filter, query, viewer) {
+function feedPage(filter, query, viewer, headers = {}) {
   const { error, limit, cursor } = pageLimits(query);
   if (error) return error;
   const boundary = query.get('cursorTime') ? new Date(query.get('cursorTime')) : cursor !== null ? S.postById(cursor)?.createdAt : null;
   if (cursor !== null && !boundary) return badRequest('Feed cursor expired. Refresh the feed.');
-  const sorted = S.posts.filter(p => visible(p, viewer) && filter(p)).sort(newestFirst);
+  const sorted = S.posts.filter(p => visible(p, viewer, headers) && filter(p)).sort(newestFirst);
   const remaining = cursor === null ? sorted : sorted.filter(p => p.createdAt < boundary || (+p.createdAt === +boundary && p.id < cursor));
   const page = remaining.slice(0, limit);
-  return { posts: page.map(p => postDto(p, viewer)), nextCursor: remaining.length > limit ? page.at(-1).id : null };
+  return { posts: page.map(p => postDto(p, viewer, headers)), nextCursor: remaining.length > limit ? page.at(-1).id : null };
 }
 
-/** What the ranking knows about a reader: links nobody else can give them, follows, where they are, what they chose to see. */
+/**
+ * What the ranking knows about a reader: the clubs their football is at (nobody else can give them these links),
+ * follows, where they are, what they chose to see.
+ */
 function readerProfile(viewer) {
   const prefs = V.preferencesOf(viewer), town = prefs?.town;
-  const linkedClubs = new Set(), linkedPeople = new Set();
-  if (viewer === ME) {
-    // Luka's confirmed links: his club's staff, players and their families.
-    linkedClubs.add(1);
-    for (const p of W.people) if (p.clubId === 1) linkedPeople.add(p.id);
-    for (const link of W.parents) if (W.personById(link.childId)?.clubId === 1) linkedPeople.add(link.parentId);
-  }
+  const linkedClubs = new Set();
+  // Luka's football is at Dinamo, whatever his job there; Nana's through her child in U12.
+  if (viewer === ME || viewer === nana.id) linkedClubs.add(1);
   // A club someone created or joined as a page is theirs too.
   for (const clubId of linkedPageClubs(viewer)) linkedClubs.add(clubId);
   return {
-    id: viewer, linkedClubs, linkedPeople, followedPeople: new Set(S.followingOf(viewer)), followedClubs: V.clubFollowsOf(viewer),
+    id: viewer, linkedClubs, followedPeople: new Set(S.followingOf(viewer)), followedClubs: V.clubFollowsOf(viewer),
     home: town?.latitude != null ? { lat: town.latitude, lng: town.longitude } : { lat: W.cities.Tbilisi.lat, lng: W.cities.Tbilisi.lng },
-    topics: prefs?.topics ?? [], demoted: V.demotedOf(viewer),
+    topics: prefs?.topics ?? [],
   };
 }
-/** Discover: the ranked feed, paged by position; the cursor is the last post shown. */
-function rankedPage(query, viewer) {
+/**
+ * Discover: the ranked feed. The next page starts after the last post shown, its time and its tier (`cursorTier`), so
+ * posts arriving meanwhile never repeat or skip one; without a tier the boundary post's own is read again.
+ */
+function rankedPage(query, viewer, headers) {
+  H.sweepMatchMoments();
   const { error, limit, cursor } = pageLimits(query);
   if (error) return error;
-  const ranked = rankFeed(S.posts.filter(p => visible(p, viewer)), readerProfile(viewer));
-  const start = cursor === null ? 0 : ranked.findIndex(item => item.post.id === cursor) + 1;
-  if (cursor !== null && start === 0) return badRequest('Feed cursor expired. Refresh the feed.');
-  const page = ranked.slice(start, start + limit);
-  return { posts: page.map(item => ({ ...postDto(item.post, viewer), why: item.why })), nextCursor: ranked.length > start + limit ? page.at(-1).post.id : null };
+  const ranked = rankFeed(S.posts.filter(p => visible(p, viewer, headers) && !p.record?.hidden), readerProfile(viewer));
+  let rest = ranked;
+  if (cursor !== null) {
+    const boundaryPost = S.postById(cursor);
+    const tier = query.has('cursorTier') ? num(query, 'cursorTier', NaN) : ranked.find(item => item.post.id === cursor)?.tier;
+    const time = query.get('cursorTime') ? new Date(query.get('cursorTime')) : boundaryPost?.createdAt;
+    if (!Number.isInteger(tier) || !time) return badRequest('Feed cursor expired. Refresh the feed.');
+    rest = ranked.filter(item => item.tier > tier || (item.tier === tier && (item.post.createdAt < time || (+item.post.createdAt === +time && item.post.id < cursor))));
+  }
+  const page = rest.slice(0, limit), more = rest.length > limit;
+  return { posts: page.map(item => ({ ...postDto(item.post, viewer, headers), why: item.why })),
+    nextCursor: more ? page.at(-1).post.id : null, nextCursorTier: more ? page.at(-1).tier : null };
 }
-for (const path of ['/posts/feed', '/posts/feed/for-you']) get(path, ({ query, headers }) => rankedPage(query, viewerOf(headers)));
-get('/posts/feed/following', ({ query, headers }) => { const viewer = viewerOf(headers); return feedPage(p => p.authorId !== viewer && followsPost(p, viewer), query, viewer); });
-get('/posts/user/:id', ({ params, query, headers }) => person(params.id) || V.account(params.id) ? feedPage(p => p.authorId === Number(params.id), query, viewerOf(headers)) : notFound('Profile not found.'));
-get('/posts/club/:id', ({ params, query, headers }) => W.clubById(params.id) ? feedPage(p => p.clubId === Number(params.id), query, viewerOf(headers)) : notFound('Club not found.'));
-get('/posts/organization/:id', ({ params, query, headers }) => organizationAuthor(params.id) ? feedPage(p => p.organizationId === Number(params.id), query, viewerOf(headers)) : notFound('Page not found.'));
+for (const path of ['/posts/feed', '/posts/feed/for-you']) get(path, ({ query, headers }) => rankedPage(query, feedViewerOf(headers), headers));
+// Following: what the person follows, and their own posts, newest first.
+get('/posts/feed/following', ({ query, headers }) => { const viewer = feedViewerOf(headers); return feedPage(p => !p.record?.hidden && ((!p.record && p.authorId === viewer) || followsPost(p, viewer)), query, viewer, headers); });
+get('/posts/user/:id', ({ params, query, headers }) => person(params.id) || V.account(params.id) ? feedPage(p => !p.record && p.authorId === Number(params.id), query, viewerOf(headers), headers) : notFound('Profile not found.'));
+get('/posts/club/:id', ({ params, query, headers }) => W.clubById(params.id) ? feedPage(p => p.clubId === Number(params.id), query, viewerOf(headers), headers) : notFound('Club not found.'));
+get('/posts/organization/:id', ({ params, query, headers }) => organizationAuthor(params.id) ? feedPage(p => p.organizationId === Number(params.id), query, viewerOf(headers), headers) : notFound('Page not found.'));
 
-// What people see, open, hide and ask less of, kept for the learning algorithm that comes later.
+// Everyone the person may post as besides themselves, as the server's rule-checker answers (world-home.mjs).
+get('/posts/authors', ({ headers }) => H.authorsOf(headers));
+// Staff add one line and photos to a post the club's records wrote, or hide it; anyone else gets a plain 404.
+put('/posts/:id/record', ({ params, body, headers }) => {
+  const viewer = viewerOf(headers), p = S.postById(params.id);
+  if (!p?.record || !H.mayPost(headers, p.clubId, p.squadId)) return notFound('Post not found.');
+  // Every photo the post keeps, earlier ones included (by their ids), then new uploads; null keeps them as they are.
+  const kept = new Map((p.mediaIds ?? []).map((id, index) => [id, p.mediaUrls[index]]));
+  const photos = Array.isArray(body?.mediaIds) ? body.mediaIds.slice(0, 10).map(Number).map(id => ({ id, url: kept.get(id) ?? uploads.get(id) })).filter(photo => photo.url) : null;
+  if (!H.changeRecord(p, { line: body?.line, photos, hidden: body?.hidden === true, version: Number(body?.version) }))
+    return reply(409, { status: 409, message: 'This post changed. Reopen it before changing it again.' });
+  return postDto(p, viewer, headers);
+});
+// One switch per kind for the club's own posters (Dinamo's); another club, or anyone else, gets a plain 404.
+get('/clubs/:id/record-posts', ({ params, headers }) => H.mayPost(headers, params.id, null) ? H.switchesDto(params.id) : notFound('Club not found.'));
+put('/clubs/:id/record-posts', ({ params, body, headers }) => {
+  if (!H.mayPost(headers, params.id, null)) return notFound('Club not found.');
+  const saved = H.saveSwitches(params.id, Array.isArray(body?.off) ? body.off : [], Number(body?.version));
+  return saved ?? reply(409, { status: 409, message: 'These switches changed. Reload them before changing them again.' });
+});
+
+// What people see, open and hide, kept for the learning algorithm that comes later; nothing here reorders Discover.
 post('/feed/events', ({ body, headers }) => {
   const viewer = viewerOf(headers);
   const events = Array.isArray(body?.events) ? body.events : null;
@@ -143,40 +190,53 @@ post('/feed/events', ({ body, headers }) => {
     }
     const postRecord = S.postById(event?.postId);
     if (!postRecord || !V.EVENT_TYPES.includes(event?.type)) continue;
-    if (event.type === 'LESS') V.demotedOf(viewer).add(demotionKey(postRecord));
-    if (event.type === 'UNDO_LESS') V.demotedOf(viewer).delete(demotionKey(postRecord));
     V.recordEvent(viewer, { type: event.type, postId: postRecord.id, topic: factsOf(postRecord).topic, ...(typeof event.at === 'string' ? { at: event.at } : {}) });
     accepted++;
   }
   return reply(202, { accepted });
 });
 
-const findPost = (id, viewer) => { const p = S.postById(id); return p && visible(p, viewer) ? p : null; };
-get('/posts/:id', ({ params, headers }) => { const viewer = viewerOf(headers), p = findPost(params.id, viewer); return p ? postDto(p, viewer) : notFound('This post is no longer available.'); });
+const findPost = (id, viewer, headers = {}) => { const p = S.postById(id); return p && visible(p, viewer, headers) ? p : null; };
+get('/posts/:id', ({ params, headers }) => { const viewer = viewerOf(headers), p = findPost(params.id, viewer, headers); return p ? postDto(p, viewer, headers) : notFound('This post is no longer available.'); });
 
+/** Coaches and the Media officer post publicly; only the club's Owner and Admins choose Club leadership (refused before saving). */
+const leadershipOnly = () => reply(403, { status: 403, code: 'ONLY_CLUB_LEADERSHIP', action: 'post_as_club', message: 'Only the club’s owner and admins post to Club leadership.' });
+const CLUB_POSTERS = 'Only the club’s admins and media officer post as the club.';
+const SQUAD_POSTERS = 'Only this squad’s coaches and team manager post for it.';
+/** A club's post is changed by whoever may post for it (the same question as posting); a person's by its author. */
+const mayChangePost = (p, viewer, headers) => p.clubId ? H.mayPost(headers, p.clubId, p.squadId) : p.authorId === viewer;
 post('/posts', ({ body, headers }) => {
   const viewer = viewerOf(headers);
   const content = String(body?.content ?? '').trim();
   if (!content) return badRequest('Write something before publishing.');
-  if (body?.clubId && !W.staff.some(s => s.personId === viewer && s.clubId === Number(body.clubId)) && !canPostForClub(viewer, body.clubId)) return forbidden('You cannot post for this club.');
+  // A squad's post is the club's; the squad says which club.
+  const squad = body?.squadId != null ? W.squads.find(s => s.id === Number(body.squadId)) : null;
+  if (body?.squadId != null && !squad) return notFound('Squad not found.');
+  if (squad && body?.clubId && Number(body.clubId) !== squad.clubId) return badRequest('This squad belongs to another club.');
+  const clubId = squad ? squad.clubId : body?.clubId ? Number(body.clubId) : null;
+  if (clubId && !H.mayPost(headers, clubId, squad?.id ?? null)) return forbidden(squad ? SQUAD_POSTERS : CLUB_POSTERS);
+  if (clubId && body?.isPublic === false && !H.leadsClub(headers, clubId)) return leadershipOnly();
   if (body?.organizationId && !canPostForOrganization(viewer, body.organizationId)) return forbidden('You cannot post for this page.');
   const media = (body?.mediaIds ?? []).map(id => uploads.get(Number(id))).filter(Boolean);
-  const p = { id: S.newPostId(), authorId: viewer, clubId: body?.clubId ? Number(body.clubId) : null, organizationId: body?.organizationId ? Number(body.organizationId) : null, content, createdAt: new Date(), mediaUrls: media, isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: null, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
+  const p = { id: S.newPostId(), authorId: viewer, clubId, squadId: squad?.id ?? null, organizationId: body?.organizationId ? Number(body.organizationId) : null, content, createdAt: new Date(), mediaUrls: media, isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: null, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
   S.posts.push(p);
   return created({ message: 'Post created', postId: p.id });
 });
 put('/posts/:id', ({ params, body, headers }) => {
-  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer, headers);
   if (!p) return notFound('This post is no longer available.');
-  if (p.authorId !== viewer) return forbidden('Only the author can edit this post.');
+  if (!mayChangePost(p, viewer, headers)) return forbidden(p.clubId ? (p.squadId ? SQUAD_POSTERS : CLUB_POSTERS) : 'Only the author can edit this post.');
+  if (p.record) return reply(409, { status: 409, message: 'This post follows the club’s record. Add a line to it instead.' });
+  if (p.clubId && body?.isPublic === false && !H.leadsClub(headers, p.clubId)) return leadershipOnly();
   if (body?.expectedContent != null && body.expectedContent !== p.content) return reply(409, { status: 409, message: 'This post changed since you opened it. Reload and try again.' });
   p.content = String(body?.content ?? p.content).trim(); p.isPublic = body?.isPublic !== false; p.editedAt = new Date();
-  return postDto(p, viewer);
+  return postDto(p, viewer, headers);
 });
 del('/posts/:id', ({ params, headers }) => {
-  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer, headers);
   if (!p) return notFound('This post is no longer available.');
-  if (p.authorId !== viewer) return forbidden('Only the author can delete this post.');
+  if (!mayChangePost(p, viewer, headers)) return forbidden(p.clubId ? (p.squadId ? SQUAD_POSTERS : CLUB_POSTERS) : 'Only the author can delete this post.');
+  if (p.record) return reply(409, { status: 409, message: 'This post follows the club’s record. Hide it instead.' });
   S.posts.splice(S.posts.indexOf(p), 1);
   return { message: 'Post deleted successfully' };
 });
@@ -187,22 +247,22 @@ post('/posts/:id/hide', ({ params, headers }) => {
   return { hidden: p.hiddenBy.has(viewer) };
 });
 put('/posts/:id/like', ({ params, body, headers }) => {
-  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer, headers);
   if (!p) return notFound();
   if (body?.liked === false) p.reactions.delete(viewer); else p.reactions.set(viewer, p.reactions.get(viewer) ?? 'LIKE');
   return { isLiked: p.reactions.has(viewer) };
 });
 const REACTIONS = new Set(['LIKE', 'LOVE', 'HAHA', 'WOW', 'ANGRY', 'SAD', 'CARE']);
 put('/posts/:id/reaction', ({ params, body, headers }) => {
-  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer, headers);
   if (!p) return notFound();
   if (!REACTIONS.has(body?.reaction)) return badRequest('Choose a reaction.');
   p.reactions.set(viewer, body.reaction);
-  return postDto(p, viewer);
+  return postDto(p, viewer, headers);
 });
-del('/posts/:id/reaction', ({ params, headers }) => { const viewer = viewerOf(headers), p = findPost(params.id, viewer); if (!p) return notFound(); p.reactions.delete(viewer); return postDto(p, viewer); });
+del('/posts/:id/reaction', ({ params, headers }) => { const viewer = viewerOf(headers), p = findPost(params.id, viewer, headers); if (!p) return notFound(); p.reactions.delete(viewer); return postDto(p, viewer, headers); });
 get('/posts/:id/reactions', ({ params, query, headers }) => {
-  const p = findPost(params.id, viewerOf(headers));
+  const p = findPost(params.id, viewerOf(headers), headers);
   if (!p) return notFound();
   const filter = query.get('reaction');
   const all = [...p.reactions.entries()].reverse().map(([userId, reaction]) => ({ userId, name: displayName(userId), avatarUrl: avatarOf(userId), reaction }));
@@ -215,9 +275,9 @@ get('/posts/:id/reactions', ({ params, query, headers }) => {
 });
 
 const commentDto = c => ({ id: c.id, authorId: c.authorId, authorName: displayName(c.authorId), authorAvatarUrl: avatarOf(c.authorId), content: c.content, createdAt: iso(c.createdAt) });
-get('/posts/:id/comments', ({ params, headers }) => { const p = findPost(params.id, viewerOf(headers)); return p ? p.comments.map(commentDto) : notFound(); });
+get('/posts/:id/comments', ({ params, headers }) => { const p = findPost(params.id, viewerOf(headers), headers); return p ? p.comments.map(commentDto) : notFound(); });
 post('/posts/:id/comments', ({ params, body, headers }) => {
-  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer, headers);
   if (!p) return notFound();
   const content = String(body?.content ?? '').trim();
   if (!content) return badRequest('Write a comment first.');
@@ -226,7 +286,7 @@ post('/posts/:id/comments', ({ params, body, headers }) => {
   return created(commentDto(c));
 });
 post('/posts/:id/shares', ({ params, body, headers }) => {
-  const viewer = viewerOf(headers), original = findPost(params.id, viewer);
+  const viewer = viewerOf(headers), original = findPost(params.id, viewer, headers);
   if (!original) return notFound();
   const sourceId = original.sharedPostId ?? original.id;
   const p = { id: S.newPostId(), authorId: viewer, clubId: null, content: String(body?.content ?? '').trim(), createdAt: new Date(), mediaUrls: [], isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: sourceId, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
@@ -485,26 +545,50 @@ const tournamentInvitationRequests = () => F.tournamentInvitations.filter(inv =>
   return { key: `TOURNAMENT_INVITATION:${inv.id}`, family: 'TOURNAMENT_INVITATION', id: inv.id, title: `Invitation · ${summary.name}`, context: `${summary.hostClubName ?? summary.organizerName} · ${v.squadName ?? v.clubName}`,
     status: inv.status, direction: 'INCOMING', actionable: inv.status === 'PENDING', updatedAt: iso(inv.updatedAt ?? inv.createdAt), destination: `/tournaments/${inv.tournamentId}`, actionLabel: 'Review invitation' };
 });
-async function allRequests() {
+async function allRequests(headers) {
   const C = await clubStore();
-  if (!C?.applications) return [...S.requestItems, ...tournamentInvitationRequests()];
+  if (!C?.applications) return !V.isNewcomer(headers) && !V.restrictedPersona(headers) ? [...S.requestItems, ...tournamentInvitationRequests()] : [];
   const appointment = id => C.appointments?.find(a => a.id === id);
   const own = S.requestItems.filter(i => !CLUB_FAMILIES.has(i.family)).map(i => {
     const a = i.family === 'STAFF_APPOINTMENT' && appointment(i.id);
     return a && a.status !== 'INVITED' ? { ...i, status: a.status === 'ACTIVE' ? 'ACCEPTED' : a.status, actionable: false } : i;
   });
-  return [...own, ...tournamentInvitationRequests(), ...clubRequests(C)];
+  const rows = [...own, ...tournamentInvitationRequests(), ...clubRequests(C)];
+  const actor = V.viewerId(headers), persona = V.personaOf(headers);
+  if (actor === W.ME_ID && !persona) return rows;
+  return rows.filter(item => {
+    // Undesignated private fixture rows belong to the owner fixture, never every persona.
+    if (item.recipientUserId === actor || item.actorId === actor) return true;
+    if (actor !== W.ME_ID) return false;
+    if (item.family === 'CLUB_APPLICATION') return decidesJoining(persona, APPLICATION_SQUADS.get(item.id) ?? null);
+    if (item.family === 'TRYOUT_APPLICATION') return persona === 'headofcoaching';
+    if (item.family === 'TOURNAMENT_INVITATION') {
+      const invitation = F.tournamentInvitations.find(i => i.id === item.id);
+      return invitation?.clubId === 1 && invitation.squadId != null && canSquadWork(persona, invitation.squadId, 'MATCHES');
+    }
+    return false;
+  });
 }
-get('/requests', async ({ query }) => {
+async function canonicalRequests(headers) {
+  const home = await homePending(headers);
+  const replaced = new Set(home.items.map(i => i.family));
+  return { all: [...(await allRequests(headers)).filter(i => !replaced.has(i.family)), ...home.items], unavailableSources: home.unavailableSources };
+}
+get('/requests/pending', async ({ headers }) => {
+  const { all, unavailableSources } = await canonicalRequests(headers);
+  if (unavailableSources.length) return reply(503, { message: 'Pending requests could not load. Retry.' });
+  return { items: structuredClone(all.filter(i => inView('INCOMING')(i) && i.actionable)), unavailableSources: [], complete: true };
+});
+get('/requests', async ({ query, headers }) => {
   const view = ['INCOMING', 'OUTGOING', 'HISTORY'].includes(query.get('view')) ? query.get('view') : 'INCOMING';
   const page = Math.max(0, num(query, 'page', 0)), size = Math.max(1, Math.min(50, num(query, 'size', 20)));
-  const all = await allRequests();
-  const items = all.filter(inView(view)).sort((a, b) => (b.actionable - a.actionable) || b.updatedAt.localeCompare(a.updatedAt));
+  const { all, unavailableSources } = await canonicalRequests(headers);
+  const items = all.filter(inView(view)).sort((a, b) => (b.actionable - a.actionable) || String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')));
   const incoming = all.filter(inView('INCOMING'));
   return {
     items: items.slice(page * size, page * size + size),
     counts: { incoming: incoming.length, actionable: incoming.filter(i => i.actionable).length, outgoing: all.filter(inView('OUTGOING')).length, history: all.filter(inView('HISTORY')).length },
-    total: items.length, hasMore: (page + 1) * size < items.length, unavailableSources: [],
+    total: items.length, hasMore: (page + 1) * size < items.length, unavailableSources,
   };
 });
 // Tournament invitations come from the one store the lists and the tournament pane read (world-football).

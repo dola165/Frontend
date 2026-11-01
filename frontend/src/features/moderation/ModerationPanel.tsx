@@ -13,7 +13,7 @@ export function ModerationPanel() {
     const [params, setParams] = useSearchParams(), item = params.get('itemId');
     const selectedId = item && /^[1-9]\d*$/.test(item) && Number.isSafeInteger(Number(item)) ? Number(item) : null;
     if (selectedId) return <section className="moderation" aria-label="Selected moderation report"><button type="button" onClick={() => setParams({ tab: 'safety' })}>Back to moderation queue</button><h2>Review report #{selectedId}</h2><ReportDetail key={`${selectedId}:${revision}`} id={selectedId} onChanged={() => refresh(v => v + 1)} /></section>;
-    return <section className="moderation" aria-label="People and message reports"><h2>People &amp; message reports</h2><p>Reports are allegations. Review the preserved item and record a reason before taking action. Access is checked against your current system administrator role.</p>
+    return <section className="moderation" aria-label="Post, account and message reports"><h2>Post, account &amp; message reports</h2><p>Reports are allegations. Review the preserved item and record a reason before taking action. Access is checked against your current system administrator role.</p>
         <div className="moderation-controls"><label>Queue<select value={status} onChange={e => { setStatus(e.target.value); setBefore(null); }}>{['OPEN', 'RESOLVED', 'DISMISSED'].map(value => <option key={value} value={value}>{label(value)}</option>)}</select></label><button type="button" onClick={() => { setBefore(null); refresh(v => v + 1); }}>Refresh queue</button></div>
         <QueuePage key={`${status}:${before}:${revision}`} status={status} before={before} onChanged={() => refresh(v => v + 1)} onOlder={setBefore} />
     </section>;

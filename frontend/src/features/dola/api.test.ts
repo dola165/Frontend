@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { apiClient } from '../../api/axiosConfig';
-import { streamDola, safeDolaDestination } from './api';
-vi.mock('../../api/axiosConfig', () => ({ apiClient: { post: vi.fn() } }));
+import { streamDola, safeDolaDestination, dolaProjectOutcome, resolveDolaAction } from './api';
+vi.mock('../../api/axiosConfig', () => ({ apiClient: { post: vi.fn(), get: vi.fn() } }));
 vi.mock('../../android/bridge', () => ({ isAndroidApp: false }));
 const request = { requestId: 'r', message: 'hello', includePersonalContext: false };
 beforeEach(() => { vi.clearAllMocks(); localStorage.setItem('gk-session-id', 'a'); });
@@ -40,4 +40,17 @@ describe('Dola streamed transport', () => {
         const events = vi.fn(); await expect(streamDola(request, 'a', new AbortController().signal, events)).rejects.toThrow(/session changed/);
         expect(events).not.toHaveBeenCalled();
     });
+});
+
+it('uses the authenticated Dola operation contract for exact confirmation and read-only recovery', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { id: 'operation' } });
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { operationId: 'operation', state: 'COMPLETED' } });
+    const signal = new AbortController().signal;
+    await resolveDolaAction('conversation', 'operation', 'confirm', 'a', signal);
+    expect(apiClient.post).toHaveBeenCalledWith('/assistant/dola/conversations/conversation/actions/operation/confirm', {}, expect.objectContaining({ _authSessionId: 'a', signal }));
+    await dolaProjectOutcome('operation', 'conversation', 'a', signal);
+    expect(apiClient.get).toHaveBeenCalledWith('/assistant/dola/project-operations/operation', expect.objectContaining({ _authSessionId: 'a', signal, params: { conversationId: 'conversation' } }));
+    expect(safeDolaDestination({ id: 'project:20', path: '/projects/20', title: 'Project' })).toBe(true);
+    for (const path of ['/team-work', '/projects/21', '/projects/20?redirect=/team-work'])
+        expect(safeDolaDestination({ id: 'project:20', path, title: 'Project' })).toBe(false);
 });

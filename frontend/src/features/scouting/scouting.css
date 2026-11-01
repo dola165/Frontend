@@ -1,0 +1,33 @@
+.gk .scouting.gk-frame { display: grid; gap: var(--gk-4); width: 100%; max-width: 1120px; min-width: 0; margin: 0 auto; padding: 24px; }
+.scouting, .scouting * { box-sizing: border-box; }
+.scouting label { display: grid; gap: 8px; font-weight: 600; min-width: 0; }
+.scouting input, .scouting textarea, .scouting select { width: 100%; min-width: 0; padding: 10px 12px; min-height: 44px; border: 1px solid var(--gk-line); border-radius: 8px; background: var(--gk-surface); color: var(--gk-text); font: inherit; }
+.scouting textarea { resize: vertical; font-weight: 400; }
+.scouting fieldset { display: grid; gap: 16px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.scouting fieldset > .gk-btn { justify-self: start; }
+.scouting-scope { max-width: 420px; }
+.scouting-tabs, .scouting-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.scouting .gk-btn { min-height: 44px; white-space: normal; }
+.scouting [aria-current="page"] { border-color: var(--gk-accent); background: var(--gk-accent-soft); }
+.scouting-search { display: flex; gap: 12px; align-items: end; }
+.scouting-search label { flex: 1; }
+.scouting-list, .scouting-history { list-style: none; margin: 0; padding: 0; }
+.scouting-list > li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--gk-line); }
+.scouting-list > li:first-child { padding-top: 0; }
+.scouting-list > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.scouting-list strong, .scouting-list span, .scouting-history span { display: block; overflow-wrap: anywhere; }
+.scouting-hint, .scouting-list span, .scouting-history span { color: var(--gk-text-2); font-size: 0.9rem; }
+.scouting-record { display: grid; gap: 16px; }
+.scouting p { overflow-wrap: anywhere; line-height: 1.55; max-width: 76ch; }
+.scouting-fields { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; }
+.scouting summary { padding: 12px 0; min-height: 44px; cursor: pointer; font-weight: 600; }
+.scouting-history li { padding: 12px 0; border-bottom: 1px solid var(--gk-line); }
+.scouting-history p { white-space: pre-wrap; }
+.scouting :focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+    .gk .scouting.gk-frame { padding: 16px; }
+    .scouting-list > li { align-items: stretch; flex-direction: column; }
+    .scouting-fields { grid-template-columns: minmax(0, 1fr); }
+    .scouting-search { align-items: stretch; flex-direction: column; }
+    .scouting-tabs > button { flex: 1 1 auto; }
+}

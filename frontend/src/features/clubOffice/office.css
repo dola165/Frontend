@@ -37,3 +37,6 @@
   .gk .office-settings__row { flex-wrap: wrap; padding-bottom: var(--gk-2); }
   .gk .office-settings__row > .gk-btn { margin-left: 44px; }
 }
+/* Posts from the club's work: the switch sits at the row's end, the whole row toggles it. */
+.gk .office-settings__switch { cursor: pointer; }
+.gk .office-settings__switch .office-settings__text { flex: 1; }

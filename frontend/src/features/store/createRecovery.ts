@@ -19,7 +19,7 @@ function readMarker(scope: string): Attempt | null {
 export function storeCreationDetails(value: StoreProductPayload | StoreProduct, canonical = false) {
     const variants = value.variants ?? (value.sizes?.length ? value.sizes.map(label => ({ label, stock: 0 })) : [{ label: 'One size', stock: 0 }]);
     return JSON.stringify({ name: value.name?.trim(), description: value.description ?? null, price: Math.round(Number(value.price) * 100),
-        currency: value.currency ?? 'GEL', category: value.category ?? 'OTHER', active: value.active ?? false, images: value.images ?? [],
+        collection: value.collection ?? null, currency: value.currency ?? 'GEL', category: value.category ?? 'OTHER', active: value.active ?? false, images: value.images ?? [],
         sizes: canonical ? value.sizes ?? variants.map(v => v.label) : variants.map(v => v.label),
         variants: variants.map(v => ({ label: v.label.trim(), stock: v.stock })) });
 }
@@ -67,7 +67,7 @@ export function useStoreCreateRecovery(clubId: number) {
         try {
             const product = await createStoreProduct(clubId, clone(request.input), request.key, session);
             if (scopeFor(clubId) !== scope || current()?.key !== request.key) return;
-            if (!Number.isSafeInteger(product.id) || product.id <= 0 || product.clubId !== clubId || (product.sellerKind && product.sellerKind !== 'CLUB') || !Number.isInteger(product.version) || product.version! < 0)
+            if (!Number.isSafeInteger(product.id) || product.id <= 0 || (product.clubId ?? 0) !== clubId || (product.sellerKind && product.sellerKind !== (clubId === 0 ? 'GRASSKICKZ' : 'CLUB')) || !Number.isInteger(product.version) || product.version! < 0)
                 throw new Error(ct('The save reply could not be confirmed. Retry the original save.'));
             const held = clone(latest.current ?? input);
             const same = storeCreationDetails(request.input) === storeCreationDetails(product, true) && storeCreationDetails(request.input) === storeCreationDetails(held);

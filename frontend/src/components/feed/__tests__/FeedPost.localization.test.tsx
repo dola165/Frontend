@@ -70,7 +70,7 @@ it('keeps a denied Georgian comment draft and does not submit it twice', async (
     fireEvent.click(screen.getByRole('button', { name: 'კომენტარის გამოქვეყნება' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('კომენტარი ვერ გამოქვეყნდა. მონახაზი შენახულია.');
     expect(input).toHaveValue('ჩემი მონახაზი');
-    expect(submit).toHaveBeenCalledExactlyOnceWith(7, 'ჩემი მონახაზი');
+    expect(submit).toHaveBeenCalledExactlyOnceWith(7, 'ჩემი მონახაზი', expect.objectContaining({ requestId: expect.any(String), content: 'ჩემი მონახაზი' }));
 });
 
 it('retains an edit conflict draft and save preconditions behind translated controls', async () => {

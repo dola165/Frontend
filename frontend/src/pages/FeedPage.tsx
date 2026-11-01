@@ -1,6 +1,10 @@
+import { getAuthSessionId, subscribeAuthSession, isCurrentAuthSession } from '../utils/authStorage';
+import { readFeedPlace, saveFeedPlace, type FeedCursor } from '../features/feed/feedPlace';
+import { useCommentRefresh } from '../components/feed/useCommentRefresh';
+import type { CommentAttempt } from '../components/feed/commentDraft';
 import { usePostReactions } from '../hooks/usePostReactions';
 import { reactionFields } from '../components/feed/reactions';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AlertTriangle, ChevronDown, Compass, Megaphone, RefreshCw, Search, Users } from 'lucide-react';
 import { LeftSidebar } from '../components/layout/LeftSidebar';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -17,13 +21,12 @@ import { isAndroidApp } from '../android/bridge';
 import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
 import { WelcomeHost } from '../features/start/WelcomeHost';
-import { StaffClubCard } from '../features/clubOperations/leaving/StaffClubCard';
-import { NeedsResultCard } from '../features/actions/NeedsResultCard';
-import { HelpingCard } from '../features/helpers/HelpingCard';
-import { HelpingProjectsCard } from '../features/projects/HelpingProjectsCard';
+import { WaitingOnYou } from '../features/feed/WaitingOnYou';
+import { HomeHelperDetails } from '../features/feed/HomeHelperDetails';
+import { usePostAuthors } from '../features/feed/postAuthors';
 
 type FeedView = 'for-you' | 'following';
-type FeedCursor = { cursor: number; cursorTime?: string };
+/** Where the next page starts: the last post shown, its time, and in Discover its tier in the ranked order. */
 type FeedNavigation = { cursor: FeedCursor | null; page: number; direction: 'older' | 'newer' };
 
 const resolveFeedView = (value: string | null): FeedView => (value === 'following' ? 'following' : 'for-you');
@@ -34,14 +37,17 @@ interface FeedPageProps {
 }
 
 export const FeedPage = (props: FeedPageProps) => {
+ const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
  const [searchParams] = useSearchParams();
  return isAndroidApp && searchParams.get('compose') === '1'
-  ? <AndroidFeedComposer user={props.user} /> : <FeedContent {...props} />;
+  ? <AndroidFeedComposer user={props.user} /> : <FeedContent key={`${session}:${props.user?.id}`} {...props} />;
 };
 
 const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
  const copy = useJourneyCopy();
  const [searchParams] = useSearchParams();
+ // The club and squads the person may also post as.
+ const postAuthors = usePostAuthors();
  const [posts, setPosts] = useState<FeedPostDto[]>([]);
  const [loading, setLoading] = useState(true);
  const [hasLoaded, setHasLoaded] = useState(false);
@@ -63,6 +69,10 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
  const [commentsErrors, setCommentsErrors] = useState<Record<number, string | null>>({});
  const [commentsLoading, setCommentsLoading] = useState<Record<number, boolean>>({});
  const feedView = resolveFeedView(searchParams.get('view'));
+ const placeRef = useRef({ starts: pageStarts, page: pageIndex, y: 0 });
+ placeRef.current = { ...placeRef.current, starts: pageStarts, page: pageIndex };
+ const restoringY = useRef<number | null>(null);
+ const firstVisit = useRef(true);
  const isFollowingView = feedView === 'following';
  const feedEndpoint = isFollowingView ? '/posts/feed/following' : '/posts/feed/for-you';
 
@@ -87,9 +97,10 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    ]
   };
 
- const loadFeed = useCallback(async (navigation?: FeedNavigation) => {
+ const loadFeed = useCallback(async (navigation?: FeedNavigation, restoring = false) => {
   const changingPage = navigation !== undefined;
   if (changingPage && (morePending.current || (navigation.direction === 'older' && !nextPage))) return;
+  if (changingPage) { requestVersion.current++; requestController.current?.abort(); }
   if (!changingPage) {
    requestVersion.current++;
    requestController.current?.abort();
@@ -133,7 +144,8 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
     seen.add(post.id);
     return true;
    }));
-   setNextPage(cursor === null ? null : { cursor, cursorTime: boundary?.createdAt });
+   const tier: unknown = response.data.nextCursorTier;
+   setNextPage(cursor === null ? null : { cursor, cursorTime: boundary?.createdAt, ...(Number.isSafeInteger(tier) ? { cursorTier: tier as number } : {}) });
    if (navigation) {
     setPageIndex(navigation.page);
     if (navigation.direction === 'older') setPageStarts(history => [...history.slice(0, navigation.page), navigation.cursor]);
@@ -145,7 +157,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    }
   } catch {
    if (!current()) return;
-   if (navigation) {
+   if (navigation && !restoring) {
     setMoreError(true);
     setFailedDirection(navigation.direction);
    }
@@ -163,12 +175,29 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
  // Pagination state does not restart the first page. A view change invalidates
  // old successes AND failures, even if an adapter ignores AbortSignal.
  useEffect(() => {
-  void loadFeed();
+  const session = getAuthSessionId();
+  const saved = firstVisit.current ? readFeedPlace(feedView) : undefined;
+  firstVisit.current = false;
+  if (saved) { setPageStarts(saved.starts); restoringY.current = saved.y; void loadFeed({ cursor: saved.starts[saved.page], page: saved.page, direction: 'newer' }, true); }
+  else void loadFeed();
+  const track = () => { placeRef.current.y = window.scrollY; };
+  window.addEventListener('scroll', track, { passive: true });
   const lifecycle = requestVersion;
   const request = requestController;
-  return () => { lifecycle.current++; request.current?.abort(); };
+  return () => { if (isCurrentAuthSession(session)) saveFeedPlace(feedView, placeRef.current); window.removeEventListener('scroll', track); lifecycle.current++; request.current?.abort(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [feedEndpoint]);
+ useEffect(() => {
+  if (loading || loadError || restoringY.current === null) return;
+  const y = restoringY.current; restoringY.current = null;
+  const frame = requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }));
+  return () => cancelAnimationFrame(frame);
+ }, [loading, loadError, posts]);
+ useCommentRefresh(id => posts.some(post => post.id === id), (saved, comments) => {
+  setPosts(items => items.map(post => post.id === saved.id ? saved : post));
+  setSelectedPost(post => post?.id === saved.id ? saved : post);
+  if (comments) setCommentsData(items => ({ ...items, [saved.id]: comments }));
+ }, id => { setPosts(items => items.filter(post => post.id !== id)); setSelectedPost(post => post?.id === id ? null : post); setCommentsData(items => { const next = { ...items }; delete next[id]; return next; }); });
 
  const applyLikeState = (postId: number, isLiked: boolean) => {
   const updatePost = (post: FeedPostDto) => post.id !== postId || post.isLikedByMe === isLiked
@@ -206,15 +235,20 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
  };
 
  const loadComments = async (postId: number) => {
+  const session = getAuthSessionId(), version = requestVersion.current;
+  const current = () => isCurrentAuthSession(session) && version === requestVersion.current;
   setCommentsLoading((current) => ({ ...current, [postId]: true }));
   setCommentsErrors((current) => ({ ...current, [postId]: null }));
   try {
    const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
+   if (!current()) return;
    setCommentsData((current) => ({ ...current, [postId]: response.data }));
+   return response.data;
   } catch (error) {
+   if (!current()) return;
    setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, copy('Comments could not load.', 'კომენტარები ვერ ჩაიტვირთა.')) }));
   } finally {
-   setCommentsLoading((current) => ({ ...current, [postId]: false }));
+   if (current()) setCommentsLoading((current) => ({ ...current, [postId]: false }));
   }
  };
 
@@ -226,24 +260,22 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
   }
  };
 
- const submitComment = async (postId: number, content: string) => {
-  const response = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
+ const submitComment = async (postId: number, content: string, attempt?: CommentAttempt) => {
+  const session = getAuthSessionId(), version = requestVersion.current;
+  const response = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content, ...(attempt?.parentId ? { parentId: attempt.parentId } : {}) }, attempt ? { headers: { 'Idempotency-Key': attempt.requestId } } : undefined);
+  if (!isCurrentAuthSession(session) || version !== requestVersion.current) return;
   setCommentsData((current) => {
    const existing = current[postId] || [];
    return { ...current, [postId]: existing.some((comment) => comment.id === response.data.id) ? existing : [...existing, response.data] };
   });
-  setPosts((current) => current.map((post) => (post.id === postId ? { ...post, commentCount: post.commentCount + 1 } : post)));
-  setSelectedPost((current) => current?.id === postId ? { ...current, commentCount: current.commentCount + 1 } : current);
  };
 
  return (
   <div className="home-feed-canvas mx-auto flex w-full max-w-[680px] flex-col gap-4">
    <h1 className="sr-only">{copy('Home', 'მთავარი')}</h1>
    <WelcomeHost />
-   <StaffClubCard />
-   <NeedsResultCard />
-   <HelpingCard />
-   <HelpingProjectsCard />
+   <WaitingOnYou />
+   <HomeHelperDetails />
    {isAndroidApp ? <div className="lg:hidden"><WorkspaceShortcuts clubs={managedClubs} navigationCapabilities={user?.navigationCapabilities} /></div> :
     <details className="home-mobile-shortcuts">
      <summary><span>{copy('Your football', 'თქვენი ფეხბურთი')}</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || copy('Your shortcuts', 'მალსახმობები')}</span><ChevronDown size={16} aria-hidden="true" /></summary>
@@ -253,6 +285,9 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    <PostComposer
     compact
     home
+    asSelf
+    authors={postAuthors.authors}
+    authorsLoaded={postAuthors.loaded}
     authorName={user?.fullName || user?.username || 'You'}
     avatarUrl={user?.avatarUrl}
     onPostCreated={() => void loadFeed()}
@@ -321,7 +356,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
     pendingLikes={{ ...pendingLikes, ...reactions.pending }}
     likeErrors={{ ...likeErrors, ...reactions.errors }}
     commentsErrors={commentsErrors}
-    onRetryComments={(postId) => void loadComments(postId)}
+    onRetryComments={loadComments}
     onSelectPost={(post) => {
      setSelectedPost(post);
      if (!commentsData[post.id]) {
@@ -378,7 +413,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
     likeError={selectedPost ? reactions.errors[selectedPost.id] || likeErrors[selectedPost.id] : null}
     commentsLoading={selectedPost ? commentsLoading[selectedPost.id] === true : false}
     commentsError={selectedPost ? commentsErrors[selectedPost.id] : null}
-    onRetryComments={(postId) => void loadComments(postId)}
+    onRetryComments={loadComments}
    />
   </div>
  );

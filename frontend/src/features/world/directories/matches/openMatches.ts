@@ -9,12 +9,30 @@ import { isoDayOf } from '../../format';
 import { listingCode } from '../../scoreboard/matchCode';
 import { zonedMatch } from '../../scoreboard/matchState';
 import { busyDaysOf, fitOf, fitSquads, type FitSquad } from '../../scoreboard/squadFit';
-import { loadAllMine } from './arrangements';
+import { fetchMatchListings } from '../../api';
 import { longDay } from './matchday';
 
 /** An open match as Matches lists it: the listing, its code, its Georgian day, my squad it suits, and whether that squad already plays that day. */
 export interface OpenMatch { m: Match; code: string; day: string; fit: FitSquad | null; busy: boolean }
 
+
+const PAGES = 5;
+
+/**
+ * Every listing I am part of (the backend lists them oldest first, 24 a page, and no other way): read to the end,
+ * at most five pages.
+ */
+export async function loadAllMine(filters: string) {
+    const items: Match[] = [];
+    let total = 0, page = 0;
+    do {
+        const result = await fetchMatchListings(new URLSearchParams(`mine=true&page=${page}${filters ? `&${filters}` : ''}`), detached());
+        items.push(...result.items);
+        total = result.total;
+        page += 1;
+    } while (items.length < total && page < PAGES);
+    return items;
+}
 
 /** My squads (those I may arrange for), the days each already plays and the listings I have offered on, shared for a minute. */
 export const loadMyFit = (sessionId: AuthSessionId) => shared(`my-fit:${sessionId}`, async () => {

@@ -108,7 +108,7 @@
     flex-wrap: wrap;
     gap: 7px;
 }
-.schedule-compose-types > button {
+.schedule-compose-types > :is(button, a) {
     display: flex;
     align-items: center;
     gap: 7px;

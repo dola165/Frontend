@@ -73,6 +73,8 @@ export interface ScheduleEventOccurrence {
     conflict: boolean;
     conflictingEventIds: number[];
     challengerSquadId?: number | null;
+    /** A connected fixture's listing revision, which a call-up reply names (step 5; older servers omit it). */
+    matchRevision?: number | null;
     challengerSquadName?: string | null;
     targetSquadId?: number | null;
     targetSquadName?: string | null;
@@ -103,7 +105,8 @@ export const fetchClubSchedule = async (clubId: number, from?: string, to?: stri
         ...withWindow(from, to),
         signal,
     });
-    return response.data.events ?? [];
+    if (!Array.isArray(response.data?.events)) throw new Error('The calendar could not be read. Try again.');
+    return response.data.events;
 };
 
 export const fetchMySchedule = async (from?: string, to?: string, signal?: AbortSignal) => {
@@ -111,7 +114,8 @@ export const fetchMySchedule = async (from?: string, to?: string, signal?: Abort
         ...withWindow(from, to),
         signal,
     });
-    return response.data.events ?? [];
+    if (!Array.isArray(response.data?.events)) throw new Error('The calendar could not be read. Try again.');
+    return response.data.events;
 };
 
 export const fetchPublicScheduleEvents = async (options: PublicScheduleEventsOptions = {}) => {
@@ -125,7 +129,8 @@ export const fetchPublicScheduleEvents = async (options: PublicScheduleEventsOpt
             ...(options.eventType ? { eventType: options.eventType } : {}),
         },
     });
-    return response.data.events ?? [];
+    if (!Array.isArray(response.data?.events)) throw new Error('The calendar could not be read. Try again.');
+    return response.data.events;
 };
 
 export const createClubEvent = async (clubId: number, payload: ScheduleEventUpsertInput) => {

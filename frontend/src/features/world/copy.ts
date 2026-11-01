@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { appLanguage } from '../../utils/formatting';
 import { WORLD_KA } from './copy.ka';
+import { WORLD_WATCH_KA } from './watches/copy.ka';
 
 export type CopyVars = Record<string, string | number>;
 
@@ -14,7 +15,7 @@ const fill = (text: string, vars?: CopyVars) => vars
  * Text with no translation (names, codes such as "U12") is shown as given.
  */
 export function wt(en: string, vars?: CopyVars): string {
-    return fill(appLanguage() === 'ka' ? WORLD_KA[en] ?? en : en, vars);
+    return fill(appLanguage() === 'ka' ? WORLD_WATCH_KA[en] ?? WORLD_KA[en] ?? en : en, vars);
 }
 
 /** `wt` for components: re-renders the component when the app language changes. */

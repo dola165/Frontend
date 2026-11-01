@@ -123,7 +123,7 @@ function ClubProfileView({ id }: { id: number }) {
             tabs={clubTabs.map(item => ({ ...item, label: typeof item.label === 'string' ? pt(item.label) : item.label }))} tab={tab} onTab={setTab} tabsLabel={pt('Club sections')}
             sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} tab={tab} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel={pt('Club information')}
             side={editing ? <PageColumn column="right" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel={pt('Get involved')}>
-            {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} can={can} crestUrl={page?.identity.crest.url} />}
+            {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} crestUrl={page?.identity.crest.url} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
             {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} canManage={can.canManage} />}

@@ -62,11 +62,13 @@ const clubCapabilities = persona => ['physio', 'attendance', 'kit'].includes(per
     : ['teammanager', 'gkcoach', 'headofcoaching'].includes(persona) ? ['club.operations', 'club.member']
       : persona === 'analyst' ? ['club.workspace', 'club.operations', 'club.member', 'club.office']
         : persona === 'member' ? ['club.workspace', 'club.operations'] : persona === 'helper' ? [] : ['club.workspace', 'club.office', 'club.operations'];
+// Step 6: Luka refereeing (the `referee` persona) has the referee workspace only, so My matches is his place.
+const REFEREE_WORKSPACES = [{ id: 'referee.workspace', context: { type: 'user', id: me.id, label: me.fullName } }];
 // The parent view (family cookie) also makes Luka a parent, so Parent Hub joins his tabs.
 export const meProjection = ({ headers } = {}) => ({
   id: me.id, username: 'coach.luka', email: me.email, role: 'USER', fullName: me.fullName, name: me.fullName, avatarUrl: me.avatarUrl,
   dob: accountProfile.dob, profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
-  navigationCapabilities: { version: 1, workspaces: [
+  navigationCapabilities: { version: 1, workspaces: V.personaOf(headers) === 'referee' ? REFEREE_WORKSPACES : [
     ...clubCapabilities(V.personaOf(headers)).map(id => ({ id, context: { type: 'club', id: 1, label: clubs[0].name } })),
     ...(['physio', 'attendance'].includes(V.personaOf(headers)) ? [] : (['analyst', 'member'].includes(V.personaOf(headers)) ? COACHED : mySquads(V.personaOf(headers)))
       .map(id => ({ id: 'squad.workspace', context: { type: 'squad', id, label: squadById(id).name } }))),

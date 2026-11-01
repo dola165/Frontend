@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { playerPath, positivePlayerId, usePlayerSelection } from '../../parents/playerSelection';
 import { useAuth } from '../../../context/AuthContext';
@@ -14,6 +14,9 @@ import { useAdmissionData } from './useAdmissionData';
 import { useAdmissionMutation } from './useAdmissionMutation';
 import { formatDateTime } from '../../../utils/formatting';
 import { useInquiryCopy } from '../inquiryPresentation';
+import { scoutingFamilyApi, scoutingFamilyContext, type FamilyContext } from '../../scouting/familyHandoff';
+import { guardScoutingLink } from '../../scouting/scoutingNavigation';
+import { useClubEditorClose } from '../../clubOperations/useClubEditorClose';
 
 export function GeneralAdmissionInquiryPage() {
     const {organizationId}=useParams();const {user,sessionId}=useAuth();
@@ -60,26 +63,31 @@ export function AdmissionInquiryPage() {
 }
 function InquiryContent({id}:{id:number}) {
     const {sessionId}=useAuth();const {copy,status,next}=useInquiryCopy();
-    const data=useAdmissionData(useCallback(signal=>fetchAdmissionInquiry(id,sessionId,signal),[id,sessionId]),sessionId);
+    const [detailsParams]=useSearchParams();const navigate=useNavigate();
+    const context=useMemo(()=>scoutingFamilyContext(detailsParams),[detailsParams]);
+    const family=context&&!('invalid' in context)?context:null;
+    const familyApi=useMemo(()=>family?scoutingFamilyApi(family,id,sessionId):null,[family,id,sessionId]);
+    const data=useAdmissionData(useCallback(signal=>context&&!familyApi?Promise.reject(new Error('Invalid scouting handoff')):familyApi?familyApi.read(signal):fetchAdmissionInquiry(id,sessionId,signal),[context,familyApi,id,sessionId]),sessionId);
     const tab=useAdmissionTab(['overview','conversation','history']);
-    const inquiry=data.data;const [detailsParams]=useSearchParams();
-    if(inquiry?.conversationDestination&&inquiry.playerId&&detailsParams.get("details")!=="1")return <Navigate to={inquiry.conversationDestination} replace/>;
-    return <AdmissionFrame playerId={inquiry?.playerId} title={copy('Your club enquiry','თქვენი კითხვა კლუბისთვის')} description={data.error?undefined:inquiry?.organizationName} back="/admissions" tabs={[{id:'overview',label:copy('Overview','მიმოხილვა')},{id:'conversation',label:copy('Conversation','საუბარი')},{id:'history',label:copy('History','ისტორია')}]} activeTab={tab}>
+    const inquiry=data.loading||data.error?null:data.data;
+    if(!context&&inquiry?.conversationDestination&&inquiry.playerId&&detailsParams.get("details")!=="1")return <Navigate to={inquiry.conversationDestination} replace/>;
+    return <div onClickCapture={family?event=>guardScoutingLink(event,navigate):undefined}><AdmissionFrame playerId={inquiry?.playerId} title={family?copy('Family application conversation','ოჯახის განაცხადის საუბარი'):copy('Your club enquiry','თქვენი კითხვა კლუბისთვის')} description={data.error?undefined:inquiry?.organizationName} back={family?undefined:'/admissions'} action={family?<Link className="admission-button" to={family.back}>{copy('Return to Scouting','სკაუტინგში დაბრუნება')}</Link>:undefined} tabs={[{id:'overview',label:copy('Overview','მიმოხილვა')},{id:'conversation',label:copy('Conversation','საუბარი')},{id:'history',label:copy('History','ისტორია')}]} activeTab={tab}>
         {data.loading?<AdmissionLoading/>:data.error?<AdmissionError message={data.error} retry={data.refresh}/>:inquiry&&<div className="admission-stack"><AdmissionSection active={tab==='overview'}><section className="admission-panel"><h2>{inquiry.playerName||copy("General question","ზოგადი კითხვა")}</h2><span className="admission-badge">{status(inquiry)}</span><p>{inquiry.message}</p>
             <p role="status">{next(inquiry)}</p>
-            {inquiry.conversationDestination&&<Link className="admission-button" to={inquiry.conversationDestination}>{copy("Open club conversation","კლუბთან საუბრის გახსნა")}</Link>}
-            {inquiry.caseId&&<><p>{copy('Review the proposed group and its next steps. Routing this inquiry gives no consent to attendance or enrollment.','იხილეთ შემოთავაზებული ჯგუფი და შემდეგი ნაბიჯები. ამ კითხვის საქმეში გადატანა დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p><Link className="admission-button admission-primary" to={playerPath(`/admissions/cases/${inquiry.caseId}`,inquiry.playerId)}>{copy('Review the proposed group','შემოთავაზებული ჯგუფის განხილვა')}</Link></>}
-        </section><Link className="admission-button" to={playerPath('/admissions/inquiries/'+id+'?details=1&tab=conversation',inquiry.playerId)}>{copy('Send more information','დამატებითი ინფორმაციის გაგზავნა')}</Link></AdmissionSection><AdmissionSection active={tab==='conversation'}>{inquiry.actions.includes('ASSOCIATE_PLAYER')&&<AssociateInquiryPlayer inquiry={inquiry} onChanged={data.setData} refresh={data.refresh}/>}
-        {(['MESSAGE','RESOLVE','REOPEN','WITHDRAW'] as const).filter(action=>inquiry.actions.includes(action)).map(action=><InquiryResponse key={`${action}:${id}`} inquiry={inquiry} action={action} onChanged={data.setData} refresh={data.refresh}/>)}
+            {!family&&inquiry.conversationDestination&&<Link className="admission-button" to={inquiry.conversationDestination}>{copy("Open club conversation","კლუბთან საუბრის გახსნა")}</Link>}
+            {!family&&inquiry.caseId&&<><p>{copy('Review the proposed group and its next steps. Routing this inquiry gives no consent to attendance or enrollment.','იხილეთ შემოთავაზებული ჯგუფი და შემდეგი ნაბიჯები. ამ კითხვის საქმეში გადატანა დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p><Link className="admission-button admission-primary" to={playerPath(`/admissions/cases/${inquiry.caseId}`,inquiry.playerId)}>{copy('Review the proposed group','შემოთავაზებული ჯგუფის განხილვა')}</Link></>}
+        </section>{!family&&<Link className="admission-button" to={playerPath('/admissions/inquiries/'+id+'?details=1&tab=conversation',inquiry.playerId)}>{copy('Send more information','დამატებითი ინფორმაციის გაგზავნა')}</Link>}</AdmissionSection><AdmissionSection active={tab==='conversation'}>{!family&&inquiry.actions.includes('ASSOCIATE_PLAYER')&&<AssociateInquiryPlayer inquiry={inquiry} onChanged={data.setData} refresh={data.refresh}/>}
+        {(['MESSAGE','RESOLVE','REOPEN','WITHDRAW'] as const).filter(action=>(!family||action==='MESSAGE')&&inquiry.actions.includes(action)).map(action=><InquiryResponse key={`${action}:${id}`} inquiry={inquiry} action={action} onChanged={data.setData} refresh={data.refresh} family={family??undefined}/>)}
         </AdmissionSection><AdmissionSection active={tab==='history'}><section className="admission-panel"><h2>{copy('Inquiry history','კითხვის ისტორია')}</h2><ol className="admission-timeline">{inquiry.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{formatDateTime(e.createdAt)}</time><strong>{e.actorName}</strong>{e.message&&<p>{e.message}</p>}</li>)}</ol></section></AdmissionSection></div>}
-    </AdmissionFrame>;
+    </AdmissionFrame></div>;
 }
-function InquiryResponse({inquiry:i,action,onChanged,refresh}:{inquiry:AdmissionInquiry;action:Extract<InquiryAction,'MESSAGE'|'WITHDRAW'|'RESOLVE'|'REOPEN'>;onChanged:(i:AdmissionInquiry)=>void;refresh:()=>void}) {
+function InquiryResponse({inquiry:i,action,onChanged,refresh,family}:{inquiry:AdmissionInquiry;action:Extract<InquiryAction,'MESSAGE'|'WITHDRAW'|'RESOLVE'|'REOPEN'>;onChanged:(i:AdmissionInquiry)=>void;refresh:()=>void;family?:FamilyContext}) {
     const {sessionId}=useAuth();const {copy,action:actionLabel}=useInquiryCopy();const [message,setMessage]=useState('');
-    const mutation=useAdmissionMutation<Omit<InquiryCommand,'requestId'>,AdmissionInquiry>(i.playerId??0,`inquiry:${i.id}:${action}`,body=>commandAdmissionInquiry(i.id,body,sessionId),result=>{setMessage('');onChanged(result);},refresh);
+    const mutation=useAdmissionMutation<Omit<InquiryCommand,'requestId'>,AdmissionInquiry>(i.playerId??0,`inquiry:${i.id}:${action}${family?`:scouting:${family.club}:${family.record}`:''}`,body=>family?scoutingFamilyApi(family,i.id,sessionId).command(body):commandAdmissionInquiry(i.id,body,sessionId),result=>{setMessage('');onChanged(result);},refresh);
+    const guard=useClubEditorClose(Boolean(family&&(message||mutation.pending)),Boolean(family&&mutation.busy),()=>{});
     const label=action==='MESSAGE'?copy('Send more information','დამატებითი ინფორმაციის გაგზავნა'):actionLabel(action);
     const textRequired=action==='MESSAGE'||action==='WITHDRAW';
-    return <details className="admission-panel"><summary className="admission-button">{label}</summary><form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({expectedVersion:i.version,action,message:message.trim()});}}><label>{textRequired?copy('Message or reason','შეტყობინება ან მიზეზი'):copy('Optional message','არასავალდებულო შეტყობინება')}<textarea required={textRequired} maxLength={2000} value={message} disabled={Boolean(mutation.pending)} onChange={e=>setMessage(e.target.value)}/></label>{mutation.error&&<AdmissionError message={mutation.error}/>}{mutation.pending?<button type="button" className="admission-button" disabled={mutation.busy} onClick={()=>void mutation.retry()}>{copy('Retry saved response','შენახული პასუხის გამეორება')}</button>:<button className="admission-button" disabled={mutation.busy||(textRequired&&!message.trim())}>{label}</button>}</form></details>;
+    return <details className="admission-panel"><summary className="admission-button">{label}</summary><form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({expectedVersion:i.version,action,message:message.trim()});}}><label>{textRequired?copy('Message or reason','შეტყობინება ან მიზეზი'):copy('Optional message','არასავალდებულო შეტყობინება')}<textarea required={textRequired} maxLength={2000} value={message} disabled={Boolean(mutation.pending)} onChange={e=>setMessage(e.target.value)}/></label>{mutation.error&&<AdmissionError message={mutation.error}/>}{mutation.pending?<button type="button" className="admission-button" disabled={mutation.busy} onClick={()=>void mutation.retry()}>{copy('Retry saved response','შენახული პასუხის გამეორება')}</button>:<button className="admission-button" disabled={mutation.busy||(textRequired&&!message.trim())}>{label}</button>}</form>{guard.confirmation}</details>;
 }
 
 function AssociateInquiryPlayer({inquiry, onChanged, refresh}: {inquiry: AdmissionInquiry; onChanged: (i: AdmissionInquiry) => void; refresh: () => void}) {

@@ -54,7 +54,7 @@ export function StoreProductCreate({ clubId, defaultActive = false, draftHint, o
         {canSeparate && <Button variant="ghost" disabled={recovery.pending} onClick={() => setDiscard(true)}>{ct('Start a separate product')}</Button>}
     </div>;
     return <>
-        <StoreProductForm key={revision} product={null} defaultActive={defaultActive} draftHint={draftHint} initialInput={attempt?.held}
+        <StoreProductForm platformSeller={clubId === 0} key={revision} product={null} defaultActive={defaultActive} draftHint={draftHint} initialInput={attempt?.held}
             saving={recovery.pending} saveDisabled={recovery.blocked} formError={recovery.error} recoveryNotice={notice} onDraftChange={recovery.observe}
             cancelCopy={attempt ? { question: ct('Close this editor and keep recovery?'), detail: ct('The original save and held answers stay available in this login and club.'), discardLabel: ct('Close and keep answers') } : undefined}
             onCancel={() => { recovery.hold(); clearForm(); onCancel(); }}

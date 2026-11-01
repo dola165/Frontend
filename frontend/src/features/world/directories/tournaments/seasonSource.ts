@@ -34,8 +34,10 @@ const live = (status: string) => status === 'PLANNING' || status === 'ACTIVE';
  * what is on now, what takes entries (my squads' ages first) and what is coming up, near the World area. A guest first
  * sees the overview's spotlight. Each tournament is listed once, in its first group.
  */
-async function loadSeason({ signal, sessionId, authenticated, area, userId, country }: LoadContext): Promise<SeasonItem[]> {
+async function loadSeason({ signal, sessionId, authenticated, area, userId, country }: LoadContext, birthYear?: string, ageGroup?: string): Promise<SeasonItem[]> {
     const near = nearParams(new URLSearchParams({ page: '0', size: SIZE }), area, country);
+    if (birthYear) near.set('birthYear', birthYear);
+    if (ageGroup) near.set('ageGroup', ageGroup);
     const cards = (extra: Record<string, string>) => {
         const params = new URLSearchParams(near);
         for (const [key, value] of Object.entries(extra)) params.set(key, value);
@@ -46,7 +48,7 @@ async function loadSeason({ signal, sessionId, authenticated, area, userId, coun
         // The lists are the season; mine, my invitations and the spotlight add to it, and a failure there leaves them out.
         authenticated ? shared(`personal-competitions:${sessionId}`, () => browsePersonalCompetitions({ page: 0, size: 20 })).then(page => page.content).catch((): TournamentSummary[] => []) : [] as TournamentSummary[],
         authenticated ? tournamentInvitations(sessionId).catch(() => []) : [],
-        authenticated ? [] as TournamentSummary[] : fetchTournamentOverview(signal).then(overview => overview.highlights).catch((): TournamentSummary[] => []),
+        authenticated || area?.city || birthYear || ageGroup ? [] as TournamentSummary[] : fetchTournamentOverview(signal).then(overview => overview.highlights).catch((): TournamentSummary[] => []),
         authenticated ? loadMyTeams(sessionId) : NO_TEAMS,
     ]);
     const card = new Map<number, CompetitionCard>([...active, ...open, ...planning].map(item => [item.id, item]));
@@ -86,7 +88,7 @@ const matches = (item: TournamentItem, text: string) => !text || [item.name, ite
 
 /** This season (the default list): mine, on now, open for entries, coming up. */
 export const season: DirectorySource<SeasonItem> = {
-    id: 'season',
+    id: 'season', forContext: true,
     label: 'This season',
     noun: ['tournament', 'tournaments'],
     searchLabel: 'Search this season',
@@ -97,7 +99,7 @@ export const season: DirectorySource<SeasonItem> = {
     filters: [],
     async load(query, _page, context) {
         const text = query.q.trim().toLowerCase();
-        const items = (await loadSeason(context)).filter(item => matches(item, text));
+        const items = (await loadSeason(context, query.values.birthYear?.[0], query.values.ageGroup?.[0])).filter(item => matches(item, text));
         return { items, total: items.length, hasMore: false };
     },
     key: item => String(item.id),

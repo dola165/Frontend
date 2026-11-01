@@ -43,7 +43,7 @@ function useStageTop(lead: HTMLElement | null, wanted: boolean) {
  * so it never reloads) with a glass panel over its right side, and the page itself below. A page fills the header
  * and the panel and tells the map what to show; moving between tabs changes only that, so nothing jumps.
  */
-export function WorldStage({ children }: { children: ReactNode }) {
+export function WorldStage({ children, finder = false }: { children: ReactNode; /** Parent Hub's club finder: the map open first, no drawers (clubs open inside the list). */ finder?: boolean }) {
     const t = useWorldCopy();
     const { pathname, state } = useLocation();
     const [head, setHead] = useState<HTMLElement | null>(null);
@@ -53,7 +53,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
     const [top, setTop] = useState<HTMLElement | null>(null);
     const [map, setMap] = useState<StageMap | null>(null);
     const [paneHost, setPaneHost] = useState<HTMLElement | null>(null);
-    const fold = useMapFold();
+    const fold = useMapFold(finder);
     const [params, setParams] = useSearchParams();
     const panelFolded = params.get('panel') === 'folded';
     const togglePanel = () => setParams(current => {
@@ -94,7 +94,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
                             <WorldMap variant="hero" label={map?.label ?? t('Map')} points={map?.points ?? NO_POINTS}
                                 selectedId={map?.selectedId} onSelect={map?.onSelect} highlightId={map?.highlightId} onHover={map?.onHover}
                                 onMoveEnd={map?.onMoveEnd} onView={map?.onView} cardActions={map?.cardActions} insetRight={insetRight} insetLeft={insetLeft} insetTop={map?.insetTop} gestures={side ? 'free' : 'cooperative'}
-                                focus={map?.focus} frame={map?.frame} card={map?.card ?? true} context={map?.context} reach={map?.reach} away={map?.away}
+                                focus={map?.focus} frame={map?.frame} card={map?.card ?? true} context={map?.context} reach={map?.reach} away={map?.away} you={map?.you}
                                 overlay={<>{map?.top}<div className="gk-world-map__overlay">
                                     {map?.pills}
                                     <button ref={foldRef} type="button" className="gk-world-glass" onClick={toggleMap} aria-expanded><ChevronUp aria-hidden="true" />{t('Fold map')}</button>
@@ -114,7 +114,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
                     fails shows its error here, and the next page starts clean. */}
                 <div className="gk-world-stage__body" key={pathname}><ErrorBoundary>{children}</ErrorBoundary></div>
             </div>
-            <Drawers />
+            {!finder && <Drawers />}
         </FollowingProvider></StageContext.Provider>
     );
 }

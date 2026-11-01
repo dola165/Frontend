@@ -8,7 +8,6 @@ import { toWhatsappHref } from '../components/club/clubProfileInfo';
 import { getOpportunityReturnTarget } from '../components/discovery/opportunityReturnContext';
 import { MediaImage } from '../components/ui/MediaImage';
 import { Button, ButtonLink, EmptyNote, Field, GkRoot, PageFrame, Skeleton } from '../design/primitives';
-import { PaymentPreviewNotice } from '../features/paymentPreview/PaymentPreview';
 import { availability, fetchStoreClub, fetchStoreProduct, formatStorePrice, sellerName, sellerOf, type StoreProduct, type StoreVariant } from '../features/store/api';
 import { isLeadershipRole } from '../features/clubs/domain';
 import { addCartItem } from '../features/store/cart';
@@ -74,10 +73,11 @@ function Product({ product }: { product: StoreProduct }) {
                 </div>
                 {added && <div className="gk-store-buy__added" role="status"><Check aria-hidden="true" /><span>{ct("Added: ")}{added}</span><Link to="/store/cart">{ct("View cart")}</Link></div>}
                 {problem && <p className="gk-notice gk-notice--danger" role="alert">{problem}</p>}
-                <PaymentPreviewNotice />
-                {!own && variant && (whatsapp || product.clubEmail) && <div className="gk-store-buy__ask" aria-label={ct("Ask the club about this item")}>
+                {product.sellerArrangement && <p>{product.sellerArrangement}</p>}
+                {variant && (whatsapp || product.clubEmail || product.sellerWebsite) && <div className="gk-store-buy__ask" aria-label={ct("Ask the club about this item")}>
                     {whatsapp && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`${whatsapp}?text=${encodeURIComponent(enquiry)}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />{ct("Ask on WhatsApp")}</a>}
-                    {product.clubEmail && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`mailto:${product.clubEmail}?subject=${encodeURIComponent(enquiry)}&body=${encodeURIComponent(ct("Please confirm availability and how to buy {v0} · {v1} × {v2} directly from the club.", { v0: product.name ?? 'this product', v1: variant.label, v2: quantity }))}`}><Mail aria-hidden="true" />{ct("Email the club")}</a>}
+                    {product.sellerWebsite && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={product.sellerWebsite} target="_blank" rel="noopener noreferrer">Seller website</a>}
+                    {product.clubEmail && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`mailto:${product.clubEmail}?subject=${encodeURIComponent(enquiry)}&body=${encodeURIComponent(ct("Please confirm availability and how to buy {v0} · {v1} × {v2} directly from the seller.", { v0: product.name ?? 'this product', v1: variant.label, v2: quantity }))}`}><Mail aria-hidden="true" />{ct(own ? "Email the seller" : "Email the club")}</a>}
                 </div>}
             </section>
         </div>

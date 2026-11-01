@@ -15,7 +15,7 @@ vi.mock('../../squadCommunication/SquadSessionDialog', async () => ({ ...await v
 vi.mock('../../../components/schedule/ScheduleDirectionWorkspace', () => ({ ScheduleDirectionWorkspace: (p: { createLabel: string; onCreate: (day?: unknown) => void; canCreate: boolean; extraActions: ReactNode; events: ScheduleWorkspaceEvent[]; onSelect: (e: ScheduleWorkspaceEvent) => void; notices: ReactNode; footer: ReactNode }) => <>{p.canCreate && <button onClick={p.onCreate}>{p.createLabel}</button>}{p.canCreate && <button onClick={() => p.onCreate(new Date('2099-09-21T12:00:00Z'))}>Create in calendar cell</button>}{p.extraActions}{p.events.map(e => <button key={e.id} onClick={() => p.onSelect(e)}>{e.title}</button>)}{p.notices}{p.footer}</> }));
 const squad = { id: 11, name: 'U14', club_id: 1, can_manage: true };
 beforeEach(() => { vi.mocked(useSquadSchedule).mockReturnValue({ key: 'loaded', events: [], loading: false, error: '' }); });
-const mount = (manager = true) => render(<MemoryRouter><Routes><Route path="/" element={<FamilySchedule squads={[{ ...squad, can_manage: manager }]}/>} /><Route path="/match-exchange/:id" element={<p>Exchange details</p>}/></Routes></MemoryRouter>);
+const mount = (manager = true) => render(<MemoryRouter><Routes><Route path="/" element={<FamilySchedule squads={[{ ...squad, can_manage: manager }]}/>} /><Route path="/matches/:id" element={<p>Exchange details</p>}/></Routes></MemoryRouter>);
 
 it('opens the same event editor directly from the primary action and calendar cells', () => {
     const { unmount } = mount();
@@ -38,7 +38,7 @@ it.each([true, false])('routes Exchange records to their canonical details for c
 it('keeps a crowded embedded schedule usable and preserves child context and canonical event destinations', () => {
     const events = Array.from({length:8}, (_,i) => ({id:'fixture:'+i,eventId:82+i,origin:'MATCH_EXCHANGE',originId:82+i,title:'Friendly fixture '+i,eventType:'FRIENDLY',ownerLabel:'U14',startsAt:new Date(Date.now()+3600000).toISOString(),endsAt:new Date(Date.now()+7200000).toISOString(),status:'SCHEDULED'} as SquadCalendarEvent));
     vi.mocked(useSquadSchedule).mockReturnValue({key:'loaded',events,loading:false,error:''});
-    render(<MemoryRouter><Routes><Route path="/" element={<FamilySchedule squads={[{...squad,can_manage:false}]} playerId={61} embedded/>}/><Route path="/match-exchange/:id" element={<p>Exchange details</p>}/></Routes></MemoryRouter>);
+    render(<MemoryRouter><Routes><Route path="/" element={<FamilySchedule squads={[{...squad,can_manage:false}]} playerId={61} embedded/>}/><Route path="/matches/:id" element={<p>Exchange details</p>}/></Routes></MemoryRouter>);
     expect(screen.getByRole('link',{name:'Open full squad schedule'})).toHaveAttribute('href','/squads/11?tab=sessions&player=61');
     expect(vi.mocked(useSquadSchedule).mock.calls.at(-1)?.[4]).toBe(61);
     fireEvent.click(screen.getByRole('button',{name:/Friendly fixture 7/}));

@@ -12,6 +12,9 @@ export interface OperationRecord {
   squad_id: number | null; subject_user_id: number | null; assigned_user_id: number | null;
   event_id: number | null; session_id: number | null; related_record_id: number | null; due_on: string | null;
   data: Record<string, string>; revision: number; canEdit: boolean; transitions: string[];
+  summaryOnly?: boolean;
+  borrowerCurrent?: boolean;
+  careContext?: { professional: string; squad: string };
   created_at: string; updated_at: string;
   attentionDate?:string|null;expired?:boolean;map_plan_id?:number|null;
 }
@@ -27,6 +30,7 @@ export interface Settings {
   enabled_modules: string[]; revision: number;
 }
 export interface Bootstrap {
+  scouting?: { clubWide: boolean; squads: Choice[] };
   defaultSquadId?: number;
   defaultSessionId?: number;
   defaultSubjectId?: number;
@@ -56,13 +60,13 @@ export const scopePayload = (scope: {clubWide:boolean;squadIds:number[]}) => ({c
 export const appointmentScope = (a: Pick<Appointment,'squad_id'|'squad_ids'|'squad_name'|'squad_names'>, choices: Choice[] = []) => {
   const ids=appointmentSquads(a);return !ids.length?(a.squad_ids?'Whole club':a.squad_name||'Whole club'):ids.map((id,i)=>a.squad_names?.[i] ?? choices.find(s=>s.id===id)?.name ?? (ids.length===1?a.squad_name:null) ?? `Team #${id}`).join(', ');
 };
-const MODULES = ['STAFF', 'CREDENTIALS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'WELFARE', 'MEDICAL', 'AVAILABILITY', 'DEVELOPMENT', 'EDUCATION', 'REGISTRATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'SPECIALISTS', 'DEPARTURES', 'MATCHES'] as const;
+const MODULES = ['STAFF', 'CREDENTIALS', 'FACILITIES', 'READINESS', 'GUARDIANS', 'ATTENDANCE', 'WELFARE', 'MEDICAL', 'WELLBEING', 'AVAILABILITY', 'DEVELOPMENT', 'EDUCATION', 'REGISTRATION', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'SPECIALISTS', 'DEPARTURES', 'MATCHES'] as const;
 /** Each tool's name in the person's language, read when it is shown. */
 export const moduleNames: Record<string, string> = Object.defineProperties({}, Object.fromEntries(MODULES.map(id => [id, { enumerable: true, get: () => translate('clubRecords', clubRecordsEn, `module_${id}`) }])));
 export const moduleGroups = [
   { name: 'People', ids: ['STAFF', 'CREDENTIALS', 'GUARDIANS', 'ATTENDANCE', 'DEVELOPMENT', 'EDUCATION', 'REGISTRATION', 'DEPARTURES'] },
   { name: 'Operations', ids: ['FACILITIES', 'READINESS', 'EQUIPMENT', 'FINANCE', 'TRAVEL', 'SPECIALISTS'] },
-  { name: 'Care', ids: ['AVAILABILITY', 'MEDICAL', 'WELFARE'] },
+  { name: 'Care', ids: ['AVAILABILITY', 'MEDICAL', 'WELLBEING', 'WELFARE'] },
 ];
 export const transitionLabel = (kind: string, state: string) => {
   if(kind==='ATTENDANCE'&&state==='EXPECTED')return 'Correct attendance (reason required)';

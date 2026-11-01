@@ -26,6 +26,8 @@ export function SquadSwitch({ role }: { role: WorldRole }) {
     const choose = (next: string) => setParams(current => {
         const updated = new URLSearchParams(current);
         if (next) updated.set('for', next); else updated.delete('for');
+        updated.set('player', 'anyone');
+        ['birthYear', 'selected', 'shown', 'peek', 'side'].forEach(key => updated.delete(key));
         return updated;
     }, { replace: true, preventScrollReset: true });
     if (squads.length > 4) return (

@@ -8,6 +8,7 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { moveFundraiser, type ProjectDetail } from './api';
 import { AmountDialog, FundraiserDialog, UpdateDialog } from './FundraiserDialogs';
 import { ProgressBar } from './ProgressBar';
+import { safeGivingUrl } from '../campaigns/api';
 import { amount, money } from './projectWords';
 
 type Open = 'amount' | 'start' | 'edit' | 'update' | 'archive' | null;
@@ -26,7 +27,7 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
     const seen = Boolean(f?.publishedAt) && f?.status !== 'ARCHIVED';
     const clubId = project.club?.id ?? 0;
     if (!summary.target && !f) return null;
-    const currency = summary.target?.currency ?? f?.goal?.currency ?? 'GEL';
+    const currency = f?.currency ?? 'GEL';
     const raised = f?.reportedAmount ?? null;
     const move = async (status: 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED') => {
         if (!f) return;
@@ -41,15 +42,15 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
                 : copy('Inside the club until it is verified', 'კლუბის შიგნით, ვერიფიკაციამდე');
     return <section className="pj-block pj-money" aria-labelledby="pj-money">
         <div className="pj-block__head"><h2 className="pj-label" id="pj-money">{copy('Money', 'თანხა')}</h2>{where && <span className="pj-quiet">{where}</span>}</div>
-        {summary.target && <ProgressBar wide value={summary.progress} label={copy(`${summary.progress}% of the target`, `მიზნის ${summary.progress}%`)} />}
+        {summary.target && raised !== null && <ProgressBar wide value={summary.progress} label={copy(`${summary.progress}% of the target`, `მიზნის ${summary.progress}%`)} />}
         <p className="pj-money__line">
-            <strong>{amount(raised ?? 0, currency)}</strong>
+            <strong>{raised === null ? copy('Not reported yet', 'ჯერ არ არის მოხსენებული') : amount(raised, currency)}</strong>
             {summary.target && <span>{copy(` of ${money(summary.target)}`, ` / ${money(summary.target)}`)}</span>}
             {f && <span className="pj-quiet">{' · '}{f.reportedAt
                 ? copy(`reported by the club${f.reportedBy ? `, ${f.reportedBy.name}` : ''}, ${ago(copy, f.reportedAt)}`, `კლუბის ცნობით${f.reportedBy ? `, ${f.reportedBy.name}` : ''}, ${ago(copy, f.reportedAt)}`)
                 : copy('nothing reported yet', 'ჯერ არაფერი უცნობებიათ')}</span>}
         </p>
-        {f?.donateUrl && f.status === 'PUBLISHED' && f.phase === 'ACTIVE' && <a className="pj-give" href={f.donateUrl} target="_blank" rel="noopener noreferrer">{copy('Give on GoFundMe', 'შეწირვა GoFundMe-ზე')}<ArrowUpRight aria-hidden="true" /></a>}
+        {f && safeGivingUrl(f.donateUrl) && f.status === 'PUBLISHED' && f.phase === 'ACTIVE' && <a className="pj-give" href={safeGivingUrl(f.donateUrl)!} target="_blank" rel="noopener noreferrer">{copy('View external fundraising page', 'გარე გვერდის ნახვა')}<ArrowUpRight aria-hidden="true" /></a>}
         <div className="pj-actions">
             {!f && can.startFundraiser && <Button size="sm" variant="primary" onClick={() => setOpen('start')}>{copy('Start a fundraiser', 'შეგროვების დაწყება')}</Button>}
             {f && can.change && <Button size="sm" variant="primary" onClick={() => setOpen('amount')}>{copy('Update amount', 'თანხის განახლება')}</Button>}

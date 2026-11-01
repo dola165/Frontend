@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { fetchAccess, type AccessAction, type AccessDecision, type AccessRules, type AccessSubject } from '../api/access';
 import { getAuthSessionId, subscribeAuthSession } from '../utils/authStorage';
+import { announceAccessRefresh } from './accessRefresh';
 
 /** One answer per session and subject, shared by every button on the page; `refreshAccess` after a change. */
 const cache = new Map<string, Promise<AccessRules | null>>();
 const listeners = new Set<() => void>();
-export const refreshAccess = () => { cache.clear(); listeners.forEach(listener => listener()); };
+export const refreshAccess = () => { cache.clear(); listeners.forEach(listener => listener()); announceAccessRefresh(); };
 
 const load = (key: string, subject: AccessSubject) => {
     let found = cache.get(key);

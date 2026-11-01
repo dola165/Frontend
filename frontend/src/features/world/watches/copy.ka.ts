@@ -1,0 +1,18 @@
+export const WORLD_WATCH_KA: Record<string, string> = {
+    'Birth year': 'დაბადების წელი',
+    'Follow this search': 'ძებნის გამოწერა',
+    'Stop following this search': 'ძებნის გამოწერის შეწყვეტა',
+    'New results at most daily, until your child joins.': 'ახალი შედეგები მაქსიმუმ დღეში ერთხელ, სანამ ბავშვი კლუბს შეუერთდება.',
+    'New results at most daily. Notification settings apply.': 'ახალი შედეგები მაქსიმუმ დღეში ერთხელ, თქვენი შეტყობინებების პარამეტრების მიხედვით.',
+    'Followed searches': 'გამოწერილი ძებნები',
+    'Open saved search': 'შენახული ძებნის გახსნა',
+    'Stop following': 'გამოწერის შეწყვეტა',
+    'Followed searches could not load.': 'გამოწერილი ძებნები ვერ ჩაიტვირთა.',
+    'The search could not be saved. Try again.': 'ძებნა ვერ შეინახა. სცადეთ ხელახლა.',
+    'This search is no longer available.': 'ეს ძებნა აღარ არის ხელმისაწვდომი.',
+    'Sign in to open your followed search.': 'გამოწერილი ძებნის გასახსნელად შედით ანგარიშში.',
+    'Opening your search…': 'ძებნა იხსნება…',
+    'This search context is unavailable. Choose Anyone or another person you can act for.': 'ძებნის ეს კონტექსტი მიუწვდომელია. აირჩიეთ ყველა ან სხვა პირი, ვისი წარმომადგენლობაც შეგიძლიათ.',
+    'This search context is unavailable. Choose Anyone or an explicit public birth year.': 'ძებნის ეს კონტექსტი მიუწვდომელია. აირჩიეთ ყველა ან მიუთითეთ დაბადების წელი.',
+    'This place could not be located. Choose another city or Anywhere.': 'ამ ადგილის მდებარეობა ვერ მოიძებნა. აირჩიეთ სხვა ქალაქი ან ყველგან.',
+};

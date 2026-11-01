@@ -1,8 +1,9 @@
 import { BadgeCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { GoogleProviderSettings } from '../../providers/GoogleProviderSettings';
 import { useAccountCopy } from './accountCopy';
 import { DetailRow, Section } from './AccountFields';
-import { fmt, surfaceClass, type Account } from './accountModel';
+import { btnSecondaryClass, fmt, surfaceClass, type Account } from './accountModel';
 
 const providerLabel = (provider: string) => (provider === 'google' ? 'Google' : provider.charAt(0).toUpperCase() + provider.slice(1));
 
@@ -18,6 +19,10 @@ export const AccountLinkedAccountsTab = ({ account, securityExtensions, refreshO
             </Section>
 
             <Section title={copy("Linked Providers")} description={copy("Manage the sign-in methods attached to this account.")}>
+                {!securityExtensions && <div className="mb-4 grid gap-3 text-sm leading-6">
+                    <p>{copy('Provider connection changes are not available in this release. Keep access to your linked provider. Password recovery can add a password without disconnecting it.', 'ამ ვერსიაში პროვაიდერის კავშირის შეცვლა მიუწვდომელია. შეინარჩუნეთ დაკავშირებულ პროვაიდერზე წვდომა. აღდგენით შეგიძლიათ პაროლის დამატება კავშირის გაუქმების გარეშე.')}</p>
+                    <Link className={`${btnSecondaryClass} min-h-11 w-fit`} to="/forgot-password?next=%2Faccount%3Ftab%3Daccounts">{copy('Password recovery', 'პაროლის აღდგენა')}</Link>
+                </div>}
                 {securityExtensions && <GoogleProviderSettings accountId={account.id} onCredentialsChanged={refreshOverview} />}
                 {account.linkedAccounts.some(linked => !securityExtensions || linked.provider !== 'google') && (
                     <div className={surfaceClass}>

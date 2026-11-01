@@ -6,6 +6,7 @@ import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame } from '../design/prim
 import { fetchJobs, fetchJobsFront, LINES, type Job } from '../features/jobs/api';
 import { JobRow, Poster } from '../features/jobs/JobCard';
 import { JobsMap } from '../features/jobs/JobsMap';
+import { MyJobResponses } from '../features/jobs/PublicJobResponses';
 import { jobsPath } from '../features/jobs/query';
 import { CircleStrip, MarketTabs } from '../features/store/front/MarketTabs';
 import { useReveal } from '../features/store/front/useReveal';
@@ -47,6 +48,7 @@ export const JobsPage = () => {
         <GkRoot className="gk-store gk-page" data-market="jobs">
             <PageFrame>
                 <MarketTabs current="jobs" />
+                <MyJobResponses />
                 <div className="gk-store-head">
                     <div><h1>{ct("Jobs & volunteering")}</h1><p className="gk-store-head__hint">{ct("Work in football, from clubs and from people, near you")}</p></div>
                     <span />
@@ -122,7 +124,7 @@ export const JobsPage = () => {
                         <p className="gk-jobs-land__num">{ct("The rules that matter")}</p>
                         <ul className="gk-jobs-land__rules">
                             <li><Plus aria-hidden="true" /><span>{ct("Posting is free and takes three screens. Nothing is published that you did not write.")}</span></li>
-                            <li><ShieldCheck aria-hidden="true" /><span>{ct("People who offer services to children are checked before their listing goes live.")}</span></li>
+                            <li><ShieldCheck aria-hidden="true" /><span>Check experience and safeguarding arrangements with the adult publisher before arranging work.</span></li>
                             <li><Briefcase aria-hidden="true" /><span>{ct("Your applications and your postings stay here, under Yours, with every answer.")}</span></li>
                         </ul>
                         <div className="gk-store-head__actions"><ButtonLink variant="primary" to="/jobs/new?as=hire"><Plus aria-hidden="true" />{ct("Post a job")}</ButtonLink><ButtonLink to="/jobs/new?as=work"><UserCheck aria-hidden="true" />{ct("List yourself")}</ButtonLink><ButtonLink variant="ghost" to={jobsPath()}>{ct("Browse all")}</ButtonLink></div>

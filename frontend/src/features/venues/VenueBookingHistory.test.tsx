@@ -74,3 +74,47 @@ it('offers sign-in and explains empty filtered results without claiming a succes
   vi.mocked(fetchBookingHistory).mockResolvedValue(history([],'empty',null));const view=mount();await screen.findByText('No reservations found');
   auth.isAuthenticated=false;view.rerender(<MemoryRouter><MyVenueBookings/></MemoryRouter>);expect(screen.getByRole('link',{name:'Sign in'})).toHaveAttribute('href','/login');
 });
+
+it('finds a linked reservation beyond the first page without loading a duplicate list', async () => {
+  vi.mocked(fetchBookingHistory).mockResolvedValueOnce(history([90], 'first', 'second'))
+    .mockResolvedValueOnce(history([7, 6], 'second', null));
+  render(<MemoryRouter><MyVenueBookings focusedBookingId={7}/></MemoryRouter>);
+  await screen.findByText('Booking #7');
+  expect(screen.queryByText('Booking #90')).not.toBeInTheDocument();
+  expect(screen.queryByText('Booking #6')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Booking #7')).toHaveFocus();
+  expect(vi.mocked(fetchBookingHistory).mock.calls.map(call => call[0]?.cursor)).toEqual([undefined, 'second']);
+  // Background refresh retains keyboard focus in the customer's current action.
+  screen.getByRole('link', { name: 'Synthetic stadium' }).focus();
+  vi.mocked(fetchBookingHistory).mockResolvedValue(history([7, 6], 'second', null));
+  fireEvent.focus(window);
+  await waitFor(() => expect(fetchBookingHistory).toHaveBeenCalledTimes(3));
+  expect(screen.getByRole('link', { name: 'Synthetic stadium' })).toHaveFocus();
+});
+
+it('keeps failed linked reads retryable and never infers ownership from a forwarded ID', async () => {
+  vi.mocked(fetchBookingHistory).mockRejectedValueOnce(new Error('offline')).mockResolvedValue(history([8], 'first', null));
+  render(<MemoryRouter><MyVenueBookings focusedBookingId={7}/></MemoryRouter>);
+  expect(await screen.findByRole('alert')).toHaveTextContent('could not load');
+  expect(screen.queryByText(/not available in your personal/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  expect(await screen.findByText(/Booking #7 is not available in your personal/)).toBeVisible();
+  expect(screen.queryByText('Booking #8')).not.toBeInTheDocument();
+  expect(updateBooking).not.toHaveBeenCalled();
+});
+
+it('retires a linked search on account replacement, including a delayed older page', async () => {
+  let finish!: (value: BookingHistory) => void;
+  vi.mocked(fetchBookingHistory).mockResolvedValueOnce(history([90], 'first', 'second'))
+    .mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const view = render(<MemoryRouter><MyVenueBookings focusedBookingId={7}/></MemoryRouter>);
+  await waitFor(() => expect(fetchBookingHistory).toHaveBeenCalledTimes(2));
+  auth.sessionId = 'replacement';
+  vi.mocked(fetchBookingHistory).mockResolvedValue(history([99], 'other', null));
+  view.rerender(<MemoryRouter><MyVenueBookings focusedBookingId={7}/></MemoryRouter>);
+  await screen.findByText(/Booking #7 is not available in your personal/);
+  expect(vi.mocked(fetchBookingHistory).mock.calls[1][1]?.aborted).toBe(true);
+  await act(async () => finish(history([7], 'second', null)));
+  expect(screen.queryByText('Booking #7')).not.toBeInTheDocument();
+  expect(updateBooking).not.toHaveBeenCalled();
+});

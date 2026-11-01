@@ -7,11 +7,52 @@ export type PostReach = 'LOCAL' | 'REGIONAL' | 'NATIONAL' | 'FOLLOWERS';
 export interface PostPlace { city: string; latitude?: number | null; longitude?: number | null }
 export interface FeedWhy {
     kind: 'OWN' | 'LINKED' | 'FOLLOWING' | 'NEAR_TOPIC' | 'NEAR' | 'NATIONAL' | 'POPULAR';
+    /** Its place in Discover's order (1 your football … 6 near on other topics); the next page starts after it. */
+    tier?: number | null;
     name?: string | null;
     place?: string | null;
     distanceKm?: number | null;
     topic?: string | null;
     reactions?: number | null;
+}
+
+/**
+ * A post the club's records wrote (step 7), as its record stands when read: the record's own state and the one thing
+ * to do now (`action`, gone once the record no longer offers it), the line staff added, and whether the reader may
+ * add to it or hide it. Amounts are what the club reported. Children are never named.
+ */
+export interface RecordPost {
+    kind: 'TRIAL' | 'SQUAD' | 'JOB' | 'PROJECT' | 'TOURNAMENT' | 'CLUB' | 'RESULTS' | 'WEEKEND';
+    moment: string;
+    recordId: number;
+    title?: string | null;
+    state?: 'OPEN' | 'CLOSED' | 'CANCELLED' | 'FILLED' | 'EXPIRED' | 'PAUSED' | 'SCHEDULED' | 'ENDED' | 'DONE' | null;
+    action?: 'APPLY' | 'ASK' | 'VIEW_JOB' | 'SUPPORT' | 'ENTER' | 'FOLLOW' | null;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    placeName?: string | null;
+    ageGroup?: string | null;
+    gender?: string | null;
+    ages?: string[] | null;
+    hours?: string | null;
+    reportedAmount?: string | null;
+    goalAmount?: string | null;
+    currency?: string | null;
+    winner?: string | null;
+    following?: boolean | null;
+    line?: string | null;
+    hidden: boolean;
+    canChange: boolean;
+    version: number;
+    /** For those who may change it: its photos in the card's order, so adding one keeps the others. */
+    photoIds?: number[] | null;
+    matches?: RecordMatch[] | null;
+}
+
+export interface RecordMatch {
+    eventId: number; homeClub: string | null; awayClub: string | null;
+    homeCrest: string | null; awayCrest: string | null; homeSquad: string | null; awaySquad: string | null;
+    startsAt: string; state: string; homeScore: number | null; awayScore: number | null;
 }
 
 /** One symbol and colour per topic, the activity ones where a topic is an activity (matches green, training blue, trials pink). */

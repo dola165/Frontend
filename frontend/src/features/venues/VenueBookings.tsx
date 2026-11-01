@@ -1,8 +1,9 @@
 import { EmptyState } from '../../components/ui/EmptyState';
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarDays, Check, Clock3, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { cancelPersonalBookingForClosure } from '../profiles/account/accountClosureApi';
 import { extractApiErrorMessage } from "../../utils/apiError";
 import { fetchBookingHistory, updateBooking, type Booking, type BookingHistory } from "./api";
 import { bookingDate, money } from "./utils";
@@ -16,12 +17,15 @@ export function BookingRows({
   owner = false,
   timezone,
   onChange,
+  closureRecovery = false,
 }: {
   bookings: Booking[];
   owner?: boolean;
   timezone?: string;
   onChange: () => void;
+  closureRecovery?: boolean;
 }) {
+  const { sessionId } = useAuth();
   const [busy, setBusy] = useState<number | null>(null),
     [error, setError] = useState(""),
     [confirm, setConfirm] = useState<{ id: number; action: "ACCEPT" | "DECLINE" | "CANCEL" } | null>(null),
@@ -40,7 +44,8 @@ export function BookingRows({
     setBusy(booking.id);
     setError("");
     try {
-      await updateBooking(booking.venueId, booking.id, action);
+      if (closureRecovery && !owner && action === 'CANCEL') await cancelPersonalBookingForClosure(booking.venueId, booking.id, sessionId);
+      else await updateBooking(booking.venueId, booking.id, action);
       setConfirm(null);
       setReceipt(`${booking.kind === 'CLOSURE' ? 'Closure' : 'Booking'} #${booking.id} ${action === 'ACCEPT' ? 'confirmed' : action === 'DECLINE' ? 'declined' : 'cancelled'}.`);
       onChange();
@@ -192,7 +197,7 @@ export function BookingRows({
 }
 
 /** Keyed by session so an account change cannot render the previous person's history. */
-function PersonalBookingHistory() {
+function PersonalBookingHistory({ focusedBookingId, closureRecovery }: { focusedBookingId?: number; closureRecovery: boolean }) {
   const [filters, setFilters] = useState({ status: '', fromDate: '', toDate: '' });
   const [draft, setDraft] = useState(filters);
   const [anchors, setAnchors] = useState<(string | undefined)[]>([undefined]);
@@ -203,6 +208,9 @@ function PersonalBookingHistory() {
   const [reload, setReload] = useState(0);
   const cursor = anchors[page];
   const activeAnchor = useRef<string | undefined>(undefined);
+  const focusBooking = useCallback((node: HTMLDivElement | null) => {
+    if (node && focusedBookingId) node.focus();
+  }, [focusedBookingId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -214,10 +222,16 @@ function PersonalBookingHistory() {
       if (pending || background && document.visibilityState === 'hidden') return;
       pending = true;
       try {
-        const result = await fetchBookingHistory({ ...query, cursor: activeAnchor.current }, controller.signal);
+        let result = await fetchBookingHistory({ ...query, cursor: activeAnchor.current }, controller.signal);
+        // Use the personal archive's current customer authorization, even for a forwarded link.
+        // Follow its stable pages only until the linked receipt is found; do not load a second list.
+        while (focusedBookingId && !result.content.some(booking => booking.id === focusedBookingId)
+          && result.nextCursor && !controller.signal.aborted) {
+          result = await fetchBookingHistory({ ...query, cursor: result.nextCursor }, controller.signal);
+        }
         if (!controller.signal.aborted) {
           activeAnchor.current = result.pageCursor;
-          setData(result); setError('');
+          setData(focusedBookingId ? { ...result, content: result.content.filter(booking => booking.id === focusedBookingId) } : result); setError('');
         }
       } catch (err) {
         if (!controller.signal.aborted) setError(extractApiErrorMessage(err, 'Reservations could not load. Try again.'));
@@ -231,7 +245,7 @@ function PersonalBookingHistory() {
     const timer = window.setInterval(refresh, 5000);
     window.addEventListener('focus', refresh);
     return () => { controller.abort(); window.clearInterval(timer); window.removeEventListener('focus', refresh); };
-  }, [cursor, filters, reload]);
+  }, [cursor, filters, reload, focusedBookingId]);
 
   const latest = () => { activeAnchor.current = undefined; setAnchors([undefined]); setPage(0); setReload(n => n + 1); };
   const retry = () => {
@@ -246,7 +260,7 @@ function PersonalBookingHistory() {
   };
   return <>
     <p className="venue-muted">Times and booking dates use each venue’s timezone. Payment is arranged directly with the venue.</p>
-    <form className="venue-history-filters" aria-label="Filter reservation history" onSubmit={event => {
+    {!focusedBookingId && <><form className="venue-history-filters" aria-label="Filter reservation history" onSubmit={event => {
       event.preventDefault(); setFilters({ ...draft }); latest();
     }}>
       <label>Status<select aria-label="Status" value={draft.status} onChange={event => setDraft(value => ({ ...value, status: event.target.value }))}>
@@ -264,22 +278,24 @@ function PersonalBookingHistory() {
       <button className="venue-link" disabled={loading} onClick={latest}>Latest reservations</button>
       <button className="venue-link" disabled={loading} onClick={retry}>Refresh this page</button>
       <span className="venue-muted" role="status">Page {page + 1} · newest booking time first</span>
-    </nav>
+    </nav></>}
     {loading && <p className="venue-empty" role="status">Loading your reservations…</p>}
     {error && <div className="venue-error" role="alert">{error} <button className="venue-link" onClick={retry}>Retry</button></div>}
     {!loading && data && <>
-      {data.content.length > 0 ? <BookingRows bookings={data.content} onChange={retry}/> :
+      {data.content.length > 0 ? <div tabIndex={focusedBookingId ? -1 : undefined} aria-label={focusedBookingId ? `Booking #${focusedBookingId}` : undefined}
+        ref={focusBooking}><BookingRows bookings={data.content} onChange={retry} closureRecovery={closureRecovery}/></div> : focusedBookingId ?
+        <p role="status" className="venue-empty">Booking #{focusedBookingId} is not available in your personal reservation history. Check the link or review all reservations.</p> :
         <EmptyState icon={CalendarDays} title={page > 0 ? 'No more reservations on this page' : 'No reservations found'}
           description={filters.status || filters.fromDate || filters.toDate ? 'Try another status or booking date range, or clear the filters.' : page > 0 ? 'Go to a newer page or choose Latest reservations to start again.' : 'Your requests and confirmed bookings will appear here when you reserve a pitch.'}/>}
-      {!data.nextCursor && data.content.length > 0 && <p className="venue-muted" role="status">You’ve reached the oldest reservations in this history.</p>}
-      <p className="venue-muted">Choose Latest reservations to include new bookings. Refresh keeps your place and checks current status and access.</p>
+      {!focusedBookingId && <>{!data.nextCursor && data.content.length > 0 && <p className="venue-muted" role="status">You’ve reached the oldest reservations in this history.</p>}
+      <p className="venue-muted">Choose Latest reservations to include new bookings. Refresh keeps your place and checks current status and access.</p></>}
     </>}
   </>;
 }
 
-export function MyVenueBookings() {
+export function MyVenueBookings({ focusedBookingId, closureRecovery = false }: { focusedBookingId?: number; closureRecovery?: boolean }) {
   const { isAuthenticated, sessionId } = useAuth();
   if (!isAuthenticated) return <div className="venue-empty"><CalendarDays size={32}/><h2>Your next game starts here</h2>
     <p>Sign in to request a pitch and track your reservations.</p><Link className="venue-button venue-button--primary" to="/login">Sign in</Link></div>;
-  return <PersonalBookingHistory key={String(sessionId)}/>;
+  return <PersonalBookingHistory key={`${sessionId}:${focusedBookingId ?? 'all'}:${closureRecovery}`} focusedBookingId={focusedBookingId} closureRecovery={closureRecovery}/>;
 }

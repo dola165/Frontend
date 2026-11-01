@@ -1,6 +1,6 @@
 import { appLocale, formatDate } from './formatting';
 import type { NotificationItem, NotificationListScope, NotificationScope } from '../types/notifications';
-import { notificationId, safeNotificationLink, venueBookingDestination } from './notificationDestinations';
+import { isJobDestination, notificationId, safeNotificationLink, venueBookingDestination, worldWatchLink } from './notificationDestinations';
 import { inClubOffice } from '../features/clubOffice/officeLinks';
 
 const NOTIFICATIONS_CHANGED_EVENT = 'talanti:notifications-changed';
@@ -143,6 +143,14 @@ const clubWorkDestination = (notification: NotificationItem) => {
     const entityId = notificationId(notification.entityId);
     const link = safeNotificationLink(notification.linkPath);
     const path = link ? link.pathname + link.search + link.hash : null;
+    if (notification.entityType === 'public_job_response' || notification.type === 'PUBLIC_JOB_RESPONSE') {
+        return notification.entityType === 'public_job_response' && notification.type === 'PUBLIC_JOB_RESPONSE'
+            && entityId && path && isJobDestination(path) ? path : outcome;
+    }
+    if (notification.type === 'WORLD_SEARCH_RESULTS' || notification.entityType === 'world_search_window' || link?.pathname.startsWith('/world/')) {
+        return notification.type === 'WORLD_SEARCH_RESULTS' && notification.entityType === 'world_search_window' && entityId
+            ? worldWatchLink(notification.linkPath) ?? outcome : outcome;
+    }
     if (notification.entityType === 'organization_invitation' || notification.type.startsWith('ORGANIZATION_INVITATION_')) {
         if (notification.entityType !== 'organization_invitation' || !entityId) return outcome;
         // Old notices used Account, which does not render this receipt. Preserve
@@ -182,7 +190,7 @@ const clubWorkDestination = (notification: NotificationItem) => {
             ? `/requests?appointmentId=${entityId}` : outcome;
     }
     if (notification.entityType === 'match_result' || notification.entityType === 'match_result_suggestion') {
-        const match = link?.pathname.match(/^\/match-exchange\/([1-9]\d*)$/);
+        const match = link?.pathname.match(/^\/match(?:es|-exchange)\/([1-9]\d*)$/);
         const eventId = notificationId(notification.eventId);
         return entityId && match && (notification.eventId == null || eventId === match[1]) && link?.hash === '#result' ? path! : outcome;
     }
@@ -193,16 +201,16 @@ const clubWorkDestination = (notification: NotificationItem) => {
     if (notification.type === 'MATCH_COORDINATION_MESSAGE' || notification.entityType === 'match_coordination_message') {
         // This entity identifies a message, while the destination identifies its match.
         return notification.entityType === 'match_coordination_message' && entityId
-            && link?.pathname.startsWith('/match-exchange/') && link.hash === '#coordination' ? path! : outcome;
+            && /^\/match(?:es|-exchange)\//.test(link?.pathname ?? '') && link?.hash === '#coordination' ? path! : outcome;
     }
     // Explicit Match Exchange intent precedes the legacy broad SCHEDULE_* mapping.
     if (notification.type === 'MATCH_EXCHANGE_UPDATED' || notification.entityType === 'match_exchange'
-        || notification.linkPath?.startsWith('/match-exchange')) {
+        || /^\/match(?:es|-exchange)\//.test(notification.linkPath ?? '')) {
         if (notification.linkPath != null) {
-            const match = link?.pathname.match(/^\/match-exchange\/([1-9]\d*)$/);
+            const match = link?.pathname.match(/^\/match(?:es|-exchange)\/([1-9]\d*)$/);
             return match && (entityId == null ? notification.entityId == null : match[1] === entityId) ? path! : outcome;
         }
-        return notification.entityType === 'match_exchange' && entityId ? `/match-exchange/${entityId}` : outcome;
+        return notification.entityType === 'match_exchange' && entityId ? `/matches/${entityId}` : outcome;
     }
     if (notification.type.startsWith('VENUE_BOOKING_') || notification.entityType === 'venue_booking') {
         if (!link) return outcome;
@@ -289,6 +297,7 @@ const clubWorkDestination = (notification: NotificationItem) => {
 };
 
 export const notificationActionLabel = (notification: NotificationItem) => {
+    if (notification.entityType === 'public_job_response') return 'Review response';
     const reviewCopy = (en: string, ka: string) => appLocale() === 'ka-GE' ? ka : en;
     if (notification.entityType === 'organization_invitation') return reviewCopy('Review invitation', 'მოწვევის განხილვა');
     if (notification.type === 'PAGE_REVIEW_REQUESTED' && notification.entityType === 'page_review') return reviewCopy('Review page request', 'გვერდის მოთხოვნის განხილვა');
@@ -298,7 +307,7 @@ export const notificationActionLabel = (notification: NotificationItem) => {
     if (notification.entityType === 'admission_invitation') return 'Review joining invitation';
     if (notification.type === 'CLUB_PERMISSION_REQUEST') return 'Review permission';
     if (notification.type === 'CLUB_STAFF_APPOINTMENT') return 'Review appointment';
-    if (notification.type === 'MATCH_EXCHANGE_UPDATED' || notification.linkPath?.startsWith('/match-exchange/')) return 'View match';
+    if (notification.type === 'MATCH_EXCHANGE_UPDATED' || /^\/match(?:es|-exchange)\//.test(notification.linkPath ?? '')) return 'View match';
     if (notification.type.startsWith('VENUE_BOOKING_')) return 'View reservation';
     if (notification.type.startsWith('SCHEDULE_')) return 'View event';
     if (notification.type === 'CLUB_DISSOLVED' || notification.type === 'MEMBERSHIP_ENDED'

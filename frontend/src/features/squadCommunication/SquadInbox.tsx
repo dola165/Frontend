@@ -66,6 +66,10 @@ export function SquadInboxConversation({ id }: { id: number }) {
     // A guardian also reads (never writes) the private thread of their 13-17 child in this squad.
     const children = space?.can_manage ? [] : space?.child_threads ?? [];
     const childThread = children.find(child => child.user_id === requested)?.user_id ?? null;
+    const requestedUnavailable = coaching && params.has('thread') && !!space
+        && (!Number.isSafeInteger(requested) || requested <= 0 || (space.can_manage
+            ? !space.threads.some(person => person.user_id === requested)
+            : requested !== space.viewer_id && childThread === null));
     const thread = !coaching ? null : space?.can_manage
         ? space.threads.find(person => person.user_id === requested)?.user_id ?? null : childThread ?? space?.viewer_id ?? null;
     const guardiansCanView = space?.can_manage ? Boolean(space.threads.find(person => person.user_id === thread)?.guardians_can_view)
@@ -85,7 +89,7 @@ export function SquadInboxConversation({ id }: { id: number }) {
                 if (e.target.value) next.set('thread', e.target.value); else next.delete('thread');
                 setParams(next);
             }}><option value="">{copy('My conversation with the coaches', 'ჩემი საუბარი მწვრთნელებთან')}</option>{children.map(child => <option key={child.user_id} value={child.user_id}>{copy(`${child.full_name ?? 'Your child'} (read only)`, `${child.full_name ?? 'თქვენი შვილი'} (მხოლოდ კითხვა)`)}</option>)}</select></label>}
-            {coaching && !thread ? <div className="squad-empty"><h2>{copy('Choose a family or player', 'აირჩიეთ ოჯახი ან მოთამაშე')}</h2><p>{copy('Private conversations are shared only with that person and this squad’s coaching team.', 'პირადი საუბარი მხოლოდ ამ ადამიანს და გუნდის მწვრთნელებს შორისაა.')}</p></div> : <SquadMessages key={`${id}:${thread ?? 'group'}`} space={space} kind="CHAT" thread={thread} readOnly={coaching && childThread !== null} guardiansCanView={coaching && guardiansCanView} onSent={refresh} />}
+            {requestedUnavailable ? <div className="squad-empty" role="alert"><h2>{copy('Conversation unavailable', 'საუბარი მიუწვდომელია')}</h2><p>{copy('That conversation is no longer available to you. Choose another conversation above.', 'ეს საუბარი აღარ არის ხელმისაწვდომი. აირჩიეთ სხვა საუბარი ზემოთ.')}</p></div> : coaching && !thread ? <div className="squad-empty"><h2>{copy('Choose a family or player', 'აირჩიეთ ოჯახი ან მოთამაშე')}</h2><p>{copy('Private conversations are shared only with that person and this squad’s coaching team.', 'პირადი საუბარი მხოლოდ ამ ადამიანს და გუნდის მწვრთნელებს შორისაა.')}</p></div> : <SquadMessages key={`${id}:${thread ?? 'group'}`} space={space} kind="CHAT" thread={thread} readOnly={coaching && childThread !== null} guardiansCanView={coaching && guardiansCanView} onSent={refresh} />}
         </>}
     </div>;
 }

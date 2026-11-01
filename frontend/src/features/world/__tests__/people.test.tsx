@@ -13,6 +13,7 @@ import type { DirectoryQuery, LoadContext } from '../directory/types';
 import { useDirectoryState } from '../directory/useDirectoryState';
 
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn() } }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: null, sessionId: 'world-people-fixture', isAuthenticated: false }) }));
 
 const context: LoadContext = { signal: new AbortController().signal, sessionId: 'world', authenticated: true, area: { city: 'Tbilisi', centre: { lat: 41.7151, lng: 44.8271 } } };
 const query = (values: Record<string, string | string[]>, q = '', sort = 'RELEVANCE'): DirectoryQuery =>

@@ -11,6 +11,7 @@ import { EVENT_TYPES, type WorkspaceView } from '../../components/schedule/works
 import { localDateISO } from '../../components/schedule/scheduleFormUtils';
 import { moveToDay } from '../schedule/board/scheduleRange';
 import { useSquadSchedule, type CalendarSquad, type SquadCalendarEvent } from '../squadCommunication/useSquadSchedule';
+import { useFamilySchedule, type FamilyMember } from './hub/useFamilySchedule';
 import { SquadSessionDetails } from '../squadCommunication/SquadSessionDialog';
 import { SquadClubEventEditor } from '../squadCommunication/SquadClubEventEditor';
 import { SquadEventComposer } from '../squadCommunication/SquadEventComposer';
@@ -34,11 +35,17 @@ const weekStart = (value: Date) => {
  * `editable` lets people who manage a squad move its sessions with the mouse (with a confirmation that previews who
  * is told); `hideContext` leaves out the page's own heading and back link when another page frames it.
  */
-export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, viewedDate, onDateChange, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false, combined = false, editable = false, hideContext = false, initialEdit = false }: {
+export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, viewedDate, onDateChange, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false, combined = false, editable = false, hideContext = false, initialEdit = false, optOut = false, extraEvents, members }: {
     squads: CalendarSquad[]; playerId?: number; initialSquadId?: number; initialDate?: Date; viewedDate?: Date; onDateChange?: (date: Date) => void; initialSessionId?: number; onSquadChange?: (id: number) => void; inSquadPage?: boolean; prioritizeNextAction?: boolean; embedded?: boolean;
     combined?: boolean; editable?: boolean; hideContext?: boolean;
     /** Open the initial calendar entry straight in its editor (My squads' Edit link); otherwise it opens as a summary first (F29). */
     initialEdit?: boolean;
+    /** Parent Hub: families answer "Can't come" only. */
+    optOut?: boolean;
+    /** Entries from elsewhere shown with the squads' (Parent Hub: a child's first visits, pink). */
+    extraEvents?: SquadCalendarEvent[];
+    /** The family's week (Parent Hub's Everyone): every child's sessions in their squads, each marked with their initial. */
+    members?: FamilyMember[];
 }) {
     const navigate = useNavigate();
     const copy = useJourneyCopy();
@@ -66,13 +73,16 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
         if (view === 'month') to.setMonth(to.getMonth() + 1); else to.setDate(to.getDate() + (view === 'day' ? 1 : 7));
         return { from, to };
     }, [date, view, embedded]);
-    const { events, error, loading } = useSquadSchedule(combined ? squads : squad ? [squad] : [], `${localDateISO(range.from)}T00:00:00`, `${localDateISO(range.to)}T00:00:00`, revision, playerId);
+    const span = { from: `${localDateISO(range.from)}T00:00:00`, to: `${localDateISO(range.to)}T00:00:00` };
+    const single = useSquadSchedule(members ? [] : combined ? squads : squad ? [squad] : [], span.from, span.to, revision, playerId);
+    const family = useFamilySchedule(members, span.from, span.to, revision);
+    const { events, error, loading } = members ? family : single;
     // An embedded schedule (Parent Hub's "Coming up") shows the seven days from the viewed day.
     const days = useMemo(() => Array.from({ length: view === 'day' ? 1 : 7 }, (_, i) => {
         const day = embedded ? new Date(range.from) : view === 'day' ? new Date(date) : weekStart(date); day.setDate(day.getDate() + i); return day;
     }), [date, view, embedded, range.from]);
     const journeys=useJourneyEntries(range.from.toISOString(),range.to.toISOString(),revision,playerId,combined?undefined:squad?.id);
-    const connected=mergeJourneyEntries(events,journeys.entries);
+    const connected=[...mergeJourneyEntries(events,journeys.entries),...(extraEvents??[])];
     const visible = connected.filter(event => types.includes(event.eventType) && new Date(event.startsAt) < range.to && new Date(event.endsAt) > range.from);
     const selected = connected.find(event => event.id === selectedId);
     const refresh = () => setRevision(n => n + 1);
@@ -135,7 +145,7 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
         {selectedId && !selected && !loading && <p role="status" className="squad-schedule-notice">{copy('This session is unavailable in the selected week or your invitation has changed. Check your latest coach update.', 'ეს სესია არჩეულ კვირაში მიუწვდომელია ან თქვენი მოწვევა შეიცვალა. ნახეთ მწვრთნელის ბოლო განახლება.')}</p>}
         {!!selected?.journeys?.length && <JourneyEventDetails entries={selected.journeys} onClose={()=>setSelectedId(null)} onSaved={refresh}/>}
         {clubEvent && !editing && <EventSummary key={selected.id} event={selected} onEdit={() => setEditing(true)} onClose={close}/>}
-        {selected && !selected.journeys?.length && !clubEvent && <SquadSessionDetails key={selected.id} event={selected} playerId={playerId} canManage={!!eventSquad?.can_manage} onClose={() => setSelectedId(null)} onSaved={refresh}/>}
+        {selected && !selected.journeys?.length && !clubEvent && <SquadSessionDetails key={selected.id} event={selected} playerId={selected.whoId ?? playerId} canManage={!!eventSquad?.can_manage} optOut={optOut} onClose={() => setSelectedId(null)} onSaved={refresh}/>}
         {notice && <p role="status" className="squad-schedule-notice">{notice}</p>}
         {editingEvent && eventSquad && <SquadClubEventEditor key={selected.id} squad={eventSquad} date={date} event={selected} onClose={close} onSaved={() => { close(); refresh(); }}/ >}
         {choosing && <SessionDialog title={copy('Plan for which squad?', 'რომელი გუნდისთვის?')} onClose={() => setChoosing(null)}>

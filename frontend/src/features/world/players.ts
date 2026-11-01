@@ -45,7 +45,8 @@ export function useWorldChild() {
     return {
         children, child, isParent: children.length > 0, remember,
         /** A player is asked for but the person's children are still loading: searching now would ignore them. */
-        pending: participants === undefined && Boolean(requested),
+        pending: participants === undefined && Boolean(requested && requested !== 'anyone'),
+        unavailable: participants !== undefined && Boolean(requested && requested !== 'anyone' && !child),
     };
 }
 

@@ -111,7 +111,7 @@ describe('account error origin', () => {
             : operation === 'password' ? (georgian ? 'პაროლის შეცვლა' : 'Change Password') : (georgian ? 'სხვა სესიებიდან გამოსვლა' : 'Sign Out Others');
         fireEvent.click(screen.getByRole('button', { name: action }));
         await waitFor(() => expect(apiClient.post).toHaveBeenCalledTimes(1));
-        if (operation === 'verification') expect(apiClient.post).toHaveBeenCalledWith('/auth/send-verification');
+        if (operation === 'verification') expect(apiClient.post).toHaveBeenCalledWith('/auth/send-verification', { continuationPath: '/account?tab=security' }, expect.objectContaining({ signal: expect.any(AbortSignal), _authSessionId: getAuthSessionId() }));
         else expect(apiClient.post).toHaveBeenCalledWith(operation === 'password' ? '/auth/change-password' : '/auth/sessions/revoke-others',
             operation === 'password' ? { currentPassword: 'SyntheticCurrent1', newPassword: 'SyntheticNew123' } : {}, expect.objectContaining({ signal: expect.any(AbortSignal), _skipAuthRefresh: true }));
     };

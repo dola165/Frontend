@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 import { CalendarDays, ChevronLeft, ChevronRight, Columns3, List as ListIcon, Plus, Repeat2, type LucideIcon } from 'lucide-react';
 import { Button, FixtureRow, Skeleton, type FixtureTone } from '../../../design/primitives';
+import { avatarHue } from '../../../design/avatarHue';
 import { Segmented } from '../../../design/Tabs';
 import { formatTime } from '../../../utils/formatting';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
@@ -21,6 +22,8 @@ export interface BoardEntry {
     title: string;
     /** Squad, place or who it is for. */
     meta?: string;
+    /** Whose it is when one calendar holds several people (a family's children): a first name, shown as its initial. */
+    who?: string;
     tone: FixtureTone;
     /** What kind of activity it is: its symbol and colour (a team trip is an outing). */
     activity?: ScheduleEventType | 'OUTING';
@@ -193,7 +196,7 @@ function Agenda({ days, byDay, today, dates, copy }: Shared & { days: Date[] }) 
         return { key: dayKey(day), title, label: title, today: dayKey(day) === today,
             rows: byDay.get(dayKey(day))!.map(entry => <FixtureRow key={entry.key} tone={entry.cancelled ? 'neutral' : entry.tone}
                 icon={symbolOf(entry)} iconColor={colourOf(entry)} time={formatTime(entry.startsAt)} day={sameDay(entry) ? copy(`to ${formatTime(entry.endsAt!)}`, `${formatTime(entry.endsAt!)}-მდე`) : undefined}
-                title={entry.title} meta={entry.meta} trail={entry.trail} to={entry.to} onClick={entry.to ? undefined : entry.onOpen} label={entry.label} />) };
+                title={entry.title} meta={[entry.who, entry.meta].filter(Boolean).join(' · ')} trail={entry.trail} to={entry.to} onClick={entry.to ? undefined : entry.onOpen} label={entry.label} />) };
     })} />;
 }
 
@@ -202,7 +205,7 @@ function CardBody({ entry }: { entry: BoardEntry }) {
     const copy = useJourneyCopy();
     const Symbol = entry.activity === 'OUTING' ? outing.icon : entry.activity ? activityIcons[entry.activity] : toneIcons[entry.tone];
     return <>
-        <span className="gk-board__when"><Symbol aria-hidden="true" />
+        <span className="gk-board__when">{entry.who && <span className="gk-avatar gk-board__who" data-hue={avatarHue(entry.who)} title={entry.who}>{entry.who[0]}</span>}<Symbol aria-hidden="true" />
             <time className="gk-num" dateTime={entry.startsAt}>{formatTime(entry.startsAt)}{sameDay(entry) ? `–${formatTime(entry.endsAt!)}` : ''}</time>
             {entry.recurring && <Repeat2 className="gk-board__repeat" role="img" aria-label={copy('Repeats', 'მეორდება')} />}
         </span>

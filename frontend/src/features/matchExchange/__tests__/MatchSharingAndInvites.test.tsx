@@ -25,7 +25,7 @@ it('copies a canonical match destination and explains private invitation access'
   render(<MatchShare eventId={12} privateMatch />);
   fireEvent.click(screen.getByRole('button', { name: 'Copy match link' }));
   expect(await screen.findByRole('status')).toHaveTextContent('Match link copied');
-  expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/match-exchange/12`);
+  expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/matches/12`);
   expect(screen.getByText(/Invite the referee first/)).toBeInTheDocument();
 });
 
@@ -33,7 +33,7 @@ it('provides a selectable URL if clipboard access fails', async () => {
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } });
   render(<MatchShare eventId={15} privateMatch={false} />);
   fireEvent.click(screen.getByRole('button', { name: 'Copy match link' }));
-  expect(await screen.findByRole('textbox', { name: 'Select and copy this match link' })).toHaveValue(`${window.location.origin}/match-exchange/15`);
+  expect(await screen.findByRole('textbox', { name: 'Select and copy this match link' })).toHaveValue(`${window.location.origin}/matches/15`);
   expect(screen.getByText(/does not appoint a referee/)).toBeInTheDocument();
 });
 

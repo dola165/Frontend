@@ -3,7 +3,7 @@ vi.mock("../../../context/AuthContext",()=>({useAuth:()=>({user:{id:5,navigation
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppointmentCard } from "../AppointmentCard";
-import { MatchDetailPage } from "../../../pages/MatchDetailPage";
+import { MatchPage as MatchDetailPage } from "../../matches/MatchPage";
 import { useAction, useClock, useLoad } from "../hooks";
 import type { Appointment, Match } from "../api";
 
@@ -38,12 +38,12 @@ beforeEach(() => {
 
 it("places the fixture and the match-day plan before readiness and secondary administration in document order", () => {
   vi.mocked(useLoad).mockImplementation((path: string) => ({ data: path === "/match-exchange/12" ? match : [], error: "", reload: vi.fn() }));
-  render(<MemoryRouter initialEntries={["/match-exchange/12"]}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
+  render(<MemoryRouter initialEntries={["/matches/12"]}><Routes><Route path="/matches/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
 
   const fixture = screen.getByRole("region", { name: "Fixture" });
   const plan = screen.getByRole("heading", { name: "Plan your match day" }).closest("section")!;
   const readiness = screen.getByRole("region", { name: "Match readiness and next action" });
-  const secondary = screen.getByText("About match updates").closest("aside")!;
+  const secondary = screen.getByRole("complementary", { name: "The match" });
   expect(fixture).toHaveTextContent("Home Academy");
   expect(fixture).toHaveTextContent("Away Academy");
   expect(fixture.compareDocumentPosition(plan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

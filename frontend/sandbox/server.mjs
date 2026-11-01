@@ -13,7 +13,7 @@ const dist = path.join(here, 'dist');
 const runtime = path.join(here, '.runtime');
 await mkdir(runtime, { recursive: true });
 const port = Number(process.argv[2] || process.env.SANDBOX_PORT || 4300);
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.json': 'application/json', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.csv': 'text/csv', '.ico': 'image/x-icon' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.json': 'application/json', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.csv': 'text/csv', '.ico': 'image/x-icon' };
 
 async function readBody(req) {
   const chunks = []; for await (const c of req) chunks.push(c);
@@ -59,7 +59,7 @@ const server = http.createServer(async (req, res) => {
       accountProfile.dob = url.pathname === '/__mode/nodob' ? null : accountProfile.dob ?? '1988-04-12';
       if (url.pathname === '/__mode/nodob') { res.writeHead(302, { location: url.searchParams.get('to') || '/profile/1', 'cache-control': 'no-store' }); return res.end(); }
     }
-    if (url.pathname.startsWith('/__mode/') && ['parent', 'coach', ...PERSONAS].includes(url.pathname.slice('/__mode/'.length))) {
+    if (url.pathname.startsWith('/__mode/') && ['parent', 'parent1', 'parent2', 'staffchoice', 'coach', ...PERSONAS].includes(url.pathname.slice('/__mode/'.length))) {
       // Sandbox personas, all still Luka's account: `parent` makes him also a parent of two children (the family cookie);
       // `analyst` gives him a performance analyst's club access (a few tools, two of them read-only), `member` plain
       // club membership with no tools at all, `headcoach` a head coach who is not an admin and `physio` a job with only
@@ -69,7 +69,11 @@ const server = http.createServer(async (req, res) => {
       const mode = url.pathname.slice('/__mode/'.length);
       const to = (url.searchParams.get('to') || '/home');
       const safe = to.startsWith('/') && !to.startsWith('//') ? to : '/home';
+      // Parent Hub, step 5: `parent2` is Ana Beridze (two children) and `parent1` Nika Kapanadze (one child), each a parent
+      // account of their own (api/world-parents.mjs); every other mode is Luka again.
+      const account = { parent2: 9601, parent1: 9602, staffchoice: 9660 }[mode];
       const cookies = [
+        account ? `gk-sandbox-user=${account}; Path=/; SameSite=Lax` : 'gk-sandbox-user=; Path=/; Max-Age=0',
         mode === 'parent' ? 'gk-sandbox-family=1; Path=/' : 'gk-sandbox-family=; Path=/; Max-Age=0',
         PERSONAS.includes(mode) ? `gk-sandbox-persona=${mode}; Path=/` : 'gk-sandbox-persona=; Path=/; Max-Age=0',
       ];

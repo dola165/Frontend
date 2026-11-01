@@ -39,6 +39,15 @@ describe('The search in the address', () => {
 });
 
 describe('Front, catalogue and the listing', () => {
+    it('keeps offering-work email as an external enquiry without a sent application receipt', async () => {
+        const external: api.Job = { ...offering, applyMethod: 'EMAIL', applyTarget: 'synthetic@example.test' };
+        vi.mocked(clubsApi.fetchPublicJob).mockResolvedValue(external);
+        render(<MemoryRouter initialEntries={['/jobs/704']}><Routes><Route path="/jobs/:id" element={<JobDetailPage />} /></Routes></MemoryRouter>);
+        expect(await screen.findByRole('link', { name: 'Open email' })).toHaveAttribute('href', `mailto:synthetic@example.test?subject=${encodeURIComponent(`Enquiry: ${offering.title}`)}`);
+        expect(screen.getByText('Opening this contact method does not send an application in GrassKickZ.')).toBeInTheDocument();
+        expect(clubsApi.fetchMyJobApplication).not.toHaveBeenCalled();
+        expect(screen.queryByText('Application sent')).not.toBeInTheDocument();
+    });
     it('shows the map, my application, both sides and real examples', async () => {
         render(<MemoryRouter initialEntries={['/jobs']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
         expect(await screen.findByText('Applied · waiting for an answer')).toBeInTheDocument();
@@ -103,6 +112,6 @@ describe('Posting', () => {
         fireEvent.change(screen.getByLabelText('About you'), { target: { value: 'GFF regional referee, Tbilisi.' } });
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
         fireEvent.click(screen.getByRole('button', { name: 'List myself' }));
-        await waitFor(() => expect(api.postJob).toHaveBeenCalledWith(expect.objectContaining({ direction: 'OFFERING', category: 'MATCHDAY', applyMethod: 'MESSAGE' })));
+        await waitFor(() => expect(api.postJob).toHaveBeenCalledWith(expect.objectContaining({ direction: 'OFFERING', category: 'MATCHDAY', applyMethod: 'IN_APP', requiredRole: null })));
     });
 });

@@ -1,0 +1,7 @@
+/* "Post as": yourself, the club or one of its squads, only where the server accepts it (step 7). */
+.post-as { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: var(--feed-text-secondary); }
+.post-as select {
+    min-width: 0; max-width: 100%; min-height: 36px; padding: 4px 28px 4px 10px; border-radius: 9px; font-size: 13px;
+    border: 1px solid var(--feed-card-border); background-color: var(--feed-input-bg); color: var(--feed-text-primary);
+}
+.post-as select:focus-visible { outline: 2px solid var(--feed-accent); outline-offset: 1px; }

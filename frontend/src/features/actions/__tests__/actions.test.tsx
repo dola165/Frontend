@@ -8,7 +8,7 @@ import { ActionButton } from '../ActionButton';
 import { ActionHost } from '../ActionHost';
 import { ActionMenu } from '../ActionMenu';
 import { FollowButton } from '../FollowButton';
-import { NeedsResultCard } from '../NeedsResultCard';
+import { ResultsWaitingList } from '../ResultsWaitingList';
 import { SquadDoors } from '../SquadDoors';
 import { joinTarget } from '../flows/joinTarget';
 import { actionHref, withoutAction } from '../registry';
@@ -187,13 +187,19 @@ describe('asking the rule-checker', () => {
 });
 
 describe('the doors', () => {
-    it('Home asks for the newest score owed, with one action', async () => {
-        server.waiting = [owed, { ...owed, id: 5821 }];
-        server.squads[107] = { allowed: ['report_score'], refused: [] };
-        show(<NeedsResultCard />);
-        expect(await screen.findByText('U18 Boys v Didube Stars')).toBeInTheDocument();
-        expect(screen.getByText('1 more', { exact: false })).toBeInTheDocument();
-        expect(await screen.findByRole('link', { name: 'Add the score' })).toHaveAttribute('href', '/home?do=report_score&do-source=MATCH_EXCHANGE&do-event=5820');
+    it('the shared squad list reports or confirms the other side’s score at once', async () => {
+        const answer = { ...owed, id: 5821, squadName: 'U14 Boys', opponentName: 'Riverside', action: 'CONFIRM', answerAs: 'AWAY', reported: { home: 2, away: 1 }, revision: 7 };
+        server.waiting = [{ ...owed, action: 'REPORT', reportAs: 'HOME' }, answer, { ...owed, id: 5822, squadName: 'U12 Girls', opponentName: 'Gori', action: 'DISPUTED', reported: { home: 1, away: 1 }, disputed: { home: 2, away: 1 } }];
+        vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
+        show(<ResultsWaitingList from={() => ({ kind: 'home' })} />);
+        const list = await screen.findByRole('list', { name: 'Results waiting' });
+        expect(within(list).getByText('U18 Boys v Didube Stars')).toBeInTheDocument();
+        expect(within(list).getByText('They reported 2–1')).toBeInTheDocument();
+        // A dispute waiting on someone else opens its match; nothing to tap here.
+        expect(within(list).getByRole('link', { name: 'Open U12 Girls v Gori' })).toHaveAttribute('href', '/matches/5822?from=home#result');
+        fireEvent.click(within(list).getByRole('button', { name: 'Confirm' }));
+        await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/match-exchange/5821/result/confirm', expect.objectContaining({ side: 'AWAY', revision: 7 }), expect.anything()));
+        expect(within(list).getByRole('button', { name: 'Report' })).toBeInTheDocument();
     });
 
     it('a squad page offers what this squad allows: its score, a match, staff, and following the club', async () => {

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { getAuthSessionId, subscribeAuthSession } from '../../../utils/authStorage';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ScheduleWorkspaceEvent } from '../../../components/schedule/workspaceTypes';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { fetchMyClubMembershipContext } from '../../clubs/api';
@@ -29,40 +30,43 @@ function withConflicts(personal: Event[], club: Event[]): Event[] {
  * (as player, parent or coach) and trips. Club calendar events are read for clash warnings.
  */
 export function usePersonalSchedule(from: Date, to: Date) {
+    const account = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
     const fromTime = from.getTime(), toTime = to.getTime();
     const [revision, setRevision] = useState(0);
-    const [context, setContext] = useState<{ ready: boolean; value: ClubMembershipContext | null; error: string }>({ ready: false, value: null, error: '' });
-    const [squads, setSquads] = useState<{ ready: boolean; items: squadApi.SquadSpace[]; error: string }>({ ready: false, items: [], error: '' });
+    const [context, setContext] = useState<{ account?: string | null; ready: boolean; value: ClubMembershipContext | null; error: string }>({ ready: false, value: null, error: '' });
+    const [squads, setSquads] = useState<{ account?: string | null; ready: boolean; items: squadApi.SquadSpace[]; error: string }>({ ready: false, items: [], error: '' });
     const [calendar, setCalendar] = useState<{ key: string; personal: Event[]; club: Event[]; error: string } | null>(null);
     const clubOfOccurrence = useRef(new Map<string, number | null>());
 
     useEffect(() => {
         let active = true;
-        void fetchMyClubMembershipContext().then(value => { if (active) setContext({ ready: true, value, error: '' }); })
-            .catch(error => { if (active) setContext({ ready: true, value: null, error: extractApiErrorMessage(error, 'Your club membership could not load.') }); });
+        void fetchMyClubMembershipContext().then(value => { if (active) setContext({ account, ready: true, value, error: '' }); })
+            .catch(error => { if (active) setContext({ account, ready: true, value: null, error: extractApiErrorMessage(error, 'Your club membership could not load.') }); });
         const controller = new AbortController();
-        void squadApi.spaces(controller.signal).then(items => { if (!controller.signal.aborted) setSquads({ ready: true, items, error: '' }); })
-            .catch(error => { if (!controller.signal.aborted) setSquads({ ready: true, items: [], error: extractApiErrorMessage(error, 'Your squads could not load.') }); });
+        void squadApi.spaces(controller.signal).then(items => { if (!controller.signal.aborted) setSquads({ account, ready: true, items, error: '' }); })
+            .catch(error => { if (!controller.signal.aborted) setSquads({ account, ready: true, items: [], error: extractApiErrorMessage(error, 'Your squads could not load.') }); });
         return () => { active = false; controller.abort(); };
-    }, []);
+    }, [account, revision]);
 
-    const clubId = context.value?.clubId ?? null;
-    const key = `${fromTime}:${toTime}:${clubId}:${revision}`;
+    const currentContext = context.account === account ? context : { ready: false, value: null, error: '' };
+    const currentSquads = squads.account === account ? squads : { ready: false, items: [], error: '' };
+    const clubId = currentContext.value?.clubId ?? null;
+    const key = `${account}:${fromTime}:${toTime}:${clubId}:${revision}`;
     useEffect(() => {
-        if (!context.ready) return;
+        if (!currentContext.ready) return;
         const controller = new AbortController();
         const start = localDateTime(new Date(fromTime)), end = localDateTime(new Date(toTime));
         void Promise.all([fetchMySchedule(start, end, controller.signal), clubId ? fetchClubSchedule(clubId, start, end, controller.signal) : Promise.resolve([])])
             .then(([mine, club]) => {
                 if (controller.signal.aborted) return;
                 clubOfOccurrence.current = new Map([...mine, ...club].map(event => [event.occurrenceId, event.clubId]));
-                setCalendar({ key, personal: mine.map(event => toWorkspaceEvent(event, event.clubId ? event.clubName ?? 'Club' : 'Only you')), club: club.map(event => toWorkspaceEvent(event, context.value?.clubName ?? 'Club')), error: '' });
+                setCalendar({ key, personal: mine.map(event => toWorkspaceEvent(event, event.clubId ? event.clubName ?? 'Club' : 'Only you')), club: club.map(event => toWorkspaceEvent(event, currentContext.value?.clubName ?? 'Club')), error: '' });
             })
             .catch(error => { if (!controller.signal.aborted) setCalendar({ key, personal: [], club: [], error: extractApiErrorMessage(error, 'Your schedule could not load.') }); });
         return () => controller.abort();
-    }, [context.ready, context.value?.clubName, clubId, fromTime, toTime, key]);
+    }, [currentContext.ready, currentContext.value?.clubName, clubId, fromTime, toTime, key]);
 
-    const squadData = useSquadSchedule(squads.items, localDateTime(from), localDateTime(to), revision);
+    const squadData = useSquadSchedule(currentSquads.items, localDateTime(from), localDateTime(to), revision);
     const journeys = useJourneyEntries(from.toISOString(), to.toISOString(), revision);
     const current = calendar?.key === key ? calendar : null;
     const events = useMemo(() => {
@@ -71,9 +75,9 @@ export function usePersonalSchedule(from: Date, to: Date) {
     }, [current, squadData.events, journeys.entries]);
 
     return {
-        events, squads: squads.items, context: context.value,
-        loading: !current || !squads.ready || (squadData.loading && !squadData.events.length),
-        error: current?.error || squads.error || squadData.error || journeys.error || '',
+        events, squads: currentSquads.items, context: currentContext.value,
+        loading: !current || !currentSquads.ready || (squadData.loading && !squadData.events.length),
+        error: currentContext.error || current?.error || currentSquads.error || squadData.error || journeys.error || '',
         isClubEvent: (event: Event) => clubOfOccurrence.current.get(event.id) != null,
         isSquadEvent: (event: Event) => squadData.events.some(item => item.id === event.id),
         reload: () => setRevision(value => value + 1),

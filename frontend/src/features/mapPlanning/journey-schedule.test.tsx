@@ -8,6 +8,14 @@ import type { ScheduleWorkspaceEvent } from '../../components/schedule/workspace
 vi.mock('../../api/axiosConfig',()=>({apiClient:{get:vi.fn(),post:vi.fn()}}));
 afterEach(()=>{cleanup();vi.clearAllMocks();});
 const entry={id:'journey:3:meet',planId:3,activityKey:'meet',version:2,clubId:1,squadId:4,squadName:'U16',clubName:'Dinamo',journeyTitle:'Away day',timezone:'Asia/Tbilisi',title:'Meet the squad',kind:'ACTIVITY',startsAt:'2026-10-10T05:00:00Z',endsAt:'2026-10-10T05:15:00Z',status:'SCHEDULED',sourceChanged:false,place:null,eventId:null,sessionId:null,staff:false,itinerary:{} as JourneyEntry['itinerary'],subjects:[{id:8,name:'Ana',guardian:true,canRespond:true,response:'AWAITING_REPLY'},{id:9,name:'Sibling',guardian:true,canRespond:true,response:'AWAITING_REPLY'}],attendance:{total:2,going:0,pending:2},replyScope:'Whole journey'} satisfies JourneyEntry;
+it('takes back only the chosen child’s current Cannot come with the canonical correction command',async()=>{
+ vi.mocked(apiClient.post).mockResolvedValue({data:{recorded:true}});
+ render(<MemoryRouter><JourneyEventDetails entries={[{...entry,subjects:[{...entry.subjects[0],response:'NOT_GOING'}]}]} onClose={()=>{}}/></MemoryRouter>);
+ fireEvent.click(screen.getByRole('button',{name:'Take back Can’t come'}));
+ await waitFor(()=>expect(apiClient.post).toHaveBeenCalledWith('/travel/plans/3/take-back-cannot-come',{version:2,childId:8},expect.anything()));
+ expect(screen.getByRole('status')).toHaveTextContent('Expected');
+ expect(screen.queryByRole('button',{name:'I am going'})).toBeNull();
+});
 it('merges linked fixtures once and keeps both families as explicit subjects',()=>{
  const fixture={id:'match:5',eventId:5,origin:'MATCH_EXCHANGE',startsAt:entry.startsAt,endsAt:entry.endsAt} as ScheduleWorkspaceEvent;
  const events=mergeJourneyEntries([fixture],[{...entry,eventId:5}, {...entry,id:'journey:3:return',activityKey:'return'}]);
@@ -21,22 +29,22 @@ it('replies only for the chosen child and clearly separates travel permission',a
  vi.mocked(apiClient.post).mockResolvedValue({data:{recorded:true}});
  render(<MemoryRouter><JourneyEventDetails entries={[entry]} onClose={()=>{}}/></MemoryRouter>);
  expect(screen.getAllByText(/Attendance and travel permission are separate/)).toHaveLength(2);
- fireEvent.click(screen.getAllByRole('button',{name:'I am going'})[1]);
- await waitFor(()=>expect(apiClient.post).toHaveBeenCalledWith('/journeys/3/reply',{version:2,subjectId:9,response:'GOING'},{timeout:20000}));
- expect(await screen.findByText('Going')).toBeVisible();
+ fireEvent.click(screen.getAllByRole('button',{name:'Can’t come'})[1]);
+ await waitFor(()=>expect(apiClient.post).toHaveBeenCalledWith('/journeys/3/reply',{version:2,subjectId:9,response:'NOT_GOING'},{timeout:20000}));
+ await waitFor(()=>expect(screen.getAllByRole('status')[1]).toHaveTextContent('Can’t come'));
 });
 it('a saved response never carries across journeys or a newly published version',async()=>{
  vi.mocked(apiClient.post).mockResolvedValue({data:{recorded:true}});
  const first={...entry,subjects:[entry.subjects[0]]};const other={...first,id:'journey:4:meet',planId:4,journeyTitle:'Another away day'};
  const {rerender}=render(<MemoryRouter><JourneyEventDetails entries={[first,other]} onClose={()=>{}}/></MemoryRouter>);
- fireEvent.click(screen.getByRole('button',{name:'I am going'}));expect(await screen.findByText('Going')).toBeVisible();
- fireEvent.change(screen.getByRole('combobox',{name:'Journey'}),{target:{value:other.id}});expect(screen.queryByText('Going')).toBeNull();expect(screen.getByText('Awaiting your reply')).toBeVisible();
- fireEvent.change(screen.getByRole('combobox',{name:'Journey'}),{target:{value:first.id}});expect(screen.getByText('Going')).toBeVisible();
- rerender(<MemoryRouter><JourneyEventDetails entries={[{...first,version:3,subjects:[{...first.subjects[0],response:'RECONFIRMATION_REQUIRED'}]},other]} onClose={()=>{}}/></MemoryRouter>);expect(screen.queryByText('Going')).toBeNull();expect(screen.getByText('Please confirm the updated journey')).toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'Can’t come'}));await waitFor(()=>expect(screen.getByRole('status')).toHaveTextContent('Can’t come'));
+ fireEvent.change(screen.getByRole('combobox',{name:'Journey'}),{target:{value:other.id}});expect(screen.getByRole('status')).toHaveTextContent('Expected · no attendance reply needed');
+ fireEvent.change(screen.getByRole('combobox',{name:'Journey'}),{target:{value:first.id}});expect(screen.getByRole('status')).toHaveTextContent('Can’t come');
+ rerender(<MemoryRouter><JourneyEventDetails entries={[{...first,version:3,subjects:[{...first.subjects[0],response:'RECONFIRMATION_REQUIRED'}]},other]} onClose={()=>{}}/></MemoryRouter>);expect(screen.getByRole('status')).toHaveTextContent('Expected · no attendance reply needed');
 });
 it('failed and cancelled invitations do not claim a reply was saved',async()=>{
  vi.mocked(apiClient.post).mockRejectedValue(new Error('Connection lost'));
  render(<MemoryRouter><JourneyEventDetails entries={[{...entry,subjects:[entry.subjects[0]]}]} onClose={()=>{}}/></MemoryRouter>);
- fireEvent.click(screen.getByRole('button',{name:'I am going'}));await screen.findByRole('alert');expect(screen.queryByText('Going')).toBeNull();expect(screen.getByRole('button',{name:'I am going'})).toBeEnabled();
- cleanup();render(<MemoryRouter><JourneyEventDetails entries={[{...entry,status:'CANCELLED'}]} onClose={()=>{}}/></MemoryRouter>);expect(screen.queryByRole('button',{name:'I am going'})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Can’t come'}));await screen.findByRole('alert');expect(screen.getByRole('status')).toHaveTextContent('Expected · no attendance reply needed');expect(screen.getByRole('button',{name:'Can’t come'})).toBeEnabled();
+ cleanup();render(<MemoryRouter><JourneyEventDetails entries={[{...entry,status:'CANCELLED'}]} onClose={()=>{}}/></MemoryRouter>);expect(screen.queryByRole('button',{name:'Can’t come'})).toBeNull();
 });

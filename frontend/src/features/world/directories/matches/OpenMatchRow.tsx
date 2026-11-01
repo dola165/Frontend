@@ -26,7 +26,7 @@ export function OpenMatchRow({ item: o }: { item: OpenMatch }) {
     const facts = [t(formats[m.format] ?? codeLabel(m.format)), hosting && t(hosting)].filter(Boolean).join(' · ');
     const refereeWanted = role === 'referee' && m.referee_required && m.referee_status === 'NEEDED';
     return (
-        <MatchRow to={`/match-exchange/${m.event_id}`} peek={peekOf('match', o.code)} title={[m.title, m.location_name].filter(Boolean).join(' · ')}
+        <MatchRow to={`/matches/${m.event_id}?from=world`} peek={peekOf('match', o.code)} title={[m.title, m.location_name].filter(Boolean).join(' · ')}
             home={{ name: `${m.club_name} ${m.squad_name}`, logo: m.club_logo_url }} away={away}
             lines={[
                 [fixtureTime(m.starts_at_iso, m.timezone), fixtureDay(m.starts_at_iso, m.timezone), m.location_name?.split(',')[0]].filter(Boolean).join(' · '),

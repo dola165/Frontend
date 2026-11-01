@@ -372,7 +372,7 @@ export function MatchHistory({ profile: r }: { profile: Referee }) {
         r.match_history.map((h) => (
           <div className="mx-row" key={h.id}>
             <div>
-              <Link to={`/match-exchange/${h.id}`}>
+              <Link to={`/matches/${h.id}?from=referee`}>
                 <strong>{h.title}</strong>
               </Link>
               <p>

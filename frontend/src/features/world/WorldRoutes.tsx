@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { opportunityMapPath } from '../admissions/opportunityPaths';
-import { arrangePath } from './compose/arrangeSeed';
 import { WorldLayout } from './WorldLayout';
 import { WorldLoading as PageLoading } from './WorldLoading';
 import { WorldSessionProvider } from './WorldSessionProvider';
@@ -16,11 +15,12 @@ const TournamentsDirectory = lazy(() => import('./directories/TournamentsDirecto
 const OpportunitiesDirectory = lazy(() => import('./directories/OpportunitiesDirectory'));
 
 const positive = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined; };
-/** The old Arrange a match page: World's Matches with the form open over it, filled in as the old address said. */
+/** The old Arrange a match page: the one sheet over World's open challenges, filled in as the old address said. */
 function ArrangeRedirect() {
     const params = new URLSearchParams(useLocation().search);
-    const mode = params.get('mode') === 'open' ? 'open' : 'direct';
-    return <Navigate replace to={arrangePath({ mode, opponentId: positive(params.get('opponent')), squadId: positive(params.get('squad')) })} />;
+    const next = new URLSearchParams({ tab: 'exchange', do: 'arrange_match', 'do-way': params.get('mode') === 'open' ? 'open' : 'invite' });
+    for (const [from, to] of [['opponent', 'do-opponent'], ['squad', 'do-squad']]) { const id = positive(params.get(from)); if (id) next.set(to, String(id)); }
+    return <Navigate replace to={`/world/matches?${next}`} />;
 }
 
 /** `/world` is the Map; a link to a plan on the old full map still opens journey planning. */
@@ -36,12 +36,12 @@ function WorldIndex() {
 /**
  * The old full map is no longer a World place. Journey planning (Parent Hub, the club's records, "Plan a journey"
  * from a fixture) still links to `/world/map?plans=…` and keeps answering there until journeys get their own home;
- * any other old link (a venue, a place) opens the Map.
+ * any other old link (a venue, a place, the welcome's `near=` town) opens the Map with its search kept.
  */
 function JourneysOrMap() {
     const location = useLocation();
     if (new URLSearchParams(location.search).has('plans')) return <Suspense fallback={null}><WorldMapPage /></Suspense>;
-    return <Navigate replace to="/world" />;
+    return <Navigate replace to={{ pathname: '/world', search: location.search }} />;
 }
 
 /** GrassKickZ World: the map and its directories. Venues and Journeys are out for now. */

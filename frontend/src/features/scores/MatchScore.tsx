@@ -22,7 +22,8 @@ export type ScoreTeams = { home: Team; away: Team };
  * `line` is false where the page already shows both teams and the score (the match page's fixture band).
  * `kind` is CALENDAR for a match on a club's own calendar (`eventId` is then the calendar event).
  */
-type Props = ScoreTeams & { eventId: number; kind?: ScoreKind; revision?: number; onChanged?: () => void; title?: boolean; line?: boolean };
+/** `added`: a past match added afterwards, whose score is its club's own record ("Added by", not "Reported by"). */
+type Props = ScoreTeams & { eventId: number; kind?: ScoreKind; revision?: number; onChanged?: () => void; title?: boolean; line?: boolean; added?: boolean };
 
 /**
  * One match's score as a shared record: what stands, who reported it, and the one thing this person can do now
@@ -35,7 +36,7 @@ export function MatchScore(props: Props) {
   return <ScoreCard key={`${sessionId}:${props.kind ?? 'EXCHANGE'}:${props.eventId}`} {...props} />;
 }
 
-function ScoreCard({ eventId, kind = 'EXCHANGE', revision, home, away, onChanged, title = true, line = true }: Props) {
+function ScoreCard({ eventId, kind = 'EXCHANGE', revision, home, away, onChanged, title = true, line = true, added = false }: Props) {
   const { sessionId } = useAuth();
   const { copy } = useResultCopy();
   const now = useClock();
@@ -105,12 +106,14 @@ function ScoreCard({ eventId, kind = 'EXCHANGE', revision, home, away, onChanged
   const who = (side: Parameters<typeof partyName>[0]) => partyName(side, home.name, away.name, copy);
   // The official score once there is one; until then the reported version, marked as such by the status beside it.
   const shown = record.official ? goals(record.homeScore, record.awayScore) : goals(record.reported?.homeScore, record.reported?.awayScore);
-  const meta = record.status === 'REPORTED' && record.reported ? [copy(`Reported by ${who(record.reported.side)}`, `შეიტანა: ${who(record.reported.side)}`), disputeWindow(record.deadlines.disputeUntil, now, copy)]
+  // A past match added afterwards is its club's own record: "Added by", where others read "Reported by".
+  const by = (side: Parameters<typeof partyName>[0]) => added ? copy(`Added by ${who(side)}`, `დაამატა: ${who(side)}`) : copy(`Reported by ${who(side)}`, `შეიტანა: ${who(side)}`);
+  const meta = record.status === 'REPORTED' && record.reported ? [by(record.reported.side), disputeWindow(record.deadlines.disputeUntil, now, copy)]
     : record.status === 'SETTLED' && record.settled ? [copy(`Settled by ${who(record.settled.side)}`, `გადაწყვიტა: ${who(record.settled.side)}`)]
-      : record.status === 'CONFIRMED' && record.reported ? [copy(`Reported by ${who(record.reported.side)}, confirmed`, `შეიტანა: ${who(record.reported.side)}, დადასტურდა`)]
-        // A one-sided calendar score counts at once; its club may correct it for 48 hours.
-        : record.status === 'FINAL' && record.reported && record.oneSided ? [copy(`Reported by ${who(record.reported.side)}`, `შეიტანა: ${who(record.reported.side)}`), correctWindow(record.deadlines.correctUntil, now, copy)]
-          : record.status === 'FINAL' && record.reported ? [copy(`Reported by ${who(record.reported.side)}, not disputed in 48 h`, `შეიტანა: ${who(record.reported.side)}, 48 სთ-ში არ გასაჩივრდა`)] : [];
+      : record.status === 'CONFIRMED' && record.reported ? [`${by(record.reported.side)}, ${copy('confirmed', 'დადასტურდა')}`]
+        // A one-sided score counts at once; its club may correct it for 48 hours.
+        : record.status === 'FINAL' && record.reported && record.oneSided ? [by(record.reported.side), correctWindow(record.deadlines.correctUntil, now, copy)]
+          : record.status === 'FINAL' && record.reported ? [`${by(record.reported.side)}, ${copy('not disputed in 48 h', '48 სთ-ში არ გასაჩივრდა')}`] : [];
   const refereeFirst = record.status === 'NONE' && !record.permissions.report.length && record.deadlines.refereeOnlyUntil && Date.parse(record.deadlines.refereeOnlyUntil) > now
     && record.permissions.parties.some(party => party === 'HOME' || party === 'AWAY');
 

@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { getAuthSessionId, isCurrentAuthSession } from '../../utils/authStorage';
+import { useCommentRefresh } from '../../components/feed/useCommentRefresh';
+import type { CommentAttempt } from '../../components/feed/commentDraft';
+import { useEffect, useState, useRef } from 'react';
 import { apiClient } from '../../api/axiosConfig';
 import type { CommentDto, FeedPostDto } from '../../components/feed/FeedPost';
 import { reactionFields } from '../../components/feed/reactions';
@@ -15,6 +18,7 @@ type ByPost<T> = Record<number, T>;
 export function useProfilePostFeed(endpoint: string, limit = 20) {
     const pages = usePagedProfilePosts(endpoint, limit);
     const { posts, setPosts } = pages;
+    const scope = useRef(pages.pageKey); scope.current = pages.pageKey;
     const [openComments, setOpenComments] = useState<ByPost<boolean>>({});
     const [commentsData, setCommentsData] = useState<ByPost<CommentDto[]>>({});
     const [commentsErrors, setCommentsErrors] = useState<ByPost<string | null>>({});
@@ -55,15 +59,20 @@ export function useProfilePostFeed(endpoint: string, limit = 20) {
 
     const loadComments = async (postId: number, force = false) => {
         if (commentsData[postId] && !force) return;
+        const session = getAuthSessionId(), key = pages.pageKey;
+        const current = () => isCurrentAuthSession(session) && key === scope.current;
         setCommentsLoading(state => ({ ...state, [postId]: true }));
         setCommentsErrors(state => ({ ...state, [postId]: null }));
         try {
             const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
+            if (!current()) return;
             setCommentsData(state => ({ ...state, [postId]: response.data }));
+            return response.data;
         } catch (error) {
+            if (!current()) return;
             setCommentsErrors(state => ({ ...state, [postId]: extractApiErrorMessage(error, 'Comments could not load.') }));
         } finally {
-            setCommentsLoading(state => ({ ...state, [postId]: false }));
+            if (current()) setCommentsLoading(state => ({ ...state, [postId]: false }));
         }
     };
 
@@ -73,10 +82,12 @@ export function useProfilePostFeed(endpoint: string, limit = 20) {
         if (!open) await loadComments(postId);
     };
 
-    const submitComment = async (postId: number, content: string) => {
-        const response = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
+    const submitComment = async (postId: number, content: string, attempt?: CommentAttempt) => {
+        const session = getAuthSessionId(), key = pages.pageKey;
+        const response = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content, ...(attempt?.parentId ? { parentId: attempt.parentId } : {}) }, attempt ? { headers: { 'Idempotency-Key': attempt.requestId } } : undefined);
+        if (!isCurrentAuthSession(session) || key !== scope.current) return;
+        if (commentsData[postId]?.some(comment => comment.id === response.data.id)) return;
         setCommentsData(state => ({ ...state, [postId]: [...(state[postId] || []), response.data] }));
-        update(postId, post => ({ ...post, commentCount: post.commentCount + 1 }));
     };
 
     const open = (post: FeedPostDto | null) => {
@@ -84,6 +95,11 @@ export function useProfilePostFeed(endpoint: string, limit = 20) {
         if (post) void loadComments(post.id);
     };
 
+    useCommentRefresh(id => posts.some(post => post.id === id), (saved, comments) => {
+        setPosts(items => items.map(post => post.id === saved.id ? saved : post));
+        setSelected(post => post?.id === saved.id ? saved : post);
+        if (comments) setCommentsData(items => ({ ...items, [saved.id]: comments }));
+    }, id => { setPosts(items => items.filter(post => post.id !== id)); setSelected(post => post?.id === id ? null : post); });
     const ids = new Set([...Object.keys(pendingLikes), ...Object.keys(reactions.pending), ...Object.keys(likeErrors), ...Object.keys(reactions.errors)].map(Number));
     const merged = <T,>(pick: (id: number) => T) => Object.fromEntries([...ids].map(id => [id, pick(id)])) as ByPost<T>;
     return {

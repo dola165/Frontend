@@ -78,3 +78,7 @@
   .gk .gk-arrange__mode .gk-segmented__item { min-width: 0; height: auto; min-height: 44px; white-space: normal; padding: var(--gk-2); }
   .gk .gk-arrange__mode .gk-segmented__item:has(> svg) .gk-segmented__label { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
 }
+/* A club not in GrassKickZ: its name and the way back to searching, on one line. */
+.gk .gk-arrange__outside { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-arrange__outside .gk-input { flex: 1; min-width: 0; }
+.gk .gk-arrange__not-here { align-self: flex-start; margin-top: var(--gk-1); }

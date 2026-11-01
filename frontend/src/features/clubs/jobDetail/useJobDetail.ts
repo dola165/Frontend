@@ -16,6 +16,7 @@ export function useJobDetail(id: number, status: JobViewerStatus, userId: number
     const jobKey = `${id}:${jobAttempt}`, applicationKey = `${id}:${status}:${userId ?? ''}:${applicationAttempt}`;
     const [jobResult, setJobResult] = useState<{ key: string; job: ClubJob | null; error: string }>();
     const [applicationResult, setApplicationResult] = useState<{ key: string; application: MyJobApplication | null; error: string }>();
+    const recruitment = jobResult?.key === jobKey && !!jobResult.job?.requiredRole;
     useEffect(() => {
         const controller = new AbortController();
         void fetchPublicJob(id, controller.signal)
@@ -24,19 +25,19 @@ export function useJobDetail(id: number, status: JobViewerStatus, userId: number
         return () => controller.abort();
     }, [id, jobKey]);
     useEffect(() => {
-        if (status !== 'authenticated') return;
+        if (status !== 'authenticated' || !recruitment) return;
         const controller = new AbortController();
         void fetchMyJobApplication(id, controller.signal)
             .then((application) => { if (!controller.signal.aborted) setApplicationResult({ key: applicationKey, application, error: '' }); })
             .catch((failure) => { if (!controller.signal.aborted) setApplicationResult({ key: applicationKey, application: null, error: extractApiErrorMessage(failure, copy('statusLoadError')) }); });
         return () => controller.abort();
-    }, [copy, id, status, applicationKey]);
+    }, [copy, id, status, applicationKey, recruitment]);
     const job = jobResult?.key === jobKey ? jobResult : undefined;
     const application = status === 'authenticated' && applicationResult?.key === applicationKey ? applicationResult : undefined;
     return {
         job: job?.job ?? null, error: job?.error ?? '', loading: !job,
         application: application?.application ?? null, applicationError: application?.error ?? '',
-        checking: status === 'bootstrapping' || (status === 'authenticated' && !application),
+        checking: status === 'bootstrapping' || (status === 'authenticated' && recruitment && !application),
         /** Shows an application just sent, until the next answer from the server. */
         setApplication: (value: MyJobApplication) => setApplicationResult({ key: applicationKey, application: value, error: '' }),
         retryJob: () => setJobAttempt((n) => n + 1),

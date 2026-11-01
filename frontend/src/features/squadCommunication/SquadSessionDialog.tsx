@@ -19,6 +19,9 @@ import './session-details.css';
 import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
 import { acknowledgeReply, beginReply, readUncertainReply, replyScope, requireReplyScope, reviewNewReply, ReplyRecoveryError, type UncertainReply } from './availabilityRecovery';
 import { SessionAvailability } from './SessionAvailability';
+import { SessionHistory } from './SessionHistory';
+import { ScheduleDirections } from '../schedule/board/ScheduleDirections';
+import { CalendarConflictReview } from './CalendarConflictReview';
 
 /** What kind of activity an entry is, in football words, both languages. */
 const ACTIVITY_NAMES: Record<string, [string, string]> = { TRAINING: ['Training', 'ვარჯიში'], MATCH: ['Match', 'მატჩი'], FRIENDLY: ['Friendly', 'ამხანაგური'], ACTIVITY: ['Club event', 'კლუბის ღონისძიება'], TRYOUT: ['Trial', 'ტესტირება'] };
@@ -36,6 +39,8 @@ const Dialog = SessionDialog;
 
 export function SquadSessionDetails({ event, playerId, canManage = false, onClose, onSaved }: {
     event: SquadCalendarEvent; playerId?: number; canManage?: boolean; onClose: () => void; onSaved: () => void;
+    /** Parent Hub: "Can't come" only (see SessionAvailability). */
+    optOut?: boolean;
 }) {
     const copy = useJourneyCopy();
     const { t, i18n } = useTranslation();
@@ -99,24 +104,6 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
         setReplyRequests(previous => new Map(previous).set(person.id, request));
         await sendReply(request);
     });
-    // Turning confirmation on notifies families, so the coach sees how many first. Turning it off is quiet.
-    const [askReview, setAskReview] = useState<{ requestId: string; recipients: number } | null>(null);
-    const changeAsking = async (asking: boolean, confirmed = false) => {
-        const session = event.session;
-        if (saving.current || !session || !event.squadId) return;
-        saving.current = true; setBusy(true); setError(''); setSaved(false);
-        try {
-            const change: api.SessionChange = { requestId: confirmed && askReview ? askReview.requestId : crypto.randomUUID(), revision: session.revision, title: session.title,
-                startsAt: session.starts_at, endsAt: session.ends_at, location: session.location ?? '', playerIds: null, eventType: session.event_type, description: session.description ?? '', requestResponses: asking };
-            if (!confirmed) {
-                const consequence = await api.previewSession(event.squadId, session.id, change);
-                if (asking && consequence.notificationRecipients > 0) { setAskReview({ requestId: change.requestId, recipients: consequence.notificationRecipients }); return; }
-            }
-            await api.editSession(event.squadId, session.id, change);
-            setAskReview(null); onSaved();
-        } catch (e) { setError(extractApiErrorMessage(e, copy('The change could not be saved.', 'ცვლილების შენახვა ვერ მოხერხდა.'))); }
-        finally { saving.current = false; setBusy(false); }
-    };
     if (editing && event.session) return <SquadEventEditComposer squad={{ id: event.squadId!, name: event.hostSquadName ?? 'Squad' }} session={event.session} onClose={() => setEditing(false)} onSaved={onSaved}/>;
     return <Dialog title={event.title} onClose={onClose} busy={busy} detail>
         <div className="session-context"><span>{event.hostSquadName}</span><span className="session-type">{copy(...(ACTIVITY_NAMES[event.eventType] ?? [event.eventType, event.eventType]))}</span></div>
@@ -124,6 +111,7 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
         {!event.session?.venue_reservation && event.locationText && <div className="session-location"><MapPin size={20}/><div><span className="session-eyebrow">{copy('Where to meet', 'შეხვედრის ადგილი')}</span><strong>{event.locationText}</strong></div></div>}
         {event.description && <div className="session-coach-note"><span className="session-eyebrow">{copy('Session notes', 'სესიის შენიშვნები')}</span><p>{event.description}</p></div>}
         <VenueReservationSummary value={event.session?.venue_reservation}/>
+        {event.status !== 'CANCELLED' && <ScheduleDirections place={event.locationText} lat={event.locationLat} lng={event.locationLng}/>}
         {!event.session && <ScheduleResult event={event} clubId={event.owningClubId} onSaved={onSaved} />}
         {destination && <Link to={destination}>{copy('Open match details & next actions', 'მატჩის დეტალები და შემდეგი ნაბიჯები')} →</Link>}
         {event.session?.series_id && <p className="squad-schedule-series-note">{copy('Part of a repeating series. Availability is kept separately for each date.', 'განმეორებადი სერიის ნაწილია. ხელმისაწვდომობა თითოეულ თარიღზე ცალკე ინახება.')}</p>}
@@ -148,9 +136,8 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
         })}
         {event.status === 'CANCELLED' ? <p className="squad-schedule-notice">{copy('Cancelled', 'გაუქმებულია')}{event.session?.cancellation_reason && ` · ${event.session.cancellation_reason}`}</p> : <>
             {event.session && new Date(event.endsAt) <= new Date() && <p role="status">{copy('This session has ended. Its replies are read-only.', 'ეს სესია დასრულდა. პასუხების შეცვლა შეუძლებელია.')}</p>}
-            {event.session && <SessionAvailability session={event.session} canManage={canManage} playerId={playerId} busy={busy} ended={new Date(event.endsAt) <= new Date()}
-                pending={new Set([...replyRequests.keys(), ...replyRecoveryErrors])} onReply={reply}
-                ask={canManage ? { review: askReview, onAsk: asking => void changeAsking(asking), onConfirm: () => void changeAsking(true, true), onCancel: () => setAskReview(null) } : undefined} />}
+            {event.session && <SessionAvailability session={event.session} canManage={canManage} playerId={playerId} optOut={!canManage} busy={busy} ended={new Date(event.endsAt) <= new Date()}
+                pending={new Set([...replyRequests.keys(), ...replyRecoveryErrors])} onReply={reply} />}
             {canManage && event.session && new Date(event.endsAt) > new Date() && (cancel ? <form onSubmit={async e => {
                 e.preventDefault(); if (saving.current) return;
                 const signature = JSON.stringify([event.session!.id, event.session!.revision, reason, scope]);
@@ -173,12 +160,13 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
                 <button disabled={busy || !reason.trim()} type="submit">{preview || seriesPreview ? copy('Confirm cancellation & notify participants', 'გაუქმების დადასტურება და მონაწილეების შეტყობინება') : copy('Preview cancellation', 'გაუქმების წინასწარი ნახვა')}</button><button type="button" disabled={busy} onClick={() => setCancel(false)}>{copy('Keep session', 'სესიის შენარჩუნება')}</button>
             </form> : <><button type="button" onClick={() => setEditing(true)}>{copy('Edit or reschedule', 'შეცვლა ან გადატანა')}</button><button type="button" onClick={() => setCancel(true)}>{copy('Cancel session', 'სესიის გაუქმება')}</button></>)}
         </>}
+        {event.session && event.squadId && <SessionHistory key={`history:${event.session.id}:${event.session.revision}`} squadId={event.squadId} sessionId={event.session.id} playerId={playerId}/>}
     </Dialog>;
 }
 
 function Consequence({ value }: { value: api.SessionConsequence }) {
     const copy = useJourneyCopy();
-    return <p role="status">{value.responsePolicy === 'PRESERVE' ? copy('Existing replies will stay valid.', 'არსებული პასუხები ძალაში დარჩება.') : `${value.affectedParticipants} ${copy('participants and', 'მონაწილეს და')} ${value.affectedResponses} ${copy('replies affected.', 'პასუხს ეხება ცვლილება.')} ${value.responsePolicy === 'INVALIDATE' ? copy('Replies will no longer count; the session will close.', 'პასუხები აღარ ჩაითვლება; სესია დაიხურება.') : copy('Previous replies will be kept, but participants must confirm again.', 'წინა პასუხები შენარჩუნდება, მაგრამ მონაწილეებმა ხელახლა უნდა დაადასტურონ.')}`} {value.notificationRecipients} {copy('people will be notified.', 'ადამიანი მიიღებს შეტყობინებას.')} {value.addedParticipants} {copy('added;', 'დაემატება;')} {value.removedParticipants} {copy('removed.', 'ამოიშლება.')}</p>;
+    return <><CalendarConflictReview conflicts={value.conflicts}/><p role="status">{value.responsePolicy === 'PRESERVE' ? copy('Existing replies will stay valid.', 'არსებული პასუხები ძალაში დარჩება.') : `${value.affectedParticipants} ${copy('participants and', 'მონაწილეს და')} ${value.affectedResponses} ${copy('replies affected.', 'პასუხს ეხება ცვლილება.')} ${value.responsePolicy === 'INVALIDATE' ? copy('Replies will no longer count; the session will close.', 'პასუხები აღარ ჩაითვლება; სესია დაიხურება.') : copy('Previous replies are kept with the old details. Participants are expected unless they say they can’t come.', 'წინა პასუხები შენარჩუნდება, მაგრამ მონაწილეებმა ხელახლა უნდა დაადასტურონ.')}`} {value.notificationRecipients} {copy('people will be notified.', 'ადამიანი მიიღებს შეტყობინებას.')} {value.addedParticipants} {copy('added;', 'დაემატება;')} {value.removedParticipants} {copy('removed.', 'ამოიშლება.')}</p></>;
 }
 
 export function SquadSessionEditor({ squad, date, session, onClose, onSaved }: { squad: CalendarSquad; date: Date; session?: api.SquadSession; onClose: () => void; onSaved: () => void }) {
@@ -210,7 +198,7 @@ export function SquadSessionEditor({ squad, date, session, onClose, onSaved }: {
                 endsAt: session && end === local(new Date(session.ends_at)) ? session.ends_at : new Date(end).toISOString(), location };
             if (session) {
                 const change = { ...data, revision: session.revision, playerIds: audienceChanged ? playerIds : null };
-                if (!reviewed) { setPreview({ signature, value: await api.previewSession(squad.id, session.id, change) }); return; }
+                if (!reviewed || reviewed.canCommit === false) { setPreview({ signature, value: await api.previewSession(squad.id, session.id, change) }); return; }
                 await api.editSession(squad.id, session.id, change);
             } else await api.createSession(squad.id, data);
             onSaved();
@@ -226,6 +214,6 @@ export function SquadSessionEditor({ squad, date, session, onClose, onSaved }: {
             : <div className="journey-roster"><strong>{copy('Invitations', 'მოწვევები')}</strong><p>{copy('This private session invites the current eligible squad roster when saved. Only invited players and their authorized guardians see it and receive notifications. Later roster additions are not automatically invited.', 'ამ პირად სესიაზე შენახვისას მოწვეული იქნება გუნდის მიმდინარე უფლებამოსილი შემადგენლობა. მას ხედავენ და შეტყობინებას იღებენ მხოლოდ მოწვეული მოთამაშეები და მათი უფლებამოსილი მეურვეები. მოგვიანებით დამატებული მოთამაშეები ავტომატურად არ მოიწვევიან.')}</p><p>{people ? people.map(person => person.name).join(' · ') || copy('No eligible players yet.', 'ჯერ უფლებამოსილი მოთამაშეები არ არიან.') : copy('Loading current roster…', 'მიმდინარე შემადგენლობა იტვირთება…')}</p><p>{copy('One session only. For another date, create another family session. Weekly club entries do not collect family replies.', 'მხოლოდ ერთი სესია. სხვა თარიღისთვის შექმენით ახალი ოჯახის სესია. კლუბის ყოველკვირეული ჩანაწერები ოჯახის პასუხებს არ აგროვებს.')}</p></div>}
         <p>{copy('Times shown in', 'დროის სარტყელი')}: {Intl.DateTimeFormat().resolvedOptions().timeZone}. {session ? copy('Review the consequences before saving.', 'შენახვამდე გადახედეთ შედეგებს.') : copy('Invited families receive a notification when you save.', 'შენახვისას მოწვეული ოჯახები მიიღებენ შეტყობინებას.')}</p>
         {reviewed && <Consequence value={reviewed}/>}
-        {error && <p role="alert">{error} {!people && <button type="button" onClick={() => { setError(''); setRosterRevision(n => n+1); }}>{copy('Retry roster', 'შემადგენლობის ხელახლა ჩატვირთვა')}</button>} {session && <button type="button" onClick={onSaved}>{copy('Reload latest session', 'სესიის განახლება')}</button>}</p>}<button className="schedule-direction-primary" disabled={busy || !people}>{busy ? copy('Working…', 'მუშავდება…') : session ? reviewed ? copy('Confirm changes', 'ცვლილებების დადასტურება') : copy('Preview changes', 'ცვლილებების წინასწარი ნახვა') : copy('Create session & notify families', 'სესიის შექმნა და ოჯახების შეტყობინება')}</button>
+        {error && <p role="alert">{error} {!people && <button type="button" onClick={() => { setError(''); setRosterRevision(n => n+1); }}>{copy('Retry roster', 'შემადგენლობის ხელახლა ჩატვირთვა')}</button>} {session && <button type="button" onClick={onSaved}>{copy('Reload latest session', 'სესიის განახლება')}</button>}</p>}<button className="schedule-direction-primary" disabled={busy || !people || reviewed?.canCommit === false}>{busy ? copy('Working…', 'მუშავდება…') : session ? reviewed ? copy('Confirm changes', 'ცვლილებების დადასტურება') : copy('Preview changes', 'ცვლილებების წინასწარი ნახვა') : copy('Create session & notify families', 'სესიის შექმნა და ოჯახების შეტყობინება')}</button>
     </form></Dialog>;
 }

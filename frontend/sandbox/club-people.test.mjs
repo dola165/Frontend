@@ -46,7 +46,8 @@ test('every job holder reads Staff with what each colleague shares, and changes 
   const physio = (await call('GET', '/clubs/1/people', null, as('physio'))).body.people.find(p => p.userId === 1);
   assert.deepEqual(physio.jobs.map(j => [j.job, j.clubWide, j.tools]), [['PHYSIOTHERAPIST', true, ['MEDICAL:WRITE', 'AVAILABILITY:WRITE']]]);
   const coach = (await call('GET', '/clubs/1/people', null, as('headcoach'))).body;
-  assert.deepEqual(coach.viewer.headCoachSquads, [103, 105]);
+  // U14 and U16 Boys, and Beginners (Parent Hub, step 5: the squad families book first visits into).
+  assert.deepEqual(coach.viewer.headCoachSquads, [103, 105, 160]);
   assert.ok(!coach.people.find(p => p.userId === 1).jobs.some(j => j.kind === 'OWNER'), 'in a persona Luka is not the Owner');
 });
 test('without a birth date Staff asks for it first, as on the server, and opens once it is given', async () => {

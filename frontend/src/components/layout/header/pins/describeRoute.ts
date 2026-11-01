@@ -42,6 +42,8 @@ const capabilityLabel = (capabilities: NavigationCapabilities | undefined, id: s
 type Words = [english: string, georgian: string];
 const fixed: Array<[RegExp, Words, PinIcon]> = [
     [/^\/my-squads$/, ['My squads', 'ჩემი გუნდები'], 'squad'],
+    [/^\/my-matches$/, ['My matches', 'ჩემი მატჩები'], 'flag'],
+    [/^\/my-competitions$/, ['My competitions', 'ჩემი შეჯიბრებები'], 'trophy'],
     [/^\/parent(?:\/|$)/, ['Parent Hub', 'მშობლის სივრცე'], 'family'],
     [/^\/referees\//, ['Referee workspace', 'მსაჯის სამუშაო სივრცე'], 'flag'],
     [/^\/agent(?:\/|$)/, ['Agent Hub', 'აგენტის სივრცე'], 'briefcase'],
@@ -72,7 +74,7 @@ const worldSections: Record<string, [Words, PinIcon]> = {
     opportunities: [['Opportunities', 'შესაძლებლობები'], 'briefcase'],
 };
 const worldTabs: Record<string, Words> = {
-    'matches:exchange': ['Open matches', 'ღია მატჩები'], 'matches:mine': ['My arrangements', 'ჩემი შეთანხმებები'], 'matches:events': ['Events', 'ღონისძიებები'],
+    'matches:exchange': ['Open challenges', 'ღია გამოწვევები'], 'matches:events': ['Events', 'ღონისძიებები'],
     'opportunities:jobs': ['Jobs and volunteering', 'სამუშაო და მოხალისეობა'], 'opportunities:trials': ['Trials', 'გასინჯვები'], 'opportunities:groups': ['Places to train', 'სავარჯიშო ადგილები'],
     'tournaments:all': ['All tournaments', 'ყველა ტურნირი'], 'tournaments:mine': ['My tournaments', 'ჩემი ტურნირები'],
     'competitions:all': ['All tournaments', 'ყველა ტურნირი'], 'competitions:mine': ['My tournaments', 'ჩემი ტურნირები'], 'competitions:invitations': ['My tournaments', 'ჩემი ტურნირები'],
@@ -81,7 +83,7 @@ const worldTabs: Record<string, Words> = {
 
 const iconByPrefix: Array<[RegExp, PinIcon]> = [
     [/^\/clubs\/\d+\/office/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/tournaments\//, 'trophy'],
-    [/^\/match-exchange/, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
+    [/^\/match(?:es|-exchange)\//, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
     [/^\/(?:jobs|roles)\//, 'briefcase'], [/^\/store\//, 'store'], [/^\/campaigns\//, 'family'], [/^\/tryouts\//, 'goal'],
     [/^\/admissions\//, 'clipboard'], [/^\/world\//, 'world'],
 ];

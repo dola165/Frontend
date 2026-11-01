@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BadgeCheck, ChevronRight, Crown, Landmark, ListChecks, Map as MapIcon, Upload, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, ChevronRight, Crown, Landmark, ListChecks, Map as MapIcon, Newspaper, Upload, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { RecordPostSettings } from './RecordPostSettings';
 import { Button, ButtonLink, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { Crest } from '../../design/visuals';
 import { useCan } from '../../hooks/useCan';
@@ -18,7 +19,7 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { officePath } from './officeLinks';
 import './office.css';
 
-const SECTIONS = ['joining', 'details', 'profile', 'activities', 'facilities', 'imports'] as const;
+const SECTIONS = ['joining', 'posts', 'details', 'profile', 'activities', 'facilities', 'imports'] as const;
 type Section = typeof SECTIONS[number];
 
 /**
@@ -47,7 +48,8 @@ export function OfficeSettings({ clubId, clubName, crest = null, overview, boot,
         {section === 'joining' ? <>
             <JoiningPolicy clubId={clubId} disabled={false} />
             <p className="gk-muted office-settings__rule">{copy('New players: the squad’s coaches or any admin approve; the first answer counts.', 'ახალ მოთამაშეებს ადასტურებს გუნდის მწვრთნელი ან ნებისმიერი ადმინი; ითვლება პირველი პასუხი.')}</p>
-        </> : section === 'details' ? boot ? <OperationsSettings key={boot.settings.revision} boot={boot} onSaved={onRefresh} /> : <Panel padded><Skeleton height={160} /></Panel>
+        </> : section === 'posts' ? <RecordPostSettings clubId={clubId} />
+        : section === 'details' ? boot ? <OperationsSettings key={boot.settings.revision} boot={boot} onSaved={onRefresh} /> : <Panel padded><Skeleton height={160} /></Panel>
             : section === 'profile' ? <ClubPresentationSettings clubId={clubId} part="profile" />
                 : <ClubOrganizationSection clubId={clubId} section={section} />}
     </PageFrame>;
@@ -71,6 +73,7 @@ export function OfficeSettings({ clubId, clubName, crest = null, overview, boot,
                 {row(null, copy('The club page', 'კლუბის გვერდი'), copy('Name, crest, contacts, grounds, teams', 'სახელი, ემბლემა, კონტაქტები, მოედნები, გუნდები'),
                     { label: copy('Edit the page', 'გვერდის რედაქტირება'), to: `/clubs/${clubId}?edit=1` }, <Crest src={crest} name={clubName} size={32} />)}
                 {row(UserPlus, copy('How players join', 'როგორ უერთდებიან მოთამაშეები'), copy('New players: the squad’s coaches or any admin approve; the first answer counts', 'ახალ მოთამაშეებს ადასტურებს გუნდის მწვრთნელი ან ნებისმიერი ადმინი; ითვლება პირველი პასუხი'), { onClick: () => open('joining') })}
+                {row(Newspaper, copy('Posts from the club’s work', 'პოსტები კლუბის საქმიანობიდან'), copy('Trials, jobs, projects and tournaments post themselves', 'სინჯები, ვაკანსიები, პროექტები და ტურნირები თავად ქვეყნდება'), { onClick: () => open('posts') })}
                 {row(BadgeCheck, copy('Verification', 'ვერიფიკაცია'), copy('A verified club unlocks the store and fundraising', 'ვერიფიცირებული კლუბისთვის იხსნება მაღაზია და შემოწირულობები'),
                     { label: copy('Open', 'გახსნა'), to: `/clubs/${clubId}?verify=1` })}
                 {row(Crown, ownerName ? copy(`Owner: ${ownerName}`, `მფლობელი: ${ownerName}`) : copy('Owner', 'მფლობელი'), copy('Only the owner can hand the club over', 'კლუბის გადაცემა მხოლოდ მფლობელს შეუძლია'),

@@ -1,18 +1,18 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { getMatchHistory, getHistoricalImportOptions, type HistoryMatch } from '../api';
+import { getMatchHistory, type HistoryMatch } from '../api';
 import { ResultSummary } from '../ResultSummary';
 import { ScheduleResult } from '../ScheduleResult';
 import { getScoreRecord, getScoreSummary, type ScoreSummary } from '../../scores/api';
 
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'session-a' }) }));
-vi.mock('../api', async importOriginal => ({ ...(await importOriginal<typeof import('../api')>()), getMatchHistory: vi.fn(), getHistoricalImportOptions: vi.fn() }));
+vi.mock('../api', async importOriginal => ({ ...(await importOriginal<typeof import('../api')>()), getMatchHistory: vi.fn() }));
 vi.mock('../../scores/api', () => ({ getScoreSummary: vi.fn(), getScoreRecord: vi.fn(), writeScore: vi.fn() }));
 vi.mock('../../scores/ExchangeScore', () => ({ ExchangeScore: ({ eventId }: { eventId: number }) => <p>Score card {eventId}</p> }));
 
 const fixture: HistoryMatch = { id: 'event:5', sourceId: 5, source: 'MATCH_EXCHANGE', title: 'Saturday friendly', startsAt: '2026-09-01T10:00:00Z', endsAt: '2026-09-01T12:00:00Z', timezone: 'Asia/Tbilisi', homeClubId: 1, homeClubName: 'Home FC', awayClubId: 2, awayClubName: 'Away FC', homeScore: 0, awayScore: 0, resultStatus: 'CONFIRMED', fixtureStatus: 'COMPLETED', legacy: false, detailPath: '/match-exchange/5#result', canRecordResult: true };
 const summary = (value: Partial<ScoreSummary>): ScoreSummary => ({ eventId: 5, kind: 'CALENDAR', oneSided: true, status: 'NONE', fixtureStatus: 'SCHEDULED', revision: 0, homeScore: null, awayScore: null, reported: null, disputed: null, official: false, legacy: false, scorePrivate: false, canReadAudit: false, ...value });
-beforeEach(() => { vi.clearAllMocks(); vi.mocked(getHistoricalImportOptions).mockResolvedValue({ clubs: [] }); vi.mocked(getMatchHistory).mockResolvedValue({ items: [fixture], total: 1, page: 0, pageSize: 24 }); });
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(getMatchHistory).mockResolvedValue({ items: [fixture], total: 1, page: 0, pageSize: 24 }); });
 
 it('keeps a missing score separate from a confirmed goalless draw and an older record', () => {
   const { rerender } = render(<ResultSummary homeScore={null} awayScore={null} status="NONE" />);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarPlus, MessagesSquare, Pencil, Plus, Trash2 } from 'lucide-react';
+import { MessagesSquare, Pencil, Plus, Trash2 } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import { Avatar, Button, ButtonLink, Chip, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../../design/primitives';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
@@ -22,7 +22,7 @@ import { usePersistedState } from '../../../utils/usePersistedState';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { SquadRoster } from './SquadRoster';
 import { SquadCoachAssignment } from './SquadCoachAssignment';
-import { arrangePath } from '../../world/compose/arrangeSeed';
+import { ActionButton } from '../../actions/ActionButton';
 import '../club-workspace.css';
 import './squads.css';
 
@@ -170,7 +170,7 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
                                     <div><h2 id="sq-title">{selectedSquad.name}</h2><p>{squadLabel(selectedSquad.category, t)} · {genderLabel(selectedSquad.gender)} · {rosterLoading ? '…' : t('squads.design.playerCount', { defaultValue: '{{count}} players', count: playerCount })}</p></div></div>
                                 <div className="sq-actions">
                                     <ButtonLink to={`/squads/${selectedSquad.id}`} variant="ghost"><MessagesSquare aria-hidden="true" />Messages & plans</ButtonLink>
-                                    <ButtonLink to={arrangePath({ mode: 'direct', squadId: selectedSquad.id })} variant="ghost"><CalendarPlus aria-hidden="true" />Arrange a match</ButtonLink>
+                                    <ActionButton action="arrange_match" variant="ghost" subject={{ kind: 'squad', id: selectedSquad.id }} />
                                     {canChangeSquad(selectedSquad.id) && <Button onClick={() => setSquadEditor(selectedSquad)}><Pencil aria-hidden="true" />{t('squads.design.editSquad', { defaultValue: 'Edit squad' })}</Button>}
                                     {leadership && <Button variant="ghost" iconOnly disabled={deletingSquadId != null} aria-label={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} title={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} onClick={() => setPendingDelete(selectedSquad)}><Trash2 aria-hidden="true" /></Button>}
                                     {canChangeSquad(selectedSquad.id) && <Button variant="primary" onClick={() => setShowAddPlayers(true)}><Plus aria-hidden="true" />{t('squads.design.addPlayers', { defaultValue: 'Add players' })}</Button>}

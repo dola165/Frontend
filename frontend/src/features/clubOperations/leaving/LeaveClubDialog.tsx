@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Crown, DoorOpen, Lock } from 'lucide-react';
-import { Avatar, Button } from '../../../design/primitives';
+import { Avatar, Button, ButtonLink } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
@@ -23,6 +23,7 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
     const { user, refreshNavigationCapabilities } = useAuth();
     const { step, go } = useLeaveStep(clubId);
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [note, setNote] = useState('');
+    const [storeBlocked, setStoreBlocked] = useState(false);
     const [people, setPeople] = useState<Person[] | null>(null);
     // A failed load belongs to its attempt: Try again starts a new one, and the old message no longer shows.
     const [round, setRound] = useState(0), [loadFailure, setLoadFailure] = useState<{ round: number; message: string } | null>(null);
@@ -42,8 +43,8 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
     };
     const run = async (work: () => Promise<void>, fallback: string) => {
         if (busy) return;
-        setBusy(true); setError('');
-        try { await work(); } catch (failure) { setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
+        setBusy(true); setError(''); setStoreBlocked(false);
+        try { await work(); } catch (failure) { setStoreBlocked((failure as { response?: { data?: { code?: string } } }).response?.data?.code === 'STORE_ORDERS_UNRESOLVED'); setError(extractApiErrorMessage(failure, fallback)); } finally { setBusy(false); }
     };
     const leave = () => void run(async () => {
         try { await leaveClubStaff(clubId); }
@@ -86,6 +87,7 @@ export function LeaveClubDialog({ clubId, clubName, onDone }: { clubId: number; 
         <div className="gk lv-body">
             {note && <p className="gk-notice cw-notices__success" role="status">{note}</p>}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+            {step === 'close' && storeBlocked && <ButtonLink to={`/clubs/${clubId}/office?tab=tools&tool=store&storeRequests=1`}>Resolve Store purchase requests</ButtonLink>}
             {step === 'handover' && loadError && people === null && <div className="gk-notice gk-notice--danger lv-other" role="alert"><span>{loadError}</span>
                 <Button size="sm" onClick={() => setRound(value => value + 1)}>{copy('Try again', 'თავიდან')}</Button></div>}
             {step === 'handover' && (people === null ? !loadError && <p className="gk-faint" role="status">{copy('Loading the club’s people…', 'კლუბის ხალხი იტვირთება…')}</p>

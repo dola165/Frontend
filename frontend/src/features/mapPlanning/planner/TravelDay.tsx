@@ -42,7 +42,7 @@ export function TravelDay({ plan, busy, command }: { plan: Plan; busy: boolean; 
                                     </span>
                                 </div>
                                 {absent === passenger.id && (
-                                    <form className="gk-plan-editor" onSubmit={event => { event.preventDefault(); void command('passengers', { passengerId: passenger.id, status: 'CANCELLED', note: reason }); setAbsent(null); setReason(''); }}>
+                                    <form className="gk-plan-editor" onSubmit={event => { event.preventDefault(); void command('passengers', { passengerId: passenger.id, status: 'CANCELLED', note: reason }).then(saved => { if (saved) { setAbsent(null); setReason(''); } }); }}>
                                         <Field label="Reason" htmlFor={reasonId}><input id={reasonId} className="gk-input" required maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} /></Field>
                                         <div className="gk-plan-editor__actions"><Button type="submit" size="sm" variant="primary">Record absence</Button><Button size="sm" variant="ghost" onClick={() => setAbsent(null)}>Cancel</Button></div>
                                     </form>

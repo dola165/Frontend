@@ -8,6 +8,7 @@ import * as C from '../world-club.mjs';
 import * as F from '../world-football.mjs';
 import * as V from '../viewer.mjs';
 import { FAMILY, SECOND_GUARDIAN, statements, familyRequest, familyOf, newChildId } from '../world-family.mjs';
+import { squadPrice } from '../world-parents.mjs';
 
 /** The signed-in parent: their id, name and birth date, and whether the second guardian (parent mode only) exists. */
 const parentOf = headers => {
@@ -23,7 +24,7 @@ const participant = child => ({ id: child.id, name: child.name, dateOfBirth: chi
 const squadsOf = child => W.squads.filter(s => s.playerIds.includes(child.id));
 const clubsOf = child => [...new Set(squadsOf(child).map(s => s.clubId))].map(clubId => ({
   clubId, clubName: W.clubById(clubId).name, cardId: child.id, affiliationStatus: 'ACTIVE', consentStatus: 'CONFIRMED',
-  squads: squadsOf(child).filter(s => s.clubId === clubId).map(s => ({ id: s.id, name: s.name })),
+  squads: squadsOf(child).filter(s => s.clubId === clubId).map(s => ({ id: s.id, name: s.name, price: squadPrice(s.id) })),
   squadNames: squadsOf(child).filter(s => s.clubId === clubId).map(s => s.name),
   fees: statements.get(`${child.id}:${clubId}`) ?? null,
 }));
@@ -53,7 +54,7 @@ get('/joining/children', ({ headers }) => {
   if (!family || !parent) return undefined;
   return { children: family.map(child => ({
     playerId: child.id, clubs: clubsOf(child), cases: casesOf(child), inquiries: [],
-    identity: { playerId: child.id, version: 1, fullName: child.name, dateOfBirth: child.dateOfBirth, gender: child.gender, photoUrl: W.personById(child.id)?.avatarUrl ?? null, positions: child.positions ?? [], dominantFoot: null, heightCm: null, weightKg: null, canEdit: true, minor: true },
+    identity: { playerId: child.id, version: child.identityVersion ?? 1, fullName: child.name, dateOfBirth: child.dateOfBirth, gender: child.gender, photoUrl: W.personById(child.id)?.avatarUrl ?? null, positions: child.positions ?? [], dominantFoot: null, heightCm: null, weightKg: null, canEdit: true, minor: true },
     guardians: [{ id: parent.id, name: parent.name, self: true }, ...(secondGuardian(parent, child) ? [{ id: SECOND_GUARDIAN.id, name: SECOND_GUARDIAN.name, self: false }] : [])],
   })) };
 });

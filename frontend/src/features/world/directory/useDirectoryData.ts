@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { WORLD_CHANGED } from '../cache';
+import { applyWorldFor, hasPublicCohort, useWorldFor } from '../searchContext';
 import { wt } from '../copy';
 import { useWorldArea, type WorldArea } from '../useWorldArea';
 import type { AnySource, DirectoryArea, DirectoryPage, DirectoryQuery, LoadContext } from './types';
@@ -10,9 +11,13 @@ import type { AnySource, DirectoryArea, DirectoryPage, DirectoryQuery, LoadConte
  * The area a source follows: none for sources that ignore it, a null city for "Anywhere". A list the area only orders
  * (`'nearest'`) keeps the person's own centre even for "Anywhere", so the nearest still come first.
  */
-export const directoryArea = (source: AnySource, area: WorldArea): DirectoryArea | undefined =>
-    source.area === 'nearest' ? { city: area.anywhere ? null : area.city, centre: area.centre }
+export const directoryArea = (source: AnySource, area: WorldArea, query?: DirectoryQuery): DirectoryArea | undefined => {
+    const cities = query?.values.city;
+    if (source.area && source.area !== 'nearest' && cities?.length)
+        return { city: cities.join(', '), centre: cities.length === 1 && cities[0] === area.city ? area.centre : null };
+    return source.area === 'nearest' ? { city: area.anywhere ? null : area.city, centre: area.centre }
         : source.area ? { city: area.anywhere ? null : area.city, centre: area.anywhere ? null : area.centre } : undefined;
+};
 
 /** One empty list for every source with no results yet, so the map does not refit on every render. */
 const NO_ITEMS: unknown[] = [];
@@ -41,19 +46,23 @@ export const invalidRange = (source: AnySource, query: DirectoryQuery) => {
  * Loads one directory source for the current query: the first `pages` pages on every query
  * change, further pages on request. Results of an older query are never shown as current.
  */
-export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated: boolean, { pages = 1, onPages }: { pages?: number; onPages?: (count: number) => void } = {}) {
+export function useDirectoryData(source: AnySource, requestedQuery: DirectoryQuery, gated: boolean, { pages = 1, onPages }: { pages?: number; onPages?: (count: number) => void } = {}) {
     const { sessionId, status, user } = useAuth();
     const userId = user?.id ?? null;
     const authenticated = status === 'authenticated';
+    const forContext = useWorldFor();
+    const query = source.forContext ? applyWorldFor(requestedQuery, forContext.birthYear, forContext.ageGroup) : requestedQuery;
     const badRange = invalidRange(source, query);
     const { area: worldArea } = useWorldArea();
     // A list that follows the area waits until the person's area is known (and, to put the nearest first, located),
     // so it loads once, for the right place.
-    const area = directoryArea(source, worldArea);
+    const area = directoryArea(source, worldArea, query);
     // Nothing searched in the person's own area: the list keeps to their country, once it is known.
     const country = query.q.trim() ? null : worldArea.country;
-    const waiting = (Boolean(source.area) || !query.q.trim()) && (!worldArea.ready || (source.area === 'nearest' && !worldArea.centre));
-    const key = gated || badRange || waiting || status === 'bootstrapping' ? null
+    const waiting = Boolean(source.forContext && forContext.pending) || (Boolean(source.area) || !query.q.trim()) && !worldArea.ready;
+    const locationMissing = source.area === 'nearest' && Boolean(area?.city) && !area?.centre && !waiting;
+    const unavailable = source.forContext && (forContext.unavailable || forContext.missingCohort && !hasPublicCohort(query));
+    const key = gated || badRange || waiting || unavailable || locationMissing || status === 'bootstrapping' ? null
         : `${source.id}|${source.version ?? ''}|${sessionId}|${area ? `${area.city ?? 'anywhere'}@${area.centre ? `${area.centre.lat},${area.centre.lng}` : ''}` : ''}|${country ?? ''}|${JSON.stringify(query)}`;
     const [attempt, setAttempt] = useState(0);
     const pagesRef = useRef(onPages);
@@ -116,13 +125,16 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     };
 
     return {
+        contextChildId: forContext.childId,
+        watch: !key || !current || current.error || current.notice ? null : source.watch?.(query, { signal: new AbortController().signal, sessionId, authenticated, area, userId, country }) ?? null,
+        childId: source.id === 'clubs' && query.values.birthYear?.[0] === forContext.childBirthYear && !query.values.age?.length && !query.values.ageGroup?.length ? forContext.childId : undefined,
         items: current?.items ?? NO_ITEMS,
         total: current?.total ?? null,
         hasMore: current?.hasMore ?? false,
         // Waiting for the person's area is loading too: an empty list then would say "none near Tbilisi" wrongly.
         loading: waiting || (key !== null && !current),
         error: current?.error ?? '',
-        notice: badRange ? wt('The end date is before the start date. Change one of them to search.') : current?.notice ?? '',
+        notice: unavailable ? wt('This search context is unavailable. Choose Anyone or an explicit public birth year.') : locationMissing ? wt('This place could not be located. Choose another city or Anywhere.') : badRange ? wt('The end date is before the start date. Change one of them to search.') : current?.notice ?? '',
         retry: () => setAttempt(value => value + 1),
         loadMore,
         loadingMore: more?.key === key && more.busy,

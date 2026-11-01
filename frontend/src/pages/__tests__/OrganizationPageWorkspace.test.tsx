@@ -34,7 +34,68 @@ beforeEach(() => {
   localStorage.setItem('gk-session-id', auth.sessionId);
 });
 
-it.each(['FAN_CLUB', 'BUSINESS', 'PAGE'] as const)('%s confirmed OWNER workspace enters its existing page editor', async kind => {
+const workspace = (membershipRole = 'OWNER') => ({ id: 7002, displayName: 'Synthetic community business', clubId: null, organizationType: 'SPONSOR', pageKind: 'BUSINESS', identityRevision: 1,
+  membershipRole, canManage: ['OWNER', 'ADMIN'].includes(membershipRole), promotionBlocked: false, venueCount: 0, tournaments: [], capabilities: { enabledActivities: ['PROFILE'] } });
+function businessReads(role = 'OWNER', withdrawn = false) {
+  api.get.mockImplementation(async (url: string) => {
+    if (url.endsWith('/page')) { if (withdrawn && role === 'STAFF') throw denied(404); return { data: { ...page('BUSINESS', role === 'OWNER' ? 'OWNER' : null, role === 'OWNER'), status: withdrawn ? 'DRAFT' : 'LIVE' } }; }
+    if (url.endsWith('/workspace')) return { data: workspace(role) };
+    if (url.endsWith('/publication')) return { data: { published: !withdrawn, revision: 'v1', verificationStatus: 'UNVERIFIED' } };
+    return { data: { id: 7002, clubId: null, publicEmail: 'office@example.test' } };
+  });
+}
+
+it.each(['OWNER', 'ADMIN', 'STAFF'])('opens actual %s business work independently of the person’s club role', async role => {
+  businessReads(role); render(tree());
+  expect(await screen.findByRole('heading', { name: 'Synthetic community business' })).toBeVisible();
+  expect(await screen.findByRole('heading', { name: 'Public presence' })).toBeVisible();
+  expect(screen.queryByTestId('destination')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: /squad|player|fundrais|store/i })).not.toBeInTheDocument();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Team' }));
+  expect(await screen.findByText('Current organization responsibility')).toBeVisible();
+  expect(screen.queryByText('Stored organization team') !== null).toBe(role !== 'STAFF');
+});
+
+it('does not use a public business page or local club OWNER claim as organization authority', async () => {
+  api.get.mockImplementation(async (url: string) => { if (url.endsWith('/page')) return { data: { ...page('BUSINESS'), status: 'LIVE' } }; throw denied(403, 'Current organization membership is required.'); });
+  render(tree()); expect(await screen.findByRole('alert')).toHaveTextContent('Current organization membership is required.');
+  expect(screen.queryByRole('heading', { name: 'Public presence' })).not.toBeInTheDocument();
+});
+
+it.each(['OWNER', 'STAFF'])('withdrawal retains current %s operational access', async role => {
+  businessReads(role, true); render(tree());
+  expect(await screen.findByRole('heading', { name: 'Synthetic community business' })).toBeVisible();
+  expect(await screen.findByText('Private · visitors cannot open the public page.')).toBeVisible();
+  expect(screen.queryByTestId('destination')).not.toBeInTheDocument();
+});
+
+it('retires work after a departure notice and checks current organization access again', async () => {
+  businessReads('OWNER'); render(tree()); await screen.findByRole('heading', { name: 'Synthetic community business' });
+  api.get.mockRejectedValue(denied(403, 'Current organization membership is required.'));
+  act(() => window.dispatchEvent(new Event('requests-updated')));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Current organization membership is required.');
+  expect(screen.queryByRole('heading', { name: 'Synthetic community business' })).not.toBeInTheDocument();
+});
+
+it('keeps a reserved business draft on its existing editor without requiring an organization membership', async () => {
+  pageReply(page('BUSINESS')); render(tree());
+  expect(await screen.findByTestId('destination')).toHaveTextContent('/organizations/7002?edit=1');
+  expect(api.get.mock.calls.map(args => args[0])).toEqual(['/organizations/7002/page', '/organizations/7002/workspace']);
+});
+
+it('reloads current organization authority after a refused visibility change', async () => {
+  businessReads('OWNER'); api.put.mockRejectedValue(denied(403, 'Current owner or administrator access is required.'));
+  render(tree()); await userEvent.setup().click(await screen.findByRole('button', { name: 'Withdraw public page' }));
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Confirm visibility change' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Current owner or administrator access is required.');
+  businessReads('STAFF'); await userEvent.setup().click(screen.getByRole('button', { name: 'Reload' }));
+  await screen.findByRole('link', { name: /office@example.test/ });
+  expect(screen.queryByRole('link', { name: 'Edit page and contacts' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Withdraw public page' })).not.toBeInTheDocument();
+});
+
+it('keeps the fan club workspace editor entry', async () => {
+  const kind = 'FAN_CLUB';
   pageReply(page(kind)); render(tree());
   expect(await screen.findByTestId('destination')).toHaveTextContent('/organizations/7002?edit=1');
   expect(api.get.mock.calls.map(args => args[0])).toEqual(['/organizations/7002/page']);
@@ -60,8 +121,8 @@ it('ignores a retired-session operational response on the team destination', asy
   expect(screen.queryByText('Old private organization')).not.toBeInTheDocument(); expect(screen.queryByText('Stored organization team')).not.toBeInTheDocument();
 });
 
-it.each([['OWNER', false], ['COACH', true], [null, false]] as const)('does not infer edit access from role %s with canEdit %s', async (role, canEdit) => {
-  pageReply(page('PAGE', role, canEdit)); render(tree());
+it.each([['OWNER', false], ['COACH', true], [null, false]] as const)('does not infer fan club edit access from role %s with canEdit %s', async (role, canEdit) => {
+  pageReply(page('FAN_CLUB', role, canEdit)); render(tree());
   expect(await screen.findByRole('alert')).toHaveTextContent('Only current owners and administrators can edit this profile.');
   expect(screen.queryByTestId('destination')).not.toBeInTheDocument();
   expect(api.get.mock.calls.map(args => args[0])).toEqual(['/organizations/7002/page']);
@@ -83,7 +144,7 @@ it('does not treat an explicit page authorization refusal as a legacy page', asy
 });
 
 it('keeps a failed permission read honest and retries that read before redirecting', async () => {
-  api.get.mockRejectedValueOnce(denied(503)).mockResolvedValueOnce({ data: page('PAGE') });
+  api.get.mockRejectedValueOnce(denied(503)).mockResolvedValueOnce({ data: page('FAN_CLUB') });
   render(tree());
   expect(await screen.findByRole('alert')).toHaveTextContent('Server refused this request');
   expect(screen.queryByTestId('destination')).not.toBeInTheDocument();
@@ -114,7 +175,7 @@ it.each(['owner response', '404 refusal'] as const)('ignores an old %s when stor
 
 it('ignores a late owner response after the workspace belongs to the next login', async () => {
   const oldReply = deferred<{ data: PageView }>();
-  api.get.mockReturnValueOnce(oldReply.promise).mockResolvedValueOnce({ data: page('PAGE', null, false) });
+  api.get.mockReturnValueOnce(oldReply.promise).mockResolvedValueOnce({ data: page('FAN_CLUB', null, false) });
   const view = render(tree()); await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
   auth.sessionId = 'owner-b'; auth.user.id = 9503; localStorage.setItem('gk-session-id', auth.sessionId);
   view.rerender(tree());

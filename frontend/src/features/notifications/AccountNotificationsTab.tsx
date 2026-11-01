@@ -14,12 +14,11 @@ import { usePushDevice } from './pushSubscription';
 type Draft = Pick<NotificationPreferences, 'groups' | 'quietFrom' | 'quietUntil' | 'digestTime'> & { quiet: boolean };
 
 const draftOf = (p: NotificationPreferences): Draft => ({ groups: p.groups, quietFrom: p.quietFrom ?? '22:00', quietUntil: p.quietUntil ?? '08:00', digestTime: p.digestTime, quiet: p.quietFrom != null });
-const browserZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Tbilisi'; } catch { return 'Asia/Tbilisi'; } };
 
 /**
  * Account → Notifications: push on this device, what to get by push and by email per group,
  * quiet hours and the daily summary time, the devices that get pushes, and a test button.
- * Everything is off until the person turns it on; the bell in the app is never affected.
+ * Saved choices are canonical; the bell in the app is never affected.
  */
 export const AccountNotificationsTab = () => {
     const copy = useJourneyCopy();
@@ -29,6 +28,7 @@ export const AccountNotificationsTab = () => {
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [loadAttempt, setLoadAttempt] = useState(0);
     const [test, setTest] = useState<{ busy: boolean; result?: NotificationTestResult; error?: string }>({ busy: false });
     const onPreferences = useCallback((next: NotificationPreferences) => setPreferences(next), []);
     const device = usePushDevice(preferences?.pushPublicKey, onPreferences);
@@ -36,25 +36,27 @@ export const AccountNotificationsTab = () => {
     useEffect(() => {
         const controller = new AbortController();
         fetchNotificationPreferences(controller.signal)
-            .then(next => { setPreferences(next); setDraft(draftOf(next)); })
+            .then(next => { if (!controller.signal.aborted) { setPreferences(next); setDraft(draftOf(next)); } })
             .catch(failure => { if (!controller.signal.aborted) setError(extractApiErrorMessage(failure, copy('Notification settings could not load.', 'შეტყობინებების პარამეტრები ვერ ჩაიტვირთა.'))); });
         return () => controller.abort();
-    // The copy function changes with the language only; loading once is right.
+    // Load on mount or an explicit retry; changing language must not discard a draft.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [loadAttempt]);
 
     const groupWords = useMemo<Record<NotificationGroupKey, { name: string; hint: string }>>(() => ({
         TEAM_WORK: { name: copy('Team work', 'გუნდის საქმე'), hint: copy('Something needs your look, a question for you, a comment on your note, a mention.', 'რამე თქვენს ყურადღებას ელოდება, კითხვა თქვენთვის, კომენტარი თქვენს ჩანაწერზე, მოხსენიება.') },
-        MESSAGES: { name: copy('Messages', 'შეტყობინებები'), hint: copy('New chat messages. The ping says only that there is one; the words stay in the app.', 'ახალი მიმოწერა. შეტყობინება მხოლოდ ამბობს, რომ არის; ტექსტი აპში რჩება.') },
+        MESSAGES: { name: copy('Messages', 'შეტყობინებები'), hint: copy('Optional chat notices. Message text stays in the app.', 'მიმოწერის არჩევითი შეტყობინებები. ტექსტი აპში რჩება.') },
+        SQUAD_UPDATES: { name: copy('Squad updates', 'გუნდის განახლებები'), hint: copy('Coach announcements and training changes. Details stay in the app.', 'მწვრთნელის განცხადებები და ვარჯიშის ცვლილებები. დეტალები აპში რჩება.') },
+        JOB_REQUESTS: { name: copy('Job applications', 'ვაკანსიის განაცხადები'), hint: copy('Applications, replies and outcomes. Details stay in the app.', 'განაცხადები, პასუხები და შედეგები. დეტალები აპში რჩება.') },
         CLUB: { name: copy('Club', 'კლუბი'), hint: copy('Invitations, applications, roles, squads, tryouts.', 'მოწვევები, განაცხადები, როლები, გუნდები, გასინჯვები.') },
         FAMILY: { name: copy('Family', 'ოჯახი'), hint: copy('Children, guardians and consent. Pings never carry the details.', 'შვილები, მეურვეები და თანხმობა. შეტყობინებებს დეტალები არ მოჰყვება.') },
         MATCHES: { name: copy('Matches and schedule', 'მატჩები და განრიგი'), hint: copy('Fixtures, challenges, tournaments, changes and cancellations.', 'მატჩები, გამოწვევები, ტურნირები, ცვლილებები და გაუქმებები.') },
-        OTHER: { name: copy('Everything else', 'ყველაფერი სხვა'), hint: copy('Anything not listed above.', 'ყველაფერი, რაც ზემოთ არ არის.') },
+        OTHER: { name: copy('Other updates', 'სხვა განახლებები'), hint: copy('Optional updates, including promotions. Controlled separately from participation notices.', 'არჩევითი განახლებები, მათ შორის სარეკლამო. მონაწილეობის ამბებისგან ცალკე იმართება.') },
     }), [copy]);
 
     const unsubscribedParam = searchParams.get('unsubscribed');
     if (error && !preferences) {
-        return <div role="alert" className="rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">{error}</div>;
+        return <div className="space-y-3"><p role="alert" className="text-sm text-[color:var(--fc-state-danger)]">{error}</p><button type="button" className={btnSecondaryClass} onClick={() => { setError(null); setLoadAttempt(value => value + 1); }}>{copy('Try again', 'ხელახლა ცდა')}</button></div>;
     }
     if (!preferences || !draft) {
         return <div role="status" aria-label={copy('Loading notification settings…', 'შეტყობინებების პარამეტრები იტვირთება…')} className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[color:var(--fc-accent)]" /></div>;
@@ -65,10 +67,10 @@ export const AccountNotificationsTab = () => {
     const dirty = JSON.stringify(draftOf(preferences)) !== JSON.stringify(draft);
 
     const save = async (extra: { emailUnsubscribed?: boolean } = {}) => {
-        setSaving(true); setError(null); setSaved(false);
+        setSaving(true); setError(null); setSaved(false); setTest({ busy: false });
         try {
             const next = await saveNotificationPreferences({
-                language: device.language, timeZone: browserZone(), groups: draft.groups, digestTime: draft.digestTime,
+                language: device.language, timeZone: preferences.timeZone, groups: draft.groups, digestTime: draft.digestTime,
                 quietFrom: draft.quiet ? draft.quietFrom : null, quietUntil: draft.quiet ? draft.quietUntil : null, ...extra,
             });
             setPreferences(next); setDraft(draftOf(next)); setSaved(true);
@@ -92,8 +94,9 @@ export const AccountNotificationsTab = () => {
     const dryRun = preferences.mode !== 'LIVE';
 
     return (
-        <div className="space-y-5">
-            {unsubscribedParam === '1' && <p role="status" className="rounded-xl border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--fc-accent)]">{copy('Email notifications are now off. You can turn them back on below.', 'ელფოსტის შეტყობინებები გამორთულია. ქვემოთ შეგიძლიათ ისევ ჩართოთ.')}</p>}
+        <fieldset className="min-w-0 space-y-5 [overflow-wrap:anywhere]" disabled={saving}>
+            <legend className="sr-only">{copy('Notification settings', 'შეტყობინებების პარამეტრები')}</legend>
+            {unsubscribedParam === '1' && preferences.emailUnsubscribed && <p role="status" className="rounded-xl border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--fc-accent)]">{copy('Email notifications are now off. You can turn them back on below.', 'ელფოსტის შეტყობინებები გამორთულია. ქვემოთ შეგიძლიათ ისევ ჩართოთ.')}</p>}
             {unsubscribedParam === 'invalid' && <p role="alert" className="rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">{copy('That unsubscribe link was not valid. Email can be turned off below.', 'გამორთვის ბმული არასწორია. ელფოსტა ქვემოთ შეგიძლიათ გამორთოთ.')}</p>}
             {error && <p role="alert" className="rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">{error}</p>}
             {dryRun && <p className="text-sm text-[color:var(--fc-text-secondary)]">{preferences.mode === 'OFF'
@@ -126,7 +129,12 @@ export const AccountNotificationsTab = () => {
             </Section>
 
             <Section title={copy('What you get', 'რას იღებთ')} description={copy('By push, by email, both or neither, for each kind of thing. The bell in the app always shows everything.', 'Push-ით, ელფოსტით, ორივეთი ან არცერთით, თითოეული სახის ამბისთვის. ზარი აპში ყოველთვის ყველაფერს აჩვენებს.')}
-                actions={<button type="button" className={btnPrimaryClass} disabled={saving || !dirty} onClick={() => void save()}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{copy('Save', 'შენახვა')}</button>}>
+                actions={<button type="button" className={btnPrimaryClass} disabled={saving || device.busy || test.busy || !dirty} onClick={() => void save()}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{copy('Save', 'შენახვა')}</button>}>
+                <p className="mb-3 text-sm text-[color:var(--fc-text-secondary)]">{copy('Your saved choices are kept. We recommend email for squad updates, club and job requests, family and match changes. Chat and promotional updates are separate.', 'შენახული არჩევანი შენარჩუნებულია. გირჩევთ ელფოსტას გუნდის, კლუბის, ვაკანსიის, ოჯახის და მატჩების ცვლილებებისთვის. მიმოწერა და რეკლამა ცალკეა.')}</p>
+                <button type="button" className={`${btnSecondaryClass} mb-3`} disabled={preferences.emailUnsubscribed || saving}
+                    onClick={() => setDraft({ ...draft, groups: draft.groups.map(group => ['SQUAD_UPDATES', 'JOB_REQUESTS', 'CLUB', 'FAMILY', 'MATCHES'].includes(group.key) ? { ...group, email: true } : group) })}>
+                    {copy('Use recommended emails', 'რეკომენდებული ელფოსტის არჩევა')}
+                </button>
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="text-left">
@@ -142,17 +150,17 @@ export const AccountNotificationsTab = () => {
                                     <p className="font-semibold text-[color:var(--fc-text-primary)]">{groupWords[group.key].name}</p>
                                     <p className="text-[13px] leading-5 text-[color:var(--fc-text-secondary)]">{groupWords[group.key].hint}</p>
                                 </td>
-                                <td className="py-3 text-center"><input type="checkbox" className="h-5 w-5 accent-[var(--fc-accent)]" aria-label={`${groupWords[group.key].name}: ${copy('push', 'push')}`} checked={group.push} onChange={event => setGroup(group.key, { push: event.target.checked })} /></td>
-                                <td className="py-3 text-center"><input type="checkbox" className="h-5 w-5 accent-[var(--fc-accent)]" aria-label={`${groupWords[group.key].name}: ${copy('email', 'ელფოსტა')}`} checked={group.email} disabled={preferences.emailUnsubscribed} onChange={event => setGroup(group.key, { email: event.target.checked })} /></td>
+                                <td className="py-3 text-center"><label className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center"><input type="checkbox" className="h-5 w-5 accent-[var(--fc-accent)]" aria-label={`${groupWords[group.key].name}: ${copy('push', 'push')}`} checked={group.push} onChange={event => setGroup(group.key, { push: event.target.checked })} /></label></td>
+                                <td className="py-3 text-center"><label className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center"><input type="checkbox" className="h-5 w-5 accent-[var(--fc-accent)]" aria-label={`${groupWords[group.key].name}: ${copy('email', 'ელფოსტა')}`} checked={group.email} disabled={preferences.emailUnsubscribed} onChange={event => setGroup(group.key, { email: event.target.checked })} /></label></td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                <p className="mt-3 text-[13px] leading-5 text-[color:var(--fc-text-secondary)]">{copy('Urgent things (a question for you, a cancellation, an invitation) are emailed at once; the rest comes in one daily summary. Several things close together become one ping.', 'სასწრაფო (კითხვა თქვენთვის, გაუქმება, მოწვევა) მაშინვე იგზავნება ელფოსტაზე; დანარჩენი ერთ დღიურ შეჯამებაში მოდის. რამდენიმე ახლო ამბავი ერთ შეტყობინებად იქცევა.')}</p>
+                <p className="mt-3 text-[13px] leading-5 text-[color:var(--fc-text-secondary)]">{copy('When email is on, urgent notices are bundled after quiet hours; the rest comes in a daily summary.', 'როცა ელფოსტა ჩართულია, სასწრაფო ამბები წყნარი საათების შემდეგ ერთიანდება; დანარჩენი დღიურ შეჯამებაში მოდის.')}</p>
                 {saved && !dirty && <p role="status" className="mt-3 text-sm font-semibold text-[color:var(--fc-accent)]">{copy('Saved.', 'შენახულია.')}</p>}
             </Section>
 
-            <Section title={copy('When', 'როდის')} description={copy(`Times are in ${browserZone()}.`, `დრო: ${browserZone()}.`)}>
+            <Section title={copy('When', 'როდის')} description={copy(`Times are in ${preferences.timeZone}.`, `დრო: ${preferences.timeZone}.`)}>
                 <div className="grid gap-4 sm:grid-cols-3">
                     <label className="flex flex-col gap-1.5">
                         <span className={labelClass}>{copy('Daily summary at', 'დღიური შეჯამება')}</span>
@@ -165,28 +173,32 @@ export const AccountNotificationsTab = () => {
                         </label>
                         <div className="mt-1.5 flex items-center gap-2">
                             <input type="time" aria-label={copy('Quiet from', 'წყნარია -დან')} className={inputClass} disabled={!draft.quiet} value={draft.quietFrom ?? ''} onChange={event => setDraft({ ...draft, quietFrom: event.target.value })} />
-                            <span className="text-sm text-[color:var(--fc-text-secondary)]">{copy('and', 'და')}</span>
+                            <span className="shrink-0 whitespace-nowrap text-sm text-[color:var(--fc-text-secondary)]">{copy('and', 'და')}</span>
                             <input type="time" aria-label={copy('Quiet until', 'წყნარია -მდე')} className={inputClass} disabled={!draft.quiet} value={draft.quietUntil ?? ''} onChange={event => setDraft({ ...draft, quietUntil: event.target.value })} />
                         </div>
                     </div>
                 </div>
             </Section>
 
-            <Section title={copy('Email', 'ელფოსტა')} description={preferences.email ? copy(`Emails go to ${preferences.email}.`, `წერილები მიდის აქ: ${preferences.email}.`) : copy('No email address on this account.', 'ამ ანგარიშს ელფოსტა არ აქვს.')}>
+            <Section title={copy('Email', 'ელფოსტა')} description={preferences.email ? copy(`Account email: ${preferences.email}.`, `ანგარიშის ელფოსტა: ${preferences.email}.`) : copy('No email address on this account.', 'ამ ანგარიშს ელფოსტა არ აქვს.')}>
                 {!preferences.emailVerified && <p className="text-sm text-[color:var(--fc-text-secondary)]">{copy('Verify your email (Security tab) before anything is sent to it.', 'სანამ რამე გაიგზავნება, დაადასტურეთ ელფოსტა (უსაფრთხოების ჩანართი).')}</p>}
                 {preferences.emailUnsubscribed ? (
                     <div className={`${insetClass} flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between`}>
-                        <p className="text-sm text-[color:var(--fc-text-primary)]">{copy('You unsubscribed from notification emails. Security emails (sign-ins, password) still come.', 'შეტყობინებების წერილებზე გამოწერა გაუქმებულია. უსაფრთხოების წერილები (შესვლა, პაროლი) მაინც მოდის.')}</p>
+                        <p className="text-sm text-[color:var(--fc-text-primary)]">{copy('You unsubscribed from notification emails. Sign-in and password emails use separate settings.', 'შეტყობინებების წერილებზე გამოწერა გაუქმებულია. შესვლისა და პაროლის წერილებს ცალკე პარამეტრები აქვს.')}</p>
                         <button type="button" className={btnSecondaryClass} disabled={saving} onClick={() => void save({ emailUnsubscribed: false })}>{copy('Turn email back on', 'ელფოსტის ისევ ჩართვა')}</button>
                     </div>
                 ) : <p className="text-sm text-[color:var(--fc-text-secondary)]">{copy('Every email has an unsubscribe link at the bottom.', 'ყველა წერილს ბოლოში გამოწერის გაუქმების ბმული აქვს.')}</p>}
             </Section>
 
             <Section title={copy('Devices', 'მოწყობილობები')} description={copy('Browsers that get pushes for this account.', 'ბრაუზერები, რომლებიც ამ ანგარიშისთვის push-ს იღებენ.')}
-                actions={<button type="button" className={btnSecondaryClass} disabled={test.busy} onClick={() => void runTest()}>{test.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{copy('Send a test', 'ტესტის გაგზავნა')}</button>}>
-                {test.result && <p role="status" className="mb-3 text-sm font-semibold text-[color:var(--fc-accent)]">{test.result.mode === 'LIVE'
-                    ? copy(`On its way to ${test.result.pushDevices} device(s)${test.result.email ? ' and by email' : ''}. It arrives within about 20 seconds.`, `მიდის ${test.result.pushDevices} მოწყობილობაზე${test.result.email ? ' და ელფოსტაზე' : ''}. დაახლოებით 20 წამში მოვა.`)
-                    : copy('Recorded. This server is not sending for real (dry-run), so look at the bell and the server log.', 'ჩაიწერა. ეს სერვერი რეალურად არ აგზავნის (სატესტო რეჟიმი), ნახეთ ზარი და სერვერის ლოგი.')}</p>}
+                actions={<button type="button" className={btnSecondaryClass} disabled={test.busy || dirty || device.busy} onClick={() => void runTest()}>{test.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{copy('Send a test', 'ტესტის გაგზავნა')}</button>}>
+                {dirty && <p className="mb-3 text-sm text-[color:var(--fc-text-secondary)]">{copy('Save your changes before testing. The test uses saved choices.', 'ტესტამდე შეინახეთ ცვლილებები. ტესტი შენახულ არჩევანს იყენებს.')}</p>}
+                {test.result && !dirty && <p role="status" className="mb-3 text-sm text-[color:var(--fc-text-secondary)]">{test.result.mode === 'LIVE'
+                    ? copy('Test notification created in the app. Email and push use your saved choices; arrival is not confirmed.', 'სატესტო შეტყობინება აპში შეიქმნა. ელფოსტა და push შენახულ არჩევანს იყენებს; მიღება დადასტურებული არ არის.')
+                    : test.result.mode === 'OFF'
+                        ? copy('Test notification created in the app. Delivery outside the app is switched off.', 'სატესტო შეტყობინება აპში შეიქმნა. აპის გარეთ მიწოდება გამორთულია.')
+                        : copy('Test notification created in the app. Dry-run sends no email or push.', 'სატესტო შეტყობინება აპში შეიქმნა. სატესტო რეჟიმი ელფოსტას ან push-ს არ აგზავნის.')}</p>}
+                {test.result?.eventReference && !dirty && <p className="mb-3 text-sm text-[color:var(--fc-text-secondary)]">{copy(`Test reference: ${test.result.eventReference}`, `ტესტის ნომერი: ${test.result.eventReference}`)}</p>}
                 {test.error && <p role="alert" className="mb-3 text-sm text-[color:var(--fc-state-danger)]">{test.error}</p>}
                 {preferences.devices.length === 0 ? <p className="text-sm text-[color:var(--fc-text-secondary)]">{copy('No device yet.', 'ჯერ არცერთი მოწყობილობა.')}</p> : (
                     <ul className="divide-y divide-[color:var(--fc-border)]" aria-label={copy('Devices', 'მოწყობილობები')}>
@@ -205,6 +217,6 @@ export const AccountNotificationsTab = () => {
                     </ul>
                 )}
             </Section>
-        </div>
+        </fieldset>
     );
 };

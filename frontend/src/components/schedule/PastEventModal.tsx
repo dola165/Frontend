@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Loader2, MessageSquareOff, X } from 'lucide-react';
+import { CheckCircle2, Loader2, X } from 'lucide-react';
 import { completeClubEvent } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import type { ScheduleWorkspaceEvent } from './workspaceTypes';
@@ -103,14 +103,8 @@ export const PastEventModal = ({ event, clubId, clubName, canComplete = false, o
                         <CheckCircle2 className="h-4 w-4 text-[var(--color-accent)]" />
                         {t('schedule.past.thisEventIs', { status: status === 'COMPLETED' ? t('schedule.past.completed').toLowerCase() : t('schedule.past.cancelled').toLowerCase() })}
                     </p>
-                ) : clubId && canComplete && !event.matchExchangeId ? (
+                ) : clubId && canComplete && !isMatch ? (
                     <div className="mt-4 border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] pt-4">
-                        {event.challenge?.state === 'ACCEPTED' && (
-                            <p className="mb-3 flex items-center gap-2 text-xs font-medium text-[var(--color-secondary)]">
-                                <MessageSquareOff className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                                {t('schedule.past.chatWillClose')}
-                            </p>
-                        )}
                         {error && <p className="mb-3 text-xs font-semibold text-[var(--color-danger)]">{error}</p>}
                         <button
                             type="button"
@@ -119,10 +113,10 @@ export const PastEventModal = ({ event, clubId, clubName, canComplete = false, o
                             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent)] disabled:opacity-50"
                         >
                             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                            {isMatch ? t('schedule.past.completeMatch') : t('schedule.past.markCompleted')}
+                            {t('schedule.past.markCompleted')}
                         </button>
                     </div>
-                ) : event.matchExchangeId ? null : (
+                ) : isMatch ? null : (
                     <p className="mt-4 text-sm text-[var(--color-secondary)]">
                         {clubId ? 'Only club schedule managers can complete this event.' : t('schedule.past.personalReadOnly')}
                     </p>

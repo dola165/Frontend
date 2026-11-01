@@ -9,7 +9,7 @@ import { WorldSessionContext } from './worldSession';
 export function WorldSessionProvider({ children }: { children: ReactNode }) {
     const { status, user, sessionId } = useAuth();
     const signedIn = status === 'authenticated';
-    const membership = useWorldData(signedIn ? `membership:${user?.id}` : null, () => fetchMyClubMembershipContext());
+    const membership = useWorldData(signedIn ? `membership:${sessionId}:${user?.id}` : null, () => fetchMyClubMembershipContext());
     // The children a parent searches for. Without them World still works, just not on a child's behalf.
     const family = useWorldData(signedIn ? `participants:${sessionId}` : null,
         signal => fetchAdmissionHome(sessionId, signal).then(home => home.participants ?? []).catch(() => []));

@@ -3,11 +3,12 @@ import { MapPin, Route } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Badge, Button, ButtonLink, Field } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { takeBackCannotCome } from '../travel/api';
 import { dateTime } from './api';
 import { replyToJourney, type JourneyEntry } from './journeyScheduleData';
 import './journey-schedule.css';
 
-const LABEL: Record<string, string> = { GOING: 'Going', NOT_GOING: 'Not going', RECONFIRMATION_REQUIRED: 'Please confirm the updated journey' };
+const LABEL: Record<string, string> = { NOT_GOING: 'Can’t come' };
 
 /**
  * A journey stop in someone's schedule: when and where, and a reply for each child (or
@@ -24,7 +25,8 @@ export function JourneyEventDetails({ entries, onClose, onSaved }: { entries: Jo
         if (busy) return;
         setBusy(true); setError('');
         try {
-            await replyToJourney(entry, subject, response);
+            if (response === 'GOING') await takeBackCannotCome(entry.planId, entry.version, subject);
+            else await replyToJourney(entry, subject, response);
             setSaved(current => ({ ...current, [`${entry.planId}:${entry.version}:${subject}`]: response }));
             onSaved?.();
         } catch (cause) {
@@ -53,18 +55,17 @@ export function JourneyEventDetails({ entries, onClose, onSaved }: { entries: Jo
             </dl>
             {entry.status === 'CANCELLED' && <div className="gk-notice gk-notice--danger" role="alert">The linked event was cancelled. Contact your club about the rest of the travel arrangements.</div>}
             {entry.sourceChanged && <div className="gk-notice gk-notice--warning" role="status">The fixture changed. These are its current times; your club is reviewing the rest of the journey.</div>}
-            {entry.staff && <p className="gk-muted"><strong className="gk-num">{entry.attendance.going}</strong> of {entry.attendance.total} going · {entry.attendance.pending} yet to reply</p>}
+            {entry.staff && <p className="gk-muted"><strong className="gk-num">{entry.attendance.going + entry.attendance.pending}</strong> of {entry.attendance.total} expected · travel permission and boarding are separate</p>}
             {entry.subjects.map(subject => {
                 const answer = saved[`${entry.planId}:${entry.version}:${subject.id}`] ?? subject.response;
                 return (
                     <section className="gk-journey-event__reply" key={subject.id} aria-label={`${subject.name}, whole journey`}>
                         <div className="gk-row"><strong>{subject.name}</strong><span className="gk-faint">whole journey</span></div>
-                        <p role="status"><Badge tone={answer === 'GOING' ? 'accent' : answer === 'NOT_GOING' ? 'danger' : 'warning'}>{LABEL[answer] ?? 'Awaiting your reply'}</Badge></p>
+                        <p role="status"><Badge tone={answer === 'NOT_GOING' ? 'danger' : 'neutral'}>{LABEL[answer] ?? 'Expected · no attendance reply needed'}</Badge></p>
                         {subject.guardian && <p className="gk-faint">Attendance and travel permission are separate. Review any permission request in the journey.</p>}
                         {subject.canRespond && entry.status !== 'CANCELLED' && (
                             <div className="gk-row">
-                                <Button size="sm" variant="primary" disabled={busy} onClick={() => void reply(subject.id, 'GOING')}>I am going</Button>
-                                <Button size="sm" disabled={busy} onClick={() => void reply(subject.id, 'NOT_GOING')}>I cannot go</Button>
+                                {answer === 'NOT_GOING' ? <Button size="sm" disabled={busy} onClick={() => void reply(subject.id, 'GOING')}>Take back Can’t come</Button> : <Button size="sm" disabled={busy} onClick={() => void reply(subject.id, 'NOT_GOING')}>Can’t come</Button>}
                             </div>
                         )}
                     </section>

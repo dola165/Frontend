@@ -10,6 +10,7 @@ import { createHref, ownClub } from '../pages/create/entry';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { ACTIONS, actionNumber, actionText, DO_PARAM, isActionKey, openedHere, withoutAction, type ActionKey, type ActionSubject } from './registry';
 import { useAction } from './useAction';
+import { arrangeWayOf } from '../matchExchange/arrange/arrangeDraft';
 
 const ArrangeFlow = lazy(() => import('./flows/MatchFlows').then(module => ({ default: module.ArrangeFlow })));
 const ScoreFlow = lazy(() => import('./flows/MatchFlows').then(module => ({ default: module.ScoreFlow })));
@@ -55,7 +56,7 @@ function OpenAction({ action }: { action: ActionKey }) {
         {state.reason || state.needsBirthDate ? <AdultOnlyNote adult={state} /> : <p>{copy('This isn’t open to you here.', 'ეს აქ თქვენთვის ხელმისაწვდომი არ არის.')}</p>}
     </Dialog>;
     const clubName = accessibleClubs(user?.navigationCapabilities).find(item => item.id === club)?.name ?? '';
-    const flow = action === 'arrange_match' ? <ArrangeFlow squadId={squadId} opponentId={actionNumber(params, 'opponent')} onClose={close} />
+    const flow = action === 'arrange_match' ? <ArrangeFlow squadId={squadId} opponentId={actionNumber(params, 'opponent')} way={arrangeWayOf(actionText(params, 'way'))} onClose={close} />
         : action === 'report_score' ? <ScoreFlow source={actionText(params, 'source')} eventId={actionNumber(params, 'event')} squadId={squadId} onClose={close} />
         : action === 'add_child' ? <AddChildFlow onClose={close} />
         : action === 'join_squad' ? <JoinCodeFlow code={actionText(params, 'code')} playerId={actionNumber(params, 'player')} onClose={close} />

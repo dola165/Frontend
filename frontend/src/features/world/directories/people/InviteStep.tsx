@@ -52,7 +52,7 @@ export function InviteStep({ referee, matchId }: { referee: Referee; matchId: nu
     if (theirs || state.sent) return (
         <section className="gk-step" data-done>{heading}
             <p role="status">{theirs?.status === 'ACCEPTED' ? t('{name} referees this match.', { name: referee.full_name }) : t('Invited. {name} will answer; the seat waits until then.', { name: referee.full_name })}</p>
-            <Link className="gk-section__action" to={`/match-exchange/${match.event_id}`} onClick={peekClick(peekOf('match', listingCode(match.event_id)), relate)}>{t('Open match')}</Link>
+            <Link className="gk-section__action" to={`/matches/${match.event_id}?from=world`} onClick={peekClick(peekOf('match', listingCode(match.event_id)), relate)}>{t('Open match')}</Link>
         </section>
     );
     if (!referee.accepts_paid && !referee.accepts_volunteer) return <section className="gk-step">{heading}<p className="gk-faint">{t('{name} is not taking matches.', { name: referee.full_name })}</p></section>;

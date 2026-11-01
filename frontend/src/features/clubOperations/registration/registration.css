@@ -1,0 +1,19 @@
+.registration { display: grid; gap: var(--gk-space-4, 16px); min-width: 0; }
+.registration p { max-width: 76ch; overflow-wrap: anywhere; }
+.registration__context { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(200px, 2fr) auto; align-items: end; gap: 16px; }
+.registration__summary, .registration__form, .registration__fields { display: grid; gap: 16px; min-width: 0; }
+.registration__fields { margin: 0; padding: 0; border: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.registration__actions, .registration__status { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.gk .registration input, .gk .registration select, .gk .registration textarea { min-height: 44px; width: 100%; max-width: 100%; }
+.registration textarea { min-height: 96px; resize: vertical; }
+.registration select[multiple] { min-height: 132px; }
+.registration summary { min-height: 44px; padding-block: 12px; cursor: pointer; }
+.registration li { margin-block: 8px; overflow-wrap: anywhere; }
+.registration .gk-btn { min-height: 44px; white-space: normal; }
+.registration :focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .registration__context, .registration__fields { grid-template-columns: minmax(0, 1fr); }
+  .registration__status { align-items: flex-start; flex-direction: column; }
+}
+.registration.registration__personal { margin-block: var(--gk-space-4, 1rem); }
+.registration.registration__personal > summary { min-height: 44px; display: list-item; cursor: pointer; }

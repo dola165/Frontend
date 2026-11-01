@@ -2,7 +2,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { StaffClubPage } from './StaffClubPage';
-import { StaffClubCard } from '../features/clubOperations/leaving/StaffClubCard';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('../api/axiosConfig', () => ({ apiClient: api, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
@@ -45,14 +44,4 @@ it('owning another club asks to hand it over first', async () => {
     api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { code: 'OWNER_ELSEWHERE', otherClubId: 2, otherClubName: 'Saburtalo' } } });
     fireEvent.click(screen.getByRole('button', { name: 'Keep FC Dinamo Tbilisi Academy' }));
     expect(await screen.findByText('You’re staff at Saburtalo. Leave Saburtalo first.')).toBeInTheDocument();
-});
-
-it('Home shows the card only while a club is to be chosen', async () => {
-    const { unmount } = render(<MemoryRouter><StaffClubCard /></MemoryRouter>);
-    expect(await screen.findByRole('link', { name: 'Choose your club' })).toHaveAttribute('href', '/me/staff-club');
-    unmount();
-    api.get.mockResolvedValue({ data: { needed: false, deadline: null, suggestedClubId: null, chosenClubId: null, clubs: [] } });
-    const { container } = render(<MemoryRouter><StaffClubCard /></MemoryRouter>);
-    await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
-    expect(container).toBeEmptyDOMElement();
 });

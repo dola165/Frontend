@@ -41,6 +41,7 @@ import './tournament-public.css';
 import '../features/competitions/competition-detail.css';
 import { CompetitionVisual } from '../features/competitions/CompetitionVisual';
 import { CompetitionFacts } from '../features/competitions/CompetitionFacts';
+import { CompetitionFixtureConcerns } from '../features/competitions/CompetitionFixtureConcerns';
 import {
     TournamentScopeBadge,
     TournamentStatusBadge,
@@ -117,6 +118,7 @@ const TournamentDetailContent = () => {
     const visibleEntries = tournament?.entries?.filter((entry) => publicEntryStatuses.has(entry.status)) ?? [];
     const fixtureCount = tournament?.fixtures?.length ?? 0;
     const scope = tournament?.participantScope;
+    const concernFixture = tournament?.fixtures.find(fixture => fixture.id === requestedFixture);
 
     const loadTournament = useCallback(async () => {
         if (!Number.isSafeInteger(id) || id < 1) {
@@ -362,10 +364,12 @@ const TournamentDetailContent = () => {
                             {fixture.status === 'COMPLETED' && <ResultSummary homeScore={fixture.homeScore} awayScore={fixture.awayScore} status={(fixture.homeEntryId != null) !== (fixture.awayEntryId != null) ? 'BYE' : 'RECORDED'}
                                 scorePrivate={fixture.homeEntryId != null && fixture.awayEntryId != null && (fixture.homeScore == null || fixture.awayScore == null)} fixtureStatus={fixture.status} compact />}
                             {isStaff && <Link className="inline-flex items-center gap-1 text-sm" to={`/tournaments/${tournament.id}/workspace?view=schedule&fixtureId=${fixture.id}`}>{i18n.language.startsWith('ka') ? 'მატჩის მართვა' : 'Manage match'} →</Link>}
+                            {isAuthenticated && profile?.rules && fixture.status === 'COMPLETED' && <Link className="tw-button" to={`/tournaments/${tournament.id}?tab=matches&fixtureId=${fixture.id}`}>{i18n.language.startsWith('ka') ? 'შედეგის განხილვა' : 'Result concern & receipt'}</Link>}
                             <VenueReservationSummary value={fixture.venueReservation}/>
                         </article>;
                     })}</div> : <div className="tp-empty"><CalendarDays size={26} className="mx-auto mb-3" /><h3>{tournament.fixtures.length ? copy.noMatches : t('tournaments.public.noFixturesTitle')}</h3><p>{t('tournaments.public.noFixturesDescription')}</p></div>}
                 </> : null}
+                {activeTab === 'matches' && isAuthenticated && profile?.rules && concernFixture && <CompetitionFixtureConcerns key={`${id}:${concernFixture.id}`} id={id} fixture={concernFixture} changed={refreshTournament} refreshKey={resultsRevision}/>}
                 {activeTab === 'teams' ? <>
                     <div className="tp-heading"><div><h2>{copy.teams}</h2><p>{t('tournaments.public.entryCount', { count: visibleEntries.length })}</p></div><input className="tp-search" type="search" aria-label={copy.teamSearch} placeholder={copy.searchHint} value={teamSearch} onChange={(event) => setTeamSearch(event.target.value)} /></div>
                     {filteredEntries.length ? <div className="tp-team-grid">{filteredEntries.map((entry) => {

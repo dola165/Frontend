@@ -36,8 +36,14 @@ post('/match-arrangements', viewed(({ body, headers }) => {
   }
   const start = when(m.startsAt), end = when(m.endsAt);
   if (!start || !end || end <= start) return bad('Choose kick-off and a match length.');
-  if (end - start > TWELVE_HOURS) return bad('A match lasts at most 12 hours.');
+  if (end - start > TWELVE_HOURS && body.windowFrom == null) return bad('A match lasts at most 12 hours.');
   if (start.getTime() < Date.now()) return bad('Kick-off must be in the future.');
+  // Step 6: a club not in GrassKickZ is named by hand and agreed at once; an open challenge offers a window of times.
+  const outside = String(body.outsideOpponent ?? '').trim();
+  if (outside && body.targetClubId) return bad('Choose a club in GrassKickZ or name one that isn’t, not both.');
+  const windowed = body.windowFrom != null || body.windowTo != null;
+  if (windowed && (body.targetClubId || outside)) return bad('Only an open challenge offers a window of times.');
+  if (windowed && (!body.windowFrom || !body.windowTo || !body.matchMinutes)) return bad('Choose the window’s times and the match length.');
   if (!String(m.city ?? '').trim()) return bad('Add the city where you plan to play.');
   const target = body.targetClubId ? W.clubById(Number(body.targetClubId)) : null;
   if (body.targetClubId && !target) return reply(404, { status: 404, message: 'That club is no longer on GrassKickZ.' });
@@ -61,7 +67,8 @@ post('/match-arrangements', viewed(({ body, headers }) => {
     title: String(m.title ?? '').trim() || `${squad.name} friendly`, description: m.description ?? '', level: m.level || 'DEVELOPMENT',
     venuePreference: m.venuePreference || 'EITHER', hostingChoice: body.hostingChoice ?? null, refereeRequired: body.officialMode !== 'NONE',
     refereeResponsibility: body.officialResponsibility === 'OPPONENT' ? 'OPPONENT' : 'HOST', externalRefereeName: body.officialMode === 'EXTERNAL' ? body.externalRefereeName : null,
-    opponentSquadId: null, status: 'OPEN', score: null, proposals: [], bookingId: null, refereeId: null,
+    opponentSquadId: null, status: outside ? 'ARRANGED' : 'OPEN', score: null, proposals: [], bookingId: null, refereeId: null,
+    outside: outside || null, windowFrom: windowed ? `${body.windowFrom}:00`.slice(0, 8) : null, windowTo: windowed ? `${body.windowTo}:00`.slice(0, 8) : null, matchMinutes: windowed ? Number(body.matchMinutes) : null,
     requestedClubId: target?.id ?? null, requestedSquadId: targetSquad?.id ?? null, kind: body.matchType === 'COMPETITIVE' ? 'COMPETITIVE' : 'FRIENDLY',
     revision: 1, ageGroup: m.ageGroup || squad.ageGroup, format: m.format || '11_A_SIDE', created: new Date(),
     history: [{ id: W.newId(), action: target ? 'CHALLENGE_SENT' : 'PUBLISHED', created_at: iso(new Date()), reason: null }],

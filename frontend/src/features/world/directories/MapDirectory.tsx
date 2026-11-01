@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { CreateMenu } from '../compose/CreateMenu';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import type { AnySource } from '../directory/types';
@@ -37,7 +36,6 @@ export default function MapDirectory() {
             title={t('Map')}
             subtitle={area.anywhere ? t('Everywhere') : t('Near {city}', { city: area.city })}
             sources={[clubs, events, signedIn ? trials : trialsForGuests, tournaments]}
-            actions={<CreateMenu />}
         />
     );
 }

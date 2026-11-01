@@ -15,12 +15,12 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const initialVariants = (product: StoreProduct | null): StoreVariant[] => product?.variants?.length ? product.variants.map(variant => ({ ...variant })) : [{ label: ct("One size"), stock: 0 }];
 
 /** Adding or editing a store product on one page: details and photos, price and stock, and visibility. */
-export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmit, defaultActive = false, draftHint = ct("Supporters cannot see this product. You can publish it from the product list later."), initialInput, onDraftChange, recoveryNotice, saveDisabled, cancelCopy, locked = false }: {
+export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmit, defaultActive = false, draftHint = ct("Supporters cannot see this product. You can publish it from the product list later."), initialInput, onDraftChange, recoveryNotice, saveDisabled, cancelCopy, locked = false, platformSeller = false }: {
     product: StoreProduct | null; saving: boolean; formError: string; onCancel: () => void; onSubmit: (payload: StoreProductPayload) => Promise<void>;
     /** A new product starts published (the club's public store, where a draft would vanish from view). */ defaultActive?: boolean; /** Where an unpublished product can be found again. */ draftHint?: string;
     initialInput?: StoreProductPayload; onDraftChange?: (input: StoreProductPayload) => void; recoveryNotice?: ReactNode; saveDisabled?: boolean;
     cancelCopy?: { question: string; detail: string; discardLabel: string };
-    locked?: boolean;
+    locked?: boolean; platformSeller?: boolean;
 }) => {
     useCommerceCopy();
     const start = product ?? initialInput;
@@ -28,6 +28,7 @@ export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmi
     const [description, setDescription] = useCommerceDraftState('form:description', start?.description ?? '');
     const [price, setPrice] = useCommerceDraftState('form:price', String(start?.price ?? ''));
     const [currency, setCurrency] = useCommerceDraftState('form:currency', start?.currency ?? 'GEL');
+    const [collection, setCollection] = useCommerceDraftState('form:collection', start?.collection ?? '');
     const [category, setCategory] = useCommerceDraftState('form:category', start?.category ?? 'OTHER');
     const [variants, setVariants] = useCommerceDraftState<StoreVariant[]>('form:variants', () => initialInput?.variants ?? initialVariants(product));
     const [images, setImages] = useCommerceDraftState('form:images', start?.images ?? []);
@@ -37,16 +38,16 @@ export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmi
     const [discard, setDiscard] = useState(false);
     const editVariant = (index: number, change: Partial<StoreVariant>) => setVariants(current => current.map((variant, i) => i === index ? { ...variant, ...change } : variant));
     const totalStock = variants.reduce((total, variant) => total + (Number.isFinite(variant.stock) ? variant.stock : 0), 0);
-    const dirty = JSON.stringify([name, description, price, currency, category, variants, images, active])
-        !== JSON.stringify([product?.name ?? '', product?.description ?? '', String(product?.price ?? ''), product?.currency ?? 'GEL', product?.category ?? 'OTHER', initialVariants(product), product?.images ?? [], product?.active ?? defaultActive]);
+    const dirty = JSON.stringify([name, description, price, currency, category, variants, images, active, collection])
+        !== JSON.stringify([product?.name ?? '', product?.description ?? '', String(product?.price ?? ''), product?.currency ?? 'GEL', product?.category ?? 'OTHER', initialVariants(product), product?.images ?? [], product?.active ?? defaultActive, product?.collection ?? '']);
     const requestClose = () => { if (dirty) setDiscard(true); else onCancel(); };
     const version = product?.version, editing = !!product;
-    const input = useMemo<StoreProductPayload>(() => ({ name: name.trim(), description, price: Number(price), currency, category, variants, images, active, ...(editing ? { version } : {}) }), [name, description, price, currency, category, variants, images, active, editing, version]);
+    const input = useMemo<StoreProductPayload>(() => ({ name: name.trim(), description, price: Number(price), currency, category, variants, images, active, ...(platformSeller && (editing || collection) ? { collection: collection ? collection as StoreProductPayload['collection'] : null } : {}), ...(editing ? { version } : {}) }), [name, description, price, currency, category, variants, images, active, editing, version, collection, platformSeller]);
     useLayoutEffect(() => { onDraftChange?.(input); }, [onDraftChange, input]);
     return <CommerceEditor title={product ? ct("Edit product") : ct("Add a product")} formLabel={ct("Product editor")} backLabel={ct("Back to products")} saveLabel={ct("Save product")}
         description={ct("Name the item, set its price and stock for each size, then choose whether supporters can see it.")}
         saving={saving} disabled={saving || uploading || locked} saveDisabled={saveDisabled}
-        footerNote={active ? ct("Saving shows this product in your club store.") : ct("Saved as a draft. Publish it when you are ready for supporters to see it.")}
+        footerNote={active ? ct("Saving shows this product in the store when its seller is eligible.") : ct("Saved as a draft. Publish it when you are ready for supporters to see it.")}
         onRequestClose={requestClose}
         onSubmit={event => {
             event.preventDefault();
@@ -80,6 +81,7 @@ export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmi
             <Field label={ct("Description")} htmlFor="product-description" hint={`${ct('Optional')} · ${description.length}/2000`}><textarea id="product-description" className="gk-input" maxLength={2000} rows={4} placeholder={ct("Fit, material and anything included.")} value={description} onChange={event => setDescription(event.target.value)} /></Field>
             <Field label={ct("Category")} htmlFor="product-category"><select id="product-category" className="gk-input" value={category} onChange={event => setCategory(event.target.value as typeof category)}>{STORE_CATEGORIES.map(value => <option key={value} value={value}>{categoryLabel(value)}</option>)}</select></Field>
         </EditorSection>
+        {platformSeller && <Field label="Equipment collection (optional)" htmlFor="product-collection"><select id="product-collection" className="gk-input" value={collection} onChange={e => setCollection(e.target.value as typeof collection)}><option value="">No collection</option>{['BALLS', 'CONES', 'BIBS', 'SHIN_GUARDS', 'GLOVES', 'GOALS', 'TRAINING_WEAR', 'ACCESSORIES'].map(value => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select></Field>}
         <EditorSection title={ct("Photos")} description={ct("The first photo is the cover.")}>
             <PhotoField noun="product" context="store-product" images={images} setImages={setImages} uploading={uploading} setUploading={setUploading} setUploadError={setUploadError} hint={ct("Use clear photos of the actual product.")} />
         </EditorSection>
@@ -102,7 +104,7 @@ export const StoreProductForm = ({ product, saving, formError, onCancel, onSubmi
         </EditorSection>
         <EditorSection title={ct("Visibility")}>
             <label className="cm-switch"><input type="checkbox" className="gk-switch" checked={active} onChange={event => setActive(event.target.checked)} /><span>{ct("Published in the Store")}</span></label>
-            <p className="cm-hint">{active ? ct("Supporters see this product in your club store after you save.") : draftHint}</p>
+            <p className="cm-hint">{active ? ct("Supporters see this product after you save when its seller is eligible.") : draftHint}</p>
         </EditorSection>
     </CommerceEditor>;
 };

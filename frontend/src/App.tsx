@@ -6,7 +6,7 @@ import { isAndroidApp, nativeCall } from './android/bridge';
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type CSSProperties, type JSX } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppHeader } from './components/layout/header/AppHeader';
-import { HomeOpportunities } from './components/layout/HomeOpportunities';
+import { HomeLinks } from './components/layout/HomeLinks';
 import './components/layout/home-rails.css';
 import './components/layout/home-feed.css';
 import './components/club/club-design-theme.css';
@@ -96,6 +96,7 @@ const OwnAccountPage = lazy(() => import('./pages/OwnAccountPage').then(module =
 const ParentApprovalPage = lazy(() => import('./pages/ParentApprovalPage').then(module => ({default: module.ParentApprovalPage})));
 const ReportReceipts = lazy(() => import('./features/moderation/ReportReceipts').then(module => ({default: module.ReportReceipts})));
 const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
+const AccountBookingsPage = lazy(() => import('./pages/AccountBookingsPage').then(module => ({default: module.AccountBookingsPage})));
 const RequestsCentre = lazy(() => import('./features/requests/RequestsCentre').then(module => ({default: module.RequestsCentre})));
 const WorldRoutes = lazy(() => import('./features/world/WorldRoutes'));
 const TryoutDetailPage = lazy(() => import('./features/tryouts/TryoutDetailPage'));
@@ -111,7 +112,10 @@ const InvitePage = lazy(() => import('./features/pages/links/InvitePage').then(m
 const CreateRedirect = lazy(() => import('./features/pages/create/CreateRedirect').then(module => ({ default: module.CreateRedirect })));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage').then(module => ({default: module.OrganizationProfilePage})));
 const FootballProfilePage = lazy(() => import('./features/profiles/football/FootballProfilePage').then(module => ({default: module.FootballProfilePage})));
-const MatchDetailPage = lazy(() => import('./pages/MatchDetailPage').then(module => ({default: module.MatchDetailPage})));
+const MatchPage = lazy(() => import('./features/matches/MatchPage').then(module => ({default: module.MatchPage})));
+const LegacyMatchRedirect = lazy(() => import('./features/matches/LegacyMatchRedirect').then(module => ({default: module.LegacyMatchRedirect})));
+const MyMatchesPage = lazy(() => import('./features/matches/MyMatchesPage'));
+const MyCompetitionsPage = lazy(() => import('./features/matches/MyCompetitionsPage'));
 const RefereePage = lazy(() => import('./pages/RefereePage').then(module => ({default: module.RefereePage})));
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(module => ({default: module.AgentDashboardPage})));
 const OrganizationWorkspacePage = lazy(() => import('./pages/OrganizationWorkspacePage').then(module => ({default: module.OrganizationWorkspacePage})));
@@ -259,7 +263,8 @@ export function MainLayout() {
             return;
         }
 
-        if (!user.mustChangePassword && user.onboardingRequired && location.pathname !== '/onboarding') {
+        if (!user.mustChangePassword && user.onboardingRequired && location.pathname !== '/onboarding'
+            && location.pathname !== '/account/bookings') {
             navigate('/onboarding', { replace: true });
             return;
         }
@@ -335,10 +340,11 @@ export function MainLayout() {
         location.pathname === '/me/staff-club' ||
         location.pathname === '/assistant' ||
         location.pathname === '/account/football' ||
+        location.pathname === '/account/bookings' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
         ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/onboarding', '/set-password', '/account', '/admin', '/team-work', '/team-work/chat', '/tournaments', '/store', '/jobs', '/roles', '/campaigns'].includes(location.pathname) ||
         location.pathname === '/parent' ||
-        location.pathname.startsWith('/match-exchange') || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
+        location.pathname.startsWith('/match-exchange') || location.pathname.startsWith('/matches/') || location.pathname === '/my-matches' || location.pathname === '/my-competitions' || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
         location.pathname === '/my-squads' || location.pathname === '/squads' || location.pathname.startsWith('/squads/') ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/posts/') ||
@@ -376,6 +382,7 @@ export function MainLayout() {
             <Route path="/calendar" element={<ProtectedRoute><CalendarRedirect /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute>{isAndroidApp ? <PageBootSpinner label="Opening messages" /> : <MessagingPage />}</ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+            <Route path="/account/bookings" element={<ProtectedRoute><AccountBookingsPage /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><RequestsCentre /></ProtectedRoute>} />
             <Route path="/events" element={<WorldRedirect to="/world/matches" set={{ tab: 'events' }} />} />
             <Route path="/tryouts" element={<WorldRedirect to="/world/opportunities" set={{ tab: 'trials' }} />} />
@@ -391,7 +398,11 @@ export function MainLayout() {
             <Route path="/account/football" element={<ProtectedRoute><FootballProfilePage /></ProtectedRoute>} />
             <Route path="/match-exchange" element={<LegacyMatchesRedirect kind="exchange" />} />
             <Route path="/match-history" element={<LegacyMatchesRedirect kind="history" />} />
-            <Route path="/match-exchange/:eventId" element={<ProtectedRoute><MatchDetailPage /></ProtectedRoute>} />
+            {/* One match, one page (step 6); old links land on it. */}
+            <Route path="/matches/:eventId" element={<ProtectedRoute><MatchPage /></ProtectedRoute>} />
+            <Route path="/match-exchange/:eventId" element={<LegacyMatchRedirect />} />
+            <Route path="/my-matches" element={<ProtectedRoute><MyMatchesPage /></ProtectedRoute>} />
+            <Route path="/my-competitions" element={<ProtectedRoute><MyCompetitionsPage /></ProtectedRoute>} />
             <Route path="/referees/:refereeId" element={<ProtectedRoute><RefereePage /></ProtectedRoute>} />
             <Route path="/parent" element={<ProtectedRoute><ParentHubPage /></ProtectedRoute>} />
             <Route path="/my-squads" element={<ProtectedRoute><CoachWorkspacePage /></ProtectedRoute>} />
@@ -403,7 +414,7 @@ export function MainLayout() {
             <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
             <Route path="/organizations/create" element={<ProtectedRoute><CreateRedirect /></ProtectedRoute>} />
             <Route path="/organizations/:organizationId/workspace" element={<ProtectedRoute><OrganizationWorkspacePage /></ProtectedRoute>} />
-            <Route path="/organizations/:organizationId" element={<ProtectedRoute><OrganizationProfilePage /></ProtectedRoute>} />
+            <Route path="/organizations/:organizationId" element={<OrganizationProfilePage />} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
             <Route path="/team-work" element={<ProtectedRoute><TeamWorkPage /></ProtectedRoute>} />
             <Route path="/team-work/chat" element={<ProtectedRoute><TeamChatPage /></ProtectedRoute>} />
@@ -506,7 +517,7 @@ export function MainLayout() {
                 )
             ) : (
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
-                    {isHomeFeed && <HomeOpportunities className="home-opportunities--feed" />}
+                    {isHomeFeed && <HomeLinks variant="strip" className="home-opportunities--feed" />}
                     <div className={isHomeFeed ? 'feed-home-grid home-feed-layout' : 'grid grid-cols-1 gap-6 pb-10 pt-6 mx-auto max-w-[1480px] px-4 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}>
                             {LeftSidebar && railsFit && <Suspense fallback={null}><LeftSidebar user={user} /></Suspense>}
 

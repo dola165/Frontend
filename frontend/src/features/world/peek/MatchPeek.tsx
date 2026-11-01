@@ -1,35 +1,30 @@
 import { Button, EmptyNote } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
-import { notifyWorldChanged } from '../cache';
 import { useArrangeableSquadsState } from '../compose/useArrangeableSquads';
 import { useWorldCopy } from '../copy';
 import { fixtureTitle } from '../directories/matches/matchPlaces';
 import { endOf } from '../scoreboard/form';
 import { matchPagePath } from '../scoreboard/matchCode';
 import { matchState } from '../scoreboard/matchState';
-import { doubtMatch } from '../scoreboard/matchRegistry';
 import { loadMyTeams, NO_TEAMS, sideIsMine } from '../scoreboard/myTeams';
 import { useNow } from '../scoreboard/useNow';
 import { useWorldData } from '../useWorldData';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
 import { trackOf } from '../scoreboard/lanes';
 import { Track } from '../scoreboard/Track';
-import { MatchAction } from './match/MatchAction';
 import { MatchForm } from './match/MatchForm';
 import { MatchHead } from './match/MatchHead';
+import { MatchNext } from './match/MatchNext';
 import { useMatchPeek } from './match/matchPeekData';
 import { StageTable } from './match/MatchTable';
 import './peek.css';
 import './match/match-peek.css';
 import './step.css';
 
-/** What changes when a match's result, offers or players change: every list that shows matches asks again. */
-const MATCH_LISTS = ['listing:', 'history:', 'matchday:', 'arrangements:'];
-
 /**
  * A match over World, from the right, as score sites open a fixture: both clubs (each opens on the left), the score
- * once it counts or the kick-off, the tournament (on the left too) and the ground; the one thing to do with it now;
- * its table; both sides' form and their last meeting. The full match page is one link away.
+ * once it counts or the kick-off, the tournament (on the left too) and the ground; what it waits for from the viewer,
+ * as a line to its page; its table; both sides' form and their last meeting. The match page does the work.
  */
 export default function MatchPeek({ id }: { id: string }) {
     const t = useWorldCopy();
@@ -56,8 +51,6 @@ export default function MatchPeek({ id }: { id: string }) {
         ? (m.homeClubId != null && squadAccess.squads?.some(squad => squad.club_id === m.homeClubId) ? { to: m.detailPath, label: t('Open in calendar') } : undefined)
         : { to: matchPagePath(m), label: m.source === 'TOURNAMENT' ? t('Tournament page') : t('Match page') };
     const calendarUnknown = m.source === 'SCHEDULE' && m.homeClubId != null && squadAccess.squads === undefined;
-    // After an action the list's row may be out of date: the drawer reads the match again.
-    const reload = () => { doubtMatch(sessionId, id); notifyWorldChanged(MATCH_LISTS); peek.retry(); };
     return (
         <DrawerFrame title={fixtureTitle(m)} page={page}>
             <MatchHead match={m} state={state} mine={mine} />
@@ -65,7 +58,7 @@ export default function MatchPeek({ id }: { id: string }) {
                 ? <p className="gk-step__error" role="alert">{t('Your squads could not load.')} <button type="button" className="gk-step__reload" onClick={squadAccess.retry}>{t('Try again')}</button></p>
                 : <p className="gk-step-line" data-tone="quiet" role="status"><span>{t('Loading…')}</span></p>)}
             {track.length > 0 && <section className="gk-peek-section"><h3 className="gk-peek-section__title">{t('What this match needs')}</h3><Track dots={track} words /></section>}
-            <MatchAction data={peek.data} reload={reload} />
+            <MatchNext data={peek.data} />
             {tournament && fixture && <StageTable tournament={tournament} stageId={fixture.stageId} label={t('Table')} level={3}
                 mine={new Set(tournament.entries.filter(entry => sideIsMine({ clubId: entry.clubId, squadId: entry.squadId }, teams)).map(entry => entry.id))}
                 marked={new Set([fixture.homeEntryId, fixture.awayEntryId].filter((entry): entry is number => entry != null))} />}

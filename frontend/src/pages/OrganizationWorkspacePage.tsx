@@ -19,8 +19,9 @@ import { organizationTypes, typeLabel } from '../features/organizations/setup/do
 import { WorkspaceImports } from '../features/organizations/setup/WorkspaceImports';
 import { OrganizationTeam } from '../features/organizations/setup/OrganizationTeam';
 import { OrganizationLifecycle } from '../features/organizations/setup/OrganizationLifecycle';
+import { OrganizationPresence } from '../features/organizations/home/OrganizationPresence';
 import '../features/organizations/setup/setup.css';
-interface Workspace { id: number; displayName: string; organizationType: string; identityRevision: number; clubId: number | null; membershipRole: string; canManage: boolean; promotionBlocked: boolean; capabilities: OrganizationCapabilities; team: { userId: number; name: string; role: string }[]; venueCount: number; tournaments: { id: number; name: string; status: string; canManage: boolean }[] }
+interface Workspace { id: number; displayName: string; organizationType: string; identityRevision: number; pageKind?: string; clubId: number | null; membershipRole: string; canManage: boolean; promotionBlocked: boolean; capabilities: OrganizationCapabilities; team: { userId: number; name: string; role: string }[]; venueCount: number; tournaments: { id: number; name: string; status: string; canManage: boolean }[] }
 export function OrganizationWorkspacePage() {
   const { t } = useTranslation();
   const { organizationId } = useParams(), { sessionId, user } = useAuth();
@@ -58,10 +59,12 @@ function WorkspaceEntry({ id }: { id: string }) {
     return () => controller.abort();
   }, [attempt, id, sessionId, status, userId, teamEntry]);
   const current = status === 'authenticated' && userId != null && isCurrentAuthSession(sessionId);
+  const home = entry.kind === 'page' && ['BUSINESS', 'PAGE'].includes(entry.page.kind);
   const editable = entry.kind === 'page' && entry.page.viewer?.canEdit === true && ['OWNER', 'ADMIN'].includes(entry.page.viewer.role ?? '');
   useEffect(() => {
-    if (editable && !teamEntry && current && isCurrentAuthSession(sessionId)) navigate(`/organizations/${id}?edit=1`, { replace: true });
-  }, [current, editable, id, navigate, sessionId, teamEntry]);
+    if (editable && !home && !teamEntry && current && isCurrentAuthSession(sessionId)) navigate(`/organizations/${id}?edit=1`, { replace: true });
+  }, [current, editable, home, id, navigate, sessionId, teamEntry]);
+  if (current && home && entry.kind === 'page') return <WorkspaceContent id={id} page={entry.page} />;
   if (current && entry.kind === 'legacy') return <WorkspaceContent id={id} />;
   // Team and lifecycle commands must use the current operational workspace authorization, including for staff.
   if (current && teamEntry) return <WorkspaceContent id={id} />;
@@ -73,14 +76,21 @@ function WorkspaceEntry({ id }: { id: string }) {
         : <p role="status">{t('experience.workspace.loading')}</p>}
   </main>;
 }
-function WorkspaceContent({ id }: { id: string }) {
+function WorkspaceContent({ id, page }: { id: string; page?: PageView }) {
   const { t } = useTranslation();
   const { refreshNavigationCapabilities, sessionId } = useAuth();
   const [search, setSearch] = useSearchParams();
   const [workspace, setWorkspace] = useState<Workspace | null>(null), [error, setError] = useState(''), [attempt, setAttempt] = useState(0);
   const [type, setType] = useState(''), [busy, setBusy] = useState(false);
-  const active = useRef(true), submitting = useRef(false);
-  useEffect(() => { active.current = true; const controller = new AbortController(); const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId); setError(''); void apiClient.get<Workspace>(`/organizations/${id}/workspace`, { signal: controller.signal }).then(r => { if (current()) { setWorkspace(r.data); setType(r.data.organizationType); } }).catch(e => { if (current()) { setWorkspace(null); promptEmailConfirmation(e); setError(extractApiErrorMessage(e, '') || 'loadError'); } }); return () => { controller.abort(); active.current = false; }; }, [id, attempt, sessionId]);
+  const active = useRef(true), submitting = useRef(false), readGeneration = useRef(0);
+  const navigate = useNavigate();
+  const reloadWorkspace = () => { readGeneration.current += 1; setWorkspace(null); setAttempt(value => value + 1); };
+  useEffect(() => {
+    const refresh = () => { if (isCurrentAuthSession(sessionId)) { readGeneration.current += 1; setWorkspace(null); setAttempt(value => value + 1); } };
+    window.addEventListener('requests-updated', refresh);
+    return () => window.removeEventListener('requests-updated', refresh);
+  }, [sessionId]);
+  useEffect(() => { active.current = true; const controller = new AbortController(), generation = ++readGeneration.current; const current = () => !controller.signal.aborted && generation === readGeneration.current && isCurrentAuthSession(sessionId); setError(''); void apiClient.get<Workspace>(`/organizations/${id}/workspace`, { signal: controller.signal }).then(r => { if (current()) { if (r.data.id !== Number(id)) { setError('loadError'); return; } setWorkspace(r.data); setType(r.data.organizationType); } }).catch(e => { if (current()) { setWorkspace(null); if (e?.response?.status === 404 && page?.status === 'DRAFT' && page.viewer.canEdit && ['OWNER', 'ADMIN'].includes(page.viewer.role ?? '')) { navigate(`/organizations/${id}?edit=1`, { replace: true }); return; } promptEmailConfirmation(e); setError(extractApiErrorMessage(e, '') || 'loadError'); } }); return () => { controller.abort(); active.current = false; }; }, [id, attempt, sessionId, navigate, page]);
   async function saveType(event: FormEvent) {
     event.preventDefault(); if (!workspace || submitting.current || !isCurrentAuthSession(sessionId)) return;
     submitting.current = true; setBusy(true); setError('');
@@ -98,6 +108,8 @@ function WorkspaceContent({ id }: { id: string }) {
     return <Navigate replace to={settings ? officePath(workspace.clubId, 'settings', section) : officePath(workspace.clubId)} />;
   }
   const caps = workspace.capabilities;
+  const pageHome = ['BUSINESS', 'PAGE'].includes(workspace.pageKind ?? page?.kind ?? '')
+    || (!caps.venueAvailable && workspace.venueCount === 0 && ['COMPANY', 'SPONSOR', 'MEDIA', 'SPORTS_ORG', 'OTHER'].includes(workspace.organizationType));
   const hasFacilities = caps.venueAvailable || workspace.venueCount > 0;
   const tabs = ['overview', 'profile', ...(hasFacilities ? ['facilities'] : []), ...(caps.enabledActivities.includes('TOURNAMENT') || workspace.tournaments.length ? ['tournaments'] : []), 'team', ...(workspace.canManage ? ['imports', 'settings'] : [])];
   const selected = search.get('tab') ?? 'overview', tab = tabs.includes(selected) ? selected : 'overview';
@@ -114,19 +126,19 @@ function WorkspaceContent({ id }: { id: string }) {
     selectTab(tabs[next]); event.currentTarget.querySelectorAll('button')[next]?.focus();
   };
   const backPath = caps.venueAvailable ? '/my-organizations?kind=VENUE' : '/my-organizations';
-  return <main className="org-setup"><Link to={backPath}>← {t(caps.venueAvailable ? 'experience.workspace.backVenues' : 'experience.workspace.back')}</Link><header className="org-setup-header"><div><p className="org-setup-kicker">{t('experience.workspace.title', { type: t(`experience.organization.type.${workspace.organizationType}`, { defaultValue: typeLabel(workspace.organizationType) }) })}</p><h1>{workspace.displayName}</h1><p>{t('experience.workspace.responsibility', { role: t(`experience.organization.membership.${workspace.membershipRole}`, { defaultValue: workspace.membershipRole.toLowerCase() }) })}</p></div><div className="org-setup-actions"><Link className="org-setup-button" to={`/organizations/${id}`}>{t('experience.workspace.profile')}</Link></div></header>
+  return <main className={`org-setup${pageHome ? ' org-business-home' : ''}`}><Link to={backPath}>← {t(caps.venueAvailable ? 'experience.workspace.backVenues' : 'experience.workspace.back')}</Link><header className="org-setup-header"><div><p className="org-setup-kicker">{t('experience.workspace.title', { type: t(`experience.organization.type.${workspace.organizationType}`, { defaultValue: typeLabel(workspace.organizationType) }) })}</p><h1>{workspace.displayName}</h1><p>{t('experience.workspace.responsibility', { role: t(`experience.organization.membership.${workspace.membershipRole}`, { defaultValue: workspace.membershipRole.toLowerCase() }) })}</p></div><div className="org-setup-actions"><Link className="org-setup-button" to={`/organizations/${id}`}>{t('experience.workspace.profile')}</Link></div></header>
     <nav className="org-setup-nav" aria-label={t('experience.workspace.sections')} onKeyDown={navigateSections}>{tabs.map(key => <button type="button" key={key} aria-current={tab === key ? 'page' : undefined} onClick={() => selectTab(key)}>{t(`experience.workspace.${key === 'profile' ? 'profileTab' : key}`)}</button>)}</nav>
     {error && <p role="alert">{error === 'loadError' ? t('experience.workspace.error') : error}</p>}
     {workspace.promotionBlocked && <p className="org-setup-notice">{t('experience.workspace.restricted')}</p>}
-    {tab === 'overview' && <><section className="org-setup-card"><h2>{t('experience.workspace.work')}</h2><p>{t('experience.workspace.workHint')}</p><div className="org-setup-modules">
-      <button type="button" className="org-setup-module" onClick={() => selectTab('profile')}><strong>{t('experience.workspace.profileTab')}</strong><span>{t('experience.workspace.profileHint')}</span></button>
+    {tab === 'overview' && <>{pageHome && <OrganizationPresence id={workspace.id} canManage={workspace.canManage} blocked={workspace.promotionBlocked} onReload={reloadWorkspace} />}{(!pageHome || caps.canCreateTournament || caps.canManageVenueBookings) && <section className="org-setup-card"><h2>{t('experience.workspace.work')}</h2>{!pageHome && <p>{t('experience.workspace.workHint')}</p>}<div className="org-setup-modules">
+      {!pageHome && <button type="button" className="org-setup-module" onClick={() => selectTab('profile')}><strong>{t('experience.workspace.profileTab')}</strong><span>{t('experience.workspace.profileHint')}</span></button>}
       {caps.canCreateTournament && <Link className="org-setup-module" to={`/world/tournaments?peek=draw-o${id}`}><strong>{t('experience.workspace.createTournament')}</strong><span>{t('experience.workspace.tournamentHint')}</span></Link>}
       {caps.canManageVenueBookings && <Link className="org-setup-module" to={`/stadiums/${id}/manage`}><strong>{t('experience.workspace.venueOperations')}</strong><span>{t('experience.workspace.venueHint')}</span></Link>}
-      {workspace.canManage && <button type="button" className="org-setup-module" onClick={() => selectTab('imports')}><strong>{t('experience.workspace.importData')}</strong><span>{t('experience.workspace.importHint')}</span></button>}
-      {workspace.canManage && <button type="button" className="org-setup-module" onClick={() => selectTab('settings')}><strong>{t('experience.workspace.activitiesSettings')}</strong><span>{t('experience.workspace.settingsHint')}</span></button>}
-    </div></section>{hasFacilities && <OrganizationPortfolio id={workspace.id} />}</>}
+      {workspace.canManage && !pageHome && <button type="button" className="org-setup-module" onClick={() => selectTab('imports')}><strong>{t('experience.workspace.importData')}</strong><span>{t('experience.workspace.importHint')}</span></button>}
+      {workspace.canManage && !pageHome && <button type="button" className="org-setup-module" onClick={() => selectTab('settings')}><strong>{t('experience.workspace.activitiesSettings')}</strong><span>{t('experience.workspace.settingsHint')}</span></button>}
+    </div></section>}{hasFacilities && <OrganizationPortfolio id={workspace.id} />}</>}
     {tab === 'tournaments' && <section className="org-setup-card"><h2>{t('experience.workspace.tournaments')}</h2>{caps.canCreateTournament && <Link className="org-setup-button org-setup-primary" to={`/world/tournaments?peek=draw-o${id}`}>{t('experience.workspace.createTournament')}</Link>}{!workspace.tournaments.length && <EmptyState icon={Trophy} title={t('experience.workspace.noTournaments')} description={t('experience.workspace.tournamentHint')}/>}<div className="org-setup-modules">{workspace.tournaments.map(tournament => <Link key={tournament.id} className="org-setup-module" to={`/tournaments/${tournament.id}${tournament.canManage ? '/workspace' : ''}`}><strong>{tournament.name}</strong><span>{tournament.status} · {tournament.canManage ? t('experience.workspace.open') : t('experience.workspace.viewTournament')}</span></Link>)}</div></section>}
-    {tab === 'profile' && <OrganizationProfileEditor id={id} onSaved={() => setAttempt(n => n + 1)} />}
+    {tab === 'profile' && (pageHome ? <OrganizationPresence id={workspace.id} canManage={workspace.canManage} blocked={workspace.promotionBlocked} onReload={reloadWorkspace} /> : <OrganizationProfileEditor id={id} onSaved={() => setAttempt(n => n + 1)} />)}
     {tab === 'facilities' && <><section className="org-setup-card"><h2>{t('experience.workspace.facilities')}</h2><p>{t('experience.workspace.facilitiesHint')}</p>{caps.canManageVenueBookings && <Link className="org-setup-button" to={`/stadiums/${id}/manage`}>{t('experience.workspace.manageVenue')}</Link>}{workspace.canManage && <div className="org-setup-actions"><button type="button" onClick={() => selectTab('imports')}>{t('experience.workspace.importVenues')}</button><Link className="org-setup-button" to="/organizations/create?kind=VENUE">{t('experience.workspace.createVenue')}</Link></div>}</section><OrganizationPortfolio id={workspace.id} /></>}
     {tab === 'team' && <><OrganizationLifecycle id={workspace.id} onChanged={() => setAttempt(n => n + 1)} />{workspace.canManage && <OrganizationTeam id={workspace.id} />}{caps.canInviteVenueOperator && <OrganizationDelegationPanel id={workspace.id} />}</>}
     {tab === 'imports' && <WorkspaceImports key={`${id}:${tab}`} id={workspace.id} clubId={workspace.clubId} blocked={workspace.promotionBlocked} />}

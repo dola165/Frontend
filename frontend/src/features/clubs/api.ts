@@ -333,6 +333,12 @@ export interface CreatePlayerCardPayload {
     squadId?: number | null;
 }
 
+/** A child's card made for a squad, waiting for the family's yes (the squad's coaches and club staff). */
+export interface WaitingCard { cardId: number; userId: number; fullName: string; birthYear: number }
+
+export const fetchWaitingCards = async (clubId: number, squadId: number) =>
+    (await apiClient.get<WaitingCard[]>(`/clubs/${clubId}/player-cards/waiting`, { params: { squad: squadId } })).data;
+
 export const createPlayerCard = async (clubId: number, payload: CreatePlayerCardPayload) => {
     const response = await apiClient.post<PlayerCard>(`/clubs/${clubId}/player-cards`, payload);
     return response.data;

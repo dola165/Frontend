@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react';
 import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { Link } from 'react-router-dom';

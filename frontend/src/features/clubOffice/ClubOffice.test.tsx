@@ -21,7 +21,8 @@ vi.mock('../profiles/api', () => ({ saveBirthDate }));
 vi.mock('../clubWorkspace/useClubOverview', () => ({ useClubOverview: () => loads.overview }));
 vi.mock('../clubOperations/useClubOperations', () => ({ useClubOperations: () => loads.operations }));
 vi.mock('../clubOperations/useWorkspaceRoles', () => ({ useWorkspaceRoles: () => loads.roles }));
-vi.mock('../admissions/club/useClubAdmissions', () => ({ useClubAdmissions: () => ({ data: null, loading: false, error: '' }) }));
+const admissionsLoad = vi.hoisted(() => vi.fn<(...args: unknown[]) => { data: null; loading: boolean; error: string }>(() => ({ data: null, loading: false, error: '' })));
+vi.mock('../admissions/club/useClubAdmissions', () => ({ useClubAdmissions: admissionsLoad }));
 vi.mock('../clubOperations/people/ClubPeople', () => ({ ClubPeople: () => <h1>Staff</h1> }));
 vi.mock('./OfficeTool', () => ({ OfficeTool: ({ tool }: { tool: string }) => <h1>Tool {tool}</h1> }));
 
@@ -95,6 +96,17 @@ it('keeps every tool in Club office for an owner who also coaches a squad', () =
     expect(screen.getByRole('heading', { name: 'More tools' })).toBeInTheDocument();
     expect(document.getElementById('office-tools-my-squads'), 'the coach has them in My squads').not.toBeInTheDocument();
     loads.operations = { ...loads.operations, boot: null };
+});
+
+it('loads the joining cases for Players, so an owner is never told their responsibilities don’t allow it', () => {
+    loads.can = { pending: false, failed: false, decide: () => ({ allowed: true }) };
+    admissionsLoad.mockClear();
+    mount('/clubs/7/office?tab=tools&tool=players');
+    expect(admissionsLoad).toHaveBeenLastCalledWith(7, 'fixture', false, true);
+    cleanup();
+    admissionsLoad.mockClear();
+    mount('/clubs/7/office?tab=tools&tool=attendance');
+    expect(admissionsLoad).toHaveBeenLastCalledWith(7, 'fixture', false, false);
 });
 
 it('keeps setting up joining here: every admissions link opens the tool, for someone on a squad too', () => {

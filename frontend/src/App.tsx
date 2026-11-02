@@ -108,6 +108,8 @@ const PageReviewReceipt = lazy(() => import('./features/pages/verify/PageReviewR
 const TournamentWorkspacePage = lazy(() => import('./pages/TournamentWorkspacePage').then(module => ({default: module.TournamentWorkspacePage})));
 const TournamentDetailPage = lazy(() => import('./pages/TournamentDetailPage').then(module => ({default: module.TournamentDetailPage})));
 const JoinPage = lazy(() => import('./features/pages/links/JoinPage').then(module => ({ default: module.JoinPage })));
+const FamilyLinkPage = lazy(() => import('./features/parents/FamilyLinkPage').then(module => ({ default: module.FamilyLinkPage })));
+const MergePage = lazy(() => import('./features/parents/MergePage').then(module => ({ default: module.MergePage })));
 const InvitePage = lazy(() => import('./features/pages/links/InvitePage').then(module => ({ default: module.InvitePage })));
 const CreateRedirect = lazy(() => import('./features/pages/create/CreateRedirect').then(module => ({ default: module.CreateRedirect })));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage').then(module => ({default: module.OrganizationProfilePage})));
@@ -356,6 +358,7 @@ export function MainLayout() {
         location.pathname.startsWith('/campaigns/') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/join/') || location.pathname.startsWith('/invite/') || location.pathname.startsWith('/staff-invite/') ||
+        location.pathname.startsWith('/family-link/') || location.pathname.startsWith('/merge/') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
         location.pathname === '/projects' || location.pathname.startsWith('/projects/') ||
@@ -463,6 +466,9 @@ export function MainLayout() {
             <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
             {/* Public: the squad and club show before sign-in; asking to join signs in first. */}
             <Route path="/join/:code" element={<JoinPage />} />
+            {/* A family link (Add my parent, the other parent, a club's card): what it asks shows before sign-in. */}
+            <Route path="/family-link/:code" element={<FamilyLinkPage />} />
+            <Route path="/merge/:id" element={<ProtectedRoute><MergePage /></ProtectedRoute>} />
             <Route path="/staff-invite/:code" element={<StaffLinkPage />} />
             <Route path="/me/staff-club" element={<ProtectedRoute><StaffClubPage /></ProtectedRoute>} />
             <Route path="/invite/:code" element={<ProtectedRoute><InvitePage /></ProtectedRoute>} />

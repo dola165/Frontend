@@ -159,6 +159,13 @@ describe('the club inside the finder', () => {
         expect(await screen.findByRole('region', { name: 'Boys' })).toBeInTheDocument();
     });
 
+    it('layer 1 walk p3: a club with no groups set up for joining still offers Join, the club page’s My child with this child chosen', async () => {
+        vi.mocked(admissions.searchOpportunities).mockResolvedValue({ items: [] } as never);
+        inFinder(<FinderClub club={club} />);
+        expect(await screen.findByText(/No group lists a place for Saba/)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute('href', '/clubs/1?join=child&player=61');
+    });
+
     it('S14: a group reads as the club’s own name without its age code, the birth years beside it', async () => {
         vi.mocked(admissions.searchOpportunities).mockResolvedValue({ items: [boys, { ...boys, id: 32, name: 'U10' , birthYearFrom: 2016, birthYearTo: 2017 }] } as never);
         inFinder(<FinderClub club={club} />);

@@ -1,7 +1,7 @@
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, CalendarPlus, MessageCircle, Phone, Share2, UserPlus } from 'lucide-react';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
-import { Button, ButtonAnchor, LoadFailed, Skeleton } from '../../../design/primitives';
+import { Button, ButtonAnchor, ButtonLink, LoadFailed, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { formatDate, formatTime } from '../../../utils/formatting';
 import { searchOpportunities } from '../../admissions/api';
@@ -63,6 +63,8 @@ export function FinderClub({ club, named }: { club: ClubProfile; named?: Opportu
             {chat && <ButtonAnchor size="sm" href={chat} target="_blank" rel="noreferrer" data-guide="whatsapp">{copy('WhatsApp', 'WhatsApp')}</ButtonAnchor>}
             {directions && <ButtonAnchor size="sm" variant="ghost" href={directions} target="_blank" rel="noreferrer">{copy('Directions', 'მარშრუტი')}<ArrowUpRight aria-hidden="true" /></ButtonAnchor>}
             <Button size="sm" variant={way?.kind === 'ask' && way.group === null ? 'primary' : 'ghost'} onClick={() => show({ kind: 'ask', group: null })} data-guide="ask-club"><MessageCircle aria-hidden="true" />{copy('Ask the club', 'კლუბს კითხვა')}</Button>
+            {/* The club page's Join, My child, with this child chosen: the club's squads, not only the groups it set up for joining. */}
+            {signedIn && child && <ButtonLink size="sm" to={`/clubs/${club.id}?join=child&player=${child.id}`} data-guide="join-club"><UserPlus aria-hidden="true" />{copy('Join', 'გაწევრიანება')}</ButtonLink>}
         </div>
         {panel(null)}
         {[...(named ? [named] : []), ...(groups.data ?? []).filter(group => group.id !== named?.id)].map(group => {

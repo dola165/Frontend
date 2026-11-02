@@ -264,7 +264,7 @@ const en = {
       failed: 'Failed to update your password.',
     },
     playerCard: {
-      consentBeforeSquad: 'A child joins the squad once the family says yes. Their link opens as soon as you create the card.',
+      consentBeforeSquad: 'A child joins the squad when the family opens the card’s link and says yes. The link opens as soon as you create the card.',
       title: 'Create Player Card',
       editTitle: 'Edit Player Card',
       editRosterTitle: 'Edit Club Roster Details',

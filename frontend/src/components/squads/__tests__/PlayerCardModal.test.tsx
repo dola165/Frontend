@@ -93,7 +93,7 @@ describe('PlayerCardModal new cards and consent', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create Card' }));
         await waitFor(() => expect(createPlayerCard).toHaveBeenCalledOnce());
         expect(vi.mocked(createPlayerCard).mock.calls[0]).toEqual([7, expect.objectContaining({ fullName: 'Luka Beridze', birthYear: 2015, squadId: 11 })]);
-        expect(await screen.findByText('Luka joins 2015 Boys once the family says yes.')).toBeInTheDocument();
+        expect(await screen.findByText('Luka joins 2015 Boys when the family opens this link and says yes.')).toBeInTheDocument();
         expect(onCardCreated).not.toHaveBeenCalled();
         fireEvent.click(screen.getByRole('button', { name: 'Link for Luka’s family' }));
         expect(clubCardFamilyLink).toHaveBeenCalledWith(7, 61);

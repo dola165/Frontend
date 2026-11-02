@@ -62,7 +62,7 @@ function SendToFamily({ clubId, card, squadName, onClose }: { clubId: number; ca
             <header className="prf-header"><h2 id={id}>{say('Send to the family', 'ოჯახისთვის გაგზავნა')}</h2>
                 <button type="button" className="prf-icon" aria-label={say('Close', 'დახურვა')} onClick={onClose}><X size={20} /></button></header>
             <div className="prf-body">
-                {squadName && <p className="prf-note" role="status">{say(`${first} joins ${squadName} once the family says yes.`, `${first} ${squadName}-ს შეუერთდება, როცა ოჯახი თანხმობას მისცემს.`)}</p>}
+                {squadName && <p className="prf-note" role="status">{say(`${first} joins ${squadName} when the family opens this link and says yes.`, `${first} ${squadName}-ს შეუერთდება, როცა ოჯახი ამ ბმულს გახსნის და თანხმობას მისცემს.`)}</p>}
                 <FamilyLinkShare load={() => clubCardFamilyLink(clubId, card.userId!)}
                     title={say(`${first}’s card`, `${first}-ის ბარათი`)} subtitle={say('Open it to be their parent here', 'გახსენით, რომ აქ მისი მშობელი იყოთ')}
                     message={say(`Here is ${first}’s card from our club. Open it so you’re ${first}’s parent on GrassKickZ.`, `ეს არის ${first}-ის ბარათი ჩვენი კლუბიდან. გახსენით, რომ GrassKickZ-ზე ${first}-ის მშობელი იყოთ.`)}

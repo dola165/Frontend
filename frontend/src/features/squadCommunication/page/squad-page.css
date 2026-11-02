@@ -115,3 +115,7 @@
 :is(.gk.sp, .gk .sp) .squad-ack svg { color: var(--gk-accent); }
 :is(.gk.sp, .gk .sp) .squad-empty { padding: var(--gk-5); border: 1px dashed var(--gk-line); border-radius: var(--gk-r-lg); text-align: center; }
 .gk .sp .gk-doors { padding-bottom: var(--gk-3); }
+
+/* A request that looks like a card the club made: the note and its two answers (SameChildMatch). */
+.gk .sp-match { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .sp-match--quiet { color: var(--gk-text-2); font-size: var(--gk-fs-xs); }

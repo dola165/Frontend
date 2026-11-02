@@ -147,7 +147,8 @@ function OperationalFlow({ boot, roles, onRefresh, suspended = false, training, 
       return acknowledge('training', t('Training saved.', 'ვარჯიში შენახულია.'));
     },
   }];
-  if (!hasRequest && !boot.leadership && roles.catalog.length) tasks = [...tasks, {
+  // Asking for a job is for someone who holds none here yet; a coach asks for another squad on My squads.
+  if (!hasRequest && !boot.leadership && !coachingIds.length && roles.catalog.length) tasks = [...tasks, {
     id: 'responsibility', title: t('Ask for a responsibility', 'მოითხოვეთ პასუხისმგებლობა'), description: t('The club reviews this request before access changes.', 'წვდომის შეცვლამდე კლუბი განიხილავს მოთხოვნას.'),
     content: <div className="cw-guide-fields"><fieldset disabled={completed.includes('responsibility')}>
       <Field label={t('Responsibility', 'პასუხისმგებლობა')} htmlFor={`${id}-role`}><select id={`${id}-role`} className="gk-input" required value={role} onChange={e => setRole(e.target.value)}>{roles.catalog.map(r => <option key={r.key} value={r.key}>{r.title}</option>)}</select></Field>

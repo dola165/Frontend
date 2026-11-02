@@ -6,7 +6,8 @@ import { saveCart } from '../cart';
 import { fetchCartQuote, fetchStoreProduct, type CartQuote } from '../api';
 import { commandOrder, fetchOrders, requestPurchase, type StoreOrder } from '../orders/api';
 
-const auth = vi.hoisted(() => ({ status: 'authenticated', sessionId: '' }));
+// Purchase requests switched on (the server lists their door), as these journeys need.
+const auth = vi.hoisted(() => ({ status: 'authenticated', sessionId: '', user: { id: 2, navigationCapabilities: { version: 1, workspaces: [{ id: 'store.purchase-requests', context: { type: 'user', id: 2, label: 'My requests' } }] } } }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), fetchCartQuote: vi.fn(), fetchStoreProduct: vi.fn() }));
 vi.mock('../orders/api', () => ({ requestPurchase: vi.fn(), commandOrder: vi.fn(), fetchOrders: vi.fn(), fetchOrder: vi.fn(), renewOrder: vi.fn() }));

@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
+import { useNavigationCapability } from '../../../context/useNavigationCapability';
 import { StoreOrders } from '../../store/orders/StoreOrders';
 import { ct, useCommerceCopy } from '../../store/copy';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -36,6 +37,8 @@ function StoreProducts({ clubId }: { clubId: number }) {
     const [formError, setFormError] = useCommerceDraftState('formError', '');
     const [revision, setRevision] = useCommerceDraftState('revision', 0);
     const [storeParams, setStoreParams] = useSearchParams();
+    // Purchase requests are held back in release 17 until the server switches them on.
+    const requests = useNavigationCapability('store.purchase-requests') === true;
     const showOrders = storeParams.get('storeRequests') === '1';
     const [archive, setArchive] = useState<StoreProduct | null>(null);
     const mutation = useStoreMutationRecovery(clubId);
@@ -104,9 +107,9 @@ function StoreProducts({ clubId }: { clubId: number }) {
             <div className="gk-stack">
                 {!editing && <StoreCreateReviewNotice clubId={clubId} />}
                 {!editing && recoveryNotice}
-                <p className="gk-notice">Supporters can contact you directly or save a purchase request. Accepting reserves stock; payment stays outside GrassKickZ. Stock shown here is available stock, excluding accepted reservations.</p>
+                <p className="gk-notice">{requests ? 'Supporters can contact you directly or save a purchase request. Accepting reserves stock; payment stays outside GrassKickZ. Stock shown here is available stock, excluding accepted reservations.' : ct("Supporters can browse products and prepare a cart. Online checkout is not available yet.")}</p>
                 {clubId > 0 && <ButtonLink variant="ghost" to={`/clubs/${clubId}?verify=1`}>Club verification</ButtonLink>}
-                <details open={showOrders} onToggle={e => { const open = e.currentTarget.open; if (open !== showOrders) setStoreParams(current => { const next = new URLSearchParams(current); if (open) next.set('storeRequests', '1'); else next.delete('storeRequests'); return next; }); }}><summary>Purchase requests</summary>{showOrders && <StoreOrders seller={clubId} />}</details>
+                {requests && <details open={showOrders} onToggle={e => { const open = e.currentTarget.open; if (open !== showOrders) setStoreParams(current => { const next = new URLSearchParams(current); if (open) next.set('storeRequests', '1'); else next.delete('storeRequests'); return next; }); }}><summary>Purchase requests</summary>{showOrders && <StoreOrders seller={clubId} />}</details>}
                 {products !== null && products.length > 0 && <div className="rec-toolbar">
                     <SearchInput className="rec-toolbar__search" aria-label={ct("Search products")} placeholder={ct("Search products")} value={query} onChange={event => setQuery(event.target.value)} />
                     <select className="gk-input" aria-label={ct("Filter by visibility")} value={filter} onChange={event => setFilter(event.target.value)}>

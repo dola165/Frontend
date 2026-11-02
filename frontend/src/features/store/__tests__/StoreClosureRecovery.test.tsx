@@ -6,7 +6,8 @@ import { StoreProductsPage } from '../../clubWorkspace/commerce/StoreProductsPag
 import { dissolveClub } from '../../clubs/api';
 import { fetchAllClubStoreProducts } from '../api';
 
-vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 2 }, status: 'authenticated', refreshNavigationCapabilities: vi.fn() }) }));
+// Purchase requests switched on: the club's incoming requests are there to resolve.
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 2, navigationCapabilities: { version: 1, workspaces: [{ id: 'store.purchase-requests', context: { type: 'user', id: 2, label: 'My requests' } }] } }, status: 'authenticated', refreshNavigationCapabilities: vi.fn() }) }));
 vi.mock('../../../hooks/useCan', () => ({ refreshAccess: vi.fn() }));
 vi.mock('../../squadCommunication/journeyCopy', () => ({ useJourneyCopy: () => (english: string) => english }));
 vi.mock('../copy', () => ({ ct: (text: string) => text, useCommerceCopy: vi.fn() }));

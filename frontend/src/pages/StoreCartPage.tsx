@@ -1,8 +1,9 @@
 import { toWhatsappHref } from '../components/club/clubProfileInfo';
 import { ct, useCommerceCopy } from '../features/store/copy';
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNavigationCapability } from '../context/useNavigationCapability';
 import { StoreOrders } from '../features/store/orders/StoreOrders';
 import { PurchaseRequestForm } from '../features/store/orders/PurchaseRequestForm';
 import { CommerceDraftScope } from '../components/workspace/CommerceDraftScope';
@@ -16,9 +17,13 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import '../features/store/store.css';
 
-/** The cart: one seller and one currency per cart; prices and stock are checked against the store before anything else. */
-const StoreCart = () => {
+/**
+ * The cart: one seller and one currency per cart; prices and stock are checked against the store before anything else.
+ * Purchase requests (the request form and My requests) show only while the server has them switched on.
+ */
+const StoreCart = ({ requests }: { requests: boolean }) => {
     const [params] = useSearchParams();
+    const showRequests = requests && params.get('view') === 'requests';
     const [receipt, setReceipt] = useState<{ itemsKey: string; order: StoreOrder } | null>(null);
     useCommerceCopy();
     const [items, setItems] = useState(readCart);
@@ -67,10 +72,10 @@ const StoreCart = () => {
             <PageFrame>
                 <nav className="gk-store-crumbs" aria-label={ct("Breadcrumb")}><Link to="/store">{ct("Store")}</Link><span aria-hidden="true">/</span><span>{ct("Cart")}</span></nav>
                 <header className="gk-store-heading">
-                    <div className="gk-store-heading__text"><h1>{params.get('view') === 'requests' ? 'My requests' : ct("Your cart")}</h1><p className="gk-store-heading__hint">{params.get('view') === 'requests' ? 'Purchase arrangements with your sellers' : items.length ? `${count} ${count === 1 ? 'item' : 'items'}${sellerLabel ? ` · ${sellerLabel}` : ''}` : ct("Nothing in it yet")}</p></div>
-                    <div className="store-orders__doors"><ButtonLink to="/store/cart?view=requests">My requests</ButtonLink><ButtonLink to="/store">{ct("Keep shopping")}</ButtonLink></div>
+                    <div className="gk-store-heading__text"><h1>{showRequests ? 'My requests' : ct("Your cart")}</h1><p className="gk-store-heading__hint">{showRequests ? 'Purchase arrangements with your sellers' : items.length ? `${count} ${count === 1 ? 'item' : 'items'}${sellerLabel ? ` · ${sellerLabel}` : ''}` : ct("Nothing in it yet")}</p></div>
+                    <div className="store-orders__doors">{requests && <ButtonLink to="/store/cart?view=requests">My requests</ButtonLink>}<ButtonLink to="/store">{ct("Keep shopping")}</ButtonLink></div>
                 </header>
-                {params.get("view") === "requests" ? <><ButtonLink to="/store/cart">Back to cart</ButtonLink><StoreOrders /></> : !items.length ? <EmptyNote title={ct("Your cart is empty")} action={<ButtonLink variant="primary" to="/store">{ct("Explore the store")}</ButtonLink>}>{ct("Choose something from GrassKickZ or a club you support.")}</EmptyNote> : <div className="gk-store-cart">
+                {showRequests ? <><ButtonLink to="/store/cart">Back to cart</ButtonLink><StoreOrders /></> : !items.length ? <EmptyNote title={ct("Your cart is empty")} action={<ButtonLink variant="primary" to="/store">{ct("Explore the store")}</ButtonLink>}>{ct("Choose something from GrassKickZ or a club you support.")}</EmptyNote> : <div className="gk-store-cart">
                     <Panel title={sellerLabel ? ct("From {v0}", { v0: sellerLabel }) : ct("Items")} action={<Button variant="ghost" size="sm" onClick={() => change([])}>{ct("Clear cart")}</Button>}>
                         <ul aria-label={ct("Cart items")}>{items.map(item => <li key={item.variantId} className="gk-store-cart__item">
                             <span className="gk-store-cart__pic" aria-hidden="true">{products[item.productId]?.images?.[0] ? <MediaImage src={resolveMediaUrl(products[item.productId]?.images?.[0])} alt="" loading="lazy" /> : <Package />}</span>
@@ -91,7 +96,11 @@ const StoreCart = () => {
                                 <p className="gk-store-cart__total"><span>{ct("Subtotal")}</span><span className="gk-num">{formatStorePrice(quote.subtotal / 100, quote.currency)}</span></p>
                                 <p className="gk-store-cart__note">{ct("Delivery, taxes and payment fees are not included.")}</p>
                             </>}
-                            {quote && !loading && !error && (created ? <div role="status"><p>Request saved. Open My requests for its current status, the seller’s answer and next steps. No money was taken by this action.</p><ButtonLink to="/store/cart?view=requests">Open My requests</ButtonLink><Button onClick={() => { setReceipt(null); setChecked(null); setReload(n => n + 1); }}>Review current quote for another purchase</Button></div>
+                            {!requests && <>
+                                {quote && <p className="gk-store-cart__note">{ct("GrassKickZ does not reserve this stock, place an order or take payment yet. Contact ")}{sellerLabel}{ct(" to buy directly.")}</p>}
+                                <Button variant="primary" disabled>{ct("Checkout unavailable")}</Button>
+                            </>}
+                            {requests && quote && !loading && !error && (created ? <div role="status"><p>Request saved. Open My requests for its current status, the seller’s answer and next steps. No money was taken by this action.</p><ButtonLink to="/store/cart?view=requests">Open My requests</ButtonLink><Button onClick={() => { setReceipt(null); setChecked(null); setReload(n => n + 1); }}>Review current quote for another purchase</Button></div>
                                 : <CommerceDraftScope clubId={quote.clubId} feature={`PurchaseRequest:${itemsKey}`}><PurchaseRequestForm quote={quote} onRefresh={() => setReload(n => n + 1)} onCreated={order => setReceipt({ itemsKey, order })} /></CommerceDraftScope>)}
                             {quote && contact && <div className="store-orders__doors" aria-label="Buy directly from the seller">
                                 {toWhatsappHref(contact.clubWhatsappNumber) && <a className="gk-btn gk-btn--secondary" href={toWhatsappHref(contact.clubWhatsappNumber)!} target="_blank" rel="noopener noreferrer">Seller WhatsApp</a>}
@@ -109,5 +118,9 @@ const StoreCart = () => {
 
 export const StoreCartPage = () => {
     const { sessionId, status } = useAuth();
-    return <StoreCart key={`${sessionId}:${status}`} />;
+    const [params] = useSearchParams();
+    // Held back in release 17 (app.store.purchase-requests.enabled): a My requests link then opens the cart.
+    const requests = useNavigationCapability('store.purchase-requests');
+    if (requests === false && params.get('view') === 'requests') return <Navigate to="/store/cart" replace />;
+    return <StoreCart key={`${sessionId}:${status}`} requests={requests === true} />;
 };

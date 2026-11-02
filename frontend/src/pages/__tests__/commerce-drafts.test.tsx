@@ -15,6 +15,8 @@ vi.mock('../../features/store/api',async original=>({...await original<typeof im
 vi.mock('../../features/clubs/api',async original=>({...await original<typeof import('../../features/clubs/api')>(),deleteClubJob:vi.fn(),fetchAllClubJobs:vi.fn(),createClubJob:vi.fn(),updateClubJob:vi.fn()}));
 vi.mock('../../api/axiosConfig',()=>({DEPLOYMENT_URLS:{mediaBaseUrl:'http://localhost:8080'},apiClient:{post:vi.fn()}}));
 vi.mock('../../components/ui/MediaImage',()=>({MediaImage:({src,alt}:{src:string;alt:string})=><img src={src} alt={alt}/>}));
+// The Store tool reads the person's server switches (purchase requests stay off here).
+vi.mock('../../context/AuthContext',()=>({useAuth:()=>({status:'authenticated',user:{id:55}})}));
 function Page() {
  const {id,feature}=useParams();const navigate=useNavigate();
  return <><Link to="/away">Leave workspace</Link><button onClick={()=>navigate(-1)}>Browser back</button><Link to={`/clubs/${id}/Store`}>Store tab</Link><Link to={`/clubs/${id}/Jobs`}>Jobs tab</Link><Link to="/clubs/20/Store">Other club</Link>{feature==='Store'?<StoreProductsPage clubId={Number(id)}/>:<OpenRolesPage clubId={Number(id)} currentUserId={55} canReviewAllApplications pendingKey={null}/>}</>;

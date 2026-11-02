@@ -5,6 +5,7 @@ import '../features/store/orders/orders.css';
 import { ct, useCommerceCopy } from '../features/store/copy';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNavigationCapability } from '../context/useNavigationCapability';
 import { GkRoot, PageFrame } from '../design/primitives';
 import { fetchStoreCatalog, fetchStoreFront } from '../features/store/api';
 import { CATALOGUE_KEYS, cataloguePath } from '../features/store/query';
@@ -29,6 +30,7 @@ export const StorePage = () => {
     const [params] = useSearchParams();
     const { status, sessionId } = useAuth();
     const platform = useWorldData(status === 'authenticated' ? `platform-access:${sessionId}` : null, fetchPlatformAccess);
+    const requests = useNavigationCapability('store.purchase-requests');
     const { area, setCity } = useWorldArea();
     const near = area.anywhere || area.guessed ? undefined : area.city;
     const front = useWorldData(area.ready ? `store-front:${near ?? ''}` : null, signal => fetchStoreFront(near, signal), ct("The store could not load."));
@@ -44,7 +46,7 @@ export const StorePage = () => {
             <PageFrame>
                 <MarketTabs current="store" />
                 <StoreHead />
-                <nav className="store-orders__doors" aria-label="Store work"><ButtonLink to="/store/cart?view=requests">My requests</ButtonLink>{platform.data?.canManage && <ButtonLink to="/store?view=manage">Manage GrassKickZ store</ButtonLink>}</nav>
+                {(requests || platform.data?.canManage) && <nav className="store-orders__doors" aria-label="Store work">{requests && <ButtonLink to="/store/cart?view=requests">My requests</ButtonLink>}{platform.data?.canManage && <ButtonLink to="/store?view=manage">Manage GrassKickZ store</ButtonLink>}</nav>}
                 <div className="gk-store-stack">
                     <StoreDoors own={front.data?.own} sellers={front.data?.sellers} />
                     <Categories />

@@ -5,14 +5,14 @@ import { afterEach, expect, it, vi } from 'vitest';
 import type { SquadOverview } from '../api';
 import { SquadPage } from './SquadPage';
 
-const data = vi.hoisted(() => ({ space: null as unknown, children: [] as unknown[] }));
-vi.mock('../api', async original => ({ ...(await original<object>()), overview: async () => data.space }));
+const data = vi.hoisted(() => ({ space: null as unknown, children: [] as unknown[], overview: null as null | (() => Promise<unknown>) }));
+vi.mock('../api', async original => ({ ...(await original<object>()), overview: () => (data.overview ? data.overview() : Promise.resolve(data.space)) }));
 vi.mock('./useViewerChildren', () => ({ useViewerFamily: () => ({ children: data.children, known: true, error: null, retry: () => undefined }) }));
 vi.mock('../useClubCrest', () => ({ useClubCrest: () => null }));
 vi.mock('../../actions/SquadDoors', () => ({ SquadDoors: () => null }));
 vi.mock('../SquadMessages', () => ({ SquadMessages: () => <div>Coach updates</div> }));
 vi.mock('../../parents/hub/NextUp', () => ({ NextUp: ({ playerId, childName }: { playerId: number; childName: string }) => <p>Next up for {childName} #{playerId}</p> }));
-afterEach(() => { cleanup(); data.children = []; });
+afterEach(() => { cleanup(); data.children = []; data.overview = null; });
 
 const squad = (more: Partial<SquadOverview> = {}): SquadOverview => ({
     id: 24, club_id: 70, academy_name: 'Vake Walk FC', name: '2012 Boys', category: 'U14', can_manage: false, unread_count: 0,
@@ -39,4 +39,17 @@ it('still sends a coach back to My squads and someone with no place on the squad
     open();
     expect(await screen.findByRole('link', { name: 'Parent Hub' })).toHaveAttribute('href', '/parent');
     expect(screen.queryByText(/Next up for/)).toBeNull();
+});
+
+it('shows no back link while the squad loads or when it fails, rather than guessing Parent Hub', async () => {
+    data.overview = () => new Promise(() => undefined);
+    open();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(screen.queryByRole('link', { name: 'Parent Hub' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Your football' })).toBeNull();
+    cleanup();
+    data.overview = () => Promise.reject(new Error('offline'));
+    open();
+    expect(await screen.findByText('Squad page unavailable')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Parent Hub' })).toBeNull();
 });

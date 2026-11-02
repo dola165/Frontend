@@ -326,6 +326,24 @@ describe('FeedPage', () => {
         expect(apiClient.get).toHaveBeenCalledTimes(2);
     });
 
+    it('keeps an open post when it loads again for follows made elsewhere', async () => {
+        const user = userEvent.setup();
+        const post = { id: 1, authorName: 'Jordan Lee', content: 'Training photo', createdAt: '2026-09-08T08:00:00Z', likeCount: 0, commentCount: 0, isLikedByMe: false, mediaUrls: ['/uploads/training.jpg'] };
+        let feedLoads = 0;
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+            if (url === '/posts/feed/for-you') { feedLoads += 1; return { data: { posts: [post] } }; }
+            if (url === '/posts/1') return { data: post };
+            return { data: [] };
+        });
+        renderPage();
+        await screen.findByTestId('feed-list');
+        await user.click(screen.getByRole('button', { name: 'Open media' }));
+        expect(await screen.findByRole('dialog')).toBeInTheDocument();
+        await act(async () => followsChanged());
+        await waitFor(() => expect(feedLoads).toBe(2));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
     it('does not flash initial skeletons again when switching away from an empty feed', async () => {
         const user = userEvent.setup();
         const next = deferred<{ data: { posts: { id: number }[] } }>();

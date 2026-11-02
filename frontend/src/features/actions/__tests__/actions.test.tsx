@@ -1,6 +1,7 @@
 import '../../../i18n';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../../api/axiosConfig';
 import { refreshAccess } from '../../../hooks/useCan';
@@ -135,6 +136,26 @@ describe('ActionHost', () => {
         expect(screen.getByLabelText('The coach’s link or code')).toHaveValue('k7Gm');
     });
 
+    it('follows the club someone tapped Follow on while signed out, once they are back, and the page shows it', async () => {
+        vi.mocked(apiClient.post).mockResolvedValue({ data: { following: true } });
+        function ClubFollow() {
+            const [following, setFollowing] = useState(false);
+            return <FollowButton subject={{ kind: 'club', id: 4 }} name="Batumi Waves FC" following={following} onChange={setFollowing} />;
+        }
+        show(<ClubFollow />, '/clubs/4?tab=posts&do=follow&do-club=4');
+        expect(await screen.findByRole('button', { name: 'Following Batumi Waves FC' })).toBeInTheDocument();
+        expect(vi.mocked(apiClient.post).mock.calls.map(([url]) => url)).toEqual(['/clubs/4/follow']);
+        await waitFor(() => expect(where()).toBe('/clubs/4?tab=posts'));
+    });
+
+    it('does not follow for someone who may not follow, and says so', async () => {
+        server.me = { allowed: [], refused: [refusal('follow', 'NOT_ALLOWED', 'Not for this account.')] };
+        vi.mocked(apiClient.post).mockClear();
+        show(null, '/clubs/4?do=follow&do-club=4');
+        expect(await screen.findByRole('dialog', { name: 'Follow' })).toBeInTheDocument();
+        expect(apiClient.post).not.toHaveBeenCalled();
+    });
+
     it('sends someone signed out to sign in and back', async () => {
         auth.status = 'anonymous';
         show(null, '/home?do=add_child');
@@ -181,7 +202,8 @@ describe('asking the rule-checker', () => {
         auth.status = 'anonymous';
         auth.user = null;
         show(<><FollowButton subject={{ kind: 'club', id: 4 }} following={false} onChange={() => undefined} /><ActionButton action="arrange_match" subject={{ kind: 'squad', id: 105 }} /></>);
-        expect(await screen.findByRole('link', { name: /Follow/ })).toHaveAttribute('href', expect.stringMatching(/^\/login/));
+        // Signing in brings the person back to this page with the club followed (ActionHost does it on return).
+        expect(await screen.findByRole('link', { name: /Follow/ })).toHaveAttribute('href', `/login?next=${encodeURIComponent('/home?do=follow&do-club=4')}`);
         expect(vi.mocked(apiClient.get).mock.calls.filter(([url]) => url.startsWith('/access/'))).toEqual([]);
     });
 });

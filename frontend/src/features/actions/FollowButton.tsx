@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Check, Loader2, Plus } from 'lucide-react';
@@ -6,7 +6,8 @@ import { Button, ButtonLink } from '../../design/primitives';
 import { buildLoginRedirectPath } from '../../utils/authRedirect';
 import { useAuth } from '../../context/AuthContext';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { setFollowing, type FollowSubject } from './follow';
+import { FOLLOW_SETTLED, setFollowing, type FollowSettled, type FollowSubject } from './follow';
+import { DO_PARAM, withoutAction } from './registry';
 import { useAction } from './useAction';
 import './actions.css';
 
@@ -28,9 +29,23 @@ export function FollowButton({ subject, following, name, onChange, size = 'md', 
     const [busy, setBusy] = useState(false);
     // Following is asked of the person once (`me`), never per club row.
     const allowed = useAction('follow', subject.kind === 'person' ? { kind: 'person', id: subject.id } : { kind: 'me' });
+    // A follow settled elsewhere (another button for the same club, a follow carried through sign-in) shows here too.
+    const current = useRef({ following, onChange });
+    current.current = { following, onChange };
+    useEffect(() => {
+        const settled = (event: Event) => {
+            const { subject: other, following: value } = (event as CustomEvent<FollowSettled>).detail;
+            if (other.kind === subject.kind && other.id === subject.id && current.current.following !== undefined && current.current.following !== value) current.current.onChange(value);
+        };
+        window.addEventListener(FOLLOW_SETTLED, settled);
+        return () => window.removeEventListener(FOLLOW_SETTLED, settled);
+    }, [subject.kind, subject.id]);
     if (following === undefined) return null;
-    // Signed out, Follow is the way in: sign in, and come back to the same page.
-    const signIn = buildLoginRedirectPath(location.pathname, location.search, location.hash);
+    // Signed out, Follow is the way in: sign in, and come back to the same page with the club followed (ActionHost
+    // does it on return). A person's follow is a toggle, so it is left for them to tap again.
+    const carried = new URLSearchParams(withoutAction(location.search));
+    if (subject.kind === 'club') { carried.set(DO_PARAM, 'follow'); carried.set('do-club', String(subject.id)); }
+    const signIn = buildLoginRedirectPath(location.pathname, carried.toString() ? `?${carried}` : '', location.hash);
     if (status === 'anonymous') return look === 'plain'
         ? <Link className={className} to={signIn}><Plus aria-hidden="true" />{copy('Follow', 'გამოწერა')}</Link>
         : <ButtonLink size={size} variant={primary ? 'primary' : 'secondary'} className={`gk-action${className ? ` ${className}` : ''}`}

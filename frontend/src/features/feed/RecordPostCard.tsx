@@ -100,7 +100,10 @@ const ACTION: Record<NonNullable<RecordPost['action']>, { words: [string, string
 export function RecordPostCard({ post }: { post: FeedPostDto }) {
     const copy = useJourneyCopy();
     const record = post.record!;
-    const [following, setFollowing] = useState(record.following ?? undefined);
+    // A tap here shows at once; a newer record from the server (Home loaded again after a follow elsewhere) wins.
+    const [tapped, setTapped] = useState<{ from: boolean | undefined; value: boolean } | null>(null);
+    const following = tapped && tapped.from === (record.following ?? undefined) ? tapped.value : record.following ?? undefined;
+    const setFollowing = (value: boolean) => setTapped({ from: record.following ?? undefined, value });
     if (record.kind === 'RESULTS' || record.kind === 'WEEKEND') return <RecordMatchLines record={record} />;
     const look = LOOK[record.kind];
     const { title, line } = words(record, copy);

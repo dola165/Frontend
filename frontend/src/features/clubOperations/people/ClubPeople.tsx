@@ -147,13 +147,14 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
 
     if (params.get('view') === 'jobs') return <>
         <div className="office-back"><Button variant="ghost" size="sm" onClick={() => setParam({ view: null }, false)}><ArrowLeft aria-hidden="true" />{copy('Staff', 'პერსონალი')}</Button></div>
-        <OpenRolesPage clubId={clubId} pendingKey={null} currentUserId={view?.viewer.userId ?? null} canReviewAllApplications={leader} />
+        <OpenRolesPage clubId={clubId} pendingKey={null} currentUserId={view?.viewer.userId ?? null} canReviewAllApplications={leader}
+            startNew={params.get('new') === '1'} onStarted={() => setParam({ new: null })} />
     </>;
 
     return <PageFrame className="cw-page pp-page">
         <PageHeader title={copy('Staff', 'პერსონალი')}
             actions={<>
-                {rights.invite && <Button variant="ghost" disabled={can.pending} onClick={() => setParam({ view: 'jobs' }, false)}><Briefcase aria-hidden="true" />{copy('Post a job', 'ვაკანსიის გამოქვეყნება')}</Button>}
+                {rights.invite && <Button variant="ghost" disabled={can.pending} onClick={() => setParam({ view: 'jobs', new: '1' }, false)}><Briefcase aria-hidden="true" />{copy('Post a job', 'ვაკანსიის გამოქვეყნება')}</Button>}
                 {rights.invite && <Button variant="primary" disabled={can.pending} onClick={() => openInvite(true)}><UserPlus aria-hidden="true" />{copy('Invite', 'მოწვევა')}</Button>}
             </>} />
         <div className="gk-stack">

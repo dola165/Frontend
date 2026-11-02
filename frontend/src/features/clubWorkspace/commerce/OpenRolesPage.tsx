@@ -16,13 +16,17 @@ import { RowMenu } from './RowMenu';
 import '../../clubOperations/records/records.css';
 import './commerce.css';
 
-interface OpenRolesProps { clubId: number; pendingKey: string | null; currentUserId: number | null; canReviewAllApplications: boolean }
+interface OpenRolesProps {
+    clubId: number; pendingKey: string | null; currentUserId: number | null; canReviewAllApplications: boolean;
+    /** A door named "Post a job" asked for the form: it opens at once (a draft already open stays), then `onStarted`. */
+    startNew?: boolean; onStarted?: () => void;
+}
 
 /**
  * Open roles: ongoing paid, volunteer or flexible club roles. Post and edit a role, close or reopen it,
  * delete one without applications (asked first), and review the people who applied.
  */
-function OpenRoles({ clubId, pendingKey, currentUserId, canReviewAllApplications }: OpenRolesProps) {
+function OpenRoles({ clubId, pendingKey, currentUserId, canReviewAllApplications, startNew = false, onStarted }: OpenRolesProps) {
     useCommerceCopy();
     const { t } = useTranslation();
     const clearForm = useClearCommerceForm();
@@ -38,6 +42,11 @@ function OpenRoles({ clubId, pendingKey, currentUserId, canReviewAllApplications
     const [latest, setLatest] = useState<ClubJob | null>(null), [loadingLatest, setLoadingLatest] = useState(false);
     const [query, setQuery] = useState(''), [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
     const [selectedJob, setSelectedJob] = useState<ClubJob | null>(null);
+    useEffect(() => {
+        if (!startNew) return;
+        if (!editing) setEditing('new');
+        onStarted?.();
+    }, [editing, onStarted, setEditing, startNew]);
     const [applications, setApplications] = useState<ClubMembershipApplication[]>([]);
     const [applicationsLoading, setApplicationsLoading] = useState(false), [applicationsError, setApplicationsError] = useState<string | null>(null);
     const [decision, setDecision] = useState<ApplicantDecision | null>(null), [pendingId, setPendingId] = useState<number | null>(null);

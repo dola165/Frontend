@@ -138,6 +138,38 @@ describe('your first week, in the corner', () => {
         expect(screen.queryByRole('button', { name: 'Add your photo' })).toBeNull();
     });
 
+    it('tells Home about the follow that finishes the week, though the week then leaves with its sheet', async () => {
+        const user = userEvent.setup();
+        welcome('FOLLOW', { week: ['open', 'world', 'photo'] });
+        mount();
+        const heard = vi.fn();
+        window.addEventListener(FOLLOWS_CHANGED, heard);
+        await user.click(await screen.findByRole('button', { name: 'Follow clubs near you' }));
+        const sheet = await screen.findByRole('dialog', { name: 'Clubs near you' });
+        await user.click(await within(sheet).findByRole('button', { name: /Follow/ }));
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Clubs near you' })).not.toBeInTheDocument());
+        window.removeEventListener(FOLLOWS_CHANGED, heard);
+        expect(heard).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not load Home again when the sheet only unfollowed', async () => {
+        const user = userEvent.setup();
+        welcome('FOLLOW', { week: ['open'] });
+        const read = vi.mocked(apiClient.get).getMockImplementation()!;
+        vi.mocked(apiClient.get).mockImplementation(async (url: string, config?: Parameters<typeof read>[1]) => url === '/clubs/near-you'
+            ? { data: [{ id: 5, name: 'Rustavi Lions', logoUrl: null, bannerUrl: null, cityName: 'Rustavi', km: 1, followers: 3, following: true }] } : read(url, config));
+        vi.mocked(apiClient.delete).mockResolvedValue({ data: { following: false } });
+        mount();
+        const heard = vi.fn();
+        window.addEventListener(FOLLOWS_CHANGED, heard);
+        await user.click(await screen.findByRole('button', { name: 'Follow clubs near you' }));
+        const sheet = await screen.findByRole('dialog', { name: 'Clubs near you' });
+        await user.click(await within(sheet).findByRole('button', { name: /Following/ }));
+        await user.click(within(sheet).getByRole('button', { name: 'Done' }));
+        window.removeEventListener(FOLLOWS_CHANGED, heard);
+        expect(heard).not.toHaveBeenCalled();
+    });
+
     it('shows a 17-year-old with an adult answer the follower’s week', async () => {
         auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 17}-01-01` };
         welcome('CHILD', { week: ['open'] });

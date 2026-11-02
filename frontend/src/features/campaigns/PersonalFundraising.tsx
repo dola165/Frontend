@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigationCapability } from '../../context/useNavigationCapability';
 import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, PageHeader } from '../../design/primitives';
 import { assertCurrentAuthSession, isCurrentAuthSession } from '../../utils/authStorage';
 import { useOwnedDraft } from '../../utils/ownedDraft';
@@ -14,12 +15,15 @@ import './fundraisingManagement.css';
 export function StartFundraiser() {
     const { sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
+    // Personal appeals are held back in release 17 until the server switches them on.
+    const own = useNavigationCapability('fundraising.personal');
     const clubId = Number(params.get('club') ?? params.get('clubId'));
-    const personal = params.get('for') === 'me';
+    const personal = own === true && params.get('for') === 'me';
     const clubs = useWorldData(!personal ? `${sessionId}:fundraising-clubs` : null, fetchFundraisingClubs);
-    return <GkRoot className="gk-appeal-manage"><PageFrame width="profile"><PageHeader title="Start a fundraiser" actions={<ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>} />
+    if (own === false && params.get('for') === 'me') return <Navigate to="/campaigns/new" replace />;
+    return <GkRoot className="gk-appeal-manage"><PageFrame width="profile"><PageHeader title="Start a fundraiser" actions={own && <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>} />
         {personal || clubId > 0 ? <AppealForm key={`${sessionId}:${personal ? 'me' : clubId}`} clubId={personal ? undefined : clubId} /> : <>
-            <p>Who is raising the funds?</p><div className="gk-appeal-actions"><Button onClick={() => setParams({ for: 'me' })}>For myself</Button></div>
+            {own && <><p>Who is raising the funds?</p><div className="gk-appeal-actions"><Button onClick={() => setParams({ for: 'me' })}>For myself</Button></div></>}
             <h2>For a club</h2>{clubs.loading ? <p role="status">Loading your clubs…</p> : clubs.error ? <EmptyNote title="Your clubs could not load" action={<Button onClick={clubs.retry}>Retry</Button>} />
                 : clubs.data?.map(c => <div className="gk-appeal-actions" key={c.id}><Button onClick={() => setParams({ club: String(c.id) })}>{c.name}</Button></div>)}
             <ButtonLink to="/projects">Open club projects</ButtonLink>

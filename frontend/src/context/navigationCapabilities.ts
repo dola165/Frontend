@@ -40,8 +40,9 @@ const destinations: Record<string, { type: string; title: string; path: (id: num
     'squad.workspace': { type: 'squad', title: 'Squad', path: id => `/squads/${id}` },
     'admin.console': { type: 'user', title: 'Admin', path: () => '/admin' },
     'team.work': { type: 'user', title: 'Team work', path: () => '/team-work' },
-    // Held back in release 17: the server lists it only while its switch is on.
+    // Held back in release 17: the server lists these only while their switch is on.
     'store.purchase-requests': { type: 'user', title: 'My requests', path: () => '/store/cart?view=requests' },
+    'fundraising.personal': { type: 'user', title: 'My appeals', path: () => '/campaigns?mine=all' },
 };
 
 const record = (value: unknown): value is Record<string, unknown> =>

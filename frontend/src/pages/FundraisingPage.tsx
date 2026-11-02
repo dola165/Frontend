@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { HeartHandshake, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigationCapability } from '../context/useNavigationCapability';
 import { ButtonLink, GkRoot, PageFrame, SearchInput } from '../design/primitives';
 import { CAMPAIGN_CATEGORIES, campaignMoney, fetchFundraisingFront } from '../features/campaigns/api';
 import { PersonalFundraising } from '../features/campaigns/PersonalFundraising';
@@ -25,11 +26,15 @@ export const FundraisingPage = () => {
     const [params] = useSearchParams();
     const navigate = useNavigate();
     const { status } = useAuth();
+    // Personal appeals are held back in release 17 until the server switches them on.
+    const personal = useNavigationCapability('fundraising.personal');
     const { area, setCity } = useWorldArea();
     const [text, setText] = useState('');
     const near = area.anywhere || area.guessed ? undefined : area.city;
     const front = useWorldData(area.ready ? `fund-front:${near ?? ''}` : null, signal => fetchFundraisingFront(near, signal), ct("Fundraisers could not load."));
-    if (params.has('mine')) return <PersonalFundraising />;
+    if (params.has('mine') && personal) return <PersonalFundraising />;
+    // While they are off, a My appeals link lands on the fundraising list once the session is known.
+    if (params.has('mine') && personal === false) return <Navigate to="/campaigns" replace />;
     if (FUNDRAISING_KEYS.some(key => key !== 'page' && params.has(key)) || params.has('q')) return <Navigate to={`/campaigns/all?${params}`} replace />;
     const signedIn = status === 'authenticated';
     const followed = front.data?.followed ?? [];
@@ -38,13 +43,13 @@ export const FundraisingPage = () => {
             <PageFrame>
                 <MarketTabs current="fundraising" />
                 <div className="gk-store-head">
-                    <div><h1>{ct("Fundraising")}</h1><p className="gk-store-head__hint">{ct("Appeals from clubs and adults in grassroots football")}</p></div>
+                    <div><h1>{ct("Fundraising")}</h1><p className="gk-store-head__hint">{ct(personal ? "Appeals from clubs and adults in grassroots football" : "Projects from clubs on GrassKickZ, backed by their supporters")}</p></div>
                     <form className="gk-store-head__search" role="search" onSubmit={event => { event.preventDefault(); navigate(fundraisingPath({ query: text.trim() })); }}>
                         <SearchInput aria-label={ct("Search fundraisers")} placeholder={ct("Search fundraisers or clubs")} maxLength={100} value={text} onChange={event => setText(event.target.value)} />
                     </form>
                     <div className="gk-store-head__actions">
                         <ButtonLink to={fundraisingPath()}>{ct("Browse all")}</ButtonLink>
-                        <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>
+                        {personal && <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>}
                         <ButtonLink variant="primary" to="/campaigns/new"><Plus aria-hidden="true" />{ct("Start a fundraiser")}</ButtonLink>
                     </div>
                 </div>

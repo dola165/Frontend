@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigationCapability } from '../../context/useNavigationCapability';
 import { Button, ButtonLink } from '../../design/primitives';
 import { assertCurrentAuthSession, isCurrentAuthSession } from '../../utils/authStorage';
 import { useOwnedDraft } from '../../utils/ownedDraft';
@@ -14,6 +15,8 @@ type Draft = { input: CampaignInput; pending: { input: CampaignInput; request: s
 /** One account-scoped form; an uncertain save keeps its exact request for recovery. */
 export function AppealForm({ campaign, clubId, onSaved, onDirtyChange }: { campaign?: Campaign; clubId?: number; onSaved?: (campaign: Campaign) => void; onDirtyChange?: (dirty: boolean) => void }) {
     const { sessionId, isAuthenticated } = useAuth();
+    // My appeals shows only while personal appeals are switched on (held back in release 17).
+    const ownAppeals = useNavigationCapability('fundraising.personal') === true;
     const navigate = useNavigate();
     const initial = campaign ? Object.fromEntries(Object.keys(empty).map(key => [key, campaign[key as keyof Campaign]])) as CampaignInput : empty;
     if (campaign) initial.version = campaign.version;
@@ -69,7 +72,7 @@ export function AppealForm({ campaign, clubId, onSaved, onDirtyChange }: { campa
         <p>Supporters can contact the organizer to arrange giving outside GrassKickZ. No payment, receipt or refund is recorded here.</p>
         {error && <p role="alert">{error}</p>}
         <div className="gk-appeal-actions"><Button type="submit" variant="primary" disabled={busy || !isAuthenticated}>{busy ? 'Saving…' : draft.pending ? 'Retry the same save' : campaign ? 'Save changes' : 'Save draft'}</Button>
-            <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>
+            {ownAppeals && <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>}
             {campaign && !draft.pending && <Button type="button" onClick={() => { reset(); setError(''); }}>Use the loaded server version</Button>}
         </div>
         <div className="gk-appeal-actions"><ButtonLink to="/account?tab=security">Email confirmation</ButtonLink><ButtonLink to="/profile/me">My public profile</ButtonLink></div>

@@ -41,3 +41,12 @@ it('says by when the account is removed if no parent opens the link', async () =
     render(<MemoryRouter><WaitingForParentPage /></MemoryRouter>);
     expect(await screen.findByText(/^If nobody opens it by \d{1,2} November, this account is removed\.$/)).toBeInTheDocument();
 });
+
+it('gives the date in Georgian as the app’s other deadlines do ("ბოლო ვადა: …")', async () => {
+    await i18n.changeLanguage('ka');
+    api.fetchParentApproval.mockResolvedValue({ status: 'PARENT_EMAIL_NEEDED', deleteAfter: '2026-11-09T23:28:01+04:00' });
+    links.addMyParentLink.mockResolvedValue(link);
+    render(<MemoryRouter><WaitingForParentPage /></MemoryRouter>);
+    const line = await screen.findByText(/ანგარიში წაიშლება\. ბოლო ვადა: /);
+    expect(line.textContent).not.toMatch(/-მდე/);
+});

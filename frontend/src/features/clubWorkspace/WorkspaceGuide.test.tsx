@@ -308,3 +308,8 @@ it('never asks a squad’s coach to ask for a job they already hold', () => {
   render(<WorkspaceGuide boot={coach} roles={{ ...mine, views: [], current: { ...mine.current, squadIds: [] } }} onRefresh={vi.fn()} />);
   expect(screen.getByText('Ask for a responsibility')).toBeInTheDocument();
 });
+it('never asks someone with a club-wide job to ask for a job either', () => {
+  const clubWide = { id: 'admin', label: 'Admin', modules: ['STAFF'], squadIds: [401], clubWide: true, appointmentId: 7, revision: 1 };
+  render(<WorkspaceGuide boot={{ ...boot, leadership: false }} roles={{ ...roles, leadership: false, views: [clubWide], current: clubWide }} onRefresh={vi.fn()} />);
+  expect(screen.queryByText('Ask for a responsibility')).not.toBeInTheDocument();
+});

@@ -115,6 +115,9 @@ try {
         await page.locator('button[type=submit]').click();
         await expect(page.getByText('You closed this account', { exact: true })).toBeVisible();
         await expect(page.getByText(/otherwise it is erased on 29 November 2026/)).toBeVisible();
+        // Keep my account is the only bright action: the sign-in form waits behind Use another account.
+        await expect(page.locator('button[type=submit]')).toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Use another account', exact: true })).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         if (evidence && complete) await page.screenshot({ path: `${evidence}/${name}-keep.png`, fullPage: true });
         await page.getByRole('button', { name: 'Keep my account', exact: true }).click();

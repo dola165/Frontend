@@ -170,6 +170,11 @@ export const LoginPage = () => {
         await signInWithGoogle({ kind: 'google', token: credentialResponse.credential });
     };
 
+    /** Leaves the closing account alone: the box goes and an empty sign-in form comes back. */
+    const switchAccount = () => {
+        setClosing(null); setEmail(''); setPassword(''); setError(''); setUnknownEmail(false); setFieldErrors({});
+    };
+
     const keepAccount = () => {
         if (!closing) return;
         const proof = closing.proof;
@@ -205,16 +210,22 @@ export const LoginPage = () => {
                 <Suspense fallback={<div className="flex flex-col items-center gap-4 py-6"><Loader2 className="h-8 w-8 animate-spin text-[var(--fc-accent)]" /><p className="text-sm text-[var(--fc-text-secondary)]">Generating QR code…</p></div>}>
                     <QrLoginSection onBack={() => setShowQr(false)} />
                 </Suspense>
+            ) : closing ? (
+                // A closing account: Keep my account is the one bright action; the sign-in form returns only on request.
+                <div role="status" className="rounded-xl border border-[var(--color-border)] p-4 text-sm leading-6">
+                    <p className="font-semibold text-[var(--color-text)]">{t('auth.login.closingTitle')}</p>
+                    <p className="text-[var(--color-secondary)]">{t('auth.login.closingBody', { date: formatDate(closing.keepUntil, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>
+                    {error && <p role="alert" className="mt-3 font-semibold text-[color:var(--state-danger)]">{error}</p>}
+                    <button type="button" disabled={isLoading} onClick={keepAccount} className={authPrimaryButtonClass + ' mt-3'}>
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.login.keepAccount')}
+                    </button>
+                    <button type="button" disabled={isLoading} onClick={switchAccount} className="mt-2 min-h-11 w-full text-sm font-semibold app-text-action">
+                        {t('auth.login.useAnotherAccount')}
+                    </button>
+                </div>
             ) : (
                 <>
-                    {location.state?.accountClosureReceipt && !closing && <AccountClosureReceipt receipt={location.state.accountClosureReceipt} />}
-                    {closing && <div role="status" className="mb-6 rounded-xl border border-[var(--color-border)] p-4 text-sm leading-6">
-                        <p className="font-semibold text-[var(--color-text)]">{t('auth.login.closingTitle')}</p>
-                        <p className="text-[var(--color-secondary)]">{t('auth.login.closingBody', { date: formatDate(closing.keepUntil, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>
-                        <button type="button" disabled={isLoading} onClick={keepAccount} className={authPrimaryButtonClass + ' mt-3'}>
-                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.login.keepAccount')}
-                        </button>
-                    </div>}
+                    {location.state?.accountClosureReceipt && <AccountClosureReceipt receipt={location.state.accountClosureReceipt} />}
                     {error && (
                         <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                             <div className="flex items-center gap-2">

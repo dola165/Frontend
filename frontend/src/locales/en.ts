@@ -1108,6 +1108,7 @@ const en = {
       closingTitle: 'You closed this account',
       closingBody: 'Nobody sees it now. Keep it and everything comes back as it was; otherwise it is erased on {{date}}.',
       keepAccount: 'Keep my account',
+      useAnotherAccount: 'Use another account',
     },
     forgot: {
       backToLogin: 'Back to Login',

@@ -60,6 +60,18 @@ describe('Parent Hub (step 5)', () => {
         await screen.findByText('Money records could not load. The current balance is unavailable.');
         expect(screen.queryByText('69.90 GEL')).toBeNull();
     });
+    it('round 2: a place the club offered, waiting on the family, comes first; finding a club steps back', async () => {
+        const offered = { id: 4, stage: 'PLACE_OFFERED', organizationName: 'Dinamo', groupName: 'U12 Mixed', nextAction: { code: 'REVIEW_OFFER', owner: 'APPLICANT', label: '', dueAt: null },
+            sessions: [], enrollment: null } as unknown as JoiningChild['cases'][number];
+        const data = { children: [{ ...child(61, 'Nika'), cases: [offered] }] };
+        vi.mocked(fetchJoiningChildren).mockResolvedValue(data); show('/parent');
+        const yours = await screen.findByRole('region', { name: 'Waiting for your answer' });
+        expect(yours).toHaveTextContent('Dinamo · Mixed');
+        expect(screen.getByRole('link', { name: /Answer/ })).toHaveAttribute('href', expect.stringContaining('/admissions/cases/4?tab=agreement'));
+        expect(yours.compareDocumentPosition(screen.getByRole('heading', { name: 'Nika has no club yet' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.getByRole('link', { name: 'Find a club near you' })).not.toHaveClass('gk-btn--primary');
+        expect(screen.queryByRole('region', { name: 'Asked so far' })).not.toBeInTheDocument();
+    });
     it('opens on everyone with two children, and on the child’s own page with one', async () => {
         show(); expect(await screen.findByRole('button', { name: /^Everyone/ })).toHaveAttribute('aria-pressed', 'true');
         cleanup(); vi.mocked(fetchJoiningChildren).mockResolvedValue({ children: [child(61, 'Nika')] }); show();

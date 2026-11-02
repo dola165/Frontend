@@ -43,15 +43,6 @@ export function programmeFee(programme: TrainingProgramme) {
     return `${money(programme.amount, programme.currency)} / ${wt(PERIOD[programme.billingPeriod])}`;
 }
 
-/** Where a parent asks a club about a place: the club's enquiry, for the chosen child and the programme that fits. */
-export function enquiryPath(clubId: number, playerId?: number, programmeId?: number) {
-    const params = new URLSearchParams({ tab: 'teams' });
-    if (programmeId) params.set('programme', String(programmeId));
-    params.set('enquire', '1');
-    if (playerId) params.set('player', String(playerId));
-    return `/clubs/${clubId}?${params}`;
-}
-
 /** The programmes that fit a child's age, if any; otherwise none. */
 export function fittingProgrammes(presentation: ClubPresentation | null | undefined, child?: Participant) {
     const born = child?.dateOfBirth?.slice(0, 4);

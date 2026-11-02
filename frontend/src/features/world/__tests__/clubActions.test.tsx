@@ -1,13 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import type { Participant } from '../../admissions/types';
 import { setFollowing } from '../../actions/follow';
 import { FollowButton } from '../../actions/FollowButton';
-import { createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
 import type { ClubMembershipContext } from '../../clubs/domain';
-import { ClubMainAction } from '../cards/ClubActions';
 import { ClubRow } from '../cards/ClubRow';
 import { ProgrammesSection } from '../peek/club/ClubSections';
 import type { PaneClub } from '../peek/club/clubPane';
@@ -17,7 +15,6 @@ import { WorldSessionContext } from '../worldSession';
 
 const auth = vi.hoisted(() => ({ status: 'authenticated' as string }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: auth.status, sessionId: 'world', user: { id: 1 } }) }));
-vi.mock('../../clubs/api', () => ({ createClubApplication: vi.fn(), selfRegisterClubPlayer: vi.fn() }));
 vi.mock('../../actions/follow', () => ({ setFollowing: vi.fn() }));
 /** The rule-checker is not asked here: each screen's own flag decides (as with an older server). */
 vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, decide: (_action: string, fallback: boolean) => ({ allowed: fallback }), admin: null }) }));
@@ -43,13 +40,12 @@ function Where() {
     const location = useLocation();
     return <output data-testid="where">{location.pathname}{location.search}</output>;
 }
-/** What a club offers the person wherever it is shown (its row, its pane): Follow, the one main action, where they stand. */
+/** What World shows about a club wherever it is (its row, its pane): Follow and where the person stands. */
 function ClubActionsView({ club }: { club: ClubProfile }) {
     const actions = useClubActions(club);
     return <>
-        <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} size="sm" onChange={actions.setFollowing} /><ClubMainAction club={club} actions={actions} />
+        <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} size="sm" onChange={actions.setFollowing} />
         {actions.standing && <span>{actions.standing.label}</span>}
-        {actions.message && <p role={actions.message.error ? 'alert' : 'status'}>{actions.message.text}</p>}
     </>;
 }
 /** The club's actions on their own, or (`row`) the club as a row in a list. */
@@ -98,27 +94,42 @@ describe('following', () => {
     });
 });
 
-describe('joining for yourself', () => {
-    it('joins an open-trial club as a trialist when you have no club', async () => {
-        vi.mocked(selfRegisterClubPlayer).mockResolvedValue({} as never);
-        show(club());
-        fireEvent.click(screen.getByRole('button', { name: 'Join as trialist' }));
-        expect(await screen.findByText('You joined as a trialist.')).toBeInTheDocument();
-        expect(screen.getByText('Trialist')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Join as trialist' })).not.toBeInTheDocument();
+/** The steps that belong on the club page and must never show in World's list (the owner, 2 November 2026). */
+const STEPS = /Join as trialist|Apply as player|Ask about|Arrange a match|Ask .* about a place/;
+const forty = { hasClubMembership: false } as ClubMembershipContext;
+const admin = { hasClubMembership: true, clubId: 1, myRole: 'CLUB_ADMIN' } as ClubMembershipContext;
+const dinamo = { id: 103, club_id: 1, name: 'U14 Boys', category: 'U14', club_name: 'Dinamo' };
+
+describe('World shows a club the same for everyone', () => {
+    it('a row offers Follow only, for someone with no club, a club administrator who arranges matches, and a parent searching for a child', () => {
+        const cases: { membership: ClubMembershipContext; participants?: Participant[]; path?: string; squads?: typeof arranging.squads }[] = [
+            { membership: forty },
+            { membership: admin, squads: [dinamo] },
+            { membership: noClub, participants: [nino], path: '/world/clubs?player=501' },
+        ];
+        for (const { membership, participants = [], path, squads = [] } of cases) {
+            arranging.squads = squads;
+            show(club({ playerJoinPolicy: 'APPLICATION_REQUIRED' }), { membership, participants, path, row: true });
+            const row = screen.getByRole('listitem');
+            expect(within(row).getAllByRole('button').map(button => button.textContent)).toEqual(['Follow', '']);
+            expect(within(row).queryByText(STEPS)).not.toBeInTheDocument();
+            expect(within(row).queryByRole('link', { name: STEPS })).not.toBeInTheDocument();
+            cleanup();
+        }
     });
 
-    it('applies to a club that asks for applications', async () => {
-        vi.mocked(createClubApplication).mockResolvedValue({} as never);
-        show(club({ playerJoinPolicy: 'APPLICATION_REQUIRED' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Apply as player' }));
-        await waitFor(() => expect(createClubApplication).toHaveBeenCalledWith(4, 'PLAYER', null));
-        expect(await screen.findByText('Application pending')).toBeInTheDocument();
+    it('says nothing about how the club takes players, only where the person stands', () => {
+        show(club({ playerJoinPolicy: 'OPEN_TRIAL' }), { row: true });
+        expect(screen.queryByText('Open trials')).not.toBeInTheDocument();
+        cleanup();
+        show(club({ relationshipState: 'APPLIED' }), { row: true });
+        expect(screen.getByText('Application pending')).toBeInTheDocument();
     });
 
-    it('offers no one-click join to someone who already has a club, or while that is unknown', () => {
-        show(club(), { membership: { hasClubMembership: true } as ClubMembershipContext });
-        expect(screen.queryByRole('button', { name: 'Join as trialist' })).not.toBeInTheDocument();
+    it('opens the club page from its name and from its crest', () => {
+        show(club(), { row: true });
+        expect(screen.getByRole('link', { name: 'Saburtalo Youth' })).toHaveAttribute('href', '/clubs/4');
+        expect(document.querySelector('a.gk-result__lead')).toHaveAttribute('href', '/clubs/4');
     });
 });
 
@@ -141,68 +152,17 @@ describe('a parent searching for a child', () => {
         </WorldSessionContext.Provider></MemoryRouter>);
         expect(screen.getByRole('link', { name: 'Foundation (U8–U10)' })).toBeInTheDocument();
     });
-    it('asks the club about a place for the child, with the programme that fits, instead of joining the parent', () => {
+    it('tells the parent which programme fits the child, or that none does', () => {
         show(club(), { participants: [nino], path: '/world/clubs?player=501', row: true });
-        expect(screen.queryByRole('button', { name: 'Join as trialist' })).not.toBeInTheDocument();
         expect(screen.getByText(/Fits Nino: Little kickers/)).toBeInTheDocument();
-        expect(screen.queryByText(/Seniors/)).not.toBeInTheDocument();
-        // Asked right here, in a small pop-up over World, with the programme that fits in the first line (step 5).
-        fireEvent.click(screen.getByRole('button', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' }));
-        expect(screen.getByRole('dialog', { name: 'Saburtalo Youth' })).toBeInTheDocument();
-        expect(screen.getByRole('textbox')).toHaveValue('Hello, my daughter Nino was born in ' + (year - 9) + '. Is there a place in Little kickers?');
-    });
-
-    it('says when no programme fits the child, and still lets the parent ask', () => {
+        cleanup();
         show(club({ presentation: { ...club().presentation!, programmes: [programme(71, 'Seniors', 18, null)] } }), { participants: [nino], path: '/world/clubs?player=501', row: true });
         expect(screen.getByText('No programme listed for age 9')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /about a place for Nino/ }));
-        expect(screen.getByRole('textbox')).toHaveValue('Hello, my daughter Nino was born in ' + (year - 9) + '. Is there a place for them at your club?');
     });
 
     it('remembers the child chosen on another World page', () => {
         sessionStorage.setItem('family-player:1:world', '501');
         show(club(), { participants: [nino], row: true });
         expect(screen.getByText(/Fits Nino/)).toBeInTheDocument();
-    });
-
-    it('asks about joining in general before a child is chosen', () => {
-        show(club(), { participants: [nino], row: true });
-        expect(screen.getByRole('link', { name: 'Ask about joining' })).toHaveAttribute('href', '/clubs/4?tab=teams&enquire=1');
-        expect(screen.queryByText(/Fits/)).not.toBeInTheDocument();
-    });
-});
-
-describe('arranging a match with a club', () => {
-    const dinamo = { id: 103, club_id: 1, name: 'U14 Boys', category: 'U14', club_name: 'Dinamo' };
-    const admin = { hasClubMembership: true, clubId: 1, myRole: 'CLUB_ADMIN' } as ClubMembershipContext;
-
-    it('is offered to anyone with squads they may arrange for (a club administrator too), opening the one sheet with the club filled in', () => {
-        arranging.squads = [dinamo];
-        show(club(), { membership: admin });
-        expect(screen.getByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', expect.stringContaining('do=arrange_match&do-opponent=4'));
-    });
-
-    it('is never offered on their own club, nor to someone with no squads to arrange for, nor while that is unknown', () => {
-        arranging.squads = [dinamo];
-        show(club({ id: 1, name: 'Dinamo' }), { membership: admin });
-        expect(screen.queryByRole('link', { name: /Arrange a match/ })).not.toBeInTheDocument();
-        cleanup();
-        arranging.squads = [];
-        show(club(), { membership: admin });
-        expect(screen.queryByRole('link', { name: /Arrange a match/ })).not.toBeInTheDocument();
-        cleanup();
-        arranging.squads = undefined;
-        show(club(), { membership: admin, participants: [nino] });
-        expect(screen.queryByRole('link', { name: /Arrange a match|Ask about/ })).not.toBeInTheDocument();
-    });
-
-    it('a coach who is also a parent arranges, unless searching for a child', () => {
-        arranging.squads = [dinamo];
-        show(club(), { membership: admin, participants: [nino] });
-        expect(screen.getByRole('link', { name: 'Arrange a match' })).toBeInTheDocument();
-        cleanup();
-        show(club(), { membership: admin, participants: [nino], path: '/world/clubs?player=501' });
-        expect(screen.getByRole('button', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' })).toBeInTheDocument();
-        expect(screen.queryByRole('link', { name: /Arrange a match/ })).not.toBeInTheDocument();
     });
 });

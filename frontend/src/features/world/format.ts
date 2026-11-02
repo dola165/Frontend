@@ -1,5 +1,4 @@
 import type { BadgeTone } from '../../design/primitives';
-import type { ClubJoinPolicy } from '../../components/discovery/clubDirectoryTypes';
 import { appLocale } from '../../utils/formatting';
 import { isGeorgian, wt } from './copy';
 
@@ -60,12 +59,6 @@ export const CLUB_TYPE_LABEL: Record<string, string> = {
     GRASSROOTS: 'Grassroots club', ACADEMY: 'Academy', SCHOOL: 'Football school', OTHER: 'Football club',
 };
 export const clubTypeLabel = (type?: string | null) => (type && CLUB_TYPE_LABEL[type]) || 'Football club';
-
-export const JOIN_POLICY: Record<ClubJoinPolicy, { label: string; tone: BadgeTone }> = {
-    OPEN_TRIAL: { label: 'Open trials', tone: 'accent' },
-    APPLICATION_REQUIRED: { label: 'Apply to join', tone: 'warning' },
-    INVITE_ONLY: { label: 'Invite only', tone: 'neutral' },
-};
 
 /** "800 m away", "2.6 km away". */
 export const distanceLabel = (km: number) => km < 1

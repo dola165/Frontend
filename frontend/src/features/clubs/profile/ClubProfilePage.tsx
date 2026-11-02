@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
@@ -7,7 +7,6 @@ import { LinkedText } from '../../../design/LinkedText';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ClubManagementModal, type ClubManagementTab } from '../../../components/club/ClubManagementModal';
 import { ClubEnquiryModal } from '../../../components/club/ClubEnquiryModal';
-import { playerPath, positivePlayerId } from '../../parents/playerSelection';
 import { ProfileMediaTab } from '../../profiles/ProfileMediaTab';
 import { useProfileImageControls } from '../../profiles/useProfileImageControls';
 import { clubRoleLabel } from '../domain';
@@ -18,6 +17,8 @@ import { ClubContactTab } from './ClubInfoTabs';
 import { ClubFacilitiesTab } from './ClubFacilitiesTab';
 import { ClubInfo } from './ClubInfo';
 import { ClubInvolvedTab } from './ClubInvolvedTab';
+import { ClubJoinDialog } from './join/ClubJoinDialog';
+import { joinPartFrom, type JoinPart } from './join/joinFit';
 import { ClubPeopleTab } from './ClubPeopleTab';
 import { ClubPostsTab } from './ClubPostsTab';
 import { ClubSide } from './ClubSide';
@@ -51,7 +52,6 @@ export function ClubProfilePage() {
 }
 
 function ClubProfileView({ id }: { id: number }) {
-    const navigate = useNavigate();
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
     const { club, loading, failed, permissions: can, refresh, followChanged, leftClub, updateImage } = useClubProfile(id);
@@ -73,7 +73,6 @@ function ClubProfileView({ id }: { id: number }) {
     const images = useProfileImageControls({ enabled: can.isLeader, scope: `club:${id}`, imageKind: 'logo', hasCover: Boolean(club?.bannerUrl), onSave: updateImage });
     const tab = clubTabFrom(params.get('tab'));
     const managing = params.get('manageClub') === '1' && can.canManage;
-    const player = positivePlayerId(params.get('player'));
 
     const setTab = (next: ClubTab) => {
         const query = new URLSearchParams(params);
@@ -88,7 +87,18 @@ function ClubProfileView({ id }: { id: number }) {
         if (open && managementTab) query.set('managementTab', managementTab); else query.delete('managementTab');
         return query;
     }, { replace: true });
-    const join = () => navigate(playerPath(`/clubs/${id}?tab=teams`, player));
+    // Join opens the pop-up over the page; the part shown is in the address (`join=play|child|help`, `1` to let it choose).
+    // Once Join was offered here it stays open after a request goes through (the person's standing changes under it).
+    const [joinOffered, setJoinOffered] = useState(false);
+    if (can.canJoin && !joinOffered) setJoinOffered(true);
+    const joining = params.has('join') && joinOffered;
+    const setJoin = (part: JoinPart | '1' | null, push = false, player?: number) => setParams(current => {
+        const query = new URLSearchParams(current);
+        if (part) query.set('join', part); else query.delete('join');
+        if (player) query.set('player', String(player));
+        return query;
+    }, { replace: !push });
+    const join = () => setJoin('1', true);
     const message = () => { if (club) setEnquiry({ name: club.name, path: `/clubs/${club.id}?tab=teams`, squadIds: [] }); };
 
     if ((loading && !club) || (edit.loading && !page && !edit.notFound)) return <ClubLoading />;
@@ -137,6 +147,8 @@ function ClubProfileView({ id }: { id: number }) {
         {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))} onClose={() => setManaging(false)}            onSquadCreated={() => setSquadsRevision(value => value + 1)}
             onDataChanged={() => { refresh(); setSquadsRevision(value => value + 1); }}
             onMembershipLeft={async () => { setManaging(false); await leftClub(); setSquadsRevision(value => value + 1); }} />}
+        {joining && <ClubJoinDialog club={club} part={joinPartFrom(params.get('join'))} onPart={setJoin} onClose={() => setJoin(null)}
+            onContact={(context, player) => { setJoin(null, false, player); setEnquiry(context); }} onChanged={refresh} />}
         {enquiry && <ClubEnquiryModal key={`${club.id}:${sessionId}:${enquiry.path}`} clubId={club.id} clubName={club.name} context={enquiry} onClose={() => setEnquiry(null)} />}
     </>;
 }

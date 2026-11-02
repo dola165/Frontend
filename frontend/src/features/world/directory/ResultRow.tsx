@@ -8,9 +8,9 @@ import './result-row.css';
 
 /**
  * One search result, the way LinkedIn lists jobs and companies: a crest, face or date, the name as the link, a few
- * quiet lines under it, and at the end one number worth seeing (a price, a status) and one action. The name goes to
- * the full page; a press anywhere else on the row, or its details button at the end, shows the result beside the list
- * (or in a drawer). The row lights up while it is shown or its pin has the pointer.
+ * quiet lines under it, and at the end one number worth seeing (a price, a status) and one action. The name and the
+ * crest or face go to the full page; a press anywhere else on the row, or its details button at the end, shows the
+ * result beside the list (or in a drawer). The row lights up while it is shown or its pin has the pointer.
  */
 export function ResultRow({ lead, title, to, peek, label, mark, lines, aside, action }: {
     lead: ReactNode; title: string; /** The full page. */ to: string;
@@ -24,7 +24,8 @@ export function ResultRow({ lead, title, to, peek, label, mark, lines, aside, ac
     return (
         <li>
             <article className="gk-result" data-open={shown || undefined} data-clickable={peek ? true : undefined} onClick={press} {...linked}>
-                <span className="gk-result__lead">{lead}</span>
+                {/* The same page as the name: one link for keyboards and screen readers, two places to press. */}
+                <Link className="gk-result__lead" to={to} tabIndex={-1} aria-hidden="true">{lead}</Link>
                 <div className="gk-result__main">
                     <div className="gk-result__name">
                         <Link className="gk-result__title" to={to} aria-label={label}>{title}</Link>

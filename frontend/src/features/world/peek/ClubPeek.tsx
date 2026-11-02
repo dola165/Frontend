@@ -1,14 +1,13 @@
 import { useId, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BadgeCheck } from 'lucide-react';
-import { Button, EmptyNote, Skeleton } from '../../../design/primitives';
+import { Button, ButtonLink, EmptyNote, Skeleton } from '../../../design/primitives';
 import { Tabs } from '../../../design/Tabs';
 import { Status } from '../../../design/DataTable';
 import { MediaImage } from '../../../components/ui/MediaImage';
 import { useAuth } from '../../../context/AuthContext';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { fetchClubProfile } from '../api';
-import { ClubMainAction } from '../cards/ClubActions';
 import { FollowButton } from '../../actions/FollowButton';
 import { useClubActions } from '../cards/useClubActions';
 import { plural, useWorldCopy } from '../copy';
@@ -16,18 +15,17 @@ import { Crest } from '../Crest';
 import { clubTypeLabel, codeLabel } from '../format';
 import { useWorldData } from '../useWorldData';
 import { clubPartPage, clubParts, clubTab, loadClubExtras, type ClubExtras, type ClubPart, type PaneClub } from './club/clubPane';
-import { ClubOverview, ClubPartView } from './club/ClubParts';
+import { ClubPartView } from './club/ClubParts';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
 import { peekClick, peekOf, usePeek, usePeekPart } from './usePeek';
 import './peek.css';
 import './club/club-pane.css';
 
 /**
- * A club beside the list (or in a drawer): its cover and crest, who they are, where you stand and the one thing to do
- * for who is looking, then tabs that switch in place: an overview with a little of each part (programmes and teams,
- * coaches, management, matches, trials, jobs, venues, honours, contact), and a tab of its own for each part that has
- * something in it. The tab shown is in the address. Everything shown is what the club published; "Club page" opens
- * the full page at the tab shown.
+ * A club beside the list (or in a drawer): its cover and crest, who they are and where you stand, the same for everyone,
+ * then a tab for each part that has something in it (teams and training first), switching in place. The tab shown is
+ * in the address. Everything shown is what the club published. Joining and every other step happen on the club page
+ * (the owner, 2 November 2026): its crest, its name and "Club page" open it at the tab shown.
  */
 export default function ClubPeek({ id }: { id: string }) {
     const t = useWorldCopy();
@@ -51,20 +49,18 @@ function ClubPane({ club, extras, retry }: { club: PaneClub; extras?: ClubExtras
     const [params] = useSearchParams();
     const player = params.get('player');
     const actions = useClubActions(club);
-    const { standing, linked, message, child } = actions;
+    const { standing, linked, child } = actions;
     const [part, showPart] = usePeekPart();
     const ids = useId();
     const tabsTop = useRef<HTMLDivElement>(null);
     const parts = extras ? clubParts(club, extras) : [];
-    const current = parts.find(item => item.id === part)?.id;
-    const shown = current ?? 'overview';
-    /** Shows a part (none: the overview). Scrolled past the tabs, the pane goes back to them so the part starts at its top. */
-    const select = (next?: ClubPart, focus = false) => {
+    // No overview: the club opens on its first part (teams and training when it has any).
+    const current = parts.find(item => item.id === part)?.id ?? parts[0]?.id;
+    /** Shows a part. Scrolled past the tabs, the pane goes back to them so the part starts at its top. */
+    const select = (next: ClubPart) => {
         const top = tabsTop.current, body = top?.closest<HTMLElement>('.gk-drawer__body');
         if (top && body) body.scrollTop = Math.min(body.scrollTop, top.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop);
-        showPart(next);
-        // From a "View …" in the overview (which goes away), focus moves to the part's tab rather than falling to the page.
-        if (focus) requestAnimationFrame(() => document.getElementById(`${ids}-${next ?? 'overview'}`)?.focus({ preventScroll: true }));
+        showPart(next === parts[0]?.id ? undefined : next);
     };
     const cover = resolveMediaUrl(club.bannerUrl);
     const facts = [t(clubTypeLabel(club.type)), club.cityName || club.addressText?.split(',')[0], club.foundedYear ? t('Founded {year}', { year: club.foundedYear }) : null, club.level ? codeLabel(club.level) : null];
@@ -74,9 +70,9 @@ function ClubPane({ club, extras, retry }: { club: PaneClub; extras?: ClubExtras
             <div className="gk-pane-top">
                 <div className="gk-pane-cover">{cover && <MediaImage src={cover} alt="" />}</div>
                 <header className="gk-pane-head">
-                    <Crest src={club.logoUrl} name={club.name} size={64} />
+                    <Link to={page} tabIndex={-1} aria-hidden="true" className="gk-club-pane__crest"><Crest src={club.logoUrl} name={club.name} size={64} /></Link>
                     <div>
-                        <h3>{club.name}{club.isOfficial && <BadgeCheck className="gk-world-verified" aria-label={t('Verified club')} />}</h3>
+                        <h3><Link to={page} className="gk-club-pane__name">{club.name}</Link>{club.isOfficial && <BadgeCheck className="gk-world-verified" aria-label={t('Verified club')} />}</h3>
                         <p>{facts.filter(Boolean).join(' · ')}</p>
                         {linked && <Link className="gk-club-pane__belongs" to={`/clubs/${linked.clubId}`} onClick={peekClick(peekOf('club', linked.clubId), drawers.open)}>
                             <Crest src={linked.logoUrl} name={linked.name} size={16} round />
@@ -85,21 +81,21 @@ function ClubPane({ club, extras, retry }: { club: PaneClub; extras?: ClubExtras
                     </div>
                 </header>
                 <div className="gk-club-pane__actions">
-                    <ClubMainAction club={club} actions={actions} />
+                    <ButtonLink size="sm" variant="primary" to={page}>{t('Club page')}</ButtonLink>
                     <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />
                     {standing && <Status tone={standing.tone}>{t(standing.label)}</Status>}
                     <span className="gk-faint">{[plural(club.memberCount, 'member'), club.followerCount ? plural(club.followerCount, 'follower') : null].filter(Boolean).join(' · ')}</span>
                 </div>
-                {message && <p className={message.error ? 'gk-result-error' : 'gk-result-open'} role={message.error ? 'alert' : 'status'}>{message.text}</p>}
+                {club.description && <p className="gk-club-pane__about">{club.description}</p>}
                 {extras ? (
                     <div ref={tabsTop} className="gk-pane-parts">
-                        <Tabs className="gk-pane-tabs" label={t('{club} page', { club: club.name })} idBase={ids} value={shown} onChange={id => select(id === 'overview' ? undefined : id)}
-                            items={[{ id: 'overview' as const, label: t('Overview') }, ...parts.map(item => ({ id: item.id, label: t(item.label) }))]} />
-                        <div role="tabpanel" id={`${ids}-${shown}-panel`} aria-labelledby={`${ids}-${shown}`} className="gk-pane-panel">
-                            {current
-                                ? <ClubPartView part={current} club={club} extras={extras} child={child} player={player} />
-                                : <ClubOverview club={club} extras={extras} child={child} player={player} select={next => select(next, true)} />}
-                        </div>
+                        {current && <>
+                            <Tabs className="gk-pane-tabs" label={t('{club} page', { club: club.name })} idBase={ids} value={current} onChange={select}
+                                items={parts.map(item => ({ id: item.id, label: t(item.label) }))} />
+                            <div role="tabpanel" id={`${ids}-${current}-panel`} aria-labelledby={`${ids}-${current}`} className="gk-pane-panel">
+                                <ClubPartView part={current} club={club} extras={extras} child={child} player={player} />
+                            </div>
+                        </>}
                     </div>
                 ) : (
                     <div className="gk-pane-parts" aria-hidden="true">

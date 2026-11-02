@@ -1,20 +1,32 @@
 import { useId, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Dialog } from '../../../design/Dialog';
 import { Button } from '../../../design/primitives';
 import { refreshAccess } from '../../../hooks/useCan';
 import { AddChild } from '../../parents/AddChild';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+import { withoutAction } from '../registry';
 import { joinTarget } from './joinTarget';
 import '../actions.css';
 
-/** Add my child over any page: the child's card, then Parent Hub with that child chosen. */
+/**
+ * Add my child over any page: the child's card, then Parent Hub with that child chosen. Asked from a club's Join
+ * pop-up (`join=` in the address), it goes back to the pop-up instead, with the new child chosen.
+ */
 export function AddChildFlow({ onClose }: { onClose: () => void }) {
     const copy = useJourneyCopy();
     const navigate = useNavigate();
+    const here = useLocation();
+    const created = (childId: number) => {
+        refreshAccess();
+        const back = new URLSearchParams(withoutAction(here.search));
+        if (!back.has('join')) { navigate(`/parent?player=${childId}`, { replace: true }); return; }
+        back.set('player', String(childId));
+        navigate(`${here.pathname}?${back}`, { replace: true });
+    };
     return <Dialog open size="md" title={copy('Add my child', 'ჩემი შვილის დამატება')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}>
-        <AddChild inline onCreated={childId => { refreshAccess(); navigate(`/parent?player=${childId}`, { replace: true }); }} />
+        <AddChild inline onCreated={created} />
     </Dialog>;
 }
 

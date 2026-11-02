@@ -149,7 +149,7 @@ export function clubsSource({ child, centre, locations, following = false, finde
             return { items: result.content, total: result.totalElements, hasMore: page + 1 < result.totalPages };
         },
         key: club => String(club.id),
-        Item: ({ item }) => <ClubRow club={item} distanceKm={distance(item)} followOnly={following} />,
+        Item: ({ item }) => <ClubRow club={item} distanceKm={distance(item)} />,
         Top: finder ? FinderYou : undefined,
         // A group a link named opens with its club above the results, whatever the filters (Parent Hub's finder).
         Tools: finder ? FinderNamedGroup : undefined,

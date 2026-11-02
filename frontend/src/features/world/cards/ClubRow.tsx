@@ -6,7 +6,6 @@ import { Crest } from '../Crest';
 import { ResultRow } from '../directory/ResultRow';
 import { clubTypeLabel, distanceLabel } from '../format';
 import { peekOf } from '../peek/usePeek';
-import { ClubMainAction } from './ClubActions';
 import { FollowButton } from '../../actions/FollowButton';
 import { fittingProgrammes, programmeBorn, publicProgrammes } from './programmes';
 import { parentName } from '../finder/waysIn';
@@ -18,18 +17,19 @@ import { FinderClubRow } from '../finder/FinderClubRow';
 /**
  * A club as one line of a list, the way LinkedIn lists companies: its crest, its name (the verified tick after it), what
  * kind of club and where, one fact (a programme that fits the child a parent searches for, or that none does, else the
- * academy and its pro club, else its members), where the person stands with it, and the one main action for who is
- * looking (else Follow). Its name goes to the club page; a press elsewhere shows the club beside the list.
+ * academy and its pro club, else its members), where the person stands with it, and Follow. The same for everyone:
+ * joining and the rest happen on the club page. Its name and crest go to the club page; a press elsewhere shows the
+ * club beside the list.
  */
-export function ClubRow(props: { club: ClubProfile; distanceKm?: number; followOnly?: boolean }) {
+export function ClubRow(props: { club: ClubProfile; distanceKm?: number }) {
     // In Parent Hub's club finder the club opens inside the list, with the ways in for the child.
     return useFinder() ? <FinderClubRow club={props.club} distanceKm={props.distanceKm} /> : <WorldClubRow {...props} />;
 }
 
-function WorldClubRow({ club, distanceKm, followOnly = false }: { club: ClubProfile; distanceKm?: number; followOnly?: boolean }) {
+function WorldClubRow({ club, distanceKm }: { club: ClubProfile; distanceKm?: number }) {
     const t = useWorldCopy();
     const actions = useClubActions(club);
-    const { standing, linked, message, child } = actions;
+    const { standing, linked, child } = actions;
     const fitting = child ? fittingProgrammes(club.presentation, child) : [];
     // A parent searching for a child is told plainly when none of the club's programmes is for that age.
     const age = ageOn(child?.dateOfBirth), unfit = child && age != null && !fitting.length && publicProgrammes(club.presentation).length > 0;
@@ -41,8 +41,8 @@ function WorldClubRow({ club, distanceKm, followOnly = false }: { club: ClubProf
     return (
         <ResultRow lead={<Crest src={club.logoUrl} name={club.name} size={40} />} title={club.name} to={`/clubs/${club.id}`} peek={peekOf('club', club.id)}
             mark={club.isOfficial ? <BadgeCheck className="gk-world-verified" aria-label={t('Verified club')} /> : undefined}
-            lines={[where, fact, message && <span role={message.error ? 'alert' : 'status'} className={message.error ? 'gk-result-error' : 'gk-result-open'}>{message.text}</span>]}
+            lines={[where, fact]}
             aside={standing && <Status tone={standing.tone}>{t(standing.label)}</Status>}
-            action={!followOnly && (actions.enquiry || actions.canJoin || actions.propose) ? <ClubMainAction club={club} actions={actions} variant="secondary" /> : <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />} />
+            action={<FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />} />
     );
 }

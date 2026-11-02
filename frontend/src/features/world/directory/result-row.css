@@ -11,7 +11,7 @@
 .gk .gk-result[data-clickable] { cursor: pointer; }
 .gk .gk-result[data-clickable]:hover, .gk .gk-result[data-highlighted] { background: var(--gk-hover); }
 .gk .gk-result[data-open], .gk .gk-result[aria-current] { background: color-mix(in srgb, var(--gk-accent) 9%, var(--gk-surface)); }
-.gk .gk-result__lead { align-self: start; display: grid; place-items: center; }
+.gk .gk-result__lead { align-self: start; display: grid; place-items: center; color: inherit; text-decoration: none; }
 .gk .gk-result__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gk .gk-result__name { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
 .gk .gk-result__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gk-text); font-size: var(--gk-fs-md); font-weight: 650; text-decoration: none; }

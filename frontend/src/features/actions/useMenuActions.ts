@@ -40,7 +40,7 @@ export function useMenuActions(): MenuAction[] {
     const project: MenuAction[] = projectsHere ? [{ key: 'start_project', href: projectsPath(projectsHere.club.id, 'projects', { new: '1' }),
         label: ['New project', 'ახალი პროექტი'], icon: FolderKanban }] : [];
     const office = user?.navigationCapabilities?.workspaces.find(entry => entry.id === 'club.office');
-    const job: MenuAction[] = office ? [{ key: 'post_job', href: `/clubs/${office.context.id}/office?view=jobs`, label: ['Post a job', 'ვაკანსიის გამოქვეყნება'], icon: Briefcase }] : [];
+    const job: MenuAction[] = office ? [{ key: 'post_job', href: `/clubs/${office.context.id}/office?view=jobs&new=1`, label: ['Post a job', 'ვაკანსიის გამოქვეყნება'], icon: Briefcase }] : [];
     const organiser = user?.navigationCapabilities?.workspaces.find(entry => entry.id === 'tournament.create');
     const tournament: MenuAction[] = organiser ? [{ key: 'create_tournament', href: `/world/tournaments?peek=${drawPeek({ organizerId: organiser.context.id })}`, label: ['Create a tournament', 'ტურნირის შექმნა'], icon: Trophy }] : [];
     const owed = newest ? item('report_score', score, {

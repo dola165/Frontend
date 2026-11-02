@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { hasNavigationCapability } from '../../context/navigationCapabilities';
 import { Button } from '../../design/primitives';
 import { isAdult } from '../../utils/age';
 import { OPENED_HERE } from '../actions/registry';
@@ -82,6 +83,8 @@ export function FirstWeek() {
     if (!userId || !choice || progress?.state !== 'DONE' || progress.cardDismissed) return null;
     const steps = stepsFor(choice);
     const done = doneSteps(progress);
+    // A child added anywhere (in the welcome itself, in Parent Hub, through a family link) is the step done, not the press here.
+    if (hasNavigationCapability(user?.navigationCapabilities, 'parent.hub')) done.add('child');
     const count = steps.filter(step => done.has(step.id)).length;
     if (count === steps.length) return null;
     const setOpen = (value: boolean) => { toggled.current = true; setConfirming(false); record(current => withUnfolded(current, value)); };

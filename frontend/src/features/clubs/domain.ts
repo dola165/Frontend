@@ -184,6 +184,8 @@ export interface ClubPlayerAffiliation {
     parentalConsentAt?: string | null;
     trialEndsOn?: string | null;
     requiresParentalConsent?: boolean | null;
+    /** When the club sent the card to the family, while that link waits to be opened. */
+    familyLinkSentAt?: string | null;
 }
 
 export interface ClubInviteCandidate {

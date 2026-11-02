@@ -102,6 +102,8 @@ export interface SquadJoinVisit { startsAt:string; endsAt:string; place:string|n
 export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'|'GROUP'|'VISIT'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null }; answeredBy?:string|null; answeredAt?:string|null; visit?:SquadJoinVisit|null; sameChild?:SquadSameChild|null }
 /** A card the club already has that looks like the requested child ("Luka B."). `hasFamily`: its parent is asked instead. */
 export interface SquadSameChild { playerId:number; name:string; hasFamily:boolean }
+/** A request that looks like a card the club made and no family holds yet: the coach answers Same child or New player before any yes. */
+export const needsSameChildAnswer=(match?:SquadSameChild|null)=>Boolean(match&&!match.hasFamily);
 /** "Same child": the request's child is that card; the two become one (DONE), or the request's family is asked first (PROPOSED). */
 export const sameChild=async(id:number,requestPlayerId:number,playerId:number)=>(await apiClient.post<{ status:'DONE'|'PROPOSED'; playerId:number }>(`${root}/${id}/join-requests/same-child`,{ requestPlayerId, playerId })).data;
 /** `REVIEW`: invite to a trial, the request going on into the joining group's admission (step 3). */

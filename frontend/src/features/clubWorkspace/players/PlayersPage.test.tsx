@@ -182,6 +182,13 @@ describe('Players — trialist actions', () => {
 
 
 describe('Players — the family link', () => {
+    it('layer 1 walk p11: a card already sent shows the family waiting, and Send again', () => {
+        renderTab({ playerDirectory: makeDirectory([{ ...trialist, requiresParentalConsent: true, parentalConsentStatus: null, familyLinkSentAt: '2026-11-02T19:05:00Z' }]), onFamilyLink: vi.fn() });
+        expect(screen.getAllByText('Sent to the family · waiting').length).toBeGreaterThan(0);
+        expect(screen.queryByText('Consent needed')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Send again' })).toBeInTheDocument();
+    });
+
     it('sends nothing once the parent has said yes', () => {
         renderTab({ playerDirectory: makeDirectory([{ ...trialist, parentalConsentStatus: 'CONFIRMED' }]), onFamilyLink: vi.fn() });
         expect(screen.queryByRole('button', { name: 'Send to the family' })).not.toBeInTheDocument();

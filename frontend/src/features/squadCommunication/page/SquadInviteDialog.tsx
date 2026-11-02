@@ -6,6 +6,7 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import * as api from '../api';
 import { useJourneyCopy } from '../journeyCopy';
 import { SquadApproveAll } from './SquadApproveAll';
+import { SameChildMatch } from './SameChildMatch';
 import { LinkShare } from '../../../components/share/LinkShare';
 import type { JoinRequests } from './useJoinRequests';
 
@@ -80,24 +81,32 @@ export function SquadInviteDialog({ space, requests, canLink = true, onClose, on
             {approved && <p className="sp-done" role="status">{approved}</p>}
             {requests.failed ? <p className="gk-notice gk-notice--danger" role="alert">{copy('The waiting list could not load.', 'მომლოდინეთა სია ვერ ჩაიტვირთა.')} <button type="button" className="sp-link" onClick={requests.refresh}>{copy('Try again', 'ხელახლა ცდა')}</button></p>
                 : requests.items === null ? <p className="sp-quiet" role="status">{copy('Loading…', 'იტვირთება…')}</p>
-                : waiting.length ? <ul className="sp-requests">{waiting.map(request => <RequestRow key={request.id} request={request} busy={busy === request.id} onDecide={decide} />)}</ul>
+                : waiting.length ? <ul className="sp-requests">{waiting.map(request => <RequestRow key={request.id} squadId={space.id} request={request} busy={busy === request.id} onDecide={decide}
+                    onMatched={answer => { if (answer.tone === 'danger') setError(answer.text); else { setApproved(answer.text); requests.refresh(); onAnswered(); } }} />)}</ul>
                 : <p className="sp-quiet">{copy('Nobody is waiting.', 'არავინ ელოდება.')}</p>}
             <ParentLinks squadId={space.id} />
         </div>
     </Dialog>;
 }
 
-/** One child: who asked and when; Add offers the place in the squad's joining group, or points to setting one up first. */
-function RequestRow({ request, busy, onDecide }: { request: api.SquadJoinRequest; busy: boolean; onDecide: (request: api.SquadJoinRequest, action: 'APPROVE' | 'DECLINE', group?: api.SquadJoinGroup) => Promise<void> }) {
+/**
+ * One child: who asked and when; Add offers the place in the squad's joining group, or points to setting one up first.
+ * A child who looks like a card the club made is answered Same child or New player first, so no second card is made.
+ */
+function RequestRow({ squadId, request, busy, onDecide, onMatched }: { squadId: number; request: api.SquadJoinRequest; busy: boolean; onDecide: (request: api.SquadJoinRequest, action: 'APPROVE' | 'DECLINE', group?: api.SquadJoinGroup) => Promise<void>;
+    onMatched: (answer: { tone: 'success' | 'danger'; text: string }) => void }) {
     const copy = useJourneyCopy();
     const [group, setGroup] = useState<number>(request.groups[0]?.id ?? 0);
+    const [apart, setApart] = useState(false);
+    const lookAlike = request.sameChild && !apart ? request.sameChild : null;
     const chosen = request.groups.find(item => item.id === group) ?? request.groups[0];
     const meta = [request.birthYear ? copy(`born ${request.birthYear}`, `დაბ. ${request.birthYear}`) : null, request.guardianName, request.source === 'LINK' ? copy('from the link', 'ბმულით') : copy('asked to join', 'მოითხოვა')].filter(Boolean).join(' · ');
     return <li>
         <Avatar name={request.childName} size={32} />
         <span className="sp-requests__text"><strong>{request.childName}</strong><small>{meta}</small>
-            {request.groups.length > 1 && <select className="gk-input sp-requests__group" aria-label={copy(`Joining group for ${request.childName}`, `${request.childName} — ჯგუფი`)} value={chosen?.id} onChange={e => setGroup(Number(e.target.value))}>{request.groups.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}</span>
-        {chosen ? <Button size="sm" variant="primary" disabled={busy} onClick={() => void onDecide(request, 'APPROVE', chosen)}><Check aria-hidden="true" />{copy('Add', 'დამატება')}</Button>
+            {request.groups.length > 1 && <select className="gk-input sp-requests__group" aria-label={copy(`Joining group for ${request.childName}`, `${request.childName} — ჯგუფი`)} value={chosen?.id} onChange={e => setGroup(Number(e.target.value))}>{request.groups.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
+            {lookAlike && <SameChildMatch squadId={squadId} requestPlayerId={request.playerId} childName={request.childName} match={lookAlike} failedText={copy('Could not save. Try again.', 'ვერ შეინახა. სცადეთ ხელახლა.')} onApart={() => setApart(true)} onAnswered={onMatched} />}</span>
+        {api.needsSameChildAnswer(lookAlike) ? null : chosen ? <Button size="sm" variant="primary" disabled={busy} onClick={() => void onDecide(request, 'APPROVE', chosen)}><Check aria-hidden="true" />{copy('Add', 'დამატება')}</Button>
             : <ButtonLink size="sm" variant="secondary" to={request.setup.destination ?? request.destination} title={copy('The squad has no joining terms yet. Set them up, then say yes here.', 'გუნდს გაწევრიანების პირობები ჯერ არ აქვს. შექმენით და დაადასტურეთ აქ.')}>{copy('Set up terms', 'პირობების შექმნა')}</ButtonLink>}
         <Button size="sm" variant="ghost" iconOnly aria-label={copy(`Decline ${request.childName}`, `უარი: ${request.childName}`)} disabled={busy} onClick={() => void onDecide(request, 'DECLINE')}><X aria-hidden="true" /></Button>
     </li>;

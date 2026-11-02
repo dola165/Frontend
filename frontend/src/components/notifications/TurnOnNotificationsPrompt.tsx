@@ -14,7 +14,8 @@ const writeDismissed = (group: NotificationGroupKey) => { try { localStorage.set
  * One line, one tap: turns on push for a group (Team work by default) on this device. Shows only
  * while it would change something: push possible here, not yet on for this device and group, not
  * dismissed. On an iPhone that is not on the Home Screen it says what to do instead. Mount it
- * anywhere with `<TurnOnNotificationsPrompt />`; the Team work page is the first place.
+ * anywhere with `<TurnOnNotificationsPrompt />`: Team work, and Parent Hub for squad updates (the
+ * coach's Notify) once a child has a club.
  */
 export function TurnOnNotificationsPrompt({ group = 'TEAM_WORK', className }: { group?: NotificationGroupKey; className?: string }) {
     const copy = useJourneyCopy();
@@ -39,6 +40,9 @@ export function TurnOnNotificationsPrompt({ group = 'TEAM_WORK', className }: { 
     if (device.state === 'on' && groupOn && !done) return null;
 
     const groupName = group === 'TEAM_WORK' ? copy('Team work', 'გუნდის საქმე') : copy('these', 'ამ');
+    const ping = group === 'SQUAD_UPDATES'
+        ? copy('Get a ping when the coach sends an update or training changes, even when the site is closed.', 'მიიღეთ შეტყობინება, როცა მწვრთნელი სიახლეს აგზავნის ან ვარჯიში იცვლება, საიტი დახურულიც რომ იყოს.')
+        : copy(`Get a ping when something in ${groupName} needs you, even when the site is closed.`, `მიიღეთ შეტყობინება, როცა ${groupName}ში რამე გელოდებათ, საიტი დახურულიც რომ იყოს.`);
     const dismiss = () => { writeDismissed(group); setDismissed(true); };
     const turnOn = async () => {
         if (!groupOn) setPreferences(await setNotificationGroup(group, { push: true, language: device.language }));
@@ -52,10 +56,10 @@ export function TurnOnNotificationsPrompt({ group = 'TEAM_WORK', className }: { 
             {done ? (
                 <p className="gk-turn-on-notifications__text">{copy('Notifications are on for this device. Change what you get in', 'შეტყობინებები ამ მოწყობილობაზე ჩართულია. რას მიიღებთ, შეცვალეთ აქ:')} <Link to="/account?tab=notifications">{copy('Notification settings', 'შეტყობინებების პარამეტრები')}</Link>.</p>
             ) : device.state === 'needs-home-screen' ? (
-                <p className="gk-turn-on-notifications__text">{copy('To get Team work notifications on this iPhone, add GrassKickZ to your Home Screen (Share → Add to Home Screen) and open it from there.', 'რომ ამ iPhone-ზე გუნდის საქმის შეტყობინებები მიიღოთ, დაამატეთ GrassKickZ მთავარ ეკრანზე (გაზიარება → მთავარ ეკრანზე დამატება) და იქიდან გახსენით.')}</p>
+                <p className="gk-turn-on-notifications__text">{copy('To get notifications on this iPhone, add GrassKickZ to your Home Screen (Share → Add to Home Screen) and open it from there.', 'რომ ამ iPhone-ზე შეტყობინებები მიიღოთ, დაამატეთ GrassKickZ მთავარ ეკრანზე (გაზიარება → მთავარ ეკრანზე დამატება) და იქიდან გახსენით.')}</p>
             ) : (
                 <>
-                    <p className="gk-turn-on-notifications__text">{copy(`Get a ping when something in ${groupName} needs you, even when the site is closed.`, `მიიღეთ შეტყობინება, როცა ${groupName}ში რამე გელოდებათ, საიტი დახურულიც რომ იყოს.`)}</p>
+                    <p className="gk-turn-on-notifications__text">{ping}</p>
                     <button type="button" className="gk-turn-on-notifications__button" disabled={device.busy} onClick={() => void turnOn()}>{copy('Turn on notifications', 'შეტყობინებების ჩართვა')}</button>
                     <Link className="gk-turn-on-notifications__more" to="/account?tab=notifications">{copy('More choices', 'სხვა არჩევანი')}</Link>
                     {device.failure && <p className="gk-turn-on-notifications__error" role="alert">{device.failure === 'denied'

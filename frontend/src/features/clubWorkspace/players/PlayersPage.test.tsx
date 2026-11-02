@@ -172,16 +172,25 @@ describe('Players — trialist actions', () => {
 
     it('offers Send to the family on a child’s card whose parent hasn’t said yes, as a link for any chat', async () => {
         const onFamilyLink = vi.fn().mockResolvedValue({ id: 1, kind: 'CLUB_CARD', code: 'c'.repeat(43), path: `/family-link/${'c'.repeat(43)}`, expiresAt: '2026-11-16T00:00:00Z', personId: 7, personName: 'Giorgi Trialist' });
-        renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink });
+        const props = renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink, onFamilySent: vi.fn() });
         fireEvent.click(screen.getByRole('button', { name: 'Send to the family' }));
         expect(await screen.findByDisplayValue(`${window.location.origin}/family-link/${'c'.repeat(43)}`)).toBeInTheDocument();
         expect(onFamilyLink).toHaveBeenCalledWith(7);
+        // Fix round: the list reads the row again, which then says the family is waiting.
+        expect(props.onFamilySent).toHaveBeenCalledTimes(1);
         expect(screen.queryByLabelText('Parent email Giorgi Trialist')).not.toBeInTheDocument();
     });
 });
 
 
 describe('Players — the family link', () => {
+    it('layer 1 walk p11: a card already sent shows the family waiting, and Send again', () => {
+        renderTab({ playerDirectory: makeDirectory([{ ...trialist, requiresParentalConsent: true, parentalConsentStatus: null, familyLinkSentAt: '2026-11-02T19:05:00Z' }]), onFamilyLink: vi.fn() });
+        expect(screen.getAllByText('Sent to the family · waiting').length).toBeGreaterThan(0);
+        expect(screen.queryByText('Consent needed')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Send again' })).toBeInTheDocument();
+    });
+
     it('sends nothing once the parent has said yes', () => {
         renderTab({ playerDirectory: makeDirectory([{ ...trialist, parentalConsentStatus: 'CONFIRMED' }]), onFamilyLink: vi.fn() });
         expect(screen.queryByRole('button', { name: 'Send to the family' })).not.toBeInTheDocument();

@@ -9,9 +9,10 @@ import { applyPreferencesUpdate, type Preferences } from '../preferences/prefere
 import { FirstWeek } from './FirstWeek';
 import { markDone, withUnfolded } from './steps';
 import { WorldWelcome } from './WorldWelcome';
+import { FOLLOWS_CHANGED } from '../actions/follow';
 
-const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>() }));
-const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } }));
+const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>(), children: [] as unknown[] }));
+const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } as { id: number; dob: string; navigationCapabilities?: { version: number; workspaces: { id: string }[] } } }));
 vi.mock('../../api/axiosConfig', async original => ({ ...(await original<object>()), apiClient: { get: vi.fn(), put: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated', bootstrapSession: async () => auth.user }) }));
 
@@ -32,9 +33,11 @@ beforeEach(async () => {
     await i18n.changeLanguage('en');
     auth.user = { id: nextUser++, dob: '1985-05-02' };
     server.followed = new Set();
+    server.children = [];
     vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
         if (url === '/users/me/preferences') return { data: server.prefs };
         if (url === '/access/me') return { data: { allowed: ['follow', 'add_child'], refused: [] } };
+        if (url === '/joining/children') return { data: { children: server.children } };
         if (url === '/clubs/near-you') return { data: [{ id: 5, name: 'Rustavi Lions', logoUrl: null, bannerUrl: null, cityName: 'Rustavi', km: 1, followers: 3, following: false }] };
         return { data: [] };
     });
@@ -74,6 +77,25 @@ describe('your first week, in the corner', () => {
         }
     });
 
+    it('layer 1 walk p2: a child added in the welcome ticks Add your child, without pressing it here', async () => {
+        welcome('CHILD', { week: ['open'] });
+        auth.user = { ...auth.user, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub' }] } };
+        server.children = [{ playerId: 61 }];
+        mount();
+        expect(await screen.findByText('1 of 3')).toBeInTheDocument();
+        expect(screen.getByText(/\(done\)/).closest('a, button')).toHaveTextContent('Add your child');
+    });
+
+    it('fix round: Parent Hub for a pending invitation, with no child linked yet, leaves Add your child to do', async () => {
+        welcome('CHILD', { week: ['open'] });
+        auth.user = { ...auth.user, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub' }] } };
+        mount();
+        expect(await screen.findByRole('heading', { name: 'Your first week' })).toBeInTheDocument();
+        await waitFor(() => expect(apiClient.get).toHaveBeenCalledWith('/joining/children', expect.anything()));
+        expect(screen.getByText('0 of 3')).toBeInTheDocument();
+        expect(screen.queryByText(/\(done\)/)).not.toBeInTheDocument();
+    });
+
     it('ticks a step on another page and folds out of its way', async () => {
         const user = userEvent.setup();
         welcome('ME', { week: ['open'] });
@@ -100,6 +122,52 @@ describe('your first week, in the corner', () => {
         await user.click(await within(sheet).findByRole('button', { name: /Follow/ }));
         await waitFor(() => expect(server.followed.has(5)).toBe(true));
         await waitFor(() => expect(week()?.week).toEqual(['open', 'follow']));
+        // Home loads again once the sheet closes, not while the person is still choosing.
+        const heard = vi.fn();
+        window.addEventListener(FOLLOWS_CHANGED, heard);
+        await user.click(within(sheet).getByRole('button', { name: 'Done' }));
+        window.removeEventListener(FOLLOWS_CHANGED, heard);
+        expect(heard).toHaveBeenCalledTimes(1);
+    });
+
+    it('points a player to their football profile first', async () => {
+        welcome('ME', { week: ['open'] });
+        mount();
+        const rows = within(await screen.findByRole('list')).getAllByRole('listitem');
+        expect(within(rows[0]).getByRole('link', { name: 'Your football profile' })).toHaveAttribute('href', '/account/football');
+        expect(screen.queryByRole('button', { name: 'Add your photo' })).toBeNull();
+    });
+
+    it('tells Home about the follow that finishes the week, though the week then leaves with its sheet', async () => {
+        const user = userEvent.setup();
+        welcome('FOLLOW', { week: ['open', 'world', 'photo'] });
+        mount();
+        const heard = vi.fn();
+        window.addEventListener(FOLLOWS_CHANGED, heard);
+        await user.click(await screen.findByRole('button', { name: 'Follow clubs near you' }));
+        const sheet = await screen.findByRole('dialog', { name: 'Clubs near you' });
+        await user.click(await within(sheet).findByRole('button', { name: /Follow/ }));
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Clubs near you' })).not.toBeInTheDocument());
+        window.removeEventListener(FOLLOWS_CHANGED, heard);
+        expect(heard).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not load Home again when the sheet only unfollowed', async () => {
+        const user = userEvent.setup();
+        welcome('FOLLOW', { week: ['open'] });
+        const read = vi.mocked(apiClient.get).getMockImplementation()!;
+        vi.mocked(apiClient.get).mockImplementation(async (url: string, config?: Parameters<typeof read>[1]) => url === '/clubs/near-you'
+            ? { data: [{ id: 5, name: 'Rustavi Lions', logoUrl: null, bannerUrl: null, cityName: 'Rustavi', km: 1, followers: 3, following: true }] } : read(url, config));
+        vi.mocked(apiClient.delete).mockResolvedValue({ data: { following: false } });
+        mount();
+        const heard = vi.fn();
+        window.addEventListener(FOLLOWS_CHANGED, heard);
+        await user.click(await screen.findByRole('button', { name: 'Follow clubs near you' }));
+        const sheet = await screen.findByRole('dialog', { name: 'Clubs near you' });
+        await user.click(await within(sheet).findByRole('button', { name: /Following/ }));
+        await user.click(within(sheet).getByRole('button', { name: 'Done' }));
+        window.removeEventListener(FOLLOWS_CHANGED, heard);
+        expect(heard).not.toHaveBeenCalled();
     });
 
     it('shows a 17-year-old with an adult answer the follower’s week', async () => {
@@ -154,6 +222,13 @@ describe('your first week, in the corner', () => {
             expect(screen.queryByRole('button', { name: /Your first week/ })).toBeNull();
             cleanup();
         }
+        auth.user = { id: nextUser++, dob: '1985-05-02' };
+        welcome('ME', { week: ['world', 'follow', 'football'] });
+        mount();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('button', { name: /Your first week/ })).toBeNull();
+        cleanup();
+        // A player who finished the week before it named the football profile (world, follow, photo) stays done.
         auth.user = { id: nextUser++, dob: '1985-05-02' };
         welcome('ME', { week: ['world', 'follow', 'photo'] });
         mount();

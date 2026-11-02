@@ -1,8 +1,9 @@
 import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import { Check, Loader2, ShieldCheck, Upload, UserRound, X } from 'lucide-react';
-import { updatePlayerCard, type PlayerCard } from '../../features/clubs/api';
+import { createPlayerCard, updatePlayerCard, type PlayerCard } from '../../features/clubs/api';
+import { clubCardFamilyLink } from '../../features/parents/familyLinks';
+import { FamilyLinkShare } from '../../features/parents/FamilyLinkShare';
 import { apiClient } from '../../api/axiosConfig';
 import { MediaImage } from '../ui/MediaImage';
 import { useDialogFocus } from '../workspace/useDialogFocus';
@@ -42,13 +43,34 @@ const positionLabel = (value: string) =>
         .map((word) => (word[0]?.toUpperCase() ?? '') + word.slice(1))
         .join(' ');
 
+/**
+ * A new card, or an existing one to edit. A child's new card waits for the squad it was made for; its "Send to the
+ * family" link opens straight away, and the family's yes brings the child into the squad (layer 1 walk, 2 November
+ * 2026). A family that already holds the child joins the two cards when they open the link.
+ */
 export const PlayerCardModal = (props: PlayerCardModalProps) =>
-    props.isOpen ? props.card ? <PlayerCardForm key={props.card.id} {...props} /> : <PlayerIntakeEntry {...props} /> : null;
+    props.isOpen ? <PlayerCardForm key={props.card?.id ?? 'new'} {...props} /> : null;
 
-function PlayerIntakeEntry({ clubId, squadId, onClose }: PlayerCardModalProps) {
+/** Right after a child's card is made: the family's link for any chat, and Done. */
+function SendToFamily({ clubId, card, squadName, onClose }: { clubId: number; card: PlayerCard; squadName?: string; onClose: () => void }) {
+    const say = useJourneyCopy();
     const id = useId(), dialog = useRef<HTMLDivElement>(null);
     useDialogFocus(true, dialog, onClose);
-    return <div className="prf-overlay squad-design" onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div ref={dialog} className="prf-dialog" role="dialog" aria-modal="true" aria-labelledby={id}><header className="prf-header"><h2 id={id}>Add / invite player</h2><button type="button" className="prf-icon" aria-label="Close player intake" onClick={onClose}><X size={20} /></button></header><div className="prf-body"><p>Continue with the player’s existing identity. Invite the family to a group, or use the guardian’s Parent Hub code after an offline conversation.</p><Link className="prf-primary" onClick={onClose} to={`/clubs/${clubId}/office?tab=tools&tool=admissions&intake=1${squadId ? `&squad=${squadId}` : ''}`}>Open player intake</Link></div></div></div>;
+    const first = (card.fullName ?? '').trim().split(/\s+/)[0];
+    return <div className="prf-overlay squad-design" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+        <div ref={dialog} className="prf-dialog" role="dialog" aria-modal="true" aria-labelledby={id}>
+            <header className="prf-header"><h2 id={id}>{say('Send to the family', 'ოჯახისთვის გაგზავნა')}</h2>
+                <button type="button" className="prf-icon" aria-label={say('Close', 'დახურვა')} onClick={onClose}><X size={20} /></button></header>
+            <div className="prf-body">
+                {squadName && <p className="prf-note" role="status">{say(`${first} joins ${squadName} when the family opens this link and says yes.`, `${first} ${squadName}-ს შეუერთდება, როცა ოჯახი ამ ბმულს გახსნის და თანხმობას მისცემს.`)}</p>}
+                <FamilyLinkShare load={() => clubCardFamilyLink(clubId, card.userId!)}
+                    title={say(`${first}’s card`, `${first}-ის ბარათი`)} subtitle={say('Open it to be their parent here', 'გახსენით, რომ აქ მისი მშობელი იყოთ')}
+                    message={say(`Here is ${first}’s card from our club. Open it so you’re ${first}’s parent on GrassKickZ.`, `ეს არის ${first}-ის ბარათი ჩვენი კლუბიდან. გახსენით, რომ GrassKickZ-ზე ${first}-ის მშობელი იყოთ.`)}
+                    label={say(`Link for ${first}’s family`, `ბმული ${first}-ის ოჯახისთვის`)} />
+            </div>
+            <footer className="prf-footer"><div><button type="button" className="prf-primary" onClick={onClose}>{say('Done', 'მზადაა')}</button></div></footer>
+        </div>
+    </div>;
 }
 
 function PlayerCardForm({
@@ -58,6 +80,7 @@ function PlayerCardForm({
     squads,
     onClose,
     card,
+    onCardCreated,
     onCardUpdated,
 }: PlayerCardModalProps) {
     const { t } = useTranslation();
@@ -75,6 +98,7 @@ function PlayerCardForm({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [discarding, setDiscarding] = useState(false);
+    const [madeChild, setMadeChild] = useState<PlayerCard | null>(null);
     const busy = useRef(false);
     const uploadBusy = useRef(false);
     const dialogRef = useRef<HTMLDivElement>(null);
@@ -160,6 +184,20 @@ function PlayerCardForm({
                           },
                 );
                 onCardUpdated?.();
+            } else {
+                const made = await createPlayerCard(clubId, {
+                    fullName: fullName.trim(),
+                    birthYear: year,
+                    position: position || null,
+                    jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
+                    photoUrl: under13 ? null : photoUrl,
+                    parentEmail: parentEmail.trim() || null,
+                    squadId: selectedSquadId,
+                });
+                // A child's family is reached from here, while the coach still has the chat open; the lists behind
+                // refresh once that is done, since refreshing may close the dialog this form sits in.
+                if (needsConsent && made.userId != null) { setMadeChild(made); return; }
+                onCardCreated?.();
             }
             onClose();
         } catch (err: unknown) {
@@ -185,6 +223,7 @@ function PlayerCardForm({
         .slice(0, 2)
         .map((part) => part[0])
         .join('');
+    if (madeChild) return <SendToFamily clubId={clubId} card={madeChild} squadName={selectedSquadName} onClose={() => { onCardCreated?.(); onClose(); }} />;
     return (
         <div
             className="prf-overlay squad-design"

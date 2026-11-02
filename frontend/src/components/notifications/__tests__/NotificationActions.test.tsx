@@ -6,7 +6,7 @@ import * as squads from '../../../features/squadCommunication/api';
 import { apiClient } from '../../../api/axiosConfig';
 import type { NotificationItem } from '../../../types/notifications';
 
-vi.mock('../../../features/squadCommunication/api', () => ({ joinRequests: vi.fn(), approveAllJoinRequests: vi.fn() }));
+vi.mock('../../../features/squadCommunication/api', async original => ({ ...await original<object>(), joinRequests: vi.fn(), approveAllJoinRequests: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: { post: vi.fn(), get: vi.fn() } }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 4 }, refreshNavigationCapabilities: () => Promise.resolve() }) }));
 
@@ -24,6 +24,13 @@ it('lets the coach approve the whole squad list from the notice', async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Approve all 4' }));
     await waitFor(() => expect(squads.approveAllJoinRequests).toHaveBeenCalledWith(11, expect.objectContaining({ requests: [1, 2, 3, 4].map(id => ({ inquiryId: id, expectedVersion: 1 })), groupId: 81, groupVersion: 3 })));
     expect(await screen.findByText('4 offered a place in U12 intake. Families accept the terms next.')).toBeInTheDocument();
+});
+
+it('names only the children Approve all takes; a look-alike of a club card is checked first', async () => {
+    vi.mocked(squads.joinRequests).mockResolvedValue([request(1, 'Luka Beridze'), { ...request(2, 'Nika Tsintsadze'), sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } }, request(3, 'Ana Beridze')]);
+    render(<NotificationActions notification={base} />);
+    expect(await screen.findByText('Luka, Ana · 1 to check first: looks like a card you made')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve all 2' })).toBeInTheDocument();
 });
 
 it('shows nothing when the list has already been answered', async () => {

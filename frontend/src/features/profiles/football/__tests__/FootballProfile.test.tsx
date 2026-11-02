@@ -115,7 +115,8 @@ describe('your football profile', () => {
         auth.user.dob = '2010-01-01';
         serve(); mount();
         const doors = within(await screen.findByRole('list', { name: 'Start something' }));
-        expect(doors.getByRole('link', { name: /Join a squad/ })).toBeInTheDocument();
+        // Clubs near you, each with Join: not the training-groups map, which lists only open programmes.
+        expect(doors.getByRole('link', { name: /Join a squad/ })).toHaveAttribute('href', '/world/clubs');
         expect(doors.queryByRole('link', { name: /Start a club/ })).not.toBeInTheDocument();
         expect(doors.queryByRole('link', { name: /Add my child/ })).not.toBeInTheDocument();
     });

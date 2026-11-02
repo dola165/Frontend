@@ -7,6 +7,12 @@ vi.mock('../../../features/parents/FamilyClubEnrollment', () => ({ FamilyClubEnr
 vi.mock('../RosterPlayerIdentity', () => ({ RosterPlayerIdentity: ({playerId}: {playerId: number}) => <p>Shared identity {playerId}</p> }));
 import { createPlayerCard, updatePlayerCard, type PlayerCard } from '../../../features/clubs/api';
 
+vi.mock('../../../features/parents/familyLinks', () => ({ clubCardFamilyLink: vi.fn() }));
+vi.mock('../../../features/parents/FamilyLinkShare', () => ({
+    FamilyLinkShare: ({ load, label }: { load: () => Promise<unknown>; label: string }) => <button type="button" onClick={() => void load()}>{label}</button>,
+}));
+import { clubCardFamilyLink } from '../../../features/parents/familyLinks';
+
 vi.mock('../../../features/clubs/api', () => ({
     createPlayerCard: vi.fn(),
     updatePlayerCard: vi.fn(),
@@ -76,13 +82,38 @@ describe('PlayerCardModal activated-account authority', () => {
 });
 
 
-describe('PlayerCardModal participation consent', () => {
-    it('takes new players to connected intake rather than creating a duplicate identity or a placement', () => {
+describe('PlayerCardModal new cards and consent', () => {
+    it('creates a child’s card for the squad and opens the family’s link at once', async () => {
         vi.clearAllMocks();
-        render(<MemoryRouter><PlayerCardModal clubId={7} squadId={11} isOpen onClose={vi.fn()} /></MemoryRouter>);
-        expect(screen.getByRole('link', {name:'Open player intake'})).toHaveAttribute('href','/clubs/7/office?tab=tools&tool=admissions&intake=1&squad=11');
-        expect(screen.queryByLabelText('Full Name')).not.toBeInTheDocument();
-        expect(createPlayerCard).not.toHaveBeenCalled();expect(updatePlayerCard).not.toHaveBeenCalled();
+        vi.mocked(createPlayerCard).mockResolvedValue({ id: 5, userId: 61, fullName: 'Luka Beridze', birthYear: 2015 });
+        const onCardCreated = vi.fn(), onClose = vi.fn();
+        render(<MemoryRouter><PlayerCardModal clubId={7} squadId={11} squadName="2015 Boys" isOpen onClose={onClose} onCardCreated={onCardCreated} /></MemoryRouter>);
+        fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'Luka Beridze' } });
+        fireEvent.change(screen.getByLabelText('Birth Year'), { target: { value: '2015' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Create Card' }));
+        await waitFor(() => expect(createPlayerCard).toHaveBeenCalledOnce());
+        expect(vi.mocked(createPlayerCard).mock.calls[0]).toEqual([7, expect.objectContaining({ fullName: 'Luka Beridze', birthYear: 2015, squadId: 11 })]);
+        expect(await screen.findByText('Luka joins 2015 Boys when the family opens this link and says yes.')).toBeInTheDocument();
+        expect(onCardCreated).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Link for Luka’s family' }));
+        expect(clubCardFamilyLink).toHaveBeenCalledWith(7, 61);
+        expect(onClose).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+        expect(onCardCreated).toHaveBeenCalledOnce();
+        expect(onClose).toHaveBeenCalledOnce();
+        expect(updatePlayerCard).not.toHaveBeenCalled();
+    });
+
+    it('an adult’s new card simply closes', async () => {
+        vi.clearAllMocks();
+        vi.mocked(createPlayerCard).mockResolvedValue({ id: 6, userId: 62, fullName: 'Giorgi Lomidze', birthYear: 1998 });
+        const onClose = vi.fn();
+        render(<MemoryRouter><PlayerCardModal clubId={7} squadId={11} isOpen onClose={onClose} /></MemoryRouter>);
+        fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'Giorgi Lomidze' } });
+        fireEvent.change(screen.getByLabelText('Birth Year'), { target: { value: '1998' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Create Card' }));
+        await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+        expect(clubCardFamilyLink).not.toHaveBeenCalled();
     });
 
     it('protects the parent contact of a claimed dormant card', async () => {

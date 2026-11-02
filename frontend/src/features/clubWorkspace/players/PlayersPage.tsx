@@ -33,6 +33,7 @@ export interface PlayersPageProps {
     onRetry: () => void; onPageChange: (page: number) => void;
     onMessagePlayer?: (userId: number, playerName?: string) => void;
     onFamilyLink?: (userId: number) => Promise<import('../../parents/familyLinks').FamilyLink>;
+    onFamilySent?: () => void;
     onTabChange: (tab: WorkspaceTab) => void;
 }
 
@@ -83,7 +84,7 @@ export function PlayersPage(p: PlayersPageProps) {
     const changePage = (page: number) => { setQuery(''); p.onPageChange(page); };
     const actions = {
         pendingKey: p.pendingKey, canManagePlayerStatuses: p.canManagePlayerStatuses, onPlayerStatusChange: p.onPlayerStatusChange, onTrialEndsChange: p.onTrialEndsChange,
-        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onFamilyLink: p.onFamilyLink,
+        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onFamilyLink: p.onFamilyLink, onFamilySent: p.onFamilySent,
     };
     const managed = (player: ClubPlayerAffiliation) => p.joiningPlayerIds?.includes(player.userId) === true;
 

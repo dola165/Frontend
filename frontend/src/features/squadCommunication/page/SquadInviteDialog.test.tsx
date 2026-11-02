@@ -5,7 +5,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { SquadPlayersTab } from './SquadPlayersTab';
 import * as api from '../api';
 
-vi.mock('../api', () => ({ joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn(), approveAllJoinRequests: vi.fn(), parentLinks: vi.fn(), answerParentLink: vi.fn() }));
+vi.mock('../api', async original => ({ ...await original<object>(), joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn(), approveAllJoinRequests: vi.fn(), parentLinks: vi.fn(), answerParentLink: vi.fn(),
+    sameChild: vi.fn() }));
 vi.mock('../../clubs/api', () => ({ removePlayerFromSquad: vi.fn() }));
 const rules = vi.hoisted(() => ({ value: null as null | Record<string, boolean> }));
 vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, admin: null, decide: (action: string, fallback: boolean) => ({ allowed: rules.value ? Boolean(rules.value[action]) : fallback }) }) }));
@@ -139,4 +140,39 @@ it('someone who may answer requests but not manage the link sees who is waiting,
     expect(await screen.findByText('Nino Beridze')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Create link|New link/ })).not.toBeInTheDocument();
     expect(api.joinLink).not.toHaveBeenCalled();
+});
+
+it('layer 1 walk p12: a child who looks like a card the club made is answered Same child or New player before any Add', async () => {
+    const looks = request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } });
+    vi.mocked(api.joinRequests).mockResolvedValue([looks, request({ id: 63, playerId: 901, childName: 'Luka Beridze' }), request({ id: 64, playerId: 902, childName: 'Saba Lomidze' })]);
+    vi.mocked(api.sameChild).mockResolvedValue({ status: 'DONE', playerId: 108 });
+    show();
+    expect(await screen.findByText('Looks like Nika T., a card you made')).toBeInTheDocument();
+    // Approve all leaves the look-alike for its own answer; only the other two get Add.
+    expect(screen.getByRole('button', { name: 'Approve all 2' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Add' })).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Same child' }));
+    await waitFor(() => expect(api.sameChild).toHaveBeenCalledWith(11, 900, 108));
+    expect(await screen.findByText('Nino Beridze is now one card, the one you made.')).toBeInTheDocument();
+});
+
+it('layer 1 walk p12: New player sets the match aside here, brings back Add, and Approve all takes the child too', async () => {
+    vi.mocked(api.joinRequests).mockResolvedValue([request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } }), request({ id: 63, playerId: 901, childName: 'Luka Beridze' })]);
+    show();
+    expect(await screen.findByRole('button', { name: 'Approve' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'New player' }));
+    expect(screen.getAllByRole('button', { name: 'Add' })).toHaveLength(2);
+    expect(screen.queryByText('Looks like Nika T., a card you made')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve all 2' })).toBeInTheDocument();
+});
+
+it('fix round: while Same child saves, the row can’t be declined', async () => {
+    let finish: (value: { status: 'DONE'; playerId: number }) => void = () => undefined;
+    vi.mocked(api.sameChild).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    vi.mocked(api.joinRequests).mockResolvedValue([request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } })]);
+    show();
+    fireEvent.click(await screen.findByRole('button', { name: 'Same child' }));
+    expect(screen.getByRole('button', { name: 'Decline Nino Beridze' })).toBeDisabled();
+    finish({ status: 'DONE', playerId: 108 });
+    await screen.findByText('Nino Beridze is now one card, the one you made.');
 });

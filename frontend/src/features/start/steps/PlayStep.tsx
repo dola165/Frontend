@@ -52,19 +52,21 @@ export function PlayStep({ who, facts, land, back, close, part, openPart }: Welc
     const toggle = (id: number) => setChosen(current => { const next = new Set(current); if (!next.delete(id)) next.add(id); return next; });
     const kept = picked && picked !== saved ? townByName(picked) : null;
     const extra = { ...(kept ? { town: { ...kept, countryCode: 'GE' } } : {}), ...(who === 'child' && age != null ? { childAge: age } : {}) };
+    // The first week does not ask again for what was just done here: clubs followed, the child added.
+    const done = chosen.size ? ['follow'] : [];
     /** Follows the hearted clubs, then lands on `to` (Home when null), or for a child goes on to adding them. */
     const finish = async (to: string | null) => {
         setBusy(true); setFailed(false);
         const missed = await followClubs((clubs ?? []).filter(club => chosen.has(club.id)));
         setBusy(false);
         if (missed) { setFailed(true); return; }
-        if (who === 'child' && !to) openPart('add'); else land(who, to, extra);
+        if (who === 'child' && !to) openPart('add'); else land(who, to, extra, done);
     };
 
-    if (adding) return <WelcomeFrame position={2} size="choose" onClose={() => land('child', null, extra)} back={() => openPart(null)}
+    if (adding) return <WelcomeFrame position={2} size="choose" onClose={() => land('child', null, extra, done)} back={() => openPart(null)}
         title={copy('Add your child', 'დაამატეთ თქვენი შვილი')} hint={copy('Their private player card, for joining a squad.', 'მისი პირადი მოთამაშის ბარათი, გუნდში შესასვლელად.')}
-        footer={<Button variant="ghost" onClick={() => land('child', null, extra)}>{copy('Not now', 'ახლა არა')}</Button>}>
-        <AddChild inline birthYear={year} onCreated={childId => { refreshAccess(); land('child', `/parent?player=${childId}`, extra); }} />
+        footer={<Button variant="ghost" onClick={() => land('child', null, extra, done)}>{copy('Not now', 'ახლა არა')}</Button>}>
+        <AddChild inline birthYear={year} onCreated={childId => { refreshAccess(); land('child', `/parent?player=${childId}`, extra, [...done, 'child']); }} />
     </WelcomeFrame>;
 
     const following = chosen.size > 0;

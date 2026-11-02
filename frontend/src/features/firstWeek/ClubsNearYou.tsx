@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog } from '../../design/Dialog';
 import { Button, ButtonLink, EmptyNote, Skeleton } from '../../design/primitives';
 import { Crest } from '../../design/visuals';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { FollowButton } from '../actions/FollowButton';
+import { followsChanged } from '../actions/follow';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { useClubsNearYou } from './api';
 
@@ -12,9 +13,15 @@ export function ClubsNearYou({ onClose, onFollowed }: { onClose: () => void; onF
     const copy = useJourneyCopy();
     const [attempt, setAttempt] = useState(0);
     const [clubs, change] = useClubsNearYou(attempt);
+    // Home loads again once the dialog goes, closed or taken away with the finished week, never under the person while
+    // they are still choosing; unfollowing alone brings nothing new.
+    const followed = useRef(false);
+    useEffect(() => () => { if (followed.current) followsChanged(); }, []);
     const followChanged = (id: number, following: boolean) => {
         change(current => current.map(club => club.id === id ? { ...club, following } : club));
-        if (following) onFollowed();
+        if (!following) return;
+        followed.current = true;
+        onFollowed();
     };
     return <Dialog open size="sm" title={copy('Clubs near you', 'ახლომდებარე კლუბები')} onClose={onClose} closeLabel={copy('Close', 'დახურვა')}
         footer={<>

@@ -90,6 +90,7 @@ it('keeps the skeleton while the session is still being restored', async () => {
 
 it('an account under 18 joins only as itself: no "My child", and a child link explains why', async () => {
     signIn('2010-06-01');
+    vi.mocked(fetchJoinLink).mockResolvedValue({ ...link, squad: { ...link.squad, name: 'U17', ageGroup: 'U17', youthUnder: 17 } });
     show();
     expect(await screen.findByRole('button', { name: /Me/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /My child/ })).not.toBeInTheDocument();
@@ -122,4 +123,34 @@ it('when the children cannot load, offers to try again rather than a new card', 
     kids.list = [luka];
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
+});
+
+it('offers only the choices that fit the squad’s ages, as the club page’s Join does', async () => {
+    const men = { ...link, squad: { ...link.squad, name: 'Men', ageGroup: 'SENIOR', youthUnder: null, gender: 'MALE' as const } };
+    // A grown-up on a youth link: their child, not themself.
+    signIn('1985-04-02');
+    show();
+    expect(await screen.findByRole('button', { name: /My child/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Me/ })).toBeNull();
+    cleanup();
+    // A grown-up on the men's link: themself, not a child.
+    vi.mocked(fetchJoinLink).mockResolvedValue(men);
+    show();
+    expect(await screen.findByRole('button', { name: /^Me/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /My child/ })).toBeNull();
+    cleanup();
+    // A 14-year-old on the men's link: nothing fits, so it says so and opens the club's own squads.
+    signIn(`${new Date().getFullYear() - 14}-01-01`);
+    show();
+    expect(await screen.findByText('Men isn’t for your age.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'See the club’s squads' })).toHaveAttribute('href', '/clubs/10?join=1');
+    expect(screen.queryByRole('button', { name: /^Me/ })).toBeNull();
+});
+
+it('offers both before sign-in, and both when the age group can’t be read', async () => {
+    vi.mocked(fetchJoinLink).mockResolvedValue({ ...link, squad: { ...link.squad, name: 'Saturday group', ageGroup: 'Kids', youthUnder: null } });
+    signIn('1985-04-02');
+    show();
+    expect(await screen.findByRole('button', { name: /^Me/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /My child/ })).toBeInTheDocument();
 });

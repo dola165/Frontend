@@ -28,6 +28,8 @@ export function PlayerConsent({ player, needed }: { player: ClubPlayerAffiliatio
     if (consent === 'DECLINED') return <Status tone="danger">{t('minors.playersTab.consentDeclined')}</Status>;
     if (consent === 'EXPIRED') return <Status tone="danger">{t('minors.playersTab.consentExpired')}</Status>;
     if (consent === 'PENDING') return <Status tone="info">{t('minors.playersTab.consentPending')}</Status>;
+    // Sent and not opened yet: honest waiting, not a bare "needed" that asks the coach to send it again.
+    if (needed && player.familyLinkSentAt) return <Status tone="info">{t('squadDesign.players.familyWaiting', { defaultValue: 'Sent to the family · waiting' })}</Status>;
     if (needed) return <Status tone="warning">{t('squadDesign.players.consentNeeded', { defaultValue: 'Consent needed' })}</Status>;
     return EMPTY_CELL;
 }
@@ -69,11 +71,11 @@ export function PlayerDetails({ player, actions, admissionManaged }: { player: C
         </Field>}
         {!admissionManaged && familyToReach && <div className="pl-consent">
             <span className="gk-field__label">{say('Family', 'ოჯახი')}</span>
-            {sharing ? <FamilyLinkShare load={() => actions.onFamilyLink!(player.userId)}
+            {sharing ? <FamilyLinkShare load={() => actions.onFamilyLink!(player.userId).then(link => { actions.onFamilySent?.(); return link; })}
                 title={say(`${first}’s card`, `${first}-ის ბარათი`)} subtitle={say('Open it to be their parent here', 'გახსენით, რომ აქ მისი მშობელი იყოთ')}
                 message={say(`Here is ${first}’s card from our club. Open it so you’re ${first}’s parent on GrassKickZ.`, `ეს არის ${first}-ის ბარათი ჩვენი კლუბიდან. გახსენით, რომ GrassKickZ-ზე ${first}-ის მშობელი იყოთ.`)}
                 label={say(`Link for ${first}’s family`, `ბმული ${first}-ის ოჯახისთვის`)} />
-                : <Button size="sm" onClick={() => setSharing(true)}><Send aria-hidden="true" />{say('Send to the family', 'ოჯახისთვის გაგზავნა')}</Button>}
+                : <Button size="sm" onClick={() => setSharing(true)}><Send aria-hidden="true" />{player.familyLinkSentAt ? say('Send again', 'ხელახლა გაგზავნა') : say('Send to the family', 'ოჯახისთვის გაგზავნა')}</Button>}
         </div>}
         {changes.length > 0 && <div className="gk-row pl-status-actions">{changes.map(status => <Button key={status} size="sm" variant={status === 'TRIALIST' ? 'secondary' : 'danger'}
             disabled={pendingKey === `player-${player.userId}-${status}`} onClick={() => void actions.onPlayerStatusChange(player.userId, status, player.fullName || undefined)}>{changeLabel[status]}</Button>)}</div>}

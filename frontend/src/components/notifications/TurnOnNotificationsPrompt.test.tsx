@@ -31,6 +31,27 @@ describe('TurnOnNotificationsPrompt', () => {
         expect(await screen.findByText(/Notifications are on for this device/)).toBeInTheDocument();
     });
 
+    it('for another group, says why it pings and turns exactly that group on', async () => {
+        const enable = vi.fn().mockResolvedValue({ ok: true, preferences: preferences(false) });
+        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: [{ key: 'CLUB', push: false, email: false }] });
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off', enable));
+        vi.mocked(api.setNotificationGroup).mockResolvedValue({ ...preferences(false), groups: [{ key: 'CLUB', push: true, email: false }] });
+        render(<MemoryRouter><TurnOnNotificationsPrompt group="CLUB" reason="When the coach sends the squad a line." /></MemoryRouter>);
+        expect(await screen.findByText('When the coach sends the squad a line.')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Turn on notifications' }));
+        await waitFor(() => expect(enable).toHaveBeenCalled());
+        expect(api.setNotificationGroup).toHaveBeenCalledWith('CLUB', { push: true, language: 'en' });
+    });
+
+    it('says nothing, and doesn’t break the page, when the preferences come without groups', async () => {
+        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: undefined } as unknown as api.NotificationPreferences);
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off'));
+        render(<MemoryRouter><p>Page</p><TurnOnNotificationsPrompt group="CLUB" /></MemoryRouter>);
+        await waitFor(() => expect(api.fetchNotificationPreferences).toHaveBeenCalled());
+        expect(screen.getByText('Page')).toBeInTheDocument();
+        expect(screen.queryByTestId('turn-on-notifications')).not.toBeInTheDocument();
+    });
+
     it('says nothing when this device already gets Team work pushes', async () => {
         vi.mocked(api.fetchNotificationPreferences).mockResolvedValue(preferences(true));
         vi.mocked(push.usePushDevice).mockReturnValue(device('on'));

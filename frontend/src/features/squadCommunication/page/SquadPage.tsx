@@ -55,14 +55,20 @@ export function SquadPage({ id, embedded = false }: { id: number; embedded?: boo
     const crest = useClubCrest(space?.club_id);
     const playerParam = Number(params.get('player'));
     const child = children.find(item => item.playerId === playerParam) ?? children[0];
-    // Back to where the person came from: Parent Hub carries the child in the address, My squads does not.
-    const back = space?.can_manage && !params.has('player') ? { to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები') } : { to: child ? `/parent?player=${child.playerId}` : '/parent', label: copy('Parent Hub', 'მშობლის სივრცე') };
+    // A player on the squad who isn't here for a child of theirs: the page is their own (next session, their reply).
+    const own = space && !space.can_manage && !child ? space.players.find(player => player.id === space.viewer_id) : undefined;
+    // Back to where the person came from: Parent Hub carries the child in the address, My squads does not, and a player
+    // comes from their football profile, where their squads are. Until the squad and the viewer's family are known (or
+    // if the squad fails to load) there is no back link rather than a guess.
+    const back = !space || !family.known ? null : space.can_manage && !params.has('player') ? { to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები') }
+        : own ? { to: '/account/football', label: copy('Your football', 'თქვენი ფეხბურთი') }
+        : { to: child ? `/parent?player=${child.playerId}` : '/parent', label: copy('Parent Hub', 'მშობლის სივრცე') };
     if (params.get(key) === 'chat' || params.get(key) === 'coach' || (!embedded && params.has('thread'))) return <Navigate replace to={squadMessageUrl(id, params.get(key) !== 'chat', Number(params.get('thread')) || null)} />;
     // Parents don't get the squad page (owner, 29 October 2026): a parent with no job on the squad opens their child's
     // page instead, on the session or the updates an old link (a notice, an email, a pin) pointed at.
     if (!embedded && space && family.known && children.length && !space.can_manage && !space.coaches.some(coach => coach.user_id === space.viewer_id)) return <Navigate replace to={childPageFor(id, child?.playerId ?? children[0].playerId, params, hash)} />;
     const frame = (body: ReactNode) => embedded ? <div className="sp">{body}</div> : <GkRoot className="gk-page sp"><PageFrame>
-        <Link className="sp-back" to={back.to}><ArrowLeft aria-hidden="true" />{back.label}</Link>{body}</PageFrame></GkRoot>;
+        {back && <Link className="sp-back" to={back.to}><ArrowLeft aria-hidden="true" />{back.label}</Link>}{body}</PageFrame></GkRoot>;
     // A parent whose children could not load is told so, with Try again: never the squad page as if they had none.
     if (!embedded && space && family.error && !space.can_manage && !space.coaches.some(coach => coach.user_id === space.viewer_id))
         return frame(<div role="alert" className="sp-empty"><h1>{copy('Couldn’t load your children', 'ბავშვები ვერ ჩაიტვირთა')}</h1><p>{family.error}</p><button type="button" className="sp-link" onClick={family.retry}>{copy('Try again', 'ხელახლა ცდა')}</button></div>);
@@ -91,8 +97,8 @@ export function SquadPage({ id, embedded = false }: { id: number; embedded?: boo
         <Tabs<SquadTab> label={copy('Squad page', 'გუნდის გვერდი')} value={tab} onChange={setTab} idBase="squad"
             items={[{ id: 'updates', label: copy('Updates', 'განახლებები') }, { id: 'schedule', label: copy('Schedule', 'განრიგი') }, { id: 'players', label: copy('Players', 'მოთამაშეები'), count: space.players.length }, { id: 'grounds', label: copy('Grounds', 'მოედნები') }]} />
         <div id={`squad-${tab}-panel`} role="tabpanel" aria-labelledby={`squad-${tab}`} className="sp-panel">
-            {tab === 'updates' ? <SquadUpdatesTab space={space} child={child} crest={crest} tabKey={key} onChanged={refresh} />
-                : tab === 'schedule' ? <SquadScheduleTab space={space} childId={child?.playerId} />
+            {tab === 'updates' ? <SquadUpdatesTab space={space} child={child} self={own} crest={crest} tabKey={key} onChanged={refresh} />
+                : tab === 'schedule' ? <SquadScheduleTab space={space} childId={child?.playerId ?? own?.id} />
                 : tab === 'players' ? <SquadPlayersTab space={space} crest={crest} childIds={children.map(item => item.playerId)} onChanged={refresh} />
                 : <SquadGroundsTab space={space} childId={child?.playerId} />}
         </div>

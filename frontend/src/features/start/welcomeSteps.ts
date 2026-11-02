@@ -45,11 +45,12 @@ const weekSteps = (steps: readonly string[]) => [...new Set(steps)].filter(step 
 /**
  * The welcome is over with this answer (Skip counts as following football); it never opens by itself again. The same
  * answer again keeps its first week as it was; a new answer starts a new first week, so no step of the old one is
- * carried over.
+ * carried over. `done` names the first-week steps the welcome itself just did (clubs followed, the child added), so the
+ * week never asks for them again.
  */
-export const finished = (progress: WelcomeProgress | null | undefined, choice: Choice): WelcomeProgress => {
+export const finished = (progress: WelcomeProgress | null | undefined, choice: Choice, done: readonly string[] = []): WelcomeProgress => {
     const same = progress?.state === 'DONE' && progress.choice === STORED[choice];
-    return { state: 'DONE', at: null, choice: STORED[choice], week: same ? weekSteps(progress.week ?? []) : [], cardDismissed: same ? progress.cardDismissed === true : false };
+    return { state: 'DONE', at: null, choice: STORED[choice], week: weekSteps([...(same ? progress.week ?? [] : []), ...done]), cardDismissed: same ? progress.cardDismissed === true : false };
 };
 /** A step of "Your first week" was done. */
 export const weekDone = (progress: WelcomeProgress | null | undefined, step: string): WelcomeProgress =>

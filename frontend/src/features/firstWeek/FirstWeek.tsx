@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { hasNavigationCapability } from '../../context/navigationCapabilities';
 import { Button } from '../../design/primitives';
 import { isAdult } from '../../utils/age';
 import { OPENED_HERE } from '../actions/registry';
@@ -13,6 +14,7 @@ import { saveStart } from '../start/startApi';
 import { choiceFromStored, choicesFor } from '../start/welcomeSteps';
 import { saveMyImage } from '../profiles/api';
 import { ClubsNearYou } from './ClubsNearYou';
+import { useChildLinked } from './api';
 import { WORLD_BRAND } from '../../components/brand/worldBrand';
 import { WorldMark } from '../../components/brand/WorldMark';
 import { doneSteps, isUnfolded, markDone, stepsFor, withUnfolded, type WeekStep } from './steps';
@@ -48,7 +50,7 @@ function focusPage() {
  */
 export function FirstWeek() {
     const copy = useJourneyCopy();
-    const { user, bootstrapSession } = useAuth();
+    const { user, sessionId, bootstrapSession } = useAuth();
     const userId = user?.id;
     const start = usePreferences(userId).start;
     const progress = start?.welcome;
@@ -63,6 +65,9 @@ export function FirstWeek() {
     });
     const addChild = useAction('add_child');
     const open = isUnfolded(progress);
+    // A child added anywhere (in the welcome itself, in Parent Hub, through a family link) is the step done, not the press here.
+    const childLinked = useChildLinked(Boolean(userId) && choiceFromStored(progress?.choice) === 'child' && !progress?.week?.includes('child')
+        && hasNavigationCapability(user?.navigationCapabilities, 'parent.hub'), sessionId);
     // Hiding for good asks once, in the panel: a missed tap must never lose the checklist.
     const [confirming, setConfirming] = useState(false);
     // The chip rises in once per visit, the first time it shows.
@@ -82,6 +87,7 @@ export function FirstWeek() {
     if (!userId || !choice || progress?.state !== 'DONE' || progress.cardDismissed) return null;
     const steps = stepsFor(choice);
     const done = doneSteps(progress);
+    if (childLinked) done.add('child');
     const count = steps.filter(step => done.has(step.id)).length;
     if (count === steps.length) return null;
     const setOpen = (value: boolean) => { toggled.current = true; setConfirming(false); record(current => withUnfolded(current, value)); };

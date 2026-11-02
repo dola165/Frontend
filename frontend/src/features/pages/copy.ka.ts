@@ -516,6 +516,8 @@ export const PAGES_KA: Record<string, string> = {
   'Sign in or create an account to ask for a place. You come straight back here.': 'ადგილის მოსათხოვად შედით ან შექმენით ანგარიში. პირდაპირ აქ დაბრუნდებით.',
   'Sign in': 'შესვლა',
   'Joining for your child?': 'შვილისთვის წევრიანდებით?',
+  '{squad} isn’t for your age.': '{squad} თქვენი ასაკისთვის არ არის.',
+  'See the club’s squads': 'კლუბის გუნდების ნახვა',
   '{squad} is for players under {age}.': '{squad} {age} წლამდე მოთამაშეებისთვისაა.',
   'This squad is for young players.': 'ეს გუნდი ახალგაზრდა მოთამაშეებისთვისაა.',
   'Yes, my child': 'დიახ, ჩემი შვილი',

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, HeartHandshake } from 'lucide-react';
 import { Button, GkRoot, PageFrame, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
+import { TurnOnNotificationsPrompt } from '../../../components/notifications/TurnOnNotificationsPrompt';
 import { useAdmissionData } from '../../admissions/applicant/useAdmissionData';
 import { useAdmissionTab } from '../../admissions/applicant/useAdmissionTab';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
@@ -68,6 +69,10 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
     else body = <>
         <OneCard revision={revision} />
         <ChildSwitcher items={children} selectedId={selected?.playerId} onSelect={select} addTo={playerPath('/parent?tab=children', selected?.playerId)} />
+        {/* Once a child plays somewhere, the coach's Notify should reach this phone: the door is here, not in Account. */}
+        {/* The coach's Notify (SQUAD_NOTICE) is filed under Club by the server (NotificationGroup.of), so that is the group to turn on. */}
+        {children.some(child => child.clubs.length > 0) && <TurnOnNotificationsPrompt group="CLUB"
+            reason={copy('Get a ping when the coach sends the squad a line, even when the site is closed.', 'მიიღეთ შეტყობინება, როცა მწვრთნელი გუნდს წერს, საიტი დახურულიც რომ იყოს.')} />}
         {selected ? <><ChildPage key={`${sessionId}:${selected.playerId}`} child={selected} sessionId={sessionId} revision={revision} onChanged={refresh} /><PersonalRegistrationHistory key={`registration:${sessionId}:${selected.playerId}:${revision}`} person={selected.playerId} /></>
             : <FamilyWeek children={children} sessionId={sessionId} revision={revision} />}
     </>;

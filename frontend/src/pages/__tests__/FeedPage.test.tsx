@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { FeedPage } from '../../pages/FeedPage';
 import type { FeedPostDto } from '../../components/feed/FeedPost';
+import { followsChanged } from '../../features/actions/follow';
 
 vi.mock('../../api/axiosConfig', () => ({
     apiClient: {
@@ -313,6 +314,34 @@ describe('FeedPage', () => {
         expect(screen.getByTestId('post-ids')).toHaveTextContent('3');
         expect(screen.getByTestId('post-composer')).toBe(composer);
         expect(apiClient.get).toHaveBeenCalledTimes(3);
+    });
+
+    it('loads again when clubs were just followed in the welcome or the first week', async () => {
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 1 }] } })
+            .mockResolvedValueOnce({ data: { posts: [{ id: 2 }, { id: 1 }] } });
+        renderPage();
+        expect(await screen.findByTestId('post-ids')).toHaveTextContent('1');
+        await act(async () => followsChanged());
+        await waitFor(() => expect(screen.getByTestId('post-ids')).toHaveTextContent('2,1'));
+        expect(apiClient.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps an open post when it loads again for follows made elsewhere', async () => {
+        const user = userEvent.setup();
+        const post = { id: 1, authorName: 'Jordan Lee', content: 'Training photo', createdAt: '2026-09-08T08:00:00Z', likeCount: 0, commentCount: 0, isLikedByMe: false, mediaUrls: ['/uploads/training.jpg'] };
+        let feedLoads = 0;
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+            if (url === '/posts/feed/for-you') { feedLoads += 1; return { data: { posts: [post] } }; }
+            if (url === '/posts/1') return { data: post };
+            return { data: [] };
+        });
+        renderPage();
+        await screen.findByTestId('feed-list');
+        await user.click(screen.getByRole('button', { name: 'Open media' }));
+        expect(await screen.findByRole('dialog')).toBeInTheDocument();
+        await act(async () => followsChanged());
+        await waitFor(() => expect(feedLoads).toBe(2));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('does not flash initial skeletons again when switching away from an empty feed', async () => {

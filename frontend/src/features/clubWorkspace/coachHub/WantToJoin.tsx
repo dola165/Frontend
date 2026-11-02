@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Button, ButtonLink, LoadFailed, Panel, Section } from '../../../design/primitives';
 import { extractApiErrorMessage } from '../../../utils/apiError';
@@ -9,6 +8,7 @@ import { squadLabel } from '../../../components/squads/squadLabels';
 import { useCopy } from '../../../locales/useCopy';
 import { mySquadsEn } from '../../../locales/mySquadsDesign';
 import * as squadApi from '../../squadCommunication/api';
+import { SameChildMatch } from '../../squadCommunication/page/SameChildMatch';
 import { inviteToTrial, notNow } from './squadApi';
 import { isJoinCase, type WantToJoinItem } from './useSquadCards';
 import type { CoachData } from './CoachWorkspace';
@@ -27,7 +27,6 @@ type Step = 'ACCEPT' | 'TRIAL' | 'NOT_NOW';
 export function WantToJoin({ items, failed = false, onRetry, data, onChanged }: { items: WantToJoinItem[]; failed?: boolean; onRetry?: () => void; data: CoachData; onChanged: () => void }) {
     const copy = useCopy('mySquads', mySquadsEn);
     const { t } = useTranslation();
-    const say = useJourneyCopy();
     // "New player": the coach says the look-alike is someone else; only this list forgets the match.
     const [apart, setApart] = useState<Set<string>>(() => new Set());
     const [busy, setBusy] = useState<string | null>(null), [notice, setNotice] = useState<{ tone: 'danger' | 'success'; text: string } | null>(null);
@@ -60,30 +59,22 @@ export function WantToJoin({ items, failed = false, onRetry, data, onChanged }: 
         // A family's own request to a group, or a first visit they booked, is a joining case: Accept or Not now here, the
         // rest (a session to invite them to, the visit itself) in the request.
         const joinCase = isJoinCase(item);
+        // A look-alike of a club card is answered Same child or New player before any Accept.
+        const matchOpen = squadApi.needsSameChildAnswer(item.request?.sameChild) && !apart.has(item.key);
         return <span className="ch-join__steps">
-            {item.kind === 'REQUEST' && !groupless && <Button size="sm" variant="primary" disabled={busy === item.key} onClick={() => void act(item, 'ACCEPT')}>{copy('accept')}</Button>}
+            {item.kind === 'REQUEST' && !groupless && <Button size="sm" variant="primary" disabled={busy === item.key || matchOpen} onClick={() => void act(item, 'ACCEPT')}>{copy('accept')}</Button>}
             {joinCase ? <ButtonLink size="sm" variant={item.request?.visit?.status === 'INVITED' ? 'primary' : undefined} to={item.request!.destination}>{copy(item.request?.visit?.status === 'INVITED' ? 'recordPermission' : 'openRequest')}</ButtonLink>
                 : !groupless && <Button size="sm" disabled={busy === item.key} onClick={() => void act(item, 'TRIAL')}>{copy('inviteToTrial')}</Button>}
             <Button size="sm" variant="ghost" disabled={busy === item.key} onClick={() => void act(item, 'NOT_NOW')}>{copy('notNow')}</Button>
         </span>;
     };
-    const joinCards = async (item: WantToJoinItem) => {
-        const match = item.request!.sameChild!;
-        setBusy(item.key); setNotice(null);
-        try {
-            const done = await squadApi.sameChild(item.squadId!, item.request!.playerId, match.playerId);
-            setNotice({ tone: 'success', text: done.status === 'DONE' ? say(`${item.name} is now one card, the one you made.`, `${item.name} ახლა ერთი ბარათია, თქვენ მიერ შექმნილი.`) : say(`We asked ${item.name}’s family to confirm.`, `${item.name}-ის ოჯახს დადასტურება ვთხოვეთ.`) });
-        } catch (error) { setNotice({ tone: 'danger', text: extractApiErrorMessage(error, copy('answerFailed')) }); }
-        finally { setBusy(null); onChanged(); }
-    };
     /** The card this request looks like: Same child / New player when no family holds it, a quiet note when one does. */
     const match = (item: WantToJoinItem) => {
         const same = item.request?.sameChild;
         if (!same || item.state !== 'DECIDE' || apart.has(item.key)) return null;
-        if (same.hasFamily) return <span className="ch-quiet ch-join__match">{say(`Looks like ${same.name}: their parent was asked.`, `ჰგავს ${same.name}-ს: მის მშობელს ვკითხეთ.`)}</span>;
-        return <span className="ch-join__match"><span className="cw-status cw-status--warning"><span className="cw-dot cw-dot--warning" aria-hidden="true" />{say(`Looks like ${same.name}, a card you made`, `ჰგავს ${same.name}-ს, თქვენ მიერ შექმნილ ბარათს`)}</span>
-            <Button size="sm" variant="primary" disabled={busy === item.key} onClick={() => void joinCards(item)}>{say('Same child', 'იგივე ბავშვია')}</Button>
-            <Button size="sm" variant="ghost" disabled={busy === item.key} onClick={() => setApart(current => new Set(current).add(item.key))}>{say('New player', 'ახალი მოთამაშეა')}</Button></span>;
+        return <SameChildMatch className="ch-join__match" squadId={item.squadId!} requestPlayerId={item.request!.playerId} childName={item.name} match={same} failedText={copy('answerFailed')}
+            onApart={() => setApart(current => new Set(current).add(item.key))} onAnswered={answer => { setNotice(answer); onChanged(); }}
+            onSaving={saving => setBusy(saving ? item.key : null)} />;
     };
     const waiting = items.filter(item => item.state === 'DECIDE').length;
     return <Section boxed title={copy('wantToJoin')} hint={waiting ? copy('waitingCount', { count: waiting }) : undefined}>

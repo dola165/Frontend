@@ -264,7 +264,7 @@ const en = {
       failed: 'Failed to update your password.',
     },
     playerCard: {
-      consentBeforeSquad: 'Create the card first. In the club’s Players tab, send parental consent. Once confirmed, assign the player to a squad.',
+      consentBeforeSquad: 'A child joins the squad when the family opens the card’s link and says yes. The link opens as soon as you create the card.',
       title: 'Create Player Card',
       editTitle: 'Edit Player Card',
       editRosterTitle: 'Edit Club Roster Details',
@@ -1038,6 +1038,7 @@ const en = {
       send: 'Send request',
       sent: 'Sent to {{email}}',
       sentHint: 'Ask them to open the email. If nobody approves within 7 days, the account is removed.',
+      removedBy: 'If nobody opens it by {{date}}, this account is removed.',
       resend: 'Send again',
       change: 'Use another email',
       keep: 'Keep {{email}}',

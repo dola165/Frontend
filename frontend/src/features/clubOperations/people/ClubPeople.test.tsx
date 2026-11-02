@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { refreshAccess } from '../../../hooks/useCan';
 import { ClubPeople } from './ClubPeople';
@@ -291,7 +291,7 @@ it('says plainly when a person has their own account and so gets no link', async
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
-it('Post a job opens the club’s jobs inside Staff, with the way back', async () => {
+it('Post a job opens the posting form inside Staff, with the way back', async () => {
     api.get.mockImplementation(async (path: string) => {
         if (path.startsWith('/access/')) throw new Error('no rule-checker');
         return { data: path === '/clubs/7/people' ? view() : [] };
@@ -300,8 +300,24 @@ it('Post a job opens the club’s jobs inside Staff, with the way back', async (
     const post = await screen.findByRole('button', { name: /Post a job/ });
     await waitFor(() => expect(post).toBeEnabled());
     fireEvent.click(post);
+    expect(await screen.findByLabelText('Role title')).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Staff' }));
     expect(await screen.findByRole('list', { name: 'Staff' })).toBeInTheDocument();
+});
+
+function Where() {
+    const location = useLocation();
+    return <output data-testid="where">{location.pathname}{location.search}</output>;
+}
+it('opens the posting form straight from the + menu’s Post a job, and only once', async () => {
+    api.get.mockImplementation(async (path: string) => {
+        if (path.startsWith('/access/')) throw new Error('no rule-checker');
+        return { data: path === '/clubs/7/people' ? view() : [] };
+    });
+    render(<MemoryRouter initialEntries={['/clubs/7/office?view=jobs&new=1']}><Routes><Route path="*" element={<><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /><Where /></>} /></Routes></MemoryRouter>);
+    expect(await screen.findByLabelText('Role title')).toBeInTheDocument();
+    // The ask leaves the address, so a reload or Back shows the open roles, not a new empty form.
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/clubs\/7\/office\?view=jobs$/));
 });
 
 const showAt = (data: PeopleView, me: number) => {

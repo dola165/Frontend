@@ -21,7 +21,7 @@ vi.mock('../profiles/api', () => ({ saveBirthDate }));
 vi.mock('../clubWorkspace/useClubOverview', () => ({ useClubOverview: () => loads.overview }));
 vi.mock('../clubOperations/useClubOperations', () => ({ useClubOperations: () => loads.operations }));
 vi.mock('../clubOperations/useWorkspaceRoles', () => ({ useWorkspaceRoles: () => loads.roles }));
-const admissionsLoad = vi.hoisted(() => vi.fn((..._args: unknown[]) => ({ data: null, loading: false, error: '' })));
+const admissionsLoad = vi.hoisted(() => vi.fn<(...args: unknown[]) => { data: null; loading: boolean; error: string }>(() => ({ data: null, loading: false, error: '' })));
 vi.mock('../admissions/club/useClubAdmissions', () => ({ useClubAdmissions: admissionsLoad }));
 vi.mock('../clubOperations/people/ClubPeople', () => ({ ClubPeople: () => <h1>Staff</h1> }));
 vi.mock('./OfficeTool', () => ({ OfficeTool: ({ tool }: { tool: string }) => <h1>Tool {tool}</h1> }));

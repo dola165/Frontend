@@ -11,7 +11,7 @@ import { markDone, withUnfolded } from './steps';
 import { WorldWelcome } from './WorldWelcome';
 import { FOLLOWS_CHANGED } from '../actions/follow';
 
-const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>() }));
+const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>(), children: [] as unknown[] }));
 const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } as { id: number; dob: string; navigationCapabilities?: { version: number; workspaces: { id: string }[] } } }));
 vi.mock('../../api/axiosConfig', async original => ({ ...(await original<object>()), apiClient: { get: vi.fn(), put: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated', bootstrapSession: async () => auth.user }) }));
@@ -33,9 +33,11 @@ beforeEach(async () => {
     await i18n.changeLanguage('en');
     auth.user = { id: nextUser++, dob: '1985-05-02' };
     server.followed = new Set();
+    server.children = [];
     vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
         if (url === '/users/me/preferences') return { data: server.prefs };
         if (url === '/access/me') return { data: { allowed: ['follow', 'add_child'], refused: [] } };
+        if (url === '/joining/children') return { data: { children: server.children } };
         if (url === '/clubs/near-you') return { data: [{ id: 5, name: 'Rustavi Lions', logoUrl: null, bannerUrl: null, cityName: 'Rustavi', km: 1, followers: 3, following: false }] };
         return { data: [] };
     });
@@ -78,10 +80,20 @@ describe('your first week, in the corner', () => {
     it('layer 1 walk p2: a child added in the welcome ticks Add your child, without pressing it here', async () => {
         welcome('CHILD', { week: ['open'] });
         auth.user = { ...auth.user, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub' }] } };
+        server.children = [{ playerId: 61 }];
+        mount();
+        expect(await screen.findByText('1 of 3')).toBeInTheDocument();
+        expect(screen.getByText(/\(done\)/).closest('a, button')).toHaveTextContent('Add your child');
+    });
+
+    it('fix round: Parent Hub for a pending invitation, with no child linked yet, leaves Add your child to do', async () => {
+        welcome('CHILD', { week: ['open'] });
+        auth.user = { ...auth.user, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub' }] } };
         mount();
         expect(await screen.findByRole('heading', { name: 'Your first week' })).toBeInTheDocument();
-        expect(screen.getByText('1 of 3')).toBeInTheDocument();
-        expect(screen.getByText(/\(done\)/).closest('a, button')).toHaveTextContent('Add your child');
+        await waitFor(() => expect(apiClient.get).toHaveBeenCalledWith('/joining/children', expect.anything()));
+        expect(screen.getByText('0 of 3')).toBeInTheDocument();
+        expect(screen.queryByText(/\(done\)/)).not.toBeInTheDocument();
     });
 
     it('ticks a step on another page and folds out of its way', async () => {

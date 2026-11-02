@@ -60,6 +60,11 @@ function wireRequestDestination(value: string): string | null {
 }
 export function requestDestination(value: string, family?: RequestItem['family']): string | null {
   // Sealed officer work links only to its canonical record. The source still enforces officer scope.
+  // A place offered to the family (ADMISSION_PLACE) opens only its own case, on the agreement, for that player.
+  if (family === 'ADMISSION_PLACE') {
+    const place = /^\/admissions\/cases\/([1-9]\d*)\?tab=agreement&player=([1-9]\d*)$/.exec(value);
+    return place && place.slice(1).every(id => Number.isSafeInteger(Number(id))) ? value : null;
+  }
   if (family === 'WELFARE_WORK') {
     const welfare = /^\/clubs\/([1-9]\d*)\/office\?tab=tools&tool=welfare&record=([1-9]\d*)(?:&squad=([1-9]\d*))?$/.exec(value);
     if (welfare && welfare[0] === value && welfare.slice(1).filter(Boolean).every(id => Number.isSafeInteger(Number(id)))) return value;

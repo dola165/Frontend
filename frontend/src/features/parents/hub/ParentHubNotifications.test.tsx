@@ -25,10 +25,10 @@ const mount = () => render(<MemoryRouter initialEntries={['/parent']}><ParentHub
 afterEach(cleanup);
 
 describe('Parent Hub and the coach’s pings', () => {
-    it('offers to turn on squad updates once a child has a club', async () => {
+    it('offers to turn on the group the coach’s Notify is filed under (CLUB, as the server’s NotificationGroup.of says) once a child has a club', async () => {
         family.children = [child([{ id: 1, name: 'Dinamo Academy', squads: [] }])];
         mount();
-        expect(await screen.findByText('Turn on SQUAD_UPDATES')).toBeInTheDocument();
+        expect(await screen.findByText('Turn on CLUB')).toBeInTheDocument();
     });
 
     it('asks nothing while no child has a club yet', async () => {

@@ -11,6 +11,8 @@ export interface PlayerRowActions {
     onMessagePlayer?: (userId: number, playerName?: string) => void;
     /** "Send to the family": the card's family link for any chat (owner, 2 November 2026). */
     onFamilyLink?: (userId: number) => Promise<FamilyLink>;
+    /** The card went to the family: the list reads the row again, which now says it is waiting. */
+    onFamilySent?: () => void;
 }
 
 export const playerName = (player: ClubPlayerAffiliation) => player.fullName || player.username || `Player #${player.userId}`;

@@ -5,8 +5,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { SquadPlayersTab } from './SquadPlayersTab';
 import * as api from '../api';
 
-vi.mock('../api', () => ({ joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn(), approveAllJoinRequests: vi.fn(), parentLinks: vi.fn(), answerParentLink: vi.fn(),
-    sameChild: vi.fn(), needsSameChildAnswer: (match?: { hasFamily: boolean } | null) => Boolean(match && !match.hasFamily) }));
+vi.mock('../api', async original => ({ ...await original<object>(), joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn(), approveAllJoinRequests: vi.fn(), parentLinks: vi.fn(), answerParentLink: vi.fn(),
+    sameChild: vi.fn() }));
 vi.mock('../../clubs/api', () => ({ removePlayerFromSquad: vi.fn() }));
 const rules = vi.hoisted(() => ({ value: null as null | Record<string, boolean> }));
 vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, admin: null, decide: (action: string, fallback: boolean) => ({ allowed: rules.value ? Boolean(rules.value[action]) : fallback }) }) }));
@@ -156,10 +156,23 @@ it('layer 1 walk p12: a child who looks like a card the club made is answered Sa
     expect(await screen.findByText('Nino Beridze is now one card, the one you made.')).toBeInTheDocument();
 });
 
-it('layer 1 walk p12: New player sets the match aside here and brings back Add', async () => {
+it('layer 1 walk p12: New player sets the match aside here, brings back Add, and Approve all takes the child too', async () => {
+    vi.mocked(api.joinRequests).mockResolvedValue([request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } }), request({ id: 63, playerId: 901, childName: 'Luka Beridze' })]);
+    show();
+    expect(await screen.findByRole('button', { name: 'Approve' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'New player' }));
+    expect(screen.getAllByRole('button', { name: 'Add' })).toHaveLength(2);
+    expect(screen.queryByText('Looks like Nika T., a card you made')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve all 2' })).toBeInTheDocument();
+});
+
+it('fix round: while Same child saves, the row can’t be declined', async () => {
+    let finish: (value: { status: 'DONE'; playerId: number }) => void = () => undefined;
+    vi.mocked(api.sameChild).mockReturnValue(new Promise(resolve => { finish = resolve; }));
     vi.mocked(api.joinRequests).mockResolvedValue([request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } })]);
     show();
-    fireEvent.click(await screen.findByRole('button', { name: 'New player' }));
-    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
-    expect(screen.queryByText('Looks like Nika T., a card you made')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Same child' }));
+    expect(screen.getByRole('button', { name: 'Decline Nino Beridze' })).toBeDisabled();
+    finish({ status: 'DONE', playerId: 108 });
+    await screen.findByText('Nino Beridze is now one card, the one you made.');
 });

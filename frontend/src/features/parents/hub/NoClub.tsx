@@ -14,15 +14,20 @@ import { useAdmissionCopy } from '../../admissions/applicant/copy';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { playerPath } from '../playerSelection';
 import type { JoiningChild } from '../api';
+import type { AdmissionCase } from '../../admissions/types';
 import { birthYear, firstName } from './childFacts';
 import { childPath } from './childParams';
 import { reservedVisit } from './familyEvents';
 import './parent-hub.css';
 
+/** A request whose next step is the family's: a place offered, a visit to confirm, a requirement to complete. */
+const waitsOnFamily = (c: AdmissionCase) => c.stage !== 'CLOSED' && c.enrollment?.status !== 'CANCELLED' && c.nextAction?.owner === 'APPLICANT';
+
 /**
  * A child with no club yet holds two things: "Find a club near you", which opens World's club map in its pop-up set for
- * the child, and the field for a coach's link or code, which opens that squad's join for the child right here. What the
- * family has asked already stays reachable below, each with where it stands.
+ * the child, and the field for a coach's link or code, which opens that squad's join for the child right here. Anything
+ * waiting on the family's answer (a place the club offered) comes first, and finding a club steps back meanwhile. What
+ * the family has asked already stays reachable below, each with where it stands.
  */
 export function NoClub({ child, onChanged }: { child: JoiningChild; onChanged: () => void }) {
     const copy = useJourneyCopy();
@@ -32,10 +37,12 @@ export function NoClub({ child, onChanged }: { child: JoiningChild; onChanged: (
     const find = new URLSearchParams(params);
     find.set('player', String(child.playerId));
     find.set('find', 'club');
+    const yours = child.cases.filter(waitsOnFamily);
     return <div className="ph-noclub">
+        {yours.length > 0 && <YourAnswer child={child} cases={yours} />}
         <section className="ph-noclub__card" aria-label={copy(`${first} has no club yet`, `${first}-ს კლუბი ჯერ არ ჰყავს`)}>
             <h2>{copy(`${first} has no club yet`, `${first}-ს კლუბი ჯერ არ ჰყავს`)}</h2>
-            <ButtonLink variant="primary" to={`/parent?${find}`} state={FINDER_OPENED} className="ph-noclub__find" data-guide="find-club"><MapPinned aria-hidden="true" />{copy('Find a club near you', 'იპოვეთ კლუბი ახლოს')}</ButtonLink>
+            <ButtonLink variant={yours.length ? 'secondary' : 'primary'} to={`/parent?${find}`} state={FINDER_OPENED} className="ph-noclub__find" data-guide="find-club"><MapPinned aria-hidden="true" />{copy('Find a club near you', 'იპოვეთ კლუბი ახლოს')}</ButtonLink>
             <PasteJoin child={child} onSent={onChanged} />
         </section>
         <Requests child={child} />
@@ -96,6 +103,20 @@ function PasteJoin({ child, onSent }: { child: JoiningChild; onSent: () => void 
     </form>;
 }
 
+/** What waits on the family's answer, first and bright: the club, the group, where it stands and one way to answer. */
+function YourAnswer({ child, cases }: { child: JoiningChild; cases: AdmissionCase[] }) {
+    const copy = useJourneyCopy();
+    const { stage } = useAdmissionCopy();
+    return <section className="ph-requests ph-requests--yours" aria-label={copy('Waiting for your answer', 'გელოდებათ თქვენი პასუხი')}>
+        <h2 className="ph-eyebrow">{copy('Waiting for your answer', 'გელოდებათ თქვენი პასუხი')}</h2>
+        <ul className="ph-rows">{cases.map(c => <li key={c.id}><div className="ph-row">
+            <span className="ph-dot ph-dot--decide" aria-hidden="true" />
+            <span className="ph-row__text"><strong>{c.organizationName} · {parentName(c.groupName) ?? c.groupName}</strong><small>{stage(c.stage)}</small></span>
+            <ButtonLink size="sm" variant="primary" to={playerPath(`/admissions/cases/${c.id}${c.stage === 'PLACE_OFFERED' ? '?tab=agreement' : ''}`, child.playerId)}>{copy('Answer', 'პასუხი')}<ArrowRight aria-hidden="true" /></ButtonLink>
+        </div></li>)}</ul>
+    </section>;
+}
+
 const when = (iso: string) => `${formatDate(iso, { weekday: 'short', day: 'numeric', month: 'short' })}, ${formatTime(iso)}`;
 
 /**
@@ -106,7 +127,7 @@ function Requests({ child }: { child: JoiningChild }) {
     const copy = useJourneyCopy();
     const { stage } = useAdmissionCopy();
     const inquiryCopy = useInquiryCopy();
-    const cases = child.cases.filter(c => c.stage !== 'CLOSED' && c.enrollment?.status !== 'CANCELLED');
+    const cases = child.cases.filter(c => c.stage !== 'CLOSED' && c.enrollment?.status !== 'CANCELLED' && !waitsOnFamily(c));
     const enquiries = child.inquiries.filter(i => !i.caseId && ['OPEN', 'ROUTED'].includes(i.status));
     if (!cases.length && !enquiries.length) return null;
     const planned = cases.some(c => c.sessions.some(p => ['CONFIRMED', 'RECONFIRM_REQUIRED', 'INVITED'].includes(p.status) && Date.parse(p.endsAt) > Date.now()));

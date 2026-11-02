@@ -11,6 +11,7 @@ import { extractApiErrorCode, extractApiErrorMessage } from '../../../utils/apiE
 import { buildLoginRedirectPath, buildSignupPath } from '../../../utils/authRedirect';
 import { formatDate } from '../../../utils/formatting';
 import { Crest } from '../../world/Crest';
+import { squadAudience, squadFits } from '../../clubs/profile/join/joinFit';
 import { fetchJoinLink, sendJoin, type JoinLink, type JoinSendBody, type JoinSent } from '../api';
 import { usePagesCopy } from '../copy';
 import '../pages.css';
@@ -30,6 +31,9 @@ const today = () => new Date().toISOString().slice(0, 10);
  * child's card first with Add child (a child whose card has no birth date gets one asked here); the server reuses the parent's own child with that name and birth date,
  * and offers a child another parent already added ("Is this Luka…?") instead of making a second card. A grown-up
  * choosing "Me" for a youth squad is asked "Joining for your child?". The coach confirms; nothing is public.
+ * The first question offers only what fits the squad's age group, by the club page's own rule: "Me" when the
+ * signed-in person's age fits (unknown: offered), "My child" when the squad takes children. When nothing fits, it
+ * says so and opens the club's own squads.
  */
 export function JoinPage() {
   const t = usePagesCopy();
@@ -87,6 +91,10 @@ export function JoinPage() {
   const myAge = user?.dob ? ageOn(user.dob) : null;
   const youthUnder = link?.squad.youthUnder ?? null;
   // Asked before sending when the page can tell; the server asks the same (JOINING_FOR_CHILD) when it cannot.
+  const squadAge = link ? { category: link.squad.ageGroup, gender: link.squad.gender } : null;
+  const audience = squadAge ? squadAudience(squadAge) : null;
+  const offerMe = !squadAge || !audience || myAge == null || squadFits(squadAge, { age: myAge });
+  const offerChild = guardian.allowed && (!audience || audience.children);
   const tooOld = who === 'PLAYER' && (forChild || (youthUnder != null && myAge != null && myAge >= ADULT && myAge >= youthUnder));
   const choosing = (next: Who | null) => { setError(''); setForChild(false); choose(next); };
 
@@ -117,12 +125,17 @@ export function JoinPage() {
     : sent ? <Panel padded><JoinSentView sent={sent} who={who} link={link} /></Panel>
     : !who ? <Panel padded>
       {header}
+      {offerMe || offerChild ? <>
       <h2 className="gk-join__question">{t('Who’s joining?')}</h2>
       <div className="gk-ctiles gk-ctiles--two" role="group" aria-label={t('Who’s joining?')}>
-        <button type="button" className="gk-ctile" onClick={() => choosing('PLAYER')}><span className="gk-ctile__icon"><User aria-hidden="true" /></span><span className="gk-ctile__label">{t('Me')}</span><span className="gk-ghost__hint">{t('I play')}</span></button>
-        {guardian.allowed && <button type="button" className="gk-ctile" onClick={() => choosing('PARENT')}><span className="gk-ctile__icon"><Users aria-hidden="true" /></span><span className="gk-ctile__label">{t('My child')}</span><span className="gk-ghost__hint">{t('Name and birth date')}</span></button>}
+        {offerMe && <button type="button" className="gk-ctile" onClick={() => choosing('PLAYER')}><span className="gk-ctile__icon"><User aria-hidden="true" /></span><span className="gk-ctile__label">{t('Me')}</span><span className="gk-ghost__hint">{t('I play')}</span></button>}
+        {offerChild && <button type="button" className="gk-ctile" onClick={() => choosing('PARENT')}><span className="gk-ctile__icon"><Users aria-hidden="true" /></span><span className="gk-ctile__label">{t('My child')}</span><span className="gk-ghost__hint">{t('Name and birth date')}</span></button>}
       </div>
       <p className="gk-field__hint gk-join__note">{t('The coach confirms. Nothing is public.')}</p>
+      </> : <>
+      <h2 className="gk-join__question">{t('{squad} isn’t for your age.', { squad: link.squad.name })}</h2>
+      <div className="gk-boxedit__foot"><ButtonLink variant="primary" to={`${link.page.profilePath}?join=1`}>{t('See the club’s squads')}</ButtonLink></div>
+      </>}
     </Panel>
     : !isAuthenticated ? <Panel padded>
       {header}

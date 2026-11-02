@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react';
 import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { Link } from 'react-router-dom';
@@ -49,7 +49,7 @@ export function RosterDialog({ data, open, onClose }: { data: CoachData; open: b
                     : <EmptyNote title={copy('noSquadsYet')} action={<Button size="sm" onClick={() => setAdding(true)}><Plus aria-hidden="true" />{copy('addPlayers')}</Button>}>{copy('addClubPlayers')}</EmptyNote>}</Panel>
             </div>
         </Dialog>
-        {squadId && <AddPlayerToSquadModal clubId={data.clubId} squadId={squadId} existingPlayerIds={players.map(player => player.id)} isOpen={adding}
+        {squadId && <AddPlayerToSquadModal clubId={data.clubId} squadId={squadId} squadName={data.names.get(squadId)} existingPlayerIds={players.map(player => player.id)} isOpen={adding}
             onClose={() => setAdding(false)} onPlayersAdded={() => { setAdding(false); data.refresh(); }} />}
     </>;
 }

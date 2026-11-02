@@ -297,3 +297,14 @@ it('keeps the exact in-memory uncertain request when create access disappears an
   expect(screen.getByLabelText('Ground or meeting place')).toHaveValue('Original private pitch'); expect(screen.getByLabelText('Starts')).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: 'Next' })); await screen.findByText('Training saved.'); expect(api.post.mock.calls).toStrictEqual([first, first]);
 });
+it('never asks a squad’s coach to ask for a job they already hold', () => {
+  const coach = { ...boot, leadership: false };
+  const mine = { ...roles, leadership: false };
+  const { unmount } = render(<WorkspaceGuide boot={coach} roles={mine} onRefresh={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+  expect(screen.getByText('Give a staff member a task')).toBeInTheDocument();
+  expect(screen.queryByText('Ask for a responsibility')).not.toBeInTheDocument();
+  unmount();
+  render(<WorkspaceGuide boot={coach} roles={{ ...mine, views: [], current: { ...mine.current, squadIds: [] } }} onRefresh={vi.fn()} />);
+  expect(screen.getByText('Ask for a responsibility')).toBeInTheDocument();
+});

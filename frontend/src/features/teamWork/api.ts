@@ -75,8 +75,15 @@ export interface PlanChange { id: number; author: Person | null; at: string; mes
 export interface WorkNode { item: WorkItem; steps: WorkItem[] }
 /** A plan opened: its tasks, the plans that are its steps (in order), its history and how its purpose changed. */
 export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
-/** Someone on the team, with their one-line responsibility ("Agent Dola") and their Now note, with when they changed it. */
-export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean; responsibility?: string | null; now?: string | null; nowAt?: string | null }
+/**
+ * Someone on the team, with their one-line responsibility ("Agent Dola") and their Now note, with when they changed it.
+ * `mail`: their notices also reach an inbox they confirmed; which inbox only they see.
+ */
+export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean; responsibility?: string | null; now?: string | null; nowAt?: string | null; mail?: boolean }
+/** Where your own notices are emailed: the inbox, whether its link was opened, and when the link went out. */
+export interface Mail { address: string | null; confirmed: boolean; linkSentAt: string | null }
+/** "Notify": who was told, who was asked a few minutes ago and so left alone, and the task as it is now. */
+export interface Asked { told: Person[]; justAsked: Person[]; detail: Detail }
 /** What a person is doing, in their own words (only they change it), with teammates' comments under it, oldest first. */
 export interface NowNote { person: Person; body: string | null; updatedAt: string | null; canEdit: boolean; comments: WorkComment[] }
 export interface Invite { userId: number; email: string; token: string; expiresAt: string }
@@ -165,6 +172,14 @@ export const writeNow = (userId: number, body: string) => data(apiClient.put<Now
 export const addNowComment = (userId: number, body: string) => data(apiClient.post<NowNote>(`${base}/team/${userId}/now/comments`, { body }));
 export const editNowComment = (id: number, body: string) => data(apiClient.patch<NowNote>(`${base}/now-comments/${id}`, { body }));
 export const deleteNowComment = (id: number) => data(apiClient.delete<NowNote>(`${base}/now-comments/${id}`));
+export const fetchMail = (signal?: AbortSignal) => data(apiClient.get<Mail>(`${base}/mail`, { signal }));
+/** Sends the confirming link to this inbox; nothing is emailed there until it is opened. */
+export const setMail = (address: string) => data(apiClient.put<Mail>(`${base}/mail`, { address }));
+export const removeMail = () => data(apiClient.delete<Mail>(`${base}/mail`));
+/** The link from the inbox, without signing in: the token is the proof. */
+export const confirmMail = (token: string) => data(apiClient.post<{ address: string }>('/auth/notification-email/confirm', { token }));
+/** Tells these teammates the task needs their attention, with one optional line. */
+export const askAttention = (itemId: number, people: number[], line: string) => data(apiClient.post<Asked>(`${base}/items/${itemId}/attention`, { people, line: line || undefined }));
 
 /** What the paste box accepts, shown as its example. */
 export const PASTE_EXAMPLE = `plan: Registration and roles

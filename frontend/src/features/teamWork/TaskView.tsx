@@ -13,6 +13,7 @@ import { AttachButton, WorkMediaList } from './WorkMedia';
 import { useTaskUploads } from './useUploads';
 import { ReportDialog } from './ReportDialog';
 import { DiscussButton } from '../teamChat/DiscussButton';
+import { NotifyButton } from './NotifyButton';
 import { ago, day, endWords, madeBy, priorityName, progressWords, shortDate, statusName } from './teamWorkWords';
 import { taskAsText } from './planAsText';
 import { short } from './upToDate';
@@ -261,6 +262,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
                     </dd></div>}
                 </dl>
                 <div className="tw-detail__tools">
+                    <NotifyButton item={item} team={team} me={me ?? null} onPut={next => { put(next); onSaved(); }} />
                     <Button size="sm" variant="secondary" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, link, plan)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</Button>
                     <Button size="sm" variant="ghost" onClick={() => setReporting(true)}><ClipboardPaste aria-hidden="true" />{copy('Paste report', 'ანგარიშის ჩასმა')}</Button>
                     {place && <>

@@ -98,7 +98,8 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    ]
   };
 
- const loadFeed = useCallback(async (navigation?: FeedNavigation, restoring = false) => {
+ // `keepOpen`: loading again under the person (clubs just followed) keeps their open comments and post.
+ const loadFeed = useCallback(async (navigation?: FeedNavigation, restoring = false, keepOpen = false) => {
   const changingPage = navigation !== undefined;
   if (changingPage && (morePending.current || (navigation.direction === 'older' && !nextPage))) return;
   if (changingPage) { requestVersion.current++; requestController.current?.abort(); }
@@ -112,12 +113,14 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
    setNextPage(null);
    setPageStarts([null]);
    setPageIndex(0);
-   setOpenComments({});
-   setCommentsData({});
-   setCommentsErrors({});
-   setCommentsLoading({});
-   setLikeErrors({});
-   setSelectedPost(null);
+   if (!keepOpen) {
+    setOpenComments({});
+    setCommentsData({});
+    setCommentsErrors({});
+    setCommentsLoading({});
+    setLikeErrors({});
+    setSelectedPost(null);
+   }
   } else {
    morePending.current = true;
    setLoadingMore(true);
@@ -198,7 +201,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
  const reload = useRef(loadFeed);
  reload.current = loadFeed;
  useEffect(() => {
-  const listener = () => void reload.current();
+  const listener = () => void reload.current(undefined, false, true);
   window.addEventListener(FOLLOWS_CHANGED, listener);
   return () => window.removeEventListener(FOLLOWS_CHANGED, listener);
  }, []);

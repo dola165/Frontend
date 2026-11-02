@@ -27,7 +27,24 @@ export interface GroupInput {
   introductionPermission?: IntroductionPermissionPolicy | null;
   extraApprovalRequired?: boolean; decisionUserId?: number | null;
   city?: string; country?: string; level?: string; positions?: string[];
+  /** Step 5 (older servers omit it: free, 3 a session). */
+  firstVisits?: FirstVisits | null;
 }
+/** First visits families book themselves: at most `places` a session (0: off), free or `fee` in `currency`. Unset: free, 3. */
+export interface FirstVisits { places: number; fee: number | null; currency: string | null }
+/**
+ * One training a first visit can be booked at. `reference` is what a booking names; `sessionId` only where the squad's
+ * timetable is public (null where only its times are, and then `place` is the group's own ground).
+ */
+export interface FirstVisitSession { reference: string; sessionId: number | null; startsAt: string; endsAt: string; place: string; placesLeft: number }
+/** The group's next trainings with a first-visit place left (four weeks, from two hours ahead), soonest first. */
+export interface FirstVisitSessions { groupId: number; groupVersion: number; places: number; fee: number | null; currency: string | null; timezone: string; sessions: FirstVisitSession[] }
+/**
+ * A booking carries what the family saw: the group's terms (`groupVersion`) and the training's time and place. When
+ * either changed since, the server answers TERMS_CHANGED or SESSION_CHANGED and nothing is booked. `phone`: asked only
+ * when the parent's profile has none (the coach's emergency contact).
+ */
+export interface FirstVisitBooking { requestId: string; playerId: number; session: string; groupVersion: number; startsAt: string; endsAt: string; place: string; phone?: string }
 export interface Opportunity extends Omit<GroupInput, 'requestId' | 'expectedVersion'> {
   id: number; version: number; organizationId: number; organizationName: string; clubId: number | null;
   availability: Availability; remainingPlaces: number; destination: string; canManage?: boolean;

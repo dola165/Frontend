@@ -12,6 +12,7 @@ import { overviewFixtures, overviewLead } from '../overviewPolicy';
 import { profileKindLabel } from '../presentation';
 import { useOverviewSource } from '../useOverviewSource';
 import { ClubPostStrip } from './ClubPostStrip';
+import { usePostAuthors } from '../../feed/postAuthors';
 import { useProfilePostFeed } from '../../profiles/useProfilePostFeed';
 import { ClubFamilyWeek } from './ClubFamilyWeek';
 import type { ClubPermissions } from './useClubProfile';
@@ -25,6 +26,8 @@ const tabLink = (club: number, tab: string) => `/clubs/${club}?tab=${tab}`;
 export function ClubAboutTab({ club, can }: { club: ClubProfile; can: ClubPermissions }) {
     const { user } = useAuth();
     const feed = useProfilePostFeed(`/posts/club/${club.id}`, 6);
+    // Whoever may post for the club or one of its squads, as the one rule-checker answers.
+    const canPost = usePostAuthors().authors.some(author => author.clubId === club.id);
     const lead = overviewLead(club.id, user?.navigationCapabilities);
     const [window] = useState(() => {
         const start = new Date(), end = new Date(start); end.setDate(end.getDate() + 30);
@@ -48,9 +51,9 @@ export function ClubAboutTab({ club, can }: { club: ClubProfile; can: ClubPermis
                 </dl>
             </Panel>
         </Section>
-        <Section boxed title="Latest news" action={<span className="gk-row">{can.canPost && <Link className="gk-section__action gk-row" to={tabLink(club.id, 'posts')}><PenLine size={15} aria-hidden="true" />Write a post</Link>}<Link className="gk-section__action" to={tabLink(club.id, 'posts')}>See all posts</Link></span>}>
+        <Section boxed title="Latest news" action={<span className="gk-row">{canPost && <Link className="gk-section__action gk-row" to={tabLink(club.id, 'posts')}><PenLine size={15} aria-hidden="true" />Write a post</Link>}<Link className="gk-section__action" to={tabLink(club.id, 'posts')}>See all posts</Link></span>}>
             <ClubPostStrip posts={feed.posts} loading={feed.pages.loading} allTo={tabLink(club.id, 'posts')}
-                empty={{ title: 'No posts yet', body: can.canPost ? 'Share the first update from the Posts tab. It appears here and in your followers’ Home feed.' : 'When the club shares news, photos and results, they appear here.' }} />
+                empty={{ title: 'No posts yet', body: canPost ? 'Share the first update from the Posts tab. It appears here and in your followers’ Home feed.' : 'When the club shares news, photos and results, they appear here.' }} />
         </Section>
         <Section boxed icon={CalendarDays} title="Coming up" hint="Next 30 days" action={can.canManage ? { label: 'Club calendar', to: `/clubs/${club.id}/office?tab=calendar` } : undefined}>
             <Fixtures club={club} source={schedule} canManage={can.canManage} />
@@ -72,7 +75,7 @@ function Fixtures({ club, source, canManage }: { club: ClubProfile; source: Sour
         const squad = f.clubId === club.id ? f.challengerSquadName : f.targetSquadName;
         const kind = kindOf({ eventType: f.eventType });
         return <FixtureRow key={`${f.occurrenceId}:${f.startsAt}`} tone={kind.tone} icon={activityIcons[f.eventType]} iconColor={activityColors[f.eventType]} time={timeLabel(f.startsAt)} day={dayLabel(f.startsAt)} title={f.title}
-            to={f.matchExchangeId ? `/match-exchange/${f.matchExchangeId}` : undefined}
+            to={f.matchExchangeId ? `/matches/${f.matchExchangeId}` : undefined}
             meta={[squad, f.locationName].filter(Boolean).join(' · ')}
             trail={f.challengeStatus && f.challengeStatus !== 'ACCEPTED' ? <Badge tone="warning">Awaiting confirmation</Badge> : <span className="gk-fixture__tag">{kind.label}</span>} />;
     })}</List></Panel>;

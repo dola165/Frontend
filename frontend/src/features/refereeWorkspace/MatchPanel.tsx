@@ -30,6 +30,6 @@ export function MatchPanel({ eventId, onClose, onChanged, refreshVersion }: { ev
         {visited.includes('result') && <div hidden={tab !== 'result'}><MatchResultSection match={match} reload={refresh}/></div>}
       </>}
     </ErrorBoundary></div>
-    <footer className="rw-panel-footer"><span>Your workspace stays in place.</span><Link to={`/match-exchange/${eventId}`}>Open full match page ↗</Link></footer>
+    <footer className="rw-panel-footer"><span>Your workspace stays in place.</span><Link to={`/matches/${eventId}?from=referee`}>Open full match page ↗</Link></footer>
   </aside></div>;
 }

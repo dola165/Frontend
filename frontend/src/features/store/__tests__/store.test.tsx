@@ -123,7 +123,7 @@ describe('Product and cart', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Not enough stock');
         expect(screen.queryByText('Subtotal')).not.toBeInTheDocument();
         expect(readCart()[0].quantity).toBe(3);
-        expect(screen.getByRole('button', { name: 'Checkout unavailable' })).toBeDisabled();
+        expect(screen.queryByRole('button', { name: 'Request purchase' })).not.toBeInTheDocument();
     });
 });
 

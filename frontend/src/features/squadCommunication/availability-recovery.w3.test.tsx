@@ -9,14 +9,14 @@ import { getAuthSessionId, setStoredAccessToken, setStoredUserId } from '../../u
 
 vi.mock('./api', () => ({ attendance:vi.fn(),overview:vi.fn() }));
 vi.mock('./SquadVenueReservationPanel', () => ({ SquadVenueReservationPanel:()=>null }));
-const session:api.SquadSession={id:9,title:'Training',starts_at:'2099-10-03T14:00:00Z',ends_at:'2099-10-03T15:00:00Z',location:'Pitch A',status:'SCHEDULED',cancellation_reason:null,revision:4,response_requested:true,attendance:[{id:61,name:'Nika',active:true,response:'UNANSWERED'}]};
+const session:api.SquadSession={id:9,title:'Training',starts_at:'2099-10-03T14:00:00Z',ends_at:'2099-10-03T15:00:00Z',location:'Pitch A',status:'SCHEDULED',cancellation_reason:null,revision:4,response_requested:true,attendance:[{id:61,name:'Nika',active:true,response:'NOT_GOING'}]};
 beforeEach(()=>{vi.resetAllMocks();localStorage.clear(); setStoredAccessToken(`e30.${btoa(JSON.stringify({sub:'20'}))}.test`); setStoredUserId(20);});
-function show(){const saved=vi.fn();render(<MemoryRouter><SquadSessionDetails event={sessionEvent({id:10,name:'FC Dinamo Tbilisi Academy U12'},session)} onClose={vi.fn()} onSaved={saved}/></MemoryRouter>);return saved;}
+function show(){const saved=vi.fn();const draw=(value:api.SquadSession)=><MemoryRouter><SquadSessionDetails event={sessionEvent({id:10,name:'FC Dinamo Tbilisi Academy U12'},value)} onClose={vi.fn()} onSaved={saved}/></MemoryRouter>;const view=render(draw(session));return{saved,showRecordedGoing:()=>view.rerender(draw({...session,attendance:[{...session.attendance[0],response:'GOING'}]}))};}
 
 it('retains a request identity after a lost availability acknowledgement',async()=>{
     vi.mocked(api.attendance).mockRejectedValueOnce(new Error('Acknowledgement lost')).mockResolvedValue(undefined as never);
-    const saved=show();
-    fireEvent.click(screen.getByRole('button',{name:'Coming'}));
+    const {saved}=show();
+    fireEvent.click(screen.getByRole('button',{name:'Nika can come after all'}));
     await screen.findByRole('alert');
     expect(saved).not.toHaveBeenCalled();
     const first=vi.mocked(api.attendance).mock.calls[0];
@@ -27,16 +27,20 @@ it('retains a request identity after a lost availability acknowledgement',async(
 });
 it('uses a new request identity for a different reply after an uncertain result',async()=>{
     vi.mocked(api.attendance).mockRejectedValueOnce(new Error('Acknowledgement lost')).mockResolvedValue(undefined as never);
-    const saved=show();fireEvent.click(screen.getByRole('button',{name:'Coming'}));await screen.findByRole('alert');
+    const {saved,showRecordedGoing}=show();fireEvent.click(screen.getByRole('button',{name:'Nika can come after all'}));await screen.findByRole('alert');
     const first=vi.mocked(api.attendance).mock.calls[0];
     fireEvent.click(screen.getByRole('button',{name:'Review a new reply'}));
+    // The reviewed server state now records the earlier undo. A fresh exception is a new intent.
+    showRecordedGoing();
     fireEvent.click(screen.getByRole('button',{name:'Can’t come'}));await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
     const second=vi.mocked(api.attendance).mock.calls[1];expect(second.slice(0,5)).toEqual([10,9,61,'NOT_GOING',4]);expect(second[5]).not.toEqual(first[5]);
 });
 it('starts a new command after acknowledgement instead of treating a later choice as a retry',async()=>{
     vi.mocked(api.attendance).mockResolvedValue(undefined as never);
-    const saved=show();fireEvent.click(screen.getByRole('button',{name:'Coming'}));await waitFor(()=>expect(saved).toHaveBeenCalledOnce());
+    const {saved,showRecordedGoing}=show();fireEvent.click(screen.getByRole('button',{name:'Nika can come after all'}));await waitFor(()=>expect(saved).toHaveBeenCalledOnce());
     const first=vi.mocked(api.attendance).mock.calls[0];
-    fireEvent.click(screen.getByRole('button',{name:'Coming'}));await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
+    showRecordedGoing();
+    fireEvent.click(screen.getByRole('button',{name:'Can’t come'}));await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
     expect(vi.mocked(api.attendance).mock.calls[1][5]).not.toEqual(first[5]);
 });
+

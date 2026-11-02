@@ -3,6 +3,7 @@ import { fetchTournamentHost } from '../../../tournaments/api';
 import { CupGlyph, FestivalGlyph, GroupsGlyph, LadderGlyph, LeagueGlyph } from '../../../tournaments/shape/FormatGlyph';
 import { FORMAT_WORD } from '../../../tournaments/shape/shapeOf';
 import { shared } from '../../cache';
+import { searchSpec } from '../../watches/api';
 import { wt } from '../../copy';
 import { first, nearbyPoint, type DirectoryQuery, type DirectorySource, type FilterDef, type ScopeFilter } from '../../directory/types';
 import { isoDay, isoDayOf, SCOPE_LABEL, sentence } from '../../format';
@@ -62,11 +63,11 @@ export const TOURNAMENT_FILTERS: FilterDef[] = [
     { kind: 'choice', key: 'feeBasis', label: 'Fee basis', allLabel: 'Any basis', when: query => hasFee(query.values), options: [{ value: 'TEAM', label: 'Per team' }, { value: 'PLAYER', label: 'Per player' }, { value: 'EVENT', label: 'Per event' }] },
     { kind: 'toggle', key: 'openPlaces', label: 'Places still available' },
     // Kept from older links, which chose a kind, a city, a country or a spot on the map: shown as chips, still applied.
-    valueScope('family', 'Kind'), valueScope('city', 'City'), valueScope('country', 'Country'), { kind: 'scope', key: 'around', label: 'Near the place chosen' },
+    valueScope('family', 'Kind'), valueScope('city', 'City'), valueScope('country', 'Country'), valueScope('countryCode', 'Country'), { kind: 'scope', key: 'around', label: 'Near the place chosen' }, { kind: 'scope', key: 'radiusKm', label: 'Distance' },
 ];
 
 /** Keys sent to `GET /competitions` exactly as the filters hold them. */
-const PASSED = ['registration', 'family', 'structure', 'ageGroup', 'scope', 'sideSize', 'discipline', 'playingLevel', 'status', 'country', 'city', 'eligibilityCategory', 'from', 'to', 'minFee', 'maxFee', 'currency', 'feeBasis', 'openPlaces'];
+const PASSED = ['registration', 'family', 'structure', 'ageGroup', 'scope', 'sideSize', 'discipline', 'playingLevel', 'status', 'country', 'city', 'eligibilityCategory', 'from', 'to', 'minFee', 'maxFee', 'currency', 'feeBasis', 'openPlaces', 'birthYear'];
 
 /**
  * The list's search as `GET /competitions` parameters: filters, the format tile, the organiser, and where (a spot from an
@@ -75,13 +76,14 @@ const PASSED = ['registration', 'family', 'structure', 'ageGroup', 'scope', 'sid
 export function cardParams(query: DirectoryQuery, area: Parameters<typeof nearParams>[1], country?: string | null) {
     const params = new URLSearchParams();
     for (const key of PASSED) if (first(query, key)) params.set(key, first(query, key));
+    if (first(query, 'countryCode')) params.set('countryCode', first(query, 'countryCode'));
     const format = first(query, 'format');
     if (format) { const key = FAMILIES.has(format) ? 'family' : 'structure'; if (!params.has(key)) params.set(key, format); }
     const around = nearbyPoint(query, 'around');
     const named = Boolean(around || first(query, 'host') || first(query, 'country') || first(query, 'city'));
-    if (around) { params.set('latitude', String(around.lat)); params.set('longitude', String(around.lng)); params.set('radiusKm', '25'); } else nearParams(params, area, named ? null : country);
     const [hostKind, hostId] = first(query, 'host').split(':');
     if ((hostKind === 'CLUB' || hostKind === 'ORGANIZATION') && /^[1-9]\d*$/.test(hostId ?? '')) { params.set('hostKind', hostKind); params.set('hostId', hostId); }
+    if (around) { params.set('latitude', String(around.lat)); params.set('longitude', String(around.lng)); params.set('radiusKm', first(query, 'radiusKm') || '25'); } else nearParams(params, area, named ? null : country);
     if (query.q) params.set('q', query.q);
     return params;
 }
@@ -113,7 +115,8 @@ async function liveThenFinished(params: URLSearchParams, page: number, signal: A
  * as picture tiles, entries and age in the strip under the map; the rest under More filters.
  */
 export const allTournaments: DirectorySource<TournamentItem> = {
-    id: 'all',
+    id: 'all', forContext: true,
+    watch: (query, { area, country }) => searchSpec('TOURNAMENTS', cardParams(query, area, country)),
     label: 'All tournaments',
     noun: ['tournament', 'tournaments'],
     searchLabel: 'Search tournaments',

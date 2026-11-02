@@ -8,9 +8,11 @@ import { apiClient } from '../../api/axiosConfig';
 import { availability } from './attendance';
 
 export type CalendarSquad = Pick<api.SquadSpace, 'id' | 'name'> & Partial<api.SquadSpace>;
-export type SquadCalendarEvent = ScheduleWorkspaceEvent & { squadId?: number; owningClubId?: number | null; session?: api.SquadSession };
+/** `whoId`: in a family's calendar, the child the entry is for (`who` is their first name). */
+export type SquadCalendarEvent = ScheduleWorkspaceEvent & { squadId?: number; owningClubId?: number | null; session?: api.SquadSession; whoId?: number;
+    /** A connected fixture's listing revision, for the family's reply to the child's call-up. */ matchRevision?: number | null };
 
-/** Opt-out: who is expected, who can't come and, when the coach asked, who still has to confirm. */
+/** Expected by default; legacy confirmation flags never add pending attendance obligations. */
 function responseSummary(session: api.SquadSession) {
     const value = availability(session);
     return { total: value.invited.length, going: value.expected, cantCome: value.cantCome.length, pending: value.toConfirm.length };
@@ -22,6 +24,7 @@ export function sessionEvent(squad: CalendarSquad, session: api.SquadSession): S
     return { id: `squad:${squad.id}:${session.id}`, eventId: session.id, origin: 'SQUAD_SESSION', title: session.title,
         eventType: session.event_type ?? 'TRAINING', description: session.description, startsAt: session.starts_at, endsAt: session.ends_at, locationText: location,
         status: session.status, visibility: 'CLUB_ONLY', publicationState: 'PRIVATE', recurring: !!session.series_id, seriesId: session.series_id, responseSummary: responseSummary(session),
+        firstVisits: session.introductory_visitors?.filter(visitor => visitor.firstVisit && visitor.status !== 'CANCELLED').length || undefined,
         ownerLabel: squad.name, hostSquadId: squad.id, hostSquadName: squad.name, squadId: squad.id, session,
         mapEligible: false, appearsOnMap: false, conflictingEventIds: [] };
 }
@@ -35,12 +38,46 @@ function assignedEvent(event: ScheduleEventOccurrence, squad: CalendarSquad): Sq
         recurring: event.recurring, recurrence: event.recurrence, ownerLabel: squad.name,
         hostSquadId: squad.id, hostSquadName: squad.name, squadId: squad.id, owningClubId: event.clubId,
         locationLat: event.locationLat, locationLng: event.locationLng, opponentClubId: event.opponentClubId,
-        publishAt: event.publishAt,
+        publishAt: event.publishAt, matchRevision: event.matchRevision ?? null,
         mapEligible: false, appearsOnMap: event.publicNow, conflictingEventIds: event.conflictingEventIds ?? [] };
 }
 
 /** A day alone is local midnight; anything else is read as written (with or without an offset). */
 const wallTime = (value: string) => localDateTime(new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value));
+
+/**
+ * The squads' sessions, matches and club events between `from` and `to` (for one player when given), from the existing
+ * sources. Throws only when every squad's sessions fail; otherwise `error` names what is missing.
+ */
+export async function loadSquadEvents(selected: CalendarSquad[], from: string, to: string, playerId: number | undefined, signal: AbortSignal) {
+    // Sessions store instants; the legacy club feed takes local wall times without an offset. Callers pass either form.
+    const window = { from: new Date(from).toISOString(), to: new Date(to).toISOString(), ...(playerId == null ? {} : { playerId }) };
+    const local = { from: wallTime(from), to: wallTime(to) };
+    // Each squad's sessions load on their own (F06): one failure leaves the others in view, named in the error.
+    const settled = await Promise.allSettled(selected.map(async squad => (await api.sessions(squad.id, signal, window))
+        .filter(session => playerId == null || session.attendance.some(p => p.id === playerId && p.active !== false))
+        .map(session => sessionEvent(squad, session))));
+    const failedSquads = selected.filter((_, index) => settled[index].status === 'rejected');
+    if (selected.length && failedSquads.length === selected.length) throw (settled[0] as PromiseRejectedResult).reason;
+    const sessions = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+    // Club feeds can be unavailable to a family; squad sessions must still load.
+    const clubs = [...new Set(selected.flatMap(squad => squad.club_id ? [squad.club_id] : []))];
+    const feeds = await Promise.allSettled(clubs.map(id => fetchClubSchedule(id, local.from, local.to, signal)));
+    const connectedFeeds = await Promise.allSettled(selected.map(squad => apiClient.get<ScheduleEventOccurrence[]>(`/match-arrangements/squads/${squad.id}/fixtures`, { params: { from: window.from, to: window.to }, signal, timeout: 15000 }).then(r => r.data)));
+    const connected = connectedFeeds.flatMap(feed => feed.status === 'fulfilled' ? [feed.value] : []);
+    const connectedIds = new Set(connected.flat().map(e => e.eventId));
+    const assigned = [...connected.flat(), ...feeds.flatMap(feed => feed.status === 'fulfilled' ? feed.value.filter(e => !connectedIds.has(e.eventId)) : [])].flatMap(event => {
+        const squad = selected.find(s => s.id === event.challengerSquadId || s.id === event.targetSquadId);
+        return squad ? [assignedEvent(event, squad)] : [];
+    });
+    return { events: [...new Map([...sessions.flat(), ...assigned].map(event => [event.id, event])).values()],
+        // Training enrollment does not grant competitive affiliation.
+        // Optional feeds deliberately deny/hide records from an actor
+        // without that access; retrying cannot change this. Mandatory
+        // squad-session failures still reach the error path below.
+        error: failedSquads.length ? `${failedSquads.map(squad => squad.name).join(', ')}: sessions could not load. The rest is shown.`
+            : [...feeds, ...connectedFeeds].some(feed => feed.status === 'rejected' && ![403, 404].includes(feed.reason?.response?.status)) ? 'Squad sessions are available, but some match and event listings could not load. Try again.' : '' };
+}
 
 /**
  * Read the existing sources. Never copy sessions into personal or club event tables.
@@ -58,33 +95,8 @@ export function useSquadSchedule(squads: CalendarSquad[], from: string, to: stri
             if (inFlight || abort.signal.aborted) return;
             inFlight = true;
             try {
-                // Sessions store instants; the legacy club feed takes local wall times without an offset. Callers pass either form.
-                const window = { from: new Date(from).toISOString(), to: new Date(to).toISOString(), ...(playerId == null ? {} : { playerId }) };
-                const local = { from: wallTime(from), to: wallTime(to) };
-                // Each squad's sessions load on their own (F06): one failure leaves the others in view, named in the error.
-                const settled = await Promise.allSettled(selected.map(async squad => (await api.sessions(squad.id, abort.signal, window))
-                    .filter(session => playerId == null || session.attendance.some(p => p.id === playerId && p.active !== false))
-                    .map(session => sessionEvent(squad, session))));
-                const failedSquads = selected.filter((_, index) => settled[index].status === 'rejected');
-                if (selected.length && failedSquads.length === selected.length) throw (settled[0] as PromiseRejectedResult).reason;
-                const sessions = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
-                // Club feeds can be unavailable to a family; squad sessions must still load.
-                const clubs = [...new Set(selected.flatMap(squad => squad.club_id ? [squad.club_id] : []))];
-                const feeds = await Promise.allSettled(clubs.map(id => fetchClubSchedule(id, local.from, local.to, abort.signal)));
-                const connectedFeeds = await Promise.allSettled(selected.map(squad => apiClient.get<ScheduleEventOccurrence[]>(`/match-arrangements/squads/${squad.id}/fixtures`, { params: { from: window.from, to: window.to }, signal: abort.signal, timeout: 15000 }).then(r => r.data)));
-                const connected = connectedFeeds.flatMap(feed => feed.status === 'fulfilled' ? [feed.value] : []);
-                const connectedIds = new Set(connected.flat().map(e => e.eventId));
-                const assigned = [...connected.flat(), ...feeds.flatMap(feed => feed.status === 'fulfilled' ? feed.value.filter(e => !connectedIds.has(e.eventId)) : [])].flatMap(event => {
-                    const squad = selected.find(s => s.id === event.challengerSquadId || s.id === event.targetSquadId);
-                    return squad ? [assignedEvent(event, squad)] : [];
-                });
-                if (!abort.signal.aborted) setState({ key, events: [...new Map([...sessions.flat(), ...assigned].map(event => [event.id, event])).values()],
-                    // Training enrollment does not grant competitive affiliation.
-                    // Optional feeds deliberately deny/hide records from an actor
-                    // without that access; retrying cannot change this. Mandatory
-                    // squad-session failures still reach the error path below.
-                    error: failedSquads.length ? `${failedSquads.map(squad => squad.name).join(', ')}: sessions could not load. The rest is shown.`
-                        : [...feeds, ...connectedFeeds].some(feed => feed.status === 'rejected' && ![403, 404].includes(feed.reason?.response?.status)) ? 'Squad sessions are available, but some match and event listings could not load. Try again.' : '', loading: false });
+                const loaded = await loadSquadEvents(selected, from, to, playerId, abort.signal);
+                if (!abort.signal.aborted) setState({ key, ...loaded, loading: false });
             } catch (error) {
                 if (!abort.signal.aborted) setState({ key, events: [], error: extractApiErrorMessage(error, 'Your squad schedule could not load.'), loading: false });
             } finally {

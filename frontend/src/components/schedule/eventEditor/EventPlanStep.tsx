@@ -1,15 +1,29 @@
 import type { CSSProperties } from 'react';
+import { Link, useInRouterContext } from 'react-router-dom';
 import { CalendarDays, Check, Dumbbell, Repeat2 } from 'lucide-react';
+import { actionHref, OPENED_HERE } from '../../../features/actions/registry';
 import { eventTypeCopy } from '../workspaceTypes';
 import { TYPES } from './eventEditorModel';
 import type { EventEditor } from './useEventEditor';
 
-/** Step 1, "Plan": the kind of event, its name, one-time or weekly, the squad and notes. */
+const MATCHES: string[] = ['MATCH', 'FRIENDLY'];
+
+/**
+ * Step 1, "Plan": the kind of event, its name, one-time or weekly, the squad and notes. A match is never a calendar
+ * entry (step 6): its tile opens Arrange a match over the page, for the squad chosen here, and the editor closes.
+ */
 export function EventPlanStep({ editor }: { editor: EventEditor }) {
     const {
         t, form, squads, squadError, titleInput, recurring, eventType, squadClubId, interval, hasSquad,
-        update, selectMode, audience, fixedSquad, mode,
+        update, selectMode, audience, fixedSquad, mode, isClub, onClose,
     } = editor;
+    // The editor also opens outside the app's routes (its own tests); the match tile needs the router.
+    const routed = useInRouterContext();
+    // An older calendar match being edited keeps its own kind; a new one is arranged as a match.
+    const kinds = TYPES.filter(({ value }) => !MATCHES.includes(value) || (mode === 'edit' && eventType === value));
+    const arrange = routed && mode === 'create' && isClub
+        ? actionHref(window.location, 'arrange_match', form.hostSquadId ? { kind: 'squad', id: form.hostSquadId } : { kind: 'me' }) : null;
+    const Match = eventTypeCopy.MATCH.icon;
     return (
         <>
             {!recurring || audience?.privateInvitations ? (
@@ -20,7 +34,7 @@ export function EventPlanStep({ editor }: { editor: EventEditor }) {
                         role="group"
                         aria-label={t('schedule.editor.eventType')}
                     >
-                        {TYPES.map(({ value, icon: Icon }, index) => (
+                        {kinds.map(({ value, icon: Icon }, index) => (
                             <button
                                 data-field={index === 0 ? 'kind' : undefined}
                                 type="button"
@@ -37,6 +51,9 @@ export function EventPlanStep({ editor }: { editor: EventEditor }) {
                                 {t(`schedule.event.${value.toLowerCase()}`)}
                             </button>
                         ))}
+                        {arrange && <Link to={arrange} state={OPENED_HERE} onClick={onClose} style={{ '--type-accent': eventTypeCopy.MATCH.accent } as CSSProperties}>
+                            <Match size={17} />{t('schedule.event.match')}
+                        </Link>}
                     </div>
                 </div>
             ) : (

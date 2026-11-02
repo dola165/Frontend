@@ -586,7 +586,7 @@ post('/organizations/:oid/imports/commit', ({ params, body }) => isClubOrg(param
 // domain answers first when it implements this path). Visitors come from joining arrangements.
 get('/squad-communication/:sid/sessions/:eid/introductory-visitors', ({ params }) => ({
   sessionRevision: 1,
-  visitors: C.admissionCases.flatMap(c => c.sessions.filter(s => s.squadSessionId === Number(params.eid)).map(s => ({ participationId: s.id, caseId: c.id, playerId: c.playerId, caseVersion: c.version, participationVersion: s.version, name: c.playerName, status: s.status, permissionStatus: 'NOT_REQUIRED', emergencyContact: s.emergencyContact, canRecord: true }))),
+  visitors: C.admissionCases.flatMap(c => c.sessions.filter(s => s.squadSessionId === Number(params.eid)).map(s => ({ participationId: s.id, caseId: c.id, playerId: c.playerId, caseVersion: c.version, participationVersion: s.version, name: c.playerName, status: s.status, permissionStatus: 'NOT_REQUIRED', emergencyContact: s.emergencyContact, canRecord: true, firstVisit: Boolean(s.bookedByFamily) }))),
 }));
 
 // ================================================================ joining a club (public profile: options, contacts, enquiries)

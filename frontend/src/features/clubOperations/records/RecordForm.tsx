@@ -10,12 +10,13 @@ import { useClubEditorClose } from '../useClubEditorClose';
 import { useRecordCreation } from '../useRecordCreation';
 import { LegacyIsland } from './LegacyIsland';
 import { PlainField, RecordField } from './recordFields';
+import { RecordChoicePicker } from './RecordChoicePicker';
 import './records.css';
 import { appLanguage } from '../../../utils/formatting';
 
 // Records about one person, and records that hang off another record.
 const subjects = new Set(['STAFF_AVAILABILITY', 'CREDENTIAL', 'CONSENT', 'COLLECTION', 'EMERGENCY_CONTACT', 'ATTENDANCE', 'MEDICAL_APPOINTMENT', 'CLINICAL_NOTE', 'RESTRICTION', 'GOAL', 'OBSERVATION', 'REVIEW', 'EDUCATION_ABSENCE', 'EDUCATION_CONTACT', 'REGISTRATION', 'INSTALMENT', 'FINANCIAL_SUPPORT', 'PASSENGER', 'DEPARTURE', 'EQUIPMENT_ISSUE']);
-const relatedKinds: Record<string, string> = { EQUIPMENT_ISSUE: 'ASSET', MAINTENANCE: 'ASSET', PASSENGER: 'TRIP', EMERGENCY_PLAN: 'FACILITY', MATCH_PREPARATION: 'EMERGENCY_PLAN' };
+const relatedKinds: Record<string, string> = { FACILITY_TASK: 'FACILITY', EQUIPMENT_ISSUE: 'ASSET', MAINTENANCE: 'ASSET', PASSENGER: 'TRIP', EMERGENCY_PLAN: 'FACILITY', MATCH_PREPARATION: 'EMERGENCY_PLAN', CLINICAL_NOTE: 'MEDICAL_CONSENT', MEDICAL_APPOINTMENT: 'MEDICAL_CONSENT', RESTRICTION: 'MEDICAL_CONSENT', WELLBEING_NOTE: 'WELLBEING_CONSENT' };
 const numberOrNull = (value: string) => value ? Number(value) : null;
 
 function Group({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
@@ -101,8 +102,8 @@ export function RecordForm({ boot, definition, record, backLabel, onSaved, onCan
                     <option value="">Club-wide</option>{boot.squads.filter(s => permission?.globalWrite || permission?.writeSquads.includes(s.id)).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
             </PlainField>
-            <PlainField id={`${formId}-assignee`} label={guardianDecision ? 'Guardian who decides' : 'Responsible staff member'} optional={!guardianDecision && definition.kind !== 'DUTY'} hint={guardianDecision ? 'Only the confirmed guardian can give or withdraw this permission.' : undefined}>
-                <select id={`${formId}-assignee`} className="gk-input" required={guardianDecision || definition.kind === 'DUTY'} value={assignee} onChange={e => setAssignee(e.target.value)}>
+            <PlainField id={`${formId}-assignee`} label={guardianDecision ? 'Guardian who decides' : 'Responsible staff member'} optional={!guardianDecision && !['DUTY', 'FACILITY_TASK'].includes(definition.kind)} hint={guardianDecision ? 'Only the confirmed guardian can give or withdraw this permission.' : undefined}>
+                <select id={`${formId}-assignee`} className="gk-input" required={guardianDecision || ['DUTY', 'FACILITY_TASK'].includes(definition.kind)} value={assignee} onChange={e => setAssignee(e.target.value)}>
                     <option value="">{guardianDecision ? 'Choose confirmed guardian' : 'Unassigned'}</option>{staff.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
             </PlainField>
@@ -138,12 +139,18 @@ export function RecordForm({ boot, definition, record, backLabel, onSaved, onCan
                             <PlainField id={`${formId}-title`} label={facility ? 'Location name' : 'Title'} wide>
                                 <input id={`${formId}-title`} className="gk-input" required maxLength={160} value={title} onChange={e => setTitle(e.target.value)} />
                             </PlainField>
-                            {subjects.has(definition.kind) && <PlainField id={`${formId}-person`} label="Person" optional={definition.kind === 'EQUIPMENT_ISSUE'}>
+                            {['INSTALMENT', 'EQUIPMENT_ISSUE'].includes(definition.kind) ? <RecordChoicePicker club={boot.clubId} forKind={definition.kind} target="PERSON" squad={squad} value={subject}
+                                selected={subject ? { id: Number(subject), name: boot.people.find(p => String(p.id) === subject)?.name ?? `Person #${subject}` } : undefined}
+                                label="Person" required={definition.kind !== 'EQUIPMENT_ISSUE'} disabled={Boolean(record)} onChange={setSubject} />
+                                : subjects.has(definition.kind) && <PlainField id={`${formId}-person`} label="Person" optional={definition.kind === 'EQUIPMENT_ISSUE'}>
                                 <select id={`${formId}-person`} className="gk-input" required={definition.kind !== 'EQUIPMENT_ISSUE'} disabled={Boolean(record)} value={subject} onChange={e => { setSubject(e.target.value); if (guardianDecision) setAssignee(''); }}>
                                     <option value="">Choose a person</option>{people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select>
                             </PlainField>}
-                            {relatedKinds[definition.kind] && <PlainField id={`${formId}-related`} label={`Related ${label(relatedKinds[definition.kind]).toLowerCase()}`}>
+                            {['EQUIPMENT_ISSUE', 'FACILITY_TASK'].includes(definition.kind) ? <RecordChoicePicker club={boot.clubId} forKind={definition.kind} target={definition.kind === 'EQUIPMENT_ISSUE' ? 'ASSET' : 'FACILITY'} squad={squad} value={related}
+                                selected={related ? { id: Number(related), name: boot.links.find(l => String(l.id) === related)?.title ?? `Record #${related}` } : undefined}
+                                label={`Related ${label(relatedKinds[definition.kind]).toLowerCase()}`} required disabled={Boolean(record)} onChange={setRelated} />
+                                : relatedKinds[definition.kind] && <PlainField id={`${formId}-related`} label={`Related ${label(relatedKinds[definition.kind]).toLowerCase()}`}>
                                 <select id={`${formId}-related`} className="gk-input" required disabled={Boolean(record)} value={related} onChange={e => setRelated(e.target.value)}>
                                     <option value="">Choose</option>{boot.links.filter(l => l.kind === relatedKinds[definition.kind]).map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
                                 </select>

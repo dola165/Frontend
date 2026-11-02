@@ -18,14 +18,17 @@ export function isMapOpen({ param, legacyView, remembered, phone }: { param: str
 
 const read = () => { try { return localStorage.getItem(REMEMBERED); } catch { return null; } };
 
-/** The map's fold on every World tab: kept in the address and remembered for the next tab and visit. */
-export function useMapFold() {
+/**
+ * The map's fold on every World tab: kept in the address and remembered for the next tab and visit. `openFirst`: the
+ * club finder's map, open on every screen (on a phone the top half) until the person folds it there.
+ */
+export function useMapFold(openFirst = false) {
     const [params, setParams] = useSearchParams();
     const phone = useMediaQuery(PHONE);
-    const open = isMapOpen({ param: params.get('map'), legacyView: params.get('view'), remembered: read(), phone });
+    const open = isMapOpen({ param: params.get('map'), legacyView: params.get('view'), remembered: openFirst ? null : read(), phone: phone && !openFirst });
     const toggle = () => {
         const next = open ? 'closed' : 'open';
-        try { localStorage.setItem(REMEMBERED, next); } catch { /* remembered for this address only */ }
+        if (!openFirst) try { localStorage.setItem(REMEMBERED, next); } catch { /* remembered for this address only */ }
         setParams(current => {
             const copy = new URLSearchParams(current);
             copy.set('map', next);

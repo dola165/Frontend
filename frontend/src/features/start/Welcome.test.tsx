@@ -244,7 +244,7 @@ describe('the welcome', () => {
         // The invite is there before anything is typed.
         expect(await within(box).findByText('You’re invited')).toBeInTheDocument();
         await user.click(within(box).getByRole('button', { name: 'Join Rustavi Steel' }));
-        await waitFor(() => expect(address()).toBe('/clubs/6/office'));
+        await waitFor(() => expect(address()).toBe('/clubs/6/work'));
         expect(server.posts).toContainEqual({ url: '/clubs/6/operations/appointments/77/transition', body: { status: 'ACTIVE', revision: 2 } });
         await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CLUB' }));
     });

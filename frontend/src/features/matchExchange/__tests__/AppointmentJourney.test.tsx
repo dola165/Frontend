@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppointmentCard } from "../AppointmentCard";
 import { appointmentSection } from "../appointmentSection";
 import { FixtureCancellation, VenueFollowUp } from "../FixtureRecovery";
-import { MatchDetailPage } from "../../../pages/MatchDetailPage";
+import { MatchPage as MatchDetailPage } from "../../matches/MatchPage";
 import { RefereePage } from "../../../pages/RefereePage";
 import { post, type Appointment, type ChangeImpact, type Match } from "../api";
 import { useLoad } from "../hooks";
@@ -42,7 +42,7 @@ const impact: ChangeImpact = {
   needsAttention: [{ code: "RESOLVE_EXTERNAL_VENUE", id: null, message: "Follow up with the ground owner. Original evidence remains.", blocking: false }],
 };
 const reload = vi.fn();
-function card(a = appointment) { return render(<MemoryRouter initialEntries={["/match-exchange/12#appointment-91"]}><AppointmentCard appointment={a} reload={reload} /></MemoryRouter>); }
+function card(a = appointment) { return render(<MemoryRouter initialEntries={["/matches/12#appointment-91"]}><AppointmentCard appointment={a} reload={reload} /></MemoryRouter>); }
 
 beforeEach(() => {
   vi.clearAllMocks();vi.mocked(post).mockResolvedValue({});
@@ -52,7 +52,7 @@ afterEach(cleanup);
 
 describe("referee appointment journey", () => {
   it("opens the exact owned card from match notification and exposes the same actions in workspace", async () => {
-    const detail=render(<MemoryRouter initialEntries={["/match-exchange/12#appointment-91"]}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
+    const detail=render(<MemoryRouter initialEntries={["/matches/12#appointment-91"]}><Routes><Route path="/matches/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
     expect(screen.getByRole("button", { name: "Accept invitation" })).toBeEnabled();
     expect(document.getElementById("appointment-91")).toHaveFocus();
     detail.unmount();
@@ -122,7 +122,7 @@ describe("referee appointment journey", () => {
 
   it("does not show owner or staff actions to a family viewer and does not call agreement fully ready", () => {
     vi.mocked(useLoad).mockImplementation(path=>({ data: path==="/match-exchange/12" ? { ...match, own_appointments:[], referee_status:"NEEDED", venue_status:"NEEDED" } : [], error:"", reload }));
-    render(<MemoryRouter initialEntries={["/match-exchange/12"]}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/matches/12"]}><Routes><Route path="/matches/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
     expect(screen.queryByRole("button", { name:"Accept invitation" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name:"Cancel fixture" })).not.toBeInTheDocument();
     expect(screen.queryByText("Communication")).not.toBeInTheDocument();

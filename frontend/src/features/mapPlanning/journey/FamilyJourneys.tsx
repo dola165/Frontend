@@ -6,7 +6,7 @@ import { FamilyReply } from './FamilyReply';
 import { JourneyView } from './JourneyView';
 import type { FamilyJourneysState } from './useFamilyJourneys';
 
-const STATUS: Record<string, string> = { GOING: 'Going', NOT_GOING: 'Not going', RECONFIRMATION_REQUIRED: 'Confirm the update' };
+const STATUS: Record<string, string> = { NOT_GOING: 'Can’t come' };
 
 /**
  * Journeys shared with a family or a player: every published journey with its reply
@@ -38,7 +38,7 @@ export function FamilyJourneys({ journeys, selected, onOpen, stop, onStop, onExi
                     <Button size="sm" variant="ghost" iconOnly aria-label="Close journeys" onClick={onExit}><X aria-hidden="true" /></Button>
                 </div>
                 <h2 className="gk-plan-head__title">Your journeys</h2>
-                <p className="gk-faint">Shared by your club. Read the day, then reply here.</p>
+                <p className="gk-faint">Shared by your club. Expected attendance needs no reply; travel permission is separate.</p>
             </div>
             {missing && <div className="gk-notice gk-notice--warning" role="status">That journey is not available. It may have been withdrawn, or it was shared with another account.</div>}
             {journeys.loading ? <Skeleton height={72} /> : journeys.error ? (
@@ -50,7 +50,7 @@ export function FamilyJourneys({ journeys, selected, onOpen, stop, onStop, onExi
                             const clock = stopClock(journey.itinerary.startsAt, journey.itinerary.timezone);
                             return <FixtureRow key={journey.id} tone="event" time={clock.time} day={clock.day} title={journey.title} onClick={() => onOpen(journey)} label={`Open ${journey.title}`}
                                 meta={`${journey.club_name} · ${journey.child_name} · ${journey.itinerary.destination || journey.itinerary.meetingPoint}`}
-                                trail={<Badge tone={journey.response?.status === 'GOING' ? 'accent' : journey.response?.status === 'NOT_GOING' ? 'danger' : 'warning'}>{STATUS[journey.response?.status ?? ''] ?? 'Reply needed'}</Badge>} />;
+                                trail={<Badge tone={journey.response?.status === 'NOT_GOING' ? 'danger' : 'neutral'}>{STATUS[journey.response?.status ?? ''] ?? 'Expected'}</Badge>} />;
                         })}
                     </List>
                 </Section>

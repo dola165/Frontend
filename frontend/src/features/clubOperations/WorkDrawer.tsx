@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { PanelLeftClose } from 'lucide-react';
 import { Button } from '../../design/primitives';
+import { PrivateCarePanel } from './care/PrivateCarePanel';
 import { WorkspaceOperations } from './WorkspaceOperations';
 import { EditorScope } from './workspaceGuard';
 import type { Bootstrap } from './api';
@@ -28,7 +29,7 @@ export function WorkDrawer({ boot, module, label, context, closing, onClose, onC
             <Button variant="ghost" iconOnly aria-label={`Close ${label}`} title="Close (Esc)" onClick={onClose}><PanelLeftClose aria-hidden="true" /></Button>
         </div>
         <div className="gk-drawer__body" key={module}>
-            <EditorScope.Provider value="tool"><WorkspaceOperations scope="tool" boot={boot} module={module} onRefresh={onRefresh} /></EditorScope.Provider>
+            <EditorScope.Provider value="tool">{['MEDICAL', 'WELLBEING'].includes(module) ? <PrivateCarePanel scope="tool" boot={boot} module={module} onRefresh={onRefresh} /> : <WorkspaceOperations scope="tool" boot={boot} module={module} onRefresh={onRefresh} />}</EditorScope.Provider>
         </div>
     </section>;
 }

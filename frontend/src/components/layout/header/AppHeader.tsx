@@ -2,7 +2,7 @@ import './header.css';
 import { useContext, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Building2, Earth, FolderKanban, Heart, House, MessageSquare, Sparkles, Users } from 'lucide-react';
+import { Building2, Earth, Flag, FolderKanban, Heart, House, MessageSquare, Sparkles, Trophy, Users } from 'lucide-react';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
@@ -79,11 +79,15 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         ...(projects ? [{ id: 'projects' as const, to: projects.path, label: copy('Projects', 'პროექტები'), icon: FolderKanban, current: section === 'projects' }] : []),
         ...(office ? [{ id: 'club-office' as const, to: office.path, label: copy('Club office', 'კლუბის ოფისი'), icon: Building2, current: section === 'club-office' }] : []),
         ...(hasNavigationCapability(capabilities, 'parent.hub') || hasNavigationCapability(capabilities, 'club.family') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
+        // A referee's own matches (step 6): invitations, matches coming up, reports, and matches nearby that need one.
+        ...(hasNavigationCapability(capabilities, 'referee.workspace') ? [{ id: 'my-matches' as const, to: '/my-matches', label: copy('My matches', 'ჩემი მატჩები'), icon: Flag, current: section === 'my-matches' }] : []),
+        // An organiser's competitions: their fixtures, the same matches as in both squads' weeks, and results to add.
+        ...(hasNavigationCapability(capabilities, 'tournament.workspace') ? [{ id: 'my-competitions' as const, to: '/my-competitions', label: copy('My competitions', 'ჩემი შეჯიბრებები'), icon: Trophy, current: section === 'my-competitions' }] : []),
     ];
     // Phones (owner, 16 October): Home, World, then the work tabs, Club office last; finding or starting a club lives in
     // You. Messages and You (the profile picture) are in the top bar.
     const byId = (id: PrimaryTab['id']) => tabs.filter(tab => tab.id === id);
-    const phoneTabs = [...byId('home'), ...byId('world'), ...byId('my-squads'), ...byId('projects'), ...byId('parent-hub'), ...byId('club-office')];
+    const phoneTabs = [...byId('home'), ...byId('world'), ...byId('my-squads'), ...byId('my-matches'), ...byId('my-competitions'), ...byId('projects'), ...byId('parent-hub'), ...byId('club-office')];
     const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);
     const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);

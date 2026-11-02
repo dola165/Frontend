@@ -12,7 +12,7 @@ import { season } from '../directories/tournaments/seasonSource';
 import { groupsSource, trials } from '../directories/opportunitySources';
 import { fixtures } from '../directories/matches/fixturesSource';
 import { exchange } from '../directories/matches/exchangeSource';
-import { arrangements, events } from '../directories/matches/otherSources';
+import { events } from '../directories/matches/otherSources';
 import { clubsSource } from '../directories/clubSources';
 import { playerSource, specialistSource, staffSource } from '../directories/people/personSources';
 import { refereeSource } from '../directories/people/refereeSource';
@@ -54,7 +54,7 @@ it('heads places to train with the chosen child, not the language of jobs', () =
     const source = groupsSource([child, { ...child, id: 102, name: 'Saba Gelashvili' }]);
     expect(source.heading?.(query({ player: '102' }))).toBe('Training groups for Saba');
     expect(source.heading?.(query({}))).toBe('Training groups');
-    expect(source.HeadTools).toBeTruthy();
+    expect(source.HeadTools).toBeUndefined(); // The shared World For control owns the choice.
 });
 
 it('offers no child choice to someone searching only for themselves', () => {
@@ -126,12 +126,12 @@ function Opened({ sources, alias }: { sources: AnySource[]; alias?: string }) {
 const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
     '/world/clubs': { sources: [clubsSource({ child })] },
     '/world/people': { sources: [refereeSource, specialistSource({ searchOnly: false }), staffSource({ searchOnly: false }), playerSource({ searchOnly: false })] },
-    '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
+    '/world/matches': { sources: [fixtures, exchange, events] },
     '/world/opportunities': { sources: [trials, groupsSource([child])], alias: 'type' },
     '/world/tournaments': { sources: [season, allTournaments, myTournaments] },
 };
 // Links into the directories with a tab and filters chosen (the first run's pins, Home, the old front page's fields).
-const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/tournaments?tab=all&registration=OPEN', '/world/tournaments?tab=all&status=ACTIVE',
+const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?period=HISTORY', '/world/tournaments?tab=all&registration=OPEN', '/world/tournaments?tab=all&status=ACTIVE',
     '/world/people?tab=specialists', '/world/clubs?type=ACADEMY&near=Tbilisi', '/world/clubs?open=true&near=Tbilisi',
     '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials',
     '/world/matches?tab=fixtures&period=UPCOMING&mine=true&squadId=103', '/world/matches?tab=fixtures&period=HISTORY', '/world/matches?tab=exchange&ageGroup=U14', '/world/people?tab=referees'];
@@ -203,11 +203,11 @@ it('opens the role an old jobs link selected, and the jobs tab otherwise', () =>
 });
 
 
-it('asks clubs for a typed player age, the welcome’s landing, unless a child is chosen', async () => {
+it('asks clubs for a typed player age and retains a linked age as a scope when a child is chosen', async () => {
     await clubsSource().load(query({ age: '9' }), 0, { ...context, area: { city: 'Tbilisi' } } as LoadContext);
     expect(String(vi.mocked(apiClient.get).mock.calls.at(-1)?.[0])).toMatch(/[?&]age=9(&|$)/);
     expect(String(vi.mocked(apiClient.get).mock.calls.at(-1)?.[0])).toMatch(/city=Tbilisi/);
     await clubsSource().load(query({ age: 'nine' }), 0, context);
     expect(String(vi.mocked(apiClient.get).mock.calls.at(-1)?.[0])).not.toMatch(/[?&]age=/);
-    expect(clubsSource({ child: { id: 7, name: 'Nino', dateOfBirth: '2016-01-01' } as Participant }).filters.find(filter => filter.key === 'age')?.when?.(query({}))).toBe(false);
+    expect(clubsSource({ child: { id: 7, name: 'Nino', dateOfBirth: '2016-01-01' } as Participant }).filters.find(filter => filter.key === 'age')?.kind).toBe('scope');
 });

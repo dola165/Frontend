@@ -1,0 +1,32 @@
+/* The match page (step 6): the context's way back, the fixture at a glance, then the work in two columns. */
+.gk.gk-match-page .gk-match-top { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); flex-wrap: wrap; }
+.gk .gk-match-back { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 44px; color: var(--gk-text-2); font-size: var(--gk-fs-md); text-decoration: none; }
+.gk .gk-match-back:hover { color: var(--gk-text); }
+.gk .gk-match-back svg { width: 16px; height: 16px; flex: none; }
+.gk.gk-match-page .gk-match-top__actions { display: flex; gap: var(--gk-2); }
+.gk .gk-match-facts { margin: var(--gk-2) 0 0; text-align: center; color: var(--gk-text-2); font-size: var(--gk-fs-md); }
+.gk.gk-match-page .gk-match-layout { display: grid; gap: var(--gk-4); align-items: start; margin-top: var(--gk-5); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) { .gk.gk-match-page .gk-match-layout { grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); } }
+.gk.gk-match-page .gk-match-disclosure summary { display: inline-flex; align-items: center; gap: var(--gk-2); }
+.gk.gk-match-page .gk-match-disclosure summary svg { width: 16px; height: 16px; }
+
+/* Call-ups: faces ringed by their answer, then one row each with the quiet answer and its one button. */
+.gk .gk-callups { list-style: none; margin: var(--gk-3) 0 0; padding: 0; display: grid; }
+.gk .gk-callups li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--gk-3); align-items: center; min-height: 40px; border-top: 1px solid var(--gk-line); }
+.gk .gk-callups li:first-child { border-top: 0; }
+.gk .gk-callups__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-callups__state { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-callups li[data-out] .gk-callups__state { color: var(--gk-danger); }
+.gk .gk-callups--choose li { grid-template-columns: minmax(0, 1fr); }
+/* A player to confirm: the name over the club that added them, the answer beside (it fits a phone). */
+.gk .gk-callups--decide li { grid-template-columns: minmax(0, 1fr) auto; padding: var(--gk-2) 0; }
+.gk .gk-callups__who { display: grid; min-width: 0; }
+.gk .gk-callups--choose .gk-match-check { display: flex; align-items: center; gap: var(--gk-2); min-height: 40px; }
+
+/* Naming an opponent outside the app: one field and its button on a line. */
+.gk .gk-match-name { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-2); }
+.gk .gk-match-name .gk-field { flex: 1 1 220px; margin: 0; }
+
+/* Which of our squads plays a match added against us: the same age first, any other one list away. */
+.gk .gk-match-squads { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-match-squads select { width: auto; min-width: 180px; }

@@ -8,9 +8,12 @@ import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig'
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { SOCIAL_IMAGE_ACCEPT, socialImageUploadError, validateSocialImage } from '../../utils/socialImageUpload';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession, type AuthSessionId } from '../../utils/authStorage';
-import { useOwnedDraft } from '../../utils/ownedDraft';
+import { useComposerDraft } from './composerDraft';
+import { announceAccessRefresh } from '../../hooks/accessRefresh';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { useOrganizationPostPublication } from './postPublication';
+import { authorKey, type PostAuthor } from '../../features/feed/postAuthors';
+import './post-composer.css';
 
 const MAX_PHOTOS = 10;
 const MAX_CAPTION = 2000;
@@ -29,6 +32,11 @@ interface PostComposerProps {
   home?: boolean;
   onExpand?: () => void;
   onCreateEvent?: () => void;
+  /** The club and squads the person may post as (the one rule-checker's answer), offered in "Post as". */
+  authors?: PostAuthor[];
+  authorsLoaded?: boolean;
+  /** Whether posting as themselves is one of the choices (Home): the first one. */
+  asSelf?: boolean;
 }
 
 export const PostComposer = (props: PostComposerProps) => {
@@ -46,17 +54,27 @@ const PostComposerEditor = ({
   home = false,
   onExpand,
   onCreateEvent,
+  authors = [],
+  authorsLoaded = true,
+  asSelf = false,
   sessionId,
 }: PostComposerProps & { sessionId: AuthSessionId }) => {
   const navigate = useNavigate();
   const copy = useJourneyCopy();
+  // "Post as": yourself, the club or a squad, only where the server will accept it.
+  const { draft, change: changeDraft, reset: resetDraft } = useComposerDraft(clubId ? `club-${clubId}` : organizationId ? `page-${organizationId}` : 'personal', sessionId);
+  const picked = draft.authorKey ?? (asSelf && draft.content.trim() ? 'choose' : asSelf ? 'self' : authors[0] ? authorKey(authors[0]) : 'self');
+  const choice = authors.find(author => authorKey(author) === picked) ?? null;
+  const [refusedAuthor, setRefusedAuthor] = useState<string | null>(null);
+  const unavailableAuthor = picked !== 'self' && (!authorsLoaded || !choice || refusedAuthor === picked);
+  const shownName = choice?.name ?? (unavailableAuthor ? draft.authorName || copy('Choose author', 'აირჩიეთ ავტორი') : authorName);
+  const shownAvatar = choice ? choice.crestUrl : unavailableAuthor ? null : avatarUrl;
   // The words survive a detour (Event opens the calendar) and a reload, kept for the signed-in person and the identity
   // they post as; photos stay in memory only. Nothing is ever turned into an event on its own.
-  const { draft, change: changeDraft, reset: resetDraft } = useOwnedDraft(`post-composer.${clubId ? `club-${clubId}` : organizationId ? `page-${organizationId}` : 'personal'}`, { content: '' });
   const publication = useOrganizationPostPublication(organizationId);
   const held = !!publication.attempt;
   const content = publication.attempt?.body.content ?? draft.content;
-  const setContent = (value: string) => { if (!held) changeDraft({ content: value }); };
+  const setContent = (value: string) => { if (!held) changeDraft({ content: value, authorKey: picked, authorName: shownName }); };
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const photosRef = useRef<DraftPhoto[]>([]);
   const photoSequence = useRef(0);
@@ -72,7 +90,7 @@ const PostComposerEditor = ({
   useAndroidUnsavedChanges(Boolean(content.trim() || photos.length || isSubmitting));
   const imageInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLElement>(null);
-  const resolvedAvatarUrl = resolveMediaUrl(avatarUrl);
+  const resolvedAvatarUrl = resolveMediaUrl(shownAvatar);
   const current = () => mounted.current && isCurrentAuthSession(sessionId);
   const updatePhotos = (next: DraftPhoto[]) => { photosRef.current = next; setPhotos(next); };
 
@@ -151,7 +169,7 @@ const PostComposerEditor = ({
 
   const handleSubmit = async () => {
     // The ref closes the same-tick gap before React disables the controls.
-    if (!current() || submissionPending.current) return;
+    if (!current() || submissionPending.current || unavailableAuthor) return;
     if (clubId && organizationId) { setSubmitError(copy('Choose either a club or a page author.', 'აირჩიეთ კლუბი ან გვერდი ავტორად.'));return; }
     if (!content.trim() || content.length > MAX_CAPTION) {
       setSubmitError(!content.trim() ? copy('Add a caption before publishing your photos.', 'ფოტოების გამოქვეყნებამდე დაამატეთ წარწერა.') : copy('Keep your post to 2,000 characters or fewer.', 'პოსტი 2 000 სიმბოლოს არ უნდა აღემატებოდეს.'));
@@ -189,9 +207,19 @@ const PostComposerEditor = ({
       }
       if (!current()) return;
       setUploadProgress(null);
+      // A cached choice is not permission. Recheck after uploads, immediately before publication.
+      if (choice) {
+        const verified = await apiClient.get<PostAuthor[]>('/posts/authors', config);
+        if (!current()) return;
+        if (!Array.isArray(verified.data) || !verified.data.some(author => authorKey(author) === picked && author.clubId === choice.clubId)) {
+          setRefusedAuthor(picked); announceAccessRefresh();
+          return;
+        }
+      }
       const payload = {
         content: content.trim(),
-        clubId: clubId || null,
+        clubId: (choice ? choice.clubId : clubId) || null,
+        ...(choice?.squadId ? { squadId: choice.squadId } : {}),
         ...(organizationId ? { organizationId } : {}),
         isPublic: true,
         mediaIds
@@ -213,6 +241,7 @@ const PostComposerEditor = ({
     } catch (error) {
       if (!current() || controller.signal.aborted) return;
       const status = (error as { response?: { status?: number } })?.response?.status;
+      if (choice && (status === 403 || status === 404)) { setRefusedAuthor(picked); announceAccessRefresh(); }
       if (organizationId && !held && (status === 400 || status === 422)) publication.complete();
       console.error('Failed to create post', error);
       const message = uploading ? socialImageUploadError(error) : copy('Failed to publish this post. Your draft is still here—please try again.', 'პოსტი ვერ გამოქვეყნდა. მონახაზი შენახულია — სცადეთ ხელახლა.');
@@ -251,7 +280,7 @@ const PostComposerEditor = ({
 
       <div className={`flex gap-2.5 ${collapsed ? 'items-center' : 'items-start'}`}>
         <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] text-sm font-bold text-[var(--feed-text-secondary)] ring-1 ring-[var(--feed-card-border)] ${collapsed ? 'h-10 w-10' : 'h-11 w-11'}`}>
-          {resolvedAvatarUrl ? <MediaImage src={resolvedAvatarUrl} alt="" className="h-full w-full object-cover" /> : authorName.substring(0, 2).toUpperCase()}
+          {resolvedAvatarUrl ? <MediaImage src={resolvedAvatarUrl} alt="" className="h-full w-full object-cover" /> : shownName.substring(0, 2).toUpperCase()}
         </div>
         <textarea
           value={content}
@@ -262,7 +291,7 @@ const PostComposerEditor = ({
           }}
           onFocus={expandComposer}
           onClick={expandComposer}
-          placeholder={collapsed ? copy('Share an update…', 'გააზიარეთ სიახლე…') : clubId ? copy('Share an update from your club…', 'გააზიარეთ კლუბის სიახლე…') : organizationId ? copy('Share an update from your page…', 'გააზიარეთ გვერდის სიახლე…') : copy(`What do you want to share, ${authorName.split(' ')[0]}?`, `რისი გაზიარება გსურთ, ${authorName.split(' ')[0]}?`)}
+          placeholder={collapsed ? copy('Share an update…', 'გააზიარეთ სიახლე…') : choice ? copy(`Share an update from ${choice.name}…`, `გააზიარეთ სიახლე: ${choice.name}…`) : clubId ? copy('Share an update from your club…', 'გააზიარეთ კლუბის სიახლე…') : organizationId ? copy('Share an update from your page…', 'გააზიარეთ გვერდის სიახლე…') : copy(`What do you want to share, ${authorName.split(' ')[0]}?`, `რისი გაზიარება გსურთ, ${authorName.split(' ')[0]}?`)}
           aria-label={clubId ? copy('Create a club post', 'კლუბის პოსტის შექმნა') : organizationId ? copy('Create a page post', 'გვერდის პოსტის შექმნა') : copy('Create a post', 'პოსტის შექმნა')}
           className={`min-w-0 flex-1 resize-none border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 text-sm leading-6 text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] transition-colors focus:border-[var(--feed-accent)] ${isExpanded ? 'min-h-[104px] rounded-2xl py-3' : 'h-10 min-h-10 overflow-hidden whitespace-nowrap rounded-full py-1.5'}`}
           rows={isExpanded ? 3 : 1}
@@ -278,11 +307,28 @@ const PostComposerEditor = ({
           </div>
         )}
         {isExpanded && (
-          <button type="button" onClick={handleSubmit} disabled={isSubmitting || !content.trim() || content.length > MAX_CAPTION} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40" aria-label={copy('Publish post', 'გამოქვეყნება')}>
+          <button type="button" onClick={handleSubmit} disabled={isSubmitting || unavailableAuthor || !content.trim() || content.length > MAX_CAPTION} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40" aria-label={copy('Publish post', 'გამოქვეყნება')}>
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         )}
       </div>
+
+      {isExpanded && (unavailableAuthor || authors.length + (asSelf ? 1 : 0) > 1) && <label className="post-as">
+        <span>{copy('Post as', 'ავტორი')}</span>
+        <select value={picked} onChange={event => {
+          const author = authors.find(item => authorKey(item) === event.target.value);
+          changeDraft({ authorKey: event.target.value, authorName: author?.name ?? authorName });
+          setRefusedAuthor(null); setSubmitError(null);
+        }}>
+          {unavailableAuthor && !choice && <option value={picked} disabled>{draft.authorName || copy('Saved author', 'შენახული ავტორი')}</option>}
+          {asSelf && <option value="self">{authorName}</option>}
+          {authors.map(author => <option key={authorKey(author)} value={authorKey(author)}>{author.squadId ? `${author.name} · ${author.clubName}` : author.name}</option>)}
+        </select>
+      </label>}
+      {isExpanded && unavailableAuthor && <div role="alert" className="gk-notice">
+        <p>{copy('Your draft keeps its author. Posting authority is unavailable. Retry or choose an available author explicitly.', 'მონახაზის ავტორი შენარჩუნებულია. გამოქვეყნების უფლება მიუწვდომელია. სცადეთ ხელახლა ან თავად აირჩიეთ ხელმისაწვდომი ავტორი.')}</p>
+        <button type="button" className="gk-btn gk-btn--secondary" onClick={() => { setRefusedAuthor(null); announceAccessRefresh(); }}>{copy('Check posting authority again', 'გამოქვეყნების უფლების ხელახლა შემოწმება')}</button>
+      </div>}
 
       {photos.length > 0 && <div className="mt-3 space-y-2">
         <p className="text-xs text-[var(--feed-text-secondary)]">{photos.length} / 10 photos · Arrange them in the order they should appear.</p>

@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { DRAWER_PARAMS, keepPane } from '../peek/usePeek';
+import { applyWorldFor, useWorldFor } from '../searchContext';
+import { useWorldArea } from '../useWorldArea';
 import type { AnySource, DirectoryQuery, FilterDef } from './types';
+import type { WorldArea } from '../useWorldArea';
 
 /** Context that follows the person around World (their area, the child they are searching for). */
-export const CARRIED = ['near', 'player'];
+export const CARRIED = ['near', 'player', 'for', 'birthYear'];
 /** How many pages of results were shown, so Back returns to the same place in the list. */
 export const SHOWN = 'shown';
 /** The one result chosen in the Browse area, by key, so Back and shared links return to it. */
@@ -42,17 +45,21 @@ export function readQuery(source: AnySource, params: URLSearchParams): { query: 
     const applies = (filter: FilterDef) => !filter.when || filter.when(draft);
     const values: Record<string, string[]> = {};
     for (const filter of source.filters) if (!values[filter.key]?.length) values[filter.key] = applies(filter) ? valueOf(filter) : [];
+    if (source.forContext && params.has('birthYear')) values.birthYear = params.getAll('birthYear').filter(Boolean);
     const query: DirectoryQuery = { ...draft, values };
     // Where the list is (a day) is not a filter the person set: it is never active, so never cleared or counted.
     const active = source.filters.filter(filter => !filter.nav && applies(filter) && (given(filter).length > 0 || Boolean(remembered(filter))));
     return { query, active };
 }
 
-/**
- * Directory state lives in the URL: tab (`tabParam`), search, filters, sort and how many
- * pages were shown. `tabAlias` is an older name of the tab parameter that links may still use, and `tabValues` maps
- * its older values to tabs (`role=REFEREE` opens `referees`). `opening` is the tab chosen for who is looking.
- */
+/** One effective query for the opening window, strip and results; linked criteria precede shared defaults. */
+export function effectiveDirectoryQuery(source: AnySource, requested: DirectoryQuery, context: { birthYear?: string; ageGroup?: string }, area: Pick<WorldArea, 'city' | 'anywhere'>) {
+    const query = source.forContext ? applyWorldFor(requested, context.birthYear, context.ageGroup) : requested;
+    return source.id === 'fixtures' && !query.values.city?.length && area.city && !area.anywhere
+        ? { ...query, values: { ...query.values, city: [area.city] } } : query;
+}
+
+/** URL state for the chosen source, search, filters, sort and restored list length. */
 export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabAlias, tabValues, signedIn = true, opening: chosen }: {
     tabParam?: string; tabAlias?: string; tabValues?: Record<string, string>; signedIn?: boolean; opening?: string;
 } = {}) {
@@ -65,7 +72,10 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
     // The same query object until the address or a remembered choice changes, so lists derived from it (groups, pins) stay put.
     const kept = source.filters.map(filter => filter.kind === 'choice' && filter.remember ? filter.remember.read() ?? '' : '').join('|');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `kept` is what readQuery reads from storage
-    const { query, active: activeFilters } = useMemo(() => readQuery(source, params), [source, params, kept]);
+    const { query: requestedQuery, active: activeFilters } = useMemo(() => readQuery(source, params), [source, params, kept]);
+    const context = useWorldFor();
+    const { area } = useWorldArea();
+    const query = useMemo(() => effectiveDirectoryQuery(source, requestedQuery, context, area), [source, requestedQuery, context, area]);
     const shown = Math.min(Math.max(Number(params.get(SHOWN)) || 1, 1), 10);
     const selected = params.get(SELECTED) || undefined;
 
@@ -128,7 +138,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         setShown: (pages: number) => update(next => { if (pages > 1) next.set(SHOWN, String(pages)); else next.delete(SHOWN); }),
         setTab: (id: string) => update(next => {
             sources.forEach(item => item.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); }));
-            ['sort', SHOWN, SELECTED, ...DRAWER_PARAMS, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
+            ['sort', 'defaults', SHOWN, SELECTED, ...DRAWER_PARAMS, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
             // Where the opening tab depends on who is looking, every tab is named, so a link opens the same tab for anyone.
             if (!chosen && id === opening.id) next.delete(tabParam); else next.set(tabParam, id);
         }, false),

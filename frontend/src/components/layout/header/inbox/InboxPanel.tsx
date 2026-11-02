@@ -65,7 +65,7 @@ function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; ti
             return (
                 <List label={copy('Decisions waiting for you', 'გადაწყვეტილებები')}>
                     {items.map((item: RequestItem) => (
-                        <ListRow key={item.key} to={requestDestination(item.destination) ?? '/requests?view=INCOMING'} lead={<Glyph icon={requestIcon(item.family)} />}
+                        <ListRow key={item.key} to={requestDestination(item.destination, item.family) ?? '/requests?view=INCOMING'} lead={<Glyph icon={requestIcon(item.family)} />}
                             title={item.title} meta={item.context} />
                     ))}
                 </List>

@@ -7,9 +7,10 @@ import { googleSignInConfigured } from '../components/auth/googleConfig';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
+import { useSecondFactorLogin, type PrimaryLoginProof } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
+import { formatDate } from '../utils/formatting';
 import {
     buildSignupPath,
     completedAuthDestination,
@@ -20,6 +21,7 @@ import {
 } from '../utils/authRedirect';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
+import { AccountClosureReceipt } from '../features/profiles/account/AccountClosureReceipt';
 import {
     authInputClass,
     authInputErrorClass,
@@ -50,6 +52,8 @@ export const LoginPage = () => {
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<'email' | 'password', string>>>({});
     // The server knows no account with this email: offered "Create one?" with what was typed kept.
     const [unknownEmail, setUnknownEmail] = useState(false);
+    // The right sign-in for an account its owner closed in the last 30 days: "Keep my account" signs in with the same proof.
+    const [closing, setClosing] = useState<{ proof: PrimaryLoginProof; keepUntil: string } | null>(null);
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '');
 
     const navigateAfterLogin = (
@@ -92,24 +96,28 @@ export const LoginPage = () => {
         return errors;
     };
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    /** Offers "Keep my account" when the server says the account is closing, with the date it is erased. */
+    const closingOffer = (err: unknown, proof: PrimaryLoginProof) => {
+        if (extractApiErrorCode(err) !== 'ACCOUNT_CLOSING') return false;
+        const keepUntil = (err as { response?: { data?: { keepUntil?: unknown } } } | null)?.response?.data?.keepUntil;
+        if (typeof keepUntil !== 'string' || !Number.isFinite(Date.parse(keepUntil))) return false;
+        setClosing({ proof, keepUntil });
+        return true;
+    };
 
-        const errors = validate();
-        setFieldErrors(errors);
-        if (Object.keys(errors).length > 0) return;
-
+    const signInWithPassword = async (proof: PrimaryLoginProof & { kind: 'password' }) => {
         setIsLoading(true);
         setError('');
         setUnknownEmail(false);
 
         try {
-            const result = await secondFactor.authenticate({ kind: 'password', email: email.trim(), password });
+            const result = await secondFactor.authenticate(proof);
             if (!result) return;
-            setPassword('');
+            setPassword(''); setClosing(null);
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
             navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true);
         } catch (err) {
+            if (closingOffer(err, proof)) return;
             const code = extractApiErrorCode(err);
             if (code === 'ACCOUNT_NOT_FOUND') { setUnknownEmail(true); return; }
             // After five failed tries the server asks for a growing wait; other limits are per minute.
@@ -122,27 +130,55 @@ export const LoginPage = () => {
         }
     };
 
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const errors = validate();
+        setFieldErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+        setClosing(null);
+        await signInWithPassword({ kind: 'password', email: email.trim(), password });
+    };
+
     const createInstead = () => {
         setPassword('');
         rememberAuthFlow({ email: email.trim().toLowerCase(), nextPath });
         navigate(buildSignupPath(nextPath));
     };
 
-    const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
-        if (!credentialResponse.credential) return;
+    const signInWithGoogle = async (proof: PrimaryLoginProof & { kind: 'google' }) => {
         setIsLoading(true);
         setError('');
         try {
-            const result = await secondFactor.authenticate({ kind: 'google', token: credentialResponse.credential });
+            const result = await secondFactor.authenticate(proof);
             if (!result) return;
+            setClosing(null);
             rememberAuthFlow({ nextPath, newAccount: result.newAccount === true });
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
             navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true, result.newAccount === true);
         } catch (err) {
+            if (closingOffer(err, proof)) return;
             setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+        if (!credentialResponse.credential) return;
+        setClosing(null);
+        await signInWithGoogle({ kind: 'google', token: credentialResponse.credential });
+    };
+
+    /** Leaves the closing account alone: the box goes and an empty sign-in form comes back. */
+    const switchAccount = () => {
+        setClosing(null); setEmail(''); setPassword(''); setError(''); setUnknownEmail(false); setFieldErrors({});
+    };
+
+    const keepAccount = () => {
+        if (!closing) return;
+        const proof = closing.proof;
+        void (proof.kind === 'password' ? signInWithPassword({ ...proof, keepAccount: true }) : signInWithGoogle({ ...proof, keepAccount: true }));
     };
 
     return (
@@ -174,8 +210,22 @@ export const LoginPage = () => {
                 <Suspense fallback={<div className="flex flex-col items-center gap-4 py-6"><Loader2 className="h-8 w-8 animate-spin text-[var(--fc-accent)]" /><p className="text-sm text-[var(--fc-text-secondary)]">Generating QR code…</p></div>}>
                     <QrLoginSection onBack={() => setShowQr(false)} />
                 </Suspense>
+            ) : closing ? (
+                // A closing account: Keep my account is the one bright action; the sign-in form returns only on request.
+                <div role="status" className="rounded-xl border border-[var(--color-border)] p-4 text-sm leading-6">
+                    <p className="font-semibold text-[var(--color-text)]">{t('auth.login.closingTitle')}</p>
+                    <p className="text-[var(--color-secondary)]">{t('auth.login.closingBody', { date: formatDate(closing.keepUntil, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>
+                    {error && <p role="alert" className="mt-3 font-semibold text-[color:var(--state-danger)]">{error}</p>}
+                    <button type="button" disabled={isLoading} onClick={keepAccount} className={authPrimaryButtonClass + ' mt-3'}>
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.login.keepAccount')}
+                    </button>
+                    <button type="button" disabled={isLoading} onClick={switchAccount} className="mt-2 min-h-11 w-full text-sm font-semibold app-text-action">
+                        {t('auth.login.useAnotherAccount')}
+                    </button>
+                </div>
             ) : (
                 <>
+                    {location.state?.accountClosureReceipt && <AccountClosureReceipt receipt={location.state.accountClosureReceipt} />}
                     {error && (
                         <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                             <div className="flex items-center gap-2">

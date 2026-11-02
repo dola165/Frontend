@@ -23,6 +23,7 @@ export const RouteMetadata = () => {
         else if (pathname.startsWith('/referees/')) label = t('experience.navigation.referee');
         else if (pathname.startsWith('/organizations/')) label = t('nav.myOrganizations', 'My organizations');
         else if (pathname === '/team-work/chat') label = i18n.language.startsWith('ka') ? 'გუნდის ჩატები' : 'Team chats';
+        else if (/^\/clubs\/[1-9]\d*\/work(?:\/[a-z-]+)?$/.test(pathname)) label = i18n.language.startsWith('ka') ? 'თქვენი სამუშაო' : 'Your club work';
         else if (/^\/clubs\/\d+\/operations$/.test(pathname)) label = 'Club operations';
         else if (pathname === '/match-history') label = i18n.language.startsWith('ka') ? 'შედეგები და ისტორია' : 'Results & history';
         // Football words: a match page is a match, not the exchange it was arranged through.

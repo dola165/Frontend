@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { getAuthSessionId, subscribeAuthSession } from '../utils/authStorage';
 import { apiClient } from '../api/axiosConfig';
 import type { FeedPostDto } from '../components/feed/FeedPost';
 import { normalizeFeedPost } from '../utils/normalizeFeedPost';
@@ -6,15 +7,17 @@ import { extractApiErrorMessage } from '../utils/apiError';
 
 /** Retain one page of post/media data; earlier pages are fetched on demand. */
 export function usePagedProfilePosts(endpoint: string, limit = 20) {
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    const owner = `${session}:${endpoint}`;
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
-    const [paging, setPaging] = useState<{ endpoint: string; cursors: (number | undefined)[]; index: number }>({ endpoint, cursors: [undefined], index: 0 });
-    const active = paging.endpoint === endpoint ? paging : { endpoint, cursors: [undefined], index: 0 };
+    const [paging, setPaging] = useState<{ endpoint: string; cursors: (number | undefined)[]; index: number }>({ endpoint: owner, cursors: [undefined], index: 0 });
+    const active = paging.endpoint === owner ? paging : { endpoint: owner, cursors: [undefined], index: 0 };
     const cursor = active.cursors[active.index];
     const [nextCursor, setNextCursor] = useState<number | null>(null);
     const [finishedKey, setFinishedKey] = useState('');
     const [error, setError] = useState('');
     const [revision, setRevision] = useState(0);
-    const requestKey = `${endpoint}:${cursor || 'first'}:${revision}`;
+    const requestKey = `${owner}:${cursor || 'first'}:${revision}`;
     const loading = finishedKey !== requestKey;
     useEffect(() => {
         const controller = new AbortController();
@@ -29,8 +32,8 @@ export function usePagedProfilePosts(endpoint: string, limit = 20) {
             .finally(() => { if (!controller.signal.aborted) setFinishedKey(requestKey); });
         return () => controller.abort();
     }, [endpoint, cursor, revision, requestKey, limit]);
-    const refresh = useCallback(() => { setPaging({ endpoint, cursors: [undefined], index: 0 }); setRevision(value => value + 1); }, [endpoint]);
-    const older = () => { if (!loading && nextCursor) setPaging({ endpoint, cursors: [...active.cursors.slice(0, active.index + 1), nextCursor], index: active.index + 1 }); };
+    const refresh = useCallback(() => { setPaging({ endpoint: owner, cursors: [undefined], index: 0 }); setRevision(value => value + 1); }, [owner]);
+    const older = () => { if (!loading && nextCursor) setPaging({ endpoint: owner, cursors: [...active.cursors.slice(0, active.index + 1), nextCursor], index: active.index + 1 }); };
     const newer = () => { if (!loading && active.index) setPaging({ ...active, index: active.index - 1 }); };
-    return { posts: loading ? [] : posts, setPosts, loading, error: loading ? '' : error, refresh, retry: () => setRevision(value => value + 1), older, newer, hasOlder: !loading && nextCursor != null, hasNewer: active.index > 0, page: active.index + 1, pageKey: `${endpoint}:${cursor || 'first'}` };
+    return { posts: loading ? [] : posts, setPosts, loading, error: loading ? '' : error, refresh, retry: () => setRevision(value => value + 1), older, newer, hasOlder: !loading && nextCursor != null, hasNewer: active.index > 0, page: active.index + 1, pageKey: `${owner}:${cursor || 'first'}` };
 }

@@ -24,7 +24,7 @@ import '../clubWorkspace/club-workspace.css';
 
 type RecordGroup = { module: 'AVAILABILITY' | 'DEVELOPMENT'; rows: OperationRecord[]; error: string };
 // Everything the club keeps about one player opens here, filtered to them; attendance stays on paper (the owner, 14 October).
-const TOOL_MODULES = ['DEVELOPMENT', 'GUARDIANS', 'REGISTRATION', 'EDUCATION', 'MEDICAL', 'WELFARE', 'DEPARTURES', 'EQUIPMENT', 'TRAVEL'];
+const TOOL_MODULES = ['DEVELOPMENT', 'GUARDIANS', 'REGISTRATION', 'EDUCATION', 'MEDICAL', 'WELLBEING', 'WELFARE', 'DEPARTURES', 'EQUIPMENT', 'TRAVEL'];
 
 /**
  * One squad player's notes and tools, beside the list that opened it: their open restrictions, recent

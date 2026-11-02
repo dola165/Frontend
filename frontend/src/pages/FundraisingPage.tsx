@@ -3,8 +3,10 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { HeartHandshake, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigationCapability } from '../context/useNavigationCapability';
 import { ButtonLink, GkRoot, PageFrame, SearchInput } from '../design/primitives';
 import { CAMPAIGN_CATEGORIES, campaignMoney, fetchFundraisingFront } from '../features/campaigns/api';
+import { PersonalFundraising } from '../features/campaigns/PersonalFundraising';
 import { FundraiserRow } from '../features/campaigns/FundraiserCard';
 import { FUNDRAISING_KEYS, fundraisingPath } from '../features/campaigns/query';
 import { CircleStrip, MarketTabs } from '../features/store/front/MarketTabs';
@@ -24,10 +26,15 @@ export const FundraisingPage = () => {
     const [params] = useSearchParams();
     const navigate = useNavigate();
     const { status } = useAuth();
+    // Personal appeals are held back in release 17 until the server switches them on.
+    const personal = useNavigationCapability('fundraising.personal');
     const { area, setCity } = useWorldArea();
     const [text, setText] = useState('');
     const near = area.anywhere || area.guessed ? undefined : area.city;
     const front = useWorldData(area.ready ? `fund-front:${near ?? ''}` : null, signal => fetchFundraisingFront(near, signal), ct("Fundraisers could not load."));
+    if (params.has('mine') && personal) return <PersonalFundraising />;
+    // While they are off, a My appeals link lands on the fundraising list once the session is known.
+    if (params.has('mine') && personal === false) return <Navigate to="/campaigns" replace />;
     if (FUNDRAISING_KEYS.some(key => key !== 'page' && params.has(key)) || params.has('q')) return <Navigate to={`/campaigns/all?${params}`} replace />;
     const signedIn = status === 'authenticated';
     const followed = front.data?.followed ?? [];
@@ -36,12 +43,13 @@ export const FundraisingPage = () => {
             <PageFrame>
                 <MarketTabs current="fundraising" />
                 <div className="gk-store-head">
-                    <div><h1>{ct("Fundraising")}</h1><p className="gk-store-head__hint">{ct("Projects from clubs on GrassKickZ, backed by their supporters")}</p></div>
+                    <div><h1>{ct("Fundraising")}</h1><p className="gk-store-head__hint">{ct(personal ? "Appeals from clubs and adults in grassroots football" : "Projects from clubs on GrassKickZ, backed by their supporters")}</p></div>
                     <form className="gk-store-head__search" role="search" onSubmit={event => { event.preventDefault(); navigate(fundraisingPath({ query: text.trim() })); }}>
                         <SearchInput aria-label={ct("Search fundraisers")} placeholder={ct("Search fundraisers or clubs")} maxLength={100} value={text} onChange={event => setText(event.target.value)} />
                     </form>
                     <div className="gk-store-head__actions">
                         <ButtonLink to={fundraisingPath()}>{ct("Browse all")}</ButtonLink>
+                        {personal && <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>}
                         <ButtonLink variant="primary" to="/campaigns/new"><Plus aria-hidden="true" />{ct("Start a fundraiser")}</ButtonLink>
                     </div>
                 </div>
@@ -49,9 +57,9 @@ export const FundraisingPage = () => {
                     <article className="gk-store-door gk-fund-hero">
                         <img className="gk-store-door__pic" src="/landing/after-the-whistle.jpg" alt="" />
                         <span className="gk-store-door__eyebrow"><HeartHandshake aria-hidden="true" size={16} />{ct("Fundraising on GrassKickZ")}</span>
-                        <Link className="gk-store-door__title" to="/campaigns/new">{ct("Your club’s next project starts here")}</Link>
-                        <p className="gk-store-door__line">{ct("Set a goal, tell the story, publish. Donations are taken on GoFundMe, so there is nothing to set up for payments.")}</p>
-                        {front.data && <div className="gk-fund-hero__facts"><span><strong className="gk-num">{front.data.active}</strong>{ct("open fundraisers")}</span><span><strong className="gk-num">{campaignMoney(front.data.raised, 'GEL')}</strong>{ct("raised so far")}</span></div>}
+                        <Link className="gk-store-door__title" to="/campaigns/new">{ct("Start with a real need")}</Link>
+                        <p className="gk-store-door__line">{ct("Describe the need and beneficiary, then arrange giving with the organizer. Totals are reported, never counted from link clicks.")}</p>
+                        {front.data && <div className="gk-fund-hero__facts"><span><strong className="gk-num">{front.data.active}</strong>{ct("open fundraisers")}</span><span><strong className="gk-num">{front.data.raised === null ? ct('Not reported yet') : campaignMoney(front.data.raised, 'GEL')}</strong>{ct("club-reported in GEL")}</span></div>}
                         <div className="gk-store-door__chips"><Link className="gk-store-door__chip" to="/campaigns/new">{ct("Start a fundraiser")}</Link><Link className="gk-store-door__chip" to={fundraisingPath({ sort: 'CLOSEST' })}>{ct("Nearly there")}</Link></div>
                     </article>
                     <CircleStrip title={ct("Browse by cause")} hint={ct("What the money is for")} label={ct("Fundraisers by cause")}>

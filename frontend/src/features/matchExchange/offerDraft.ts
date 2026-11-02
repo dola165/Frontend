@@ -10,6 +10,9 @@ import { offerToPlay } from './detail/opponentActions';
 interface OfferDraft {
     squadId?: number | null;
     note: string;
+    /** An open challenge's answer: its kick-off inside the window (local wall time, YYYY-MM-DDTHH:mm), and its ground. */
+    kickoff?: string;
+    ground?: string;
     edited: boolean;
     pending?: symbol;
     error: string;
@@ -68,16 +71,7 @@ function reconcile(scope: string | null, match: Match, squads: Squad[]) {
     }
 }
 
-/** Observe current proposal reads even while the drawer shows ProposalList instead of OfferStep. */
-export function useOfferProjection(match: Match | undefined, squads: Squad[]) {
-    const auth = useAuth();
-    const state = useSyncExternalStore(subscribe, snapshot);
-    useEffect(() => {
-        if (match && isOwner(state.scope, auth.sessionId, auth.status, auth.user?.id)) reconcile(state.scope, match, squads);
-    }, [state, match, squads, auth.sessionId, auth.status, auth.user?.id]);
-}
-
-/** One listing's unfinished offer, shared only within this page lifetime and confirmed login. Nothing is stored. */
+/** One open challenge's unfinished answer, kept only within this page lifetime and confirmed login. Nothing is stored. */
 export function useOfferDraft(match: Match, squads: Squad[], preferred: number | undefined,
     saved: (notice: string) => void, conflict?: () => void) {
     const auth = useAuth();
@@ -114,7 +108,7 @@ export function useOfferDraft(match: Match, squads: Squad[], preferred: number |
         else if (draft.changed) conflict?.();
     }, [draft, id, scope, ready, saved, conflict, current]);
 
-    const change = (patch: { squadId?: number | null; note?: string }) => {
+    const change = (patch: { squadId?: number | null; note?: string; kickoff?: string; ground?: string }) => {
         if (!current()) return;
         const latest = memory.drafts.get(id) ?? empty;
         if (latest.pending || latest.notice) return;
@@ -140,7 +134,7 @@ export function useOfferDraft(match: Match, squads: Squad[], preferred: number |
         put(scope, id, { ...latest, squadId: chosen, pending, error: '', changed: false });
         const ownsReply = () => current() && memory.drafts.get(id)?.pending === pending;
         try {
-            await offerToPlay(match, chosen!, latest.note, session);
+            await offerToPlay(match, chosen!, latest.note, session, latest.kickoff ? `${latest.kickoff}:00` : null, latest.ground?.trim() || null);
             if (ownsReply()) put(scope, id, { ...empty, squadId: null, notice: done, acknowledged });
         } catch (error) {
             if (!ownsReply()) return;

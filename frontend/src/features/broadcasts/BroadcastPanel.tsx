@@ -105,7 +105,7 @@ function BroadcastCard({ broadcast: b, changed }: { broadcast: Broadcast; change
   }
   return <article id={`broadcast-${b.id}`} className="broadcast-card">
     <h3>{b.title}</h3><p>{states[b.state]}{b.checkedAt && ` · Checked ${new Date(b.checkedAt).toLocaleString()}`}</p>
-    <a href={`/match-exchange/${b.eventId}#broadcast-${b.id}`}>Open this broadcast’s match</a>
+    <a href={`/matches/${b.eventId}#broadcast-${b.id}`}>Open this broadcast’s match</a>
     {!b.streamingEnabled && <p>Preparation is saved. Streaming activation is pending.</p>}
     {error && <p role="alert">{error}</p>}
     {b.streamingEnabled && b.sourceRevision > 0 && <div className="mx-actions"><button type="button" onClick={() => { setWatch(true); setAttempt(n => n + 1); }}>Watch broadcast</button>{watch && <button type="button" onClick={() => { setWatch(false); setPlayback(undefined); }}>Close video</button>}</div>}

@@ -25,6 +25,13 @@ const row = (name: string) => screen.getByText(name).closest('li') as HTMLElemen
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+it('S21: a first visit reserved until the current club’s permission leads the coach to recording it', () => {
+    const reserved = { ...request, id: 41, caseId: 41, source: 'VISIT', destination: '/admissions/cases/41', visit: { startsAt: '2026-11-01T07:00:00Z', endsAt: '2026-11-01T08:30:00Z', place: 'Rustavi ground', status: 'INVITED' } } as SquadJoinRequest;
+    render(<MemoryRouter><WantToJoin items={[item({ key: 'case-41', kind: 'REQUEST', id: 41, squadId: 105, name: 'Saba Beridze', source: 'VISIT', request: reserved })]} data={data} onChanged={vi.fn()} /></MemoryRouter>);
+    expect(within(row('Saba Beridze')).getByText(/reserved · needs the current club’s permission/)).toBeInTheDocument();
+    expect(within(row('Saba Beridze')).getByRole('link', { name: 'Record permission' })).toHaveAttribute('href', '/admissions/cases/41');
+});
+
 it('lists who wants to join from every door, each with its next step, and who answered first', () => {
     show();
     expect(screen.getByText('2 to decide')).toBeInTheDocument();
@@ -63,4 +70,22 @@ it('says the list couldn’t load, with Try again, rather than showing nothing',
     expect(screen.getByText('Couldn’t load')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalled();
+});
+
+it('shows a family’s own request to a group and a first visit they booked, answered through the joining case (step 5)', async () => {
+    const visit = { ...request, id: 41, caseId: 41, source: 'VISIT', childName: 'Mariam Beridze', destination: '/clubs/1/workspace?tab=admissions&caseId=41',
+        visit: { startsAt: '2026-10-31T06:00:00Z', endsAt: '2026-10-31T07:15:00Z', place: 'Pitch 3', status: 'CONFIRMED' } } as SquadJoinRequest;
+    const group = { ...request, id: 42, caseId: 42, source: 'GROUP', childName: 'Nino Gelashvili', destination: '/clubs/1/workspace?tab=admissions&caseId=42' } as SquadJoinRequest;
+    api.post.mockResolvedValue({ data: { inquiryId: 41, outcome: 'PLACE_OFFERED', destination: null } });
+    render(<MemoryRouter><WantToJoin items={[
+        item({ key: 'case-41', kind: 'REQUEST', id: 41, squadId: 103, name: 'Mariam Beridze', source: 'VISIT', request: visit }),
+        item({ key: 'case-42', kind: 'REQUEST', id: 42, squadId: 103, name: 'Nino Gelashvili', source: 'GROUP', request: group }),
+    ]} data={data} onChanged={vi.fn()} /></MemoryRouter>);
+    expect(within(row('Mariam Beridze')).getByText(/first visit/)).toBeInTheDocument();
+    expect(within(row('Nino Gelashvili')).getByText(/asked for a place in U12 intake/)).toBeInTheDocument();
+    // Accept or Not now here; inviting them to a session happens in the request itself.
+    expect(within(row('Mariam Beridze')).queryByRole('button', { name: 'Invite to a trial' })).not.toBeInTheDocument();
+    expect(within(row('Mariam Beridze')).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/clubs/1/workspace?tab=admissions&caseId=41');
+    fireEvent.click(within(row('Mariam Beridze')).getByRole('button', { name: 'Accept' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/squad-communication/103/join-requests/cases/41', expect.objectContaining({ expectedVersion: 2, action: 'APPROVE', groupId: 1301 })));
 });

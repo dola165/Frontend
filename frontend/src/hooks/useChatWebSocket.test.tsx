@@ -40,6 +40,45 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('reliable chat transport', () => {
+    it.each([undefined, message(0), message(8, 99)])('retains the retry ID after a malformed or mismatched acknowledgement: %s', async bad => {
+        const incoming = vi.fn();
+        const { result } = renderHook(() => useChatWebSocket(incoming));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        vi.mocked(chatApi.sendMessage).mockResolvedValueOnce({ data: bad } as never);
+        await act(async () => { expect(await result.current.sendMessage(7, 'Keep my draft')).toBe(false); });
+        const key = vi.mocked(chatApi.sendMessage).mock.calls[0][2];
+        expect(incoming).not.toHaveBeenCalled();
+        vi.mocked(chatApi.sendMessage).mockResolvedValueOnce({ data: message(8) } as never);
+        await act(async () => { expect(await result.current.sendMessage(7, 'Keep my draft')).toBe(true); });
+        expect(chatApi.sendMessage).toHaveBeenLastCalledWith(7, 'Keep my draft', key);
+        expect(incoming).toHaveBeenCalledOnce();
+    });
+
+    it('does not restore revoked history from a late send acknowledgement or old socket callback', async () => {
+        const incoming = vi.fn(), unavailable = vi.fn();
+        const sent = deferred<{ data: ChatMessageResponse }>();
+        vi.mocked(chatApi.sendMessage).mockReturnValueOnce(sent.promise as never);
+        const { result } = renderHook(() => useChatWebSocket(incoming, unavailable));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        await act(async () => { state.client.connected = true; state.client.options.onConnect(); });
+        const oldHandler = state.client.handlers.at(-1)!;
+        act(() => { void result.current.sendMessage(7, 'pending'); });
+        vi.mocked(chatApi.getMessagesAfter).mockRejectedValueOnce({ response: { status: 403 } });
+        await act(async () => { await result.current.catchUp(); });
+        expect(unavailable).toHaveBeenCalledWith(7);
+        await act(async () => { sent.resolve({ data: message(8) }); oldHandler({ body: JSON.stringify(message(9)) }); });
+        expect(incoming).not.toHaveBeenCalled();
+    });
+
+    it('treats a denied send as lost authority and clears the active conversation', async () => {
+        const unavailable = vi.fn();
+        const { result } = renderHook(() => useChatWebSocket(vi.fn(), unavailable));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        vi.mocked(chatApi.sendMessage).mockRejectedValueOnce({ response: { status: 404 } });
+        await act(async () => { await result.current.sendMessage(7, 'retained draft'); });
+        expect(unavailable).toHaveBeenCalledWith(7);
+    });
+
     it('reuses an uncertain request after remount, even after a different draft was sent', async () => {
         let view = renderHook(() => useChatWebSocket(vi.fn()));
         await act(async () => { await view.result.current.setActiveConversation(7); });

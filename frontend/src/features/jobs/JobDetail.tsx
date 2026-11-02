@@ -11,6 +11,7 @@ import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage'
 import { Crest } from '../world/Crest';
 import { applyMethodOf, categoryLabel, directionOf, distanceLabel, hoursLabel, placeOf, posterOf, postedLabel, termsLabel, type Job } from './api';
 import { JobManagement } from './JobManagement';
+import { PublicJobResponses } from './PublicJobResponses';
 import { clubJobsPath, jobsPath } from './query';
 
 const share = async (job: Job) => {
@@ -29,11 +30,11 @@ const clubContactPath = (clubId: number, job: Job) => `/clubs/${clubId}?${new UR
 function Answer({ job, status, detail }: { job: Job; status: 'bootstrapping' | 'authenticated' | 'anonymous'; detail: ReturnType<typeof useJobDetail> }) {
     useCommerceCopy();
     const method = applyMethodOf(job), poster = posterOf(job), offering = directionOf(job) === 'OFFERING';
-    if (method === 'IN_APP') return <div className="gk-job-detail__apply"><JobApplication id={job.id} status={status} detail={detail} /></div>;
+    if (method === 'IN_APP') return job.requiredRole ? <div className="gk-job-detail__apply"><JobApplication id={job.id} status={status} detail={detail} /></div> : null;
     if (poster.kind === 'CLUB' && (method === 'MESSAGE' || !job.applyTarget)) return <ButtonLink variant="primary" to={clubContactPath(poster.id, job)}><MessageCircle aria-hidden="true" />{ct("Contact ")}{poster.name}</ButtonLink>;
     if (method === 'MESSAGE') return <ButtonLink variant="primary" to={`/messages?chatWith=${poster.id}`}><MessageCircle aria-hidden="true" />{offering ? ct("Message {v0}", { v0: poster.name.split(' ')[0] }) : ct("Message {v0} to apply", { v0: poster.name.split(' ')[0] })}</ButtonLink>;
-    if (method === 'EMAIL' && job.applyTarget) return <a className="gk-btn gk-btn--primary" href={`mailto:${job.applyTarget}?subject=${encodeURIComponent(ct("Application: {v0}", { v0: job.title }))}`}><Mail aria-hidden="true" />{ct("Apply by email")}</a>;
-    if (method === 'LINK' && job.applyTarget) return <a className="gk-btn gk-btn--primary" href={job.applyTarget} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />{ct("Apply on their site")}</a>;
+    if (method === 'EMAIL' && job.applyTarget) return <a className="gk-btn gk-btn--primary" href={`mailto:${job.applyTarget}?subject=${encodeURIComponent(`${offering ? 'Enquiry' : 'Application'}: ${job.title}`)}`}><Mail aria-hidden="true" />Open email</a>;
+    if (method === 'LINK' && job.applyTarget) return <a className="gk-btn gk-btn--primary" href={job.applyTarget} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />Open website</a>;
     return <ButtonLink variant="primary" to={`/messages?chatWith=${poster.id}`}>{ct("Ask how to apply")}</ButtonLink>;
 }
 
@@ -76,6 +77,9 @@ function JobDetailSession({ id, pane, status, userId }: { id: number; pane?: boo
                 <Button onClick={() => void share(job)}><Share2 aria-hidden="true" />{ct("Share")}</Button>
             </div>
             {job.canManage && status === 'authenticated' && <JobManagement job={job} userId={userId} onSaved={detail.retryJob} />}
+            {job.canManage && job.requiredRole === 'COACH' && job.clubId != null && <ButtonLink to={`/clubs/${job.clubId}/office?tab=tools&tool=applications`}>Review coaching applications</ButtonLink>}
+            {!job.requiredRole && (applyMethodOf(job) === 'IN_APP' || job.canManage) && <PublicJobResponses job={job} onListingChanged={detail.retryJob} />}
+            {['EMAIL', 'LINK'].includes(applyMethodOf(job)) && <p className="gk-faint">Opening this contact method does not send an application in GrassKickZ.</p>}
             <section><h3>{offering ? ct("About") : ct("About the role")}</h3><p className="gk-job-detail__text">{job.description || ct("No description yet.")}</p></section>
             {poster.kind === 'CLUB' && <p className="gk-faint"><Link className="gk-section__action" to={clubJobsPath(poster.id)}>{ct("More from ")}{poster.name}</Link></p>}
             {poster.kind === 'PERSON' && <p className="gk-faint"><Link className="gk-section__action" to={jobsPath({ direction: offering ? 'OFFERING' : 'HIRING', category: job.category ?? '' })}>{ct("More like this")}</Link></p>}

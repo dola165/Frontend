@@ -1,21 +1,23 @@
-import { FolderKanban, type LucideIcon } from 'lucide-react';
+import { Briefcase, FolderKanban, Trophy, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { hasNavigationCapability } from '../../context/navigationCapabilities';
 import { projectsPath } from '../projects/projectWords';
 import { useMyProjects } from '../projects/useProjects';
+import { drawPeek } from '../tournaments/create/drawDraft';
 import { ownClub } from '../pages/create/entry';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { ACTIONS, type ActionKey } from './registry';
 import { useAction, type ActionState } from './useAction';
 import { useResultsWaiting } from './useResultsWaiting';
 
-/** One line of the "+" menu: a rule-checked action, or New project for someone who may start one. */
-export interface MenuAction { key: ActionKey | 'start_project'; href: string; label: [english: string, georgian: string]; icon: LucideIcon; color?: string; hint?: string; waiting?: boolean }
+/** One line of the "+" menu: a rule-checked action, or something started on its own page (a project, a job, a tournament). */
+export interface MenuAction { key: ActionKey | 'start_project' | 'post_job' | 'create_tournament'; href: string; label: [english: string, georgian: string]; icon: LucideIcon; color?: string; hint?: string; waiting?: boolean }
 
 /**
  * What the person may start from anywhere, in the order that fits them: a score that is owed first, then a coach's
  * match and staff, or a parent's child and join code, and starting a club last. Only what the rule-checker allows, and
- * New project (step 4) for anyone on a club's staff, at the club where they may start one.
+ * New project (step 4) for anyone on a club's staff, at the club where they may start one. The one "+" (step 6): a job
+ * for those who run Club office and a tournament for organisers, which World's own "+" used to offer.
  */
 export function useMenuActions(): MenuAction[] {
     const { user } = useAuth();
@@ -37,11 +39,15 @@ export function useMenuActions(): MenuAction[] {
         ? [{ key, href: state.href, label: ACTIONS[key].label, icon: ACTIONS[key].icon, color: ACTIONS[key].color, ...extra }] : [];
     const project: MenuAction[] = projectsHere ? [{ key: 'start_project', href: projectsPath(projectsHere.club.id, 'projects', { new: '1' }),
         label: ['New project', 'ახალი პროექტი'], icon: FolderKanban }] : [];
+    const office = user?.navigationCapabilities?.workspaces.find(entry => entry.id === 'club.office');
+    const job: MenuAction[] = office ? [{ key: 'post_job', href: `/clubs/${office.context.id}/office?view=jobs`, label: ['Post a job', 'ვაკანსიის გამოქვეყნება'], icon: Briefcase }] : [];
+    const organiser = user?.navigationCapabilities?.workspaces.find(entry => entry.id === 'tournament.create');
+    const tournament: MenuAction[] = organiser ? [{ key: 'create_tournament', href: `/world/tournaments?peek=${drawPeek({ organizerId: organiser.context.id })}`, label: ['Create a tournament', 'ტურნირის შექმნა'], icon: Trophy }] : [];
     const owed = newest ? item('report_score', score, {
         waiting: true,
         hint: [newest.squadName && newest.opponentName ? `${newest.squadName} v ${newest.opponentName}` : newest.title, waiting.length > 1 ? copy(`+${waiting.length - 1} more`, `+${waiting.length - 1} კიდევ`) : null].filter(Boolean).join(' · '),
     }) : [];
-    const coaching = [...item('arrange_match', arrange), ...(club ? item('invite_staff', invite) : []), ...project];
+    const coaching = [...item('arrange_match', arrange), ...(club ? item('invite_staff', invite) : []), ...project, ...job];
     const family = [...item('add_child', child), ...item('join_squad', join)];
-    return [...owed, ...(coach && !parent ? [...coaching, ...family] : [...family, ...coaching]), ...item('start_club', start)];
+    return [...owed, ...(coach && !parent ? [...coaching, ...family] : [...family, ...coaching]), ...tournament, ...item('start_club', start)];
 }

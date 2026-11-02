@@ -9,6 +9,8 @@ import { createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
 import type { ClubMembershipContext } from '../../clubs/domain';
 import { ClubMainAction } from '../cards/ClubActions';
 import { ClubRow } from '../cards/ClubRow';
+import { ProgrammesSection } from '../peek/club/ClubSections';
+import type { PaneClub } from '../peek/club/clubPane';
 import { forgetClubChanges } from '../cards/clubState';
 import { useClubActions } from '../cards/useClubActions';
 import { WorldSessionContext } from '../worldSession';
@@ -121,18 +123,40 @@ describe('joining for yourself', () => {
 });
 
 describe('a parent searching for a child', () => {
+    it('S14: discovery rows and the club pane use the accepted programme name with birth years', () => {
+        const profile = club({ presentation: { ...club().presentation!, programmes: [programme(72, 'Foundation (U8–U10)', 8, 10)] } });
+        const row = show(profile, { participants: [nino], path: '/world/clubs?player=501', row: true });
+        expect(screen.getByText(`Fits Nino: Foundation · Born ${year - 10}–${year - 8}`)).toBeInTheDocument();
+        expect(screen.queryByText(/U8/)).not.toBeInTheDocument();
+        row.unmount();
+        const pane = render(<MemoryRouter><WorldSessionContext.Provider value={{ membership: noClub, participants: [nino] }}>
+            <ProgrammesSection club={profile as unknown as PaneClub} child={nino} link={() => '/clubs/4?programme=72'} />
+        </WorldSessionContext.Provider></MemoryRouter>);
+        expect(screen.getByRole('link', { name: 'Foundation' })).toBeInTheDocument();
+        expect(screen.getByText(new RegExp(`Born ${year - 10}–${year - 8}`))).toBeInTheDocument();
+        expect(screen.queryByText(/U8/)).not.toBeInTheDocument();
+        pane.unmount();
+        render(<MemoryRouter><WorldSessionContext.Provider value={{ membership: noClub, participants: [] }}>
+            <ProgrammesSection club={profile as unknown as PaneClub} link={() => '/clubs/4?programme=72'} />
+        </WorldSessionContext.Provider></MemoryRouter>);
+        expect(screen.getByRole('link', { name: 'Foundation (U8–U10)' })).toBeInTheDocument();
+    });
     it('asks the club about a place for the child, with the programme that fits, instead of joining the parent', () => {
         show(club(), { participants: [nino], path: '/world/clubs?player=501', row: true });
         expect(screen.queryByRole('button', { name: 'Join as trialist' })).not.toBeInTheDocument();
         expect(screen.getByText(/Fits Nino: Little kickers/)).toBeInTheDocument();
         expect(screen.queryByText(/Seniors/)).not.toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' })).toHaveAttribute('href', '/clubs/4?tab=teams&programme=72&enquire=1&player=501');
+        // Asked right here, in a small pop-up over World, with the programme that fits in the first line (step 5).
+        fireEvent.click(screen.getByRole('button', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' }));
+        expect(screen.getByRole('dialog', { name: 'Saburtalo Youth' })).toBeInTheDocument();
+        expect(screen.getByRole('textbox')).toHaveValue('Hello, my daughter Nino was born in ' + (year - 9) + '. Is there a place in Little kickers?');
     });
 
     it('says when no programme fits the child, and still lets the parent ask', () => {
         show(club({ presentation: { ...club().presentation!, programmes: [programme(71, 'Seniors', 18, null)] } }), { participants: [nino], path: '/world/clubs?player=501', row: true });
         expect(screen.getByText('No programme listed for age 9')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /about a place for Nino/ })).toHaveAttribute('href', '/clubs/4?tab=teams&enquire=1&player=501');
+        fireEvent.click(screen.getByRole('button', { name: /about a place for Nino/ }));
+        expect(screen.getByRole('textbox')).toHaveValue('Hello, my daughter Nino was born in ' + (year - 9) + '. Is there a place for them at your club?');
     });
 
     it('remembers the child chosen on another World page', () => {
@@ -148,37 +172,37 @@ describe('a parent searching for a child', () => {
     });
 });
 
-describe('proposing a match', () => {
+describe('arranging a match with a club', () => {
     const dinamo = { id: 103, club_id: 1, name: 'U14 Boys', category: 'U14', club_name: 'Dinamo' };
     const admin = { hasClubMembership: true, clubId: 1, myRole: 'CLUB_ADMIN' } as ClubMembershipContext;
 
-    it('is offered to anyone with squads they may arrange for (a club administrator too), opening the form with the club as the opponent', () => {
+    it('is offered to anyone with squads they may arrange for (a club administrator too), opening the one sheet with the club filled in', () => {
         arranging.squads = [dinamo];
         show(club(), { membership: admin });
-        expect(screen.getByRole('link', { name: 'Propose a match to Saburtalo Youth' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct.c4');
+        expect(screen.getByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', expect.stringContaining('do=arrange_match&do-opponent=4'));
     });
 
     it('is never offered on their own club, nor to someone with no squads to arrange for, nor while that is unknown', () => {
         arranging.squads = [dinamo];
         show(club({ id: 1, name: 'Dinamo' }), { membership: admin });
-        expect(screen.queryByRole('link', { name: /Propose a match/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /Arrange a match/ })).not.toBeInTheDocument();
         cleanup();
         arranging.squads = [];
         show(club(), { membership: admin });
-        expect(screen.queryByRole('link', { name: /Propose a match/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /Arrange a match/ })).not.toBeInTheDocument();
         cleanup();
         arranging.squads = undefined;
         show(club(), { membership: admin, participants: [nino] });
-        expect(screen.queryByRole('link', { name: /Propose a match|Ask about/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /Arrange a match|Ask about/ })).not.toBeInTheDocument();
     });
 
-    it('a coach who is also a parent proposes, unless searching for a child', () => {
+    it('a coach who is also a parent arranges, unless searching for a child', () => {
         arranging.squads = [dinamo];
         show(club(), { membership: admin, participants: [nino] });
-        expect(screen.getByRole('link', { name: 'Propose a match to Saburtalo Youth' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Arrange a match' })).toBeInTheDocument();
         cleanup();
         show(club(), { membership: admin, participants: [nino], path: '/world/clubs?player=501' });
-        expect(screen.getByRole('link', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' })).toBeInTheDocument();
-        expect(screen.queryByRole('link', { name: /Propose a match/ })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /Arrange a match/ })).not.toBeInTheDocument();
     });
 });

@@ -20,7 +20,7 @@
       "entityType": "match_exchange",
       "entityId": 41
     },
-    "expected": "/match-exchange/41"
+    "expected": "/matches/41"
   },
   {
     "name": "legacy match beats schedule",

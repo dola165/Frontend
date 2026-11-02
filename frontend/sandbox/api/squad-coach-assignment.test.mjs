@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as W from './world.mjs';
 import * as V from './viewer.mjs';
@@ -9,6 +9,8 @@ import { handleApi } from './router.mjs';
 const account = name => V.createAccount({ fullName: name, email: `${name.replaceAll(' ', '.')}@example.test`, dateOfBirth: '1990-01-01' });
 const headers = actor => ({ authorization: `Bearer ${V.accessToken(actor.id)}`, cookie: `gk-sandbox-user=${actor.id}` });
 const assign = (squad, actor, body) => handleApi({ method: 'PUT', path: `/squad-communication/${squad.id}/coach`, headers: headers(actor), query: new URLSearchParams(), body });
+// The domains load with the first request (and with them the sandbox's own parent accounts): load them before any snapshot.
+before(() => handleApi({ method: 'GET', path: '/__load', headers: {}, query: new URLSearchParams() }));
 function fixture() {
   const owner = account('Assignment owner');
   assert.equal(createPage(owner.id, { pageKind: 'CLUB', displayName: `Assignment club ${owner.id}` }).status, 200);

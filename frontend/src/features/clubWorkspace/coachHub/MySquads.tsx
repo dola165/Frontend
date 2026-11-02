@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarDays, Camera, ChevronRight, MessageCircle, Megaphone, MessagesSquare, Plus, Trophy, Users, X } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { PostComposer } from '../../../components/feed/PostComposer';
+import { usePostAuthors } from '../../feed/postAuthors';
 import type { SquadSession } from '../../squadCommunication/api';
-import type { ScheduleEventOccurrence } from '../../schedule/api';
-import { eventSquadId } from '../fixtures';
 import { CancelSessionDialog } from './CancelSessionDialog';
-import { Status } from '../../../design/DataTable';
-import { ScoreDialog } from '../../scores/ScoreDialog';
 import { ActionButton } from '../../actions/ActionButton';
-import { isOpen, scoreState } from '../../scores/status';
+import { ResultsWaitingList } from '../../actions/ResultsWaitingList';
+import { actionHref, OPENED_HERE } from '../../actions/registry';
+import { useResultsWaiting } from '../../actions/useResultsWaiting';
 import { useResultCopy } from '../../matchHistory/copy';
 import { Crest } from '../../../design/visuals';
 import { addDays, isoDay } from '../../../design/calendar/calendarDates';
@@ -57,17 +56,20 @@ export function MySquads({ data }: { data: CoachData }) {
     const activity = activityKey && data.squads ? coachEvents(data).find(event => event.key === activityKey) : undefined;
     const setActivity = (key: string | null) => { const next = new URLSearchParams(params); if (key) next.set('activity', key); else next.delete('activity'); setParams(next, { replace: !key }); };
     // Needs you is personal: what waits on this person's jobs first (joining to decide, call-ups to chase), then the squads' own.
-    const needs = [...squadNeeds({ joining: data.joining.items, cards: data.cards, names: data.names, now: data.now, link: data.link }),
+    const needs = [...squadNeeds({ joining: data.joining.items, names: data.names, link: data.link }),
         ...(data.squads ? coachNeeds({ club: data.clubId, squads: data.squads, names: data.names, now: data.now, person: data.person,
             records: data.records.rows.filter(record => record.squad_id !== null && data.shown.includes(record.squad_id)), mine: data.records.mine, link: data.link }) : [])].filter(need => need.kind !== 'reply');
-    // Posting updates and photos is coaching; staff on a squad who don't coach read it.
+    // Posting updates is coaching; staff on a squad who don't coach read it.
     const coaches = Boolean(data.squads?.some(squad => squad.overview?.can_manage));
+    // A photo goes out as the squad (or the club), where the one rule-checker lets this person post; squads first.
+    const posters = usePostAuthors().authors.filter(author => author.clubId === data.clubId)
+        .sort((a, b) => Number(!a.squadId) - Number(!b.squadId));
     // The club's projects, read once for every card: each squad's one quiet line, and Raise money (step 4).
     const projects = useBoard(data.clubId).data;
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('mySquads')} subtitle={formatDate(new Date(data.now), { weekday: 'long', day: 'numeric', month: 'long' })}
-            actions={coaches ? <><Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>
-                <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink></> : undefined} />
+            actions={coaches || posters.length ? <>{posters.length > 0 && <Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>}
+                {coaches && <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink>}</> : undefined} />
         <ul className="ch-cards" aria-label={copy('mySquads')}>
             {data.mine.map(squad => <SquadCard key={squad.id} squad={squad} data={data} projects={projects} need={needs.find(need => need.squad === squad.id) ?? null} onCancel={session => setCancelling({ squad: squad.id, session })} />)}
             <li><Link className="ch-card ch-card--ask" to={data.link('coaches')}><Plus aria-hidden="true" />{copy('askSquad')}</Link></li>
@@ -81,38 +83,20 @@ export function MySquads({ data }: { data: CoachData }) {
         {cancelling && <CancelSessionDialog squad={cancelling.squad} squadName={data.names.get(cancelling.squad) ?? ''} session={cancelling.session} now={data.now}
             onClose={() => setCancelling(null)} onDone={() => { setCancelling(null); data.refresh(); }} />}
         {sharing && <Dialog open size="md" title={copy('sharePhoto')} description={copy('sharePhotoHint')} onClose={() => setSharing(false)}>
-            <PostComposer clubId={data.clubId} onPostCreated={() => setSharing(false)} />
+            <PostComposer clubId={data.clubId} authors={posters} onPostCreated={() => setSharing(false)} />
         </Dialog>}
     </PageFrame>;
 }
 
-/** Matches of my squads played in the last week whose score still has an open step: one row each, its status beside it. */
+/** Results waiting on us for the squads shown: the same list as Home and the inbox (step 6), one tap each. */
 function ResultsToAdd({ data }: { data: CoachData }) {
-    const copy = useCopy('coachHub', coachHubEn);
     const { copy: result } = useResultCopy();
-    const [adding, setAdding] = useState<ScheduleEventOccurrence | null>(null);
-    const since = data.now - 7 * 86_400_000;
-    const played = data.events.filter(event => ['MATCH', 'FRIENDLY'].includes(event.eventType) && event.status !== 'CANCELLED' && event.canRecordResult !== false
-        && ((event.resultStatus ?? 'NONE') === 'NONE' || isOpen(event.resultStatus)) && event.homeScore == null && data.shown.includes(eventSquadId(event) ?? -1)
-        && new Date(event.endsAt).getTime() < data.now && new Date(event.endsAt).getTime() >= since);
-    if (!played.length) return null;
-    const items: DayAgendaItem[] = played.map(event => {
-        const state = scoreState(event.resultStatus);
-        const word = (event.resultStatus ?? 'NONE') === 'NONE' ? copy('addResult') : result(...state.words);
-        return {
-            key: `result-${event.eventId}-${event.occurrenceId}`, startsAt: event.startsAt, title: event.title, kind: event.eventType, kindLabel: kindNames[event.eventType],
-            squad: data.names.get(eventSquadId(event) ?? -1), meta: [data.names.get(eventSquadId(event) ?? -1), event.locationName].filter(Boolean).join(' · '),
-            status: <Status tone={state.tone}>{word}</Status>, onClick: () => setAdding(event), label: `${word}: ${event.title}`,
-        };
-    });
-    return <>
-        <Section boxed icon={Trophy} title={result('Scores', 'ანგარიშები')} hint={`${played.length}`}><Panel flush><DayAgenda label={result('Scores', 'ანგარიშები')} items={items} limit={6} /></Panel></Section>
-        {/* A Match Exchange match reads its own home and away; a calendar match has this club at home. */}
-        {adding && <ScoreDialog target={adding.matchExchangeId ? { kind: 'EXCHANGE', eventId: adding.matchExchangeId } : { kind: 'CALENDAR', eventId: adding.eventId }}
-            teams={adding.matchExchangeId ? undefined : { home: { name: data.clubName, logo: data.clubLogo, clubId: data.clubId }, away: { clubId: adding.opponentClubId, name: adding.opponentClubName || result('Opponent', 'მეტოქე') } }}
-            title={adding.title} description={`${adding.title} · ${dayLabel(adding.startsAt, data.now)} ${timeLabel(adding.startsAt)}`}
-            onClose={() => setAdding(null)} onChanged={data.refresh} />}
-    </>;
+    const waiting = useResultsWaiting();
+    const count = (waiting ?? []).filter(item => item.squadId != null && data.shown.includes(item.squadId)).length;
+    if (!count) return null;
+    return <Section boxed icon={Trophy} title={result('Results waiting', 'შედეგები ელოდება')} hint={`${count}`}>
+        <ResultsWaitingList squadIds={data.shown} limit={6} from={item => item.squadId ? { kind: 'squad', id: item.squadId } : null} />
+    </Section>;
 }
 
 /**
@@ -194,6 +178,7 @@ function Soon({ data, onOpen, onCancel }: { data: CoachData; onOpen: (key: strin
     const all = coachEvents(data), end = addDays(new Date(data.now), 7);
     const events = all.filter(event => event.end.getTime() >= data.now && event.start < end);
     const later = all.find(event => event.start >= end);
+    const location = useLocation();
     const open = (event: CoachEvent) => onOpen(event.key);
     const items: DayAgendaItem[] = events.map(event => ({
         key: event.key, startsAt: event.start.toISOString(), title: event.opponent ? copy('matchTitle', { home: event.squad, away: event.opponent.name }) : event.title, kind: event.kind, kindLabel: kindNames[event.kind],
@@ -203,7 +188,7 @@ function Soon({ data, onOpen, onCancel }: { data: CoachData; onOpen: (key: strin
             ? <Button size="sm" variant="ghost" iconOnly aria-label={`${copy('cancelSession')}: ${event.title}`} title={copy('cancelSession')} onClick={() => onCancel(event.squadId, event.session!)}><X aria-hidden="true" /></Button> : undefined,
     }));
     return <Section boxed icon={CalendarDays} title={copy('soon')} hint={copy('nextSevenDays')} action={<span className="ch-soon__actions">
-        <Link className="gk-section__action" to={data.link('matches', { arrange: '1' })}>+ {copy('arrangeMatch')}</Link>
+        <Link className="gk-section__action" state={OPENED_HERE} to={actionHref(location, 'arrange_match', data.focus ? { kind: 'squad', id: data.focus, clubId: data.clubId } : { kind: 'me' }) ?? ''}>+ {copy('arrangeMatch')}</Link>
         <Link className="gk-section__action" to={data.link('calendar')}>{copy('calendar')}</Link>
     </span>}>
         <Panel flush>{!data.squads ? <div className="cw-skeleton-rows" role="status" aria-label={copy('soon')}>{[0, 1, 2].map(i => <Skeleton key={i} height={44} />)}</div>

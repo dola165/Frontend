@@ -41,7 +41,7 @@ function VisitorRows({ squad, session, revision, visitors, onSaved }: { squad: n
             return <li key={row.participationId}><div className="gk-list-row rec-register-row">
                 <span className="gk-list-row__lead"><Avatar name={row.name} size={36} /></span>
                 <span className="gk-list-row__main"><span className="gk-list-row__title">{row.name}</span>
-                    <span className="gk-list-row__meta rec-visitors__meta">{[permission(row), row.emergencyContact && `${copy('Emergency contact', 'საგანგებო კონტაქტი')}: ${row.emergencyContact}`].filter(Boolean).join(' · ')}</span></span>
+                    <span className="gk-list-row__meta rec-visitors__meta">{[row.firstVisit && copy('First visit', 'პირველი ვიზიტი'), permission(row), row.emergencyContact && `${copy('Emergency contact', 'საგანგებო კონტაქტი')}: ${row.emergencyContact}`].filter(Boolean).join(' · ')}</span></span>
                 <span className="gk-list-row__trail rec-register-actions">
                     {done ? <Badge tone={row.status === 'ATTENDED' ? 'accent' : 'danger'}>{row.status === 'ATTENDED' ? copy('Attended', 'დაესწრო') : copy('Did not attend', 'არ დაესწრო')}</Badge>
                         : row.canRecord ? <>

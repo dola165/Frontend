@@ -45,7 +45,7 @@ export function nextMatchday(counts: Map<string, DayCount>, after: string): { da
 }
 
 /** The filters that narrow what the window holds (a day and an end of the list do not). */
-const WINDOW_KEYS = ['source', 'mine', 'clubId', 'squadId', 'tournamentId', 'resultStatus'];
+const WINDOW_KEYS = ['city', 'birthYear', 'ageGroup', 'source', 'mine', 'clubId', 'squadId', 'tournamentId', 'resultStatus'];
 /** Filters that look for something named (my teams, one club, squad or competition): never kept to a country. */
 export const NAMED_KEYS = ['mine', 'clubId', 'squadId', 'tournamentId'];
 /** The person's own country for a list of matches: not when it searches or looks for something named. */

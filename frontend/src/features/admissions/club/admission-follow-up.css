@@ -1,0 +1,8 @@
+.admission-follow-up__actions { display: grid; gap: var(--space-3, 12px); }
+.admission-follow-up__actions button { min-height: 44px; white-space: normal; text-align: start; }
+.admission-follow-up__actions p { overflow-wrap: anywhere; }
+.admission-follow-up__copy { display: grid; gap: var(--space-2, 8px); min-width: 0; }
+.admission-follow-up__copy input { width: 100%; min-width: 0; }
+.gk .admission-follow-up__actions button.gk-btn,
+.gk .club-admission .admission-follow-up__actions button.admission-secondary,
+.gk .admission-follow-up__actions .admission-follow-up__copy input { min-height: 44px; }

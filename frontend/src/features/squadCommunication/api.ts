@@ -9,13 +9,15 @@ export interface SquadEventPlan {
     playerIds: number[]; requestResponses: boolean;
     repeat: { endDate: string; intervalWeeks: number; daysOfWeek: DayOfWeek[] } | null;
 }
-export interface SquadEventPreview {
+export interface CalendarConflict { sessionId: number; source: string; sourceId: number; title: string; startsAt: string; endsAt: string }
+export interface CalendarReview { canCommit?: boolean; conflicts?: CalendarConflict[] }
+export interface SquadEventPreview extends CalendarReview {
     occurrences: { startsAt: string; endsAt: string }[]; participantCount: number;
     notificationRecipients: number; conflictingOccurrences: number; requestResponses: boolean;
 }
 export type SeriesScope = 'THIS' | 'FOLLOWING' | 'ALL_FUTURE';
 export interface ExpectedSession { id: number; revision: number }
-export interface SeriesPreview { expected: ExpectedSession[]; eventCount: number; notificationDeliveries: number; affectedResponses: number; dates: string[] }
+export interface SeriesPreview extends CalendarReview { expected: ExpectedSession[]; eventCount: number; notificationDeliveries: number; affectedResponses: number; dates: string[] }
 export interface SeriesChange { change: SessionChange; scope: SeriesScope; expected?: ExpectedSession[] }
 export interface SeriesCancellation { cancellation: { requestId: string; revision: number; reason: string }; scope: SeriesScope; expected?: ExpectedSession[] }
 export const previewSeriesChange = async (squad: number, session: number, data: SeriesChange) => (await apiClient.post<SeriesPreview>(`/squad-communication/${squad}/events/${session}/changes/preview`,data)).data;
@@ -31,7 +33,7 @@ export const createSquadEvent = async (id: number, plan: SquadEventPlan, authSes
 export interface SquadSpace { id:number; club_id:number; academy_name:string; name:string; category:string; can_manage:boolean; unread_count:number }
 /** A squad member. `number`, `position`, `photo_url`: all the roster shows about another child (refinement 4; backend needed: older servers send only id and name). */
 export interface Person { id:number; name:string; number?:number|null; position?:string|null; photo_url?:string|null }
-export interface IntroductoryVisitor { participationId:number;caseId:number;playerId:number;caseVersion:number;participationVersion:number;name:string;status:string;permissionStatus:string;emergencyContact:string|null;canRecord:boolean }
+export interface IntroductoryVisitor { participationId:number;caseId:number;playerId:number;caseVersion:number;participationVersion:number;name:string;status:string;permissionStatus:string;emergencyContact:string|null;canRecord:boolean;/** The family booked it themselves (step 5; older servers leave it out). */ firstVisit?:boolean }
 export interface VisitorAttendanceCommand {requestId:string;caseId:number;caseVersion:number;participationVersion:number;sessionRevision:number;attendance:'ATTENDED'|'NO_SHOW'}
 export interface IntroductoryVisitorRegister {sessionRevision:number;visitors:IntroductoryVisitor[]}
 export const introductoryVisitors=async(squad:number,session:number,signal?:AbortSignal)=>(await apiClient.get<IntroductoryVisitorRegister>(`/squad-communication/${squad}/sessions/${session}/introductory-visitors`,{signal})).data;
@@ -44,7 +46,7 @@ export interface UpdateReaction {user_id:number;full_name:string;reaction:Reacti
 export interface UpdateComment {id:number;author_id:number;author_name:string;body:string;created_at:string}
 export interface SquadSession { introductory_visitors?:IntroductoryVisitor[];event_type?:ScheduleEventType;description?:string|null;response_requested?:boolean;series_id?:string|null;id:number;title:string;starts_at:string;ends_at:string;location:string|null;status:'SCHEDULED'|'CANCELLED';cancellation_reason:string|null;revision:number;response_revision?:number;response_kind?:'INTENT';attendance:(Person&{response:string;reason?:string|null;active?:boolean;response_status?:string;response_valid?:boolean;previous_response?:string|null;recorded_by?:'PLAYER'|'GUARDIAN'|'COACH'|null;responded_at?:string|null})[];venue_reservation?:VenueReservationSummaryValue|null }
 export interface SessionChange {eventType?:ScheduleEventType;description?:string;requestResponses?:boolean;requestId:string;revision:number;title:string;startsAt:string;endsAt:string;location:string;playerIds:number[]|null}
-export interface SessionConsequence {revision:number;material:boolean;responsePolicy:'PRESERVE'|'RECONFIRM'|'INVALIDATE';affectedParticipants:number;affectedResponses:number;addedParticipants:number;removedParticipants:number;notificationRecipients:number}
+export interface SessionConsequence extends CalendarReview {revision:number;material:boolean;responsePolicy:'PRESERVE'|'RECONFIRM'|'INVALIDATE';affectedParticipants:number;affectedResponses:number;addedParticipants:number;removedParticipants:number;notificationRecipients:number}
 export interface Receipt {user_id:number;full_name:string;acknowledged_at:string|null}
 const root='/squad-communication';
 export const spaces=async(signal?:AbortSignal)=>(await apiClient.get<SquadSpace[]>(root,{signal})).data;
@@ -86,8 +88,13 @@ export const attendance=async(id:number,sessionId:number,playerId:number,respons
 export type SquadJoinLinkStatus='NONE'|'ACTIVE'|'EXPIRED'|'DISABLED';
 export interface SquadJoinLink { squadId:number; squadName:string; status:SquadJoinLinkStatus; code:string|null; path:string|null; createdAt:string|null; createdBy:number|null; createdByName:string|null; expiresAt:string|null; disabledAt:string|null }
 export interface SquadJoinGroup { id:number; version:number; name:string; method:'DIRECT'|'INTRODUCTION'|'SELECTIVE' }
-/** `answeredBy`/`answeredAt`: who answered first and when, on a request answered lately (`answered`). */
-export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null }; answeredBy?:string|null; answeredAt?:string|null }
+/**
+ * `answeredBy`/`answeredAt`: who answered first and when, on a request answered lately (`answered`). Sources LINK and
+ * ENQUIRY are requests (`id` the inquiry's); GROUP (asked a joining group) and VISIT (booked a first visit, `visit`) are
+ * cases (`id` the case's), decided with `decideJoinCase` (step 5; older servers send neither).
+ */
+export interface SquadJoinVisit { startsAt:string; endsAt:string; place:string|null; status:string }
+export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'|'GROUP'|'VISIT'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null }; answeredBy?:string|null; answeredAt?:string|null; visit?:SquadJoinVisit|null }
 /** `REVIEW`: invite to a trial, the request going on into the joining group's admission (step 3). */
 export interface SquadJoinDecision { requestId:string; expectedVersion:number; action:'APPROVE'|'REVIEW'|'DECLINE'; groupId?:number|null; groupVersion?:number|null }
 export interface SquadJoinOutcome { inquiryId:number; outcome:'PLACE_OFFERED'|'REVIEW_REQUIRED'|'DECLINED'; destination:string|null }
@@ -98,6 +105,8 @@ export const disableJoinLink=async(id:number)=>(await apiClient.delete<SquadJoin
 /** The requests waiting; with `answered`, those answered in the last two weeks follow. */
 export const joinRequests=async(id:number,signal?:AbortSignal,answered=false)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal,params:answered?{answered:true}:undefined})).data;
 export const decideJoinRequest=async(id:number,inquiryId:number,body:SquadJoinDecision)=>(await apiClient.post<SquadJoinOutcome>(`${root}/${id}/join-requests/${inquiryId}`,body)).data;
+/** Accept (offer the place in its group) or Not now on a GROUP or VISIT row; REVIEW is refused there. */
+export const decideJoinCase=async(id:number,caseId:number,body:SquadJoinDecision)=>(await apiClient.post<SquadJoinOutcome>(`${root}/${id}/join-requests/cases/${caseId}`,body)).data;
 /**
  * "Approve all" from the coach's one squad notice: exactly the requests the coach saw (with the versions seen), each
  * through the same decision as one at a time. All or nothing; `groupId` only when several groups are open.

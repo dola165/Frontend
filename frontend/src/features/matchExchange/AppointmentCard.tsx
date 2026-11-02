@@ -50,7 +50,7 @@ export function AppointmentCard({ appointment: a, reload, embedded = false }: { 
         <button className="mx-refresh" disabled={busy} onClick={reload} aria-label={copy("refresh")} title={copy("refresh")}><RefreshCw size={16} aria-hidden="true" /></button>
       </div>
     </div>
-    <h3>{embedded ? copy("yourAppointment") : workspace ? <button className="rw-title-button" onClick={() => workspace.openMatch(a.event_id)}>{a.title}</button> : <Link to={`/match-exchange/${a.event_id}#${anchor}`}>{a.title}</Link>}</h3>
+    <h3>{embedded ? copy("yourAppointment") : workspace ? <button className="rw-title-button" onClick={() => workspace.openMatch(a.event_id)}>{a.title}</button> : <Link to={`/matches/${a.event_id}?from=referee#${anchor}`}>{a.title}</Link>}</h3>
     {!embedded && <p className="mx-appointment-teams">{a.club_name} · {a.opponent_name || copy("opponentPending")}</p>}
     <div className="mx-appointment-overview">
       <div className="mx-appointment-facts">

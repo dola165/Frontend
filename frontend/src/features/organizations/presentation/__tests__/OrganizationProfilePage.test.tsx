@@ -23,7 +23,7 @@ it('opens the canonical club profile without a second organization profile', asy
   expect(await screen.findByText('Destination: /clubs/1')).toBeInTheDocument(); expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
 });
 it.each([['', '/clubs/1/office'], ['?tab=imports', '/clubs/1/office?tab=settings&section=imports'], ['?tab=facilities', '/clubs/1/office?tab=settings&section=facilities'], ['?tab=team', '/clubs/1/office'], ['?tab=profile', '/clubs/1/profile-settings'], ['?tab=settings', '/clubs/1/office?tab=settings']])('sends old club organization links %s to Club office', async (query, destination) => {
-  vi.mocked(apiClient.get).mockResolvedValue({ data: { clubId: 1 } }); open('/organizations/17/workspace' + query);
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { id: 17, clubId: 1 } }); open('/organizations/17/workspace' + query);
   expect(await screen.findByText('Destination: ' + destination)).toBeInTheDocument();
 });
 it('gives tournament-only sponsors one heading and relevant tabs', async () => {

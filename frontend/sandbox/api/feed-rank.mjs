@@ -1,17 +1,17 @@
-// The Home feed's foundation, faked as the server would do it: every post carries a topic, a place and a reach,
-// and Discover ranks them in one fixed order for the person reading. Ranking belongs to the backend; this file
-// states the rules so they can be built there (docs/claude-sandbox/BACKEND_NEEDS.md, "Sign-in and the start").
+// The Home feed's foundation, as the server builds it (step 7, backend FeedRepository.rankDiscover): every post
+// carries a topic, a place and a reach, and Discover ranks them in one fixed order for the person reading.
 //
-//   1. People and clubs the person is linked to (their squads, club, children), and their own posts.
-//   2. Who they follow.
+//   1. Their own posts and posts of the clubs their football is at (their club, squads, children's), followed or not.
+//      A post the club's records wrote is the club's, never its author's.
+//   2. What they follow.
 //   3. Posts near them on the topics they chose (near: 40 km for local news, 120 km for regional notices
 //      such as tournament entries and jobs; no chosen topics means every topic).
-//   4. National highlights (pro clubs, advice from referees, specialists and agents).
+//   4. National highlights (a professional club's news, results and fixtures).
 //   5. Posts from far away only if popular (40 reactions or more); a regional notice never travels.
 //   6. Posts near them on other topics, so Home is never empty.
-//   "Show less like this" moves that author's posts on that topic to the end.
 //   Within a tier, newest first. Reach is set by the kind of post, never by the poster.
 import * as W from './world.mjs';
+import { recordTopic } from './world-home.mjs';
 
 export const NEAR_KM = 40;
 export const REGION_KM = 120;
@@ -72,6 +72,11 @@ function classify(post) {
   // A page's own post (a club, a fan club, a business) is that page's news, never a person's.
   if (!topic) topic = post.clubId || post.organizationId ? 'CLUB_NEWS' : 'PERSONAL';
   topic = OVERRIDES.get(post.id)?.topic ?? topic;
+  // A person's own post is personal unless it looks for a club (the server reads no self-chosen role); after the
+  // overrides too, so no personal post leaves its followers.
+  if (!post.clubId && !post.organizationId) topic = topic === 'PLAYER_SEARCH' ? topic : 'PERSONAL';
+  // A post the records wrote carries its kind's topic.
+  if (post.record) topic = recordTopic(post.record);
   const tags = [];
   if (YOUTH.test(text) || club?.type === 'ACADEMY' || club?.type === 'SCHOOL') tags.push('YOUTH');
   if (WOMENS.test(text)) tags.push('WOMENS');
@@ -103,12 +108,11 @@ export const topicMatches = (post, topics) => {
   const { topic, tags } = factsOf(post);
   return topics.some(interest => (INTEREST_TOPICS[interest]?.topics ?? []).includes(topic) || (INTEREST_TOPICS[interest]?.tags ?? []).some(tag => tags.includes(tag)));
 };
-export const authorKey = post => (post.clubId ? `club:${post.clubId}` : `user:${post.authorId}`);
-export const demotionKey = post => `${authorKey(post)}:${factsOf(post).topic}`;
 
 /**
- * Discover for one person. `viewer`: { id, linkedClubs, linkedPeople, followedPeople, followedClubs, home: { lat, lng },
- * topics, demoted }. Returns [{ post, why }] in reading order; `why` is what "Why am I seeing this?" says.
+ * Discover for one person. `viewer`: { id, linkedClubs, followedPeople, followedClubs, home: { lat, lng }, topics }.
+ * Returns [{ post, tier, why }] in reading order; `why` is what "Why am I seeing this?" says, with the tier the next
+ * page's cursor carries.
  */
 export function rankFeed(posts, viewer) {
   const ranked = [];
@@ -120,25 +124,26 @@ export function rankFeed(posts, viewer) {
     const near = km != null && km <= (RADIUS[f.reach] ?? 0);
     const matches = topicMatches(post, viewer.topics);
     const popular = post.reactions.size >= POPULAR_REACTIONS;
-    const own = post.authorId === viewer.id;
+    // A post the records wrote is the club's: never its author's own, never followed through its author.
+    const own = !post.record && post.authorId === viewer.id;
+    const facts = { name, place: f.place?.city ?? null, topic: f.topic };
     let tier, why;
-    if (own || (post.clubId && viewer.linkedClubs.has(post.clubId)) || (post.authorId && viewer.linkedPeople.has(post.authorId))) {
-      tier = 1; why = { kind: own ? 'OWN' : 'LINKED', name };
-    } else if ((post.authorId && viewer.followedPeople.has(post.authorId)) || (post.clubId && viewer.followedClubs.has(post.clubId))) {
-      tier = 2; why = { kind: 'FOLLOWING', name };
+    if (own || (post.clubId && viewer.linkedClubs.has(post.clubId))) {
+      tier = 1; why = { kind: own ? 'OWN' : 'LINKED', ...facts };
+    } else if ((!post.record && post.authorId && viewer.followedPeople.has(post.authorId)) || (post.clubId && viewer.followedClubs.has(post.clubId))) {
+      tier = 2; why = { kind: 'FOLLOWING', ...facts };
     } else if (f.reach === 'FOLLOWERS') {
       continue;
     } else if (f.reach !== 'NATIONAL' && near && matches) {
-      tier = 3; why = { kind: viewer.topics.length ? 'NEAR_TOPIC' : 'NEAR', name, place: f.place.city, distanceKm: km, topic: f.topic };
+      tier = 3; why = { kind: viewer.topics.length ? 'NEAR_TOPIC' : 'NEAR', ...facts, distanceKm: km };
     } else if (f.reach === 'NATIONAL') {
-      tier = 4; why = { kind: 'NATIONAL', name };
+      tier = 4; why = { kind: 'NATIONAL', ...facts };
     } else if (!near && popular && f.reach === 'LOCAL') {
-      tier = 5; why = { kind: 'POPULAR', name, place: f.place?.city ?? null, reactions: post.reactions.size };
+      tier = 5; why = { kind: 'POPULAR', ...facts, reactions: post.reactions.size };
     } else if (near) {
-      tier = 6; why = { kind: 'NEAR', name, place: f.place.city, distanceKm: km, topic: f.topic };
+      tier = 6; why = { kind: 'NEAR', ...facts, distanceKm: km };
     } else continue;
-    if (viewer.demoted.has(demotionKey(post))) { tier = 9; why = { ...why, kind: 'LESS', topic: f.topic }; }
-    ranked.push({ post, tier, why });
+    ranked.push({ post, tier, why: { ...why, tier } });
   }
-  return ranked.sort((a, b) => a.tier - b.tier || b.post.createdAt - a.post.createdAt || b.post.id - a.post.id).map(({ post, why }) => ({ post, why }));
+  return ranked.sort((a, b) => a.tier - b.tier || b.post.createdAt - a.post.createdAt || b.post.id - a.post.id);
 }

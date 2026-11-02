@@ -181,3 +181,11 @@ it('says Remove takes a weekly helper off every week, and a list that couldn’t
     fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Dato')).toBeInTheDocument();
 });
+
+it('brings a helper the match their session became: its link, no register (fix round 1)', async () => {
+    home(async () => ({ data: [{ ...session, sessionId: null, eventId: 777, kind: 'MATCH', title: 'Saturday', registerOpen: false, registerRevision: null, players: [] }] }));
+    render(<MemoryRouter><HelpingCard /></MemoryRouter>);
+    expect(await screen.findByRole('link', { name: 'Open the match' })).toHaveAttribute('href', '/matches/777');
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save who came' })).not.toBeInTheDocument();
+});

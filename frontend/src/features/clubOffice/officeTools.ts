@@ -16,7 +16,7 @@ const BESPOKE: Partial<Record<OfficeTool, LucideIcon>> = {
     programmes: ReceiptText, store: ShoppingBag, tryouts: CheckCircle2, 'club-approaches': Handshake,
 };
 export const toolIcon = (tool: OfficeTool): LucideIcon => BESPOKE[tool] ?? operationTabs.find(tab => tab.id === tool)?.icon ?? Users;
-export const toolName = (tool: OfficeTool) => toolLabel(tool);
+export const toolName = (tool: OfficeTool) => tool === 'scouting' ? 'Scouting' : toolLabel(tool);
 
 export interface ToolAccessInput {
     boot: Bootstrap | null;
@@ -34,6 +34,10 @@ export function toolStates({ boot, role, admissions }: ToolAccessInput): Map<Off
     const leader = isLeadershipRole(role) || Boolean(boot?.leadership);
     const states = new Map<OfficeTool, ToolState>();
     for (const tool of OFFICE_TOOLS) {
+        if (tool === 'scouting') {
+            if (boot?.scouting && (boot.scouting.clubWide || boot.scouting.squads.length)) states.set(tool, 'open');
+            continue;
+        }
         const module = operationModule(tool);
         if (module) {
             const access = boot?.modules.find(item => item.id === module);

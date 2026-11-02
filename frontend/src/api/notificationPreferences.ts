@@ -1,7 +1,7 @@
 import { apiClient } from './axiosConfig';
 
 /** The groups a person chooses channels for; TEAM_WORK is listed only for team members. */
-export type NotificationGroupKey = 'TEAM_WORK' | 'MESSAGES' | 'CLUB' | 'FAMILY' | 'MATCHES' | 'OTHER';
+export type NotificationGroupKey = 'TEAM_WORK' | 'MESSAGES' | 'SQUAD_UPDATES' | 'JOB_REQUESTS' | 'CLUB' | 'FAMILY' | 'MATCHES' | 'OTHER';
 export type DeliveryMode = 'OFF' | 'DRY_RUN' | 'LIVE';
 export type NotificationLanguage = 'en' | 'ka';
 
@@ -43,7 +43,8 @@ export interface PushSubscriptionPayload {
     language?: NotificationLanguage;
 }
 
-export interface NotificationTestResult { mode: DeliveryMode; pushDevices: number; email: boolean }
+/** An in-app event acknowledgement, not a promise of external delivery. */
+export interface NotificationTestResult { mode: DeliveryMode; pushDevices: number; email: boolean; eventReference?: number }
 
 export const fetchNotificationPreferences = async (signal?: AbortSignal) =>
     (await apiClient.get<NotificationPreferences>('/notifications/preferences', { signal })).data;

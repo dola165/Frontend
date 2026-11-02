@@ -37,17 +37,20 @@ export function useMatchCards(squadIds: number[], revision: number) {
  */
 export interface WantToJoinItem {
     key: string; kind: 'APPLICATION' | 'REQUEST'; id: number; squadId: number | null; name: string; age: number | null; position: string | null;
-    createdAt: string; source: 'WORLD' | 'LINK' | 'ENQUIRY'; state: 'DECIDE' | 'TRIAL' | 'ANSWERED'; answeredBy: string | null;
+    createdAt: string; source: 'WORLD' | 'LINK' | 'ENQUIRY' | 'GROUP' | 'VISIT'; state: 'DECIDE' | 'TRIAL' | 'ANSWERED'; answeredBy: string | null;
     application?: WaitingApplication; request?: squadApi.SquadJoinRequest;
 }
+
+/** A family's request straight to one of the squad's groups, or a first visit they booked: a joining case (step 5). */
+export const isJoinCase = (item: WantToJoinItem) => item.source === 'GROUP' || item.source === 'VISIT';
 
 const applicationItem = (a: WaitingApplication): WantToJoinItem => ({
     key: `application-${a.id}`, kind: 'APPLICATION', id: a.id, squadId: a.squadId, name: a.applicantName, age: a.age, position: a.position, createdAt: a.createdAt, source: 'WORLD',
     state: a.status === 'PENDING' ? 'DECIDE' : a.status === 'OFFERED' ? 'TRIAL' : 'ANSWERED', answeredBy: a.answeredBy, application: a,
 });
 const requestItem = (squad: number, r: squadApi.SquadJoinRequest): WantToJoinItem => ({
-    key: `request-${r.id}`, kind: 'REQUEST', id: r.id, squadId: squad, name: r.childName, age: r.birthYear ? new Date().getFullYear() - r.birthYear : null, position: null,
-    createdAt: r.createdAt, source: r.source === 'LINK' ? 'LINK' : 'ENQUIRY', state: r.answeredAt ? 'ANSWERED' : 'DECIDE', answeredBy: r.answeredBy ?? null, request: r,
+    key: `${r.source === 'GROUP' || r.source === 'VISIT' ? 'case' : 'request'}-${r.id}`, kind: 'REQUEST', id: r.id, squadId: squad, name: r.childName, age: r.birthYear ? new Date().getFullYear() - r.birthYear : null, position: null,
+    createdAt: r.createdAt, source: r.source === 'LINK' || r.source === 'GROUP' || r.source === 'VISIT' ? r.source : 'ENQUIRY', state: r.answeredAt ? 'ANSWERED' : 'DECIDE', answeredBy: r.answeredBy ?? null, request: r,
 });
 
 /**

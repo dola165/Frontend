@@ -6,8 +6,8 @@ import type { ClubJob, ClubJobCategory, ClubJobEngagementType } from '../clubs/a
 
 // ── Jobs & volunteering, for everyone ──
 // One list: clubs' roles and people's listings (a parent hiring a coach for a child, a coach or referee saying they are
-// available). HIRING means someone is wanted; OFFERING means someone is available. The fields beyond ClubJob are the
-// backend's to add (BACKEND_NEEDS.md, "Jobs"); a job without them is a club's role, hiring, applied to in the app.
+// available). HIRING means someone is wanted; OFFERING means someone is available. Older club projections omit
+// marketplace fields. IN_APP without a recruitment role uses neutral adult responses, never club membership.
 
 export type JobDirection = 'HIRING' | 'OFFERING';
 export type JobHours = 'FULL_TIME' | 'PART_TIME' | 'SESSIONS' | 'MATCHDAYS' | 'VOLUNTEER';
@@ -88,13 +88,13 @@ export interface JobsQuery { page?: number; size?: number; query?: string; direc
 export interface JobPage { content: Job[]; totalElements: number }
 export const fetchJobs = async (params: JobsQuery, signal?: AbortSignal) => (await apiClient.get<JobPage>('/jobs/listings', { params: { page: 0, ...params }, signal })).data;
 export const fetchJob = async (id: number, near?: string, signal?: AbortSignal) => (await apiClient.get<Job>(`/jobs/${id}`, { params: { near }, signal })).data;
-/** The jobs front in one request. Backend needed: GET /jobs/front?near=City. */
+/** The jobs front in one request: GET /jobs/front?near=City. */
 /** A pin on the jobs map: a club's open roles at its ground, or people's listings counted at a town. */
 export interface JobPin { kind: 'club' | 'area'; clubId: number | null; label: string; crest: string | null; lat: number; lng: number; count: number }
 export interface JobsFront { city: string | null; role: string | null; pins: JobPin[]; forYou: Job[]; near: Job[]; offering: Job[]; followed: Job[]; fresh: Job[]; applications: Job[]; postings: Job[]; open: number; available: number }
 export const fetchJobsFront = async (near: string | undefined, signal?: AbortSignal) => (await apiClient.get<JobsFront>('/jobs/front', { params: { near }, signal })).data;
 export interface JobInput { posterKind: 'CLUB' | 'PERSON'; clubId?: number | null; direction: JobDirection; title: string; description: string; category: ClubJobCategory; engagementType: ClubJobEngagementType; hours: JobHours | null; pay: string; city: string; licence?: string; applyMethod: JobApplyMethod; applyTarget?: string; /** Who the in-app application is for (coaching only today). */ requiredRole?: 'COACH' | null }
-/** Backend needed: POST /jobs for people and clubs alike (the club's own endpoint stays for the workspace). */
+/** POST /jobs for people and clubs alike (the club's own endpoint stays for the workspace). */
 export type JobPublication = JobInput & { requestId: string };
 export const postJob = async (input: JobPublication) => (await apiClient.post<Job>('/jobs', input, { _authSessionId: getAuthSessionId() } as AuthSessionRequestConfig)).data;
 export const closeJob = async (id: number, expectedVersion: number, requestId: string) => (await apiClient.post<Job>(`/jobs/${id}/close`, { expectedVersion, requestId }, { _authSessionId: getAuthSessionId() } as AuthSessionRequestConfig)).data;

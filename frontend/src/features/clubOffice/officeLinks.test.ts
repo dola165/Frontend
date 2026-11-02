@@ -12,7 +12,7 @@ const OLD_TABS = ['overview', 'calendar', 'personnel', 'players', 'invites', 'ad
     'attendance', 'registration', 'departures', 'development', 'education', 'facilities', 'preparation', 'equipment', 'finance', 'travel',
     'restrictions', 'medical', 'welfare', 'workspace-settings', 'tools', 'coach-hub', 'my-day', 'my-squads', 'my-people', 'my-role'];
 /** The tools of the older club screens, which Club office opens through ClubTools rather than by module. */
-const SCREENS = ['admissions', 'applications', 'players', 'player-cards', 'campaigns', 'programmes', 'store', 'tryouts', 'club-approaches'];
+const SCREENS = ['admissions', 'applications', 'players', 'player-cards', 'campaigns', 'programmes', 'store', 'scouting', 'tryouts', 'club-approaches'];
 /** Where each old tab that isn't a tool lands, with a record open; every other one opens as its tool with the record. */
 const PLACES: Record<string, string> = {
     overview: '/requests', actions: '/requests', inbox: '/requests?view=updates',

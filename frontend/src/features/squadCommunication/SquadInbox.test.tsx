@@ -4,6 +4,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { SquadInboxConversation, SquadInboxList } from './SquadInbox';
 import * as api from './api';
 
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'squad-inbox-fixture' }) }));
 vi.mock('./api', () => ({ spaces: vi.fn(), overview: vi.fn(), messages: vi.fn(), markRead: vi.fn(), postMessage: vi.fn() }));
 const room = { id: 171, name: 'Development U12', academy_name: 'Academy', viewer_id: 20, can_manage: false,
     threads: [{user_id:20,full_name:'Parent',unread_count:0}], coaches: [], players: [] } as unknown as api.SquadOverview;
@@ -29,8 +30,15 @@ it('reads and sends through the existing group history without creating a second
     fireEvent.click(screen.getByRole('button',{name:'Send message'}));
     await waitFor(()=>expect(api.postMessage).toHaveBeenCalledWith(171,expect.objectContaining({kind:'CHAT',threadUserId:null,body:'See you there'})));
 });
-it('keeps a parent in their own private thread even if the URL names somebody else', async () => {
+it('refuses a forged private thread without fetching somebody else or silently switching context', async () => {
     render(<MemoryRouter initialEntries={['/messages?squadId=171&channel=coach&thread=999']}><SquadInboxConversation id={171}/></MemoryRouter>);
+    await screen.findByRole('alert');
+    expect(api.messages).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Family or player')).not.toBeInTheDocument();
+});
+it('lets a parent read their own current private thread', async () => {
+    render(<MemoryRouter initialEntries={['/messages?squadId=171&channel=coach&thread=20']}><SquadInboxConversation id={171}/></MemoryRouter>);
     await screen.findByText('Bring your boots');
     expect(api.messages).toHaveBeenCalledWith(171,'CHAT',20,expect.any(AbortSignal));
     expect(screen.queryByLabelText('Family or player')).not.toBeInTheDocument();

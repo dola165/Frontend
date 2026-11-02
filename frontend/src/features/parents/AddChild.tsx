@@ -8,13 +8,15 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { useAction } from '../actions/useAction';
 import { AdultOnlyNote } from '../../components/access/AdultOnlyNote';
+import { usePreferences } from '../preferences/preferencesStore';
 import './add-child.css';
 import './parents.css';
 
 type Intent = { fullName: string; dateOfBirth: string; responsible: boolean; requestId: string };
 /**
  * `inline`: just the two fields and the promise, open at once (joining a group with no child yet). `birthYear`: the
- * year the person already gave (the welcome), so the date picker opens in it and only the day is left to pick.
+ * year the person already gave (the welcome), so the date picker opens in it and only the day is left to pick. Without
+ * it, the year the welcome was given earlier opens the picker too, with "Another year" beside it.
  */
 type Props = { onCreated: (childId: number) => void; inline?: boolean; birthYear?: number | null };
 
@@ -44,6 +46,12 @@ function ChildForm({ onCreated, inline = false, birthYear = null, onTyped }: Pro
     const [open, setOpen] = useState(Boolean(intent) || inline);
     const [name, setName] = useState(intent?.fullName || '');
     const [dob, setDob] = useState(intent?.dateOfBirth || '');
+    // The year the welcome was told (only the age is kept) opens the date in it, as the welcome's own form does; unlike
+    // there it is only where the date starts, so a child of another year is one press away (coordinator, 29 October).
+    const childAge = usePreferences(user?.id).start?.childAge;
+    const [anyYear, setAnyYear] = useState(false);
+    const welcomeYear = birthYear == null && !anyYear && typeof childAge === 'number' && childAge >= 0 && childAge < 18 ? new Date().getFullYear() - childAge : null;
+    const year = birthYear ?? welcomeYear;
     const [responsible, setResponsible] = useState(intent?.responsible || false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
@@ -89,7 +97,10 @@ function ChildForm({ onCreated, inline = false, birthYear = null, onTyped }: Pro
             {!inline && <p className="parent-add-child-guidance"><ShieldCheck size={20} aria-hidden="true" /><span>{copy('Already has a profile? Ask their club or current guardian for an invitation. Create a new profile only for a child who is not registered yet.', 'უკვე აქვს პროფილი? სთხოვეთ კლუბს ან მეურვეს მოწვევა. ახალი პროფილი შექმენით მხოლოდ ჯერ დაურეგისტრირებელი ბავშვისთვის.')}</span></p>}
             <div className="parent-add-child-fields">
                 <label>{copy('Child’s full name', 'ბავშვის სრული სახელი')}<input ref={nameInput} name="child-name" autoComplete="off" required maxLength={150} value={name} disabled={Boolean(intent)} onChange={e => setName(e.target.value)} /></label>
-                <label>{copy('Date of birth', 'დაბადების თარიღი')}<input type="date" required min={birthYear ? `${birthYear}-01-01` : undefined} max={birthYear ? `${birthYear}-12-31` : new Date().toISOString().slice(0, 10)} value={dob} disabled={Boolean(intent)} onChange={e => setDob(e.target.value)} /><small>{copy('For children under 18.', '18 წლამდე ბავშვებისთვის.')}</small></label>
+                <div className="parent-add-child-date">
+                    <label>{copy('Date of birth', 'დაბადების თარიღი')}<input type="date" required min={year ? `${year}-01-01` : undefined} max={year ? `${year}-12-31` : new Date().toISOString().slice(0, 10)} value={dob} disabled={Boolean(intent)} onChange={e => setDob(e.target.value)} /><small>{copy('For children under 18.', '18 წლამდე ბავშვებისთვის.')}</small></label>
+                    {welcomeYear && !intent && <button type="button" className="parent-add-child-year" onClick={() => { setAnyYear(true); setDob(''); }}>{copy('Another year', 'სხვა წელი')}</button>}
+                </div>
             </div>
             <label className="parent-add-child-responsibility"><input type="checkbox" required checked={responsible} disabled={Boolean(intent)} onChange={e => setResponsible(e.target.checked)} /><span>{copy('I am this child’s parent or legal guardian and take responsibility for managing this private profile.', 'მე ვარ ამ ბავშვის მშობელი ან კანონიერი მეურვე და პასუხისმგებელი ვარ მისი პირადი პროფილის მართვაზე.')}</span></label>
             <p className="parent-add-child-privacy">{copy('Private to your family. No sign-in, club membership or participation consent is created.', 'ოჯახის პირადი პროფილი. არ იქმნება შესვლის უფლება, კლუბის წევრობა ან მონაწილეობის თანხმობა.')}</p>

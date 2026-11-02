@@ -24,10 +24,10 @@
 .dola-action dl { margin: 12px 0; display: grid; gap: 10px; }
 .dola-action dl div { display: grid; gap: 3px; }
 .dola-action dt { font-size: 12px; color: var(--dola-muted, var(--color-muted)); font-weight: 650; }
-.dola-action dd { margin: 0; font-size: 13px; line-height: 1.5; }
+.dola-action dd { overflow-wrap: anywhere; margin: 0; font-size: 13px; line-height: 1.5; }
 .dola-action .dola-action-note { color: var(--dola-muted, var(--color-muted)); font-size: 12px; }
 .dola-action-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.dola-action-buttons button { min-height: 40px; border: 1px solid var(--dola-border, var(--color-border)); border-radius: 10px; padding: 9px 12px; background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 13px; }
+.dola-action-buttons button { min-height: 44px; border: 1px solid var(--dola-border, var(--color-border)); border-radius: 10px; padding: 9px 12px; background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 13px; }
 .dola-action-buttons .dola-action-confirm { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); }
 .dola-action-buttons button:disabled { opacity: .5; cursor: wait; }
 .dola-action-buttons button:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 3px; }

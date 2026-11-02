@@ -7,6 +7,7 @@ import { useProfilePostFeed } from '../useProfilePostFeed';
 import { PersonLayers } from './PersonLayers';
 import type { EditRequest } from './PersonProfilePage';
 import type { PersonView } from './usePersonProfile';
+import { PersonalRegistrationHistory } from '../../clubOperations/registration/PersonalRegistrationHistory';
 
 /**
  * Who this person is (in their own words, where they are in football, their career, what they do), then their latest
@@ -24,6 +25,7 @@ export function PersonOverviewTab({ view, edit = null }: { view: PersonView; edi
         {own ? <div id="about"><AboutInPlace key={`${profile.id}:${edit?.counts.about ?? 0}`} bio={profile.bio ?? ''} open={edit?.part === 'about'} onSaved={bio => view.setProfile(current => current ? { ...current, bio } : current)} /></div>
             : profile.bio && <p className="gk-person-bio">{profile.bio}</p>}
         <PersonLayers key={`work:${edit?.counts.work ?? 0}`} profile={profile} football={view.football} professions={professions} professionsFailed={professionsFailed} own={own} editWork={edit?.part === 'work'} onRetryProfessions={view.reload} onProfessionsChanged={view.reload} />
+        {own && <PersonalRegistrationHistory person={profile.id} />}
         <Section title={own ? copy('Your latest posts', 'თქვენი ბოლო პოსტები') : copy('Latest posts', 'ბოლო პოსტები')}>
             <ProfilePosts feed={feed} preview={{ count: 2, allTo: `/profile/${profile.id}?tab=posts` }}
                 empty={{ title: copy('No posts yet', 'პოსტები ჯერ არ არის'), body: own ? copy('Share an update from the Posts tab. Your followers see it on Home.', 'გააზიარეთ სიახლე პოსტების ჩანართიდან. გამომწერები მას მთავარ გვერდზე ნახავენ.') : undefined, action: own ? <ButtonLink size="sm" to={`/profile/${profile.id}?tab=posts`}>{copy('Write a post', 'პოსტის დაწერა')}</ButtonLink> : undefined }} />

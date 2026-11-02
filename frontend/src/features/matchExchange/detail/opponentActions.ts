@@ -3,9 +3,9 @@ import { apiClient, type AuthSessionRequestConfig } from '../../../api/axiosConf
 import { getAuthSessionId, type AuthSessionId } from '../../../utils/authStorage';
 
 /** Offers one of our squads for an open match, with a word for the host's coach. Nothing is agreed until they accept. */
-export const offerToPlay = async (m: Pick<Match, 'event_id' | 'revision'>, squadId: number, note: string, session: AuthSessionId = getAuthSessionId()) => {
+export const offerToPlay = async (m: Pick<Match, "event_id" | "revision">, squadId: number, note: string, session: AuthSessionId = getAuthSessionId(), kickoffAt: string | null = null, locationName: string | null = null) => {
     const config: AuthSessionRequestConfig = { timeout: 30000, _authSessionId: session };
-    return (await apiClient.post(`/match-exchange/${m.event_id}/proposals`, { squadId, note, revision: m.revision }, config)).data;
+    return (await apiClient.post(`/match-exchange/${m.event_id}/proposals`, { squadId, note, revision: m.revision, kickoffAt, locationName }, config)).data;
 };
 
 /** Answers a club's invitation: accept with the squad that plays, or decline. */

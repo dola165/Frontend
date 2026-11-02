@@ -42,7 +42,7 @@ export function useStoreMutationRecovery(clubId: number) {
             if (archive) await deleteStoreProduct(clubId, productId, input.version, request.key, session);
             else {
                 const saved = await updateStoreProduct(clubId, productId, structuredClone(input), request.key, session);
-                if (saved.id !== productId || saved.clubId !== clubId || !Number.isInteger(saved.version) || saved.version! <= (input.version ?? -1))
+                if (saved.id !== productId || (saved.clubId ?? 0) !== clubId || !Number.isInteger(saved.version) || saved.version! <= (input.version ?? -1))
                     throw new Error(ct('The save reply could not be confirmed. Retry the original save.'));
             }
             if (scopeFor(clubId) !== scope || current()?.key !== request.key) return;

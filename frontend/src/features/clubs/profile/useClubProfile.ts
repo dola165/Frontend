@@ -85,7 +85,6 @@ export function useClubProfile(id: number) {
         invitationOnly: Boolean(entry?.invitationOnly),
         canEditFacilities: Boolean(entry?.canEditFacilities),
         canManageStaff: Boolean(entry?.canManageStaff),
-        canPost: own && canManageClubOperations(role),
         canMessage: visitor,
         canFollow: Boolean(club && !club.isMember),
         canChallenge: visitor && Boolean(membership.clubId && membership.clubId !== id && membership.role && canManageClubOperations(membership.role)),

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { commandAdmission } from '../api';
 import type { AdmissionCase, AdmissionWorkspace, CaseCommand, CommandBase, Opportunity, Participation, Requirement } from '../types';
 import type { AuthSessionId } from '../../../utils/authStorage';
+import { getStoredUserId } from '../../../utils/authStorage';
 import type { OpenWorkspace } from '../../clubOperations/workspaceStructure';
 import { useClubAdmissionCopy, type ClubAdmissionCopyKey } from './copy';
 import { AdmissionDate, AdmissionEmpty, AdmissionError, AdmissionField, AdmissionLinkButton, AdmissionPanel, AdmissionPill, AdmissionSessionHeading } from './ui';
@@ -14,6 +15,7 @@ import { TermsSummary } from './TermsSummary';
 import { completeOfferTerms } from './offerTerms';
 import { useDurableMutation } from './useDurableMutation';
 import { AssessmentEditor, type AssessmentDecision } from './AssessmentEditor';
+import { AdmissionFollowUp } from './AdmissionFollowUp';
 
 type Payload<T> = T extends CommandBase ? Omit<T,keyof CommandBase> : never;
 export type ClubCommandPayload = Payload<CaseCommand>;
@@ -62,6 +64,7 @@ function OfferForm({record,groups,busy,execute,onClose}:{record:AdmissionCase;gr
 }
 
 export function CaseDetail({record,workspace,sessionId,onChanged,onBack,onOpen,onRefresh}:{record:AdmissionCase;workspace:AdmissionWorkspace;sessionId:AuthSessionId;onChanged:(value:AdmissionCase)=>void;onBack:()=>void;onOpen:OpenWorkspace;onRefresh?:()=>void}) {
+  const actorId=Number(getStoredUserId());
   const {c,locale}=useClubAdmissionCopy();const mutation=useDurableMutation(`case:${sessionId}:${record.organizationId}:${record.id}`);
   const [form,setForm]=useState<'invite'|'offer'|'assign'|'message'|'waitlist'|'decline'|'cancelEnrollment'|'assessment'|'approval'|null>(null),[message,setMessage]=useState(''),[assignee,setAssignee]=useState(String(record.responsible?.id??'')),[offerAction,setOfferAction]=useState<'withdraw'|'extend'|null>(null),[deadline,setDeadline]=useState(record.offer?localInput(record.offer.responseDeadline):''),[extensionReason,setExtensionReason]=useState(''),[success,setSuccess]=useState(''),[assessmentGroup,setAssessmentGroup]=useState(record.groupId);
   const heading=useRef<HTMLHeadingElement>(null);
@@ -79,6 +82,7 @@ export function CaseDetail({record,workspace,sessionId,onChanged,onBack,onOpen,o
     {success&&<p className="admission-success" role="status">{success}</p>}
     {mutation.pending&&<p className="admission-notice">{c('uncertain')} <button className="admission-text-button" disabled={mutation.busy} onClick={()=>void mutation.recover<AdmissionCase,CaseCommand>(operation).then(value=>{if(value){onChanged(value);setSuccess(c('saved'));}})}>{c('retry')}</button></p>}
     <CaseDates record={record} sessionId={sessionId} groups={workspace.groups} onChanged={onChanged}/>
+    {record.stage==='ENROLLED'&&record.enrollment?.status==='ACTIVE'&&record.clubId&&Number.isSafeInteger(actorId)&&actorId>0&&<AdmissionFollowUp key={`${sessionId}:${record.id}:${record.version}`} scope={{sessionId,actorId,clubId:record.clubId,caseId:record.id,caseVersion:record.version}} onOpen={onOpen}/>}
     <div className="admission-grid"><div className="admission-stack">
       <AdmissionPanel title={c('next')} subtitle={`${c(ownerCopy[record.nextAction.owner])} · ${(nextCopy[record.nextAction.code]?c(nextCopy[record.nextAction.code]):record.nextAction.label)}`}>
         <div className="admission-actions">{actionButtons.filter(a=>allowed(a.action)).map(a=><button key={a.form} className={a.form==='invite'||a.form==='offer'?'admission-button':'admission-secondary'} disabled={mutation.busy||Boolean(mutation.pending)} onClick={()=>setForm(form===a.form?null:a.form)} aria-expanded={form===a.form}>{c(a.label)}</button>)}</div>

@@ -16,7 +16,8 @@ const statusOf = l => l.resultStatus || (l.score ? 'CONFIRMED' : 'NONE');
 const revisionOf = l => l.resultRevision ?? (l.score ? 1 : 0);
 const requiredOf = l => l.resultRequired ?? (l.score ? ['HOME', 'AWAY'].filter(side => side !== (l.resultSide ?? 'HOME')) : []);
 const confirmationsOf = l => l.resultConfirmations ?? (statusOf(l) === 'CONFIRMED' ? requiredOf(l) : []);
-const writable = l => l.status === 'ARRANGED' && l.opponentSquadId && l.end.getTime() <= Date.now();
+// A competition fixture's result is the organiser's, recorded in the competition (step 6): nobody reports it here.
+const writable = l => l.status === 'ARRANGED' && l.opponentSquadId && l.origin !== 'COMPETITION' && l.end.getTime() <= Date.now();
 const requests = new Map();
 
 function resultState(l, headers) {
@@ -38,16 +39,39 @@ function resultState(l, headers) {
   };
 }
 
+// The record as the score card reads it (F4, scores/api.ts): reported, confirmed, disputed or final, and what this
+// reader may do now. The lifecycle underneath stays this sandbox's (a proposed score is the reported one).
+const F4 = { NONE: 'NONE', PROPOSED: 'REPORTED', CONFIRMED: 'CONFIRMED', DISPUTED: 'DISPUTED' };
+function record(l, headers) {
+  const state = resultState(l, headers), status = F4[state.status] ?? state.status, roles = state.authority.roles;
+  const official = ['CONFIRMED', 'SETTLED', 'FINAL'].includes(status), clubs = roles.filter(side => side !== 'REFEREE');
+  const reportedAt = l.resultHistory?.find(item => ['PROPOSE', 'CORRECT'].includes(item.action))?.created_at ?? W.iso(l.end);
+  return {
+    eventId: l.id, kind: 'EXCHANGE', status, fixtureStatus: state.fixtureStatus, revision: state.revision,
+    homeScore: official ? state.homeScore : null, awayScore: official ? state.awayScore : null, official, legacy: false, oneSided: !l.opponentSquadId,
+    reported: l.score && status !== 'NONE' ? { homeScore: l.score[0], awayScore: l.score[1], side: l.resultSide ?? 'HOME', at: reportedAt } : null,
+    disputed: null, settled: null, responders: state.requiredConfirmations, confirmations: state.confirmations,
+    settler: l.refereeId && F.refereeStatusOf(l) === 'ACCEPTED' ? 'REFEREE' : null,
+    deadlines: { refereeOnlyUntil: null, disputeUntil: status === 'REPORTED' ? W.iso(new Date(Date.parse(reportedAt) + 48 * 3600e3)) : null, correctUntil: null },
+    permissions: { parties: roles, report: state.authority.canPropose ? roles : [], respond: status === 'REPORTED' ? state.authority.confirmableRoles.filter(side => side !== 'REFEREE') : [],
+      settle: [], correct: state.authority.canCorrect ? clubs : [] },
+    history: (l.resultHistory ?? []).map(item => ({ id: item.id, action: item.action, actorId: item.actor_id, actorName: null, side: item.actor_side, homeScore: item.home_score, awayScore: item.away_score,
+      previousHomeScore: item.previous_home_score, previousAwayScore: item.previous_away_score, previousStatus: F4[item.previous_status] ?? item.previous_status, status: F4[item.status] ?? item.status,
+      reason: item.reason, createdAt: item.created_at, revision: item.revision })),
+  };
+}
+
 export function registerMatchResults({ get, post }) {
   get('/match-exchange/:id/result', ({ params, headers }) => {
     const l = F.listingById(params.id); if (!l || !canReadListing(l, headers)) return fail(404, 'Match not found.');
     if (!sidesFor(l, headers).length) return fail(403, 'Only the responsible sides and accepted officials can review this result history.');
-    return resultState(l, headers);
+    return record(l, headers);
   });
   get('/match-exchange/:id/result/summary', ({ params, headers }) => {
     const l = F.listingById(params.id); if (!l || !canReadListing(l, headers)) return fail(404, 'Match not found.');
-    const r = resultState(l, headers);
-    return { eventId: l.id, status: r.status, fixtureStatus: r.fixtureStatus, revision: r.revision, homeScore: r.homeScore, awayScore: r.awayScore, official: r.status === 'CONFIRMED', legacy: false, canReadAudit: r.authority.roles.length > 0 };
+    const r = record(l, headers);
+    return { eventId: l.id, kind: 'EXCHANGE', oneSided: r.oneSided, status: r.status, fixtureStatus: r.fixtureStatus, revision: r.revision, homeScore: r.homeScore, awayScore: r.awayScore,
+      reported: r.reported && { home: r.reported.homeScore, away: r.reported.awayScore }, disputed: null, official: r.official, legacy: false, scorePrivate: false, canReadAudit: r.permissions.parties.length > 0 };
   });
   for (const action of ['PROPOSE', 'CONFIRM', 'CORRECT', 'DISPUTE']) {
     const suffix = action === 'PROPOSE' ? '' : `/${action.toLowerCase()}`;
@@ -56,11 +80,12 @@ export function registerMatchResults({ get, post }) {
       const actor = V.viewerId(headers), state = resultState(l, headers), side = body?.side;
       if (!state.authority.roles.includes(side)) return fail(403, 'You are not responsible for this result side.');
       if (!Number.isSafeInteger(body?.revision) || body.revision < 0 || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(body?.requestId ?? '')) return fail(400, 'Provide a result side, current revision and request ID.');
-      const reason = String(body.reason ?? '').trim();
-      if (reason.length > 1000 || (['CORRECT', 'DISPUTE'].includes(action) && !reason)) return fail(400, 'A reason of at most 1000 characters is required.');
+      // The score card sends a dispute's or a report's note, and a correction's reason.
+      const reason = String(body.reason ?? body.note ?? '').trim();
+      if (reason.length > 1000 || (action === 'CORRECT' && !reason)) return fail(400, 'A reason of at most 1000 characters is required.');
       if (['PROPOSE', 'CORRECT'].includes(action) && ![body.homeScore, body.awayScore].every(score => Number.isInteger(score) && score >= 0 && score <= 100)) return fail(400, 'Scores must be whole numbers between 0 and 100.');
       const key = `${l.id}:${actor}:${body.requestId}`, fingerprint = JSON.stringify([action, side, body.revision, body.homeScore ?? null, body.awayScore ?? null, reason]);
-      if (requests.has(key)) return requests.get(key) === fingerprint ? state : fail(409, 'This request ID was used for a different result action.');
+      if (requests.has(key)) return requests.get(key) === fingerprint ? record(l, headers) : fail(409, 'This request ID was used for a different result action.');
       if (!writable(l)) return fail(409, 'Results are available after an arranged fixture has ended.');
       if (body.revision !== state.revision) return fail(409, 'The result changed. Reload its history before trying again.');
       if (action === 'PROPOSE' && !state.authority.canPropose || action === 'CORRECT' && !state.authority.canCorrect || action === 'DISPUTE' && !state.authority.canDispute) return fail(409, 'This result action is no longer available.');
@@ -81,7 +106,7 @@ export function registerMatchResults({ get, post }) {
         home_score: l.score?.[0] ?? null, away_score: l.score?.[1] ?? null, previous_home_score: previousScore?.[0] ?? null, previous_away_score: previousScore?.[1] ?? null,
         previous_status: previousStatus, status: l.resultStatus, reason: reason || null, created_at: W.iso(new Date()), revision: l.resultRevision });
       requests.set(key, fingerprint);
-      return resultState(l, headers);
+      return record(l, headers);
     });
   }
 }

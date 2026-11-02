@@ -19,6 +19,14 @@ it.each(['club.member','club.player','club.agent'])('%s opens the club profile w
  expect(connectedWorkspaces({version:1,workspaces:[cap(kind,'club',1,'Dinamo')]}).map(w=>w.path)).toEqual(['/clubs/1']);
 });
 
+it('offers one current job-workspace chooser per club without adding specialist pages as destinations',()=>{
+ const work=connectedWorkspaces({version:1,workspaces:[cap('club.operations','club',121,'Dinamo'),cap('club.job-workspaces','club',121,'Dinamo'),cap('club.member','club',121,'Dinamo'),cap('club.player','club',2,'Other club')]});
+ expect(work.filter(w=>w.group==='Clubs')).toHaveLength(2);
+ expect(work.find(w=>w.key==='club:121')?.actions).toEqual([{label:'Your workspaces',path:'/clubs/121/work'}]);
+ expect(work.find(w=>w.key==='club:2')?.actions).toBeUndefined();
+ expect(work.some(w=>w.path.includes('/work/'))).toBe(false);
+});
+
 it('lets Tamar reach her assignments and availability from the club overview',()=>{
  auth.user.navigationCapabilities=full;
  render(<MemoryRouter><ConnectedWork clubId={121}/></MemoryRouter>);

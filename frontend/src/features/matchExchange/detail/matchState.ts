@@ -5,8 +5,21 @@ import { formatDate } from '../../../utils/formatting';
 
 export interface State { label: string; tone: BadgeTone }
 
+/** The last moment a match can kick off: an open challenge's last day minus the match, else its kick-off. */
+export const lastKickoff = (m: Pick<Match, 'window_from' | 'match_minutes' | 'starts_at_iso' | 'ends_at_iso'>) =>
+    m.window_from && m.match_minutes ? Date.parse(m.ends_at_iso) - m.match_minutes * 60000 : Date.parse(m.starts_at_iso);
+
 /** Whether the fixture can still be arranged: open or agreed, scheduled and not yet kicked off. */
-export const isActive = (m: Match, now: number) => ['OPEN', 'ARRANGED'].includes(m.listing_status) && m.event_status === 'SCHEDULED' && new Date(m.starts_at_iso).getTime() > now;
+export const isActive = (m: Match, now: number) => ['OPEN', 'ARRANGED'].includes(m.listing_status) && m.event_status === 'SCHEDULED' && lastKickoff(m) > now;
+
+/** An open challenge's window, as its days (YYYY-MM-DD, the match's own calendar) and daily times (HH:mm). */
+export function windowOf(m: Pick<Match, 'window_from' | 'window_to' | 'match_minutes' | 'starts_at' | 'ends_at'>) {
+    if (!m.window_from || !m.window_to || !m.match_minutes) return null;
+    const first = m.starts_at.slice(0, 10), last = m.ends_at.slice(0, 10), days: string[] = [];
+    for (let day = new Date(`${first}T12:00:00Z`); day.toISOString().slice(0, 10) <= last && days.length < 14; day.setUTCDate(day.getUTCDate() + 1))
+        days.push(day.toISOString().slice(0, 10));
+    return { days, from: m.window_from.slice(0, 5), to: m.window_to.slice(0, 5), minutes: m.match_minutes };
+}
 
 /**
  * What the viewer can do with a match now, worked out once for the match page and World's match drawer: whether it
@@ -60,6 +73,13 @@ export function groundState(m: Match): State {
 }
 
 export function refereeState(m: Match): State {
+    // A competition match's referees are the competition's own appointments (fix round 1).
+    if (m.origin === 'COMPETITION') {
+        const appointed = m.competition_referees ?? [];
+        if (appointed.some(a => a.status === 'ACCEPTED')) return { label: 'Appointed', tone: 'accent' };
+        if (appointed.some(a => a.status === 'INVITED')) return { label: 'Invited', tone: 'info' };
+        return { label: 'The competition appoints', tone: 'neutral' };
+    }
     if (!m.referee_required || m.referee_status === 'NOT_REQUIRED') return { label: 'Not needed', tone: 'neutral' };
     if (m.external_referee_name) return { label: 'Arranged outside GrassKickZ', tone: 'accent' };
     if (m.referee_status === 'ACCEPTED') return { label: 'Appointed', tone: 'accent' };

@@ -1,17 +1,18 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Copy, Globe2, LockKeyhole, MessageCircle, Send, Share2, ShieldAlert, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { chatApi, type ConversationDto } from '../../api/chat';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import { getAuthSessionId, getStoredUserId } from '../../utils/authStorage';
+import { getAuthSessionId, getStoredUserId, subscribeAuthSession } from '../../utils/authStorage';
 import { useDialogFocus } from '../workspace/useDialogFocus';
 import { MediaImage } from '../ui/MediaImage';
 import type { FeedPostDto } from './FeedPost';
 import './post-actions.css';
 import { usePanelMotion } from '../ui/usePanelMotion';
 import { usePostCopy } from './postCopy';
+import { usePostAuthors } from '../../features/feed/postAuthors';
 
 function PostAvatar({ src, fallback, className, children }: { src?: string | null; fallback: ReactNode; className: string; children?: ReactNode }) {
     const [failedSource, setFailedSource] = useState<string | null>(null);
@@ -32,9 +33,10 @@ export function PostDialog({ title, children, onClose, busy = false }: { title: 
 }
 
 export function PostPreview({ post }: { post: FeedPostDto }) {
+    const location = useLocation();
     const copy = usePostCopy();
     const media = post.mediaUrls?.[0] ?? post.image;
-    return <Link to={`/posts/${post.id}`} className="post-preview">
+    return <Link to={`/posts/${post.id}`} state={{ postReturnTo: location.pathname + location.search }} className="post-preview">
         <div className="post-preview-author">{post.authorAvatarUrl && <PostAvatar src={post.authorAvatarUrl} fallback={post.authorName.slice(0,2).toUpperCase()} className="post-avatar" />}<span><strong>{post.clubName || post.authorName}</strong><small>{copy('Original post')}</small></span></div>
         <p>{post.content}</p>
         {media && !/\.(mp4|mov|webm)(?:\?|$)/i.test(media) && <MediaImage src={media} alt={copy('Shared post media')} className="post-preview-media" />}
@@ -42,6 +44,11 @@ export function PostPreview({ post }: { post: FeedPostDto }) {
 }
 
 export function SharedPostPreview({ id }: { id?: number | null }) {
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    return <SharedPostContent key={`${session}:${id}`} id={id} />;
+}
+
+function SharedPostContent({ id }: { id?: number | null }) {
     const copy = usePostCopy();
     const [post, setPost] = useState<FeedPostDto | null>(null), [failed, setFailed] = useState(false);
     useEffect(() => {
@@ -58,6 +65,16 @@ function Audience({ value, onChange, disabled, club = false }: { value: boolean;
     return <label className="post-audience">{value ? <Globe2 size={15} /> : <LockKeyhole size={15} />}<span className="sr-only">{copy('Audience')}</span><select aria-label={copy('Audience')} value={String(value)} disabled={disabled} onChange={e => onChange(e.target.value === 'true')}><option value="true">{copy('Public')}</option><option value="false">{copy(club ? 'Club leadership' : 'Only me')}</option></select></label>;
 }
 
+/**
+ * A club post's audience: its Owner and Admins may keep it for Club leadership (the server's own rule); for coaches and
+ * the Media officer it stays public, so they aren't offered a choice the server refuses.
+ */
+function ClubAudience({ post, value, onChange, disabled }: { post: FeedPostDto; value: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
+    const { authors } = usePostAuthors();
+    const leads = post.isPublic === false || authors.some(author => author.clubId === post.clubId && !author.squadId && author.leadership);
+    return leads ? <Audience value={value} onChange={onChange} disabled={disabled} club /> : null;
+}
+
 export function EditPostDialog({ post, onClose, onSaved }: { post: FeedPostDto; onClose: () => void; onSaved: (post: FeedPostDto) => void }) {
     const copy = usePostCopy();
     const [content, setContent] = useState(post.content), [isPublic, setPublic] = useState(post.isPublic !== false), [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -69,7 +86,8 @@ export function EditPostDialog({ post, onClose, onSaved }: { post: FeedPostDto; 
         finally { pending.current = false; setBusy(false); }
     };
     return <PostDialog title={copy('Edit post')} onClose={onClose} busy={busy}><form onSubmit={e => { e.preventDefault(); void save(); }}>
-        <Audience value={isPublic} onChange={setPublic} disabled={busy} club={post.clubId != null} />
+        {post.clubId != null ? <ClubAudience post={post} value={isPublic} onChange={setPublic} disabled={busy} />
+            : <Audience value={isPublic} onChange={setPublic} disabled={busy} />}
         <label className="sr-only" htmlFor="edit-post-content">{copy('Post text')}</label><textarea id="edit-post-content" maxLength={2000} rows={6} value={content} disabled={busy} onChange={e => setContent(e.target.value)} />
         <small className="post-muted">{content.length}/2000 · {copy('Attached photos and videos stay with this post.')}</small>
         {error && <p role="alert" className="post-error">{copy(error)}</p>}<footer><button className="post-secondary" type="button" disabled={busy} onClick={onClose}>{copy('Cancel')}</button><button className="post-primary" disabled={busy || (!content.trim() && !post.isReshare)}>{copy(busy ? 'Saving…' : 'Save changes')}</button></footer>
@@ -78,16 +96,16 @@ export function EditPostDialog({ post, onClose, onSaved }: { post: FeedPostDto; 
 
 export function ReportPostDialog({ post, onClose }: { post: FeedPostDto; onClose: () => void }) {
     const copy = usePostCopy();
-    const [reason, setReason] = useState(''), [description, setDescription] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState(''), [receipt, setReceipt] = useState<number | null>(null);
+    const [reason, setReason] = useState(''), [description, setDescription] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState(''), [receipt, setReceipt] = useState<{ id: number; status: string } | null>(null);
     const [requestId] = useState(() => crypto.randomUUID()), pending = useRef(false);
     const submit = async () => {
         if (!reason || pending.current) return; pending.current = true; setBusy(true); setError('');
-        try { const { data } = await apiClient.post<{ id: number }>('/reports', { targetType: 'POST', targetId: post.id, requestId, reason, description }); setReceipt(data.id); }
+        try { const { data } = await apiClient.post<{ id: number; status: string }>('/reports', { targetType: 'POST', targetId: post.id, requestId, reason, description }); setReceipt(data); }
         catch (e) { setError(extractApiErrorMessage(e, 'Could not send your report. Retry to check whether it was received.')); }
         finally { pending.current = false; setBusy(false); }
     };
-    return <PostDialog title={copy('Report post')} onClose={onClose} busy={busy}>{receipt ? <div className="post-report-success" role="status"><Check size={32} /><h3>{copy('Thank you for letting us know')}</h3><p>{copy('Your report is awaiting review. Your identity stays private.')}</p><Link className="post-secondary" to={`/reports?itemId=${receipt}`} onClick={onClose}>{copy('View report receipt')}</Link><button className="post-primary" type="button" onClick={onClose}>{copy('Done')}</button></div> : <form onSubmit={e => { e.preventDefault(); void submit(); }}>
-        <p className="post-muted">{copy('What’s wrong with this post? Your report goes to the moderation team.')}</p>
+    return <PostDialog title={copy('Report post')} onClose={onClose} busy={busy}>{receipt ? <div className="post-report-success" role="status"><Check size={32} /><h3>{copy('Thank you for letting us know')}</h3><p>{copy('Saved to the platform moderation queue. Your private receipt shows its current status.', 'საჩივარი მოდერაციის რიგში შეინახა. მიმდინარე მდგომარეობა პირად დასტურში ჩანს.')} · {receipt.status}</p><Link className="post-secondary" to={`/reports?itemId=${receipt.id}`} onClick={onClose}>{copy('View report receipt')}</Link><button className="post-primary" type="button" onClick={onClose}>{copy('Done')}</button></div> : <form onSubmit={e => { e.preventDefault(); void submit(); }}>
+        <p className="post-muted">{copy('What’s wrong with this post? Reports are saved for platform administrators in the moderation queue. No response time is promised.', 'რა პრობლემაა პოსტში? საჩივარი ინახება პლატფორმის ადმინისტრატორების მოდერაციის რიგში. პასუხის ვადა განსაზღვრული არ არის.')}</p>
         <fieldset className="post-reasons"><legend className="sr-only">{copy('Report reason')}</legend>{[['SPAM','Spam or unwanted promotion'],['HARASSMENT','Bullying or harassment'],['SAFETY','Unsafe or harmful content'],['IMPERSONATION','Impersonation'],['OTHER','Something else']].map(([value, text]) => <label key={value}><input type="radio" name="report-reason" value={value} checked={reason === value} disabled={busy} onChange={() => setReason(value)} /><span>{copy(text)}</span></label>)}</fieldset>
         <label className="post-field">{copy('More detail')} <span className="post-muted">{copy('(optional)')}</span><textarea rows={3} value={description} maxLength={1500} disabled={busy} onChange={e => setDescription(e.target.value)} placeholder={copy('Help us understand what happened…')} /></label>
         <p className="post-privacy"><ShieldAlert size={16} />{copy('Reporting does not automatically remove a post. The post text and your description are kept for review for up to 90 days.')}</p>

@@ -1,6 +1,11 @@
+import { ButtonLink } from '../design/primitives';
+import { fetchPlatformAccess } from '../features/store/platform/api';
+import { lazy, Suspense } from 'react';
+import '../features/store/orders/orders.css';
 import { ct, useCommerceCopy } from '../features/store/copy';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNavigationCapability } from '../context/useNavigationCapability';
 import { GkRoot, PageFrame } from '../design/primitives';
 import { fetchStoreCatalog, fetchStoreFront } from '../features/store/api';
 import { CATALOGUE_KEYS, cataloguePath } from '../features/store/query';
@@ -13,6 +18,8 @@ import { useWorldArea } from '../features/world/useWorldArea';
 import { useWorldData } from '../features/world/useWorldData';
 import '../features/store/store.css';
 
+const PlatformStore = lazy(() => import('../features/store/platform/PlatformStore').then(module => ({ default: module.PlatformStore })));
+
 /**
  * The storefront, in the shape of Fanatics' football page: a title and one search, two big doors (GrassKickZ
  * equipment, club stores), compact categories, the equipment collections, clubs near the person and the ones they
@@ -21,12 +28,15 @@ import '../features/store/store.css';
 export const StorePage = () => {
     useCommerceCopy();
     const [params] = useSearchParams();
-    const { status } = useAuth();
+    const { status, sessionId } = useAuth();
+    const platform = useWorldData(status === 'authenticated' ? `platform-access:${sessionId}` : null, fetchPlatformAccess);
+    const requests = useNavigationCapability('store.purchase-requests');
     const { area, setCity } = useWorldArea();
     const near = area.anywhere || area.guessed ? undefined : area.city;
     const front = useWorldData(area.ready ? `store-front:${near ?? ''}` : null, signal => fetchStoreFront(near, signal), ct("The store could not load."));
     const picks = useWorldData(area.ready ? `store-picks:${near ?? ''}` : null, signal => fetchStoreCatalog({ sort: 'RELEVANCE', near, size: 10 }, signal), ct("These products could not load."));
     const fresh = useWorldData('store-new', signal => fetchStoreCatalog({ sort: 'NEWEST', size: 10 }, signal), ct("These products could not load."));
+    if (params.get('view') === 'manage') return <GkRoot className="gk-store gk-page"><PageFrame><Suspense fallback={<p role="status">Loading store administration…</p>}><PlatformStore key={sessionId} /></Suspense></PageFrame></GkRoot>;
     // Old links to a search (`/store?category=…`) open the catalogue with the same search.
     if (CATALOGUE_KEYS.some(key => key !== 'page' && params.has(key)) || params.has('q')) return <Navigate to={`/store/all?${params}`} replace />;
     const signedIn = status === 'authenticated';
@@ -36,6 +46,7 @@ export const StorePage = () => {
             <PageFrame>
                 <MarketTabs current="store" />
                 <StoreHead />
+                {(requests || platform.data?.canManage) && <nav className="store-orders__doors" aria-label="Store work">{requests && <ButtonLink to="/store/cart?view=requests">My requests</ButtonLink>}{platform.data?.canManage && <ButtonLink to="/store?view=manage">Manage GrassKickZ store</ButtonLink>}</nav>}
                 <div className="gk-store-stack">
                     <StoreDoors own={front.data?.own} sellers={front.data?.sellers} />
                     <Categories />

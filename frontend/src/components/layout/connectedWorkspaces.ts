@@ -12,7 +12,9 @@ const personal: Record<string, Pick<ConnectedWorkspace,'label'|'description'|'ac
 
 /** Navigation only. Every destination continues to enforce its own current authority. */
 export function connectedWorkspaces(caps?:NavigationCapabilities):ConnectedWorkspace[] {
-  const result:ConnectedWorkspace[]=accessibleClubs(caps).map(club=>({key:`club:${club.id}`,path:`/clubs/${club.id}${club.canOpenWorkspace?'/office':''}`,label:club.name,description:club.relationships.join(' · '),group:'Clubs'}));
+  const result:ConnectedWorkspace[]=accessibleClubs(caps).map(club=>({key:`club:${club.id}`,path:`/clubs/${club.id}${club.canOpenWorkspace?'/office':''}`,label:club.name,description:club.relationships.join(' · '),group:'Clubs',
+    ...(caps?.workspaces.some(item=>item.id==='club.job-workspaces'&&item.context.type==='club'&&item.context.id===club.id)
+      ?{actions:[{label:'Your workspaces',path:`/clubs/${club.id}/work`}]}:{})}));
   const contexts=caps?.workspaces??[];
   if(contexts.some(item=>item.id==='club.family')&&!contexts.some(item=>item.id==='parent.hub'))result.push({key:'family:parent',path:'/parent',...personal['parent.hub'],group:'Personal work'});
   for(const link of workspaceLinks(caps)) {

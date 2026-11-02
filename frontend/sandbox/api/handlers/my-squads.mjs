@@ -2,7 +2,6 @@
 // backend (SquadMatchCardService, RecruitmentService.waiting, SquadHelperService, SquadStaffRoomService) and the web's
 // features/clubWorkspace/coachHub/squadApi.ts and features/helpers/api.ts:
 //   GET  /squad-communication/:id/next-match                 the next match card, its buttons by the persona's tools
-//   POST /match-arrangements/:id/squads/:sid/remind            remind unanswered call-ups (409 REMINDED_RECENTLY)
 //   POST /squad-communication/:id/staff-room                  the squad's staff room in the chats
 //   GET  /recruitment/applications/waiting?clubId&squadId      Want to join, the applications this person decides
 //   POST /recruitment/applications/:id/decline | /offer         Not now | Invite to a trial (409 ALREADY_ANSWERED)
@@ -103,23 +102,12 @@ get('/squad-communication/:id/next-match', async ({ params, headers }) => {
   const trip = C.records.find(r => r.kind === 'TRIP' && r.event_id === l.id && r.status !== 'CANCELLED');
   return {
     squadId: squad.id, squadName: squad.name, match: F.listingView(l, { detail: true }),
-    callUps: called, fitness: fitnessOf((called.length ? called : players).map(player => player.id)),
+    callUps: called, expected: called.filter(player => player.response !== 'NOT_GOING').length, notComing: called.filter(player => player.response === 'NOT_GOING').length,
+    fitness: fitnessOf((called.length ? called : players).map(player => player.id)),
     preparation: prep ? { recordId: prep.id, status: prep.status, revision: prep.revision ?? 1, referees: prep.data.referees ?? null, pitch: prep.data.pitch ?? null, medical: prep.data.medical ?? null, bring: lines(prep.data.bring) } : null,
     trip: trip ? { recordId: trip.id, status: trip.status, departsAt: trip.data.startsAt ?? null, meetingPoint: trip.data.meetingPoint ?? null, destination: trip.data.destination ?? null } : null,
-    lastReminder: reminders.get(`${l.id}:${squad.id}`)?.toISOString() ?? null,
-    can: { callUps: M.can(p, squad.id, 'MATCHES'), remind: M.can(p, squad.id, 'MATCHES'), checklist: M.can(p, squad.id, 'READINESS'), bus: M.can(p, squad.id, 'TRAVEL') },
+    can: { callUps: M.can(p, squad.id, 'MATCHES'), checklist: M.can(p, squad.id, 'READINESS'), bus: M.can(p, squad.id, 'TRAVEL') },
   };
-});
-post('/match-arrangements/:id/squads/:sid/remind', async ({ params, headers }) => {
-  const squad = dinamoSquad(params.sid), l = F.listingById(params.id);
-  if (!squad || !l) return missing();
-  if (!M.can(persona(headers), squad.id, 'MATCHES')) return denied('You need match-management access for this squad.');
-  const key = `${l.id}:${squad.id}`, last = reminders.get(key);
-  if (last && Date.now() - last.getTime() < 2 * 3600e3) return reply(409, { status: 409, code: 'REMINDED_RECENTLY', message: 'Families were reminded less than two hours ago.' });
-  const teams = await handleApi({ method: 'GET', path: `/match-arrangements/${l.id}/participants`, query: new URLSearchParams(), body: null, headers });
-  const waiting = (teams?.body?.find(team => team.squadId === squad.id)?.players ?? []).filter(player => player.selected && player.response === 'UNANSWERED');
-  reminders.set(key, new Date());
-  return { reminded: waiting.length };
 });
 
 // ---------------------------------------------------------------- the staff room
@@ -166,22 +154,30 @@ post('/recruitment/applications/:id/offer', answer('OFFERED'));
 
 // ---------------------------------------------------------------- helpers
 const U12 = 102;
-const helpers = [{ id: 9701, clubId: C.CLUB_ID, squadId: U12, sessionKey: 'u12-wednesdays', repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(U12).headCoachId, since: C.at(-12), active: true },
+const helpers = [{ id: 9701, clubId: C.CLUB_ID, squadId: U12, sessionId: 77002, sessionKey: 'u12-wednesdays', repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(U12).headCoachId, since: C.at(-12), active: true },
   // A parent who helps at U14 Boys' training every week: the squad's staff all see her there.
   { id: 9702, clubId: C.CLUB_ID, squadId: 103, repeating: true, userId: 9706, name: 'Nino Abashidze', addedBy: W.squadById(103).headCoachId, since: C.at(-5), active: true },
   // The helper persona was also added to U14 Boys by address and answers on Home: Accept / Not for me (fix round 4).
-  { id: 9703, clubId: C.CLUB_ID, squadId: 103, repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(103).headCoachId, since: C.at(-1), active: true, waiting: true }];
+  { id: 9703, clubId: C.CLUB_ID, squadId: 103, sessionId: 77003, repeating: true, userId: 9705, name: 'Dato Meladze', addedBy: W.squadById(103).headCoachId, since: C.at(-1), active: true, waiting: true }];
 // session id -> { revision, rows: Map(player id -> { status, by }) }: the attendance records of the session, the
 // coaches' and the helper's alike, and a version that changes with every saved change. The register's revision is
 // that version with the session's player list, as a string (the server's is a digest of both).
+export { helpers };
 const registers = new Map();
 const saves = new Map(); // `${helper}:${requestId}` -> session id, so a retried save saves nothing again
 const registerOf = id => { if (!registers.has(id)) registers.set(id, { revision: 0, rows: new Map() }); return registers.get(id); };
-/** Today's U12 Mixed session at 18:00, the one the helper persona helps at. */
-const helperSession = () => {
-  const start = new Date(); start.setHours(18, 0, 0, 0);
-  return { id: 77002, squadId: U12, title: 'Training', start, end: new Date(start.getTime() + 90 * 60e3), location: 'Pitch 2' };
-};
+// Two current, canonical session fixtures. Neither helper assignment creates roster access elsewhere.
+for (const [id, squadId] of [[77002, U12], [77003, 103]]) if (!W.events.some(e => e.id === id)) {
+  const start = new Date(Date.now() - 20 * 60e3);
+  W.events.push({ id, squadId, clubId: C.CLUB_ID, type: 'TRAINING', title: 'Training', start, end: new Date(+start + 90 * 60e3), location: 'Pitch 2', venueId: 202, coachId: W.squadById(squadId).headCoachId });
+}
+const currentSession = h => W.events.filter(s => s.squadId === h.squadId && s.type === 'TRAINING' && !s.cancelled
+  && (h.sessionId ? s.id === h.sessionId : h.repeating) && +new Date(s.end) > Date.now() - 24 * 3600e3 && +new Date(s.start) < Date.now() + 7 * 864e5)
+  .sort((a, b) => +new Date(a.start) - +new Date(b.start))[0];
+const helperSession = () => currentSession(helpers[0]);
+const helperActor = headers => !V.isNewcomer(headers) && persona(headers) === 'helper' ? 9705 : V.viewerId(headers);
+const ownedHelpers = headers => helpers.filter(h => h.active && h.userId === helperActor(headers));
+const registerOpen = s => Date.now() >= +new Date(s.start) - 2 * 3600e3 && Date.now() <= +new Date(s.end) + 24 * 3600e3;
 const sessionPlayers = session => {
   const squad = W.squadById(session.squadId), rows = registerOf(session.id).rows;
   const first = id => W.personById(id)?.firstName ?? 'Player';
@@ -226,23 +222,25 @@ del('/squad-communication/:sid/helpers/:hid', ({ params, headers }) => {
   helper.active = false; return reply(204);
 });
 get('/me/helping/invitations', ({ headers }) => {
-  if (persona(headers) !== 'helper') return [];
-  const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(17, 0, 0, 0);
-  return helpers.filter(h => h.active && h.waiting && h.userId === 9705).map(h => ({ helperId: h.id, squadId: h.squadId, squadName: C.squadName(h.squadId), clubName: C.club.name,
-    title: 'Training', startsAt: start.toISOString(), repeating: h.repeating, addedBy: C.name(h.addedBy) }));
+  return ownedHelpers(headers).filter(h => h.waiting && currentSession(h)).map(h => {
+    const s = currentSession(h);
+    return { helperId: h.id, squadId: h.squadId, squadName: C.squadName(h.squadId), clubName: C.club.name,
+      title: s.title, startsAt: s.start.toISOString(), repeating: h.repeating, addedBy: C.name(h.addedBy) };
+  });
 });
 post('/me/helping/:hid/accept', ({ params, headers }) => {
-  const helper = helpers.find(h => h.id === Number(params.hid) && h.active && h.waiting && persona(headers) === 'helper' && h.userId === 9705);
+  const helper = ownedHelpers(headers).find(h => h.id === Number(params.hid) && h.waiting && currentSession(h));
   if (!helper) return reply(404, { status: 404, message: 'That helper was not found.' });
   helper.waiting = false; return reply(204);
 });
 get('/me/helping', ({ headers }) => {
-  if (persona(headers) !== 'helper' || !helpers.some(h => h.id === 9701 && h.active)) return [];
-  const s = helperSession(), squad = W.squadById(s.squadId);
-  return [{ helperId: 9701, sessionId: s.id, squadId: s.squadId, squadName: squad.name, clubId: C.CLUB_ID, clubName: C.club.name, title: s.title, kind: 'TRAINING',
-    startsAt: s.start.toISOString(), endsAt: s.end.toISOString(), location: s.location, coach: C.name(squad.headCoachId), registerOpen: true, registerRevision: revisionOf(s), players: sessionPlayers(s) }];
+  return ownedHelpers(headers).filter(h => !h.waiting && currentSession(h)).map(h => {
+    const s = currentSession(h), squad = W.squadById(s.squadId);
+    return { helperId: h.id, sessionId: s.id, squadId: s.squadId, squadName: squad.name, clubId: h.clubId, clubName: W.clubById(h.clubId).name, title: s.title, kind: 'TRAINING',
+      startsAt: s.start.toISOString(), endsAt: s.end.toISOString(), location: s.location, coach: C.name(squad.headCoachId), registerOpen: registerOpen(s), registerRevision: revisionOf(s), players: sessionPlayers(s) };
+  });
 });
-const helping = (params, headers) => { const s = helperSession(); return persona(headers) === 'helper' && Number(params.eid) === s.id ? s : null; };
+const helping = (params, headers) => ownedHelpers(headers).filter(h => !h.waiting).map(currentSession).find(s => s?.id === Number(params.eid) && registerOpen(s));
 get('/me/helping/sessions/:eid/register', ({ params, headers }) => {
   const s = helping(params, headers);
   return s ? registerView(s) : reply(404, { status: 404, message: 'The register opens on the day of the session you help at.' });
@@ -266,7 +264,7 @@ put('/me/helping/sessions/:eid/register', ({ params, headers, body }) => {
   }
   return registerView(s);
 });
-del('/me/helping/:hid', ({ params }) => { const helper = helpers.find(h => h.id === Number(params.hid) && h.active); if (!helper) return reply(404, { status: 404, message: 'That helper was not found.' }); helper.active = false; return reply(204); });
+del('/me/helping/:hid', ({ params, headers }) => { const helper = ownedHelpers(headers).find(h => h.id === Number(params.hid)); if (!helper) return reply(404, { status: 404, message: 'That helper was not found.' }); helper.active = false; return reply(204); });
 get('/clubs/:id/helpers', ({ params, headers }) => {
   if (Number(params.id) !== C.CLUB_ID || V.restrictedPersona(headers)) return denied('Only the club’s admins can do this.');
   return helpers.filter(h => h.active).map(h => ({ id: h.id, name: h.name, squadId: h.squadId, squadName: C.squadName(h.squadId), session: 'Training', startsAt: helperSession().start.toISOString(), repeating: h.repeating, addedBy: C.name(h.addedBy), since: h.since }));

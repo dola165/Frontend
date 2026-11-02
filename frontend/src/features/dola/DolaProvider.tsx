@@ -1,3 +1,4 @@
+import { useDolaProjectRecovery } from './useDolaProjectRecovery';
 import { useDolaPanelSize } from './useDolaPanelSize';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { DolaContext } from './DolaContext';
@@ -16,6 +17,7 @@ const RETENTION_MS = 45 * 60 * 1000;
 function useDolaController() {
     const { sessionId, user } = useAuth();
     const location = useLocation(); const navigate = useNavigate();
+    const projectRecovery = useDolaProjectRecovery(user?.id, sessionId);
     const panelSize = useDolaPanelSize(user?.id);
     const fullPage = location.pathname === '/assistant';
     const [panel, setPanel] = useState(false);
@@ -98,6 +100,16 @@ function useDolaController() {
         return () => controller.abort();
     }, [visible, sessionId]);
 
+    useEffect(() => {
+        if (projectRecovery.outcome?.state !== 'PENDING') return;
+        const controller = new AbortController();
+        void latestDola(sessionId, controller.signal).then(snapshot => {
+            if (!snapshot || controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
+            recovered.current = snapshot; setResume(true); setExpired(false); setExpiresAt(Date.parse(snapshot.expiresAt));
+        }).catch(() => { if (!controller.signal.aborted && isCurrentAuthSession(sessionId)) setError('Could not reload the review. Reload Dola to check current access.'); });
+        return () => controller.abort();
+    }, [projectRecovery.outcome, sessionId]);
+
     const checkStatus = useCallback(() => {
         if (statusRequest.current || !isCurrentAuthSession(sessionId)) return;
         const controller = new AbortController(); statusRequest.current = controller; setAvailable(null);
@@ -151,7 +163,7 @@ function useDolaController() {
         setTurns(previous => [...previous, { question: message, partial: '' }]);
         try {
             const result = await streamDola({ conversationId: conversation.current, requestId, message, includePersonalContext: usePersonal, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, workspaceContext: workspace, venueId: pageVenueId,
-                subject: subject ?? undefined, page: returnPath.current }, sessionId, controller.signal, event => {
+                projectId: subject?.kind === 'PROJECT' ? subject.id : undefined, subject: subject ?? undefined, page: returnPath.current }, sessionId, controller.signal, event => {
                 if (!active.current || !isCurrentAuthSession(sessionId) || controller.signal.aborted) return;
                 if (event.type === 'delta' || event.type === 'reset') setTurns(previous => previous.map((turn, index) => index === previous.length - 1
                     ? { ...turn, partial: event.type === 'reset' ? '' : (turn.partial ?? '') + (event.text ?? '') } : turn));
@@ -205,16 +217,20 @@ function useDolaController() {
         setResume(false); setPersonal(false);
     }
     async function resolveAction(action: DolaAction, decision: 'confirm' | 'discard') {
-        if (!conversation.current || busy || request.current || resume || !isCurrentAuthSession(sessionId)) return;
+        if (!conversation.current || action.kind === 'PROJECT_STEP_DAY' && projectRecovery.operation || busy || request.current || resume || !isCurrentAuthSession(sessionId)) return;
         const controller = new AbortController(); request.current = controller; setBusy(true); setError('');
         try {
+            if (action.kind === 'PROJECT_STEP_DAY') projectRecovery.remember({ operationId: action.id, conversationId: conversation.current });
             const result = await resolveDolaAction(conversation.current, action.id, decision, sessionId, controller.signal);
             if (!active.current || !isCurrentAuthSession(sessionId)) return;
+            if (result.id !== action.id || result.kind !== action.kind || decision === 'confirm' && result.state !== 'COMPLETED'
+                || decision === 'discard' && result.state === 'PENDING' || result.state === 'COMPLETED' && !result.receipt?.trim()) throw new Error('No valid action receipt returned.');
+            if (action.kind === 'PROJECT_STEP_DAY') projectRecovery.settled(action.id);
             setTurns(previous => previous.map(turn => turn.result ? { ...turn, result: { ...turn.result, actions: turn.result.actions?.map(a => a.id === result.id ? result : a) } } : turn));
             if (result.state === 'COMPLETED') setExpiresAt(Date.now() + RETENTION_MS);
         } catch (cause) {
             if (active.current && !controller.signal.aborted && isCurrentAuthSession(sessionId)) {
-                if (extractApiErrorCode(cause) === 'DOLA_CONVERSATION_UNAVAILABLE') {
+                if (action.kind === 'PROJECT_STEP_DAY' || extractApiErrorCode(cause) === 'DOLA_CONVERSATION_UNAVAILABLE') {
                     conversation.current = undefined; recovered.current = null;
                     setTurns([]); setResume(false); setExpiresAt(null); setExpired(true);
                 }
@@ -229,7 +245,7 @@ function useDolaController() {
     }
     function dock() { setPanel(true); if (fullPage) navigate(returnPath.current); }
     function expand() { setPreferredContext(workspace); setPanel(false); navigate('/assistant'); }
-    return { panelSize, fullPage, panel, visible, available, turns, draft, setDraft, personal, setPersonal, busy, error, expired, resume, loading,
+    return { projectRecovery, panelSize, fullPage, panel, visible, available, turns, draft, setDraft, personal, setPersonal, busy, error, expired, resume, loading,
         contexts, workspace, setWorkspace: setPreferredContext, welcomeLoading, statusFailed, checkStatus,
         subject, leaveOutSubject: () => setSubjectOff(subjectKey),
         submit, resolveAction, newConversation, continueConversation, openPanel, closePanel, dock, expand, keepOpen: () => setPanel(true) };

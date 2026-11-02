@@ -1,0 +1,11 @@
+import axios from 'axios';
+export const API_BASE_URL='/api';
+export const DEPLOYMENT_URLS={apiBaseUrl:'/api',publicAppUrl:location.origin};
+export const apiClient=axios.create({baseURL:API_BASE_URL});
+export const setDisplayedAuthSession=()=>{};
+export const setAccountRestrictionHandler=()=>{};
+export const setAuthFailureHandler=()=>{};
+export const ensureCsrfToken=async()=>{};
+export const refreshAccessToken=async()=>{throw new Error('No live authentication in this fixture');};
+export const renewRejectedSession=refreshAccessToken;
+export const buildWebSocketUrl=()=>{throw new Error('No live sockets in this fixture');};

@@ -6,6 +6,7 @@ import type { Bootstrap } from '../clubOperations/api';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { officeToolPath, type OfficeTool } from './officeLinks';
 import { moreToolGroups, toolIcon, toolName, type ToolState } from './officeTools';
+import { jobWorkspacePath } from '../clubWorkspaces/paths';
 import './office.css';
 
 /**
@@ -21,7 +22,8 @@ export function MoreTools({ clubId, states, boot, leader, onSquads, admin }: {
         : tool === 'welfare' ? copy('Only the welfare officer opens this', 'ამას მხოლოდ ბავშვთა დაცვის ოფიცერი ხსნის')
             : copy('Not open for your job', 'თქვენი სამუშაოსთვის დახურულია');
     return <PageFrame className="cw-page office-tools">
-        <PageHeader title={copy('More tools', 'სხვა ინსტრუმენტები')} subtitle={copy('Each group moves to its own page when that page is built.', 'თითოეული ჯგუფი თავის გვერდზე გადავა, როცა ის გვერდი შეიქმნება.')} />
+        <PageHeader title={copy('More tools', 'სხვა ინსტრუმენტები')} subtitle={copy('Your permitted tools, grouped by the work they support.', 'თქვენთვის ხელმისაწვდომი ინსტრუმენტები, სამუშაოს მიხედვით.')} />
+        <Link className="office-tool" to={jobWorkspacePath(clubId)}>{copy('Your workspaces', 'თქვენი სამუშაო სივრცეები')}</Link>
         {groups.length ? <div className="office-tools__groups">{groups.map(group => <section key={group.id} className="office-tools__group" aria-labelledby={`office-tools-${group.id}`}>
             <h2 id={`office-tools-${group.id}`} className="office-tools__page">{copy(group.page[0], group.page[1])}</h2>
             <ul className="office-tools__list">{group.tools.map(tool => {

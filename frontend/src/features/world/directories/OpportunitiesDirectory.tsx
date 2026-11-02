@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 import { ButtonLink } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { playerPath } from '../../parents/playerSelection';
-import { CreateMenu } from '../compose/CreateMenu';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { fetchClubLocationOptions } from '../../discovery/api';
@@ -24,7 +23,7 @@ export default function OpportunitiesDirectory() {
     const t = useWorldCopy();
     const { status } = useAuth();
     const { participants } = useWorldSession();
-    const { remember, pending, child } = useWorldChild();
+    const { pending, child } = useWorldChild();
     const [params] = useSearchParams();
     // `type` was this page's tab parameter; trials open when the address names no list.
     const tab = params.get('tab') ?? params.get('type') ?? 'trials';
@@ -34,7 +33,7 @@ export default function OpportunitiesDirectory() {
     const clubOptions = useMemo(() => clubs.data && [...new Map(clubs.data.map(club => [club.clubId, { value: String(club.clubId), label: club.clubName }])).values()]
         .sort((a, b) => a.label.localeCompare(b.label)), [clubs.data]);
     // A parent's children (and their own player card) decide which groups fit; nothing loads signed out.
-    const groups = useMemo(() => groupsSource(participants ?? [], remember, clubOptions), [participants, remember, clubOptions]);
+    const groups = useMemo(() => groupsSource(participants ?? [], child, clubOptions), [participants, child, clubOptions]);
     // A link for one child waits for the person's children, so the first search already fits that child.
     if (pending) return <WorldLoading />;
     if (tab === 'jobs') return <WorldRedirect to="/jobs" rename={{ q: 'query', engagement: 'terms' }} />;
@@ -50,7 +49,7 @@ export default function OpportunitiesDirectory() {
             tabAlias="type"
             sources={[status === 'authenticated' ? trials : guestTrials, groups]}
             // Joining requests and a link to jobs stay beside the list.
-            actions={<>{joining}<ButtonLink variant="ghost" to="/jobs">{t('Jobs & volunteering')}</ButtonLink>{!onGroups && <CreateMenu />}</>}
+            actions={<>{joining}<ButtonLink variant="ghost" to="/jobs">{t('Jobs & volunteering')}</ButtonLink></>}
         />
     );
 }

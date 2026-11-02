@@ -24,10 +24,11 @@ export const clubRecordsEn = {
     describe_EQUIPMENT: 'Manage club inventory, issues to players and squads, maintenance and returns.', describe_FINANCE: 'Manage budgets, requests, receipts and membership instalments.',
     describe_TRAVEL: 'Organise trips, passenger lists, responsibilities and departure checks.', describe_DEPARTURES: 'Complete returns, access changes and departure administration.',
     describe_AVAILABILITY: 'See the restrictions relevant to safe participation.', describe_MEDICAL: 'Coordinate appointments, clinical records and professional clearance within your access.',
+    describe_WELLBEING: 'Keep named professional wellbeing records within the player’s recorded consent.',
     describe_WELFARE: 'Handle confidential concerns, assigned follow-ups and review dates.',
     module_STAFF: 'Staff & duties', module_CREDENTIALS: 'Credentials', module_FACILITIES: 'Venues & facilities', module_READINESS: 'Emergency & match preparation',
     module_GUARDIANS: 'Guardians & permissions', module_ATTENDANCE: 'Attendance & collection', module_WELFARE: 'Confidential welfare',
-    module_MEDICAL: 'Medical coordination', module_AVAILABILITY: 'Participation restrictions', module_DEVELOPMENT: 'Player development',
+    module_WELLBEING: 'Private wellbeing', module_MEDICAL: 'Medical coordination', module_AVAILABILITY: 'Participation restrictions', module_DEVELOPMENT: 'Player development',
     module_EDUCATION: 'Education', module_REGISTRATION: 'Registration & eligibility', module_EQUIPMENT: 'Equipment', module_FINANCE: 'Finance',
     module_TRAVEL: 'Travel', module_SPECIALISTS: 'External specialists', module_DEPARTURES: 'Departures', module_MATCHES: 'Match arrangements',
 };
@@ -57,10 +58,11 @@ export const clubRecordsKa: Record<keyof typeof clubRecordsEn, string> = {
     describe_EQUIPMENT: 'კლუბის ინვენტარი, მოთამაშეებსა და გუნდებზე გაცემა, მოვლა და დაბრუნება.', describe_FINANCE: 'ბიუჯეტები, მოთხოვნები, ქვითრები და საწევრო შენატანები.',
     describe_TRAVEL: 'მგზავრობები, მგზავრთა სიები, პასუხისმგებლობები და გამგზავრების შემოწმებები.', describe_DEPARTURES: 'ნივთების დაბრუნება, წვდომის ცვლილება და წასვლის ადმინისტრირება.',
     describe_AVAILABILITY: 'შეზღუდვები, რომლებიც უსაფრთხო მონაწილეობისთვის მნიშვნელოვანია.', describe_MEDICAL: 'ვიზიტების, კლინიკური ჩანაწერებისა და სპეციალისტის დასტურის კოორდინაცია თქვენი წვდომის ფარგლებში.',
+    describe_WELLBEING: 'პასუხისმგებელი სპეციალისტის პირადი ჩანაწერები მოთამაშის დაფიქსირებული თანხმობის ფარგლებში.',
     describe_WELFARE: 'კონფიდენციალური საკითხები, დაკისრებული შემდგომი ნაბიჯები და მიმოხილვის თარიღები.',
     module_STAFF: 'პერსონალი და მოვალეობები', module_CREDENTIALS: 'კვალიფიკაციები', module_FACILITIES: 'მოედნები და ინფრასტრუქტურა', module_READINESS: 'საგანგებო და მატჩისთვის მზადება',
     module_GUARDIANS: 'მეურვეები და ნებართვები', module_ATTENDANCE: 'დასწრება და წაყვანა', module_WELFARE: 'კონფიდენციალური კეთილდღეობა',
-    module_MEDICAL: 'სამედიცინო კოორდინაცია', module_AVAILABILITY: 'მონაწილეობის შეზღუდვები', module_DEVELOPMENT: 'მოთამაშის განვითარება',
+    module_WELLBEING: 'პირადი კეთილდღეობა', module_MEDICAL: 'სამედიცინო კოორდინაცია', module_AVAILABILITY: 'მონაწილეობის შეზღუდვები', module_DEVELOPMENT: 'მოთამაშის განვითარება',
     module_EDUCATION: 'განათლება', module_REGISTRATION: 'რეგისტრაცია და უფლებამოსილება', module_EQUIPMENT: 'ინვენტარი', module_FINANCE: 'ფინანსები',
     module_TRAVEL: 'მგზავრობა', module_SPECIALISTS: 'გარე სპეციალისტები', module_DEPARTURES: 'წასვლები', module_MATCHES: 'მატჩების მოწყობა',
 };
@@ -75,4 +77,6 @@ export const recordWordsKa: Record<string, string> = {
     EXPIRED: 'ვადაგასული', ENDED: 'დასრულდა', PUBLISHED: 'გამოქვეყნებული', BOARDED: 'ჩაჯდა', REQUESTED: 'მოთხოვნილი', SCHEDULED: 'დაგეგმილი',
     VERIFIED: 'დადასტურებული', REJECTED: 'უარყოფილი', UPCOMING: 'მომავალი', REPORTED: 'შეტყობინებული', REVIEWED: 'განხილული', RESOLVED: 'გადაწყვეტილი',
     BOOKED: 'დაჯავშნილი', ORDERED: 'შეკვეთილი', RECEIVED: 'მიღებული', LOST: 'დაკარგული', DAMAGED: 'დაზიანებული', AVAILABLE: 'ხელმისაწვდომი',
+    // A registration the club's Owner approved alone (2 November 2026).
+    PREPARED_AND_APPROVED_BY_THE_SAME_PERSON: 'მოამზადა და დაამტკიცა ერთმა ადამიანმა',
 };

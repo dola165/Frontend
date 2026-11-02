@@ -1,8 +1,11 @@
+import { getAuthSessionId, subscribeAuthSession } from '../utils/authStorage';
+import { useCommentRefresh } from '../components/feed/useCommentRefresh';
+import type { CommentAttempt } from '../components/feed/commentDraft';
 import { usePostReactions } from '../hooks/usePostReactions';
 import { reactionFields } from '../components/feed/reactions';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedPost, type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
 import { PostTheaterModal } from '../components/PostTheaterModal';
@@ -13,7 +16,15 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { normalizeFeedPost } from '../utils/normalizeFeedPost';
 
 export const PostPage = () => {
+ const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+ return <PostContent key={session} />;
+};
+
+const PostContent = () => {
     const { postId } = useParams();
+    const location = useLocation();
+    const priorHome = location.state?.postReturnTo;
+    const homePath = typeof priorHome === 'string' && /^\/home(?:\?|$)/.test(priorHome) ? priorHome : '/home';
     const [searchParams] = useSearchParams();
     const requestedMedia = searchParams.get('media');
     const requestedMediaIndex = requestedMedia !== null && /^[0-9]$/.test(requestedMedia) ? Number(requestedMedia) : null;
@@ -35,7 +46,6 @@ export const PostPage = () => {
     const commentsRequestRef = useRef(0);
     const likeRequestRef = useRef(0);
     const visitRef = useRef(0);
-    const knownCommentIdsRef = useRef(new Set<number>());
     currentPostIdRef.current = postId;
     const destination = `/posts/${postId ?? ''}`;
 
@@ -62,7 +72,6 @@ export const PostPage = () => {
 
     useEffect(() => {
         const visit = ++visitRef.current;
-        knownCommentIdsRef.current.clear();
         ++commentsRequestRef.current;
         ++likeRequestRef.current;
         setPost(null);
@@ -92,8 +101,8 @@ export const PostPage = () => {
         try {
             const response = await apiClient.get<CommentDto[]>(`/posts/${requestedPostId}/comments`);
             if (requestId !== commentsRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
-            response.data.forEach((comment) => knownCommentIdsRef.current.add(comment.id));
             setComments(response.data);
+            return response.data;
         } catch (error) {
             if (requestId !== commentsRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             setCommentsError(extractApiErrorMessage(error, 'Comments could not load.'));
@@ -155,24 +164,20 @@ export const PostPage = () => {
         }
     };
 
-    const submitComment = async (_postId: number, content: string) => {
+    const submitComment = async (_postId: number, content: string, attempt?: CommentAttempt) => {
         if (!isAuthenticated) {
             requireSignIn();
-            return;
+            throw new Error('Sign in to post. Your draft is still here.');
         }
         const requestedPostId = postId;
         const visit = visitRef.current;
-        const response = await apiClient.post<CommentDto>(`/posts/${requestedPostId}/comments`, { content });
+        const response = await apiClient.post<CommentDto>(`/posts/${requestedPostId}/comments`, { content, ...(attempt?.parentId ? { parentId: attempt.parentId } : {}) }, attempt ? { headers: { 'Idempotency-Key': attempt.requestId } } : undefined);
         if (visit !== visitRef.current || currentPostIdRef.current !== requestedPostId) return;
-        const alreadyCounted = knownCommentIdsRef.current.has(response.data.id);
-        knownCommentIdsRef.current.add(response.data.id);
         setComments((current) => current?.some((comment) => comment.id === response.data.id)
             ? current : [...(current || []), response.data]);
-        if (alreadyCounted) return;
-        setPost((current) => current && String(current.id) === requestedPostId
-            ? { ...current, commentCount: current.commentCount + 1 }
-            : current);
     };
+
+    useCommentRefresh(id => String(id) === postId, (saved, rows) => { setPost(saved); if (rows) setComments(rows); }, () => { setPost(null); setComments(undefined); setMediaViewerOpen(false); setUnavailable(true); });
 
     if (loading) return <div className="mx-auto w-full max-w-[680px]"><SkeletonCard lines={5} /></div>;
 
@@ -187,7 +192,7 @@ export const PostPage = () => {
                 <div className="mt-6 flex flex-wrap justify-center gap-3">
                     {!isAuthenticated && <Link to={buildLoginPath(destination)} className="rounded-full bg-[var(--feed-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--feed-accent-contrast)]">Sign in to check</Link>}
                     {!unavailable && <button type="button" onClick={() => void loadPost()} className="inline-flex items-center gap-2 rounded-full border border-[var(--feed-card-border)] px-5 py-2.5 text-sm font-semibold text-[var(--feed-text-primary)]"><RefreshCw className="h-4 w-4" />Retry</button>}
-                    <Link to={isAuthenticated ? '/home' : '/'} className="inline-flex items-center gap-2 rounded-full border border-[var(--feed-card-border)] px-5 py-2.5 text-sm font-semibold text-[var(--feed-text-primary)]"><ArrowLeft className="h-4 w-4" />Go back</Link>
+                    <Link to={isAuthenticated ? homePath : '/'} className="inline-flex items-center gap-2 rounded-full border border-[var(--feed-card-border)] px-5 py-2.5 text-sm font-semibold text-[var(--feed-text-primary)]"><ArrowLeft className="h-4 w-4" />Go back</Link>
                 </div>
             </div>
         );
@@ -195,6 +200,7 @@ export const PostPage = () => {
 
     return post && String(post.id) === postId ? (
         <div className="mx-auto w-full max-w-[680px]">
+            <Link to={homePath} className="post-text-button inline-flex min-h-11 items-center gap-2"><ArrowLeft size={16} />Back to Home</Link>
             <FeedPost
                 key={`post-${post.id}`}
                 post={post}
@@ -208,7 +214,7 @@ export const PostPage = () => {
                 likePending={likePending || Boolean(post && reactions.pending[post.id])}
                 likeError={(post && reactions.errors[post.id]) || likeError}
                 commentsError={commentsError}
-                onRetryComments={() => void loadComments()}
+                onRetryComments={loadComments}
             />
             <PostTheaterModal
                 key={`viewer-${post.id}`}
@@ -224,7 +230,7 @@ export const PostPage = () => {
                 likeError={(post && reactions.errors[post.id]) || likeError}
                 commentsLoading={commentsLoading}
                 commentsError={commentsError}
-                onRetryComments={() => void loadComments()}
+                onRetryComments={loadComments}
             />
         </div>
     ) : null;

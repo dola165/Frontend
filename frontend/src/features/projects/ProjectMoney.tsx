@@ -8,6 +8,7 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { moveFundraiser, type ProjectDetail } from './api';
 import { AmountDialog, FundraiserDialog, UpdateDialog } from './FundraiserDialogs';
 import { ProgressBar } from './ProgressBar';
+import { safeGivingUrl } from '../campaigns/api';
 import { amount, money } from './projectWords';
 
 type Open = 'amount' | 'start' | 'edit' | 'update' | 'archive' | null;
@@ -19,19 +20,20 @@ type Open = 'amount' | 'start' | 'edit' | 'update' | 'archive' | null;
 export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; onChanged: (next: ProjectDetail) => void }) {
     const copy = useJourneyCopy();
     const [open, setOpen] = useState<Open>(null);
+    const [archiveVersion, setArchiveVersion] = useState<number | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const { summary, fundraiser: f, can } = project;
     // Once the public has seen it (published, then maybe paused or closed), its public details are the publishers'.
     const seen = Boolean(f?.publishedAt) && f?.status !== 'ARCHIVED';
     const clubId = project.club?.id ?? 0;
-    if (!summary.target && !f) return null;
-    const currency = summary.target?.currency ?? f?.goal?.currency ?? 'GEL';
+    if (!summary.target && !f && open === null) return null;
+    const currency = f?.currency ?? 'GEL';
     const raised = f?.reportedAmount ?? null;
-    const move = async (status: 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED') => {
-        if (!f) return;
+    const move = async (status: 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED', version = f?.version) => {
+        if (!f || version === undefined) return;
         setBusy(true); setError('');
-        try { onChanged(await moveFundraiser(clubId, summary.id, f.version, status)); }
+        try { onChanged(await moveFundraiser(clubId, summary.id, version, status)); }
         catch (failure) { setError(extractApiErrorMessage(failure, copy('That couldn’t be saved.', 'ვერ შეინახა.'))); }
         finally { setBusy(false); }
     };
@@ -41,15 +43,15 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
                 : copy('Inside the club until it is verified', 'კლუბის შიგნით, ვერიფიკაციამდე');
     return <section className="pj-block pj-money" aria-labelledby="pj-money">
         <div className="pj-block__head"><h2 className="pj-label" id="pj-money">{copy('Money', 'თანხა')}</h2>{where && <span className="pj-quiet">{where}</span>}</div>
-        {summary.target && <ProgressBar wide value={summary.progress} label={copy(`${summary.progress}% of the target`, `მიზნის ${summary.progress}%`)} />}
+        {summary.target && raised !== null && <ProgressBar wide value={summary.progress} label={copy(`${summary.progress}% of the target`, `მიზნის ${summary.progress}%`)} />}
         <p className="pj-money__line">
-            <strong>{amount(raised ?? 0, currency)}</strong>
+            <strong>{raised === null ? copy('Not reported yet', 'ჯერ არ არის მოხსენებული') : amount(raised, currency)}</strong>
             {summary.target && <span>{copy(` of ${money(summary.target)}`, ` / ${money(summary.target)}`)}</span>}
             {f && <span className="pj-quiet">{' · '}{f.reportedAt
                 ? copy(`reported by the club${f.reportedBy ? `, ${f.reportedBy.name}` : ''}, ${ago(copy, f.reportedAt)}`, `კლუბის ცნობით${f.reportedBy ? `, ${f.reportedBy.name}` : ''}, ${ago(copy, f.reportedAt)}`)
                 : copy('nothing reported yet', 'ჯერ არაფერი უცნობებიათ')}</span>}
         </p>
-        {f?.donateUrl && f.status === 'PUBLISHED' && f.phase === 'ACTIVE' && <a className="pj-give" href={f.donateUrl} target="_blank" rel="noopener noreferrer">{copy('Give on GoFundMe', 'შეწირვა GoFundMe-ზე')}<ArrowUpRight aria-hidden="true" /></a>}
+        {f && safeGivingUrl(f.donateUrl) && f.status === 'PUBLISHED' && f.phase === 'ACTIVE' && <a className="pj-give" href={safeGivingUrl(f.donateUrl)!} target="_blank" rel="noopener noreferrer">{copy('View external fundraising page', 'გარე გვერდის ნახვა')}<ArrowUpRight aria-hidden="true" /></a>}
         <div className="pj-actions">
             {!f && can.startFundraiser && <Button size="sm" variant="primary" onClick={() => setOpen('start')}>{copy('Start a fundraiser', 'შეგროვების დაწყება')}</Button>}
             {f && can.change && <Button size="sm" variant="primary" onClick={() => setOpen('amount')}>{copy('Update amount', 'თანხის განახლება')}</Button>}
@@ -59,14 +61,14 @@ export function ProjectMoney({ project, onChanged }: { project: ProjectDetail; o
             {f && can.change && f.status === 'PUBLISHED' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('PAUSED')}>{copy('Pause', 'შეჩერება')}</Button>}
             {f && can.publish && (f.status === 'PUBLISHED' || f.status === 'PAUSED') && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void move('CLOSED')}>{copy('Close', 'დახურვა')}</Button>}
             {/* Published by mistake, or done with: those who publish take it off every public page. */}
-            {f && can.publish && seen && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen('archive')}>{copy('Take off the site', 'საიტიდან მოხსნა')}</Button>}
+            {f && can.publish && seen && <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setArchiveVersion(f.version); setOpen('archive'); }}>{copy('Take off the site', 'საიტიდან მოხსნა')}</Button>}
         </div>
         {f && !f.clubVerified && <p className="pj-quiet">{copy('A fundraiser goes public once the club is verified.', 'შეგროვება საჯარო ხდება კლუბის ვერიფიკაციის შემდეგ.')}</p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {open === 'amount' && f && <AmountDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}
         {(open === 'start' || open === 'edit') && <FundraiserDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}
         {open === 'archive' && f && <Dialog open size="sm" title={copy('Take the fundraiser off the site?', 'მოიხსნას შეგროვება საიტიდან?')} onClose={() => setOpen(null)}
-            footer={<><Button onClick={() => setOpen(null)}>{copy('Keep it', 'დატოვება')}</Button><Button variant="danger" disabled={busy} onClick={() => { setOpen(null); void move('ARCHIVED'); }}>{copy('Take it off', 'მოხსნა')}</Button></>}>
+            footer={<><Button onClick={() => setOpen(null)}>{copy('Keep it', 'დატოვება')}</Button><Button variant="danger" disabled={busy} onClick={() => { setOpen(null); if (archiveVersion !== null) void move('ARCHIVED', archiveVersion); }}>{copy('Take it off', 'მოხსნა')}</Button></>}>
             <p>{copy('It leaves the club page and every public list. The project and its history stay.', 'ის ქრება კლუბის გვერდიდან და ყველა საჯარო სიიდან. პროექტი და მისი ისტორია რჩება.')}</p>
         </Dialog>}
         {open === 'update' && f && <UpdateDialog project={project} onClose={() => setOpen(null)} onSaved={next => { setOpen(null); onChanged(next); }} />}

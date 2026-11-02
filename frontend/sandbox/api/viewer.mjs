@@ -8,7 +8,7 @@
 //   * GET/PUT /users/me/feed-preferences { town: { name, latitude, longitude } | null, topics: Topic[], activity: 'PLAY' | 'COACH' | 'PARENT' | 'WATCH' | null }
 //     Topics: CLUBS | YOUTH | MATCHES | TOURNAMENTS | WOMENS | JOBS | STORE. The town is where the feed is local to.
 //   * POST /feed/events { events: [{ postId, type: SEEN | OPENED | HIDDEN | LESS | UNDO_LESS, at }] } → 202 { accepted }
-//     The server records follows itself. LESS demotes posts on that topic from that author for the person.
+//     The server records follows itself. Kept for later learning; nothing reorders the feed (step 7).
 import * as W from './world.mjs';
 import * as C from './world-club.mjs';
 import { profilePhone } from './profile-phones.mjs';
@@ -53,7 +53,7 @@ export function createAccount({ fullName, email = null, phone = null, password, 
     id, fullName: parts.join(' '), firstName: parts[0], lastName: parts.slice(1).join(' '), email: email ? String(email).trim().toLowerCase() : null,
     phone: phone ? normalizePhone(phone) : null, password, dateOfBirth, createdAt: new Date(),
     preferences: { town: townRecord(town), topics: [], activity: null, updatedAt: null },
-    roles: [], clubFollows: new Set(), demoted: new Set(), events: [],
+    roles: [], clubFollows: new Set(), events: [],
   };
   accounts.set(id, account);
   return account;
@@ -77,10 +77,12 @@ export const isNewcomer = headers => viewerId(headers) !== W.ME_ID;
  * Sandbox personas, all still Luka's account with other club access (set by /__mode/… on the server): `analyst` (a
  * few tools, two read-only), `member` (membership, no job), `headcoach` (head coach of U14 and U16, not an admin) and
  * `physio` (one job with only the medical tools, no membership) and `attendance` (a Custom job with only Attendance,
- * no membership); for Projects (handlers/projects.mjs) `commercial`, `facilities`, `projectcoach` and `kitparent`.
+ * no membership); for Projects (handlers/projects.mjs) `commercial`, `facilities`, `projectcoach` and `kitparent`; for
+ * step 6 `referee`, Luka refereeing with no club access (My matches).
+ * Home (world-home.mjs) `media`, the media officer, who posts as the club and is otherwise the equipment manager.
  * None: the Owner and head coach.
  */
-export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'teammanager', 'gkcoach', 'headofcoaching', 'kit', 'helper', 'commercial', 'facilities', 'projectcoach', 'kitparent'];
+export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'teammanager', 'gkcoach', 'headofcoaching', 'kit', 'helper', 'commercial', 'facilities', 'projectcoach', 'kitparent', 'referee', 'media'];
 export const personaOf = headers => { const found = /(?:^|;\s*)gk-sandbox-persona=([a-z]+)(?:;|$)/.exec(String(headers?.cookie ?? ''))?.[1]; return PERSONAS.includes(found) ? found : null; };
 /** Not the club's Owner or an Admin: every persona. */
 export const restrictedPersona = headers => personaOf(headers) !== null;
@@ -111,9 +113,6 @@ const lukaPreferences = { town: townRecord('Tbilisi'), topics: [], activity: 'CO
 export const preferencesOf = id => id === W.ME_ID ? lukaPreferences : account(id)?.preferences ?? null;
 /** Clubs a person follows: Luka's live in the club domain, a registered account's on the account. */
 export const clubFollowsOf = id => id === W.ME_ID ? C.followed : account(id)?.clubFollows ?? new Set();
-const lukaDemoted = new Set();
-/** `${author}:${topic}` pairs the person asked to see less of. */
-export const demotedOf = id => id === W.ME_ID ? lukaDemoted : account(id)?.demoted ?? new Set();
 const lukaEvents = [];
 /** Everything recorded for the learning algorithm later: what the person saw, opened, hid and followed. */
 export const eventsOf = id => id === W.ME_ID ? lukaEvents : account(id)?.events ?? [];

@@ -1,0 +1,126 @@
+[
+  {
+    "path": "/jobs",
+    "allowed": true
+  },
+  {
+    "path": "/jobs/1",
+    "allowed": true
+  },
+  {
+    "path": "/jobs/101",
+    "allowed": true
+  },
+  {
+    "path": "/jobs/9007199254740991",
+    "allowed": true
+  },
+  {
+    "path": "/jobs/0",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/-1",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/01",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1.0",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/9007199254740992",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/999999999999999999999999",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/new",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1/",
+    "allowed": false
+  },
+  {
+    "path": "/jobs?responseId=1",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1?responseId=2",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1?tab=responses",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1?redirect=https://example.test",
+    "allowed": false
+  },
+  {
+    "path": "/jobs?",
+    "allowed": false
+  },
+  {
+    "path": "/jobs#",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1#response-2",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1\n",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1 ",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/%31",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/../jobs/1",
+    "allowed": false
+  },
+  {
+    "path": "/jobs\\1",
+    "allowed": false
+  },
+  {
+    "path": "//example.test/jobs/1",
+    "allowed": false
+  },
+  {
+    "path": "https://example.test/jobs/1",
+    "allowed": false
+  },
+  {
+    "path": "/jobs-extra",
+    "allowed": false
+  },
+  {
+    "path": "/JOBS/1",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1%3fredirect=x",
+    "allowed": false
+  },
+  {
+    "path": "/jobs/1?x=1&x=2",
+    "allowed": false
+  }
+]

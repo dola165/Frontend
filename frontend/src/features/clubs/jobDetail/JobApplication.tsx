@@ -7,6 +7,8 @@ import { createClubApplication } from '../api';
 import { useJobsOpportunitiesCopy } from '../jobsOpportunitiesCopy';
 import type { JobDetailState, JobViewerStatus } from './useJobDetail';
 import './job-application.css';
+import type { Job } from '../../jobs/api';
+import { PublicJobResponses } from '../../jobs/PublicJobResponses';
 
 const LIVE = ['PENDING', 'OFFERED', 'ACCEPTED', 'EXPIRED'];
 
@@ -45,6 +47,8 @@ export function JobApplication({ id, status, detail }: { id: number; status: Job
             setBusy(false);
         }
     };
+    if (job && !job.requiredRole && (job as Job).applyMethod === 'IN_APP')
+        return <PublicJobResponses job={job as Job} onListingChanged={detail.retryJob} />;
     return <>
         {checking ? (
             <p role="status">{copy('checkingApplication')}</p>

@@ -22,11 +22,11 @@ import '../features/jobs/jobs.css';
 interface Draft { posterKind: 'CLUB' | 'PERSON'; direction: JobDirection; category: string; terms: string; hours: JobHours | ''; title: string; description: string; pay: string; city: string; licence: string; applyMethod: JobApplyMethod | ''; applyTarget: string; pendingPublication?: JobPublication; /** The club explicitly selected while writing it. */ clubId: number | null; clubName?: string }
 const empty: Draft = { posterKind: 'PERSON', direction: 'HIRING', category: '', terms: 'PAID', hours: '', title: '', description: '', pay: '', city: '', licence: '', applyMethod: '', applyTarget: '', clubId: null };
 /**
- * The ways to answer that work for this poster and line of work: the in-app application exists for coaching roles
- * only (`JobApplication`), and a club has no inbox of its own, so "message" means its page's contact details.
+ * Coaching recruitment and neutral adult responses share this contact choice but retain distinct lifecycles.
+ * A club has no person inbox of its own, so "message" opens the club's contact details.
  */
 const methods = (kind: 'CLUB' | 'PERSON', direction: JobDirection, category: string): Array<{ value: JobApplyMethod; label: string; line: string }> => [
-    ...(kind === 'CLUB' && direction === 'HIRING' && category === 'COACHING' ? [{ value: 'IN_APP' as const, label: ct("Apply in the app"), line: ct("Applicants land in your club workspace") }] : []),
+    { value: 'IN_APP', label: direction === 'OFFERING' ? 'Enquiries in the app' : ct("Apply in the app"), line: kind === 'CLUB' && direction === 'HIRING' && category === 'COACHING' ? ct("Applicants land in your club workspace") : 'Replies and outcomes on this listing' },
     kind === 'CLUB' ? { value: 'MESSAGE', label: ct("The club’s contact details"), line: ct("The phone and email on your club page") } : { value: 'MESSAGE', label: direction === 'OFFERING' ? ct("Message me") : ct("Message me in the app"), line: ct("A conversation on GrassKickZ") },
     { value: 'EMAIL', label: ct("Email"), line: ct("We show the address") },
     { value: 'LINK', label: ct("A link"), line: ct("Your own form or site") },
@@ -67,6 +67,7 @@ export const PostJobPage = () => {
     const offered = methods(posterKind, draft.direction, draft.category);
     const applyMethod: JobApplyMethod = offered.find(method => method.value === draft.applyMethod)?.value ?? offered[0].value;
     const needsTarget = applyMethod === 'EMAIL' || applyMethod === 'LINK';
+    const recruitment = applyMethod === 'IN_APP' && posterKind === 'CLUB' && !offering && draft.category === 'COACHING';
     const targetOk = !needsTarget || (applyMethod === 'EMAIL' ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.applyTarget.trim()) : /^https:\/\/\S+$/.test(draft.applyTarget.trim()));
     const publish = async () => {
         if (status !== 'authenticated' || pending.current || (!draft.pendingPublication && (!applyMethod || !actorAllowed || !stepOneDone || !stepTwoDone || !targetOk))) return;
@@ -74,7 +75,7 @@ export const PostJobPage = () => {
         setSaving(true); setError('');
         const session = getAuthSessionId();
         try {
-            const command: JobPublication = draft.pendingPublication ?? { requestId: crypto.randomUUID(), posterKind, clubId: posterKind === 'CLUB' ? club?.clubId : null, direction: draft.direction, title: draft.title.trim(), description: draft.description.trim(), category: draft.category as never, engagementType: draft.terms as never, hours: draft.hours || null, pay: draft.pay.trim(), city, licence: draft.licence.trim() || undefined, applyMethod, applyTarget: needsTarget ? draft.applyTarget.trim() : undefined, requiredRole: applyMethod === 'IN_APP' ? 'COACH' : null };
+            const command: JobPublication = draft.pendingPublication ?? { requestId: crypto.randomUUID(), posterKind, clubId: posterKind === 'CLUB' ? club?.clubId : null, direction: draft.direction, title: draft.title.trim(), description: draft.description.trim(), category: draft.category as never, engagementType: draft.terms as never, hours: draft.hours || null, pay: draft.pay.trim(), city, licence: draft.licence.trim() || undefined, applyMethod, applyTarget: needsTarget ? draft.applyTarget.trim() : undefined, requiredRole: recruitment ? 'COACH' : null };
             // Store the exact intent before sending: a reload after a lost response
             // must check the same receipt, never publish a second listing.
             sessionStorage.setItem(`gk.job.draft:${user!.id}`, JSON.stringify({ ...draft, pendingPublication: command }));
@@ -92,7 +93,7 @@ export const PostJobPage = () => {
         finally { pending.current = false; setSaving(false); }
     };
     const steps = <div className="gk-fund-start__steps" aria-label={ct("Step {v0} of 3", { v0: step })}>{[1, 2, 3].map(n => <span key={n} data-done={n <= step || undefined} />)}</div>;
-    const body = status === 'bootstrapping' || membership.loading ? <><Skeleton height={34} width={320} /><Skeleton height={120} /></>
+    const body = status === 'bootstrapping' || posterKind === 'CLUB' && membership.loading ? <><Skeleton height={34} width={320} /><Skeleton height={120} /></>
         : status !== 'authenticated' ? <EmptyNote title={ct("Sign in to post")} action={<ButtonLink variant="primary" to={`/login?next=${encodeURIComponent(`/jobs/new${params.toString() ? `?${params}` : ''}`)}`}>{ct("Sign in")}</ButtonLink>}>{ct("Anyone with an account can post: a club, a parent, a coach, a referee.")}</EmptyNote>
         : draft.pendingPublication ? <EmptyNote title={ct("Check your publication")} action={<Button variant="primary" disabled={saving} onClick={() => void publish()}>{saving ? ct("Checking…") : ct("Check publication")}</Button>}><p>{ct("Your answers are saved. Check the previous attempt before publishing anything else.")}</p><p>{draft.pendingPublication.title}</p>{error && <p role="alert">{error}</p>}</EmptyNote>
         : <>
@@ -137,13 +138,13 @@ export const PostJobPage = () => {
         </>
         : <>
             {steps}
-            <div><h1>{ct("How do people reach you?")}</h1><p className="gk-fund-start__lead">{posterKind === 'CLUB' ? applyMethod === 'IN_APP' ? ct("Applications in the app land in your club workspace.") : ct("Where people reach your club about it.") : ct("A message in the app keeps your details private.")}</p></div>
+            <div><h1>{ct("How do people reach you?")}</h1><p className="gk-fund-start__lead">{recruitment ? ct("Applications in the app land in your club workspace.") : applyMethod === 'IN_APP' ? 'Replies and outcomes stay on this listing.' : needsTarget ? 'This contact address or link is public.' : posterKind === 'CLUB' ? ct("Where people reach your club about it.") : ct("A message in the app keeps your details private.")}</p></div>
             <div className="gk-fund-start__tiles" role="group" aria-label={ct("How to apply")} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {offered.map(method => <button key={method.value} type="button" className="gk-fund-start__tile" aria-pressed={applyMethod === method.value} onClick={() => change({ applyMethod: method.value })}><strong>{ct(method.label)}</strong><small>{ct(method.line)}</small></button>)}
             </div>
             {needsTarget && <Field label={applyMethod === 'EMAIL' ? ct("Email address") : ct("Link")} htmlFor="job-target" hint={draft.applyTarget && !targetOk ? (applyMethod === 'EMAIL' ? ct("That is not an email address.") : ct("The link must start with https://")) : undefined}><input id="job-target" className="gk-input" type={applyMethod === 'EMAIL' ? 'email' : 'url'} placeholder={applyMethod === 'EMAIL' ? 'jobs@yourclub.ge' : 'https://…'} value={draft.applyTarget} onChange={event => change({ applyTarget: event.target.value })} /></Field>}
             <div className="gk-fund-start__club"><Briefcase aria-hidden="true" style={{ color: 'var(--gk-accent)' }} /><div><strong>{draft.title.trim()}</strong><small>{[ct(CATEGORIES.find(c => c.value === draft.category)?.label), draft.pay.trim() || ct(TERMS.find(t => t.value === draft.terms)?.label), city, posterKind === 'CLUB' ? ct("as {v0}", { v0: club?.clubName }) : ct("as yourself")].filter(Boolean).join(' · ')}</small></div></div>
-            {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+            {error && <p className="gk-notice gk-notice--danger" role="alert">{error} <ButtonLink variant="ghost" to="/account?tab=profile">Review account and profile visibility</ButtonLink></p>}
             <div className="gk-fund-start__foot"><Button variant="ghost" disabled={saving} onClick={() => go(2)}><ArrowLeft aria-hidden="true" />{ct("Back")}</Button><Button variant="primary" disabled={saving || !actorAllowed || !stepOneDone || !stepTwoDone || !targetOk} onClick={() => void publish()}>{saving ? ct("Publishing…") : offering ? ct("List myself") : ct("Publish")}</Button></div>
         </>}
         </>;

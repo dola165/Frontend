@@ -1,0 +1,44 @@
+.job-workspaces { min-width: 0; }
+.job-workspaces .job-workspaces__link { display: inline-flex; align-items: center; min-height: 44px; }
+.job-workspaces .job-workspaces__page { display: flex; flex-direction: column; gap: var(--gk-5); }
+.job-workspaces .job-workspaces__page > .gk-page-header { margin-bottom: 0; }
+.job-workspaces .job-workspaces__destinations { list-style: none; margin: 0; padding: 0; }
+.job-workspaces .job-workspaces__destinations > li + li { border-top: 1px solid var(--gk-line); }
+.job-workspaces .job-workspaces__destinations a { display: flex; align-items: center; gap: var(--gk-3); min-height: 48px; padding: var(--gk-3) var(--gk-4); color: var(--gk-text); text-decoration: none; border-radius: var(--gk-r-sm); }
+.job-workspaces .job-workspaces__destinations a:hover { background: var(--gk-hover); }
+.job-workspaces a:focus-visible,
+.job-workspaces summary:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
+.job-workspaces .job-workspaces__destinations a > span:first-of-type { display: flex; flex: 1; flex-direction: column; gap: var(--gk-1); min-width: 0; overflow-wrap: anywhere; }
+.job-workspaces .job-workspaces__destinations strong { font-size: var(--gk-fs-md); font-weight: 600; }
+.job-workspaces .job-workspaces__destinations span > span { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.job-workspaces .job-workspaces__destinations svg { width: 18px; height: 18px; flex: none; color: var(--gk-text-3); }
+.job-workspaces .job-workspaces__jobs { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.job-workspaces .job-workspaces__jobs > span { padding: 2px var(--gk-2); border: 1px solid var(--gk-line); border-radius: var(--gk-r-sm); }
+.job-workspaces .job-workspaces__previews { border: 1px solid var(--gk-line); background: var(--gk-surface); border-radius: var(--gk-r); }
+.job-workspaces .job-workspaces__previews summary { min-height: 48px; padding: var(--gk-3) var(--gk-4); cursor: pointer; font-weight: 600; }
+.job-workspaces .job-workspaces__previews summary .gk-badge { margin-inline-start: var(--gk-2); }
+.job-workspaces .job-workspaces__previews > p { margin: 0; padding: var(--gk-3) var(--gk-4); font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.job-workspaces .job-workspaces__previews > ul { max-height: 50dvh; overflow-y: auto; overscroll-behavior: contain; }
+.job-workspaces .job-workspaces__prototype { display: flex; align-items: center; flex-wrap: wrap; gap: var(--gk-2); padding: var(--gk-3) var(--gk-gutter); color: var(--gk-text-3); font-size: var(--gk-fs-sm); border-bottom: 1px solid var(--gk-line); }
+.job-workspaces .job-workspaces__back a { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 44px; }
+.job-workspaces .job-workspaces__back { padding: var(--gk-2) var(--gk-gutter); }
+.job-workspaces .gk-ws__back { min-height: 44px; }
+/* What waits on the job, at the top of its main tool: one quiet row like Home's, a dot, the record, its status in words, an arrow. */
+.job-workspaces .job-workspaces__waiting > section { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--gk-3); padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); font-size: var(--gk-fs-sm); }
+.job-workspaces .job-workspaces__waiting ul { flex: 1; min-width: min(100%, 230px); list-style: none; margin: 0; padding: 0; }
+.job-workspaces .job-workspaces__waiting li + li { border-top: 1px solid var(--gk-line); }
+.job-workspaces .job-workspaces__waiting li a { display: flex; align-items: center; gap: var(--gk-3); min-height: 44px; padding: var(--gk-2) 0; color: var(--gk-text); text-decoration: none; }
+.job-workspaces .job-workspaces__waiting li a > span:nth-child(2) { display: flex; flex: 1; flex-wrap: wrap; align-items: baseline; gap: 0 var(--gk-2); min-width: 0; overflow-wrap: anywhere; }
+.job-workspaces .job-workspaces__waiting strong { font-weight: 600; }
+.job-workspaces .job-workspaces__waiting small { color: var(--gk-warning); font-size: var(--gk-fs-sm); }
+.job-workspaces .job-workspaces__waiting li[data-urgent] small { color: var(--gk-danger); }
+.job-workspaces .job-workspaces__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gk-warning); flex: none; }
+.job-workspaces .job-workspaces__waiting li[data-urgent] .job-workspaces__dot { background: var(--gk-danger); }
+.job-workspaces .job-workspaces__waiting svg { width: 16px; height: 16px; flex: none; color: var(--gk-text-3); }
+.job-workspaces .job-workspaces__waiting button { display: inline-flex; align-items: center; min-height: 44px; padding: var(--gk-1) var(--gk-2); border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-accent); font: inherit; cursor: pointer; }
+.job-workspaces .job-workspaces__waiting p { margin: 0; padding: var(--gk-2) 0; color: var(--gk-text-2); }
+.job-workspaces .job-workspaces__waiting :focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+    .job-workspaces .job-workspaces__prototype { line-height: var(--gk-lh-sm); }
+    .job-workspaces .job-workspaces__waiting > section { margin-top: var(--gk-3); }
+}

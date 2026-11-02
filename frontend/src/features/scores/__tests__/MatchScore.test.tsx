@@ -89,6 +89,14 @@ it('reloads instead of overwriting when the record moved on meanwhile', async ()
   expect(writeScore).toHaveBeenCalledTimes(1);
 });
 
+it('says a past match added afterwards is its club’s own record: added by, then correctable for 48 h', async () => {
+  vi.mocked(getScoreRecord).mockResolvedValue(record({ oneSided: true, status: 'FINAL', official: true, homeScore: 3, awayScore: 0, revision: 1,
+    reported: { homeScore: 3, awayScore: 0, side: 'HOME', at: '2026-10-26T10:00:00Z' }, deadlines: { refereeOnlyUntil: null, disputeUntil: null, correctUntil: '2026-10-28T10:30:00Z' },
+    permissions: { parties: ['HOME'], report: [], respond: [], settle: [], correct: ['HOME'] } }));
+  render(<MatchScore eventId={41} {...teams} added />);
+  expect(await screen.findByText('Added by Dinamo · Can be corrected for 46 h')).toBeInTheDocument();
+});
+
 it('lets the club correct a one-sided calendar score for 48 h, with a reason, through the calendar address', async () => {
   const final = record({ kind: 'CALENDAR', oneSided: true, status: 'FINAL', official: true, homeScore: 3, awayScore: 0, revision: 1,
     reported: { homeScore: 3, awayScore: 0, side: 'HOME', at: '2026-10-26T10:00:00Z' }, deadlines: { refereeOnlyUntil: null, disputeUntil: null, correctUntil: '2026-10-28T10:30:00Z' },

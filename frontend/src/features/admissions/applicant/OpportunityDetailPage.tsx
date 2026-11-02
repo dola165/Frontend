@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check, Clock3, MapPin, Plus, Wallet } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { hasNavigationCapability } from '../../../context/navigationCapabilities';
+import { finderPath } from '../../parents/hub/childParams';
 import { Avatar, Button, ButtonLink, GkRoot, PageFrame, Skeleton } from '../../../design/primitives';
 import { buildLoginPath } from '../../../utils/authRedirect';
 import { opportunityMapPath } from '../opportunityPaths';
@@ -49,6 +51,13 @@ function OpportunityDetailContent({ id }: { id: number }) {
     const people = o ? all.filter(p => p.minor || p.id !== user?.id || !p.dateOfBirth || fitsAge(o, p) || p.id === requestedPlayerId) : [];
     const player = all.find(p => p.id === requestedPlayerId);
     const existing = player && o ? home.data?.cases.find(c => c.playerId === player.id && c.organizationId === o.organizationId && c.intake === o.intake && c.stage !== 'CLOSED' && c.enrollment?.status !== 'CANCELLED') : undefined;
+    // A parent opens a group (a shared link, an old "Request an introduction") in Parent Hub's club pop-up, on the
+    // group's club, for the child it was meant for or the first whose age fits (step 5). Everyone else stays here.
+    const parentHub = isAuthenticated && hasNavigationCapability(user?.navigationCapabilities, 'parent.hub');
+    const children = all.filter(p => p.id !== user?.id);
+    const forChild = o?.clubId ? children.find(p => p.id === requestedPlayerId) ?? children.find(p => fitsAge(o, p)) ?? children[0] : undefined;
+    if (parentHub && o && home.loading && !home.data) return <JoinFrame><div className="jn-stack" role="status"><Skeleton height={64} /><Skeleton height={120} /></div></JoinFrame>;
+    if (parentHub && o?.clubId && forChild) return <Navigate replace to={finderPath(forChild.id, o.id)} />;
     if (!o) return <JoinFrame>{opportunity.error ? <AdmissionError message={opportunity.error} retry={opportunity.refresh} /> : <div className="jn-stack" role="status"><Skeleton height={64} /><Skeleton height={56} /><Skeleton height={120} /></div>}</JoinFrame>;
     const fee = o.terms.charges[0];
     const cost = !o.terms.feesKnown ? copy('Price to be confirmed', 'ფასი დასაზუსტებელია') : fee ? `${fee.amount} ${fee.currency} · ${copy(fee.frequency, FREQUENCY_KA[fee.frequency.toLowerCase()] ?? fee.frequency)}` : copy('Free', 'უფასო');

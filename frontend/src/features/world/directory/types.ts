@@ -5,6 +5,7 @@ import type { ResultGroup } from './groups';
 import type { PinSummary } from './panelGroups';
 import type { AuthSessionId } from '../../../utils/authStorage';
 import type { Approximate, WorldMapTone } from '../map/WorldMap';
+import type { SearchSpec } from '../watches/api';
 import type { WorldRole } from '../front/roles';
 import type { PlaceKind, Places } from './places';
 
@@ -159,6 +160,8 @@ export interface DirectorySource<T> {
     /** Whether the sort applies to this query (some lists keep their own order). */
     sortable?: (query: DirectoryQuery) => boolean;
     pageSize: number;
+    forContext?: boolean;
+    watch?: (query: DirectoryQuery, context: LoadContext) => SearchSpec | null;
     /** When set, signed-out visitors see this reason and a sign-in action instead of results. */
     signInReason?: string;
     /** A personal list (my arrangements, my competitions): its tab is shown only to signed-in people. */

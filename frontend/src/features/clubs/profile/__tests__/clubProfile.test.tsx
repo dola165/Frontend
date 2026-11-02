@@ -33,7 +33,7 @@ const presentation: ClubPresentation = {
 const club = { id: 10, name: 'Alpha FC', description: 'Youth football', type: 'ACADEMY', isOfficial: true, statusLabel: '', followerCount: 3, memberCount: 2, isFollowedByMe: false,
     isStaffMember: false, isMember: false, trustedByClubs: [], honours: [], opportunities: [], presentation, websiteUrl: 'javascript:alert(1)', email: 'hello@alpha.ge' } as ClubProfile;
 const visitor: ClubPermissions = { role: null, own: false, connected: false, isLeader: false, canManage: false, canOpenWorkspace: false, invitationOnly: false, canEditFacilities: false,
-    canManageStaff: false, canPost: false, canMessage: true, canFollow: true, canChallenge: false, canJoin: true, myClubId: null };
+    canManageStaff: false, canMessage: true, canFollow: true, canChallenge: false, canJoin: true, myClubId: null };
 const page = (node: React.ReactNode) => render(<MemoryRouter>{node}</MemoryRouter>);
 
 beforeEach(() => {
@@ -118,18 +118,20 @@ describe('club profile', () => {
         expect(feeRange(presentation.programmes)).toEqual({ range: '150 GEL / month', note: 'First session free' });
     });
 
-    it('lets the club’s own staff arrange a match or post an open challenge from the page', async () => {
+    it('lets the club’s own staff arrange a match from the page: one door, the sheet asks how', async () => {
         vi.mocked(apiClient.get).mockImplementation(async (url: string) => url === '/access/clubs/10' ? { data: { allowed: ['arrange_match'], refused: [] } } : { data: [] });
         page(<ClubActions club={club} can={{ ...visitor, own: true, canManage: true, canOpenWorkspace: true, canJoin: false, canMessage: false, canChallenge: false }} onFollowChange={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
         // Arranging opens over the club page once the rule-checker allows it.
         expect(await screen.findByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/?do=arrange_match');
-        expect(screen.getByRole('link', { name: 'Open challenge' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-open');
+        expect(screen.queryByRole('link', { name: 'Open challenge' })).not.toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Club office' })).toHaveClass('gk-btn--primary');
     });
 
-    it('gives another club’s staff a way to propose a match, and everyone else one primary way in', () => {
+    it('gives another club’s staff Arrange a match with this club filled in, and everyone else one primary way in', async () => {
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => url === '/access/me' ? { data: { allowed: ['arrange_match'], refused: [] } } : { data: [] });
         const view = page(<ClubActions club={club} can={{ ...visitor, canChallenge: true, myClubId: 1 }} onFollowChange={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
-        expect(screen.getByRole('link', { name: 'Propose a match' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct.c10');
+        expect(await screen.findByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/?do=arrange_match&do-opponent=10');
+        expect(screen.queryByRole('link', { name: 'Propose a match' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Join' })).not.toBeInTheDocument();
         view.unmount();
         page(<ClubActions club={club} can={visitor} onFollowChange={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);

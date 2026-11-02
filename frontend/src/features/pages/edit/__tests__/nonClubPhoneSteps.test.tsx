@@ -27,6 +27,17 @@ beforeEach(() => {
   localStorage.setItem('gk-session-id', 'nonclub-session');
 });
 
+it('an old share-panel URL shows current privacy without announcing publication or offering to share', async () => {
+  const page = makePage({ kind: 'BUSINESS', status: 'DRAFT' });
+  api.fetchPage.mockResolvedValue(page);
+  render(<MemoryRouter initialEntries={['/organizations/7002?edit=1&panel=live']}><PageEditProvider pageRef={page.ref}><PagePanels /></PageEditProvider></MemoryRouter>);
+  expect(await screen.findByRole('dialog', { name: 'This page is private' })).toBeVisible();
+  expect(screen.queryByRole('dialog', { name: 'Your page is live' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Copy link' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Post it' })).not.toBeInTheDocument();
+  expect(api.goLive).not.toHaveBeenCalled();
+});
+
 it.each(['FAN_CLUB', 'BUSINESS', 'PAGE'] as const)('%s first-post step opens the existing publication share card with only a name', async kind => {
   const user = userEvent.setup();
   mount(kind);

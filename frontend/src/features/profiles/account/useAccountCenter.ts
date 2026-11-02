@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { apiClient } from '../../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../../api/axiosConfig';
 import { credentialUpdate } from '../../../api/credentialUpdates';
 import { useAuth } from '../../../context/AuthContext';
 import { confirmSecurityNavigation } from '../../twoFactor/useSecurityNavigationGuard';
@@ -14,6 +14,7 @@ export function useAccountCenter() {
     const accountRequest = useRef<AbortController | null>(null);
     const sessionsRequest = useRef<AbortController | null>(null);
     const tryoutsRequest = useRef<AbortController | null>(null);
+    const actionRequest = useRef<AbortController | null>(null);
 
     const [account, setAccount] = useState<Account | null>(null);
     // Player details follow the player profile the server keeps for the person, never the account role.
@@ -109,6 +110,9 @@ export function useAccountCenter() {
     useEffect(() => {
         let active = true;
         setAccount(null); setForm(null); setSessions(null);
+        setMyCards([]); setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setMessage(null); setError(null); setSessionsError(null);
+        setSendingVerification(false); setChangingPassword(false); setRevokingSessions(false); setEndingSessionId(null);
         setTryoutApps([]); setShowTryoutApps(false); setTryoutsError(null); setTryoutsLoading(false);
         void loadAccount();
         void loadSessions();
@@ -119,6 +123,7 @@ export function useAccountCenter() {
             active = false;
             accountRequest.current?.abort(); sessionsRequest.current?.abort();
             tryoutsRequest.current?.abort();
+            actionRequest.current?.abort(); actionRequest.current = null;
         };
     }, [loadAccount, loadSessions, sessionId]);
 
@@ -129,67 +134,93 @@ export function useAccountCenter() {
     }, [account, loadTryoutApplications]);
 
     const resendVerification = async () => {
+        if (actionRequest.current || !isCurrentAuthSession(sessionId)) return;
+        const controller = new AbortController(); actionRequest.current = controller;
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
         setSendingVerification(true);
+        setMessage(null); setError(null);
+        let accepted = false;
         try {
-            const response = await apiClient.post<{ message?: string }>('/auth/send-verification');
+            const config: AuthSessionRequestConfig = { signal: controller.signal, _authSessionId: sessionId };
+            const response = await apiClient.post<{ message?: string }>('/auth/send-verification', { continuationPath: '/account?tab=security' }, config);
+            if (!current()) return;
+            accepted = true;
+            setMessage(response.data?.message || 'Verification email requested. Check your inbox and spam folder; retry if it does not arrive.');
             await loadAccount(true);
+            if (!current()) return;
             await bootstrapSession();
-            setMessage(response.data?.message || 'Verification email sent.');
         } catch (requestError) {
-            setError(accountError(requestError, 'Failed to send verification email.'));
+            if (current()) setError(accountError(requestError, accepted ? 'Email requested, but account status could not be refreshed. Retry loading your account.' : 'Failed to send verification email.'));
         } finally {
-            setSendingVerification(false);
+            if (actionRequest.current === controller) actionRequest.current = null;
+            if (current()) setSendingVerification(false);
         }
     };
 
     const changePassword = async (event: FormEvent) => {
         event.preventDefault();
+        if (actionRequest.current || !isCurrentAuthSession(sessionId)) return;
         if (!confirmSecurityNavigation()) return;
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
             setError({ fallback: 'New password and confirmation do not match.' });
             return;
         }
         setChangingPassword(true);
+        const controller = new AbortController(); actionRequest.current = controller;
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
+        setMessage(null); setError(null);
         try {
             const response = await credentialUpdate(config => apiClient.post<{ message?: string }>('/auth/change-password', {
                 currentPassword: passwordForm.currentPassword,
                 newPassword: passwordForm.newPassword
-            }, config), response => response);
+            }, config), response => response, controller.signal);
+            if (!current()) return;
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
             setMessage(response.data?.message || 'Password changed. Sign in again with your new password.');
             await logout();
         } catch (requestError) {
-            setError(accountError(requestError, 'Failed to change password.'));
+            if (current()) setError(accountError(requestError, 'Failed to change password.'));
         } finally {
-            setChangingPassword(false);
+            if (actionRequest.current === controller) actionRequest.current = null;
+            if (current()) setChangingPassword(false);
         }
     };
 
     const revokeOtherSessions = async () => {
+        if (actionRequest.current || !isCurrentAuthSession(sessionId)) return;
+        const controller = new AbortController(); actionRequest.current = controller;
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
         setRevokingSessions(true);
         try {
-            const response = await credentialUpdate(config => apiClient.post<{ message?: string }>('/auth/sessions/revoke-others', {}, config), response => response);
+            const response = await credentialUpdate(config => apiClient.post<{ message?: string }>('/auth/sessions/revoke-others', {}, config), response => response, controller.signal);
+            if (!current()) return;
             await loadSessions();
-            setMessage(response.data?.message || 'Other remembered sessions have been signed out.');
+            if (current()) setMessage(response.data?.message || 'Other remembered sessions have been signed out.');
         } catch (requestError) {
-            setSessionsError(accountError(requestError, 'Failed to sign out other remembered sessions.'));
+            if (current()) setSessionsError(accountError(requestError, 'Failed to sign out other remembered sessions.'));
         } finally {
-            setRevokingSessions(false);
+            if (actionRequest.current === controller) actionRequest.current = null;
+            if (current()) setRevokingSessions(false);
         }
     };
 
     // Signs out one other device, for example a lost phone. Its next request is refused.
     const endSession = async (id: number) => {
+        if (actionRequest.current || !isCurrentAuthSession(sessionId)) return;
+        const controller = new AbortController(); actionRequest.current = controller;
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
         setEndingSessionId(id);
         try {
-            const response = await apiClient.delete<{ message?: string }>(`/auth/sessions/${id}`);
-            if (!isCurrentAuthSession(sessionId)) return;
+            const config: AuthSessionRequestConfig = { signal: controller.signal, _authSessionId: sessionId };
+            const response = await apiClient.delete<{ message?: string }>(`/auth/sessions/${id}`, config);
+            if (!current()) return;
             await loadSessions();
-            setMessage(response.data?.message || 'The session has been signed out.');
+            if (current()) setMessage(response.data?.message || 'The session has been signed out.');
         } catch (requestError) {
-            if (isCurrentAuthSession(sessionId)) setSessionsError(accountError(requestError, 'Failed to sign out that session.'));
+            if (current()) setSessionsError(accountError(requestError, 'Failed to sign out that session.'));
         } finally {
-            setEndingSessionId(null);
+            if (actionRequest.current === controller) actionRequest.current = null;
+            if (current()) setEndingSessionId(null);
         }
     };
 

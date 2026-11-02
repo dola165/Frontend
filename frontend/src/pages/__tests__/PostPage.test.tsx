@@ -106,11 +106,12 @@ describe('PostPage', () => {
     it('starts omitted interaction defaults at zero and updates them after a like and comment', async () => {
         const user = userEvent.setup();
         vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true } as ReturnType<typeof useAuth>);
-        vi.mocked(apiClient.get).mockImplementation(async url => ({ data: String(url).endsWith('/comments') ? [] : {
-            id: 42, authorId: 7, authorName: 'Jordan Lee', content: 'A brand new post', createdAt: '2026-09-08T08:00:00Z',
+        let saved: ReturnType<typeof comment> | undefined;
+        vi.mocked(apiClient.get).mockImplementation(async url => ({ data: String(url).endsWith('/comments') ? (saved ? [saved] : []) : {
+            id: 42, authorId: 7, authorName: 'Jordan Lee', content: 'A brand new post', createdAt: '2026-09-08T08:00:00Z', ...(saved ? { commentCount: 1 } : {}),
         } }));
         vi.mocked(apiClient.put).mockResolvedValue({ data: { id: 42, myReaction: 'LIKE', reactionCount: 1, reactionCounts: { LIKE: 1 }, likeCount: 1, isLikedByMe: true } });
-        vi.mocked(apiClient.post).mockResolvedValue({ data: comment(12, 'Great album') });
+        vi.mocked(apiClient.post).mockImplementation(async () => { saved = comment(12, 'Great album'); return { data: saved }; });
         renderPage();
         expect(await screen.findByText('A brand new post')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Reacted by/ })).not.toBeInTheDocument();
@@ -252,4 +253,13 @@ describe('PostPage', () => {
         expect(screen.queryByText('Stale comment')).not.toBeInTheDocument();
         expect(screen.getByText('Current comment')).toBeInTheDocument();
     });
+});
+
+it('returns to the originating Following view without accepting arbitrary return paths', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: post(42, 'Read from Following') });
+    const visit = render(<MemoryRouter initialEntries={[{ pathname: '/posts/42', state: { postReturnTo: '/home?view=following' } }]}><Routes><Route path="/posts/:postId" element={<PostPage />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole('link', { name: 'Back to Home' })).toHaveAttribute('href', '/home?view=following');
+    visit.unmount();
+    render(<MemoryRouter initialEntries={[{ pathname: '/posts/42', state: { postReturnTo: 'https://external.invalid/' } }]}><Routes><Route path="/posts/:postId" element={<PostPage />} /></Routes></MemoryRouter>);
+    expect(await screen.findByRole('link', { name: 'Back to Home' })).toHaveAttribute('href', '/home');
 });

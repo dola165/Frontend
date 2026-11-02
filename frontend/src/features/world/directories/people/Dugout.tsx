@@ -50,7 +50,7 @@ function DugoutRow({ seat, chosen, onChoose }: { seat: Seat; chosen: boolean; on
                 : <button type="button" className="gk-dugout__seat" data-status={referee?.status ?? match.referee_status} aria-label={label} onClick={() => referee ? peek.open(peekOf('person', referee.id)) : onChoose()}>
                     <Avatar name={referee?.name ?? '?'} size={30} />
                 </button>}
-            <Link className="gk-sb__wait gk-dugout__state" data-tone={state.tone} to={`/match-exchange/${match.event_id}`}>{state.text}<ArrowRight aria-hidden="true" /></Link>
+            <Link className="gk-sb__wait gk-dugout__state" data-tone={state.tone} to={`/matches/${match.event_id}?from=world`}>{state.text}<ArrowRight aria-hidden="true" /></Link>
         </li>
     );
 }

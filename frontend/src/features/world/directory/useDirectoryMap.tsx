@@ -3,7 +3,7 @@ import { Expand, RotateCw, Search } from 'lucide-react';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { plural, useWorldCopy } from '../copy';
 import type { WorldMapPoint } from '../map/WorldMap';
-import { useStageMap, type MapLine, type MapReach } from '../stage/stageContext';
+import { useStageMap, type MapLine, type MapReach, type MapYou } from '../stage/stageContext';
 import { useWorldArea } from '../useWorldArea';
 import type { AnySource } from './types';
 import type { DirectoryData } from './useDirectoryData';
@@ -19,7 +19,7 @@ const NONE: WorldMapPoint[] = [];
  * search there. A list with nothing to place (referees, or one behind sign-in) keeps the map and says why it is empty.
  * Once the map has flown to a chosen result, a pill offers to show every pin again.
  */
-export function useDirectoryMap({ source, data, gated, mappable, placed, choice, open, panel, side, onView, summary, card, context, reach, away, bounds, insetTop }: {
+export function useDirectoryMap({ source, data, gated, mappable, placed, choice, open, panel, side, onView, summary, card, context, reach, you, away, bounds, insetTop }: {
     source: AnySource; data: DirectoryData; gated: boolean;
     /** The list puts its results on the map. */ mappable: boolean; placed: ReturnType<typeof usePlacedPoints>;
     choice: ReturnType<typeof useDirectorySelection>;
@@ -28,7 +28,7 @@ export function useDirectoryMap({ source, data, gated, mappable, placed, choice,
     /** Where the map is looking, after every move, for a list that follows what is on screen. */ onView?: (bounds: MapBounds) => void;
     /** What the folded strip says. */ summary: string; /** The map's own card may show the chosen pin. */ card: boolean;
     /** Places that give the results context, the chosen result's stated reach, and the box a flight to it frames. */
-    context?: WorldMapPoint[]; reach?: MapReach; /** The chosen result's away day. */ away?: MapLine; bounds?: MapBounds; /** Room the map keeps at its top (the day strip over it). */ insetTop?: number;
+    context?: WorldMapPoint[]; reach?: MapReach; /** Where the person searches from, draggable. */ you?: MapYou; /** The chosen result's away day. */ away?: MapLine; bounds?: MapBounds; /** Room the map keeps at its top (the day strip over it). */ insetTop?: number;
 }) {
     const t = useWorldCopy();
     const { area, setCity } = useWorldArea();
@@ -47,7 +47,7 @@ export function useDirectoryMap({ source, data, gated, mappable, placed, choice,
             : loading ? t('Placing results on the map…') : [t('{count} on the map', { count: plural(onMap, source.noun[0], source.noun[1]) }), missing].filter(Boolean).join(' · ');
     useStageMap({
         label: t('{things} on the map', { things: t(source.label) }),
-        points: mappable ? placed.points : NONE, panel, side, onView, summary, card, context, reach, away, insetTop,
+        points: mappable ? placed.points : NONE, panel, side, onView, summary, card, context, reach, you, away, insetTop,
         focus: choice.focus && bounds ? { ...choice.focus, bounds } : choice.focus, frame: choice.frame,
         selectedId: choice.selectedPin, onSelect: choice.selectPin, onHover: choice.setHoverPin,
         highlightId: choice.hoverKey ? placed.pinOf.get(choice.hoverKey) : choice.hoverPin,

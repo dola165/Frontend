@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AccountExitOption } from '../features/profiles/account/AccountExitOption';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -188,6 +189,7 @@ const OnboardingForm = () => {
                         {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('onboarding.continue')}
                     </button>
                 </form>
+                <AccountExitOption />
             </div>
         </div>
     );

@@ -1,0 +1,10 @@
+.calendar-grounds { display: grid; gap: 1rem; }
+.calendar-grounds article { padding: 1rem; border: 1px solid var(--gk-line); border-radius: 12px; background: var(--gk-surface); }
+.calendar-grounds h3 { display: flex; gap: .5rem; align-items: center; margin: 0 0 .5rem; overflow-wrap: anywhere; }
+.calendar-grounds h3 svg { flex-shrink: 0; }
+.calendar-grounds ul { list-style: none; padding: 0; margin: .5rem 0 0; display: grid; gap: .5rem; }
+.calendar-grounds li { display: grid; gap: .25rem; }
+.calendar-grounds li a, .calendar-grounds button { min-height: 44px; display: flex; align-items: center; overflow-wrap: anywhere; }
+.calendar-grounds li span { color: var(--gk-text-2); font-size: .875rem; }
+.calendar-grounds a:focus-visible, .calendar-grounds button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 3px; }
+.calendar-grounds li button { border: 0; padding: 0; background: transparent; color: inherit; text-align: start; cursor: pointer; }

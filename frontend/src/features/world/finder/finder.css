@@ -1,0 +1,62 @@
+/* Parent Hub's club finder: World's club tab in one pop-up. Scoped under `.gk-finder-dialog` and `.gk .gk-finder`;
+   tokens only. Wide: a layer almost the size of the screen, the map on top and the clubs below. Phone: the whole
+   screen, the map the top half. */
+
+.gk .gk-dialog.gk-finder-dialog { max-width: min(1680px, calc(100vw - 48px)); height: calc(100dvh - 48px); max-height: none; }
+.gk .gk-finder-dialog .gk-dialog__head { padding: var(--gk-3) var(--gk-4); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-finder-dialog .gk-dialog__title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+.gk .gk-finder-dialog .gk-dialog__body { gap: 0; padding: 0; }
+.gk .gk-finder__born { color: var(--gk-text-3); font-weight: 500; }
+@media (max-width: 640px) {
+  .gk .gk-dialog.gk-finder-dialog { max-width: none; width: 100%; height: 100dvh; max-height: none; border-radius: 0; }
+}
+
+/* World's stage inside the pop-up: its own header row, then the map, then the list, the gutter of the pop-up. */
+.gk.gk-finder { padding: 0 var(--gk-4) var(--gk-6); }
+.gk.gk-finder .gk-world-stage__map { --gk-world-map-h: clamp(300px, 46dvh, 620px); }
+@media (max-width: 760px) { .gk.gk-finder .gk-world-stage__map { --gk-world-map-h: 50dvh; } }
+.gk.gk-finder .gk-world-head { padding-top: var(--gk-3); }
+
+/* "You" over the map: where the search measures from, and the way to the device's own position. */
+.gk .gk-finder-you { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-finder-you .gk-world-glass svg { width: 14px; height: 14px; }
+.gk .gk-finder-you__note { color: var(--gk-text-2); }
+
+/* A club in the list, and the club opened inside it. */
+.gk .gk-finder-club { list-style: none; border-bottom: 1px solid var(--gk-line); }
+.gk .gk-finder-club[data-open] { background: color-mix(in srgb, var(--gk-accent) 4%, var(--gk-surface)); }
+.gk .gk-finder-club__head { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 64px; padding: var(--gk-2) var(--gk-3); border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-finder-club__head:hover strong { text-decoration: underline; }
+.gk .gk-finder-club__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gk .gk-finder-club__text strong { display: flex; align-items: center; gap: 4px; font-weight: 650; }
+.gk .gk-finder-club__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-finder-club__text .gk-finder-club__fits { color: var(--gk-text-2); }
+.gk .gk-finder-club__km { flex: none; color: var(--gk-text-3); font-size: var(--gk-fs-xs); white-space: nowrap; }
+.gk .gk-finder-club__chevron { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); transition: transform .15s; }
+.gk .gk-finder-club[data-open] .gk-finder-club__chevron { transform: rotate(180deg); }
+.gk .gk-finder-open { display: flex; flex-direction: column; gap: var(--gk-3); padding: 0 var(--gk-3) var(--gk-3) calc(40px + 2 * var(--gk-3)); }
+@media (max-width: 640px) { .gk .gk-finder-open { padding-left: var(--gk-3); } }
+.gk .gk-finder-group { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .gk-finder-group__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--gk-2); }
+.gk .gk-finder-group__head strong { font-weight: 650; }
+.gk .gk-finder-group__born { color: var(--gk-accent); font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk .gk-finder-group__facts { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-finder-acts { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-finder-acts .gk-btn svg { width: 15px; height: 15px; }
+/* A tryout: the trial colour as a soft tint, its date, and the calendar file. */
+.gk .gk-finder-tryout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); padding: var(--gk-2) var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--color-pink) 12%, transparent); color: var(--gk-text); font-size: var(--gk-fs-sm); }
+.gk .gk-finder-tryout strong { color: var(--color-pink); }
+.gk .gk-finder-way { padding-top: var(--gk-2); border-top: 1px dashed var(--gk-line); }
+.gk .gk-finder-book, .gk .gk-finder-ask, .gk .gk-finder-share { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-finder-book__lead { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-finder-ask textarea { resize: vertical; }
+.gk .gk-finder-done { display: flex; align-items: flex-start; gap: var(--gk-2); color: var(--gk-text-2); }
+.gk .gk-finder-done > svg { flex: none; width: 18px; height: 18px; color: var(--gk-accent); }
+.gk .gk-finder-done > span { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-finder-done strong { color: var(--gk-text); }
+.gk .gk-finder-done small { color: var(--gk-text-3); }
+.gk .gk-finder-changed { display: flex; flex-direction: column; gap: 4px; }
+.gk .gk-finder-changed ul { margin: 0; padding-left: var(--gk-4); }
+/* The group a link opened, with its club, above the list (no list row to press). */
+.gk .gk-finder-named .gk-finder-club__head { cursor: default; }
+.gk .gk-finder-named .gk-finder-club__head:hover strong { text-decoration: none; }

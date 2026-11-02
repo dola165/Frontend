@@ -39,6 +39,8 @@ export type Squad = {
 };
 export type Appointment = {
   id: number;
+  /** The match's type (MATCH: league, cup or competition; FRIENDLY), for its symbol. */
+  event_type?: string | null;
   event_id: number;
   referee_id: number;
   full_name?: string;
@@ -75,6 +77,9 @@ export type Proposal = {
   club_name: string;
   club_id: number;
   note: string;
+  /** An open challenge's answer: its kick-off inside the window (local wall time) and its ground, when it hosts. */
+  kickoff_at?: string | null;
+  location_name?: string | null;
   status: string;
 };
 export type Match = {
@@ -137,7 +142,35 @@ export type Match = {
   appointments?: Appointment[];
   own_appointments?: Appointment[];
   history?: { id: number; action: string; created_at: string; reason: string | null }[];
+  /** Where the match came from (step 6): arranged, added in the calendar, a squad session, or added as a past match. */
+  origin?: MatchOrigin;
+  /** A competition fixture's match (step 6): its competition, whose organiser sets it and records the result. */
+  competition_id?: number | null;
+  competition_name?: string | null;
+  /** A competition match's referees: the competition's own appointments, invited or accepted (fix round 1). */
+  competition_referees?: { id: number; referee_id?: number; full_name?: string; status: 'INVITED' | 'ACCEPTED' }[];
+  /** A club that isn't in GrassKickZ, named by hand. */
+  outside_opponent?: string | null;
+  /** A calendar match against another club: that club is asked to add it to its week (WAITING), did (ADDED), or said "Not us". */
+  opponent_answer?: 'WAITING' | 'ADDED' | 'NOT_US' | null;
+  opponent_asked_club?: number | null;
+  opponent_logo_url?: string | null;
+  /** An open challenge's window: the first to last day, each day between these times, for a match this long. */
+  window_from?: string | null;
+  window_to?: string | null;
+  match_minutes?: number | null;
+  event_type?: 'MATCH' | 'FRIENDLY' | string;
+  visibility?: string;
+  /** The viewer's own squad on this match (staff, player or family), which the page opens in when the link names none. */
+  viewer_squad_id?: number | null;
+  /** The other club's match staff, asked to add a calendar match against them to their week. */
+  can_answer_opponent?: boolean;
+  /** Staff of a match with no opponent in the app may type its name. */
+  can_name_opponent?: boolean;
 };
+export type MatchOrigin = 'ARRANGED' | 'CALENDAR' | 'SESSION' | 'PAST' | 'COMPETITION';
+/** The opponent as the page names it: the club in the app, else the name typed by hand, else none yet. */
+export const opponentName = (m: Pick<Match, 'opponent_name' | 'outside_opponent'>) => m.opponent_name ?? m.outside_opponent ?? null;
 export type Career = {
   id: number;
   kind: string;

@@ -20,14 +20,15 @@ beforeEach(() => {
     vi.mocked(api.previewCancellation).mockResolvedValue({ ...consequence, responsePolicy: 'INVALIDATE' });
 });
 
-it('shows reconfirmation and submits the revision the participant saw', async () => {
+it('keeps expected attendance after a change and submits the reviewed opt-out revision', async () => {
     const saved = vi.fn();
     render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, session)} onClose={vi.fn()} onSaved={saved}/></MemoryRouter>);
-    expect(screen.getByText('The event changed. Please confirm again.')).toBeInTheDocument();
+    expect(screen.getByText('It changed. Nika is still expected.')).toBeInTheDocument();
     expect(screen.getByText(/Previous answer: coming/)).toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Coming' }));
-    await waitFor(() => expect(api.attendance).toHaveBeenCalledWith(10, 9, 61, 'GOING', 4, expect.any(String), getAuthSessionId(), undefined));
+    expect(screen.queryByRole('button', { name: 'Coming' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Can’t come' }));
+    await waitFor(() => expect(api.attendance).toHaveBeenCalledWith(10, 9, 61, 'NOT_GOING', 4, expect.any(String), getAuthSessionId(), undefined));
     await waitFor(() => expect(saved).toHaveBeenCalledOnce());
 });
 
@@ -43,19 +44,10 @@ it('assumes a player is coming and sends one-tap can’t come with an optional r
     await waitFor(() => expect(api.attendance).toHaveBeenLastCalledWith(10, 9, 61, 'NOT_GOING', 4, expect.any(String), getAuthSessionId(), 'School trip'));
 });
 
-it('lets the coach ask for confirmation only after seeing who will be notified', async () => {
-    const quiet = { ...session, response_requested: false, attendance: [{ ...session.attendance[0], response: 'NOT_GOING', reason: 'Injured', response_status: 'CURRENT', previous_response: null }, { id: 62, name: 'Saba', response: 'UNANSWERED', active: true }] };
-    const saved = vi.fn();
-    render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, quiet)} canManage onClose={vi.fn()} onSaved={saved}/></MemoryRouter>);
-    expect(screen.getByText('1 can’t come')).toBeInTheDocument();
-    expect(screen.getByText(/Injured/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Ask for confirmation' }));
-    expect(await screen.findByText(/Ask 2 families to confirm/)).toBeInTheDocument();
-    expect(api.editSession).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
-    await waitFor(() => expect(api.editSession).toHaveBeenCalledWith(10, 9, expect.objectContaining({ requestResponses: true, revision: 4, playerIds: null, startsAt: session.starts_at })));
-    expect(vi.mocked(api.editSession).mock.calls[0][2].requestId).toBe(vi.mocked(api.previewSession).mock.calls[0][2].requestId);
-    expect(saved).toHaveBeenCalledOnce();
+it('keeps routine attendance expected and manual outside answers available to the coach', () => {
+    render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, { ...session, response_requested: false })} canManage onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
+    expect(screen.queryByRole('button', { name: 'Ask for confirmation' })).not.toBeInTheDocument();
+    expect(screen.getByText('Record an answer for a player')).toBeInTheDocument();
 });
 
 it('does not offer replies or editing for a cancelled session', () => {
@@ -146,7 +138,7 @@ it('keeps the edit visible on a revision conflict and offers an explicit reload'
 
 it('labels coach-recorded answers and offers the session reservation controls to its coach', () => {
     render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, { ...session, attendance: [{ ...session.attendance[0], recorded_by: 'COACH' }] })} canManage onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
-    expect(screen.getByText('1 to confirm')).toBeInTheDocument();
+    expect(screen.getByText('Everyone expected')).toBeInTheDocument();
     expect(screen.getByText('Answers you record are labelled as recorded by the coach.')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^Stadium reservation/ })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Session reservation' })).toBeInTheDocument();
@@ -164,7 +156,7 @@ it('creates a single family session with explicit roster and recurrence limitati
 
 it('preserves the supported Exchange destination without a generic stadium editor', () => {
     render(<MemoryRouter><SquadSessionDetails event={{ ...sessionEvent(squad, session), session: undefined, origin: 'MATCH_EXCHANGE', eventId: 82, originId: 82 }} canManage onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
-    expect(screen.getByRole('link', { name: /Open match details/ })).toHaveAttribute('href', '/match-exchange/82');
+    expect(screen.getByRole('link', { name: /Open match details/ })).toHaveAttribute('href', '/matches/82');
     expect(screen.queryByRole('button', { name: 'Edit or reschedule' })).not.toBeInTheDocument();
 });
 

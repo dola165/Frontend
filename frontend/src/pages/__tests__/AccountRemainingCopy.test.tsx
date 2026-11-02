@@ -32,12 +32,12 @@ afterEach(async () => { cleanup(); clearStoredAuth(); vi.unstubAllEnvs(); await 
 
 it.each([false, true])('does not advertise deletion without a usable control when server support is %s', async supported => {
     vi.mocked(apiClient.get).mockImplementation(async path => ({ data: path === '/users/me/account' ? { ...account, accountDeletionSupported: supported } : dataFor(path) }));
-    mount('danger'); await screen.findByRole('heading', { name: 'Danger Zone' });
+    mount('danger'); await screen.findByRole('heading', { name: 'Close account' });
     expect(screen.queryByText('Account deletion is available for this account.')).not.toBeInTheDocument();
-    expect(screen.getByText('Account deletion is not available on this page.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Password recovery' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /delete|deletion/i })).not.toBeInTheDocument();
     await language('ka');
-    expect(screen.getByText('ამ გვერდიდან ანგარიშს ვერ წაშლით.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'ანგარიშის დახურვა' })).toBeInTheDocument();
     expect(apiClient.post).not.toHaveBeenCalled();
 });
 

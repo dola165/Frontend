@@ -2,7 +2,7 @@ import { accessibleClubs } from '../clubAccess';
 import type { LucideIcon } from 'lucide-react';
 import type { NavigationCapabilities } from '../../../context/navigationCapabilities';
 
-export type PrimarySection = 'home' | 'world' | 'my-squads' | 'projects' | 'club-office' | 'parent-hub';
+export type PrimarySection = 'home' | 'world' | 'my-squads' | 'my-matches' | 'my-competitions' | 'projects' | 'club-office' | 'parent-hub';
 export interface PrimaryTab { id: PrimarySection; to: string; label: string; icon: LucideIcon; current: boolean }
 
 export interface MyClub { ids: number[]; path: string | null }
@@ -53,6 +53,13 @@ export function primarySectionFor(pathname: string, ownClubIds: number[], search
     if (pathname.startsWith('/squads/') && new URLSearchParams(search).has('player')) return 'parent-hub';
     if (pathname === '/my-squads' || pathname === '/squads' || pathname.startsWith('/squads/')) return 'my-squads';
     if (pathname === '/parent' || pathname.startsWith('/parent/')) return 'parent-hub';
+    if (pathname === '/my-matches') return 'my-matches';
+    if (pathname === '/my-competitions') return 'my-competitions';
+    // One match, one page (step 6): it lights the place it was opened from.
+    if (pathname.startsWith('/matches/')) {
+        const from = new URLSearchParams(search).get('from') ?? '';
+        return from.startsWith('squad:') ? 'my-squads' : from === 'referee' ? 'my-matches' : from.startsWith('competition:') ? 'my-competitions' : from === 'parent' ? 'parent-hub' : from === 'home' ? 'home' : from === 'world' ? 'world' : null;
+    }
     const club = /^\/clubs\/(\d+)(?:\/|$)/.exec(pathname);
     if (club) return ownClubIds.includes(Number(club[1])) ? null : 'world';
     if (/^\/tournaments\/\d+\/workspace$/.test(pathname)) return null;

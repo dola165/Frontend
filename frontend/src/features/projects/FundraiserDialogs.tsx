@@ -46,13 +46,14 @@ function useSave(onSaved: (next: ProjectDetail) => void) {
 /** report_amount: what came in so far, on GoFundMe and elsewhere; shown as reported by the club. */
 export function AmountDialog({ project, onClose, onSaved }: { project: ProjectDetail; onClose: () => void; onSaved: (next: ProjectDetail) => void }) {
     const copy = useJourneyCopy();
-    const f = project.fundraiser!;
+    const [f] = useState(project.fundraiser!);
+    const [hadTarget] = useState(project.summary.target !== null);
     const [amount, setAmount] = useState(f.reportedAmount?.toString() ?? '');
     const [note, setNote] = useState('');
     const [currency, setCurrency] = useState<Currency>(f.currency);
     // Amounts are never converted: a new currency needs the target entered again in it.
     const [target, setTarget] = useState('');
-    const needsTarget = currency !== f.currency && project.summary.target != null;
+    const needsTarget = currency !== f.currency && hadTarget;
     const targetValue = Number(target), targetReady = !needsTarget || (target.trim() !== '' && Number.isFinite(targetValue) && targetValue > 0);
     const { busy, error, save } = useSave(onSaved);
     const value = Number(amount), ready = amount.trim() !== '' && Number.isFinite(value) && value >= 0 && targetReady;
@@ -71,7 +72,8 @@ export function AmountDialog({ project, onClose, onSaved }: { project: ProjectDe
 /** start_fundraiser and change_fundraiser: its words and its GoFundMe page; its name and goal are the project's. */
 export function FundraiserDialog({ project, onClose, onSaved }: { project: ProjectDetail; onClose: () => void; onSaved: (next: ProjectDetail) => void }) {
     const copy = useJourneyCopy();
-    const f = project.fundraiser;
+    // A refresh must not turn a start draft into an edit, or lend old words a newer version.
+    const [f] = useState(project.fundraiser);
     const [words, setWords] = useState({ summary: f?.summary ?? '', description: f?.description ?? '', beneficiary: f?.beneficiary ?? '', useOfFunds: f?.useOfFunds ?? '', category: f?.category ?? 'OTHER', donateUrl: f?.donateUrl ?? '' });
     const { busy, error, save } = useSave(onSaved);
     const set = (key: keyof typeof words) => (value: string) => setWords(current => ({ ...current, [key]: value }));
@@ -81,7 +83,7 @@ export function FundraiserDialog({ project, onClose, onSaved }: { project: Proje
     return <Frame title={f ? copy('Edit fundraiser', 'შეგროვების რედაქტირება') : copy('Start a fundraiser', 'შეგროვების დაწყება')} busy={busy} ready
         saveLabel={f ? copy('Save', 'შენახვა') : copy('Start as a draft', 'მონახაზად დაწყება')} error={error} onClose={onClose} onSave={() => void save(action)}>
         <p className="pj-quiet">{copy(`Named “${project.summary.goal}”, its goal the project’s target. Publishing needs a summary, what it is for and who it helps.`, `სახელი „${project.summary.goal}“, მიზანი — პროექტის თანხა. გამოსაქვეყნებლად საჭიროა მოკლე აღწერა, რისთვისაა და ვის ეხმარება.`)}</p>
-        <Line label={copy('GoFundMe page', 'GoFundMe გვერდი')} hint={copy('The money is given there: https://www.gofundme.com/…', 'თანხა იქ გაიცემა: https://www.gofundme.com/…')}>
+        <Line label={copy('GoFundMe page (optional)', 'GoFundMe გვერდი (არასავალდებულო)')} hint={copy('Contact giving works without a link. Check organizer, beneficiary and country eligibility with the provider before using one.', 'ბმულის გარეშეც შეგიძლიათ ორგანიზატორთან დაკავშირება. წინასწარ შეამოწმეთ პროვაიდერის მოთხოვნები.')}>
             {id => <input id={id} className="gk-input" type="url" maxLength={500} value={words.donateUrl} placeholder="https://www.gofundme.com/f/…" onChange={event => set('donateUrl')(event.target.value)} />}</Line>
         <Line label={copy('In one line', 'ერთი წინადადებით')}>{id => <input id={id} className="gk-input" maxLength={240} value={words.summary} onChange={event => set('summary')(event.target.value)} />}</Line>
         <Line label={copy('What it is for', 'რისთვისაა')}>{id => <textarea id={id} className="gk-input" rows={3} maxLength={5000} value={words.description} onChange={event => set('description')(event.target.value)} />}</Line>
@@ -95,11 +97,12 @@ export function FundraiserDialog({ project, onClose, onSaved }: { project: Proje
 /** post_fundraiser_update: news for the supporters, on the public fundraiser page. */
 export function UpdateDialog({ project, onClose, onSaved }: { project: ProjectDetail; onClose: () => void; onSaved: (next: ProjectDetail) => void }) {
     const copy = useJourneyCopy();
+    const [draftVersion] = useState(project.fundraiser!.version);
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
     const { busy, error, save } = useSave(onSaved);
     return <Frame title={copy('Post an update', 'სიახლის გამოქვეყნება')} busy={busy} ready={Boolean(title.trim() && body.trim())} saveLabel={copy('Post', 'გამოქვეყნება')} error={error} onClose={onClose}
-        onSave={() => void save(() => postFundraiserUpdate(project.club!.id, project.summary.id, project.fundraiser!.version, title.trim(), body.trim()))}>
+        onSave={() => void save(() => postFundraiserUpdate(project.club!.id, project.summary.id, draftVersion, title.trim(), body.trim()))}>
         <Line label={copy('Title', 'სათაური')}>{id => <input id={id} className="gk-input" autoFocus maxLength={120} value={title} onChange={event => setTitle(event.target.value)} />}</Line>
         <Line label={copy('Message', 'შეტყობინება')} hint={copy('Everyone who opens the fundraiser sees it.', 'ყველა, ვინც შეგროვებას გახსნის, დაინახავს.')}>
             {id => <textarea id={id} className="gk-input" rows={4} maxLength={3000} value={body} onChange={event => setBody(event.target.value)} />}</Line>

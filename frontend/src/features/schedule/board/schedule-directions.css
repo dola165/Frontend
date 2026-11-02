@@ -1,0 +1,4 @@
+.schedule-directions { display: flex; }
+.schedule-directions a { min-height: 44px; }
+.session-details > .schedule-directions { margin: 0 28px 16px; }
+@media (max-width: 600px) { .session-details > .schedule-directions { margin-inline: 20px; } }

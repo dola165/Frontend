@@ -60,6 +60,10 @@ export interface MatchTerms {
 export type OfficialMode = 'LATER' | 'INVITE' | 'OPEN' | 'EXTERNAL' | 'NONE';
 export interface Arrangement {
     match: MatchTerms; targetClubId: number | null; targetSquadId: number | null; bookingId: null;
+    /** A club not in GrassKickZ, named by hand: the match is agreed at once and nothing waits for them. */
+    outsideOpponent: string | null;
+    /** An open challenge's daily window (HH:mm) and match length; its days are the listing's first and last. */
+    windowFrom: string | null; windowTo: string | null; matchMinutes: number | null;
     matchType: 'FRIENDLY' | 'COMPETITIVE'; hostingChoice: 'HOME' | 'AWAY' | 'NEUTRAL' | 'FLEXIBLE';
     officialMode: OfficialMode; officialResponsibility: 'HOST' | 'OPPONENT'; refereeId: number | null; externalRefereeName: string | null;
     volunteer: boolean; fee: number; currency: string;

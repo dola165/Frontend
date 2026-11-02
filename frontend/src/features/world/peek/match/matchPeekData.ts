@@ -1,6 +1,6 @@
 import { useAuth } from '../../../../context/AuthContext';
 import type { HistoryMatch } from '../../../matchHistory/api';
-import type { Match } from '../../../matchExchange/api';
+import { opponentName, type Match } from '../../../matchExchange/api';
 import { fetchTournament } from '../../../tournaments/api';
 import type { TournamentDetail, TournamentFixtureDto } from '../../../tournaments/domain';
 import { shared } from '../../cache';
@@ -24,10 +24,10 @@ export function historyOfListing(m: Match): HistoryMatch {
         id: `event:${m.event_id}`, source: 'MATCH_EXCHANGE', sourceId: m.event_id, title: m.title, startsAt: m.starts_at_iso, endsAt: m.ends_at_iso, timezone: m.timezone,
         homeClubId: m.club_id, homeClubName: m.club_name, homeSquadId: m.squad_id, homeSquadName: m.squad_name,
         // A club invited and not yet answering is the away side by id only (the listing does not name it).
-        awayClubId: m.opponent_club_id ?? m.requested_club_id ?? null, awayClubName: m.opponent_name ?? null, awaySquadId: m.target_squad_id ?? m.requested_squad_id ?? null, awaySquadName: m.opponent_squad_name ?? null,
+        awayClubId: m.opponent_club_id ?? m.requested_club_id ?? null, awayClubName: opponentName(m), awaySquadId: m.target_squad_id ?? m.requested_squad_id ?? null, awaySquadName: m.opponent_squad_name ?? null,
         homeScore: confirmed ? m.home_score : null, awayScore: confirmed ? m.away_score : null, resultStatus: m.result_status ?? 'NONE',
         fixtureStatus: m.event_status === 'CANCELLED' || m.listing_status === 'CANCELLED' ? 'CANCELLED' : confirmed ? 'COMPLETED' : 'SCHEDULED',
-        legacy: Boolean(m.result_legacy), locationName: m.location_name || null, tournamentId: null, tournamentName: null, detailPath: `/match-exchange/${m.event_id}`, canRecordResult: false,
+        legacy: Boolean(m.result_legacy), locationName: m.location_name || null, tournamentId: null, tournamentName: null, detailPath: `/matches/${m.event_id}?from=world`, canRecordResult: false,
     };
 }
 
@@ -72,7 +72,7 @@ export function useMatchPeek(code: string) {
             return { match: known ? zonedMatch(known) : historyOfFixture(tournament, fixture, runsTournament(tournament, user?.id ?? null)), tournament, fixture };
         }
         if (known) return { match: zonedMatch(known) };
-        // Not loaded by a list, or doubted after a change: read again around its own day (else today).
+        // Not loaded by a list: read again around its own day (else today).
         const start = zoned(rememberedStart(sessionId, code));
         const window = await loadWindow(sessionId, '', start ? isoDayOf(start) : isoDay(0));
         const found = window.items.find(item => item.code === code);

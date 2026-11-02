@@ -17,8 +17,11 @@ export type ActionSubject =
     | { kind: 'match'; source: 'MATCH_EXCHANGE' | 'SCHEDULE_EVENT'; id: number; squadId?: number | null }
     | { kind: 'person'; id: number };
 
-/** What the page already knows that narrows the flow: an opponent to play, a child to join for, the job to offer. */
-export interface ActionHints { opponentId?: number | null; playerId?: number | null; job?: string | null; code?: string | null }
+/**
+ * What the page already knows that narrows the flow: an opponent to play, a child to join for, the job to offer, and how
+ * to find an opponent when the door knows it ("Play them again" invites; World's open challenges post one).
+ */
+export interface ActionHints { opponentId?: number | null; playerId?: number | null; job?: string | null; code?: string | null; way?: 'invite' | 'open' | null }
 
 export interface ActionDefinition {
     key: ActionKey;
@@ -47,7 +50,7 @@ export const ACTIONS: Record<ActionKey, ActionDefinition> = {
     arrange_match: {
         key: 'arrange_match', label: ['Arrange a match', 'მატჩის დაგეგმვა'], short: ['Arrange', 'დაგეგმვა'], icon: Handshake, color: activityColors.FRIENDLY,
         subjects: ['me', 'squad', 'club'],
-        guess: (subject, hints) => ({ squad: squadOf(subject), opponent: hints.opponentId }),
+        guess: (subject, hints) => ({ squad: squadOf(subject), opponent: hints.opponentId, way: hints.way }),
     },
     add_child: {
         key: 'add_child', label: ['Add my child', 'ჩემი შვილის დამატება'], short: ['Add child', 'ბავშვი'], icon: Heart,

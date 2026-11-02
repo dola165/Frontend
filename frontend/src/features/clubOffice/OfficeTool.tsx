@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { Button, ButtonLink, EmptyNote, PageFrame, Skeleton } from '../../design/primitives';
+import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Skeleton } from '../../design/primitives';
 import { askAdminPath } from '../../api/access';
 import type { AuthSessionId } from '../../utils/authStorage';
 import { useClubAdmissionCopy } from '../admissions/club/copy';
@@ -8,6 +8,7 @@ import type { useClubAdmissions } from '../admissions/club/useClubAdmissions';
 import type { Bootstrap } from '../clubOperations/api';
 import { coachOriginTarget } from '../clubOperations/coachOrigin';
 import type { RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
+import { TravelWorkspace } from '../travel/TravelWorkspace';
 import { WorkspaceOperations } from '../clubOperations/WorkspaceOperations';
 import { operationModule } from '../clubOperations/workspaceNavigation';
 import { mySquadIds } from '../clubWorkspace/coachHub/coachData';
@@ -23,6 +24,7 @@ import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { isOfficeTool, legacyWorkspaceTarget, officePath, officeToolPath, type OfficeTool as Tool } from './officeLinks';
 import type { ToolState } from './officeTools';
 import './office.css';
+import { Scouting } from '../scouting/Scouting';
 
 const positive = (value: string | null) => value && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) ? Number(value) : null;
 
@@ -45,7 +47,7 @@ export function OfficeTool({ clubId, tool, state, sessionId, overview, reloadOve
     const role = overview?.currentUserRole;
     const focusedApplicationId = positive(params.get('applicationId'));
     // Players, applications and tryouts load only while their tool is open.
-    const membership = useClubMembership({ clubId, activeTab: tool, overview, reloadOverview, canChangePlayerStatus: canManagePlayerStatuses(role), focusedApplicationId });
+    const membership = useClubMembership({ clubId, activeTab: tool === 'scouting' ? 'club-approaches' : tool, overview, reloadOverview, canChangePlayerStatus: canManagePlayerStatuses(role), focusedApplicationId });
     const go = (to: string) => guardWorkspaceNavigation(() => navigate(to));
     const coach = boot && roles ? coachOriginTarget(params, clubId, mySquadIds(roles.views)) : null;
     const origin = coach ? { label: copy('Back to My squads', 'უკან: ჩემი გუნდები'), onBack: () => go(coach) } : undefined;
@@ -59,6 +61,7 @@ export function OfficeTool({ clubId, tool, state, sessionId, overview, reloadOve
     const back = <div className="office-back"><Button variant="ghost" size="sm" onClick={way.onBack}><ArrowLeft aria-hidden="true" />{way.label}</Button></div>;
 
     // A records tool whose club data failed to load says so, with Try again, never "not your job".
+    if (tool === 'scouting') return <>{back}<Scouting key={`${clubId}:${sessionId}`} clubId={clubId} sessionId={sessionId} /></>;
     if (module && !boot && !bootLoading) return <PageFrame className="cw-page">{back}<div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{bootError || copy('This tool is unavailable right now.', 'ინსტრუმენტი ახლა მიუწვდომელია.')}</span>
         <Button size="sm" onClick={() => { void refreshBoot(); }}>{copy('Try again', 'თავიდან')}</Button></div></PageFrame>;
     if (state === undefined && (bootLoading || (tool === 'admissions' && admissions.loading)))
@@ -67,6 +70,7 @@ export function OfficeTool({ clubId, tool, state, sessionId, overview, reloadOve
         <EmptyNote title={state === 'locked' ? copy('Only the job that holds this tool opens it', 'ამ ინსტრუმენტს მხოლოდ ის სამუშაო ხსნის, რომელსაც ის აქვს') : copy('This tool isn’t part of your job here', 'ეს ინსტრუმენტი თქვენი სამუშაოს ნაწილი არ არის')}
             action={!leader && admin ? <ButtonLink size="sm" to={askAdminPath(admin)}>{copy('Ask the admin', 'ადმინთან მიწერა')}</ButtonLink> : undefined}>
             {copy('The admin gives jobs and their tools.', 'სამუშაოს და მის ინსტრუმენტებს ადმინი გასცემს.')}</EmptyNote></PageFrame>;
+    if (module === 'TRAVEL' && boot && state === 'open' && boot.modules.some(m => m.id === 'TRAVEL' && m.writable) && !['record','new','person','player','session','scope'].some(key => params.has(key))) return <GkRoot className="gk-travel-office">{back}<TravelWorkspace clubId={clubId} squadId={positive(params.get('squad')) ?? undefined} /></GkRoot>;
     if (module && boot) {
         return <>
             {!origin && !params.get('record') && back}

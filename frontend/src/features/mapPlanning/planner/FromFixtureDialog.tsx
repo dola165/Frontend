@@ -1,6 +1,8 @@
 import { useEffect, useId, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { Dialog } from '../../../design/Dialog';
+import { existingTravelLinks, type ExistingTravelLink } from '../../travel/existingTravelLinks';
+import { TravelExistingLinks } from '../../travel/TravelExistingLinks';
 import { Button, Field } from '../../../design/primitives';
 import { Segmented } from '../../../design/Tabs';
 import { extractApiErrorMessage } from '../../../utils/apiError';
@@ -36,6 +38,7 @@ export function FromFixtureDialog({ eventId, title, choices, onClose, onCreated 
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    const [links, setLinks] = useState<ExistingTravelLink[]>([]);
     const squadId = useId(), meetId = useId(), contactId = useId();
     useEffect(() => {
         if (!choice) return;
@@ -51,13 +54,13 @@ export function FromFixtureDialog({ eventId, title, choices, onClose, onCreated 
     const ready = !together || (prefs.meetingPoint.trim() && prefs.travelMinutes);
     const start = async () => {
         if (!choice || busy || !ready) return;
-        setBusy(true); setError('');
+        setBusy(true); setError(''); setLinks([]);
         try {
             if (remember) await apiClient.put(`/journeys/squads/${choice.squadId}/preferences`, { revision, preferences: prefs });
             const { data } = await apiClient.post<Plan>('/journeys/from-fixture', { eventId, clubId: choice.clubId, squadId: choice.squadId, preferences: prefs }, { timeout: 25000 });
             onCreated(data, choice);
         } catch (cause) {
-            setError(extractApiErrorMessage(cause, 'The journey could not be drafted. Try again; this fixture reuses its existing draft.'));
+            setError(extractApiErrorMessage(cause, 'The journey could not be drafted. Try again; this fixture reuses its existing draft.')); setLinks(existingTravelLinks(cause));
         } finally {
             setBusy(false);
         }
@@ -103,7 +106,7 @@ export function FromFixtureDialog({ eventId, title, choices, onClose, onCreated 
                 </div>
             </details>
             <label className="gk-plan-check"><input type="checkbox" checked={remember} onChange={event => setRemember(event.target.checked)} />Use these settings next time for this squad</label>
-            {error && <div className="gk-notice gk-notice--warning" role="alert">{error}</div>}
+            {error && <><div className="gk-notice gk-notice--warning" role="alert">{error}</div><TravelExistingLinks links={links} /></>}
             <p className="gk-faint">The plan stays private until you publish it. Costs are estimates; bookings and approvals stay separate.</p>
         </Dialog>
     );

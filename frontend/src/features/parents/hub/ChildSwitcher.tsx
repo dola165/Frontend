@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { useAction } from '../../actions/useAction';
 import type { JoiningChild } from '../api';
+import { playingClubs } from './childFacts';
 
 const age = (dateOfBirth: string | null) => {
     if (!dateOfBirth) return null;
@@ -14,19 +15,23 @@ const age = (dateOfBirth: string | null) => {
 };
 
 /**
- * Which child: one row of faces with each child's first name and where they play, the chosen one lit, and a "+"
- * for another child. On a phone it is one line that scrolls sideways.
+ * Which child: with two or more, "Everyone" first (the family's week), then one face per child with their first name,
+ * age and where they play, the chosen one lit, and a "+" for another child. On a phone it is one line that scrolls.
  */
-export function ChildSwitcher({ items, selectedId, onSelect, addTo }: { items: JoiningChild[]; selectedId?: number; onSelect: (id: number) => void; addTo: string }) {
+export function ChildSwitcher({ items, selectedId, onSelect, addTo }: { items: JoiningChild[]; selectedId?: number; onSelect: (id?: number) => void; addTo: string }) {
     const copy = useJourneyCopy();
     const guardian = useAction('add_child');
     const list = useRef<HTMLDivElement>(null);
     useEffect(() => { list.current?.querySelector('[aria-pressed=true]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); }, [selectedId]);
-    return <nav className="ph-switch" aria-label={copy('Choose a child', 'აირჩიეთ ბავშვი')}>
+    return <nav className="ph-switch" aria-label={copy('Choose a child', 'აირჩიეთ ბავშვი')} data-guide="child-switch">
         <div ref={list} className="ph-switch__list">
+            {items.length > 1 && <button type="button" className="ph-switch__child ph-switch__child--all" aria-pressed={selectedId == null} onClick={() => onSelect()}>
+                <span className="ph-switch__all" aria-hidden="true"><Users /></span><span className="ph-switch__text"><strong>{copy('Everyone', 'ყველა')}</strong><small>{copy('This week', 'ეს კვირა')}</small></span>
+            </button>}
             {items.map(child => {
                 const years = age(child.identity.dateOfBirth);
-                const where = child.clubs.length ? child.clubs.flatMap(club => club.squadNames.length ? club.squadNames : [club.clubName]).join(' · ') : copy('No club yet', 'კლუბი ჯერ არ არის');
+                const clubs = playingClubs(child);
+                const where = clubs.length ? clubs.flatMap(club => club.squadNames.length ? club.squadNames : [club.clubName]).join(' · ') : copy('No club yet', 'კლუბი ჯერ არ არის');
                 return <button key={child.playerId} type="button" className="ph-switch__child" aria-label={`${child.identity.fullName}, ${where}`} aria-pressed={child.playerId === selectedId} onClick={() => onSelect(child.playerId)}>
                     <Avatar src={resolveMediaUrl(child.identity.photoUrl) || null} name={child.identity.fullName} size={36} />
                     <span className="ph-switch__text"><strong>{child.identity.fullName.split(' ')[0]}{years != null && <span className="ph-switch__age">{years}</span>}</strong><small>{where}</small></span>

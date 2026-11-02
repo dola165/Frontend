@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { EmptyNote, PageFrame, Skeleton } from '../design/primitives';
 import { fetchFundraiserPlace } from '../features/projects/api';
 import { ProjectsPage as Projects } from '../features/projects/ProjectsPage';
-import { projectPath, projectsPath } from '../features/projects/projectWords';
+import { projectPath } from '../features/projects/projectWords';
+import { StartFundraiser } from '../features/campaigns/PersonalFundraising';
 import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 
 /** `/projects` and `/projects/:id`. A new account or session starts afresh. */
@@ -23,7 +24,6 @@ export default function ProjectsPage() {
 export function FundraiserToProject() {
     const copy = useJourneyCopy();
     const { id } = useParams();
-    const [params] = useSearchParams();
     const navigate = useNavigate();
     const campaignId = Number(id);
     const known = Number.isSafeInteger(campaignId) && campaignId > 0;
@@ -34,10 +34,7 @@ export function FundraiserToProject() {
             .catch(() => { if (!controller.signal.aborted) navigate('/projects', { replace: true }); });
         return () => controller.abort();
     }, [known, campaignId, navigate]);
-    if (!id) {
-        const club = Number(params.get('club') ?? params.get('clubId'));
-        return <Navigate replace to={projectsPath(Number.isSafeInteger(club) && club > 0 ? club : null, 'projects', { new: 'RAISE_MONEY' })} />;
-    }
+    if (!id) return <StartFundraiser />;
     if (!known) return <PageFrame><EmptyNote title={copy('This fundraiser isn’t here', 'ეს შეგროვება აქ არ არის')} /></PageFrame>;
     return <PageFrame><div role="status" aria-label={copy('Opening the fundraiser’s project', 'შეგროვების პროექტი იხსნება')}><Skeleton height={120} /></div></PageFrame>;
 }

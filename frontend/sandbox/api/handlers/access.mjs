@@ -78,18 +78,23 @@ get('/access/squads/:id', ({ params, headers }) => {
         : refusal(action, 'ONLY_SQUAD_COACHES', 'Only this squad’s head coach or assistant coach can do this.'))) };
 });
 
-// Agreed exchange matches of Luka's club that have ended without a score; the newest is the one Home asks about.
+// Agreed matches of Luka's club that have ended and wait on a score from us: one to report, or the other side's report
+// to confirm or dispute (step 6: one list on Home and in the inbox, one tap each).
 get('/me/results-waiting', ({ headers }) => {
   if (V.isNewcomer(headers)) return [];
   return F.exchange
-    .filter(l => l.status === 'ARRANGED' && l.opponentSquadId && !l.score && new Date(l.end ?? l.start).getTime() <= Date.now())
+    .filter(l => l.status === 'ARRANGED' && (l.opponentSquadId || l.outside) && (!l.score || l.resultStatus === 'REPORTED') && new Date(l.end ?? l.start).getTime() <= Date.now())
     .map(l => {
       const host = F.sq(l.hostSquadId), guest = F.sq(l.opponentSquadId);
       const ours = host && F.isMineClub(host.clubId) ? host : guest && F.isMineClub(guest.clubId) ? guest : null;
       if (!ours) return null;
       const theirs = ours === host ? guest : host;
       const opponent = theirs ? W.clubs.find(club => club.id === theirs.clubId) : null;
-      return { kind: 'MATCH_EXCHANGE', id: l.id, title: l.title, startsAt: new Date(l.start).toISOString(), squadId: ours.id, squadName: ours.name, opponentName: opponent?.name ?? null };
+      const side = ours === host ? 'HOME' : 'AWAY', confirm = l.resultStatus === 'REPORTED' && l.reportedBy && l.reportedBy !== side;
+      if (l.resultStatus === 'REPORTED' && !confirm) return null;
+      return { kind: 'MATCH_EXCHANGE', id: l.id, title: l.title, startsAt: new Date(l.start).toISOString(), squadId: ours.id, squadName: ours.name, opponentName: opponent?.name ?? l.outside ?? null,
+        reportAs: side, action: confirm ? 'CONFIRM' : 'REPORT', answerAs: confirm ? side : null, reported: confirm ? { home: l.score[0], away: l.score[1] } : null, disputed: null,
+        revision: confirm ? l.revision : null, disputeUntil: confirm ? new Date(new Date(l.end).getTime() + 48 * 3600e3).toISOString() : null };
     })
     .filter(Boolean)
     .sort((a, b) => b.startsAt.localeCompare(a.startsAt));

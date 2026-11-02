@@ -26,5 +26,8 @@ export function parseMatchCode(code: string): ParsedCode | null {
     return { source: kind === 'x' ? 'MATCH_EXCHANGE' : 'SCHEDULE', id: Number(first) };
 }
 
-/** The match's full page (the backend points arranged matches at their result section). */
-export const matchPagePath = (match: Pick<HistoryMatch, 'detailPath'>) => match.detailPath.replace(/#result$/, '');
+/** The match's full page, opened from World (the backend points arranged matches at their result section). */
+export const matchPagePath = (match: Pick<HistoryMatch, 'detailPath'>) => {
+    const path = match.detailPath.replace(/#result$/, '');
+    return path.startsWith('/matches/') && !path.includes('?') ? `${path}?from=world` : path;
+};

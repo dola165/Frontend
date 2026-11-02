@@ -120,6 +120,7 @@ describe('your first week, in the corner', () => {
         await user.click(screen.getByRole('button', { name: 'Keep' }));
         expect(await screen.findByRole('link', { name: /Meet GrassKickZ World/ })).toBeInTheDocument();
         expect(week()?.cardDismissed).toBe(false);
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Hide your first week' })).toHaveFocus());
         await user.keyboard('{Escape}');
         expect(await screen.findByRole('button', { name: /Your first week · 0 of 3/ })).toHaveFocus();
         await user.click(screen.getByRole('button', { name: /Your first week/ }));

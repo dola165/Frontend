@@ -30,8 +30,10 @@ import { VenueOrganizations } from "../features/venues/VenueOrganizations";
 import { venueMapLink } from "../features/venues/venueMapLink";
 import { canBookVenue, fromPrice, money, safeWebsite } from "../features/venues/utils";
 import "../features/venues/venues.css";
+import { VenueBookingTargetPage } from "../features/venues/VenueBookingTargetPage";
 
 export function StadiumProfilePage() {
+  const [params] = useSearchParams();
   const { organizationId } = useParams(),
     { sessionId } = useAuth();
   if (!organizationId || !/^\d+$/.test(organizationId))
@@ -41,6 +43,7 @@ export function StadiumProfilePage() {
         <Link to="/stadiums">Explore stadiums</Link>
       </main>
     );
+  if (params.has('bookingId')) return <VenueBookingTargetPage key={`${organizationId}-${sessionId}`} venueId={organizationId} bookingId={params.get('bookingId') ?? ''}/>;
   return (
     <StadiumProfile
       key={`${organizationId}-${sessionId}`}

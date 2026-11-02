@@ -2,14 +2,15 @@
 // (Irakli) and the facilities coordinator (Levan) hold a job with no page of its own, so Club office and no squads, as
 // the physio persona has; the project coach is Luka as a head coach who is not an admin, as the headcoach persona;
 // the kit parent (Nana) is a U12 parent with no club tabs, only Parent Hub. Registered first, so every other handler
-// answers these personas as the job they stand for; Projects, fundraisers and media keep the real persona.
+// answers these personas as the job they stand for; Projects, fundraisers and media keep the real persona. The media
+// officer (Home, step 7) is the equipment manager elsewhere; posts and the club's post switches keep the real persona.
 import { first, handleApi, reply } from '../router.mjs';
 import * as V from '../viewer.mjs';
 import * as J from '../world-projects.mjs';
 
-const ACTS_AS = { commercial: 'physio', facilities: 'physio', projectcoach: 'headcoach' };
+const ACTS_AS = { commercial: 'physio', facilities: 'physio', projectcoach: 'headcoach', media: 'kit' };
 const WHO = { commercial: J.irakli, facilities: J.levan, kitparent: J.nana };
-const OWN_PERSONA = /^\/(projects|clubs\/\d+\/projects|campaigns|media|sandbox-media)(\/|$)/;
+const OWN_PERSONA = /^\/(projects|clubs\/\d+\/projects|campaigns|media|sandbox-media|posts|clubs\/\d+\/record-posts)(\/|$)/;
 
 const asPersona = (headers, persona) => ({
   ...headers,

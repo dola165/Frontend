@@ -97,6 +97,6 @@ export function PlayStep({ who, facts, land, back, close, part, openPart }: Welc
         <ClubPicker clubs={clubs} chosen={chosen} onToggle={toggle} label={copy('Clubs to follow', 'გამოსაწერი კლუბები')}
             empty={who === 'child' && age == null ? copy('Pick the year to see clubs.', 'აირჩიეთ წელი, რომ კლუბები ნახოთ.') : copy('No clubs here yet. Try another town.', 'აქ კლუბები ჯერ არ არის. სცადეთ სხვა ქალაქი.')} />
         {failed && <p role="alert" className="gk-notice gk-notice--warning">{copy('Some follows did not go through. Try again.', 'ზოგი გამოწერა ვერ შესრულდა. სცადეთ ხელახლა.')}</p>}
-        <button type="button" className="gk-welcome__quiet" disabled={busy} onClick={() => void finish(`/world/map?near=${encodeURIComponent(town)}`)}>{copy('See all on the map', 'ყველას ნახვა რუკაზე')}</button>
+        <button type="button" className="gk-welcome__quiet" disabled={busy} onClick={() => void finish(`/world/clubs?near=${encodeURIComponent(town)}`)}>{copy('See all on the map', 'ყველას ნახვა რუკაზე')}</button>
     </WelcomeFrame>;
 }

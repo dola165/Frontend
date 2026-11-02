@@ -26,6 +26,9 @@ vi.mock('../../../../api/notifications', () => ({
     markAllNotificationsAsRead: api.markAllNotificationsAsRead,
 }));
 vi.mock('../../../../features/mapPlanning/JourneyReminderActions', () => ({ JourneyReminderActions: () => null }));
+// A canonical MATCH_RESULT must never mount the old independent result preview/read.
+vi.mock('../../../../features/actions/useResultsWaiting', () => ({ useResultsWaiting: () => { throw new Error('Duplicate result read'); } }));
+vi.mock('../../../../features/actions/ResultsWaitingList', () => ({ ResultsWaitingList: () => { throw new Error('Duplicate result preview'); } }));
 
 const english = (en: string) => en;
 const request = (overrides: Partial<RequestItem> = {}): RequestItem => ({
@@ -78,6 +81,20 @@ describe('inbox badge and name', () => {
 
 describe('Inbox button', () => {
     const renderButton = () => render(<MemoryRouter><InboxButton /></MemoryRouter>);
+
+    it('shows a canonical result once with one count and clears it when another actor answers', async () => {
+        const result = request({ key: 'MATCH_RESULT:41', family: 'MATCH_RESULT', id: 41, title: 'Confirm the result', destination: '/matches/41', actionLabel: 'CONFIRM' });
+        api.requests.mockResolvedValue(page([result], 1));
+        renderButton();
+        fireEvent.click(await screen.findByRole('button', { name: /Inbox: 1 need you/ }));
+        expect(await screen.findAllByRole('link', { name: /Confirm the result/ })).toHaveLength(1);
+        expect(inboxBadge(counts({ needsYou: 1 }))).toEqual({ count: 1, atLeast: false });
+        api.requests.mockResolvedValue(page([], 0));
+        await act(async () => { window.dispatchEvent(new Event('requests-updated')); });
+        await screen.findByText('Nothing needs you right now');
+        expect(screen.queryByRole('link', { name: /Confirm the result/ })).toBeNull();
+        expect(screen.getByRole('button', { name: /Inbox: 0 need you/ })).toBeInTheDocument();
+    });
 
     it('shows "2+" when some request types could not load', async () => {
         api.requests.mockResolvedValue(page([], 2, ['tournaments']));

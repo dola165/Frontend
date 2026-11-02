@@ -26,7 +26,7 @@ export const MORE_TOOLS = [
     { id: 'safeguarding', page: ['Safeguarding', 'ბავშვთა დაცვა'], tools: ['welfare', 'guardians'] },
     { id: 'money', page: ['Money', 'ფული'], tools: ['finance'] },
     { id: 'club-page', page: ['The club page', 'კლუბის გვერდი'], tools: ['facilities', 'programmes', 'store'] },
-    { id: 'scouting', page: ['Scouting', 'სკაუტინგი'], tools: ['tryouts', 'club-approaches'] },
+    { id: 'scouting', page: ['Scouting', 'სკაუტინგი'], tools: ['scouting', 'tryouts', 'club-approaches'] },
     { id: 'travel', page: ['Travel', 'მგზავრობა'], tools: ['travel'] },
 ] as const;
 

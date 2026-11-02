@@ -5,7 +5,7 @@ import { maplibreWorkerUrl } from '../../../components/map/maplibreWorker';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { prefersLightMapRendering } from '../../../components/map/mapPerformance';
-import type { MapFocus, MapLine, MapReach } from '../stage/stageContext';
+import type { MapFocus, MapLine, MapReach, MapYou } from '../stage/stageContext';
 import { AwayLayer } from './canvas/AwayLayer';
 import { ReachLayer } from './canvas/ReachLayer';
 import { reducedMotion } from './canvas/useMapTheme';
@@ -106,11 +106,12 @@ function ChipsInView({ points, onChange }: { points: WorldMapPoint[]; onChange?:
 }
 
 /** The street-map layer of WorldMap. Loaded only when the map style is available. */
-export default function WorldLiveMap({ style, points, context = [], reach, away, selectedId, highlightId, onSelect, onHover, onMoveEnd, onView, onFail, insetRight, insetLeft, insetTop, gestures = 'cooperative', focus, frame, onFewInView }: {
+export default function WorldLiveMap({ style, points, context = [], reach, away, you, selectedId, highlightId, onSelect, onHover, onMoveEnd, onView, onFail, insetRight, insetLeft, insetTop, gestures = 'cooperative', focus, frame, onFewInView }: {
     style: StyleSpecification; points: WorldMapPoint[]; onFail: () => void; insetRight?: number; insetLeft?: number; insetTop?: number;
     /** Whether few enough pins are in view for each to say its time. */ onFewInView?: (few: boolean) => void;
     /** Places that give the results context, and a stated reach to draw. */ context?: WorldMapPoint[]; reach?: MapReach;
     /** An away day to draw. */ away?: MapLine;
+    /** The person's own place: a marker they can drag to search from elsewhere. */ you?: MapYou;
     /** Only moves the person made: framing the points is not one. */ onMoveEnd?: (bounds: MapBounds) => void;
     /** Every view the map settles on, the person's moves and its own alike. */ onView?: (bounds: MapBounds) => void;
     /** In a page that scrolls the wheel scrolls the page unless a key is held ('cooperative'); a map filling the screen answers it directly ('free'). */ gestures?: 'cooperative' | 'free';
@@ -137,13 +138,17 @@ export default function WorldLiveMap({ style, points, context = [], reach, away,
             pixelRatio={prefersLightMapRendering() ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined}
         >
             <NavigationControl position="top-right" showCompass={false} />
-            <FitPoints points={[...points, ...context]} insets={insets} hold={Boolean(focus)} frame={frame} />
+            <FitPoints points={[...points, ...context, ...(you ? [{ id: 'you', lat: you.lat, lng: you.lng, label: you.label, tone: 'club' as const }] : [])]} insets={insets} hold={Boolean(focus)} frame={frame} />
             {/* After FitPoints, so a flight requested with new pins wins over their framing. */}
             <FocusPoint points={points} focus={focus} insets={insets} />
             <ViewReport onView={onView} />
             <ChipsInView points={points} onChange={onFewInView} />
             {reach && <ReachLayer reach={reach} />}
             {away && <AwayLayer line={away} />}
+            {you && <Marker latitude={you.lat} longitude={you.lng} anchor="bottom" draggable={Boolean(you.onMove)} style={{ zIndex: 4 }}
+                onDragEnd={event => you.onMove?.(event.lngLat.lat, event.lngLat.lng)}>
+                <span className="gk-world-you" data-guide="you-marker" title={you.onMove ? wt('Drag to search from another place') : you.label}><span className="gk-world-you__label">{you.label}</span><span className="gk-world-you__dot" aria-hidden="true" /></span>
+            </Marker>}
             {context.map(point => (
                 <Marker key={`context:${point.id}`} latitude={point.lat} longitude={point.lng} anchor="center"><ContextPin point={point} /></Marker>
             ))}

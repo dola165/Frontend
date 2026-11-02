@@ -592,7 +592,63 @@ const refereeAsked = friendly(squadById(104), squadFor(5, 'U14', 'FEMALE'), at(6
 if (refereeAsked.refereeId) refereeAsked.refereeInvite = { id: W.newId(), status: 'INVITED', duty: 'REFEREE', volunteer: false, fee: 80, currency: 'GEL' };
 friendly(squadById(108), squadFor(4, 'U19', 'MALE'), at(3, 18), 90, { venueId: 207, venuePreference: 'AWAY', status: 'CANCELLED', booked: false, referee: null, description: 'Called off: the pitch at Saburtalo is being relaid.' });
 friendly(squadById(106), squadFor(3, 'U16', 'FEMALE'), new Date(W.NOW.getTime() - 20 * 60_000), 90, { referee: fittingReferee('11_A_SIDE') });
+// (e) Step 6, every match the same match: a calendar match against a club that isn't in GrassKickZ (agreed at once), a
+// Saburtalo calendar match against Dinamo's U14s waiting for Dinamo to add it to their week, an older squad session typed
+// as a match with nobody named yet, and Riverside's open challenge over a weekend window.
+const outsideMatch = listing({ hostSquad: squadById(103), start: at(nextDow(0, 8), 11), minutes: 80, venueId: 202, title: 'U14 Boys v Gori Juniors', level: 'DEVELOPMENT', status: 'ARRANGED',
+  description: 'Agreed by phone with Gori’s coach. Added from the club calendar.', refereeRequired: false });
+Object.assign(outsideMatch, { origin: 'CALENDAR', outside: 'Gori Juniors' });
+const asked = listing({ hostSquad: squadFor(4, 'U14', 'MALE'), start: at(9, 11), minutes: 80, venueId: 207, title: 'Saburtalo U14 v Dinamo Tbilisi U14', level: 'DEVELOPMENT', status: 'ARRANGED', venuePreference: 'HOME',
+  description: 'Added to Saburtalo’s calendar.' });
+Object.assign(asked, { origin: 'CALENDAR', opponentAnswer: 'WAITING', askedClubId: DINAMO });
+const unnamed = listing({ hostSquad: squadById(105), start: at(12, 18), minutes: 90, venueId: 202, title: 'U16 Boys match', level: 'DEVELOPMENT', status: 'ARRANGED', refereeRequired: false,
+  description: 'Was a squad session typed as a match.' });
+unnamed.origin = 'SESSION';
+const windowed = listing({ hostSquad: squadById(112), start: at(nextDow(6, 3), 10), minutes: 30 * 60 + 240, title: 'Riverside U14 open challenge: this weekend', level: 'DEVELOPMENT', venuePreference: 'EITHER',
+  description: 'Any time Saturday or Sunday between 10:00 and 14:00. We can host or travel within Tbilisi.' });
+windowed.end = new Date(windowed.start.getTime() + 24 * 3600e3 + 4 * 3600e3);
+Object.assign(windowed, { windowFrom: '10:00:00', windowTo: '14:00:00', matchMinutes: 80 });
+// A friendly last weekend: the other side reported its score, ours confirms or disputes it.
+const reported = friendly(squadById(104), squadFor(5, 'U14', 'FEMALE'), at(-3, 12), 80, { referee: null });
+Object.assign(reported, { score: [1, 2], resultStatus: 'REPORTED', reportedBy: 'AWAY' });
+// (f) Step 6, part B: Luka also referees (the `referee` persona, My matches): an invitation to answer, a match coming
+// up, a report to write and a match refereed, all between other clubs.
+for (const [home, away, start, invited, played] of [
+  [squadFor(4, 'U16', 'MALE'), squadFor(9, 'U16', 'MALE'), at(4, 16), true, null],
+  [squadFor(3, 'U14', 'MALE'), squadFor(5, 'U14', 'MALE'), at(8, 11), false, null],
+  [squadFor(9, 'U18', 'MALE'), squadFor(3, 'U18', 'MALE'), at(-1, 15), false, null],
+  [squadFor(5, 'U16', 'MALE'), squadFor(4, 'U16', 'MALE'), at(-9, 12), false, [2, 2]],
+]) {
+  const l = friendly(home, away, start, 90, { venueId: clubById(home.clubId).venueId ?? 205, referee: W.ME_ID, booked: false });
+  if (invited) l.refereeInvite = { id: W.newId(), status: 'INVITED', duty: 'REFEREE', volunteer: false, fee: 60, currency: 'GEL' };
+  if (played) Object.assign(l, { score: played, resultStatus: 'CONFIRMED', refereeReportAt: plusMin(start, 140) });
+}
+// (g) Step 6, part B: competition fixtures are matches. A fixture between two clubs' squads with a time, still to be
+// played (or from the last week), has its own match (origin COMPETITION) in both squads' weeks, with call-ups and the
+// next-match card; it follows its fixture, and its result is the organiser's, recorded in the competition.
+for (const t of tournamentList) for (const f of tournamentState.get(t.id)?.fixtures ?? []) {
+  const st = tournamentState.get(t.id), home = st.entries.find(e => e.id === f.homeEntryId), away = st.entries.find(e => e.id === f.awayEntryId);
+  if (!f.scheduledAt || f.status !== 'SCHEDULED' || !home?.squadId || !away?.squadId) continue;
+  const hs = squadById(home.squadId), as = squadById(away.squadId), start = new Date(f.scheduledAt);
+  if (!hs || !as || hs.clubId !== home.clubId || as.clubId !== away.clubId || start.getTime() < Date.now() - 7 * 864e5) continue;
+  const rec = listing({ hostSquad: hs, opponentSquad: as, start, minutes: competitionRules(t).matchMinutes, venueId: f.locationId ?? undefined, title: `${clubById(hs.clubId).name} v ${clubById(as.clubId).name}`,
+    description: t.name, level: 'COMPETITIVE', status: 'ARRANGED', refereeRequired: false, kind: 'LEAGUE' });
+  // Our first one has the competition's accepted referee (fix round 1: its referees come from there).
+  const appointed = exchange.some(l => l.competitionReferees?.length) || ![hs.clubId, as.clubId].includes(DINAMO) ? [] : [{ id: W.newId(), referee_id: referees[0].id, full_name: referees[0].fullName, status: 'ACCEPTED' }];
+  Object.assign(rec, { origin: 'COMPETITION', competitionId: t.id, competitionName: t.name, fixtureId: f.id, history: [], competitionReferees: appointed });
+  f.matchId = rec.id;
+}
 export const listingById = id => exchange.find(l => l.id === Number(id));
+/** Connect an existing calendar fixture to this same canonical identity; never copy a score/history. */
+export function connectCalendarFixture(event) {
+  if (listingById(event.id)) return listingById(event.id);
+  const ours = sq(event.squadId), theirs = ours && squadFor(event.opponentClubId, ours.ageGroup, ours.gender);
+  if (!ours || !theirs) return null;
+  const result = listing({ id: event.id, hostSquad: event.home === false ? theirs : ours, opponentSquad: event.home === false ? ours : theirs,
+    start: event.start, minutes: (+event.end - +event.start) / 60000, venueId: event.venueId, title: event.title,
+    description: '', level: 'DEVELOPMENT', refereeRequired: false, status: 'ARRANGED', kind: event.kind ?? 'FRIENDLY' });
+  result.origin = 'CALENDAR'; result.canonical = true; return result;
+}
 export const bookingById = id => bookings.find(b => b.id === Number(id));
 /** When a reservation the venue has not answered lapses (the backend expires it lazily; its stored status stays PENDING). */
 const expiresAt = b => plusMin(b.created, 48 * 60);
@@ -618,19 +674,23 @@ export { refereeStatusOf };
 // clubs; none for a plain fan. The football handlers set it once per request.
 let viewerClubs = [DINAMO];
 export const setViewerClubs = clubs => { viewerClubs = Array.isArray(clubs) ? clubs : [DINAMO]; };
+// Luka refereeing (the `referee` persona, step 6): his own appointments on a match. Null for everyone else.
+let viewerReferee = null;
+export const setViewerReferee = id => { viewerReferee = id ?? null; };
 export const isMineClub = id => viewerClubs.includes(Number(id));
-export const involves = (l, clubs) => clubs.includes(squadById(l.hostSquadId).clubId) || clubs.includes(l.requestedClubId) || Boolean(l.opponentSquadId && clubs.includes(squadById(l.opponentSquadId).clubId)) || l.proposals.some(p => clubs.includes(p.club_id));
+export const involves = (l, clubs) => clubs.includes(squadById(l.hostSquadId).clubId) || clubs.includes(l.requestedClubId) || clubs.includes(l.askedClubId) || Boolean(l.opponentSquadId && clubs.includes(squadById(l.opponentSquadId).clubId)) || l.proposals.some(p => clubs.includes(p.club_id));
 export const involvesDinamo = l => involves(l, viewerClubs);
 export const listingView = (l, { detail = false } = {}) => {
   const host = squadById(l.hostSquadId), club = clubById(host.clubId), v = l.venueId ? venueById(l.venueId) : null, opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null;
   const past = l.end.getTime() < Date.now(), mineHost = isMineClub(club.id), mineGuest = Boolean(opp && isMineClub(opp.clubId));
-  const eventStatus = l.status === 'CANCELLED' ? 'CANCELLED' : past && opp ? 'COMPLETED' : 'SCHEDULED';
+  const eventStatus = l.status === 'CANCELLED' ? 'CANCELLED' : past && (opp || l.outside || l.opponentAnswer) ? 'COMPLETED' : 'SCHEDULED';
   const listingStatus = l.status === 'OPEN' && past ? 'EXPIRED' : l.status;
   const head = mineHost ? personById(host.headCoachId) : null;
   const resultStatus = l.score ? l.resultStatus ?? 'CONFIRMED' : null, scored = resultStatus === 'CONFIRMED';
   const out = {
     requested_club_id: l.requestedClubId, requested_squad_id: l.requestedSquadId ?? null, external_referee_name: l.externalRefereeName ?? null, referee_responsibility: l.refereeResponsibility ?? 'HOST', hosting_choice: l.hostingChoice ?? l.venuePreference,
-    can_respond: !mineHost && listingStatus === 'OPEN' && isMineClub(l.requestedClubId), can_arrange_official: (l.refereeResponsibility ?? 'HOST') === 'OPPONENT' ? mineGuest : mineHost,
+    // A competition match's referees are the competition's appointments: nobody invites another (fix round 1).
+    can_respond: !mineHost && listingStatus === 'OPEN' && isMineClub(l.requestedClubId), can_arrange_official: l.origin === 'COMPETITION' ? false : (l.refereeResponsibility ?? 'HOST') === 'OPPONENT' ? mineGuest : mineHost,
     home_score: scored ? l.score[0] : null, away_score: scored ? l.score[1] : null, result_status: resultStatus, result_legacy: false,
     event_id: l.id, squad_id: host.id, squad_name: host.name, club_id: club.id, club_name: club.name, club_profile_kind: CATEGORY_LABEL[clubCategory(club)], club_logo_url: club.logoUrl, club_banner_url: club.bannerUrl,
     title: l.title, description: l.description, starts_at: local(l.start), ends_at: local(l.end), starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), timezone: TZ,
@@ -640,13 +700,22 @@ export const listingView = (l, { detail = false } = {}) => {
     external_venue_confirmed: Boolean(l.externalConfirmed), revision: l.revision, listing_status: listingStatus, event_status: eventStatus, venue_status: venueStatusOf(l), referee_status: refereeStatusOf(l),
     opponent_name: opp ? clubById(opp.clubId).name : null, opponent_club_id: opp?.clubId ?? null, opponent_squad_name: opp?.name ?? null, target_squad_id: opp?.id ?? null,
     head_coach_id: head?.id ?? null, coach_name: head ? head.fullName : clubCoachName(club.id), can_manage: mineHost, can_arrange: mineHost || mineGuest, can_record_result: (mineHost || mineGuest) && past && !l.score,
+    // Step 6: one match, one page. Where it came from, an opponent outside the app or one asked to add it, an open
+    // challenge's window, and what this viewer may answer.
+    origin: l.origin ?? 'ARRANGED', outside_opponent: l.outside ?? null, opponent_answer: l.opponentAnswer ?? null, opponent_asked_club: l.askedClubId ?? null,
+    window_from: l.windowFrom ?? null, window_to: l.windowTo ?? null, match_minutes: l.matchMinutes ?? null, event_type: l.kind === 'LEAGUE' ? 'MATCH' : 'FRIENDLY',
+    visibility: l.requestedClubId || l.outside || l.opponentAnswer ? 'PRIVATE' : 'PUBLIC', viewer_squad_id: mineHost ? host.id : mineGuest ? opp.id : null,
+    can_answer_opponent: l.opponentAnswer === 'WAITING' && isMineClub(l.askedClubId) && !past, can_name_opponent: mineHost && l.status === 'ARRANGED' && !opp && !l.outside && !l.opponentAnswer,
+    opponent_logo_url: opp ? clubById(opp.clubId).logoUrl : null,
+    // Part B: a competition fixture's match names its competition, whose organiser records the result.
+    competition_id: l.competitionId ?? null, competition_name: l.competitionName ?? null, competition_referees: l.competitionReferees ?? [],
   };
   if (detail) {
     out.proposals = mineHost ? l.proposals : l.proposals.filter(p => isMineClub(p.club_id));
     out.history = l.history;
     const ref = l.refereeId ? personById(l.refereeId) : null;
     out.appointments = [...(ref ? [appointmentView(l, ref)] : []), ...(l.assistants ?? []).map(official => appointmentView(l, personById(official.refereeId), official))];
-    out.own_appointments = [];
+    out.own_appointments = viewerReferee == null ? [] : out.appointments.filter(a => a.referee_id === viewerReferee);
     const b = l.bookingId ? bookingById(l.bookingId) : null;
     if (b) out.booking = { id: b.id, venue_id: b.venueId, pitch_id: b.pitchId, status: effectiveStatus(b), stored_status: b.status, starts_at: iso(b.start), ends_at: iso(b.end),
       expires_at: b.status === 'PENDING' ? iso(expiresAt(b)) : null };
@@ -660,9 +729,12 @@ export const appointmentView = (l, ref, official = l.refereeInvite) => {
   const host = squadById(l.hostSquadId), club = clubById(host.clubId), v = l.venueId ? venueById(l.venueId) : null, opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null;
   const profile = refereeProfiles.find(r => r.user_id === ref.id);
   const invite = official, volunteer = invite ? invite.volunteer : !profile?.accepts_paid;
-  return { id: official?.id ?? refereeAppointmentId(l), event_id: l.id, referee_id: ref.id, full_name: ref.fullName, duty: invite?.duty ?? 'REFEREE', status: invite?.status ?? 'ACCEPTED', volunteer,
-    fee: invite ? invite.fee : volunteer ? null : profile?.fee ?? null, currency: invite?.currency ?? 'GEL', report: null, report_submitted_at: null,
-    title: l.title, starts_at: local(l.start), ends_at: local(l.end), timezone: TZ, event_status: 'SCHEDULED', starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), club_name: club.name, opponent_name: opp ? clubById(opp.clubId).name : null, location_name: v?.name ?? '', invited_by_name: W.me.fullName, venue_status: 'BOOKED', allowed_actions: [], inbox_section: 'CURRENT' };
+  return { id: official?.id ?? refereeAppointmentId(l), event_id: l.id, event_type: l.kind === 'LEAGUE' ? 'MATCH' : 'FRIENDLY', referee_id: ref.id, full_name: ref.fullName, duty: invite?.duty ?? 'REFEREE', status: invite?.status ?? 'ACCEPTED', volunteer,
+    fee: invite ? invite.fee : volunteer ? null : profile?.fee ?? null, currency: invite?.currency ?? 'GEL', report: l.refereeReportAt ? 'Match report sent.' : null, report_submitted_at: l.refereeReportAt ? iso(l.refereeReportAt) : null,
+    title: l.title, starts_at: local(l.start), ends_at: local(l.end), timezone: TZ, event_status: 'SCHEDULED', starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), club_name: club.name, opponent_name: opp ? clubById(opp.clubId).name : null, location_name: v?.name ?? '', invited_by_name: W.me.fullName, venue_status: 'BOOKED',
+    // Luka refereeing answers his own invitation, or withdraws from (or reports he could not attend) a match he took.
+    allowed_actions: viewerReferee !== ref.id ? [] : (invite?.status ?? 'ACCEPTED') === 'INVITED' ? ['ACCEPT', 'DECLINE'] : (invite?.status ?? 'ACCEPTED') === 'ACCEPTED' ? ['WITHDRAW', 'REPORT_INABILITY'] : [],
+    inbox_section: 'CURRENT' };
 };
 
 // ---------------------------------------------------------------- club calendar & personal schedule

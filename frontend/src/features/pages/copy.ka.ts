@@ -1,5 +1,7 @@
 /** Georgian for every page string, keyed by the English text (see copy.ts). */
 export const PAGES_KA: Record<string, string> = {
+  "This page is private. Review it before publishing again.": "ეს გვერდი პირადია. ხელახლა გამოქვეყნებამდე გადახედეთ მას.",
+  "This page is private": "ეს გვერდი პირადია",
   'Receipt: {id}': 'მოთხოვნის ნომერი: {id}',
   'View request': 'მოთხოვნის ნახვა',
   'Verification': 'დადასტურება',

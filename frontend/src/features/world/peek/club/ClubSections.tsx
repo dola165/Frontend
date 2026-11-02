@@ -11,8 +11,9 @@ import type { Participant } from '../../../admissions/types';
 import { plural, useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { codeLabel, ENGAGEMENT, fixtureDay, postedLabel, shortDate } from '../../format';
-import { fitsAge, programmeAges, programmeFee, publicProgrammes } from '../../cards/programmes';
-import { ageOn } from '../../players';
+import { bornOfCode, fitsAge, programmeAges, programmeBorn, programmeFee, publicProgrammes } from '../../cards/programmes';
+import { ageOn, useWorldChild } from '../../players';
+import { parentName } from '../../finder/waysIn';
 import { HistoryLine } from '../../scoreboard/HistoryLine';
 import { matchCode } from '../../scoreboard/matchCode';
 import { useClubCrests } from '../../scoreboard/useClubCrests';
@@ -33,12 +34,13 @@ function Related({ to, peek, children }: { to: string; peek: string; children: s
 /** The club's teams, each to its place on the club's Teams & training; in their tab, with who coaches each. */
 export function TeamsSection({ squads, coaches, link, more, all }: { squads: PublicSquad[]; coaches: PublicStaff[]; link: (extra?: Record<string, string>) => string; more?: PaneMore; all?: boolean }) {
     const t = useWorldCopy();
+    const { isParent } = useWorldChild();
     if (all) return (
         <PaneSection title={t('Teams')} count={squads.length} more={more}>
             <ul className="gk-peek-list gk-pane-grid">{squads.map(squad => {
                 const theirs = coaches.filter(person => squadsOf(person).some(item => item.id === squad.id));
-                // Its age group when the name does not say it, and who coaches it.
-                const age = codeLabel(squad.category);
+                // Its age group when the name does not say it (a parent reads the birth year), and who coaches it.
+                const age = (isParent && bornOfCode(squad.category)) || codeLabel(squad.category);
                 const about = [!squad.name.toLowerCase().includes(age.toLowerCase()) && age, ...theirs.slice(0, 2).map(person => person.fullName)].filter(Boolean);
                 return (
                     <li key={squad.id} className="gk-pane-line">
@@ -61,6 +63,7 @@ export function TeamsSection({ squads, coaches, link, more, all }: { squads: Pub
 /** Training programmes with their ages and fees (in their tab, how often and what the club says of them); for a parent searching for a child, the ones that fit come first, marked. */
 export function ProgrammesSection({ club, child, link, more, all }: { club: PaneClub; child?: Participant; link: (extra?: Record<string, string>) => string; more?: PaneMore; all?: boolean }) {
     const t = useWorldCopy();
+    const { isParent } = useWorldChild();
     const programmes = publicProgrammes(club.presentation), age = ageOn(child?.dateOfBirth);
     if (!programmes.length) return null;
     const fits = (programme: (typeof programmes)[number]) => age != null && fitsAge(programme, age);
@@ -69,8 +72,8 @@ export function ProgrammesSection({ club, child, link, more, all }: { club: Pane
         <PaneSection title={t('Training programmes')} count={programmes.length} more={more}>
             <ul className={`gk-peek-list${all ? ' gk-pane-grid' : ''}`}>{sorted.slice(0, all ? undefined : 3).map(programme => (
                 <li key={programme.id ?? programme.name} className="gk-pane-line">
-                    {programme.id != null ? <Link to={link({ programme: String(programme.id) })}>{programme.name}</Link> : <b>{programme.name}</b>}
-                    <small>{[programmeAges(programme), programmeFee(programme), all && programme.sessionsPerWeek ? t('{count} a week', { count: plural(programme.sessionsPerWeek, 'session') }) : null].filter(Boolean).join(' · ')}{fits(programme) && child && <span className="gk-result-open"> · {t('Fits {name}', { name: child.name.split(' ')[0] })}</span>}</small>
+                    {programme.id != null ? <Link to={link({ programme: String(programme.id) })}>{isParent ? parentName(programme.name) ?? programmeBorn(programme) : programme.name}</Link> : <b>{isParent ? parentName(programme.name) ?? programmeBorn(programme) : programme.name}</b>}
+                    <small>{[isParent ? programmeBorn(programme) : programmeAges(programme), programmeFee(programme), all && programme.sessionsPerWeek ? t('{count} a week', { count: plural(programme.sessionsPerWeek, 'session') }) : null].filter(Boolean).join(' · ')}{fits(programme) && child && <span className="gk-result-open"> · {t('Fits {name}', { name: child.name.split(' ')[0] })}</span>}</small>
                     {all && programme.details && <p className="gk-pane-note">{programme.details}</p>}
                 </li>
             ))}</ul>
@@ -127,12 +130,13 @@ export function MatchesSection({ next, results, more, all }: { next: HistoryMatc
 /** Open trials: each opens over the club. */
 export function TrialsSection({ trials, count, more, all }: { trials: TryoutPosting[]; count: number; more?: PaneMore; all?: boolean }) {
     const t = useWorldCopy();
+    const { isParent } = useWorldChild();
     return (
         <PaneSection title={t('Trials')} count={count} more={more}>
             <ul className={`gk-peek-list${all ? ' gk-pane-grid' : ''}`}>{trials.slice(0, all ? undefined : 2).map(trial => (
                 <li key={trial.id} className="gk-pane-line">
                     <Related to={`/tryouts/${trial.id}`} peek={peekOf('trial', trial.id)}>{trial.title}</Related>
-                    <small>{[trial.tryoutDate ? fixtureDay(trial.tryoutDate) : null, codeLabel(trial.ageGroup), trial.deadline ? t('Apply by {date}', { date: shortDate(trial.deadline) ?? '' }) : null].filter(Boolean).join(' · ')}</small>
+                    <small>{[trial.tryoutDate ? fixtureDay(trial.tryoutDate) : null, (isParent && bornOfCode(trial.ageGroup)) || codeLabel(trial.ageGroup), trial.deadline ? t('Apply by {date}', { date: shortDate(trial.deadline) ?? '' }) : null].filter(Boolean).join(' · ')}</small>
                 </li>
             ))}</ul>
         </PaneSection>

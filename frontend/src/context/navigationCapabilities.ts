@@ -20,6 +20,7 @@ const destinations: Record<string, { type: string; title: string; path: (id: num
     'club.workspace': { type: 'club', title: 'Club office', path: id => `/clubs/${id}/office` },
     'club.operations': { type:'club',title:'Club office',path:id=>`/clubs/${id}/office` },
     'club.office': { type: 'club', title: 'Club office', path: id => `/clubs/${id}/office` },
+    'club.job-workspaces': { type: 'club', title: 'Your club work', path: id => `/clubs/${id}/work` },
     // Projects (step 4): the jobs that run every project, and other staff while on an open project.
     'club.projects': { type: 'club', title: 'Projects', path: id => `/projects?club=${id}` },
     'club.member': { type:'club',title:'Club appointment',path:id=>`/clubs/${id}` },
@@ -39,6 +40,11 @@ const destinations: Record<string, { type: string; title: string; path: (id: num
     'squad.workspace': { type: 'squad', title: 'Squad', path: id => `/squads/${id}` },
     'admin.console': { type: 'user', title: 'Admin', path: () => '/admin' },
     'team.work': { type: 'user', title: 'Team work', path: () => '/team-work' },
+    // Held back in release 17: the server lists these only while their switch is on.
+    'store.purchase-requests': { type: 'user', title: 'My requests', path: () => '/store/cart?view=requests' },
+    'fundraising.personal': { type: 'user', title: 'My appeals', path: () => '/campaigns?mine=all' },
+    // Life, private wellbeing: a Club office tool, so its door is the person's club.
+    'care.life': { type: 'user', title: 'Life', path: () => '/my-club' },
 };
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -82,7 +88,7 @@ export const capabilitiesKnown = (projection: NavigationCapabilities | undefined
 
 /** Links someone else confirmed: club staff, a squad's coach, a guardian with a child, a referee or an agent. */
 export const hasConfirmedLinks = (projection: NavigationCapabilities | undefined) =>
-    ['club.workspace', 'club.operations', 'club.office', 'club.projects', 'club.member', 'club.player', 'club.family', 'squad.workspace', 'parent.hub', 'referee.workspace', 'agent.hub']
+    ['club.workspace', 'club.operations', 'club.office', 'club.job-workspaces', 'club.projects', 'club.member', 'club.player', 'club.family', 'squad.workspace', 'parent.hub', 'referee.workspace', 'agent.hub']
         .some(id => hasNavigationCapability(projection, id));
 
 /** Administration stays an account-level right (the one place the account role still decides anything). */

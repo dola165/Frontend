@@ -1,20 +1,35 @@
 import { safeNotificationLink } from '../../utils/notificationDestinations';
+import { homePendingDestination } from '../feed/homePendingDestinations';
+import { announceHomeInboxRead } from '../feed/homePendingSignals';
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import type { AuthSessionId } from '../../utils/authStorage';
 
 export interface RequestItem { key: string; family: string; id: number; title: string; context: string; status: string; direction: string; actionable: boolean; updatedAt: string; destination: string; actionLabel: string }
 export interface RequestPage { items: RequestItem[]; counts: { incoming: number; actionable: number; outgoing: number; history: number }; total: number; hasMore: boolean; unavailableSources: string[] }
+export interface PendingRequests { items: RequestItem[]; unavailableSources: string[]; complete: boolean }
+/** One server snapshot of all actionable work; Home never assembles independent offset pages. */
+export const pendingRequests = (sessionId: AuthSessionId, signal: AbortSignal) =>
+  apiClient.get<PendingRequests>('/requests/pending', { signal, _authSessionId: sessionId } as AuthSessionRequestConfig).then(r => {
+    if (r.data.complete !== true) throw new Error('Pending requests snapshot is incomplete');
+    return r.data;
+  });
 export interface EventItem { kind: 'TOURNAMENT' | 'SCHEDULE' | 'SESSION' | 'TRYOUT'; id: number; name: string; activity: string; status: string; startsAt: string | null; endsAt: string | null; location: string | null; context: string; destination: string; recurring: boolean }
 export interface EventPage { items: EventItem[]; total: number; hasMore: boolean }
 export const requests = (view: string, page: number, sessionId: AuthSessionId, signal: AbortSignal, size = 20) =>
-  apiClient.get<RequestPage>('/requests', { params: { view, page, size }, signal, _authSessionId: sessionId } as AuthSessionRequestConfig).then(r => r.data);
+  apiClient.get<RequestPage>('/requests', { params: { view, page, size }, signal, _authSessionId: sessionId } as AuthSessionRequestConfig).then(r => {
+    if (view === 'INCOMING' && page === 0 && size === 1 && !signal.aborted) announceHomeInboxRead(sessionId);
+    return r.data;
+  });
 export const eventSearch = (params: Record<string, string | number | undefined>, sessionId: AuthSessionId, signal: AbortSignal) =>
   apiClient.get<EventPage>('/tournaments/discovery', { params, signal, _authSessionId: sessionId } as AuthSessionRequestConfig).then(r => r.data);
 
 // This read projection has its own narrow route contract. Notification links keep their existing allowlist.
 function wireRequestDestination(value: string): string | null {
   if (!value || /[\\\s%]/.test(value) || value.startsWith('//')) return null;
-  const match = /^\/(?:club-operations|map|account|my-organizations|parent|reports|admin|referees\/me|profile\/[1-9]\d*|agent|notifications|clubs\/[1-9]\d*\/workspace|tryouts\/[1-9]\d*|tournaments\/[1-9]\d*|match-exchange\/[1-9]\d*|projects\/[1-9]\d*)(?:[?#].*)?$/.test(value);
+  // Exact fixture concern links produced by CompetitionConcernRequests; no general workspace grant.
+  const concern = /^\/tournaments\/([1-9]\d*)(?:\?tab=matches&fixtureId=([1-9]\d*)|\/workspace\?view=schedule&fixtureId=([1-9]\d*))$/.exec(value);
+  if (concern) return [concern[1], concern[2] ?? concern[3]].every(id => Number.isSafeInteger(Number(id))) ? value : null;
+  const match = /^\/(?:club-operations|map|account|my-organizations|parent|reports|admin|referees\/me|profile\/[1-9]\d*|agent|notifications|clubs\/[1-9]\d*\/workspace|tryouts\/[1-9]\d*|tournaments\/[1-9]\d*|match(?:es|-exchange)\/[1-9]\d*|projects\/[1-9]\d*)(?:[?#].*)?$/.test(value);
   if (!match) return null;
   const url = new URL(value, 'https://requests.invalid');
   if (url.origin !== 'https://requests.invalid' || value.split(/[?#]/)[0] !== url.pathname) return null;
@@ -43,11 +58,22 @@ function wireRequestDestination(value: string): string | null {
   if (url.hash && !/^#(?:appointment|offer)-[1-9]\d*$/.test(url.hash)) return null;
   return value;
 }
-export function requestDestination(value: string): string | null {
+export function requestDestination(value: string, family?: RequestItem['family']): string | null {
+  // Sealed officer work links only to its canonical record. The source still enforces officer scope.
+  if (family === 'WELFARE_WORK') {
+    const welfare = /^\/clubs\/([1-9]\d*)\/office\?tab=tools&tool=welfare&record=([1-9]\d*)(?:&squad=([1-9]\d*))?$/.exec(value);
+    if (welfare && welfare[0] === value && welfare.slice(1).filter(Boolean).every(id => Number.isSafeInteger(Number(id)))) return value;
+  }
+  if (value.startsWith('/jobs')) {
+    const safe = safeNotificationLink(value);
+    return safe ? safe.pathname : null;
+  }
   if (value.startsWith('/requests') || value.startsWith('/parent?tab=connections&permissionId=')) {
     const safe = safeNotificationLink(value);
     return safe ? safe.pathname + safe.search + safe.hash : null;
   }
+  const home = homePendingDestination(value);
+  if (home) return home;
   const destination = wireRequestDestination(value);
   if (!destination) return null;
   if (destination.startsWith('/club-operations?appointmentId=')) return destination.replace('/club-operations?', '/requests?');
@@ -55,6 +81,6 @@ export function requestDestination(value: string): string | null {
   return destination;
 }
 export function eventDestination(item: EventItem): string | null {
-  const patterns = { TOURNAMENT: /^\/tournaments\/[1-9]\d*$/, SCHEDULE: /^\/(?:calendar\?eventId=[1-9]\d*|match-exchange\/[1-9]\d*)$/, SESSION: /^\/clubs\/[1-9]\d*\?tab=teams&squad=[1-9]\d*$/, TRYOUT: /^\/clubs\/[1-9]\d*\?tab=tryouts$/ };
+  const patterns = { TOURNAMENT: /^\/tournaments\/[1-9]\d*$/, SCHEDULE: /^\/(?:calendar\?eventId=[1-9]\d*|match(?:es|-exchange)\/[1-9]\d*)$/, SESSION: /^\/clubs\/[1-9]\d*\?tab=teams&squad=[1-9]\d*$/, TRYOUT: /^\/clubs\/[1-9]\d*\?tab=tryouts$/ };
   return patterns[item.kind]?.test(item.destination) ? item.destination : null;
 }

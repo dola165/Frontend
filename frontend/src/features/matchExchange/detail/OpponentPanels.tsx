@@ -8,6 +8,8 @@ import { useAction } from '../hooks';
 import { answerInvitation } from './opponentActions';
 import { ChoiceChips } from '../../../design/ChoiceChips';
 import { useOfferDraft } from '../offerDraft';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+import { windowOf } from './matchState';
 
 const PROPOSAL: Record<string, { label: string; tone: BadgeTone }> = {
     PENDING: { label: 'Waiting for a decision', tone: 'warning' }, ACCEPTED: { label: 'Accepted', tone: 'accent' },
@@ -55,7 +57,7 @@ export function ProposalList({ match: m, active, reload }: { match: Match; activ
                         const decide = p.status === 'PENDING' && active;
                         return <ListRow key={p.id} lead={<Crest name={p.club_name} size={40} />}
                             title={<><Link className="gk-match-link" to={`/clubs/${p.club_id}`}>{p.club_name}</Link> · {p.squad_name}</>}
-                            meta={p.note || t("No message")}
+                            meta={[p.kickoff_at ? kickoffWords(p.kickoff_at) : null, p.location_name, p.note || (p.kickoff_at ? null : t("No message"))].filter(Boolean).join(' · ')}
                             trail={decide ? (m.can_manage
                                 ? <><Button size="sm" variant={pending === 1 ? 'primary' : 'secondary'} disabled={busy} onClick={() => void run(() => post(`/match-exchange/${m.event_id}/proposals/${p.id}/decision`, { action: 'ACCEPT', revision: m.revision }), t('{club} accepted. Other proposals were declined.', { club: p.club_name }))}>{t('Accept')}</Button>
                                     <Button size="sm" disabled={busy} onClick={() => void run(() => post(`/match-exchange/${m.event_id}/proposals/${p.id}/decision`, { action: 'DECLINE', revision: m.revision }), t("Proposal declined"))}>{t("Decline")}</Button></>
@@ -69,20 +71,47 @@ export function ProposalList({ match: m, active, reload }: { match: Match; activ
     );
 }
 
-/** Offer one of our squads for an open match, with a note for the host coach. */
+/** "Sat 2 Nov · 11:00", an answer's kick-off as its local wall time. */
+const kickoffWords = (local: string) => {
+    const day = new Date(`${local.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+    return `${day} · ${local.slice(11, 16)}`;
+};
+
+/**
+ * Answer an open challenge with one of our squads and a note for its coach. A challenge with a window asks for our
+ * kick-off inside it, and our ground when we would host; accepting our answer fixes both.
+ */
 export function ProposeForm({ match: m, squads, reload }: { match: Match; squads: Squad[]; reload: () => void }) {
     const t = useMatchCopy();
+    const copy = useJourneyCopy();
     const draft = useOfferDraft(m, squads, squads.length === 1 ? squads[0].id : undefined, reload, reload);
+    const slot = windowOf(m);
+    const day = draft.kickoff?.slice(0, 10) ?? slot?.days[0] ?? '', time = draft.kickoff?.slice(11, 16) ?? '';
+    const latest = slot ? (() => { const [h, mm] = slot.to.split(':').map(Number); const total = h * 60 + mm - slot.minutes; return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`; })() : '';
+    const missingKickoff = Boolean(slot && !(draft.kickoff && time >= slot.from && time <= latest));
     return (
-        <Section title={t("Propose to play")} id="match-proposal">
+        <Section title={copy('Answer the open challenge', 'ღია გამოწვევაზე პასუხი')} id="match-proposal">
             <Panel padded>
-                <form className="gk-match-form" onSubmit={event => { event.preventDefault(); void draft.send(t("Proposal sent to the hosting squad"), t("Unable to save. Please try again.")); }}>
+                <form className="gk-match-form" onSubmit={event => { event.preventDefault(); if (!missingKickoff) void draft.send(copy('Your answer was sent', 'პასუხი გაიგზავნა'), t("Unable to save. Please try again.")); }}>
                     <Field label={t("Your squad")} htmlFor="propose-squad">
                         <select id="propose-squad" className="gk-input" required disabled={!draft.editable} value={draft.squad?.id ?? ''} onChange={event => draft.change({ squadId: event.target.value ? Number(event.target.value) : null })}>
                             <option value="">{t("Choose a squad")}</option>
                             {squads.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </Field>
+                    {slot && <>
+                        <div className="gk-field"><span className="gk-field__label" id="propose-day">{copy('Day', 'დღე')}</span>
+                            <ChoiceChips labelledBy="propose-day" value={day} onChange={value => draft.change({ kickoff: `${value}T${time || slot.from}` })}
+                                choices={slot.days.map(value => ({ value, label: kickoffWords(`${value}T00:00`).split(' · ')[0] }))} /></div>
+                        <Field label={copy(`Kick-off, between ${slot.from} and ${latest}`, `დასაწყისი, ${slot.from}-დან ${latest}-მდე`)} htmlFor="propose-time">
+                            <input id="propose-time" className="gk-input" type="time" required min={slot.from} max={latest} step={300} disabled={!draft.editable}
+                                value={time} onChange={event => draft.change({ kickoff: `${day}T${event.target.value}` })} />
+                        </Field>
+                        <Field label={copy('Where, if you host (optional)', 'სად, თუ მასპინძლობთ (არასავალდებულო)')} htmlFor="propose-ground">
+                            <input id="propose-ground" className="gk-input" maxLength={255} disabled={!draft.editable} value={draft.ground ?? ''} onChange={event => draft.change({ ground: event.target.value })}
+                                placeholder={copy('Our ground, Pitch 2', 'ჩვენი მოედანი, მე-2 მოედანი')} />
+                        </Field>
+                    </>}
                     <Field label={t("Message to the coach")} htmlFor="propose-note" hint={t("Introduce your squad and confirm the time and format work for you.")}>
                         <textarea id="propose-note" className="gk-input" rows={3} maxLength={2000} disabled={!draft.editable} value={draft.note} onChange={event => draft.change({ note: event.target.value })} />
                     </Field>
@@ -92,7 +121,7 @@ export function ProposeForm({ match: m, squads, reload }: { match: Match; squads
                     </div>
                     {draft.edited && <p className="gk-faint">{t('Kept while you browse. Reloading clears this draft.')}</p>}
                     <div className="gk-match-actions">
-                        <Button variant="primary" type="submit" disabled={!draft.editable || !draft.squad}>{t("Send proposal")}</Button>
+                        <Button variant="primary" type="submit" disabled={!draft.editable || !draft.squad || missingKickoff}>{copy("Send our answer", "პასუხის გაგზავნა")}</Button>
                         {draft.edited && <Button variant="ghost" disabled={!draft.editable} onClick={draft.discard}>{t('Discard draft')}</Button>}
                     </div>
                 </form>

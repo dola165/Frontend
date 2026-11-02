@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
@@ -52,6 +52,7 @@ export function ClubProfilePage() {
 }
 
 function ClubProfileView({ id }: { id: number }) {
+    const navigate = useNavigate();
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
     const { club, loading, failed, permissions: can, refresh, followChanged, leftClub, updateImage } = useClubProfile(id);
@@ -98,7 +99,10 @@ function ClubProfileView({ id }: { id: number }) {
         if (player) query.set('player', String(player));
         return query;
     }, { replace: !push });
-    const join = () => setJoin('1', true);
+    // Opened here, closing goes back over its own step, so Back never shows the same page twice.
+    const joinOpenedHere = useRef(false);
+    const join = () => { joinOpenedHere.current = true; setJoin('1', true); };
+    const closeJoin = () => { if (joinOpenedHere.current) { joinOpenedHere.current = false; navigate(-1); } else setJoin(null); };
     const message = () => { if (club) setEnquiry({ name: club.name, path: `/clubs/${club.id}?tab=teams`, squadIds: [] }); };
 
     if ((loading && !club) || (edit.loading && !page && !edit.notFound)) return <ClubLoading />;
@@ -147,8 +151,8 @@ function ClubProfileView({ id }: { id: number }) {
         {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))} onClose={() => setManaging(false)}            onSquadCreated={() => setSquadsRevision(value => value + 1)}
             onDataChanged={() => { refresh(); setSquadsRevision(value => value + 1); }}
             onMembershipLeft={async () => { setManaging(false); await leftClub(); setSquadsRevision(value => value + 1); }} />}
-        {joining && <ClubJoinDialog club={club} part={joinPartFrom(params.get('join'))} onPart={setJoin} onClose={() => setJoin(null)}
-            onContact={(context, player) => { setJoin(null, false, player); setEnquiry(context); }} onChanged={refresh} />}
+        {joining && <ClubJoinDialog club={club} part={joinPartFrom(params.get('join'))} onPart={setJoin} onClose={closeJoin}
+            onContact={(context, player) => { joinOpenedHere.current = false; setJoin(null, false, player); setEnquiry(context); }} onChanged={refresh} />}
         {enquiry && <ClubEnquiryModal key={`${club.id}:${sessionId}:${enquiry.path}`} clubId={club.id} clubName={club.name} context={enquiry} onClose={() => setEnquiry(null)} />}
     </>;
 }

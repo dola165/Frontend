@@ -1,7 +1,7 @@
 import { useId, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BadgeCheck } from 'lucide-react';
-import { Button, ButtonLink, EmptyNote, Skeleton } from '../../../design/primitives';
+import { Button, EmptyNote, Skeleton } from '../../../design/primitives';
 import { Tabs } from '../../../design/Tabs';
 import { Status } from '../../../design/DataTable';
 import { MediaImage } from '../../../components/ui/MediaImage';
@@ -25,7 +25,7 @@ import './club/club-pane.css';
  * A club beside the list (or in a drawer): its cover and crest, who they are and where you stand, the same for everyone,
  * then a tab for each part that has something in it (teams and training first), switching in place. The tab shown is
  * in the address. Everything shown is what the club published. Joining and every other step happen on the club page
- * (the owner, 2 November 2026): its crest, its name and "Club page" open it at the tab shown.
+ * (the owner, 2 November 2026): its crest, its name and the frame's "Club page" open it at the tab shown.
  */
 export default function ClubPeek({ id }: { id: string }) {
     const t = useWorldCopy();
@@ -81,7 +81,6 @@ function ClubPane({ club, extras, retry }: { club: PaneClub; extras?: ClubExtras
                     </div>
                 </header>
                 <div className="gk-club-pane__actions">
-                    <ButtonLink size="sm" variant="primary" to={page}>{t('Club page')}</ButtonLink>
                     <FollowButton subject={{ kind: 'club', id: club.id }} following={actions.following} name={club.name} size="sm" onChange={actions.setFollowing} />
                     {standing && <Status tone={standing.tone}>{t(standing.label)}</Status>}
                     <span className="gk-faint">{[plural(club.memberCount, 'member'), club.followerCount ? plural(club.followerCount, 'follower') : null].filter(Boolean).join(' · ')}</span>

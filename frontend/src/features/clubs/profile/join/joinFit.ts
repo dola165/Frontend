@@ -11,19 +11,28 @@ export interface Player { age: number | null; gender?: 'MALE' | 'FEMALE' | null 
 
 /** Adults are 16 and over here: senior football takes them; youth squads never do. */
 const SENIOR_FROM = 16;
+const VETERANS_FROM = 35;
 
 /**
- * Whether a squad suits a player. "U14" is for 11 to 13 (the three years under its limit); "Senior" and any other
- * open age group for 16 and over. A boys' or men's squad is not for a girl, and the other way round; mixed is for all.
- * An unknown age or gender rules nothing out.
+ * Whether a squad suits a player, from its age group as the club typed it. "U14", "U-14" or "U14 A" is for 11 to 13
+ * (the three years under its limit); a birth year ("2014") for those born within a year of it; "Senior", "Adult" or
+ * "Open" for 16 and over; "Veterans" or "O35" for 35 and over (or the age it names). An age group it cannot read suits
+ * no one, so a youth squad is never offered to an adult. A boys' or men's squad is not for a girl, and the other way
+ * round; mixed is for all. An unknown age or gender rules nothing out.
  */
-export function squadFits(squad: PublicSquad, player: Player) {
+export function squadFits(squad: PublicSquad, player: Player, year = new Date().getFullYear()) {
     const gender = squad.gender?.toUpperCase();
     if (player.gender && (gender === 'MALE' || gender === 'FEMALE') && gender !== player.gender) return false;
     if (player.age == null) return true;
-    const under = /^U(\d{1,2})$/i.exec(squad.category?.trim() ?? '');
+    const category = squad.category?.trim().toUpperCase() ?? '';
+    const under = /^U[\s-]?(\d{1,2})(?!\d)/.exec(category);
     if (under) { const limit = Number(under[1]); return player.age < limit && player.age >= limit - 3; }
-    return player.age >= SENIOR_FROM;
+    if (/^(19|20)\d{2}$/.test(category)) return Math.abs(Number(category) - (year - player.age)) <= 1;
+    const over = /^O[\s-]?(\d{2})$/.exec(category);
+    if (over) return player.age >= Number(over[1]);
+    if (/^(VETERAN|MASTERS)/.test(category)) return player.age >= VETERANS_FROM;
+    if (/^(SENIOR|ADULT|OPEN|FIRST)/.test(category)) return player.age >= SENIOR_FROM;
+    return false;
 }
 
 const COACHING = ['HEAD_COACH', 'ASSISTANT_COACH', 'GOALKEEPER_COACH', 'SPECIALIST_COACH'];

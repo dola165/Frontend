@@ -32,22 +32,28 @@ function Note({ title, children }: { title: string; children?: ReactNode }) {
     return <div className="gk-join__note"><p>{title}</p>{children}</div>;
 }
 
-/** Squads to choose one from: name, age group and who plays, when they train, and the faces of their coaches. */
-function SquadChoice({ legend, squads, facts, value, onChange }: { legend: string; squads: PublicSquad[]; facts: JoinFacts; value: number | null; onChange: (id: number) => void }) {
+/**
+ * Squads to choose one from (or, without `onChange`, just to see): name, age group and who plays, when they train,
+ * and the faces of their coaches.
+ */
+function SquadChoice({ legend, squads, facts, value = null, onChange }: { legend: string; squads: PublicSquad[]; facts: JoinFacts; value?: number | null; onChange?: (id: number) => void }) {
     const name = `join-squad-${legend}`;
+    const row = (squad: PublicSquad) => {
+        const coaches = facts.coaches.filter(person => person.responsibilities.some(item => (item.squadIds ?? (item.squadId == null ? [] : [item.squadId])).includes(squad.id)));
+        return <>
+            {onChange && <input type="radio" name={name} checked={value === squad.id} onChange={() => onChange(squad.id)} />}
+            <span className="gk-join__text"><b>{squad.name}</b><small>{[squadLine(squad), trainingDaysLine(squad.trainingDays, squad.trainingTime)].filter(Boolean).join(' · ')}</small></span>
+            {coaches.length > 0 && <span className="gk-join__faces">{coaches.slice(0, 3).map(person => <Avatar key={person.userId} src={person.avatarUrl} name={person.fullName} size={24} />)}</span>}
+        </>;
+    };
+    if (!onChange) return <div className="gk-join__list">
+        <span className="gk-join__legend">{legend} · {squads.length}</span>
+        {squads.map(squad => <div key={squad.id} className="gk-join__row">{row(squad)}</div>)}
+    </div>;
     return (
         <fieldset className="gk-join__list">
             <legend className="gk-join__legend">{legend} · {squads.length}</legend>
-            {squads.map(squad => {
-                const coaches = facts.coaches.filter(person => person.responsibilities.some(item => (item.squadIds ?? (item.squadId == null ? [] : [item.squadId])).includes(squad.id)));
-                return (
-                    <label key={squad.id} className="gk-join__row" data-chosen={value === squad.id || undefined}>
-                        <input type="radio" name={name} checked={value === squad.id} onChange={() => onChange(squad.id)} />
-                        <span className="gk-join__text"><b>{squad.name}</b><small>{[squadLine(squad), trainingDaysLine(squad.trainingDays, squad.trainingTime)].filter(Boolean).join(' · ')}</small></span>
-                        {coaches.length > 0 && <span className="gk-join__faces">{coaches.slice(0, 3).map(person => <Avatar key={person.userId} src={person.avatarUrl} name={person.fullName} size={24} />)}</span>}
-                    </label>
-                );
-            })}
+            {squads.map(squad => <label key={squad.id} className="gk-join__row" data-chosen={value === squad.id || undefined}>{row(squad)}</label>)}
         </fieldset>
     );
 }
@@ -71,6 +77,14 @@ export function PlayPart({ club, facts, onContact, onChanged }: { club: ClubProf
     const [position, setPosition] = useState('');
     const [busy, setBusy] = useState(false), [result, setResult] = useState<{ text: string; error: boolean } | null>(null);
     if (policy === 'INVITE_ONLY') return <Note title={c('This club takes players by invitation.', 'კლუბი მოთამაშეებს მოწვევით იღებს.')}><Button onClick={() => onContact(askClub(club))}>{c('Ask the club', 'კლუბს მიწერე')}</Button></Note>;
+    // Without a birth date nothing can be said to suit the person: signed in, they add it; signed out, they see the squads.
+    if (facts.signedIn && facts.age == null) return <Note title={c('Add your date of birth to see the squads for your age.', 'მიუთითე დაბადების თარიღი, რომ შენი ასაკის გუნდები ნახო.')}>
+        <ButtonLink to="/onboarding">{c('Add your date of birth', 'დაბადების თარიღის მითითება')}</ButtonLink>
+    </Note>;
+    if (!facts.signedIn) return <>
+        {facts.squads.length > 0 && <SquadChoice legend={c('Squads', 'გუნდები')} squads={facts.squads} facts={facts} />}
+        <div className="gk-join__foot"><SignIn label={c('Sign in to join', 'შედი გასაწევრიანებლად')} /></div>
+    </>;
     if (!facts.mySquads.length) return <Note title={c('No squad for your age here.', 'აქ შენი ასაკის გუნდი არ არის.')}>
         {!facts.minor && <p className="gk-join__hint">{c('Jobs, volunteering and coaching are under Help out.', 'სამუშაო, მოხალისეობა და მწვრთნელობა „დახმარებაშია“.')}</p>}
     </Note>;
@@ -90,7 +104,8 @@ export function PlayPart({ club, facts, onContact, onChanged }: { club: ClubProf
     };
     const blocked = entry.data && !entry.data.allowed ? reason(entry.data) : null;
     return <>
-        <SquadChoice legend={c('Squads for your age', 'გუნდები შენი ასაკისთვის')} squads={facts.mySquads} facts={facts} value={squad} onChange={setSquad} />
+        {/* A trial is with the club, not a squad: the squads are shown, not chosen. */}
+        <SquadChoice legend={c('Squads for your age', 'გუნდები შენი ასაკისთვის')} squads={facts.mySquads} facts={facts} value={squad} onChange={trial ? undefined : setSquad} />
         {!trial && <div className="gk-join__positions" role="group" aria-label={c('Where you play', 'სად თამაშობ')}>
             <span className="gk-join__legend">{c('Where you play', 'სად თამაშობ')}</span>
             <div className="gk-join__chips">{POSITIONS.map(([code, en, ka]) => <Chip key={code || 'any'} pressed={position === code} onClick={() => setPosition(code)}>{c(en, ka)}</Chip>)}</div>
@@ -98,8 +113,7 @@ export function PlayPart({ club, facts, onContact, onChanged }: { club: ClubProf
         <Result result={result} />
         {blocked && !result && <p className="gk-join__hint" role="status">{blocked}</p>}
         <div className="gk-join__foot">
-            {!facts.signedIn ? <SignIn label={c('Sign in to join', 'შედი გასაწევრიანებლად')} />
-                : <Button variant="primary" disabled={busy || !entry.allowed || (!trial && !chosen) || Boolean(result && !result.error)} onClick={send}>
+            {<Button variant="primary" disabled={busy || !entry.allowed || (!trial && !chosen) || Boolean(result && !result.error)} onClick={send}>
                     {busy ? c('Sending…', 'იგზავნება…') : trial ? c('Come to a trial', 'მოდი გასინჯვაზე') : c('Ask to join', 'გაწევრიანების თხოვნა')}
                 </Button>}
         </div>
@@ -129,7 +143,7 @@ export function ChildPart({ club, facts, onContact }: { club: ClubProfile; facts
         {facts.children.length > 1 && <div className="gk-join__chips" role="group" aria-label={c('Which child', 'რომელი შვილი')}>
             {facts.children.map(item => <Chip key={item.id} pressed={item.id === child.id} onClick={() => choose(item.id)}>{item.name.trim().split(/\s+/)[0]}</Chip>)}
         </div>}
-        {fits.length ? <SquadChoice legend={c(`Squads for ${first}`, `გუნდები: ${first}`)} squads={fits} facts={facts} value={chosen} onChange={setSquad} />
+        {fits.length ? <SquadChoice legend={child.dateOfBirth ? c(`Squads for ${first}`, `გუნდები: ${first}`) : c('Squads', 'გუნდები')} squads={fits} facts={facts} value={chosen} onChange={setSquad} />
             : <Note title={c(`No squad for ${first}'s age here.`, `აქ ${first}-ის ასაკის გუნდი არ არის.`)} />}
         <div className="gk-join__foot">
             <Button variant="primary" onClick={ask}>{fits.length ? c(`Ask about a place for ${first}`, `იკითხე ადგილზე: ${first}`) : c('Ask the club', 'კლუბს მიწერე')}</Button>

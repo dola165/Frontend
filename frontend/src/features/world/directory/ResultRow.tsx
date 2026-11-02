@@ -9,11 +9,11 @@ import './result-row.css';
 /**
  * One search result, the way LinkedIn lists jobs and companies: a crest, face or date, the name as the link, a few
  * quiet lines under it, and at the end one number worth seeing (a price, a status) and one action. The name and the
- * crest or face go to the full page; a press anywhere else on the row, or its details button at the end, shows the
+ * crest or face go to the full page (a date lead says something of its own, so it is not a link: `linkLead`); a press anywhere else on the row, or its details button at the end, shows the
  * result beside the list (or in a drawer). The row lights up while it is shown or its pin has the pointer.
  */
-export function ResultRow({ lead, title, to, peek, label, mark, lines, aside, action }: {
-    lead: ReactNode; title: string; /** The full page. */ to: string;
+export function ResultRow({ lead, linkLead = true, title, to, peek, label, mark, lines, aside, action }: {
+    lead: ReactNode; /** The crest or face opens the full page too; false for a lead that is read out (a date). */ linkLead?: boolean; title: string; /** The full page. */ to: string;
     /** What the row shows beside the list (`club-7`, `job-3`). */ peek?: string; /** The link's name, when the title alone says too little. */ label?: string;
     /** A short mark after the name: a licence, a referee's level, a verified tick. */ mark?: ReactNode;
     lines: ReactNode[]; aside?: ReactNode; action?: ReactNode;
@@ -25,7 +25,7 @@ export function ResultRow({ lead, title, to, peek, label, mark, lines, aside, ac
         <li>
             <article className="gk-result" data-open={shown || undefined} data-clickable={peek ? true : undefined} onClick={press} {...linked}>
                 {/* The same page as the name: one link for keyboards and screen readers, two places to press. */}
-                <Link className="gk-result__lead" to={to} tabIndex={-1} aria-hidden="true">{lead}</Link>
+                {linkLead ? <Link className="gk-result__lead" to={to} tabIndex={-1} aria-hidden="true">{lead}</Link> : <span className="gk-result__lead">{lead}</span>}
                 <div className="gk-result__main">
                     <div className="gk-result__name">
                         <Link className="gk-result__title" to={to} aria-label={label}>{title}</Link>

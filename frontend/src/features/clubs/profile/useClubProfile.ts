@@ -4,7 +4,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { clubViewerRole } from '../../../components/club/clubViewerRole';
 import { fetchClubManagementOverview, fetchMyClubMembershipContext } from '../api';
 import { canManageClubOperations, isLeadershipRole, type ClubMembershipRole } from '../domain';
-import { currentProgramme } from '../presentation';
 import type { ClubProfile } from './types';
 import { readClubProfile } from './profileResponse';
 
@@ -72,7 +71,6 @@ export function useClubProfile(id: number) {
     const own = Boolean(club?.isStaffMember || club?.myRole || entry?.canOpenWorkspace || (membership.clubId !== null && membership.clubId === id));
     const affiliated = club?.playerAffiliationStatus === 'TRIALIST' || club?.playerAffiliationStatus === 'ACTIVE';
     const visitor = Boolean(club && !club.isStaffMember && !affiliated);
-    const programmes = Boolean(club?.presentation?.programmes.some(p => p.published && currentProgramme(p)));
     const connected = Boolean(club && (club.isMember || club.isStaffMember || club.myRole || role || affiliated
         || club.relationshipState === 'ACTIVE' || club.relationshipState === 'TRIALIST'));
     const permissions = {
@@ -88,8 +86,8 @@ export function useClubProfile(id: number) {
         canMessage: visitor,
         canFollow: Boolean(club && !club.isMember),
         canChallenge: visitor && Boolean(membership.clubId && membership.clubId !== id && membership.role && canManageClubOperations(membership.role)),
-        /** Joining is offered to people with no connection here, when the club takes players or publishes training. */
-        canJoin: visitor && !connected && (programmes || club?.playerJoinPolicy !== 'INVITE_ONLY'),
+        /** Joining is offered to people with no connection here: to play, for a child or to help out (the Join pop-up). */
+        canJoin: visitor && !connected,
         myClubId: membership.clubId,
     };
 

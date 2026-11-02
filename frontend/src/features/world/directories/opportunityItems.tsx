@@ -16,7 +16,7 @@ export interface GroupResult { group: Opportunity; player?: number }
 export function TrialItem({ item: trial }: { item: TryoutPosting }) {
     useWorldCopy();
     return (
-        <ResultRow lead={<DateLead top={fixtureTime(trial.tryoutDate)} bottom={fixtureDay(trial.tryoutDate)} />} title={trial.title} to={`/tryouts/${trial.id}`} peek={peekOf('trial', trial.id)}
+        <ResultRow linkLead={false} lead={<DateLead top={fixtureTime(trial.tryoutDate)} bottom={fixtureDay(trial.tryoutDate)} />} title={trial.title} to={`/tryouts/${trial.id}`} peek={peekOf('trial', trial.id)}
             lines={[[trial.clubName, codeLabel(trial.ageGroup), codeLabel(trial.position)].filter(Boolean).join(' · '), trial.location]}
             aside={<Status tone={trial.status === 'OPEN' ? 'accent' : 'neutral'}>{postingLabel(trial.status, bilingual)}</Status>} />
     );

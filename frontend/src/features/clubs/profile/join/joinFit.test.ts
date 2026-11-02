@@ -25,6 +25,19 @@ describe('which squads suit a player', () => {
         expect(squadFits(squad(1, 'U14', 'MIXED'), { age: 12, gender: 'FEMALE' })).toBe(true);
     });
 
+    it('reads age groups as clubs type them, and offers one it cannot read to no one', () => {
+        expect(squadFits(squad(1, 'U-14'), { age: 12 })).toBe(true);
+        expect(squadFits(squad(1, 'u14 A'), { age: 12 })).toBe(true);
+        expect(squadFits(squad(1, 'U14A'), { age: 40 })).toBe(false);
+        expect(squadFits(squad(1, '2014'), { age: 12 }, 2026)).toBe(true);
+        expect(squadFits(squad(1, '2014'), { age: 40 }, 2026)).toBe(false);
+        expect(squadFits(squad(1, 'O35'), { age: 40 })).toBe(true);
+        expect(squadFits(squad(1, 'Veterans'), { age: 30 })).toBe(false);
+        expect(squadFits(squad(1, 'Adult'), { age: 40 })).toBe(true);
+        expect(squadFits(squad(1, 'Development'), { age: 40 })).toBe(false);
+        expect(squadFits(squad(1, 'Development'), { age: 12 })).toBe(false);
+    });
+
     it('rules nothing out when the age is unknown', () => {
         expect(squadFits(squad(1, 'U8'), { age: null })).toBe(true);
     });

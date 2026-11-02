@@ -18,9 +18,6 @@ vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: auth.
 vi.mock('../../actions/follow', () => ({ setFollowing: vi.fn() }));
 /** The rule-checker is not asked here: each screen's own flag decides (as with an older server). */
 vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, decide: (_action: string, fallback: boolean) => ({ allowed: fallback }), admin: null }) }));
-/** The squads the person may arrange matches for (`GET /match-exchange/squads`): none unless a test says so. */
-const arranging = vi.hoisted(() => ({ squads: [] as { id: number; club_id: number; name: string; category: string; club_name: string }[] | undefined }));
-vi.mock('../compose/useArrangeableSquads', () => ({ useArrangeableSquads: () => arranging.squads }));
 
 const year = new Date().getFullYear();
 const nino: Participant = { id: 501, name: 'Nino Beridze', dateOfBirth: `${year - 9}-01-10`, minor: true, guardian: true, provenance: null, gender: 'FEMALE' };
@@ -62,7 +59,6 @@ function show(profile: ClubProfile, { membership = noClub, participants = [] as 
 beforeEach(() => {
     vi.clearAllMocks();
     auth.status = 'authenticated';
-    arranging.squads = [];
     sessionStorage.clear();
     forgetClubChanges();
 });
@@ -98,17 +94,15 @@ describe('following', () => {
 const STEPS = /Join as trialist|Apply as player|Ask about|Arrange a match|Ask .* about a place/;
 const forty = { hasClubMembership: false } as ClubMembershipContext;
 const admin = { hasClubMembership: true, clubId: 1, myRole: 'CLUB_ADMIN' } as ClubMembershipContext;
-const dinamo = { id: 103, club_id: 1, name: 'U14 Boys', category: 'U14', club_name: 'Dinamo' };
 
 describe('World shows a club the same for everyone', () => {
     it('a row offers Follow only, for someone with no club, a club administrator who arranges matches, and a parent searching for a child', () => {
-        const cases: { membership: ClubMembershipContext; participants?: Participant[]; path?: string; squads?: typeof arranging.squads }[] = [
+        const cases: { membership: ClubMembershipContext; participants?: Participant[]; path?: string }[] = [
             { membership: forty },
-            { membership: admin, squads: [dinamo] },
+            { membership: admin },
             { membership: noClub, participants: [nino], path: '/world/clubs?player=501' },
         ];
-        for (const { membership, participants = [], path, squads = [] } of cases) {
-            arranging.squads = squads;
+        for (const { membership, participants = [], path } of cases) {
             show(club({ playerJoinPolicy: 'APPLICATION_REQUIRED' }), { membership, participants, path, row: true });
             const row = screen.getByRole('listitem');
             expect(within(row).getAllByRole('button').map(button => button.textContent)).toEqual(['Follow', '']);

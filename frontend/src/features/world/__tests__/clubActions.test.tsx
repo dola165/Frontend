@@ -15,7 +15,7 @@ import { WorldSessionContext } from '../worldSession';
 
 const auth = vi.hoisted(() => ({ status: 'authenticated' as string }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: auth.status, sessionId: 'world', user: { id: 1 } }) }));
-vi.mock('../../actions/follow', () => ({ setFollowing: vi.fn() }));
+vi.mock('../../actions/follow', () => ({ FOLLOW_SETTLED: 'gk-follow-settled', setFollowing: vi.fn() }));
 /** The rule-checker is not asked here: each screen's own flag decides (as with an older server). */
 vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, decide: (_action: string, fallback: boolean) => ({ allowed: fallback }), admin: null }) }));
 

@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Dialog } from '../../design/Dialog';
@@ -10,6 +11,7 @@ import { createHref, ownClub } from '../pages/create/entry';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { ACTIONS, actionNumber, actionText, DO_PARAM, isActionKey, openedHere, withoutAction, type ActionKey, type ActionSubject } from './registry';
 import { useAction } from './useAction';
+import { setFollowing } from './follow';
 import { arrangeWayOf } from '../matchExchange/arrange/arrangeDraft';
 
 const ArrangeFlow = lazy(() => import('./flows/MatchFlows').then(module => ({ default: module.ArrangeFlow })));
@@ -35,7 +37,7 @@ export function ActionHost() {
 function OpenAction({ action }: { action: ActionKey }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, sessionId } = useAuth();
     const copy = useJourneyCopy();
     const params = new URLSearchParams(location.search);
     const squadId = actionNumber(params, 'squad');
@@ -47,10 +49,22 @@ function OpenAction({ action }: { action: ActionKey }) {
     const rest = { pathname: location.pathname, search: withoutAction(location.search), hash: location.hash };
     // Back to the page it opened over: one step back when a button here opened it, else the same address without it.
     const close = () => { if (openedHere(location.state)) navigate(-1); else navigate(rest, { replace: true }); };
-    // Starting a club is the one create sheet; following has no flow (it is a toggle where the club is shown).
-    const handOver = action === 'start_club' && state.allowed ? createHref(rest, 'CLUB', 'start') : action === 'follow' ? `${rest.pathname}${rest.search}${rest.hash}` : null;
+    // Starting a club is the one create sheet; following has no flow (it is a toggle where the club is shown), except
+    // the club someone tapped Follow on while signed out: it is followed once they are back, and the page's own Follow
+    // shows it.
+    const followClub = action === 'follow' ? actionNumber(params, 'club') : undefined;
+    const back = `${rest.pathname}${rest.search}${rest.hash}`;
+    const handOver = action === 'start_club' && state.allowed ? createHref(rest, 'CLUB', 'start') : action === 'follow' && !followClub ? back : null;
     useEffect(() => { if (handOver) navigate(handOver, { replace: true }); }, [handOver, navigate]);
-    if (handOver) return null;
+    const followed = useRef(false);
+    useEffect(() => {
+        if (!followClub || state.loading || !state.allowed || followed.current) return;
+        followed.current = true;
+        void setFollowing({ kind: 'club', id: followClub }, true, sessionId)
+            .catch(() => toast.error(copy('Following could not be updated.', 'გამოწერა ვერ განახლდა.')))
+            .finally(() => navigate(back, { replace: true }));
+    }, [back, copy, followClub, navigate, sessionId, state.allowed, state.loading]);
+    if (handOver || (followClub && state.allowed)) return null;
     if (!state.allowed && !typed) return state.loading ? null : <Dialog open size="sm" title={copy(...ACTIONS[action].label)} onClose={close} closeLabel={copy('Close', 'დახურვა')}
         footer={<Button variant="primary" onClick={close}>{copy('Close', 'დახურვა')}</Button>}>
         {state.reason || state.needsBirthDate ? <AdultOnlyNote adult={state} /> : <p>{copy('This isn’t open to you here.', 'ეს აქ თქვენთვის ხელმისაწვდომი არ არის.')}</p>}

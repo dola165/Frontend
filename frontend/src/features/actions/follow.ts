@@ -9,14 +9,22 @@ export type FollowSubject = { kind: 'club'; id: number } | { kind: 'person'; id:
  */
 export async function setFollowing(subject: FollowSubject, following: boolean, sessionId?: AuthSessionId): Promise<boolean> {
     const config = sessionId === undefined ? undefined : { _authSessionId: sessionId } as AuthSessionRequestConfig;
+    let settled: boolean;
     if (subject.kind === 'club') {
         const url = `/clubs/${subject.id}/follow`;
         const { data } = await (following ? apiClient.post<{ following?: boolean }>(url, undefined, config) : apiClient.delete<{ following?: boolean }>(url, config));
-        return typeof data?.following === 'boolean' ? data.following : following;
+        settled = typeof data?.following === 'boolean' ? data.following : following;
+    } else {
+        const { data } = await apiClient.post<{ following?: boolean }>(`/users/${subject.id}/follow`, undefined, config);
+        settled = typeof data?.following === 'boolean' ? data.following : following;
     }
-    const { data } = await apiClient.post<{ following?: boolean }>(`/users/${subject.id}/follow`, undefined, config);
-    return typeof data?.following === 'boolean' ? data.following : following;
+    window.dispatchEvent(new CustomEvent<FollowSettled>(FOLLOW_SETTLED, { detail: { subject, following: settled } }));
+    return settled;
 }
+
+/** Every Follow showing the same club or person takes the state the server settled on, wherever it was changed. */
+export const FOLLOW_SETTLED = 'gk-follow-settled';
+export type FollowSettled = { subject: FollowSubject; following: boolean };
 
 /**
  * Several follows at once (the welcome's pickers, the first week's clubs near you) change what Home shows: Home loads

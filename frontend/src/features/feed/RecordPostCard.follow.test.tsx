@@ -6,7 +6,7 @@ import type { FeedPostDto } from '../../components/feed/FeedPost';
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', sessionId: 'session', user: { id: 7 } }) }));
 vi.mock('../actions/useAction', () => ({ useAction: () => ({ allowed: true, loading: false }) }));
-vi.mock('../actions/follow', () => ({ setFollowing: vi.fn(async (_subject: unknown, following: boolean) => following) }));
+vi.mock('../actions/follow', () => ({ FOLLOW_SETTLED: 'gk-follow-settled', setFollowing: vi.fn(async (_subject: unknown, following: boolean) => following) }));
 afterEach(cleanup);
 
 const newClub = (following: boolean) => ({

@@ -2,7 +2,7 @@ import { useId, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check, ChevronRight, Link2, MapPinned } from 'lucide-react';
 import { Button, ButtonLink } from '../../../design/primitives';
-import { extractApiErrorCode, extractApiErrorMessage } from '../../../utils/apiError';
+import { extractApiErrorMessage } from '../../../utils/apiError';
 import { formatDate, formatTime } from '../../../utils/formatting';
 import { Crest } from '../../world/Crest';
 import { FINDER_OPENED } from '../../world/finder/finderContext';
@@ -64,15 +64,13 @@ function PasteJoin({ child, onSent }: { child: JoiningChild; onSent: () => void 
         catch (failure) { setError(extractApiErrorMessage(failure, copy('This link doesn’t work any more. Ask the coach for a new one.', 'ეს ბმული აღარ მუშაობს. სთხოვეთ მწვრთნელს ახალი.'))); }
         finally { setBusy(false); }
     };
-    const ask = async (sameChild?: boolean) => {
+    const ask = async () => {
         if (!link || busy || !child.identity.dateOfBirth) return;
         if (request.current?.code !== link.code) request.current = { code: link.code, id: crypto.randomUUID() };
         setBusy(true); setError('');
-        try { setSent(await sendJoin(link.code, { requestId: request.current.id, who: 'PARENT', childName: child.identity.fullName, birthDate: child.identity.dateOfBirth, consent: true, ...(sameChild === undefined ? {} : { sameChild }) })); onSent(); }
-        catch (failure) {
-            const code = extractApiErrorCode(failure);
-            setError(code === 'CHILD_ALREADY_LISTED' ? copy(`${first} is already on this squad’s list.`, `${first} უკვე არის ამ გუნდის სიაში.`) : extractApiErrorMessage(failure, copy('Couldn’t send · Try again', 'ვერ გაიგზავნა · სცადეთ ხელახლა')));
-        } finally { setBusy(false); }
+        try { setSent(await sendJoin(link.code, { requestId: request.current.id, who: 'PARENT', playerId: child.playerId, consent: true })); onSent(); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('Couldn’t send · Try again', 'ვერ გაიგზავნა · სცადეთ ხელახლა'))); }
+        finally { setBusy(false); }
     };
     if (sent) return <div className="ph-join ph-join--sent" role="status">
         <Check aria-hidden="true" /><span><strong>{copy(`Sent. ${sent.coachName ?? 'The coach'} answers ${first} here.`, `გაიგზავნა. ${sent.coachName ?? 'მწვრთნელი'} აქ უპასუხებს ${first}-ს.`)}</strong>

@@ -46,7 +46,6 @@ export function JoinPage() {
   const [birthDate, setBirthDate] = useState('');
   const [needsBirth, setNeedsBirth] = useState(false);
   const [forChild, setForChild] = useState(false);
-  const [same, setSame] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState<JoinSent | null>(null);
@@ -89,7 +88,7 @@ export function JoinPage() {
   const youthUnder = link?.squad.youthUnder ?? null;
   // Asked before sending when the page can tell; the server asks the same (JOINING_FOR_CHILD) when it cannot.
   const tooOld = who === 'PLAYER' && (forChild || (youthUnder != null && myAge != null && myAge >= ADULT && myAge >= youthUnder));
-  const choosing = (next: Who | null) => { setError(''); setSame(null); setForChild(false); choose(next); };
+  const choosing = (next: Who | null) => { setError(''); setForChild(false); choose(next); };
 
   const send = async (body: Omit<JoinSendBody, 'requestId' | 'consent'>) => {
     if (busy) return;
@@ -100,13 +99,13 @@ export function JoinPage() {
       setSent(await sendJoin(code, { ...body, consent: true, requestId: request.current.id }));
     } catch (failure) {
       const problem = extractApiErrorCode(failure);
-      if (problem === 'CHILD_ALREADY_LISTED') setSame(firstName(body.childName ?? ''));
-      else if (problem === 'JOINING_FOR_CHILD') setForChild(true);
+      if (problem === 'JOINING_FOR_CHILD') setForChild(true);
       else if (problem === 'BIRTH_DATE_NEEDED') setNeedsBirth(true);
       else setError(extractApiErrorMessage(failure, t('Could not send. Try again.')));
     } finally { setBusy(false); }
   };
-  const sendChild = (sameChild?: boolean) => send({ who: 'PARENT', childName: child.name.trim().replace(/\s+/g, ' '), birthDate: child.birthDate, ...(sameChild === undefined ? {} : { sameChild }) });
+  // The chosen child's own card goes with the request, so the server never makes a second one.
+  const sendChild = () => send(chosen?.identity.dateOfBirth ? { who: 'PARENT', playerId: chosen.playerId } : { who: 'PARENT', childName: child.name.trim().replace(/\s+/g, ' '), birthDate: child.birthDate });
   const askBirth = needsBirth || !user?.dob;
   const back = <Button variant="ghost" onClick={() => choosing(null)}>{t('Back')}</Button>;
   const failure = error && <p className="gk-notice gk-notice--warning" role="alert">{error}</p>;
@@ -144,17 +143,6 @@ export function JoinPage() {
       <h2 className="gk-join__question">{t('Joining for your child?')}</h2>
       <p className="gk-join__lead">{youthUnder ? t('{squad} is for players under {age}.', { squad: link.squad.name, age: youthUnder }) : t('This squad is for young players.')}</p>
       <div className="gk-boxedit__foot">{guardian.allowed && <Button variant="primary" onClick={() => choosing('PARENT')}>{t('Yes, my child')}</Button>}{back}</div>
-    </Panel>
-    : same !== null ? <Panel padded>
-      {header}
-      <h2 className="gk-join__question">{t('Is this {name}, added by another parent?', { name: same })}</h2>
-      <p className="gk-join__lead">{t('{name} is already on the list. If this is your child, the parent who added them confirms you. They see your name; you see nothing about them.', { name: same })}</p>
-      {failure}
-      <div className="gk-boxedit__foot">
-        <Button variant="primary" disabled={busy} onClick={() => void sendChild(true)}>{spinner}{t('Yes, that’s my child')}</Button>
-        <Button disabled={busy} onClick={() => void sendChild(false)}>{t('No, a different child')}</Button>
-        <Button variant="ghost" onClick={() => setSame(null)}>{t('Back')}</Button>
-      </div>
     </Panel>
     : who === 'PLAYER' ? <Panel padded>
       {header}
@@ -196,10 +184,6 @@ export function JoinPage() {
 function JoinSentView({ sent, who, link }: { sent: JoinSent; who: Who | null; link: JoinLink }) {
   const t = usePagesCopy();
   const child = sent.childName ?? '';
-  if (sent.status === 'PARENT_LINK_REQUESTED') return <>
-    <div className="gk-cmatch__page"><span className="gk-ghost__icon"><Check aria-hidden="true" /></span><span className="gk-cmatch__text"><strong>{t('{name} is already on the list', { name: child })}</strong><small>{t('We asked the parent who added {name} to confirm you. You will get a notice.', { name: child })}</small></span></div>
-    <div className="gk-boxedit__foot gk-join__note"><ButtonLink variant="primary" to="/parent">{t('Open Parent Hub')}</ButtonLink><ButtonLink variant="ghost" to={link.page.profilePath}>{t('Open {name}', { name: link.page.name })}</ButtonLink></div>
-  </>;
   const training = sent.nextTraining;
   return <>
     <div className="gk-cmatch__page"><span className="gk-ghost__icon"><Check aria-hidden="true" /></span><span className="gk-cmatch__text">

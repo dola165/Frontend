@@ -3,7 +3,7 @@ import { apiClient } from '../../api/axiosConfig';
 import {
     acceptClubApplication, bulkDecideClubApplications, cancelClubInvitation, declineClubApplication,
     fetchAllClubJobs, fetchClubPlayers, type ClubJob,
-    sendParentalConsentEmail, updateClubPlayerStatus,
+    updateClubPlayerStatus,
 } from '../clubs/api';
 import {
     type ClubManagementOverview, type ClubMembershipApplication,
@@ -204,11 +204,6 @@ export function useClubMembership({ clubId, activeTab, overview, reloadOverview,
             pendingStatus.current = null; setReleaseMessage('');
         },
         cancelStatus: () => { setShowStatusConfirm(false); pendingStatus.current = null; setReleaseMessage(''); },
-        sendConsentEmail: async (userId: number, parentEmail?: string | null) => {
-            let sent = false;
-            await runAction(`consent-${userId}`, async () => { await sendParentalConsentEmail(clubId, userId, parentEmail); sent = true; setSuccessMessage('Consent email sent. Waiting for the parent’s response.'); await loadPlayers(true); });
-            return sent;
-        },
         trialEndsChange: async (userId: number, trialEndsOn: string) => {
             if (!canChangePlayerStatus) { setErrorMessage('Only club owners and admins can change trial dates.'); return; }
             await runAction(`trial-ends-${userId}`, async () => { await updateClubPlayerStatus(clubId, userId, 'TRIALIST', trialEndsOn || null); await loadPlayers(true); setSuccessMessage('Trial deadline updated.'); });

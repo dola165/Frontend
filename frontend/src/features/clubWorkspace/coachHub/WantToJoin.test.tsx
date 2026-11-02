@@ -89,3 +89,22 @@ it('shows a family’s own request to a group and a first visit they booked, ans
     fireEvent.click(within(row('Mariam Beridze')).getByRole('button', { name: 'Accept' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/squad-communication/103/join-requests/cases/41', expect.objectContaining({ expectedVersion: 2, action: 'APPROVE', groupId: 1301 })));
 });
+
+it('a request that looks like a card the coach made offers Same child, and New player only hides the match', async () => {
+    api.post.mockResolvedValue({ data: { status: 'DONE', playerId: 4 } });
+    const looks = { ...request, playerId: 9, sameChild: { playerId: 4, name: 'Eka L.', hasFamily: false } } as SquadJoinRequest;
+    const onChanged = vi.fn();
+    render(<MemoryRouter><WantToJoin items={[item({ key: 'request-31', kind: 'REQUEST', id: 31, squadId: 105, name: 'Eka Lomidze', source: 'ENQUIRY', request: looks })]} data={data} onChanged={onChanged} /></MemoryRouter>);
+    expect(within(row('Eka Lomidze')).getByText('Looks like Eka L., a card you made')).toBeInTheDocument();
+    fireEvent.click(within(row('Eka Lomidze')).getByRole('button', { name: 'Same child' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/squad-communication/105/join-requests/same-child', { requestPlayerId: 9, playerId: 4 }));
+    expect(await screen.findByText('Eka Lomidze is now one card, the one you made.')).toBeInTheDocument();
+    expect(onChanged).toHaveBeenCalled();
+});
+
+it('a look-alike that a family already holds is only a quiet note: their parent was asked', () => {
+    const held = { ...request, sameChild: { playerId: 4, name: 'Eka L.', hasFamily: true } } as SquadJoinRequest;
+    render(<MemoryRouter><WantToJoin items={[item({ key: 'request-31', kind: 'REQUEST', id: 31, squadId: 105, name: 'Eka Lomidze', source: 'ENQUIRY', request: held })]} data={data} onChanged={vi.fn()} /></MemoryRouter>);
+    expect(within(row('Eka Lomidze')).getByText('Looks like Eka L.: their parent was asked.')).toBeInTheDocument();
+    expect(within(row('Eka Lomidze')).queryByRole('button', { name: 'Same child' })).not.toBeInTheDocument();
+});

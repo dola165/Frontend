@@ -43,6 +43,8 @@ const destinations: Record<string, { type: string; title: string; path: (id: num
     // Held back in release 17: the server lists these only while their switch is on.
     'store.purchase-requests': { type: 'user', title: 'My requests', path: () => '/store/cart?view=requests' },
     'fundraising.personal': { type: 'user', title: 'My appeals', path: () => '/campaigns?mine=all' },
+    // Life, private wellbeing: a Club office tool, so its door is the person's club.
+    'care.life': { type: 'user', title: 'Life', path: () => '/my-club' },
 };
 
 const record = (value: unknown): value is Record<string, unknown> =>

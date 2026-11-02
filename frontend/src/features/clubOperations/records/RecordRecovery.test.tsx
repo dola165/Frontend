@@ -7,6 +7,8 @@ import { useClubOperations } from '../useClubOperations';
 import type { Bootstrap, OperationRecord } from '../api';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: api }));
+// The club's tools follow the person's server switches (Life stays off here).
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', user: { id: 9500 } }) }));
 const boot: Bootstrap = {
   clubId: 400, clubName: 'New academy', actorId: 9500, leadership: true,
   definitions: [{ module: 'EQUIPMENT', kind: 'ASSET', label: 'Equipment', states: ['ACTIVE'], fields: [] }],

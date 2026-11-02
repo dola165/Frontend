@@ -5,3 +5,5 @@
 .gk-world .gk-world-watches li { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .gk-world .gk-world-watches a { min-height: 44px; display: flex; align-items: center; overflow-wrap: anywhere; }
 .gk-world .gk-world-watches button { min-height: 44px; }
+.gk-world .gk-world-watches > p, .gk-world p.gk-world-watches { margin: 0; }
+.gk-world .gk-world-watches .gk-world-watches__stop { padding: 0 6px; border: 0; background: none; color: var(--gk-accent); font: inherit; cursor: pointer; }

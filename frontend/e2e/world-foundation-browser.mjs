@@ -6,7 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const out=path.resolve(root,'../../world-fix-round1-browser');await mkdir(out,{recursive:true});
+const out=path.resolve(process.env.GK_WORLD_QA_DIR||path.resolve(root,'../../world-fix-round1-browser'));await mkdir(out,{recursive:true});
 const server=await createServer({root,configFile:false,cacheDir:path.join(out,'vite-cache'),plugins:[react(),tailwindcss(),{name:'world-fixture-entry',configureServer(s){s.middlewares.use((req,_res,next)=>{if (/^\/(world|parent|fixture-inbox)(\/|\?|$)/.test(req.url)) req.url='/e2e/world-foundation.html';next();});}}],
     resolve:{preserveSymlinks:true,alias:[{find:/^.*\/context\/AuthContext$/,replacement:path.join(root,'e2e/world-foundation-auth.tsx')},{find:/^.*\/api\/axiosConfig$/,replacement:path.join(root,'e2e/world-foundation-api.ts')}]},
     optimizeDeps:{entries:['e2e/world-foundation.html']},define:{__BUILD_ID__:'""',__GIT_HISTORY__:'{"known":false}',__GIT_BUILD__:'{"known":false}'},server:{host:'127.0.0.1',port:5197,strictPort:true,hmr:false}});
@@ -69,9 +69,11 @@ try{
     await context.addInitScript(()=>localStorage.setItem('world-fixture-login','adult'));
     await page.evaluate(()=>sessionStorage.setItem('family-player:4:world-synthetic','9'));
     await page.goto('http://127.0.0.1:5197/world/clubs?near=Tbilisi');
-    await page.getByRole('button',{name:'Follow this search',exact:true}).click();
-    await expect(page.getByRole('button',{name:'Stop following this search',exact:true})).toBeVisible();
-    await page.reload();await expect(page.getByRole('button',{name:'Stop following this search',exact:true})).toBeVisible();
+    // A parent's club search for their child follows itself: no button, one quiet line with Stop.
+    await expect(page.getByText('We’ll tell you about new places for Synthetic',{exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Follow this search',exact:true})).toHaveCount(0);
+    expect(saved.filter(w=>w.active)).toHaveLength(1);
+    await page.reload();await expect(page.getByText('We’ll tell you about new places for Synthetic',{exact:true})).toBeVisible();
     await page.screenshot({animations:'disabled',path:path.join(out,`${width}-${theme}-followed.png`),fullPage:true});
     await page.evaluate(()=>sessionStorage.setItem('family-player:4:world-synthetic','10'));
     await page.goto('http://127.0.0.1:5197/fixture-inbox');
@@ -79,8 +81,9 @@ try{
     await expect(page).toHaveURL(/near=Tbilisi.*birthYear=2018/);
     await expect(page).toHaveURL(/player=9/);
     await page.screenshot({animations:'disabled',path:path.join(out,`${width}-${theme}-notice-return.png`),fullPage:true});
-    await page.getByRole('button',{name:'Stop following this search',exact:true}).click();
-    await expect(page.getByRole('button',{name:'Follow this search',exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Stop',exact:true}).click();
+    await expect(page.getByText('We’ll tell you about new places for Synthetic',{exact:true})).toHaveCount(0);
+    await expect(page.getByRole('button',{name:'Follow this search',exact:true})).toHaveCount(0);
     const fixtureStart=requests.length;
     await page.goto('http://127.0.0.1:5197/world/matches?tab=fixtures&city=Rustavi&ageGroup=U16&near=Batumi');
     await expect.poll(()=>requests.slice(fixtureStart).filter(r=>r.path==='/match-history').length).toBeGreaterThan(0);
@@ -100,8 +103,7 @@ try{
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('link',{name:'Call',exact:true})).toHaveAttribute('href','tel:+995555000071');
     await expect(page.getByRole('link',{name:'WhatsApp',exact:true})).toHaveAttribute('href',/^https:\/\/wa.me\//);
-    await page.getByRole('button',{name:'Follow this search',exact:true}).click();
-    await expect(page.getByRole('button',{name:'Stop following this search',exact:true})).toBeVisible();
+    await expect(page.getByText('We’ll tell you about new places for Synthetic',{exact:true})).toBeVisible();
     await page.screenshot({animations:'disabled',path:path.join(out,`${width}-${theme}-parent.png`),fullPage:true});
     await page.keyboard.press('Tab');expect(await page.evaluate(()=>document.activeElement!==document.body)).toBe(true);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

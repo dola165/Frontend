@@ -90,11 +90,11 @@ const clubCalls = () => vi.mocked(apiClient.get).mock.calls.map(call => String(c
 it('W1 reads the notification API then maps and resolves its opaque link to the saved effective public query', async () => {
     rememberSelectedPlayer(4, state.session, 9);
     const first = render(<MemoryRouter initialEntries={['/world/clubs?near=Batumi&country=GE']}><Directory/></MemoryRouter>);
-    const keep = await screen.findByRole('button', { name: 'Follow this search' });
-    await waitFor(() => expect(keep).toBeEnabled()); await userEvent.click(keep);
-    await screen.findByRole('button', { name: 'Stop following this search' });
-    await userEvent.click(screen.getByText('Followed searches (1)'));
-    expect(screen.getByRole('link', { name: /Open saved search/ })).toHaveAttribute('href', '/world/clubs?watch=7');
+    // A parent's club search for their child follows itself: no button, one quiet line with Stop.
+    expect(await screen.findByText('We’ll tell you about new places for Synthetic')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Follow this search' })).not.toBeInTheDocument();
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
     const saved = new URL(state.watch!.returnPath, 'https://test.invalid').searchParams;
     expect(saved.get('player')).toBe('9'); expect(saved.get('birthYear')).toBe('2018'); expect(saved.get('country')).toBe('GE');
     first.unmount(); vi.mocked(apiClient.get).mockClear(); state.session = 'fix-two';

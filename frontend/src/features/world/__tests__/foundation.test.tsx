@@ -53,17 +53,44 @@ it('fixtures and open matches send context in the server query before pagination
     expect(windowFilters(applyWorldFor(query({city:'Batumi'}),'2018'))).toContain('birthYear=2018');
     expect(CARRIED).toEqual(expect.arrayContaining(['near','player','for','birthYear']));
 });
-it('saves only after the server succeeds, retaining a private return path and showing honest errors', async () => {
+it('follows a child’s club search by itself, retaining a private return path and saying so honestly when it fails', async () => {
     vi.mocked(watches.keepSearch).mockRejectedValue(new Error('Try later'));
     render(<MemoryRouter initialEntries={['/parent?find=club&player=9&selected=2']}><WatchSearch spec={spec} childId={9}/></MemoryRouter>);
-    const button=await screen.findByRole('button',{name:'Follow this search'});
-    await waitFor(()=>expect(button).toBeEnabled());await userEvent.click(button);
-    await screen.findByRole('alert');
-    expect(screen.queryByRole('button',{name:'Stop following this search'})).not.toBeInTheDocument();
+    expect(await screen.findByText('New places for your child could not be followed.')).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:/Follow this search|Stop/})).not.toBeInTheDocument();
+    expect(watches.keepSearch).toHaveBeenCalledTimes(1);
     expect(watches.keepSearch).toHaveBeenCalledWith(spec,expect.stringContaining('/parent?'),9,'one',expect.any(AbortSignal));
     const saved = new URL(vi.mocked(watches.keepSearch).mock.calls[0][1], 'https://test.invalid').searchParams;
     expect(saved.get('find')).toBe('club'); expect(saved.get('player')).toBe('9'); expect(saved.get('near')).toBe('Batumi');
     expect(saved.get('birthYear')).toBe('2018'); expect(saved.get('city')).toBe('Batumi'); expect(saved.get('selected')).toBe('2');
+});
+it('shows one quiet line with Stop once a child’s search is followed, and Stop is not undone by the page', async () => {
+    const followed = {id:7,query:spec,returnPath:'/parent?find=club&player=9&near=Batumi',childId:9,active:true};
+    vi.mocked(watches.listSearchWatches).mockResolvedValueOnce([]).mockResolvedValueOnce([followed]).mockResolvedValue([]);
+    vi.mocked(watches.keepSearch).mockResolvedValue(followed);
+    vi.mocked(watches.stopSearch).mockResolvedValue({} as never);
+    render(<MemoryRouter initialEntries={['/parent?find=club&player=9']}><WatchSearch spec={spec} childId={9}/></MemoryRouter>);
+    expect(await screen.findByText('We’ll tell you about new places for your child')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button',{name:'Stop'}));
+    expect(watches.stopSearch).toHaveBeenCalledWith(7,'one',expect.any(AbortSignal));
+    await waitFor(()=>expect(screen.queryByText(/new places for/)).not.toBeInTheDocument());
+    expect(watches.keepSearch).toHaveBeenCalledTimes(1);
+});
+it('does not follow again a search that was already followed when the page opened and then stopped', async () => {
+    const followed = {id:7,query:spec,returnPath:'/world/clubs?player=9&near=Batumi',childId:9,active:true};
+    vi.mocked(watches.listSearchWatches).mockResolvedValueOnce([followed]).mockResolvedValue([{...followed,active:false}]);
+    vi.mocked(watches.stopSearch).mockResolvedValue({} as never);
+    render(<MemoryRouter initialEntries={['/world/clubs?player=9']}><WatchSearch spec={spec} childId={9}/></MemoryRouter>);
+    await userEvent.click(await screen.findByRole('button',{name:'Stop'}));
+    await waitFor(()=>expect(screen.queryByText(/new places for/)).not.toBeInTheDocument());
+    expect(watches.keepSearch).not.toHaveBeenCalled();
+});
+it('shows nothing for a child who already has a club (the server refuses to follow)', async () => {
+    vi.mocked(watches.keepSearch).mockRejectedValue({response:{status:403}});
+    render(<MemoryRouter initialEntries={['/world/clubs?player=9']}><WatchSearch spec={spec} childId={9}/></MemoryRouter>);
+    await waitFor(()=>expect(watches.keepSearch).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/new places for|could not be followed/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
 it('cannot display the prior login’s watches while a different session loads', async () => {
     vi.mocked(watches.listSearchWatches).mockResolvedValueOnce([{id:7,query:spec,returnPath:'/world/clubs?near=Batumi',childId:null,active:true}]);

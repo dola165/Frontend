@@ -9,6 +9,7 @@ import { applyPreferencesUpdate, type Preferences } from '../preferences/prefere
 import { FirstWeek } from './FirstWeek';
 import { markDone, withUnfolded } from './steps';
 import { WorldWelcome } from './WorldWelcome';
+import { FOLLOWS_CHANGED } from '../actions/follow';
 
 const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>() }));
 const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } }));
@@ -100,6 +101,12 @@ describe('your first week, in the corner', () => {
         await user.click(await within(sheet).findByRole('button', { name: /Follow/ }));
         await waitFor(() => expect(server.followed.has(5)).toBe(true));
         await waitFor(() => expect(week()?.week).toEqual(['open', 'follow']));
+        // Home loads again once the sheet closes, not while the person is still choosing.
+        const heard = vi.fn();
+        window.addEventListener(FOLLOWS_CHANGED, heard);
+        await user.click(within(sheet).getByRole('button', { name: 'Done' }));
+        window.removeEventListener(FOLLOWS_CHANGED, heard);
+        expect(heard).toHaveBeenCalledTimes(1);
     });
 
     it('shows a 17-year-old with an adult answer the follower’s week', async () => {

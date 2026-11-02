@@ -7,6 +7,7 @@ import i18n from '../../i18n';
 import { applyPreferencesUpdate, type Preferences } from '../preferences/preferencesStore';
 import { WelcomeHost } from './WelcomeHost';
 import { finished, stepFromParam, weekDone } from './welcomeSteps';
+import { FOLLOWS_CHANGED } from '../actions/follow';
 
 // A fake server: preferences, where the person is, clubs near them and by age, follows, professions and discovery.
 const server = vi.hoisted(() => ({
@@ -98,6 +99,10 @@ beforeEach(async () => {
     });
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
+let followsChangedHeard = 0;
+const heard = () => { followsChangedHeard++; };
+beforeEach(() => { followsChangedHeard = 0; window.addEventListener(FOLLOWS_CHANGED, heard); });
+afterEach(() => window.removeEventListener(FOLLOWS_CHANGED, heard));
 
 describe('the welcome', () => {
     it('asks what brings the person, large tiles first, with follow and Skip in the footer', async () => {
@@ -150,7 +155,21 @@ describe('the welcome', () => {
         await user.click(within(box).getByRole('button', { name: 'Follow 3 clubs' }));
         await waitFor(() => expect(address()).toBe('/home'));
         expect([...server.followed].sort()).toEqual([5, 6, 7]);
-        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'FOLLOW' }));
+        // The first week does not ask again for the follows just made; Home is told to load their news.
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'FOLLOW', week: ['follow'] }));
+        expect(followsChangedHeard).toBe(1);
+    });
+
+    it('leaves the first week’s follow step open when the follower ticks nothing', async () => {
+        const user = userEvent.setup();
+        mount('/home?welcome=follow');
+        const box = await dialog();
+        const tiles = await within(box).findByRole('group', { name: 'Clubs to follow' });
+        for (const input of within(tiles).getAllByRole('checkbox').filter(item => (item as HTMLInputElement).checked)) await user.click(input);
+        await user.click(within(box).getByRole('button', { name: 'Done' }));
+        await waitFor(() => expect(address()).toBe('/home'));
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'FOLLOW', week: [] }));
+        expect(followsChangedHeard).toBe(0);
     });
 
     it('shows a parent the clubs for the child’s age inside the welcome, then offers adding the child and opens Parent Hub', async () => {
@@ -187,7 +206,8 @@ describe('the welcome', () => {
         await user.click(within(add).getByRole('button', { name: 'Create child profile' }));
         await waitFor(() => expect(address()).toBe('/parent?player=55'));
         expect(server.posts.find(post => post.url === '/family/children')?.body).toMatchObject({ fullName: 'Luka Beridze', dateOfBirth: `${year}-05-14`, responsible: true });
-        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CHILD' }));
+        // Both were done in the welcome: the first week ticks them.
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'CHILD', week: ['follow', 'child'] }));
         expect(start().childAge).toBe(9);
     });
 
@@ -215,7 +235,7 @@ describe('the welcome', () => {
         await user.click(within(box).getByRole('button', { name: 'Follow and finish' }));
         await waitFor(() => expect(address()).toBe('/home'));
         expect(server.followed.has(9)).toBe(true);
-        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'ME' }));
+        await waitFor(() => expect(start().welcome).toMatchObject({ state: 'DONE', choice: 'ME', week: ['follow'] }));
     });
 
     it('starts a club from step 2: the town filled in, the colours chosen, and the new club opens', async () => {
@@ -322,6 +342,9 @@ describe('the welcome', () => {
         const done = { state: 'DONE' as const, choice: 'CLUB' as const, week: ['invite-staff', 'Bad step!', 'crest'], cardDismissed: true };
         expect(finished(done, 'club')).toMatchObject({ choice: 'CLUB', week: ['invite-staff', 'crest'], cardDismissed: true });
         expect(finished(done, 'me')).toMatchObject({ choice: 'ME', week: [], cardDismissed: false });
+        // Steps the welcome itself did are ticked, on top of the kept week or a fresh one.
+        expect(finished(done, 'club', ['follow']).week).toEqual(['invite-staff', 'crest', 'follow']);
+        expect(finished(done, 'me', ['follow', 'follow']).week).toEqual(['follow']);
         const many = Array.from({ length: 12 }, (_, index) => `step-${String.fromCharCode(97 + index)}`);
         expect(weekDone({ state: 'DONE', week: many }, 'last').week).toHaveLength(10);
         expect(weekDone({ state: 'DONE', week: many }, 'last').week?.at(-1)).toBe('last');

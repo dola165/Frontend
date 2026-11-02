@@ -46,12 +46,12 @@ export function WelcomeDialog({ step: asked }: { step: Step }) {
     const pushedPart = useRef(false);
     const part = partFromParam(params.get(PART_PARAM));
     useEffect(() => { if (!part) pushedPart.current = false; }, [part]);
-    const finish = (choice: Choice, extra: Partial<StartPreferences> = {}) =>
-        void saveStart(userId, current => ({ ...extra, welcome: finished(current.welcome as WelcomeProgress | null, choice) })).catch(() => undefined);
+    const finish = (choice: Choice, extra: Partial<StartPreferences> = {}, done: readonly string[] = []) =>
+        void saveStart(userId, current => ({ ...extra, welcome: finished(current.welcome as WelcomeProgress | null, choice, done) })).catch(() => undefined);
     const props: WelcomeStepProps = {
         facts,
         finish: choice => finish(choice),
-        land: (choice, to, extra) => { finish(choice, extra); navigate(to ?? address(null), { replace: true }); },
+        land: (choice, to, extra, done) => { finish(choice, extra, done); navigate(to ?? address(null), { replace: true }); },
         back: () => navigate(address('start')),
         // X and Skip only (never a click beside it); Back brings the welcome back, and the profile reopens it any time.
         // Closing a welcome that was already answered (opened again) changes nothing: the answer and its first week stay.

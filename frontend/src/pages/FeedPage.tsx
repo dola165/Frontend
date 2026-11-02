@@ -24,6 +24,7 @@ import { WelcomeHost } from '../features/start/WelcomeHost';
 import { WaitingOnYou } from '../features/feed/WaitingOnYou';
 import { HomeHelperDetails } from '../features/feed/HomeHelperDetails';
 import { usePostAuthors } from '../features/feed/postAuthors';
+import { FOLLOWS_CHANGED } from '../features/actions/follow';
 
 type FeedView = 'for-you' | 'following';
 /** Where the next page starts: the last post shown, its time, and in Discover its tier in the ranked order. */
@@ -193,6 +194,14 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
   const frame = requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }));
   return () => cancelAnimationFrame(frame);
  }, [loading, loadError, posts]);
+ // Clubs just followed in the welcome or the first week bring their news to the top at once.
+ const reload = useRef(loadFeed);
+ reload.current = loadFeed;
+ useEffect(() => {
+  const listener = () => void reload.current();
+  window.addEventListener(FOLLOWS_CHANGED, listener);
+  return () => window.removeEventListener(FOLLOWS_CHANGED, listener);
+ }, []);
  useCommentRefresh(id => posts.some(post => post.id === id), (saved, comments) => {
   setPosts(items => items.map(post => post.id === saved.id ? saved : post));
   setSelectedPost(post => post?.id === saved.id ? saved : post);

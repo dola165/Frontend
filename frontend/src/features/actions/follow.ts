@@ -18,6 +18,16 @@ export async function setFollowing(subject: FollowSubject, following: boolean, s
     return typeof data?.following === 'boolean' ? data.following : following;
 }
 
+/**
+ * Several follows at once (the welcome's pickers, the first week's clubs near you) change what Home shows: Home loads
+ * again when told. A single Follow beside a post leaves the feed where it is.
+ */
+export const FOLLOWS_CHANGED = 'gk-follows-changed';
+export const followsChanged = () => window.dispatchEvent(new Event(FOLLOWS_CHANGED));
+
 /** Follows each club not followed yet (the welcome's pickers); resolves to how many did not go through. */
-export const followClubs = async (clubs: { id: number; following?: boolean }[]) =>
-    (await Promise.allSettled(clubs.filter(club => !club.following).map(club => setFollowing({ kind: 'club', id: club.id }, true)))).filter(result => result.status === 'rejected').length;
+export const followClubs = async (clubs: { id: number; following?: boolean }[]) => {
+    const results = await Promise.allSettled(clubs.filter(club => !club.following).map(club => setFollowing({ kind: 'club', id: club.id }, true)));
+    if (results.some(result => result.status === 'fulfilled')) followsChanged();
+    return results.filter(result => result.status === 'rejected').length;
+};

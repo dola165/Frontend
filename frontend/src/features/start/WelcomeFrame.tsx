@@ -10,8 +10,11 @@ import './welcome.css';
 /** What every screen of the welcome gets: what is known, landing with an answer, Back to step 1 and closing. */
 export interface WelcomeStepProps {
     facts: WelcomeFacts;
-    /** Ends the welcome with this answer and opens `to` (Home when null), keeping `extra` in the preferences. */
-    land: (choice: Choice, to: string | null, extra?: Partial<StartPreferences>) => void;
+    /**
+     * Ends the welcome with this answer and opens `to` (Home when null), keeping `extra` in the preferences and ticking
+     * the first-week steps in `done` (`follow`, `child`), which the welcome has just done.
+     */
+    land: (choice: Choice, to: string | null, extra?: Partial<StartPreferences>, done?: readonly string[]) => void;
     /** Ends the welcome with this answer and stays: the step already opened the next page (a club just started). */
     finish: (choice: Choice) => void;
     back: () => void;

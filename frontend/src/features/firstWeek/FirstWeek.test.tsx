@@ -11,7 +11,7 @@ import { markDone, withUnfolded } from './steps';
 import { WorldWelcome } from './WorldWelcome';
 
 const server = vi.hoisted(() => ({ prefs: {} as Record<string, unknown>, followed: new Set<number>() }));
-const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } }));
+const auth = vi.hoisted(() => ({ user: { id: 0, dob: '1985-05-02' } as { id: number; dob: string; navigationCapabilities?: { version: number; workspaces: { id: string }[] } } }));
 vi.mock('../../api/axiosConfig', async original => ({ ...(await original<object>()), apiClient: { get: vi.fn(), put: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: auth.user, sessionId: 'session', status: 'authenticated', bootstrapSession: async () => auth.user }) }));
 
@@ -72,6 +72,15 @@ describe('your first week, in the corner', () => {
             expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(3);
             cleanup();
         }
+    });
+
+    it('layer 1 walk p2: a child added in the welcome ticks Add your child, without pressing it here', async () => {
+        welcome('CHILD', { week: ['open'] });
+        auth.user = { ...auth.user, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub' }] } };
+        mount();
+        expect(await screen.findByRole('heading', { name: 'Your first week' })).toBeInTheDocument();
+        expect(screen.getByText('1 of 3')).toBeInTheDocument();
+        expect(screen.getByText(/\(done\)/).closest('a, button')).toHaveTextContent('Add your child');
     });
 
     it('ticks a step on another page and folds out of its way', async () => {

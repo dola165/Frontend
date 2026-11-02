@@ -354,10 +354,6 @@ export const deletePlayerCard = async (clubId: number, cardId: number) => {
 
 // ── Parental consent + activation (Sprint 3) ──
 
-export const sendParentalConsentEmail = async (clubId: number, userId: number, parentEmail?: string | null) => {
-    await apiClient.post(`/clubs/${clubId}/players/${userId}/consent-email`, { parentEmail });
-};
-
 export const fetchMyPlayerCards = async () => {
     const response = await apiClient.get<PlayerCard[]>('/player-cards/mine');
     return response.data;

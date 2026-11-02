@@ -101,6 +101,9 @@
 /* ---------------------------------------------------------------- rows, card */
 .gk .ph-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .gk .ph-row { display: flex; align-items: center; gap: var(--gk-3); min-height: 52px; color: var(--gk-text); text-decoration: none; }
+/* A row that acts in place ("Join them") looks like the rows that open a page. */
+.gk button.ph-row { width: 100%; padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.gk button.ph-row:disabled { cursor: progress; opacity: .7; }
 .gk .ph-row:hover strong { text-decoration: underline; }
 .gk .ph-row > svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
 .gk .ph-row__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }

@@ -13,6 +13,7 @@ import './pages.mjs';
 import './club-people.mjs';
 import './auth.mjs';
 // Families before newcomers: a person who signed up and added a child is answered as a parent.
+import './family-links.mjs';
 import './family.mjs';
 import './newcomer.mjs';
 import './family-squads.mjs';

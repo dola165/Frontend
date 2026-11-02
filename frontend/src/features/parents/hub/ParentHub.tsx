@@ -18,6 +18,7 @@ import { ClubFinderHost } from '../../world/finder/ClubFinderHost';
 import { ChildSwitcher } from './ChildSwitcher';
 import { ChildPage } from './ChildPage';
 import { FamilyWeek } from './FamilyWeek';
+import { OneCard } from './OneCard';
 import { CHILD_PARAMS } from './childParams';
 import './parent-hub.css';
 
@@ -65,6 +66,7 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
         <p>{copy('Their card is yours to keep. Then find them a club, or open the link a coach sent you.', 'ბარათი თქვენია. შემდეგ მოუძებნეთ კლუბი ან გახსენით მწვრთნელის გამოგზავნილი ბმული.')}</p>
         <AddChild inline onCreated={added} /></section>;
     else body = <>
+        <OneCard revision={revision} />
         <ChildSwitcher items={children} selectedId={selected?.playerId} onSelect={select} addTo={playerPath('/parent?tab=children', selected?.playerId)} />
         {selected ? <><ChildPage key={`${sessionId}:${selected.playerId}`} child={selected} sessionId={sessionId} revision={revision} onChanged={refresh} /><PersonalRegistrationHistory key={`registration:${sessionId}:${selected.playerId}:${revision}`} person={selected.playerId} /></>
             : <FamilyWeek children={children} sessionId={sessionId} revision={revision} />}

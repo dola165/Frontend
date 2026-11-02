@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Check, Copy, Printer, Share2 } from 'lucide-react';
+import { Check, Copy, Forward, Printer, Share2 } from 'lucide-react';
 import { Button } from '../../design/primitives';
 import { visualColors } from '../../styles/visualColors';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
@@ -9,7 +9,8 @@ import './link-share.css';
 const escape = (text: string) => text.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
 /**
- * One link to share anywhere: a QR code to show on a phone or print, Copy, WhatsApp and Print. Print opens a plain
+ * One link to share anywhere: a QR code to show on a phone or print, Copy, WhatsApp, the phone's own Share (Messenger,
+ * Facebook and the rest) where it has one, and Print. Print opens a plain
  * sheet (title, subtitle, the code and the address) in a new window. Used by the squad join link and the staff link.
  */
 export function LinkShare({ url, title, subtitle, message, label, onError }: {
@@ -34,6 +35,7 @@ export function LinkShare({ url, title, subtitle, message, label, onError }: {
             <div className="gk-share__buttons">
                 <Button onClick={() => void navigator.clipboard.writeText(url).then(() => setCopied(true)).catch(() => onError(copy('Copy the link from the box.', 'დააკოპირეთ ბმული ველიდან.')))}>{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy', 'კოპირება')}</Button>
                 <a className="gk-btn gk-btn--primary" href={`https://wa.me/?text=${encodeURIComponent(`${message}\n${url}`)}`} target="_blank" rel="noopener noreferrer"><Share2 aria-hidden="true" />WhatsApp</a>
+                {typeof navigator.share === 'function' && <Button onClick={() => void navigator.share({ title, text: message, url }).catch(() => undefined)}><Forward aria-hidden="true" />{copy('Share', 'გაზიარება')}</Button>}
                 <Button onClick={print}><Printer aria-hidden="true" />{copy('Print', 'ბეჭდვა')}</Button>
             </div>
         </div>

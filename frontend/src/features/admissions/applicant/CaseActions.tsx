@@ -9,6 +9,8 @@ import { TermsFacts } from './OpportunityFacts';
 import { termsComplete } from './termsComplete';
 import { formatDate, formatDateTime, formatTime } from '../../../utils/formatting';
 import { useAdmissionCopy } from './copy';
+import { AskParent } from './AskParent';
+import { ageFromDob } from '../../../utils/age';
 type WithoutReceipt<T>=T extends unknown?Omit<T,'requestId'>:never;
 export type ApplicantCommand=WithoutReceipt<CaseCommand>;
 type Props={admissionCase:AdmissionCase;onChanged:(value:AdmissionCase)=>void;refresh:()=>void};
@@ -48,7 +50,9 @@ export function OfferResponse({admissionCase:c,offer:o,onChanged,refresh}:Props&
     const termsKey=JSON.stringify([c.id,c.playerId,o.id,o.version]);const accept=acceptedTerms===termsKey;
     const offerStates:Record<Offer['status'],string>={PENDING:copy('Awaiting your decision','თქვენი გადაწყვეტილების მოლოდინში'),ACCEPTED:copy('Offer accepted','შეთავაზება მიღებულია'),DECLINED:copy('Offer declined','შეთავაზება უარყოფილია'),WITHDRAWN:copy('Offer withdrawn by the club','შეთავაზება კლუბმა გააუქმა'),SUPERSEDED:copy('Replaced by a newer offer','შეცვლილია ახალი შეთავაზებით'),EXPIRED:copy('Offer expired','შეთავაზების ვადა ამოიწურა')};
     const revised=o.status==='PENDING'&&(o.version>1||c.history.filter(e=>e.action==='OFFER').length>1);
-    const canAccept=o.status==='PENDING'&&c.actions.includes('ACCEPT_OFFER');const needContact=c.requirements.some(r=>r.kind==='EMERGENCY_CONTACT'&&r.status==='PENDING')||o.terms.requirements.includes('EMERGENCY_CONTACT');
+    // The player themself, under 18: a parent says yes to the place (the teen is reminded how, never refused).
+    const {user}=useAuth();const age=ageFromDob(user?.dob);const teen=user?.id===c.playerId&&age!==null&&age<18;
+    const canAccept=o.status==='PENDING'&&c.actions.includes('ACCEPT_OFFER')&&!teen;const needContact=c.requirements.some(r=>r.kind==='EMERGENCY_CONTACT'&&r.status==='PENDING')||o.terms.requirements.includes('EMERGENCY_CONTACT');
     return <section className="admission-panel admission-offer"><p className="admission-eyebrow">{copy('Regular place offer','მუდმივი ადგილის შეთავაზება')} · {copy('Version','ვერსია')} {o.version}</p><h2>{c.playerName} · {o.groupName}</h2><span className="admission-badge">{offerStates[o.status]}</span>{revised&&<p className="admission-notice" role="status">{copy('Review this current offer. A revised group, schedule or price needs your agreement to these details.', 'იხილეთ მიმდინარე შეთავაზება. შეცვლილ ჯგუფს, განრიგს ან ფასს ამ დეტალებზე თქვენი თანხმობა სჭირდება.')}</p>}<p>{o.location.name} · {o.location.address}</p><p>{o.schedule}</p><TermsFacts terms={o.terms}/>
         <p>{copy('Response deadline','პასუხის ვადა')}: {formatDateTime(o.responseDeadline)}</p>{o.completionDeadline&&<p>{copy('Completion deadline if requirements remain','დასრულების ვადა დარჩენილი მოთხოვნებისთვის')}: {formatDateTime(o.completionDeadline)}</p>}
         {canAccept&&<form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({action:'ACCEPT_OFFER',expectedVersion:c.version,offerId:o.id,offerVersion:o.version,acceptTerms:true,emergencyContact:contact.trim()||undefined});}}>
@@ -57,6 +61,7 @@ export function OfferResponse({admissionCase:c,offer:o,onChanged,refresh}:Props&
             {!mutation.pending&&<button className="admission-button admission-primary" disabled={mutation.busy||!accept||!termsComplete(o.terms,o.schedule,o.location)}>{copy('Accept this place','ამ ადგილის მიღება')}</button>}
             {!termsComplete(o.terms,o.schedule,o.location)&&<p className="admission-notice">{copy('Essential terms are incomplete. Ask the club to complete them before accepting.','არსებითი პირობები არასრულია. მიღებამდე სთხოვეთ კლუბს შევსება.')}</p>}
         </form>}
+        {teen&&o.status==='PENDING'&&<AskParent caseId={c.id}/>}
         <MutationFeedback mutation={mutation}/>
         {o.status==='PENDING'&&c.actions.includes('DECLINE_OFFER')&&<ReasonAction {...{admissionCase:c,onChanged,refresh}} action="DECLINE_OFFER" offer={o} label={copy('Decline this offer','ამ შეთავაზების უარყოფა')}/>}
         {c.actions.includes('MESSAGE')&&<MessageAction {...{admissionCase:c,onChanged,refresh}} prompt={copy('Ask about this offer','შეთავაზების შესახებ კითხვა')} prefill=""/>}

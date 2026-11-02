@@ -21,9 +21,6 @@ export interface ParentApprovalStatus {
 
 export const fetchParentApproval = (signal?: AbortSignal) =>
     apiClient.get<ParentApprovalStatus>('/auth/parent-approval', { signal }).then(response => response.data);
-/** Sends a new link (to the same or a corrected email); the previous link stops working. */
-export const sendParentApproval = (parentEmail: string) =>
-    apiClient.post<ParentApprovalStatus>('/auth/parent-approval', { parentEmail }).then(response => response.data);
 
 /** What the parent's link shows: the child's name only, never a birth date. */
 export interface ParentApprovalLink { childName: string; status: 'PENDING' | 'APPROVED' | 'REPLACED' }

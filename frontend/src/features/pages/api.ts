@@ -143,7 +143,7 @@ export const fetchJoinLink = (code: string, signal?: AbortSignal) => apiClient.g
  * the same name and birth date); `sameChild` answers "Is this Luka, added by another parent?". PLAYER needs nothing more
  * unless the account has no birth date. Problem codes: JOINING_FOR_CHILD, CHILD_ALREADY_LISTED, BIRTH_DATE_NEEDED.
  */
-export interface JoinSendBody { requestId: string; who: 'PARENT' | 'PLAYER'; childName?: string; birthDate?: string; sameChild?: boolean; consent: true }
+export interface JoinSendBody { requestId: string; who: 'PARENT' | 'PLAYER'; playerId?: number; childName?: string; birthDate?: string; consent: true }
 export interface JoinSent { id?: number; status: string; squadId: number; squadName: string; clubName: string; coachName: string | null; childName?: string; destination?: string | null; nextTraining: { title: string; startsAt: string; endsAt: string } | null }
 export const sendJoin = (code: string, body: JoinSendBody) => apiClient.post<JoinSent>(`/join/${encodeURIComponent(code)}`, body).then(r => r.data);
 export const fetchInvite = (code: string, signal?: AbortSignal) => apiClient.get<InviteLink>(`/invite/${encodeURIComponent(code)}`, { signal }).then(r => r.data);

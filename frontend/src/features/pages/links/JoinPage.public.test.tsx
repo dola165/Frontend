@@ -20,7 +20,6 @@ const luka = { playerId: 7, identity: { fullName: 'Luka Beridze', dateOfBirth: '
 const kids = vi.hoisted(() => ({ list: [] as unknown[] }));
 const show = (entry = `/join/${code}`) => render(<MemoryRouter initialEntries={[entry]}><Routes><Route path="/join/:code" element={<JoinPage />} /></Routes></MemoryRouter>);
 const signIn = (dob: string | null) => { auth.isAuthenticated = true; auth.user = { fullName: 'Nino Beridze', dob }; };
-const problem = (code: string, message: string) => ({ response: { status: 409, data: { code, message } } });
 beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); auth.isAuthenticated = false; auth.isBootstrapping = false; auth.user = null; vi.mocked(fetchJoinLink).mockResolvedValue(link);
     kids.list = []; vi.mocked(fetchJoiningChildren).mockImplementation(async () => ({ children: kids.list }) as never); });
 afterEach(cleanup);
@@ -42,7 +41,8 @@ it('my child: the only child is chosen at once, then "Sent to coach Giorgi" with
     expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Send for Luka' }));
-    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, { who: 'PARENT', childName: 'Luka Beridze', birthDate: '2015-05-01', consent: true, requestId: expect.stringMatching(/^[0-9a-f-]{36}$/) }));
+    // The chosen child's own card goes with the request: the server never makes a second one.
+    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, { who: 'PARENT', playerId: luka.playerId, consent: true, requestId: expect.stringMatching(/^[0-9a-f-]{36}$/) }));
     expect(await screen.findByText('Sent to coach Giorgi')).toBeInTheDocument();
     expect(screen.getByText('Next training')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Follow your request' })).toHaveAttribute('href', '/admissions/inquiries/500');
@@ -56,23 +56,7 @@ it('a parent with no child yet makes the card first, and the new child is chosen
     expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Send for Luka' }));
-    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, expect.objectContaining({ who: 'PARENT', childName: 'Luka Beridze', birthDate: '2015-05-01' })));
-});
-
-it('offers a child another parent already added, and never links them silently', async () => {
-    signIn('1985-04-02');
-    kids.list = [luka];
-    vi.mocked(sendJoin).mockRejectedValueOnce(problem('CHILD_ALREADY_LISTED', 'Is this Luka, added by another parent?'))
-        .mockResolvedValue({ squadId: 91, squadName: 'U12 mixed', clubName: 'Test FC', coachName: null, nextTraining: null, status: 'PARENT_LINK_REQUESTED', childName: 'Luka' });
-    show(`/join/${code}?who=child`);
-    within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ });
-    fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.click(screen.getByRole('button', { name: 'Send for Luka' }));
-    expect(await screen.findByText('Is this Luka, added by another parent?')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, that’s my child' }));
-    await waitFor(() => expect(sendJoin).toHaveBeenLastCalledWith(code, expect.objectContaining({ who: 'PARENT', sameChild: true })));
-    expect(await screen.findByText('Luka is already on the list')).toBeInTheDocument();
-    expect(screen.getByText('We asked the parent who added Luka to confirm you. You will get a notice.')).toBeInTheDocument();
+    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, expect.objectContaining({ who: 'PARENT', playerId: expect.any(Number) })));
 });
 
 it('asks a grown-up choosing Me for a youth squad whether they are joining for their child', async () => {

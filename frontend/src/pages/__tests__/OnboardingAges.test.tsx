@@ -20,15 +20,12 @@ beforeEach(() => {
 const mount = () => render(<MemoryRouter initialEntries={['/onboarding']}><Routes><Route path="/onboarding" element={<OnboardingPage />} /><Route path="*" element={<Where />} /></Routes></MemoryRouter>);
 const submit = (dob: string) => { fireEvent.change(document.getElementById('onboarding-dob')!, { target: { value: dob } }); fireEvent.submit(document.querySelector('form')!); };
 
-it('asks a 13 to 15-year-old Google account for a parent’s email before saving the birth date', async () => {
+it('saves a 13 to 15-year-old Google account’s birth date without asking for a parent’s email', async () => {
+    vi.mocked(apiClient.put).mockRejectedValue({ response: { status: 503, data: {} } });
     mount();
     submit(`${year - 14}-02-01`);
-    expect(await screen.findByText('A parent approves your account')).toBeInTheDocument();
-    expect(apiClient.put).not.toHaveBeenCalled();
-    fireEvent.change(document.getElementById('onboarding-parent-email')!, { target: { value: 'parent@example.test' } });
-    vi.mocked(apiClient.put).mockRejectedValue({ response: { status: 503, data: {} } });
-    fireEvent.submit(document.querySelector('form')!);
-    await waitFor(() => expect(apiClient.put).toHaveBeenCalledWith('/users/me/onboarding', expect.objectContaining({ parentEmail: 'parent@example.test' }), expect.anything()));
+    await waitFor(() => expect(apiClient.put).toHaveBeenCalledWith('/users/me/onboarding', expect.not.objectContaining({ parentEmail: expect.anything() }), expect.anything()));
+    expect(document.getElementById('onboarding-parent-email')).toBeNull();
 });
 
 it('signs out an under-13 Google account the server removed and shows the parent answer', async () => {

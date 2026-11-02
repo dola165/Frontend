@@ -14,6 +14,7 @@ vi.mock('../../actions/useAction', () => ({ useAction: () => ({ allowed: true, l
 vi.mock('../../actions/ActionButton', () => ({ ActionButton: () => null }));
 vi.mock('../api', async original => ({ ...await original<object>(), fetchJoiningChildren: vi.fn() }));
 vi.mock('../FamilyRelationships', () => ({ FamilyRelationships: () => <p>Guardian tools</p> }));
+vi.mock('../hub/OneCard', () => ({ OneCard: () => null }));
 vi.mock('../AddChild', () => ({ AddChild: ({ onCreated }: { onCreated: (id: number) => void }) => <button onClick={() => onCreated(63)}>Create synthetic child</button> }));
 vi.mock('../PlayerLinkCode', () => ({ PlayerLinkCode: () => null }));
 vi.mock('../../players/PlayerIdentityEditor', () => ({ PlayerIdentityEditor: () => null }));

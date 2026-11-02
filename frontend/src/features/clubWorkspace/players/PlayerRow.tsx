@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Send, X } from 'lucide-react';
+import { MessageSquare, Send } from 'lucide-react';
 import { Button, Field, type BadgeTone } from '../../../design/primitives';
 import { EMPTY_CELL, Status } from '../../../design/DataTable';
 import type { ClubPlayerAffiliation } from '../../clubs/domain';
 import { playerChoices, playerName, trialDay, type PlayerRowActions } from './playerChoices';
+import { FamilyLinkShare } from '../../parents/FamilyLinkShare';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
 const TRIAL_LIMIT_DAYS = 14;
 const statusTone: Record<string, BadgeTone> = { ACTIVE: 'accent', TRIALIST: 'warning', PAST: 'neutral', REMOVED: 'neutral' };
@@ -53,30 +55,25 @@ export function PlayerActions({ player, actions, admissionManaged }: { player: C
  */
 export function PlayerDetails({ player, actions, admissionManaged }: { player: ClubPlayerAffiliation; actions: PlayerRowActions; admissionManaged: boolean }) {
     const { t } = useTranslation();
-    const [emailOpen, setEmailOpen] = useState(false), [email, setEmail] = useState('');
+    const say = useJourneyCopy();
+    const [sharing, setSharing] = useState(false);
     const copy = (key: string, fallback: string, values?: Record<string, unknown>) => t(`squadDesign.players.${key}`, { defaultValue: fallback, ...values });
     const name = playerName(player), { pendingKey, canManagePlayerStatuses: canManage } = actions;
-    const { trialist, consentToSend, canResend, changes } = playerChoices(player, actions, admissionManaged);
-    const sending = pendingKey === `consent-${player.userId}`;
+    const { trialist, familyToReach, changes } = playerChoices(player, actions, admissionManaged);
+    const first = name.trim().split(/\s+/)[0];
     const changeLabel: Record<string, string> = { TRIALIST: copy('demote', 'Move back to trial'), PAST: copy('markPast', 'Mark as past player'), REMOVED: trialist ? t('trialists.release') : copy('remove', 'Remove from club') };
-    const send = async () => {
-        const sent = await actions.onSendConsentEmail?.(player.userId, email.trim());
-        if (sent !== false) { setEmailOpen(false); setEmail(''); }
-    };
     return <div className="pl-details">
         {trialist && <Field label={t('trialists.trialEnds')} htmlFor={`pl-trial-${player.userId}`} hint={admissionManaged ? copy('trialFromArrangement', 'Set in the player’s joining arrangement.') : canManage ? undefined : copy('trialLeadership', 'Only club owners and admins can change trial dates.')}>
             <input id={`pl-trial-${player.userId}`} className="gk-input pl-date" type="date" value={player.trialEndsOn ?? ''} aria-label={`${t('trialists.trialEnds')} ${name}`}
                 disabled={!canManage || admissionManaged || pendingKey === `trial-ends-${player.userId}`} onChange={event => void actions.onTrialEndsChange(player.userId, event.target.value)} />
         </Field>}
-        {!admissionManaged && (consentToSend || canResend) && <div className="pl-consent">
-            <span className="gk-field__label">{copy('parentConsent', 'Parent consent')}</span>
-            {canResend ? <Button size="sm" disabled={sending} title={t('minors.playersTab.resendTo', { email: player.parentEmail })} onClick={() => void actions.onSendConsentEmail?.(player.userId, player.parentEmail)}><Send aria-hidden="true" />{t('minors.playersTab.resend')}</Button>
-                : emailOpen ? <form className="gk-row pl-consent__form" onSubmit={event => { event.preventDefault(); void send(); }}>
-                    <input className="gk-input" type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder={t('minors.playersTab.parentEmailPlaceholder')} aria-label={`${t('minors.playersTab.parentEmailPlaceholder')} ${name}`} autoFocus />
-                    <Button type="submit" size="sm" variant="primary" disabled={!email.trim() || sending}>{t('minors.playersTab.send')}</Button>
-                    <Button size="sm" variant="ghost" iconOnly aria-label={t('minors.playersTab.cancelEmail')} onClick={() => setEmailOpen(false)}><X aria-hidden="true" /></Button>
-                </form>
-                    : <Button size="sm" disabled={sending} onClick={() => { if (player.parentEmail) void actions.onSendConsentEmail?.(player.userId, player.parentEmail); else { setEmail(''); setEmailOpen(true); } }}><Send aria-hidden="true" />{t('minors.playersTab.sendConsent')}</Button>}
+        {!admissionManaged && familyToReach && <div className="pl-consent">
+            <span className="gk-field__label">{say('Family', 'ოჯახი')}</span>
+            {sharing ? <FamilyLinkShare load={() => actions.onFamilyLink!(player.userId)}
+                title={say(`${first}’s card`, `${first}-ის ბარათი`)} subtitle={say('Open it to be their parent here', 'გახსენით, რომ აქ მისი მშობელი იყოთ')}
+                message={say(`Here is ${first}’s card from our club. Open it so you’re ${first}’s parent on GrassKickZ.`, `ეს არის ${first}-ის ბარათი ჩვენი კლუბიდან. გახსენით, რომ GrassKickZ-ზე ${first}-ის მშობელი იყოთ.`)}
+                label={say(`Link for ${first}’s family`, `ბმული ${first}-ის ოჯახისთვის`)} />
+                : <Button size="sm" onClick={() => setSharing(true)}><Send aria-hidden="true" />{say('Send to the family', 'ოჯახისთვის გაგზავნა')}</Button>}
         </div>}
         {changes.length > 0 && <div className="gk-row pl-status-actions">{changes.map(status => <Button key={status} size="sm" variant={status === 'TRIALIST' ? 'secondary' : 'danger'}
             disabled={pendingKey === `player-${player.userId}-${status}`} onClick={() => void actions.onPlayerStatusChange(player.userId, status, player.fullName || undefined)}>{changeLabel[status]}</Button>)}</div>}

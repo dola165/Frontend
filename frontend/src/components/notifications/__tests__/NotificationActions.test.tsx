@@ -6,7 +6,8 @@ import * as squads from '../../../features/squadCommunication/api';
 import { apiClient } from '../../../api/axiosConfig';
 import type { NotificationItem } from '../../../types/notifications';
 
-vi.mock('../../../features/squadCommunication/api', () => ({ joinRequests: vi.fn(), approveAllJoinRequests: vi.fn() }));
+vi.mock('../../../features/squadCommunication/api', () => ({ joinRequests: vi.fn(), approveAllJoinRequests: vi.fn(),
+    needsSameChildAnswer: (match?: { hasFamily: boolean } | null) => Boolean(match && !match.hasFamily) }));
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: { post: vi.fn(), get: vi.fn() } }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 4 }, refreshNavigationCapabilities: () => Promise.resolve() }) }));
 

@@ -167,6 +167,13 @@ describe('your first week, in the corner', () => {
         mount();
         await new Promise(resolve => setTimeout(resolve, 50));
         expect(screen.queryByRole('button', { name: /Your first week/ })).toBeNull();
+        cleanup();
+        // A player who finished the week before it named the football profile (world, follow, photo) stays done.
+        auth.user = { id: nextUser++, dob: '1985-05-02' };
+        welcome('ME', { week: ['world', 'follow', 'photo'] });
+        mount();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('button', { name: /Your first week/ })).toBeNull();
     });
 });
 

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import { fetchPlayerCards, deletePlayerCard, type PlayerCard } from '../../clubs/api';
@@ -22,7 +21,6 @@ interface Squad { id: number; name: string }
  */
 export function PlayerCardsPage({ clubId, canRemove = false, setParentError, setParentSuccess }: { clubId: number; canRemove?: boolean; setParentError: (message: string | null) => void; setParentSuccess: (message: string | null) => void }) {
     const { t } = useTranslation();
-    const navigate = useNavigate();
     const [cards, setCards] = useState<PlayerCard[]>([]), [squads, setSquads] = useState<Squad[]>([]), [loading, setLoading] = useState(true), [loadError, setLoadError] = useState<string | null>(null);
     const [search, setSearch] = useState(''), [squadFilter, setSquadFilter] = useState('all'), [accountFilter, setAccountFilter] = useState('all');
     const [editing, setEditing] = useState<PlayerCard | null>(null), [removing, setRemoving] = useState<PlayerCard | null>(null), [removingId, setRemovingId] = useState<number | null>(null);
@@ -64,7 +62,9 @@ export function PlayerCardsPage({ clubId, canRemove = false, setParentError, set
         } catch (failure: unknown) { setParentError(failure instanceof Error ? failure.message : t('minors.playerCard.deleteFailed')); }
         finally { lock.current = false; setRemovingId(null); }
     };
-    const addPlayer = () => navigate(`/clubs/${clubId}/office?tab=tools&tool=admissions&intake=1`);
+    // A new card opens the same form as editing one; a child's family link follows straight away.
+    const [creating, setCreating] = useState(false);
+    const addPlayer = () => setCreating(true);
 
     let body;
     if (loading) body = <Panel><div className="cw-skeleton-rows" role="status" aria-label={t('squadDesign.loadingCards', { defaultValue: 'Loading player cards…' })}>{[0, 1, 2].map(i => <Skeleton key={i} height={52} />)}</div></Panel>;
@@ -110,8 +110,8 @@ export function PlayerCardsPage({ clubId, canRemove = false, setParentError, set
             </div>}
             {body}
         </div>
-        <PlayerCardModal clubId={clubId} squadName={editing?.squadId ? squadNames.get(editing.squadId) : undefined} isOpen={editing != null} onClose={() => setEditing(null)} card={editing}
-            onCardUpdated={async () => { await load(); setParentSuccess(t('minors.playerCard.updated')); }} />
+        <PlayerCardModal clubId={clubId} squadName={editing?.squadId ? squadNames.get(editing.squadId) : undefined} squads={squads} isOpen={editing != null || creating} onClose={() => { setEditing(null); setCreating(false); }} card={editing}
+            onCardCreated={() => void load()} onCardUpdated={async () => { await load(); setParentSuccess(t('minors.playerCard.updated')); }} />
         <Dialog open={removing !== null} role="alertdialog" size="sm" title={t(removing?.registered ? 'minors.playerCard.remove' : 'minors.playerCard.delete')}
             description={removing ? t(removing.registered ? 'minors.playerCard.removeConfirm' : 'minors.playerCard.deleteConfirm', { name: removing.fullName ?? '' }) : undefined}
             onClose={() => { if (!lock.current) setRemoving(null); }}

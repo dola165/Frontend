@@ -31,16 +31,25 @@ describe('TurnOnNotificationsPrompt', () => {
         expect(await screen.findByText(/Notifications are on for this device/)).toBeInTheDocument();
     });
 
-    it('for squad updates, speaks of the coach and turns that group on', async () => {
+    it('for another group, says why it pings and turns exactly that group on', async () => {
         const enable = vi.fn().mockResolvedValue({ ok: true, preferences: preferences(false) });
-        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: [{ key: 'SQUAD_UPDATES', push: false, email: false }] });
+        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: [{ key: 'CLUB', push: false, email: false }] });
         vi.mocked(push.usePushDevice).mockReturnValue(device('off', enable));
-        vi.mocked(api.setNotificationGroup).mockResolvedValue({ ...preferences(false), groups: [{ key: 'SQUAD_UPDATES', push: true, email: false }] });
-        render(<MemoryRouter><TurnOnNotificationsPrompt group="SQUAD_UPDATES" /></MemoryRouter>);
-        expect(await screen.findByText(/when the coach sends an update/)).toBeInTheDocument();
+        vi.mocked(api.setNotificationGroup).mockResolvedValue({ ...preferences(false), groups: [{ key: 'CLUB', push: true, email: false }] });
+        render(<MemoryRouter><TurnOnNotificationsPrompt group="CLUB" reason="When the coach sends the squad a line." /></MemoryRouter>);
+        expect(await screen.findByText('When the coach sends the squad a line.')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Turn on notifications' }));
         await waitFor(() => expect(enable).toHaveBeenCalled());
-        expect(api.setNotificationGroup).toHaveBeenCalledWith('SQUAD_UPDATES', { push: true, language: 'en' });
+        expect(api.setNotificationGroup).toHaveBeenCalledWith('CLUB', { push: true, language: 'en' });
+    });
+
+    it('says nothing, and doesn’t break the page, when the preferences come without groups', async () => {
+        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: undefined } as unknown as api.NotificationPreferences);
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off'));
+        render(<MemoryRouter><p>Page</p><TurnOnNotificationsPrompt group="CLUB" /></MemoryRouter>);
+        await waitFor(() => expect(api.fetchNotificationPreferences).toHaveBeenCalled());
+        expect(screen.getByText('Page')).toBeInTheDocument();
+        expect(screen.queryByTestId('turn-on-notifications')).not.toBeInTheDocument();
     });
 
     it('says nothing when this device already gets Team work pushes', async () => {

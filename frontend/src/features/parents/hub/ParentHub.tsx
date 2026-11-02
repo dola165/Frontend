@@ -70,7 +70,9 @@ export function ParentHub({ sessionId }: { sessionId: AuthSessionId }) {
         <OneCard revision={revision} />
         <ChildSwitcher items={children} selectedId={selected?.playerId} onSelect={select} addTo={playerPath('/parent?tab=children', selected?.playerId)} />
         {/* Once a child plays somewhere, the coach's Notify should reach this phone: the door is here, not in Account. */}
-        {children.some(child => child.clubs.length > 0) && <TurnOnNotificationsPrompt group="SQUAD_UPDATES" />}
+        {/* The coach's Notify (SQUAD_NOTICE) is filed under Club by the server (NotificationGroup.of), so that is the group to turn on. */}
+        {children.some(child => child.clubs.length > 0) && <TurnOnNotificationsPrompt group="CLUB"
+            reason={copy('Get a ping when the coach sends the squad a line, even when the site is closed.', 'მიიღეთ შეტყობინება, როცა მწვრთნელი გუნდს წერს, საიტი დახურულიც რომ იყოს.')} />}
         {selected ? <><ChildPage key={`${sessionId}:${selected.playerId}`} child={selected} sessionId={sessionId} revision={revision} onChanged={refresh} /><PersonalRegistrationHistory key={`registration:${sessionId}:${selected.playerId}:${revision}`} person={selected.playerId} /></>
             : <FamilyWeek children={children} sessionId={sessionId} revision={revision} />}
     </>;

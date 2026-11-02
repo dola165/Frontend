@@ -31,6 +31,18 @@ describe('TurnOnNotificationsPrompt', () => {
         expect(await screen.findByText(/Notifications are on for this device/)).toBeInTheDocument();
     });
 
+    it('for squad updates, speaks of the coach and turns that group on', async () => {
+        const enable = vi.fn().mockResolvedValue({ ok: true, preferences: preferences(false) });
+        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: [{ key: 'SQUAD_UPDATES', push: false, email: false }] });
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off', enable));
+        vi.mocked(api.setNotificationGroup).mockResolvedValue({ ...preferences(false), groups: [{ key: 'SQUAD_UPDATES', push: true, email: false }] });
+        render(<MemoryRouter><TurnOnNotificationsPrompt group="SQUAD_UPDATES" /></MemoryRouter>);
+        expect(await screen.findByText(/when the coach sends an update/)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Turn on notifications' }));
+        await waitFor(() => expect(enable).toHaveBeenCalled());
+        expect(api.setNotificationGroup).toHaveBeenCalledWith('SQUAD_UPDATES', { push: true, language: 'en' });
+    });
+
     it('says nothing when this device already gets Team work pushes', async () => {
         vi.mocked(api.fetchNotificationPreferences).mockResolvedValue(preferences(true));
         vi.mocked(push.usePushDevice).mockReturnValue(device('on'));

@@ -34,3 +34,10 @@ it('lets the teen in once a parent has opened the link', async () => {
     expect(await screen.findByRole('button', { name: 'Continue' })).toBeInTheDocument();
     expect(links.addMyParentLink).not.toHaveBeenCalled();
 });
+
+it('says by when the account is removed if no parent opens the link', async () => {
+    api.fetchParentApproval.mockResolvedValue({ status: 'PARENT_EMAIL_NEEDED', deleteAfter: '2026-11-09T23:28:01+04:00' });
+    links.addMyParentLink.mockResolvedValue(link);
+    render(<MemoryRouter><WaitingForParentPage /></MemoryRouter>);
+    expect(await screen.findByText(/^If nobody opens it by \d{1,2} November, this account is removed\.$/)).toBeInTheDocument();
+});

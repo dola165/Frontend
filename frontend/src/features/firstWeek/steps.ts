@@ -1,4 +1,4 @@
-import { Briefcase, Camera, Earth, Hammer, Heart, Shield, Trophy, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { Briefcase, Camera, Earth, Hammer, Heart, Shield, Shirt, Trophy, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import { WORLD_BRAND } from '../../components/brand/worldBrand';
 import type { WelcomeProgress } from '../preferences/preferencesStore';
 import type { Choice } from '../start/welcomeSteps';
@@ -15,14 +15,16 @@ const link = (to: string): StepOpen => ({ kind: 'link', to });
 
 /**
  * Three steps for each answer to the welcome. Every week meets GrassKickZ World (owner, 27 October 2026); it took the
- * place of the step that only sent people into World anyway (a trial, a place to train, clubs, matches).
+ * place of the step that only sent people into World anyway (a trial, a place to train, clubs, matches). A player's
+ * week starts at their football profile: where they play, their career and the way into a squad.
  */
 export function stepsFor(choice: Choice): WeekStep[] {
     const world: WeekStep = { id: 'world', icon: Earth, en: WORLD_BRAND.meet[0], ka: WORLD_BRAND.meet[1], open: link('/world'), world: true };
     const follow: WeekStep = { id: 'follow', icon: Heart, en: 'Follow clubs near you', ka: 'გამოიწერეთ ახლომდებარე კლუბები', open: { kind: 'follow' } };
     const photo: WeekStep = { id: 'photo', icon: Camera, en: 'Add your photo', ka: 'დაამატეთ ფოტო', open: { kind: 'photo' } };
     switch (choice) {
-        case 'me': return [world, follow, photo];
+        case 'me': return [
+            { id: 'football', icon: Shirt, en: 'Your football profile', ka: 'თქვენი ფეხბურთის პროფილი', open: link('/account/football') }, world, follow];
         case 'child': return [
             { id: 'child', icon: UserPlus, en: 'Add your child', ka: 'დაამატეთ თქვენი შვილი', open: { kind: 'action', action: 'add_child', fallback: '/parent' } }, world, follow];
         case 'club': return [

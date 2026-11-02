@@ -1038,6 +1038,7 @@ const en = {
       send: 'Send request',
       sent: 'Sent to {{email}}',
       sentHint: 'Ask them to open the email. If nobody approves within 7 days, the account is removed.',
+      removedBy: 'If nobody opens it by {{date}}, this account is removed.',
       resend: 'Send again',
       change: 'Use another email',
       keep: 'Keep {{email}}',

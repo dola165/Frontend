@@ -111,6 +111,14 @@ describe('your first week, in the corner', () => {
         await waitFor(() => expect(week()?.week).toEqual(['open', 'follow']));
     });
 
+    it('points a player to their football profile first', async () => {
+        welcome('ME', { week: ['open'] });
+        mount();
+        const rows = within(await screen.findByRole('list')).getAllByRole('listitem');
+        expect(within(rows[0]).getByRole('link', { name: 'Your football profile' })).toHaveAttribute('href', '/account/football');
+        expect(screen.queryByRole('button', { name: 'Add your photo' })).toBeNull();
+    });
+
     it('shows a 17-year-old with an adult answer the follower’s week', async () => {
         auth.user = { id: nextUser++, dob: `${new Date().getFullYear() - 17}-01-01` };
         welcome('CHILD', { week: ['open'] });
@@ -164,7 +172,7 @@ describe('your first week, in the corner', () => {
             cleanup();
         }
         auth.user = { id: nextUser++, dob: '1985-05-02' };
-        welcome('ME', { week: ['world', 'follow', 'photo'] });
+        welcome('ME', { week: ['world', 'follow', 'football'] });
         mount();
         await new Promise(resolve => setTimeout(resolve, 50));
         expect(screen.queryByRole('button', { name: /Your first week/ })).toBeNull();

@@ -20,8 +20,11 @@ export function SquadJoinNoticeActions({ notification }: { notification: Notific
         return () => abort.abort();
     }, [squad]);
     if (squad == null || (!done && !items?.length)) return null;
-    const names = (items ?? []).map(item => item.childName.split(' ')[0]);
-    const shown = names.slice(0, 3).join(', ') + (names.length > 3 ? copy(` and ${names.length - 3} more`, ` და კიდევ ${names.length - 3}`) : '');
+    // The names are the children Approve all takes; a look-alike of a club card is answered in the request first.
+    const ready = api.readyToApprove(items ?? []), checking = (items?.length ?? 0) - ready.length;
+    const names = ready.map(item => item.childName.split(' ')[0]);
+    const shown = [names.slice(0, 3).join(', ') + (names.length > 3 ? copy(` and ${names.length - 3} more`, ` და კიდევ ${names.length - 3}`) : ''),
+        checking ? copy(`${checking} to check first: looks like a card you made`, `${checking} ჯერ შესამოწმებელია: ჰგავს თქვენ მიერ შექმნილ ბარათს`) : ''].filter(Boolean).join(' · ');
     return <div className="gk sp-notice-actions" onClick={event => event.stopPropagation()}>
         {done ? <p className="sp-done" role="status">{done}</p> : <>
             <small className="sp-quiet">{shown}</small>

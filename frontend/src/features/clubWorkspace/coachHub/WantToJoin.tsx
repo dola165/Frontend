@@ -59,8 +59,10 @@ export function WantToJoin({ items, failed = false, onRetry, data, onChanged }: 
         // A family's own request to a group, or a first visit they booked, is a joining case: Accept or Not now here, the
         // rest (a session to invite them to, the visit itself) in the request.
         const joinCase = isJoinCase(item);
+        // A look-alike of a club card is answered Same child or New player before any Accept.
+        const matchOpen = squadApi.needsSameChildAnswer(item.request?.sameChild) && !apart.has(item.key);
         return <span className="ch-join__steps">
-            {item.kind === 'REQUEST' && !groupless && <Button size="sm" variant="primary" disabled={busy === item.key} onClick={() => void act(item, 'ACCEPT')}>{copy('accept')}</Button>}
+            {item.kind === 'REQUEST' && !groupless && <Button size="sm" variant="primary" disabled={busy === item.key || matchOpen} onClick={() => void act(item, 'ACCEPT')}>{copy('accept')}</Button>}
             {joinCase ? <ButtonLink size="sm" variant={item.request?.visit?.status === 'INVITED' ? 'primary' : undefined} to={item.request!.destination}>{copy(item.request?.visit?.status === 'INVITED' ? 'recordPermission' : 'openRequest')}</ButtonLink>
                 : !groupless && <Button size="sm" disabled={busy === item.key} onClick={() => void act(item, 'TRIAL')}>{copy('inviteToTrial')}</Button>}
             <Button size="sm" variant="ghost" disabled={busy === item.key} onClick={() => void act(item, 'NOT_NOW')}>{copy('notNow')}</Button>
@@ -71,7 +73,8 @@ export function WantToJoin({ items, failed = false, onRetry, data, onChanged }: 
         const same = item.request?.sameChild;
         if (!same || item.state !== 'DECIDE' || apart.has(item.key)) return null;
         return <SameChildMatch className="ch-join__match" squadId={item.squadId!} requestPlayerId={item.request!.playerId} childName={item.name} match={same} failedText={copy('answerFailed')}
-            onApart={() => setApart(current => new Set(current).add(item.key))} onAnswered={answer => { setNotice(answer); onChanged(); }} />;
+            onApart={() => setApart(current => new Set(current).add(item.key))} onAnswered={answer => { setNotice(answer); onChanged(); }}
+            onSaving={saving => setBusy(saving ? item.key : null)} />;
     };
     const waiting = items.filter(item => item.state === 'DECIDE').length;
     return <Section boxed title={copy('wantToJoin')} hint={waiting ? copy('waitingCount', { count: waiting }) : undefined}>

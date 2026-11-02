@@ -15,10 +15,10 @@ const sharedGroups = (requests: api.SquadJoinRequest[]) =>
  * time (the families still accept the terms). It sends exactly these requests and versions, so a child who arrives
  * meanwhile is never approved unseen; the request id is kept for retries of the same list.
  */
-export function SquadApproveAll({ squadId, requests: asked, onDone, size = 'md' }: { squadId: number; requests: api.SquadJoinRequest[]; onDone: (result: api.SquadApproveAllResult) => void; size?: 'sm' | 'md' }) {
+export function SquadApproveAll({ squadId, requests: asked, apart, onDone, size = 'md' }: { squadId: number; requests: api.SquadJoinRequest[]; apart?: ReadonlySet<number>; onDone: (result: api.SquadApproveAllResult) => void; size?: 'sm' | 'md' }) {
     const copy = useJourneyCopy();
     // A child who looks like a card the club made waits for Same child or New player; approving them all would make a second card.
-    const requests = asked.filter(request => !api.needsSameChildAnswer(request.sameChild));
+    const requests = api.readyToApprove(asked, apart);
     const groups = sharedGroups(requests);
     const [group, setGroup] = useState(groups[0]?.id ?? 0);
     const chosen = groups.find(item => item.id === group) ?? groups[0];

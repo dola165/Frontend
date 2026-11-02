@@ -102,6 +102,23 @@ it('a request that looks like a card the coach made offers Same child, and New p
     expect(onChanged).toHaveBeenCalled();
 });
 
+it('fix round: Accept waits for Same child or New player, and nothing else is pressed while Same child saves', async () => {
+    let finish: (value: { data: { status: string; playerId: number } }) => void = () => undefined;
+    api.post.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const looks = { ...request, playerId: 9, sameChild: { playerId: 4, name: 'Eka L.', hasFamily: false } } as SquadJoinRequest;
+    render(<MemoryRouter><WantToJoin items={[item({ key: 'request-31', kind: 'REQUEST', id: 31, squadId: 105, name: 'Eka Lomidze', source: 'ENQUIRY', request: looks })]} data={data} onChanged={vi.fn()} /></MemoryRouter>);
+    const eka = row('Eka Lomidze');
+    expect(within(eka).getByRole('button', { name: 'Accept' })).toBeDisabled();
+    fireEvent.click(within(eka).getByRole('button', { name: 'Same child' }));
+    expect(within(eka).getByRole('button', { name: 'Not now' })).toBeDisabled();
+    finish({ data: { status: 'DONE', playerId: 4 } });
+    await screen.findByText('Eka Lomidze is now one card, the one you made.');
+    cleanup();
+    render(<MemoryRouter><WantToJoin items={[item({ key: 'request-31', kind: 'REQUEST', id: 31, squadId: 105, name: 'Eka Lomidze', source: 'ENQUIRY', request: looks })]} data={data} onChanged={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(within(row('Eka Lomidze')).getByRole('button', { name: 'New player' }));
+    expect(within(row('Eka Lomidze')).getByRole('button', { name: 'Accept' })).toBeEnabled();
+});
+
 it('a look-alike that a family already holds is only a quiet note: their parent was asked', () => {
     const held = { ...request, sameChild: { playerId: 4, name: 'Eka L.', hasFamily: true } } as SquadJoinRequest;
     render(<MemoryRouter><WantToJoin items={[item({ key: 'request-31', kind: 'REQUEST', id: 31, squadId: 105, name: 'Eka Lomidze', source: 'ENQUIRY', request: held })]} data={data} onChanged={vi.fn()} /></MemoryRouter>);

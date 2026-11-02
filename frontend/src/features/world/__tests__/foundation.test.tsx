@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -74,6 +75,15 @@ it('shows one quiet line with Stop once a child’s search is followed, and Stop
     await userEvent.click(screen.getByRole('button',{name:'Stop'}));
     expect(watches.stopSearch).toHaveBeenCalledWith(7,'one',expect.any(AbortSignal));
     await waitFor(()=>expect(screen.queryByText(/new places for/)).not.toBeInTheDocument());
+    expect(watches.keepSearch).toHaveBeenCalledTimes(1);
+});
+it('follows once and shows the line under React strict mode, whose effects run twice', async () => {
+    const followed = {id:7,query:spec,returnPath:'/world/clubs?player=9&near=Batumi',childId:9,active:true};
+    let kept = false;
+    vi.mocked(watches.listSearchWatches).mockImplementation(async () => kept ? [followed] : []);
+    vi.mocked(watches.keepSearch).mockImplementation(async () => { kept = true; return followed; });
+    render(<StrictMode><MemoryRouter initialEntries={['/world/clubs?player=9']}><WatchSearch spec={spec} childId={9}/></MemoryRouter></StrictMode>);
+    expect(await screen.findByText('We’ll tell you about new places for your child')).toBeInTheDocument();
     expect(watches.keepSearch).toHaveBeenCalledTimes(1);
 });
 it('does not follow again a search that was already followed when the page opened and then stopped', async () => {

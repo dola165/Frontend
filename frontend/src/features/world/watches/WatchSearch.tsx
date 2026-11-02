@@ -60,15 +60,15 @@ function FollowedForChild({ spec, childId }: { spec: SearchSpec; childId: number
         attempted.current = key;
         const path = returnPath(spec, childId);
         if (!path) { setFailed(key); return; }
-        const request = new AbortController();
-        void keepSearch(spec, path, childId, sessionId, request.signal)
-            .then(() => { if (!request.signal.aborted) list.retry(); })
+        // Not aborted on cleanup: following is idempotent on the server, and an effect run twice (React's strict
+        // mode) must not cancel the one attempt. An answer for a search no longer shown is ignored.
+        void keepSearch(spec, path, childId, sessionId, new AbortController().signal)
+            .then(() => { if (attempted.current === key) list.retry(); })
             .catch(error => {
                 // A child who has a club (or a search the parent may no longer make) is refused: then nothing shows.
                 const refused = [403, 404].includes((error as { response?: { status?: number } } | null)?.response?.status ?? 0);
-                if (!request.signal.aborted && !refused) setFailed(key);
+                if (attempted.current === key && !refused) setFailed(key);
             });
-        return () => request.abort();
         // One attempt per search and child; the list's own reloads never start another, Try again does.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ready, key, round]);

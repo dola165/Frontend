@@ -172,10 +172,12 @@ describe('Players — trialist actions', () => {
 
     it('offers Send to the family on a child’s card whose parent hasn’t said yes, as a link for any chat', async () => {
         const onFamilyLink = vi.fn().mockResolvedValue({ id: 1, kind: 'CLUB_CARD', code: 'c'.repeat(43), path: `/family-link/${'c'.repeat(43)}`, expiresAt: '2026-11-16T00:00:00Z', personId: 7, personName: 'Giorgi Trialist' });
-        renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink });
+        const props = renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink, onFamilySent: vi.fn() });
         fireEvent.click(screen.getByRole('button', { name: 'Send to the family' }));
         expect(await screen.findByDisplayValue(`${window.location.origin}/family-link/${'c'.repeat(43)}`)).toBeInTheDocument();
         expect(onFamilyLink).toHaveBeenCalledWith(7);
+        // Fix round: the list reads the row again, which then says the family is waiting.
+        expect(props.onFamilySent).toHaveBeenCalledTimes(1);
         expect(screen.queryByLabelText('Parent email Giorgi Trialist')).not.toBeInTheDocument();
     });
 });

@@ -71,7 +71,7 @@ export function PlayerDetails({ player, actions, admissionManaged }: { player: C
         </Field>}
         {!admissionManaged && familyToReach && <div className="pl-consent">
             <span className="gk-field__label">{say('Family', 'ოჯახი')}</span>
-            {sharing ? <FamilyLinkShare load={() => actions.onFamilyLink!(player.userId)}
+            {sharing ? <FamilyLinkShare load={() => actions.onFamilyLink!(player.userId).then(link => { actions.onFamilySent?.(); return link; })}
                 title={say(`${first}’s card`, `${first}-ის ბარათი`)} subtitle={say('Open it to be their parent here', 'გახსენით, რომ აქ მისი მშობელი იყოთ')}
                 message={say(`Here is ${first}’s card from our club. Open it so you’re ${first}’s parent on GrassKickZ.`, `ეს არის ${first}-ის ბარათი ჩვენი კლუბიდან. გახსენით, რომ GrassKickZ-ზე ${first}-ის მშობელი იყოთ.`)}
                 label={say(`Link for ${first}’s family`, `ბმული ${first}-ის ოჯახისთვის`)} />

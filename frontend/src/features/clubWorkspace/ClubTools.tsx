@@ -54,7 +54,7 @@ export function ClubTools(ctx: ClubToolsContext) {
             } : undefined}
             joiningPlayerIds={ctx.admissions.data?.cases.filter(row => row.stage !== 'CLOSED').map(row => row.playerId)}
             onTrialEndsChange={m.actions.trialEndsChange} onRetry={() => { void players.reload(); }} onPageChange={players.setPage}
-            onMessagePlayer={userId => navigate(`/messages?chatWith=${userId}`)} onFamilyLink={userId => clubCardFamilyLink(clubId, userId)}
+            onMessagePlayer={userId => navigate(`/messages?chatWith=${userId}`)} onFamilyLink={userId => clubCardFamilyLink(clubId, userId)} onFamilySent={() => { void players.reload(); }}
             onTabChange={next => next === 'admissions' ? ctx.openWork('admissions', { intake: '1' }) : ctx.switchTab(next)} />;
         case 'admissions': return <ClubAdmissionWorkspace state={ctx.admissions} sessionId={ctx.sessionId} existingPeople={ctx.roles?.people} onOpen={ctx.openWork}
             onRosterChanged={() => { players.invalidate(); void ctx.reloadOverview(); ctx.refreshRoles(); }} />;

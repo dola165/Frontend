@@ -40,9 +40,35 @@ export function deviceName(userAgent = navigator.userAgent): string {
     return os ? `${browser} on ${os}` : browser;
 }
 
+/**
+ * The push registration with its worker active. A first visit's worker is still installing, and
+ * subscribing then fails ("no active Service Worker"). `navigator.serviceWorker.ready` never settles
+ * here: a /push/ worker controls no page.
+ */
 async function registration(): Promise<ServiceWorkerRegistration> {
-    const existing = await navigator.serviceWorker.getRegistration(PUSH_WORKER_SCOPE);
-    return existing ?? navigator.serviceWorker.register(PUSH_WORKER_URL, { scope: PUSH_WORKER_SCOPE });
+    const reg = (await navigator.serviceWorker.getRegistration(PUSH_WORKER_SCOPE))
+        ?? await navigator.serviceWorker.register(PUSH_WORKER_URL, { scope: PUSH_WORKER_SCOPE });
+    const worker = reg.installing ?? reg.waiting;
+    if (!reg.active && worker) await activated(worker);
+    return reg;
+}
+
+/** Settles once the worker is active; fails if the browser throws it away or it takes too long. */
+function activated(worker: ServiceWorker, timeoutMs = 10_000): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => finish(new Error('The push worker did not activate')), timeoutMs);
+        function finish(error?: Error) {
+            clearTimeout(timer);
+            worker.removeEventListener('statechange', check);
+            if (error) reject(error); else resolve();
+        }
+        function check() {
+            if (worker.state === 'activated') finish();
+            else if (worker.state === 'redundant') finish(new Error('The push worker was discarded'));
+        }
+        worker.addEventListener('statechange', check);
+        check();
+    });
 }
 
 export async function currentSubscription(): Promise<PushSubscription | null> {

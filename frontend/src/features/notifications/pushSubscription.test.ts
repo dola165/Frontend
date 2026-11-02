@@ -1,5 +1,36 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applicationServerKey, deviceName, isIosBrowser, pushSupport } from './pushSubscription';
+import { registerPushSubscription } from '../../api/notificationPreferences';
+import { applicationServerKey, deviceName, enablePushOnThisDevice, isIosBrowser, pushSupport } from './pushSubscription';
+
+vi.mock('../../api/notificationPreferences', () => ({ registerPushSubscription: vi.fn(), forgetPushSubscription: vi.fn() }));
+
+/** A first visit in a desktop browser: the push worker registers and is still installing, then ends `after`. */
+function firstVisit(after: 'activated' | 'redundant') {
+    const worker = Object.assign(new EventTarget(), { state: 'installing' as ServiceWorkerState });
+    const reg = {
+        installing: worker as EventTarget | null, waiting: null, active: null as EventTarget | null,
+        pushManager: { getSubscription: vi.fn(async () => null), subscribe: vi.fn() },
+    };
+    reg.pushManager.subscribe.mockImplementation(async () => {
+        if (!reg.active) throw new DOMException('Subscription failed - no active Service Worker', 'AbortError');
+        return { toJSON: () => ({ endpoint: 'https://push.example.test/1', keys: { p256dh: 'p256dh', auth: 'auth' } }) };
+    });
+    const register = vi.fn(async () => {
+        setTimeout(() => {
+            worker.state = after;
+            if (after === 'activated') { reg.active = worker; reg.installing = null; }
+            worker.dispatchEvent(new Event('statechange'));
+        }, 5);
+        return reg;
+    });
+    vi.stubGlobal('navigator', { ...navigator, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/152.0', platform: 'Win32', maxTouchPoints: 0, serviceWorker: { getRegistration: vi.fn(async () => undefined), register } });
+    vi.stubGlobal('isSecureContext', true);
+    vi.stubGlobal('PushManager', function PushManager() {});
+    vi.stubGlobal('Notification', { permission: 'granted' });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    return { reg, register };
+}
+const KEY = btoa(String.fromCharCode(...new Uint8Array(65).fill(4))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
 describe('push subscription helpers', () => {
     afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -37,5 +68,21 @@ describe('push subscription helpers', () => {
     it('reports a browser without the Push API as unsupported (jsdom is one)', () => {
         vi.stubGlobal('matchMedia', () => ({ matches: false }));
         expect(pushSupport()).toBe('unsupported');
+    });
+
+    it('on a first visit, waits for the push worker to activate before subscribing', async () => {
+        const { reg, register } = firstVisit('activated');
+        vi.mocked(registerPushSubscription).mockResolvedValue({} as Awaited<ReturnType<typeof registerPushSubscription>>);
+        const outcome = await enablePushOnThisDevice(KEY, 'en');
+        expect(register).toHaveBeenCalledWith('/push-sw.js', { scope: '/push/' });
+        expect(outcome.ok).toBe(true);
+        expect(reg.pushManager.subscribe).toHaveBeenCalledOnce();
+        expect(registerPushSubscription).toHaveBeenCalledWith(expect.objectContaining({ endpoint: 'https://push.example.test/1', device: 'Chrome on Windows' }));
+    });
+
+    it('a worker the browser throws away fails the attempt without subscribing', async () => {
+        const { reg } = firstVisit('redundant');
+        expect(await enablePushOnThisDevice(KEY, 'en')).toEqual({ ok: false, reason: 'failed' });
+        expect(reg.pushManager.subscribe).not.toHaveBeenCalled();
     });
 });

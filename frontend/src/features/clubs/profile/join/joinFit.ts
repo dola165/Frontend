@@ -20,7 +20,7 @@ const VETERANS_FROM = 35;
  * no one, so a youth squad is never offered to an adult. A boys' or men's squad is not for a girl, and the other way
  * round; mixed is for all. An unknown age or gender rules nothing out.
  */
-export function squadFits(squad: PublicSquad, player: Player, year = new Date().getFullYear()) {
+export function squadFits(squad: Pick<PublicSquad, 'category' | 'gender'>, player: Player, year = new Date().getFullYear()) {
     const gender = squad.gender?.toUpperCase();
     if (player.gender && (gender === 'MALE' || gender === 'FEMALE') && gender !== player.gender) return false;
     if (player.age == null) return true;
@@ -33,6 +33,18 @@ export function squadFits(squad: PublicSquad, player: Player, year = new Date().
     if (/^(VETERAN|MASTERS)/.test(category)) return player.age >= VETERANS_FROM;
     if (/^(SENIOR|ADULT|OPEN|FIRST)/.test(category)) return player.age >= SENIOR_FROM;
     return false;
+}
+
+const ages = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, index) => from + index);
+
+/**
+ * Who a squad's own link can be for, by the same rule: children (younger than senior football) and/or adults. Null
+ * when its age group can't be read, so nobody is turned away by a guess.
+ */
+export function squadAudience(squad: Pick<PublicSquad, 'category' | 'gender'>): { children: boolean; adults: boolean } | null {
+    const fits = (age: number) => squadFits(squad, { age });
+    const children = ages(3, SENIOR_FROM - 1).some(fits), adults = ages(18, 70).some(fits);
+    return children || adults ? { children, adults } : null;
 }
 
 const COACHING = ['HEAD_COACH', 'ASSISTANT_COACH', 'GOALKEEPER_COACH', 'SPECIALIST_COACH'];

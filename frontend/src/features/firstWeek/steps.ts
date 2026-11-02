@@ -65,9 +65,13 @@ export const withUnfolded = (progress: WelcomeProgress | null | undefined, open:
     return withWeek(progress, open ? [...week, OPEN_MARK] : week);
 };
 
-/** Steps done, by name; "See matches near you" (until 27 October 2026) counts as having opened World. */
+/**
+ * Steps done, by name; "See matches near you" (until 27 October 2026) counts as having opened World, and a player's
+ * photo (their week's third step until 2 November 2026) counts as their football profile, so a finished week stays done.
+ */
 export const doneSteps = (progress: WelcomeProgress | null | undefined) => {
     const done = new Set(progress?.week ?? []);
     if (done.has('matches')) done.add('world');
+    if (done.has('photo')) done.add('football');
     return done;
 };

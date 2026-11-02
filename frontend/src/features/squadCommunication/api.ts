@@ -62,6 +62,11 @@ export const setReaction=async(id:number,messageId:number,reaction:ReactionKind,
 export const updateComments=async(id:number,messageId:number,signal?:AbortSignal,before?:number)=>(await apiClient.get<UpdateComment[]>(`${root}/${id}/messages/${messageId}/comments`,{signal,params:{before}})).data;
 export const addUpdateComment=async(id:number,messageId:number,requestId:string,body:string)=>apiClient.post(`${root}/${id}/messages/${messageId}/comments`,{requestId,body});
 export const removeUpdateComment=async(id:number,messageId:number,commentId:number)=>apiClient.delete(`${root}/${id}/messages/${messageId}/comments/${commentId}`);
+/** Notify: who each choice reaches (the sender left out), and the one line to them at once. */
+export type NoticeAudience='EVERYONE'|'PARENTS'|'PLAYERS'|'STAFF';
+export interface NoticeReach {everyone:number;parents:number;players:number;staff:number}
+export const noticeReach=async(id:number,signal?:AbortSignal)=>(await apiClient.get<NoticeReach>(`${root}/${id}/notify`,{signal})).data;
+export const notifySquad=async(id:number,data:{requestId:string;audience:NoticeAudience;line:string})=>(await apiClient.post<{told:number}>(`${root}/${id}/notify`,data)).data;
 export const setChatNotifications=async(id:number,notifyChat:boolean)=>apiClient.put(`${root}/${id}/preferences`,{notifyChat});
 export const assignCoach=async(id:number,userId:number|null,authSessionId?:AuthSessionId)=>{
     const url=`${root}/${id}/coach`, command={userId};

@@ -12,6 +12,7 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { dayLabel, isToday, timeLabel } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
 import { MessageParentsDialog } from './MessageParentsDialog';
+import { NotifySquadButton } from '../../squadCommunication/NotifySquad';
 import { capitalized } from './useCoachData';
 import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
@@ -124,7 +125,8 @@ export function CoachUpdates({ data }: { data: CoachData }) {
         {writing && <MessageParentsDialog data={data} onClose={() => setWriting(false)} />}
     </>;
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title={copy('updates')} actions={<ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />{copy('newAnnouncement')}</ButtonLink>} />
+        <PageHeader title={copy('updates')} actions={<><NotifySquadButton squads={data.mine.filter(squad => data.shown.includes(squad.id))} focus={data.focus} />
+            <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />{copy('newAnnouncement')}</ButtonLink></>} />
         <SquadSwitch data={data} />
         {body}
     </PageFrame>;

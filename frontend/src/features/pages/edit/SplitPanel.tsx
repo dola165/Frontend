@@ -11,7 +11,7 @@ export function SplitPanel({ title, description, onClose, footer, preview, wide,
   const t = usePagesCopy();
   return (
     <Dialog open size={preview || wide ? 'lg' : 'md'} title={title} description={description} onClose={onClose} closeLabel={t('Close')} footer={footer}>
-      {preview ? <div className="gk-split"><div className="gk-split__choices">{children}</div><div className="gk-split__preview">{preview}</div></div> : children}
+      {preview ? <div className="gk-splitpanel"><div className="gk-splitpanel__choices">{children}</div><div className="gk-splitpanel__preview">{preview}</div></div> : children}
     </Dialog>
   );
 }

@@ -193,4 +193,28 @@ describe('refresh coordination', () => {
         expect(auth.getStoredAccessToken()).toBe('old-token');
         vi.unstubAllGlobals();
     });
+    it('a save waiting on the refresh is never cancelled by that reload: it renews and goes through (adding a child)', async () => {
+        vi.stubGlobal('__BUILD_ID__', 'old-build');
+        localStorage.setItem('gk-build', 'new-build');
+        sessionStorage.clear();
+        let saved = 0;
+        server.use(
+            http.post('*/family/children', ({ request }) => {
+                if (request.headers.get('Authorization') !== 'Bearer new-token') return new HttpResponse(null, { status: 401 });
+                saved++;
+                return HttpResponse.json({ childId: 7, name: 'Saba' });
+            }),
+            http.post('*/auth/refresh', () => HttpResponse.json({ accessToken: 'new-token' })),
+        );
+        const auth = await import('../../utils/authStorage');
+        auth.setRefreshedAccessToken('old-token', null);
+        const build = await import('../../utils/buildVersion');
+        const reload = vi.spyOn(build.page, 'reload').mockImplementation(() => undefined);
+        const { apiClient } = await import('../axiosConfig');
+        const response = await apiClient.post('/family/children', { fullName: 'Saba' });
+        expect(response.data.childId).toBe(7);
+        expect(saved).toBe(1);
+        expect(reload).not.toHaveBeenCalled();
+        vi.unstubAllGlobals();
+    });
 });

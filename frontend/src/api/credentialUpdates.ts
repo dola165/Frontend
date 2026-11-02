@@ -32,7 +32,7 @@ export async function credentialUpdate<T, R>(request: (config: CredentialUpdateC
             catch (error) {
                 current();
                 if (isAndroidApp || attempt > 0 || !axios.isAxiosError(error) || error.response?.status !== 401) throw error;
-                await renewRejectedSession(session, rejectedToken);
+                await renewRejectedSession(session, rejectedToken, false);
                 current();
             }
         }

@@ -56,7 +56,9 @@ export function ClubOffice({ clubId, sessionId }: { clubId: number; sessionId: A
     const rawTool = params.get('tool');
     const tool: Tool | null = isOfficeTool(rawTool) ? rawTool : null;
     const requested: OfficePlace = tool ? 'tools' : OFFICE_PLACES.find(place => place === params.get('tab')) ?? 'staff';
-    const admissions = useClubAdmissions(clubId, sessionId, tool === 'admissions', tool === null || tool === 'admissions');
+    // Players needs the joining cases too: without them an owner read "Your current responsibilities do not allow this
+    // action" and "Review only" on every trial (layer 1 walk, 3 November 2026).
+    const admissions = useClubAdmissions(clubId, sessionId, tool === 'admissions', tool === null || tool === 'admissions' || tool === 'players');
     const states = toolStates({ boot: operations.boot, role, admissions: Boolean(admissions.data) });
     // On a squad, applications, attendance and preparation live in My squads; owners, admins and someone on no squad
     // keep them here. `inMySquads`: the squad is one of theirs in My squads (any of theirs when the link names none).

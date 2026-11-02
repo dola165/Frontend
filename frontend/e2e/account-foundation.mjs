@@ -11,10 +11,10 @@ const browser = await chromium.launch({ headless: true, channel: 'msedge' });
 const user = { id: 7, username: 'synthetic', fullName: 'Synthetic Person', email: 'synthetic@example.test', role: 'FAN', dob: '1990-01-01', profileComplete: true, onboardingRequired: false, emailVerified: true };
 const account = { ...user, displayName: user.fullName, passwordLoginEnabled: true, linkedAccounts: [], sessionsSupported: true, sessionRevocationSupported: true, accountDeletionSupported: false };
 const token = 'synthetic.' + Buffer.from(JSON.stringify({ sub: '7', role: 'FAN', exp: Math.floor(Date.now()/1000)+3600 })).toString('base64url') + '.signature';
-const consequences = ['Sign-in and your public profile close permanently. Every device is signed out. There is no undo or account recovery after closure.', 'Your account email, phone, password, linked sign-in identities, profile name, bio and profile image links are removed from this account. Uploaded files are not promised to be erased.', 'Club and organization work, sessions, attendance, results, messages, posts, transactions and safety/audit history remain where shared. They may still contain your name or other information. Closure does not cancel commitments or erase other people’s records.', 'This is account closure, not a promise of complete personal-data erasure or a retention deadline.'];
+const consequences = ['Every device is signed out and your profile is hidden from everyone at once: people see a closed account in clubs, lists and chats, and you get no notifications.', 'You have 30 days to change your mind: sign in again and choose Keep my account, and everything comes back as it was.', 'After 30 days the account is erased by itself: email, phone, password, linked sign-ins, profile name, bio and profile image links go and it can never sign in again. Uploaded files are not promised to be erased.', 'Club and organization work, sessions, attendance, results, messages, posts, transactions and safety/audit history remain where shared. They may still contain your name or other information. Closure does not cancel commitments or erase other people\'s records.'];
 try {
     if (evidence) await mkdir(evidence, { recursive: true });
-    for (const [name, viewport, colorScheme, complete = true] of [['desktop-light', { width: 1440, height: 960 }, 'light'], ['phone-dark', { width: 390, height: 844 }, 'dark'], ['desktop-dark', { width: 1440, height: 960 }, 'dark'], ['phone-light', { width: 390, height: 844 }, 'light'], ['skipped-setup', { width: 390, height: 844 }, 'light', false]]) {
+    for (const [name, viewport, colorScheme, complete = true] of [['desktop-light', { width: 1920, height: 1080 }, 'light'], ['phone-dark', { width: 390, height: 844 }, 'dark'], ['desktop-dark', { width: 1920, height: 1080 }, 'dark'], ['phone-light', { width: 390, height: 844 }, 'light'], ['skipped-setup', { width: 390, height: 844 }, 'light', false]]) {
         const context = await browser.newContext({ viewport, colorScheme });
         await context.routeWebSocket('**/*', ws => ws.close());
         let closed = false, loggedIn = false, closes = 0, blockers = [], cancelled = false, cancels = 0, freshReview = false;
@@ -30,7 +30,9 @@ try {
             const path = url.pathname.slice(4), method = route.request().method();
             let data = [];
             if (path === '/auth/csrf') data = { headerName: 'X-CSRF-TOKEN', token: 'synthetic' };
-            else if (path === '/auth/login') { loggedIn = true; data = { accessToken: token }; }
+            // Signing in again within the 30 days offers Keep my account; keeping it signs in as before.
+            else if (path === '/auth/login' && closed && !route.request().postDataJSON().keepAccount) return route.fulfill({ status: 409, json: { code: 'ACCOUNT_CLOSING', detail: 'You closed this account.', keepUntil: '2026-11-29T00:00:00Z' } });
+            else if (path === '/auth/login') { loggedIn = true; closed = false; data = { accessToken: token }; }
             else if (path === '/auth/refresh') { if (!loggedIn) return route.fulfill({ status: 401, json: { detail: 'No session' } }); data = { accessToken: token }; }
             else if (path === '/users/me') data = currentUser;
             else if (path === '/users/me/account') data = account;
@@ -38,7 +40,7 @@ try {
             else if (path === '/auth/account-closure' && method === 'GET') { if (cancelled) freshReview = true; data = { accountId: 7, version: (cancelled ? 'b' : 'a').repeat(64), passwordRequired: true, blockers, consequences }; }
             else if (path === '/venues/bookings/mine/history') data = { content: [{ ...booking, status: cancelled ? 'CANCELLED' : 'CONFIRMED', canCancel: !cancelled }], pageCursor: 'synthetic-page', nextCursor: null };
             else if (path === '/auth/account-closure/cancel-booking' && method === 'POST') { expect(route.request().postDataJSON()).toEqual({ venueId: 22, bookingId: 71 }); cancels++; cancelled = true; blockers = []; data = { ...booking, status: 'CANCELLED', canCancel: false }; }
-            else if (path === '/auth/account-closure' && method === 'POST') { const body = route.request().postDataJSON(); expect(cancelled && freshReview).toBe(true); expect(body.version).toBe('b'.repeat(64)); closes++; closed = true; data = { accountId: 7, requestId: body.requestId, outcome: 'CLOSED', closedAt: '2026-10-30T00:00:00Z' }; }
+            else if (path === '/auth/account-closure' && method === 'POST') { const body = route.request().postDataJSON(); expect(cancelled && freshReview).toBe(true); expect(body.version).toBe('b'.repeat(64)); closes++; closed = true; data = { accountId: 7, requestId: body.requestId, outcome: 'CLOSED', closedAt: '2026-10-30T00:00:00Z', keepUntil: '2026-11-29T00:00:00Z' }; }
             else if (path === '/auth/logout') data = { message: 'Signed out' };
             if (closed && path === '/users/me') return route.fulfill({ status: 401, json: { detail: 'Session ended' } });
             return route.fulfill({ json: data });
@@ -94,17 +96,29 @@ try {
         await page.getByLabel('Current password', { exact: true }).fill('Synthetic-password-1!');
         expect(freshReview).toBe(true);
         await page.keyboard.press('Tab');
-        await expect(page.getByRole('checkbox', { name: /I reviewed the consequences/ })).toBeFocused();
+        await expect(page.getByRole('checkbox', { name: /I reviewed what happens/ })).toBeFocused();
         await page.keyboard.press('Space');
         await page.keyboard.press('Tab');
-        await expect(page.getByRole('button', { name: 'Permanently close account', exact: true })).toBeFocused();
+        await expect(page.getByRole('button', { name: 'Close account', exact: true })).toBeFocused();
         await page.keyboard.press('Enter');
         await expect(page).toHaveURL(/\/login$/);
         await expect(page.getByText('Your account is closed.', { exact: true })).toBeVisible();
+        await expect(page.getByText(/Sign in before 29 November 2026 and choose Keep my account/)).toBeVisible();
         expect(closes).toBe(1);
+        if (evidence && complete) await page.screenshot({ path: `${evidence}/${name}-receipt.png`, fullPage: true });
         expect(await page.evaluate(() => localStorage.getItem('gk-signed-in-session'))).toBeNull();
         expect(errors).toEqual([]);
         expect(cancels).toBe(1);
+        // Changed their mind: the same sign-in offers Keep my account with the date, and keeping signs in.
+        await page.locator('#auth-login-email').fill(user.email);
+        await page.locator('#auth-login-password').fill('Synthetic-password-1!');
+        await page.locator('button[type=submit]').click();
+        await expect(page.getByText('You closed this account', { exact: true })).toBeVisible();
+        await expect(page.getByText(/otherwise it is erased on 29 November 2026/)).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        if (evidence && complete) await page.screenshot({ path: `${evidence}/${name}-keep.png`, fullPage: true });
+        await page.getByRole('button', { name: 'Keep my account', exact: true }).click();
+        await expect(page).not.toHaveURL(/\/login/);
         console.log(JSON.stringify({ journey: name, receipt: true, closes, cancels, freshReview, overflow: false, blockedExternalOrigins: [...new Set(forbidden)] }));
         await context.close();
     }

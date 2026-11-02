@@ -96,3 +96,11 @@ it('clears sealed work when a refreshed header read is denied', async () => {
     expect(apiClient.post).not.toHaveBeenCalled();
     expect(apiClient.patch).not.toHaveBeenCalled();
 });
+
+it('round 2: a place offered to the family opens only its own case agreement, and only for that family', () => {
+    const value = '/admissions/cases/4?tab=agreement&player=259';
+    expect(requestDestination(value, 'ADMISSION_PLACE')).toBe(value);
+    expect(requestDestination(value, 'CLUB_OPERATION_WORK')).toBeNull();
+    for (const other of ['/admissions/cases/4', '/admissions/cases/4?tab=agreement&player=259&x=1', '/admissions/inquiries/4?tab=agreement&player=259', '/clubs/1/workspace'])
+        expect(requestDestination(other, 'ADMISSION_PLACE')).toBeNull();
+});

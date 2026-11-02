@@ -194,9 +194,10 @@ function PlayerCardForm({
                     parentEmail: parentEmail.trim() || null,
                     squadId: selectedSquadId,
                 });
-                onCardCreated?.();
-                // A child's family is reached from here, while the coach still has the chat open.
+                // A child's family is reached from here, while the coach still has the chat open; the lists behind
+                // refresh once that is done, since refreshing may close the dialog this form sits in.
                 if (needsConsent && made.userId != null) { setMadeChild(made); return; }
+                onCardCreated?.();
             }
             onClose();
         } catch (err: unknown) {
@@ -222,7 +223,7 @@ function PlayerCardForm({
         .slice(0, 2)
         .map((part) => part[0])
         .join('');
-    if (madeChild) return <SendToFamily clubId={clubId} card={madeChild} squadName={selectedSquadName} onClose={onClose} />;
+    if (madeChild) return <SendToFamily clubId={clubId} card={madeChild} squadName={selectedSquadName} onClose={() => { onCardCreated?.(); onClose(); }} />;
     return (
         <div
             className="prf-overlay squad-design"

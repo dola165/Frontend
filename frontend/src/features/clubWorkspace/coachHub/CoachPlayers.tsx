@@ -65,7 +65,15 @@ export function CoachPlayers({ data }: { data: CoachData }) {
     };
 
     const rosters = data.rosters?.filter(roster => data.shown.includes(roster.id)) ?? null;
-    const rows: PlayerRow[] = (rosters ?? []).flatMap(roster => (roster.groups ?? []).flatMap(group => group.players.map(player => {
+    // The squad's players are its members, as the squad's own page counts them: a child placed before the family's yes
+    // waits under "Waiting for the family" instead (a squad whose page didn't load keeps its whole roster).
+    const members = (squad: number) => { const players = data.squads?.find(item => item.id === squad)?.overview?.players; return players ? new Set(players.map(person => person.id)) : null; };
+    // Only a child waits for a family; anyone else on the roster stays a player here.
+    const isMember = (squad: number, player: SquadRosterPlayer) => (members(squad)?.has(player.id) ?? true)
+        || player.age == null || player.age >= 18;
+    const placedWaiting = (rosters ?? []).flatMap(roster => (roster.groups ?? []).flatMap(group => group.players.filter(player => !isMember(roster.id, player))
+        .map(player => ({ cardId: -player.id, userId: player.id, fullName: player.name, birthYear: null, age: player.age ?? null, squad: roster.id }))));
+    const rows: PlayerRow[] = (rosters ?? []).flatMap(roster => (roster.groups ?? []).flatMap(group => group.players.filter(player => isMember(roster.id, player)).map(player => {
         const about = data.records.rows.filter(record => record.subject_user_id === player.id);
         return { player, group: group.label, squad: roster.id,
             restriction: about.find(record => record.module === 'AVAILABILITY'), consent: about.find(record => record.module === 'GUARDIANS' && record.status === 'PENDING'),
@@ -127,7 +135,7 @@ export function CoachPlayers({ data }: { data: CoachData }) {
         <SquadSwitch data={data} />
         <div className="gk-stack">
             {(Boolean(data.joining.items?.length) || data.joining.failed) && <WantToJoin items={data.joining.items ?? []} failed={data.joining.failed} onRetry={data.joining.refresh} data={data} onChanged={data.refresh} />}
-            <WaitingForFamily data={data} />
+            <WaitingForFamily data={data} placed={placedWaiting} />
             {errors.length > 0 && <div className="gk-notice gk-notice--danger" role="alert">{errors[0]}</div>}
             <div className="gk-stack gk-stack--tight">
                 <ViewTabs label={copy('show')} value={filter.id} onChange={id => set({ view: id === 'all' ? null : id })} views={FILTERS.map(item => ({ id: item.id, label: copy(item.label), count: rows.filter(item.test).length }))} />

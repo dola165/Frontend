@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { fetchWaitingCards, type WaitingCard } from '../../clubs/api';
 
-export type Waiting = WaitingCard & { squad: number };
+/** `age` instead of a birth year for a child already placed before the family's yes (older data). */
+export type Waiting = Omit<WaitingCard, 'birthYear'> & { birthYear: number | null; age?: number | null; squad: number };
 
 /** The cards made for the shown squads that wait for the family's yes; staff-only, never the public roster. */
 export function useWaitingCards(clubId: number, squadIds: number[], revision: number) {

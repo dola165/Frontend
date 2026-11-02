@@ -11,7 +11,6 @@ import { useAuth } from '../context/AuthContext';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, todayIso } from '../utils/age';
 import { rememberAgeRefusal } from '../components/auth/ageRefusal';
-import { isEmail } from '../utils/registration';
 import { NEUTRAL_ONBOARDING_ROLE } from '../utils/registration';
 import {
     authFieldErrorClass,
@@ -41,10 +40,6 @@ const OnboardingForm = () => {
     useEffect(() => () => request.current?.abort(), [sessionId]);
     const [fullName, setFullName] = useState(() => user?.fullName && user.fullName !== 'New User' ? user.fullName : user?.name ?? '');
     const [dateOfBirth, setDateOfBirth] = useState(user?.dob ?? '');
-    // 13 to 15: a parent approves the account, so its email goes with the birth date (as at sign-up).
-    const [parentStep, setParentStep] = useState(false);
-    const [parentEmail, setParentEmail] = useState('');
-    const [parentError, setParentError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [nameError, setNameError] = useState('');
@@ -72,9 +67,7 @@ const OnboardingForm = () => {
         setDobError(nextDobError);
         if (nextNameError || nextDobError) return;
         // Under 13 is the server's to answer: it removes the account it just made (a Google sign-in).
-        const age = ageFromDob(dateOfBirth);
-        if (age >= 13 && age < 16 && !parentStep) { setParentStep(true); return; }
-        if (parentStep && (!isEmail(parentEmail) || parentEmail.trim().toLowerCase() === user.email?.toLowerCase())) { setParentError(t('auth.parentWait.errEmail')); return; }
+        // 13 to 15: the account waits for a parent, whom the teen adds with the "Add my parent" link right after.
 
         setIsLoading(true);
         setError('');
@@ -86,7 +79,6 @@ const OnboardingForm = () => {
                 fullName: trimmedName,
                 role: user.role ?? NEUTRAL_ONBOARDING_ROLE,
                 dateOfBirth,
-                ...(parentStep ? { parentEmail: parentEmail.trim().toLowerCase() } : {}),
             }, config), response => {
                 accountState = response.data.accountState;
                 const token = response.data.accessToken;
@@ -112,8 +104,6 @@ const OnboardingForm = () => {
             const code = extractApiErrorCode(requestError);
             // Under 13: the server removed the account. Signed out, to the "join through a parent" answer.
             if (code === 'AGE_BELOW_MINIMUM') { rememberAgeRefusal(); await logout().catch(() => undefined); navigate('/signup', { replace: true, state: { underThirteen: true } }); return; }
-            if (code === 'PARENT_EMAIL_REQUIRED') { setParentStep(true); return; }
-            if (code === 'PARENT_EMAIL_INVALID') { setParentError(t('auth.parentWait.errEmail')); return; }
             setError(code === 'AGE_RETRY_BLOCKED' ? t('auth.register.tryLater') : extractApiErrorMessage(requestError, t('onboarding.saveFailed')));
         } finally {
             if (request.current === controller) request.current = null;
@@ -165,7 +155,7 @@ const OnboardingForm = () => {
                             required
                             autoComplete="bday"
                             disabled={Boolean(user?.dob)}
-                            onChange={(event) => { setDateOfBirth(event.target.value); setDobError(''); setParentStep(false); }}
+                            onChange={(event) => { setDateOfBirth(event.target.value); setDobError(''); }}
                             className={dobError ? authInputErrorClass : authInputClass}
                             aria-invalid={Boolean(dobError)}
                             aria-describedby={[user?.dob ? 'onboarding-dob-hint' : '', dobError ? 'onboarding-dob-error' : ''].filter(Boolean).join(' ') || undefined}
@@ -174,14 +164,6 @@ const OnboardingForm = () => {
                         {dobError && <p id="onboarding-dob-error" className={authFieldErrorClass}>{dobError}</p>}
                     </div>
 
-                    {parentStep && <div className="space-y-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 p-3">
-                        <p className="text-sm font-semibold text-[var(--color-text)]">{t('auth.register.parentTitle')}</p>
-                        <p className="text-xs text-[var(--color-secondary)]">{t('auth.register.parentLine')}</p>
-                        <label htmlFor="onboarding-parent-email" className={authLabelClass}>{t('auth.parentWait.emailLabel')}</label>
-                        <input id="onboarding-parent-email" type="email" value={parentEmail} autoFocus autoComplete="off" onChange={(event) => { setParentEmail(event.target.value); setParentError(''); }}
-                            className={parentError ? authInputErrorClass : authInputClass} aria-invalid={Boolean(parentError)} aria-describedby={parentError ? 'onboarding-parent-error' : undefined} />
-                        {parentError && <p id="onboarding-parent-error" className={authFieldErrorClass}>{parentError}</p>}
-                    </div>}
 
                     <p className="text-xs leading-5 text-[var(--color-secondary)]">{t('onboarding.optionalLater')}</p>
 

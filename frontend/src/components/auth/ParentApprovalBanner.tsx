@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { Dialog } from '../../design/Dialog';
 import { authPrimaryButtonClass } from './authClasses';
-import { ParentApprovalRequest } from './ParentApprovalRequest';
+import { AddMyParent } from './AddMyParent';
 import { dayOf, useParentApproval } from './useParentApproval';
 
 const HIDDEN = 'grasskickz.parent-banner-later';
@@ -12,14 +12,14 @@ const hiddenThisVisit = () => { try { return window.sessionStorage.getItem(HIDDE
 
 function AskDialog({ due, onClose }: { due: string; onClose: () => void }) {
     const { t } = useTranslation();
-    const { user, bootstrapSession } = useAuth();
-    const flow = useParentApproval(user?.email);
+    const { bootstrapSession } = useAuth();
+    const flow = useParentApproval();
     const approved = flow.request?.status === 'NOT_NEEDED';
     return <Dialog open size="sm" closeLabel={t('auth.parentBanner.close')} title={approved ? t('auth.parentBanner.approved') : t('auth.parentBanner.title')}
         description={approved ? undefined : t('auth.parentBanner.dialogLine', { date: dayOf(due) })}
         onClose={() => { if (approved) void bootstrapSession().catch(() => undefined); onClose(); }}>
         {approved ? <BadgeCheck className="mx-auto h-10 w-10 text-[var(--color-accent)]" aria-hidden="true" />
-            : flow.request ? <ParentApprovalRequest flow={flow} />
+            : flow.request ? <AddMyParent waiting={false} />
             : flow.loadFailed ? <><p role="alert" className="text-sm">{t('auth.parentWait.loadFailed')}</p><button type="button" className={authPrimaryButtonClass} onClick={flow.retry}>{t('auth.register.retry')}</button></>
             : <Loader2 className="mx-auto h-6 w-6 animate-spin" aria-hidden="true" />}
     </Dialog>;
@@ -27,8 +27,8 @@ function AskDialog({ due, onClose }: { due: string; onClose: () => void }) {
 
 /**
  * A calm line under the header for a 13 to 15-year-old whose account was made before parents approved accounts:
- * "Ask your parent to approve your account by 26 November", with Ask my parent (the same parent-email flow as the
- * waiting page) and Later (for this visit). After the day, the account waits for the parent and the app shows that.
+ * "Ask your parent to approve your account by 26 November", with Ask my parent (the same "Add my parent" link as
+ * the waiting page) and Later (for this visit). After the day, the account waits for the parent and the app shows that.
  */
 export function ParentApprovalBanner() {
     const { t } = useTranslation();

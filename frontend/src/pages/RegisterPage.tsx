@@ -86,9 +86,6 @@ export const RegisterPage = () => {
     const [signIn, setSignIn] = useState<'known' | 'created' | null>(null);
     // The Google birth-date step sends an under-13 answer here, signed out.
     const [underThirteen, setUnderThirteen] = useState(() => (location.state as { underThirteen?: boolean } | null)?.underThirteen === true);
-    // 13 to 15: a parent approves the account, so its email goes with the sign-up.
-    const [parentStep, setParentStep] = useState(false);
-    const [parentEmail, setParentEmail] = useState('');
     // The bot check, when the server asks for one: a token is good for one try, so each try gets a new check.
     const bot = useBotCheck();
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
@@ -112,7 +109,6 @@ export const RegisterPage = () => {
         if (!passwordRulesMet) errors.password = t('auth.register.errPasswordWeak');
         if (!dob) errors.dob = t('auth.register.errDobRequired');
         else if (!Number.isFinite(ageFromDob(dob)) || dob > todayIso()) errors.dob = t('auth.register.dobInvalid');
-        if (parentStep && (!isEmail(parentEmail) || parentEmail.trim().toLowerCase() === email.trim().toLowerCase())) errors.parent = t('auth.parentWait.errEmail');
         setFieldErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -139,7 +135,7 @@ export const RegisterPage = () => {
             setUnderThirteen(true);
             return;
         }
-        if (!parentStep && ageFromDob(dob) < 16) { setParentStep(true); return; }
+        // 13 to 15: the account waits for a parent, whom the teen adds with the "Add my parent" link right after.
 
         setIsLoading(true);
         setError('');
@@ -157,7 +153,6 @@ export const RegisterPage = () => {
                 password,
                 dateOfBirth: dob,
                 continuationPath: publicContinuationPath(nextPath),
-                ...(parentStep ? { parentEmail: parentEmail.trim().toLowerCase() } : {}),
                 ...(bot.token ? { turnstileToken: bot.token } : {}),
             }, { signal: controller.signal });
             if (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current)) return;
@@ -185,8 +180,6 @@ export const RegisterPage = () => {
             if (!installingSession && accountExists(requestError)) { setSignIn('known'); return; }
             const code = extractApiErrorCode(requestError);
             if (!installingSession && code === 'AGE_BELOW_MINIMUM') { rememberAgeRefusal(); setPassword(''); setUnderThirteen(true); return; }
-            if (!installingSession && code === 'PARENT_EMAIL_REQUIRED') { setParentStep(true); return; }
-            if (!installingSession && code === 'PARENT_EMAIL_INVALID') { setFieldErrors({ parent: t('auth.parentWait.errEmail') }); return; }
             // The server saw an older date right after an age answer from here: say nothing about why.
             if (!installingSession && code === 'AGE_RETRY_BLOCKED') { setError(t('auth.register.tryLater')); return; }
             if (!installingSession && code && (BOT_CHECK_CODES as readonly string[]).includes(code)) { setError(code === 'BOT_CHECK_FAILED' ? t('auth.register.botCheck') : t('auth.register.botUnavailable')); return; }
@@ -298,7 +291,7 @@ export const RegisterPage = () => {
                         <div className="grid gap-5 sm:grid-cols-2">
                             <div className="space-y-2">
                                 <label htmlFor="auth-dob" className={authLabelClass}>{t('auth.register.labelDob')}</label>
-                                <input id="auth-dob" type="date" value={dob} max={todayIso()} required autoComplete="bday" onChange={(event) => { setDob(event.target.value); clearFieldError('dob'); setParentStep(false); }}
+                                <input id="auth-dob" type="date" value={dob} max={todayIso()} required autoComplete="bday" onChange={(event) => { setDob(event.target.value); clearFieldError('dob'); }}
                                     className={fieldClass('dob')} aria-invalid={Boolean(fieldErrors.dob)} aria-describedby={describedBy('auth-dob', 'dob')} />
                                 {fieldError('auth-dob', 'dob')}
                             </div>
@@ -314,17 +307,9 @@ export const RegisterPage = () => {
                                 {locating === 'failed' && <p id="auth-town-note" role="status" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('auth.register.locationUnavailable')}</p>}
                             </div>
                         </div>
-                        {parentStep && <div className="space-y-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 p-3">
-                            <p className="text-sm font-semibold text-[var(--color-text)]">{t('auth.register.parentTitle')}</p>
-                            <p className="text-xs text-[var(--color-secondary)]">{t('auth.register.parentLine')}</p>
-                            <label htmlFor="auth-parent-email" className={authLabelClass}>{t('auth.parentWait.emailLabel')}</label>
-                            <input id="auth-parent-email" type="email" value={parentEmail} autoFocus autoComplete="off" onChange={(event) => { setParentEmail(event.target.value); clearFieldError('parent'); }}
-                                className={fieldClass('parent')} aria-invalid={Boolean(fieldErrors.parent)} aria-describedby={describedBy('auth-parent-email', 'parent')} />
-                            {fieldError('auth-parent-email', 'parent')}
-                        </div>}
                         <Turnstile check={bot} />
                         <button type="submit" disabled={isLoading || !bot.ready} className={authPrimaryButtonClass}>
-                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : parentStep ? t('auth.register.parentSubmit') : t('auth.register.submit')}
+                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('auth.register.submit')}
                         </button>
                     </form>
                 </>

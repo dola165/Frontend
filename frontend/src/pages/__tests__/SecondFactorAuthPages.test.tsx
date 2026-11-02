@@ -123,19 +123,15 @@ it('sends under-13s to a parent, stores nothing, and keeps that answer when an o
     expect(apiClient.post).not.toHaveBeenCalled();
 });
 
-it('asks a 13 to 15-year-old for a parent’s email in the same form, then waits for the parent', async () => {
+it('signs a 13 to 15-year-old up without a parent’s email, then waits for the parent they add by link', async () => {
     vi.mocked(apiClient.post).mockImplementation(async url => ({ data: url === '/auth/register' ? { accountState: 'AWAITING_PARENT' } : { accessToken: 'verified-token', accountState: 'AWAITING_PARENT' } }));
     render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
     change('auth-name', 'Example Teen'); change('auth-email', 'teen@example.test');
     change('auth-password', 'SyntheticPassword1'); change('auth-dob', `${new Date().getFullYear() - 14}-01-01`);
     fireEvent.submit(document.querySelector('form')!);
-    expect(await screen.findByText('A parent approves your account')).toBeInTheDocument();
-    expect(apiClient.post).not.toHaveBeenCalled();
-    change('auth-parent-email', 'teen@example.test'); fireEvent.submit(document.querySelector('form')!);
-    expect(await screen.findByText('Enter a valid email.')).toBeInTheDocument();
-    change('auth-parent-email', 'Parent@Example.test'); fireEvent.submit(document.querySelector('form')!);
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/waiting-for-parent'));
-    expect(apiClient.post).toHaveBeenCalledWith('/auth/register', expect.objectContaining({ parentEmail: 'parent@example.test' }), expect.anything());
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/register', expect.not.objectContaining({ parentEmail: expect.anything() }), expect.anything());
+    expect(document.getElementById('auth-parent-email')).toBeNull();
 });
 
 it('shows the parent answer when the server finds the person under 13, and says nothing about a blocked retry', async () => {

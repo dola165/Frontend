@@ -67,7 +67,6 @@ it('offers sign-in, not an error, when the account was made but the automatic si
     change('auth-name', 'Example Teen'); change('auth-email', 'teen@example.test');
     change('auth-password', 'SyntheticPassword1'); change('auth-dob', `${new Date().getFullYear() - 14}-01-01`);
     fireEvent.submit(document.querySelector('form')!);
-    change('auth-parent-email', 'parent@example.test'); fireEvent.submit(document.querySelector('form')!);
     expect(await screen.findByText('Your account is ready. Sign in to continue.')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));

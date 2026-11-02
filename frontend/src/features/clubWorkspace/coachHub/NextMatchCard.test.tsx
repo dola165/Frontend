@@ -58,13 +58,13 @@ it('puts the match on a squad’s card as one line to Matches, with no buttons',
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
 
-it('keeps an unassessed basic squad neutral while call-ups and attendance stay usable', () => {
+it('says nothing about players with no participation information, while call-ups and attendance stay usable', () => {
     const value = card({ ...nothing, callUps: true });
     value.callUps = callUps.slice(0, 2).map(p => ({ ...p, response: 'UNANSWERED' }));
     value.expected = 2; value.notComing = 0;
     value.fitness = { fit: 0, doubtful: 0, out: 0, notAssessed: 2, players: value.callUps.map(p => ({ id: p.id, state: 'NOT_ASSESSED' })) };
     show(value);
-    expect(screen.getByText('No participation information · 2')).toBeInTheDocument();
+    expect(screen.queryByText(/participation information/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/\d+ (fit|doubtful|out)$/)).not.toBeInTheDocument();
     expect(screen.getAllByText('2 expected').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Call-ups' })).toHaveAttribute('href', '/matches/5730?from=squad%3A105');
@@ -72,11 +72,12 @@ it('keeps an unassessed basic squad neutral while call-ups and attendance stay u
     expect(screen.queryByText(/medical assessment|assessment required|review required/i)).not.toBeInTheDocument();
 });
 
-it('shows genuine review and restriction counts separately from neutral players', () => {
+it('shows only what there is to say: a consented clearance, a review and a restriction, never the players without information', () => {
     const value = card(nothing);
     value.fitness = { fit: 1, doubtful: 1, out: 1, notAssessed: 2, players: [] };
     show(value);
-    for (const text of ['1 fit', '1 doubtful', '1 out', 'No participation information · 2']) expect(screen.getByText(text)).toBeInTheDocument();
+    for (const text of ['1 fit', '1 doubtful', '1 out']) expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByText(/participation information/i)).not.toBeInTheDocument();
 });
 
 const preparationCard = (status: string): MatchCard => ({

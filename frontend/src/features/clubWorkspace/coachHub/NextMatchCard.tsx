@@ -101,11 +101,11 @@ export function NextMatchCard({ card, data, compact = false, onChanged }: { card
                 <small>{copy('whoComing')}</small>
                 {faces.length > 0 && <FaceStack people={faces} max={12} size={26} label={answers} />}
                 <span className="ch-quiet">{answers}</span>
-                {fit && <span className="ch-match__fit">
+                {/* Only where there is something to say: no participation information shows nothing (owner, 2 November 2026). */}
+                {fit && fit.fit + fit.doubtful + fit.out > 0 && <span className="ch-match__fit">
                     {fit.fit > 0 && <span><span className="cw-dot cw-dot--accent" aria-hidden="true" />{copy('fit', { count: fit.fit })}</span>}
                     {fit.doubtful > 0 && <span><span className="cw-dot cw-dot--warning" aria-hidden="true" />{copy('doubtful', { count: fit.doubtful })}</span>}
                     {fit.out > 0 && <span><span className="cw-dot cw-dot--danger" aria-hidden="true" />{copy('out', { count: fit.out })}</span>}
-                    {fit.notAssessed > 0 && <span className="ch-quiet">{copy('notAssessed', { count: fit.notAssessed })}</span>}
                 </span>}
             </div>
             <div className="ch-match__part">

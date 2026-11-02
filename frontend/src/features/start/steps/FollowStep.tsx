@@ -26,7 +26,7 @@ export function FollowStep({ land, back, close }: WelcomeStepProps) {
         setBusy(true); setFailed(false);
         const missed = await followClubs((clubs ?? []).filter(club => chosen.has(club.id)));
         setBusy(false);
-        if (missed) setFailed(true); else land('follow', null);
+        if (missed) setFailed(true); else land('follow', null, undefined, chosen.size ? ['follow'] : []);
     };
     const count = chosen.size;
     return <WelcomeFrame position={2} onClose={close} back={back} title={copy('Clubs near you', 'კლუბები თქვენთან ახლოს')}

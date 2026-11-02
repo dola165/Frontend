@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { FeedPage } from '../../pages/FeedPage';
 import type { FeedPostDto } from '../../components/feed/FeedPost';
+import { followsChanged } from '../../features/actions/follow';
 
 vi.mock('../../api/axiosConfig', () => ({
     apiClient: {
@@ -313,6 +314,16 @@ describe('FeedPage', () => {
         expect(screen.getByTestId('post-ids')).toHaveTextContent('3');
         expect(screen.getByTestId('post-composer')).toBe(composer);
         expect(apiClient.get).toHaveBeenCalledTimes(3);
+    });
+
+    it('loads again when clubs were just followed in the welcome or the first week', async () => {
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 1 }] } })
+            .mockResolvedValueOnce({ data: { posts: [{ id: 2 }, { id: 1 }] } });
+        renderPage();
+        expect(await screen.findByTestId('post-ids')).toHaveTextContent('1');
+        await act(async () => followsChanged());
+        await waitFor(() => expect(screen.getByTestId('post-ids')).toHaveTextContent('2,1'));
+        expect(apiClient.get).toHaveBeenCalledTimes(2);
     });
 
     it('does not flash initial skeletons again when switching away from an empty feed', async () => {

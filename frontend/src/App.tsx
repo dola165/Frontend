@@ -108,6 +108,7 @@ const PageReviewReceipt = lazy(() => import('./features/pages/verify/PageReviewR
 const TournamentWorkspacePage = lazy(() => import('./pages/TournamentWorkspacePage').then(module => ({default: module.TournamentWorkspacePage})));
 const TournamentDetailPage = lazy(() => import('./pages/TournamentDetailPage').then(module => ({default: module.TournamentDetailPage})));
 const JoinPage = lazy(() => import('./features/pages/links/JoinPage').then(module => ({ default: module.JoinPage })));
+const NotificationEmailPage = lazy(() => import('./features/teamWork/NotificationEmailPage').then(module => ({ default: module.NotificationEmailPage })));
 const FamilyLinkPage = lazy(() => import('./features/parents/FamilyLinkPage').then(module => ({ default: module.FamilyLinkPage })));
 const MergePage = lazy(() => import('./features/parents/MergePage').then(module => ({ default: module.MergePage })));
 const InvitePage = lazy(() => import('./features/pages/links/InvitePage').then(module => ({ default: module.InvitePage })));
@@ -141,7 +142,7 @@ function useRailsFit() {
 }
 
 // Sign-in renders without the app header; `/start` (where sign-up sends a new account) only leads to the welcome on Home.
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval', '/own-account']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/club-invite', '/verify-email', '/consent', '/start', WAITING_FOR_PARENT_PATH, '/parent-approval', '/own-account', '/notification-email']);
 const boundedCanvasPages = new Set(['/messages', '/team-work/chat']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -504,6 +505,7 @@ export function MainLayout() {
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/parent-approval" element={<ParentApprovalPage />} />
                         <Route path="/own-account" element={<OwnAccountPage />} />
+                        <Route path="/notification-email" element={<NotificationEmailPage />} />
                         <Route path={WAITING_FOR_PARENT_PATH} element={<ProtectedRoute><WaitingForParentPage /></ProtectedRoute>} />
                         <Route path="/start" element={<ProtectedRoute><Navigate to={`/home?${WELCOME_PARAM}=start`} replace /></ProtectedRoute>} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />

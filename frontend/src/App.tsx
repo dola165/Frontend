@@ -28,6 +28,7 @@ import { LegacyCleanupRedirect } from './features/requests/LegacyCleanupRedirect
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
 import { useBuildWatch } from './hooks/useBuildWatch';
+import { useSaveNotificationLanguage } from './features/notifications/useSaveNotificationLanguage';
 import { ParentApprovalBanner } from './components/auth/ParentApprovalBanner';
 import { LoginPage } from './pages/LoginPage';
 
@@ -221,6 +222,8 @@ export function MainLayout() {
     const { status, user, logout, refreshNavigationCapabilities } = useAuth();
     // A tab left open across a release moves to the new build instead of competing with it for the session.
     useBuildWatch(status === 'anonymous');
+    // Push and email speak the language the person switches the app to.
+    useSaveNotificationLanguage(status === 'authenticated');
     useEffect(() => {
         if (status === 'authenticated') void refreshNavigationCapabilities?.();
     }, [location.key, status, refreshNavigationCapabilities]);

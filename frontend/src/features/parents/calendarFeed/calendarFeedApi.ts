@@ -1,7 +1,10 @@
 import { apiClient, DEPLOYMENT_URLS } from '../../../api/axiosConfig';
 
-/** The signed-in parent's private calendar link (W4): on or off; the link itself is shown only when it is made. */
-export interface CalendarFeedStatus { on: boolean; createdAt: string | null; lastReadAt: string | null }
+/**
+ * The signed-in parent's private calendar link (W4): on or off; the link itself is shown only when it is made.
+ * `forChildren`: they have a child in the app; without one the link would hold nothing and can't be made.
+ */
+export interface CalendarFeedStatus { on: boolean; createdAt: string | null; lastReadAt: string | null; forChildren: boolean }
 
 export const calendarFeedStatus = async (signal?: AbortSignal) => (await apiClient.get<CalendarFeedStatus>('/calendar/family', { signal })).data;
 /** A new link (the one before stops); `path` is on this site. */

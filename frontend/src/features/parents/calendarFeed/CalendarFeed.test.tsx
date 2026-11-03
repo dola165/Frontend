@@ -11,7 +11,7 @@ beforeEach(() => vi.clearAllMocks());
 
 it('makes the private link once and offers it to Google and Apple calendars', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.calendarFeedStatus).mockResolvedValue({ on: false, createdAt: null, lastReadAt: null });
+    vi.mocked(api.calendarFeedStatus).mockResolvedValue({ on: false, createdAt: null, lastReadAt: null, forChildren: true });
     vi.mocked(api.makeCalendarFeed).mockResolvedValue({ path: '/api/calendar/family/abc.ics', createdAt: new Date().toISOString() });
     render(<CalendarFeedRow names={['Nika', 'Luka']} />);
     await user.click(screen.getByRole('button', { name: /phone’s calendar/ }));
@@ -26,7 +26,7 @@ it('makes the private link once and offers it to Google and Apple calendars', as
 
 it('says when a calendar last read the link, and stops it', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.calendarFeedStatus).mockResolvedValue({ on: true, createdAt: '2026-11-01T10:00:00Z', lastReadAt: new Date(Date.now() - 3600000).toISOString() });
+    vi.mocked(api.calendarFeedStatus).mockResolvedValue({ on: true, createdAt: '2026-11-01T10:00:00Z', lastReadAt: new Date(Date.now() - 3600000).toISOString(), forChildren: true });
     vi.mocked(api.stopCalendarFeed).mockResolvedValue({} as never);
     render(<CalendarFeedRow names={['Nika']} />);
     await user.click(screen.getByRole('button', { name: /phone’s calendar/ }));
@@ -36,4 +36,20 @@ it('says when a calendar last read the link, and stops it', async () => {
     await user.click(within(dialog).getByRole('button', { name: 'Stop the link' }));
     expect(api.stopCalendarFeed).toHaveBeenCalled();
     expect(await within(dialog).findByRole('button', { name: 'Make my link' })).toBeInTheDocument();
+});
+
+it('shows no row to someone without children in the app', () => {
+    const { container } = render(<CalendarFeedRow names={[]} />);
+    expect(container).toBeEmptyDOMElement();
+    expect(api.calendarFeedStatus).not.toHaveBeenCalled();
+});
+
+it('offers no link when the server says there is no child to hold', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.calendarFeedStatus).mockResolvedValue({ on: false, createdAt: null, lastReadAt: null, forChildren: false });
+    render(<CalendarFeedRow names={['Nika']} />);
+    await user.click(screen.getByRole('button', { name: /phone’s calendar/ }));
+    const dialog = screen.getByRole('dialog');
+    expect(await within(dialog).findByText(/Add a child to make one/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Make my link' })).not.toBeInTheDocument();
 });

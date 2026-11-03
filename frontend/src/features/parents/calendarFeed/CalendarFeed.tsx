@@ -11,11 +11,13 @@ import './calendar-feed.css';
 /**
  * Parent Hub's door to the phone's calendar (W4): one quiet row that opens the private link. Off, one press makes it;
  * just made, it is shown once with Copy, Google Calendar and Apple; on, it says when a calendar last read it, with New
- * link (the old one stops) and Stop. `names` are the children whose sessions it holds.
+ * link (the old one stops) and Stop. `names` are the children whose sessions it holds; with none there is no row
+ * (fix round 2, W8: a player's own link is a later step).
  */
 export function CalendarFeedRow({ names }: { names: string[] }) {
     const copy = useJourneyCopy();
     const [open, setOpen] = useState(false);
+    if (!names.length) return null;
     return <>
         <button type="button" className="ph-details-link cf-row" onClick={() => setOpen(true)}>
             <span><CalendarPlus aria-hidden="true" />{copy('Sessions in your phone’s calendar', 'ვარჯიშები ტელეფონის კალენდარში')}</span><ChevronRight aria-hidden="true" />
@@ -38,9 +40,9 @@ function CalendarFeedDialog({ names, onClose }: { names: string[]; onClose: () =
         setBusy(true); setError('');
         try { await work(); } catch { setError(copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ ხელახლა.')); } finally { setBusy(false); }
     };
-    const make = () => act(async () => { const feed = await makeCalendarFeed(); setMade(feed.path); setStatus({ on: true, createdAt: feed.createdAt, lastReadAt: null }); setCopied(false); });
+    const make = () => act(async () => { const feed = await makeCalendarFeed(); setMade(feed.path); setStatus({ on: true, createdAt: feed.createdAt, lastReadAt: null, forChildren: true }); setCopied(false); });
     const renew = () => { if (window.confirm(copy('Make a new link? Calendars on the old one stop updating.', 'შეიქმნას ახალი ბმული? ძველ ბმულზე კალენდრები აღარ განახლდება.'))) void make(); };
-    const stop = () => act(async () => { await stopCalendarFeed(); setMade(null); setStatus({ on: false, createdAt: null, lastReadAt: null }); });
+    const stop = () => act(async () => { await stopCalendarFeed(); setMade(null); setStatus(current => ({ on: false, createdAt: null, lastReadAt: null, forChildren: current !== null && current !== 'error' && current.forChildren })); });
     const links = made ? calendarLinks(made) : null;
     const who = names.join(', ');
     return <Dialog open size="sm" className="cf-dialog" title={copy('Sessions in your phone’s calendar', 'ვარჯიშები ტელეფონის კალენდარში')}
@@ -65,6 +67,7 @@ function CalendarFeedDialog({ names, onClose }: { names: string[]; onClose: () =
                         : copy('no calendar has read it yet', 'კალენდარს ჯერ არ წაუკითხავს')}</span></p>
                 <div className="cf-apps"><Button variant="secondary" disabled={busy} onClick={renew}>{copy('New link', 'ახალი ბმული')}</Button><Button variant="ghost" disabled={busy} onClick={() => void stop()}>{copy('Stop the link', 'ბმულის გაჩერება')}</Button></div>
             </div>
+            : !status.forChildren ? <p className="cf-quiet">{copy('The link holds your children’s sessions. Add a child to make one.', 'ბმულში თქვენი ბავშვების ვარჯიშებია. შესაქმნელად დაამატეთ ბავშვი.')}</p>
             : <div className="cf-off">
                 <Button variant="primary" disabled={busy} onClick={() => void make()}><CalendarPlus aria-hidden="true" />{copy('Make my link', 'ბმულის შექმნა')}</Button>
                 <p className="cf-quiet">{copy('Your calendar shows each session with your child’s first name and the place. Only you get the link.', 'კალენდარში ჩანს თითოეული ვარჯიში ბავშვის სახელით და ადგილით. ბმული მხოლოდ თქვენ გაქვთ.')}</p>

@@ -70,6 +70,33 @@ describe('TurnOnNotificationsPrompt', () => {
         expect(api.turnOnNeededNotifications).toHaveBeenCalledWith('en');
     });
 
+    it('says so when turning on fails, and the press can be tried again', async () => {
+        const enable = vi.fn().mockResolvedValue({ ok: true, preferences: preferences(true) });
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off', enable));
+        vi.mocked(api.turnOnNeededNotifications).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(preferences(true));
+        render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
+        await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('That did not work. Try again in a moment.');
+        expect(enable).not.toHaveBeenCalled();
+        await userEvent.click(screen.getByRole('button', { name: 'Turn on notifications' }));
+        expect(await screen.findByText(/Notifications are on/)).toBeInTheDocument();
+        expect(enable).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes one press while turning on is under way', async () => {
+        let answer: (value: api.NotificationPreferences) => void = () => undefined;
+        vi.mocked(api.turnOnNeededNotifications).mockClear().mockReturnValue(new Promise(resolve => { answer = resolve; }));
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off', vi.fn().mockResolvedValue({ ok: true, preferences: preferences(true) })));
+        render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
+        const button = await screen.findByRole('button', { name: 'Turn on notifications' });
+        await userEvent.click(button);
+        expect(button).toBeDisabled();
+        await userEvent.click(button);
+        expect(api.turnOnNeededNotifications).toHaveBeenCalledTimes(1);
+        answer(preferences(true));
+        expect(await screen.findByText(/Notifications are on/)).toBeInTheDocument();
+    });
+
     it('is not offered to someone with no club, squad or family links', async () => {
         vi.mocked(api.fetchNotificationPreferences).mockResolvedValue(preferences(false, { needed: ['MESSAGES'] }));
         vi.mocked(push.usePushDevice).mockReturnValue(device('off'));

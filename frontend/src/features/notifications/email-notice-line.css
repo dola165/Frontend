@@ -1,3 +1,19 @@
-/* Whether news also reaches the person's email (step 2, M7). */
-.gk-email-notice-line { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; font-size: 13px; color: var(--fc-text-secondary); }
+/* Whether news also reaches the person's email (step 2, M7). Self-contained: Account, Home and work screens. */
+.gk-email-notice-line { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--fc-text-secondary); }
 .gk-email-notice-line__icon { width: 16px; height: 16px; flex: none; color: var(--fc-accent); }
+.gk-email-notice-line--waiting { flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: var(--fc-state-warning-soft); }
+.gk-email-notice-line--waiting .gk-email-notice-line__icon { color: var(--fc-state-warning); }
+.gk-email-notice-line__words { display: flex; flex: 1 1 220px; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.gk-email-notice-line__words strong { color: var(--fc-text-primary); font-weight: 600; }
+.gk-email-notice-line__resend {
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--fc-accent-border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--fc-accent);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.gk-email-notice-line__resend:disabled { opacity: 0.6; cursor: default; }

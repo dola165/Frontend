@@ -22,9 +22,10 @@ export function NoticeLines({ space }: { space: api.SquadOverview }) {
     const { lines, loading, error, refresh } = useNoticeLines([space.id]);
     const [all, setAll] = useState(false);
     const works = space.can_manage || space.coaches.some(coach => coach.user_id === space.viewer_id);
-    useMarkSeen(lines);
-    if (!works && !lines.length) return null;
     const shown = all ? lines : lines.slice(0, SHOWN);
+    // Only the lines on screen count as seen; the rest when All opens.
+    useMarkSeen(shown);
+    if (!works && !lines.length) return null;
     return <Section boxed icon={Bell} title={copy('Notify', 'შეტყობინება')} className="nl" id="squad-notify"
         hint={works ? copy('One line, at once, to their phones', 'ერთი ხაზი, მაშინვე, ტელეფონზე') : copy('Lines from the coaches', 'მწვრთნელების შეტყობინებები')}
         action={space.can_manage ? <NotifySquadButton squads={[{ id: space.id, name: space.name }]} focus={space.id} onSent={refresh} /> : undefined}>

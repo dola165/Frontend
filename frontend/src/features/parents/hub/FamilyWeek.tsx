@@ -11,6 +11,7 @@ import { visitEvents } from './familyEvents';
 import { useFamilySquads } from './useChildSquads';
 import type { FamilyMember } from './useFamilySchedule';
 import { WaitingForYou } from './WaitingForYou';
+import { ClubPinned } from '../../announcements/ClubPinned';
 import './parent-hub.css';
 
 /**
@@ -29,6 +30,7 @@ export function FamilyWeek({ children, sessionId, revision }: { children: Joinin
     const allSquads = [...new Map(members.flatMap(m => m.squads).map(squad => [squad.id, squad])).values()];
     return <div className="ph-family">
         <WaitingForYou items={waiting} />
+        <ClubPinned squads={allSquads} />
         <Section boxed icon={CalendarDays} tone="info" title={copy('This week', 'ეს კვირა')} hint={copy('Everyone’s sessions, each with their initial', 'ყველას ვარჯიშები, თითოეულის ინიციალით')} className="ph-section ph-week" id="family-week">
             {error && <p className="ph-quiet" role="alert">{failedSquads.length ? `${copy('Some squads couldn’t load:', 'ზოგი გუნდი ვერ ჩაიტვირთა:')} ${failedSquads.join(' · ')}` : copy('Couldn’t load the squads.', 'გუნდები ვერ ჩაიტვირთა.')}
                 {' '}<button type="button" className="ph-link" onClick={retry}>{copy('Try again', 'ხელახლა ცდა')}</button></p>}

@@ -8,6 +8,7 @@ let authors: PostAuthor[] = [];
 vi.mock('../../../feed/postAuthors', () => ({ usePostAuthors: () => ({ authors, loaded: true }) }));
 vi.mock('../../../profiles/useProfilePostFeed', () => ({ useProfilePostFeed: () => ({ pages: { refresh: () => {} } }) }));
 vi.mock('../../../profiles/ProfilePosts', () => ({ ProfilePosts: () => <p>posts</p> }));
+vi.mock('../../../announcements/ClubAnnouncementsBox', () => ({ ClubAnnouncementsBox: () => null }));
 vi.mock('../../../clubOffice/recordPostSwitches', async importOriginal => ({
     ...await importOriginal<typeof import('../../../clubOffice/recordPostSwitches')>(),
     useRecordPostSwitches: () => ({ switches: { kinds: [{ kind: 'TRIAL', on: true }, { kind: 'JOB', on: false }], version: 2, canChange: true },

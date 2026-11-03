@@ -17,6 +17,7 @@ import { ChildChats } from './ChildChats';
 import { ChildMoney } from './ChildMoney';
 import { ChildDetails } from './ChildDetails';
 import { NoClub } from './NoClub';
+import { ClubPinned } from '../../announcements/ClubPinned';
 import { WaitingForYou } from './WaitingForYou';
 import './parent-hub.css';
 
@@ -56,6 +57,7 @@ export function ChildPage({ child, sessionId, revision, onChanged }: { child: Jo
         <div className="ph-grid">
             <div className="ph-col ph-col--main">
                 {squadState ?? <>
+                    <ClubPinned squads={squads} />
                     <ThisWeek squads={squads} child={child} />
                     {child.travelAvailable && <FamilyTravel key={`${sessionId}:${child.playerId}`} childId={child.playerId} />}
                     <CoachUpdates squads={squads} child={child} />

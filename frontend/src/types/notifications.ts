@@ -12,6 +12,9 @@ export interface NotificationItem {
     entityId?: number | null;
     title: string;
     body: string;
+    /** Georgian words, when the notice was written in both languages; see useNoticeWords. */
+    titleKa?: string | null;
+    bodyKa?: string | null;
     isRead: boolean;
     createdAt: string;
     linkPath?: string | null;

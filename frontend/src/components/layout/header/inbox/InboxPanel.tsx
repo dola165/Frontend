@@ -12,6 +12,7 @@ import { buildNotificationDestination, formatNotificationTime } from '../../../.
 import { useInboxPreview, type InboxCounts } from './useInbox';
 import { useAuth } from '../../../../context/AuthContext';
 import { isCurrentAuthSession } from '../../../../utils/authStorage';
+import { useNoticeWords } from '../../../notifications/useNoticeWords';
 
 type InboxTab = 'needs-you' | 'updates';
 
@@ -25,6 +26,7 @@ export function InboxPanel({ counts, titleId, onNavigate }: { counts: InboxCount
 
 function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; titleId: string; onNavigate: () => void }) {
     const copy = useJourneyCopy();
+    const wordsOf = useNoticeWords();
     const { sessionId } = useAuth();
     const mounted = useRef(true);
     const pending = useRef(false);
@@ -114,9 +116,9 @@ function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; ti
                             {preview.updates.data.map(notification => (
                                 <li key={notification.id} className={notification.isRead ? 'gk-inbox__read' : 'gk-inbox__unread'}>
                                     <button type="button" className="gk-list-row" onClick={() => void openUpdate(notification)} aria-busy={opening === notification.id || undefined}
-                                        aria-label={`${notification.isRead ? '' : copy('Unread: ', 'წაუკითხავი: ')}${notification.title}`}>
+                                        aria-label={`${notification.isRead ? '' : copy('Unread: ', 'წაუკითხავი: ')}${wordsOf(notification).title}`}>
                                         <span className="gk-list-row__lead"><Glyph icon={BellRing} /></span>
-                                        <span className="gk-list-row__main"><span className="gk-list-row__title">{notification.title}</span><span className="gk-list-row__meta">{notification.body}</span></span>
+                                        <span className="gk-list-row__main"><span className="gk-list-row__title">{wordsOf(notification).title}</span><span className="gk-list-row__meta">{wordsOf(notification).body}</span></span>
                                         <span className="gk-list-row__trail"><span className="gk-inbox__time">{formatNotificationTime(notification.createdAt)}</span></span>
                                     </button>
                                     <NotificationActions notification={notification} />

@@ -10,6 +10,7 @@ import {
     UsersRound
 } from 'lucide-react';
 import type { NotificationItem } from '../../types/notifications';
+import { useNoticeWords } from './useNoticeWords';
 import {
     formatNotificationTime,
     notificationActionLabel,
@@ -46,6 +47,7 @@ export const NotificationListItem = ({
     onOpen
 }: NotificationListItemProps) => {
     const Icon = iconByType[notification.type] ?? BellRing;
+    const words = useNoticeWords()(notification);
     const actionLabel = notificationActionLabel(notification);
     const metaItems = [
         showScope ? notificationScopeLabel(notification.scope) : null,
@@ -81,11 +83,11 @@ export const NotificationListItem = ({
                             <div className="flex items-center gap-2">
                                 {!notification.isRead && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-primary)]" />}
                                 <p className={`truncate text-sm text-primary ${notification.isRead ? 'font-semibold' : 'font-black'}`}>
-                                    {notification.title}
+                                    {words.title}
                                 </p>
                             </div>
                             <p className={`mt-1 text-sm leading-6 text-secondary ${compact ? 'max-w-[26rem]' : 'max-w-4xl'}`}>
-                                {notification.body}
+                                {words.body}
                             </p>
                         </div>
 

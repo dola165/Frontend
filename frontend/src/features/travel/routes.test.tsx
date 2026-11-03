@@ -16,6 +16,7 @@ vi.mock('../parents/hub/ThisWeek',()=>({ThisWeek:()=>null}));
 vi.mock('../parents/hub/CoachUpdates',()=>({CoachUpdates:()=>null}));
 vi.mock('../parents/hub/ChildChats',()=>({ChildChats:()=>null}));
 vi.mock('../parents/hub/ChildMoney',()=>({ChildMoney:()=>null}));
+vi.mock('../announcements/ClubPinned',()=>({ClubPinned:()=>null}));
 
 const boot={clubId:1,clubName:'Academy',actorId:2,modules:[{id:'TRAVEL',writable:true,globalWrite:false,writeSquads:[4]}],settings:{enabled_modules:['TRAVEL']},definitions:[],squads:[],people:[],staff:[],guardians:[],links:[]} as unknown as Bootstrap;
 const source={id:3,title:'Canonical event',starts_at:'2099-11-05T12:00:00Z',ends_at:'2099-11-05T14:00:00Z',timezone:'Asia/Tbilisi',status:'SCHEDULED',location_name:'Away ground'};

@@ -58,6 +58,11 @@ export const saveNotificationPreferences = async (update: NotificationPreference
 export const turnOnNeededNotifications = async (language: NotificationLanguage) =>
     (await apiClient.post<NotificationPreferences>('/notifications/preferences/needed', { language })).data;
 
+/** The language push and email speak to this person: the app's own, saved whenever they switch it. */
+export const saveNotificationLanguage = async (language: NotificationLanguage) => {
+    await apiClient.put('/notifications/preferences/language', { language });
+};
+
 export const registerPushSubscription = async (payload: PushSubscriptionPayload) =>
     (await apiClient.post<NotificationPreferences>('/notifications/push-subscriptions', payload)).data;
 

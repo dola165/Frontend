@@ -26,6 +26,7 @@ export function TurnOnNotificationsPrompt({ reason, className }: { reason?: stri
     const [dismissed, setDismissed] = useState(() => read(DISMISSED));
     const [homeScreenShown] = useState(() => read(HOME_SCREEN_SHOWN));
     const [done, setDone] = useState(false);
+    const [pressed, setPressed] = useState<'idle' | 'busy' | 'failed'>('idle');
     const onPreferences = useCallback((next: NotificationPreferences) => setPreferences(next), []);
     const device = usePushDevice(preferences?.pushPublicKey, onPreferences);
 
@@ -50,10 +51,18 @@ export function TurnOnNotificationsPrompt({ reason, className }: { reason?: stri
 
     const ping = reason ?? copy('Get a ping when a session moves, a match changes or something needs you, even when the site is closed.', 'მიიღეთ შეტყობინება, როცა ვარჯიში გადაიწევს, მატჩი შეიცვლება ან რამე გელოდებათ, საიტი დახურულიც რომ იყოს.');
     const dismiss = () => { write(DISMISSED); setDismissed(true); };
+    // One press at a time; a failed request says so and the press can be tried again.
     const turnOn = async () => {
-        if (!neededOn) setPreferences(await turnOnNeededNotifications(device.language));
-        const outcome = device.state === 'on' ? { ok: true } : await device.enable();
-        if (outcome.ok) setDone(true);
+        if (pressed === 'busy') return;
+        setPressed('busy');
+        try {
+            if (!neededOn) setPreferences(await turnOnNeededNotifications(device.language));
+            const outcome = device.state === 'on' ? { ok: true } : await device.enable();
+            if (outcome.ok) setDone(true);
+            setPressed('idle');
+        } catch {
+            setPressed('failed');
+        }
     };
 
     return (
@@ -69,9 +78,9 @@ export function TurnOnNotificationsPrompt({ reason, className }: { reason?: stri
             ) : (
                 <>
                     <p className="gk-turn-on-notifications__text">{ping}</p>
-                    <button type="button" className="gk-turn-on-notifications__button" disabled={device.busy} onClick={() => void turnOn()}>{copy('Turn on notifications', 'შეტყობინებების ჩართვა')}</button>
+                    <button type="button" className="gk-turn-on-notifications__button" disabled={device.busy || pressed === 'busy'} onClick={() => void turnOn()}>{copy('Turn on notifications', 'შეტყობინებების ჩართვა')}</button>
                     <Link className="gk-turn-on-notifications__more" to="/account?tab=notifications">{copy('More choices', 'სხვა არჩევანი')}</Link>
-                    {device.failure && <p className="gk-turn-on-notifications__error" role="alert">{device.failure === 'denied'
+                    {(device.failure || pressed === 'failed') && <p className="gk-turn-on-notifications__error" role="alert">{device.failure === 'denied'
                         ? copy('This browser blocks notifications for GrassKickZ. Allow them in the address bar, then try again.', 'ეს ბრაუზერი GrassKickZ-ის შეტყობინებებს ბლოკავს. დაუშვით მისამართის ზოლში და სცადეთ ისევ.')
                         : copy('That did not work. Try again in a moment.', 'ვერ მოხერხდა. სცადეთ ცოტა ხანში.')}</p>}
                 </>

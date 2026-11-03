@@ -40,3 +40,16 @@ it('stays out of the way of a parent with no line yet', async () => {
     await waitFor(() => expect(api.noticeLines).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
 });
+
+it('marks only the lines on screen as seen, and the rest when All opens', async () => {
+    const user = userEvent.setup();
+    const at = Date.now();
+    vi.mocked(api.noticeLines).mockResolvedValue([1, 2, 3, 4, 5, 6, 7].map(id => ({ ...line([]), id, line: `Line ${id}`, createdAt: new Date(at - id * 60_000).toISOString() })));
+    render(<MemoryRouter><NoticeLines space={space(false)} /></MemoryRouter>);
+    await waitFor(() => expect(api.markNoticesSeen).toHaveBeenCalledWith(7, [1, 2, 3, 4, 5]));
+    expect(api.markNoticesSeen).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Line 6')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'All 7' }));
+    await waitFor(() => expect(api.markNoticesSeen).toHaveBeenLastCalledWith(7, [6, 7]));
+    expect(api.markNoticesSeen).toHaveBeenCalledTimes(2);
+});

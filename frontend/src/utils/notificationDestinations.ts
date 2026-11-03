@@ -29,7 +29,7 @@ const reviewReceipt = new RegExp(`^/pages/requests/${uuid}$`);
 const code = '[A-Za-z0-9_-]{4,128}';
 const route = new RegExp(`^/(?:account|my-organizations|admin|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work|team-work/chat|calendar|notifications|requests|reports|parent|home|my-squads|me/staff-club|clubs|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|office|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:matches|match-exchange|squads|posts|profile|projects|merge)/${id}|(?:staff-invite|family-link)/${code}|stadiums/${id}(?:/manage)?)$`);
 const numericKeys = new Set(['eventId', 'fixtureId', 'conversationId', 'message', 'chat','clubId', 'applicationId', 'bookingId', 'venueId', 'itemId', 'thread', 'squad', 'squadId', 'approach', 'representation', 'representationRecord', 'representationGeneration', 'permissionId', 'appointmentId', 'player', 'playerId', 'caseId', 'inquiryId', 'task', 'step', 'who', 'journey', 'journeyChild', 'competitionAppointment']);
-const queryKeys = new Set([...numericKeys, 'tab', 'tool', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'session', 'at', 'review', 'date']);
+const queryKeys = new Set([...numericKeys, 'tab', 'tool', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'session', 'at', 'review', 'date', 'invite']);
 /** Where each newer query key may be used, and nowhere else. */
 const keyPages: Record<string, RegExp> = {
     task: /^\/team-work$/, step: /^\/team-work$/, who: /^\/team-work$/,
@@ -54,6 +54,9 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             if (!queryKeys.has(key) || url.searchParams.getAll(key).length !== 1 || (numericKeys.has(key) && !notificationId(value))) return null;
             if (keyPages[key] && !keyPages[key].test(url.pathname)) return null;
         }
+        // S5: a squad's joining requests open its players tab with the invite dialog, and nothing else.
+        if (url.searchParams.has('invite') && (!/^\/squads\/[1-9]\d*$/.test(url.pathname) || url.hash || url.searchParams.get('invite') !== '1'
+            || url.searchParams.get('tab') !== 'players' || Array.from(url.searchParams.keys()).some(key => !['tab', 'invite'].includes(key)))) return null;
         if (url.searchParams.has('date') && !/^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('date')!)) return null;
         if (url.pathname === '/admin' && (url.hash || Array.from(url.searchParams.keys()).some(key => key !== 'tab'))) return null;
         if (/^\/(?:home|my-squads|me\/staff-club|clubs|projects\/|merge\/|staff-invite\/|family-link\/)/.test(url.pathname) && !/^\/clubs\/[1-9]/.test(url.pathname)

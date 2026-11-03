@@ -24,11 +24,22 @@ export const worldWatchLink = (raw?: string | null): string | null => {
 const id = '[1-9]\\d*';
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const reviewReceipt = new RegExp(`^/pages/requests/${uuid}$`);
-const route = new RegExp(`^/(?:account|my-organizations|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work/chat|calendar|notifications|requests|reports|parent|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|office|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:matches|match-exchange|squads|posts|profile)/${id}|stadiums/${id}(?:/manage)?)$`);
-const numericKeys = new Set(['eventId', 'fixtureId', 'conversationId', 'message', 'chat','clubId', 'applicationId', 'bookingId', 'venueId', 'itemId', 'thread', 'squad', 'squadId', 'approach', 'representation', 'representationRecord', 'representationGeneration', 'permissionId', 'appointmentId', 'player', 'playerId', 'caseId', 'inquiryId']);
-const queryKeys = new Set([...numericKeys, 'tab', 'tool', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'session', 'at', 'review']);
+// Step 2, M11: every page a notice names is a real one, so the notice opens its record (home, My squads,
+// Team work, a project, a staff or family link, a merge, choosing a staff club, the admin's admissions).
+const code = '[A-Za-z0-9_-]{4,128}';
+const route = new RegExp(`^/(?:account|my-organizations|admin|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work|team-work/chat|calendar|notifications|requests|reports|parent|home|my-squads|me/staff-club|clubs|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|office|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:matches|match-exchange|squads|posts|profile|projects|merge)/${id}|(?:staff-invite|family-link)/${code}|stadiums/${id}(?:/manage)?)$`);
+const numericKeys = new Set(['eventId', 'fixtureId', 'conversationId', 'message', 'chat','clubId', 'applicationId', 'bookingId', 'venueId', 'itemId', 'thread', 'squad', 'squadId', 'approach', 'representation', 'representationRecord', 'representationGeneration', 'permissionId', 'appointmentId', 'player', 'playerId', 'caseId', 'inquiryId', 'task', 'step', 'who', 'journey', 'journeyChild', 'competitionAppointment']);
+const queryKeys = new Set([...numericKeys, 'tab', 'tool', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'session', 'at', 'review', 'date']);
+/** Where each newer query key may be used, and nowhere else. */
+const keyPages: Record<string, RegExp> = {
+    task: /^\/team-work$/, step: /^\/team-work$/, who: /^\/team-work$/,
+    journey: /^\/calendar$/, journeyChild: /^\/calendar$/, date: /^\/calendar$/,
+    competitionAppointment: /^\/referees\/me$/,
+};
 
 export const safeNotificationLink = (raw?: string | null): URL | null => {
+    // Older notices name the app's start page; it is Home.
+    if (raw === '/') raw = '/home';
     if (raw?.startsWith('/jobs')) return isJobDestination(raw) ? new URL(raw, 'https://notification.invalid') : null;
     if (worldWatchLink(raw)) return new URL(raw!, 'https://notification.invalid');
     if (!raw || !raw.startsWith('/') || raw.startsWith('//') || Array.from(raw).some(char => char === '\\' || char.charCodeAt(0) <= 32 || char.charCodeAt(0) === 127)) return null;
@@ -41,7 +52,12 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
         if (url.pathname.split('/').some(part => /^\d+$/.test(part) && !notificationId(part))) return null;
         for (const [key, value] of url.searchParams) {
             if (!queryKeys.has(key) || url.searchParams.getAll(key).length !== 1 || (numericKeys.has(key) && !notificationId(value))) return null;
+            if (keyPages[key] && !keyPages[key].test(url.pathname)) return null;
         }
+        if (url.searchParams.has('date') && !/^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('date')!)) return null;
+        if (url.pathname === '/admin' && (url.hash || Array.from(url.searchParams.keys()).some(key => key !== 'tab'))) return null;
+        if (/^\/(?:home|my-squads|me\/staff-club|clubs|projects\/|merge\/|staff-invite\/|family-link\/)/.test(url.pathname) && !/^\/clubs\/[1-9]/.test(url.pathname)
+            && (url.search || url.hash)) return null;
         const joiningRecordKeys = ['caseId', 'inquiryId'].filter(key => url.searchParams.has(key));
         if (joiningRecordKeys.length && (!/^\/clubs\/[1-9]\d*\/workspace$/.test(url.pathname) || url.searchParams.get('tab') !== 'admissions'
             || joiningRecordKeys.length !== 1 || Array.from(url.searchParams.keys()).some(key => !['tab', ...joiningRecordKeys].includes(key)))) return null;
@@ -67,7 +83,7 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             const offer = url.pathname === '/referees/me' && /^#offer-[1-9]\d*$/.test(url.hash)
                 && notificationId(url.hash.slice('#offer-'.length));
             const coordination = /^\/match(?:es|-exchange)\//.test(url.pathname) && url.hash === '#coordination';
-            const result = /^\/match(?:es|-exchange)\//.test(url.pathname) && url.hash === '#result';
+            const result = (/^\/match(?:es|-exchange)\//.test(url.pathname) || url.pathname === '/calendar' && url.searchParams.has('eventId')) && url.hash === '#result';
             if (!squadUpdate && !appointment && !availability && !offer && !coordination && !result) return null;
         }
         const keys = Array.from(url.searchParams.keys());
@@ -106,7 +122,8 @@ export const safeNotificationLink = (raw?: string | null): URL | null => {
             if (!/^\/profile\/[1-9]\d*$/.test(url.pathname) || url.hash || !(request || record)) return null;
         }
         if (url.pathname === '/agent' && !url.searchParams.has('approach')) return null;
-        if ((/^\/match(?:es|-exchange)\//.test(url.pathname) || url.pathname === '/referees/me') && url.search) return null;
+        if ((/^\/match(?:es|-exchange)\//.test(url.pathname) || url.pathname === '/referees/me')
+            && url.search && !(url.pathname === '/referees/me' && keys.length === 1 && url.searchParams.has('competitionAppointment'))) return null;
         if (url.searchParams.has('sessionId') || (url.searchParams.has('at') && !childPage)) {
             if (!/^\/squads\/[1-9]\d*$/.test(url.pathname) || url.hash
                 || Array.from(url.searchParams.keys()).some(key => !['tab', 'sessionId', 'at'].includes(key))

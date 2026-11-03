@@ -199,8 +199,9 @@ export function ClubPeople({ clubId, clubName, members = [], invitations = [], t
                 const added = Boolean(forPerson);
                 openInvite(false);
                 showInvite(result);
-                // Never say whether the address already had an account: with a link, send it; without, they find it on signing in.
-                refresh(result.link ? (added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`))
+                // Never say whether the address already had an account: emailed or not depends on the address alone.
+                refresh(result.emailed ? copy(`Invited ${result.name}. The invitation is on its way to their email.`, `${result.name} მოწვეულია. მოწვევა ელფოსტაზე გაეგზავნა.`)
+                    : result.link ? (added ? copy('Job added. Send the new link.', 'სამუშაო დაემატა. გაგზავნეთ ახალი ბმული.') : copy(`Invited ${result.name}. Send them the link.`, `${result.name} მოწვეულია. გაუგზავნეთ ბმული.`))
                         : copy(`Invited ${result.name}. They’ll find the invitation when they sign in.`, `${result.name} მოწვეულია. მოწვევას შესვლისას ნახავს.`));
             }} />}
         {/* Leaving: someone who left goes to the club's page (Staff is for its staff); a closed club to Home. */}

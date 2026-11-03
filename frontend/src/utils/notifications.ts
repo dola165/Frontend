@@ -239,8 +239,12 @@ const clubWorkDestination = (notification: NotificationItem) => {
     if (notification.type === 'TRYOUT_CANCELLED') return notification.linkPath === '/parent' ? '/parent' : '/account';
 
     if (notification.type === 'CLUB_DISSOLVED'
-        || notification.type.startsWith('TRYOUT_APPLICATION_') && notification.type !== 'TRYOUT_APPLICATION_RECEIVED'
-        || ['CLUB_APPLICATION_ACCEPTED', 'CLUB_APPLICATION_DECLINED', 'MEMBERSHIP_ENDED', 'SQUAD_ASSIGNMENT', 'CLUB_ROLE_CHANGED'].includes(notification.type)) return outcome;
+        || notification.type.startsWith('TRYOUT_APPLICATION_') && notification.type !== 'TRYOUT_APPLICATION_RECEIVED') return outcome;
+    // Step 2, M11: these open their record when they name one (a squad, a child's page); older rows that
+    // only pointed at Account keep showing the update itself.
+    if (['CLUB_APPLICATION_ACCEPTED', 'CLUB_APPLICATION_DECLINED', 'MEMBERSHIP_ENDED', 'SQUAD_ASSIGNMENT', 'CLUB_ROLE_CHANGED'].includes(notification.type)) {
+        return path && link?.pathname !== '/account' ? path : outcome;
+    }
 
     if (notification.type === 'CLUB_ANNOUNCEMENT' && notification.entityType === 'post' && entityId != null) return `/posts/${entityId}`;
 

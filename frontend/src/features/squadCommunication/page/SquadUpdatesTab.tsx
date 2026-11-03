@@ -9,6 +9,7 @@ import { NextUp } from '../../parents/hub/NextUp';
 import type { JoiningChild } from '../../parents/api';
 import { availability, availabilityLabel } from '../attendance';
 import { SquadMessages } from '../SquadMessages';
+import { NoticeLines } from '../notices/NoticeLines';
 import { useJourneyCopy } from '../journeyCopy';
 import { squadMessageUrl } from '../routes';
 import { useSquadSchedule } from '../useSquadSchedule';
@@ -35,7 +36,7 @@ export function SquadUpdatesTab({ space, child, self, crest, tabKey, onChanged }
                 {space.threads.length > 8 && <Link className="sp-link" to={squadMessageUrl(space.id, true)}>{copy(`All ${space.threads.length}`, `ყველა ${space.threads.length}`)}</Link>}
             </section>}
         </aside>
-        <div className="sp-updates__feed"><SquadMessages space={space} kind="ANNOUNCEMENT" thread={null} onSent={onChanged} /></div>
+        <div className="sp-updates__feed"><NoticeLines space={space} /><SquadMessages space={space} kind="ANNOUNCEMENT" thread={null} onSent={onChanged} /></div>
     </div>;
 }
 

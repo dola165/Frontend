@@ -66,7 +66,13 @@ export const removeUpdateComment=async(id:number,messageId:number,commentId:numb
 export type NoticeAudience='EVERYONE'|'PARENTS'|'PLAYERS'|'STAFF';
 export interface NoticeReach {everyone:number;parents:number;players:number;staff:number}
 export const noticeReach=async(id:number,signal?:AbortSignal)=>(await apiClient.get<NoticeReach>(`${root}/${id}/notify`,{signal})).data;
-export const notifySquad=async(id:number,data:{requestId:string;audience:NoticeAudience;line:string})=>(await apiClient.post<{told:number}>(`${root}/${id}/notify`,data)).data;
+export const notifySquad=async(id:number,data:{requestId:string;audience:NoticeAudience;line:string})=>(await apiClient.post<{id:number;told:number}>(`${root}/${id}/notify`,data)).data;
+/** Someone a Notify line was sent to (shown to the squad's coaches and staff only). */
+export interface NoticeSeen {userId:number;name:string;seen:boolean;seenAt:string|null}
+/** A kept Notify line (M12): `sentTo` is filled for the squad's coaches and staff, empty for everyone else. */
+export interface NoticeLine {id:number;authorId:number;authorName:string;audience:NoticeAudience;line:string;createdAt:string;seenByMe:boolean;sentTo:NoticeSeen[]}
+export const noticeLines=async(id:number,signal?:AbortSignal)=>(await apiClient.get<NoticeLine[]>(`${root}/${id}/notices`,{signal})).data;
+export const markNoticesSeen=async(id:number,ids:number[])=>(await apiClient.post<{marked:number}>(`${root}/${id}/notices/seen`,{ids})).data;
 export const setChatNotifications=async(id:number,notifyChat:boolean)=>apiClient.put(`${root}/${id}/preferences`,{notifyChat});
 export const assignCoach=async(id:number,userId:number|null,authSessionId?:AuthSessionId)=>{
     const url=`${root}/${id}/coach`, command={userId};

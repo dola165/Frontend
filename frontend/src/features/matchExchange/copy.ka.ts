@@ -140,6 +140,7 @@ export const MATCH_KA: Record<string, string> = {
     'Withdraw our squad': 'ჩვენი გუნდის გამოყვანა', 'Open opponent search': 'მეტოქის ღია ძიება',
     'Withdrawing ends opponent agreement and referee appointments. The host keeps the fixture and its reservation to arrange a replacement.': 'გუნდის გამოყვანით მეტოქესთან შეთანხმება და მსაჯების დანიშვნები უქმდება. მატჩი და ჯავშანი მასპინძელს რჩება, რათა შემცვლელი იპოვოს.',
     'This ends the targeted invitation and publishes the squad, time, location and match notes in Match Exchange. Your existing reservation remains linked.': 'პირადი მოწვევა დასრულდება. გუნდი, დრო, ადგილი და შენიშვნები მატჩების სივრცეში გამოქვეყნდება. არსებული ჯავშანი დაკავშირებული დარჩება.',
+    'Only the host’s coaching team reads your reason. Families are told only that your squad can’t play. Avoid medical or other sensitive details.': 'მიზეზს მხოლოდ მასპინძლის მწვრთნელები ნახავენ. ოჯახებს მხოლოდ ის ეცნობებათ, რომ თქვენი გუნდი ვერ ითამაშებს. ნუ მიუთითებთ სამედიცინო ან სხვა მგრძნობიარე ინფორმაციას.',
     'Reason': 'მიზეზი', 'Squad withdrawn': 'გუნდი გამოყვანილია', 'Open opponent search published': 'მეტოქის ღია ძიება გამოქვეყნებულია',
     'Confirm withdrawal': 'გამოყვანის დადასტურება', 'Publish open opponent search': 'მეტოქის ღია ძიების გამოქვეყნება', 'Keep current arrangement': 'არსებული შეთანხმების შენარჩუნება',
     'Open referee requests': 'მსაჯების ღია მოთხოვნები', 'Appointment type': 'დანიშვნის ტიპი', 'Paid & volunteer': 'ანაზღაურებით და მოხალისეობრივად',

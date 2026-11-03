@@ -31,6 +31,13 @@ describe('Parent Hub and the coach’s pings', () => {
         expect(await screen.findByText(/Turn on: .*a session moves, a match changes/)).toBeInTheDocument();
     });
 
+    it('offers no phone calendar link to someone without children (W8)', async () => {
+        family.children = [];
+        mount();
+        await waitFor(() => expect(screen.getByText('Add your child')).toBeInTheDocument());
+        expect(screen.queryByText(/phone’s calendar/)).not.toBeInTheDocument();
+    });
+
     it('asks nothing while no child has a club yet', async () => {
         family.children = [child([])];
         mount();

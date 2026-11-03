@@ -326,6 +326,9 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
     <button type="button" onClick={() => void loadFeed()} disabled={loading} aria-label={copy('Refresh feed', 'ლენტის განახლება')} title={copy('Refresh feed', 'ლენტის განახლება')} className="home-refresh m-1 flex h-10 items-center justify-center gap-2 rounded-lg px-2 text-[var(--feed-text-secondary)] hover:bg-[var(--feed-hover-bg)] disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span className="home-refresh-label">{copy('Latest updates', 'ბოლო სიახლეები')}</span></button>
    </nav>
 
+   {/* Parents, coaches and players: one press turns on every kind of news their links need. */}
+   <TurnOnNotificationsPrompt />
+
    {loadError && (
     <div className="rounded-xl border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-5 py-4">
      <div className="flex items-start gap-3">
@@ -431,3 +434,4 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
  );
 };
 import { SelectionIndicator } from '../components/ui/SelectionIndicator';
+import { TurnOnNotificationsPrompt } from '../components/notifications/TurnOnNotificationsPrompt';

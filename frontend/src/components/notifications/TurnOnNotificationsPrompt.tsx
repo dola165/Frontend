@@ -2,31 +2,29 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BellRing, X } from 'lucide-react';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
-import { fetchNotificationPreferences, setNotificationGroup, type NotificationGroupKey, type NotificationPreferences } from '../../api/notificationPreferences';
+import { fetchNotificationPreferences, turnOnNeededNotifications, type NotificationPreferences } from '../../api/notificationPreferences';
 import { usePushDevice } from '../../features/notifications/pushSubscription';
+import { EmailNoticeLine } from '../../features/notifications/EmailNoticeLine';
 import './turn-on-notifications.css';
 
-const dismissedKey = (group: NotificationGroupKey) => `gk.notifications.prompt.${group}.dismissed`;
-const readDismissed = (group: NotificationGroupKey) => { try { return localStorage.getItem(dismissedKey(group)) === '1'; } catch { return false; } };
-const writeDismissed = (group: NotificationGroupKey) => { try { localStorage.setItem(dismissedKey(group), '1'); } catch { /* private window */ } };
+const DISMISSED = 'gk.notifications.prompt.dismissed';
+const HOME_SCREEN_SHOWN = 'gk.notifications.prompt.homeScreenShown';
+const read = (key: string) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
+const write = (key: string) => { try { localStorage.setItem(key, '1'); } catch { /* private window */ } };
 
 /**
- * One line, one tap: turns on push for a group (Team work by default) on this device. Shows only
- * while it would change something: push possible here, not yet on for this device and group, not
- * dismissed. On an iPhone that is not on the Home Screen it says what to do instead. Mount it
- * anywhere with `<TurnOnNotificationsPrompt />`: Team work, and Parent Hub for the coach's Notify
- * (filed under Club by the server's NotificationGroup.of) once a child has a club.
+ * One line, one press (step 2, M6): turns on every kind of news this person's links need (the server's `needed`:
+ * a parent's family, squad, match and club news; a coach's or player's squad, match and club news; Team work for the
+ * team) by push and email, and subscribes this device. Offered only to people with such links, and only while it
+ * would change something. On an iPhone not yet on the Home Screen it explains Add to Home Screen, once. Mount it
+ * anywhere with `<TurnOnNotificationsPrompt />`; `reason` says what the pings are for on that page.
  */
-export function TurnOnNotificationsPrompt({ group = 'TEAM_WORK', reason, className }: {
-    group?: NotificationGroupKey;
-    /** What the ping is for, when the group's name alone would not say it (Parent Hub: the coach's Notify, filed under Club). */
-    reason?: string;
-    className?: string;
-}) {
+export function TurnOnNotificationsPrompt({ reason, className }: { reason?: string; className?: string }) {
     const copy = useJourneyCopy();
     const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
     const [unavailable, setUnavailable] = useState(false);
-    const [dismissed, setDismissed] = useState(() => readDismissed(group));
+    const [dismissed, setDismissed] = useState(() => read(DISMISSED));
+    const [homeScreenShown] = useState(() => read(HOME_SCREEN_SHOWN));
     const [done, setDone] = useState(false);
     const onPreferences = useCallback((next: NotificationPreferences) => setPreferences(next), []);
     const device = usePushDevice(preferences?.pushPublicKey, onPreferences);
@@ -35,21 +33,26 @@ export function TurnOnNotificationsPrompt({ group = 'TEAM_WORK', reason, classNa
         if (dismissed) return;
         const controller = new AbortController();
         fetchNotificationPreferences(controller.signal).then(setPreferences).catch(() => { if (!controller.signal.aborted) setUnavailable(true); });
-        return () => controller.abort();
+        return () => { controller.abort(); };
     }, [dismissed]);
 
-    const choice = preferences?.groups?.find(item => item.key === group);
-    const groupOn = choice?.push === true;
-    if (dismissed || unavailable || !preferences || !choice || !preferences.pushConfigured) return null;
-    if (device.state === 'checking' || device.state === 'unsupported' || device.state === 'denied') return null;
-    if (device.state === 'on' && groupOn && !done) return null;
+    const needed = preferences?.needed ?? [];
+    const neededOn = needed.every(key => preferences?.groups?.some(group => group.key === key && group.push));
+    const offered = needed.some(key => key !== 'MESSAGES');
+    const homeScreen = device.state === 'needs-home-screen';
+    useEffect(() => { if (homeScreen && offered && !dismissed) write(HOME_SCREEN_SHOWN); }, [dismissed, homeScreen, offered]);
 
-    const groupName = group === 'TEAM_WORK' ? copy('Team work', 'გუნდის საქმე') : copy('these', 'ამ');
-    const ping = reason ?? copy(`Get a ping when something in ${groupName} needs you, even when the site is closed.`, `მიიღეთ შეტყობინება, როცა ${groupName}ში რამე გელოდებათ, საიტი დახურულიც რომ იყოს.`);
-    const dismiss = () => { writeDismissed(group); setDismissed(true); };
+    if (dismissed || unavailable || !preferences || !offered || !preferences.pushConfigured) return null;
+    // A browser that already blocks notifications is not asked; one that just refused hears why, here.
+    if (device.state === 'checking' || device.state === 'unsupported' || (device.state === 'denied' && !device.failure)) return null;
+    if (homeScreen && homeScreenShown) return null;
+    if (device.state === 'on' && neededOn && !done) return null;
+
+    const ping = reason ?? copy('Get a ping when a session moves, a match changes or something needs you, even when the site is closed.', 'მიიღეთ შეტყობინება, როცა ვარჯიში გადაიწევს, მატჩი შეიცვლება ან რამე გელოდებათ, საიტი დახურულიც რომ იყოს.');
+    const dismiss = () => { write(DISMISSED); setDismissed(true); };
     const turnOn = async () => {
-        if (!groupOn) setPreferences(await setNotificationGroup(group, { push: true, language: device.language }));
-        const outcome = await device.enable();
+        if (!neededOn) setPreferences(await turnOnNeededNotifications(device.language));
+        const outcome = device.state === 'on' ? { ok: true } : await device.enable();
         if (outcome.ok) setDone(true);
     };
 
@@ -57,8 +60,11 @@ export function TurnOnNotificationsPrompt({ group = 'TEAM_WORK', reason, classNa
         <div className={`gk-turn-on-notifications ${className ?? ''}`} role="status" data-testid="turn-on-notifications">
             <BellRing aria-hidden className="gk-turn-on-notifications__icon" />
             {done ? (
-                <p className="gk-turn-on-notifications__text">{copy('Notifications are on for this device. Change what you get in', 'შეტყობინებები ამ მოწყობილობაზე ჩართულია. რას მიიღებთ, შეცვალეთ აქ:')} <Link to="/account?tab=notifications">{copy('Notification settings', 'შეტყობინებების პარამეტრები')}</Link>.</p>
-            ) : device.state === 'needs-home-screen' ? (
+                <div className="gk-turn-on-notifications__text">
+                    <p>{copy('Notifications are on. Change what you get in', 'შეტყობინებები ჩართულია. რას მიიღებთ, შეცვალეთ აქ:')} <Link to="/account?tab=notifications">{copy('Notification settings', 'შეტყობინებების პარამეტრები')}</Link>.</p>
+                    <EmailNoticeLine email={preferences.email} verified={preferences.emailVerified} unsubscribed={preferences.emailUnsubscribed} />
+                </div>
+            ) : homeScreen ? (
                 <p className="gk-turn-on-notifications__text">{copy('To get notifications on this iPhone, add GrassKickZ to your Home Screen (Share → Add to Home Screen) and open it from there.', 'რომ ამ iPhone-ზე შეტყობინებები მიიღოთ, დაამატეთ GrassKickZ მთავარ ეკრანზე (გაზიარება → მთავარ ეკრანზე დამატება) და იქიდან გახსენით.')}</p>
             ) : (
                 <>

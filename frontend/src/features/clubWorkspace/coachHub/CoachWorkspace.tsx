@@ -31,6 +31,7 @@ import { WorkspaceGuide } from '../WorkspaceGuide';
 import { NoSquadsYet } from './NoSquadsYet';
 import '../club-workspace.css';
 import './coach-hub.css';
+import { TurnOnNotificationsPrompt } from '../../../components/notifications/TurnOnNotificationsPrompt';
 
 const TABS = ['calendar', 'players', 'updates', 'coaches', 'matches'] as const;
 type CoachTab = typeof TABS[number] | 'overview';
@@ -155,6 +156,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
         {roles && workspaceRoles.error && <div className="gk-notice gk-notice--warning" role="alert">
             <span>{copy('squadsLoadError')}</span><Button size="sm" onClick={workspaceRoles.refresh}>{copy('tryAgain')}</Button>
         </div>}
+        <TurnOnNotificationsPrompt reason={copy('turnOnNotificationsReason')} />
         {content}
     </WorkspaceShell>;
 }

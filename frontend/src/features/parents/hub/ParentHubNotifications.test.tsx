@@ -9,7 +9,7 @@ vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 7
 vi.mock('../../squadCommunication/journeyCopy', () => ({ useJourneyCopy: () => ((en: string) => en) }));
 vi.mock('../../../utils/authStorage', async original => ({ ...(await original<object>()), isCurrentAuthSession: () => true }));
 vi.mock('../api', () => ({ fetchJoiningChildren: vi.fn(async () => ({ children: family.children })) }));
-vi.mock('../../../components/notifications/TurnOnNotificationsPrompt', () => ({ TurnOnNotificationsPrompt: ({ group }: { group: string }) => <p>Turn on {group}</p> }));
+vi.mock('../../../components/notifications/TurnOnNotificationsPrompt', () => ({ TurnOnNotificationsPrompt: ({ reason }: { reason?: string }) => <p>Turn on: {reason}</p> }));
 vi.mock('./ChildPage', () => ({ ChildPage: () => <p>Child page</p> }));
 vi.mock('./OneCard', () => ({ OneCard: () => null }));
 vi.mock('../../clubOperations/registration/PersonalRegistrationHistory', () => ({ PersonalRegistrationHistory: () => null }));
@@ -25,10 +25,10 @@ const mount = () => render(<MemoryRouter initialEntries={['/parent']}><ParentHub
 afterEach(cleanup);
 
 describe('Parent Hub and the coach’s pings', () => {
-    it('offers to turn on the group the coach’s Notify is filed under (CLUB, as the server’s NotificationGroup.of says) once a child has a club', async () => {
+    it('offers the one press that turns on everything a parent needs, sessions and matches too, once a child has a club', async () => {
         family.children = [child([{ id: 1, name: 'Dinamo Academy', squads: [] }])];
         mount();
-        expect(await screen.findByText('Turn on CLUB')).toBeInTheDocument();
+        expect(await screen.findByText(/Turn on: .*a session moves, a match changes/)).toBeInTheDocument();
     });
 
     it('asks nothing while no child has a club yet', async () => {

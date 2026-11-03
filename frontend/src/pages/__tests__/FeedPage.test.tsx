@@ -30,6 +30,7 @@ vi.mock('../../components/feed/PostComposer', () => ({
 vi.mock('../../features/start/WelcomeHost', () => ({ WelcomeHost: () => null }));
 vi.mock('../../features/feed/WaitingOnYou', () => ({ WaitingOnYou: () => null }));
 vi.mock('../../features/feed/HomeHelperDetails', () => ({ HomeHelperDetails: () => null }));
+vi.mock('../../components/notifications/TurnOnNotificationsPrompt', () => ({ TurnOnNotificationsPrompt: () => null }));
 
 // "This week" and announcements above the feed load their own data and have their own tests.
 vi.mock('../../components/feed/FeedList', () => ({

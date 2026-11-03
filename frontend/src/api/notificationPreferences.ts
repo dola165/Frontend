@@ -24,6 +24,8 @@ export interface NotificationPreferences {
     digestTime: string;
     groups: NotificationGroupChoice[];
     devices: NotificationDevice[];
+    /** The kinds of news this person's links need (parent of, plays in, staff at, the team). */
+    needed?: NotificationGroupKey[];
 }
 
 export interface NotificationPreferencesUpdate {
@@ -52,9 +54,9 @@ export const fetchNotificationPreferences = async (signal?: AbortSignal) =>
 export const saveNotificationPreferences = async (update: NotificationPreferencesUpdate) =>
     (await apiClient.put<NotificationPreferences>('/notifications/preferences', update)).data;
 
-/** One group's switches, for the one-tap prompt; everything else stays as it was. */
-export const setNotificationGroup = async (key: NotificationGroupKey, change: { push?: boolean; email?: boolean; language?: NotificationLanguage }) =>
-    (await apiClient.patch<NotificationPreferences>(`/notifications/preferences/groups/${key}`, change)).data;
+/** One press: push and email for every kind of news this person's links need; everything else stays as it was. */
+export const turnOnNeededNotifications = async (language: NotificationLanguage) =>
+    (await apiClient.post<NotificationPreferences>('/notifications/preferences/needed', { language })).data;
 
 export const registerPushSubscription = async (payload: PushSubscriptionPayload) =>
     (await apiClient.post<NotificationPreferences>('/notifications/push-subscriptions', payload)).data;

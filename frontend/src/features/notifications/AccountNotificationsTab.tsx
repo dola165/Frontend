@@ -10,6 +10,7 @@ import {
     type NotificationGroupChoice, type NotificationGroupKey, type NotificationPreferences, type NotificationTestResult,
 } from '../../api/notificationPreferences';
 import { usePushDevice } from './pushSubscription';
+import { EmailNoticeLine } from './EmailNoticeLine';
 
 type Draft = Pick<NotificationPreferences, 'groups' | 'quietFrom' | 'quietUntil' | 'digestTime'> & { quiet: boolean };
 
@@ -156,7 +157,7 @@ export const AccountNotificationsTab = () => {
                         ))}
                     </tbody>
                 </table>
-                <p className="mt-3 text-[13px] leading-5 text-[color:var(--fc-text-secondary)]">{copy('When email is on, urgent notices are bundled after quiet hours; the rest comes in a daily summary.', 'როცა ელფოსტა ჩართულია, სასწრაფო ამბები წყნარი საათების შემდეგ ერთიანდება; დანარჩენი დღიურ შეჯამებაში მოდის.')}</p>
+                <p className="mt-3 text-[13px] leading-5 text-[color:var(--fc-text-secondary)]">{copy(`Urgent news comes at once: cancellations, changes in the next 48 hours, a place offered, anything waiting on you. The rest comes once a day at ${draft.digestTime}.`, `სასწრაფო ამბები მაშინვე მოდის: გაუქმება, ცვლილება მომდევნო 48 საათში, შეთავაზებული ადგილი, ყველაფერი, რაც თქვენ გელოდებათ. დანარჩენი დღეში ერთხელ, ${draft.digestTime}-ზე.`)}</p>
                 {saved && !dirty && <p role="status" className="mt-3 text-sm font-semibold text-[color:var(--fc-accent)]">{copy('Saved.', 'შენახულია.')}</p>}
             </Section>
 
@@ -181,7 +182,7 @@ export const AccountNotificationsTab = () => {
             </Section>
 
             <Section title={copy('Email', 'ელფოსტა')} description={preferences.email ? copy(`Account email: ${preferences.email}.`, `ანგარიშის ელფოსტა: ${preferences.email}.`) : copy('No email address on this account.', 'ამ ანგარიშს ელფოსტა არ აქვს.')}>
-                {!preferences.emailVerified && <p className="text-sm text-[color:var(--fc-text-secondary)]">{copy('Verify your email (Security tab) before anything is sent to it.', 'სანამ რამე გაიგზავნება, დაადასტურეთ ელფოსტა (უსაფრთხოების ჩანართი).')}</p>}
+                <EmailNoticeLine email={preferences.email} verified={preferences.emailVerified} unsubscribed={preferences.emailUnsubscribed} />
                 {preferences.emailUnsubscribed ? (
                     <div className={`${insetClass} flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between`}>
                         <p className="text-sm text-[color:var(--fc-text-primary)]">{copy('You unsubscribed from notification emails. Sign-in and password emails use separate settings.', 'შეტყობინებების წერილებზე გამოწერა გაუქმებულია. შესვლისა და პაროლის წერილებს ცალკე პარამეტრები აქვს.')}</p>

@@ -7,52 +7,79 @@ import * as api from '../../api/notificationPreferences';
 import * as push from '../../features/notifications/pushSubscription';
 import { TurnOnNotificationsPrompt } from './TurnOnNotificationsPrompt';
 
-vi.mock('../../api/notificationPreferences', () => ({ fetchNotificationPreferences: vi.fn(), setNotificationGroup: vi.fn() }));
+vi.mock('../../api/notificationPreferences', () => ({ fetchNotificationPreferences: vi.fn(), turnOnNeededNotifications: vi.fn() }));
 vi.mock('../../features/notifications/pushSubscription', () => ({ usePushDevice: vi.fn() }));
+vi.mock('../auth/emailConfirmation', () => ({ sendEmailConfirmation: vi.fn().mockResolvedValue({}) }));
 
-const preferences = (teamPush: boolean): api.NotificationPreferences => ({
-    mode: 'LIVE', pushConfigured: true, pushPublicKey: 'BKEY', email: 'beqa@example.com', emailVerified: true, emailUnsubscribed: false,
+const PARENT: api.NotificationGroupKey[] = ['MESSAGES', 'FAMILY', 'SQUAD_UPDATES', 'MATCHES', 'CLUB'];
+const preferences = (on: boolean, extra: Partial<api.NotificationPreferences> = {}): api.NotificationPreferences => ({
+    mode: 'LIVE', pushConfigured: true, pushPublicKey: 'BKEY', email: 'nino@example.test', emailVerified: true, emailUnsubscribed: false,
     language: 'en', timeZone: 'Asia/Tbilisi', quietFrom: null, quietUntil: null, digestTime: '18:00',
-    groups: [{ key: 'TEAM_WORK', push: teamPush, email: false }, { key: 'CLUB', push: false, email: false }], devices: [],
+    groups: PARENT.map(key => ({ key, push: on, email: on })), devices: [], needed: PARENT, ...extra,
 });
 const device = (state: push.DeviceState, enable = vi.fn()) => ({ state, busy: false, failure: null, enable, disable: vi.fn(), refresh: vi.fn(), language: 'en' as const });
 
 describe('TurnOnNotificationsPrompt', () => {
     beforeEach(() => { localStorage.clear(); vi.mocked(api.fetchNotificationPreferences).mockResolvedValue(preferences(false)); });
 
-    it('turns the group on and subscribes this device in one tap', async () => {
+    it('turns on everything a parent needs and subscribes this device in one press', async () => {
         const enable = vi.fn().mockResolvedValue({ ok: true, preferences: preferences(true) });
         vi.mocked(push.usePushDevice).mockReturnValue(device('off', enable));
-        vi.mocked(api.setNotificationGroup).mockResolvedValue(preferences(true));
+        vi.mocked(api.turnOnNeededNotifications).mockResolvedValue(preferences(true));
         render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
         await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }));
         await waitFor(() => expect(enable).toHaveBeenCalled());
-        expect(api.setNotificationGroup).toHaveBeenCalledWith('TEAM_WORK', { push: true, language: 'en' });
-        expect(await screen.findByText(/Notifications are on for this device/)).toBeInTheDocument();
+        expect(api.turnOnNeededNotifications).toHaveBeenCalledWith('en');
+        expect(await screen.findByText(/Notifications are on/)).toBeInTheDocument();
+        expect(screen.getByText('News also reaches nino@example.test.')).toBeInTheDocument();
     });
 
-    it('for another group, says why it pings and turns exactly that group on', async () => {
-        const enable = vi.fn().mockResolvedValue({ ok: true, preferences: preferences(false) });
-        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: [{ key: 'CLUB', push: false, email: false }] });
-        vi.mocked(push.usePushDevice).mockReturnValue(device('off', enable));
-        vi.mocked(api.setNotificationGroup).mockResolvedValue({ ...preferences(false), groups: [{ key: 'CLUB', push: true, email: false }] });
-        render(<MemoryRouter><TurnOnNotificationsPrompt group="CLUB" reason="When the coach sends the squad a line." /></MemoryRouter>);
-        expect(await screen.findByText('When the coach sends the squad a line.')).toBeInTheDocument();
+    it('after the press, says plainly when the email is not confirmed yet, with Resend', async () => {
+        const unconfirmed = preferences(true, { emailVerified: false });
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off', vi.fn().mockResolvedValue({ ok: true, preferences: unconfirmed })));
+        vi.mocked(api.turnOnNeededNotifications).mockResolvedValue(unconfirmed);
+        render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
+        await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }));
+        expect(await screen.findByText('Confirm nino@example.test to get news by email')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Resend' })).toBeInTheDocument();
+    });
+
+    it('turns the rest on when this device already gets pushes but a needed kind is off', async () => {
+        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(true), groups: [...preferences(true).groups.filter(g => g.key !== 'MATCHES'), { key: 'MATCHES', push: false, email: false }] });
+        const enable = vi.fn();
+        vi.mocked(push.usePushDevice).mockReturnValue(device('on', enable));
+        vi.mocked(api.turnOnNeededNotifications).mockResolvedValue(preferences(true));
+        render(<MemoryRouter><TurnOnNotificationsPrompt reason="When a session moves." /></MemoryRouter>);
+        expect(await screen.findByText('When a session moves.')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Turn on notifications' }));
-        await waitFor(() => expect(enable).toHaveBeenCalled());
-        expect(api.setNotificationGroup).toHaveBeenCalledWith('CLUB', { push: true, language: 'en' });
+        await waitFor(() => expect(api.turnOnNeededNotifications).toHaveBeenCalled());
+        expect(enable).not.toHaveBeenCalled();
     });
 
-    it('says nothing, and doesn’t break the page, when the preferences come without groups', async () => {
-        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue({ ...preferences(false), groups: undefined } as unknown as api.NotificationPreferences);
+    it('says why when the browser refuses, after the news itself is on', async () => {
+        const enable = vi.fn().mockResolvedValue({ ok: false, reason: 'denied' });
+        const state = { current: device('off', enable) };
+        vi.mocked(push.usePushDevice).mockImplementation(() => state.current);
+        vi.mocked(api.turnOnNeededNotifications).mockResolvedValue(preferences(true));
+        const { rerender } = render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
+        await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }));
+        await waitFor(() => expect(enable).toHaveBeenCalled());
+        state.current = { ...device('denied', enable), failure: 'denied' as never };
+        rerender(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
+        expect(await screen.findByRole('alert')).toHaveTextContent('This browser blocks notifications');
+        expect(api.turnOnNeededNotifications).toHaveBeenCalledWith('en');
+    });
+
+    it('is not offered to someone with no club, squad or family links', async () => {
+        vi.mocked(api.fetchNotificationPreferences).mockResolvedValue(preferences(false, { needed: ['MESSAGES'] }));
         vi.mocked(push.usePushDevice).mockReturnValue(device('off'));
-        render(<MemoryRouter><p>Page</p><TurnOnNotificationsPrompt group="CLUB" /></MemoryRouter>);
+        render(<MemoryRouter><p>Page</p><TurnOnNotificationsPrompt /></MemoryRouter>);
         await waitFor(() => expect(api.fetchNotificationPreferences).toHaveBeenCalled());
         expect(screen.getByText('Page')).toBeInTheDocument();
         expect(screen.queryByTestId('turn-on-notifications')).not.toBeInTheDocument();
     });
 
-    it('says nothing when this device already gets Team work pushes', async () => {
+    it('says nothing when this device already gets everything needed', async () => {
         vi.mocked(api.fetchNotificationPreferences).mockResolvedValue(preferences(true));
         vi.mocked(push.usePushDevice).mockReturnValue(device('on'));
         render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
@@ -60,15 +87,24 @@ describe('TurnOnNotificationsPrompt', () => {
         expect(screen.queryByTestId('turn-on-notifications')).not.toBeInTheDocument();
     });
 
-    it('explains the Home Screen on an iPhone and stays quiet once dismissed', async () => {
+    it('explains the Home Screen on an iPhone once', async () => {
         vi.mocked(push.usePushDevice).mockReturnValue(device('needs-home-screen'));
         const { unmount } = render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
         expect(await screen.findByText(/Add to Home Screen/)).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('button', { name: 'Not now' }));
+        unmount();
+        const calls = vi.mocked(api.fetchNotificationPreferences).mock.calls.length;
+        render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
+        await waitFor(() => expect(api.fetchNotificationPreferences).toHaveBeenCalledTimes(calls + 1));
+        expect(screen.queryByTestId('turn-on-notifications')).not.toBeInTheDocument();
+    });
+
+    it('stays quiet once dismissed', async () => {
+        vi.mocked(push.usePushDevice).mockReturnValue(device('off'));
+        const { unmount } = render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
+        await userEvent.click(await screen.findByRole('button', { name: 'Not now' }));
         expect(screen.queryByTestId('turn-on-notifications')).not.toBeInTheDocument();
         unmount();
         render(<MemoryRouter><TurnOnNotificationsPrompt /></MemoryRouter>);
         expect(screen.queryByTestId('turn-on-notifications')).not.toBeInTheDocument();
-        expect(localStorage.getItem('gk.notifications.prompt.TEAM_WORK.dismissed')).toBe('1');
     });
 });

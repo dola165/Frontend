@@ -1,0 +1,10 @@
+/* Parent Hub's private calendar link. Tokens only. */
+.gk .cf-row { width: 100%; border: 0; background: none; font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; text-align: left; }
+.gk .cf-row > span { display: inline-flex; align-items: center; gap: var(--gk-2); }
+.gk .cf-made, .gk .cf-on, .gk .cf-off { display: grid; gap: var(--gk-3); }
+.gk .cf-on p { margin: 0; font-size: var(--gk-fs-sm); }
+.gk .cf-label { font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .cf-copy { display: flex; gap: var(--gk-2); }
+.gk .cf-copy .gk-input { flex: 1; min-width: 0; font-size: var(--gk-fs-xs); }
+.gk .cf-apps { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .cf-quiet { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-xs); }

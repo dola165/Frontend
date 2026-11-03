@@ -1,0 +1,24 @@
+/* Club announcements: pinned cards on the club page and in Parent Hub, and the composer. Tokens only. */
+.gk .ca-box { margin-bottom: var(--gk-4); }
+.gk .ca-list { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .ca-list--past { margin-top: var(--gk-2); }
+.gk .ca-quiet { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .ca-link { align-self: flex-start; min-height: 32px; padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .ca-link:hover { text-decoration: underline; }
+.gk .ca-told { color: var(--gk-text-3); font-size: var(--gk-fs-xs); white-space: nowrap; }
+
+.gk .ca-card { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gk-2) var(--gk-3); padding: var(--gk-3); border-radius: var(--gk-r); background: var(--gk-hover); }
+.gk .ca-card[data-pinned] { background: var(--gk-accent-soft); }
+.gk .ca-card__pin { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gk-surface); color: var(--gk-text-3); }
+.gk .ca-card[data-pinned] .ca-card__pin { color: var(--gk-accent); }
+.gk .ca-card__pin svg { width: 14px; height: 14px; }
+.gk .ca-card__text { display: flex; flex: 1 1 240px; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .ca-card__state, .gk .ca-card__meta { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .ca-card[data-pinned] .ca-card__state { color: var(--gk-accent); font-weight: 600; }
+.gk .ca-card__title { font-size: var(--gk-fs-sm); font-weight: 650; overflow-wrap: anywhere; }
+.gk .ca-card__body { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); overflow-wrap: anywhere; white-space: pre-line; }
+.gk .ca-card__trail { display: flex; align-items: center; gap: var(--gk-2); }
+
+.gk .ca-dialog__form { display: grid; gap: var(--gk-3); }
+.gk .ca-dialog__date { max-width: 200px; margin-top: var(--gk-2); }
+.gk .ca-dialog__done { margin: 0; font-size: var(--gk-fs-sm); }

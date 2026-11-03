@@ -21,6 +21,7 @@ vi.mock('../PlayerLinkCode', () => ({ PlayerLinkCode: () => null }));
 vi.mock('../../players/PlayerIdentityEditor', () => ({ PlayerIdentityEditor: () => null }));
 vi.mock('../FamilySchedule', () => ({ FamilySchedule: () => <p>Calendar</p> }));
 vi.mock('../../clubOperations/PersonalClubWork', () => ({ GuardianClubWork: () => null }));
+vi.mock('../../announcements/ClubPinned', () => ({ ClubPinned: () => null }));
 // The squads are the child's own (their loading is tested in ParentSquadRecovery); the boxes show what they are given.
 const squad = (id: number, name: string): api.SquadOverview => ({ id, club_id: 1, name, academy_name: 'Dinamo', category: 'U11', can_manage: false, unread_count: 0, viewer_id: 7, member_count: 1,
     notify_chat: true, head_coach_id: null, can_assign_coach: false, available_coaches: [], players: [], coaches: [], threads: [] });

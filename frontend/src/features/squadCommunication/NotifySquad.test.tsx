@@ -12,7 +12,7 @@ beforeEach(() => vi.clearAllMocks());
 it('shows who each choice reaches, sends the line to the parents, and says how many heard it', async () => {
     const user = userEvent.setup();
     vi.mocked(api.noticeReach).mockResolvedValue({ everyone: 31, parents: 22, players: 6, staff: 3 });
-    vi.mocked(api.notifySquad).mockResolvedValue({ told: 22 });
+    vi.mocked(api.notifySquad).mockResolvedValue({ id: 9, told: 22 });
     render(<NotifySquadButton squads={[{ id: 4, name: 'U12' }, { id: 5, name: 'U14' }]} focus={5} />);
     await user.click(screen.getByRole('button', { name: 'Notify' }));
     expect(api.noticeReach).toHaveBeenCalledWith(5, expect.anything());

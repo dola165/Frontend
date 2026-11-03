@@ -8,12 +8,14 @@ import { useRecordPostWords } from '../../clubOffice/recordPostSwitches';
 import { usePostAuthors } from '../../feed/postAuthors';
 import { ProfilePosts } from '../../profiles/ProfilePosts';
 import { useProfilePostFeed } from '../../profiles/useProfilePostFeed';
+import { ClubAnnouncementsBox } from '../../announcements/ClubAnnouncementsBox';
 import type { ClubProfile } from './types';
 
 /**
  * Everything the club has posted, newest first, in the Home feed style. Whoever may post for the club or one of its
  * squads (the one rule-checker's answer) posts from here, as the club or the squad; whoever may post for the whole
- * club (the Owner, Admins, the Media officer) also reaches the switches for the posts the club's work writes.
+ * club (the Owner, Admins, the Media officer) also reaches the switches for the posts the club's work writes. Above
+ * the posts, the announcements pinned for the club's people, where those who may write announce (M14).
  */
 export function ClubPostsTab({ club, crestUrl }: { club: ClubProfile; crestUrl?: string }) {
     const feed = useProfilePostFeed(`/posts/club/${club.id}`);
@@ -22,7 +24,7 @@ export function ClubPostsTab({ club, crestUrl }: { club: ClubProfile; crestUrl?:
     const wholeClub = authors.some(author => !author.squadId);
     const words = useRecordPostWords();
     const [switches, setSwitches] = useState(false);
-    return <Section title="Posts" hint={`News, results and photos from ${club.name}`}
+    return <><ClubAnnouncementsBox clubId={club.id} /><Section title="Posts" hint={`News, results and photos from ${club.name}`}
         action={wholeClub ? <Button size="sm" variant="ghost" onClick={() => setSwitches(true)}><Newspaper aria-hidden="true" />{words.title}</Button> : undefined}>
         <ProfilePosts feed={feed}
             composer={canPost ? <PostComposer home compact clubId={club.id} authors={authors} authorName={club.name} avatarUrl={crestUrl ?? club.logoUrl} onPostCreated={feed.pages.refresh} /> : undefined}
@@ -30,5 +32,5 @@ export function ClubPostsTab({ club, crestUrl }: { club: ClubProfile; crestUrl?:
         {switches && <Dialog open size="md" title={words.title} description={words.hint} onClose={() => setSwitches(false)}>
             <RecordPostSwitchList clubId={club.id} />
         </Dialog>}
-    </Section>;
+    </Section></>;
 }

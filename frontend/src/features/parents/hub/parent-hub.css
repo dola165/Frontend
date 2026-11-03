@@ -82,6 +82,10 @@
 .gk .ph-update__head > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .gk .ph-update__head strong { overflow: hidden; font-size: var(--gk-fs-sm); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .gk .ph-update__head small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .ph-update--notice .ph-update__head { align-items: flex-start; }
+.gk .ph-update--notice .ph-update__head strong { white-space: normal; overflow-wrap: anywhere; }
+.gk .ph-update__bell { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .ph-update__bell svg { width: 14px; height: 14px; }
 .gk .ph-update__body { display: -webkit-box; margin: 0; overflow: hidden; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 .gk .ph-update__body[data-open] { display: block; overflow: visible; -webkit-line-clamp: unset; }
 .gk .ph-update__more { align-self: flex-start; }

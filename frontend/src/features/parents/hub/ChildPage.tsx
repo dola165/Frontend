@@ -18,6 +18,7 @@ import { ChildMoney } from './ChildMoney';
 import { ChildDetails } from './ChildDetails';
 import { NoClub } from './NoClub';
 import { ClubPinned } from '../../announcements/ClubPinned';
+import { CalendarFeedRow } from '../calendarFeed/CalendarFeed';
 import { WaitingForYou } from './WaitingForYou';
 import './parent-hub.css';
 
@@ -66,6 +67,7 @@ export function ChildPage({ child, sessionId, revision, onChanged }: { child: Jo
             <div className="ph-col ph-col--side">
                 {squadState ? <Skeleton height={140} /> : <ChildChats squads={squads} child={child} />}
                 <ChildMoney childId={child.playerId} clubs={clubs} squads={squads} revision={revision} />
+                <CalendarFeedRow names={[first]} />
                 <Link className="ph-details-link" to={childPath(child.playerId, { details: '1' })} data-guide="child-details">
                     <span>{copy(`${first}’s details · player card · family`, `${first}-ს მონაცემები · მოთამაშის ბარათი · ოჯახი`)}</span><ChevronRight aria-hidden="true" />
                 </Link>

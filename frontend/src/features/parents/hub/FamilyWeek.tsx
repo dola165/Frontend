@@ -12,6 +12,7 @@ import { useFamilySquads } from './useChildSquads';
 import type { FamilyMember } from './useFamilySchedule';
 import { WaitingForYou } from './WaitingForYou';
 import { ClubPinned } from '../../announcements/ClubPinned';
+import { CalendarFeedRow } from '../calendarFeed/CalendarFeed';
 import './parent-hub.css';
 
 /**
@@ -37,6 +38,7 @@ export function FamilyWeek({ children, sessionId, revision }: { children: Joinin
             {loading && !members.length ? <Skeleton height={220} />
                 : members.length || visits.length ? <div data-guide="family-week"><FamilySchedule squads={allSquads} members={members} extraEvents={visits} embedded combined optOut /></div>
                     : !error && <p className="ph-quiet">{copy('Nothing planned yet. When a coach plans a session, it shows here.', 'ჯერ არაფერია დაგეგმილი. მწვრთნელის დაგეგმილი ვარჯიში აქ გამოჩნდება.')}</p>}
+            {members.length > 0 && <CalendarFeedRow names={members.map(member => member.name)} />}
         </Section>
     </div>;
 }

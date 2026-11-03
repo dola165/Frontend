@@ -35,6 +35,7 @@ function Waiting({ title, error, retry, onClose }: { title: string; error: strin
 
 /** What an invite became, said once; whether the address had an account is never said. */
 function invitedNotice(result: InviteResult, copy: ReturnType<typeof useJourneyCopy>) {
+    if (result.emailed) return copy(`Invited ${result.name}. The invitation is on its way to their email.`, `${result.name} მოწვეულია. მოწვევა ელფოსტაზე გაეგზავნა.`);
     return result.link ? copy(`Invited ${result.name}. Send them the link from Staff.`, `${result.name} მოწვეულია. ბმული პერსონალის გვერდიდან გაუგზავნეთ.`)
             : copy(`Invited ${result.name}. They’ll find the invitation when they sign in.`, `${result.name} მოწვეულია. მოწვევას შესვლისას ნახავს.`);
 }

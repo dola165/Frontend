@@ -54,7 +54,8 @@ export interface InviteLink { token: string; expiresAt: string }
  * `name` is always the name the inviter typed and `userId` may be null: the answer never says whether the address
  * already has an account. `status`: INVITED, SUGGESTED (a head coach's; no link until an admin confirms) or ADMIN_INVITED.
  */
-export interface InviteResult { userId: number | null; name: string; inApp: boolean; link: InviteLink | null; status?: 'INVITED' | 'SUGGESTED' | 'ADMIN_INVITED' }
+/** `emailed`: the invitation went to the typed address by email (it depends on the address alone, never its owner). */
+export interface InviteResult { userId: number | null; name: string; inApp: boolean; link: InviteLink | null; status?: 'INVITED' | 'SUGGESTED' | 'ADMIN_INVITED'; emailed?: boolean }
 export interface SuggestionAnswer { appointmentId: number; outcome: 'CONFIRMED' | 'DECLINED'; answeredBy: string | null; link: InviteLink | null }
 /** A job and where it applies, as the forms edit it. `job` is a main job, another bundle's key or CUSTOM. */
 export interface JobDraft { job: string; title: string; tools: string[]; clubWide: boolean; squadIds: number[] }

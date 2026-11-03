@@ -49,7 +49,6 @@ export const NotificationTarget = ({ kind, id, onClose }: Target) => {
             {event.description && <p className="whitespace-pre-wrap">{event.description}</p>}
         </>}
         {outcome && <><p className="mt-2 whitespace-pre-wrap">{wordsOf(outcome).body}</p>{outcome.entityType === 'tryout_application'
-            ? <TryoutNotificationReceipt notification={outcome} />
-            : <p className="mt-2 text-sm">This is the update recorded when the notification was sent. A separate detail view is not available here.</p>}</>}
+            && <TryoutNotificationReceipt notification={outcome} />}</>}
     </section>;
 };

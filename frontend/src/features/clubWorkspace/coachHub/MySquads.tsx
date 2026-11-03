@@ -26,7 +26,7 @@ import { NextMatchCard } from './NextMatchCard';
 import { openStaffRoom } from './squadApi';
 import { mySquadsEn } from '../../../locales/mySquadsDesign';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { kindNames, opponentOf, sessionKind, upcoming } from './useCoachData';
+import { kindNames, opponentOf, replies, sessionKind, upcoming } from './useCoachData';
 import { ActivityBadge } from './CoachVisuals';
 import { ActivitySummary } from './ActivitySummary';
 import type { CoachData } from './CoachWorkspace';
@@ -120,6 +120,7 @@ function SquadCard({ squad, data, projects, need, onCancel }: { squad: RolesWork
         && Math.abs(new Date(session.starts_at).getTime() - new Date(card!.match!.starts_at_iso).getTime()) < 60_000;
     const next = space ? upcoming(space, data.now).find(session => !sameFixture(session)) : undefined;
     const kind = next ? sessionKind(next) : null;
+    const cant = next?.attendance ? replies(next).cant : 0;
     const opponent = next ? opponentOf(next, squad.id, data.events, data.clubName) : null;
     const week = data.link('calendar', { squad: String(squad.id) });
     const noPlayers = data.squads && !data.roles.people.some(person => person.squad_id === squad.id);
@@ -136,6 +137,8 @@ function SquadCard({ squad, data, projects, need, onCancel }: { squad: RolesWork
                     <Link className="ch-card__line" to={data.link('overview', { activity: `s-${next.id}` })}>
                         <ActivityBadge kind={kind} size={26} />
                         <span className="ch-card__line-text"><strong>{dayLabel(next.starts_at, data.now)} {timeLabel(next.starts_at)}</strong> · {opponent ? copy('versus', { team: opponent.name }) : next.title}{next.location ? ` · ${next.location}` : ''}</span>
+                        {/* Step 2, M1: who can't come stays a count here; on the day itself the coaches are told at once. */}
+                        {cant > 0 && <span className="cw-status cw-status--danger">{copy('repliesCant', { count: cant })}</span>}
                     </Link>
                     <Button size="sm" variant="ghost" iconOnly aria-label={`${copy('cancelSession')}: ${next.title}`} title={copy('cancelSession')} onClick={() => onCancel(next)}><X aria-hidden="true" /></Button>
                 </span>

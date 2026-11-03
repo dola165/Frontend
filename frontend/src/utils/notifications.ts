@@ -190,7 +190,10 @@ const clubWorkDestination = (notification: NotificationItem) => {
             ? `/requests?appointmentId=${entityId}` : outcome;
     }
     if (notification.entityType === 'match_result' || notification.entityType === 'match_result_suggestion') {
-        const match = link?.pathname.match(/^\/match(?:es|-exchange)\/([1-9]\d*)$/);
+        // S6: a club-calendar match's result opens on the calendar, its event named exactly once.
+        const calendar = link?.pathname === '/calendar' && Array.from(link.searchParams.keys()).join() === 'eventId'
+            ? [link.pathname, notificationId(link.searchParams.get('eventId'))] : null;
+        const match = link?.pathname.match(/^\/match(?:es|-exchange)\/([1-9]\d*)$/) ?? (calendar?.[1] ? calendar : null);
         const eventId = notificationId(notification.eventId);
         return entityId && match && (notification.eventId == null || eventId === match[1]) && link?.hash === '#result' ? path! : outcome;
     }

@@ -47,6 +47,23 @@ describe('notices open their records', () => {
         expect(buildNotificationDestination(notice('SQUAD_ASSIGNMENT', '/account'))).toBe('/requests?view=updates&itemId=7');
     });
 
+    it('S5: opens a squad\'s joining requests on its players tab, and nowhere else', () => {
+        expect(buildNotificationDestination(notice('SQUAD_JOIN_REQUESTS', '/squads/12?tab=players&invite=1', 'squad', 12)))
+            .toBe('/squads/12?tab=players&invite=1');
+        for (const path of ['/squads/12?invite=1', '/squads/12?tab=chat&invite=1', '/squads/12?tab=players&invite=2',
+            '/parent?invite=1', '/clubs/3?tab=players&invite=1', '/squads/12?tab=players&invite=1&sessionId=4'])
+            expect(safeNotificationLink(path)).toBeNull();
+    });
+
+    it('S6: opens a club-calendar match\'s result on the calendar', () => {
+        const family = { ...notice('MATCH_RESULT', '/calendar?eventId=44#result', 'match_result', 44), eventId: 44 } as NotificationItem;
+        expect(buildNotificationDestination(family)).toBe('/calendar?eventId=44#result');
+        const staff = { ...notice('SCHEDULE_EVENT_UPDATED', '/calendar?eventId=44#result', 'match_result', 9), eventId: 44 } as NotificationItem;
+        expect(buildNotificationDestination(staff)).toBe('/calendar?eventId=44#result');
+        expect(buildNotificationDestination({ ...family, eventId: 45 } as NotificationItem)).toBe('/requests?view=updates&itemId=7');
+        expect(buildNotificationDestination({ ...family, linkPath: '/calendar?eventId=44' })).toBe('/requests?view=updates&itemId=7');
+    });
+
     it('opens a family\'s result on the match and a club invitation in Requests', () => {
         const result = { ...notice('MATCH_RESULT', '/matches/44#result', 'match_result', 44), eventId: 44 } as NotificationItem;
         expect(buildNotificationDestination(result)).toBe('/matches/44#result');

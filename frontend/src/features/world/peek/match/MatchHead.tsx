@@ -39,7 +39,7 @@ export function MatchHead({ match: m, state, mine }: { match: HistoryMatch; stat
     const centre = state.score
         ? <><b className="gk-mpeek__score">{state.score.home} – {state.score.away}</b><small>{t('FT')}{m.startsAt ? ` · ${shortDate(m.startsAt)}` : ''}</small></>
         : word ? <><b className="gk-mpeek__word" data-tone={word.tone} aria-label={word.spoken ? t(word.spoken) : undefined}>{t(word.word)}</b>{m.startsAt && <small>{fixtureDay(m.startsAt, m.timezone)} {fixtureTime(m.startsAt, m.timezone)}</small>}</>
-            : <><b className="gk-mpeek__time">{fixtureTime(m.startsAt, m.timezone)}</b><small>{fixtureDay(m.startsAt, m.timezone)}{state.tag ? ` · ${t(state.tag.word, state.tag.vars)}` : ''}</small></>;
+            : <><b className="gk-mpeek__time">{m.timeHidden ? '' : fixtureTime(m.startsAt, m.timezone)}</b><small>{fixtureDay(m.startsAt, m.timezone)}{state.tag ? ` · ${t(state.tag.word, state.tag.vars)}` : ''}</small></>;
     const Kind = m.source === 'TOURNAMENT' ? Trophy : m.source === 'MATCH_EXCHANGE' ? Handshake : Trophy;
     return (
         <header className="gk-mpeek__head">

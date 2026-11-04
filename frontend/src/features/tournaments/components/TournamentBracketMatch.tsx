@@ -137,8 +137,9 @@ export function TournamentBracketMatch(props: Props) {
                     {
                       day: "numeric",
                       month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
+                      ...(fixture.timeHidden
+                        ? {}
+                        : { hour: "2-digit", minute: "2-digit" }),
                     },
                   )
                 : copy("Time to be set", "დრო დასანიშნია")}

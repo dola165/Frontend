@@ -32,7 +32,7 @@ export function plannedShape(rules: Pick<CompetitionRules, 'structure'> | null |
 /** One side of a knockout tie: the entry (none for a side still to be decided), its goals over the tie, and whether it went through. */
 export interface TieSide { entryId: number | null; score: number | null; won: boolean }
 /** A knockout tie: one match, or two legs read as one; a bye when one side has no opponent. */
-export interface Tie { id: number; fixtures: TournamentFixtureDto[]; home: TieSide; away: TieSide; state: 'played' | 'level' | 'bye' | 'next'; scheduledAt: string | null }
+export interface Tie { id: number; fixtures: TournamentFixtureDto[]; home: TieSide; away: TieSide; state: 'played' | 'level' | 'bye' | 'next'; scheduledAt: string | null; timeHidden?: boolean }
 /** A round of a cup, named by how many ties it has ("Final", "Semi-finals", "Round {n}"). */
 export interface CupRound { round: number; name: string; ties: Tie[] }
 /** A knockout tier of groups & finals ("Cup", "Plate"): its rounds, and its third-place match when it has one. */
@@ -87,7 +87,7 @@ export function cupRounds(fixtures: TournamentFixtureDto[], routes: DrawState['r
         const aggregate = aggregates.find(tie => tie.deciding_fixture_id === last.id)?.winner ?? null;
         const winner = aggregate ?? last.winnerEntryId ?? (scored && goals(homeId) !== goals(awayId) ? (goals(homeId) > goals(awayId) ? homeId : awayId) : null);
         const side = (id: number | null): TieSide => ({ entryId: id, score: scored ? goals(id) : null, won: winner != null && winner === id });
-        return { id: last.id, fixtures: legs, home: side(homeId), away: side(awayId), state: bye ? 'bye' : scored ? (winner == null ? 'level' : 'played') : 'next', scheduledAt: lead.scheduledAt };
+        return { id: last.id, fixtures: legs, home: side(homeId), away: side(awayId), state: bye ? 'bye' : scored ? (winner == null ? 'level' : 'played') : 'next', scheduledAt: lead.scheduledAt, timeHidden: lead.timeHidden };
     };
     return numbers.map(round => { const ties = (rounds.get(round) ?? []).map(tieOf); return { round, name: roundName(ties.length), ties }; });
 }

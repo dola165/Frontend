@@ -112,6 +112,8 @@ export interface TournamentFixtureDto {
     roundNumber: number | null;
     fixtureOrder: number | null;
     scheduledAt: string | null;
+    /** A youth competition for someone outside it: the day alone, and no pitch (step 3). */
+    timeHidden?: boolean;
     locationId: number | null;
     status: TournamentFixtureStatus;
     linkedMatchId: number | null;

@@ -23,7 +23,7 @@ export function tournamentCalendar(tournament: TournamentDetail, origin: string,
     const participantName = distinctParticipantNames(tournament.entries);
     for (const fixture of fixtures) {
         const start = fixture.scheduledAt ? calendarDate(fixture.scheduledAt) : null;
-        if (!start || fixture.status === 'CANCELLED') continue;
+        if (!start || fixture.status === 'CANCELLED' || fixture.timeHidden) continue;
         const home = fixture.homeLabel || participantName(tournament.entries.find(entry => entry.id === fixture.homeEntryId));
         const away = fixture.awayLabel || participantName(tournament.entries.find(entry => entry.id === fixture.awayEntryId));
         rows.push('BEGIN:VEVENT', `UID:tournament-${tournament.id}-fixture-${fixture.id}@grasskickz.com`, `DTSTAMP:${calendarDate(now.toISOString())}`,

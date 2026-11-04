@@ -41,7 +41,7 @@ export function historyOfFixture(t: TournamentDetail, f: TournamentFixtureDto, c
     const home = entry(f.homeEntryId), away = entry(f.awayEntryId);
     const counted = f.homeScore != null && f.awayScore != null && f.status === 'COMPLETED';
     return {
-        id: `fixture:${f.id}`, source: 'TOURNAMENT', sourceId: f.id, title: t.name, startsAt: zoned(f.scheduledAt), endsAt: null, timezone: null,
+        id: `fixture:${f.id}`, source: 'TOURNAMENT', sourceId: f.id, title: t.name, startsAt: zoned(f.scheduledAt), endsAt: null, timezone: null, timeHidden: f.timeHidden,
         homeClubId: home?.clubId ?? null, homeClubName: home?.clubName ?? f.homeLabel, homeSquadId: home?.squadId ?? null, homeSquadName: home?.squadName ?? null,
         awayClubId: away?.clubId ?? null, awayClubName: away?.clubName ?? f.awayLabel, awaySquadId: away?.squadId ?? null, awaySquadName: away?.squadName ?? null,
         homeScore: counted ? f.homeScore : null, awayScore: counted ? f.awayScore : null, resultStatus: counted ? 'RECORDED' : 'NONE', fixtureStatus: f.status ?? 'SCHEDULED',

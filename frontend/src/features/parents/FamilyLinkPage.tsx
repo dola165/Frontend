@@ -36,6 +36,8 @@ export function FamilyLinkPage() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [done, setDone] = useState<FamilyLinkClaimed | null>(null);
+    /** The link refused them for being at the club, after the birth date: they can ask the club instead. */
+    const [canAskClub, setCanAskClub] = useState(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -53,19 +55,22 @@ export function FamilyLinkPage() {
     }, [card, isAuthenticated, sessionId]);
 
     const name = preview?.personName ?? '';
-    const claim = async () => {
+    const claim = async (askClub = false) => {
         if (busy) return;
-        setBusy(true); setError('');
+        setBusy(true); setError(''); setCanAskClub(false);
         try {
-            setDone(await claimFamilyLink(code, { as, confirmed: true, childId: as === 'PARENT' ? childId : null, birthDate: asksBirthDate && as === 'PARENT' ? birthDate : null }));
+            setDone(await claimFamilyLink(code, { as, confirmed: true, childId: as === 'PARENT' ? childId : null, birthDate: asksBirthDate && as === 'PARENT' ? birthDate : null, ...(askClub ? { askClub } : {}) }));
         } catch (failure) {
             const problem = extractApiErrorCode(failure);
+            setCanAskClub(problem === 'FAMILY_LINK_OWN_CLUB' || problem === 'FAMILY_LINK_STAFF');
             setError(problem === 'FAMILY_LINK_BIRTH_DATE' ? (card ? copy('That birth date doesn’t match the club’s card.', 'ეს თარიღი არ ემთხვევა კლუბის ბარათს.') : copy(`That isn’t ${name}’s birth date.`, `ეს არ არის ${name}-ის დაბადების თარიღი.`))
                 : problem === 'FAMILY_LINK_REVOKED' ? (card ? copy('This link was turned off. Ask the club for a new one.', 'ეს ბმული გაითიშა. სთხოვეთ კლუბს ახალი.') : copy(`This link was turned off. Ask ${name} for a new one.`, `ეს ბმული გაითიშა. სთხოვეთ ${name}-ს ახალი.`))
-                : problem === 'FAMILY_LINK_OWN_CLUB' ? copy(`You play or work at ${name}’s club, so this link can’t make you their parent. If you are, another parent can add you from Parent Hub.`, `თქვენ თამაშობთ ან მუშაობთ ${name}-ის კლუბში, ამიტომ ეს ბმული მშობლად ვერ დაგამატებთ. თუ მშობელი ხართ, მეორე მშობელს შეუძლია დაგამატოთ Parent Hub-იდან.`)
+                : problem === 'FAMILY_LINK_OWN_CLUB' ? copy(`You play or work at ${name}’s club, so this link can’t make you their parent on its own. If you are, ask the club to confirm you.`, `თქვენ თამაშობთ ან მუშაობთ ${name}-ის კლუბში, ამიტომ ეს ბმული მარტო მშობლად ვერ დაგამატებთ. თუ მშობელი ხართ, სთხოვეთ კლუბს დადასტურება.`)
+                : problem === 'FAMILY_LINK_ONLY_LEADER' ? copy('Nobody else at your club can confirm you. Add another Owner or Admin and they can, or ask GrassKickZ support.', 'თქვენს კლუბში სხვა ვერავინ დაგადასტურებთ. დაამატეთ სხვა მფლობელი ან ადმინისტრატორი, ან მიმართეთ GrassKickZ-ის მხარდაჭერას.')
+                : problem === 'FAMILY_LINK_CLUB_SAID_NO' ? copy(`The club didn’t confirm you as ${name}’s parent. Talk to them.`, `კლუბმა არ დაგადასტურათ ${name}-ის მშობლად. დაელაპარაკეთ მათ.`)
                 : problem === 'FAMILY_LINK_NOT_YOU' ? copy('This card’s name or birth date doesn’t match your account. Ask the club.', 'ბარათის სახელი ან დაბადების თარიღი არ ემთხვევა თქვენს ანგარიშს. მიმართეთ კლუბს.')
                 : problem === 'FAMILY_LINK_OWN' ? copy('Send this link to your parent.', 'ეს ბმული მშობელს გაუგზავნეთ.')
-                : problem === 'FAMILY_LINK_STAFF' ? copy('Club staff can’t become a player’s parent through their own club’s card. Add your child in Parent Hub instead.', 'კლუბის თანამშრომელი საკუთარი კლუბის ბარათით მოთამაშის მშობელი ვერ გახდება. შვილი Parent Hub-ში დაამატეთ.')
+                : problem === 'FAMILY_LINK_STAFF' ? copy(`You work at this club, so its card can’t make you ${name}’s parent on its own. If you are, ask the club to confirm you.`, `თქვენ ამ კლუბში მუშაობთ, ამიტომ მისი ბარათი მარტო ვერ გაგხდით ${name}-ის მშობლად. თუ მშობელი ხართ, სთხოვეთ კლუბს დადასტურება.`)
                 : problem === 'GUARDIAN_MUST_BE_ADULT' ? copy('Only adults (18 or older) can be a parent here.', 'აქ მშობელი მხოლოდ სრულწლოვანი (18+) შეიძლება იყოს.')
                 : extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ ხელახლა.')));
         } finally { setBusy(false); }
@@ -114,7 +119,8 @@ export function FamilyLinkPage() {
                 {as === 'PARENT' && <label className="gk-row gk-join__consent"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>{copy(`I’m ${name}’s parent or guardian.`, `${name}-ის მშობელი ან მეურვე ვარ.`)}</span></label>}
                 {failure}
                 <div className="gk-boxedit__foot">
-                    <Button variant="primary" disabled={busy || (as === 'PARENT' && !confirmed) || (asksBirthDate && as === 'PARENT' && !birthDate)} onClick={() => void claim()}>{spinner}{as === 'SELF' ? copy('Yes, this is me', 'დიახ, ეს მე ვარ') : copy('Yes', 'დიახ')}</Button>
+                    {canAskClub ? <Button variant="primary" disabled={busy} onClick={() => void claim(true)}>{spinner}{copy('Ask the club to confirm me', 'ვთხოვ კლუბს დადასტურებას')}</Button>
+                        : <Button variant="primary" disabled={busy || (as === 'PARENT' && !confirmed) || (asksBirthDate && as === 'PARENT' && !birthDate)} onClick={() => void claim()}>{spinner}{as === 'SELF' ? copy('Yes, this is me', 'დიახ, ეს მე ვარ') : copy('Yes', 'დიახ')}</Button>}
                 </div>
             </div>
         </Panel>;
@@ -127,6 +133,7 @@ function Done({ done, self }: { done: FamilyLinkClaimed; self: boolean }) {
     const name = (done.personName ?? '').trim().split(/\s+/)[0];
     const line = done.outcome === 'LINKED' ? copy(`You’re ${name}’s parent here now.`, `ახლა ${name}-ის მშობელი ხართ აქ.`)
         : done.outcome === 'JOINED' ? copy(`Done. ${name}’s cards are now one, with everything on them.`, `მზადაა. ${name}-ის ბარათები ახლა ერთია, ყველაფრით.`)
+        : done.outcome === 'ASKED_CLUB' ? copy(`We asked the club to confirm you’re ${name}’s parent. You’ll get a notice.`, `კლუბს ვთხოვეთ დაადასტუროს, რომ ${name}-ის მშობელი ხართ. შეტყობინებას მიიღებთ.`)
         : done.outcome === 'PROPOSED' ? copy(`We asked ${name}’s family to confirm. You’ll get a notice.`, `${name}-ის ოჯახს დადასტურება ვთხოვეთ. შეტყობინებას მიიღებთ.`)
         : copy(`We asked ${name}’s parent to add you. You’ll get a notice.`, `${name}-ის მშობელს ვთხოვეთ, დაგამატოთ. შეტყობინებას მიიღებთ.`);
     const toChild = !self && (done.outcome === 'LINKED' || done.outcome === 'JOINED');

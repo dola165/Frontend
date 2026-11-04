@@ -181,6 +181,16 @@ describe('Players — trialist actions', () => {
         await vi.waitFor(() => expect(screen.queryByText(/Claimed by Maia P\./)).not.toBeInTheDocument());
     });
 
+    it('someone at the club who asked to be confirmed as the parent is answered under the player’s row', async () => {
+        const onClaimedParents = vi.fn().mockResolvedValue([{ guardianLinkId: null, name: 'Koba C.', claimedAt: '2026-11-03T10:00:00Z', claimedFrom: null, askId: 9, canAnswer: true }]);
+        const onAnswerParentAsk = vi.fn().mockResolvedValue(undefined);
+        renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink: vi.fn(), onClaimedParents, onAnswerParentAsk });
+        expect(await screen.findByText(/Koba C\. asks to be confirmed/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /^I know Koba is .*’s parent$/ }));
+        await vi.waitFor(() => expect(onAnswerParentAsk).toHaveBeenCalledWith(9, true));
+        await vi.waitFor(() => expect(screen.queryByText(/Koba C\. asks to be confirmed/)).not.toBeInTheDocument());
+    });
+
     it('a child’s trial with no parent’s yes points at the family, not at an empty joining page', () => {
         renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink: vi.fn(), onReviewJoining: vi.fn() });
         expect(screen.getByText('Send to the family below')).toBeInTheDocument();

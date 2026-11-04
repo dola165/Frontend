@@ -35,6 +35,7 @@ export interface PlayersPageProps {
     onFamilyLink?: (userId: number) => Promise<import('../../parents/familyLinks').FamilyLink>;
     onClaimedParents?: (userId: number, signal?: AbortSignal) => Promise<import('../../parents/familyLinks').ClaimedParent[]>;
     onNotTheirParent?: (guardianLink: number) => Promise<void>;
+    onAnswerParentAsk?: (askId: number, yes: boolean) => Promise<void>;
     onFamilySent?: () => void;
     onTabChange: (tab: WorkspaceTab) => void;
 }
@@ -86,7 +87,7 @@ export function PlayersPage(p: PlayersPageProps) {
     const changePage = (page: number) => { setQuery(''); p.onPageChange(page); };
     const actions = {
         pendingKey: p.pendingKey, canManagePlayerStatuses: p.canManagePlayerStatuses, onPlayerStatusChange: p.onPlayerStatusChange, onTrialEndsChange: p.onTrialEndsChange,
-        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onFamilyLink: p.onFamilyLink, onFamilySent: p.onFamilySent, onClaimedParents: p.onClaimedParents, onNotTheirParent: p.onNotTheirParent,
+        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onFamilyLink: p.onFamilyLink, onFamilySent: p.onFamilySent, onClaimedParents: p.onClaimedParents, onNotTheirParent: p.onNotTheirParent, onAnswerParentAsk: p.onAnswerParentAsk,
     };
     const managed = (player: ClubPlayerAffiliation) => p.joiningPlayerIds?.includes(player.userId) === true;
 
@@ -112,6 +113,7 @@ export function PlayersPage(p: PlayersPageProps) {
         action={query ? <Button size="sm" onClick={() => setQuery('')}>{copy('clearSearch', 'Clear search')}</Button> : undefined}>
         {query ? copy('noMatchesHint', 'Try a different search term.') : p.playerStatusFilter === 'TRIALIST' ? t('trialists.emptyOnTrial') : copy('emptyHint', 'Players appear here when they join your club or are invited.')}</EmptyNote></Panel>;
     else body = <DataTable label={statusLabel(p.playerStatusFilter)} columns={columns} rows={shown} rowKey={player => `${player.userId}-${player.status}`} sort={sort}
+        defaultOpen={shown.filter(player => player.userId === Number(params.get('player'))).map(player => `${player.userId}-${player.status}`)}
         onSort={by => { const value = nextSort(sort, by); setParam({ sort: value?.by ?? null, dir: value?.descending ? 'desc' : null }); }}
         actions={player => <PlayerActions player={player} actions={actions} admissionManaged={managed(player)} />}
         details={player => playerChoices(player, actions, managed(player)).hasDetails ? <PlayerDetails player={player} actions={actions} admissionManaged={managed(player)} /> : null}

@@ -5,6 +5,7 @@ import { JourneyReminderActions } from '../../features/mapPlanning/JourneyRemind
 import { FamilyLinkRequestActions } from '../../features/parents/FamilyLinkRequestActions';
 import { TeenTrialActions } from '../../features/clubWorkspace/players/TeenTrialActions';
 import { NotTheirParentAction } from '../../features/parents/NotTheirParentAction';
+import { ParentAskActions } from '../../features/parents/ParentAskActions';
 import { SquadJoinNoticeActions } from '../../features/squadCommunication/SquadJoinNoticeActions';
 import type { NotificationItem } from '../../types/notifications';
 
@@ -15,6 +16,7 @@ export function NotificationActions({ notification }: { notification: Notificati
         <SquadJoinNoticeActions notification={notification} />
         <FamilyLinkRequestActions notification={notification} />
         <NotTheirParentAction notification={notification} />
+        <ParentAskActions notification={notification} />
         <TeenTrialActions notification={notification} />
         <AssistantSuggestionActions notification={notification} />
         <StaffChildrenYesActions notification={notification} />

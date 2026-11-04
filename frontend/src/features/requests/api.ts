@@ -7,6 +7,15 @@ import type { AuthSessionId } from '../../utils/authStorage';
 export interface RequestItem { key: string; family: string; id: number; title: string; context: string; status: string; direction: string; actionable: boolean; updatedAt: string; destination: string; actionLabel: string }
 export interface RequestPage { items: RequestItem[]; counts: { incoming: number; actionable: number; outgoing: number; history: number }; total: number; hasMore: boolean; unavailableSources: string[] }
 export interface PendingRequests { items: RequestItem[]; unavailableSources: string[]; complete: boolean }
+
+const CLUB_ROLES: Record<string, string> = { Owner: 'მფლობელი', Admin: 'ადმინი', Coach: 'მწვრთნელი', Player: 'მოთამაშე' };
+/** A club row's title ("Invited as Admin", "Job offer: Coach") in the person's language; any other row as it comes. */
+export function requestTitle(title: string, copy: (english: string, georgian: string) => string) {
+  const row = /^(Invited as|Job offer:|Application:) (.+)$/.exec(title);
+  if (!row) return title;
+  const start = row[1] === 'Invited as' ? 'მოწვევა' : row[1] === 'Job offer:' ? 'შეთავაზება' : 'განაცხადი';
+  return copy(title, `${start}: ${CLUB_ROLES[row[2]] ?? row[2]}`);
+}
 /** One server snapshot of all actionable work; Home never assembles independent offset pages. */
 export const pendingRequests = (sessionId: AuthSessionId, signal: AbortSignal) =>
   apiClient.get<PendingRequests>('/requests/pending', { signal, _authSessionId: sessionId } as AuthSessionRequestConfig).then(r => {

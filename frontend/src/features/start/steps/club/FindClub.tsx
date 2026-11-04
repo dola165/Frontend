@@ -24,7 +24,7 @@ export interface FoundClub { id: number; name: string; logoUrl: string | null; c
  */
 export function FindClub({ land, back, close, query: typed, chosen: given, onStart }: WelcomeStepProps & { query: string; chosen: FoundClub | null; onStart: (name: string) => void }) {
     const copy = useJourneyCopy();
-    const { refreshNavigationCapabilities } = useAuth();
+    const { refreshNavigationCapabilities, sessionId } = useAuth();
     const other = useOtherClub();
     const [query, setQuery] = useState(typed);
     const [found, setFound] = useState<{ query: string; clubs: FoundClub[] } | null>(null);
@@ -75,7 +75,7 @@ export function FindClub({ land, back, close, query: typed, chosen: given, onSta
         const invite = (await (invites.current ?? Promise.resolve([]))).find(item => item.clubId === club.id);
         if (!invite) { setBusy(null); setAsking(club); setCode(''); return; }
         try {
-            await acceptClubInvite(invite);
+            await acceptClubInvite(invite, sessionId);
             await opened(invite.kind === 'APPOINTMENT' ? landingFor([invite]) : `/clubs/${club.id}`);
         } catch (failure) { failed(failure, () => void join(club)); setBusy(null); }
     };

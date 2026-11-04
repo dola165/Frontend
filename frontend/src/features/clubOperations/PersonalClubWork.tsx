@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hasNavigationCapability } from '../../context/navigationCapabilities';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { promptEmailConfirmation } from '../../components/auth/emailConfirmationPrompt';
 import { useOtherClub } from './leaving/useOtherClub';
+import { jobHome, squadJob } from './people/inviteLinkApi';
 import { get, post, put, root, label, appointmentScope, appointmentStatus, type Appointment, type Choice } from './api';
 import './operations.css';
 import { ArrowRight, Building2, ChevronDown, Eye, ShieldCheck } from 'lucide-react';
@@ -20,12 +21,12 @@ function PersonalClubWork({area,onChanged}:{area:'appointments'|'family';onChang
 function Work({area,onChanged}:{area:'appointments'|'family';onChanged?:()=>void}){
   const {user,refreshNavigationCapabilities}=useAuth();
   const other=useOtherClub();
-  const [params]=useSearchParams(), inFlight=useRef(false);
+  const [params]=useSearchParams(), inFlight=useRef(false), startJob=useNavigate();
   const [data,setData]=useState<Inbox|null>(null),[error,setError]=useState(''),[refresh,setRefresh]=useState(0),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const selectedAppointment=params.get('appointmentId');
   const appointmentId=selectedAppointment&&/^[1-9]\d*$/.test(selectedAppointment)&&Number.isSafeInteger(Number(selectedAppointment))?selectedAppointment:null;
   useEffect(()=>{const c=new AbortController();setData(null);void get<Inbox>(`/club-operations/mine${appointmentId?`?appointmentId=${appointmentId}`:''}`,c.signal).then(r=>{if(!c.signal.aborted)setData(r);}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load your club work.'));});return()=>c.abort();},[refresh,appointmentId]);
-  const act=async(club:number,id:number,revision:number,status:string,appointment=false)=>{if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');setMessage('');try{await post(`${root(club)}/${appointment?'appointments':'records'}/${id}/transition`,{revision,status,note:null});setMessage(appointment?'Appointment decision saved.':`Permission ${label(status).toLowerCase()} · decision saved.`);setRefresh(v=>v+1);if(appointment){await refreshNavigationCapabilities();onChanged?.();}}catch(e){if(!other.catchOther(e,()=>void act(club,id,revision,status,appointment))&&!promptEmailConfirmation(e))setError(extractApiErrorMessage(e,'Could not record your decision.'));}finally{inFlight.current=false;setBusy(false);}};
+  const act=async(club:number,id:number,revision:number,status:string,appointment=false,job='')=>{if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');setMessage('');try{await post(`${root(club)}/${appointment?'appointments':'records'}/${id}/transition`,{revision,status,note:null});setMessage(appointment?'Appointment decision saved.':`Permission ${label(status).toLowerCase()} · decision saved.`);setRefresh(v=>v+1);if(appointment){await refreshNavigationCapabilities();onChanged?.();if(status==='ACTIVE')startJob(jobHome(club,job));}}catch(e){if(!other.catchOther(e,()=>void act(club,id,revision,status,appointment,job))&&!promptEmailConfirmation(e))setError(extractApiErrorMessage(e,'Could not record your decision.'));}finally{inFlight.current=false;setBusy(false);}};
   const visibility=async(a:Appointment)=>{setBusy(true);setError("");try{await put(`${root(a.club_id)}/appointments/${a.id}/publication`,{published:!a.published,revision:a.revision});setRefresh(v=>v+1);}catch(e){setError(extractApiErrorMessage(e,"Could not update public visibility."));}finally{setBusy(false);}};
   if(area==='appointments'&&!hasNavigationCapability(user?.navigationCapabilities,'club.work')&&!data?.appointments.length)return null;
   return <section className="club-ops club-connections club-connections-embedded"><div className="connections-content">
@@ -38,7 +39,7 @@ function Work({area,onChanged}:{area:'appointments'|'family';onChanged?:()=>void
       {area==='family'&&params.has('permissionId')&&!data.permissions.some(p=>String(p.id)===params.get('permissionId'))&&<p role="status" className="connections-quiet-note">This permission request is no longer available to your account. You can review your current requests below.</p>}
       {area==='family'&&(data.permissions.length>0 || user?.navigationCapabilities?.workspaces.some(w=>w.id==='parent.hub'))&&<GuardianPermissions items={data.permissions} selected={params.get('permissionId')} busy={busy} onAction={(p,status)=>act(p.club_id,p.id,p.revision,status)}/>}
       {area==='family'&&<PlayerConnections/>}
-      {area==='appointments'&&(data.appointments.length>0?<section className="connections-section"><header><span className="connections-section-icon"><ShieldCheck size={20}/></span><div><h2>Staff appointments</h2><p>Your agreed responsibilities, dates and access.</p></div><span className="connections-count">{data.appointments.length}</span></header><div className="connections-appointments">{data.appointments.map(a=><StaffAppointmentCard key={`${a.id}:${a.revision}`} appointment={a} busy={busy} canWork={data.clubs.some(c=>c.id===a.club_id)&&Boolean(a.permissions.length)} onAction={status=>act(a.club_id,a.id,a.revision,status,true)} onVisibility={()=>visibility(a)}/>)}</div></section>:<details className="connections-staff-empty"><summary><ShieldCheck size={18}/>Staff appointments <span>No appointments</span><ChevronDown size={16}/></summary><p>Club leadership can invite you to an agreed responsibility. Invitations appear here for you to review.</p></details>)}
+      {area==='appointments'&&(data.appointments.length>0?<section className="connections-section"><header><span className="connections-section-icon"><ShieldCheck size={20}/></span><div><h2>Staff appointments</h2><p>Your agreed responsibilities, dates and access.</p></div><span className="connections-count">{data.appointments.length}</span></header><div className="connections-appointments">{data.appointments.map(a=><StaffAppointmentCard key={`${a.id}:${a.revision}`} appointment={a} busy={busy} canWork={data.clubs.some(c=>c.id===a.club_id)&&Boolean(a.permissions.length)} onAction={status=>act(a.club_id,a.id,a.revision,status,true,a.specialisations.find(squadJob)??'')} onVisibility={()=>visibility(a)}/>)}</div></section>:<details className="connections-staff-empty"><summary><ShieldCheck size={18}/>Staff appointments <span>No appointments</span><ChevronDown size={16}/></summary><p>Club leadership can invite you to an agreed responsibility. Invitations appear here for you to review.</p></details>)}
       {area==='family'?<FamilyClubWork staffClubs={data.clubs}/>:<Link to="/parent?tab=connections">Club & family permissions, records and support <ArrowRight size={16}/></Link>}
     </>}
   </div></section>;

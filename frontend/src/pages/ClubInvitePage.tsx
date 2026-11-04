@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { Avatar, Button, Field, GkRoot } from '../design/primitives';
 import { useAuth } from '../context/AuthContext';
 import { isMinor } from '../utils/age';
@@ -9,44 +9,55 @@ import { OtherClubNotice } from '../features/clubOperations/leaving/OtherClubNot
 import { confirmationJobTitle, needsConfirmedEmail } from '../components/auth/emailConfirmation';
 import { EmailWait, HelperEmailWait } from '../components/auth/EmailWait';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
-import { acceptClubInvite, claimClubInvite, declineClubInvite, landingFor, previewClubInvite, signInAfterClaim, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
+import { acceptClubInvite, claimClubInvite, claimedLink, declineClubInvite, forgetClaimedLink, INBOX, landingFor, previewClubInvite, rememberClaimedLink, signInAfterClaim, type AcceptOutcome, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
-import { extractApiErrorMessage } from '../utils/apiError';
+import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import { buildLoginPath } from '../utils/authRedirect';
+import { getAuthSessionId, isCurrentAuthSession } from '../utils/authStorage';
 import '../features/clubOperations/people/club-invite.css';
 
-/** `helping`: what a new helper sees once their email is confirmed (a project by name, or their session). */
-type HelpingWait = { what: string | null; session: boolean; next: string };
-type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' }
-    | { kind: 'partly'; failures: string[]; next: string; waitsOnEmail: string | null; helping: HelpingWait | null; other: { clubId: number; name: string } | null; blocked: LinkInvite[] };
+type Stage = { kind: 'loading' } | { kind: 'accepting' } | { kind: 'broken'; message: string; used?: boolean } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' }
+    | ({ kind: 'partly' } & AcceptOutcome);
 
 /**
  * The page a club invite link opens: "Nino invited you: Assistant coach · U12" with the club's crest. The person
  * chooses their own password, gives their name and date of birth, and accepts or declines. Accepting signs them in
- * and accepts each job the normal way, so the club's age and verification rules still decide.
+ * and accepts each job the normal way, so the club's age and verification rules still decide. The link in the
+ * invitation email also carries `proof`, which confirms the address, so that person starts at once.
  */
 export function ClubInvitePage() {
     const [params] = useSearchParams();
     const token = params.get('token') ?? '';
-    return <ClubInvite key={token} token={token} />;
+    return <ClubInvite key={token} token={token} proof={params.get('proof') ?? undefined} />;
 }
 
-function ClubInvite({ token }: { token: string }) {
+function ClubInvite({ token, proof }: { token: string; proof?: string }) {
     const id = useId();
     const navigate = useNavigate();
-    const { loginWithAccessToken } = useAuth();
+    const { loginWithAccessToken, isAuthenticated } = useAuth();
     const { copy, jobLabel, whereLabel } = useJobWords();
-    const [stage, setStage] = useState<Stage>({ kind: 'loading' });
-    const [name, setName] = useState(''), [birth, setBirth] = useState(''), [password, setPassword] = useState(''), [again, setAgain] = useState('');
+    // Signing in remounts the app: this is the fresh page taking over from the one that claimed the link.
+    const [resumed] = useState(() => claimedLink(token) !== null);
+    const [stage, setStage] = useState<Stage>(resumed ? { kind: 'accepting' } : { kind: 'loading' });
+    const [name, setName] = useState(''), [birth, setBirth] = useState(''), [password, setPassword] = useState(''), [showPassword, setShowPassword] = useState(false);
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [confirmDecline, setConfirmDecline] = useState(false);
-    const sending = useRef(false);
+    const sending = useRef(false), mounted = useRef(true), linkUsed = useRef(resumed);
+    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
     useEffect(() => {
+        // Once claimed the link is used, so the page never asks about it again.
+        if (linkUsed.current) return;
         const controller = new AbortController();
         if (!token) { setStage({ kind: 'broken', message: copy('This link is missing its code. Ask the club for a new one.', 'ბმულს კოდი აკლია. სთხოვეთ კლუბს ახალი.') }); return () => controller.abort(); }
         previewClubInvite(token, controller.signal).then(preview => { if (!controller.signal.aborted) { setStage({ kind: 'ready', preview }); setName(preview.invitedName ?? ''); } })
-            .catch(failure => { if (!controller.signal.aborted) setStage({ kind: 'broken', message: extractApiErrorMessage(failure, copy('This invitation link doesn’t work any more. Ask the club for a new one.', 'ეს ბმული აღარ მუშაობს. სთხოვეთ კლუბს ახალი.')) }); });
+            .catch(failure => {
+                if (controller.signal.aborted) return;
+                if (extractApiErrorCode(failure) !== 'used_token') setStage({ kind: 'broken', message: extractApiErrorMessage(failure, copy('This invitation link doesn’t work any more. Ask the club for a new one.', 'ეს ბმული აღარ მუშაობს. სთხოვეთ კლუბს ახალი.')) });
+                // Claimed, declined or replaced by a newer link: the server doesn't say which, so this promises none of them.
+                else if (isAuthenticated) navigate(INBOX, { replace: true });
+                else setStage({ kind: 'broken', used: true, message: copy('Already set up your account? Sign in: your jobs are in your Inbox. If not, ask the club for a new link.', 'ანგარიში უკვე შექმენით? შედით: სამუშაო შემოსულებშია. თუ არა, სთხოვეთ კლუბს ახალი ბმული.') });
+            });
         return () => controller.abort();
-    }, [token, copy]);
+    }, [token, copy, isAuthenticated, navigate]);
 
     const accept = async (preview: ClubInvitePreview) => {
         if (sending.current) return;
@@ -55,34 +66,44 @@ function ClubInvite({ token }: { token: string }) {
         // Club jobs are for adults (26 October); the server refuses too, this says so before an account is made.
         if (isMinor(birth)) { setError(copy('Club jobs are for adults (18+).', 'კლუბში სამუშაო მხოლოდ სრულწლოვნებისთვისაა (18+).')); return; }
         if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) { setError(copy('Your password needs 8 characters with an upper-case letter, a lower-case letter and a digit.', 'პაროლს სჭირდება 8 სიმბოლო, დიდი და პატარა ასო და ციფრი.')); return; }
-        if (password !== again) { setError(copy('The two passwords are different.', 'პაროლები არ ემთხვევა.')); return; }
         sending.current = true; setBusy(true); setError('');
         try {
-            const { email } = await claimClubInvite({ token, name: name.trim(), dateOfBirth: birth, password });
+            const { email, emailConfirmed } = await claimClubInvite({ token, name: name.trim(), dateOfBirth: birth, password, emailProof: proof });
+            linkUsed.current = true;
             // The link is used from here on: if signing in fails now, the account exists, so the person signs in
-            // normally (the job waits in their notifications) instead of trying the used link again.
+            // normally (the job waits in their Inbox) instead of trying the used link again.
             const accessToken = await signInAfterClaim(email, password)
-                .then(async found => { if (found) await loginWithAccessToken(found); return found; })
+                .then(async found => {
+                    if (found) {
+                        rememberClaimedLink({ token, invites: preview.invites.filter(i => !i.unavailableReason), emailConfirmed: emailConfirmed === true });
+                        await loginWithAccessToken(found);
+                    }
+                    return found;
+                })
                 .catch(() => null);
-            if (!accessToken) { navigate(buildLoginPath('/requests?view=updates'), { replace: true }); return; }
-            await acceptAll(preview.invites.filter(i => !i.unavailableReason), true);
+            if (!accessToken) { forgetClaimedLink(); navigate(buildLoginPath(INBOX), { replace: true }); return; }
+            // Signing in replaced this page with a fresh one, which carries on; a page still here does it itself.
+            if (mounted.current) { setStage({ kind: 'accepting' }); void carryOn()?.then(outcome => { if (mounted.current) show(outcome); }); }
         } catch (failure) {
             setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
         } finally { sending.current = false; setBusy(false); }
     };
     /**
      * Accepts each job the normal way; also the retry once the person has left the club they were staff at. Right after
-     * claiming, a helper's project or session waits on the email the claim sent (claiming confirms nothing).
+     * claiming from a link passed on by hand, a helper's project or session waits on the email the claim sent. Stops if
+     * the session it started in ends, so nothing runs under whoever signs in next.
      */
-    const acceptAll = async (invites: LinkInvite[], claimed = false) => {
+    const acceptAll = useCallback(async (invites: LinkInvite[], helperWaits = false, session = getAuthSessionId()): Promise<AcceptOutcome | null> => {
         const failures: string[] = [], accepted: LinkInvite[] = [], blocked: LinkInvite[] = [];
         let waitsOnEmail: string | null = null, other: { clubId: number; name: string } | null = null;
         for (const invite of invites) {
-            try { await acceptClubInvite(invite); accepted.push(invite); }
+            if (!isCurrentAuthSession(session)) return null;
+            try { await acceptClubInvite(invite, session); accepted.push(invite); }
             catch (failure) {
+                if (!isCurrentAuthSession(session)) return null;
                 const club = otherClubOf(failure);
                 // A new account confirms its email before starting a job; the job waits in the notifications meanwhile.
-                if (needsConfirmedEmail(failure)) waitsOnEmail ??= confirmationJobTitle(failure) ?? jobLabel(invite);
+                if (needsConfirmedEmail(failure)) waitsOnEmail ??= invite.squads.length ? `${jobLabel(invite)} · ${invite.squads.join(', ')}` : confirmationJobTitle(failure) ?? jobLabel(invite);
                 // Staff means one club: "Leave {club} first", then these are accepted again.
                 else if (club) { other ??= club; blocked.push(invite); }
                 else failures.push(`${jobLabel(invite)}: ${extractApiErrorMessage(failure, copy('it couldn’t be accepted.', 'ვერ მიიღეს.'))}`);
@@ -90,12 +111,41 @@ function ClubInvite({ token }: { token: string }) {
         }
         const helped = accepted.filter(i => i.kind === 'HELPER' || i.kind === 'PROJECT_HELPER');
         const projects = helped.filter(i => i.kind === 'PROJECT_HELPER');
-        const helping = claimed && helped.length ? { what: projects.length === 1 && helped.length === 1 ? projects[0].title : null,
+        const helping = helperWaits && helped.length ? { what: projects.length === 1 && helped.length === 1 ? projects[0].title : null,
             session: !projects.length, next: landingFor(helped) } : null;
-        const next = !accepted.length && (waitsOnEmail || other) ? '/requests?view=updates' : landingFor(accepted);
-        if (failures.length || waitsOnEmail || helping || other) setStage({ kind: 'partly', failures, next, waitsOnEmail, helping, other, blocked });
-        else navigate(next, { replace: true });
+        const next = !accepted.length && (waitsOnEmail || other) ? INBOX : landingFor(accepted);
+        return { session, failures, next, waitsOnEmail, helping, other, blocked };
+    }, [copy, jobLabel]);
+    const show = useCallback((outcome: AcceptOutcome | null) => {
+        // The session ended midway: whoever is here now finds their own Inbox.
+        if (!outcome) navigate(INBOX, { replace: true });
+        else if (outcome.failures.length || outcome.waitsOnEmail || outcome.helping || outcome.other) setStage({ kind: 'partly', ...outcome });
+        else navigate(outcome.next, { replace: true });
+    }, [navigate]);
+    /** Once they have left the club they were staff at. Leaving takes a while: a page that has gone by then starts nothing. */
+    const retryBlocked = (outcome: AcceptOutcome) => {
+        if (mounted.current) void acceptAll(outcome.blocked, false, outcome.session).then(next => { if (mounted.current) show(next); });
     };
+    /** Once signed in: accepts what the claim said yes to, once. Every page that gets here waits on the same answer. */
+    const carryOn = useCallback(() => {
+        const link = claimedLink(token);
+        if (link) link.outcome ??= acceptAll(link.invites, !link.emailConfirmed).finally(forgetClaimedLink);
+        return link?.outcome;
+    }, [token, acceptAll]);
+    const accepting = stage.kind === 'accepting';
+    useEffect(() => {
+        if (!resumed) return;
+        if (!isAuthenticated) {
+            if (claimedLink(token)) { forgetClaimedLink(); navigate(buildLoginPath(INBOX), { replace: true }); }
+            return;
+        }
+        const running = carryOn();
+        // Finished just as this page opened: its answer has gone, and the Inbox has the job.
+        if (!running) { if (accepting) navigate(INBOX, { replace: true }); return; }
+        let here = true;
+        void running.then(outcome => { if (here) show(outcome); });
+        return () => { here = false; };
+    }, [resumed, isAuthenticated, accepting, carryOn, show, token, navigate]);
     const decline = async () => {
         if (sending.current) return;
         sending.current = true; setBusy(true); setError('');
@@ -106,10 +156,11 @@ function ClubInvite({ token }: { token: string }) {
 
     const card = (children: React.ReactNode) => <GkRoot className="ci-page"><main className="ci-card">{children}</main></GkRoot>;
     if (stage.kind === 'loading') return card(<p role="status" className="gk-muted">{copy('Opening your invitation…', 'მოწვევა იხსნება…')}</p>);
+    if (stage.kind === 'accepting') return card(<p role="status" className="gk-muted">{copy('Setting up your job…', 'სამუშაო მზადდება…')}</p>);
     if (stage.kind === 'broken') return card(<>
-        <h1 className="ci-title">{copy('This link can’t be used', 'ამ ბმულის გამოყენება შეუძლებელია')}</h1>
-        <p role="alert" className="gk-notice gk-notice--danger">{stage.message}</p>
-        <Link className="gk-btn gk-btn--secondary" to={buildLoginPath('/requests?view=updates')}>{copy('Sign in', 'შესვლა')}</Link>
+        <h1 className="ci-title">{stage.used ? copy('This link has been used', 'ეს ბმული უკვე გამოყენებულია') : copy('This link can’t be used', 'ამ ბმულის გამოყენება შეუძლებელია')}</h1>
+        <p role={stage.used ? 'status' : 'alert'} className={stage.used ? 'gk-muted' : 'gk-notice gk-notice--danger'}>{stage.message}</p>
+        <Link className={`gk-btn ${stage.used ? 'gk-btn--primary' : 'gk-btn--secondary'}`} to={buildLoginPath(INBOX)}>{copy('Sign in', 'შესვლა')}</Link>
     </>);
     if (stage.kind === 'declined') return card(<>
         <h1 className="ci-title">{copy('You declined', 'უარი თქვით')}</h1>
@@ -117,10 +168,10 @@ function ClubInvite({ token }: { token: string }) {
     </>);
     if (stage.kind === 'partly') return card(<>
         <h1 className="ci-title">{copy('Your account is ready', 'თქვენი ანგარიში მზადაა')}</h1>
-        {stage.other && <OtherClubNotice club={stage.other} onLeft={() => void acceptAll(stage.blocked)} />}
+        {stage.other && <OtherClubNotice club={stage.other} onLeft={() => retryBlocked(stage)} />}
         {stage.waitsOnEmail && <EmailWait title={copy(`Confirm your email to start as ${stage.waitsOnEmail}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${stage.waitsOnEmail}`)}
-            hint={copy('Open the link we sent, then accept the job in your notifications.', 'გახსენით გამოგზავნილი ბმული და მიიღეთ სამუშაო შეტყობინებებში.')}
-            sentHint={copy('Sent. Open the link, then accept the job in your notifications.', 'გაიგზავნა. გახსენით ბმული და მიიღეთ სამუშაო შეტყობინებებში.')} next="/requests?view=updates" />}
+            hint={copy('Open the link we sent, then accept the job in your Inbox.', 'გახსენით გამოგზავნილი ბმული და მიიღეთ სამუშაო შემოსულებში.')}
+            sentHint={copy('Sent. Open the link, then accept the job in your Inbox.', 'გაიგზავნა. გახსენით ბმული და მიიღეთ სამუშაო შემოსულებში.')} next={INBOX} />}
         {stage.helping && <HelperEmailWait what={stage.helping.what} session={stage.helping.session} next={stage.helping.next} />}
         {stage.failures.length > 0 && <div role="alert" className="gk-notice gk-notice--warning"><ul className="ci-failures">{stage.failures.map(f => <li key={f}>{f}</li>)}</ul></div>}
         <Button variant="primary" onClick={() => navigate(stage.next, { replace: true })}>{copy('Continue', 'გაგრძელება')}</Button>
@@ -145,17 +196,20 @@ function ClubInvite({ token }: { token: string }) {
         </li>)}</ul>
         {!preview.invites.length && <p className="gk-notice">{copy('Nothing is waiting for you here any more. Ask the club to invite you again.', 'აქ აღარაფერი გელოდებათ. სთხოვეთ კლუბს ხელახლა მოწვევა.')}</p>}
         {preview.hasPassword ? <>
-            <p className="gk-muted">{copy('You already have an account. Sign in and answer the invitation in your notifications.', 'ანგარიში უკვე გაქვთ. შედით და უპასუხეთ მოწვევას შეტყობინებებში.')}</p>
-            <Link className="gk-btn gk-btn--primary" to={buildLoginPath('/requests?view=updates')}>{copy('Sign in', 'შესვლა')}</Link>
+            <p className="gk-muted">{copy('You already have an account. Sign in and answer the invitation in your Inbox.', 'ანგარიში უკვე გაქვთ. შედით და უპასუხეთ მოწვევას შემოსულებში.')}</p>
+            <Link className="gk-btn gk-btn--primary" to={buildLoginPath(INBOX)}>{copy('Sign in', 'შესვლა')}</Link>
         </> : preview.invites.length > 0 && !allBlocked && <form className="ci-form" onSubmit={event => { event.preventDefault(); void accept(preview); }}>
             <p className="gk-faint ci-email">{copy(`Your account: ${preview.email}`, `თქვენი ანგარიში: ${preview.email}`)}</p>
             <Field label={copy('Your name', 'თქვენი სახელი')} htmlFor={`${id}-name`}><input id={`${id}-name`} className="gk-input" autoComplete="name" maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></Field>
             <Field label={copy('Date of birth', 'დაბადების თარიღი')} hint={copy('Club jobs are for adults (18 or older).', 'კლუბის სამუშაო მხოლოდ სრულწლოვნებისთვისაა (18+).')} htmlFor={`${id}-birth`}>
                 <input id={`${id}-birth`} className="gk-input" type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} value={birth} disabled={busy} onChange={event => setBirth(event.target.value)} /></Field>
             <Field label={copy('Choose a password', 'აირჩიეთ პაროლი')} hint={copy('8 or more characters, with an upper-case letter, a lower-case letter and a digit. Only you know it.', '8+ სიმბოლო, დიდი და პატარა ასო და ციფრი. მას მხოლოდ თქვენ იცნობთ.')} htmlFor={`${id}-password`}>
-                <input id={`${id}-password`} className="gk-input" type="password" autoComplete="new-password" value={password} disabled={busy} onChange={event => setPassword(event.target.value)} /></Field>
-            <Field label={copy('Password again', 'გაიმეორეთ პაროლი')} htmlFor={`${id}-again`}>
-                <input id={`${id}-again`} className="gk-input" type="password" autoComplete="new-password" value={again} disabled={busy} onChange={event => setAgain(event.target.value)} /></Field>
+                <span className="ci-password">
+                    <input id={`${id}-password`} className="gk-input" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} disabled={busy} onChange={event => setPassword(event.target.value)} />
+                    <button type="button" aria-pressed={showPassword} aria-label={showPassword ? copy('Hide what I typed', 'აკრეფილის დამალვა') : copy('Show what I typed', 'აკრეფილის ჩვენება')} onClick={() => setShowPassword(shown => !shown)}>
+                        {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                    </button>
+                </span></Field>
             {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
             <div className="ci-actions">
                 <Button type="submit" variant="primary" disabled={busy}>{busy ? copy('Accepting…', 'მიმდინარეობს…') : copy('Accept', 'მიღება')}</Button>

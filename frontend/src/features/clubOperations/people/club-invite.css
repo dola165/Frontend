@@ -9,6 +9,9 @@
 .gk .ci-job { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-3) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
 .gk .ci-form { display: flex; flex-direction: column; gap: var(--gk-4); }
 .gk .ci-email { margin: 0; font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
+.gk .ci-password { position: relative; display: block; }
+.gk .ci-password .gk-input { width: 100%; padding-right: 44px; }
+.gk .ci-password button { position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--gk-text-2); cursor: pointer; }
 .gk .ci-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 .gk .ci-decline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 .gk .ci-failures { margin: 0; padding-left: var(--gk-4); }

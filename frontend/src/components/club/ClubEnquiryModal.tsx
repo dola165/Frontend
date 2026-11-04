@@ -17,6 +17,7 @@ import { fetchJoiningContext, contactLabel, type JoiningContext } from '../../fe
 import { emitNotificationsChanged } from '../../utils/notifications';
 import { useAdmissionMutation } from '../../features/admissions/applicant/useAdmissionMutation';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
+import { isMinor } from '../../utils/age';
 
 type ClubEnquiryModalProps = { clubId: number; clubName: string; context: ClubEnquiryContext; onClose: () => void };
 export function ClubEnquiryModal(props: ClubEnquiryModalProps) {
@@ -28,6 +29,8 @@ function ClubEnquiryForm({ clubId, clubName, context, onClose }: ClubEnquiryModa
     const copy = useJourneyCopy();
   const motion = useClubPanelMotion(onClose);
   const { status, sessionId, user } = useAuth();
+  // Under 18 there is no general question: it goes in a chat the parents can join, so it is about the player.
+  const minor = Boolean(user?.dob) && isMinor(user?.dob);
   const navigate = useNavigate(), location = useLocation(), heading = useId();
   const requestedPlayer = new URLSearchParams(location.search).has('player') ? positivePlayerId(new URLSearchParams(location.search).get('player')) : readSelectedPlayer(user?.id,sessionId);
   const prefill = useRef('');
@@ -68,7 +71,7 @@ function ClubEnquiryForm({ clubId, clubName, context, onClose }: ClubEnquiryModa
       if (self && !choices.some(person => person.id === self.id)) choices.push({ id: self.id, name: `${self.name} (myself)` });
       setPlayers(choices);
       const prefillScope=`${sessionId}:${clubId}:${requestedPlayer}`;
-      if(prefill.current!==prefillScope){prefill.current=prefillScope;setPlayer(requestedPlayer&&choices.some(person=>person.id===requestedPlayer)?String(requestedPlayer):'');}
+      if(prefill.current!==prefillScope){prefill.current=prefillScope;setPlayer(requestedPlayer&&choices.some(person=>person.id===requestedPlayer)?String(requestedPlayer):minor&&self?String(self.id):'');}
       if (joining.status === 'fulfilled') setOptions(joining.value);
       if (children.status === 'rejected') setLoadError('Your player choices could not load. You can still ask a general question.');
       else if (joining.status === 'rejected') setLoadError('Joining options could not load. Your enquiry will keep this programme or team as context.');
@@ -76,8 +79,9 @@ function ClubEnquiryForm({ clubId, clubName, context, onClose }: ClubEnquiryModa
       setLoadedScope(loadScope);
     });
     return () => abort.abort();
-  }, [clubId, sessionId, status, user?.id, retry, requestedPlayer, loadScope]);
+  }, [clubId, sessionId, status, user?.id, retry, requestedPlayer, loadScope, minor]);
   const chosenPlayer=players.find(person=>person.id===Number(player));
+  const onlyThemself=minor&&players.some(person=>person.id===user?.id);
   const chosenVenue=joiningContext?.venues.find(place=>place.id===Number(venue));
   const enquiryDraft={reason,programme:context.name,club:clubName,path:context.path,player:chosenPlayer?.name.replace(/ \(myself\)$/,''),self:Number(player)===user?.id,contact:joiningContext?.contacts.find(person=>person.id===Number(contact))?.name,venue:chosenVenue?`${chosenVenue.name}${chosenVenue.address?` · ${chosenVenue.address}`:''}`:undefined,note:body};
   const submit = async (event: FormEvent) => {
@@ -107,8 +111,8 @@ function ClubEnquiryForm({ clubId, clubName, context, onClose }: ClubEnquiryModa
       {mutation.error && <p role="alert" className="cp-error">{mutation.error}</p>}
       <fieldset disabled={busy || Boolean(mutation.pending)} className="cp-enquiry-fields">
         <label>What would you like help with?<select aria-label="Enquiry reason" required value={reason} onChange={event => setReason(event.target.value)}><option value="Ask a question">Ask a question</option>{enquiryReasons.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
-        <label>Who is this about?<select aria-label="Enquiry player" value={player} onChange={event => setPlayer(event.target.value)} disabled={loading}><option value="">General question · no player selected</option>{players.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
-        <p className="cp-muted">Select one player only for a player-specific enquiry. A general question shares no child identity.</p>
+        <label>Who is this about?<select aria-label="Enquiry player" value={player} onChange={event => setPlayer(event.target.value)} disabled={loading}>{!onlyThemself&&<option value="">General question · no player selected</option>}{players.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
+        {!onlyThemself&&<p className="cp-muted">Select one player only for a player-specific enquiry. A general question shares no child identity.</p>}
         {loading && <p role="status">Loading your players and joining options…</p>}
         {loadError && <p role="status">{loadError} <button type="button" className="cp-text-button" onClick={() => setRetry(value => value + 1)}>Retry choices</button></p>}
         {relevant.length > 1 && <label>Training group <span>(optional)</span><select value={group} onChange={event => setGroup(event.target.value)}><option value="">Ask about this programme</option>{relevant.map(option => <option key={optionKey(option)} value={optionKey(option)}>{option.squadName}{option.availability === 'CLOSED' ? ' · intake closed' : option.availability === 'WAITLIST' ? ' · waiting list' : ''}</option>)}</select></label>}

@@ -4,6 +4,7 @@ import { ShieldAlert } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { Button, Field, GkRoot, PageFrame, PageHeader, Section, Skeleton } from '../design/primitives';
 import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
+import { isAxiosError } from 'axios';
 import { extractApiErrorMessage } from '../utils/apiError';
 
 interface Received {
@@ -25,7 +26,7 @@ export default function ConcernReceivedPage() {
         const abort = new AbortController();
         apiClient.get<Received>(`/clubs/${id}/operations/concerns/${concernId}`, { signal: abort.signal })
             .then(response => { if (!abort.signal.aborted) setConcern(response.data); })
-            .catch(failure => { if (!abort.signal.aborted) setError(extractApiErrorMessage(failure, copy('This concern is for someone else.', 'ეს შეტყობინება სხვისთვისაა.'))); });
+            .catch(failure => { if (!abort.signal.aborted) setError(isAxiosError(failure) && failure.response?.status === 404 ? copy('We could not find this concern.', 'ეს შეტყობინება ვერ მოიძებნა.') : extractApiErrorMessage(failure, copy('Couldn’t open this concern. Try again.', 'შეტყობინება ვერ გაიხსნა. სცადეთ ხელახლა.'))); });
         return () => abort.abort();
     }, [id, concernId, copy]);
     const close = async (event: FormEvent) => {

@@ -10,12 +10,11 @@ import {
     UsersRound
 } from 'lucide-react';
 import type { NotificationItem } from '../../types/notifications';
-import { useNoticeWords } from './useNoticeWords';
+import { useNoticeTypeWord, useNoticeWords } from './useNoticeWords';
 import {
     formatNotificationTime,
     notificationActionLabel,
     notificationScopeLabel,
-    notificationTypeLabel
 } from '../../utils/notifications';
 
 interface NotificationListItemProps {
@@ -48,11 +47,12 @@ export const NotificationListItem = ({
 }: NotificationListItemProps) => {
     const Icon = iconByType[notification.type] ?? BellRing;
     const words = useNoticeWords()(notification);
+    const typeWord = useNoticeTypeWord();
     const actionLabel = notificationActionLabel(notification);
     const metaItems = [
         showScope ? notificationScopeLabel(notification.scope) : null,
         notification.clubName || null,
-        notificationTypeLabel(notification.type)
+        typeWord(notification.type)
     ].filter((value): value is string => Boolean(value));
 
     return (

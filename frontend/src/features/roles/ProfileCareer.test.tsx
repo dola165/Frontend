@@ -28,6 +28,14 @@ it('shows referee career and completed fixtures directly, with editing only for 
     expect(screen.getByRole('heading', { name: 'Add experience' })).toBeInTheDocument();
 });
 
+it('gives a kick-off this viewer may not know its day alone', async () => {
+    vi.mocked(apiClient.get).mockImplementation(async path => ({ data: path.includes('coaching-career') ? [] : { ...referee, match_history: [{ ...referee.match_history[0], time_hidden: true }] } }));
+    render(<MemoryRouter><ProfileCareer profile={{ id: 7, role: 'REFEREE' }} isMyProfile={false} /></MemoryRouter>);
+    const row = (await screen.findByRole('link', { name: 'U12 final' })).closest('.mx-row');
+    expect(row?.textContent).toMatch(/Jan/);
+    expect(row?.textContent).not.toMatch(/\d{1,2}:\d{2}/);
+});
+
 it('does not request private career data for another viewer', () => {
     render(<MemoryRouter><ProfileCareer profile={{ id: 7, role: 'REFEREE', isPrivate: true }} isMyProfile={false} /></MemoryRouter>);
     expect(apiClient.get).not.toHaveBeenCalled();

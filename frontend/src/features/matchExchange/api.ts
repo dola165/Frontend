@@ -207,6 +207,7 @@ export type Referee = {
     id: number;
     title: string;
     starts_at: string;
+    time_hidden?: boolean;
     timezone: string;
     duty: string;
     volunteer: boolean;
@@ -307,6 +308,15 @@ export function label(value: string) {
     .replaceAll("_", " ")
     .replace(/^./, (v) => v.toUpperCase());
 }
+/** The day alone, for a kick-off this viewer may not know. */
+export function whichDay(value: string) {
+  return new Date(value).toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 export function when(value: string) {
   return new Date(value).toLocaleString(undefined, {
     weekday: "short",

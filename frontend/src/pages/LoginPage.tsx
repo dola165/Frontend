@@ -53,7 +53,7 @@ export const LoginPage = () => {
     // The server knows no account with this email: offered "Create one?" with what was typed kept.
     const [unknownEmail, setUnknownEmail] = useState(false);
     // The right sign-in for an account its owner closed in the last 30 days: "Keep my account" signs in with the same proof.
-    const [closing, setClosing] = useState<{ proof: PrimaryLoginProof; keepUntil: string } | null>(null);
+    const [closing, setClosing] = useState<{ proof: PrimaryLoginProof; keepUntil: string; report?: 'closed' | 'asked' } | null>(null);
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '');
 
     const navigateAfterLogin = (
@@ -98,10 +98,11 @@ export const LoginPage = () => {
 
     /** Offers "Keep my account" when the server says the account is closing, with the date it is erased. */
     const closingOffer = (err: unknown, proof: PrimaryLoginProof) => {
-        if (extractApiErrorCode(err) !== 'ACCOUNT_CLOSING') return false;
+        const code = extractApiErrorCode(err);
+        if (code !== 'ACCOUNT_CLOSING' && code !== 'ACCOUNT_CLOSED_AFTER_REPORT' && code !== 'ACCOUNT_REVIEW_ASKED') return false;
         const keepUntil = (err as { response?: { data?: { keepUntil?: unknown } } } | null)?.response?.data?.keepUntil;
         if (typeof keepUntil !== 'string' || !Number.isFinite(Date.parse(keepUntil))) return false;
-        setClosing({ proof, keepUntil });
+        setClosing({ proof, keepUntil, report: code === 'ACCOUNT_CLOSED_AFTER_REPORT' ? 'closed' : code === 'ACCOUNT_REVIEW_ASKED' ? 'asked' : undefined });
         return true;
     };
 
@@ -213,12 +214,12 @@ export const LoginPage = () => {
             ) : closing ? (
                 // A closing account: Keep my account is the one bright action; the sign-in form returns only on request.
                 <div role="status" className="rounded-xl border border-[var(--color-border)] p-4 text-sm leading-6">
-                    <p className="font-semibold text-[var(--color-text)]">{t('auth.login.closingTitle')}</p>
-                    <p className="text-[var(--color-secondary)]">{t('auth.login.closingBody', { date: formatDate(closing.keepUntil, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>
+                    <p className="font-semibold text-[var(--color-text)]">{t(closing.report === 'closed' ? 'auth.login.reportClosedTitle' : closing.report === 'asked' ? 'auth.login.reviewAskedTitle' : 'auth.login.closingTitle')}</p>
+                    <p className="text-[var(--color-secondary)]">{t(closing.report === 'closed' ? 'auth.login.reportClosedBody' : closing.report === 'asked' ? 'auth.login.reviewAskedBody' : 'auth.login.closingBody', { date: formatDate(closing.keepUntil, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>
                     {error && <p role="alert" className="mt-3 font-semibold text-[color:var(--state-danger)]">{error}</p>}
-                    <button type="button" disabled={isLoading} onClick={keepAccount} className={authPrimaryButtonClass + ' mt-3'}>
-                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.login.keepAccount')}
-                    </button>
+                    {closing.report !== 'asked' && <button type="button" disabled={isLoading} onClick={keepAccount} className={authPrimaryButtonClass + ' mt-3'}>
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t(closing.report === 'closed' ? 'auth.login.askForReview' : 'auth.login.keepAccount')}
+                    </button>}
                     <button type="button" disabled={isLoading} onClick={switchAccount} className="mt-2 min-h-11 w-full text-sm font-semibold app-text-action">
                         {t('auth.login.useAnotherAccount')}
                     </button>

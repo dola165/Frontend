@@ -72,3 +72,28 @@ describe('safe moderation receipt links', () => {
     it.each(['/reports', '/reports?itemId=12', '/reports?view=notices'])('allows canonical %s', path => expect(safeNotificationLink(path)?.pathname).toBe('/reports'));
     it.each(['/reports?itemId=0', '/reports?itemId=1&view=notices', '/reports?view=private', '/reports?itemId=1&itemId=2', '/reports#evidence', '//evil.test/reports', '/reports?itemId=9007199254740992'])('rejects malformed %s', path => expect(safeNotificationLink(path)).toBeNull());
 });
+
+describe('this is a child', () => {
+    const detail = { id: 12, targetType: 'ACCOUNT', targetId: 9, targetUserId: 9, reason: 'UNDERAGE', status: 'OPEN', version: 4, description: null, evidence: null, evidenceExpiresAt: '2026-12-01T10:00:00Z', targetState: 'AVAILABLE', actions: ['REQUIRE_PARENT', 'DELETE_ACCOUNT'], accountUnderThirteen: false, history: [] };
+
+    it('a report form can say so', () => {
+        mount(<ReportControl targetType="ACCOUNT" targetId={9} personId={9} />);
+        fireEvent.click(screen.getByRole('button', { name: /Report/ }));
+        expect(screen.getByRole('option', { name: 'This is a child' })).toBeInTheDocument();
+    });
+
+    it('closing an account whose birth date is not under 13 asks what shows it is', async () => {
+        api.get.mockResolvedValue({ data: detail });
+        api.put.mockResolvedValue({ data: {} });
+        mount(<ModerationPanel />, '/admin?tab=safety&itemId=12');
+        const action = await screen.findByRole('combobox', { name: 'Review action' });
+        expect(screen.getByRole('option', { name: 'Ask for a parent (13–15)' })).toBeInTheDocument();
+        fireEvent.change(action, { target: { value: 'DELETE_ACCOUNT' } });
+        fireEvent.change(screen.getByRole('textbox', { name: 'Internal reason' }), { target: { value: 'The parent wrote to us' } });
+        fireEvent.change(screen.getByRole('textbox', { name: /What shows it is/ }), { target: { value: 'School letter' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Review decision' }));
+        expect(screen.getByRole('status')).toHaveTextContent('erased after 30 days');
+        fireEvent.click(screen.getByRole('button', { name: 'Confirm decision' }));
+        await waitFor(() => expect(api.put).toHaveBeenCalledWith('/admin/moderation-reports/12', expect.objectContaining({ action: 'DELETE_ACCOUNT', evidence: 'School letter' })));
+    });
+});

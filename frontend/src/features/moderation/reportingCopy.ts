@@ -19,7 +19,7 @@ const KA: Record<string, string> = {
     'Could not load your block setting.': 'დაბლოკვის პარამეტრი ვერ ჩაიტვირთა.', 'Could not update your block setting. Retry is safe.': 'დაბლოკვის პარამეტრი ვერ განახლდა. ხელახლა ცდა უსაფრთხოა.',
     'Refresh setting': 'პარამეტრის განახლება', 'Saving…': 'ინახება…', 'Unblock person': 'დაბლოკვის მოხსნა', 'Block person': 'ადამიანის დაბლოკვა',
     'If someone is in immediate danger, contact local emergency services or a trusted adult. Reports are not an emergency service.': 'თუ ვინმეს უშუალო საფრთხე ემუქრება, მიმართეთ ადგილობრივ გადაუდებელ დახმარებას ან სანდო ზრდასრულს. საჩივრები გადაუდებელი დახმარების სერვისი არ არის.',
-    'Spam': 'სპამი', 'Harassment': 'შევიწროება', 'Safety concern': 'უსაფრთხოების პრობლემა', 'Impersonation': 'სხვისი სახელით მოქმედება', 'Something else': 'სხვა მიზეზი',
+    'This is a child': 'ეს ბავშვია', 'Spam': 'სპამი', 'Harassment': 'შევიწროება', 'Safety concern': 'უსაფრთხოების პრობლემა', 'Impersonation': 'სხვისი სახელით მოქმედება', 'Something else': 'სხვა მიზეზი',
     'Awaiting review': 'ელოდება განხილვას', 'Reviewed': 'განხილულია', 'Dismissed': 'უარყოფილია',
 };
 

@@ -13,7 +13,7 @@ export function useResponseCommand(jobId: number, responseId: number | null, use
         try { return JSON.parse(sessionStorage.getItem(key) ?? '{"note":""}') as Saved; } catch { return { note: '' }; }
     });
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
-    const mounted = useRef(false), sending = useRef(false);
+    const mounted = useRef(true), sending = useRef(false);
     useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
     const active = () => mounted.current && isCurrentAuthSession(session);
     const persist = (value: Saved) => { sessionStorage.setItem(key, JSON.stringify(value)); setSaved(value); };

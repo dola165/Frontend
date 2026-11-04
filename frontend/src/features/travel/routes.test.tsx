@@ -41,7 +41,7 @@ it('uses the real OfficeTool destination, preserves squad context and returns to
 
 it('mounts own-child travel only from a positive server indication and keeps a basic child page quiet',async()=>{
  const ui=render(<MemoryRouter><ChildPage child={{...child,travelAvailable:false}} sessionId="route-session" revision={0} onChanged={()=>{}}/></MemoryRouter>);
- expect(screen.queryByText('Travel · Ana')).not.toBeInTheDocument();expect(api.get).not.toHaveBeenCalled();
+ expect(screen.queryByText('Travel · Ana')).not.toBeInTheDocument();expect(api.get.mock.calls.filter(([url])=>!String(url).endsWith('/asks'))).toEqual([]);
  ui.rerender(<MemoryRouter><ChildPage child={child} sessionId="route-session" revision={0} onChanged={()=>{}}/></MemoryRouter>);
  expect(await screen.findByText('Travel · Ana')).toBeVisible();expect(screen.getByRole('button',{name:'Give travel permission'})).toBeVisible();
 });

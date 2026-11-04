@@ -15,6 +15,7 @@ vi.mock('../../actions/ActionButton', () => ({ ActionButton: () => null }));
 vi.mock('../api', async original => ({ ...await original<object>(), fetchJoiningChildren: vi.fn() }));
 vi.mock('../FamilyRelationships', () => ({ FamilyRelationships: () => <p>Guardian tools</p> }));
 vi.mock('../hub/OneCard', () => ({ OneCard: () => null }));
+vi.mock('../hub/ChildAsks', () => ({ ChildAsks: () => <section aria-label="Asks" /> }));
 vi.mock('../../../components/notifications/TurnOnNotificationsPrompt', () => ({ TurnOnNotificationsPrompt: () => null }));
 vi.mock('../AddChild', () => ({ AddChild: ({ onCreated }: { onCreated: (id: number) => void }) => <button onClick={() => onCreated(63)}>Create synthetic child</button> }));
 vi.mock('../PlayerLinkCode', () => ({ PlayerLinkCode: () => null }));
@@ -120,9 +121,10 @@ describe('Parent Hub (step 5)', () => {
         playing([dinamo, { clubId: 2, clubName: 'Extra training', cardId: 502, affiliationStatus: 'ACTIVE', consentStatus: 'CONFIRMED', squadNames: ['Skills'] }]); show();
         await screen.findByRole('button', { name: 'Nika, U11 · Skills' }); expect(screen.getAllByRole('button', { name: /^Nika/ })).toHaveLength(1);
     });
-    it('puts a pending consent first in what waits for the parent', async () => {
+    it('answers a pending consent in the asks, not as a second line in what waits', async () => {
         playing([{ ...dinamo, affiliationStatus: 'TRIALIST', consentStatus: 'PENDING' }]); show('/parent?player=61');
-        expect(await screen.findByRole('link', { name: /asks for your consent/ })).toHaveAttribute('href', '/parent?tab=connections&player=61');
+        expect(await screen.findByRole('region', { name: 'Asks' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /asks for your consent/ })).toBeNull();
     });
     it('rejects an unauthorized child from a stale URL', async () => {
         show('/parent?player=999'); expect(await screen.findByRole('button', { name: /^Everyone/ })).toHaveAttribute('aria-pressed', 'true');

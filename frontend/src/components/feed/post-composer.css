@@ -1,3 +1,16 @@
+/* "Who's in it?" under a photo: the squad's faces, or "No children in it". */
+.who-in-it { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--feed-card-border); border-radius: 12px; }
+.who-in-it legend { padding: 0 4px; color: var(--feed-text-primary); font-size: 13px; font-weight: 600; }
+.who-in-it button { cursor: pointer; }
+.who-in-it__none { align-self: flex-start; min-height: 36px; padding: 4px 12px; border: 1px solid var(--feed-card-border); border-radius: 999px; background: none; color: var(--feed-text-secondary); font-size: 13px; }
+.who-in-it__none[aria-pressed='true'], .who-in-it__faces button[aria-pressed='true'] { border-color: var(--feed-accent); color: var(--feed-text-primary); background: color-mix(in srgb, var(--feed-accent) 12%, transparent); }
+.who-in-it__squad select { min-height: 36px; max-width: 100%; padding: 4px 10px; border: 1px solid var(--feed-card-border); border-radius: 9px; background-color: var(--feed-input-bg); color: var(--feed-text-primary); font-size: 13px; }
+.who-in-it__faces { display: flex; flex-wrap: wrap; gap: 6px; max-height: 176px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.who-in-it__faces button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 10px 4px 4px; border: 1px solid var(--feed-card-border); border-radius: 999px; background: none; color: var(--feed-text-secondary); font-size: 13px; }
+.who-in-it__faces svg { width: 14px; height: 14px; color: var(--feed-accent); }
+.who-in-it__outcome { margin: 0; color: var(--feed-text-secondary); font-size: 12.5px; }
+.who-in-it__warn { margin: 0; color: var(--color-warning, var(--feed-text-secondary)); font-size: 12.5px; }
+
 /* "Post as": yourself, the club or one of its squads, only where the server accepts it (step 7). */
 .post-as { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: var(--feed-text-secondary); }
 .post-as select {

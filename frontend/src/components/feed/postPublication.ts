@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import { getStoredUserId } from '../../utils/authStorage';
 
-type PagePost = { content: string; clubId: null; organizationId: number; isPublic: boolean; mediaIds: number[] };
+type PagePost = { content: string; clubId: null; organizationId: number; isPublic: boolean; mediaIds: number[]; photoChildren?: string; photoPeople?: number[] };
 type Attempt = { key: string; body: PagePost };
 
 /** Organization creation keeps its original author, caption and uploaded photo IDs through a lost reply/reload. */

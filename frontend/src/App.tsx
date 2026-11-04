@@ -73,6 +73,7 @@ const MySquadsPage = lazy(() => import('./pages/SquadCommunicationPage').then(mo
 const SquadCommunicationPage = lazy(() => import('./pages/SquadCommunicationPage').then(module => ({default: module.SquadCommunicationPage})));
 const ClubPublicProfileSettingsPage = lazy(() => import('./pages/ClubPublicProfileSettingsPage').then(module => ({default: module.ClubPublicProfileSettingsPage})));
 const ClubOperationsPage = lazy(() => import('./pages/ClubOperationsPage'));
+const ConcernReceivedPage = lazy(() => import('./pages/ConcernReceivedPage'));
 const ClubProfilePage = lazy(() => import('./features/clubs/profile/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
 const PersonProfilePage = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.PersonProfilePage})));
 const MyProfileRedirect = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.MyProfileRedirect})));
@@ -332,7 +333,7 @@ export function MainLayout() {
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
     const isJobWorkspaceRoute = /^\/clubs\/\d+\/work(?:\/[a-z-]+)?$/.test(location.pathname);
-    const isClubSurfaceRoute = isJobWorkspaceRoute || /^\/clubs\/\d+(\/squads|\/workspace|\/office|\/operations|\/profile-settings|\/store|\/campaigns|\/jobs)?$/.test(location.pathname);
+    const isClubSurfaceRoute = isJobWorkspaceRoute || /^\/clubs\/\d+(\/squads|\/workspace|\/office|\/operations|\/profile-settings|\/store|\/campaigns|\/jobs|\/concerns\/\d+)?$/.test(location.pathname);
     // Public destination pages with full-bleed heroes (banner + tab bars) render
     // edge-to-edge; everything else keeps the bounded wide frame.
     const isBleedDestinationPage =
@@ -460,6 +461,7 @@ export function MainLayout() {
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><LegacyCleanupRedirect kind="squads" /></ProtectedRoute>} />
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/operations" element={<ProtectedRoute><ClubOperationsPage /></ProtectedRoute>} />
+            <Route path="/clubs/:id/concerns/:concernId" element={<ProtectedRoute><ConcernReceivedPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/office" element={<ProtectedRoute><ClubOfficePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/work" element={<ProtectedRoute><ClubJobWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/work/:workspace" element={<ProtectedRoute><ClubJobWorkspacePage /></ProtectedRoute>} />

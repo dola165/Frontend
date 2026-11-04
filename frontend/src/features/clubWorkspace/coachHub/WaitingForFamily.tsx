@@ -6,13 +6,14 @@ import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { Avatar, Button, List, ListRow, Section } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import type { CoachData } from './CoachWorkspace';
+import { CoachNote } from '../squads/CoachNote';
 import { useWaitingCards, type Waiting } from './useWaitingCards';
 
 /**
  * "Waiting for the family" on My squads › Players: a child's card made for the squad joins it when a parent opens its
  * link and says yes. Until then it stays here, with the same card's link to send again, so nobody makes the card twice.
  */
-export function WaitingForFamily({ data, placed = [] }: { data: CoachData; placed?: Waiting[] }) {
+export function WaitingForFamily({ data, placed = [], notes = {} }: { data: CoachData; placed?: Waiting[]; notes?: Record<number, string> }) {
     const say = useJourneyCopy();
     const fetched = useWaitingCards(data.clubId, data.shown, data.revision);
     const cards = [...fetched, ...placed.filter(card => !fetched.some(item => item.userId === card.userId))];
@@ -22,7 +23,7 @@ export function WaitingForFamily({ data, placed = [] }: { data: CoachData; place
     const first = (name: string) => name.trim().split(/\s+/)[0];
     return <Section boxed title={say('Waiting for the family', 'ოჯახის პასუხს ელოდება')} hint={`${cards.length}`}>
         <List label={say('Waiting for the family', 'ოჯახის პასუხს ელოდება')}>
-            {cards.map(card => <ListRow key={card.cardId} lead={<Avatar name={card.fullName} size={32} />} title={card.fullName}
+            {cards.map(card => <ListRow key={card.cardId} lead={<Avatar name={card.fullName} size={32} />} title={notes[card.userId] ? <>{card.fullName} <CoachNote note={notes[card.userId]} /></> : card.fullName}
                 meta={[card.birthYear != null ? say(`Born ${card.birthYear}`, `დაბ. ${card.birthYear}`) : card.age != null ? say(`Age ${card.age}`, `${card.age} წლის`) : null, several ? data.names.get(card.squad) : null].filter(Boolean).join(' · ')}
                 trail={<Button size="sm" onClick={() => setSending(card)}><Send aria-hidden="true" />{say('Send again', 'ხელახლა გაგზავნა')}</Button>} />)}
         </List>

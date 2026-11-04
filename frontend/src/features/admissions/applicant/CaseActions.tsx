@@ -1,5 +1,7 @@
 import { IntroductionPermission } from '../components/IntroductionPermission';
 import { useState } from 'react';
+import {OfferAsks} from '../../parents/hub/OfferAsks';
+import {NO_OFFER_ASKS,sendOfferAsks,type OfferAsksAnswer} from '../../parents/hub/offerAsksAnswer';
 import { useAuth } from '../../../context/AuthContext';
 import { commandAdmission, readPaperForm } from '../api';
 import type { AdmissionCase, CaseCommand, Participation, Offer, Requirement } from '../types';
@@ -46,7 +48,8 @@ export function SessionResponse({admissionCase:c,session:s,onChanged,refresh}:Pr
 }
 export function OfferResponse({admissionCase:c,offer:o,onChanged,refresh}:Props&{offer:Offer}) {
     const {copy}=useAdmissionCopy();const [acceptedTerms,setAcceptedTerms]=useState<string|null>(null);const [contact,setContact]=useState('');
-    const mutation=useCommand(c,`offer:${o.id}`,onChanged,refresh);
+    const [asks,setAsks]=useState<OfferAsksAnswer>(NO_OFFER_ASKS);
+    const mutation=useCommand(c,`offer:${o.id}`,value=>{onChanged(value);sendOfferAsks(c.playerId,c.clubId,asks);},refresh);
     const termsKey=JSON.stringify([c.id,c.playerId,o.id,o.version]);const accept=acceptedTerms===termsKey;
     const offerStates:Record<Offer['status'],string>={PENDING:copy('Awaiting your decision','თქვენი გადაწყვეტილების მოლოდინში'),ACCEPTED:copy('Offer accepted','შეთავაზება მიღებულია'),DECLINED:copy('Offer declined','შეთავაზება უარყოფილია'),WITHDRAWN:copy('Offer withdrawn by the club','შეთავაზება კლუბმა გააუქმა'),SUPERSEDED:copy('Replaced by a newer offer','შეცვლილია ახალი შეთავაზებით'),EXPIRED:copy('Offer expired','შეთავაზების ვადა ამოიწურა')};
     const revised=o.status==='PENDING'&&(o.version>1||c.history.filter(e=>e.action==='OFFER').length>1);
@@ -58,6 +61,7 @@ export function OfferResponse({admissionCase:c,offer:o,onChanged,refresh}:Props&
         {canAccept&&<form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({action:'ACCEPT_OFFER',expectedVersion:c.version,offerId:o.id,offerVersion:o.version,acceptTerms:true,emergencyContact:contact.trim()||undefined});}}>
             {needContact&&<label>{copy('Emergency contact: name and phone','გადაუდებელი საკონტაქტო პირი: სახელი და ტელეფონი')}<input required maxLength={500} value={contact} disabled={Boolean(mutation.pending)} onChange={e=>setContact(e.target.value)}/></label>}
             <label className="admission-check"><input type="checkbox" required checked={accept} disabled={Boolean(mutation.pending)} onChange={e=>setAcceptedTerms(e.target.checked?termsKey:null)}/>{copy(`I accept this named group and these terms for ${c.playerName}.`,`ვიღებ ამ დასახელებულ ჯგუფსა და პირობებს: ${c.playerName}.`)}</label>
+            {c.clubId&&user?.id!==c.playerId&&<OfferAsks answer={asks} onAnswer={setAsks}/>}
             {!mutation.pending&&<button className="admission-button admission-primary" disabled={mutation.busy||!accept||!termsComplete(o.terms,o.schedule,o.location)}>{copy('Accept this place','ამ ადგილის მიღება')}</button>}
             {!termsComplete(o.terms,o.schedule,o.location)&&<p className="admission-notice">{copy('Essential terms are incomplete. Ask the club to complete them before accepting.','არსებითი პირობები არასრულია. მიღებამდე სთხოვეთ კლუბს შევსება.')}</p>}
         </form>}

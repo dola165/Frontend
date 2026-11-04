@@ -20,6 +20,7 @@ import { NoClub } from './NoClub';
 import { ClubPinned } from '../../announcements/ClubPinned';
 import { CalendarFeedRow } from '../calendarFeed/CalendarFeed';
 import { WaitingForYou } from './WaitingForYou';
+import { ChildAsks } from './ChildAsks';
 import './parent-hub.css';
 
 /**
@@ -46,7 +47,8 @@ export function ChildPage({ child, sessionId, revision, onChanged }: { child: Jo
     </section></>;
     if (params.get('details') === '1') return <>{backHome}<ChildDetails child={child} onChanged={onChanged} /></>;
     if (!clubs.length) return view === 'calendar' ? calendar() : <NoClub child={child} onChanged={onChanged} />;
-    const waiting = childWaiting(child, copy);
+    // A consent is answered in place in the asks below.
+    const waiting = childWaiting(child, copy).filter(item => !item.key.startsWith('consent-'));
     const squadState = loading && !squads.length ? <Skeleton height={180} />
         : error && !squads.length ? <div className="ph-failed" role="alert"><p>{copy('Couldn’t load the squads.', 'გუნდები ვერ ჩაიტვირთა.')}</p><Button size="sm" onClick={retry}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>
         : null;
@@ -54,6 +56,7 @@ export function ChildPage({ child, sessionId, revision, onChanged }: { child: Jo
     if (view === 'updates') return <>{backHome}{squadState ?? <CoachUpdates squads={squads} child={child} all />}</>;
     return <div className="ph-child">
         {waiting.length > 0 && <WaitingForYou items={waiting} />}
+        <ChildAsks child={child} revision={revision} onChanged={onChanged} />
         {error && squads.length > 0 && <p className="ph-quiet" role="alert">{copy('Some squads couldn’t load:', 'ზოგი გუნდი ვერ ჩაიტვირთა:')} {failedSquads.join(' · ')} <button type="button" className="ph-link" onClick={retry}>{copy('Try again', 'ხელახლა ცდა')}</button></p>}
         <div className="ph-grid">
             <div className="ph-col ph-col--main">

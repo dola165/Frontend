@@ -5,7 +5,7 @@ import { get, label, transitionLabel, type OperationRecord } from './api';
 import { appointmentDate } from './appointmentDate';
 import { dateTime, type FamilyPlan } from '../mapPlanning/api';
 
-export type GuardianPermission = OperationRecord & { club_name: string; child_name: string; event_title?: string };
+export type GuardianPermission = OperationRecord & { club_name: string; child_name: string; event_title?: string; assigned_name?: string };
 
 export function GuardianPermissions({ items, selected, busy, onAction }: {
     items: GuardianPermission[]; selected: string | null; busy: boolean;
@@ -77,7 +77,7 @@ function PermissionCard({ request: p, selected, journey, busy, onAction }: {
                 <div className="permission-version">{p.data.version && <span>Terms version · {p.data.version}</span>}{p.data.expiresOn && <span>Valid until {appointmentDate(p.data.expiresOn)}</span>}</div>
             </section>
             {!!additional.length && <details className="permission-extra"><summary>Additional details</summary><dl className="permission-arrangements">{additional.map(([key, value]) => <div key={key}><dt>{label(key.replace(/([A-Z])/g, '_$1'))}</dt><dd>{value}</dd></div>)}</dl></details>}
-            <footer className="permission-actions"><p>{p.status === 'GRANTED' ? 'Permission given. You can withdraw it when the request allows.' : p.status === 'PENDING' ? `Your decision is recorded for this ${p.kind.endsWith('_CONSENT') ? 'player' : 'child'} and these terms.` : `Your decision: ${label(p.status).toLowerCase()}.`}</p>
+            <footer className="permission-actions"><p>{p.status === 'GRANTED' ? 'Permission given. You can withdraw it when the request allows.' : p.status === 'PENDING' ? `Your decision is recorded for this ${p.kind.endsWith('_CONSENT') ? 'player' : 'child'} and these terms.` : `${p.assigned_name ? `${p.assigned_name}’s decision` : 'Decision'}: ${label(p.status).toLowerCase()}.`}</p>
                 {!!p.transitions.length && <div>{p.transitions.map(status => <button type="button" key={status} className={status === 'GRANTED' ? 'ops-primary' : ''} disabled={busy} onClick={() => void onAction(status)}>{busy ? 'Saving…' : transitionLabel(p.kind, status)}</button>)}</div>}
             </footer>
         </div></div></div>

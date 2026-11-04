@@ -6,6 +6,8 @@ import { activityColors } from '../schedule/activityIcons';
 import { FollowButton } from '../actions/FollowButton';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { PostDialog } from '../../components/feed/PostDialogs';
+import { WhoIsInIt } from '../../components/feed/WhoIsInIt';
+import { NOT_ANSWERED, photoAnswerBody, type PhotoAnswer } from '../../components/feed/photoAnswer';
 import { MediaImage } from '../../components/ui/MediaImage';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -127,7 +129,7 @@ export function RecordPostCard({ post }: { post: FeedPostDto }) {
 }
 
 /** Saves staff's line, photos (`null` keeps them) and visibility on a written post; the server answers with the post. */
-const saveRecordPost = (post: FeedPostDto, change: { line: string | null; mediaIds: number[] | null; hidden: boolean }) =>
+const saveRecordPost = (post: FeedPostDto, change: { line: string | null; mediaIds: number[] | null; hidden: boolean; photoChildren?: string; photoPeople?: number[] }) =>
     apiClient.put<FeedPostDto>(`/posts/${post.id}/record`, { ...change, version: post.record!.version }).then(response => response.data);
 
 /** A hidden written post as its staff see it: the mark, and showing it again in one click. */
@@ -162,6 +164,7 @@ export function RecordPostChanges({ post, onClose, onSaved }: { post: FeedPostDt
     const [photos, setPhotos] = useState<{ key: string; url: string; id?: number; file?: File }[]>(existing);
     const photosChanged = photos.length !== existing.length || photos.some((photo, index) => photo.key !== existing[index].key);
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
+    const [photoAnswer, setPhotoAnswer] = useState<PhotoAnswer>(NOT_ANSWERED);
     const picker = useRef<HTMLInputElement>(null);
     const save = async (hidden: boolean) => {
         if (busy) return;
@@ -175,7 +178,7 @@ export function RecordPostChanges({ post, onClose, onSaved }: { post: FeedPostDt
                 const uploaded = await apiClient.post<{ id: number }>('/media/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } });
                 mediaIds.push(uploaded.data.id);
             }
-            onSaved(await saveRecordPost(post, { line: line.trim() || null, mediaIds: photosChanged ? mediaIds : null, hidden }));
+            onSaved(await saveRecordPost(post, { line: line.trim() || null, mediaIds: photosChanged ? mediaIds : null, hidden, ...(photosChanged ? photoAnswerBody(photoAnswer) : {}) }));
             onClose();
         } catch (failure) {
             setError(extractApiErrorMessage(failure, copy('Couldn’t save. Try again.', 'ვერ შეინახა. სცადეთ ხელახლა.')));
@@ -196,6 +199,7 @@ export function RecordPostChanges({ post, onClose, onSaved }: { post: FeedPostDt
                 {photos.map(photo => <li key={photo.key}><MediaImage src={photo.url} alt="" />
                     <button type="button" aria-label={copy('Remove photo', 'ფოტოს წაშლა')} onClick={() => setPhotos(current => current.filter(item => item.key !== photo.key))}><X aria-hidden="true" /></button></li>)}
             </ul>}
+            {photos.some(photo => photo.file) && <WhoIsInIt clubId={post.clubId} squadId={post.squadId} answer={photoAnswer} onAnswer={setPhotoAnswer} caption={line} />}
             <input ref={picker} type="file" multiple hidden accept={SOCIAL_IMAGE_ACCEPT} onChange={event => { add(event.target.files); event.target.value = ''; }} />
             {error && <p role="alert" className="post-error">{error}</p>}
             <footer>

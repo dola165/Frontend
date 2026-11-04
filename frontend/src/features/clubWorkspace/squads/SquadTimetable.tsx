@@ -9,7 +9,7 @@ import { addDays, calendarTime, clockTime, dayDate, validTimezone, weekStart, ty
 import './squads.css';
 import '../club-workspace.css';
 
-interface Timetable { squadId: number; squadName: string; visibility: 'PUBLIC' | 'PRIVATE'; canManage: boolean; canView: boolean; revision: number; sessions: TrainingSession[]; limited: boolean; programmeTimesPublic?: boolean; publicationConfigured?: boolean }
+interface Timetable { squadId: number; squadName: string; visibility: 'PUBLIC' | 'PRIVATE'; childrenSquad?: boolean; canManage: boolean; canView: boolean; revision: number; sessions: TrainingSession[]; limited: boolean; programmeTimesPublic?: boolean; publicationConfigured?: boolean }
 type Visibility = 'PUBLIC' | 'PRIVATE';
 const root = (club: number, squad: number) => `/clubs/${club}/squads/${squad}/training-schedule`;
 const dateLabel = (day: string, options: Intl.DateTimeFormatOptions) => dayDate(day).toLocaleDateString(undefined, { ...options, timeZone: 'UTC' });
@@ -90,11 +90,11 @@ function TimetableContent({ clubId, squadId }: { clubId: number; squadId: number
         {body}
         {result?.canManage && <Panel flush><details className="rec-disclosure" open={proposed !== null || undefined}><summary>Who can see this timetable</summary>
             <div className="rec-disclosure__body gk-stack gk-stack--tight">
-                <p className="cw-muted">Published programmes show training dates and times automatically. Titles and places stay with squad members unless you publish the full timetable. Player lists, replies and notes always stay private. Club events keep their own publication settings.</p>
+                {result.childrenSquad ? <p className="cw-muted">A youth squad’s times and places stay with its players and families.</p> : <p className="cw-muted">Published programmes show training dates and times automatically. Titles and places stay with squad members unless you publish the full timetable. Player lists, replies and notes always stay private. Club events keep their own publication settings.</p>}
                 <Field label="Timetable visibility" htmlFor={`sq-visibility-${squadId}`}>
                     <select id={`sq-visibility-${squadId}`} className="gk-input" disabled={saving} value={proposed ?? current} onChange={event => setProposed(event.target.value as Visibility)}>
                         {current === 'AUTOMATIC' && <option value="AUTOMATIC" disabled>Programme dates and times (automatic)</option>}
-                        <option value="PRIVATE">Squad members only</option><option value="PUBLIC">Everyone on the club profile</option>
+                        <option value="PRIVATE">Squad members only</option>{!result.childrenSquad && <option value="PUBLIC">Everyone on the club profile</option>}
                     </select>
                 </Field>
                 {changing && <>

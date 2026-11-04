@@ -97,7 +97,7 @@ export function hostingText(m: Match) {
 export const matchFacts = (m: Match) => [m.age_group === 'SENIOR' ? 'Senior' : m.age_group, formats[m.format] ?? label(m.format), `${label(m.level)} level`].filter(Boolean).join(' · ');
 
 const timeFormat = (zone: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: zone });
-export const kickoffTime = (m: Match) => timeFormat(m.timezone).format(new Date(m.starts_at_iso));
+export const kickoffTime = (m: Match) => m.place_hidden ? '' : timeFormat(m.timezone).format(new Date(m.starts_at_iso));
 export const kickoffDay = (m: Match) => {
     const day = formatDate(m.starts_at_iso, { weekday: 'short', day: 'numeric', month: 'short', timeZone: m.timezone });
     // Keep the app's Georgian date words even when the platform formatter returns English.

@@ -22,9 +22,9 @@ export const fixtureTitle = (m: HistoryMatch) => m.homeClubName && m.awayClubNam
  * with where it was placed.
  */
 export function fixturePlace(m: HistoryMatch, places: Places): Placement | null {
-    const meta = `${fixtureDay(m.startsAt, m.timezone)} ${fixtureTime(m.startsAt, m.timezone)}`;
+    const meta = m.timeHidden ? fixtureDay(m.startsAt, m.timezone) : `${fixtureDay(m.startsAt, m.timezone)} ${fixtureTime(m.startsAt, m.timezone)}`;
     const own = ownPlace(m, places);
-    if (own) return { lat: own.lat, lng: own.lng, tone: 'match', label: fixtureTitle(m), meta, to: m.detailPath, noun: ['match', 'matches'] };
+    if (own) return { lat: own.lat, lng: own.lng, tone: 'match', approximate: m.timeHidden ? 'area' : undefined, label: fixtureTitle(m), meta, to: m.detailPath, noun: ['match', 'matches'] };
     const competition = places.competition(m.tournamentId);
     // A tournament's fixtures share its ground's pin, named after the tournament (its rows carry no ground of their own).
     if (competition) return { lat: competition.lat, lng: competition.lng, tone: 'match', approximate: 'ground', pin: `ground:${m.tournamentId}`, label: competition.name, meta, to: `/tournaments/${m.tournamentId}`, action: wt('Open tournament'), noun: ['match', 'matches'] };
@@ -38,12 +38,17 @@ export function ownPlace(m: HistoryMatch, places: Places) {
     return marker && marker.clubId != null && (marker.clubId === m.homeClubId || marker.clubId === m.awayClubId) ? marker : undefined;
 }
 
-/** An open match or arrangement at its own ground, else (marked as such) at its club. */
+/**
+ * An open match or arrangement at its own ground, else (marked as such) at its club. A children's match for someone
+ * outside it counts at its city, never at a ground or its club, with its day alone.
+ */
 export function listingPlace(m: Match, places: Places): Placement | null {
     const own = m.location_lat != null && m.location_lng != null ? { lat: m.location_lat, lng: m.location_lng } : null;
-    const at = own ?? places.club(m.club_id);
-    return at ? { lat: at.lat, lng: at.lng, approximate: own ? undefined : 'club', noun: ['match', 'matches'], label: m.title,
-        meta: [`${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)}`, m.location_name].filter(Boolean).join(' · '), tone: 'match', to: `/matches/${m.event_id}?from=world` } : null;
+    const area = m.place_hidden && m.area_lat != null && m.area_lng != null ? { lat: m.area_lat, lng: m.area_lng } : null;
+    const at = m.place_hidden ? area : own ?? places.club(m.club_id);
+    const when = m.place_hidden ? fixtureDay(m.starts_at_iso, m.timezone) : `${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)}`;
+    return at ? { lat: at.lat, lng: at.lng, approximate: m.place_hidden ? 'area' : own ? undefined : 'club', noun: ['match', 'matches'], label: m.title,
+        meta: [when, m.location_name].filter(Boolean).join(' · '), tone: 'match', to: `/matches/${m.event_id}?from=world` } : null;
 }
 
 const EVENT_PIN: Record<string, Placement['tone']> = { MATCH: 'match', TOURNAMENT: 'tournament', TRYOUT: 'trial', TRAINING: 'training' };

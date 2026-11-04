@@ -35,6 +35,7 @@ function TryoutDetail({ id }: { id: number }) {
       <section className="tryout-panel"><div className="tryout-facts"><p><CalendarDays size={18} />{data.tryoutDate ? tryoutDate(data.tryoutDate) : copy('Date to be confirmed', 'თარიღი დასაზუსტებელია')}</p>{data.location && <p><MapPin size={18} />{data.location}</p>}</div>
         {data.tryoutDate && <p className="tryout-help">{copy('Date and time as published by the club.', 'კლუბის მიერ გამოქვეყნებული თარიღი და დრო.')}</p>}
         <dl className="tryout-meta"><div><dt>{copy('Position', 'პოზიცია')}</dt><dd>{data.position || copy('All positions', 'ყველა პოზიცია')}</dd></div><div><dt>{copy('Age group', 'ასაკობრივი ჯგუფი')}</dt><dd>{data.ageGroup || copy('Not specified', 'მითითებული არ არის')}</dd></div><div><dt>{copy('Application deadline', 'განაცხადის ბოლო ვადა')}</dt><dd>{data.deadline ? tryoutDate(data.deadline) : copy('No separate deadline published', 'ცალკე ვადა გამოქვეყნებული არ არის')}</dd></div></dl>
+        {data.placeHidden && <p className="tryout-help">{copy('The club shares the ground once you have applied.', 'მოედანს კლუბი გაგიზიარებთ განაცხადის შემდეგ.')}</p>}
         {data.description && <p className="tryout-description">{data.description}</p>}
         {data.status !== 'OPEN' && <p className="tryout-help">{copy('New applications are unavailable. Existing applicants can still review their own outcome below.', 'ახალი განაცხადების მიღება შეწყვეტილია. კანდიდატებს ქვემოთ საკუთარი შედეგის ნახვა შეუძლიათ.')}</p>}
       </section>

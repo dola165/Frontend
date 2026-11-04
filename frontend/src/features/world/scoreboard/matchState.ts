@@ -55,7 +55,9 @@ export function matchState(source: HistoryMatch, now: number, own = false): Matc
     if (isOfficial(match.resultStatus) && match.fixtureStatus !== 'CANCELLED') return { code: 'ft', when: { word: 'FT', tone: 'muted' }, score: null };
     if (!match.startsAt) return { code: 'tbc', when: { word: 'TBC', tone: 'muted' }, score: null };
     const start = Date.parse(match.startsAt), end = match.endsAt ? Date.parse(match.endsAt) : null;
-    const time = fixtureTime(match.startsAt, match.timezone);
+    const time = match.timeHidden ? '' : fixtureTime(match.startsAt, match.timezone);
+    // A children's match for someone outside it: its day, and nothing worked out from a time it doesn't have.
+    if (match.timeHidden && now < start + 12 * 3_600_000) return { code: 'before', when: { time }, score: null };
     // An open listing that never found an opponent is never on and never owes a result.
     if (match.source === 'MATCH_EXCHANGE' && match.awayClubId == null && !match.awayClubName) return now < start
         ? { code: 'before', when: { time }, score: null, tag: { word: 'Opponent wanted', tone: 'neutral' } }

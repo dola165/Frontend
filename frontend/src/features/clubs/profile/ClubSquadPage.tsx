@@ -20,7 +20,7 @@ import { trainsLine } from './trainsLine';
 import type { ClubProfile } from './types';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
-interface Timetable { canView: boolean; sessions: TrainingSession[] }
+interface Timetable { canView: boolean; childrenSquad?: boolean; sessions: TrainingSession[] }
 
 const coaches = (people: PublicStaff[], squadId: number) => people.filter(p => p.responsibilities.some(r => r.squadId === squadId || r.squadIds?.includes(squadId)));
 
@@ -44,6 +44,9 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
     const copy = useJourneyCopy();
     const venues = (places.data ?? []).filter(f => placeType(f) !== 'FACILITY' && (f.squadId == null || f.squadId === squad.id));
     const programme = programmes[0];
+    // A squad of children: when and where it trains stays with its players and families (step 3); the page says how often and in which city.
+    const sheltered = Boolean(timetable.data?.childrenSquad && !timetable.data.canView);
+    const howOften = programme?.sessionsPerWeek ? copy(`${programme.sessionsPerWeek} ${programme.sessionsPerWeek === 1 ? 'session' : 'sessions'} a week`, `${programme.sessionsPerWeek} ვარჯიში კვირაში`) : null;
     // Without a programme, a club with a page still says what training costs: the fee band its owner set.
     const band = feeBandText(usePageEditIfAny()?.page?.boxes.fees.band ?? null);
     const enquiry: ClubEnquiryContext = { name: squad.name, path: trainingPath(club.id, { squad: squad.id }), squadIds: [squad.id] };
@@ -68,8 +71,8 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
                     </div>
                 </div>
                 <dl className="gk-club-squad__facts">
-                    {fact(copy('Trains', 'ვარჯიში'), timetable.loading ? <Skeleton height={16} width={120} /> : trains ?? (timetable.data && !timetable.data.canView ? copy('Times shared with squad members', 'დრო გუნდის წევრებისთვისაა') : copy('Times on request', 'დრო მოთხოვნით')))}
-                    {fact(copy('Where', 'სად'), places.loading ? <Skeleton height={16} width={120} /> : venues[0]?.title ?? copy('Ask the club', 'ჰკითხეთ კლუბს'))}
+                    {fact(copy('Trains', 'ვარჯიში'), timetable.loading ? <Skeleton height={16} width={120} /> : sheltered ? howOften ?? copy('Ask the club', 'ჰკითხეთ კლუბს') : trains ?? (timetable.data && !timetable.data.canView ? copy('Times shared with squad members', 'დრო გუნდის წევრებისთვისაა') : copy('Times on request', 'დრო მოთხოვნით')))}
+                    {fact(copy('Where', 'სად'), sheltered ? club.cityName ?? copy('Ask the club', 'ჰკითხეთ კლუბს') : places.loading ? <Skeleton height={16} width={120} /> : venues[0]?.title ?? copy('Ask the club', 'ჰკითხეთ კლუბს'))}
                     {fact(copy('Coaches', 'მწვრთნელები'), people.loading ? <Skeleton height={16} width={120} /> : staff.length ? <span className="gk-club-squad__faces">{staff.slice(0, 4).map(p => <Link key={p.userId} to={`/profile/${p.userId}`} className="gk-row"><Crest src={p.avatarUrl} name={p.fullName} size={24} round />{p.fullName.split(' ')[0]}</Link>)}</span> : copy('Ask the club', 'ჰკითხეთ კლუბს'))}
                     {fact(copy('Fees', 'გადასახადი'), programme ? <><strong className="gk-num">{programmePrice(programme)}</strong>{programme.trialAmount != null && <span className="gk-muted"> · {copy('Trial', 'საცდელი')} {Number(programme.trialAmount) === 0 ? copy('free', 'უფასო') : money(programme.trialAmount, programme.currency)}</span>}</> : band ? <strong className="gk-num">{band.range}</strong> : copy('Ask the club', 'ჰკითხეთ კლუბს'))}
                 </dl>
@@ -79,6 +82,7 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
         <Section boxed icon={CalendarDays} title={copy('Training times', 'ვარჯიშის დრო')} hint={trains ? `${copy('Trains', 'ვარჯიში')} ${trains}` : copy('Next six weeks', 'მომდევნო ექვსი კვირა')} action={canManage ? { label: copy('Manage sessions', 'ვარჯიშების მართვა'), to: `/calendar?scope=squad&squadId=${squad.id}` } : undefined}>
             <Panel flush>{timetable.loading ? <div className="gk-panel--pad"><Skeleton height={48} /></div>
                 : timetable.failed ? <EmptyNote title={copy('Training times couldn’t load', 'ვარჯიშის დრო ვერ ჩაიტვირთა')} action={<Button size="sm" onClick={timetable.retry}>{copy('Try again', 'ხელახლა ცდა')}</Button>} />
+                : sheltered ? <EmptyNote title={copy('Shared with the squad’s families', 'გაზიარებულია გუნდის ოჯახებთან')}>{copy('A youth squad’s times and place stay with its players and families. Ask the club about joining.', 'ახალგაზრდული გუნდის დრო და ადგილი მის მოთამაშეებთან და ოჯახებთან რჩება. გაწევრიანებაზე ჰკითხეთ კლუბს.')}</EmptyNote>
                 : timetable.data && !timetable.data.canView ? <EmptyNote title={copy('Shared with squad members', 'გაზიარებულია გუნდის წევრებთან')}>{isAuthenticated ? copy('The club has not published this squad’s times. Ask about them below.', 'კლუბს გუნდის ვარჯიშის დრო არ გამოუქვეყნებია. ჰკითხეთ ქვემოთ.') : copy('Sign in, or ask the club about training times.', 'შედით ან ჰკითხეთ კლუბს ვარჯიშის დრო.')}</EmptyNote>
                 : !sessions.length ? <EmptyNote title={copy('No sessions scheduled yet', 'ვარჯიშები ჯერ არ არის დაგეგმილი')}>{copy('Ask the club about training days and times.', 'ჰკითხეთ კლუბს ვარჯიშის დღეები და დრო.')}</EmptyNote>
                 : <List label={copy('Next sessions', 'შემდეგი ვარჯიშები')}>{sessions.slice(0, 4).map(s => <FixtureRow key={s.id} tone="training" icon={activityIcons.TRAINING} iconColor={activityColors.TRAINING} time={timeLabel(s.startsAt, s.timezone)} day={dayLabel(s.startsAt, undefined, s.timezone)} title={s.title || copy('Training', 'ვარჯიში')} meta={s.location || venues[0]?.title} />)}</List>}
@@ -89,13 +93,13 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
             </div>}
         </Section>
 
-        <Section boxed icon={MapPin} tone="warning" title={copy('Where you’ll train', 'სად ივარჯიშებთ')} hint={copy('Use the place confirmed for your session', 'მიჰყევით ვარჯიშისთვის დადასტურებულ ადგილს')}>
+        {!sheltered && <Section boxed icon={MapPin} tone="warning" title={copy('Where you’ll train', 'სად ივარჯიშებთ')} hint={copy('Use the place confirmed for your session', 'მიჰყევით ვარჯიშისთვის დადასტურებულ ადგილს')}>
             <Panel flush>{places.loading ? <div className="gk-panel--pad"><Skeleton height={48} /></div>
                 : !venues.length ? <EmptyNote title={copy('No place published yet', 'ადგილი ჯერ არ გამოქვეყნებულა')}>{copy('The club confirms the location before your first visit.', 'პირველ ვიზიტამდე კლუბი ადგილს დაგიდასტურებთ.')}</EmptyNote>
                 : <List label={copy('Training places', 'სავარჯიშო ადგილები')}>{venues.slice(0, 3).map(v => <ListRow key={v.id} lead={<span className="gk-club-icon gk-club-icon--warning"><MapPin aria-hidden="true" /></span>} title={v.title}
                     meta={v.details.address || v.linkedVenue?.address || copy('Address on request', 'მისამართი მოთხოვნით')} trail={<Button size="sm" onClick={() => setDirections(v)}><Navigation aria-hidden="true" />{copy('Directions', 'მიმართულება')}</Button>} />)}</List>}
             </Panel>
-        </Section>
+        </Section>}
 
         {(programme || canManage) && <Section boxed title={copy('What to expect', 'რას უნდა ელოდოთ')} hint={programme ? [programmeAge(programme), programme.sessionsPerWeek ? copy(`${programme.sessionsPerWeek} ${programme.sessionsPerWeek === 1 ? 'session' : 'sessions'} a week`, `${programme.sessionsPerWeek} ვარჯიში კვირაში`) : null].filter(Boolean).join(' · ') : undefined}>
             <Panel padded>

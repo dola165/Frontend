@@ -2,6 +2,7 @@ import { ct, useCommerceCopy } from '../features/store/copy';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Briefcase, Plus, ShieldCheck, UserCheck, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { isUnder18 } from '../utils/age';
 import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame } from '../design/primitives';
 import { fetchJobs, fetchJobsFront, LINES, type Job } from '../features/jobs/api';
 import { JobRow, Poster } from '../features/jobs/JobCard';
@@ -31,7 +32,8 @@ function Sample({ jobs, loading, error, retry }: { jobs: Job[]; loading: boolean
  */
 export const JobsPage = () => {
     useCommerceCopy();
-    const { status } = useAuth();
+    const { status, user } = useAuth();
+    const under18 = status === 'authenticated' && isUnder18(user?.dob);
     const { area } = useWorldArea();
     const landing = useReveal<HTMLDivElement>();
     const near = area.anywhere || area.guessed ? undefined : area.city;
@@ -48,13 +50,13 @@ export const JobsPage = () => {
         <GkRoot className="gk-store gk-page" data-market="jobs">
             <PageFrame>
                 <MarketTabs current="jobs" />
-                <MyJobResponses />
+                {under18 ? <p className="gk-job-responses" role="status">{ct("Jobs open at 18. Helping your club? Ask your coach.")}</p> : <MyJobResponses />}
                 <div className="gk-store-head">
                     <div><h1>{ct("Jobs & volunteering")}</h1><p className="gk-store-head__hint">{ct("Work in football, from clubs and from people, near you")}</p></div>
                     <span />
                     <div className="gk-store-head__actions">
                         <ButtonLink to={jobsPath()}>{ct("Browse all")}</ButtonLink>
-                        <ButtonLink variant="primary" to="/jobs/new"><Plus aria-hidden="true" />{ct("Post")}</ButtonLink>
+                        {!under18 && <ButtonLink variant="primary" to="/jobs/new"><Plus aria-hidden="true" />{ct("Post")}</ButtonLink>}
                     </div>
                 </div>
                 <JobsMap jobs={listings.data?.content ?? []} loading={listings.loading} counts={data ? { open: data.open, available: data.available } : undefined} near={near} />

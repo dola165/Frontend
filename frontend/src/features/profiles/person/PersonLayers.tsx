@@ -1,3 +1,5 @@
+import { useAuth } from '../../../context/AuthContext';
+import { isUnder18 } from '../../../utils/age';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
@@ -29,6 +31,7 @@ export function PersonLayers({ profile, football, professions, professionsFailed
     onRetryProfessions?: () => void;
     onProfessionsChanged?: () => void;
 }) {
+    const { user } = useAuth();
     const copy = useJourneyCopy();
     const [editing, setEditing] = useState(own && editWork);
     // The server's first name ("Where Luka is"); the whole name when it sends none.
@@ -47,7 +50,7 @@ export function PersonLayers({ profile, football, professions, professionsFailed
         </Section>}
         {hasCareer && <Section boxed title={own ? copy('Your career', 'თქვენი კარიერა') : copy(`${name}’s career`, 'კარიერა')} hint={copy('From the clubs’ records', 'კლუბების ჩანაწერებიდან')}><CareerTotalsRow totals={totals!} /><CareerCards rows={football!.career} /></Section>}
 
-        {(own || (professions?.length ?? 0) > 0 || professionsFailed) && <Section boxed id="work" title={own ? copy('What you do', 'რას აკეთებთ') : copy(`What ${name} does`, `რას აკეთებს ${name}`)}
+        {!(own && isUnder18(user?.dob)) && (own || (professions?.length ?? 0) > 0 || professionsFailed) && <Section boxed id="work" title={own ? copy('What you do', 'რას აკეთებთ') : copy(`What ${name} does`, `რას აკეთებს ${name}`)}
             action={own && !editing && professions?.length ? <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><PenLine aria-hidden="true" />{copy('Edit', 'შეცვლა')}</Button> : undefined}>
             {own && editing ? <>
                 <WhatYouDo />

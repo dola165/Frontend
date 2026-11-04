@@ -30,6 +30,12 @@ export const isKnownMinor = (dob?: string | null): boolean => { const age = ageF
 
 export const isUnder13 = (dob: string): boolean => ageFromDob(dob) < 13;
 
+/** Known to be under 18: an account with no birth date on record is not treated as a child's. */
+export const isUnder18 = (dob?: string | null): boolean => {
+    const age = ageFromDob(dob);
+    return age != null && age < ADULT_AGE;
+};
+
 export const todayIso = (): string => {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');

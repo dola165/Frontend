@@ -297,3 +297,12 @@ describe('Neutral public work responses', () => {
         expect(vi.mocked(api.sendResponse).mock.calls[1][2]).toMatchObject({ expectedVersion: 5, note: 'Keep after changed listing' });
     });
 });
+
+describe('Under 18', () => {
+    it('says when jobs open and never asks the server for responses', async () => {
+        (auth.user as { dob?: string }).dob = `${new Date().getFullYear() - 14}-01-15`;
+        open();
+        expect(await screen.findByText('Jobs open at 18. Helping your club? Ask your coach.')).toBeInTheDocument();
+        expect(api.fetchResponses).not.toHaveBeenCalled();
+    });
+});

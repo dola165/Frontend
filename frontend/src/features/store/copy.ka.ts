@@ -5,6 +5,7 @@ export const COMMERCE_KA: Record<string, string> = {
     'Retry original change': 'თავდაპირველი ცვლილების გამეორება',
     'Change confirmed. The latest saved products are loaded.': 'ცვლილება დადასტურდა. ჩაიტვირთა ბოლოს შენახული პროდუქტები.',
     'Manage store': 'მაღაზიის მართვა',
+    'Jobs open at 18. Helping your club? Ask your coach.': 'სამუშაო 18 წლიდან იწყება. კლუბს ეხმარებით? ჰკითხეთ მწვრთნელს.',
     'Store': 'მაღაზია', 'Jobs & volunteering': 'სამუშაო და მოხალისეობა', 'Fundraising': 'თანხის შეგროვება',
     'Store, jobs & fundraising': 'მაღაზია, სამუშაო და თანხის შეგროვება',
     'Equipment': 'ინვენტარი', 'Shirts': 'მაისურები', 'Training wear': 'სავარჯიშო ტანსაცმელი', 'Footwear': 'ფეხსაცმელი', 'Accessories': 'აქსესუარები', 'Tickets': 'ბილეთები', 'Membership': 'წევრობა', 'Events': 'ღონისძიებები', 'Other': 'სხვა',

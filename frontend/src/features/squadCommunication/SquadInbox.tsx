@@ -3,6 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, MessageCircle, Shield, LockKeyhole } from 'lucide-react';
 import * as api from './api';
 import { SquadMessages } from './SquadMessages';
+import { SquadRoomTabs } from './SquadRooms';
+import { activeRoom } from './squadRoomWords';
+import { AddMyParentButton } from '../../components/auth/AddMyParentButton';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import './squad-inbox.css';
 import { squadMessageUrl } from './routes';
@@ -63,7 +66,7 @@ export function SquadInboxConversation({ id }: { id: number }) {
         load(); const timer = setInterval(load, 15000);
         return () => { abort.abort(); clearInterval(timer); };
     }, [id, revision, copy]);
-    // A guardian also reads (never writes) the private thread of their 13-17 child in this squad.
+    // A parent is in the private thread of their 13-17 child in this squad too.
     const children = space?.can_manage ? [] : space?.child_threads ?? [];
     const childThread = children.find(child => child.user_id === requested)?.user_id ?? null;
     const requestedUnavailable = coaching && params.has('thread') && !!space
@@ -74,6 +77,9 @@ export function SquadInboxConversation({ id }: { id: number }) {
         ? space.threads.find(person => person.user_id === requested)?.user_id ?? null : childThread ?? space?.viewer_id ?? null;
     const guardiansCanView = space?.can_manage ? Boolean(space.threads.find(person => person.user_id === thread)?.guardians_can_view)
         : childThread !== null || Boolean(space?.viewer_thread_guardians_can_view);
+    const room = space && !coaching ? activeRoom(space, params.get('room')) : null;
+    // A player under 18 with no parent here: coaches reach them only in the players' room.
+    const threadNeedsParent = coaching && !!space && (space.can_manage ? Boolean(space.threads.find(person => person.user_id === thread)?.needs_parent) : childThread === null && Boolean(space.viewer_needs_parent));
     return <div className="squad-page squad-inbox-conversation" data-channel={coaching ? 'coach' : 'squad'}>
         <nav className="squad-return-nav" aria-label={copy('Go back', 'უკან')}><Link className="squad-back" to={`/squads/${id}`}><ArrowLeft size={20} />{copy('Back to squad', 'გუნდზე დაბრუნება')}</Link><Link className="squad-inbox-back" to="/messages">{copy('All messages', 'ყველა შეტყობინება')}</Link></nav>
         {error ? <div role="alert" className="squad-empty"><h2>{copy('Conversation unavailable', 'საუბარი მიუწვდომელია')}</h2><p>{error}</p><button onClick={refresh}>{copy('Try again', 'ხელახლა ცდა')}</button></div> : !space ? <p role="status">{copy('Opening your squad…', 'გუნდი იხსნება…')}</p> : <>
@@ -88,8 +94,8 @@ export function SquadInboxConversation({ id }: { id: number }) {
                 const next = new URLSearchParams(params);
                 if (e.target.value) next.set('thread', e.target.value); else next.delete('thread');
                 setParams(next);
-            }}><option value="">{copy('My conversation with the coaches', 'ჩემი საუბარი მწვრთნელებთან')}</option>{children.map(child => <option key={child.user_id} value={child.user_id}>{copy(`${child.full_name ?? 'Your child'} (read only)`, `${child.full_name ?? 'თქვენი შვილი'} (მხოლოდ კითხვა)`)}</option>)}</select></label>}
-            {requestedUnavailable ? <div className="squad-empty" role="alert"><h2>{copy('Conversation unavailable', 'საუბარი მიუწვდომელია')}</h2><p>{copy('That conversation is no longer available to you. Choose another conversation above.', 'ეს საუბარი აღარ არის ხელმისაწვდომი. აირჩიეთ სხვა საუბარი ზემოთ.')}</p></div> : coaching && !thread ? <div className="squad-empty"><h2>{copy('Choose a family or player', 'აირჩიეთ ოჯახი ან მოთამაშე')}</h2><p>{copy('Private conversations are shared only with that person and this squad’s coaching team.', 'პირადი საუბარი მხოლოდ ამ ადამიანს და გუნდის მწვრთნელებს შორისაა.')}</p></div> : <SquadMessages key={`${id}:${thread ?? 'group'}`} space={space} kind="CHAT" thread={thread} readOnly={coaching && childThread !== null} guardiansCanView={coaching && guardiansCanView} onSent={refresh} />}
+            }}><option value="">{copy('My conversation with the coaches', 'ჩემი საუბარი მწვრთნელებთან')}</option>{children.map(child => <option key={child.user_id} value={child.user_id}>{copy(`${child.full_name ?? 'Your child'} with the coaches`, `${child.full_name ?? 'თქვენი შვილი'} მწვრთნელებთან`)}</option>)}</select></label>}
+            {requestedUnavailable ? <div className="squad-empty" role="alert"><h2>{copy('Conversation unavailable', 'საუბარი მიუწვდომელია')}</h2><p>{copy('That conversation is no longer available to you. Choose another conversation above.', 'ეს საუბარი აღარ არის ხელმისაწვდომი. აირჩიეთ სხვა საუბარი ზემოთ.')}</p></div> : coaching && !thread ? <div className="squad-empty"><h2>{copy('Choose a family or player', 'აირჩიეთ ოჯახი ან მოთამაშე')}</h2><p>{copy('Private conversations are shared only with that person and this squad’s coaching team.', 'პირადი საუბარი მხოლოდ ამ ადამიანს და გუნდის მწვრთნელებს შორისაა.')}</p></div> : <>{!coaching && <SquadRoomTabs space={space} room={room} roomUrl={item => squadMessageUrl(id, false, null, item)} onChanged={refresh} />}<SquadMessages key={`${id}:${thread ?? 'group'}:${room ?? 'one'}`} space={space} kind="CHAT" thread={thread} room={room} asParent={coaching && childThread !== null} guardiansCanView={coaching && guardiansCanView} closed={threadNeedsParent} closedLine={<div className="squad-thread-ask" role="status">{space.can_manage ? <p>{copy('This player has no parent here yet. Write in the squad’s players’ room.', 'ამ მოთამაშის მშობელი აქ ჯერ არ არის. მისწერეთ გუნდის მოთამაშეების ოთახში.')}</p> : <><p>{copy('Add your parent so coaches can message you.', 'დაამატეთ მშობელი, რომ მწვრთნელებმა შეძლონ თქვენთვის მიწერა.')}</p><AddMyParentButton /></>}</div>} onSent={refresh} /></>}
         </>}
     </div>;
 }

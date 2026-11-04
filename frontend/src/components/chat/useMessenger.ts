@@ -9,6 +9,7 @@ import { chatApi, type ConversationDto, type ChatMessageResponse, type UserSearc
 import { useMessageCopy } from './messageCopy';
 import { useConversations } from './useConversations';
 import { useMessageDraft } from './useMessageDraft';
+import { chatRefusalCode, chatRefusalWords } from './chatRefusal';
 
 /** The inbox, the selected conversation (kept in the URL), realtime delivery and sending for one signed-in session. */
 export function useMessenger() {
@@ -32,6 +33,8 @@ export function useMessenger() {
     const [showInfo, setShowInfo] = useState(false);
     const [profileAttempt, setProfileAttempt] = useState(0);
     const [managementError, setManagementError] = useState<string | null>(null);
+    // A refused chat with a player under 18: trying again never helps.
+    const [openRefusal, setOpenRefusal] = useState<string | null>(null);
 
     // Resolve profile links even for an empty inbox or a changed URL on this page.
     useEffect(() => {
@@ -39,6 +42,7 @@ export function useMessenger() {
         if (!Number.isSafeInteger(targetId) || targetId <= 0 || !currentUserId || sidebarLoading || listFailed) return;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- a new address clears the previous address error
         setManagementError(null);
+        setOpenRefusal(null);
         let current = true;
         const existing = conversationsRef.current.find(
             conversation => conversation.contextType === 'DIRECT' && conversation.participants.some(person => person.userId === targetId),
@@ -55,7 +59,7 @@ export function useMessenger() {
         else {
             chatApi.createConversation({ contextType: 'DIRECT', participantIds: [targetId] })
                 .then(response => open(response.data))
-                .catch(() => { if (current && isCurrentAuthSession(sessionId)) setManagementError('Could not open this conversation. Please try again.'); });
+                .catch(cause => { if (current && isCurrentAuthSession(sessionId)) { setOpenRefusal(chatRefusalCode(cause)); setManagementError(chatRefusalWords(cause) ?? 'Could not open this conversation. Please try again.'); } });
         }
         return () => { current = false; };
     }, [searchParams, currentUserId, sidebarLoading, listFailed, setSearchParams, profileAttempt, conversationsRef, setConversations, sessionId]);
@@ -186,7 +190,7 @@ export function useMessenger() {
         copy, sessionId, currentUserId, searchParams, setSearchParams, squadId, activeConvRef,
         conversations, setConversations, sidebarLoading, listFailed, loadConversations, loadMore, hasMore, loadingMore,
         activeConvId, setActiveConvId, activeConv, activeMessages, input, setInput, showNewChat, setShowNewChat,
-        showInfo, setShowInfo, setProfileAttempt, managementError, setManagementError, messageViewportRef,
+        showInfo, setShowInfo, setProfileAttempt, managementError, setManagementError, openRefusal, messageViewportRef,
         connected, loadingMessages, deliveryError, sending, loadOlder, hasOlder, loadingOlder, historyError,
         selectConversation, sendMessage, handleConversationCreated, recentContacts,
     };

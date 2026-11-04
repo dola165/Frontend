@@ -22,7 +22,7 @@ const date=(value:string)=>new Date(value).toLocaleString(undefined,{weekday:'sh
 const readableSchedule=(value:string)=>value.replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/g,stamp=>{const time=new Date(stamp);return Number.isNaN(time.getTime())?stamp:time.toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});});
 function Field({label,children}:{label:string;children:ReactNode}) {return <label className="joining-field"><span>{label}</span>{children}</label>;}
 
-export function JoiningConversationPanel({record,onChanged}:{record:ConnectedInquiry;onChanged:()=>void}) {
+export function JoiningConversationPanel({record,onChanged,awaitingParent=false}:{record:ConnectedInquiry;onChanged:()=>void;awaitingParent?:boolean}) {
   const {sessionId,user}=useAuth(),{next}=useInquiryCopy();
   const [revision,setRevision]=useState(0),[open,setOpen]=useState<''|'INVITE'|'OFFER'|'HANDOFF'|'DETAILS'>('');
   const scope=`${record.id}:${record.version}:${sessionId}:${revision}`;
@@ -34,7 +34,7 @@ export function JoiningConversationPanel({record,onChanged}:{record:ConnectedInq
   const act=(payload:Payload)=>journey&&mutation.run({...payload,expectedVersion:journey.inquiry.version});
   const pending=journey?.pendingHandler;
   return <section className="joining-conversation">
-    <div className="joining-conversation-summary"><div><strong>{record.playerName||'Club question'}{journey?.squadName?` · ${journey.squadName}`:''}</strong><small>{record.organizationName}{journey?.handler?` · ${journey.handler.name}`:''}</small><p>{journey?.arrangement?.enrollment?'Place confirmed — you’re ready for training.':next(journey?.inquiry??record)}</p></div><button onClick={()=>setOpen('DETAILS')}>Details & next step</button></div>
+    <div className="joining-conversation-summary"><div><strong>{record.playerName||'Club question'}{journey?.squadName?` · ${journey.squadName}`:''}</strong><small>{record.organizationName}{journey?.handler?` · ${journey.handler.name}`:''}</small>{!awaitingParent&&<p>{journey?.arrangement?.enrollment?'Place confirmed — you’re ready for training.':next(journey?.inquiry??record)}</p>}</div><button onClick={()=>setOpen('DETAILS')}>Details & next step</button></div>
     {journey?.canAct&&<div className="joining-actions"><button className="joining-primary" onClick={()=>setOpen('INVITE')} disabled={!record.playerId}><CalendarDays size={15}/>Invite to training</button><button onClick={()=>setOpen('OFFER')} disabled={!record.playerId}>Offer a place</button><button onClick={()=>setOpen('HANDOFF')}>Pass to a colleague</button></div>}
     {pending&&<p className="joining-notice">{pending.name} has been asked to help. {journey?.handler?.name||'Your current contact'} remains responsible.{pending.id===user?.id&&<button disabled={mutation.busy||Boolean(mutation.pending)} onClick={()=>void act({action:'ACCEPT_HANDOFF'})}>Accept handoff</button>}</p>}
     {failed&&<p role="status">Joining details could not load. <button onClick={refresh}>Try again</button></p>}

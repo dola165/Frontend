@@ -1,5 +1,5 @@
 import { Ban, ChevronDown, ChevronUp, Crown, Loader2, Plus, Search, UserMinus, UserPlus, X } from 'lucide-react';
-import type { ConversationDto } from '../../api/chat';
+import type { ChatFamily, ConversationDto } from '../../api/chat';
 import { MediaImage } from '../ui/MediaImage';
 import { PeopleSearchStatus } from './PeopleSearchStatus';
 import { useMessageCopy } from './messageCopy';
@@ -7,11 +7,11 @@ import type { ConversationManagement } from './useConversationManagement';
 
 type InfoPanelProps = {
     conversation: ConversationDto; currentUserId: number; showInfo: boolean; managementError: string | null;
-    onDismissError: () => void; manage: ConversationManagement;
+    onDismissError: () => void; manage: ConversationManagement; family?: ChatFamily | null;
 };
 
 /** Info / management drawer: participants, adding or suggesting people, invite suggestions and leaving. */
-export const ConversationInfoPanel = ({ conversation: activeConv, currentUserId, showInfo, managementError, onDismissError, manage }: InfoPanelProps) => {
+export const ConversationInfoPanel = ({ conversation: activeConv, currentUserId, showInfo, managementError, onDismissError, manage, family }: InfoPanelProps) => {
     const copy = useMessageCopy();
     const { isCreator, expandedSections, toggleSection } = manage;
     return (
@@ -101,7 +101,7 @@ export const ConversationInfoPanel = ({ conversation: activeConv, currentUserId,
                                         </div>
 
                                         {/* Creator actions for non-self, non-creator participants */}
-                                        {isCreator && !isMe && !isParticipantCreator && (
+                                        {isCreator && !isMe && !isParticipantCreator && !family?.parents.some(parent => parent.userId === p.userId) && (
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => manage.handleKickUser(p.userId, p.displayName)}
@@ -127,7 +127,7 @@ export const ConversationInfoPanel = ({ conversation: activeConv, currentUserId,
                 </div>
 
                 {/* ── Add People / Suggest (GROUP only) ── */}
-                {activeConv.contextType === 'GROUP' && (
+                {activeConv.contextType === 'GROUP' && !family?.teenChat && (
                     <div className="px-4 pb-3 border-b border-[var(--chat-card-border)]">
                         {isCreator ? (
                             <>
@@ -159,8 +159,8 @@ export const ConversationInfoPanel = ({ conversation: activeConv, currentUserId,
                 {activeConv.contextType === 'GROUP' && isCreator && <InviteSuggestions manage={manage} />}
             </div>
 
-            {/* Leave button */}
-            <div className="p-4 border-t border-[var(--chat-card-border)]">
+            {/* Leave button: a parent held in a player's chat mutes it instead (the line under the header). */}
+            {!family?.parentHeld && <div className="p-4 border-t border-[var(--chat-card-border)]">
                 <button
                     onClick={() => void manage.leaveConversation()}
                     disabled={manage.leaving}
@@ -173,7 +173,7 @@ export const ConversationInfoPanel = ({ conversation: activeConv, currentUserId,
                             ? copy('Leave match chat', 'მატჩის ჩატის დატოვება')
                             : copy('Leave conversation', 'საუბრის დატოვება')}
                 </button>
-            </div>
+            </div>}
         </aside>
     );
 };

@@ -9,6 +9,8 @@ import { ConversationThread, NoConversationSelected } from '../components/chat/C
 import { MessageComposer } from '../components/chat/MessageComposer';
 import { ConversationInfoPanel } from '../components/chat/ConversationInfoPanel';
 import { NewChatModal } from '../components/chat/NewChatModal';
+import { ChatFamilyLine } from '../components/chat/ChatFamilyLine';
+import { useChatFamily } from '../components/chat/useChatFamily';
 import { TeamChatInMessages } from '../features/teamChat/TeamChatPage';
 
 export const MessagingPage = () => {
@@ -22,12 +24,13 @@ function Messages() {
     const { sessionId, currentUserId, searchParams, setSearchParams, squadId, activeConv, managementError, showInfo, setShowInfo } = chat;
     // A failed profile link or conversation address is retried from the inbox.
     const openFailed = searchParams.has('chatWith') || (searchParams.has('conversationId') && !activeConv);
+    const family = useChatFamily(activeConv && activeConv.contextType !== 'TEAM' ? activeConv.id : null, chat.activeMessages.at(-1)?.id ?? '');
 
     return (
         <div className={`chat-messenger-shell unified-messages ${squadId || activeConv ? 'has-conversation' : ''} h-full w-full flex overflow-hidden`}>
             <ConversationList sessionId={sessionId} currentUserId={currentUserId} squadId={squadId} connected={chat.connected}
                 conversations={chat.conversations} activeConvId={chat.activeConvId} sidebarLoading={chat.sidebarLoading}
-                listFailed={chat.listFailed} openError={openFailed ? managementError : null} hasMore={chat.hasMore}
+                listFailed={chat.listFailed} openError={openFailed ? managementError : null} openRefusal={chat.openRefusal} hasMore={chat.hasMore}
                 loadingMore={chat.loadingMore} onNewChat={() => chat.setShowNewChat(true)} onSelect={chat.selectConversation}
                 onRetryList={() => void chat.loadConversations()} onRetryOpen={() => chat.setProfileAttempt(value => value + 1)}
                 onLoadMore={() => void chat.loadMore()} />
@@ -40,9 +43,11 @@ function Messages() {
                     <ConversationThread conversation={activeConv} sessionId={sessionId} currentUserId={currentUserId}
                         messages={chat.activeMessages} viewportRef={chat.messageViewportRef} loadingMessages={chat.loadingMessages}
                         hasOlder={chat.hasOlder} loadingOlder={chat.loadingOlder} historyError={chat.historyError} loadOlder={chat.loadOlder}
-                        showInfo={showInfo} onToggleInfo={() => setShowInfo(!showInfo)} onBack={() => setSearchParams({})}>
-                        <MessageComposer input={chat.input} setInput={chat.setInput} sending={chat.sending}
-                            deliveryError={chat.deliveryError} onSubmit={chat.sendMessage} />
+                        showInfo={showInfo} onToggleInfo={() => setShowInfo(!showInfo)} onBack={() => setSearchParams({})}
+                        awaitingParent={family.family?.awaitingParent} familyLine={family.family && <ChatFamilyLine family={family.family} currentUserId={currentUserId} conversationId={activeConv.id} onChanged={family.refresh} />}>
+                        {/* The club answers a 13-17 player's enquiry once a parent is in the room. */}
+                        {family.family?.mayWrite !== false && <MessageComposer input={chat.input} setInput={chat.setInput} sending={chat.sending}
+                            deliveryError={chat.deliveryError} onSubmit={chat.sendMessage} />}
                     </ConversationThread>
                 ) : (
                     <NoConversationSelected sidebarLoading={chat.sidebarLoading} onNewChat={() => chat.setShowNewChat(true)} />
@@ -51,7 +56,7 @@ function Messages() {
 
             {activeConv && activeConv.contextType !== 'TEAM' && (
                 <ConversationInfoPanel conversation={activeConv} currentUserId={currentUserId} showInfo={showInfo}
-                    managementError={managementError} onDismissError={() => chat.setManagementError(null)} manage={manage} />
+                    managementError={managementError} onDismissError={() => chat.setManagementError(null)} manage={manage} family={family.family} />
             )}
 
             <NewChatModal

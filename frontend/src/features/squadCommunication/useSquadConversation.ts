@@ -11,12 +11,12 @@ const merge = (rows: api.SquadMessage[], added: api.SquadMessage[]) =>
     [...new Map([...rows, ...added].map(row => [row.id, row])).values()].sort((a, b) => b.id - a.id);
 
 /** Mounted for one login, squad and thread. Every asynchronous result must still own that scope. */
-export function useSquadConversation({ space, kind, thread, readOnly, onSent, follow }: {
-    space: api.SquadOverview; kind: 'CHAT' | 'ANNOUNCEMENT'; thread: number | null;
+export function useSquadConversation({ space, kind, thread, room, readOnly, onSent, follow }: {
+    space: api.SquadOverview; kind: 'CHAT' | 'ANNOUNCEMENT'; thread: number | null; room: api.SquadRoom | null;
     readOnly: boolean; onSent: () => void; follow: RefObject<boolean>;
 }) {
     const copy = useJourneyCopy();
-    const key = `squad:${space.id}:${kind}:${thread ?? 'group'}`;
+    const key = `squad:${space.id}:${kind}:${thread ?? 'group'}${room ? `:${room}` : ''}`;
     const [recovery] = useState(createMessageRecovery);
     const { input: body, setInput: setBody, confirmDraft } = useMessageDraft(key);
     const [rows, setRows] = useState<api.SquadMessage[]>([]);
@@ -51,7 +51,7 @@ export function useSquadConversation({ space, kind, thread, readOnly, onSent, fo
         const version = epoch.current;
         try {
             const pending = backfill.current;
-            let batch = pending?.batch ?? await api.messages(space.id, kind, thread, reads.current?.signal);
+            let batch = pending?.batch ?? await api.messages(space.id, kind, thread, reads.current?.signal, undefined, room);
             if (!current() || version !== epoch.current) return;
             const newest = pending?.newest ?? batch[0]?.id ?? 0;
             let collected = pending?.rows ?? batch;
@@ -62,7 +62,7 @@ export function useSquadConversation({ space, kind, thread, readOnly, onSent, fo
                     setError(copy('Catching up on more messages. Try again to continue now.', 'იტვირთება მეტი შეტყობინება. გასაგრძელებლად სცადეთ ხელახლა.'));
                     return;
                 }
-                batch = await api.messages(space.id, kind, thread, reads.current?.signal, batch.at(-1)!.id);
+                batch = await api.messages(space.id, kind, thread, reads.current?.signal, batch.at(-1)!.id, room);
                 if (!current() || version !== epoch.current) return;
                 collected = merge(collected, batch);
             }
@@ -76,7 +76,7 @@ export function useSquadConversation({ space, kind, thread, readOnly, onSent, fo
             setLoading(false);
             setError('');
             if (newest && follow.current && !document.hidden) {
-                try { await api.markRead(space.id, newest, thread); }
+                try { await api.markRead(space.id, newest, thread, room); }
                 catch (cause) { if (denied(cause)) fail(cause); }
             }
         } catch (cause) { if (version === epoch.current) fail(cause); }
@@ -87,7 +87,7 @@ export function useSquadConversation({ space, kind, thread, readOnly, onSent, fo
                 else setLoading(false);
             }
         }
-    }, [current, space.id, kind, thread, follow, fail, copy]);
+    }, [current, space.id, kind, thread, room, follow, fail, copy]);
 
     useEffect(() => {
         const lifecycle = epoch;
@@ -116,7 +116,7 @@ export function useSquadConversation({ space, kind, thread, readOnly, onSent, fo
         setMore(true);
         const version = epoch.current;
         try {
-            const batch = await api.messages(space.id, kind, thread, reads.current?.signal, oldest.current);
+            const batch = await api.messages(space.id, kind, thread, reads.current?.signal, oldest.current, room);
             if (!current() || version !== epoch.current) return;
             oldest.current = batch.at(-1)?.id ?? oldest.current;
             setHasOlder(batch.length === 50);
@@ -131,7 +131,7 @@ export function useSquadConversation({ space, kind, thread, readOnly, onSent, fo
         const text = body;
         try {
             const attempt = recovery.prepare(key, text.trim());
-            const response = await api.postMessage(space.id, { requestId: attempt.key, kind, threadUserId: thread, title: null, body: text.trim(), important: false });
+            const response = await api.postMessage(space.id, { requestId: attempt.key, kind, threadUserId: thread, title: null, body: text.trim(), important: false, room });
             if (!current()) return;
             if (!Number.isSafeInteger(response.data?.id) || response.data.id <= 0) throw new Error('Message acknowledgement was missing.');
             recovery.confirm(key, attempt); confirmDraft(key, text);

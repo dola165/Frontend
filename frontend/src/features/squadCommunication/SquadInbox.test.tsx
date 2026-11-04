@@ -25,7 +25,7 @@ it('makes group and coaching conversations discoverable in the global inbox', as
 it('reads and sends through the existing group history without creating a second conversation', async () => {
     render(<MemoryRouter initialEntries={['/messages?squadId=171']}><SquadInboxConversation id={171}/></MemoryRouter>);
     await screen.findByText('Bring your boots');
-    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',null,expect.any(AbortSignal));
+    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',null,expect.any(AbortSignal),undefined,null);
     fireEvent.change(screen.getByPlaceholderText('Message the squad…'),{target:{value:'See you there'}});
     fireEvent.click(screen.getByRole('button',{name:'Send message'}));
     await waitFor(()=>expect(api.postMessage).toHaveBeenCalledWith(171,expect.objectContaining({kind:'CHAT',threadUserId:null,body:'See you there'})));
@@ -40,7 +40,7 @@ it('refuses a forged private thread without fetching somebody else or silently s
 it('lets a parent read their own current private thread', async () => {
     render(<MemoryRouter initialEntries={['/messages?squadId=171&channel=coach&thread=20']}><SquadInboxConversation id={171}/></MemoryRouter>);
     await screen.findByText('Bring your boots');
-    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',20,expect.any(AbortSignal));
+    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',20,expect.any(AbortSignal),undefined,null);
     expect(screen.queryByLabelText('Family or player')).not.toBeInTheDocument();
 });
 it('lets a coach choose a current family and rejects stale or forged thread selections', async () => {
@@ -50,7 +50,7 @@ it('lets a coach choose a current family and rejects stale or forged thread sele
     expect(api.messages).not.toHaveBeenCalled();
     fireEvent.change(select,{target:{value:'20'}});
     await screen.findByText('Bring your boots');
-    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',20,expect.any(AbortSignal));
+    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',20,expect.any(AbortSignal),undefined,null);
 });
 it('shows access failures without exposing a composer or cached history', async () => {
     vi.mocked(api.overview).mockRejectedValue(new Error('Access removed'));
@@ -59,18 +59,18 @@ it('shows access failures without exposing a composer or cached history', async 
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(api.messages).not.toHaveBeenCalled();
 });
-it('lets a guardian read, but not write in, their teen\'s private coach thread', async () => {
+it('keeps a parent in their teen’s private coach thread, where they read and write', async () => {
     vi.mocked(api.overview).mockResolvedValue({...room,child_threads:[{user_id:31,full_name:'Nino'}]});
     render(<MemoryRouter initialEntries={['/messages?squadId=171&channel=coach&thread=31']}><SquadInboxConversation id={171}/></MemoryRouter>);
     await screen.findByText('Bring your boots');
-    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',31,expect.any(AbortSignal));
-    expect(screen.getByText(/because you are this player’s parent or guardian/)).toBeInTheDocument();
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(screen.getByRole('option',{name:'Nino (read only)'})).toBeInTheDocument();
+    expect(api.messages).toHaveBeenCalledWith(171,'CHAT',31,expect.any(AbortSignal),undefined,null);
+    expect(screen.getByText(/You’re in this chat as this player’s parent/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByRole('option',{name:'Nino with the coaches'})).toBeInTheDocument();
 });
-it('tells a teen and the coaches that the teen\'s guardians can read the thread', async () => {
+it('tells a teen and the coaches that the teen’s parents are in the thread', async () => {
     vi.mocked(api.overview).mockResolvedValue({...room,viewer_thread_guardians_can_view:true});
     render(<MemoryRouter initialEntries={['/messages?squadId=171&channel=coach']}><SquadInboxConversation id={171}/></MemoryRouter>);
-    expect(await screen.findByText('This player, their parents or guardians and the coaches see it.')).toBeInTheDocument();
+    expect(await screen.findByText('This player, their parents and the coaches are in this chat.')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Message the coaches…')).toBeInTheDocument();
 });

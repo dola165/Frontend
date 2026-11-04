@@ -23,7 +23,7 @@ export function MessageParentsDialog({ data, onClose }: { data: CoachData; onClo
     const parents: Parent[] = [];
     for (const squad of data.squads ?? []) {
         if (!data.shown.includes(squad.id)) continue;
-        for (const thread of squad.overview?.threads ?? []) if (!parents.some(parent => parent.id === thread.user_id)) parents.push({ id: thread.user_id, name: thread.full_name, squad: data.names.get(squad.id) ?? '' });
+        for (const thread of squad.overview?.threads ?? []) if (thread.is_parent && !parents.some(parent => parent.id === thread.user_id)) parents.push({ id: thread.user_id, name: thread.full_name, squad: data.names.get(squad.id) ?? '' });
     }
     const [picked, setPicked] = useState<number[]>([]);
     const [text, setText] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');

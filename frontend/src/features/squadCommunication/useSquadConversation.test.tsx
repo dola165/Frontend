@@ -19,7 +19,7 @@ const form = { preventDefault: vi.fn() } as unknown as FormEvent;
 const space = { id: 11, viewer_id: 7 } as api.SquadOverview;
 const follow = { current: true };
 const mount = (thread: number | null = null, readOnly = false) => renderHook(() => useSquadConversation({
-    space, kind: 'CHAT', thread, readOnly, onSent: vi.fn(), follow,
+    space, kind: 'CHAT', thread, room: null, readOnly, onSent: vi.fn(), follow,
 }));
 
 beforeEach(() => {
@@ -110,9 +110,9 @@ describe('squad conversation continuity', () => {
         vi.mocked(api.messages).mockResolvedValueOnce(page(121)).mockResolvedValueOnce(page(71)).mockResolvedValueOnce(page(21, 21));
         await act(async () => { await view.result.current.refresh(); });
         expect(view.result.current.rows).toHaveLength(121);
-        expect(api.messages).toHaveBeenCalledWith(11, 'CHAT', null, expect.any(AbortSignal), 72);
-        expect(api.messages).toHaveBeenCalledWith(11, 'CHAT', null, expect.any(AbortSignal), 22);
-        expect(api.markRead).toHaveBeenLastCalledWith(11, 121, null);
+        expect(api.messages).toHaveBeenCalledWith(11, 'CHAT', null, expect.any(AbortSignal), 72, null);
+        expect(api.messages).toHaveBeenCalledWith(11, 'CHAT', null, expect.any(AbortSignal), 22, null);
+        expect(api.markRead).toHaveBeenLastCalledWith(11, 121, null, null);
     });
 
     it('does not claim a read while scrolled away, and stops offering exhausted history', async () => {
@@ -124,12 +124,12 @@ describe('squad conversation continuity', () => {
         expect(view.result.current.hasOlder).toBe(false); expect(api.markRead).not.toHaveBeenCalled();
     });
 
-    it('guardian read-only viewing cannot send into the child’s coach thread', async () => {
+    it('a chat nobody may write in for now sends nothing', async () => {
         const view = mount(9, true);
         act(() => view.result.current.setBody('Attempt'));
         await act(async () => { await view.result.current.send(form); });
         expect(api.postMessage).not.toHaveBeenCalled();
-        expect(api.messages).toHaveBeenCalledWith(11, 'CHAT', 9, expect.any(AbortSignal));
+        expect(api.messages).toHaveBeenCalledWith(11, 'CHAT', 9, expect.any(AbortSignal), undefined, null);
     });
 
     it('cancels outstanding history on leaving and recovers a failed load on explicit retry', async () => {

@@ -29,7 +29,7 @@ const reviewReceipt = new RegExp(`^/pages/requests/${uuid}$`);
 const code = '[A-Za-z0-9_-]{4,128}';
 const route = new RegExp(`^/(?:account|my-organizations|admin|admin/page-reviews|pages/requests/${uuid}|invite/org-${id}|agent|messages|team-work|team-work/chat|calendar|notifications|requests|reports|parent|home|my-squads|me/staff-club|clubs|admissions(?:/(?:cases|inquiries)/${id}|/groups/${id}/schedule)?|club-operations|stadiums|referees/me|clubs/${id}(?:/(?:workspace|office|management|squads))?|tournaments/${id}(?:/(?:workspace|admin))?|(?:matches|match-exchange|squads|posts|profile|projects|merge)/${id}|(?:staff-invite|family-link)/${code}|stadiums/${id}(?:/manage)?)$`);
 const numericKeys = new Set(['eventId', 'fixtureId', 'conversationId', 'message', 'chat','clubId', 'applicationId', 'bookingId', 'venueId', 'itemId', 'thread', 'squad', 'squadId', 'approach', 'representation', 'representationRecord', 'representationGeneration', 'permissionId', 'appointmentId', 'player', 'playerId', 'caseId', 'inquiryId', 'task', 'step', 'who', 'journey', 'journeyChild', 'competitionAppointment']);
-const queryKeys = new Set([...numericKeys, 'tab', 'tool', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'sessionId', 'session', 'at', 'review', 'date', 'invite']);
+const queryKeys = new Set([...numericKeys, 'tab', 'tool', 'view', 'scope', 'clubName', 'manageClub', 'managementTab', 'channel', 'room', 'sessionId', 'session', 'at', 'review', 'date', 'invite']);
 /** Where each newer query key may be used, and nowhere else. */
 const keyPages: Record<string, RegExp> = {
     task: /^\/team-work$/, step: /^\/team-work$/, who: /^\/team-work$/,

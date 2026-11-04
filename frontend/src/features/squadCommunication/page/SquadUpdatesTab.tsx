@@ -23,17 +23,18 @@ import { useNow } from '../../clubWorkspace/useNow';
  */
 export function SquadUpdatesTab({ space, child, self, crest, tabKey, onChanged }: { space: api.SquadOverview; child?: JoiningChild; self?: api.Person; crest: string | null; tabKey: string; onChanged: () => void }) {
     const copy = useJourneyCopy();
+    const parents = space.threads.filter(thread => thread.is_parent);
     return <div className="sp-updates">
         <aside className="sp-updates__side">
             {child && <NextUp squads={[{ ...space, can_manage: false }]} playerId={child.playerId} childName={child.identity.fullName.split(' ')[0]} crest={crest} />}
             {!child && self && <NextUp squads={[{ ...space, can_manage: false }]} playerId={self.id} childName={self.name.split(' ')[0]} crest={crest} />}
             {space.can_manage && <CoachNext space={space} tabKey={tabKey} />}
-            {space.can_manage && space.threads.length > 0 && <section className="sp-box">
+            {space.can_manage && parents.length > 0 && <section className="sp-box">
                 <h2 className="sp-box__title"><MessagesSquare aria-hidden="true" />{copy('Parents & guardians', 'მშობლები და მეურვეები')}</h2>
-                <ul className="sp-threads">{space.threads.slice(0, 8).map(thread => <li key={thread.user_id}><Link to={squadMessageUrl(space.id, true, thread.user_id)}>
+                <ul className="sp-threads">{parents.slice(0, 8).map(thread => <li key={thread.user_id}><Link to={squadMessageUrl(space.id, true, thread.user_id)}>
                     <FaceStack people={[{ id: thread.user_id, name: thread.full_name }]} size={26} /><span>{thread.full_name}</span>{thread.unread_count > 0 && <span className="sp-unread" aria-label={copy(`${thread.unread_count} unread`, `${thread.unread_count} წაუკითხავი`)}>{thread.unread_count}</span>}
                 </Link></li>)}</ul>
-                {space.threads.length > 8 && <Link className="sp-link" to={squadMessageUrl(space.id, true)}>{copy(`All ${space.threads.length}`, `ყველა ${space.threads.length}`)}</Link>}
+                {parents.length > 8 && <Link className="sp-link" to={squadMessageUrl(space.id, true)}>{copy(`All ${parents.length}`, `ყველა ${parents.length}`)}</Link>}
             </section>}
         </aside>
         <div className="sp-updates__feed"><NoticeLines space={space} /><SquadMessages space={space} kind="ANNOUNCEMENT" thread={null} onSent={onChanged} /></div>

@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useMessageCopy } from './messageCopy';
 import { useChatPeopleSearch } from './useChatPeopleSearch';
 import { PeopleSearchStatus } from './PeopleSearchStatus';
+import { chatRefusalWords } from './chatRefusal';
 
 interface NewChatModalProps {
     open: boolean;
@@ -101,8 +102,8 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
             if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
             onConversationCreated(res.data.id);
             onClose();
-        } catch {
-            if (mounted.current && isCurrentAuthSession(sessionId)) setError('Could not start the conversation.');
+        } catch (cause) {
+            if (mounted.current && isCurrentAuthSession(sessionId)) setError(chatRefusalWords(cause) ?? 'Could not start the conversation.');
         } finally {
             createPending.current = false;
             if (mounted.current) setCreating(false);
@@ -132,8 +133,8 @@ function NewChatContent({ open, onClose: finishClose, onConversationCreated, rec
             if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
             onConversationCreated(res.data.id);
             onClose();
-        } catch {
-            if (mounted.current && isCurrentAuthSession(sessionId)) setError('Could not create the group.');
+        } catch (cause) {
+            if (mounted.current && isCurrentAuthSession(sessionId)) setError(chatRefusalWords(cause) ?? 'Could not create the group.');
         } finally {
             createPending.current = false;
             if (mounted.current) setCreating(false);

@@ -3,7 +3,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import { Check, Loader2, User, Users } from 'lucide-react';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Section, Skeleton } from '../../design/primitives';
 import { useAuth } from '../../context/AuthContext';
-import { extractApiErrorCode, extractApiErrorMessage } from '../../utils/apiError';
+import { extractApiErrorCode, extractApiErrorDetail, extractApiErrorMessage } from '../../utils/apiError';
 import { buildLoginRedirectPath, buildSignupPath } from '../../utils/authRedirect';
 import { Crest } from '../world/Crest';
 import { fetchJoiningChildren, type JoiningChild } from './api';
@@ -13,6 +13,11 @@ import '../pages/pages.css';
 import '../pages/links/join.css';
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** Only what works: another Owner or Admin, and the support address when the server has one. */
+const onlyLeaderWords = (address: string | null, copy: (en: string, ka: string) => string) => address
+    ? copy(`Nobody else at your club can confirm you. Add another Owner or Admin and they can, or write to ${address}.`, `თქვენს კლუბში სხვა ვერავინ დაგადასტურებთ. დაამატეთ სხვა მფლობელი ან ადმინისტრატორი, ან მიწერეთ: ${address}.`)
+    : copy('Nobody else at your club can confirm you. Add another Owner or Admin and they can.', 'თქვენს კლუბში სხვა ვერავინ დაგადასტურებთ. დაამატეთ სხვა მფლობელი ან ადმინისტრატორი და ის შეძლებს.');
 
 /**
  * A family link, opened from any chat (owner, 2 November 2026). It shows what it asks before signing in (first names
@@ -66,7 +71,7 @@ export function FamilyLinkPage() {
             setError(problem === 'FAMILY_LINK_BIRTH_DATE' ? (card ? copy('That birth date doesn’t match the club’s card.', 'ეს თარიღი არ ემთხვევა კლუბის ბარათს.') : copy(`That isn’t ${name}’s birth date.`, `ეს არ არის ${name}-ის დაბადების თარიღი.`))
                 : problem === 'FAMILY_LINK_REVOKED' ? (card ? copy('This link was turned off. Ask the club for a new one.', 'ეს ბმული გაითიშა. სთხოვეთ კლუბს ახალი.') : copy(`This link was turned off. Ask ${name} for a new one.`, `ეს ბმული გაითიშა. სთხოვეთ ${name}-ს ახალი.`))
                 : problem === 'FAMILY_LINK_OWN_CLUB' ? copy(`You play or work at ${name}’s club, so this link can’t make you their parent on its own. If you are, ask the club to confirm you.`, `თქვენ თამაშობთ ან მუშაობთ ${name}-ის კლუბში, ამიტომ ეს ბმული მარტო მშობლად ვერ დაგამატებთ. თუ მშობელი ხართ, სთხოვეთ კლუბს დადასტურება.`)
-                : problem === 'FAMILY_LINK_ONLY_LEADER' ? copy('Nobody else at your club can confirm you. Add another Owner or Admin and they can, or ask GrassKickZ support.', 'თქვენს კლუბში სხვა ვერავინ დაგადასტურებთ. დაამატეთ სხვა მფლობელი ან ადმინისტრატორი, ან მიმართეთ GrassKickZ-ის მხარდაჭერას.')
+                : problem === 'FAMILY_LINK_ONLY_LEADER' ? onlyLeaderWords(extractApiErrorDetail(failure, 'supportEmail'), copy)
                 : problem === 'FAMILY_LINK_CLUB_SAID_NO' ? copy(`The club didn’t confirm you as ${name}’s parent. Talk to them.`, `კლუბმა არ დაგადასტურათ ${name}-ის მშობლად. დაელაპარაკეთ მათ.`)
                 : problem === 'FAMILY_LINK_NOT_YOU' ? copy('This card’s name or birth date doesn’t match your account. Ask the club.', 'ბარათის სახელი ან დაბადების თარიღი არ ემთხვევა თქვენს ანგარიშს. მიმართეთ კლუბს.')
                 : problem === 'FAMILY_LINK_OWN' ? copy('Send this link to your parent.', 'ეს ბმული მშობელს გაუგზავნეთ.')

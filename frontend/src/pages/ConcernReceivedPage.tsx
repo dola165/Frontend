@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { Button, Field, GkRoot, PageFrame, PageHeader, Section, Skeleton } from '../design/primitives';
@@ -8,7 +8,7 @@ import { extractApiErrorMessage } from '../utils/apiError';
 
 interface Received {
     id: number; clubId: number; clubName: string; status: string; description: string; immediateAction: string; resolution: string;
-    childName: string | null; reporterName: string; createdAt: string; grassKickZ: boolean; canClose: boolean;
+    childName: string | null; reporterName: string; createdAt: string; grassKickZ: boolean; canClose: boolean; canList: boolean;
 }
 
 /**
@@ -40,6 +40,7 @@ export default function ConcernReceivedPage() {
     };
     return <GkRoot className="gk-page"><PageFrame width="profile">
         <PageHeader title={copy('Confidential concern', 'კონფიდენციალური შეტყობინება')} />
+        {concern?.canList && <p><Link to="/team-work?view=concerns">{copy('All concerns', 'ყველა შეტყობინება')}</Link></p>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {!concern && !error && <Skeleton height={220} />}
         {concern && <Section boxed icon={ShieldAlert} title={concern.clubName} hint={new Date(concern.createdAt).toLocaleDateString()}>

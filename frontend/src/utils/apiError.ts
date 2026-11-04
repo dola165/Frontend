@@ -62,6 +62,13 @@ export const extractApiErrorMessage = (error: unknown, fallback = systemMessage(
     return fallback;
 };
 
+/** A fact the server sent beside the error's code, as text; null when it sent none. */
+export const extractApiErrorDetail = (error: unknown, name: string): string | null => {
+    const payload = (error as { response?: { data?: unknown } } | null | undefined)?.response?.data;
+    const value = payload && typeof payload === 'object' ? (payload as Record<string, unknown>)[name] : null;
+    return typeof value === 'string' && value ? value : null;
+};
+
 export const extractApiErrorCode = (error: unknown) => {
     const maybeError = error as {
         response?: {

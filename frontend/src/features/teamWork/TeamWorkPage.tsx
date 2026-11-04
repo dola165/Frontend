@@ -13,6 +13,8 @@ import { IDEAS, isHidden, isNewFor, isReservedName, WAITING, useFindingDetails }
 import { Overview } from './Overview';
 import { PasteDialog } from './PasteDialog';
 import { WaitingPage } from './WaitingPage';
+import { ConcernsPage } from './ConcernsPage';
+import { fetchConcerns, type ConcernList } from './concernsApi';
 import { PlanPage, type PlanDialog } from './PlanPage';
 import { TeamPanel } from './TeamPanel';
 import { TeamWorkDola } from './TeamWorkDola';
@@ -27,7 +29,7 @@ import './team-work.css';
 import './team-work-layout.css';
 
 const statusOf = (error: unknown) => (error as { response?: { status?: number } })?.response?.status;
-const PLACES: TeamWorkPlace[] = ['ideas', 'waiting', 'changes', 'team'];
+const PLACES: TeamWorkPlace[] = ['ideas', 'waiting', 'changes', 'concerns', 'team'];
 // Old links keep working: ?view=add|pending|updates, ?roadmap=, ?open= and ?project= are read as the new keys.
 const OLD_PLACES: Record<string, TeamWorkPlace> = { add: 'ideas', pending: 'waiting', updates: 'changes' };
 const OLD_KEYS: Record<string, string> = { roadmap: 'plan', open: 'step', project: 'in' };
@@ -85,7 +87,10 @@ export function TeamWorkPage() {
     const [adding, setAdding] = useState<{ view?: PlanView; parent?: WorkItem; others: WorkItem[] } | null>(null);
     const [dialog, setDialog] = useState<PlanDialog | 'new' | null>(null);
     const [starting, setStarting] = useState(false);
-    const place = placeOf(params.get('view'));
+    // Undefined while asking; null for anyone but the one reader, who has no such place.
+    const [concerns, setConcerns] = useState<ConcernList | null | undefined>(undefined);
+    const asked = placeOf(params.get('view'));
+    const place = asked === 'concerns' && concerns === null ? 'overview' : asked;
     const wanted = Number(params.get('plan') ?? params.get('roadmap')) || null;
     const open = Number(params.get('step') ?? params.get('open')) || null;
     const task = Number(params.get('task')) || null;
@@ -112,6 +117,12 @@ export function TeamWorkPage() {
         });
         return () => controller.abort();
     }, [revision, copy]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchConcerns(controller.signal).then(found => { if (!controller.signal.aborted) setConcerns(found); }).catch(() => { if (!controller.signal.aborted) setConcerns(null); });
+        return () => controller.abort();
+    }, [revision]);
 
     const viewNamed = (name: string) => { const plan = listed?.find(candidate => candidate.name === name); return plan && views.get(plan.id); };
     const ideas = viewNamed(IDEAS), waiting = viewNamed(WAITING);
@@ -157,8 +168,11 @@ export function TeamWorkPage() {
     const setOpen = (id: number | null) => set({ step: id == null ? null : String(id) });
     const go = (next: TeamWorkPlace) => set({ view: next === 'overview' ? null : next, plan: null, step: null, task: null, day: null });
 
-    if (missing) return <RouteRecoveryPage />;
     const loading = <Panel flush><div className="gk-panel--pad" role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /><Skeleton height={44} /></div></Panel>;
+    // The reader needn't be on the team: for them the page is this one list, and for anyone else it doesn't exist.
+    if (missing && concerns) return <GkRoot className="gk-page"><PageFrame className="tw-page"><div className="tw-main"><ConcernsPage list={concerns} /></div></PageFrame></GkRoot>;
+    if (missing && concerns === undefined) return <GkRoot className="gk-page"><PageFrame className="tw-page">{loading}</PageFrame></GkRoot>;
+    if (missing) return <RouteRecoveryPage />;
     const findingProps = { details, team, me, open, onOpen: setOpen, onPut: put, onChanged: reload };
     const actions = { open, team, me, candidates: allTasks, onOpen: setOpen, onSaved: reload, onDeleted: () => { set({ task: null, step: null }); reload(); },
         onAddStep: (parent: WorkItem) => startAdding(undefined, parent), onToggle: (id: number) => set({ task: task === id ? null : String(id), step: null }) };
@@ -166,6 +180,7 @@ export function TeamWorkPage() {
     if (!listed) main = !error && loading;
     else if (place === 'changes') main = <WhatChangedPage />;
     else if (place === 'team') main = <TeamPanel canManage={canManageTeam} />;
+    else if (place === 'concerns') main = concerns ? <ConcernsPage list={concerns} /> : loading;
     else if (place === 'ideas') main = <IdeasPage ideas={ideas} waiting={waiting} {...findingProps} />;
     else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} onIdeas={() => go('ideas')} />;
     else if (view) main = <PlanPage view={view} items={items} views={views} planOf={planOf} lines={lines} revision={revision} task={task} actions={actions} onBack={() => set({ plan: null, step: null, task: null })}
@@ -177,7 +192,7 @@ export function TeamWorkPage() {
         <div className="tw-shell">
             <TeamSearch />
             <TeamWorkNav current={place} needsYou={needsYouCount(items.filter(item => !findings.has(item.id)))} fresh={ideas?.tasks.filter(node => { const detail = details.get(node.item.id); return detail != null && isNewFor(detail, me); }).length ?? 0}
-                waiting={waiting?.tasks.length ?? 0} onGo={go} />
+                waiting={waiting?.tasks.length ?? 0} concerns={concerns?.open} onGo={go} />
             <div className="tw-main" key={`${place}-${wanted ?? ''}`}>
                 {error && <div className="gk-notice gk-notice--danger" role="alert"><span>{error}</span><Button size="sm" onClick={reload}>{copy('Try again', 'ხელახლა ცდა')}</Button></div>}
                 <TaskMenuProvider onChanged={reload}>{main}</TaskMenuProvider>

@@ -66,8 +66,20 @@ it('the club’s only leader has nobody to ask: the page says so, with no button
     fireEvent.click(screen.getByRole('checkbox', { name: 'I’m Luka’s parent or guardian.' }));
     fireEvent.change(screen.getByLabelText('Luka’s birth date'), { target: { value: '2012-05-20' } });
     fireEvent.click(yes);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Nobody else at your club can confirm you. Add another Owner or Admin and they can, or ask GrassKickZ support.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^Nobody else at your club can confirm you\. Add another Owner or Admin and they can\.$/);
     expect(screen.queryByRole('button', { name: 'Ask the club to confirm me' })).not.toBeInTheDocument();
+});
+
+it('names the support address only when the server sends one', async () => {
+    auth.isAuthenticated = true; auth.user = { fullName: 'Olga Owner' };
+    vi.mocked(previewFamilyLink).mockResolvedValue(teen);
+    vi.mocked(claimFamilyLink).mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'FAMILY_LINK_ONLY_LEADER', message: 'refused', supportEmail: 'help@example.test' } } });
+    show();
+    const yes = await screen.findByRole('button', { name: 'Yes' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'I’m Luka’s parent or guardian.' }));
+    fireEvent.change(screen.getByLabelText('Luka’s birth date'), { target: { value: '2012-05-20' } });
+    fireEvent.click(yes);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Add another Owner or Admin and they can, or write to help@example.test.');
 });
 
 it('a club’s staff get the same door on its card', async () => {

@@ -103,7 +103,7 @@ export function BookFirstVisit({ group, onClose }: { group: Opportunity; onClose
         <p className="gk-finder-book__lead">{copy(`First visit · ${cost} · at most ${data?.places ?? 3} a session`, `პირველი ვიზიტი · ${cost} · მაქსიმუმ ${data?.places ?? 3} ერთ ვარჯიშზე`)}</p>
         {sessions.loading ? <Skeleton height={40} />
             : sessions.error ? <LoadFailed text={copy('Couldn’t load the trainings', 'ვარჯიშები ვერ ჩაიტვირთა')} retry={copy('Try again', 'ხელახლა ცდა')} onRetry={sessions.retry} />
-            : !data?.sessions.length ? <p className="gk-faint">{copy('No first visits in the next four weeks. Ask the club instead.', 'მომდევნო ოთხ კვირაში ვიზიტი არ არის. ჰკითხეთ კლუბს.')}</p>
+            : !data?.sessions.length ? <p className="gk-faint">{data?.addChildFirst ? copy('Add your child to see the trainings.', 'ვარჯიშების სანახავად დაამატეთ ბავშვი.') : copy('No first visits in the next four weeks. Ask the club instead.', 'მომდევნო ოთხ კვირაში ვიზიტი არ არის. ჰკითხეთ კლუბს.')}</p>
             : <div className="gk-chips" role="radiogroup" aria-label={copy('Choose a training', 'აირჩიეთ ვარჯიში')}>
                 {data.sessions.slice(0, allDates ? undefined : SHOWN).map(item => <Chip key={item.reference} pressed={chosen?.reference === item.reference} onClick={() => { setReference(item.reference); setChanged(null); }}>
                     {when(item.startsAt)}<span className="gk-faint"> · {item.placesLeft === 1 ? copy('1 place', '1 ადგილი') : copy(`${item.placesLeft} places`, `${item.placesLeft} ადგილი`)}</span></Chip>)}
@@ -121,7 +121,7 @@ export function BookFirstVisit({ group, onClose }: { group: Opportunity; onClose
             {(['MALE', 'FEMALE'] as const).map(gender => <Chip key={gender} pressed={declaration === gender} onClick={() => { setDeclared({ playerId: child.playerId, gender }); setError(''); }}>
                 {gender === 'MALE' ? copy('Boy', 'ბიჭი') : copy('Girl', 'გოგო')}</Chip>)}
         </div>}
-        {!fits.length && (adding ? <AddChild inline onCreated={created => { setAdding(false); setPlayerId(created); finder?.changed(); }} />
+        {!fits.length && (adding ? <AddChild inline onCreated={created => { setAdding(false); setPlayerId(created); finder?.changed(); sessions.retry(); }} />
             : <p className="gk-faint">{copy(`This group is for children ${bornLabel(copy, group.birthYearFrom, group.birthYearTo) ?? ''}.`, `ეს ჯგუფი ბავშვებისთვისაა: ${bornLabel(copy, group.birthYearFrom, group.birthYearTo) ?? ''}.`)} <button type="button" className="gk-board__link" onClick={() => setAdding(true)}>{copy('Add the child', 'ბავშვის დამატება')}</button></p>)}
         {needsPhone && <label className="gk-field" htmlFor={`${id}-phone`}><span className="gk-field__label">{copy('Your phone, for the coach during the visit', 'თქვენი ტელეფონი მწვრთნელისთვის')}</span>
             <input id={`${id}-phone`} className="gk-input" type="tel" autoComplete="tel" value={phone} maxLength={40} onChange={event => setPhone(event.target.value)} placeholder="+995 5xx xx xx xx" /></label>}

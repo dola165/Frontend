@@ -88,6 +88,7 @@ export function CaseDetail({record,workspace,sessionId,onChanged,onBack,onOpen,o
     {record.stage==='ENROLLED'&&record.enrollment?.status==='ACTIVE'&&record.clubId&&Number.isSafeInteger(actorId)&&actorId>0&&<AdmissionFollowUp key={`${sessionId}:${record.id}:${record.version}`} scope={{sessionId,actorId,clubId:record.clubId,caseId:record.id,caseVersion:record.version}} onOpen={onOpen}/>}
     <div className="admission-grid"><div className="admission-stack">
       <AdmissionPanel title={c('next')} subtitle={`${c(ownerCopy[record.nextAction.owner])} · ${(nextCopy[record.nextAction.code]?c(nextCopy[record.nextAction.code]):record.nextAction.label)}`}>
+        {record.parentFirst&&<p className="admission-notice">{c('parentFirst')}</p>}
         <div className="admission-actions">{actionButtons.filter(a=>allowed(a.action)).map(a=><button key={a.form} className={a.form==='invite'||a.form==='offer'?'admission-button':'admission-secondary'} disabled={mutation.busy||Boolean(mutation.pending)} onClick={()=>setForm(form===a.form?null:a.form)} aria-expanded={form===a.form}>{c(a.label)}</button>)}</div>
         {form==='invite'&&group&&allowed('INVITE_SESSION')&&<SessionEditor group={group} choices={workspace.sessions} busy={mutation.busy} onCancel={()=>setForm(null)} onSubmit={session=>execute({action:'INVITE_SESSION',session})}/>}
         {form==='offer'&&allowed('OFFER')&&<OfferForm record={record} groups={workspace.groups} busy={mutation.busy} execute={execute} onClose={()=>setForm(null)}/>}

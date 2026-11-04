@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, StrictMode, useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -25,7 +25,7 @@ const fill = (birth: string) => {
     fireEvent.change(screen.getByLabelText('Choose a password'), { target: { value: 'Secret123' } });
 };
 
-beforeEach(() => { vi.clearAllMocks(); api.isAuthenticated = false; api.login.mockResolvedValue({ id: 2 }); forgetClaimedLink(); });
+beforeEach(() => { vi.clearAllMocks(); localStorage.removeItem('gk-session-id'); api.isAuthenticated = false; api.login.mockResolvedValue({ id: 2 }); forgetClaimedLink(); });
 afterEach(cleanup);
 
 it('shows who invited them to which job, and accepting sets the account up and opens My squads', async () => {
@@ -46,7 +46,7 @@ it('shows who invited them to which job, and accepting sets the account up and o
     expect(await screen.findByText('My squads page')).toBeInTheDocument();
     expect(api.post).toHaveBeenCalledWith('/auth/club-invite/claim', { token: 'abc.def', name: 'Luka Beridze', dateOfBirth: '1994-04-04', password: 'Secret123' });
     expect(api.login).toHaveBeenCalledWith('jwt');
-    expect(api.post).toHaveBeenCalledWith('/clubs/7/operations/appointments/9/transition', { status: 'ACTIVE', revision: 3 });
+    expect(api.post).toHaveBeenCalledWith('/clubs/7/operations/appointments/9/transition', { status: 'ACTIVE', revision: 3 }, { _authSessionId: null });
 });
 
 it('refuses an under-18 before any account is made: club jobs are for adults', async () => {
@@ -79,10 +79,11 @@ it('an expired link explains itself', async () => {
 });
 
 const usedLink = { isAxiosError: true, response: { status: 410, data: { code: 'used_token', detail: 'This invitation link has already been used.' } } };
-it('opened a second time, a used link asks a signed-out person to sign in, without calling it broken', async () => {
+it('a used link may also be a declined or replaced one: signed out, it offers sign-in and a new link without promising an account', async () => {
     api.post.mockRejectedValue(usedLink);
     open();
-    expect(await screen.findByRole('heading', { name: 'You already used this link' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'This link has been used' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Already set up your account? Sign in: your jobs are in your Inbox. If not, ask the club for a new link.');
     expect(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')).toContain('login');
 });
 it('opened a second time while signed in, a used link goes to the Inbox', async () => {
@@ -109,6 +110,54 @@ it('signing in remounts the app: the fresh page accepts the job once and never a
     expect(api.post).toHaveBeenCalledWith('/auth/club-invite/claim', { token: 'abc.def', name: 'Luka Beridze', dateOfBirth: '1990-01-01', password: 'Secret123', emailProof: 'mail.proof' });
     expect(api.post.mock.calls.filter(([url]) => url === '/auth/club-invite/preview')).toHaveLength(1);
     expect(api.post.mock.calls.filter(([url]) => url === '/clubs/7/operations/appointments/9/transition')).toHaveLength(1);
+});
+
+const signedInSession = () => {
+    const claim = async (url: string) => {
+        if (url === '/auth/club-invite/preview') return { data: preview };
+        if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test' } };
+        return { data: { accessToken: 'jwt' } };
+    };
+    const Session = () => { const [session, setSession] = useState(0); return <><button type="button" onClick={() => setSession(next => next + 1)}>New session</button><Fragment key={session}>{routes}</Fragment></>; };
+    api.login.mockImplementation(async () => { api.isAuthenticated = true; fireEvent.click(screen.getByRole('button', { name: 'New session' })); });
+    return { claim, Session };
+};
+const refusedByEmail = { isAxiosError: true, response: { status: 403, data: { code: 'EMAIL_CONFIRMATION_REQUIRED', action: 'JOB', jobTitle: 'Assistant coach', resendPath: '/auth/send-verification' } } };
+
+it('reopened while the job is being accepted, the page on screen shows how it ended, with one acceptance sent', async () => {
+    const { claim, Session } = signedInSession();
+    let refuse!: (failure: unknown) => void;
+    api.post.mockImplementation((url: string) => url.includes('/transition') ? new Promise((_, reject) => { refuse = reject; }) : claim(url));
+    render(<StrictMode><MemoryRouter initialEntries={['/club-invite?token=abc.def']}><Session /></MemoryRouter></StrictMode>);
+    await screen.findByRole('heading', { name: 'Nino invited you' });
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url.includes('/transition'))).toHaveLength(1));
+    // Away and back: another fresh page, while the first answer is still on its way.
+    fireEvent.click(screen.getByRole('button', { name: 'New session' }));
+    expect(await screen.findByText('Setting up your job…')).toBeInTheDocument();
+    refuse(refusedByEmail);
+    expect(await screen.findByText('Confirm your email to start as Assistant coach · U12')).toBeInTheDocument();
+    expect(api.post.mock.calls.filter(([url]) => url.includes('/transition'))).toHaveLength(1);
+});
+
+it('stops accepting when the session ends, so the next job is never sent under whoever signs in next', async () => {
+    const { claim, Session } = signedInSession();
+    const two = { ...preview, invites: [preview.invites[0], { ...preview.invites[0], id: 10, title: 'Team manager', job: 'TEAM_MANAGER' }] };
+    let refuse!: (failure: unknown) => void;
+    api.post.mockImplementation((url: string) => {
+        if (url === '/auth/club-invite/preview') return Promise.resolve({ data: two });
+        return url.includes('/transition') ? new Promise((_, reject) => { refuse = reject; }) : claim(url);
+    });
+    render(<MemoryRouter initialEntries={['/club-invite?token=abc.def']}><Session /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Nino invited you' });
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url.includes('/transition'))).toHaveLength(1));
+    localStorage.setItem('gk-session-id', 'somebody-else');
+    refuse({ code: 'AUTH_SESSION_CHANGED' });
+    expect(await screen.findByText('Inbox page')).toBeInTheDocument();
+    expect(api.post.mock.calls.filter(([url]) => url.includes('/transition'))).toHaveLength(1);
 });
 
 it('once the link is used, a failed sign-in goes to sign-in instead of trying the used link again', async () => {

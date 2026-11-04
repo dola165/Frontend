@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { landingFor, type LinkInvite } from './inviteLinkApi';
+import { jobHome, landingFor, type LinkInvite } from './inviteLinkApi';
 
 const invite = (over: Partial<LinkInvite>): LinkInvite => ({ kind: 'APPOINTMENT', id: 1, revision: null, clubId: 4, clubName: 'Dinamo', clubLogoUrl: null,
     invitedBy: 'Levan', job: 'HEAD_COACH', title: 'Head coach', clubWide: false, squads: ['U12'], unavailableReason: null, ...over });
@@ -21,7 +21,13 @@ describe('Where an invite link lands', () => {
     it('keeps helpers out of job routing and never borrows the first helper’s club', () => {
         expect(landingFor([invite({ kind: 'PROJECT_HELPER', clubId: 99 }), invite({ job: 'FINANCE_OFFICER' })])).toBe('/clubs/4/work');
         expect(landingFor([invite({ kind: 'HELPER', clubId: 99 }), invite({ kind: 'MEMBERSHIP', job: 'ADMIN' })])).toBe('/clubs/4/office');
-        expect(landingFor([invite({}), invite({ clubId: 5 })])).toBe('/requests?view=updates');
+        expect(landingFor([invite({}), invite({ clubId: 5 })])).toBe('/requests?view=needs-you');
         expect(landingFor([])).toBe('/home');
+    });
+    it.each(['HEAD_COACH', 'ASSISTANT_COACH', 'TEAM_MANAGER', 'HEAD_OF_COACHING', 'TRAVEL_COORDINATOR', 'SPECIALIST_COACH', 'GOALKEEPER_COACH', 'STRENGTH_CONDITIONING', 'COACH'])('%s starts in My squads', job => {
+        expect(jobHome(4, job)).toBe('/my-squads');
+    });
+    it.each(['REHABILITATION_COACH', 'EQUIPMENT_MANAGER', 'PHYSIOTHERAPIST'])('%s is on no squad, so starts at the club', job => {
+        expect(jobHome(4, job)).toBe('/clubs/4/work');
     });
 });

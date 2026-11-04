@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { otherClubOf } from './api';
 import { OtherClubNotice } from './OtherClubNotice';
 
 /**
  * Where a staff job is accepted: `catchOther(failure, retry)` takes a STAFF_OF_ANOTHER_CLUB refusal (true when it
  * did) and `notice` shows "Leave {club} first" with the leave flow; once left, `retry` runs the accept again.
+ * `forget` drops it when the person moves on to something else.
  */
 export function useOtherClub() {
     const [pending, setPending] = useState<{ club: { clubId: number; name: string }; retry: () => void } | null>(null);
+    const forget = useCallback(() => setPending(null), []);
     const catchOther = (failure: unknown, retry: () => void) => {
         const club = otherClubOf(failure);
         if (!club) return false;
@@ -15,5 +17,5 @@ export function useOtherClub() {
         return true;
     };
     const notice = pending ? <OtherClubNotice club={pending.club} onLeft={() => { const retry = pending.retry; setPending(null); retry(); }} /> : null;
-    return { catchOther, notice };
+    return { catchOther, notice, forget };
 }

@@ -9,18 +9,15 @@ import { OtherClubNotice } from '../features/clubOperations/leaving/OtherClubNot
 import { confirmationJobTitle, needsConfirmedEmail } from '../components/auth/emailConfirmation';
 import { EmailWait, HelperEmailWait } from '../components/auth/EmailWait';
 import { useJobWords } from '../features/clubOperations/people/jobWords';
-import { acceptClubInvite, claimClubInvite, claimedLink, declineClubInvite, forgetClaimedLink, landingFor, previewClubInvite, rememberClaimedLink, signInAfterClaim, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
+import { acceptClubInvite, claimClubInvite, claimedLink, declineClubInvite, forgetClaimedLink, INBOX, landingFor, previewClubInvite, rememberClaimedLink, signInAfterClaim, type AcceptOutcome, type ClubInvitePreview, type LinkInvite } from '../features/clubOperations/people/inviteLinkApi';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import { buildLoginPath } from '../utils/authRedirect';
+import { getAuthSessionId, isCurrentAuthSession } from '../utils/authStorage';
 import '../features/clubOperations/people/club-invite.css';
 
-/** `helping`: what a new helper sees once their email is confirmed (a project by name, or their session). */
-type HelpingWait = { what: string | null; session: boolean; next: string };
 type Stage = { kind: 'loading' } | { kind: 'accepting' } | { kind: 'broken'; message: string; used?: boolean } | { kind: 'ready'; preview: ClubInvitePreview } | { kind: 'declined' }
-    | { kind: 'partly'; failures: string[]; next: string; waitsOnEmail: string | null; helping: HelpingWait | null; other: { clubId: number; name: string } | null; blocked: LinkInvite[] };
-
-const INBOX = '/requests?view=needs-you';
+    | ({ kind: 'partly' } & AcceptOutcome);
 
 /**
  * The page a club invite link opens: "Nino invited you: Assistant coach · U12" with the club's crest. The person
@@ -55,9 +52,9 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
             .catch(failure => {
                 if (controller.signal.aborted) return;
                 if (extractApiErrorCode(failure) !== 'used_token') setStage({ kind: 'broken', message: extractApiErrorMessage(failure, copy('This invitation link doesn’t work any more. Ask the club for a new one.', 'ეს ბმული აღარ მუშაობს. სთხოვეთ კლუბს ახალი.')) });
-                // Opened a second time: whoever set the account up finds the job in their Inbox.
+                // Claimed, declined or replaced by a newer link: the server doesn't say which, so this promises none of them.
                 else if (isAuthenticated) navigate(INBOX, { replace: true });
-                else setStage({ kind: 'broken', used: true, message: copy('Sign in: your invitation is waiting in your Inbox.', 'შედით: მოწვევა შემოსულებში გელოდებათ.') });
+                else setStage({ kind: 'broken', used: true, message: copy('Already set up your account? Sign in: your jobs are in your Inbox. If not, ask the club for a new link.', 'ანგარიში უკვე შექმენით? შედით: სამუშაო შემოსულებშია. თუ არა, სთხოვეთ კლუბს ახალი ბმული.') });
             });
         return () => controller.abort();
     }, [token, copy, isAuthenticated, navigate]);
@@ -86,21 +83,25 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
                 .catch(() => null);
             if (!accessToken) { forgetClaimedLink(); navigate(buildLoginPath(INBOX), { replace: true }); return; }
             // Signing in replaced this page with a fresh one, which carries on; a page still here does it itself.
-            if (mounted.current) carryOn();
+            if (mounted.current) { setStage({ kind: 'accepting' }); void carryOn()?.then(outcome => { if (mounted.current) show(outcome); }); }
         } catch (failure) {
             setError(extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ თავიდან.')));
         } finally { sending.current = false; setBusy(false); }
     };
     /**
      * Accepts each job the normal way; also the retry once the person has left the club they were staff at. Right after
-     * claiming from a link passed on by hand, a helper's project or session waits on the email the claim sent.
+     * claiming from a link passed on by hand, a helper's project or session waits on the email the claim sent. Stops if
+     * the session it started in ends, so nothing runs under whoever signs in next.
      */
-    const acceptAll = useCallback(async (invites: LinkInvite[], helperWaits = false) => {
+    const acceptAll = useCallback(async (invites: LinkInvite[], helperWaits = false): Promise<AcceptOutcome | null> => {
+        const session = getAuthSessionId();
         const failures: string[] = [], accepted: LinkInvite[] = [], blocked: LinkInvite[] = [];
         let waitsOnEmail: string | null = null, other: { clubId: number; name: string } | null = null;
         for (const invite of invites) {
-            try { await acceptClubInvite(invite); accepted.push(invite); }
+            if (!isCurrentAuthSession(session)) return null;
+            try { await acceptClubInvite(invite, session); accepted.push(invite); }
             catch (failure) {
+                if (!isCurrentAuthSession(session)) return null;
                 const club = otherClubOf(failure);
                 // A new account confirms its email before starting a job; the job waits in the notifications meanwhile.
                 if (needsConfirmedEmail(failure)) waitsOnEmail ??= invite.squads.length ? `${jobLabel(invite)} · ${invite.squads.join(', ')}` : confirmationJobTitle(failure) ?? jobLabel(invite);
@@ -114,22 +115,34 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
         const helping = helperWaits && helped.length ? { what: projects.length === 1 && helped.length === 1 ? projects[0].title : null,
             session: !projects.length, next: landingFor(helped) } : null;
         const next = !accepted.length && (waitsOnEmail || other) ? INBOX : landingFor(accepted);
-        if (failures.length || waitsOnEmail || helping || other) setStage({ kind: 'partly', failures, next, waitsOnEmail, helping, other, blocked });
-        else navigate(next, { replace: true });
-    }, [copy, jobLabel, navigate]);
-    /** Once signed in: accepts what the claim said yes to, once, whichever page gets here first. */
+        return { failures, next, waitsOnEmail, helping, other, blocked };
+    }, [copy, jobLabel]);
+    const show = useCallback((outcome: AcceptOutcome | null) => {
+        // The session ended midway: whoever is here now finds their own Inbox.
+        if (!outcome) navigate(INBOX, { replace: true });
+        else if (outcome.failures.length || outcome.waitsOnEmail || outcome.helping || outcome.other) setStage({ kind: 'partly', ...outcome });
+        else navigate(outcome.next, { replace: true });
+    }, [navigate]);
+    /** Once signed in: accepts what the claim said yes to, once. Every page that gets here waits on the same answer. */
     const carryOn = useCallback(() => {
         const link = claimedLink(token);
-        if (!link || link.started) return;
-        link.started = true;
-        setStage({ kind: 'accepting' });
-        void acceptAll(link.invites, !link.emailConfirmed).finally(forgetClaimedLink);
+        if (link) link.outcome ??= acceptAll(link.invites, !link.emailConfirmed).finally(forgetClaimedLink);
+        return link?.outcome;
     }, [token, acceptAll]);
+    const accepting = stage.kind === 'accepting';
     useEffect(() => {
         if (!resumed) return;
-        if (isAuthenticated) carryOn();
-        else if (claimedLink(token)) { forgetClaimedLink(); navigate(buildLoginPath(INBOX), { replace: true }); }
-    }, [resumed, isAuthenticated, carryOn, token, navigate]);
+        if (!isAuthenticated) {
+            if (claimedLink(token)) { forgetClaimedLink(); navigate(buildLoginPath(INBOX), { replace: true }); }
+            return;
+        }
+        const running = carryOn();
+        // Finished just as this page opened: its answer has gone, and the Inbox has the job.
+        if (!running) { if (accepting) navigate(INBOX, { replace: true }); return; }
+        let here = true;
+        void running.then(outcome => { if (here) show(outcome); });
+        return () => { here = false; };
+    }, [resumed, isAuthenticated, accepting, carryOn, show, token, navigate]);
     const decline = async () => {
         if (sending.current) return;
         sending.current = true; setBusy(true); setError('');
@@ -142,7 +155,7 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
     if (stage.kind === 'loading') return card(<p role="status" className="gk-muted">{copy('Opening your invitation…', 'მოწვევა იხსნება…')}</p>);
     if (stage.kind === 'accepting') return card(<p role="status" className="gk-muted">{copy('Setting up your job…', 'სამუშაო მზადდება…')}</p>);
     if (stage.kind === 'broken') return card(<>
-        <h1 className="ci-title">{stage.used ? copy('You already used this link', 'ეს ბმული უკვე გამოიყენეთ') : copy('This link can’t be used', 'ამ ბმულის გამოყენება შეუძლებელია')}</h1>
+        <h1 className="ci-title">{stage.used ? copy('This link has been used', 'ეს ბმული უკვე გამოყენებულია') : copy('This link can’t be used', 'ამ ბმულის გამოყენება შეუძლებელია')}</h1>
         <p role={stage.used ? 'status' : 'alert'} className={stage.used ? 'gk-muted' : 'gk-notice gk-notice--danger'}>{stage.message}</p>
         <Link className={`gk-btn ${stage.used ? 'gk-btn--primary' : 'gk-btn--secondary'}`} to={buildLoginPath(INBOX)}>{copy('Sign in', 'შესვლა')}</Link>
     </>);
@@ -152,7 +165,7 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
     </>);
     if (stage.kind === 'partly') return card(<>
         <h1 className="ci-title">{copy('Your account is ready', 'თქვენი ანგარიში მზადაა')}</h1>
-        {stage.other && <OtherClubNotice club={stage.other} onLeft={() => void acceptAll(stage.blocked)} />}
+        {stage.other && <OtherClubNotice club={stage.other} onLeft={() => void acceptAll(stage.blocked).then(show)} />}
         {stage.waitsOnEmail && <EmailWait title={copy(`Confirm your email to start as ${stage.waitsOnEmail}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${stage.waitsOnEmail}`)}
             hint={copy('Open the link we sent, then accept the job in your Inbox.', 'გახსენით გამოგზავნილი ბმული და მიიღეთ სამუშაო შემოსულებში.')}
             sentHint={copy('Sent. Open the link, then accept the job in your Inbox.', 'გაიგზავნა. გახსენით ბმული და მიიღეთ სამუშაო შემოსულებში.')} next={INBOX} />}

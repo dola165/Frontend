@@ -1,12 +1,13 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { RequestsCentre } from './RequestsCentre';
 import { requestDestination, requestTitle, eventDestination } from './api';
 import { apiClient } from '../../api/axiosConfig';
 import { RouteMetadata } from '../../components/layout/RouteMetadata';
 import i18n from '../../i18n';
 vi.mock('../clubOperations/PersonalClubWork', () => ({ StaffAppointments: () => null }));
+vi.mock('../clubOperations/leaving/OtherClubNotice', () => ({ OtherClubNotice: ({ club, onLeft }: { club: { name: string }; onLeft: () => void }) => <button type="button" onClick={onLeft}>Leave {club.name}</button> }));
 const auth = vi.hoisted(() => ({ sessionId: 'one', user: { id: 1 }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
@@ -114,6 +115,27 @@ it('accepts precise current-domain destinations and rejects malformed event dest
   expect(eventDestination({ kind: 'SCHEDULE', destination: '/calendar?eventId=1&next=evil' } as Parameters<typeof eventDestination>[0])).toBeNull();
 });
 
+it('staff at another club leave it from the Inbox, then the same invitation is accepted again', async () => {
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [invitation], total: 1 } });
+  vi.mocked(apiClient.post).mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { code: 'STAFF_OF_ANOTHER_CLUB', otherClubId: 3, otherClubName: 'Saburtalo' } } }).mockResolvedValueOnce({ data: { clubId: '4', role: 'COACH' } });
+  render(<MemoryRouter initialEntries={['/requests']}><Routes><Route path="/requests" element={<RequestsCentre />} /><Route path="/my-squads" element={<p>My squads page</p>} /></Routes></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Review invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Leave Saburtalo' }));
+  expect(await screen.findByText('My squads page')).toBeVisible();
+  expect(vi.mocked(apiClient.post).mock.calls.map(([url]) => url)).toEqual(['/club-memberships/invites/7/accept', '/club-memberships/invites/7/accept']);
+});
+it('closing the invitation drops the leave notice, so leaving later can’t accept it', async () => {
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [invitation], total: 1 } });
+  vi.mocked(apiClient.post).mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'STAFF_OF_ANOTHER_CLUB', otherClubId: 3, otherClubName: 'Saburtalo' } } });
+  render(<MemoryRouter><RequestsCentre /></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Review invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+  await screen.findByRole('button', { name: 'Leave Saburtalo' });
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Review invitation' }));
+  expect(screen.queryByRole('button', { name: 'Leave Saburtalo' })).toBeNull();
+});
 it('keeps an acceptance failure visible after automatic refresh and focus', async () => {
   vi.mocked(apiClient.get).mockResolvedValue({data:{...empty,items:[invitation],total:1}});
   vi.mocked(apiClient.post).mockRejectedValue({response:{data:{error:'This invitation has expired.'}}});

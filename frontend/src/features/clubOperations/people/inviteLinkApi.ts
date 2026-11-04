@@ -14,8 +14,19 @@ export interface ClubInvitePreview { email: string; invitedName: string | null; 
 export const previewClubInvite = async (token: string, signal?: AbortSignal) =>
     (await apiClient.post<ClubInvitePreview>('/auth/club-invite/preview', { token }, { signal })).data;
 
-export const claimClubInvite = async (claim: { token: string; name: string; dateOfBirth: string; password: string }) =>
-    (await apiClient.post<{ email: string; confirmationSent: boolean }>('/auth/club-invite/claim', claim)).data;
+/** `emailProof`: from the link in the invitation email, which confirms the address; a link passed on by hand has none. */
+export const claimClubInvite = async (claim: { token: string; name: string; dateOfBirth: string; password: string; emailProof?: string }) =>
+    (await apiClient.post<{ email: string; confirmationSent: boolean; emailConfirmed?: boolean }>('/auth/club-invite/claim', claim)).data;
+
+/**
+ * Signing in remounts the whole app under the new session (AuthSessionBoundary), so what the page still has to do after
+ * the claim can't live in the page. A full reload loses it: the link is used by then, and the job waits in the Inbox.
+ */
+interface ClaimedLink { token: string; invites: LinkInvite[]; emailConfirmed: boolean; started: boolean }
+let claimed: ClaimedLink | null = null;
+export const rememberClaimedLink = (link: Omit<ClaimedLink, 'started'>) => { claimed = { ...link, started: false }; };
+export const claimedLink = (token: string) => claimed?.token === token ? claimed : null;
+export const forgetClaimedLink = () => { claimed = null; };
 
 export const declineClubInvite = async (token: string) => (await apiClient.post<{ declined: number }>('/auth/club-invite/decline', { token })).data;
 
@@ -25,12 +36,23 @@ export const signInAfterClaim = async (email: string, password: string) => {
     return response.data?.twoFactorRequired || typeof response.data?.accessToken !== 'string' ? null : response.data.accessToken;
 };
 
-/** Current server permissions choose job destinations; a scoped appointment need not be a coaching job. */
+/** Coaches and team managers work with their squads. */
+export const squadJob = (job: string) => job === 'COACH' || job === 'TEAM_MANAGER' || job.endsWith('_COACH');
+const leading = (job: string) => job === 'ADMIN' || job === 'CLUB_ADMIN';
+
+/**
+ * Where a job starts: squad work in My squads, an Admin in Club office. Current server permissions choose the desk for
+ * any other job; a scoped appointment need not be a squad job.
+ */
+export const jobHome = (clubId: number, job: string) =>
+    squadJob(job) ? '/my-squads' : leading(job) ? `/clubs/${clubId}/office` : `/clubs/${clubId}/work`;
+
 export const landingFor = (accepted: LinkInvite[]) => {
     const jobs = accepted.filter(invite => invite.kind === 'APPOINTMENT' || invite.kind === 'MEMBERSHIP');
     const clubs = [...new Set(jobs.map(invite => invite.clubId))];
-    if (clubs.length > 1) return '/workspaces';
-    if (clubs.length === 1) return `/clubs/${clubs[0]}/${jobs.some(invite => invite.kind === 'APPOINTMENT') ? 'work' : 'office'}`;
+    // Jobs at two clubs have no one home: the Inbox shows both.
+    if (clubs.length > 1) return '/requests?view=updates';
+    if (clubs.length === 1) return jobHome(clubs[0], (jobs.find(invite => leading(invite.job)) ?? jobs.find(invite => squadJob(invite.job)) ?? jobs[0]).job);
     return accepted.length === 1 && accepted[0].kind === 'PROJECT_HELPER' ? `/projects/${accepted[0].id}` : '/home';
 };
 

@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { RequestsCentre } from './RequestsCentre';
-import { requestDestination, eventDestination } from './api';
+import { requestDestination, requestTitle, eventDestination } from './api';
 import { apiClient } from '../../api/axiosConfig';
 import { RouteMetadata } from '../../components/layout/RouteMetadata';
 import i18n from '../../i18n';
@@ -39,6 +39,13 @@ it('reviews terms before reusing the domain invitation command and refreshes cap
   expect(apiClient.post).toHaveBeenCalledWith('/club-memberships/invites/7/accept', {}, { _authSessionId: 'one' }); expect(auth.refreshNavigationCapabilities).toHaveBeenCalled();
 });
 it('warns when only part of the requests projection is available', async () => { vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, unavailableSources: ['family'] } }); render(<MemoryRouter><RequestsCentre /></MemoryRouter>); expect(await screen.findByRole('alert')).toHaveTextContent('Some request types are unavailable'); });
+it('a club row reads in football words and opens the Inbox', () => {
+    expect(requestTitle('Invited as Admin', (english, georgian) => `${english} / ${georgian}`)).toBe('Invited as Admin / მოწვევა: ადმინი');
+    expect(requestTitle('Job offer: Coach', (_, georgian) => georgian)).toBe('შეთავაზება: მწვრთნელი');
+    expect(requestTitle('Choose your squad', (_, georgian) => georgian)).toBe('Choose your squad');
+    expect(requestDestination('/requests?view=needs-you')).toBe('/requests?view=needs-you');
+    expect(requestDestination('/requests?view=needs-you&applicationId=12')).toBe('/requests?view=needs-you&applicationId=12');
+});
 it.each(['https://evil.test/requests', '//evil.test', '/account?next=https://evil.test', '/profile/1?representation=bad', '/account/%2e%2e', '/account?tab=profile&tab=security'])('rejects unsafe request destination %s', value => { expect(requestDestination(value)).toBeNull(); });
 it.each([
   '/clubs/1/office?tab=tools&tool=staff-duties&record=12',

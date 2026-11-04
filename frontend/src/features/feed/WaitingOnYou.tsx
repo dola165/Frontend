@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { HelperEmailWait } from '../../components/auth/EmailWait';
 import { needsConfirmedEmail } from '../../components/auth/emailConfirmation';
 import { isCurrentAuthSession, type AuthSessionId } from '../../utils/authStorage';
-import { requestDestination, type RequestItem } from '../requests/api';
+import { requestDestination, requestTitle, type RequestItem } from '../requests/api';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { answerHomeHelper, loadHomePending } from './homePendingApi';
 import { HomeJoinActions } from './HomeJoinActions';
@@ -62,7 +62,7 @@ function title(item: RequestItem, copy: ReturnType<typeof useJourneyCopy>) {
     if (item.family === 'SESSION_HELPER_WORK') return copy('Finish the session register', 'დაასრულეთ ვარჯიშის აღრიცხვა');
     if (item.family === 'MATCH_RESULT') return copy(item.title, item.actionLabel === 'CONFIRM' ? 'დაადასტურეთ შედეგი' : item.actionLabel === 'SETTLE' ? 'გადაწყვიტეთ შედეგი' : 'შეიყვანეთ შედეგი');
     if (['SESSION_HELPER', 'PROJECT_HELPER'].includes(item.family)) return copy('Invitation to help', 'დახმარების მოწვევა');
-    return item.title;
+    return requestTitle(item.title, copy);
 }
 
 function HelperAnswer({ item, session, changed }: { item: RequestItem; session: AuthSessionId; changed: () => void }) {

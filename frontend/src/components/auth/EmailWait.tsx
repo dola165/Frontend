@@ -6,8 +6,8 @@ import './email-wait.css';
 
 /**
  * What waits on a new account's email, with Resend: "Confirm your email to start as Assistant coach", or for a helper
- * "Confirm your email to see New kit for U12". Claiming an invite link confirms nothing (it travels by WhatsApp), so
- * the email goes out on claim; Resend sends a new one whose link continues to `next`.
+ * "Confirm your email to see New kit for U12". An invite link passed on by hand confirms nothing (only the one in the
+ * invitation email does), so the email goes out on claim; Resend sends a new one whose link continues to `next`.
  */
 export function EmailWait({ title, hint, sentHint, next }: { title: string; hint: string; sentHint: string; next?: string }) {
     const copy = useJourneyCopy();

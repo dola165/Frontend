@@ -1,31 +1,34 @@
+import { Fragment, useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ClubInvitePage } from './ClubInvitePage';
+import { forgetClaimedLink } from '../features/clubOperations/people/inviteLinkApi';
 
-const api = vi.hoisted(() => ({ post: vi.fn(), login: vi.fn() }));
+const api = vi.hoisted(() => ({ post: vi.fn(), login: vi.fn(), isAuthenticated: false }));
 vi.mock('../api/axiosConfig', () => ({ apiClient: { post: api.post }, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ loginWithAccessToken: api.login }) }));
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ loginWithAccessToken: api.login, isAuthenticated: api.isAuthenticated }) }));
 
 const preview = {
     email: 'luka@example.test', invitedName: 'Luka Beridze', hasPassword: false,
     invites: [{ kind: 'APPOINTMENT', id: 9, revision: 3, clubId: 7, clubName: 'FC Dinamo Tbilisi Academy', clubLogoUrl: null, invitedBy: 'Nino', job: 'ASSISTANT_COACH', title: 'Assistant coach', clubWide: false, squads: ['U12'], unavailableReason: null }],
 };
-const open = () => render(<MemoryRouter initialEntries={['/club-invite?token=abc.def']}><Routes>
+const routes = <Routes>
     <Route path="/club-invite" element={<ClubInvitePage />} />
-    <Route path="/clubs/7/work" element={<p>Your club workspaces</p>} />
+    <Route path="/my-squads" element={<p>My squads page</p>} />
+    <Route path="/requests" element={<p>Inbox page</p>} />
     <Route path="/login" element={<p>Sign-in page</p>} />
-</Routes></MemoryRouter>);
+</Routes>;
+const open = (link = '/club-invite?token=abc.def') => render(<MemoryRouter initialEntries={[link]}>{routes}</MemoryRouter>);
 const fill = (birth: string) => {
     fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: birth } });
     fireEvent.change(screen.getByLabelText('Choose a password'), { target: { value: 'Secret123' } });
-    fireEvent.change(screen.getByLabelText('Password again'), { target: { value: 'Secret123' } });
 };
 
-beforeEach(() => { vi.clearAllMocks(); api.login.mockResolvedValue({ id: 2 }); });
+beforeEach(() => { vi.clearAllMocks(); api.isAuthenticated = false; api.login.mockResolvedValue({ id: 2 }); forgetClaimedLink(); });
 afterEach(cleanup);
 
-it('shows who invited them to which job, and accepting sets the account up and opens their club workspaces', async () => {
+it('shows who invited them to which job, and accepting sets the account up and opens My squads', async () => {
     api.post.mockImplementation(async (url: string) => {
         if (url === '/auth/club-invite/preview') return { data: preview };
         if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test' } };
@@ -40,7 +43,7 @@ it('shows who invited them to which job, and accepting sets the account up and o
 
     fill('1994-04-04');
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-    expect(await screen.findByText('Your club workspaces')).toBeInTheDocument();
+    expect(await screen.findByText('My squads page')).toBeInTheDocument();
     expect(api.post).toHaveBeenCalledWith('/auth/club-invite/claim', { token: 'abc.def', name: 'Luka Beridze', dateOfBirth: '1994-04-04', password: 'Secret123' });
     expect(api.login).toHaveBeenCalledWith('jwt');
     expect(api.post).toHaveBeenCalledWith('/clubs/7/operations/appointments/9/transition', { status: 'ACTIVE', revision: 3 });
@@ -69,10 +72,43 @@ it('declining asks once and tells the club', async () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/club-invite/decline', { token: 'abc.def' }));
 });
 
-it('a used or expired link explains itself', async () => {
-    api.post.mockRejectedValue({ isAxiosError: true, response: { status: 400, data: { detail: 'This invitation link has expired. Ask the club for a new one.' } } });
+it('an expired link explains itself', async () => {
+    api.post.mockRejectedValue({ isAxiosError: true, response: { status: 410, data: { code: 'expired_token', detail: 'This invitation link has expired. Ask the club for a new one.' } } });
     open();
     expect(await screen.findByRole('alert')).toHaveTextContent('This invitation link has expired');
+});
+
+const usedLink = { isAxiosError: true, response: { status: 410, data: { code: 'used_token', detail: 'This invitation link has already been used.' } } };
+it('opened a second time, a used link asks a signed-out person to sign in, without calling it broken', async () => {
+    api.post.mockRejectedValue(usedLink);
+    open();
+    expect(await screen.findByRole('heading', { name: 'You already used this link' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')).toContain('login');
+});
+it('opened a second time while signed in, a used link goes to the Inbox', async () => {
+    api.isAuthenticated = true;
+    api.post.mockRejectedValue(usedLink);
+    open();
+    expect(await screen.findByText('Inbox page')).toBeInTheDocument();
+});
+
+it('signing in remounts the app: the fresh page accepts the job once and never asks about the used link', async () => {
+    api.post.mockImplementation(async (url: string) => {
+        if (url === '/auth/club-invite/preview') return { data: preview };
+        if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test', confirmationSent: false, emailConfirmed: true } };
+        if (url === '/auth/login') return { data: { accessToken: 'jwt' } };
+        return { data: {} };
+    });
+    const Session = () => { const [session, setSession] = useState(0); return <><button type="button" onClick={() => setSession(next => next + 1)}>New session</button><Fragment key={session}>{routes}</Fragment></>; };
+    api.login.mockImplementation(async () => { api.isAuthenticated = true; fireEvent.click(screen.getByRole('button', { name: 'New session' })); });
+    render(<MemoryRouter initialEntries={['/club-invite?token=abc.def&proof=mail.proof']}><Session /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Nino invited you' });
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    expect(await screen.findByText('My squads page')).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith('/auth/club-invite/claim', { token: 'abc.def', name: 'Luka Beridze', dateOfBirth: '1990-01-01', password: 'Secret123', emailProof: 'mail.proof' });
+    expect(api.post.mock.calls.filter(([url]) => url === '/auth/club-invite/preview')).toHaveLength(1);
+    expect(api.post.mock.calls.filter(([url]) => url === '/clubs/7/operations/appointments/9/transition')).toHaveLength(1);
 });
 
 it('once the link is used, a failed sign-in goes to sign-in instead of trying the used link again', async () => {
@@ -101,9 +137,9 @@ it('after claiming, a job that waits on the email says "Confirm your email to st
     await screen.findByRole('heading', { name: 'Nino invited you' });
     fill('1990-01-01');
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-    expect(await screen.findByText('Confirm your email to start as Assistant coach')).toBeInTheDocument();
+    expect(await screen.findByText('Confirm your email to start as Assistant coach · U12')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification', { continuationPath: '/requests?view=updates' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification', { continuationPath: '/requests?view=needs-you' }));
     expect(await screen.findByText(/Sent. Open the link/)).toBeInTheDocument();
 });
 
@@ -123,4 +159,22 @@ it('after claiming a project helper’s link, says "Confirm your email to see �
     fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
     // The new email's link opens the project once confirmed.
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/send-verification', { continuationPath: '/projects/12' }));
+});
+
+it('a helper whose emailed link proved the address sees the project at once, with no email to wait for', async () => {
+    const helper = { ...preview, invites: [{ ...preview.invites[0], kind: 'PROJECT_HELPER', id: 12, revision: null, job: 'PROJECT_HELPER', title: 'New kit for U12', squads: [] }] };
+    api.post.mockImplementation(async (url: string) => {
+        if (url === '/auth/club-invite/preview') return { data: helper };
+        if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test', confirmationSent: false, emailConfirmed: true } };
+        if (url === '/auth/login') return { data: { accessToken: 'token' } };
+        return { data: {} };
+    });
+    render(<MemoryRouter initialEntries={['/club-invite?token=abc.def&proof=mail.proof']}><Routes>
+        <Route path="/club-invite" element={<ClubInvitePage />} />
+        <Route path="/projects/12" element={<p>The project</p>} />
+    </Routes></MemoryRouter>);
+    await screen.findByText('On a project · New kit for U12');
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    expect(await screen.findByText('The project')).toBeInTheDocument();
 });

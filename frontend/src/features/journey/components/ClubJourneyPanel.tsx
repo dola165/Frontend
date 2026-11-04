@@ -1,11 +1,10 @@
 import { RecruitmentInbox } from '../../recruitment/RecruitmentApplication';
-import { useOtherClub } from '../../clubOperations/leaving/useOtherClub';
 import { formatDate } from '../../../utils/formatting';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, CalendarDays, Check, Loader2, Mail, ShieldAlert, Users, X } from 'lucide-react';
-import { acceptClubInvitation, declineClubInvitation, fetchClubJourney } from '../../clubs/api';
+import { ArrowUpRight, CalendarDays, Loader2, Mail, ShieldAlert, Users } from 'lucide-react';
+import { fetchClubJourney } from '../../clubs/api';
 import type { ClubJourney } from '../../clubs/domain';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { recruitmentStatusKey, useRecruitmentCopy } from '../../../locales/recruitmentDesign';
@@ -15,21 +14,18 @@ import { useAuth } from '../../../context/AuthContext';
 import { OrganizationInvitationInbox } from '../../organizations/setup/OrganizationInvitationInbox';
 import { ClubRelationships } from './ClubRelationships';
 import { isCurrentAuthSession } from '../../../utils/authStorage';
-import { emitNotificationsChanged } from '../../../utils/notifications';
+import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
-/** The player's applications, invitations and club affiliations, with their existing next actions. */
+/** The player's applications and club affiliations; an invitation is answered in the Inbox. */
 const ClubJourneyContent = () => {
-    const { sessionId, refreshNavigationCapabilities } = useAuth();
+    const { sessionId } = useAuth();
     const { t } = useTranslation();
+    const copy = useJourneyCopy();
     const r = useRecruitmentCopy();
     const navigate = useNavigate();
     const [journey, setJourney] = useState<ClubJourney | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
-    const [busyKey, setBusyKey] = useState<string | null>(null);
-    const actionLock = useRef(false);
-    const other = useOtherClub();
     const mounted = useRef(false);
     const latestLoad = useRef(0);
 
@@ -54,25 +50,6 @@ const ClubJourneyContent = () => {
         return () => { mounted.current = false; controller.abort(); window.clearInterval(timer); window.removeEventListener('requests-updated', refresh); window.removeEventListener('focus', refresh); window.removeEventListener('online', refresh); };
     }, [load]);
 
-    const runAction = async (key: string, action: () => Promise<unknown>) => {
-        if (actionLock.current || !isCurrentAuthSession(sessionId)) return;
-        actionLock.current = true;
-        setBusyKey(key);
-        setError(null);
-        try {
-            await action();
-            if (!mounted.current || !isCurrentAuthSession(sessionId)) return;
-            window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
-            await refreshNavigationCapabilities().catch(() => { if (mounted.current && isCurrentAuthSession(sessionId)) setError('Your response was saved. Reload to refresh your navigation.'); });
-        } catch (err) {
-            // Staff means one club: "Leave {club} first", then accept again.
-            if (mounted.current && isCurrentAuthSession(sessionId) && other.catchOther(err, () => void runAction(key, action))) return;
-            if (mounted.current && isCurrentAuthSession(sessionId)) {
-                setError(extractApiErrorMessage(err, 'Request failed.'));
-                window.dispatchEvent(new Event('requests-updated')); emitNotificationsChanged();
-            }
-        } finally { actionLock.current = false; if (mounted.current && isCurrentAuthSession(sessionId)) setBusyKey(null); }
-    };
     const statusLabel = (status: string) => {
         if (status === 'ACTIVE') return t('journey.member');
         if (status === 'TRIALIST') return t('journey.onTrial');
@@ -81,7 +58,7 @@ const ClubJourneyContent = () => {
     };
 
     if (loading) return <div className="flex items-center justify-center py-8" role="status"><Loader2 className="h-6 w-6 animate-spin text-[var(--fc-accent)]" /></div>;
-    if ((error || loadError) && !journey) return <div className="squad-design recruitment-design sd-empty" role="alert"><p>{error || loadError}</p><button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button></div>;
+    if (loadError && !journey) return <div className="squad-design recruitment-design sd-empty" role="alert"><p>{loadError}</p><button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button></div>;
     if (!journey) return null;
 
     const pills = [
@@ -96,14 +73,11 @@ const ClubJourneyContent = () => {
 
     return <div className="squad-design recruitment-design rc-journey">
         <header className="sd-heading"><div><span className="sd-eyebrow">{r('recruitment')}</span><h2>{r('journey')}</h2><p>{r('journeyIntro')}</p></div></header>
-        {other.notice}
-        {(error || loadError) && <p role="alert" className="text-xs text-[var(--fc-state-danger)]">{error || loadError} {loadError && <button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button>}</p>}
+        {loadError && <p role="alert" className="text-xs text-[var(--fc-state-danger)]">{loadError} <button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button></p>}
         <div className="rc-journey-counts">{pills.map((pill) => <span key={pill.label}>{pill.label} · {pill.count}</span>)}</div>
         {!hasActivity && <div className="sd-empty"><Users size={28} /><p>{t('journey.empty')}</p><button type="button" className="sd-button" onClick={() => navigate('/map')}>{t('journey.browseClubs')}<ArrowUpRight size={14} /></button></div>}
 
-        {journey.invitations.length > 0 && <section className="rc-journey-section"><h3>{t('journey.invitations')}</h3>{journey.invitations.map((invite) => <article key={invite.inviteId} className="sd-panel rc-journey-card rc-journey-invite">
-            <small>{r('invitationNext')}</small><div className="rc-journey-card-row"><div className="rc-journey-card-main"><h4>{invite.clubName}</h4><p>{t('journey.inviteRole', { role: t('recruitmentDesign.' + invite.role, { defaultValue: invite.role ?? '' }) })}</p>{invite.expiresAt && <p>{r('inviteExpires', { date: formatDate(invite.expiresAt) })}</p>}</div><div className="rc-actions"><button type="button" className="sd-primary" disabled={busyKey != null || loadError != null} onClick={() => void runAction(`invite-accept-${invite.inviteId}`, () => acceptClubInvitation(invite.inviteId, { _authSessionId: sessionId }))}>{busyKey === `invite-accept-${invite.inviteId}` ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}{t('journey.acceptInvite')}</button><button type="button" className="sd-button" disabled={busyKey != null || loadError != null} onClick={() => void runAction(`invite-decline-${invite.inviteId}`, () => declineClubInvitation(invite.inviteId, { _authSessionId: sessionId }))}><X size={13} />{t('journey.declineInvite')}</button></div></div><p>{r('invitationHint')}</p>{viewClub(invite.clubId)}
-        </article>)}</section>}
+        {journey.invitations.length > 0 && <section className="rc-journey-section"><h3>{t('journey.invitations')}</h3><Link className="rc-link" to="/requests?view=needs-you">{copy('Answer in your Inbox', 'უპასუხეთ შემოსულებში')}<ArrowUpRight size={13} /></Link></section>}
 
         {journey.affiliations.length > 0 && <section className="rc-journey-section"><h3>{r('yourClubs')}</h3>{journey.affiliations.map((affiliation) => <article key={`${affiliation.clubId}-${affiliation.status}`} className="sd-panel rc-journey-card">
             <div className="rc-journey-card-row"><div className="rc-journey-card-main"><h4>{affiliation.clubName}</h4><p>{[affiliation.squadName, affiliation.trialEndsOn ? `${t('journey.trialEnds')} ${formatDate(affiliation.trialEndsOn)}` : null].filter(Boolean).join(' · ')}</p></div><span className="rc-status" data-status={affiliation.status}>{statusLabel(affiliation.status)}</span></div>

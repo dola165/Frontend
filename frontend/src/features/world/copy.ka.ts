@@ -423,7 +423,7 @@ export const WORLD_KA: Record<string, string> = {
     'Jan': 'იან', 'Feb': 'თებ', 'Mar': 'მარ', 'Apr': 'აპრ', 'May': 'მაი', 'Jun': 'ივნ', 'Jul': 'ივლ', 'Aug': 'აგვ', 'Sep': 'სექ', 'Sept': 'სექ', 'Oct': 'ოქტ', 'Nov': 'ნოე', 'Dec': 'დეკ',
     'Plan your match day': 'დაგეგმეთ მატჩის დღე', 'Match day': 'მატჩის დღე',
     '{minutes} minutes · {timezone}': '{minutes} წუთი · {timezone}',
-    'Squad schedule': 'გუნდის განრიგი', 'The kick-off shows once the match is agreed': 'მატჩის დრო გამოჩნდება შეთანხმების შემდეგ', 'The ground shows once the match is agreed': 'მოედანი გამოჩნდება შეთანხმების შემდეგ', 'Ground to be arranged': 'მოედანი შესათანხმებელია',
+    'Squad schedule': 'გუნდის განრიგი', 'The kick-off is for the clubs and families playing': 'მატჩის დრო მხოლოდ მოთამაშე კლუბებისა და ოჯახებისთვისაა', 'The ground is for the clubs and families playing': 'მოედანი მხოლოდ მოთამაშე კლუბებისა და ოჯახებისთვისაა', 'The ground shows once the match is agreed': 'მოედანი გამოჩნდება შეთანხმების შემდეგ', 'Ground to be arranged': 'მოედანი შესათანხმებელია',
     'Reserved': 'დაჯავშნილია', 'Reservation waiting for the venue': 'ჯავშანი მოედნის პასუხს ელის',
     'Reservation request expired; the venue has not released it yet': 'ჯავშნის მოთხოვნას ვადა გაუვიდა; მოედანს ის ჯერ არ გაუუქმებია',
     'Reservation {status}': 'ჯავშანი: {status}', 'Confirmed with the ground owner': 'დადასტურებულია მოედნის მფლობელთან',

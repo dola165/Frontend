@@ -5,7 +5,7 @@ import { ResultSummary } from '../../matchHistory/ResultSummary';
 import { opponentName, type Match } from '../api';
 import type { ScoreSummary } from '../../scores/api';
 import { useWorldCopy } from '../../world/copy';
-import { fixtureState, kickoffDay, kickoffTime } from './matchState';
+import { fixtureState, hiddenDays, kickoffDay, kickoffTime } from './matchState';
 
 function Team({ name, squad, logo, clubId, align }: { name: string; squad?: string | null; logo?: string | null; clubId?: number | null; align: 'home' | 'away' }) {
     const body = <><Crest src={logo} name={name} size={56} /><span className="gk-match-band__name"><strong>{name}</strong>{squad && <span>{squad}</span>}</span></>;
@@ -26,7 +26,7 @@ export function FixtureBand({ match: m, summary, invitedClub, now }: { match: Ma
             <div className="gk-match-band__centre">
                 {scored || (summary && ended)
                     ? <ResultSummary homeScore={summary.homeScore} awayScore={summary.awayScore} status={summary.status} legacy={summary.legacy} fixtureStatus={summary.fixtureStatus} reported={summary.reported} disputed={summary.disputed} scorePrivate={summary.scorePrivate} ended={ended} compact />
-                    : <><span className="gk-match-band__time gk-num">{kickoffTime(m)}</span><span className="gk-match-band__day">{kickoffDay(m)}</span></>}
+                    : <><span className="gk-match-band__time gk-num">{kickoffTime(m)}</span><span className="gk-match-band__day">{m.time_hidden ? hiddenDays(m) : kickoffDay(m)}</span></>}
                 {/* A past match added afterwards says whose record it is (owner, 29 October 2026). */}
                 <Badge tone={m.origin === 'PAST' ? 'neutral' : state.tone}>{m.origin === 'PAST' ? `${t('Added by')} ${m.club_name}` : t(state.label)}</Badge>
             </div>

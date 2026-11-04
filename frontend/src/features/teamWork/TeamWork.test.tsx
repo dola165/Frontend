@@ -40,7 +40,7 @@ const steps = [item(11, 'Founders’ design', 'LIVE', 100, { parentId: 1 }), ite
 const started = (author: api.Person) => ({ id: 99, author, at: twoDaysAgo, message: 'Started' });
 const view = (tasks: api.WorkNode[], extra: Partial<api.PlanView> = {}): api.PlanView => ({
     plan: plan(5, 'October work'), tasks, steps: [], changes: [{ id: 1, author: beqa, at: now, message: 'Added Branding and landing' }, started(beqa)], purposeChanges: [],
-    trail: [], team, canManageTeam: true, ...extra,
+    trail: [], team, canManageTeam: true, media: [], ...extra,
 });
 const october = view([{ item: branding, steps }, { item: item(2, 'Registration', 'BLOCKED', 30, { step: 'Waiting for email provider', people: [gio] }), steps: [] },
     { item: item(3, 'Save button on phones', 'PLANNED', 0, { small: true }), steps: [] }]);

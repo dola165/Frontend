@@ -169,7 +169,7 @@ export function TeamWorkPage() {
     else if (place === 'ideas') main = <IdeasPage ideas={ideas} waiting={waiting} {...findingProps} />;
     else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} onIdeas={() => go('ideas')} />;
     else if (view) main = <PlanPage view={view} items={items} views={views} planOf={planOf} lines={lines} revision={revision} task={task} actions={actions} onBack={() => set({ plan: null, step: null, task: null })}
-        onChangePlan={change => void savePlan(view, change)} onDetach={child => void detach(view, child)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} onOpenPlan={openPlan} />;
+        onChangePlan={change => void savePlan(view, change)} onViewChanged={keep} onDetach={child => void detach(view, child)} onAdd={parent => startAdding(view, parent)} onDialog={setDialog} onOpenPlan={openPlan} />;
     else main = <Overview items={items} findings={findings} plans={plans} views={views} planOf={planOf} team={team} lines={lines} me={me} revision={revision} task={task} actions={actions} starting={starting}
         onAddTask={() => startAdding()} onNewPlan={() => setDialog('new')} onOpenPlan={openPlan} onLoadStarter={() => void loadStarter()} onChanged={reload} />;
 

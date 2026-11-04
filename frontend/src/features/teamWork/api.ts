@@ -74,7 +74,7 @@ export const openCount = (plan: Plan) => plan.taskCount - plan.done - (plan.canc
 export interface PlanChange { id: number; author: Person | null; at: string; message: string; byDola?: boolean }
 export interface WorkNode { item: WorkItem; steps: WorkItem[] }
 /** A plan opened: its tasks, the plans that are its steps (in order), its history and how its purpose changed. */
-export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
+export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean; media?: WorkMedia[] }
 /**
  * Someone on the team, with their one-line responsibility ("Agent Dola") and their Now note, with when they changed it.
  * `mail`: their notices also reach an inbox they confirmed; which inbox only they see.
@@ -122,6 +122,16 @@ export const changePlan = (id: number, change: { version: number; name?: string;
 /** A plan as a step of another: one parent at most, never a cycle. */
 export const addPlanStep = (id: number, planId: number) => data(apiClient.post<PlanView>(`${base}/plans/${id}/steps`, { planId }));
 export const removePlanStep = (id: number, childId: number) => data(apiClient.delete<PlanView>(`${base}/plans/${id}/steps/${childId}`));
+/** What is dropped on a plan goes the way it goes on a task: a picture as a form, a video or a file as the request body, streamed to storage. */
+export const addPlanPicture = (planId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<PlanView>(`${base}/plans/${planId}/pictures`, form)); };
+export const addPlanVideo = (planId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<PlanView>(`${base}/plans/${planId}/videos`, file, {
+    headers: { 'Content-Type': file.type }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
+}));
+export const addPlanFile = (planId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<PlanView>(`${base}/plans/${planId}/files`, file, {
+    params: { name: file.name }, headers: { 'Content-Type': 'application/octet-stream' }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
+}));
+export const deletePlanMedia = (planId: number, mediaId: number) => data(apiClient.delete<PlanView>(`${base}/plans/${planId}/media/${mediaId}`));
+export const planPlayLink = (planId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/plans/${planId}/media/${mediaId}/play`));
 export const pasteIntoPlan = (id: number, text: string, apply: boolean) => data(apiClient.post<PasteResult>(`${base}/plans/${id}/paste`, { text, apply }));
 /** A worker's report onto a task: a preview first, then apply. */
 export const pasteReport = (itemId: number, text: string, apply: boolean) => data(apiClient.post<ReportResult>(`${base}/items/${itemId}/report`, { text, apply }));

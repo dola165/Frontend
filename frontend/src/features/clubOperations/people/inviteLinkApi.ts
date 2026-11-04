@@ -22,9 +22,12 @@ export const previewClubInvite = async (token: string, signal?: AbortSignal) =>
 export const claimClubInvite = async (claim: { token: string; name: string; dateOfBirth: string; password: string; emailProof?: string }) =>
     (await apiClient.post<{ email: string; confirmationSent: boolean; emailConfirmed?: boolean }>('/auth/club-invite/claim', claim)).data;
 
-/** What accepting came to. `helping`: what a new helper sees once their email is confirmed (a project by name, or their session). */
+/**
+ * What accepting came to. `session`: the one it ran in, which a retry stays in. `helping`: what a new helper sees once
+ * their email is confirmed (a project by name, or their session).
+ */
 export interface AcceptOutcome {
-    failures: string[]; next: string; waitsOnEmail: string | null; helping: { what: string | null; session: boolean; next: string } | null;
+    session: AuthSessionId; failures: string[]; next: string; waitsOnEmail: string | null; helping: { what: string | null; session: boolean; next: string } | null;
     other: { clubId: number; name: string } | null; blocked: LinkInvite[];
 }
 

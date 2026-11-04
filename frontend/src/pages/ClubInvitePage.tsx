@@ -93,8 +93,7 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
      * claiming from a link passed on by hand, a helper's project or session waits on the email the claim sent. Stops if
      * the session it started in ends, so nothing runs under whoever signs in next.
      */
-    const acceptAll = useCallback(async (invites: LinkInvite[], helperWaits = false): Promise<AcceptOutcome | null> => {
-        const session = getAuthSessionId();
+    const acceptAll = useCallback(async (invites: LinkInvite[], helperWaits = false, session = getAuthSessionId()): Promise<AcceptOutcome | null> => {
         const failures: string[] = [], accepted: LinkInvite[] = [], blocked: LinkInvite[] = [];
         let waitsOnEmail: string | null = null, other: { clubId: number; name: string } | null = null;
         for (const invite of invites) {
@@ -115,7 +114,7 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
         const helping = helperWaits && helped.length ? { what: projects.length === 1 && helped.length === 1 ? projects[0].title : null,
             session: !projects.length, next: landingFor(helped) } : null;
         const next = !accepted.length && (waitsOnEmail || other) ? INBOX : landingFor(accepted);
-        return { failures, next, waitsOnEmail, helping, other, blocked };
+        return { session, failures, next, waitsOnEmail, helping, other, blocked };
     }, [copy, jobLabel]);
     const show = useCallback((outcome: AcceptOutcome | null) => {
         // The session ended midway: whoever is here now finds their own Inbox.
@@ -123,6 +122,10 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
         else if (outcome.failures.length || outcome.waitsOnEmail || outcome.helping || outcome.other) setStage({ kind: 'partly', ...outcome });
         else navigate(outcome.next, { replace: true });
     }, [navigate]);
+    /** Once they have left the club they were staff at. Leaving takes a while: a page that has gone by then starts nothing. */
+    const retryBlocked = (outcome: AcceptOutcome) => {
+        if (mounted.current) void acceptAll(outcome.blocked, false, outcome.session).then(next => { if (mounted.current) show(next); });
+    };
     /** Once signed in: accepts what the claim said yes to, once. Every page that gets here waits on the same answer. */
     const carryOn = useCallback(() => {
         const link = claimedLink(token);
@@ -165,7 +168,7 @@ function ClubInvite({ token, proof }: { token: string; proof?: string }) {
     </>);
     if (stage.kind === 'partly') return card(<>
         <h1 className="ci-title">{copy('Your account is ready', 'თქვენი ანგარიში მზადაა')}</h1>
-        {stage.other && <OtherClubNotice club={stage.other} onLeft={() => void acceptAll(stage.blocked).then(show)} />}
+        {stage.other && <OtherClubNotice club={stage.other} onLeft={() => retryBlocked(stage)} />}
         {stage.waitsOnEmail && <EmailWait title={copy(`Confirm your email to start as ${stage.waitsOnEmail}`, `დაადასტურეთ ელფოსტა და დაიწყეთ, როგორც ${stage.waitsOnEmail}`)}
             hint={copy('Open the link we sent, then accept the job in your Inbox.', 'გახსენით გამოგზავნილი ბმული და მიიღეთ სამუშაო შემოსულებში.')}
             sentHint={copy('Sent. Open the link, then accept the job in your Inbox.', 'გაიგზავნა. გახსენით ბმული და მიიღეთ სამუშაო შემოსულებში.')} next={INBOX} />}

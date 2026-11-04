@@ -7,13 +7,14 @@ import { apiClient } from '../../api/axiosConfig';
 import { RouteMetadata } from '../../components/layout/RouteMetadata';
 import i18n from '../../i18n';
 vi.mock('../clubOperations/PersonalClubWork', () => ({ StaffAppointments: () => null }));
-vi.mock('../clubOperations/leaving/OtherClubNotice', () => ({ OtherClubNotice: ({ club, onLeft }: { club: { name: string }; onLeft: () => void }) => <button type="button" onClick={onLeft}>Leave {club.name}</button> }));
+const leaving = vi.hoisted(() => ({ hold: false, left: null as null | (() => void) }));
+vi.mock('../clubOperations/leaving/OtherClubNotice', () => ({ OtherClubNotice: ({ club, onLeft }: { club: { name: string }; onLeft: () => void }) => <button type="button" onClick={() => { leaving.left = onLeft; if (!leaving.hold) onLeft(); }}>Leave {club.name}</button> }));
 const auth = vi.hoisted(() => ({ sessionId: 'one', user: { id: 1 }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
 const empty = { items: [], counts: { incoming: 0, actionable: 0, outgoing: 0, history: 0 }, total: 0, hasMore: false, unavailableSources: [] };
 const invitation = { key: 'CLUB_INVITATION:7', id: 7, family: 'CLUB_INVITATION', title: 'Club invitation · Coach', context: 'Dinamo', status: 'PENDING', actionable: true, direction: 'INCOMING', destination: '/account?tab=profile', actionLabel: 'Review invitation' };
-beforeEach(() => { vi.clearAllMocks(); auth.sessionId = 'one'; auth.user = { id: 1 }; vi.mocked(apiClient.get).mockResolvedValue({ data: empty }); });
+beforeEach(() => { vi.clearAllMocks(); leaving.hold = false; leaving.left = null; auth.sessionId = 'one'; auth.user = { id: 1 }; vi.mocked(apiClient.get).mockResolvedValue({ data: empty }); });
 afterEach(async () => { cleanup(); await i18n.changeLanguage('en'); });
 
 it('names Inbox and its two views in Georgian, including the document title', async () => {
@@ -135,6 +136,26 @@ it('closing the invitation drops the leave notice, so leaving later can’t acce
   fireEvent.click(screen.getByRole('button', { name: 'Close' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Review invitation' }));
   expect(screen.queryByRole('button', { name: 'Leave Saburtalo' })).toBeNull();
+});
+it('a leave that finishes after the invitation was closed accepts nothing', async () => {
+  leaving.hold = true;
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [invitation], total: 1 } });
+  vi.mocked(apiClient.post).mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'STAFF_OF_ANOTHER_CLUB', otherClubId: 3, otherClubName: 'Saburtalo' } } });
+  render(<MemoryRouter><RequestsCentre /></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Review invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Leave Saburtalo' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await act(async () => { leaving.left?.(); });
+  expect(apiClient.post).toHaveBeenCalledTimes(1);
+});
+it('no other invitation opens while an answer is on its way, so a late refusal can’t land in the wrong one', async () => {
+  vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, items: [invitation], total: 1 } });
+  vi.mocked(apiClient.post).mockImplementation(() => new Promise(() => {}));
+  render(<MemoryRouter><RequestsCentre /></MemoryRouter>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Review invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+  expect(screen.getByRole('button', { name: 'Review invitation' })).toBeDisabled();
 });
 it('keeps an acceptance failure visible after automatic refresh and focus', async () => {
   vi.mocked(apiClient.get).mockResolvedValue({data:{...empty,items:[invitation],total:1}});

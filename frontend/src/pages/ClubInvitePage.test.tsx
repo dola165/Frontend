@@ -1,13 +1,14 @@
 import { Fragment, StrictMode, useState } from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ClubInvitePage } from './ClubInvitePage';
 import { forgetClaimedLink } from '../features/clubOperations/people/inviteLinkApi';
 
-const api = vi.hoisted(() => ({ post: vi.fn(), login: vi.fn(), isAuthenticated: false }));
+const api = vi.hoisted(() => ({ post: vi.fn(), login: vi.fn(), isAuthenticated: false, holdLeaving: false, left: null as null | (() => void) }));
 vi.mock('../api/axiosConfig', () => ({ apiClient: { post: api.post }, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ loginWithAccessToken: api.login, isAuthenticated: api.isAuthenticated }) }));
+vi.mock('../features/clubOperations/leaving/OtherClubNotice', () => ({ OtherClubNotice: ({ club, onLeft }: { club: { name: string }; onLeft: () => void }) => <button type="button" onClick={() => { api.left = onLeft; if (!api.holdLeaving) onLeft(); }}>Leave {club.name}</button> }));
 
 const preview = {
     email: 'luka@example.test', invitedName: 'Luka Beridze', hasPassword: false,
@@ -25,7 +26,7 @@ const fill = (birth: string) => {
     fireEvent.change(screen.getByLabelText('Choose a password'), { target: { value: 'Secret123' } });
 };
 
-beforeEach(() => { vi.clearAllMocks(); localStorage.removeItem('gk-session-id'); api.isAuthenticated = false; api.login.mockResolvedValue({ id: 2 }); forgetClaimedLink(); });
+beforeEach(() => { vi.clearAllMocks(); localStorage.removeItem('gk-session-id'); api.holdLeaving = false; api.left = null; api.isAuthenticated = false; api.login.mockResolvedValue({ id: 2 }); forgetClaimedLink(); });
 afterEach(cleanup);
 
 it('shows who invited them to which job, and accepting sets the account up and opens My squads', async () => {
@@ -158,6 +159,54 @@ it('stops accepting when the session ends, so the next job is never sent under w
     refuse({ code: 'AUTH_SESSION_CHANGED' });
     expect(await screen.findByText('Inbox page')).toBeInTheDocument();
     expect(api.post.mock.calls.filter(([url]) => url.includes('/transition'))).toHaveLength(1);
+});
+
+const staffElsewhere = () => {
+    localStorage.setItem('gk-session-id', 'luka');
+    let refused = false;
+    api.post.mockImplementation(async (url: string) => {
+        if (url === '/auth/club-invite/preview') return { data: preview };
+        if (url === '/auth/club-invite/claim') return { data: { email: 'luka@example.test' } };
+        if (url === '/auth/login') return { data: { accessToken: 'jwt' } };
+        if (refused) return { data: {} };
+        refused = true;
+        throw { isAxiosError: true, response: { status: 409, data: { code: 'STAFF_OF_ANOTHER_CLUB', otherClubId: 3, otherClubName: 'Saburtalo' } } };
+    });
+};
+const claimUpToLeaving = async () => {
+    await screen.findByRole('heading', { name: 'Nino invited you' });
+    fill('1990-01-01');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave Saburtalo' }));
+};
+const acceptances = () => api.post.mock.calls.filter(([url]) => url.includes('/transition'));
+
+it('staff at another club leave it, then the same job is accepted again in the same session', async () => {
+    staffElsewhere();
+    open();
+    await claimUpToLeaving();
+    expect(await screen.findByText('My squads page')).toBeInTheDocument();
+    expect(acceptances().map(([, , config]) => config)).toEqual([{ _authSessionId: 'luka' }, { _authSessionId: 'luka' }]);
+});
+it('a leave that finishes after the page has gone starts nothing', async () => {
+    staffElsewhere();
+    api.holdLeaving = true;
+    const { unmount } = open();
+    await claimUpToLeaving();
+    unmount();
+    localStorage.setItem('gk-session-id', 'somebody-else');
+    await act(async () => { api.left?.(); });
+    expect(acceptances()).toHaveLength(1);
+});
+it('a leave that finishes after the session ended sends nothing under the next one, and opens the Inbox', async () => {
+    staffElsewhere();
+    api.holdLeaving = true;
+    open();
+    await claimUpToLeaving();
+    localStorage.setItem('gk-session-id', 'somebody-else');
+    await act(async () => { api.left?.(); });
+    expect(await screen.findByText('Inbox page')).toBeInTheDocument();
+    expect(acceptances()).toHaveLength(1);
 });
 
 it('once the link is used, a failed sign-in goes to sign-in instead of trying the used link again', async () => {

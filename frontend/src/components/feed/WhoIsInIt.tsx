@@ -12,7 +12,7 @@ interface Question { ask: boolean; clubId: number | null; people: Face[] }
 /**
  * "Who's in it?" under a photo: the faces of the squad, each showing whether their family has said yes, or "No children in
  * it". Nobody has to answer: the line under it says who will see the photo, whatever is chosen. Only the server decides
- * whether to ask, for a club with children or someone who works at one; for adult football it shows nothing.
+ * whether to ask, for a club with children or an adult who works or plays at one; for adult football it shows nothing.
  */
 export function WhoIsInIt({ clubId, squadId, answer, onAnswer, caption = '' }: { clubId?: number | null; squadId?: number | null; answer: PhotoAnswer; onAnswer: (next: PhotoAnswer) => void; caption?: string }) {
     const copy = useJourneyCopy();

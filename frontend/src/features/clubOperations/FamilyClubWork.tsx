@@ -1,7 +1,7 @@
 import { FolderHeart } from 'lucide-react';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { RecordFacts } from '../../components/ui/RecordFacts';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -11,7 +11,7 @@ import { getAuthSessionId } from '../../utils/authStorage';
 
 interface Connection { club_id:number; club_name:string; user_id:number; name:string }
 interface Shared { id:number; club_id:number; club_name:string; person_name:string; kind:string; title:string; status:string; data:Record<string,string>; canFeedback:boolean; feedback:{note:string;author:string;created_at:string}[] }
-interface Family { connections:Connection[]; shared:Shared[]; schedule:{id:number;title:string;person_name:string;squad_name:string;starts_at:string;location_name:string;status:string}[]; reports:{id:number;club_name:string;status:string;created_at:string;received_by:ReceiverKind;receiver_name:string|null;grass_kick_z:boolean}[] }
+interface Family { connections:Connection[]; concernConnections?:Connection[]; shared:Shared[]; schedule:{id:number;title:string;person_name:string;squad_name:string;starts_at:string;location_name:string;status:string}[]; reports:{id:number;club_name:string;status:string;created_at:string;received_by:ReceiverKind;receiver_name:string|null;grass_kick_z:boolean}[] }
 type ReceiverKind='OFFICER'|'OWNER'|'GRASSKICKZ';
 type Copy=(en:string,ka:string)=>string;
 /** Who a concern reaches, in words the family can act on: told before they write and again after. */
@@ -29,7 +29,9 @@ function FamilyClubWorkSession({staffClubs}:{staffClubs:Choice[]}) {
   const [action,setAction]=useState<'absence'|'concern'|null>(params.get('concern')==='1'?'concern':null),[connection,setConnection]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const [receiver,setReceiver]=useState<{kind:ReceiverKind;name:string|null}|null>(null),[aboutReceiver,setAboutReceiver]=useState(false);
   // A concern opened from a child's page starts on that child.
-  useEffect(()=>{if(params.get('concern')!=='1'||!family||connection)return;const player=Number(params.get('player'));const mine=family.connections.find(c=>c.user_id===player)??(family.connections.length===1?family.connections[0]:null);if(mine)setConnection(`${mine.club_id}:${mine.user_id}`);},[family,params,connection]);
+  // A parent's no closes the rest of a club, not this: the no may have been because of the concern.
+  const concernList=useMemo(()=>family?.concernConnections??family?.connections??[],[family]);
+  useEffect(()=>{if(params.get('concern')!=='1'||!family||connection)return;const player=Number(params.get('player'));const mine=concernList.find(c=>c.user_id===player)??(concernList.length===1?concernList[0]:null);if(mine)setConnection(`${mine.club_id}:${mine.user_id}`);},[family,concernList,params,connection]);
   useEffect(()=>{setAboutReceiver(false);if(action!=='concern'||!connection){setReceiver(null);return;}const c=new AbortController();void get<{kind:ReceiverKind;name:string|null}>(`${root(Number(connection.split(':')[0]))}/concerns/receiver`,c.signal).then(r=>{if(!c.signal.aborted)setReceiver(r);}).catch(()=>{if(!c.signal.aborted)setReceiver(null);});return()=>c.abort();},[action,connection]);
   useEffect(()=>{const c=new AbortController();void get<Family>('/club-operations/family',c.signal).then(r=>{if(!c.signal.aborted)setFamily(r);}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load shared club records.'));});return()=>c.abort();},[refresh]);
   const save=async(e:FormEvent<HTMLFormElement>)=>{
@@ -46,16 +48,16 @@ function FamilyClubWorkSession({staffClubs}:{staffClubs:Choice[]}) {
     }catch(e){setError(extractApiErrorMessage(e,copy('Could not save. Your entry is still here.','ვერ შეინახა. ტექსტი ისევ აქ არის.')));}finally{setBusy(false);}
   };
   const hasFamilyWork=Boolean(family&&(family.connections.length||family.shared.length||family.schedule.length));
-  if(family&&!hasFamilyWork&&!family.reports.length&&!staffClubs.length&&!error)return null;
+  if(family&&!hasFamilyWork&&!concernList.length&&!family.reports.length&&!staffClubs.length&&!error)return null;
   return <section className="ops-editor connections-section">
     <div className="ops-toolbar"><div><h2>{hasFamilyWork?'Player & family records':'Club support'}</h2><p className="ops-muted">{hasFamilyWork?'Shared development work, upcoming squad activities and club administration.':copy('Raise a confidential concern with your club.','კონფიდენციალურად შეატყობინეთ კლუბს.')}</p></div><div className="ops-row">
       {!!family?.connections.length&&<button onClick={()=>{setAction('absence');setConnection('');}}>Report education absence</button>}
-      {(!!family?.connections.length||!!staffClubs.length)&&<button onClick={()=>{setAction('concern');setConnection('');}}>{copy('Raise a concern','შეტყობინება')}</button>}
+      {(!!concernList.length||!!staffClubs.length)&&<button onClick={()=>{setAction('concern');setConnection('');}}>{copy('Raise a concern','შეტყობინება')}</button>}
     </div></div>
     {error&&<p role="alert" className="ops-alert">{error}<button onClick={()=>{setError('');setRefresh(v=>v+1);}}>Retry</button></p>}
     {message&&<p role="status">{message}</p>}
     {action&&<form className="ops-card ops-editor" onSubmit={e=>{void save(e);}}><h3>{action==='concern'?copy('Confidential concern','კონფიდენციალური შეტყობინება'):'Education absence'}</h3><fieldset disabled={busy}><div className="ops-form-grid">
-      <label className="ops-wide">{copy('Club and person','კლუბი და ადამიანი')}<select required value={connection} onChange={e=>setConnection(e.target.value)}><option value="">{copy('Choose…','აირჩიეთ…')}</option>{family?.connections.map(c=><option key={`${c.club_id}:${c.user_id}`} value={`${c.club_id}:${c.user_id}`}>{c.name} · {c.club_name}</option>)}{action==='concern'&&staffClubs.map(c=><option key={`staff:${c.id}`} value={`${c.id}:0`}>As club staff · {c.name}</option>)}</select></label>
+      <label className="ops-wide">{copy('Club and person','კლუბი და ადამიანი')}<select required value={connection} onChange={e=>setConnection(e.target.value)}><option value="">{copy('Choose…','აირჩიეთ…')}</option>{(action==='concern'?concernList:family?.connections??[]).map(c=><option key={`${c.club_id}:${c.user_id}`} value={`${c.club_id}:${c.user_id}`}>{c.name} · {c.club_name}</option>)}{action==='concern'&&staffClubs.map(c=><option key={`staff:${c.id}`} value={`${c.id}:0`}>As club staff · {c.name}</option>)}</select></label>
       {action==='concern'?<><label className="ops-wide">{copy('What happened?','რა მოხდა?')}<textarea name="description" required maxLength={4000} rows={5}/></label><label className="ops-wide">{copy('Already done','უკვე გაკეთდა')} <span className="ops-muted">{copy('Optional','არასავალდებულო')}</span><textarea name="immediateAction" maxLength={4000}/></label>
         {receiver&&<p className="ops-wide" role="status">{copy(`It goes to ${receiverWords(receiver.kind,receiver.name,copy)}.`,`მიიღებს: ${receiverWords(receiver.kind,receiver.name,copy)}.`)}</p>}
         {receiver&&receiver.name&&<label className="ops-wide"><input type="checkbox" checked={aboutReceiver} onChange={e=>setAboutReceiver(e.target.checked)}/> {copy(`It’s about ${receiver.name}. Don’t send it to them.`,`ეს ეხება: ${receiver.name}. მას არ გაეგზავნოს.`)}</label>}

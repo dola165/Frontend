@@ -30,7 +30,10 @@ export function ChildAsks({ child, revision, onChanged }: { child: JoiningChild;
     }, [child.playerId, revision, attempt]);
     const answered = useCallback((next: Ask[]) => { setAsks(next); onChanged(); }, [onChanged]);
     if (failed && !asks) return <p className="ph-quiet" role="status">{copy('Couldn’t load the questions.', 'კითხვები ვერ ჩაიტვირთა.')} <button type="button" className="ph-link" onClick={() => setAttempt(v => v + 1)}>{copy('Try again', 'ხელახლა ცდა')}</button></p>;
-    if (!asks?.length) return null;
+    if (!asks) return null;
+    const concernDoor = <Link className="ph-asks__concern" to={playerPath('/parent?tab=connections&concern=1', child.playerId)}>{copy('Worried about something? Raise a concern', 'რამე გაწუხებთ? შეგვატყობინეთ')}</Link>;
+    // With nothing to ask, as after a parent's no to the club, the way to raise a concern stays.
+    if (!asks.length) return concernDoor;
     const open = asks.filter(ask => ask.answer === 'WAITING'), done = asks.filter(ask => ask.answer !== 'WAITING');
     const row = (ask: Ask) => <AskRow key={ask.key} ask={ask} child={child.playerId} first={first} several={new Set(asks.map(a => a.clubId)).size > 1} onAnswered={answered} onStale={() => setAttempt(v => v + 1)} />;
     return <Section boxed icon={ClipboardCheck} title={copy('Asks', 'კითხვები')} className="ph-section ph-asks" id="asks">
@@ -39,7 +42,7 @@ export function ChildAsks({ child, revision, onChanged }: { child: JoiningChild;
             <summary>{copy(`Your answers · ${done.length}`, `თქვენი პასუხები · ${done.length}`)}</summary>
             <ul className="ph-rows">{done.map(row)}</ul>
         </details>}
-        <Link className="ph-asks__concern" to={playerPath('/parent?tab=connections&concern=1', child.playerId)}>{copy('Worried about something? Raise a concern', 'რამე გაწუხებთ? შეგვატყობინეთ')}</Link>
+        {concernDoor}
     </Section>;
 }
 

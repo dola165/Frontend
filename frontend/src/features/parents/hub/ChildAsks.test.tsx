@@ -51,7 +51,7 @@ describe('ChildAsks', () => {
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
     });
 
-    it('offers a door to a concern, and shows nothing with nothing to ask', async () => {
+    it('offers a door to a concern, and keeps it with nothing to ask', async () => {
         api.get.mockResolvedValue({ data: [ask({ kind: 'PHOTOS' })] });
         const { unmount } = page();
         const door = await screen.findByRole('link', { name: /Raise a concern/ });
@@ -60,7 +60,7 @@ describe('ChildAsks', () => {
         unmount();
         api.get.mockResolvedValue({ data: [] });
         const { container } = page();
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+        expect(await screen.findByRole('link', { name: /Raise a concern/ })).toBeVisible();
         expect(container.querySelector('.ph-asks')).toBeNull();
     });
 });

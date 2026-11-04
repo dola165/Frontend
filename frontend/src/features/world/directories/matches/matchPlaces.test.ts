@@ -10,9 +10,15 @@ const listing = { event_id: 5, club_id: 1, title: 'U12 friendly', timezone: 'Asi
 
 describe('a children’s match for someone outside it', () => {
     it('counts at its city, never at its club, with its day alone', () => {
-        const pin = listingPlace({ ...listing, place_hidden: true, area_lat: 41.7, area_lng: 44.8 }, places)!;
+        const pin = listingPlace({ ...listing, place_hidden: true, time_hidden: true, area_lat: 41.7, area_lng: 44.8 }, places)!;
         expect(pin).toMatchObject({ lat: 41.7, lng: 44.8, approximate: 'area' });
         expect(pin.meta).not.toMatch(/\d\d:\d\d/);
+    });
+
+    it('shows an invited club’s staff the kick-off on its city’s pin, never a ground', () => {
+        const pin = listingPlace({ ...listing, place_hidden: true, time_hidden: false, area_lat: 41.7, area_lng: 44.8 }, places)!;
+        expect(pin).toMatchObject({ lat: 41.7, lng: 44.8, approximate: 'area' });
+        expect(pin.meta).toMatch(/\d\d:\d\d/);
     });
 
     it('has no pin at all without its city’s point', () => {

@@ -48,6 +48,8 @@ export interface FirstVisitBooking { requestId: string; playerId: number; sessio
 export interface Opportunity extends Omit<GroupInput, 'requestId' | 'expectedVersion'> {
   id: number; version: number; organizationId: number; organizationName: string; clubId: number | null;
   availability: Availability; remainingPlaces: number; destination: string; canManage?: boolean;
+  /** A youth group for someone outside it: the city, and no timetable (step 3). */
+  placeHidden?: boolean;
 }
 export interface OpportunityPage { items: Opportunity[]; total: number; page: number; size: number; hasMore: boolean }
 export interface DiscoveryQuery {

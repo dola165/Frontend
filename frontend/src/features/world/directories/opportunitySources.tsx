@@ -121,7 +121,7 @@ export function groupsSource(participants: Participant[], resolvedChild?: Partic
                 fact: bilingual(...availabilityCopy[group.availability]), factTone: open ? 'accent' : group.availability === 'WAITLIST' ? 'warning' : undefined };
         },
         place: ({ group, player }) => group.location.latitude != null && group.location.longitude != null
-            ? { lat: group.location.latitude, lng: group.location.longitude, noun: ['group', 'groups'], label: group.name, meta: `${group.organizationName} · ${group.location.name}`, tone: 'club', to: `/admissions/opportunities/${group.id}${player ? `?player=${player}` : ''}` }
+            ? { lat: group.location.latitude, lng: group.location.longitude, approximate: group.placeHidden ? 'area' : undefined, noun: ['group', 'groups'], label: group.name, meta: `${group.organizationName} · ${group.location.name}`, tone: 'club', to: `/admissions/opportunities/${group.id}${player ? `?player=${player}` : ''}` }
             : null,
         // A parent sees whom the list is for, with the other children one press away.
         heading: query => {

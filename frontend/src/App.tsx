@@ -333,7 +333,7 @@ export function MainLayout() {
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
     const isJobWorkspaceRoute = /^\/clubs\/\d+\/work(?:\/[a-z-]+)?$/.test(location.pathname);
-    const isClubSurfaceRoute = isJobWorkspaceRoute || /^\/clubs\/\d+(\/squads|\/workspace|\/office|\/operations|\/profile-settings|\/store|\/campaigns|\/jobs)?$/.test(location.pathname);
+    const isClubSurfaceRoute = isJobWorkspaceRoute || /^\/clubs\/\d+(\/squads|\/workspace|\/office|\/operations|\/profile-settings|\/store|\/campaigns|\/jobs|\/concerns\/\d+)?$/.test(location.pathname);
     // Public destination pages with full-bleed heroes (banner + tab bars) render
     // edge-to-edge; everything else keeps the bounded wide frame.
     const isBleedDestinationPage =

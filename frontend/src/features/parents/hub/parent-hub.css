@@ -59,8 +59,10 @@
 .gk .ph-ask { display: flex; flex-direction: column; gap: var(--gk-2); padding-block: var(--gk-2); }
 .gk .ph-ask__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); }
 .gk .ph-ask__line .ph-row__text { flex: 1 1 200px; min-width: 0; }
+.gk .ph-ask__line .ph-row__text small { overflow: visible; white-space: normal; text-overflow: clip; }
 .gk .ph-ask__answer { display: inline-flex; flex: none; gap: var(--gk-2); }
 .gk .ph-ask__answer button { min-height: 44px; min-width: 56px; }
+.gk .ph-ask__answer button[aria-pressed='true'] { border-color: var(--gk-line-strong); background: var(--gk-accent-soft); font-weight: 650; }
 .gk .ph-ask__note { color: var(--gk-text-2); white-space: pre-wrap; }
 .gk .ph-ask__write { display: flex; flex-direction: column; gap: var(--gk-2); }
 .gk .ph-ask__write label { display: flex; flex-direction: column; gap: 4px; font-size: var(--gk-fs-sm); }

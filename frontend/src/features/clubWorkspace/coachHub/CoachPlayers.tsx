@@ -139,7 +139,7 @@ export function CoachPlayers({ data }: { data: CoachData }) {
         <SquadSwitch data={data} />
         <div className="gk-stack">
             {(Boolean(data.joining.items?.length) || data.joining.failed) && <WantToJoin items={data.joining.items ?? []} failed={data.joining.failed} onRetry={data.joining.refresh} data={data} onChanged={data.refresh} />}
-            <WaitingForFamily data={data} placed={placedWaiting} />
+            <WaitingForFamily data={data} placed={placedWaiting} notes={notes} />
             {errors.length > 0 && <div className="gk-notice gk-notice--danger" role="alert">{errors[0]}</div>}
             <div className="gk-stack gk-stack--tight">
                 <ViewTabs label={copy('show')} value={filter.id} onChange={id => set({ view: id === 'all' ? null : id })} views={FILTERS.map(item => ({ id: item.id, label: copy(item.label), count: rows.filter(item.test).length }))} />

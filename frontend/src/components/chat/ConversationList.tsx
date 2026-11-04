@@ -6,7 +6,7 @@ import { MediaImage } from '../ui/MediaImage';
 import { SkeletonMessageRow } from '../ui/SkeletonCard';
 import { conversationName, useMessageCopy } from './messageCopy';
 import { formatTime, isSharedConversation } from './messengerFormat';
-import { AddMyParent } from '../auth/AddMyParent';
+import { AddMyParentButton } from '../auth/AddMyParentButton';
 
 type ConversationListProps = {
     sessionId: AuthSessionId; currentUserId: number; squadId: number | null; connected: boolean;
@@ -52,7 +52,7 @@ export const ConversationList = ({ sessionId, currentUserId, squadId, connected,
                 <SquadInboxList key={sessionId} selected={squadId} />
                 <h3 className="messages-other-heading">{copy('Other conversations', 'სხვა საუბრები')}</h3>
                 {listFailed && <div className="px-4 py-3"><p role="alert">{copy('Conversations couldn’t load.', 'საუბრები ვერ ჩაიტვირთა.')}</p><button className="gk-btn gk-btn--sm" onClick={onRetryList}>{copy('Try again', 'ხელახლა ცდა')}</button></div>}
-                {openError && <div className="px-4 py-3"><p role="alert">{copy(openError)}</p>{openRefusal === 'TEEN_CHAT_ADD_PARENT' ? <AddMyParent waiting={false} /> : !openRefusal && <button className="gk-btn gk-btn--sm" onClick={onRetryOpen}>{copy('Try again', 'ხელახლა ცდა')}</button>}</div>}
+                {openError && <div className="px-4 py-3"><p role="alert">{copy(openError)}</p>{openRefusal === 'TEEN_CHAT_ADD_PARENT' ? <AddMyParentButton /> : !openRefusal && <button className="gk-btn gk-btn--sm" onClick={onRetryOpen}>{copy('Try again', 'ხელახლა ცდა')}</button>}</div>}
                 {sidebarLoading ? (
                     <div className="flex flex-col gap-2 px-3 py-2">
                         <SkeletonMessageRow />

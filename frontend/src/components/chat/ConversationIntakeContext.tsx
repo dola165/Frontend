@@ -10,7 +10,7 @@ import './message-actions.css';
 
 type IntakeLink = { record: ConnectedInquiry; destination: string; staff: boolean };
 /** Context comes from authorized persisted records, never from the message body. */
-export function ConversationIntakeContext({ conversationId, messageRevision = '' }: { conversationId: number; messageRevision?: string | number }) {
+export function ConversationIntakeContext({ conversationId, messageRevision = '', awaitingParent = false }: { conversationId: number; messageRevision?: string | number; awaitingParent?: boolean }) {
   const { sessionId, user } = useAuth();
   const authorityRevision=JSON.stringify(user?.navigationCapabilities??null);
   const { copy } = useInquiryCopy();
@@ -37,7 +37,7 @@ export function ConversationIntakeContext({ conversationId, messageRevision = ''
   if (result.failed) return <aside className="conversation-intake-context" role="status"><span>{copy('Connected enquiries could not load.', 'დაკავშირებული კითხვები ვერ ჩაიტვირთა.')}</span><button type="button" onClick={() => setRetry(value => value + 1)}>{copy('Retry enquiry context', 'დაკავშირებული კითხვების ხელახლა ჩატვირთვა')}</button></aside>;
   if (!result.links.length) return null;
   return <div aria-label={copy('Connected player enquiry', 'დაკავშირებული კითხვა მოთამაშის შესახებ')}>{result.links.map(({record,destination,staff})=><section key={`${sessionId}:${record.id}`}>
-    <JoiningConversationPanel record={record} onChanged={()=>setRetry(value=>value+1)}/>
+    <JoiningConversationPanel record={record} awaitingParent={awaitingParent} onChanged={()=>setRetry(value=>value+1)}/>
     <Link to={destination}>{staff ? copy('Open player arrangement','მოთამაშის შეთანხმების გახსნა') : copy('View enquiry & next step','კითხვის და შემდეგი ნაბიჯის ნახვა')}</Link>
   </section>)}</div>;
 }

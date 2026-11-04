@@ -13,12 +13,12 @@ type ConversationThreadProps = {
     conversation: ConversationDto; sessionId: AuthSessionId; currentUserId: number; messages: ChatMessageResponse[];
     viewportRef: RefObject<HTMLDivElement | null>; loadingMessages: boolean; hasOlder: boolean; loadingOlder: boolean;
     historyError: string | null; loadOlder: () => Promise<void>; showInfo: boolean; onToggleInfo: () => void; onBack: () => void;
-    familyLine?: ReactNode; children: ReactNode;
+    familyLine?: ReactNode; awaitingParent?: boolean; children: ReactNode;
 };
 
 /** Header, intake context and message log of the selected conversation; the composer comes in as children. */
 export const ConversationThread = ({ conversation: activeConv, sessionId, currentUserId, messages: activeMessages, viewportRef,
-    loadingMessages, hasOlder, loadingOlder, historyError, loadOlder, showInfo, onToggleInfo, onBack, familyLine, children }: ConversationThreadProps) => {
+    loadingMessages, hasOlder, loadingOlder, historyError, loadOlder, showInfo, onToggleInfo, onBack, familyLine, awaitingParent, children }: ConversationThreadProps) => {
     const copy = useMessageCopy();
     return (
         <>
@@ -61,7 +61,7 @@ export const ConversationThread = ({ conversation: activeConv, sessionId, curren
             </div>
 
             {familyLine}
-            <ConversationIntakeContext key={`${sessionId}:${activeConv.id}`} conversationId={activeConv.id} messageRevision={activeMessages.at(-1)?.id ?? activeConv.lastMessageAt ?? ''} />
+            <ConversationIntakeContext key={`${sessionId}:${activeConv.id}`} conversationId={activeConv.id} messageRevision={activeMessages.at(-1)?.id ?? activeConv.lastMessageAt ?? ''} awaitingParent={awaitingParent} />
             {/* Messages */}
             <div ref={viewportRef} role="log" aria-label={copy('Conversation messages', 'საუბრის შეტყობინებები')} style={{ overflowAnchor: 'none' }} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
                 {!loadingMessages && <OlderMessages available={hasOlder} loading={loadingOlder} error={historyError} onLoad={loadOlder} />}

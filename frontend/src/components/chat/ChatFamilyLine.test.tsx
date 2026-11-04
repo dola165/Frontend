@@ -6,7 +6,7 @@ import { chatApi, type ChatFamily } from '../../api/chat';
 import { ChatFamilyLine } from './ChatFamilyLine';
 import { chatRefusalCode, chatRefusalWords } from './chatRefusal';
 
-vi.mock('../auth/AddMyParent', () => ({ AddMyParent: () => <p>Add my parent link</p> }));
+vi.mock('../auth/AddMyParentButton', () => ({ AddMyParentButton: () => <p>Add my parent link</p> }));
 
 const family = (extra: Partial<ChatFamily> = {}): ChatFamily => ({ parents: [], parentHeld: false, muted: false, awaitingParent: false, playerName: null, youAreThePlayer: false, mayWrite: true, teenChat: false, ...extra });
 const maia = { userId: 2, displayName: 'Maia', childName: 'Teo' };

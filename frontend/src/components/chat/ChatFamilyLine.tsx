@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Bell, BellOff, Users } from 'lucide-react';
 import { chatApi, type ChatFamily } from '../../api/chat';
-import { AddMyParent } from '../auth/AddMyParent';
+import { AddMyParentButton } from '../auth/AddMyParentButton';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useMessageCopy } from './messageCopy';
 import './chat-family.css';
@@ -25,7 +25,7 @@ export function ChatFamilyLine({ family, currentUserId, conversationId, onChange
     if (family.awaitingParent) return <aside className="chat-family" data-state="waiting">
         <Users aria-hidden="true" />
         {family.youAreThePlayer
-            ? <div className="chat-family__ask"><p>{copy('Add your parent: the club will reply when a parent is in this chat.', 'დაამატეთ მშობელი: კლუბი გიპასუხებთ, როცა მშობელი ამ ჩატში იქნება.')}</p><AddMyParent waiting={false} /></div>
+            ? <div className="chat-family__ask"><p>{copy('Add your parent: the club will reply when a parent is in this chat.', 'დაამატეთ მშობელი: კლუბი გიპასუხებთ, როცა მშობელი ამ ჩატში იქნება.')}</p><AddMyParentButton /></div>
             : <p>{copy(`You can reply when ${family.playerName}’s parent is in this chat.`, `პასუხს შეძლებთ, როცა მშობელი (${family.playerName}) ამ ჩატში იქნება.`)}</p>}
     </aside>;
     if (!family.parents.length) return null;

@@ -9,7 +9,7 @@ import * as api from './api';
 
 vi.mock('./api', async original => ({ ...(await original<typeof api>()), overview: vi.fn(), messages: vi.fn(), postMessage: vi.fn(), markRead: vi.fn(), chooseRooms: vi.fn() }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 's', user: { fullName: 'Teo Teen' } }) }));
-vi.mock('../../components/auth/AddMyParent', () => ({ AddMyParent: () => <p>Add my parent link</p> }));
+vi.mock('../../components/auth/AddMyParentButton', () => ({ AddMyParentButton: () => <p>Add my parent link</p> }));
 
 const base = { id: 171, viewer_id: 7, name: 'U16', academy_name: 'Synthetic academy', can_manage: false, threads: [], child_threads: [] } as unknown as api.SquadOverview;
 const rooms = (mine: api.SquadRoom[], extra: Partial<api.SquadRooms> = {}): api.SquadOverview => ({ ...base, rooms: { separate: true, can_switch: false, mine, unread: {}, ...extra } });

@@ -44,7 +44,7 @@ function Messages() {
                         messages={chat.activeMessages} viewportRef={chat.messageViewportRef} loadingMessages={chat.loadingMessages}
                         hasOlder={chat.hasOlder} loadingOlder={chat.loadingOlder} historyError={chat.historyError} loadOlder={chat.loadOlder}
                         showInfo={showInfo} onToggleInfo={() => setShowInfo(!showInfo)} onBack={() => setSearchParams({})}
-                        familyLine={family.family && <ChatFamilyLine family={family.family} currentUserId={currentUserId} conversationId={activeConv.id} onChanged={family.refresh} />}>
+                        awaitingParent={family.family?.awaitingParent} familyLine={family.family && <ChatFamilyLine family={family.family} currentUserId={currentUserId} conversationId={activeConv.id} onChanged={family.refresh} />}>
                         {/* The club answers a 13-17 player's enquiry once a parent is in the room. */}
                         {family.family?.mayWrite !== false && <MessageComposer input={chat.input} setInput={chat.setInput} sending={chat.sending}
                             deliveryError={chat.deliveryError} onSubmit={chat.sendMessage} />}

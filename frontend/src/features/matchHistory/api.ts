@@ -13,7 +13,7 @@ export type HistoryMatch = {
   homeClubId: number | null; homeClubName: string | null; homeSquadId?: number | null; homeSquadName?: string | null;
   awayClubId: number | null; awayClubName: string | null; awaySquadId?: number | null; awaySquadName?: string | null;
   homeScore: number | null; awayScore: number | null; resultStatus: ResultStatus; fixtureStatus: string;
-  legacy: boolean; locationName?: string | null; tournamentId?: number | null; tournamentName?: string | null;
+  legacy: boolean; locationName?: string | null; /** A children's match for someone outside it: the day alone (step 3). */ timeHidden?: boolean; tournamentId?: number | null; tournamentName?: string | null;
   detailPath: string; canRecordResult: boolean;
 };
 export type MatchHistoryPage = { items: HistoryMatch[]; total: number; page: number; pageSize: number };

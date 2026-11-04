@@ -80,3 +80,14 @@ it('asks guests to sign in before reading a roster', () => {
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login?next=%2Fclubs%2F1%3Ftab%3Dteams%26squad%3D12');
     expect(apiClient.get).not.toHaveBeenCalled();
 });
+
+it('a youth squad page says how often and in which city, and nothing of when or where it trains', async () => {
+    const club = { id: 1, name: 'Synthetic academy', cityName: 'Tbilisi' } as unknown as ClubProfile;
+    vi.mocked(apiClient.get).mockImplementation(async url => ({ data: String(url).endsWith('/roster') ? rows : String(url).endsWith('/training-schedule') ? { canView: false, childrenSquad: true, sessions: [] } : [] }));
+    const programme = { id: 3, name: 'Academy', sessionsPerWeek: 3, priceType: 'UNPUBLISHED', currency: 'GEL', billingPeriod: 'MONTH' };
+    render(<MemoryRouter><ClubSquadPage club={club} squad={{ id: 12, name: 'Academy U12', category: 'U12' }} programmes={[programme as never]} onContact={() => undefined} isAuthenticated canManage={false} /></MemoryRouter>);
+    expect(await screen.findByText('3 sessions a week')).toBeVisible();
+    expect(screen.getByText('Tbilisi')).toBeVisible();
+    expect(await screen.findByText('Shared with the squad’s families')).toBeVisible();
+    expect(screen.queryByText('Where you’ll train')).not.toBeInTheDocument();
+});

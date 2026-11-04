@@ -82,3 +82,16 @@ it('says it in Georgian', async () => {
     expect(screen.getByRole('button', { name: 'სხვა ანგარიშით შესვლა' })).toBeVisible();
     await i18n.changeLanguage('en');
 });
+
+it('an account closed after a report offers a review, not Keep my account, and says when it was asked for', async () => {
+    const closedAfterReport = { response: { status: 409, data: { code: 'ACCOUNT_CLOSED_AFTER_REPORT', detail: 'Closed.', keepUntil: '2026-12-02T10:00:00Z' } } };
+    const asked = { response: { status: 409, data: { code: 'ACCOUNT_REVIEW_ASKED', detail: 'Asked.', keepUntil: '2026-12-02T10:00:00Z' } } };
+    vi.mocked(apiClient.post).mockImplementation(async (_url, body) => { throw (body as { keepAccount?: boolean }).keepAccount ? asked : closedAfterReport; });
+    show(); signIn();
+    expect(await screen.findByText('This account was closed after a report')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Keep my account' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ask for a review' }));
+    expect(await screen.findByText('You asked for a review')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Ask for a review' })).not.toBeInTheDocument();
+    expect(login).not.toHaveBeenCalled();
+});

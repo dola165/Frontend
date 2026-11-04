@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { Button, Field, Skeleton } from '../../../design/primitives';
+import { useAuth } from '../../../context/AuthContext';
+import { isUnder18 } from '../../../utils/age';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import {
@@ -27,6 +29,12 @@ const input = (items: Profession[]): ProfessionInput[] => items.map(({ id, title
  * because nobody comes back to press Save. Nothing here grants anything in a club.
  */
 export function WhatYouDo() {
+    // Work, licences and open-to-work start at 18 (step 3, S16); the server refuses them too.
+    const { user } = useAuth();
+    return isUnder18(user?.dob) ? null : <WhatYouDoForm />;
+}
+
+function WhatYouDoForm() {
     const copy = useJourneyCopy();
     const [professions, setProfessions] = useState<{ items: Profession[]; version: number } | null>(null);
     const [discovery, setDiscovery] = useState<DiscoveryPreferences | null>(null);

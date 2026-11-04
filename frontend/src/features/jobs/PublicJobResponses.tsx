@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { isUnder18 } from '../../utils/age';
+import { ct, useCommerceCopy } from '../store/copy';
 import { Button, Field } from '../../design/primitives';
 import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
 import { useWorldData } from '../world/useWorldData';
@@ -36,10 +38,12 @@ function ListingResponses({ job, userId, onListingChanged }: { job: Job; userId:
 }
 
 export function PublicJobResponses({ job, onListingChanged }: { job: Job; onListingChanged?: () => void }) {
+    useCommerceCopy();
     const { status, user } = useAuth();
     const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
     if (status === 'bootstrapping') return <p role="status">Checking your account…</p>;
     if (status !== 'authenticated' || !user) return <Link className="gk-btn gk-btn--primary" to={`/login?next=${encodeURIComponent(`/jobs/${job.id}`)}`}>Sign in to respond</Link>;
+    if (isUnder18(user.dob)) return <p role="status">{ct("Jobs open at 18. Helping your club? Ask your coach.")}</p>;
     return <ListingResponses key={`${user.id}:${session}:${job.id}`} job={job} userId={user.id} onListingChanged={onListingChanged} />;
 }
 

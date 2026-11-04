@@ -5,7 +5,7 @@ export type PostingStatus = 'OPEN' | 'CLOSED' | 'FILLED' | 'EXPIRED' | 'CANCELLE
 export interface TryoutPosting {
   id: number; title: string; description: string | null; position: string | null; ageGroup: string | null;
   gender: string | null; tryoutDate: string | null; deadline: string | null; clubId: number; clubName: string;
-  location: string | null; status: PostingStatus; destination: string;
+  location: string | null; /** A youth trial: the city until you have applied (step 3). */ placeHidden?: boolean; status: PostingStatus; destination: string;
 }
 export interface PostingPage { items: TryoutPosting[]; total: number; page: number; size: number; hasMore: boolean }
 export interface ApplicationReceipt {

@@ -113,6 +113,10 @@ export type Match = {
   timezone: string;
   city: string;
   location_name: string;
+  /** A children's match for someone outside it: the city in location_name, the day alone, no ground (step 3). */
+  place_hidden?: boolean;
+  area_lat?: number | null;
+  area_lng?: number | null;
   location_lat: number | null;
   location_lng: number | null;
   age_group: string;

@@ -3,6 +3,7 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Eye } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
+import { isUnder18 } from '../../../utils/age';
 import { Avatar, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Section, Skeleton } from '../../../design/primitives';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 import { sanitizeAuthRedirect } from '../../../utils/authRedirect';
@@ -71,9 +72,9 @@ function FootballProfile({ userId }: { userId: number }) {
                     </Section>
                 </div>
                 <aside className="gk-fp-side" aria-label={copy('What you do', 'რას აკეთებთ')}>
-                    <Section boxed id="work" title={copy('What you do', 'რას აკეთებთ')} hint={copy('Clubs find you by it for jobs and volunteering', 'კლუბები ამით გიპოვიან სამსახურისა და მოხალისეობისთვის')}>
+                    {!isUnder18(user?.dob) && <Section boxed id="work" title={copy('What you do', 'რას აკეთებთ')} hint={copy('Clubs find you by it for jobs and volunteering', 'კლუბები ამით გიპოვიან სამსახურისა და მოხალისეობისთვის')}>
                         <WhatYouDo />
-                    </Section>
+                    </Section>}
                     <Section boxed id="start" title={copy('Start something', 'დაიწყეთ')}>
                         <StartDoors />
                     </Section>

@@ -61,14 +61,14 @@ export function fixtureWhere(rows: Fixture[], now = Date.now()): PinSummary {
     // A called-off match says so on its own line, but sets neither the ground's kick-off range nor its next kick-off.
     const playing = rows.filter(f => f.m.startsAt && f.m.fixtureStatus?.toUpperCase() !== 'CANCELLED');
     const sorted = (playing.length ? playing : rows.filter(f => f.m.startsAt)).sort((a, b) => Date.parse(a.m.startsAt!) - Date.parse(b.m.startsAt!));
-    const times = sorted.map(f => fixtureTime(f.m.startsAt, f.m.timezone));
+    const times = sorted.filter(f => !f.m.timeHidden).map(f => fixtureTime(f.m.startsAt, f.m.timezone));
     const detail = times.length ? (times[0] === times[times.length - 1] ? times[0] : `${times[0]}–${times[times.length - 1]}`) : undefined;
     let chip: string | undefined;
     if (rows.length === 1) {
         const state = matchState(rows[0].m, now);
         chip = state.score ? `${wt('FT')} ${state.score.home}–${state.score.away}` : 'time' in state.when ? state.when.time : wt(state.when.word);
     } else {
-        const next = sorted.find(f => Date.parse(f.m.startsAt!) > now);
+        const next = sorted.find(f => !f.m.timeHidden && Date.parse(f.m.startsAt!) > now);
         chip = next ? fixtureTime(next.m.startsAt, next.m.timezone) : sorted.some(f => matchState(f.m, now).code === 'on') ? wt('On now') : undefined;
     }
     return { label: sharedGround(rows), detail, chip };

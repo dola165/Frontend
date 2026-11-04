@@ -1109,6 +1109,11 @@ const en = {
       closingTitle: 'You closed this account',
       closingBody: 'Nobody sees it now. Keep it and everything comes back as it was; otherwise it is erased on {{date}}.',
       keepAccount: 'Keep my account',
+      reportClosedTitle: 'This account was closed after a report',
+      reportClosedBody: 'Someone reported that its owner is under 13, and a moderator agreed. It is erased on {{date}}. If this is wrong, ask for a review.',
+      askForReview: 'Ask for a review',
+      reviewAskedTitle: 'You asked for a review',
+      reviewAskedBody: 'A moderator will look at this and answer by email. Until then the account stays closed; it is erased on {{date}} if nothing changes.',
       useAnotherAccount: 'Use another account',
     },
     forgot: {

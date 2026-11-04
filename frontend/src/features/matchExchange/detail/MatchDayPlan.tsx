@@ -41,12 +41,12 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
                     {/* An open challenge's window: its days and hours; the answering squad picks the kick-off inside it. */}
                     <ListRow lead={<CalendarDays aria-hidden="true" className="gk-match-icon" />}
                         title={slot ? <>{dayWords(slot.days[0])}{slot.days.length > 1 ? ` – ${dayWords(slot.days[slot.days.length - 1])}` : ''} · <span className="gk-num">{slot.from}–{slot.to}</span></>
-                            : <>{kickoffDay(m)} · <span className="gk-num">{kickoffTime(m)}–{endTime(m)}</span></>}
-                        meta={t('{minutes} minutes · {timezone}', { minutes: slot ? slot.minutes : lengthMinutes(m), timezone: m.timezone })}
+                            : m.place_hidden ? kickoffDay(m) : <>{kickoffDay(m)} · <span className="gk-num">{kickoffTime(m)}–{endTime(m)}</span></>}
+                        meta={m.place_hidden && !slot ? t('The kick-off shows once the match is agreed') : t('{minutes} minutes · {timezone}', { minutes: slot ? slot.minutes : lengthMinutes(m), timezone: m.timezone })}
                         trail={<ButtonLink size="sm" variant="ghost" to={`/calendar?scope=squad&squadId=${m.squad_id}`}>{t('Squad schedule')}</ButtonLink>} />
                     <ListRow lead={<MapPin aria-hidden="true" className="gk-match-icon" />}
-                        title={named ? m.location_name : t('Ground to be arranged')}
-                        meta={[m.city, hostingText(m), reservation, m.external_venue_confirmed ? t('Confirmed with the ground owner') : null].filter(Boolean).join(' · ')}
+                        title={m.place_hidden ? m.city : named ? m.location_name : t('Ground to be arranged')}
+                        meta={m.place_hidden ? t('The ground shows once the match is agreed') : [m.city, hostingText(m), reservation, m.external_venue_confirmed ? t('Confirmed with the ground owner') : null].filter(Boolean).join(' · ')}
                         trail={<>
                             <Badge tone={ground.tone}>{t(ground.label)}</Badge>
                             {m.venue_id && <ButtonLink size="sm" variant="ghost" to={`/stadiums/${m.venue_id}`}>{t('Directions')}</ButtonLink>}

@@ -18,6 +18,8 @@ import { WorkspacePlayerPanel } from '../../clubOperations/WorkspacePlayerPanel'
 import { withoutScope } from '../../clubOperations/scopedParams';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { PlayerCard } from '../squads/PlayerCard';
+import { CoachNote } from '../squads/CoachNote';
+import { useCoachNotes } from '../squads/useCoachNotes';
 import { dueWords } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
 import { WantToJoin } from './WantToJoin';
@@ -84,9 +86,11 @@ export function CoachPlayers({ data }: { data: CoachData }) {
     const several = data.shown.length > 1;
     const errors = rosters?.filter(roster => roster.error).map(roster => roster.error) ?? [];
 
+    const notes = useCoachNotes(data.squads?.map(item => item.id) ?? []);
     const signs = (row: PlayerRow) => {
         const due = row.review && dueWords(row.review.data.reviewOn ?? row.review.due_on, data.now);
         return <>
+            {notes[row.player.id] && <CoachNote note={notes[row.player.id]} />}
             {row.restriction && <span className="pc-sign pc-sign--injury" title={`${copy('filterRestricted')}: ${row.restriction.data.restrictions || row.restriction.title}`}><HeartPulse aria-hidden="true" /><span className="gk-visually-hidden">{copy('filterRestricted')}</span></span>}
             {row.consent && <span className="pc-sign pc-sign--consent" title={`${copy('consentAwaiting')}: ${row.consent.title}`}><PenLine aria-hidden="true" /><span className="gk-visually-hidden">{copy('consentAwaiting')}</span></span>}
             {row.review && <span className={`pc-sign${due?.late ? ' pc-sign--injury' : ''}`} title={`${row.review.title}${due ? ` · ${due.late ? due.text : copy('reviewOnDate', { date: due.text })}` : ''}`}><Goal aria-hidden="true" /><span className="gk-visually-hidden">{copy('developmentReview')}</span></span>}

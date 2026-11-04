@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { UserMinus, UserPlus } from 'lucide-react';
 import { Button, EmptyNote } from '../../../design/primitives';
 import { PlayerCard } from '../../clubWorkspace/squads/PlayerCard';
+import { CoachNote } from '../../clubWorkspace/squads/CoachNote';
+import { useCoachNotes } from '../../clubWorkspace/squads/useCoachNotes';
 import { removePlayerFromSquad } from '../../clubs/api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import * as api from '../api';
@@ -37,6 +39,7 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
         catch (e) { setError(extractApiErrorMessage(e, copy('The player could not be removed.', 'მოთამაშე ვერ წაიშალა.'))); }
         finally { setBusy(null); }
     };
+    const notes = useCoachNotes(space.can_manage ? [space.id] : []);
     const players = [...space.players].sort((a, b) => (a.number ?? 99) - (b.number ?? 99) || a.name.localeCompare(b.name));
     return <div className="sp-players">
         {space.can_manage && <div className="sp-players__bar">
@@ -49,7 +52,7 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
         {players.length ? <ul className="sp-cards">{players.map(player => <li key={player.id}>
             <PlayerCard crest={crest} player={{ id: player.id, name: player.name, number: player.number, position: player.position, photoUrl: player.photo_url }}
                 onOpen={space.can_manage ? () => navigate(`/my-squads?tab=players&squad=${space.id}&player=${player.id}`) : undefined}
-                signs={childIds.includes(player.id) ? <span className="pc-sign sp-yours">{copy('Yours', 'თქვენი')}</span> : undefined}
+                signs={childIds.includes(player.id) || notes[player.id] ? <>{childIds.includes(player.id) && <span className="pc-sign sp-yours">{copy('Yours', 'თქვენი')}</span>}{notes[player.id] && <CoachNote note={notes[player.id]} />}</> : undefined}
                 actions={space.can_manage ? <Button size="sm" variant="ghost" iconOnly aria-label={copy(`Remove ${player.name} from the squad`, `${player.name} — გუნდიდან წაშლა`)} disabled={busy === player.id} onClick={() => void remove(player)}><UserMinus aria-hidden="true" /></Button> : undefined} />
         </li>)}</ul> : <EmptyNote title={copy('No players yet', 'მოთამაშეები ჯერ არ არის')} action={canInvite ? <Button size="sm" onClick={() => setInviting(true)}>{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button> : undefined} />}
         {inviting && <SquadInviteDialog space={space} requests={requests} canLink={canInvite} onClose={() => setInviting(false)} onAnswered={onChanged} />}

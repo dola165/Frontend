@@ -30,6 +30,9 @@
 .gk .pc-card__actions .gk-btn--icon { width: 30px; min-height: 30px; }
 .gk .pc-sign { --tone: var(--gk-text-2); display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); font-size: var(--gk-fs-xs); font-weight: 700; }
 .gk .pc-sign svg { width: 13px; height: 13px; }
+.gk button.pc-sign { border: 0; cursor: pointer; }
+.gk .pc-note { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gk .pc-note__text { max-width: 220px; color: var(--gk-text-2); font-size: var(--gk-fs-xs); line-height: 16px; white-space: pre-wrap; }
 .gk .pc-sign--captain { --tone: var(--gk-warning); }
 .gk .pc-sign--trial { --tone: var(--gk-info); }
 .gk .pc-sign--injury { --tone: var(--gk-danger); }

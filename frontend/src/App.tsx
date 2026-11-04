@@ -73,6 +73,7 @@ const MySquadsPage = lazy(() => import('./pages/SquadCommunicationPage').then(mo
 const SquadCommunicationPage = lazy(() => import('./pages/SquadCommunicationPage').then(module => ({default: module.SquadCommunicationPage})));
 const ClubPublicProfileSettingsPage = lazy(() => import('./pages/ClubPublicProfileSettingsPage').then(module => ({default: module.ClubPublicProfileSettingsPage})));
 const ClubOperationsPage = lazy(() => import('./pages/ClubOperationsPage'));
+const ConcernReceivedPage = lazy(() => import('./pages/ConcernReceivedPage'));
 const ClubProfilePage = lazy(() => import('./features/clubs/profile/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
 const PersonProfilePage = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.PersonProfilePage})));
 const MyProfileRedirect = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.MyProfileRedirect})));
@@ -460,6 +461,7 @@ export function MainLayout() {
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><LegacyCleanupRedirect kind="squads" /></ProtectedRoute>} />
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/operations" element={<ProtectedRoute><ClubOperationsPage /></ProtectedRoute>} />
+            <Route path="/clubs/:id/concerns/:concernId" element={<ProtectedRoute><ConcernReceivedPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/office" element={<ProtectedRoute><ClubOfficePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/work" element={<ProtectedRoute><ClubJobWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/work/:workspace" element={<ProtectedRoute><ClubJobWorkspacePage /></ProtectedRoute>} />

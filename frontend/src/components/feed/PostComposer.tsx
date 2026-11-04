@@ -13,6 +13,8 @@ import { announceAccessRefresh } from '../../hooks/accessRefresh';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { useOrganizationPostPublication } from './postPublication';
 import { authorKey, type PostAuthor } from '../../features/feed/postAuthors';
+import { WhoIsInIt } from './WhoIsInIt';
+import { NOT_ANSWERED, photoAnswerBody, type PhotoAnswer } from './photoAnswer';
 import './post-composer.css';
 
 const MAX_PHOTOS = 10;
@@ -76,6 +78,7 @@ const PostComposerEditor = ({
   const content = publication.attempt?.body.content ?? draft.content;
   const setContent = (value: string) => { if (!held) changeDraft({ content: value, authorKey: picked, authorName: shownName }); };
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
+  const [photoAnswer, setPhotoAnswer] = useState<PhotoAnswer>(NOT_ANSWERED);
   const photosRef = useRef<DraftPhoto[]>([]);
   const photoSequence = useRef(0);
   const mounted = useRef(true);
@@ -104,6 +107,7 @@ const PostComposerEditor = ({
     setFileError(null);
     photosRef.current.forEach(photo => URL.revokeObjectURL(photo.previewUrl));
     updatePhotos([]);
+    setPhotoAnswer(NOT_ANSWERED);
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
@@ -222,7 +226,8 @@ const PostComposerEditor = ({
         ...(choice?.squadId ? { squadId: choice.squadId } : {}),
         ...(organizationId ? { organizationId } : {}),
         isPublic: true,
-        mediaIds
+        mediaIds,
+        ...(mediaIds.length ? photoAnswerBody(photoAnswer) : {})
       };
       const published = organizationId
         ? { data: { postId: await publication.publish({ ...payload, clubId: null, organizationId }, config) } }
@@ -318,6 +323,7 @@ const PostComposerEditor = ({
         <select value={picked} onChange={event => {
           const author = authors.find(item => authorKey(item) === event.target.value);
           changeDraft({ authorKey: event.target.value, authorName: author?.name ?? authorName });
+          setPhotoAnswer(NOT_ANSWERED);
           setRefusedAuthor(null); setSubmitError(null);
         }}>
           {unavailableAuthor && !choice && <option value={picked} disabled>{draft.authorName || copy('Saved author', 'შენახული ავტორი')}</option>}
@@ -347,6 +353,8 @@ const PostComposerEditor = ({
           </div>)}
         </div>
       </div>}
+
+      {photos.length > 0 && <WhoIsInIt key={picked} clubId={(choice ? choice.clubId : clubId) || null} squadId={choice?.squadId ?? null} answer={photoAnswer} onAnswer={setPhotoAnswer} caption={content} />}
 
       {(isExpanded || home) && (
         <div className={`${home ? 'home-composer-actions' : 'grid grid-cols-2'} mt-3 border-t border-[var(--feed-divider)] pt-3`}>

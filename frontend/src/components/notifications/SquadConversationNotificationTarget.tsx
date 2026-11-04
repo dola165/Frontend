@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { overview, type SquadOverview } from '../../features/squadCommunication/api';
 import { SquadMessages } from '../../features/squadCommunication/SquadMessages';
+import { activeRoom } from '../../features/squadCommunication/squadRoomWords';
 import { notificationId } from '../../utils/notificationDestinations';
 
 /** A notification-local conversation surface also works in Android's web container. */
-export function SquadConversationNotificationTarget({ squadId, channel, thread, onClose }: {
-    squadId: string; channel: string; thread: string | null; onClose: () => void;
+export function SquadConversationNotificationTarget({ squadId, channel, thread, room, onClose }: {
+    squadId: string; channel: string; thread: string | null; room?: string | null; onClose: () => void;
 }) {
     const [revision, setRevision] = useState(0);
     const key = `${squadId}:${channel}:${thread}:${revision}`;
@@ -18,7 +19,7 @@ export function SquadConversationNotificationTarget({ squadId, channel, thread, 
         void overview(Number(squadId), abort.signal).then(space => {
             if (abort.signal.aborted) return;
             const allowed = space.id === Number(squadId) && (channel === 'chat' || (space.can_manage
-                ? space.threads.some(person => person.user_id === Number(thread)) : space.viewer_id === Number(thread)));
+                ? space.threads.some(person => person.user_id === Number(thread)) : space.viewer_id === Number(thread) || Boolean(space.child_threads?.some(child => child.user_id === Number(thread)))));
             setResult(allowed ? { key, space } : { key, error: 'This squad conversation is unavailable or you no longer have access.' });
         }).catch(() => {
             if (!abort.signal.aborted) setResult({ key, error: 'This squad conversation is unavailable or you no longer have access.' });
@@ -32,7 +33,7 @@ export function SquadConversationNotificationTarget({ squadId, channel, thread, 
         {current?.error && <div role="alert"><p>{current.error}</p>{valid && <button onClick={() => setRevision(value => value + 1)}>Try again</button>}</div>}
         {current?.space && <>
             <Link className="app-text-action" to={`/squads/${squadId}`}>Squad updates</Link>
-            <SquadMessages key={key} space={current.space} kind="CHAT" thread={channel === 'coach' ? Number(thread) : null} onSent={() => setRevision(value => value + 1)} />
+            <SquadMessages key={key} space={current.space} kind="CHAT" thread={channel === 'coach' ? Number(thread) : null} room={channel === 'coach' ? null : activeRoom(current.space, room)} asParent={channel === 'coach' && current.space.viewer_id !== Number(thread) && !current.space.can_manage} onSent={() => setRevision(value => value + 1)} />
         </>}
     </section>;
 }

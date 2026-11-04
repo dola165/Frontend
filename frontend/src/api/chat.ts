@@ -28,6 +28,22 @@ export interface ConversationDto {
     participants: ParticipantInfo[];
 }
 
+/** Who of the family is in a chat, for one reader (GET /chat/conversations/{id}/family). */
+export interface ChatFamily {
+    /** The parents in it because a player under 18 is. */
+    parents: { userId: number; displayName: string; childName: string }[];
+    /** The reader is one of them: they can mute it but not leave, and nobody can remove them. */
+    parentHeld: boolean;
+    muted: boolean;
+    /** A 13-17 joining room with no parent yet: the club can't write until one is in it. */
+    awaitingParent: boolean;
+    playerName: string | null;
+    youAreThePlayer: boolean;
+    mayWrite: boolean;
+    /** One adult's chat with a teen and the parents: nobody can be added to it. */
+    teenChat: boolean;
+}
+
 export interface ChatMessageResponse {
     id: number;
     conversationId: number;
@@ -127,6 +143,14 @@ export const chatApi = {
         participantIds: number[];
     }) {
         return apiClient.post<ConversationDto>('/chat/conversations', data);
+    },
+
+    getFamily(conversationId: number, signal?: AbortSignal) {
+        return apiClient.get<ChatFamily>(`/chat/conversations/${conversationId}/family`, { signal });
+    },
+
+    setMuted(conversationId: number, muted: boolean) {
+        return apiClient.put(`/chat/conversations/${conversationId}/mute`, { muted });
     },
 
     addParticipants(conversationId: number, userIds: number[]) {

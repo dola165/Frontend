@@ -9,8 +9,8 @@ export function NotificationDestinations() {
     const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     return <>
-                {searchParams.has('squadId') && <SquadConversationNotificationTarget key={user?.id} squadId={searchParams.get('squadId') ?? ''} channel={searchParams.get('channel') ?? ''} thread={searchParams.get('thread')} onClose={() => {
-                    const next = new URLSearchParams(searchParams); next.delete('squadId'); next.delete('channel'); next.delete('thread'); setSearchParams(next);
+                {searchParams.has('squadId') && <SquadConversationNotificationTarget key={user?.id} squadId={searchParams.get('squadId') ?? ''} channel={searchParams.get('channel') ?? ''} thread={searchParams.get('thread')} room={searchParams.get('room')} onClose={() => {
+                    const next = new URLSearchParams(searchParams); next.delete('squadId'); next.delete('channel'); next.delete('thread'); next.delete('room'); setSearchParams(next);
                 }} />}
                 {(searchParams.has('bookingId') || searchParams.has('venueId')) && <BookingNotificationTarget key={user?.id} venueId={searchParams.get('venueId') ?? ''} bookingId={searchParams.get('bookingId') ?? ''} onClose={() => {
                     const next = new URLSearchParams(searchParams); next.delete('venueId'); next.delete('bookingId'); setSearchParams(next);

@@ -38,7 +38,7 @@ export interface FirstVisits { places: number; fee: number | null; currency: str
  */
 export interface FirstVisitSession { reference: string; sessionId: number | null; startsAt: string; endsAt: string; place: string; placesLeft: number }
 /** The group's next trainings with a first-visit place left (four weeks, from two hours ahead), soonest first. */
-export interface FirstVisitSessions { groupId: number; groupVersion: number; places: number; fee: number | null; currency: string | null; timezone: string; sessions: FirstVisitSession[] }
+export interface FirstVisitSessions { groupId: number; groupVersion: number; places: number; fee: number | null; currency: string | null; timezone: string; sessions: FirstVisitSession[]; addChildFirst?: boolean }
 /**
  * A booking carries what the family saw: the group's terms (`groupVersion`) and the training's time and place. When
  * either changed since, the server answers TERMS_CHANGED or SESSION_CHANGED and nothing is booked. `phone`: asked only
@@ -83,6 +83,8 @@ export interface AdmissionCase {
   groupName: string; intake: string; method: AdmissionMethod; stage: CaseStage; responsible: Choice | null;
   nextAction: NextAction; requirements: Requirement[]; sessions: Participation[]; offer: Offer | null;
   enrollment: Enrollment | null; history: CaseEvent[]; actions: CaseAction[];
+  /** A teen on their own account with no parent here: what the club wrote waits for a parent. */
+  parentFirst?: boolean;
   primaryAffiliation: { clubId: number; clubName: string } | null;
   previousCaseId: number | null; submittedAt: string; updatedAt: string;
   assessments?: { id: number; kind: 'ASSESS' | 'RECOMMEND' | 'APPROVE_ADMISSION'; groupId: number; note: string | null; actorName: string; createdAt: string }[];

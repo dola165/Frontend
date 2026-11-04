@@ -41,16 +41,45 @@ it('a signed-in parent says yes once they confirm, and lands on the child in Par
     expect(screen.getByRole('link', { name: 'Open Parent Hub' })).toHaveAttribute('href', '/parent?player=31');
 });
 
-it('a teen’s link refuses an adult of the teen’s own football, in words that say what to do', async () => {
+it('a teen’s link refuses an adult of the teen’s own football, and they can ask the club to confirm them', async () => {
     auth.isAuthenticated = true; auth.user = { fullName: 'Giorgi Beridze' };
     vi.mocked(previewFamilyLink).mockResolvedValue(teen);
-    vi.mocked(claimFamilyLink).mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'FAMILY_LINK_OWN_CLUB', message: 'refused' } } });
+    vi.mocked(claimFamilyLink).mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { code: 'FAMILY_LINK_OWN_CLUB', message: 'refused' } } });
+    vi.mocked(claimFamilyLink).mockResolvedValueOnce({ outcome: 'ASKED_CLUB', personId: 31, personName: 'Luka Kapanadze', mergeId: null });
     show();
     const yes = await screen.findByRole('button', { name: 'Yes' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'I’m Luka’s parent or guardian.' }));
     fireEvent.change(screen.getByLabelText('Luka’s birth date'), { target: { value: '2012-05-20' } });
     fireEvent.click(yes);
-    expect(await screen.findByRole('alert')).toHaveTextContent('You play or work at Luka’s club, so this link can’t make you their parent.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('You play or work at Luka’s club, so this link can’t make you their parent on its own. If you are, ask the club to confirm you.');
+    fireEvent.click(screen.getByRole('button', { name: 'Ask the club to confirm me' }));
+    await waitFor(() => expect(claimFamilyLink).toHaveBeenLastCalledWith(code, { as: 'PARENT', confirmed: true, childId: null, birthDate: '2012-05-20', askClub: true }));
+    expect(await screen.findByText('We asked the club to confirm you’re Luka’s parent. You’ll get a notice.')).toBeInTheDocument();
+});
+
+it('the club’s only leader has nobody to ask: the page says so, with no button to press', async () => {
+    auth.isAuthenticated = true; auth.user = { fullName: 'Olga Owner' };
+    vi.mocked(previewFamilyLink).mockResolvedValue(teen);
+    vi.mocked(claimFamilyLink).mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'FAMILY_LINK_ONLY_LEADER', message: 'refused' } } });
+    show();
+    const yes = await screen.findByRole('button', { name: 'Yes' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'I’m Luka’s parent or guardian.' }));
+    fireEvent.change(screen.getByLabelText('Luka’s birth date'), { target: { value: '2012-05-20' } });
+    fireEvent.click(yes);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nobody else at your club can confirm you. Add another Owner or Admin and they can, or ask GrassKickZ support.');
+    expect(screen.queryByRole('button', { name: 'Ask the club to confirm me' })).not.toBeInTheDocument();
+});
+
+it('a club’s staff get the same door on its card', async () => {
+    auth.isAuthenticated = true; auth.user = { fullName: 'Koba Coach' };
+    vi.mocked(previewFamilyLink).mockResolvedValue(card);
+    vi.mocked(claimFamilyLink).mockRejectedValue({ isAxiosError: true, response: { status: 409, data: { code: 'FAMILY_LINK_STAFF', message: 'refused' } } });
+    show();
+    expect(await screen.findByText('Dinamo Academy sent Nino’s card')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.change(screen.getByLabelText('Nino’s birth date'), { target: { value: '2016-04-02' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    expect(await screen.findByRole('button', { name: 'Ask the club to confirm me' })).toBeInTheDocument();
 });
 
 it('a club’s card asks the exact birth date, and says so when it doesn’t match', async () => {

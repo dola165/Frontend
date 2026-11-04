@@ -10,9 +10,9 @@ import './ask-parent.css';
  * a parent's yes. "Remind my parent" tells their parents, at most once a day; with no parent yet, the "Add my parent"
  * link instead. It brings its own styles: it stands on the case page and in the joining chat.
  */
-export function AskParent({ caseId }: { caseId: number }) {
+export function AskParent({ caseId, noParent = false }: { caseId: number; noParent?: boolean }) {
     const copy = useJourneyCopy();
-    const [state, setState] = useState<'idle' | 'busy' | 'sent' | 'noParent' | 'failed'>('idle');
+    const [state, setState] = useState<'idle' | 'busy' | 'sent' | 'noParent' | 'failed'>(noParent ? 'noParent' : 'idle');
     const remind = async () => {
         setState('busy');
         try { await remindParents(caseId); setState('sent'); }

@@ -10,6 +10,7 @@ import { formatDateTime } from '../../../utils/formatting';
 import { useAdmissionTab } from './useAdmissionTab';
 import { AdmissionError, AdmissionFrame, AdmissionLoading, AdmissionSection } from './AdmissionFrame';
 import { useAdmissionCopy } from './copy';
+import { AskParent } from './AskParent';
 import { MessageAction, OfferResponse, PrimaryChangeResponse, ReasonAction, RequirementResponse, SessionResponse, AskParentToLeave, PaperFormNotice } from './CaseActions';
 
 export function AdmissionCasePage() {
@@ -42,8 +43,9 @@ function AdmissionCaseContent({id}:{id:number}) {
                 {c.nextAction.code==='GUARDIAN_REVIEW'&&<GuardianReviewStatus playerId={c.playerId}/>}
 
                 {c.offer&&<OfferResponse key={c.offer.id} {...props} offer={c.offer}/>}
+                {!c.offer&&c.parentFirst&&c.stage==='PLACE_OFFERED'&&<AskParent caseId={c.id} noParent/>}
                 <PrimaryChangeResponse {...props}/>
-                {!c.offer&&!c.requirements.length&&<p className="admission-muted">{copy('No agreement to review yet.','შეთანხმება ჯერ არ არის განსახილველი.')}</p>}</AdmissionSection>
+                {!c.offer&&!c.parentFirst&&!c.requirements.length&&<p className="admission-muted">{copy('No agreement to review yet.','შეთანხმება ჯერ არ არის განსახილველი.')}</p>}</AdmissionSection>
             <AdmissionSection active={tab==='conversation'}><section className="admission-panel"><h2>{copy('Conversation and choices','საუბარი და არჩევანი')}</h2>{c.actions.includes('MESSAGE')&&<MessageAction {...props} prompt={copy('Ask a question or follow up','კითხვის დასმა ან მოკითხვა')}/>}{c.actions.includes('ASK_PARENT')&&<AskParentToLeave {...props}/>}{c.actions.includes('WAITLIST')&&<ReasonAction {...props} action="WAITLIST" label={copy('Ask to remain on the waiting list','მოლოდინის სიაში დარჩენის მოთხოვნა')}/>}{c.actions.includes('WITHDRAW')&&<ReasonAction {...props} action="WITHDRAW" label={copy('Withdraw this request','ამ მოთხოვნის გაუქმება')}/>}{c.actions.includes('CANCEL_ENROLLMENT')&&<ReasonAction {...props} action="CANCEL_ENROLLMENT" label={copy('End this enrollment now','ამ ჩარიცხვის ახლავე დასრულება')}/>}{c.stage==='CLOSED'&&<Link className="admission-button" to={`/admissions/opportunities/${c.groupId}?player=${c.playerId}`}>{copy('Review a new linked request','ახალი დაკავშირებული მოთხოვნის განხილვა')}</Link>}</section>
 </AdmissionSection>
             <AdmissionSection active={tab==='history'}><section className="admission-panel"><h2>{copy('Case history','საქმის ისტორია')}</h2><ol className="admission-timeline">{c.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{formatDateTime(e.createdAt)}</time><strong>{eventLabel(e.action)}</strong><p className="admission-muted">{e.actorName}</p>{e.message&&<p>{e.message}</p>}</li>)}</ol>{c.history.length===0&&<p>{copy('Request recorded. Future decisions will appear here.','მოთხოვნა დაფიქსირდა. მომავალი გადაწყვეტილებები აქ გამოჩნდება.')}</p>}{c.previousCaseId&&<Link className="admission-button" to={playerPath(`/admissions/cases/${c.previousCaseId}`,c.playerId)}>{copy('Earlier linked attempt','წინა დაკავშირებული მცდელობა')}</Link>}</section>

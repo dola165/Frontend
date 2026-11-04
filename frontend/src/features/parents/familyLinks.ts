@@ -22,10 +22,10 @@ export interface FamilyLinkPreview {
     expiresAt: string;
 }
 
-export interface FamilyLinkClaim { as: 'PARENT' | 'SELF'; childId?: number | null; birthDate?: string | null; confirmed: true }
+export interface FamilyLinkClaim { as: 'PARENT' | 'SELF'; childId?: number | null; birthDate?: string | null; confirmed: true; askClub?: boolean }
 
-/** LINKED: you are the parent now. JOINED: the card joined a child you hold (or your account). PROPOSED: the card's family was asked. ASKED_PARENT: the child's parent was asked to add you. */
-export interface FamilyLinkClaimed { outcome: 'LINKED' | 'JOINED' | 'PROPOSED' | 'ASKED_PARENT'; personId: number; personName: string | null; mergeId: number | null }
+/** LINKED: you are the parent now. JOINED: the card joined a child you hold (or your account). PROPOSED: the card's family was asked. ASKED_PARENT: the child's parent was asked to add you. ASKED_CLUB: the club's Owner and Admins were asked to confirm you. */
+export interface FamilyLinkClaimed { outcome: 'LINKED' | 'JOINED' | 'PROPOSED' | 'ASKED_PARENT' | 'ASKED_CLUB'; personId: number; personName: string | null; mergeId: number | null }
 
 export const addMyParentLink = () => apiClient.post<FamilyLink>('/auth/parent-approval/link').then(r => r.data);
 export const anotherParentLink = (childId: number) => apiClient.post<FamilyLink>(`/family/children/${childId}/link`).then(r => r.data);
@@ -38,8 +38,13 @@ export const claimFamilyLink = (code: string, body: FamilyLinkClaim) =>
 /** "Remind Mum": the teen's own offered place; 409 ADD_A_PARENT when nobody is their parent yet. */
 /** "Not their parent": ends a link a family link made; the first answer counts (409 ALREADY_ANSWERED after it). */
 export const notTheirParent = (guardianLink: number) => apiClient.post<void>(`/family/guardian-links/${guardianLink}/not-their-parent`).then(() => undefined);
-/** Under a player's card: who claimed its family link, when and from where. */
-export interface ClaimedParent { guardianLinkId: number; name: string; claimedAt: string; claimedFrom: string | null }
+/** Under a player's card: who claimed its family link, when and from where. With `askId` they asked the club to confirm them and aren't the parent yet. */
+export interface ClaimedParent { guardianLinkId: number | null; name: string; claimedAt: string; claimedFrom: string | null; askId?: number | null; canAnswer?: boolean }
+/** The club's ask to confirm someone as a player's parent; first names only. */
+export interface ParentAsk { id: number; adultName: string; childName: string; clubName: string; status: 'WAITING' | 'YES' | 'NO'; answeredBy: string | null; canAnswer: boolean }
+export const fetchParentAsk = (id: number, signal?: AbortSignal) => apiClient.get<ParentAsk>(`/family/parent-asks/${id}`, { signal }).then(r => r.data);
+/** The first answer counts (409 ALREADY_ANSWERED after it). */
+export const answerParentAsk = (id: number, yes: boolean) => apiClient.post<void>(`/family/parent-asks/${id}/answer`, { yes }).then(() => undefined);
 export const fetchClaimedParents = (clubId: number, playerId: number, signal?: AbortSignal) =>
     apiClient.get<ClaimedParent[]>(`/clubs/${clubId}/players/${playerId}/family-link/claimed`, { signal }).then(r => r.data);
 export const remindParents = (caseId: number) => apiClient.post<void>(`/family/me/cases/${caseId}/remind-parents`).then(() => undefined);

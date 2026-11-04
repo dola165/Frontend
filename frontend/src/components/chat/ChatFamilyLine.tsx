@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, BellOff, Users } from 'lucide-react';
+import { Bell, BellOff, Lock, Users } from 'lucide-react';
 import { chatApi, type ChatFamily } from '../../api/chat';
 import { AddMyParentButton } from '../auth/AddMyParentButton';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -27,6 +27,10 @@ export function ChatFamilyLine({ family, currentUserId, conversationId, onChange
         {family.youAreThePlayer
             ? <div className="chat-family__ask"><p>{copy('Add your parent: the club will reply when a parent is in this chat.', 'დაამატეთ მშობელი: კლუბი გიპასუხებთ, როცა მშობელი ამ ჩატში იქნება.')}</p><AddMyParentButton /></div>
             : <p>{copy(`You can reply when ${family.playerName}’s parent is in this chat.`, `პასუხს შეძლებთ, როცა მშობელი (${family.playerName}) ამ ჩატში იქნება.`)}</p>}
+    </aside>;
+    if (family.closed) return <aside className="chat-family">
+        <Lock aria-hidden="true" />
+        <p>{copy(`This chat is closed, so nobody can write in it. You can read it as ${list(mine.map(parent => parent.childName))}’s parent.`, `ეს ჩატი დახურულია, მასში ვერავინ დაწერს. შეგიძლიათ წაიკითხოთ, როგორც მშობელმა (${list(mine.map(parent => parent.childName))}).`)}</p>
     </aside>;
     if (!family.parents.length) return null;
     return <aside className="chat-family">

@@ -127,7 +127,7 @@ export const ConversationInfoPanel = ({ conversation: activeConv, currentUserId,
                 </div>
 
                 {/* ── Add People / Suggest (GROUP only) ── */}
-                {activeConv.contextType === 'GROUP' && !family?.teenChat && (
+                {activeConv.contextType === 'GROUP' && !family?.teenChat && !family?.closed && (
                     <div className="px-4 pb-3 border-b border-[var(--chat-card-border)]">
                         {isCreator ? (
                             <>

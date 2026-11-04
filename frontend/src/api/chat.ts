@@ -42,6 +42,8 @@ export interface ChatFamily {
     mayWrite: boolean;
     /** One adult's chat with a teen and the parents: nobody can be added to it. */
     teenChat: boolean;
+    /** The reader is a parent reading their child's closed chat with an adult: nobody can write in it. */
+    closed: boolean;
 }
 
 export interface ChatMessageResponse {

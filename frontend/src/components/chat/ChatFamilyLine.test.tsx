@@ -8,7 +8,7 @@ import { chatRefusalCode, chatRefusalWords } from './chatRefusal';
 
 vi.mock('../auth/AddMyParentButton', () => ({ AddMyParentButton: () => <p>Add my parent link</p> }));
 
-const family = (extra: Partial<ChatFamily> = {}): ChatFamily => ({ parents: [], parentHeld: false, muted: false, awaitingParent: false, playerName: null, youAreThePlayer: false, mayWrite: true, teenChat: false, ...extra });
+const family = (extra: Partial<ChatFamily> = {}): ChatFamily => ({ parents: [], parentHeld: false, muted: false, awaitingParent: false, playerName: null, youAreThePlayer: false, mayWrite: true, teenChat: false, closed: false, ...extra });
 const maia = { userId: 2, displayName: 'Maia', childName: 'Teo' };
 const show = (value: ChatFamily, onChanged = vi.fn()) => render(<ChatFamilyLine family={value} currentUserId={2} conversationId={9} onChanged={onChanged} />);
 
@@ -27,6 +27,12 @@ it('tells a parent why they are here and lets them mute it', async () => {
     await userEvent.click(screen.getByRole('button', { name: 'Mute' }));
     await waitFor(() => expect(changed).toHaveBeenCalled());
     expect(save).toHaveBeenCalledWith(9, true);
+});
+
+it('tells a parent they can read their child’s closed chat, with nothing to press', () => {
+    show(family({ parents: [maia], parentHeld: true, teenChat: true, mayWrite: false, closed: true }));
+    expect(screen.getByText('This chat is closed, so nobody can write in it. You can read it as Teo’s parent.')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
 
 it('asks the teen for a parent and tells the club when it can reply', () => {

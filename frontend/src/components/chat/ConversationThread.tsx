@@ -13,12 +13,12 @@ type ConversationThreadProps = {
     conversation: ConversationDto; sessionId: AuthSessionId; currentUserId: number; messages: ChatMessageResponse[];
     viewportRef: RefObject<HTMLDivElement | null>; loadingMessages: boolean; hasOlder: boolean; loadingOlder: boolean;
     historyError: string | null; loadOlder: () => Promise<void>; showInfo: boolean; onToggleInfo: () => void; onBack: () => void;
-    familyLine?: ReactNode; awaitingParent?: boolean; children: ReactNode;
+    familyLine?: ReactNode; awaitingParent?: boolean; closed?: boolean; children: ReactNode;
 };
 
 /** Header, intake context and message log of the selected conversation; the composer comes in as children. */
 export const ConversationThread = ({ conversation: activeConv, sessionId, currentUserId, messages: activeMessages, viewportRef,
-    loadingMessages, hasOlder, loadingOlder, historyError, loadOlder, showInfo, onToggleInfo, onBack, familyLine, awaitingParent, children }: ConversationThreadProps) => {
+    loadingMessages, hasOlder, loadingOlder, historyError, loadOlder, showInfo, onToggleInfo, onBack, familyLine, awaitingParent, closed, children }: ConversationThreadProps) => {
     const copy = useMessageCopy();
     return (
         <>
@@ -73,7 +73,7 @@ export const ConversationThread = ({ conversation: activeConv, sessionId, curren
                 ) : activeMessages.length === 0 ? (
                     <div className="flex items-center justify-center flex-1">
                         <p className="text-sm text-[var(--chat-text-muted)]">
-                            {copy('No messages yet. Say hello!', 'შეტყობინებები ჯერ არ არის. მიესალმეთ!')}
+                            {closed ? copy('No messages.', 'შეტყობინებები არ არის.') : copy('No messages yet. Say hello!', 'შეტყობინებები ჯერ არ არის. მიესალმეთ!')}
                         </p>
                     </div>
                 ) : (

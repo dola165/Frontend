@@ -9,6 +9,8 @@ import MyMatchesPage from '../MyMatchesPage';
 import { OfferToReferee } from '../OfferToReferee';
 import { WhoPlayed } from '../WhoPlayed';
 import { FixtureBand } from '../../matchExchange/detail/FixtureBand';
+import { MatchDayPlan } from '../../matchExchange/detail/MatchDayPlan';
+import { matchGates } from '../../matchExchange/detail/matchState';
 
 const http = vi.hoisted(() => ({ post: vi.fn() }));
 const loaded = vi.hoisted(() => ({} as Record<string, unknown>));
@@ -157,6 +159,34 @@ describe('my competitions', () => {
         const links = [...container.querySelectorAll('a')].map(a => a.getAttribute('href'));
         expect(links).toContain('/matches/5863?from=competition%3A301');
         expect(links).toContain('/tournaments/301/workspace?view=schedule&fixtureId=2');
+    });
+});
+
+describe('an open challenge for someone who may not know its hours', () => {
+    const before = Date.parse('2099-11-01T00:00:00Z');
+    const hidden = (patch: Partial<Match> = {}) => match({ listing_status: 'OPEN', squad_id: 7, time_hidden: true, place_hidden: true, city: 'Tbilisi', location_name: 'Tbilisi', window_from: null, window_to: null, match_minutes: 60,
+        starts_at: '2099-11-14T12:00:00', ends_at: '2099-11-15T12:00:00', starts_at_iso: '2099-11-14T08:00:00Z', ends_at_iso: '2099-11-15T08:00:00Z', ...patch });
+    const coachOf = { id: 9, club_id: 5, name: 'U12', category: 'U12', club_name: 'Other club' };
+
+    it('shows its days, no hours, and whose the kick-off and the ground are', () => {
+        render(<MemoryRouter><FixtureBand match={hidden()} now={before} /><MatchDayPlan match={hidden()} active reload={vi.fn()} onReserve={vi.fn()} /></MemoryRouter>);
+        expect(screen.getAllByText(/14.*Nov.*–.*15.*Nov/)).toHaveLength(2);
+        expect(screen.getByText('The kick-off is for the clubs and families playing')).toBeTruthy();
+        expect(screen.getByText('The ground is for the clubs and families playing')).toBeTruthy();
+        expect(screen.queryByText(/\d\d:\d\d/)).toBeNull();
+        expect(screen.queryByText(/once the match is agreed/)).toBeNull();
+    });
+
+    it('tells a coach who can take it that the ground comes once it is agreed', () => {
+        const coach = hidden({ time_hidden: false, window_from: '10:00:00', window_to: '13:00:00', starts_at: '2099-11-14T10:00:00', ends_at: '2099-11-15T13:00:00' });
+        render(<MemoryRouter><MatchDayPlan match={coach} active reload={vi.fn()} onReserve={vi.fn()} /></MemoryRouter>);
+        expect(screen.getByText('10:00–13:00')).toBeTruthy();
+        expect(screen.getByText('The ground shows once the match is agreed')).toBeTruthy();
+    });
+
+    it('offers the answer form only to someone given the hours', () => {
+        expect(matchGates(hidden(), before, [coachOf]).canPropose).toBe(false);
+        expect(matchGates(hidden({ time_hidden: false }), before, [coachOf]).canPropose).toBe(true);
     });
 });
 

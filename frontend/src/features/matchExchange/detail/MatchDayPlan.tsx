@@ -7,7 +7,7 @@ import { journeyLabel } from '../journeyCopy';
 import { useWorldCopy } from '../../world/copy';
 import { appLanguage } from '../../../utils/formatting';
 import { useAction } from '../hooks';
-import { canUseReservation, endTime, groundState, holdsGround, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState, windowOf } from './matchState';
+import { canUseReservation, endTime, groundState, hiddenDays, holdsGround, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState, windowOf } from './matchState';
 
 const sideName = (squad: string, club: string | null, same: boolean) => same && club ? `${squad} (${club})` : squad;
 
@@ -41,12 +41,12 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
                     {/* An open challenge's window: its days and hours; the answering squad picks the kick-off inside it. */}
                     <ListRow lead={<CalendarDays aria-hidden="true" className="gk-match-icon" />}
                         title={slot ? <>{dayWords(slot.days[0])}{slot.days.length > 1 ? ` – ${dayWords(slot.days[slot.days.length - 1])}` : ''} · <span className="gk-num">{slot.from}–{slot.to}</span></>
-                            : m.time_hidden ? kickoffDay(m) : <>{kickoffDay(m)} · <span className="gk-num">{kickoffTime(m)}–{endTime(m)}</span></>}
-                        meta={m.time_hidden && !slot ? t('The kick-off shows once the match is agreed') : t('{minutes} minutes · {timezone}', { minutes: slot ? slot.minutes : lengthMinutes(m), timezone: m.timezone })}
+                            : m.time_hidden ? hiddenDays(m) : <>{kickoffDay(m)} · <span className="gk-num">{kickoffTime(m)}–{endTime(m)}</span></>}
+                        meta={m.time_hidden ? t('The kick-off is for the clubs and families playing') : t('{minutes} minutes · {timezone}', { minutes: slot ? slot.minutes : lengthMinutes(m), timezone: m.timezone })}
                         trail={<ButtonLink size="sm" variant="ghost" to={`/calendar?scope=squad&squadId=${m.squad_id}`}>{t('Squad schedule')}</ButtonLink>} />
                     <ListRow lead={<MapPin aria-hidden="true" className="gk-match-icon" />}
                         title={m.place_hidden ? m.city : named ? m.location_name : t('Ground to be arranged')}
-                        meta={m.place_hidden ? t('The ground shows once the match is agreed') : [m.city, hostingText(m), reservation, m.external_venue_confirmed ? t('Confirmed with the ground owner') : null].filter(Boolean).join(' · ')}
+                        meta={m.place_hidden ? t(m.time_hidden ? 'The ground is for the clubs and families playing' : 'The ground shows once the match is agreed') : [m.city, hostingText(m), reservation, m.external_venue_confirmed ? t('Confirmed with the ground owner') : null].filter(Boolean).join(' · ')}
                         trail={<>
                             <Badge tone={ground.tone}>{t(ground.label)}</Badge>
                             {m.venue_id && <ButtonLink size="sm" variant="ghost" to={`/stadiums/${m.venue_id}`}>{t('Directions')}</ButtonLink>}

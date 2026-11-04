@@ -31,7 +31,7 @@ export function matchGates(m: Match, now: number, squads: Squad[] = []) {
     const eligible = squads.filter(s => s.club_id !== m.club_id);
     return {
         active, eligible,
-        canPropose: m.listing_status === 'OPEN' && !m.requested_club_id && !m.can_manage && eligible.length > 0 && active,
+        canPropose: m.listing_status === 'OPEN' && !m.requested_club_id && !m.can_manage && !m.time_hidden && eligible.length > 0 && active,
         respond: Boolean(m.can_respond && m.listing_status === 'OPEN' && active),
         finished: new Date(m.ends_at_iso).getTime() <= now || m.result_status === 'REPORTED' || m.result_status === 'DISPUTED',
         // Before kick-off there is no result to report or suggest.
@@ -102,6 +102,11 @@ export const kickoffDay = (m: Match) => {
     const day = formatDate(m.starts_at_iso, { weekday: 'short', day: 'numeric', month: 'short', timeZone: m.timezone });
     // Keep the app's Georgian date words even when the platform formatter returns English.
     return day.replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b/g, word => wt(word));
+};
+/** For someone who may not know the hours: the match's day, or an open challenge's first to last day. */
+export const hiddenDays = (m: Match) => {
+    const first = kickoffDay(m), last = kickoffDay({ ...m, starts_at_iso: m.ends_at_iso });
+    return first === last ? first : `${first} – ${last}`;
 };
 export const endTime = (m: Match) => timeFormat(m.timezone).format(new Date(m.ends_at_iso));
 export const lengthMinutes = (m: Match) => Math.round((Date.parse(m.ends_at_iso) - Date.parse(m.starts_at_iso)) / 60000);

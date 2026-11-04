@@ -45,7 +45,7 @@ export function PlanPage({ view, items, views, planOf, lines, revision, task, ac
     const shown = view.tasks.filter(node => nodeMatches(node, who, view.team) && (!statuses.length || statuses.includes(node.item.status)));
     const clear = () => agenda.change({ who: null, statuses: [] });
     const placed: TaskActions = {
-        ...actions, planName: view.plan.name, onAddStep: parent => onAdd(parent),
+        ...actions, onAddStep: parent => onAdd(parent),
         placeOf: item => ({ first: ids[0] === item.id, last: ids[ids.length - 1] === item.id,
             onMove: by => { const at = ids.indexOf(item.id), next = [...ids]; next.splice(at, 1); next.splice(at + by, 0, item.id); onChangePlan({ order: next }); },
             onRemove: () => { actions.onToggle(item.id); onChangePlan({ order: ids.filter(id => id !== item.id) }); } }),

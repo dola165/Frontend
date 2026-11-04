@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { RouteRecoveryPage } from '../../pages/RouteRecoveryPage';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
-import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, removePlanStep, LIST_ORDER, STARTER_WORK, type Member, type Person, type PlanStatus, type Plan, type PlanView, type WorkItem } from './api';
+import { changePlan, createPlan, createWork, fetchBoard, fetchPlan, fetchPlans, isGone, removePlanStep, LIST_ORDER, STARTER_WORK, type Member, type Person, type PlanStatus, type Plan, type PlanView, type WorkItem } from './api';
 import { AddTaskDialog } from './TaskView';
 import { IdeasPage } from './IdeasPage';
 import { IDEAS, isHidden, isNewFor, isReservedName, WAITING, useFindingDetails } from './findings';
@@ -20,6 +20,7 @@ import { TeamSearch } from '../search/TeamSearch';
 import { TaskMenuProvider } from './TaskMenuProvider';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
+import type { Who } from './updateMessage';
 import { AddPlanStepDialog, CopyForAiDialog, PlanHistoryDialog } from './PlanBits';
 import { needsYouCount } from './needsYou';
 import { NameField } from './WorkBits';
@@ -162,9 +163,12 @@ export function TeamWorkPage() {
     const findingProps = { details, team, me, open, onOpen: setOpen, onPut: put, onChanged: reload };
     const actions = { open, team, me, candidates: allTasks, onOpen: setOpen, onSaved: reload, onDeleted: () => { set({ task: null, step: null }); reload(); },
         onAddStep: (parent: WorkItem) => startAdding(undefined, parent), onToggle: (id: number) => set({ task: task === id ? null : String(id), step: null }) };
+    const person = members.find(member => member.userId === me);
+    const who: Who | null = person ? { name: person.name, responsibility: person.responsibility ?? null,
+        tasks: allTasks.filter(item => !isGone(item.status) && item.people.some(on => on.id === me)).map(item => ({ key: item.key, title: item.title })) } : null;
     let main: ReactNode;
     if (!listed) main = !error && loading;
-    else if (place === 'changes') main = <WhatChangedPage />;
+    else if (place === 'changes') main = <WhatChangedPage who={who} />;
     else if (place === 'team') main = <TeamPanel canManage={canManageTeam} />;
     else if (place === 'ideas') main = <IdeasPage ideas={ideas} waiting={waiting} {...findingProps} />;
     else if (place === 'waiting') main = <WaitingPage waiting={waiting} plans={plans} views={views} {...findingProps} onIdeas={() => go('ideas')} />;

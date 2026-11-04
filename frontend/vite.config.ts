@@ -51,6 +51,9 @@ const gitHistory = (): Plugin => {
   return { name: 'gk-git-history', config: () => ({ define: { __GIT_HISTORY__: JSON.stringify(history), __GIT_BUILD__: JSON.stringify(build) } }) }
 }
 
+// The local API a dev server passes requests on to: `tools/team/local_pair.py` in the backend sets it.
+const LOCAL_API = process.env.GK_DEV_API
+
 export default defineConfig({
   root: path.resolve(__dirname),
   plugins: [
@@ -77,6 +80,12 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
     },
+    ...(LOCAL_API ? { proxy: {
+      '/api': { target: LOCAL_API },
+      '/uploads': { target: LOCAL_API },
+      '/media': { target: LOCAL_API },
+      '/ws-chat': { target: LOCAL_API, ws: true },
+    } } : {}),
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

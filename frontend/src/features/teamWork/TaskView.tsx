@@ -16,7 +16,7 @@ import { ReportDialog } from './ReportDialog';
 import { DiscussButton } from '../teamChat/DiscussButton';
 import { NotifyButton } from './NotifyButton';
 import { ago, day, endWords, madeBy, priorityName, progressWords, shortDate, statusName } from './teamWorkWords';
-import { taskAsText } from './planAsText';
+import { BriefDialog } from './BriefDialog';
 import { short } from './upToDate';
 
 const isConflict = (error: unknown) => (error as { response?: { status?: number } })?.response?.status === 409;
@@ -151,8 +151,8 @@ export interface PlaceOnPlan { first: boolean; last: boolean; onMove: (by: -1 | 
  * the page. Steps, links, the report, comments, history and the rest of the details are folded. A save made after a
  * colleague's is refused, and the person reloads with their words kept.
  */
-export function TaskView({ id, team, me, place, plan, candidates = [], framed = false, onOpen, onAddStep, onClose, onSaved, onDeleted }: {
-    id: number; team: Person[]; me?: number | null; place?: PlaceOnPlan; plan?: string; candidates?: WorkItem[]; framed?: boolean; onOpen: (id: number) => void; onAddStep?: () => void; onClose: () => void; onSaved: () => void; onDeleted?: () => void;
+export function TaskView({ id, team, me, place, candidates = [], framed = false, onOpen, onAddStep, onClose, onSaved, onDeleted }: {
+    id: number; team: Person[]; me?: number | null; place?: PlaceOnPlan; candidates?: WorkItem[]; framed?: boolean; onOpen: (id: number) => void; onAddStep?: () => void; onClose: () => void; onSaved: () => void; onDeleted?: () => void;
 }) {
     const copy = useJourneyCopy();
     const [detail, setDetail] = useState<Detail | null>(null);
@@ -163,7 +163,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
     const [revision, setRevision] = useState(0);
     const [deleting, setDeleting] = useState(false);
     const [reporting, setReporting] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [briefing, setBriefing] = useState(false);
     const [progressOpen, setProgressOpen] = useState(false);
     const [doneEditing, setDoneEditing] = useState(false);
     const [doneText, setDoneText] = useState('');
@@ -220,7 +220,6 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
     const isStep = item.parentId != null;
     const hasSteps = detail.steps.length > 0;
     const hasReport = Boolean(item.tested || item.commits || item.branch || item.prUrl || detail.foundCommits.length);
-    const link = `${window.location.origin}/team-work?task=${item.parentId ?? item.id}${isStep ? `&step=${item.id}` : ''}`;
     const fromSteps = draft.percentFromSteps && hasSteps;
     const progress = fromSteps ? copy(draft.percent == null ? 'no percent, from its steps' : `${draft.percent}%, from its steps`, draft.percent == null ? 'პროცენტი არ არის, ნაბიჯებიდან' : `${draft.percent}%, ნაბიჯებიდან`)
         : draft.percent == null ? copy('no percent', 'პროცენტი არ არის') : progressWords(copy, draft.percent);
@@ -260,7 +259,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
                 </dl>
                 <div className="tw-detail__tools">
                     <NotifyButton item={item} team={team} me={me ?? null} onPut={next => { put(next); onSaved(); }} />
-                    <Button size="sm" variant="secondary" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, link, plan)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setBriefing(true)}><Bot aria-hidden="true" />{copy('Copy for AI', 'კოპირება AI-სთვის')}</Button>
                     <Button size="sm" variant="ghost" onClick={() => setReporting(true)}><ClipboardPaste aria-hidden="true" />{copy('Paste report', 'ანგარიშის ჩასმა')}</Button>
                     {place && <>
                         <Button size="sm" iconOnly variant="ghost" disabled={place.first} aria-label={copy('Move up', 'ზემოთ')} onClick={() => place.onMove(-1)}><ArrowUp aria-hidden="true" /></Button>
@@ -300,6 +299,10 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
                 <WorkMediaList itemId={id} media={detail.media} onChanged={next => { put(next); onSaved(); }} />
             </section>
 
+            {detail.handoff && <details className="tw-section tw-fold">
+                <summary className="tw-section__title">{copy('Handoff', 'გადაბარება')} <span className="gk-faint">{[detail.handoff.by?.name, ago(copy, detail.handoff.at)].filter(Boolean).join(' · ')}</span></summary>
+                <p className="tw-report__text">{detail.handoff.text}</p>
+            </details>}
             {!isStep && (hasSteps || (onAddStep && !item.small)) && <details className="tw-section tw-fold" open={hasSteps}>
                 <summary className="tw-section__title">{copy('Steps', 'ნაბიჯები')} <span className="gk-faint gk-num">{detail.steps.length || ''}</span></summary>
                 {hasSteps && <ul className="tw-steps">{detail.steps.map(step => <li key={step.id}>
@@ -353,6 +356,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
             </details>
         </div>
         {deleting && onDeleted && <DeleteDialog item={item} steps={detail.steps.length} onClose={() => setDeleting(false)} onDeleted={onDeleted} />}
+        {briefing && <BriefDialog itemId={item.id} itemKey={item.key} onClose={() => setBriefing(false)} />}
         {reporting && <ReportDialog item={item} onClose={() => setReporting(false)} onApplied={next => { setReporting(false); put(next); onSaved(); }} />}
     </div>;
 }

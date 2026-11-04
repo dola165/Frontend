@@ -8,13 +8,14 @@ import '../../components/work/work.css';
 
 const FIELDS: Record<ReportLine['field'], [string, string]> = {
     status: ['Status', 'სტატუსი'], branch: ['Branch', 'ბრენჩი'], pr: ['Pull request', 'შერწყმის მოთხოვნა (PR)'], commits: ['Commits', 'კომიტები'], percent: ['Percent', 'პროცენტი'],
-    tested: ['Tested', 'შემოწმდა'], question: ['Question', 'კითხვა'], summary: ['History line', 'ისტორიის ხაზი'],
+    tested: ['Tested', 'შემოწმდა'], question: ['Question', 'კითხვა'], summary: ['History line', 'ისტორიის ხაზი'], handoff: ['Handoff', 'გადაბარება'],
 };
 const ACTIONS: Record<ReportLine['action'], [string, string]> = { SET: ['Sets', 'დაყენდება'], SAME: ['Same', 'იგივე'], ADDED: ['Adds', 'დაემატება'] };
 
 /**
  * Paste report: a worker's report as plain text, one marker per line, turned into the task's status, branch, commits,
- * tested and questions. A preview says what would change first; then apply.
+ * tested, questions and handoff, and its steps' too when it has a block for them. A preview says what would change
+ * first; then apply.
  */
 export function ReportDialog({ item, onClose, onApplied }: { item: { id: number; key: string; title: string }; onClose: () => void; onApplied: (detail: Detail) => void }) {
     const copy = useJourneyCopy();
@@ -44,18 +45,18 @@ export function ReportDialog({ item, onClose, onApplied }: { item: { id: number;
             <p className="work-paste__summary"><strong>{changes ? copy(`${changes} ${changes === 1 ? 'thing' : 'things'} to set`, `${changes} დასაყენებელი`) : copy('Nothing to change', 'შესაცვლელი არაფერია')}</strong></p>
             <ol className="work-paste__lines">{preview.lines.map((line, index) => <li key={index} data-action={line.action === 'SAME' ? 'UNCHANGED' : line.action === 'ADDED' ? 'NEW' : 'UPDATED'}>
                 <span className="work-paste__action">{copy(...ACTIONS[line.action])}</span>
-                <span className="work-paste__title">{copy(...FIELDS[line.field])}</span>
+                <span className="work-paste__title">{line.key && line.key !== item.key && <code className="gk-num">{line.key} </code>}{copy(...FIELDS[line.field])}</span>
                 <span className="gk-faint work-paste__detail">{line.detail}</span>
             </li>)}</ol>
             {preview.problems.length > 0 && <ul className="gk-notice gk-notice--warning work-paste__problems">{preview.problems.map(problem => <li key={problem}>{problem}</li>)}</ul>}
         </div> : <div className="tw-details">
             <label htmlFor={id} className="gk-visually-hidden">{copy('The report, as text', 'ანგარიში ტექსტად')}</label>
-            <textarea id={id} className="gk-input work-paste__text" rows={12} maxLength={20000} value={text} placeholder={REPORT_EXAMPLE} onChange={event => setText(event.target.value)} />
+            <textarea id={id} className="gk-input work-paste__text" rows={12} maxLength={60000} value={text} placeholder={REPORT_EXAMPLE} onChange={event => setText(event.target.value)} />
             <p className="work-paste__tools"><button type="button" className="work-link-button" onClick={() => setText(REPORT_EXAMPLE.replace('GK-12', item.key))}>{copy('Use the example', 'მაგალითის ჩასმა')}</button></p>
             <details className="tw-fold work-paste__format">
                 <summary className="tw-section__title">{copy('Format', 'ფორმატი')}</summary>
-                <p className="gk-faint work-paste__help">{copy('One marker per line: status:, branch:, pr:, commits:, percent:, summary:, tested:, question:. A line without one continues the line above. Status: planned, in progress, needs your look, accepted, live, blocked. A question’s quick answers come after “|”; none means yes or no. “summary:” becomes the history line.',
-                    'თითო მარკერი თითო ხაზზე: status:, branch:, pr:, commits:, percent:, summary:, tested:, question:. უმარკერო ხაზი ზემოთას აგრძელებს. სტატუსი: planned, in progress, needs your look, accepted, live, blocked. კითხვის სწრაფი პასუხები „|“-ის შემდეგ; თუ არ არის, კი ან არა. „summary:“ ისტორიის ხაზი ხდება.')}</p>
+                <p className="gk-faint work-paste__help">{copy('One marker per line: status:, branch:, pr:, commits:, percent:, summary:, tested:, question:, handoff:. A line without one continues the line above. Status: planned, in progress, needs your look, accepted, live, blocked. A question’s quick answers come after “|”; none means yes or no. “summary:” becomes the history line. “handoff:” is for whoever continues: every line after it belongs to it. A new “report: GK-13” moves on to that step.',
+                    'თითო მარკერი თითო ხაზზე: status:, branch:, pr:, commits:, percent:, summary:, tested:, question:, handoff:. უმარკერო ხაზი ზემოთას აგრძელებს. სტატუსი: planned, in progress, needs your look, accepted, live, blocked. კითხვის სწრაფი პასუხები „|“-ის შემდეგ; თუ არ არის, კი ან არა. „summary:“ ისტორიის ხაზი ხდება. „handoff:“ იმისთვისაა, ვინც გააგრძელებს: მის შემდეგ ყველა ხაზი მას ეკუთვნის. ახალი „report: GK-13“ იმ ნაბიჯზე გადადის.')}</p>
             </details>
         </div>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

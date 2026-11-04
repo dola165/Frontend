@@ -9,7 +9,7 @@ import { MentionText } from '../../components/work/MentionInput';
 import { WorkComments } from '../../components/work/WorkComments';
 import { WorkMediaList } from './WorkMedia';
 import { ago } from './teamWorkWords';
-import { taskAsText } from './planAsText';
+import { BriefDialog } from './BriefDialog';
 
 
 /** Beside the files when a finding is open: its name and what it is for, which anyone on the team can write or change. */
@@ -18,7 +18,7 @@ function About({ detail, onPut }: { detail: Detail; onPut: (detail: Detail) => v
     const id = useId();
     const [draft, setDraft] = useState<string | null>(null);
     const [error, setError] = useState('');
-    const [copied, setCopied] = useState(false);
+    const [briefing, setBriefing] = useState(false);
     const save = async () => {
         if (draft === null) return;
         setError('');
@@ -30,7 +30,8 @@ function About({ detail, onPut }: { detail: Detail; onPut: (detail: Detail) => v
         {draft === null ? <>
             {detail.item.description ? <p className="tw-finding__purpose">{detail.item.description}</p> : <p className="gk-faint tw-finding__purpose">{copy('Nobody has written what it’s for yet.', 'რისთვისაა, ჯერ არავის დაუწერია.')}</p>}
             <span className="work-row-actions"><button type="button" className="work-link-button" onClick={() => setDraft(detail.item.description ?? '')}>{detail.item.description ? copy('Edit', 'რედაქტირება') : copy('Write what it’s for', 'დაწერეთ რისთვისაა')}</button>
-                <button type="button" className="work-link-button" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, window.location.href)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</button></span>
+                <button type="button" className="work-link-button" onClick={() => setBriefing(true)}><Bot aria-hidden="true" />{copy('Copy for AI', 'კოპირება AI-სთვის')}</button></span>
+            {briefing && <BriefDialog itemId={detail.item.id} itemKey={detail.item.key} onClose={() => setBriefing(false)} />}
         </> : <form className="tw-field" onSubmit={event => { event.preventDefault(); void save(); }}>
             <label htmlFor={id}>{copy('What it’s for', 'რისთვისაა')}</label>
             <textarea id={id} className="gk-input" rows={3} maxLength={400} autoFocus value={draft} onChange={event => setDraft(event.target.value)} />

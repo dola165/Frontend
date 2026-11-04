@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { githubRepo, projectStanding, remoteUrl, scanFolder, type Folder, type FoundProject } from './computerScan';
 import { BRANCH, type Commit } from './upToDate';
-import { updateMessage } from './updateMessage';
+import { moveWorkMessage, updateMessage } from './updateMessage';
 import type { Release } from './whichVersion';
 
 type Tree = { [name: string]: Tree | string };
@@ -90,23 +90,42 @@ describe('the update message', () => {
 
     it('names the release to reach and what the page found', () => {
         const message = updateMessage(target, found);
-        expect(message).toContain(`The latest version is release 6, both on the branch ${BRANCH}:`);
-        expect(message).toContain('github.com/dola165/GrassKickZ, at least commit 290a98d.');
-        expect(message).toContain('github.com/dola165/Frontend (the app is in its frontend/ folder), at least commit 8fde6f2.');
+        expect(message).toContain('up to release 6 without losing anything');
+        expect(message).toContain(`The target, both on the branch ${BRANCH}:`);
+        expect(message).toContain('github.com/dola165/GrassKickZ, at commit 290a98d or newer.');
+        expect(message).toContain('github.com/dola165/Frontend (the app is in its frontend/ folder), at commit 8fde6f2 or newer.');
         expect(message).toContain(`- IdeaProjects/GrassKickZ: backend, ${BRANCH} at b100000; release 4, 12 changes behind.`);
-        expect(message).toContain('- IdeaProjects/AgentDola: the old AgentDola project, main at a900000; a different project, database migrations up to V78: port my work, do not update it.');
+        expect(message).toContain('- IdeaProjects/AgentDola: the old AgentDola project, main at a900000; a different project, database migrations up to V78: leave it as it is.');
     });
 
-    it('backs up first, never discards work, ports a different project instead of updating it, and pushes nothing', () => {
+    it('backs up first, never discards work, leaves a different project alone, and pushes nothing', () => {
         const message = updateMessage(target, null);
         expect(message).not.toContain('The Team work page looked');
-        expect(message).toContain('cotnetavkhelidzed-code/AgentDola');
-        expect(message).toMatch(/3\. Back up first\..*git bundle create.*In no copy delete, reset, clean, rebase, force, or drop a stash\./);
+        expect(message).toMatch(/back it up first.*git bundle create.*In no copy delete, reset, clean, rebase, force, or drop a stash\./);
         expect(message).toContain(`never on ${BRANCH} itself`);
-        expect(message).toContain('leave it exactly as it is and port my work instead');
-        expect(message).toContain('the dola-on-baseline branch of dola165/GrassKickZ');
+        expect(message).toContain('cotnetavkhelidzed-code/AgentDola');
+        expect(message).toContain('leave it exactly as it is and move nothing');
+        expect(message).not.toContain('port/');
         expect(message).toContain(`Push nothing, merge nothing into ${BRANCH}, release nothing and delete nothing.`);
         expect(message).toContain('nothing lost: each commit and changed file of mine, and where it is now');
+    });
+
+    it('speaks for the person: what they work on, their tasks, and so what changed for them', () => {
+        const message = updateMessage(target, null, { name: 'Tornike', responsibility: 'Agent Dola', tasks: [{ key: 'GK-7', title: 'Dola on the phone' }] });
+        expect(message).toContain("I'm Tornike, and I work on Agent Dola. My open tasks in Team work: GK-7 Dola on the phone.");
+        expect(message).toContain('what touches my area (Agent Dola) and my tasks');
+        expect(updateMessage(target, null, { name: null, responsibility: null, tasks: [] })).toContain('what touches what I work on');
+    });
+
+    it('moving work out of an old project looks first, stops, and rebuilds only what is chosen', () => {
+        const old = { ...found.projects[1] };
+        const message = moveWorkMessage(target, [old]);
+        expect(message).toContain('- IdeaProjects/AgentDola');
+        expect(message.indexOf('Part 1: look, and change nothing anywhere.')).toBeLessThan(message.indexOf('Part 2: only when I say which features.'));
+        expect(message).toContain('Stop and show me the list');
+        expect(message).toContain(`on a branch port/<feature> cut from origin/${BRANCH}`);
+        expect(message).toContain('the dola-on-baseline branch of dola165/GrassKickZ');
+        expect(message).toContain('Leave the old project exactly as it is.');
     });
 
     it('without a known release, aims at the newest commits', () => {

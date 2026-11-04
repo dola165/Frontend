@@ -9,6 +9,13 @@ export const fetchOpportunity = (id: number, signal?: AbortSignal) => apiClient.
 export const fetchAdmissionHome = (sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<AdmissionHome>('/admissions/home', config(sessionId, signal)).then(r => r.data);
 export const fetchAdmissionCase = (id: number, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<AdmissionCase>(`/admissions/cases/${id}`, config(sessionId, signal)).then(r => r.data);
 export const submitAdmission = (body: Submission, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.post<AdmissionCase>('/admissions/cases', body, config(sessionId, signal)).then(r => r.data);
+/** The photo or scan of a form a parent signed: staff add it first, the case's staff and family read it. */
+export const addPaperForm = (id: number, file: File, sessionId: AuthSessionId, signal?: AbortSignal) => {
+    const body = new FormData();
+    body.append('file', file);
+    return apiClient.post<{ id: number; fileName: string }>(`/admissions/cases/${id}/paper-form`, body, config(sessionId, signal)).then(r => r.data);
+};
+export const readPaperForm = (id: number, sessionId: AuthSessionId) => apiClient.get<Blob>(`/admissions/cases/${id}/paper-form`, { ...config(sessionId), responseType: 'blob' }).then(r => r.data);
 export const commandAdmission = (id: number, body: CaseCommand, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.post<AdmissionCase>(`/admissions/cases/${id}/commands`, body, config(sessionId, signal)).then(r => r.data);
 export const fetchClubAdmissions = (clubId: number, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<AdmissionWorkspace>(`/clubs/${clubId}/admissions`, config(sessionId, signal)).then(r => r.data);
 export const fetchOrganizationAdmissions = (id: number, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<AdmissionWorkspace>(`/organizations/${id}/admissions`, config(sessionId, signal)).then(r => r.data);

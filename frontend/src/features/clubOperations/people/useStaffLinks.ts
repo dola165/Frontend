@@ -5,9 +5,9 @@ import { fetchStaffLinks, type StaffLink } from './api';
 const LIVE_EVERY_MS = 10_000;
 
 /**
- * The club's working staff links, for admins (expired, used-up and switched-off ones are left out). While `live`
- * (the link is on screen), it asks again every ten seconds so the list of who joined fills in as people scan the
- * code. `null` until the first answer.
+ * The club's working staff links, for admins (expired, used and switched-off ones are left out). While `live` (a link is
+ * on screen), it asks again every ten seconds so a link leaves the list when its person joins. `null` until the first
+ * answer.
  */
 export function useStaffLinks(club: number, enabled: boolean, live: boolean, fallback: string) {
     const [links, setLinks] = useState<StaffLink[] | null>(null), [error, setError] = useState('');

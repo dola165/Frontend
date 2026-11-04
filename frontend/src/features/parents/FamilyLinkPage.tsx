@@ -16,8 +16,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /**
  * A family link, opened from any chat (owner, 2 November 2026). It shows what it asks before signing in (first names
- * only), brings the person straight back after signing in, and asks one thing: "I'm their parent", or for a club's
- * card the exact birth date (the card may hold only the year), or "This is me" for a player old enough.
+ * only), brings the person straight back after signing in, and asks one thing: "I'm their parent" with the child's
+ * birth date (a teen's own link and a club's card, which may hold only the year), or "This is me" for a player old
+ * enough. Three wrong dates turn the link off.
  */
 export function FamilyLinkPage() {
     const { code = '' } = useParams();
@@ -42,6 +43,7 @@ export function FamilyLinkPage() {
         return () => controller.abort();
     }, [code]);
     const card = preview?.kind === 'CLUB_CARD';
+    const asksBirthDate = card || preview?.kind === 'ADD_PARENT';
     useEffect(() => {
         if (!card || !isAuthenticated) return;
         const controller = new AbortController();
@@ -55,11 +57,12 @@ export function FamilyLinkPage() {
         if (busy) return;
         setBusy(true); setError('');
         try {
-            setDone(await claimFamilyLink(code, { as, confirmed: true, childId: as === 'PARENT' ? childId : null, birthDate: card && as === 'PARENT' ? birthDate : null }));
+            setDone(await claimFamilyLink(code, { as, confirmed: true, childId: as === 'PARENT' ? childId : null, birthDate: asksBirthDate && as === 'PARENT' ? birthDate : null }));
         } catch (failure) {
             const problem = extractApiErrorCode(failure);
-            setError(problem === 'FAMILY_LINK_BIRTH_DATE' ? copy('That birth date doesn’t match the club’s card.', 'ეს თარიღი არ ემთხვევა კლუბის ბარათს.')
-                : problem === 'FAMILY_LINK_REVOKED' ? copy('This link was turned off. Ask the club for a new one.', 'ეს ბმული გაითიშა. სთხოვეთ კლუბს ახალი.')
+            setError(problem === 'FAMILY_LINK_BIRTH_DATE' ? (card ? copy('That birth date doesn’t match the club’s card.', 'ეს თარიღი არ ემთხვევა კლუბის ბარათს.') : copy(`That isn’t ${name}’s birth date.`, `ეს არ არის ${name}-ის დაბადების თარიღი.`))
+                : problem === 'FAMILY_LINK_REVOKED' ? (card ? copy('This link was turned off. Ask the club for a new one.', 'ეს ბმული გაითიშა. სთხოვეთ კლუბს ახალი.') : copy(`This link was turned off. Ask ${name} for a new one.`, `ეს ბმული გაითიშა. სთხოვეთ ${name}-ს ახალი.`))
+                : problem === 'FAMILY_LINK_OWN_CLUB' ? copy(`You play or work at ${name}’s club, so this link can’t make you their parent. If you are, another parent can add you from Parent Hub.`, `თქვენ თამაშობთ ან მუშაობთ ${name}-ის კლუბში, ამიტომ ეს ბმული მშობლად ვერ დაგამატებთ. თუ მშობელი ხართ, მეორე მშობელს შეუძლია დაგამატოთ Parent Hub-იდან.`)
                 : problem === 'FAMILY_LINK_NOT_YOU' ? copy('This card’s name or birth date doesn’t match your account. Ask the club.', 'ბარათის სახელი ან დაბადების თარიღი არ ემთხვევა თქვენს ანგარიშს. მიმართეთ კლუბს.')
                 : problem === 'FAMILY_LINK_OWN' ? copy('Send this link to your parent.', 'ეს ბმული მშობელს გაუგზავნეთ.')
                 : problem === 'FAMILY_LINK_STAFF' ? copy('Club staff can’t become a player’s parent through their own club’s card. Add your child in Parent Hub instead.', 'კლუბის თანამშრომელი საკუთარი კლუბის ბარათით მოთამაშის მშობელი ვერ გახდება. შვილი Parent Hub-ში დაამატეთ.')
@@ -100,10 +103,10 @@ export function FamilyLinkPage() {
                     <button type="button" className="gk-ctile" aria-pressed={as === 'PARENT'} onClick={() => setAs('PARENT')}><span className="gk-ctile__icon"><Users aria-hidden="true" /></span><span className="gk-ctile__label">{copy(`I’m ${name}’s parent`, `${name}-ის მშობელი ვარ`)}</span></button>
                     <button type="button" className="gk-ctile" aria-pressed={as === 'SELF'} onClick={() => setAs('SELF')}><span className="gk-ctile__icon"><User aria-hidden="true" /></span><span className="gk-ctile__label">{copy('This is me', 'ეს მე ვარ')}</span></button>
                 </div>}
-                {card && as === 'PARENT' && <>
+                {asksBirthDate && as === 'PARENT' && <>
                     <div><label className="gk-field__label" htmlFor={`${id}-dob`}>{copy(`${name}’s birth date`, `${name}-ის დაბადების თარიღი`)}</label>
                         <input id={`${id}-dob`} className="gk-input gk-join__date" type="date" value={birthDate} max={today()} autoComplete="off" onChange={event => setBirthDate(event.target.value)} /></div>
-                    {kids.length > 0 && <div className="gk-ctowns" role="group" aria-label={copy('Already in your family?', 'უკვე თქვენს ოჯახშია?')}>
+                    {card && kids.length > 0 && <div className="gk-ctowns" role="group" aria-label={copy('Already in your family?', 'უკვე თქვენს ოჯახშია?')}>
                         <span className="gk-field__hint">{copy('Already in your family?', 'უკვე თქვენს ოჯახშია?')}</span>
                         {kids.map(kid => <button key={kid.playerId} type="button" className="gk-chip" aria-pressed={childId === kid.playerId} onClick={() => setChildId(current => current === kid.playerId ? null : kid.playerId)}><Avatar name={kid.identity.fullName} size={22} />{kid.identity.fullName.trim().split(/\s+/)[0]}</button>)}
                     </div>}
@@ -111,7 +114,7 @@ export function FamilyLinkPage() {
                 {as === 'PARENT' && <label className="gk-row gk-join__consent"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>{copy(`I’m ${name}’s parent or guardian.`, `${name}-ის მშობელი ან მეურვე ვარ.`)}</span></label>}
                 {failure}
                 <div className="gk-boxedit__foot">
-                    <Button variant="primary" disabled={busy || (as === 'PARENT' && !confirmed) || (card && as === 'PARENT' && !birthDate)} onClick={() => void claim()}>{spinner}{as === 'SELF' ? copy('Yes, this is me', 'დიახ, ეს მე ვარ') : copy('Yes', 'დიახ')}</Button>
+                    <Button variant="primary" disabled={busy || (as === 'PARENT' && !confirmed) || (asksBirthDate && as === 'PARENT' && !birthDate)} onClick={() => void claim()}>{spinner}{as === 'SELF' ? copy('Yes, this is me', 'დიახ, ეს მე ვარ') : copy('Yes', 'დიახ')}</Button>
                 </div>
             </div>
         </Panel>;

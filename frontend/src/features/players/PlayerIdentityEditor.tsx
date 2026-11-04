@@ -21,6 +21,15 @@ const draftOf = (p: PlayerIdentity): Draft => ({
     height: p.heightCm == null ? '' : String(p.heightCm), weight: p.weightKg == null ? '' : String(p.weightKg),
 });
 
+
+/** The rule the club's cards keep: no photo of a child under 13. */
+const underThirteen = (birthDate?: string | null) => {
+    if (!birthDate) return false;
+    const thirteen = new Date(birthDate);
+    thirteen.setFullYear(thirteen.getFullYear() + 13);
+    return thirteen > new Date();
+};
+
 export function PlayerIdentityEditor(props: PlayerIdentityEditorProps) {
     const { user, sessionId } = useAuth();
     return <IdentityForm key={`${user?.id}:${sessionId}:${props.playerId}`} {...props} />;
@@ -74,9 +83,9 @@ function IdentityForm({ playerId, onSaved, onCancel }: PlayerIdentityEditorProps
             <label>{copy('Declared gender (optional)', 'გაცხადებული სქესი (არასავალდებულო)')}<select value={draft.gender || ''} disabled={disabled} onChange={e => change({ gender: (e.target.value || null) as Draft['gender'] })}><option value="">{copy('Not stated', 'არ არის მითითებული')}</option><option value="MALE">{copy('Male', 'მამრობითი')}</option><option value="FEMALE">{copy('Female', 'მდედრობითი')}</option></select></label>
         </div>
         <fieldset disabled={disabled}><legend>{copy('Football details · optional', 'საფეხბურთო დეტალები · არასავალდებულო')}</legend>
-            <div className="player-identity-photo">{draft.photoUrl && <MediaImage src={resolveMediaUrl(draft.photoUrl) || undefined} alt={copy('Player photo', 'მოთამაშის ფოტო')} />}
+            {!underThirteen(draft.dateOfBirth) && <div className="player-identity-photo">{draft.photoUrl && <MediaImage src={resolveMediaUrl(draft.photoUrl) || undefined} alt={copy('Player photo', 'მოთამაშის ფოტო')} />}
                 <div><label>{copy('Private player photo', 'მოთამაშის პირადი ფოტო')}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { void uploadPhoto(e.target.files?.[0]); e.target.value = ''; }} /></label><small>{copy('JPG, PNG or WebP, up to 5 MB. Visible only to authorized family and staff.', 'JPG, PNG ან WebP, მაქსიმუმ 5 მბ. ხილულია მხოლოდ უფლებამოსილი ოჯახისა და თანამშრომლებისთვის.')}</small>{draft.photoUrl && <button type="button" className="admission-button" onClick={() => change({ photoUrl: null })}>{copy('Remove photo', 'ფოტოს წაშლა')}</button>}</div>
-            </div>
+            </div>}
             <fieldset><legend>{copy('Playing positions', 'სათამაშო პოზიციები')}</legend><div className="player-identity-positions">{playerPositionChoices.map(([code, en, ka]) => <label key={code}><input type="checkbox" checked={draft.positions.includes(code)} onChange={e => change({ positions: e.target.checked ? [...draft.positions, code] : draft.positions.filter(p => p !== code) })} />{copy(en, ka)}</label>)}</div></fieldset>
             <div className="player-identity-fields">
                 <label>{copy('Dominant foot', 'წამყვანი ფეხი')}<select value={draft.dominantFoot || ''} onChange={e => change({ dominantFoot: (e.target.value || null) as Draft['dominantFoot'] })}><option value="">{copy('Not stated', 'არ არის მითითებული')}</option><option value="LEFT">{copy('Left', 'მარცხენა')}</option><option value="RIGHT">{copy('Right', 'მარჯვენა')}</option><option value="BOTH">{copy('Both', 'ორივე')}</option></select></label>

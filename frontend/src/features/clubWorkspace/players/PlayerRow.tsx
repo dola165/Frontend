@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Send } from 'lucide-react';
 import { Button, Field, type BadgeTone } from '../../../design/primitives';
@@ -6,6 +6,9 @@ import { EMPTY_CELL, Status } from '../../../design/DataTable';
 import type { ClubPlayerAffiliation } from '../../clubs/domain';
 import { playerChoices, playerName, trialDay, type PlayerRowActions } from './playerChoices';
 import { FamilyLinkShare } from '../../parents/FamilyLinkShare';
+import type { ClaimedParent } from '../../parents/familyLinks';
+import { extractApiErrorMessage } from '../../../utils/apiError';
+import { formatDate } from '../../../utils/formatting';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
 
 const TRIAL_LIMIT_DAYS = 14;
@@ -39,6 +42,9 @@ export function PlayerActions({ player, actions, admissionManaged }: { player: C
     const { t } = useTranslation();
     const copy = (key: string, fallback: string, values?: Record<string, unknown>) => t(`squadDesign.players.${key}`, { defaultValue: fallback, ...values });
     const name = playerName(player), trialist = player.status === 'TRIALIST', canManage = actions.canManagePlayerStatuses;
+    // N8: a child's trial with no parent's yes: the next step is the family (under the row), not an empty joining page.
+    const { familyToReach } = playerChoices(player, actions, admissionManaged);
+    if (trialist && familyToReach && !admissionManaged) return <span className="pl-quiet gk-dt__keep">{copy('familyNext', 'Send to the family below')}</span>;
     return <>
         {admissionManaged && actions.onReviewJoining
             ? <Button size="sm" className="gk-dt__keep" onClick={() => actions.onReviewJoining!(player.userId)}>{trialist ? copy('viewTerms', 'View agreed terms') : copy('reviewPlacement', 'Review placement')}</Button>
@@ -55,6 +61,35 @@ export function PlayerActions({ player, actions, admissionManaged }: { player: C
  * club or its squads is confirmed (with a note) by the workspace before anything changes. A player whose joining is
  * handled by an admission arrangement is changed there, not here.
  */
+/** Under the card: who claimed its family link, when and from where, with "Not their parent" (the first answer counts). */
+function ClaimedParents({ player, actions }: { player: ClubPlayerAffiliation; actions: PlayerRowActions }) {
+    const say = useJourneyCopy();
+    const [parents, setParents] = useState<ClaimedParent[]>([]), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+    const { onClaimedParents, onNotTheirParent } = actions;
+    useEffect(() => {
+        if (!onClaimedParents) return;
+        const controller = new AbortController();
+        onClaimedParents(player.userId, controller.signal).then(found => { if (!controller.signal.aborted) setParents(found); }).catch(() => { /* Nothing to show. */ });
+        return () => controller.abort();
+    }, [onClaimedParents, player.userId]);
+    if (!parents.length) return null;
+    const undo = async (parent: ClaimedParent) => {
+        if (busy || !onNotTheirParent) return;
+        setBusy(true); setError('');
+        try { await onNotTheirParent(parent.guardianLinkId); setParents(current => current.filter(item => item !== parent)); actions.onFamilySent?.(); }
+        catch (failure) { setError(extractApiErrorMessage(failure, say('Your answer wasn’t saved. Try again.', 'პასუხი ვერ შეინახა. სცადეთ ხელახლა.'))); }
+        finally { setBusy(false); }
+    };
+    return <div className="pl-consent">
+        <span className="gk-field__label">{say('Parents', 'მშობლები')}</span>
+        {parents.map(parent => { const from = parent.claimedFrom?.replace(/^Family link · /, ''), day = formatDate(parent.claimedAt, { day: 'numeric', month: 'short' }); return <span key={parent.guardianLinkId} className="gk-row">
+            <small className="gk-muted">{say(`Claimed by ${parent.name} · ${day}${from ? ` · ${from}` : ''}`, `${parent.name} · ${day}${from ? ` · ${from}` : ''}`)}</small>
+            {onNotTheirParent && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy} onClick={() => void undo(parent)}>{say('Not their parent', 'არ არის მშობელი')}</Button>}
+        </span>; })}
+        {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+    </div>;
+}
+
 export function PlayerDetails({ player, actions, admissionManaged }: { player: ClubPlayerAffiliation; actions: PlayerRowActions; admissionManaged: boolean }) {
     const { t } = useTranslation();
     const say = useJourneyCopy();
@@ -77,6 +112,7 @@ export function PlayerDetails({ player, actions, admissionManaged }: { player: C
                 label={say(`Link for ${first}’s family`, `ბმული ${first}-ის ოჯახისთვის`)} />
                 : <Button size="sm" onClick={() => setSharing(true)}><Send aria-hidden="true" />{player.familyLinkSentAt ? say('Send again', 'ხელახლა გაგზავნა') : say('Send to the family', 'ოჯახისთვის გაგზავნა')}</Button>}
         </div>}
+        <ClaimedParents player={player} actions={actions} />
         {changes.length > 0 && <div className="gk-row pl-status-actions">{changes.map(status => <Button key={status} size="sm" variant={status === 'TRIALIST' ? 'secondary' : 'danger'}
             disabled={pendingKey === `player-${player.userId}-${status}`} onClick={() => void actions.onPlayerStatusChange(player.userId, status, player.fullName || undefined)}>{changeLabel[status]}</Button>)}</div>}
     </div>;

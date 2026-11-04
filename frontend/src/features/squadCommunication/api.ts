@@ -116,8 +116,8 @@ export interface SquadSameChild { playerId:number; name:string; hasFamily:boolea
 export const needsSameChildAnswer=(match?:SquadSameChild|null)=>Boolean(match&&!match.hasFamily);
 /** The requests Approve all may take: every one but a look-alike still waiting for Same child or New player (`apart`: set aside as New player). */
 export const readyToApprove=(requests:SquadJoinRequest[],apart:ReadonlySet<number>=new Set())=>requests.filter(request=>!needsSameChildAnswer(request.sameChild)||apart.has(request.id));
-/** "Same child": the request's child is that card; the two become one (DONE), or the request's family is asked first (PROPOSED). */
-export const sameChild=async(id:number,requestPlayerId:number,playerId:number)=>(await apiClient.post<{ status:'DONE'|'PROPOSED'; playerId:number }>(`${root}/${id}/join-requests/same-child`,{ requestPlayerId, playerId })).data;
+/** "Same child", once the coach ticks they know the asker is the parent: the two become one (DONE), or the request's family is asked first (PROPOSED). */
+export const sameChild=async(id:number,requestPlayerId:number,playerId:number)=>(await apiClient.post<{ status:'DONE'|'PROPOSED'; playerId:number }>(`${root}/${id}/join-requests/same-child`,{ requestPlayerId, playerId, knownParent:true })).data;
 /** `REVIEW`: invite to a trial, the request going on into the joining group's admission (step 3). */
 export interface SquadJoinDecision { requestId:string; expectedVersion:number; action:'APPROVE'|'REVIEW'|'DECLINE'; groupId?:number|null; groupVersion?:number|null }
 export interface SquadJoinOutcome { inquiryId:number; outcome:'PLACE_OFFERED'|'REVIEW_REQUIRED'|'DECLINED'; destination:string|null }

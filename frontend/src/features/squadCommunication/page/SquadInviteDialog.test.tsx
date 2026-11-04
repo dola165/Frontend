@@ -152,6 +152,10 @@ it('layer 1 walk p12: a child who looks like a card the club made is answered Sa
     expect(screen.getByRole('button', { name: 'Approve all 2' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Add' })).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Same child' }));
+    expect(api.sameChild).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Make them one card' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: /is Nika T\.’s parent/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make them one card' }));
     await waitFor(() => expect(api.sameChild).toHaveBeenCalledWith(11, 900, 108));
     expect(await screen.findByText('Nino Beridze is now one card, the one you made.')).toBeInTheDocument();
 });
@@ -172,6 +176,8 @@ it('fix round: while Same child saves, the row can’t be declined', async () =>
     vi.mocked(api.joinRequests).mockResolvedValue([request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } })]);
     show();
     fireEvent.click(await screen.findByRole('button', { name: 'Same child' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /is Nika T\.’s parent/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make them one card' }));
     expect(screen.getByRole('button', { name: 'Decline Nino Beridze' })).toBeDisabled();
     finish({ status: 'DONE', playerId: 108 });
     await screen.findByText('Nino Beridze is now one card, the one you made.');

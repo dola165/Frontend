@@ -1,7 +1,7 @@
 import { IntroductionPermission } from '../components/IntroductionPermission';
 import { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { commandAdmission } from '../api';
+import { commandAdmission, readPaperForm } from '../api';
 import type { AdmissionCase, CaseCommand, Participation, Offer, Requirement } from '../types';
 import { useAdmissionMutation } from './useAdmissionMutation';
 import { AdmissionError } from './AdmissionFrame';
@@ -72,6 +72,25 @@ export function MessageAction({admissionCase:c,onChanged,refresh,prompt,prefill=
     const {copy}=useAdmissionCopy();const [message,setMessage]=useState(prefill);const [sent,setSent]=useState(false);
     const mutation=useCommand(c,`message:${prefill?'reschedule':'general'}`,result=>{setMessage(prefill);setSent(true);onChanged(result);},refresh);
     return <details><summary className="admission-button">{prompt}</summary><form className="admission-stack" style={{marginTop:12}} onSubmit={e=>{e.preventDefault();setSent(false);void mutation.run({action:'MESSAGE',expectedVersion:c.version,message:message.trim()});}}><label>{copy('Message to responsible staff','შეტყობინება პასუხისმგებელ თანამშრომელს')}<textarea required maxLength={2000} value={message} disabled={Boolean(mutation.pending)} onChange={e=>setMessage(e.target.value)}/></label><MutationFeedback mutation={mutation}/>{sent&&<p role="status">{copy('Message recorded in this case. Any replacement session needs its own confirmation.','შეტყობინება საქმეში ჩაიწერა. შემცვლელ სესიას ცალკე დადასტურება სჭირდება.')}</p>}{!mutation.pending&&<button className="admission-button" disabled={mutation.busy||!message.trim()}>{copy('Send message','შეტყობინების გაგზავნა')}</button>}</form></details>;
+}
+/**
+ * S19: a 13-17 player with a parent here doesn't withdraw or wait-list on their own; one tap asks their parents, and
+ * one of them answers on this case.
+ */
+export function AskParentToLeave({admissionCase:c,onChanged,refresh}:Props) {
+    const {copy}=useAdmissionCopy();const [sent,setSent]=useState(false);
+    const mutation=useCommand(c,'ask-parent',result=>{setSent(true);onChanged(result);},refresh);
+    return <div className="admission-stack"><button type="button" className="admission-button" disabled={mutation.busy||sent} onClick={()=>void mutation.run({action:'ASK_PARENT',expectedVersion:c.version})}>{sent?copy('Your parents are told','მშობლებს ეცნობათ'):copy('Ask my parent to end this request','ვთხოვო მშობელს ამ მოთხოვნის დასრულება')}</button><MutationFeedback mutation={mutation}/></div>;
+}
+/**
+ * S8: the club recorded a form signed on paper. A parent on the app sees it and can say it isn't theirs, which takes the
+ * place back and leaves the offer waiting for their own answer.
+ */
+export function PaperFormNotice({admissionCase:c,onChanged,refresh}:Props) {
+    const {copy}=useAdmissionCopy();const {sessionId}=useAuth();const [error,setError]=useState('');
+    const mutation=useCommand(c,'dispute-paper',onChanged,refresh);
+    const open=async()=>{setError('');try{const blob=await readPaperForm(c.id,sessionId);const url=URL.createObjectURL(blob);window.open(url,'_blank','noopener');window.setTimeout(()=>URL.revokeObjectURL(url),60000);}catch{setError(copy('The form didn’t open. Try again.','ფორმა ვერ გაიხსნა. სცადეთ ხელახლა.'));}};
+    return <section className="admission-panel" role="status"><p className="admission-eyebrow">{copy('Signed on paper','ქაღალდზე ხელმოწერილი')}</p><h2>{copy('The club recorded your signed form','კლუბმა თქვენი ხელმოწერილი ფორმა დაარეგისტრირა')}</h2><div className="admission-actions"><button type="button" className="admission-button" onClick={()=>void open()}>{copy('See the form','ფორმის ნახვა')}</button><button type="button" className="admission-button" disabled={mutation.busy} onClick={()=>void mutation.run({action:'DISPUTE_PAPER',expectedVersion:c.version})}>{copy('That’s not my signature','ეს ჩემი ხელმოწერა არ არის')}</button></div>{error&&<p role="alert" className="admission-notice">{error}</p>}<MutationFeedback mutation={mutation}/></section>;
 }
 export function ReasonAction({admissionCase:c,onChanged,refresh,action,label,participation,offer}:Props&{action:'DECLINE_SESSION'|'DECLINE_OFFER'|'WITHDRAW'|'CANCEL_ENROLLMENT'|'WAITLIST';label:string;participation?:Participation;offer?:Offer}) {
     const {copy}=useAdmissionCopy();const [reason,setReason]=useState('');const mutation=useCommand(c,action,onChanged,refresh);

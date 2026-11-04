@@ -13,7 +13,7 @@ import type { ClubMembership } from './useClubMembership';
 import { StoreProductsPage } from './commerce/StoreProductsPage';
 import { projectsPath } from '../projects/projectWords';
 import { PlayersPage } from './players/PlayersPage';
-import { clubCardFamilyLink } from '../parents/familyLinks';
+import { clubCardFamilyLink, fetchClaimedParents, notTheirParent } from '../parents/familyLinks';
 import { PlayerCardsPage } from './players/PlayerCardsPage';
 import { ApplicationsPage } from './recruitment/ApplicationsPage';
 import { TryoutsPage } from './recruitment/TryoutsPage';
@@ -55,6 +55,7 @@ export function ClubTools(ctx: ClubToolsContext) {
             joiningPlayerIds={ctx.admissions.data?.cases.filter(row => row.stage !== 'CLOSED').map(row => row.playerId)}
             onTrialEndsChange={m.actions.trialEndsChange} onRetry={() => { void players.reload(); }} onPageChange={players.setPage}
             onMessagePlayer={userId => navigate(`/messages?chatWith=${userId}`)} onFamilyLink={userId => clubCardFamilyLink(clubId, userId)} onFamilySent={() => { void players.reload(); }}
+            onClaimedParents={(userId, signal) => fetchClaimedParents(clubId, userId, signal)} onNotTheirParent={notTheirParent}
             onTabChange={next => next === 'admissions' ? ctx.openWork('admissions', { intake: '1' }) : ctx.switchTab(next)} />;
         case 'admissions': return <ClubAdmissionWorkspace state={ctx.admissions} sessionId={ctx.sessionId} existingPeople={ctx.roles?.people} onOpen={ctx.openWork}
             onRosterChanged={() => { players.invalidate(); void ctx.reloadOverview(); ctx.refreshRoles(); }} />;

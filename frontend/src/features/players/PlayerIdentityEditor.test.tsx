@@ -10,18 +10,23 @@ vi.mock('../../utils/authStorage',()=>({getAuthSessionId:()=>auth.sessionId,isCu
 vi.mock('../squadCommunication/journeyCopy',()=>({useJourneyCopy:()=>((en:string)=>en)}));
 vi.mock('../joining-contract/api',()=>({fetchPlayerIdentity:vi.fn(),savePlayerIdentity:vi.fn(),uploadPlayerPhoto:vi.fn()}));
 vi.mock('../../components/ui/MediaImage',()=>({MediaImage:(props:React.ImgHTMLAttributes<HTMLImageElement>)=><img {...props}/>}));
-const identity=():PlayerIdentity=>({playerId:61,version:3,fullName:'Synthetic child',dateOfBirth:'2016-05-01',gender:null,photoUrl:null,positions:[],dominantFoot:null,heightCm:null,weightKg:null,canEdit:true,minor:true});
+const identity=():PlayerIdentity=>({playerId:61,version:3,fullName:'Synthetic child',dateOfBirth:'2011-05-01',gender:null,photoUrl:null,positions:[],dominantFoot:null,heightCm:null,weightKg:null,canEdit:true,minor:true});
 const show=(onSaved=vi.fn())=>render(<MemoryRouter><PlayerIdentityEditor playerId={61} onSaved={onSaved}/></MemoryRouter>);
 beforeEach(()=>{vi.clearAllMocks();sessionStorage.clear();vi.mocked(fetchPlayerIdentity).mockResolvedValue(identity());vi.mocked(savePlayerIdentity).mockImplementation(async(id,body)=>({...body,playerId:id,version:4,canEdit:true,minor:true}));});
 afterEach(cleanup);
 describe('Shared private player identity',()=>{
     it('saves minimal identity with empty optional football details',async()=>{
-        const saved=vi.fn();show(saved);await screen.findByLabelText('Full name');fireEvent.click(screen.getByRole('button',{name:'Save player card'}));await waitFor(()=>expect(saved).toHaveBeenCalledOnce());expect(savePlayerIdentity).toHaveBeenCalledWith(61,{requestId:expect.any(String),expectedVersion:3,fullName:'Synthetic child',dateOfBirth:'2016-05-01',gender:null,photoUrl:null,positions:[],dominantFoot:null,heightCm:null,weightKg:null},'identity-session');
+        const saved=vi.fn();show(saved);await screen.findByLabelText('Full name');fireEvent.click(screen.getByRole('button',{name:'Save player card'}));await waitFor(()=>expect(saved).toHaveBeenCalledOnce());expect(savePlayerIdentity).toHaveBeenCalledWith(61,{requestId:expect.any(String),expectedVersion:3,fullName:'Synthetic child',dateOfBirth:'2011-05-01',gender:null,photoUrl:null,positions:[],dominantFoot:null,heightCm:null,weightKg:null},'identity-session');
     });
     it('shares optional positions, foot and measurements with explicit cm/kg units',async()=>{
         show();await screen.findByLabelText('Full name');fireEvent.click(screen.getByLabelText('Left winger'));fireEvent.click(screen.getByLabelText('Striker'));fireEvent.change(screen.getByLabelText('Dominant foot'),{target:{value:'LEFT'}});fireEvent.change(screen.getByLabelText('Height (cm)'),{target:{value:'145.5'}});fireEvent.change(screen.getByLabelText('Weight (kg)'),{target:{value:'38.2'}});fireEvent.click(screen.getByRole('button',{name:'Save player card'}));await waitFor(()=>expect(savePlayerIdentity).toHaveBeenCalledWith(61,expect.objectContaining({positions:['LW','ST'],dominantFoot:'LEFT',heightCm:145.5,weightKg:38.2}),'identity-session'));
     });
-    it('allows an optional private photo for a younger child and saves its owned upload reference',async()=>{
+    it('offers no photo under 13, the rule the club’s cards keep',async()=>{
+        vi.mocked(fetchPlayerIdentity).mockResolvedValue({...identity(),dateOfBirth:`${new Date().getFullYear()-11}-05-01`});
+        show(vi.fn());await screen.findByLabelText('Full name');
+        expect(screen.queryByLabelText('Private player photo')).not.toBeInTheDocument();
+    });
+    it('allows an optional private photo for a player of 13 or over and saves its owned upload reference',async()=>{
         vi.mocked(uploadPlayerPhoto).mockResolvedValue({url:'/uploads/private-owned.jpg'});show();const input=await screen.findByLabelText('Private player photo');const file=new File(['synthetic bytes'],'photo.jpg',{type:'image/jpeg'});fireEvent.change(input,{target:{files:[file]}});await screen.findByRole('img',{name:'Player photo'});expect(uploadPlayerPhoto).toHaveBeenCalledWith(file,'identity-session',expect.any(AbortSignal));fireEvent.click(screen.getByRole('button',{name:'Save player card'}));await waitFor(()=>expect(savePlayerIdentity).toHaveBeenCalledWith(61,expect.objectContaining({photoUrl:'/uploads/private-owned.jpg'}),'identity-session'));
     });
     it('rejects unsupported files before sending an upload',async()=>{

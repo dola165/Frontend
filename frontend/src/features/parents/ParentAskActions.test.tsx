@@ -42,6 +42,24 @@ it('the first answer counts: a later one shows who answered, or the server’s w
     expect(await screen.findByRole('alert')).toHaveTextContent('Olga already answered.');
 });
 
+it('a wrong no is changed in place, and shows who said it and when', async () => {
+    api.get.mockResolvedValue({ data: { ...ask, status: 'NO', answeredBy: 'Olga', answeredAt: '2026-11-03T10:00:00Z', canChangeNo: true } });
+    api.post.mockResolvedValue({ data: undefined });
+    render(<ParentAskActions notification={notice} />);
+    expect(await screen.findByText(/^Olga said no · /)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Not their parent' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'I know Maia is Nika’s parent' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/family/parent-asks/9/change-to-yes'));
+    expect(await screen.findByRole('status')).toHaveTextContent('Maia is Nika’s parent here now.');
+});
+
+it('a no the server won’t let this person change stays a plain line', async () => {
+    api.get.mockResolvedValue({ data: { ...ask, status: 'NO', answeredBy: 'Olga', canChangeNo: false } });
+    render(<ParentAskActions notification={notice} />);
+    expect(await screen.findByRole('status')).toHaveTextContent('Olga already answered.');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+
 it('shows nothing to the person who asked, or on another notice', async () => {
     api.get.mockResolvedValue({ data: { ...ask, canAnswer: false } });
     const { container } = render(<ParentAskActions notification={notice} />);

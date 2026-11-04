@@ -8,7 +8,7 @@ const auth = vi.hoisted(() => ({ isAuthenticated: true, isBootstrapping: false, 
 vi.mock('../api/axiosConfig', () => ({ apiClient: api, DEPLOYMENT_URLS: { mediaBaseUrl: '' } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
 
-const preview = { clubId: 1, clubName: 'FC Dinamo Tbilisi Academy', clubLogoUrl: null, job: 'ASSISTANT_COACH', title: 'Assistant coach', clubWide: false, squads: ['U12'], invitedBy: 'Luka', status: 'ACTIVE', expiresAt: '2026-11-02T12:00:00' };
+const preview = { clubId: 1, clubName: 'FC Dinamo Tbilisi Academy', clubLogoUrl: null, job: 'ASSISTANT_COACH', title: 'Assistant coach', clubWide: false, squads: ['U12'], invitedBy: 'Luka', status: 'ACTIVE', expiresAt: '2026-11-02T12:00:00', invitedName: 'Ana Beridze', proof: { by: 'EMAIL', email: 'a•••@example.test' } };
 const show = () => render(<MemoryRouter initialEntries={['/staff-invite/abc']}><Routes>
     <Route path="/staff-invite/:code" element={<StaffLinkPage />} /><Route path="/my-squads" element={<p>My squads</p>} />
 </Routes></MemoryRouter>);
@@ -22,8 +22,47 @@ it('shows the job from the link and joins at once, landing in My squads', async 
     expect(await screen.findByText('Luka invited you: Assistant coach')).toBeInTheDocument();
     expect(api.get).toHaveBeenCalledWith('/staff-invite/abc', expect.anything());
     fireEvent.click(screen.getByRole('button', { name: 'Join as Assistant coach' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/staff-invite/abc'));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/staff-invite/abc', undefined));
     expect(await screen.findByText('My squads')).toBeInTheDocument();
+});
+
+it('names who the link is for, sends the code to that email when asked for it, and joins with the code', async () => {
+    api.post.mockImplementation(async (url: string, body?: { code?: string }) => {
+        if (url === '/staff-invite/abc/code') return { data: {} };
+        if (body?.code === '123456') return { data: { appointmentId: 9, clubId: 1, clubName: 'FC Dinamo Tbilisi Academy', title: 'Assistant coach', squads: ['U12'], alreadyJoined: false, waitingForYes: true } };
+        throw { isAxiosError: true, response: { status: 409, data: { code: 'STAFF_LINK_CODE_NEEDED', message: 'Enter the 6-digit code from the email.' } } };
+    });
+    show();
+    expect(await screen.findByText('This link is for Ana Beridze.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Join as Assistant coach' }));
+    const code = await screen.findByLabelText('The 6-digit code we emailed to a•••@example.test');
+    expect(api.post).toHaveBeenCalledWith('/staff-invite/abc/code');
+    expect(screen.getByRole('button', { name: 'Join as Assistant coach' })).toBeDisabled();
+    fireEvent.change(code, { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Join as Assistant coach' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/staff-invite/abc', { code: '123456' }));
+    // The job started, and it says what waits: no children's details until an admin's yes.
+    expect(await screen.findByText(/The children’s details open when the club’s admin says yes/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Start' })).toHaveAttribute('href', '/my-squads');
+});
+
+it('a link with only a phone asks for that number, and says when it is wrong', async () => {
+    api.get.mockResolvedValue({ data: { ...preview, proof: { by: 'PHONE', email: null } } });
+    api.post.mockRejectedValueOnce({ isAxiosError: true, response: { status: 409, data: { code: 'STAFF_LINK_PHONE_WRONG', message: 'That isn’t the number the club has for you.' } } });
+    show();
+    const phone = await screen.findByLabelText('Your phone number, the one the club has');
+    expect(screen.getByRole('button', { name: 'Join as Assistant coach' })).toBeDisabled();
+    fireEvent.change(phone, { target: { value: '555123456' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Join as Assistant coach' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/staff-invite/abc', { phone: '555123456' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('That isn’t the number the club has for you.');
+});
+
+it('a used link says so, and never mentions ten people', async () => {
+    api.get.mockResolvedValue({ data: { ...preview, status: 'USED_UP' } });
+    show();
+    expect(await screen.findByText(/This link has been used\./)).toBeInTheDocument();
+    expect(screen.queryByText(/10 people/)).not.toBeInTheDocument();
 });
 
 it('tells an account under 18 that club jobs are for adults, with no Join', async () => {

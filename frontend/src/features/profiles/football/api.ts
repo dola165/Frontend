@@ -72,6 +72,8 @@ export interface FootballLine {
     /** The page where this line is worked on; own view only. */
     manage: string | null;
     leave: LeaveRoute | null;
+    /** A 13-17 player with a parent here: their parent ends their place, so there's no Leave. */
+    askParent: boolean;
     /** The Owner's own line: hand the club over (the one way out for an Owner). */
     handOver: boolean;
 }
@@ -136,7 +138,7 @@ export function readFootball(value: PersonFootballProfile): FootballProfileData 
         lines: current.filter(line => line.kind !== 'FOLLOWS').map(line => ({
             id: line.line, kind: line.kind, title: titleOf(line), role: line.title, squads: line.clubWide ? [] : list(line.squads), label: line.label, home: homeOf(line),
             child: own ? line.child ?? null : null, since: line.since ?? null, sinceKnown: line.sinceKnown !== false,
-            manage: own ? manageOf(line) : null, leave: own ? leaveOf(line) : null,
+            manage: own ? manageOf(line) : null, leave: own ? leaveOf(line) : null, askParent: own && (line.actions ?? []).some(verdict => verdict.reason === 'ASK_YOUR_PARENT'),
             // The Owner's one way out; hidden only when the rule-checker refuses hand_over outright.
             handOver: own && line.kind === 'OWNER' && Boolean(line.club?.id) && list(line.actions).find(verdict => verdict.action === 'hand_over')?.allowed !== false,
         })),

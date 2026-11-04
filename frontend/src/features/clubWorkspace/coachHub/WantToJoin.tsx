@@ -72,7 +72,7 @@ export function WantToJoin({ items, failed = false, onRetry, data, onChanged }: 
     const match = (item: WantToJoinItem) => {
         const same = item.request?.sameChild;
         if (!same || item.state !== 'DECIDE' || apart.has(item.key)) return null;
-        return <SameChildMatch className="ch-join__match" squadId={item.squadId!} requestPlayerId={item.request!.playerId} childName={item.name} match={same} failedText={copy('answerFailed')}
+        return <SameChildMatch className="ch-join__match" squadId={item.squadId!} requestPlayerId={item.request!.playerId} childName={item.name} askedBy={item.request!.guardianName} match={same} failedText={copy('answerFailed')}
             onApart={() => setApart(current => new Set(current).add(item.key))} onAnswered={answer => { setNotice(answer); onChanged(); }}
             onSaving={saving => setBusy(saving ? item.key : null)} />;
     };

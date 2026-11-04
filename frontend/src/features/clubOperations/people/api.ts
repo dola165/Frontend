@@ -19,11 +19,16 @@ export interface PersonJob {
     canChange?: boolean; canEnd?: boolean; canConfirm?: boolean;
     tools: string[];
     /**
+     * A job taken through a staff link whose children's details wait for an Owner's or Admin's yes (admins only).
+     * `proof`: how the person showed it was them; PHONE_TYPED wasn't proven; null from before links named one person.
+     */
+    waitingYes?: { invitedName: string | null; proof: 'EMAIL_CODE' | 'ACCOUNT_EMAIL' | 'PHONE_TYPED' | null; canAnswer: boolean } | null;
+    /**
      * Who last changed it (the last CHANGED event) and the story, oldest first; memberships and invites have none.
      */
     changedByName?: string | null; changedAt?: string | null; history?: JobEvent[];
 }
-export interface JobEvent { at: string; byName: string; action: 'GIVEN' | 'SUGGESTED' | 'CONFIRMED' | 'DECLINED' | 'ACCEPTED' | 'CHANGED' | 'JOINED_BY_LINK' | 'ENDED'; summary: string | null }
+export interface JobEvent { at: string; byName: string; action: 'GIVEN' | 'SUGGESTED' | 'CONFIRMED' | 'DECLINED' | 'ACCEPTED' | 'CHANGED' | 'JOINED_BY_LINK' | 'CHILDREN_YES' | 'ENDED'; summary: string | null }
 /** A duty someone has today, from Staff duties. */
 export interface Duty { id: number; title: string; startsAt: string; endsAt: string | null; location: string | null }
 /**
@@ -41,13 +46,13 @@ export interface PeopleView {
     people: Person[]; nameChecks: NameCheck[]; squads: PeopleSquad[]; jobs: JobChoice[]; moreJobs: JobChoice[]; tools: string[];
     specialists?: Specialist[];
 }
-/** A staff link: one job (never Admin), 7 days or 10 uses, and who joined through it. `code` and `path` only while ACTIVE. */
+/** A staff link for one person: one job (never Admin), one use, 72 hours. `code` and `path` only while ACTIVE. */
 export interface StaffLink {
     tools?: string[];
     id: number; job: string; title: string; clubWide: boolean; squads: PeopleSquad[];
     status: 'ACTIVE' | 'EXPIRED' | 'USED_UP' | 'REVOKED'; code: string | null; path: string | null;
-    uses: number; maxUses: number; expiresAt: string; createdAt: string; createdById: number | null; createdByName: string | null;
-    joined: { appointmentId: number; userId: number; name: string; avatarUrl: string | null; joinedAt: string; status: string; revision: number | null }[];
+    expiresAt: string; createdAt: string; createdById: number | null; createdByName: string | null;
+    invitedName: string | null; invitedEmail: string | null; invitedPhone: string | null;
 }
 export interface InviteLink { token: string; expiresAt: string }
 /**
@@ -62,16 +67,6 @@ export interface JobDraft { job: string; title: string; tools: string[]; clubWid
 
 export const mainJobs = (view: PeopleView) => view.jobs.map(job => job.key);
 export const linkJobs = (view: PeopleView) => mainJobs(view).filter(job => job !== 'ADMIN');
-/** Link identity includes the title; legacy Custom links also retain their exact tools. */
-export const staffLinkMatches = (link: StaffLink, draft: JobDraft, view: PeopleView) => {
-    const choice = [...view.jobs, ...view.moreJobs].find(job => job.key === draft.job);
-    const title = draft.title.trim() || choice?.titles?.[0] || choice?.title || '';
-    const sameTools = (a: string[], b: string[]) => a.every(t => b.includes(t)) && b.every(t => a.includes(t));
-    return link.job === draft.job && link.title === title && link.clubWide === draft.clubWide
-        && (link.clubWide || link.squads.length === draft.squadIds.length && link.squads.every(s => draft.squadIds.includes(s.id)))
-        && (draft.job !== 'CUSTOM' || sameTools(link.tools ?? [], draft.tools));
-};
-
 const base = (club: number) => `/clubs/${club}/people`;
 const where = (draft: Pick<JobDraft, 'job' | 'clubWide' | 'squadIds'>) => ['ADMIN', 'HEAD_OF_COACHING'].includes(draft.job) ? { clubWide: true, squadIds: [] }
     : { clubWide: draft.clubWide, squadIds: draft.clubWide ? [] : [...draft.squadIds].sort((a, b) => a - b) };
@@ -117,13 +112,14 @@ export const answerSuggestion = async (club: number, job: Pick<PersonJob, 'id' |
 /* Staff links (`/clubs/{club}/staff-links`, Owner and Admins). */
 const links = (club: number) => `/clubs/${club}/staff-links`;
 export const fetchStaffLinks = async (club: number, signal?: AbortSignal) => (await apiClient.get<StaffLink[]>(links(club), { signal })).data;
-export const makeStaffLink = async (club: number, draft: JobDraft, requestId: string) =>
-    (await apiClient.post<StaffLink>(links(club), { requestId, job: draft.job, ...custom(draft), ...where(draft) })).data;
+export const makeStaffLink = async (club: number, draft: JobDraft, person: { name: string; email?: string; phone?: string }, requestId: string) =>
+    (await apiClient.post<StaffLink>(links(club), { requestId, job: draft.job, ...custom(draft), ...where(draft), ...person })).data;
 export const stopStaffLink = async (club: number, link: number) => (await apiClient.delete<StaffLink>(`${links(club)}/${link}`)).data;
-/** Remove someone who joined through a link: their job ends at once. */
-export const removeJoined = async (club: number, joined: { appointmentId: number; revision: number | null }) => {
-    await apiClient.post(`${base(club)}/jobs/${joined.appointmentId}/end`, { revision: joined.revision });
-};
+/** An Owner's or Admin's yes for a job taken through a link; the first answer counts (409 ALREADY_ANSWERED after it). */
+export const childrenYes = async (club: number, job: number) =>
+    (await apiClient.post<{ answeredBy: string | null }>(`${base(club)}/jobs/${job}/children-yes`)).data;
+/** How a notice or a row names someone: never her or him. */
+export const firstName = (name: string) => name.trim().split(/\s+/)[0];
 
 export const inviteUrl = (token: string) => `${window.location.origin}/club-invite?token=${encodeURIComponent(token)}`;
 export const staffLinkUrl = (link: Pick<StaffLink, 'code' | 'path'>) => `${window.location.origin}${link.path ?? `/staff-invite/${encodeURIComponent(link.code ?? '')}`}`;

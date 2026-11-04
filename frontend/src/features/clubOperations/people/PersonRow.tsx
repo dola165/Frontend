@@ -9,7 +9,7 @@ import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { relativeTime } from '../../../utils/relativeTime';
 import type { ClubManagedMember } from '../../clubs/domain';
-import { changeJob, draftOf, mainJobs, type ContactChoice, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
+import { changeJob, childrenYes, draftOf, firstName, mainJobs, type ContactChoice, type InviteLink, type JobDraft, type Person, type PersonJob, type PeopleView } from './api';
 import { InviteLinkBox } from './InviteLinkBox';
 import { JobPicker } from './JobPicker';
 import { StaffPublicProfile } from './StaffPublicProfile';
@@ -49,6 +49,19 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
             : <Button size="sm" variant="ghost" className="pp-danger" disabled={busy}
                 onClick={() => job.kind === 'APPOINTMENT' && liveJobs > 1 ? onEnd(job) : onLeave('leave')}><DoorOpen aria-hidden="true" />{copy('Leave', 'დატოვება')}</Button>;
     const canChange = (job: PersonJob) => (job.canChange ?? rights.change) && job.kind === 'APPOINTMENT' && !self;
+    const proofText = (job: PersonJob) => {
+        const yes = job.waitingYes!, otherName = yes.invitedName && yes.invitedName.trim().toLowerCase() !== person.name.trim().toLowerCase();
+        return [otherName ? copy(`You invited ${yes.invitedName}.`, `თქვენ მოიწვიეთ: ${yes.invitedName}.`) : null,
+            yes.proof === 'PHONE_TYPED' ? copy('They typed the phone you gave. Nobody checked it.', 'შეიყვანეს თქვენ მიერ მითითებული ტელეფონი. არავის შეუმოწმებია.')
+                : yes.proof ? copy('Their email is checked.', 'ელფოსტა შემოწმებულია.')
+                    : copy('They came through a link anyone could use.', 'შემოვიდნენ ბმულით, რომელიც ნებისმიერს შეეძლო გამოეყენებინა.')].filter(Boolean).join(' ');
+    };
+    const sayYes = async (job: PersonJob) => {
+        setSaving(true); setError('');
+        try { await childrenYes(club, job.id); onChanged(copy(`${firstName(person.name)} can see the children’s details now.`, `${firstName(person.name)}-ს ახლა შეუძლია ბავშვების მონაცემების ნახვა.`)); }
+        catch (failure) { setError(extractApiErrorMessage(failure, copy('Your answer wasn’t saved. Try again.', 'პასუხი ვერ შეინახა. სცადეთ ხელახლა.'))); }
+        finally { setSaving(false); }
+    };
     const endText = (job: PersonJob) => job.kind === 'ADMIN_INVITE' || job.kind === 'COACH_INVITE' || job.status === 'INVITED' || job.status === 'EXPIRED'
         ? copy('Cancel invite', 'მოწვევის გაუქმება') : job.kind === 'APPOINTMENT' ? copy('End job', 'დასრულება') : copy('Remove', 'მოხსნა');
     const jobsText = person.jobs.map(job => `${jobLabel(job)} · ${whereLabel(job)}`).join('; ');
@@ -99,11 +112,13 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
                     : job.source === 'STAFF_LINK' ? <span className="gk-faint pp-job__by">{copy('Joined through a staff link', 'შემოვიდა პერსონალის ბმულით')}</span>
                     : job.suggestedByName && <span className="gk-faint pp-job__by">{copy(`Suggested by ${job.suggestedByName}`, `შესთავაზა ${job.suggestedByName}`)}</span>}
                 <span className="pp-job__actions">
+                    {job.waitingYes?.canAnswer && <Button size="sm" variant="primary" disabled={busy || saving || rights.pending} onClick={() => void sayYes(job)}>{copy(`Let ${firstName(person.name)} see the children’s details`, `${firstName(person.name)}-ს მიეცით ბავშვების მონაცემების ნახვა`)}</Button>}
                     {canChange(job) && <Button size="sm" variant="ghost" disabled={busy || saving || rights.pending} onClick={() => edit(job)}><Pencil aria-hidden="true" />{copy('Change', 'შეცვლა')}</Button>}
                     {canEnd(job) && <Button size="sm" variant="ghost" className="pp-danger" disabled={busy || saving || rights.pending} onClick={() => onEnd(job)}>{endText(job)}</Button>}
                     {ownLeave(job)}
                 </span>
                 {job.unavailableReason && <p className="gk-faint pp-job__reason">{job.unavailableReason}</p>}
+                {job.waitingYes && <p className="pp-job__reason"><Status tone="warning">{copy('Children’s details wait for your yes', 'ბავშვების მონაცემები თქვენს თანხმობას ელოდება')}</Status> <span className="gk-faint">{proofText(job)}</span></p>}
             </li>;
         })}</ul>
         {self && <fieldset className="pp-share" disabled={busy}>
@@ -120,6 +135,7 @@ export function PersonRow({ club, clubName, view, person, member, link, busy, ri
             onSaved={() => { setProfile(false); onChanged(copy('Public profile saved.', 'საჯარო პროფილი შეინახა.')); }} />}
         {link && <InviteLinkBox name={person.name} link={link} onClose={onHideLink}
             message={copy(`You’re invited to ${clubName}: ${jobsText}. Choose your password here:`, `მოწვეული ხართ ${clubName}-ში: ${jobsText}. აირჩიეთ პაროლი აქ:`)} />}
+        {error && !editing && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {editing && draft && <form className="pp-edit" aria-label={copy(`Change ${jobLabel(editing)}`, `შეცვლა: ${jobLabel(editing)}`)} onSubmit={event => { event.preventDefault(); void save(); }}>
             <JobPicker view={view} draft={draft} onChange={setDraft} choices={mainJobs(view).filter(job => job !== 'ADMIN')} extras disabled={saving} />
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}

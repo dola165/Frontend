@@ -1,5 +1,5 @@
 import type { ClubPlayerAffiliation, PlayerAffiliationStatus } from '../../clubs/domain';
-import type { FamilyLink } from '../../parents/familyLinks';
+import type { ClaimedParent, FamilyLink } from '../../parents/familyLinks';
 
 export interface PlayerRowActions {
     pendingKey: string | null;
@@ -13,6 +13,9 @@ export interface PlayerRowActions {
     onFamilyLink?: (userId: number) => Promise<FamilyLink>;
     /** The card went to the family: the list reads the row again, which now says it is waiting. */
     onFamilySent?: () => void;
+    /** Who claimed the card's family link, and "Not their parent". */
+    onClaimedParents?: (userId: number, signal?: AbortSignal) => Promise<ClaimedParent[]>;
+    onNotTheirParent?: (guardianLink: number) => Promise<void>;
 }
 
 export const playerName = (player: ClubPlayerAffiliation) => player.fullName || player.username || `Player #${player.userId}`;

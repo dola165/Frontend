@@ -36,6 +36,12 @@ export const previewFamilyLink = (code: string, signal?: AbortSignal) =>
 export const claimFamilyLink = (code: string, body: FamilyLinkClaim) =>
     apiClient.post<FamilyLinkClaimed>(`/family-links/${encodeURIComponent(code)}/claim`, body).then(r => r.data);
 /** "Remind Mum": the teen's own offered place; 409 ADD_A_PARENT when nobody is their parent yet. */
+/** "Not their parent": ends a link a family link made; the first answer counts (409 ALREADY_ANSWERED after it). */
+export const notTheirParent = (guardianLink: number) => apiClient.post<void>(`/family/guardian-links/${guardianLink}/not-their-parent`).then(() => undefined);
+/** Under a player's card: who claimed its family link, when and from where. */
+export interface ClaimedParent { guardianLinkId: number; name: string; claimedAt: string; claimedFrom: string | null }
+export const fetchClaimedParents = (clubId: number, playerId: number, signal?: AbortSignal) =>
+    apiClient.get<ClaimedParent[]>(`/clubs/${clubId}/players/${playerId}/family-link/claimed`, { signal }).then(r => r.data);
 export const remindParents = (caseId: number) => apiClient.post<void>(`/family/me/cases/${caseId}/remind-parents`).then(() => undefined);
 
 /** Two cards for one child: DONE (one card now, undoable until `undoUntil`), PROPOSED, DECLINED or UNDONE. */

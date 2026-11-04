@@ -53,7 +53,8 @@ export function FootballLines({ lines, follows = [], own, label, onChanged }: { 
     const clubFlow = leaveStep.clubId ? lines.find(line => line.home?.id === leaveStep.clubId)?.home ?? null : null;
     const openClubFlow = (home: FootballHome, step: 'leave' | 'handover') => leaveStep.go(step, home.id);
     const leave = (role: FootballLine) => role.leave?.kind === 'DEPART' && role.leave.as === 'STAFF' && role.home ? openClubFlow(role.home, 'leave') : setLeaving(role);
-    const actions = (role: FootballLine, chips: boolean) => own && (role.leave || role.handOver || (role.manage && !chips)) ? <div className="gk-fp-line__actions">
+    const actions = (role: FootballLine, chips: boolean) => own && role.askParent ? <div className="gk-fp-line__actions"><span className="gk-faint">{copy('Ask your parent to end your place', 'სთხოვეთ მშობელს, დაასრულოს თქვენი ადგილი')}</span></div>
+        : own && (role.leave || role.handOver || (role.manage && !chips)) ? <div className="gk-fp-line__actions">
         {role.handOver && role.home && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => openClubFlow(role.home!, 'handover')}><Crown aria-hidden="true" />{copy('Hand the club over', 'კლუბის გადაცემა')}</Button>}
         {role.leave && <Button size="sm" variant="ghost" className="gk-fp-quiet" onClick={() => leave(role)}>{copy('Leave', 'დატოვება')}</Button>}
         {role.manage && !chips && <ButtonLink size="sm" to={role.manage}>{copy('Manage', 'მართვა')}</ButtonLink>}

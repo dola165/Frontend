@@ -5,7 +5,7 @@ export type Availability = 'PLACES_AVAILABLE' | 'APPLICATIONS_OPEN' | 'INTRODUCT
 export type CaseStage = 'REQUEST_RECEIVED' | 'ARRANGING_PARTICIPATION' | 'INTRODUCTION_ASSESSMENT' | 'WAITLIST' | 'PLACE_OFFERED' | 'COMPLETING_ENROLLMENT' | 'ENROLLED' | 'CLOSED';
 export type AffiliationEffect = 'NONE' | 'PRIMARY_CHANGE';
 export type RequirementKind = 'EMERGENCY_CONTACT' | 'SCHOOL_ELIGIBILITY' | 'CURRENT_CLUB_PERMISSION' | 'PAYMENT_CONFIRMATION' | 'EXTERNAL_REGISTRATION' | 'PRIMARY_AFFILIATION_CONFIRMATION' | 'GUARDIAN_REVIEW';
-export type CaseAction = 'MESSAGE' | 'ASSIGN' | 'INVITE_SESSION' | 'CONFIRM_SESSION' | 'DECLINE_SESSION' | 'RECORD_ATTENDANCE' | 'CHANGE_SESSION' | 'CANCEL_SESSION' | 'OFFER' | 'ACCEPT_OFFER' | 'ACCEPT_OFFER_ON_PAPER' | 'DECLINE_OFFER' | 'WITHDRAW_OFFER' | 'EXTEND_OFFER' | 'COMPLETE_REQUIREMENT' | 'WAITLIST' | 'DECLINE' | 'WITHDRAW' | 'CANCEL_ENROLLMENT' | 'CONFIRM_PRIMARY_CHANGE' | 'ASSESS' | 'RECOMMEND' | 'APPROVE_ADMISSION' | 'RECORD_INTRODUCTION_PERMISSION' | 'REVOKE_INTRODUCTION_PERMISSION';
+export type CaseAction = 'ASK_PARENT' | 'DISPUTE_PAPER' | 'MESSAGE' | 'ASSIGN' | 'INVITE_SESSION' | 'CONFIRM_SESSION' | 'DECLINE_SESSION' | 'RECORD_ATTENDANCE' | 'CHANGE_SESSION' | 'CANCEL_SESSION' | 'OFFER' | 'ACCEPT_OFFER' | 'ACCEPT_OFFER_ON_PAPER' | 'DECLINE_OFFER' | 'WITHDRAW_OFFER' | 'EXTEND_OFFER' | 'COMPLETE_REQUIREMENT' | 'WAITLIST' | 'DECLINE' | 'WITHDRAW' | 'CANCEL_ENROLLMENT' | 'CONFIRM_PRIMARY_CHANGE' | 'ASSESS' | 'RECOMMEND' | 'APPROVE_ADMISSION' | 'RECORD_INTRODUCTION_PERMISSION' | 'REVOKE_INTRODUCTION_PERMISSION';
 export interface Choice { id: number; name: string }
 export interface Participant extends Choice { dateOfBirth: string | null; minor: boolean; guardian: boolean; provenance: string | null; gender?: 'MALE' | 'FEMALE' | null; restriction?: 'REVIEW' | null }
 export interface Charge { label: string; amount: number; currency: string; frequency: string }
@@ -111,6 +111,7 @@ export type CaseCommand = CommandBase & (
   | { action: 'DECLINE_OFFER' | 'WITHDRAW_OFFER'; offerId: number; offerVersion: number; reason: string }
   | { action: 'EXTEND_OFFER'; offerId: number; offerVersion: number; responseDeadline: string; reason: string }
   | { action: 'COMPLETE_REQUIREMENT'; requirementId: number; evidence: string }
+  | { action: 'ASK_PARENT' | 'DISPUTE_PAPER' }
   | { action: 'WAITLIST' | 'DECLINE' | 'WITHDRAW' | 'CANCEL_ENROLLMENT'; reason: string }
   | { action: 'CONFIRM_PRIMARY_CHANGE'; evidence: string; acceptTerms: true }
   | { action: 'ASSESS' | 'RECOMMEND'; groupId: number; internalNote: string; message?: string }

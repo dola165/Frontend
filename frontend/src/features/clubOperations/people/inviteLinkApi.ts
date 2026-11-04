@@ -42,14 +42,19 @@ export const acceptClubInvite = async (invite: LinkInvite) => {
 };
 
 /**
- * The staff link page (`/staff-invite/{code}`, from a QR code or a group chat): one job for many people. The preview is
- * open without signing in; joining needs the person's own account and gives the job at once (fnd-access-b).
+ * The staff link page (`/staff-invite/{code}`, from a QR code or a chat): one job for the person it names. The preview is
+ * open without signing in; joining needs the person's own account and their proof, and gives the job at once.
  */
 export interface StaffInvitePreview {
     clubId: number; clubName: string; clubLogoUrl: string | null; job: string; title: string; clubWide: boolean; squads: string[];
     invitedBy: string | null; status: 'ACTIVE' | 'EXPIRED' | 'USED_UP' | 'REVOKED'; expiresAt: string;
+    /** Who it names, and how they show it is them: a code to this (mostly hidden) email, or the phone the club has. */
+    invitedName: string | null; proof: { by: 'EMAIL' | 'PHONE'; email: string | null } | null;
 }
-export interface StaffInviteJoined { appointmentId: number; clubId: number; clubName: string; title: string; squads: string[]; alreadyJoined: boolean }
+export interface StaffInviteJoined { appointmentId: number; clubId: number; clubName: string; title: string; squads: string[]; alreadyJoined: boolean; waitingForYes: boolean }
 export const previewStaffInvite = async (code: string, signal?: AbortSignal) =>
     (await apiClient.get<StaffInvitePreview>(`/staff-invite/${encodeURIComponent(code)}`, { signal })).data;
-export const joinStaffInvite = async (code: string) => (await apiClient.post<StaffInviteJoined>(`/staff-invite/${encodeURIComponent(code)}`)).data;
+export const joinStaffInvite = async (code: string, proof?: { code?: string; phone?: string }) =>
+    (await apiClient.post<StaffInviteJoined>(`/staff-invite/${encodeURIComponent(code)}`, proof)).data;
+/** Emails the code to the address the link names. */
+export const sendStaffInviteCode = async (code: string) => { await apiClient.post(`/staff-invite/${encodeURIComponent(code)}/code`); };

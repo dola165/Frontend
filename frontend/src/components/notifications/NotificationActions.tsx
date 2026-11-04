@@ -1,7 +1,10 @@
 import { AssistantSuggestionActions } from '../../features/clubOperations/people/AssistantSuggestionActions';
+import { StaffChildrenYesActions } from '../../features/clubOperations/people/StaffChildrenYesActions';
 import { HandoverNoticeActions } from '../../features/clubOperations/leaving/HandoverNoticeActions';
 import { JourneyReminderActions } from '../../features/mapPlanning/JourneyReminderActions';
 import { FamilyLinkRequestActions } from '../../features/parents/FamilyLinkRequestActions';
+import { TeenTrialActions } from '../../features/clubWorkspace/players/TeenTrialActions';
+import { NotTheirParentAction } from '../../features/parents/NotTheirParentAction';
 import { SquadJoinNoticeActions } from '../../features/squadCommunication/SquadJoinNoticeActions';
 import type { NotificationItem } from '../../types/notifications';
 
@@ -11,7 +14,10 @@ export function NotificationActions({ notification }: { notification: Notificati
         <JourneyReminderActions notification={notification} />
         <SquadJoinNoticeActions notification={notification} />
         <FamilyLinkRequestActions notification={notification} />
+        <NotTheirParentAction notification={notification} />
+        <TeenTrialActions notification={notification} />
         <AssistantSuggestionActions notification={notification} />
+        <StaffChildrenYesActions notification={notification} />
         <HandoverNoticeActions notification={notification} />
     </>;
 }

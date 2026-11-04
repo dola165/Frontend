@@ -18,7 +18,7 @@ const view = (viewer: Partial<PeopleView['viewer']> = {}, extra: PeopleView['peo
     people: [
         { userId: 1, name: 'Nino Owner', email: 'nino@example.test', avatarUrl: null, needsLink: false, jobs: [job({ kind: 'OWNER', id: 1, job: 'OWNER', title: 'Owner', clubWide: true, squads: [] })] },
         { userId: 2, name: 'Luka Beridze', email: 'luka@example.test', avatarUrl: null, needsLink: true, jobs: [job({ id: 9, job: 'ASSISTANT_COACH', title: 'Assistant coach', status: 'INVITED' })] },
-        { userId: 3, name: 'Giga Kapanadze', email: null, avatarUrl: null, needsLink: false, jobs: [job({ id: 10, job: 'TEAM_MANAGER', title: 'Team manager', source: 'STAFF_LINK', staffLinkId: 70,
+        { userId: 3, name: 'Giga Kapanadze', email: null, avatarUrl: null, needsLink: false, jobs: [job({ id: 10, job: 'TEAM_MANAGER', title: 'Team manager', source: 'STAFF_LINK', staffLinkId: 70, waitingYes: { invitedName: 'Giga Kapanadze', proof: 'PHONE_TYPED', canAnswer: true },
             changedByName: 'Nino', changedAt: '2026-10-25T10:00:00', history: [{ at: '2026-10-25T10:00:00', byName: 'Nino', action: 'CHANGED', summary: 'Assistant coach → Team manager · U12' }] })] },
         { userId: 4, name: 'Mari Admin', email: null, avatarUrl: null, needsLink: false, jobs: [job({ kind: 'ADMIN', id: 4, job: 'ADMIN', title: 'Admin', clubWide: true, squads: [] })] },
         ...extra,
@@ -36,8 +36,7 @@ const view = (viewer: Partial<PeopleView['viewer']> = {}, extra: PeopleView['peo
     tools: ['ATTENDANCE:READ', 'ATTENDANCE:WRITE'],
 });
 const staffLink = (over: Partial<StaffLink> = {}): StaffLink => ({ id: 70, job: 'HEAD_COACH', title: 'Head coach', clubWide: true, squads: [], status: 'ACTIVE', code: 'staffcode', path: '/staff-invite/staffcode',
-    uses: 3, maxUses: 10, expiresAt: '2026-11-02T12:00:00', createdAt: '2026-10-26T09:00:00', createdById: 1, createdByName: 'Nino',
-    joined: [{ appointmentId: 120, userId: 12, name: 'Tamar Lomidze', avatarUrl: null, joinedAt: '2026-10-26T10:00:00', status: 'ACTIVE', revision: 2 }], ...over });
+    expiresAt: '2026-11-07T12:00:00', createdAt: '2026-11-04T09:00:00', createdById: 1, createdByName: 'Nino', invitedName: 'Tamar Lomidze', invitedEmail: null, invitedPhone: '+995 555 12 34 56', ...over });
 const suggested = { userId: 30, name: 'Dato Kvaratskhelia', email: 'dato@example.test', avatarUrl: null, needsLink: true,
     jobs: [job({ id: 55, job: 'ASSISTANT_COACH', title: 'Assistant coach', status: 'SUGGESTED', revision: 3, suggestedById: 4, suggestedByName: 'Giorgi', canConfirm: true })] };
 
@@ -87,31 +86,39 @@ it('an admin invites one person to any job, Admin included, and gets the link to
     expect(await screen.findByLabelText('Invite link for Tamar Lomidze')).toHaveValue(`${window.location.origin}/club-invite?token=tok`);
 });
 
-it('shares a staff link and QR code, never for Admin, and removes someone who joined', async () => {
-    renderPeople(view(), { links: [staffLink(), staffLink({ id: 60, status: 'EXPIRED', code: null, path: null })], url: '/?invite=link' });
+it('shares the link for the person it names, with a QR code, and never for Admin', async () => {
+    renderPeople(view(), { links: [staffLink(), staffLink({ id: 60, status: 'EXPIRED', code: null, path: null })], url: '/?invite=link&link=70' });
     await screen.findByLabelText('Staff link');
     const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
     expect(within(dialog).getByRole('radio', { name: /Share a staff link/ })).toHaveAttribute('aria-checked', 'true');
-    expect(within(dialog).getByRole('button', { name: 'Head coach' })).toHaveAttribute('aria-pressed', 'true');
     expect(within(dialog).getByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
     expect(within(dialog).getByTitle(/QR code/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/7 of 10 uses left/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/For Tamar Lomidze · works once/)).toBeInTheDocument();
 
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove Tamar Lomidze' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/jobs/120/end', { revision: 2 }));
-    expect(await within(dialog).findByText(/Nobody yet/)).toBeInTheDocument();
-
-    api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', uses: 0, joined: [] }) });
-    fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', { requestId: expect.any(String), job: 'HEAD_COACH', title: 'Head coach', tools: null, clubWide: true, squadIds: [] }));
-    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/clubs/7/staff-links/70'));
+    fireEvent.click(within(dialog).getByRole('button', { name: /Link for someone else/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Whole club' }));
+    fireEvent.change(within(dialog).getByLabelText('Their name'), { target: { value: 'Gio Lomidze' } });
+    fireEvent.change(within(dialog).getByLabelText(/Their email or phone/), { target: { value: 'gio@example.test' } });
+    api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', invitedName: 'Gio Lomidze' }) });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Make the link/ }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/staff-links', expect.objectContaining({ requestId: expect.any(String), job: 'HEAD_COACH', name: 'Gio Lomidze', email: 'gio@example.test' })));
     expect(await within(dialog).findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/newcode`);
+    expect(api.delete).not.toHaveBeenCalled();
 
     // Admin is sent to one person only: the link way closes.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Admin' }));
     expect(within(dialog).getByRole('radio', { name: /Share a staff link/ })).toBeDisabled();
-    expect(within(dialog).queryByLabelText('Staff link')).not.toBeInTheDocument();
+});
+
+it('someone who joined through a link waits for the yes on their row, with the person’s name and the two actions', async () => {
+    renderPeople(view());
+    const row = (await screen.findByText('Giga Kapanadze')).closest('li') as HTMLElement;
+    expect(within(row).getByText('Children’s details wait for your yes')).toBeInTheDocument();
+    expect(within(row).getByText('They typed the phone you gave. Nobody checked it.')).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: 'End job' })).toBeInTheDocument();
+    api.post.mockResolvedValueOnce({ data: { answeredBy: 'Nino' } });
+    fireEvent.click(within(row).getByRole('button', { name: 'Let Giga see the children’s details' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/clubs/7/people/jobs/10/children-yes'));
 });
 
 it('an admin changes a job at once, sees where it came from, and can end an Admin but never the Owner', async () => {
@@ -250,26 +257,9 @@ it('opens the staff link even when the links fail to load, with Try again', asyn
     });
     render(<MemoryRouter initialEntries={['/?invite=link']}><ClubPeople clubId={7} clubName="FC Dinamo Tbilisi Academy" /></MemoryRouter>);
     const dialog = await screen.findByRole('dialog', { name: 'Invite to a job' });
-    expect(within(dialog).queryByRole('button', { name: /Make the link/ })).not.toBeInTheDocument();
     fail = false;
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Try again' }));
-    expect(await screen.findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
-});
-
-it('New link shows the new link even if switching off the old one fails, and offers Switch off for it', async () => {
-    renderPeople(view(), { links: [staffLink()], url: '/?invite=link' });
-    await screen.findByLabelText('Staff link');
-    const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
-    api.post.mockResolvedValueOnce({ data: staffLink({ id: 71, code: 'newcode', path: '/staff-invite/newcode', uses: 0, joined: [] }) });
-    api.delete.mockRejectedValueOnce(new Error('down'));
-    fireEvent.click(within(dialog).getByRole('button', { name: /New link/ }));
-    expect(await within(dialog).findByText('The old link is still on.')).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/newcode`);
-    api.delete.mockResolvedValueOnce({ data: {} });
-    fireEvent.click(within(within(dialog).getByText('The old link is still on.').closest('div') as HTMLElement).getByRole('button', { name: /Switch off/ }));
-    await waitFor(() => expect(api.delete).toHaveBeenLastCalledWith('/clubs/7/staff-links/70'));
-    await waitFor(() => expect(within(dialog).queryByText('The old link is still on.')).not.toBeInTheDocument());
-    expect(api.post.mock.calls.filter(([url]) => url === '/clubs/7/staff-links')).toHaveLength(1);
+    expect(await within(dialog).findByRole('region', { name: 'Working links' })).toHaveTextContent('Tamar Lomidze');
 });
 
 it('keeps the buttons disabled while the rule-checker answers, so none appears and vanishes', async () => {
@@ -404,22 +394,11 @@ it('the handover list offers Try again when the club’s people fail to load', a
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
 });
 
-it.each(['CUSTOM', 'SPECIALIST_COACH'])('an older %s link opens with its own job, to share or switch off but never renew', async job => {
-    const old = staffLink({ job, title: 'Individual coaching', tools: ['ATTENDANCE:WRITE'] });
-    renderPeople(view(), { links: [old], url: '/?invite=link' });
-    expect(await screen.findByLabelText('Staff link')).toHaveValue(`${window.location.origin}/staff-invite/staffcode`);
-    const dialog = screen.getByRole('dialog', { name: 'Invite to a job' });
-    expect(within(dialog).queryByRole('button', { name: /New link/ })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Switch off' }));
-    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/clubs/7/staff-links/70'));
-    expect(api.post).not.toHaveBeenCalledWith('/clubs/7/staff-links', expect.anything());
-});
-
-it('Share a staff link opens the newest link with its job and where, ready to share', async () => {
+it('Share a staff link asks who it is for, and lists the links already working', async () => {
     renderPeople(view({ owner: false, headCoachSquads: [] }), { links: [staffLink()] });
     fireEvent.click(await screen.findByRole('button', { name: 'Invite' }));
     fireEvent.click(screen.getByRole('radio', { name: /Share a staff link/ }));
-    expect(await screen.findByLabelText('Staff link')).toHaveValue(window.location.origin + '/staff-invite/staffcode');
-    expect(screen.getByRole('button', { name: 'Whole club' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByRole('button', { name: /Make the link/ })).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('Their name')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Make the link/ })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Working links' })).toHaveTextContent('Tamar Lomidze');
 });

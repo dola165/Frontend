@@ -58,6 +58,7 @@ function Waiting({ session }: { session: AuthSessionId }) {
 
 function title(item: RequestItem, copy: ReturnType<typeof useJourneyCopy>) {
     if (item.family === 'SQUAD_JOIN_REQUESTS') return copy(item.title, `${item.title.split(' ')[0]} მსურველი გაწევრიანებას ელოდება`);
+    if (item.family === 'STAFF_CHILDREN_YES') return copy(`${item.title}: children’s details wait for your yes`, `${item.title}: ბავშვების მონაცემები თქვენს თანხმობას ელოდება`);
     if (item.family === 'STAFF_CLUB_CHOICE') return copy('Choose your staff club', 'აირჩიეთ თქვენი კლუბი');
     if (item.family === 'SESSION_HELPER_WORK') return copy('Finish the session register', 'დაასრულეთ ვარჯიშის აღრიცხვა');
     if (item.family === 'MATCH_RESULT') return copy(item.title, item.actionLabel === 'CONFIRM' ? 'დაადასტურეთ შედეგი' : item.actionLabel === 'SETTLE' ? 'გადაწყვიტეთ შედეგი' : 'შეიყვანეთ შედეგი');

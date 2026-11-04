@@ -95,7 +95,7 @@ export function PlayPart({ club, facts, onContact, onChanged }: { club: ClubProf
         try {
             if (trial) await selfRegisterClubPlayer(club.id, { _authSessionId: entry.sessionId });
             else await createClubApplication(club.id, 'PLAYER', null, { position: position || null, ageGroup: chosen?.category ?? null, squadId: chosen?.id ?? null }, { _authSessionId: entry.sessionId });
-            setResult({ text: trial ? c('You can come to training as a trialist.', 'ვარჯიშზე შეგიძლია მოხვიდე, როგორც გასასინჯი მოთამაშე.') : c(`Request sent to ${club.name}.`, `მოთხოვნა გაიგზავნა: ${club.name}.`), error: false });
+            setResult({ text: trial ? (facts.minor ? c('The coach and your parent are told. Your parent says yes before you play.', 'მწვრთნელს და შენს მშობელს ეცნობათ. თამაშამდე მშობელი უნდა დაეთანხმოს.') : c('You can come to training as a trialist.', 'ვარჯიშზე შეგიძლია მოხვიდე, როგორც გასასინჯი მოთამაშე.')) : c(`Request sent to ${club.name}.`, `მოთხოვნა გაიგზავნა: ${club.name}.`), error: false });
             onChanged();
         } catch (error) {
             setResult({ text: extractApiErrorMessage(error, c('The request could not be sent. Try again.', 'მოთხოვნა ვერ გაიგზავნა. სცადე თავიდან.')), error: true });

@@ -97,7 +97,9 @@ it('a request that looks like a card the coach made offers Same child, and New p
     render(<MemoryRouter><WantToJoin items={[item({ key: 'request-31', kind: 'REQUEST', id: 31, squadId: 105, name: 'Eka Lomidze', source: 'ENQUIRY', request: looks })]} data={data} onChanged={onChanged} /></MemoryRouter>);
     expect(within(row('Eka Lomidze')).getByText('Looks like Eka L., a card you made')).toBeInTheDocument();
     fireEvent.click(within(row('Eka Lomidze')).getByRole('button', { name: 'Same child' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/squad-communication/105/join-requests/same-child', { requestPlayerId: 9, playerId: 4 }));
+    fireEvent.click(within(row('Eka Lomidze')).getByRole('checkbox', { name: /is Eka L\.’s parent/ }));
+    fireEvent.click(within(row('Eka Lomidze')).getByRole('button', { name: 'Make them one card' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/squad-communication/105/join-requests/same-child', { requestPlayerId: 9, playerId: 4, knownParent: true }));
     expect(await screen.findByText('Eka Lomidze is now one card, the one you made.')).toBeInTheDocument();
     expect(onChanged).toHaveBeenCalled();
 });
@@ -110,6 +112,8 @@ it('fix round: Accept waits for Same child or New player, and nothing else is pr
     const eka = row('Eka Lomidze');
     expect(within(eka).getByRole('button', { name: 'Accept' })).toBeDisabled();
     fireEvent.click(within(eka).getByRole('button', { name: 'Same child' }));
+    fireEvent.click(within(eka).getByRole('checkbox', { name: /is Eka L\.’s parent/ }));
+    fireEvent.click(within(eka).getByRole('button', { name: 'Make them one card' }));
     expect(within(eka).getByRole('button', { name: 'Not now' })).toBeDisabled();
     finish({ data: { status: 'DONE', playerId: 4 } });
     await screen.findByText('Eka Lomidze is now one card, the one you made.');

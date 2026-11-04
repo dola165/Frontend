@@ -26,7 +26,7 @@ import '../../clubWorkspace/club-workspace.css';
 import './people.css';
 import '../../clubOffice/office.css';
 
-const waiting = (job: PersonJob) => job.status === 'INVITED' || job.status === 'EXPIRED' || job.kind.endsWith('INVITE');
+const waiting = (job: PersonJob) => job.status === 'INVITED' || job.status === 'EXPIRED' || job.kind.endsWith('INVITE') || Boolean(job.waitingYes);
 
 /**
  * Club office › Staff (the People screen until step 2, 28 October 2026): everyone with a job here, where, and how to

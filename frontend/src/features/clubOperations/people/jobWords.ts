@@ -92,7 +92,7 @@ export function useJobWords(choices: JobChoice[] = []) {
     })[status], [copy]);
     const eventLabel = useCallback((action: string) => ({
         GIVEN: copy('Given', 'მიეცა'), SUGGESTED: copy('Suggested', 'შეთავაზდა'), CONFIRMED: copy('Confirmed', 'დადასტურდა'), DECLINED: copy('Declined', 'უარყოფილია'),
-        ACCEPTED: copy('Accepted', 'მიიღო'), CHANGED: copy('Changed', 'შეიცვალა'), JOINED_BY_LINK: copy('Joined through a staff link', 'შემოვიდა პერსონალის ბმულით'), ENDED: copy('Ended', 'დასრულდა'),
+        ACCEPTED: copy('Accepted', 'მიიღო'), CHANGED: copy('Changed', 'შეიცვალა'), CHILDREN_YES: copy('Can see the children’s details', 'ბავშვების მონაცემების ნახვა გაიხსნა'), JOINED_BY_LINK: copy('Joined through a staff link', 'შემოვიდა პერსონალის ბმულით'), ENDED: copy('Ended', 'დასრულდა'),
     } as Record<string, string>)[action] ?? action, [copy]);
     const homeName = (key: string) => HOME_WORDS[key] ? copy(...HOME_WORDS[key]) : key;
     const viewName = (key: string) => VIEW_WORDS[key] ? copy(...VIEW_WORDS[key]) : key;

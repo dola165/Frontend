@@ -38,8 +38,8 @@ function FamilyClubWorkSession({staffClubs}:{staffClubs:Choice[]}) {
     e.preventDefault();if(busy)return;const form=new FormData(e.currentTarget);const [club,person]=connection.split(':').map(Number);setBusy(true);setError('');setMessage('');
     try {
       if(action==='concern'){
-        const receipt=await post<{receivedBy:ReceiverKind;receiverName:string|null;grassKickZ:boolean}>(`${root(club)}/concerns`,{subjectUserId:person||null,description:form.get('description'),immediateAction:form.get('immediateAction'),aboutReceiver});
-        setMessage(copy(`Sent. It went to ${receiverWords(receipt.receivedBy,receipt.receiverName,copy)}.${receipt.grassKickZ&&receipt.receivedBy!=='GRASSKICKZ'?' GrassKickZ’s team has it too.':''}`,`გაიგზავნა. მიიღო: ${receiverWords(receipt.receivedBy,receipt.receiverName,copy)}.${receipt.grassKickZ&&receipt.receivedBy!=='GRASSKICKZ'?' ის GrassKickZ-ის გუნდსაც აქვს.':''}`));
+        const receipt=await post<{receivedBy:ReceiverKind;receiverName:string|null}>(`${root(club)}/concerns`,{subjectUserId:person||null,description:form.get('description'),immediateAction:form.get('immediateAction'),aboutReceiver});
+        setMessage(copy(`Sent. It went to ${receiverWords(receipt.receivedBy,receipt.receiverName,copy)}.`,`გაიგზავნა. მიიღო: ${receiverWords(receipt.receivedBy,receipt.receiverName,copy)}.`));
       }else{
         await post(`${root(club)}/education-absences`,{subjectUserId:person,startsOn:form.get('startsOn'),endsOn:form.get('endsOn'),reason:form.get('reason'),notes:form.get('notes')});
         setMessage('The education absence has been recorded for the club.');

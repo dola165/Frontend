@@ -102,7 +102,7 @@ export function TournamentMatchday({ tournament, active, onMatch, onBracket }: P
             {[...groups].map(([key, group]) => <section className="tw-matchday-group" key={key} aria-label={groupTitle(key)}>
                 <header><h3>{groupTitle(key)}</h3><span>{group.length} {copy(group.length === 1 ? 'match' : 'matches', 'მატჩი')}</span></header>
                 <div className="tw-matchday-list">{group.map(row => <article className={`tw-matchday-row${row.fixture.status === 'CANCELLED' ? ' is-cancelled' : ''}`} key={row.fixture.id}>
-                    <div className="tw-matchday-time">{row.kickoff ? <time dateTime={row.fixture.scheduledAt ?? undefined}>{row.kickoff.time}</time> : <span>—</span>}<small>{copy('Kickoff', 'დაწყება')}</small></div>
+                    <div className="tw-matchday-time">{row.kickoff && !row.fixture.timeHidden ? <time dateTime={row.fixture.scheduledAt ?? undefined}>{row.kickoff.time}</time> : <span>—</span>}<small>{copy('Kickoff', 'დაწყება')}</small></div>
                     <div className="tw-matchday-match"><p className="tw-matchday-stage">{stageText(row)}{matchNumber(row) && ` · ${matchNumber(row)}`}</p>
                         <div className="tw-matchday-teams"><strong>{teamName(row.home)}</strong><span className={score(row) === 'vs' ? 'is-versus' : ''}>{score(row)}</span><strong>{teamName(row.away)}</strong></div>
                         {issueText(row) && <p className="tw-matchday-warning"><AlertTriangle size={13}/>{issueText(row)}</p>}

@@ -14,7 +14,7 @@ import type { Places } from '../../directory/places';
 function openLine({ m, code, fit }: OpenMatch, places?: Places): BrowseLine {
     const hosting = HOSTING[m.venue_preference];
     return {
-        when: { time: m.place_hidden ? '' : fixtureTime(m.starts_at_iso, m.timezone), day: fixtureDay(m.starts_at_iso, m.timezone) }, title: m.title, to: `/matches/${m.event_id}?from=world`, action: wt('Open match'), peek: peekOf('match', code),
+        when: { time: m.time_hidden ? '' : fixtureTime(m.starts_at_iso, m.timezone), day: fixtureDay(m.starts_at_iso, m.timezone) }, title: m.title, to: `/matches/${m.event_id}?from=world`, action: wt('Open match'), peek: peekOf('match', code),
         sides: { home: { name: `${m.club_name} ${m.squad_name}`, crest: m.club_logo_url }, away: { name: fit ? wt('Your {squad}?', { squad: fit.name }) : wt('Opponent wanted'), crest: fit ? places?.club(fit.clubId)?.logoUrl : null } },
         fact: [codeLabel(m.age_group), hosting && wt(hosting)].filter(Boolean).join(' · '),
     };

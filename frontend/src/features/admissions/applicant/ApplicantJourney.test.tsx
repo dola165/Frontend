@@ -120,6 +120,14 @@ describe('Applicant invariants',()=>{
         const accept=await screen.findByLabelText('I confirm these terms for Synthetic child.');fireEvent.click(accept);expect(accept).toBeChecked();fireEvent.click(screen.getByRole('radio',{name:/^Second child/}));
         expect(await screen.findByLabelText('I confirm these terms for Second child.')).not.toBeChecked();expect(submitAdmission).not.toHaveBeenCalled();
     });
+    it('shows a youth group’s city and lets a family apply, with no ground, map link or timetable',async()=>{
+        const home=fixture<AdmissionHome>('home');home.cases=[];vi.mocked(fetchAdmissionHome).mockResolvedValue(home);
+        const o={...opportunity(),method:'DIRECT' as const,availability:'PLACES_AVAILABLE' as const,placeHidden:true,schedule:'',location:{name:'Tbilisi',address:'Tbilisi',latitude:41.7,longitude:44.8}};vi.mocked(fetchOpportunity).mockResolvedValue(o);
+        show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,`/admissions/opportunities/${o.id}?tab=join&player=101`);
+        expect(await screen.findByText('The club shares the times once you have applied')).toBeInTheDocument();
+        expect(screen.queryByRole('link',{name:'View actual training venue on map'})).not.toBeInTheDocument();
+        expect(screen.queryByText(/must complete essential terms/)).not.toBeInTheDocument();
+    });
     it('routes conditional siblings through review instead of committing one child immediately',async()=>{
         vi.mocked(fetchAdmissionHome).mockResolvedValue({...fixture<AdmissionHome>('home'),cases:[]});
         const o={...opportunity(),method:'DIRECT' as const,availability:'PLACES_AVAILABLE' as const};vi.mocked(fetchOpportunity).mockResolvedValue(o);vi.mocked(submitAdmission).mockResolvedValue(base());

@@ -66,8 +66,8 @@ function OpportunityDetailContent({ id }: { id: number }) {
             <div className="jn-head__title"><GroupCrest clubId={o.clubId} name={o.organizationName} /><h1>{o.name}</h1></div>
             <p>{o.clubId ? <Link to={`/clubs/${o.clubId}`}>{o.organizationName}</Link> : o.organizationName} · {copy('born', 'დაბ.')} {o.birthYearFrom}–{o.birthYearTo} · <span className="jn-availability" data-open={o.availability !== 'CLOSED' && o.availability !== 'WAITLIST'}>{availability(o.availability)}</span></p>
             <ul className="jn-facts">
-                <li><Clock3 aria-hidden="true" />{o.schedule || copy('Arrange with the club', 'შეათანხმეთ კლუბთან')}</li>
-                <li><MapPin aria-hidden="true" />{o.location.latitude != null && o.location.longitude != null ? <Link to={opportunityMapPath(o.id, player?.id)} aria-label={copy('View actual training venue on map', 'ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}>{o.location.name}</Link> : o.location.name}</li>
+                <li><Clock3 aria-hidden="true" />{o.placeHidden ? copy('The club shares the times once you have applied', 'დროს კლუბი გაგიზიარებთ განაცხადის შემდეგ') : o.schedule || copy('Arrange with the club', 'შეათანხმეთ კლუბთან')}</li>
+                <li><MapPin aria-hidden="true" />{!o.placeHidden && o.location.latitude != null && o.location.longitude != null ? <Link to={opportunityMapPath(o.id, player?.id)} aria-label={copy('View actual training venue on map', 'ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}>{o.location.name}</Link> : o.location.name}</li>
                 <li><Wallet aria-hidden="true" />{cost}</li>
             </ul>
         </header>
@@ -148,10 +148,10 @@ function SubmissionForm({ opportunity: o, participant: p, refresh }: { opportuni
         {needEmergency && <label className="gk-field"><span className="gk-field__label">{copy('Emergency contact: name and phone', 'გადაუდებელი საკონტაქტო პირი: სახელი და ტელეფონი')}</span><input className="gk-input" required maxLength={500} disabled={Boolean(mutation.pending)} value={draft.emergencyContact} onChange={e => setDraft({ ...draft, emergencyContact: e.target.value })} /></label>}
         {/* The consent sits right above the button it governs, and only where the button commits a place. */}
         {direct && <><label className="jn-check"><input type="checkbox" required checked={accept} disabled={Boolean(mutation.pending)} onChange={e => setAcceptedVersion(e.target.checked ? o.version : null)} />{copy(`I confirm these terms for ${p.name}.`, `ვადასტურებ ამ პირობებს: ${p.name}.`)}</label>
-            {!termsComplete(o.terms, o.schedule, o.location) && <p className="jn-notice">{copy('The club must complete essential terms before a place can be confirmed.', 'ადგილის დასადასტურებლად კლუბმა არსებითი პირობები უნდა შეავსოს.')}</p>}</>}
+            {!termsComplete(o.terms, o.placeHidden ? 'shared on applying' : o.schedule, o.location) && <p className="jn-notice">{copy('The club must complete essential terms before a place can be confirmed.', 'ადგილის დასადასტურებლად კლუბმა არსებითი პირობები უნდა შეავსოს.')}</p>}</>}
         {mutation.error && <AdmissionError message={mutation.error} />}
         {mutation.pending ? <div className="jn-stack"><p className="jn-quiet">{copy('A saved request has an unconfirmed response. Retry it with the original details.', 'შენახული მოთხოვნის პასუხი დაუდასტურებელია. გაიმეორეთ საწყისი მონაცემებით.')}</p><Button variant="primary" disabled={mutation.busy} onClick={() => void mutation.retry()}>{copy('Retry saved request', 'შენახული მოთხოვნის გამეორება')}</Button></div>
-            : <Button type="submit" variant="primary" disabled={mutation.busy || !eligible || !active || (direct && (!canCommit || !accept || !termsComplete(o.terms, o.schedule, o.location)))}>{mutation.busy ? copy('Sending…', 'იგზავნება…') : label}</Button>}
+            : <Button type="submit" variant="primary" disabled={mutation.busy || !eligible || !active || (direct && (!canCommit || !accept || !termsComplete(o.terms, o.placeHidden ? 'shared on applying' : o.schedule, o.location)))}>{mutation.busy ? copy('Sending…', 'იგზავნება…') : label}</Button>}
         <p className="jn-quiet">{!active ? copy('This intake is closed. Existing arrangements remain in My requests.', 'მიღება დახურულია. არსებული შეთანხმებები იხილეთ „ჩემი მოთხოვნები“-ში.')
             : direct ? copy('This applies only to the selected player.', 'ეს მხოლოდ არჩეულ მოთამაშეს ეხება.')
             : waitlist ? copy('A waiting-list request promises no immediate place.', 'მოლოდინის მოთხოვნა დაუყოვნებლივ ადგილს არ გპირდებათ.')

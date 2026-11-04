@@ -27,9 +27,9 @@ export function registrationWindow(tournament: TournamentDetail, now = Date.now(
     return 'open';
 }
 
-export function tournamentKickoffLabel(value: string | null, language = 'en') {
+export function tournamentKickoffLabel(value: string | null, language = 'en', dayOnly = false) {
     const kickoff = matchdayKickoff(value);
     if (!kickoff) return null;
     const day = new Intl.DateTimeFormat(language.startsWith('ka') ? 'ka-GE' : 'en-GB', {day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(`${kickoff.day}T12:00:00Z`));
-    return `${day} · ${kickoff.time}`;
+    return dayOnly ? day : `${day} · ${kickoff.time}`;
 }

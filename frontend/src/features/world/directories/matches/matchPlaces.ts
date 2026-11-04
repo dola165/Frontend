@@ -46,7 +46,7 @@ export function listingPlace(m: Match, places: Places): Placement | null {
     const own = m.location_lat != null && m.location_lng != null ? { lat: m.location_lat, lng: m.location_lng } : null;
     const area = m.place_hidden && m.area_lat != null && m.area_lng != null ? { lat: m.area_lat, lng: m.area_lng } : null;
     const at = m.place_hidden ? area : own ?? places.club(m.club_id);
-    const when = m.place_hidden ? fixtureDay(m.starts_at_iso, m.timezone) : `${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)}`;
+    const when = m.time_hidden ? fixtureDay(m.starts_at_iso, m.timezone) : `${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)}`;
     return at ? { lat: at.lat, lng: at.lng, approximate: m.place_hidden ? 'area' : own ? undefined : 'club', noun: ['match', 'matches'], label: m.title,
         meta: [when, m.location_name].filter(Boolean).join(' · '), tone: 'match', to: `/matches/${m.event_id}?from=world` } : null;
 }

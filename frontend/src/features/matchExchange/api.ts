@@ -115,6 +115,8 @@ export type Match = {
   location_name: string;
   /** A children's match for someone outside it: the city in location_name, the day alone, no ground (step 3). */
   place_hidden?: boolean;
+  /** Hidden with the place, except from the staff of a club directly invited or asked. */
+  time_hidden?: boolean;
   area_lat?: number | null;
   area_lng?: number | null;
   location_lat: number | null;

@@ -29,7 +29,7 @@ export function OpenMatchRow({ item: o }: { item: OpenMatch }) {
         <MatchRow to={`/matches/${m.event_id}?from=world`} peek={peekOf('match', o.code)} title={[m.title, m.location_name].filter(Boolean).join(' · ')}
             home={{ name: `${m.club_name} ${m.squad_name}`, logo: m.club_logo_url }} away={away}
             lines={[
-                [m.place_hidden ? null : fixtureTime(m.starts_at_iso, m.timezone), fixtureDay(m.starts_at_iso, m.timezone), m.location_name?.split(',')[0]].filter(Boolean).join(' · '),
+                [m.time_hidden ? null : fixtureTime(m.starts_at_iso, m.timezone), fixtureDay(m.starts_at_iso, m.timezone), m.location_name?.split(',')[0]].filter(Boolean).join(' · '),
                 o.busy ? <Status tone="warning">{t('You play that day')}</Status> : refereeWanted ? <Status tone="warning">{t('Referee wanted')}</Status> : facts,
             ]}
             aside={<span className="gk-result-code">{codeLabel(m.age_group)}</span>} />

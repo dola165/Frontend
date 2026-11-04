@@ -59,7 +59,7 @@ export const JobsPage = () => {
                         {!under18 && <ButtonLink variant="primary" to="/jobs/new"><Plus aria-hidden="true" />{ct("Post")}</ButtonLink>}
                     </div>
                 </div>
-                <JobsMap jobs={listings.data?.content ?? []} loading={listings.loading} counts={data ? { open: data.open, available: data.available } : undefined} near={near} />
+                <JobsMap jobs={listings.data?.content ?? []} loading={listings.loading} counts={data ? { open: data.open, available: data.available } : undefined} near={near} under18={under18} />
 
                 <div className="gk-jobs-land" ref={landing}>
                     {signedIn && mine.length > 0 && <section className="gk-jobs-land__section gk-jobs-land__mine" data-reveal>

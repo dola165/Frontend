@@ -30,7 +30,7 @@ function Line({ label, value, options, onChoose }: { label: string; value: strin
  * The filters live in the address and travel to the catalogue with "Show as a list" and to World's map. Choosing a pin
  * shows its card (one listing opens itself, several open their list) and narrows the column to what the pin holds.
  */
-export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]; loading: boolean; counts?: { open: number; available: number }; near?: string; children?: ReactNode }) {
+export function JobsMap({ jobs, loading, counts, near, under18, children }: { jobs: Job[]; loading: boolean; counts?: { open: number; available: number }; near?: string; /** Jobs open at 18: nothing here to post or to be found by. */ under18?: boolean; children?: ReactNode }) {
     useCommerceCopy();
     const [params, setParams] = useSearchParams();
     // The map shows one kind at a time, jobs unless people are asked for, so the lit chip is what the pins are.
@@ -66,7 +66,7 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
                             </form>
                             <div className="gk-jobs-side__row">
                                 {active > 0 ? <Button variant="ghost" size="sm" onClick={() => { setText(''); set({ query: '', category: '', terms: '', hours: '', poster: '', city: '', posted: '' }); }}>{ct("Clear ")}{active}</Button> : <span className="gk-faint">{loading && !jobs.length ? ct("Loading…") : `${shown.length} ${people ? "people" : 'listings'}`}</span>}
-                                <ButtonLink variant="primary" to="/jobs/new"><Plus aria-hidden="true" />{ct("Post")}</ButtonLink>
+                                {!under18 && <ButtonLink variant="primary" to="/jobs/new"><Plus aria-hidden="true" />{ct("Post")}</ButtonLink>}
                             </div>
                             <div className="gk-chips gk-jobs-side__kinds" role="group" aria-label={ct("What the map shows")}>
                                 <button type="button" className="gk-chip" aria-pressed={!people} onClick={() => set({ direction: 'HIRING' })}><span className="gk-jobs-key" data-tone="club" aria-hidden="true" />{ct("Jobs")}{counts ? <span className="gk-jobs-side__count">{counts.open}</span> : null}</button>
@@ -86,7 +86,7 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
                                 : <EmptyNote title={people ? ct("Nobody with these filters") : ct("No listings with these filters")}>{ct("Clear a filter or widen the area.")}</EmptyNote>}
                         </div>
                     </aside>
-                    <aside className="gk-jobs-ways" aria-label={ct("Ways in")}>
+                    {!under18 && <aside className="gk-jobs-ways" aria-label={ct("Ways in")}>
                         <div className="gk-jobs-ways__head"><span className="gk-jobs-ways__icon"><Compass aria-hidden="true" /></span><span className="gk-jobs-ways__titles"><strong>{ct("What are you here for?")}</strong><small>{near ? ct("Around {v0}", { v0: near }) : ct("Everywhere")}{ct(" · clubs and people")}</small></span></div>
                         <div className="gk-jobs-ways__body">
                             <Link className="gk-jobs-way" data-tone="accent" to={jobsPath({ ...query, direction: 'HIRING', page: 0, job: undefined })}><span className="gk-jobs-way__icon"><Briefcase aria-hidden="true" /></span><span><strong>{ct("Work")}</strong><small>{counts ? ct("{v0} open jobs and volunteer roles", { v0: counts.open }) : ct("Jobs and volunteer roles")}</small></span><ArrowRight aria-hidden="true" /></Link>
@@ -95,7 +95,7 @@ export function JobsMap({ jobs, loading, counts, near, children }: { jobs: Job[]
                             <Link className="gk-jobs-way" data-tone="info" to="/jobs/new?as=hire"><span className="gk-jobs-way__icon"><Plus aria-hidden="true" /></span><span><strong>{ct("Post a job")}</strong><small>{ct("Three screens, as your club or yourself")}</small></span><ArrowRight aria-hidden="true" /></Link>
                             {children}
                         </div>
-                    </aside>
+                    </aside>}
                     <div className="gk-jobs-stage__foot">
                         <span className="gk-jobs-stage__count">{loading && !jobs.length ? ct("Loading…") : ct("{v0} on the map{v1}", { v0: placed, v1: shown.length - placed ? ` · ${shown.length - placed} without a place` : '' })}</span>
                         <Link className="gk-jobs-stage__list" to={listPath}>{ct("Show ")}{shown.length}{ct(" as a list")}<ArrowRight aria-hidden="true" /></Link>

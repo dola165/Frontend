@@ -86,6 +86,10 @@ describe('Applicant invariants',()=>{
         const home=fixture<AdmissionHome>('home');vi.mocked(claimAdmissionInvitation).mockResolvedValue(base());show(<AdmissionInvitationCard invitation={{id:41,version:3,organizationId:1,organizationName:'Dinamo',groupId:1,groupName:'Beginner group',intendedPlayerId:101,message:'Agreed offline inquiry',expiresAt:'2026-10-11T00:00:00Z',status:'PENDING'}} participants={home.participants} onChanged={vi.fn()}/>);
         fireEvent.click(screen.getByLabelText('I confirm the named player and want to continue this recorded inquiry.'));fireEvent.click(screen.getByRole('button',{name:'Continue this inquiry'}));await waitFor(()=>expect(claimAdmissionInvitation).toHaveBeenCalledWith(41,expect.objectContaining({requestId:expect.any(String),expectedVersion:3,playerId:101,accept:true}),'family-session'));
     });
+    it('leaves no empty line when the club\'s words wait for a parent or a birth date',()=>{
+        const home=fixture<AdmissionHome>('home');const {container}=show(<AdmissionInvitationCard invitation={{id:41,version:3,organizationId:1,organizationName:'Dinamo',groupId:1,groupName:'Beginner group',intendedPlayerId:101,message:null,expiresAt:'2026-10-11T00:00:00Z',status:'PENDING'}} participants={home.participants} onChanged={vi.fn()}/>);
+        expect(screen.getByRole('heading',{name:'Beginner group'})).toBeInTheDocument();expect(container.querySelector('article > p:empty')).toBeNull();
+    });
     it('keeps sibling cases separate when selecting a player',async()=>{
         const home=fixture<AdmissionHome>('home');home.participants.push({...home.participants[0],id:102,name:'Second child'});home.cases.push({...home.cases[0],id:200,playerId:102,playerName:'Second child',groupName:'Sibling group'});vi.mocked(fetchAdmissionHome).mockResolvedValue(home);
         show(<AdmissionHomePage/>);fireEvent.change(await screen.findByRole('combobox',{name:'Filter cases by player'}),{target:{value:'102'}});expect(screen.getByRole('heading',{name:'Sibling group'})).toBeVisible();expect(screen.queryByRole('heading',{name:'Beginner group'})).not.toBeInTheDocument();expect(commandAdmission).not.toHaveBeenCalled();

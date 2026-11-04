@@ -130,7 +130,7 @@ export interface AdmissionWorkspace {
 export interface AdmissionHome { participants: Participant[]; cases: AdmissionCase[]; invitations?: AdmissionInvitation[]; selfCardNeedsDetails?: boolean; inquiries?: AdmissionInquiry[] }
 export interface AdmissionError { code: string; message: string; currentVersion?: number }
 export interface PlayerCardInput { requestId: string; fullName: string; dateOfBirth: string; gender?: 'MALE' | 'FEMALE' | null }
-export interface AdmissionInvitation { id: number; version: number; organizationId: number; organizationName: string; groupId: number; groupName: string; intendedPlayerId: number | null; message: string; expiresAt: string; status: 'PENDING' | 'CLAIMED' | 'CANCELLED' | 'EXPIRED' }
+export interface AdmissionInvitation { id: number; version: number; organizationId: number; organizationName: string; groupId: number; groupName: string; intendedPlayerId: number | null; message: string | null; expiresAt: string; status: 'PENDING' | 'CLAIMED' | 'CANCELLED' | 'EXPIRED' }
 export interface OfflineInvitationInput { requestId: string; groupId: number; recipientEmail: string; intendedPlayerId?: number | null; message: string }
 export interface ClaimInvitationInput { requestId: string; expectedVersion: number; playerId: number; accept: boolean }
 export interface GuardianReviewInput { requestId: string; reason: string }

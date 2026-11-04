@@ -16,6 +16,7 @@ export interface PlayerRowActions {
     /** Who claimed the card's family link, and "Not their parent". */
     onClaimedParents?: (userId: number, signal?: AbortSignal) => Promise<ClaimedParent[]>;
     onAnswerParentAsk?: (askId: number, yes: boolean) => Promise<void>;
+    onChangeParentAskToYes?: (askId: number) => Promise<void>;
     onNotTheirParent?: (guardianLink: number) => Promise<void>;
 }
 

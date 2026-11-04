@@ -36,6 +36,7 @@ export interface PlayersPageProps {
     onClaimedParents?: (userId: number, signal?: AbortSignal) => Promise<import('../../parents/familyLinks').ClaimedParent[]>;
     onNotTheirParent?: (guardianLink: number) => Promise<void>;
     onAnswerParentAsk?: (askId: number, yes: boolean) => Promise<void>;
+    onChangeParentAskToYes?: (askId: number) => Promise<void>;
     onFamilySent?: () => void;
     onTabChange: (tab: WorkspaceTab) => void;
 }
@@ -87,7 +88,7 @@ export function PlayersPage(p: PlayersPageProps) {
     const changePage = (page: number) => { setQuery(''); p.onPageChange(page); };
     const actions = {
         pendingKey: p.pendingKey, canManagePlayerStatuses: p.canManagePlayerStatuses, onPlayerStatusChange: p.onPlayerStatusChange, onTrialEndsChange: p.onTrialEndsChange,
-        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onFamilyLink: p.onFamilyLink, onFamilySent: p.onFamilySent, onClaimedParents: p.onClaimedParents, onNotTheirParent: p.onNotTheirParent, onAnswerParentAsk: p.onAnswerParentAsk,
+        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onFamilyLink: p.onFamilyLink, onFamilySent: p.onFamilySent, onClaimedParents: p.onClaimedParents, onNotTheirParent: p.onNotTheirParent, onAnswerParentAsk: p.onAnswerParentAsk, onChangeParentAskToYes: p.onChangeParentAskToYes,
     };
     const managed = (player: ClubPlayerAffiliation) => p.joiningPlayerIds?.includes(player.userId) === true;
 

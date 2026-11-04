@@ -65,7 +65,7 @@ export function PlayerActions({ player, actions, admissionManaged }: { player: C
 function ClaimedParents({ player, actions }: { player: ClubPlayerAffiliation; actions: PlayerRowActions }) {
     const say = useJourneyCopy();
     const [parents, setParents] = useState<ClaimedParent[]>([]), [error, setError] = useState(''), [busy, setBusy] = useState(false);
-    const { onClaimedParents, onNotTheirParent, onAnswerParentAsk } = actions;
+    const { onClaimedParents, onNotTheirParent, onAnswerParentAsk, onChangeParentAskToYes } = actions;
     useEffect(() => {
         if (!onClaimedParents) return;
         const controller = new AbortController();
@@ -88,11 +88,22 @@ function ClaimedParents({ player, actions }: { player: ClubPlayerAffiliation; ac
         catch (failure) { setError(extractApiErrorMessage(failure, say('Your answer wasn’t saved. Try again.', 'პასუხი ვერ შეინახა. სცადეთ ხელახლა.'))); }
         finally { setBusy(false); }
     };
+    /** A wrong no: an Owner or Admin changes it, and the person becomes the parent. */
+    const changeToYes = async (parent: ClaimedParent) => {
+        if (busy || !onChangeParentAskToYes) return;
+        setBusy(true); setError('');
+        try { await onChangeParentAskToYes(parent.askId!); setParents(current => current.filter(item => item !== parent)); actions.onFamilySent?.(); }
+        catch (failure) { setError(extractApiErrorMessage(failure, say('Your answer wasn’t saved. Try again.', 'პასუხი ვერ შეინახა. სცადეთ ხელახლა.'))); }
+        finally { setBusy(false); }
+    };
     const firstOf = (name: string) => name.split(' ')[0];
     const child = firstOf(player.fullName ?? '');
     return <div className="pl-consent">
         <span className="gk-field__label">{say('Parents', 'მშობლები')}</span>
-        {parents.map(parent => { const from = parent.claimedFrom?.replace(/^Family link · /, ''), day = formatDate(parent.claimedAt, { day: 'numeric', month: 'short' }); return parent.askId != null ? <span key={`ask-${parent.askId}`} className="gk-row">
+        {parents.map(parent => { const from = parent.claimedFrom?.replace(/^Family link · /, ''), day = formatDate(parent.claimedAt, { day: 'numeric', month: 'short' }); return parent.saidNoBy ? <span key={`no-${parent.askId}`} className="gk-row">
+            <small className="gk-muted">{say(`${parent.name} · ${parent.saidNoBy} said no · ${day}`, `${parent.name} · ${parent.saidNoBy} უარი თქვა · ${day}`)}</small>
+            {onChangeParentAskToYes && <Button size="sm" variant="secondary" disabled={busy} onClick={() => void changeToYes(parent)}>{say(`I know ${firstOf(parent.name)} is ${child}’s parent`, `ვიცი, რომ ${firstOf(parent.name)} ${child}-ის მშობელია`)}</Button>}
+        </span> : parent.askId != null ? <span key={`ask-${parent.askId}`} className="gk-row">
             <small className="gk-muted">{say(`${parent.name} asks to be confirmed · ${day}`, `${parent.name} დადასტურებას ითხოვს · ${day}`)}</small>
             {parent.canAnswer && onAnswerParentAsk && <><Button size="sm" variant="secondary" disabled={busy} onClick={() => void answer(parent, true)}>{say(`I know ${firstOf(parent.name)} is ${child}’s parent`, `ვიცი, რომ ${firstOf(parent.name)} ${child}-ის მშობელია`)}</Button>
                 <Button size="sm" variant="ghost" className="pp-danger" disabled={busy} onClick={() => void answer(parent, false)}>{say('Not their parent', 'არ არის მშობელი')}</Button></>}

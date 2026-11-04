@@ -75,7 +75,7 @@ export function FamilyLinkPage() {
                 : problem === 'FAMILY_LINK_CLUB_SAID_NO' ? copy(`The club didn’t confirm you as ${name}’s parent. Talk to them.`, `კლუბმა არ დაგადასტურათ ${name}-ის მშობლად. დაელაპარაკეთ მათ.`)
                 : problem === 'FAMILY_LINK_NOT_YOU' ? copy('This card’s name or birth date doesn’t match your account. Ask the club.', 'ბარათის სახელი ან დაბადების თარიღი არ ემთხვევა თქვენს ანგარიშს. მიმართეთ კლუბს.')
                 : problem === 'FAMILY_LINK_OWN' ? copy('Send this link to your parent.', 'ეს ბმული მშობელს გაუგზავნეთ.')
-                : problem === 'FAMILY_LINK_STAFF' ? copy(`You work at this club, so its card can’t make you ${name}’s parent on its own. If you are, ask the club to confirm you.`, `თქვენ ამ კლუბში მუშაობთ, ამიტომ მისი ბარათი მარტო ვერ გაგხდით ${name}-ის მშობლად. თუ მშობელი ხართ, სთხოვეთ კლუბს დადასტურება.`)
+                : problem === 'FAMILY_LINK_STAFF' ? copy(`You play or work at this club, so its card can’t make you ${name}’s parent on its own. If you are, ask the club to confirm you.`, `თქვენ ამ კლუბში თამაშობთ ან მუშაობთ, ამიტომ მისი ბარათი მარტო ვერ გაგხდით ${name}-ის მშობლად. თუ მშობელი ხართ, სთხოვეთ კლუბს დადასტურება.`)
                 : problem === 'GUARDIAN_MUST_BE_ADULT' ? copy('Only adults (18 or older) can be a parent here.', 'აქ მშობელი მხოლოდ სრულწლოვანი (18+) შეიძლება იყოს.')
                 : extractApiErrorMessage(failure, copy('That didn’t work. Try again.', 'ვერ მოხერხდა. სცადეთ ხელახლა.')));
         } finally { setBusy(false); }

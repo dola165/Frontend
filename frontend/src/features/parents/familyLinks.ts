@@ -38,13 +38,15 @@ export const claimFamilyLink = (code: string, body: FamilyLinkClaim) =>
 /** "Remind Mum": the teen's own offered place; 409 ADD_A_PARENT when nobody is their parent yet. */
 /** "Not their parent": ends a link a family link made; the first answer counts (409 ALREADY_ANSWERED after it). */
 export const notTheirParent = (guardianLink: number) => apiClient.post<void>(`/family/guardian-links/${guardianLink}/not-their-parent`).then(() => undefined);
-/** Under a player's card: who claimed its family link, when and from where. With `askId` they asked the club to confirm them and aren't the parent yet. */
-export interface ClaimedParent { guardianLinkId: number | null; name: string; claimedAt: string; claimedFrom: string | null; askId?: number | null; canAnswer?: boolean }
+/** Under a player's card: who claimed its family link, when and from where. With `askId` they asked the club to confirm them and aren't the parent yet; with `saidNoBy` too, the club said no and this Owner or Admin can change it. */
+export interface ClaimedParent { guardianLinkId: number | null; name: string; claimedAt: string; claimedFrom: string | null; askId?: number | null; canAnswer?: boolean; saidNoBy?: string | null }
 /** The club's ask to confirm someone as a player's parent; first names only. */
-export interface ParentAsk { id: number; adultName: string; childName: string; clubName: string; status: 'WAITING' | 'YES' | 'NO'; answeredBy: string | null; canAnswer: boolean }
+export interface ParentAsk { id: number; adultName: string; childName: string; clubName: string; status: 'WAITING' | 'YES' | 'NO'; answeredBy: string | null; answeredAt?: string | null; canAnswer: boolean; canChangeNo?: boolean }
 export const fetchParentAsk = (id: number, signal?: AbortSignal) => apiClient.get<ParentAsk>(`/family/parent-asks/${id}`, { signal }).then(r => r.data);
 /** The first answer counts (409 ALREADY_ANSWERED after it). */
 export const answerParentAsk = (id: number, yes: boolean) => apiClient.post<void>(`/family/parent-asks/${id}/answer`, { yes }).then(() => undefined);
+/** A wrong no: an Owner or Admin other than the person asking changes it to a yes. */
+export const changeParentAskToYes = (id: number) => apiClient.post<void>(`/family/parent-asks/${id}/change-to-yes`).then(() => undefined);
 export const fetchClaimedParents = (clubId: number, playerId: number, signal?: AbortSignal) =>
     apiClient.get<ClaimedParent[]>(`/clubs/${clubId}/players/${playerId}/family-link/claimed`, { signal }).then(r => r.data);
 export const remindParents = (caseId: number) => apiClient.post<void>(`/family/me/cases/${caseId}/remind-parents`).then(() => undefined);

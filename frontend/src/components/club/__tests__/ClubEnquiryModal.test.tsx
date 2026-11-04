@@ -79,6 +79,18 @@ it('shows the explicitly chosen player from Parent Hub and permits a deliberate 
   fireEvent.change(screen.getByLabelText('Enquiry player'),{target:{value:''}});fireEvent.click(screen.getByRole('button',{name: /Send question|Request a first visit/}));
   await screen.findByText('Conversation opened');expect(api.submitClubEnquiry).toHaveBeenCalledWith(1,expect.objectContaining({playerId:null}),null);
 });
+it('starts a player under 18 on themself: there is no general question to be refused', async () => {
+  vi.mocked(useAuth).mockReturnValue({ sessionId: null, status: 'authenticated', user: { id: 7, dob: '2010-06-01' } } as ReturnType<typeof useAuth>);
+  api.fetchJoiningChildren.mockResolvedValue({ children: [] });
+  api.fetchAdmissionHome.mockResolvedValue({ participants: [{ id: 7, name: 'Nika Teen', guardian: false }] });
+  view();
+  await waitFor(() => expect(screen.getByLabelText('Enquiry player')).toHaveValue('7'));
+  expect(screen.queryByRole('option', { name: /General question/ })).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Your question'), { target: { value: 'Can I come alone?' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Send question' }));
+  await screen.findByText('Conversation opened');
+  expect(api.submitClubEnquiry).toHaveBeenCalledWith(1, expect.objectContaining({ playerId: 7 }), null);
+});
 it('does not substitute a sibling when the requested player is outside current authority', async () => {
   view('/clubs/1?tab=teams&programme=22&player=999'); await fill();
   expect(screen.getByLabelText('Enquiry player')).toHaveValue('');

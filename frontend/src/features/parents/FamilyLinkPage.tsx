@@ -15,6 +15,24 @@ import '../pages/links/join.css';
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** Only what works: another Owner or Admin, and the support address when the server has one. */
+/** The family's own no: the club can't change it, so the words say who can. */
+const familySaidNoWords = (name: string, address: string | null, copy: (en: string, ka: string) => string) => address
+    ? copy(`${name}’s family said you aren’t their parent here. Only ${name}’s parent can add you, or write to ${address}.`, `${name}-ის ოჯახმა თქვა, რომ აქ მისი მშობელი არ ხართ. დაგამატებთ მხოლოდ ${name}-ის მშობელი, ან მიწერეთ: ${address}.`)
+    : copy(`${name}’s family said you aren’t their parent here. Only ${name}’s parent can add you.`, `${name}-ის ოჯახმა თქვა, რომ აქ მისი მშობელი არ ხართ. დაგამატებთ მხოლოდ ${name}-ის მშობელი.`);
+
+/** A club's no, while the child is at that club: that club can change it. */
+const clubSaidNoWords = (name: string, address: string | null, copy: (en: string, ka: string) => string) => address
+    ? copy(`The club didn’t confirm you as ${name}’s parent. Talk to them, or write to ${address}.`, `კლუბმა არ დაგადასტურათ ${name}-ის მშობლად. დაელაპარაკეთ მათ, ან მიწერეთ: ${address}.`)
+    : copy(`The club didn’t confirm you as ${name}’s parent. Talk to them.`, `კლუბმა არ დაგადასტურათ ${name}-ის მშობლად. დაელაპარაკეთ მათ.`);
+
+/** A club's no, and the child has left it: the club they're at now can answer, or support if they're at none. */
+const oldClubSaidNoWords = (name: string, old: string | null, now: string | null, address: string | null, copy: (en: string, ka: string) => string) => {
+    const club = old ?? copy('The club', 'კლუბი');
+    const said = copy(`${club} didn’t confirm you as ${name}’s parent, and ${name} has left ${club}.`, `${club}-მა არ დაგადასტურათ ${name}-ის მშობლად და ${name} იქ აღარ არის.`);
+    if (now) return `${said} ${copy(`If you are, ask ${now} to confirm you.`, `თუ მშობელი ხართ, სთხოვეთ ${now}-ს დაგიდასტუროთ.`)}`;
+    return `${said} ${address ? copy(`Write to ${address}.`, `მიწერეთ: ${address}.`) : copy(`When ${name} joins a club, you can ask them.`, `როცა ${name} კლუბს შეუერთდება, შეძლებთ მათ სთხოვოთ.`)}`;
+};
+
 const onlyLeaderWords = (address: string | null, copy: (en: string, ka: string) => string) => address
     ? copy(`Nobody else at your club can confirm you. Add another Owner or Admin and they can, or write to ${address}.`, `თქვენს კლუბში სხვა ვერავინ დაგადასტურებთ. დაამატეთ სხვა მფლობელი ან ადმინისტრატორი, ან მიწერეთ: ${address}.`)
     : copy('Nobody else at your club can confirm you. Add another Owner or Admin and they can.', 'თქვენს კლუბში სხვა ვერავინ დაგადასტურებთ. დაამატეთ სხვა მფლობელი ან ადმინისტრატორი და ის შეძლებს.');
@@ -67,12 +85,14 @@ export function FamilyLinkPage() {
             setDone(await claimFamilyLink(code, { as, confirmed: true, childId: as === 'PARENT' ? childId : null, birthDate: asksBirthDate && as === 'PARENT' ? birthDate : null, ...(askClub ? { askClub } : {}) }));
         } catch (failure) {
             const problem = extractApiErrorCode(failure);
-            setCanAskClub(problem === 'FAMILY_LINK_OWN_CLUB' || problem === 'FAMILY_LINK_STAFF');
+            setCanAskClub(problem === 'FAMILY_LINK_OWN_CLUB' || problem === 'FAMILY_LINK_STAFF' || (problem === 'FAMILY_LINK_OLD_CLUB_SAID_NO' && Boolean(extractApiErrorDetail(failure, 'askClubName'))));
             setError(problem === 'FAMILY_LINK_BIRTH_DATE' ? (card ? copy('That birth date doesn’t match the club’s card.', 'ეს თარიღი არ ემთხვევა კლუბის ბარათს.') : copy(`That isn’t ${name}’s birth date.`, `ეს არ არის ${name}-ის დაბადების თარიღი.`))
                 : problem === 'FAMILY_LINK_REVOKED' ? (card ? copy('This link was turned off. Ask the club for a new one.', 'ეს ბმული გაითიშა. სთხოვეთ კლუბს ახალი.') : copy(`This link was turned off. Ask ${name} for a new one.`, `ეს ბმული გაითიშა. სთხოვეთ ${name}-ს ახალი.`))
                 : problem === 'FAMILY_LINK_OWN_CLUB' ? copy(`You play or work at ${name}’s club, so this link can’t make you their parent on its own. If you are, ask the club to confirm you.`, `თქვენ თამაშობთ ან მუშაობთ ${name}-ის კლუბში, ამიტომ ეს ბმული მარტო მშობლად ვერ დაგამატებთ. თუ მშობელი ხართ, სთხოვეთ კლუბს დადასტურება.`)
                 : problem === 'FAMILY_LINK_ONLY_LEADER' ? onlyLeaderWords(extractApiErrorDetail(failure, 'supportEmail'), copy)
-                : problem === 'FAMILY_LINK_CLUB_SAID_NO' ? copy(`The club didn’t confirm you as ${name}’s parent. Talk to them.`, `კლუბმა არ დაგადასტურათ ${name}-ის მშობლად. დაელაპარაკეთ მათ.`)
+                : problem === 'FAMILY_SAID_NO' ? familySaidNoWords(name, extractApiErrorDetail(failure, 'supportEmail'), copy)
+                : problem === 'FAMILY_LINK_CLUB_SAID_NO' ? clubSaidNoWords(name, extractApiErrorDetail(failure, 'supportEmail'), copy)
+                : problem === 'FAMILY_LINK_OLD_CLUB_SAID_NO' ? oldClubSaidNoWords(name, extractApiErrorDetail(failure, 'saidNoClub'), extractApiErrorDetail(failure, 'askClubName'), extractApiErrorDetail(failure, 'supportEmail'), copy)
                 : problem === 'FAMILY_LINK_NOT_YOU' ? copy('This card’s name or birth date doesn’t match your account. Ask the club.', 'ბარათის სახელი ან დაბადების თარიღი არ ემთხვევა თქვენს ანგარიშს. მიმართეთ კლუბს.')
                 : problem === 'FAMILY_LINK_OWN' ? copy('Send this link to your parent.', 'ეს ბმული მშობელს გაუგზავნეთ.')
                 : problem === 'FAMILY_LINK_STAFF' ? copy(`You play or work at this club, so its card can’t make you ${name}’s parent on its own. If you are, ask the club to confirm you.`, `თქვენ ამ კლუბში თამაშობთ ან მუშაობთ, ამიტომ მისი ბარათი მარტო ვერ გაგხდით ${name}-ის მშობლად. თუ მშობელი ხართ, სთხოვეთ კლუბს დადასტურება.`)

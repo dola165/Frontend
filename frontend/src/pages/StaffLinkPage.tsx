@@ -21,8 +21,8 @@ type Stage = { kind: 'loading' } | { kind: 'broken'; message: string } | { kind:
 /**
  * Where a staff link or its QR code leads (`/staff-invite/:code`): the club's crest, the one job it gives, who it is
  * for, and one button. Signed out, sign in or create an account and come straight back; signed in, Join: with a code
- * sent to the email the link names, or the phone the club has for them. The job starts at once and the person lands in
- * My squads (a squad job) or the club's workspace; the children's details open when an admin says yes.
+ * sent to the email the link names, or the phone the club has for them. Nothing opens until an Owner or Admin says yes:
+ * they are told, and the person then has My squads (a squad job) or the club's workspace.
  */
 export function StaffLinkPage() {
     const { code = '' } = useParams<{ code: string }>();
@@ -89,8 +89,8 @@ function StaffLink({ code }: { code: string }) {
         </div>
         <h1 className="ci-title">{copy(`You’re ${job}`, `თქვენ ხართ: ${job}`)}</h1>
         <ul className="ci-jobs"><li className="ci-job"><strong>{job}</strong><span className="gk-muted">{where}</span></li></ul>
-        <p className="gk-notice gk-notice--info" role="status">{copy('Your squads and sessions are open now. The children’s details open when the club’s admin says yes.', 'თქვენი გუნდები და ვარჯიშები უკვე ღიაა. ბავშვების მონაცემები გაიხსნება, როცა კლუბის ადმინი დაგთანხმდებათ.')}</p>
-        <div className="ci-actions"><ButtonLink variant="primary" to={landing(preview, joined)} replace>{copy('Start', 'დაწყება')}</ButtonLink></div>
+        <p className="gk-notice gk-notice--info" role="status">{copy('Your squad opens when the club’s admin says yes. We’ll tell you.', 'თქვენი გუნდი გაიხსნება, როცა კლუბის ადმინი დაგთანხმდებათ. შეგატყობინებთ.')}</p>
+        <div className="ci-actions"><ButtonLink variant="primary" to="/home" replace>{copy('Go to GrassKickZ', 'GrassKickZ-ზე გადასვლა')}</ButtonLink></div>
     </>);
     const closed = preview.status === 'EXPIRED' ? copy('This link has expired. Ask the club’s admin for a new one.', 'ბმულს ვადა გაუვიდა. სთხოვეთ კლუბის ადმინს ახალი.')
         : preview.status === 'USED_UP' ? copy('This link has been used. Ask the club’s admin for a new one.', 'ბმული უკვე გამოყენებულია. სთხოვეთ კლუბის ადმინს ახალი.')

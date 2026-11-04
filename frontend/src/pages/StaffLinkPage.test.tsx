@@ -41,9 +41,9 @@ it('names who the link is for, sends the code to that email when asked for it, a
     fireEvent.change(code, { target: { value: '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Join as Assistant coach' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/staff-invite/abc', { code: '123456' }));
-    // The job started, and it says what waits: no children's details until an admin's yes.
-    expect(await screen.findByText(/The children’s details open when the club’s admin says yes/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Start' })).toHaveAttribute('href', '/my-squads');
+    // Nothing opens until an admin's yes, and it says so.
+    expect(await screen.findByText(/Your squad opens when the club’s admin says yes/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to GrassKickZ' })).toHaveAttribute('href', '/home');
 });
 
 it('a link with only a phone asks for that number, and says when it is wrong', async () => {

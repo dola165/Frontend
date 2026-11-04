@@ -11,8 +11,8 @@ export function useCoachNotes(squadIds: number[]): Record<number, string> {
     useEffect(() => {
         const abort = new AbortController();
         const ids = key ? key.split(',') : [];
-        Promise.all(ids.map(id => Promise.resolve(apiClient.get<Record<string, string>>(`/family/squads/${id}/coach-notes`, { signal: abort.signal }))
-            .then(response => response?.data ?? {}).catch(() => ({} as Record<string, string>))))
+        Promise.all(ids.map(id => Promise.resolve(apiClient.get<{ notes: Record<string, string> }>(`/family/squads/${id}/coach-notes`, { signal: abort.signal }))
+            .then(response => response?.data?.notes ?? {}).catch(() => ({} as Record<string, string>))))
             .then(found => { if (!abort.signal.aborted) setNotes(Object.assign({}, ...found)); });
         return () => abort.abort();
     }, [key]);

@@ -4,7 +4,7 @@ import { Status } from '../matchExchange/shared';
 import { Link } from 'react-router-dom';
 import { HeartHandshake } from 'lucide-react';
 import { useAction } from '../matchExchange/hooks';
-import { label, formats, post, put, when, type Referee } from '../matchExchange/api';
+import { label, formats, post, put, when, whichDay, type Referee } from '../matchExchange/api';
 export function ProfileEditor({
   profile: r,
   onSaved,
@@ -379,7 +379,7 @@ export function MatchHistory({ profile: r }: { profile: Referee }) {
                 {h.club_name} · {h.opponent_name}
               </p>
               <small>
-                {when(h.starts_at)} · {h.timezone}
+                {h.time_hidden ? whichDay(h.starts_at) : `${when(h.starts_at)} · ${h.timezone}`}
               </small>
             </div>
             <Status value={h.volunteer ? "VOLUNTEER" : h.duty} />

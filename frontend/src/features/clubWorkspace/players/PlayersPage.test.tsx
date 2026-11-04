@@ -170,6 +170,23 @@ describe('Players — trialist actions', () => {
         expect(props.onPlayerStatusChange).not.toHaveBeenCalled();
     });
 
+    it('shows who claimed the card’s link, with Not their parent, and takes them off when pressed', async () => {
+        const onClaimedParents = vi.fn().mockResolvedValue([{ guardianLinkId: 40, name: 'Maia P.', claimedAt: '2026-11-03T10:00:00Z', claimedFrom: 'Family link · Edge on Windows' }]);
+        const onNotTheirParent = vi.fn().mockResolvedValue(undefined);
+        renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink: vi.fn(), onClaimedParents, onNotTheirParent });
+        expect(await screen.findByText(/Claimed by Maia P\. · .* · Edge on Windows/)).toBeInTheDocument();
+        expect(onClaimedParents).toHaveBeenCalledWith(7, expect.anything());
+        fireEvent.click(screen.getByRole('button', { name: 'Not their parent' }));
+        await vi.waitFor(() => expect(onNotTheirParent).toHaveBeenCalledWith(40));
+        await vi.waitFor(() => expect(screen.queryByText(/Claimed by Maia P\./)).not.toBeInTheDocument());
+    });
+
+    it('a child’s trial with no parent’s yes points at the family, not at an empty joining page', () => {
+        renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink: vi.fn(), onReviewJoining: vi.fn() });
+        expect(screen.getByText('Send to the family below')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Review joining' })).not.toBeInTheDocument();
+    });
+
     it('offers Send to the family on a child’s card whose parent hasn’t said yes, as a link for any chat', async () => {
         const onFamilyLink = vi.fn().mockResolvedValue({ id: 1, kind: 'CLUB_CARD', code: 'c'.repeat(43), path: `/family-link/${'c'.repeat(43)}`, expiresAt: '2026-11-16T00:00:00Z', personId: 7, personName: 'Giorgi Trialist' });
         const props = renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink, onFamilySent: vi.fn() });

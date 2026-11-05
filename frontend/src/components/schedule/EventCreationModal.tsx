@@ -201,6 +201,7 @@ const EventCreationContent = (props: EventCreationModalProps) => {
                             <button
                                 type="button"
                                 className="schedule-compose-button primary"
+                                data-dola-action="event-continue"
                                 disabled={busy}
                                 onClick={startedSeries ? () => navigateStep(step + 1) : next}
                             >
@@ -212,6 +213,7 @@ const EventCreationContent = (props: EventCreationModalProps) => {
                                 <button
                                     type="button"
                                     className="schedule-compose-button primary"
+                                    data-dola-action="save-event"
                                     disabled={busy || !!audience && !audience.ready}
                                     onClick={() => void handleSave()}
                                 >

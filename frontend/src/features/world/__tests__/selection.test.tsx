@@ -10,9 +10,9 @@ const placed = (ids = ['p1', 'p2']): Placed => ({
     pinOf: new Map([['1', 'p1'], ['2', 'p2'], ['3', 'p2']]), keysOf: new Map([['p1', ['1']], ['p2', ['2', '3']]]),
     points: ids.map(id => ({ id, lat: 41.7, lng: 44.8, label: id, tone: 'club' })),
 });
-function useChoice({ initial, pins = placed(), panel = null }: { initial?: string; pins?: Placed; panel?: HTMLElement | null }) {
+function useChoice({ initial, pins = placed(), panel = null, asked }: { initial?: string; pins?: Placed; panel?: HTMLElement | null; asked?: { key: string; visit: string } }) {
     const [selected, setSelected] = useState(initial);
-    return useDirectorySelection({ state: { selected, setSelected }, keys: ['1', '2', '3'], placed: pins, panel, list: { current: null } });
+    return useDirectorySelection({ state: { selected, setSelected }, keys: ['1', '2', '3'], placed: pins, panel, list: { current: null }, asked });
 }
 
 describe('choosing a result', () => {
@@ -61,6 +61,26 @@ describe('choosing a result', () => {
         expect(second.result.current.focus!.token).not.toBe(token);
         // A link that arrives with a choice flies to it too.
         expect(renderHook(useChoice, { initialProps: { initial: '1' } }).result.current.focus).toMatchObject({ id: 'p1' });
+    });
+
+    it('flies each time a followed link chooses a result, also the one already chosen', () => {
+        const { result, rerender } = renderHook(useChoice, { initialProps: {} as Parameters<typeof useChoice>[0] });
+        act(() => result.current.choose('1'));
+        const pressed = result.current.focus!.token;
+        // The person moved the map since; Dola's card for the same club flies back to it.
+        rerender({ asked: { key: '1', visit: 'a' } });
+        const followed = result.current.focus!.token;
+        expect(result.current.focus).toMatchObject({ id: 'p1' });
+        expect(followed).not.toBe(pressed);
+        rerender({ asked: { key: '1', visit: 'a' } });
+        expect(result.current.focus!.token).toBe(followed);
+        rerender({ asked: { key: '1', visit: 'b' } });
+        expect(result.current.focus!.token).not.toBe(followed);
+        // A link that opened the list flies once, from the address.
+        const opened = renderHook(useChoice, { initialProps: { initial: '2', asked: { key: '2', visit: 'c' } } });
+        const token = opened.result.current.focus!.token;
+        opened.rerender({ initial: '2', asked: { key: '2', visit: 'c' } });
+        expect(opened.result.current.focus!.token).toBe(token);
     });
 
     it('brings the chosen row into view whenever the panel opens on it', () => {

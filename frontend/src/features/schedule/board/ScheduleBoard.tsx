@@ -152,7 +152,7 @@ function WeekDay({ day, quiet, byDay, today, dates, copy, onCreateAt, onMove }: 
         <header className="gk-board__column-head"><span className="gk-board__weekday">{dates.weekday(day, 'short')}</span><span className="gk-board__date gk-num">{day.getDate()}</span></header>
         {items.length ? <ul className="gk-board__items">{items.map(entry => <li key={entry.key}><BoardCard entry={entry} movable={Boolean(onMove && entry.movable)} /></li>)}</ul>
             : !quiet && <p className="gk-board__free">{copy('Nothing planned', 'არაფერია დაგეგმილი')}</p>}
-        {onCreateAt && !past && <Button size="sm" iconOnly variant="ghost" className="gk-board__add" aria-label={copy(`Add to ${title}`, `დამატება — ${title}`)} onClick={() => onCreateAt(day)}><Plus aria-hidden="true" /></Button>}
+        {onCreateAt && !past && <Button size="sm" iconOnly variant="ghost" className="gk-board__add" data-first-tip="new-event" aria-label={copy(`Add to ${title}`, `დამატება — ${title}`)} onClick={() => onCreateAt(day)}><Plus aria-hidden="true" /></Button>}
     </section>;
 }
 
@@ -184,7 +184,7 @@ function MonthDay({ day, inMonth, goTo, byDay, today, dates, copy, onCreateAt, o
         </header>
         {items.length > 0 && <ul className="gk-board__items">{items.slice(0, 3).map(entry => <li key={entry.key}><BoardCard entry={entry} movable={Boolean(onMove && entry.movable)} /></li>)}</ul>}
         {items.length > 3 && <button type="button" className="gk-board__more" onClick={open}>{copy(`${items.length - 3} more`, `კიდევ ${items.length - 3}`)}</button>}
-        {onCreateAt && inMonth && !past && <Button size="sm" iconOnly variant="ghost" className="gk-board__add" aria-label={copy(`Add to ${title}`, `დამატება — ${title}`)} onClick={() => onCreateAt(day)}><Plus aria-hidden="true" /></Button>}
+        {onCreateAt && inMonth && !past && <Button size="sm" iconOnly variant="ghost" className="gk-board__add" data-first-tip="new-event" aria-label={copy(`Add to ${title}`, `დამატება — ${title}`)} onClick={() => onCreateAt(day)}><Plus aria-hidden="true" /></Button>}
     </section>;
 }
 

@@ -28,11 +28,11 @@ export function EntriesQuestion({ room }: { room: Room }) {
             <Field label={t('Entries open')} htmlFor="draw-opens" hint={draft.opensAt ? undefined : t('Open now')}><input id="draw-opens" data-field="opensAt" type="datetime-local" className="gk-input" value={draft.opensAt} onChange={event => update({ opensAt: event.target.value })} /></Field>
             <Field label={t('Entries close')} htmlFor="draw-closes" hint={draft.closesAt ? undefined : t('Until it starts')}><input id="draw-closes" data-field="closesAt" type="datetime-local" className="gk-input" max={draft.startDate} value={draft.closesAt} onChange={event => update({ closesAt: event.target.value })} /></Field>
         </div>
-        <div>
+        <div data-dola-field="registrationPolicy" data-dola-label={t('How entries are taken')} data-dola-filled="true">
             <Segmented label={t('How entries are taken')} value={entryPolicyOf(draft)} onChange={registrationPolicy => update({ registrationPolicy })} items={policies} />
             {!asTheyCome && draft.scope !== 'CLUB' && <p className="gk-field__hint">{t('Only an Open tournament takes entries as they come.')}</p>}
         </div>
-        <div className="gk-draw__grid">
+        <div className="gk-draw__grid" data-dola-field="entryFee" data-dola-label={t('Entry fee')}>
             <Field label={t('Entry fee')} htmlFor="draw-fee"><input id="draw-fee" type="number" min={0} max={1000000} className="gk-input" value={draft.rules.entryFee} onChange={event => updateRules({ entryFee: Math.max(0, Number(event.target.value)) })} /></Field>
             <Field label={t('Currency')} htmlFor="draw-currency"><select id="draw-currency" className="gk-input" value={draft.rules.currency} onChange={event => updateRules({ currency: event.target.value })}>{['GEL', 'EUR', 'USD', 'GBP'].map(code => <option key={code} value={code}>{code}</option>)}</select></Field>
             <Field label={t('Fee basis')} htmlFor="draw-basis"><select id="draw-basis" className="gk-input" value={draft.rules.feeBasis} onChange={event => updateRules({ feeBasis: event.target.value as 'TEAM' | 'PLAYER' | 'EVENT' })}>
@@ -53,7 +53,7 @@ export function RulesDetail({ room }: { room: Room }) {
     const usual = (current: string, wording: string, set: (value: string) => void) => current !== wording && <button type="button" className="gk-chip" onClick={() => set(wording)}>{t('Use the usual wording')}</button>;
     return (
         <details className="gk-draw__more">
-            <summary><span className="gk-field__label">{t('Rules in detail')}</span><span className="gk-field__hint">{t('{minutes} minutes, {rest} minutes between', { minutes: rules.matchMinutes, rest: rules.restMinutes })} · {rules.pitches === 1 ? t('one pitch') : t('{count} pitches', { count: rules.pitches })}</span></summary>
+            <summary data-dola-field="rulesDetail" data-dola-label={t('Rules in detail')} data-dola-filled="true"><span className="gk-field__label">{t('Rules in detail')}</span><span className="gk-field__hint">{t('{minutes} minutes, {rest} minutes between', { minutes: rules.matchMinutes, rest: rules.restMinutes })} · {rules.pitches === 1 ? t('one pitch') : t('{count} pitches', { count: rules.pitches })}</span></summary>
             <div className="gk-draw__more-body">
                 <Field label={t('Rules')} htmlFor="draw-ruleset"><textarea id="draw-ruleset" data-field="ruleset" className="gk-input" rows={2} maxLength={2000} value={rules.ruleset} onChange={event => updateRules({ ruleset: event.target.value })} /></Field>
                 {usual(rules.ruleset, usualRuleset, ruleset => updateRules({ ruleset }))}
@@ -114,11 +114,11 @@ export function PublishQuestion({ room }: { room: Room }) {
     return <>
         <Field label={t('Name')} htmlFor="draw-name"><input id="draw-name" data-field="name" className="gk-input" maxLength={255} placeholder={t('Autumn Cup U12')} value={draft.name} onChange={event => update({ name: event.target.value })} /></Field>
         <Field label={t('About it')} htmlFor="draw-about"><textarea id="draw-about" className="gk-input" rows={2} maxLength={4000} value={draft.description} onChange={event => update({ description: event.target.value })} /></Field>
-        <div className="gk-field">
+        <div className="gk-field" data-dola-field="visibility" data-dola-label={t('Who sees it')} data-dola-filled="true">
             <Segmented label={t('Who sees it')} value={draft.visibility} onChange={value => update({ visibility: value })} items={visibility} />
             <span className="gk-field__hint">{draft.visibility === 'PRIVATE' ? t('Only your organisation’s staff, until you publish it.') : draft.visibility === 'UNLISTED' ? t('Anyone with its link; it is not listed in World.') : t('Everyone, in World and on its page.')}</span>
         </div>
-        <div className="gk-field">
+        <div className="gk-field" data-dola-field="picture" data-dola-label={t('Picture')} data-dola-filled={String(Boolean(draft.bannerImageUrl))}>
             <span className="gk-field__label">{t('Picture')}</span>
             {draft.bannerImageUrl && <MediaImage className="gk-draw__banner" src={resolveMediaUrl(draft.bannerImageUrl) ?? draft.bannerImageUrl} alt="" />}
             <div className="gk-step__row">

@@ -155,10 +155,10 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
 
     return <PageFrame className="cw-page">
         <PageHeader title={t('squads.design.title', { defaultValue: 'Squads' })} subtitle={`${squads.length} ${squads.length === 1 ? 'squad' : 'squads'} · ${overview?.activePlayerCount ?? '—'} ${t('squads.design.clubPlayers', { defaultValue: 'club players' })}`}
-            actions={<Button onClick={() => setSquadEditor('new')}><Plus aria-hidden="true" />{t('squads.design.newSquad', { defaultValue: 'New squad' })}</Button>} />
+            actions={<Button data-first-tip="new-squad" onClick={() => setSquadEditor('new')}><Plus aria-hidden="true" />{t('squads.design.newSquad', { defaultValue: 'New squad' })}</Button>} />
         {squadsLoading ? <div className="cw-loading" role="status" aria-label={t('squads.design.loadingSquads', { defaultValue: 'Loading squads…' })}><Skeleton height={36} /><Skeleton height={240} /></div>
             : squadsError ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{squadsError}</span><Button size="sm" onClick={() => void loadSquads()}>{t('squads.design.retry', { defaultValue: 'Try again' })}</Button></div>
-                : squads.length === 0 ? <Panel><EmptyNote title={t('squads.design.firstSquad', { defaultValue: 'Start with your first team' })} action={<Button size="sm" onClick={() => setSquadEditor('new')}><Plus aria-hidden="true" />{t('squads.design.createSquad', { defaultValue: 'Create squad' })}</Button>}>
+                : squads.length === 0 ? <Panel><EmptyNote title={t('squads.design.firstSquad', { defaultValue: 'Start with your first team' })} action={<Button size="sm" data-first-tip="new-squad" onClick={() => setSquadEditor('new')}><Plus aria-hidden="true" />{t('squads.design.createSquad', { defaultValue: 'Create squad' })}</Button>}>
                     {t('squads.design.emptyIntro', { defaultValue: 'Create a squad, then add players from your club or create a player card.' })}</EmptyNote></Panel>
                     : <div className="gk-stack">
                         <div className="sq-switcher gk-chips" role="group" aria-label={t('squads.design.chooseSquad', { defaultValue: 'Choose squad' })}>
@@ -173,7 +173,7 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
                                     <ActionButton action="arrange_match" variant="ghost" subject={{ kind: 'squad', id: selectedSquad.id }} />
                                     {canChangeSquad(selectedSquad.id) && <Button onClick={() => setSquadEditor(selectedSquad)}><Pencil aria-hidden="true" />{t('squads.design.editSquad', { defaultValue: 'Edit squad' })}</Button>}
                                     {leadership && <Button variant="ghost" iconOnly disabled={deletingSquadId != null} aria-label={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} title={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} onClick={() => setPendingDelete(selectedSquad)}><Trash2 aria-hidden="true" /></Button>}
-                                    {canChangeSquad(selectedSquad.id) && <Button variant="primary" onClick={() => setShowAddPlayers(true)}><Plus aria-hidden="true" />{t('squads.design.addPlayers', { defaultValue: 'Add players' })}</Button>}
+                                    {canChangeSquad(selectedSquad.id) && <Button variant="primary" data-first-tip="add-players" onClick={() => setShowAddPlayers(true)}><Plus aria-hidden="true" />{t('squads.design.addPlayers', { defaultValue: 'Add players' })}</Button>}
                                 </div>
                             </div>
                             {workspace && <SquadCoachAssignment clubId={clubId} squadId={selectedSquad.id} squadName={selectedSquad.name} actorId={workspace.data.actorId} />}

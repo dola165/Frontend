@@ -88,7 +88,7 @@ export function SquadPage({ id, embedded = false }: { id: number; embedded?: boo
             </div>
             <div className="sp-head__coaches" title={coaches.map(c => c.name).join(', ')}><FaceStack people={coaches} max={3} size={30} label={copy('Coaches', 'მწვრთნელები')} /><span>{head?.full_name}{coaches.length > 1 ? ` +${coaches.length - 1}` : ''}</span></div>
             <div className="sp-head__actions">
-                {space.can_manage && <Button variant="primary" onClick={() => { const next = new URLSearchParams(params); next.set(key, 'schedule'); next.set('setup', 'training'); setParams(next); }}>{copy('Set up training', 'ვარჯიშის დაგეგმვა')}</Button>}
+                {space.can_manage && <Button variant="primary" data-first-tip="training-setup" onClick={() => { const next = new URLSearchParams(params); next.set(key, 'schedule'); next.set('setup', 'training'); setParams(next); }}>{copy('Set up training', 'ვარჯიშის დაგეგმვა')}</Button>}
                 <ButtonLink to={squadMessageUrl(space.id)}><MessageCircle aria-hidden="true" />{copy('Squad chat', 'გუნდის ჩატი')}</ButtonLink>
                 {!space.can_manage && <ButtonLink variant="primary" to={squadMessageUrl(space.id, true)}><Send aria-hidden="true" />{copy('Message the coaches', 'მისწერეთ მწვრთნელებს')}</ButtonLink>}
             </div>

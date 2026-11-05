@@ -164,7 +164,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
                             <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>{t("Keep it")}</Button>
                         </span>
                         : <Button size="sm" variant="ghost" onClick={() => setConfirmReset(true)}>{t("Start over")}</Button>)}
-                    <Button variant="primary" type="submit" disabled={busy} className="gk-arrange__send">{busy ? t("Sending…") : mode === 'open' ? t("Post open challenge") : !draft.opponent && draft.outside?.trim() ? t("Add the match") : t("Send invitation")}</Button>
+                    <Button variant="primary" type="submit" disabled={busy} className="gk-arrange__send" data-dola-action="send-match">{busy ? t("Sending…") : mode === 'open' ? t("Post open challenge") : !draft.opponent && draft.outside?.trim() ? t("Add the match") : t("Send invitation")}</Button>
                 </div>
             </footer>
         </form>

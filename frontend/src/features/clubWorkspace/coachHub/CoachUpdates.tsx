@@ -126,7 +126,7 @@ export function CoachUpdates({ data }: { data: CoachData }) {
     </>;
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('updates')} actions={<><NotifySquadButton squads={data.mine.filter(squad => data.shown.includes(squad.id))} focus={data.focus} />
-            <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />{copy('newAnnouncement')}</ButtonLink></>} />
+            <ButtonLink variant="primary" data-first-tip="squad-update" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />{copy('newAnnouncement')}</ButtonLink></>} />
         <SquadSwitch data={data} />
         {body}
     </PageFrame>;

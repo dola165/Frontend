@@ -4,7 +4,7 @@ import type { Participant } from '../../admissions/types';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import type { ClubLocationItem } from '../../../components/discovery/clubLocationTypes';
 import { distanceKm } from '../../../components/map/walkingGraph';
-import { fetchClubDirectory, fetchFollowedClubs } from '../api';
+import { fetchClubDirectory, fetchClubProfile, fetchFollowedClubs } from '../api';
 import { ClubRow } from '../cards/ClubRow';
 import { first, nearbyPoint, rangeOf, type DirectoryArea, type DirectoryQuery, type DirectorySource, type FilterOption } from '../directory/types';
 import { wt } from '../copy';
@@ -149,6 +149,7 @@ export function clubsSource({ child, centre, locations, following = false, finde
             return { items: result.content, total: result.totalElements, hasMore: page + 1 < result.totalPages };
         },
         key: club => String(club.id),
+        one: (key, { signal }) => /^\d+$/.test(key) ? fetchClubProfile(Number(key), signal) : Promise.resolve(null),
         Item: ({ item }) => <ClubRow club={item} distanceKm={distance(item)} />,
         Top: finder ? FinderYou : undefined,
         // A group a link named opens with its club above the results, whatever the filters (Parent Hub's finder).

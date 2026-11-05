@@ -17,7 +17,7 @@ export function SquadField({ squads, coached, value, onChange, error, locked }: 
     const quick = squads.filter(squad => coached.includes(squad.id));
     const others = squads.filter(squad => !quick.includes(squad));
     return (
-        <div className="gk-field">
+        <div className="gk-field" data-dola-field="arrange-squad" data-dola-filled={chosen ? 'true' : 'false'}>
             <span className="gk-field__label" id="arrange-squad-label">{t("Your squad")}</span>
             {quick.length > 0 && <ChoiceChips labelledBy="arrange-squad-label" invalid={Boolean(error)} value={value || null} onChange={onChange}
                 choices={quick.map(squad => ({ value: squad.id, label: squad.name }))} />}

@@ -46,7 +46,7 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
             {waiting > 0 && (canAnswer
                 ? <Button variant="ghost" disabled={access.pending} onClick={() => setInviting(true)}><span className="sp-dot" aria-hidden="true" />{copy(`${waiting} waiting to join`, `${waiting} ელოდება გაწევრიანებას`)}</Button>
                 : <span className="sp-wait"><span className="sp-dot" aria-hidden="true" />{copy(`${waiting} waiting to join`, `${waiting} ელოდება გაწევრიანებას`)}</span>)}
-            {canInvite && <Button variant="primary" disabled={access.pending} onClick={() => setInviting(true)}><UserPlus aria-hidden="true" />{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button>}
+            {canInvite && <Button variant="primary" data-first-tip="add-players" disabled={access.pending} onClick={() => setInviting(true)}><UserPlus aria-hidden="true" />{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button>}
         </div>}
         {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
         {players.length ? <ul className="sp-cards">{players.map(player => <li key={player.id}>
@@ -54,7 +54,7 @@ export function SquadPlayersTab({ space, crest, childIds, onChanged }: { space: 
                 onOpen={space.can_manage ? () => navigate(`/my-squads?tab=players&squad=${space.id}&player=${player.id}`) : undefined}
                 signs={childIds.includes(player.id) || notes[player.id] ? <>{childIds.includes(player.id) && <span className="pc-sign sp-yours">{copy('Yours', 'თქვენი')}</span>}{notes[player.id] && <CoachNote note={notes[player.id]} />}</> : undefined}
                 actions={space.can_manage ? <Button size="sm" variant="ghost" iconOnly aria-label={copy(`Remove ${player.name} from the squad`, `${player.name} — გუნდიდან წაშლა`)} disabled={busy === player.id} onClick={() => void remove(player)}><UserMinus aria-hidden="true" /></Button> : undefined} />
-        </li>)}</ul> : <EmptyNote title={copy('No players yet', 'მოთამაშეები ჯერ არ არის')} action={canInvite ? <Button size="sm" onClick={() => setInviting(true)}>{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button> : undefined} />}
+        </li>)}</ul> : <EmptyNote title={copy('No players yet', 'მოთამაშეები ჯერ არ არის')} action={canInvite ? <Button size="sm" data-first-tip="add-players" onClick={() => setInviting(true)}>{copy('Invite players', 'მოთამაშეების მოწვევა')}</Button> : undefined} />}
         {inviting && <SquadInviteDialog space={space} requests={requests} canLink={canInvite} onClose={() => setInviting(false)} onAnswered={onChanged} />}
     </div>;
 }

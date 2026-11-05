@@ -137,7 +137,7 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
                 )}
                 <div className="gk-hanchor" onKeyDown={panelOnKeyDown}>
                     {/* With nothing pinned the button reads "Pin"; once there are pins it is an icon named "Manage pins". */}
-                    <button ref={panelTriggerRef} type="button" className={pins.length ? 'gk-hbtn' : 'gk-hbtn gk-hbtn--text'} aria-haspopup="dialog" aria-expanded={panelOpen}
+                    <button ref={panelTriggerRef} type="button" data-first-tip="pins" className={pins.length ? 'gk-hbtn' : 'gk-hbtn gk-hbtn--text'} aria-haspopup="dialog" aria-expanded={panelOpen}
                         aria-controls={panelOpen ? panelId : undefined} aria-label={pins.length ? copy('Manage pins', 'პინების მართვა') : undefined}
                         title={copy('Pin a page as your own tab', 'გვერდის ჩანართად მიმაგრება')}
                         onClick={event => { setTitle(readPageTitle()); setAlignEnd(current => ({ ...current, panel: opensLeft(event.currentTarget, 400) })); panelToggle(); }}>

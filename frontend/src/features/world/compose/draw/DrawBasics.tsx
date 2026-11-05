@@ -30,16 +30,16 @@ export function OrganiserQuestion({ room, onCreateOrganiser }: { room: Room; onC
     if (organisations.loading) return <p className="gk-faint">{t('Loading…')}</p>;
     if (organisations.error) return <p className="gk-step__error" role="alert">{t(organisations.error)} <button type="button" className="gk-step__reload" onClick={organisations.retry}>{t('Try again')}</button></p>;
     if (!creatable.length) return (
-        <div className="gk-draw__empty" data-field="organiser" tabIndex={-1}>
+        <div className="gk-draw__empty" data-field="organiser" data-dola-field="organiser" data-dola-filled="false" tabIndex={-1}>
             <p>{t('A tournament is run by an organisation. Set one up first; this draft is kept.')}</p>
             <Button size="sm" variant="primary" onClick={onCreateOrganiser}>{t('Set up your organisation')}</Button>
         </div>
     );
     const chosen = creatable.find(organisation => organisation.id === organizerId);
     return <>
-        {creatable.length > 1 ? <div className="gk-step__row" role="group" aria-label={t('Organiser')} data-field="organiser">
+        {creatable.length > 1 ? <div className="gk-step__row" role="group" aria-label={t('Organiser')} data-field="organiser" data-dola-field="organiser" data-dola-filled={String(chosen != null)}>
             {creatable.map(organisation => <button key={organisation.id} type="button" className="gk-chip" aria-pressed={organisation.id === organizerId} onClick={() => update({ organizerId: organisation.id, hostClubId: null })}>{organisation.displayName}</button>)}
-        </div> : <p className="gk-draw__chosen" data-field="organiser" tabIndex={-1}>{chosen?.displayName}</p>}
+        </div> : <p className="gk-draw__chosen" data-field="organiser" data-dola-field="organiser" data-dola-filled={String(chosen != null)} tabIndex={-1}>{chosen?.displayName}</p>}
         {(hostClubs.data?.length ?? 0) > 0 && <Field label={t('Hosted at a club')} htmlFor="draw-host" hint={t('Shown as the host on its page; its ground is not booked by this.')}>
             <select id="draw-host" className="gk-input" value={draft.hostClubId ?? ''} onChange={event => update({ hostClubId: event.target.value ? Number(event.target.value) : null })}>
                 <option value="">{t('No host club')}</option>
@@ -59,7 +59,7 @@ export function PlayersQuestion({ room }: { room: Room }) {
                 {ages.map(age => <option key={age} value={age}>{codeLabel(age)}</option>)}
             </select>
         </Field>
-        <div className="gk-field">
+        <div className="gk-field" data-dola-field="sideSize" data-dola-filled={String(rules.sideSize >= 3 && rules.sideSize <= 11)}>
             <span className="gk-field__label" id="draw-side-label">{t('Players per side')}</span>
             <div className="gk-step__row" role="group" aria-labelledby="draw-side-label">
                 {[5, 7, 9, 11].map(side => <button key={side} type="button" className="gk-chip" aria-pressed={rules.sideSize === side} onClick={() => updateRules({ sideSize: side })}>{side}v{side}</button>)}
@@ -86,7 +86,7 @@ export function FormatQuestion({ room }: { room: Room }) {
     const choose = (structure: Structure) => update({ rules: withFormat(draft.rules, FAMILY_OF[structure], structure) });
     const teams = (value: number) => update({ entryCap: Math.max(2, Math.min(32, value)) });
     return <>
-        <div className="gk-pick-tiles gk-draw__tiles" role="group" aria-label={t('Format')}>
+        <div className="gk-pick-tiles gk-draw__tiles" role="group" aria-label={t('Format')} data-dola-field="format" data-dola-filled={String(Boolean(draft.rules.structure))}>
             {TILES.map(({ structure, Icon }) => <button key={structure} type="button" className="gk-pick-tiles__tile" aria-pressed={draft.rules.structure === structure} onClick={() => choose(structure)}>
                 <Icon aria-hidden="true" /><span>{t(FORMAT_WORD[structure])}</span>
             </button>)}
@@ -97,7 +97,7 @@ export function FormatQuestion({ room }: { room: Room }) {
                 {MORE.map(structure => <option key={structure} value={structure}>{t(FORMAT_WORD[structure])}</option>)}
             </select>
         </Field>
-        <div className="gk-field" data-field="entryCap" tabIndex={-1} role="group" aria-labelledby="draw-teams-label">
+        <div className="gk-field" data-field="entryCap" data-dola-field="entryCap" data-dola-filled={String(draft.entryCap >= 2 && draft.entryCap <= 32)} tabIndex={-1} role="group" aria-labelledby="draw-teams-label">
             <span className="gk-field__label" id="draw-teams-label">{t('Teams')}</span>
             <div className="gk-draw__stepper" role="group" aria-labelledby="draw-teams-label">
                 <Button size="sm" variant="ghost" aria-label={t('Fewer teams')} onClick={() => teams(draft.entryCap - 1)}><Minus aria-hidden="true" /></Button>
@@ -156,7 +156,7 @@ export function ScopeQuestion({ room }: { room: Room }) {
     const { draft, update } = room;
     const youth = /^U\d+$/.test(draft.rules.ageGroup) && Number(draft.rules.ageGroup.slice(1)) <= 18;
     const items: { id: TournamentParticipantScope; label: string }[] = [{ id: 'CLUB', label: t('Clubs') }, { id: 'SQUAD', label: t('Squads') }, ...(youth ? [] : [{ id: 'PLAYER' as const, label: t('Players') }])];
-    return <div data-field="scope" tabIndex={-1} role="group" aria-label={t('Who enters')}>
+    return <div data-field="scope" data-dola-field="scope" data-dola-filled="true" tabIndex={-1} role="group" aria-label={t('Who enters')}>
         <Segmented label={t('Who enters')} value={draft.scope} onChange={scope => update({ scope })} items={items} />
         <p className="gk-field__hint">{youth ? t('Youth tournaments take club or squad entries; players enter on their own only as adults.')
             : draft.scope === 'PLAYER' ? t('Players enter themselves; you make the teams.') : draft.scope === 'SQUAD' ? t('A club enters one of its squads, named when it enters.') : t('A club enters; it may name the team that plays.')}</p>

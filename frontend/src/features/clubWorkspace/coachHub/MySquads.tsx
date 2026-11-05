@@ -69,7 +69,7 @@ export function MySquads({ data }: { data: CoachData }) {
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('mySquads')} subtitle={formatDate(new Date(data.now), { weekday: 'long', day: 'numeric', month: 'long' })}
             actions={coaches || posters.length ? <>{posters.length > 0 && <Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>}
-                {coaches && <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink>}</> : undefined} />
+                {coaches && <ButtonLink variant="primary" data-first-tip="squad-update" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink>}</> : undefined} />
         <ul className="ch-cards" aria-label={copy('mySquads')}>
             {data.mine.map(squad => <SquadCard key={squad.id} squad={squad} data={data} projects={projects} need={needs.find(need => need.squad === squad.id) ?? null} onCancel={session => setCancelling({ squad: squad.id, session })} />)}
             <li><Link className="ch-card ch-card--ask" to={data.link('coaches')}><Plus aria-hidden="true" />{copy('askSquad')}</Link></li>
@@ -168,7 +168,7 @@ function SquadCard({ squad, data, projects, need, onCancel }: { squad: RolesWork
             <ButtonLink size="sm" variant="primary" to={`/messages?squadId=${squad.id}`}><MessageCircle aria-hidden="true" />{copy('squadChat')}</ButtonLink>
             <Button size="sm" onClick={() => void openRoom()}><MessagesSquare aria-hidden="true" />{words('staffRoom')}</Button>
             {/* Already seeded with this squad and the home ground: only the opponent and the day are left to choose. */}
-            <ActionButton action="arrange_match" subject={{ kind: 'squad', id: squad.id, clubId: data.clubId }} size="sm" className="ch-card__arrange" label={copy('arrangeMatch')} />
+            <ActionButton action="arrange_match" firstTip="arrange-match" subject={{ kind: 'squad', id: squad.id, clubId: data.clubId }} size="sm" className="ch-card__arrange" label={copy('arrangeMatch')} />
             <RaiseMoneyForSquad board={projects} squadId={squad.id} />
         </div>
         {roomError && <p className="gk-notice gk-notice--danger ch-card__error" role="alert">{roomError}</p>}

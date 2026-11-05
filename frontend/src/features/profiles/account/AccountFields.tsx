@@ -24,8 +24,9 @@ export const Section = ({
     </section>
 );
 
-export const Field = ({ label, children }: { label: string; children: ReactNode }) => (
-    <label className="flex flex-col gap-1.5">
+/** @param dola the key Agent Dola's guide uses to frame this field ("help me fill out my profile"). */
+export const Field = ({ label, children, dola }: { label: string; children: ReactNode; dola?: string }) => (
+    <label className="flex flex-col gap-1.5" data-dola-field={dola}>
         <span className={labelClass}>{label}</span>
         {children}
     </label>

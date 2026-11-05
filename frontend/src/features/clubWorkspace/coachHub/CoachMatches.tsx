@@ -102,7 +102,7 @@ export function CoachMatches({ data }: { data: CoachData }) {
     const arranger = useFirstAllowed(data.shown.map(id => `squad:${id}` as const), 'arrange_match');
     const squadForMatch = arranger.subject ? Number(arranger.subject.split(':')[1]) : null;
     const arrange = (variant: 'primary' | 'secondary' = 'primary') => squadForMatch !== null
-        ? <ActionButton action="arrange_match" variant={variant} subject={{ kind: 'squad', id: squadForMatch, clubId: data.clubId }} /> : null;
+        ? <ActionButton action="arrange_match" firstTip="arrange-match" variant={variant} subject={{ kind: 'squad', id: squadForMatch, clubId: data.clubId }} /> : null;
 
     const page = (match: HistoryMatch, hash = '') => {
         const squad = ourSquad(match);

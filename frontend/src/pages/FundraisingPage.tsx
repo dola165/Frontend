@@ -50,7 +50,7 @@ export const FundraisingPage = () => {
                     <div className="gk-store-head__actions">
                         <ButtonLink to={fundraisingPath()}>{ct("Browse all")}</ButtonLink>
                         {personal && <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>}
-                        <ButtonLink variant="primary" to="/campaigns/new"><Plus aria-hidden="true" />{ct("Start a fundraiser")}</ButtonLink>
+                        <ButtonLink variant="primary" data-first-tip="start-fundraiser" to="/campaigns/new"><Plus aria-hidden="true" />{ct("Start a fundraiser")}</ButtonLink>
                     </div>
                 </div>
                 <div className="gk-store-stack">

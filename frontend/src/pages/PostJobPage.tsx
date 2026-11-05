@@ -35,6 +35,8 @@ const methods = (kind: 'CLUB' | 'PERSON', direction: JobDirection, category: str
 /**
  * Posting in three screens, for a club or for yourself: who you are and what you need (or offer); the title, the
  * story, the pay and the hours; how people answer. Published straight away.
+ * Agent Dola's vacancy guide frames each field by its id or `data-dola-field`, and the buttons by `data-dola-action`
+ * (backend `GuideTool.vacancySteps`): keep the keys when changing the form.
  */
 export const PostJobPage = () => {
     useCommerceCopy();
@@ -110,15 +112,15 @@ export const PostJobPage = () => {
                 <button type="button" className="gk-fund-start__tile" aria-pressed={offering} onClick={() => change({ direction: 'OFFERING', posterKind: 'PERSON' })}><UserCheck aria-hidden="true" /><strong>{ct("I’m available")}</strong><small>{ct("List yourself: a coach, a referee, a specialist")}</small></button>
             </div>}
             {side && <p className="gk-muted">{offering ? ct("Listing yourself as available.") : ct("Posting a job.")} <Link className="gk-section__action" to={offering ? '/jobs/new?as=hire' : '/jobs/new?as=work'} onClick={() => change({ direction: offering ? 'HIRING' : 'OFFERING', ...(offering ? {} : { posterKind: 'PERSON' as const }) })}>{offering ? ct("Post a job instead") : ct("List yourself instead")}</Link></p>}
-            {!offering && clubAllowed && <div className="gk-fund-start__chips" role="group" aria-label={ct("Posting as")}>
+            {!offering && clubAllowed && <div className="gk-fund-start__chips" role="group" aria-label={ct("Posting as")} data-dola-field="job-poster" data-dola-filled="true">
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'CLUB'} onClick={() => change({ posterKind: 'CLUB' })}>{ct("As ")}{club?.clubName}</button>
                 <button type="button" className="gk-chip" aria-pressed={posterKind === 'PERSON'} onClick={() => change({ posterKind: 'PERSON' })}>{ct("As myself")}</button>
             </div>}
             {!offering && !membership.error && !club?.hasClubMembership && <p className="gk-muted">{pt('Posting for a club?')} <CreateLink kind="CLUB" from="jobs" variant="text">{pt('Start your club')}</CreateLink></p>}
-            <div className="gk-fund-start__tiles" role="group" aria-label={ct("Line of work")}>
+            <div className="gk-fund-start__tiles" role="group" aria-label={ct("Line of work")} data-dola-field="job-category" data-dola-filled={draft.category ? 'true' : 'false'}>
                 {CATEGORIES.map(category => <button key={category.value} type="button" className="gk-fund-start__tile" aria-pressed={draft.category === category.value} onClick={() => change({ category: category.value })}><category.icon aria-hidden="true" /><strong>{ct(category.label)}</strong><small>{ct(category.line)}</small></button>)}
             </div>
-            <div className="gk-fund-start__foot"><ButtonLink variant="ghost" to="/jobs"><ArrowLeft aria-hidden="true" />{ct("Jobs")}</ButtonLink><Button variant="primary" disabled={!stepOneDone || !actorAllowed} onClick={() => go(2)}>{ct("Continue")}</Button></div>
+            <div className="gk-fund-start__foot"><ButtonLink variant="ghost" to="/jobs"><ArrowLeft aria-hidden="true" />{ct("Jobs")}</ButtonLink><Button variant="primary" disabled={!stepOneDone || !actorAllowed} data-dola-action="job-continue-1" onClick={() => go(2)}>{ct("Continue")}</Button></div>
         </>
         : step === 2 ? <>
             {steps}
@@ -134,18 +136,18 @@ export const PostJobPage = () => {
                 <Field label={ct("Where")} htmlFor="job-city" hint={ct("The town; the exact place comes later")}><input id="job-city" className="gk-input" maxLength={60} value={draft.city} placeholder={city} onChange={event => change({ city: event.target.value })} /></Field>
             </div>
             {draft.category === 'COACHING' && !offering && <Field label={ct("Licence needed")} htmlFor="job-licence" hint={ct("Optional")}><input id="job-licence" className="gk-input" maxLength={60} placeholder={ct("For example: UEFA C")} value={draft.licence} onChange={event => change({ licence: event.target.value })} /></Field>}
-            <div className="gk-fund-start__foot"><Button variant="ghost" onClick={() => go(1)}><ArrowLeft aria-hidden="true" />{ct("Back")}</Button><Button variant="primary" disabled={!stepTwoDone || !actorAllowed} onClick={() => go(3)}>{ct("Continue")}</Button></div>
+            <div className="gk-fund-start__foot"><Button variant="ghost" onClick={() => go(1)}><ArrowLeft aria-hidden="true" />{ct("Back")}</Button><Button variant="primary" disabled={!stepTwoDone || !actorAllowed} data-dola-action="job-continue-2" onClick={() => go(3)}>{ct("Continue")}</Button></div>
         </>
         : <>
             {steps}
             <div><h1>{ct("How do people reach you?")}</h1><p className="gk-fund-start__lead">{recruitment ? ct("Applications in the app land in your club workspace.") : applyMethod === 'IN_APP' ? 'Replies and outcomes stay on this listing.' : needsTarget ? 'This contact address or link is public.' : posterKind === 'CLUB' ? ct("Where people reach your club about it.") : ct("A message in the app keeps your details private.")}</p></div>
-            <div className="gk-fund-start__tiles" role="group" aria-label={ct("How to apply")} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            <div className="gk-fund-start__tiles" role="group" aria-label={ct("How to apply")} data-dola-field="job-apply" data-dola-filled="true" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 {offered.map(method => <button key={method.value} type="button" className="gk-fund-start__tile" aria-pressed={applyMethod === method.value} onClick={() => change({ applyMethod: method.value })}><strong>{ct(method.label)}</strong><small>{ct(method.line)}</small></button>)}
             </div>
             {needsTarget && <Field label={applyMethod === 'EMAIL' ? ct("Email address") : ct("Link")} htmlFor="job-target" hint={draft.applyTarget && !targetOk ? (applyMethod === 'EMAIL' ? ct("That is not an email address.") : ct("The link must start with https://")) : undefined}><input id="job-target" className="gk-input" type={applyMethod === 'EMAIL' ? 'email' : 'url'} placeholder={applyMethod === 'EMAIL' ? 'jobs@yourclub.ge' : 'https://…'} value={draft.applyTarget} onChange={event => change({ applyTarget: event.target.value })} /></Field>}
             <div className="gk-fund-start__club"><Briefcase aria-hidden="true" style={{ color: 'var(--gk-accent)' }} /><div><strong>{draft.title.trim()}</strong><small>{[ct(CATEGORIES.find(c => c.value === draft.category)?.label), draft.pay.trim() || ct(TERMS.find(t => t.value === draft.terms)?.label), city, posterKind === 'CLUB' ? ct("as {v0}", { v0: club?.clubName }) : ct("as yourself")].filter(Boolean).join(' · ')}</small></div></div>
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error} <ButtonLink variant="ghost" to="/account?tab=profile">Review account and profile visibility</ButtonLink></p>}
-            <div className="gk-fund-start__foot"><Button variant="ghost" disabled={saving} onClick={() => go(2)}><ArrowLeft aria-hidden="true" />{ct("Back")}</Button><Button variant="primary" disabled={saving || !actorAllowed || !stepOneDone || !stepTwoDone || !targetOk} onClick={() => void publish()}>{saving ? ct("Publishing…") : offering ? ct("List myself") : ct("Publish")}</Button></div>
+            <div className="gk-fund-start__foot"><Button variant="ghost" disabled={saving} onClick={() => go(2)}><ArrowLeft aria-hidden="true" />{ct("Back")}</Button><Button variant="primary" data-dola-action="publish-job" disabled={saving || !actorAllowed || !stepOneDone || !stepTwoDone || !targetOk} onClick={() => void publish()}>{saving ? ct("Publishing…") : offering ? ct("List myself") : ct("Publish")}</Button></div>
         </>}
         </>;
     return (

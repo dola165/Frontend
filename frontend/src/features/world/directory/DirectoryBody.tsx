@@ -24,9 +24,11 @@ import { ListSplit } from './ListSplit';
 import { arrangeGroups } from './groups';
 import { pinGroups } from './panelGroups';
 import { MapExtrasContext, type MapExtras } from './mapExtras';
+import { askedChoice } from './followChoice';
 import { DirectorySelectionContext } from './selection';
 import { useDirectoryData } from './useDirectoryData';
 import { useDirectoryMap } from './useDirectoryMap';
+import { useOutsideChoice } from './useOutsideChoice';
 import { usePlacedPoints } from './usePlacedPoints';
 import { useDirectorySelection } from './useDirectorySelection';
 import { CARRIED, SELECTED, type DirectoryState } from './useDirectoryState';
@@ -136,23 +138,28 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const live = typeof source.refreshMs === 'function' ? source.refreshMs(query) : source.refreshMs;
     const checked = live && data.checkedAt && count && !data.loading ? ` · ${t('checked {time}', { time: new Date(data.checkedAt).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }) })}` : '';
     const mappable = Boolean(source.place) && (source.mapped?.(query) ?? true) && !gated;
-    const placed = usePlacedPoints(source, data.items, mappable && stage.mapOpen);
+    // A chosen result the loaded pages do not hold joins them on the map and in the Browse area, so the map can fly to it.
+    const { items: mapItems } = useOutsideChoice(source, state.selected, data, mappable && stage.mapOpen);
+    const placed = usePlacedPoints(source, mapItems, mappable && stage.mapOpen);
     // Following the map, the panel lists only the results whose pin is on screen; the rest are counted, not lost.
     const { points: pins, pinOf, loading: placing } = placed;
     const onScreen = useMemo(() => {
-        if (!following || !view || !mappable || placing) return items;
+        if (!following || !view || !mappable || placing) return mapItems;
         const points = new Map(pins.map(point => [point.id, point]));
-        return items.filter(item => { const pin = pinOf.get(source.key(item)); const point = pin ? points.get(pin) : undefined; return point ? inView(point, view) : false; });
-    }, [following, view, mappable, placing, pins, pinOf, items, source]);
+        return mapItems.filter(item => { const pin = pinOf.get(source.key(item)); const point = pin ? points.get(pin) : undefined; return point ? inView(point, view) : false; });
+    }, [following, view, mappable, placing, pins, pinOf, mapItems, source]);
     const shown = onScreen === items ? data : { ...data, items: onScreen };
-    const offScreen = items.length - onScreen.length;
+    const offScreen = mapItems.length - onScreen.length;
     // The Browse area groups by where (each ground a pin) when the source asks, else by the list's own groups, leaving
     // out empty ones (an empty lane is the list's business) and, following the map, results off screen.
     const panelGroups = useMemo(() => source.panel === 'pin' ? (mappable ? pinGroups(onScreen, source.key, { points: pins, pinOf }, source.where) : undefined)
         : source.panel ? arrangeGroups(onScreen, source.panel) : groups?.map(group => ({ ...group, items: group.items.filter(item => onScreen.includes(item)) })).filter(group => group.items.length > 0),
         [source, mappable, onScreen, pins, pinOf, groups]);
-    const choice = useDirectorySelection({ state, keys: data.items.map(source.key), placed, panel: browse && !stage.panelFolded ? stage.panel : null, list: listRef });
-    const chosenItem = choice.chosen ? data.items.find(item => source.key(item) === choice.chosen) : undefined;
+    // A link that chose a result (a club Dola found) flies there each time it is followed.
+    const asked = askedChoice(location.state);
+    const choice = useDirectorySelection({ state, keys: mapItems.map(source.key), placed, panel: browse && !stage.panelFolded ? stage.panel : null, list: listRef,
+        asked: asked && asked === state.selected ? { key: asked, visit: location.key } : undefined });
+    const chosenItem = choice.chosen ? mapItems.find(item => source.key(item) === choice.chosen) : undefined;
     const reach = chosenItem && mappable ? source.reach?.(chosenItem) ?? undefined : undefined;
     // The chosen match's away day, from where the travelling side (or the viewer's club) comes; that place shows too.
     const viewerClub = session.membership?.clubId ? Number(session.membership.clubId) : null;

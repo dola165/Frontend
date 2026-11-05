@@ -12,7 +12,8 @@ import './actions.css';
  * with the likely answer chosen. While the checker answers it stands on the screen's own flag, dimmed. `look="row"`
  * is a boxed row with an arrow (Parent Hub's side column), `look="menu"` a menu item.
  */
-export function ActionButton({ action, subject, hints, fallback, variant = 'secondary', size = 'md', label, short = false, look = 'button', role, hint, className, at, onClick }: {
+export function ActionButton({ action, subject, hints, fallback, firstTip, variant = 'secondary', size = 'md', label, short = false, look = 'button', role, hint, className, at, onClick }: {
+    /** Pops this first-time tip on the first click (`data-first-tip`). */ firstTip?: string;
     action: ActionKey; subject?: ActionSubject; hints?: ActionHints; fallback?: boolean;
     variant?: 'primary' | 'secondary' | 'ghost'; size?: 'md' | 'sm'; label?: string; short?: boolean;
     look?: 'button' | 'row' | 'menu'; /** A menu item's role: `menuitem` in a menu, none in a sheet of links. */ role?: 'menuitem'; hint?: ReactNode; className?: string;
@@ -32,5 +33,5 @@ export function ActionButton({ action, subject, hints, fallback, variant = 'seco
         <span className="gk-action-row__text"><strong>{text}</strong>{hint && <small>{hint}</small>}</span>
         <ArrowRight aria-hidden="true" className="gk-action-row__arrow" />
     </Link>;
-    return <ButtonLink to={state.href} state={OPENED_HERE} variant={variant} size={size} className={`gk-action${className ? ` ${className}` : ''}`} aria-disabled={busy} onClick={onClick}>{icon}{text}</ButtonLink>;
+    return <ButtonLink data-first-tip={firstTip} to={state.href} state={OPENED_HERE} variant={variant} size={size} className={`gk-action${className ? ` ${className}` : ''}`} aria-disabled={busy} onClick={onClick}>{icon}{text}</ButtonLink>;
 }

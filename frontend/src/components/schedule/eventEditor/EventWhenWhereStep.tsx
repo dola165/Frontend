@@ -60,6 +60,7 @@ export function EventWhenWhereStep({ editor }: { editor: EventEditor }) {
                     </span>
                     <input
                         data-field="date"
+                        data-dola-field="event-date"
                         aria-label={t('schedule.event.date')}
                         type="date"
                         min={localDateISO()}
@@ -75,6 +76,7 @@ export function EventWhenWhereStep({ editor }: { editor: EventEditor }) {
                     </span>
                     <input
                         data-field="startTime"
+                        data-dola-field="event-start"
                         aria-label={t('schedule.editor.startTime')}
                         type="time"
                         value={start}
@@ -92,6 +94,7 @@ export function EventWhenWhereStep({ editor }: { editor: EventEditor }) {
                     </span>
                     <input
                         data-field="endTime"
+                        data-dola-field="event-end"
                         aria-label={t('schedule.editor.endTime')}
                         type="time"
                         value={end}
@@ -174,6 +177,7 @@ export function EventWhenWhereStep({ editor }: { editor: EventEditor }) {
                 <div className="schedule-compose-location-input">
                     <MapPin size={17} />
                     <input
+                        data-dola-field="event-location"
                         aria-label={t('schedule.event.location')}
                         value={form.locationName}
                         onChange={(event) => update('locationName', event.target.value)}

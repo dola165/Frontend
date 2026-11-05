@@ -111,7 +111,7 @@ function DrawRoom({ seed, ageHint }: { seed: string; ageHint: string }) {
                             <Button variant="ghost" type="button" onClick={() => setRestarting(false)}>{t('Keep it')}</Button>
                             <Button variant="danger" type="button" onClick={() => { room.restart(); setRestarting(false); }}>{t('Clear draft')}</Button>
                         </span> : drawStarted(draft) && <Button variant="ghost" type="button" disabled={sending.busy} onClick={() => setRestarting(true)}>{t('Start again')}</Button>}
-                        <Button variant="primary" type="submit" disabled={sending.busy || room.pending}>{sending.busy ? t('Creating…') : t('Create the tournament')}</Button>
+                        <Button variant="primary" type="submit" data-dola-action="create-tournament" disabled={sending.busy || room.pending}>{sending.busy ? t('Creating…') : t('Create the tournament')}</Button>
                     </div>
                 </footer>
             </form>

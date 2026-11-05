@@ -168,7 +168,7 @@ function OpenRoles({ clubId, pendingKey, currentUserId, canReviewAllApplications
     return <>
         <PageFrame className="cw-page cm-page" hidden={!!editing}>
             <PageHeader title={ct("Open roles")} subtitle={ct("Ongoing paid, volunteer or flexible roles at your club.")}
-                actions={<Button variant="primary" disabled={locked} onClick={() => setEditing('new')}><Plus aria-hidden="true" />{t('jobs.postJob')}</Button>} />
+                actions={<Button variant="primary" disabled={locked} data-first-tip="post-job" onClick={() => setEditing('new')}><Plus aria-hidden="true" />{t('jobs.postJob')}</Button>} />
             <div className="gk-stack">
                 {jobs !== null && jobs.length > 0 && <div className="rec-toolbar">
                     <SearchInput className="rec-toolbar__search" aria-label={ct("Search role postings")} placeholder={ct("Search role postings")} value={query} onChange={event => setQuery(event.target.value)} />

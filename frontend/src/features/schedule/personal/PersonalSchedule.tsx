@@ -103,7 +103,7 @@ function PersonalScheduleView() {
         <ScheduleBoard label="My schedule" range={range} entries={entries} loading={data.loading} error={data.error} onRetry={data.reload} onCreateAt={create}
             actions={<>
                 {data.squads.length > 0 && <ButtonLink size="sm" variant="ghost" to="/my-squads">Squad schedules</ButtonLink>}
-                <Button size="sm" variant="primary" onClick={() => create()}><Plus aria-hidden="true" />New event</Button>
+                <Button size="sm" variant="primary" data-first-tip="new-event" onClick={() => create()}><Plus aria-hidden="true" />New event</Button>
             </>}
             filters={<>
                 <div className="gk-chips" role="group" aria-label={copy('Show', 'ჩვენება')}>{typeFilters.map(filter => <Chip key={filter.id} pressed={type === filter.id} onClick={() => setFilter('type', filter.id)}>{copy(filter.label, filter.ka)}</Chip>)}</div>

@@ -12,7 +12,10 @@ import './fundraisingManagement.css';
 const empty: CampaignInput = { title: '', summary: '', description: '', beneficiary: '', useOfFunds: '', category: 'EQUIPMENT', currency: 'GEL', goalAmount: null, reportedAmount: null, reportedNote: '', startsOn: null, endsOn: null, images: [], donateUrl: null };
 type Draft = { input: CampaignInput; pending: { input: CampaignInput; request: string } | null };
 
-/** One account-scoped form; an uncertain save keeps its exact request for recovery. */
+/**
+ * One account-scoped form; an uncertain save keeps its exact request for recovery. Agent Dola's fundraiser guide frames
+ * the fields by `data-dola-field` and Save by `data-dola-action` (backend `GuideTool.fundraiserSteps`): keep the keys.
+ */
 export function AppealForm({ campaign, clubId, onSaved, onDirtyChange }: { campaign?: Campaign; clubId?: number; onSaved?: (campaign: Campaign) => void; onDirtyChange?: (dirty: boolean) => void }) {
     const { sessionId, isAuthenticated } = useAuth();
     // My appeals shows only while personal appeals are switched on (held back in release 17).
@@ -48,15 +51,15 @@ export function AppealForm({ campaign, clubId, onSaved, onDirtyChange }: { campa
     return <form className="gk-appeal-form" onSubmit={event => { event.preventDefault(); void save(); }}>
         <p>{clubId ? 'One appeal, linked to its project automatically. No squads or operations setup is needed.' : 'An appeal for yourself, under your adult public profile. No club membership is needed. Your profile name is the beneficiary; photos and child records are never imported.'}</p>
         <fieldset disabled={busy || draft.pending !== null}>
-            <label>Title<input required maxLength={120} value={input.title} onChange={e => edit({ title: e.target.value })} /></label>
-            <label>Short summary<input maxLength={240} value={input.summary} onChange={e => edit({ summary: e.target.value })} /></label>
-            <label>Why you need support<textarea maxLength={5000} rows={4} value={input.description} onChange={e => edit({ description: e.target.value })} /></label>
-            {clubId && <label>Beneficiary<input maxLength={240} value={input.beneficiary} onChange={e => edit({ beneficiary: e.target.value })} /></label>}
-            <label>How the funds will be used<textarea maxLength={2000} rows={2} value={input.useOfFunds} onChange={e => edit({ useOfFunds: e.target.value })} /></label>
+            <label>Title<input required maxLength={120} data-dola-field="fund-title" value={input.title} onChange={e => edit({ title: e.target.value })} /></label>
+            <label>Short summary<input maxLength={240} data-dola-field="fund-summary" value={input.summary} onChange={e => edit({ summary: e.target.value })} /></label>
+            <label>Why you need support<textarea maxLength={5000} rows={4} data-dola-field="fund-why" value={input.description} onChange={e => edit({ description: e.target.value })} /></label>
+            {clubId && <label>Beneficiary<input maxLength={240} data-dola-field="fund-beneficiary" value={input.beneficiary} onChange={e => edit({ beneficiary: e.target.value })} /></label>}
+            <label>How the funds will be used<textarea maxLength={2000} rows={2} data-dola-field="fund-use" value={input.useOfFunds} onChange={e => edit({ useOfFunds: e.target.value })} /></label>
             <div className="gk-appeal-form__row">
-                <label>Cause<select value={input.category} onChange={e => edit({ category: e.target.value })}>{CAMPAIGN_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
+                <label>Cause<select data-dola-field="fund-category" value={input.category} onChange={e => edit({ category: e.target.value })}>{CAMPAIGN_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
                 <label>Currency<select value={input.currency} onChange={e => edit({ currency: e.target.value, reportedAmount: null, reportedNote: '', goalAmount: null })}>{CURRENCIES.map(c => <option key={c}>{c}</option>)}</select></label>
-                <label>Target (optional)<input type="number" min="0.01" max="9999999999.99" step="0.01" value={input.goalAmount ?? ''} onChange={e => edit({ goalAmount: e.target.value ? Number(e.target.value) : null })} /></label>
+                <label>Target (optional)<input type="number" min="0.01" max="9999999999.99" step="0.01" data-dola-field="fund-goal" value={input.goalAmount ?? ''} onChange={e => edit({ goalAmount: e.target.value ? Number(e.target.value) : null })} /></label>
             </div>
             {campaign && input.currency !== campaign.currency && <p>Enter the target again in {input.currency}. Earlier reports keep their currency in history; amounts are not converted.</p>}
             <div className="gk-appeal-form__row">
@@ -71,7 +74,7 @@ export function AppealForm({ campaign, clubId, onSaved, onDirtyChange }: { campa
         </fieldset>
         <p>Supporters can contact the organizer to arrange giving outside GrassKickZ. No payment, receipt or refund is recorded here.</p>
         {error && <p role="alert">{error}</p>}
-        <div className="gk-appeal-actions"><Button type="submit" variant="primary" disabled={busy || !isAuthenticated}>{busy ? 'Saving…' : draft.pending ? 'Retry the same save' : campaign ? 'Save changes' : 'Save draft'}</Button>
+        <div className="gk-appeal-actions"><Button type="submit" variant="primary" data-dola-action="save-fundraiser" disabled={busy || !isAuthenticated}>{busy ? 'Saving…' : draft.pending ? 'Retry the same save' : campaign ? 'Save changes' : 'Save draft'}</Button>
             {ownAppeals && <ButtonLink to="/campaigns?mine=all">My appeals</ButtonLink>}
             {campaign && !draft.pending && <Button type="button" onClick={() => { reset(); setError(''); }}>Use the loaded server version</Button>}
         </div>

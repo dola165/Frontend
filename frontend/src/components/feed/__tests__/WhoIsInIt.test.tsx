@@ -34,6 +34,11 @@ describe('WhoIsInIt', () => {
         expect(screen.getByTestId('body')).toHaveTextContent('{"photoChildren":"NONE"}');
     });
 
+    it('says a personal post with no children in it goes as far as the post does', async () => {
+        api.get.mockResolvedValue({ data: { ask: true, clubId: 3, people: faces } });
+        render(<WhoIsInIt answer={{ children: 'NONE', people: [] }} onAnswer={vi.fn()} />);
+        expect(await screen.findByRole('status')).toHaveTextContent('goes as far as your post');
+    });
     it('warns when the caption names a child in the photo', async () => {
         api.get.mockResolvedValue({ data: { ask: true, clubId: 3, people: faces } });
         render(<Host caption="Teo scored twice" />);

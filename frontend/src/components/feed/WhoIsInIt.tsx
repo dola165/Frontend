@@ -12,7 +12,7 @@ interface Question { ask: boolean; clubId: number | null; people: Face[] }
 /**
  * "Who's in it?" under a photo: the faces of the squad, each showing whether their family has said yes, or "No children in
  * it". Nobody has to answer: the line under it says who will see the photo, whatever is chosen. Only the server decides
- * whether to ask, for a club with children or an adult who works or plays at one; for adult football it shows nothing.
+ * whether to ask, for a club with children or an adult who works or plays at one or has a child there; for adult football it shows nothing.
  */
 export function WhoIsInIt({ clubId, squadId, answer, onAnswer, caption = '' }: { clubId?: number | null; squadId?: number | null; answer: PhotoAnswer; onAnswer: (next: PhotoAnswer) => void; caption?: string }) {
     const copy = useJourneyCopy();
@@ -37,7 +37,8 @@ export function WhoIsInIt({ clubId, squadId, answer, onAnswer, caption = '' }: {
         onAnswer(people.length ? { children: 'NAMED', people } : NOT_ANSWERED);
     };
     const inCaption = named.find(face => { const first = face.name.trim().split(/\s+/)[0]; return first.length > 1 && caption.toLowerCase().includes(first.toLowerCase()); });
-    const outcome = answer.children === 'NONE' ? copy('The club’s followers can see this photo.', 'ამ ფოტოს კლუბის გამომწერები ნახავენ.')
+    const outcome = answer.children === 'NONE' && !clubId && !squadId ? copy('This photo goes as far as your post does.', 'ეს ფოტო ისე გავრცელდება, როგორც თქვენი პოსტი.')
+        : answer.children === 'NONE' ? copy('The club’s followers can see this photo.', 'ამ ფოტოს კლუბის გამომწერები ნახავენ.')
         : answer.children === 'NAMED' && !waiting ? copy('Every family said yes. The club’s followers can see this photo.', 'ყველა ოჯახი დათანხმდა. ამ ფოტოს კლუბის გამომწერები ნახავენ.')
         : answer.children === 'NAMED' ? copy(`Only the squad’s families and staff see it until ${waiting} more ${waiting === 1 ? 'family says' : 'families say'} yes.`, `ფოტოს მხოლოდ გუნდის ოჯახები და პერსონალი ნახავენ, სანამ კიდევ ${waiting} ოჯახი არ დათანხმდება.`)
         : copy('Not answered: only the squad’s families and staff see this photo.', 'პასუხი არ არის: ამ ფოტოს მხოლოდ გუნდის ოჯახები და პერსონალი ნახავენ.');

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Bot, ClipboardPaste, ExternalLink, GitBranch, GitCommitHorizontal, Link2, Paperclip, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Dialog } from '../../design/Dialog';
 import { Button, Skeleton } from '../../design/primitives';
@@ -9,13 +9,14 @@ import { PurposeChanged, PurposeLine } from './PurposeBits';
 import { QuestionRow } from './QuestionRow';
 import { EndPick, Field, KeyChip, NameField, PeoplePick, PersonPick, PriorityPick, ProgressPick, QuickEdit, SmallChip, SmallPick, StatusDot, StatusMenu } from './WorkBits';
 import { WorkComments } from '../../components/work/WorkComments';
+import { useFileDrop } from '../../components/work/useFileDrop';
 import { AttachButton, WorkMediaList } from './WorkMedia';
 import { useTaskUploads } from './useUploads';
 import { ReportDialog } from './ReportDialog';
 import { DiscussButton } from '../teamChat/DiscussButton';
 import { NotifyButton } from './NotifyButton';
 import { ago, day, endWords, madeBy, priorityName, progressWords, shortDate, statusName } from './teamWorkWords';
-import { taskAsText } from './planAsText';
+import { BriefDialog } from './BriefDialog';
 import { short } from './upToDate';
 
 const isConflict = (error: unknown) => (error as { response?: { status?: number } })?.response?.status === 409;
@@ -36,7 +37,6 @@ const KNOWN: Record<string, [string, string]> = {
     'Seen': ['Seen', 'ნანახია'], 'Acknowledged': ['Acknowledged', 'გაითვალისწინა'], 'Pushed to pending': ['Pushed to Waiting', 'გადავიდა მოლოდინში'], 'Made a task': ['Made a task', 'გახდა საქმე'],
     'Report pasted': ['Report pasted', 'ანგარიში ჩაისვა'], 'Updated from a paste': ['Updated from a paste', 'განახლდა ჩასმით'],
 };
-const hasFiles = (event: DragEvent) => [...event.dataTransfer.types].includes('Files');
 
 /** One line of history: who, when, how the status and percent moved, and what they wrote. */
 function HistoryLine({ update }: { update: WorkUpdate }) {
@@ -151,8 +151,8 @@ export interface PlaceOnPlan { first: boolean; last: boolean; onMove: (by: -1 | 
  * the page. Steps, links, the report, comments, history and the rest of the details are folded. A save made after a
  * colleague's is refused, and the person reloads with their words kept.
  */
-export function TaskView({ id, team, me, place, plan, candidates = [], framed = false, onOpen, onAddStep, onClose, onSaved, onDeleted }: {
-    id: number; team: Person[]; me?: number | null; place?: PlaceOnPlan; plan?: string; candidates?: WorkItem[]; framed?: boolean; onOpen: (id: number) => void; onAddStep?: () => void; onClose: () => void; onSaved: () => void; onDeleted?: () => void;
+export function TaskView({ id, team, me, place, candidates = [], framed = false, onOpen, onAddStep, onClose, onSaved, onDeleted }: {
+    id: number; team: Person[]; me?: number | null; place?: PlaceOnPlan; candidates?: WorkItem[]; framed?: boolean; onOpen: (id: number) => void; onAddStep?: () => void; onClose: () => void; onSaved: () => void; onDeleted?: () => void;
 }) {
     const copy = useJourneyCopy();
     const [detail, setDetail] = useState<Detail | null>(null);
@@ -163,11 +163,10 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
     const [revision, setRevision] = useState(0);
     const [deleting, setDeleting] = useState(false);
     const [reporting, setReporting] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [briefing, setBriefing] = useState(false);
     const [progressOpen, setProgressOpen] = useState(false);
     const [doneEditing, setDoneEditing] = useState(false);
     const [doneText, setDoneText] = useState('');
-    const [dragging, setDragging] = useState(0);
     const doneId = useId();
     const updateInput = useRef<HTMLInputElement>(null);
 
@@ -183,6 +182,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
     const put = (next: Detail) => { setDetail(next); setDraft(current => ({ ...draftOf(next.item), update: current?.update ?? '' })); };
     const patch = (part: Partial<Draft>) => setDraft(current => current && { ...current, ...part });
     const uploads = useTaskUploads(id, next => { put(next); onSaved(); });
+    const drop = useFileDrop(files => void uploads.upload(files));
     const changes = (): WorkChange | null => {
         if (!item || !draft) return null;
         const before = draftOf(item), result: WorkChange = { version: item.version };
@@ -213,7 +213,6 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
         catch (failure) { setConflict(isConflict(failure)); setError(extractApiErrorMessage(failure, copy('That couldn’t be saved.', 'ვერ შეინახა.'))); }
         finally { setSaving(false); }
     };
-    const onDrop = (event: DragEvent) => { event.preventDefault(); setDragging(0); if (event.dataTransfer.files.length) void uploads.upload([...event.dataTransfer.files]); };
 
     if (!item || !draft || !detail) return <div className="tw-detail" data-framed={framed || undefined} role="region" aria-label={copy('Task', 'საქმე')}>
         {error ? <p className="gk-notice gk-notice--danger" role="alert">{error}</p> : <div role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={96} /></div>}
@@ -221,15 +220,12 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
     const isStep = item.parentId != null;
     const hasSteps = detail.steps.length > 0;
     const hasReport = Boolean(item.tested || item.commits || item.branch || item.prUrl || detail.foundCommits.length);
-    const link = `${window.location.origin}/team-work?task=${item.parentId ?? item.id}${isStep ? `&step=${item.id}` : ''}`;
     const fromSteps = draft.percentFromSteps && hasSteps;
     const progress = fromSteps ? copy(draft.percent == null ? 'no percent, from its steps' : `${draft.percent}%, from its steps`, draft.percent == null ? 'პროცენტი არ არის, ნაბიჯებიდან' : `${draft.percent}%, ნაბიჯებიდან`)
         : draft.percent == null ? copy('no percent', 'პროცენტი არ არის') : progressWords(copy, draft.percent);
     const statusMoved = draft.status !== item.status;
-    return <div className="tw-detail" data-framed={framed || undefined} data-dragging={dragging > 0 || undefined} role="region" aria-label={`${item.key} ${item.title}`}
-        onDragEnter={event => { if (hasFiles(event)) { event.preventDefault(); setDragging(count => count + 1); } }} onDragOver={event => { if (hasFiles(event)) event.preventDefault(); }}
-        onDragLeave={event => { if (hasFiles(event)) setDragging(count => Math.max(0, count - 1)); }} onDrop={onDrop}>
-        {dragging > 0 && <div className="tw-drop-overlay" aria-hidden="true"><Paperclip />{copy('Drop to attach it to this task', 'ჩააგდეთ, რომ ამ საქმეს მიემაგროს')}</div>}
+    return <div className="tw-detail" data-framed={framed || undefined} data-dragging={drop.dragging || undefined} role="region" aria-label={`${item.key} ${item.title}`} {...drop.bind}>
+        {drop.dragging && <div className="tw-drop-overlay" aria-hidden="true"><Paperclip />{copy('Drop to attach it to this task', 'ჩააგდეთ, რომ ამ საქმეს მიემაგროს')}</div>}
         <div className="tw-detail__grid">
             <section className="tw-purpose" aria-label={copy('What it’s for', 'რისთვისაა')}>
                 {!framed && <div className="tw-detail__id"><StatusDot status={item.status} /><KeyChip value={item.key} /><span className="tw-detail__name">{item.title}</span><DiscussButton task={item} /></div>}
@@ -263,7 +259,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
                 </dl>
                 <div className="tw-detail__tools">
                     <NotifyButton item={item} team={team} me={me ?? null} onPut={next => { put(next); onSaved(); }} />
-                    <Button size="sm" variant="secondary" onClick={() => void navigator.clipboard?.writeText(taskAsText(detail, link, plan)).then(() => setCopied(true))}><Bot aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy for AI', 'კოპირება AI-სთვის')}</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setBriefing(true)}><Bot aria-hidden="true" />{copy('Copy for AI', 'კოპირება AI-სთვის')}</Button>
                     <Button size="sm" variant="ghost" onClick={() => setReporting(true)}><ClipboardPaste aria-hidden="true" />{copy('Paste report', 'ანგარიშის ჩასმა')}</Button>
                     {place && <>
                         <Button size="sm" iconOnly variant="ghost" disabled={place.first} aria-label={copy('Move up', 'ზემოთ')} onClick={() => place.onMove(-1)}><ArrowUp aria-hidden="true" /></Button>
@@ -303,6 +299,10 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
                 <WorkMediaList itemId={id} media={detail.media} onChanged={next => { put(next); onSaved(); }} />
             </section>
 
+            {detail.handoff && <details className="tw-section tw-fold">
+                <summary className="tw-section__title">{copy('Handoff', 'გადაბარება')} <span className="gk-faint">{[detail.handoff.by?.name, ago(copy, detail.handoff.at)].filter(Boolean).join(' · ')}</span></summary>
+                <p className="tw-report__text">{detail.handoff.text}</p>
+            </details>}
             {!isStep && (hasSteps || (onAddStep && !item.small)) && <details className="tw-section tw-fold" open={hasSteps}>
                 <summary className="tw-section__title">{copy('Steps', 'ნაბიჯები')} <span className="gk-faint gk-num">{detail.steps.length || ''}</span></summary>
                 {hasSteps && <ul className="tw-steps">{detail.steps.map(step => <li key={step.id}>
@@ -356,6 +356,7 @@ export function TaskView({ id, team, me, place, plan, candidates = [], framed = 
             </details>
         </div>
         {deleting && onDeleted && <DeleteDialog item={item} steps={detail.steps.length} onClose={() => setDeleting(false)} onDeleted={onDeleted} />}
+        {briefing && <BriefDialog itemId={item.id} itemKey={item.key} onClose={() => setBriefing(false)} />}
         {reporting && <ReportDialog item={item} onClose={() => setReporting(false)} onApplied={next => { setReporting(false); put(next); onSaved(); }} />}
     </div>;
 }

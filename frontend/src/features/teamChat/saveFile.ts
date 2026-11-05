@@ -2,7 +2,7 @@ import { API_BASE_URL, apiClient } from '../../api/axiosConfig';
 import { protectedMediaUrl } from '../../hooks/useMediaSource';
 import { zipLink, type ChatAttachment } from './api';
 
-const offer = (blob: Blob, name: string) => {
+export const offer = (blob: Blob, name: string) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

@@ -49,8 +49,8 @@ function ProjectRow({ project, live }: { project: Checked; live: boolean }) {
  * GrassKickZ copy with where it stands; the update message then names them. Where the browser cannot read folders, the
  * message alone finds and checks every copy.
  */
-export function ComputerCheck({ checked, folder, live, onFound, onCopy, copied }: {
-    checked: Checked[] | null; folder: string | null; live: boolean; onFound: (folder: string, projects: FoundProject[]) => void; onCopy: () => void; copied: boolean;
+export function ComputerCheck({ checked, folder, live, onFound, onCopy, copied, onCopyMove, copiedMove }: {
+    checked: Checked[] | null; folder: string | null; live: boolean; onFound: (folder: string, projects: FoundProject[]) => void; onCopy: () => void; copied: boolean; onCopyMove: () => void; copiedMove: boolean;
 }) {
     const copy = useJourneyCopy();
     const [busy, setBusy] = useState(false);
@@ -71,6 +71,7 @@ export function ComputerCheck({ checked, folder, live, onFound, onCopy, copied }
             <div className="tw-computer__actions">
                 {canScan() && <Button size="sm" onClick={() => void scan()} disabled={busy}><FolderSearch aria-hidden="true" />
                     {busy ? copy('Looking…', 'ვეძებ…') : checked ? copy('Check again', 'ხელახლა შემოწმება') : copy('Check my project folders', 'პროექტების საქაღალდის შემოწმება')}</Button>}
+                {checked?.some(project => project.state === 'OTHER_PROJECT') && <Button size="sm" onClick={onCopyMove}><Archive aria-hidden="true" />{copiedMove ? copy('Copied', 'დაკოპირდა') : copy('Copy the moving message', 'გადმოტანის ტექსტის კოპირება')}</Button>}
                 <Button size="sm" variant="primary" onClick={onCopy}><Copy aria-hidden="true" />{copied ? copy('Copied', 'დაკოპირდა') : copy('Copy the update message', 'განახლების ტექსტის კოპირება')}</Button>
             </div>
         </div>
@@ -84,7 +85,10 @@ export function ComputerCheck({ checked, folder, live, onFound, onCopy, copied }
                     'აირჩიეთ საქაღალდე, სადაც პროექტებია, მაგალითად IdeaProjects. იკითხება მხოლოდ საქაღალდეების სახელები და git-ის პატარა ფაილები; არაფერი იგზავნება.')
                 : copy('Paste the message into Claude or Codex on your computer: it finds every copy, keeps your work and brings it up to date.',
                     'ჩასვით ტექსტი Claude-ში ან Codex-ში თქვენს კომპიუტერზე: ის იპოვის ყველა ასლს, შეინახავს თქვენს ნამუშევარს და განაახლებს.')}</p>}
-        {checked && checked.length > 0 && <p className="tw-answer__line gk-faint">{copy('Paste the message into Claude or Codex on this computer. It backs up your own work first, updates our copies and brings work from a different project over to today’s code.',
-            'ჩასვით ტექსტი Claude-ში ან Codex-ში ამ კომპიუტერზე. ჯერ თქვენს ნამუშევარს შეინახავს, შემდეგ განაახლებს ჩვენს ასლებს და სხვა პროექტიდან ნამუშევარს დღევანდელ კოდზე გადმოიტანს.')}</p>}
+        {checked && checked.length > 0 && <p className="tw-answer__line gk-faint">{checked.some(project => project.state === 'OTHER_PROJECT')
+            ? copy('The update message backs up your own work and updates our copies; it leaves a different project alone. The moving message is for bringing that work over: it lists what’s there first.',
+                'განახლების ტექსტი ინახავს თქვენს ნამუშევარს და აახლებს ჩვენს ასლებს; სხვა პროექტს არ ეხება. გადმოტანის ტექსტი იმ ნამუშევრის გადმოსატანადაა: ჯერ ჩამოთვლის, რა არის იქ.')
+            : copy('Paste the message into Claude or Codex on this computer. It backs up your own work first, updates our copies and tells you what changed for you.',
+                'ჩასვით ტექსტი Claude-ში ან Codex-ში ამ კომპიუტერზე. ჯერ თქვენს ნამუშევარს შეინახავს, შემდეგ განაახლებს ჩვენს ასლებს და გეტყვით, რა შეიცვალა თქვენთვის.')}</p>}
     </section>;
 }

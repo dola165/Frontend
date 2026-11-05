@@ -11,7 +11,7 @@ import { TeamWorkPage } from './TeamWorkPage';
 import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 
 vi.mock('./api', async importOriginal => ({
-    ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
+    ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), fetchBrief: vi.fn(), fetchBriefPackage: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
     createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), fetchOutsideChats: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(), saveSeen: vi.fn(),
     addPlanStep: vi.fn(), removePlanStep: vi.fn(), setResponsibility: vi.fn(), fetchNow: vi.fn(), writeNow: vi.fn(), addNowComment: vi.fn(), editNowComment: vi.fn(), deleteNowComment: vi.fn(),
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
@@ -40,7 +40,7 @@ const steps = [item(11, 'Founders’ design', 'LIVE', 100, { parentId: 1 }), ite
 const started = (author: api.Person) => ({ id: 99, author, at: twoDaysAgo, message: 'Started' });
 const view = (tasks: api.WorkNode[], extra: Partial<api.PlanView> = {}): api.PlanView => ({
     plan: plan(5, 'October work'), tasks, steps: [], changes: [{ id: 1, author: beqa, at: now, message: 'Added Branding and landing' }, started(beqa)], purposeChanges: [],
-    trail: [], team, canManageTeam: true, ...extra,
+    trail: [], team, canManageTeam: true, media: [], ...extra,
 });
 const october = view([{ item: branding, steps }, { item: item(2, 'Registration', 'BLOCKED', 30, { step: 'Waiting for email provider', people: [gio] }), steps: [] },
     { item: item(3, 'Save button on phones', 'PLANNED', 0, { small: true }), steps: [] }]);
@@ -435,17 +435,16 @@ it('estimates progress in words, copies a task for AI with a way to answer, and 
     await userEvent.click(within(task).getByRole('button', { name: 'Save update' }));
     expect(api.changeWork).toHaveBeenCalledWith(1, { version: 0, percent: 50 });
 
+    // Copy for AI gathers the brief on the server, copies it and shows what went to the clipboard.
+    vi.mocked(api.fetchBrief).mockResolvedValueOnce({ key: 'GK-1', text: '# GK-1 Branding and landing\nreport: GK-1', files: 2, fileBytes: 3145728 });
     await userEvent.click(within(task).getByRole('button', { name: 'Copy for AI' }));
-    const brief = vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
-    expect(brief).toContain('Team work task GK-1: Branding and landing');
-    expect(brief).toContain('Done means: not written yet');
-    expect(brief).toContain('in the plan "October work"');
-    expect(brief).toContain('team-work?task=1');
-    expect(brief).toContain('Gio Beridze');
-    expect(brief).toContain('- [live] GK-11 Founders’ design (100%)');
-    expect(brief).toContain('Put the key GK-1 in every commit message');
-    expect(brief).toContain('report: GK-1');
-    expect(await within(task).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    const briefDialog = await screen.findByRole('dialog', { name: 'Copy for AI · GK-1' });
+    expect(await within(briefDialog).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(api.fetchBrief).toHaveBeenCalledWith(1, expect.anything());
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('# GK-1 Branding and landing\nreport: GK-1');
+    expect(within(briefDialog).getByLabelText('The brief, as text')).toHaveValue('# GK-1 Branding and landing\nreport: GK-1');
+    expect(within(briefDialog).getByRole('button', { name: 'Download with files (2, 3.0 MB)' })).toBeInTheDocument();
+    await userEvent.click(within(briefDialog).getAllByRole('button', { name: 'Close' })[0]);
 
     await userEvent.click(within(task).getByRole('button', { name: 'Delete' }));
     const confirm = screen.getByRole('dialog', { name: 'Delete this task?' });
@@ -570,12 +569,18 @@ it('says which release I am on and what I am missing, remembers what I saw, chec
 
     // The update message aims at what is live, names what was found, and the button copies exactly it.
     const message = screen.getByLabelText('The message for Claude or Codex') as HTMLTextAreaElement;
-    expect(message.value).toContain('The latest version is release 5');
-    expect(message.value).toContain('github.com/dola165/GrassKickZ, at least commit 148b8c6.');
+    expect(message.value).toContain('up to release 5 without losing anything');
+    expect(message.value).toContain('github.com/dola165/GrassKickZ, at commit 148b8c6 or newer.');
     expect(message.value).toContain('- IdeaProjects/GrassKickZ: backend, a detached HEAD at 9f8c21b; release 4, 1 change behind.');
-    expect(message.value).toContain('port my work, do not update it');
+    expect(message.value).toContain('a different project');
+    expect(message.value).toContain('leave it as it is');
     await userEvent.click(screen.getByRole('button', { name: 'Copy the update message' }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
+    // A different project was found, so the message for moving its work over is one press away.
+    const moving = screen.getByLabelText('The message for moving work') as HTMLTextAreaElement;
+    expect(moving.value).toContain('- IdeaProjects/AgentDola');
+    await userEvent.click(screen.getByRole('button', { name: 'Copy the moving message' }));
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(moving.value);
     Reflect.deleteProperty(window, 'showDirectoryPicker');
     await userEvent.click(screen.getByRole('button', { name: 'Overview' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');

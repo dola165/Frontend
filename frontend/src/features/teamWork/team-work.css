@@ -80,6 +80,11 @@ h2.tw-purpose__text { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); 
 .gk .tw-detail[data-dragging] { outline: 2px dashed var(--gk-accent); outline-offset: 6px; }
 .gk .tw-drop-overlay { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-accent) 10%, var(--gk-surface)); font-size: var(--gk-fs-lg); font-weight: 650; color: var(--gk-text); pointer-events: none; }
 .gk .tw-drop-overlay svg { width: 22px; height: 22px; color: var(--gk-accent); }
+/* A plan takes a file dropped anywhere on its page; the word stays in view on a long plan. */
+.gk .tw-plan-body { position: relative; display: flex; flex-direction: column; gap: var(--gk-5); min-width: 0; }
+.gk .tw-plan-body[data-dragging] { outline: 2px dashed var(--gk-accent); outline-offset: 6px; }
+.gk .tw-plan-body > .tw-drop-overlay { align-items: flex-start; }
+.gk .tw-drop-overlay__word { position: sticky; top: 40vh; display: inline-flex; align-items: center; gap: 10px; }
 .gk .tw-questions__list, .gk .tw-linked__list, .gk .tw-commits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-2); }
 /* A question for Beqa, the same row on the task and in Needs you: the symbol hangs before the words, answers follow. */
 .gk .tw-question { display: flex; flex-direction: column; gap: 6px; }

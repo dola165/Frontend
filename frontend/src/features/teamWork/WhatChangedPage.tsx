@@ -10,7 +10,7 @@ import { useDayTitle } from './useDayTitle';
 import { ComputerCheck } from './ComputerCheck';
 import { projectStanding, type FoundProject } from './computerScan';
 import { byDay, mergedBranch, missing, short, webHistory, type Commit, type Repo, type RepoKey } from './upToDate';
-import { updateMessage } from './updateMessage';
+import { moveWorkMessage, updateMessage, type Who } from './updateMessage';
 import { comparedWithLive, headline, liveSourceLine, newSince, standing, webBuild, type At, type Build, type Release, type Seen, type Standing, type Versions } from './whichVersion';
 import { ago } from './teamWorkWords';
 import './team-work-agenda.css';
@@ -68,9 +68,10 @@ function Answer({ s }: { s: Standing | null }) {
  * person's own computer: which GrassKickZ copies it holds and where each stands, and the message that updates them. Then
  * what is new since they last looked (remembered per person on the server) and, on a copy behind live, what it is
  * missing, in releases and their tasks. How it was worked out, every release and every
- * commit day by day are folded below. Never calls GitHub: each build carries its own history.
+ * commit day by day are folded below. Never calls GitHub: each build carries its own history. `who` makes the update
+ * message the person's own: what they work on, and so what changed for them.
  */
-export function WhatChangedPage() {
+export function WhatChangedPage({ who }: { who?: Who | null }) {
     const copy = useJourneyCopy();
     const dayTitle = useDayTitle();
     const [versions, setVersions] = useState<Versions | null>(null);
@@ -105,8 +106,11 @@ export function WhatChangedPage() {
     // Each copy found on this computer against the newest commits this page knows for its repository.
     const checked = found?.projects.map(project => ({ ...project, ...projectStanding(project, repos[project.kind === 'WEB' ? 'web' : 'backend'].commits ?? [], releases) })) ?? null;
     const liveRelease = s?.live.release != null ? releases.find(release => release.number === s.live.release) : undefined;
-    const prompt = updateMessage(liveRelease ? { release: liveRelease.number, backend: liveRelease.backend, web: liveRelease.web }
-        : { release: null, backend: repos.backend.commits?.[0]?.id ?? null, web: repos.web.commits?.[0]?.id ?? null }, found && checked ? { folder: found.folder, projects: checked } : null);
+    const target = liveRelease ? { release: liveRelease.number, backend: liveRelease.backend, web: liveRelease.web }
+        : { release: null, backend: repos.backend.commits?.[0]?.id ?? null, web: repos.web.commits?.[0]?.id ?? null };
+    const prompt = updateMessage(target, found && checked ? { folder: found.folder, projects: checked } : null, who);
+    const others = checked?.filter(project => project.state === 'OTHER_PROJECT') ?? [];
+    const moving = moveWorkMessage(target, others);
     const days = byDay(shown);
     // Whole days until about `rows` changes are shown, at least one day.
     let shownDays = 0, total = 0;
@@ -124,7 +128,7 @@ export function WhatChangedPage() {
         <Answer s={s} />
 
         <ComputerCheck checked={checked} folder={found?.folder ?? null} live={s?.place === 'LIVE'} onFound={(folder, projects) => setFound({ folder, projects })}
-            onCopy={copyPrompt} copied={copied === 'prompt'} />
+            onCopy={copyPrompt} copied={copied === 'prompt'} onCopyMove={() => copyText('move', moving)} copiedMove={copied === 'move'} />
 
         {fresh && (fresh.releases.length > 0 || before) && <section className="tw-block" aria-labelledby="tw-new">
             <h2 id="tw-new" className="tw-heading">{fresh.first ? copy(`What’s in release ${s?.release}`, `რა არის რელიზ ${s?.release}-ში`)
@@ -180,6 +184,13 @@ export function WhatChangedPage() {
         <details className="tw-section tw-fold">
             <summary className="tw-section__title">{copy('The update message', 'განახლების ტექსტი')}</summary>
             <textarea className="gk-input work-paste__text" readOnly rows={12} value={prompt} aria-label={copy('The message for Claude or Codex', 'ტექსტი Claude-სთვის ან Codex-ისთვის')} onFocus={event => event.target.select()} />
+        </details>
+
+        <details className="tw-section tw-fold">
+            <summary className="tw-section__title">{copy('Moving work out of an old project', 'ნამუშევრის გადმოტანა ძველი პროექტიდან')} <span className="gk-faint">{copy('such as the old AgentDola', 'მაგალითად ძველი AgentDola')}</span></summary>
+            <p className="gk-faint tw-answer__line">{copy('A job of its own. Claude or Codex first lists what you made and what’s missing from today’s code, then rebuilds only what you choose.', 'ცალკე საქმეა. Claude ან Codex ჯერ ჩამოთვლის, რა გააკეთეთ და რა აკლია დღევანდელ კოდს, შემდეგ კი მხოლოდ იმას ააწყობს, რასაც აირჩევთ.')}</p>
+            <textarea className="gk-input work-paste__text" readOnly rows={12} value={moving} aria-label={copy('The message for moving work', 'ტექსტი ნამუშევრის გადმოსატანად')} onFocus={event => event.target.select()} />
+            <span><Button size="sm" onClick={() => copyText('move', moving)}>{copied === 'move' ? copy('Copied', 'დაკოპირდა') : copy('Copy this message', 'ამ ტექსტის კოპირება')}</Button></span>
         </details>
     </div>;
 }

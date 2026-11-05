@@ -55,7 +55,11 @@ export interface Board { items: WorkItem[]; trail: WorkSwitch[]; canManageTeam: 
 /** What a plan or a task is for, changed: the old purpose stays beside the new one. */
 export interface PurposeChange { id: number; author: Person | null; at: string; previous: string | null; purpose: string | null; byDola?: boolean }
 /** A task opened: its history, steps, questions, the live commits naming its key, files, comments and how its purpose changed. */
-export interface Detail { item: WorkItem; updates: WorkUpdate[]; steps: WorkItem[]; questions: WorkQuestion[]; foundCommits: Commit[]; media: WorkMedia[]; comments: WorkComment[]; purposeChanges: PurposeChange[] }
+export interface Detail { item: WorkItem; updates: WorkUpdate[]; steps: WorkItem[]; questions: WorkQuestion[]; foundCommits: Commit[]; media: WorkMedia[]; comments: WorkComment[]; purposeChanges: PurposeChange[]; handoff?: Handoff | null }
+/** What the last person working on a task wrote for whoever continues; a pasted report sets it. */
+export interface Handoff { text: string; by: Person | null; at: string }
+/** Everything someone with no memory of the project needs to continue a task, and how many files come with it. */
+export interface Brief { key: string; text: string; files: number; fileBytes: number }
 /** Whether a plan is being worked on now, comes later, or is finished. */
 export type PlanStatus = 'NOW' | 'LATER' | 'FINISHED';
 /** The plan another plan is part of. */
@@ -74,7 +78,7 @@ export const openCount = (plan: Plan) => plan.taskCount - plan.done - (plan.canc
 export interface PlanChange { id: number; author: Person | null; at: string; message: string; byDola?: boolean }
 export interface WorkNode { item: WorkItem; steps: WorkItem[] }
 /** A plan opened: its tasks, the plans that are its steps (in order), its history and how its purpose changed. */
-export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
+export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean; media?: WorkMedia[] }
 /**
  * Someone on the team, with their one-line responsibility ("Agent Dola") and their Now note, with when they changed it.
  * `mail`: their notices also reach an inbox they confirmed; which inbox only they see.
@@ -90,7 +94,7 @@ export interface Invite { userId: number; email: string; token: string; expiresA
 export interface PasteLine { line: number; action: 'NEW' | 'UPDATED' | 'MOVED' | 'UNCHANGED' | 'DELETED'; title: string; parent: string | null; detail: string | null }
 export interface PasteResult { created: number; updated: number; moved: number; unchanged: number; deleted: number; lines: PasteLine[]; problems: string[]; applied: boolean; view: PlanView | null }
 /** One thing a report sets: the field, what happens to it and the value. */
-export interface ReportLine { field: 'status' | 'branch' | 'pr' | 'commits' | 'percent' | 'tested' | 'question' | 'summary'; action: 'SET' | 'SAME' | 'ADDED'; detail: string }
+export interface ReportLine { field: 'status' | 'branch' | 'pr' | 'commits' | 'percent' | 'tested' | 'question' | 'summary' | 'handoff'; action: 'SET' | 'SAME' | 'ADDED'; detail: string; key?: string }
 export interface ReportResult { lines: ReportLine[]; problems: string[]; applied: boolean; detail: Detail | null }
 
 export interface NewWork {
@@ -122,7 +126,21 @@ export const changePlan = (id: number, change: { version: number; name?: string;
 /** A plan as a step of another: one parent at most, never a cycle. */
 export const addPlanStep = (id: number, planId: number) => data(apiClient.post<PlanView>(`${base}/plans/${id}/steps`, { planId }));
 export const removePlanStep = (id: number, childId: number) => data(apiClient.delete<PlanView>(`${base}/plans/${id}/steps/${childId}`));
+/** What is dropped on a plan goes the way it goes on a task: a picture as a form, a video or a file as the request body, streamed to storage. */
+export const addPlanPicture = (planId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<PlanView>(`${base}/plans/${planId}/pictures`, form)); };
+export const addPlanVideo = (planId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<PlanView>(`${base}/plans/${planId}/videos`, file, {
+    headers: { 'Content-Type': file.type }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
+}));
+export const addPlanFile = (planId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<PlanView>(`${base}/plans/${planId}/files`, file, {
+    params: { name: file.name }, headers: { 'Content-Type': 'application/octet-stream' }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
+}));
+export const deletePlanMedia = (planId: number, mediaId: number) => data(apiClient.delete<PlanView>(`${base}/plans/${planId}/media/${mediaId}`));
+export const planPlayLink = (planId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/plans/${planId}/media/${mediaId}/play`));
 export const pasteIntoPlan = (id: number, text: string, apply: boolean) => data(apiClient.post<PasteResult>(`${base}/plans/${id}/paste`, { text, apply }));
+/** Copy for AI: the task as a brief for someone with no memory of the project. */
+export const fetchBrief = (itemId: number, signal?: AbortSignal) => data(apiClient.get<Brief>(`${base}/items/${itemId}/brief`, { signal }));
+/** The brief and the task's files as one zip. */
+export const fetchBriefPackage = (itemId: number) => data(apiClient.get<Blob>(`${base}/items/${itemId}/brief/package`, { responseType: 'blob', timeout: 0 }));
 /** A worker's report onto a task: a preview first, then apply. */
 export const pasteReport = (itemId: number, text: string, apply: boolean) => data(apiClient.post<ReportResult>(`${base}/items/${itemId}/report`, { text, apply }));
 export const askQuestion = (itemId: number, text: string, options: string[]) => data(apiClient.post<Detail>(`${base}/items/${itemId}/questions`, { text, options }));
@@ -201,7 +219,13 @@ summary: Sign-up with a code works; the parent step is next.
 tested: unit tests and npm run check green; signed up on a phone.
   Not run: the e-mail provider in test mode (no key on this PC).
 question: Should the code expire after 10 minutes or 30? | 10 | 30
-question: Is the parent step needed for 16–17 too?`;
+question: Is the parent step needed for 16–17 too?
+handoff: For whoever continues, on as many lines as it takes: what really works, what's left,
+each branch and how to run it, what was tried and dropped, the exact next thing to do.
+
+report: GK-13
+status: needs your look
+summary: The parent step is built; it needs a look.`;
 
 /** The tasks of the week the board opened with, approximate; a system admin loads them once. */
 export const STARTER_WORK: NewWork[] = [
